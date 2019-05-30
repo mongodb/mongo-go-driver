@@ -186,7 +186,7 @@ func appendPrettyObject(buf, json []byte, i int, open, close byte, pretty bool, 
 		if open == '[' || json[i] == '"' {
 			if n > 0 {
 				buf = append(buf, ',')
-				if width != -1 {
+				if width != -1 && open == '[' {
 					buf = append(buf, ' ')
 				}
 			}

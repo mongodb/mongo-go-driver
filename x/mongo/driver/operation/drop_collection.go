@@ -31,8 +31,7 @@ type DropCollection struct {
 	deployment   driver.Deployment
 	selector     description.ServerSelector
 	writeConcern *writeconcern.WriteConcern
-
-	result DropCollectionResult
+	result       DropCollectionResult
 }
 
 type DropCollectionResult struct {
@@ -50,21 +49,18 @@ func buildDropCollectionResult(response bsoncore.Document, srvr driver.Server) (
 	dcr := DropCollectionResult{}
 	for _, element := range elements {
 		switch element.Key() {
-
+		case "nIndexesWas":
+			var ok bool
+			dcr.NIndexesWas, ok = element.Value().AsInt32OK()
+			if !ok {
+				err = fmt.Errorf("response field 'nIndexesWas' is type int32, but received BSON type %s", element.Value().Type)
+			}
 		case "ns":
 			var ok bool
 			dcr.Ns, ok = element.Value().StringValueOK()
 			if !ok {
 				err = fmt.Errorf("response field 'ns' is type string, but received BSON type %s", element.Value().Type)
 			}
-
-		case "nIndexesWas":
-			var ok bool
-			dcr.NIndexesWas, ok = element.Value().Int32OK()
-			if !ok {
-				err = fmt.Errorf("response field 'nIndexesWas' is type int32, but received BSON type %s", element.Value().Type)
-			}
-
 		}
 	}
 	return dcr, nil
@@ -80,10 +76,8 @@ func (dc *DropCollection) Result() DropCollectionResult { return dc.result }
 
 func (dc *DropCollection) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
 	var err error
-
 	dc.result, err = buildDropCollectionResult(response, srvr)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
@@ -95,21 +89,19 @@ func (dc *DropCollection) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         dc.command,
 		ProcessResponseFn: dc.processResponse,
-
-		Client:         dc.session,
-		Clock:          dc.clock,
-		CommandMonitor: dc.monitor,
-		Database:       dc.database,
-		Deployment:     dc.deployment,
-		Selector:       dc.selector,
-		WriteConcern:   dc.writeConcern,
+		Client:            dc.session,
+		Clock:             dc.clock,
+		CommandMonitor:    dc.monitor,
+		Database:          dc.database,
+		Deployment:        dc.deployment,
+		Selector:          dc.selector,
+		WriteConcern:      dc.writeConcern,
 	}.Execute(ctx, nil)
 
 }
 
 func (dc *DropCollection) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "drop", dc.collection)
-
 	return dst, nil
 }
 
