@@ -182,6 +182,9 @@ func TestDatabase_NilDocumentError(t *testing.T) {
 
 	_, err = db.ListCollections(context.Background(), nil)
 	require.Equal(t, err, ErrNilDocument)
+
+	_, err = db.ListCollectionNames(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
 }
 
 func TestDatabase_Drop(t *testing.T) {
@@ -318,6 +321,70 @@ func listCollectionsTest(db *Database, cappedOnly bool, cappedName, uncappedName
 
 	return err // all tests failed
 }
+
+func listCollectionNames_noFilter(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	dbName := "listDatabasesNames_noFilter"
+
+	c := createTestClient(t)
+	db := c.Database(dbName)
+	coll := db.Collection("test")
+
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
+		context.Background(),
+		bsonx.Doc{{"x", bsonx.Int32(1)}},
+	)
+	require.NoError(t, err)
+
+	dbs, err := db.ListCollectionNames(context.Background(), bsonx.Doc{})
+	found := false
+
+	for _, name := range dbs {
+		if name == dbName {
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+}
+
+func listCollectionNames_filter(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	skipIfBelow36(t)
+
+	dbName := "listCollectionNames_filter"
+
+	c := createTestClient(t)
+	db := c.Database(dbName)
+	coll := db.Collection("test")
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
+		context.Background(),
+		bsonx.Doc{{"x", bsonx.Int32(1)}},
+	)
+	require.NoError(t, err)
+
+	dbs, err := db.ListCollectionNames(
+		context.Background(),
+		bsonx.Doc{{"name", bsonx.Regex(dbName, "")}},
+	)
+
+	require.NoError(t, err)
+	require.Len(t, dbs, 1)
+	require.Equal(t, dbName, dbs[0])
+}
+
 
 // get the connection string for a direct connection to a secondary in a replica set
 func getSecondaryConnString(t *testing.T) connstring.ConnString {
