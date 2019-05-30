@@ -876,6 +876,11 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 		return nil, err
 	}
 
+	if isOpQuery && serverKind != description.Mongos {
+		// Don't send read preference for non-mongos when using OP_QUERY
+		return nil, nil
+	}
+
 	if rp == nil {
 		if topologyKind == description.Single && serverKind != description.Mongos {
 			doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
