@@ -424,6 +424,58 @@ func TestOperation(t *testing.T) {
 			}
 		})
 	})
+	t.Run("$query to mongos only", func(t *testing.T) {
+		testCases := []struct {
+			name   string
+			server description.ServerKind
+			topo   description.TopologyKind
+			rp     *readpref.ReadPref
+			want   bool
+		}{
+			{"mongos/primaryPreferred", description.Mongos, description.Sharded, readpref.PrimaryPreferred(), true},
+			{"mongos/primary", description.Mongos, description.Sharded, readpref.Primary(), false},
+			{"primary/primaryPreferred", description.RSPrimary, description.ReplicaSet, readpref.PrimaryPreferred(), false},
+			{"primary/primary", description.RSPrimary, description.ReplicaSet, readpref.Primary(), false},
+			{"secondary/primaryPreferred", description.RSSecondary, description.ReplicaSet, readpref.PrimaryPreferred(), false},
+			{"secondary/primary", description.RSSecondary, description.ReplicaSet, readpref.Primary(), false},
+			{"none/none", description.ServerKind(0), description.TopologyKind(0), nil, false},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				conn := new(mockConnection)
+
+				op := Operation{
+					Database:   "foobar",
+					Deployment: SingleConnectionDeployment{C: conn},
+					CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+						dst = bsoncore.AppendInt32Element(dst, "ping", 1)
+						return dst, nil
+					},
+					ReadPreference: tc.rp,
+				}
+				var wm []byte
+				desc := description.SelectedServer{
+					Kind: tc.topo,
+					Server: description.Server{
+						Kind: tc.server,
+					},
+				}
+				wm, _, err := op.createQueryWireMessage(wm, desc)
+				noerr(t, err)
+
+				// We know where the $query would be within the OP_QUERY, so we'll just index into there.
+				// 16 (msg header) + 4 (flags) + 12 (foobar.$cmd) + 4 (number to skip) + 4 (number to return) + 4 (length) + 1 (document type)
+				if len(wm) < 45 {
+					t.Fatalf("wire message is too short. Need at least 40 bytes, but only have %d", len(wm))
+				}
+				got := bytes.HasPrefix(wm[45:], []byte{'$', 'q', 'u', 'e', 'r', 'y', 0x00})
+				if got != tc.want {
+					t.Errorf("Wiremessage did not have the proper setting for $query. got %t; want %t", got, tc.want)
+				}
+			})
+		}
+	})
 }
 
 type mockDeployment struct {
