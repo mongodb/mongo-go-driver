@@ -32,7 +32,7 @@ func (op Operation) PackageName() string { return op.pkg }
 
 // Generate creates the operation type and associated response types and writes them to w.
 func (op Operation) Generate(w io.Writer) error {
-	t, err := template.New("operation").Parse(typeTemplate)
+	t, err := template.New(op.Name + " operation").Parse(typeTemplate)
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func (op Operation) CommandMethod() (string, error) {
 		case "document":
 			tmpl = commandParamDocumentTmpl
 		case "array":
-			tmpl = commandParamArrayImpl
+			tmpl = commandParamArrayTmpl
 		case "boolean":
 			tmpl = commandParamBooleanTmpl
 		case "int32":
@@ -185,7 +185,7 @@ func (op Operation) CommandMethod() (string, error) {
 		case "document":
 			tmpl = commandParamDocumentTmpl
 		case "array":
-			tmpl = commandParamArrayImpl
+			tmpl = commandParamArrayTmpl
 		case "boolean":
 			tmpl = commandParamBooleanTmpl
 		case "int32":
@@ -657,9 +657,18 @@ const (
 
 // BuildMethod handles creating the body of a method to create a response from a BSON response
 // document.
+//
+// TODO(GODRIVER-1094): This method is hacky because we're not using nested templates like we should
+// be. Each template should be registered and we should be calling the template to create it.
 func (r Response) BuildMethod() (string, error) {
 	var buf bytes.Buffer
-	for name, field := range r.Field {
+	names := make([]string, 0, len(r.Field))
+	for name := range r.Field {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		field := r.Field[name]
 		var tmpl *template.Template
 		switch field.Type {
 		case "boolean":
