@@ -143,7 +143,7 @@ func (op Operation) CommandMethod() (string, error) {
 		case "document":
 			tmpl = commandParamDocumentTmpl
 		case "array":
-			tmpl = commandParamArrayImpl
+			tmpl = commandParamArrayTmpl
 		case "boolean":
 			tmpl = commandParamBooleanTmpl
 		case "int32":
@@ -185,7 +185,7 @@ func (op Operation) CommandMethod() (string, error) {
 		case "document":
 			tmpl = commandParamDocumentTmpl
 		case "array":
-			tmpl = commandParamArrayImpl
+			tmpl = commandParamArrayTmpl
 		case "boolean":
 			tmpl = commandParamBooleanTmpl
 		case "int32":
@@ -657,6 +657,9 @@ const (
 
 // BuildMethod handles creating the body of a method to create a response from a BSON response
 // document.
+//
+// TODO(GODRIVER-1094): This method is hacky because we're not using nested templates like we should
+// be. Each template should be registered and we should be calling the template to create it.
 func (r Response) BuildMethod() (string, error) {
 	var buf bytes.Buffer
 	for name, field := range r.Field {

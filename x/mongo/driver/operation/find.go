@@ -54,8 +54,7 @@ type Find struct {
 	readConcern         *readconcern.ReadConcern
 	readPreference      *readpref.ReadPref
 	selector            description.ServerSelector
-
-	result driver.CursorResponse
+	result              driver.CursorResponse
 }
 
 // NewFind constructs and returns a new Find.
