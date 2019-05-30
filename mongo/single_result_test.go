@@ -54,24 +54,41 @@ func TestSingleResult(t *testing.T) {
 			}
 
 			sr := &SingleResult{cur: c, reg: bson.DefaultRegistry, rdr: true}
-
 			res, err := sr.HasResult()
 
 			if !res {
-				t.Fatalf("HasResult returned had")
+				t.Fatalf("HasResult returned an unexpected result - expected: %t, actual: %t", true, res)
 			}
 
-
-
-
+			if err != nil {
+				t.Fatalf("HasResult returned an error when successful execution was expected: %s", err.Error())
+			}
 
 		})
 
 		t.Run("false", func(t *testing.T) {
 
+			c, err := newCursor(newTestBatchCursor(1, 1), bson.DefaultRegistry)
+			if err != nil {
+				t.Fatalf("error creating cursor: %v", err)
+			}
+
+			sr := &SingleResult{cur: c, reg: bson.DefaultRegistry, rdr: false}
+			res, err := sr.HasResult()
+
+			if res {
+				t.Fatalf("HasResult returned an unexpected result - expected: %t, actual: %t", true, res)
+			}
+
+			if err != nil {
+				t.Fatalf("HasResult returned an error when successful execution was expected: %s", err.Error())
+			}
+
 		})
 
 		t.Run("err", func(t *testing.T) {
+
+			
 
 		})
 	})
