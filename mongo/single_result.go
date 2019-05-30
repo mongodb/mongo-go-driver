@@ -84,6 +84,17 @@ func (sr *SingleResult) setRdrContents() error {
 	return ErrNoDocuments
 }
 
+// HasResult returns true if the single result has bytes for a result.
+// If there was an error running the command that generated this result, the error will be returned
+func (sr *SingleResult) HasResult() (bool, error) {
+	err := sr.setRdrContents()
+	if err != nil {
+		return false, replaceErrors(err)
+	}
+
+	return sr.rdr != nil, nil
+}
+
 // Err will return the error from the operation that created this SingleResult.
 // If there was no error, nil is returned.
 func (sr *SingleResult) Err() error {

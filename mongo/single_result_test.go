@@ -45,4 +45,35 @@ func TestSingleResult(t *testing.T) {
 			}
 		})
 	})
+
+	t.Run("HasResult", func(t *testing.T) {
+		t.Run("true", func(t *testing.T) {
+			c, err := newCursor(newTestBatchCursor(1, 1), bson.DefaultRegistry)
+			if err != nil {
+				t.Fatalf("error creating cursor: %v", err)
+			}
+
+			sr := &SingleResult{cur: c, reg: bson.DefaultRegistry, rdr: true}
+
+			res, err := sr.HasResult()
+
+			if !res {
+				t.Fatalf("HasResult returned had")
+			}
+
+
+
+
+
+		})
+
+		t.Run("false", func(t *testing.T) {
+
+		})
+
+		t.Run("err", func(t *testing.T) {
+
+		})
+	})
+
 }
