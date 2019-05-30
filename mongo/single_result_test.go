@@ -45,4 +45,12 @@ func TestSingleResult(t *testing.T) {
 			}
 		})
 	})
+
+	t.Run("TestErr", func(t *testing.T) {
+		sr := &SingleResult{}
+		err := sr.Err()
+		if err != ErrNoDocuments {
+			t.Fatalf("Error returned by SingleResult.Err() was %v when ErrNoDocuments was expected", err.Error())
+		}
+	})
 }
