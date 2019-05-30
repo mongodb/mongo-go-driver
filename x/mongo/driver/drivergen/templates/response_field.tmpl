@@ -1,0 +1,35 @@
+{{define "responseFieldInt64" -}}
+case "{{$.ResponseName}}":
+    var ok bool
+    {{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().Int64OK()
+    if !ok {
+        err = fmt.Errorf("response field '{{$.ResponseName}}' is type int64, but received BSON type %s", element.Value().Type)
+    }
+{{- end}}
+
+{{define "responseFieldInt32" -}}
+case "{{$.ResponseName}}":
+    var ok bool
+    {{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().Int32OK()
+    if !ok {
+        err = fmt.Errorf("response field '{{$.ResponseName}}' is type int32, but received BSON type %s", element.Value().Type)
+    }
+{{- end}}
+
+{{define "responseFieldBoolean" -}}
+case "{{$.ResponseName}}":
+    var ok bool
+    {{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().BooleanOK()
+    if !ok {
+        err = fmt.Errorf("response field '{{$.ResponseName}}' is type bool, but received BSON type %s", element.Value().Type)
+    }
+{{- end}}
+
+{{define "responseFieldString" -}}
+case "{{$.ResponseName}}":
+    var ok bool
+    {{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().StringValueOK()
+    if !ok {
+        err = fmt.Errorf("response field '{{$.ResponseName}}' is type string, but received BSON type %s", element.Value().Type)
+    }
+{{- end}}
