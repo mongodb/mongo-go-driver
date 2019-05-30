@@ -31,8 +31,7 @@ type ListCollections struct {
 	deployment     driver.Deployment
 	readPreference *readpref.ReadPref
 	selector       description.ServerSelector
-
-	result driver.CursorResponse
+	result         driver.CursorResponse
 }
 
 // NewListCollections constructs and returns a new ListCollections.
@@ -44,11 +43,7 @@ func NewListCollections(filter bsoncore.Document) *ListCollections {
 
 // Result returns the result of executing this operation.
 func (lc *ListCollections) Result(opts driver.CursorOptions) (*driver.ListCollectionsBatchCursor, error) {
-
-	clientSession := lc.session
-
-	clock := lc.clock
-	bc, err := driver.NewBatchCursor(lc.result, clientSession, clock, opts)
+	bc, err := driver.NewBatchCursor(lc.result, lc.session, lc.clock, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +56,8 @@ func (lc *ListCollections) Result(opts driver.CursorOptions) (*driver.ListCollec
 
 func (lc *ListCollections) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
 	var err error
-
 	lc.result, err = driver.NewCursorResponse(response, srvr, desc)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
@@ -76,30 +69,27 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         lc.command,
 		ProcessResponseFn: lc.processResponse,
-
-		Client:         lc.session,
-		Clock:          lc.clock,
-		CommandMonitor: lc.monitor,
-		Database:       lc.database,
-		Deployment:     lc.deployment,
-		ReadPreference: lc.readPreference,
-		Selector:       lc.selector,
-		Legacy:         driver.LegacyListCollections,
+		Client:            lc.session,
+		Clock:             lc.clock,
+		CommandMonitor:    lc.monitor,
+		Database:          lc.database,
+		Deployment:        lc.deployment,
+		ReadPreference:    lc.readPreference,
+		Selector:          lc.selector,
+		Legacy:            driver.LegacyListCollections,
 	}.Execute(ctx, nil)
 
 }
 
 func (lc *ListCollections) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
+
 	dst = bsoncore.AppendInt32Element(dst, "listCollections", 1)
 	if lc.filter != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "filter", lc.filter)
 	}
 	if lc.nameOnly != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "nameOnly", *lc.nameOnly)
 	}
-
 	return dst, nil
 }
 

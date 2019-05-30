@@ -54,8 +54,7 @@ type Find struct {
 	readConcern         *readconcern.ReadConcern
 	readPreference      *readpref.ReadPref
 	selector            description.ServerSelector
-
-	result driver.CursorResponse
+	result              driver.CursorResponse
 }
 
 // NewFind constructs and returns a new Find.
@@ -67,19 +66,13 @@ func NewFind(filter bsoncore.Document) *Find {
 
 // Result returns the result of executing this operation.
 func (f *Find) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
-
-	clientSession := f.session
-
-	clock := f.clock
-	return driver.NewBatchCursor(f.result, clientSession, clock, opts)
+	return driver.NewBatchCursor(f.result, f.session, f.clock, opts)
 }
 
 func (f *Find) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
 	var err error
-
 	f.result, err = driver.NewCursorResponse(response, srvr, desc)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
@@ -91,16 +84,15 @@ func (f *Find) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         f.command,
 		ProcessResponseFn: f.processResponse,
-
-		Client:         f.session,
-		Clock:          f.clock,
-		CommandMonitor: f.monitor,
-		Database:       f.database,
-		Deployment:     f.deployment,
-		ReadConcern:    f.readConcern,
-		ReadPreference: f.readPreference,
-		Selector:       f.selector,
-		Legacy:         driver.LegacyFind,
+		Client:            f.session,
+		Clock:             f.clock,
+		CommandMonitor:    f.monitor,
+		Database:          f.database,
+		Deployment:        f.deployment,
+		ReadConcern:       f.readConcern,
+		ReadPreference:    f.readPreference,
+		Selector:          f.selector,
+		Legacy:            driver.LegacyFind,
 	}.Execute(ctx, nil)
 
 }
@@ -108,93 +100,71 @@ func (f *Find) Execute(ctx context.Context) error {
 func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "find", f.collection)
 	if f.allowPartialResults != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "allowPartialResults", *f.allowPartialResults)
 	}
 	if f.awaitData != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "awaitData", *f.awaitData)
 	}
 	if f.batchSize != nil {
-
 		dst = bsoncore.AppendInt32Element(dst, "batchSize", *f.batchSize)
 	}
 	if f.collation != nil {
-
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
 			return nil, errors.New("the 'collation' command parameter requires a minimum server wire version of 5")
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", f.collation)
 	}
 	if f.comment != nil {
-
 		dst = bsoncore.AppendStringElement(dst, "comment", *f.comment)
 	}
 	if f.filter != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "filter", f.filter)
 	}
 	if f.hint.Type != bsontype.Type(0) {
-
 		dst = bsoncore.AppendValueElement(dst, "hint", f.hint)
 	}
 	if f.limit != nil {
-
 		dst = bsoncore.AppendInt64Element(dst, "limit", *f.limit)
 	}
 	if f.max != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "max", f.max)
 	}
 	if f.maxTimeMS != nil {
-
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *f.maxTimeMS)
 	}
 	if f.min != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "min", f.min)
 	}
 	if f.noCursorTimeout != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "noCursorTimeout", *f.noCursorTimeout)
 	}
 	if f.oplogReplay != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "oplogReplay", *f.oplogReplay)
 	}
 	if f.projection != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "projection", f.projection)
 	}
 	if f.returnKey != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "returnKey", *f.returnKey)
 	}
 	if f.showRecordID != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "showRecordId", *f.showRecordID)
 	}
 	if f.singleBatch != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "singleBatch", *f.singleBatch)
 	}
 	if f.skip != nil {
-
 		dst = bsoncore.AppendInt64Element(dst, "skip", *f.skip)
 	}
 	if f.snapshot != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "snapshot", *f.snapshot)
 	}
 	if f.sort != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "sort", f.sort)
 	}
 	if f.tailable != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "tailable", *f.tailable)
 	}
-
 	return dst, nil
 }
 
