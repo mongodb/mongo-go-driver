@@ -1778,7 +1778,7 @@ func TestCollection_FindOne_LimitSet(t *testing.T) {
 	drainChannels()
 
 	res := coll.FindOne(ctx, bson.D{})
-	if err := res.Err(); err != nil {
+	if err := res.Err(); err != ErrNoDocuments {
 		t.Fatalf("FindOne error: %v", err)
 	}
 
@@ -1865,7 +1865,7 @@ func TestCollection_FindOne_notFound(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
-	err := coll.FindOne(context.Background(), filter).Decode(nil)
+	err := coll.FindOne(context.Background(), filter).Err()
 	require.Equal(t, err, ErrNoDocuments)
 }
 
@@ -1913,7 +1913,7 @@ func TestCollection_FindOneAndDelete_notFound(t *testing.T) {
 
 	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
 
-	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
+	err := coll.FindOneAndDelete(context.Background(), filter).Err()
 	require.Equal(t, err, ErrNoDocuments)
 }
 
@@ -1927,7 +1927,7 @@ func TestCollection_FindOneAndDelete_notFound_ignoreResult(t *testing.T) {
 
 	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
 
-	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
+	err := coll.FindOneAndDelete(context.Background(), filter).Err()
 	require.Equal(t, ErrNoDocuments, err)
 }
 
@@ -2005,7 +2005,7 @@ func TestCollection_FindOneAndReplace_notFound(t *testing.T) {
 	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
 	replacement := bsonx.Doc{{"y", bsonx.Int32(6)}}
 
-	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
+	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Err()
 	require.Equal(t, err, ErrNoDocuments)
 }
 
@@ -2020,7 +2020,7 @@ func TestCollection_FindOneAndReplace_notFound_ignoreResult(t *testing.T) {
 	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
 	replacement := bsonx.Doc{{"y", bsonx.Int32(6)}}
 
-	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
+	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Err()
 	require.Equal(t, err, ErrNoDocuments)
 }
 
@@ -2105,7 +2105,7 @@ func TestCollection_FindOneAndUpdate_notFound(t *testing.T) {
 	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
 	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(6)}})}}
 
-	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
+	err := coll.FindOneAndUpdate(context.Background(), filter, update).Err()
 	require.Equal(t, err, ErrNoDocuments)
 }
 
@@ -2120,7 +2120,7 @@ func TestCollection_FindOneAndUpdate_notFound_ignoreResult(t *testing.T) {
 	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
 	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(6)}})}}
 
-	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
+	err := coll.FindOneAndUpdate(context.Background(), filter, update).Err()
 	require.Equal(t, err, ErrNoDocuments)
 }
 
