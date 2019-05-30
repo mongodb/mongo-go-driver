@@ -38,6 +38,11 @@ func main() {
 	pkg := args[1]
 	filename := args[2]
 
+	err = drivergen.Initialize()
+	if err != nil {
+		log.Fatalf("Could not initialize drivergen: %v", err)
+	}
+
 	op, err := drivergen.ParseFile(config, pkg)
 	if err != nil {
 		log.Fatalf("Could not parse configuration file '%s': %v", config, err)
@@ -53,6 +58,9 @@ func main() {
 	}
 	buf, err := imports.Process(wd, b.Bytes(), nil)
 	if err != nil {
+		if dryrun {
+			fmt.Println(b.String())
+		}
 		log.Fatalf("Could not run goimports on generated file: %v", err)
 	}
 	if dryrun {

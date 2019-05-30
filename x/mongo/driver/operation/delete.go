@@ -50,14 +50,12 @@ func buildDeleteResult(response bsoncore.Document, srvr driver.Server) (DeleteRe
 	dr := DeleteResult{}
 	for _, element := range elements {
 		switch element.Key() {
-
 		case "n":
 			var ok bool
-			dr.N, ok = element.Value().Int32OK()
+			dr.N, ok = element.Value().AsInt32OK()
 			if !ok {
 				err = fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
 			}
-
 		}
 	}
 	return dr, nil
@@ -75,10 +73,8 @@ func (d *Delete) Result() DeleteResult { return d.result }
 
 func (d *Delete) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
 	var err error
-
 	d.result, err = buildDeleteResult(response, srvr)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
@@ -112,10 +108,8 @@ func (d *Delete) Execute(ctx context.Context) error {
 func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "delete", d.collection)
 	if d.ordered != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *d.ordered)
 	}
-
 	return dst, nil
 }
 

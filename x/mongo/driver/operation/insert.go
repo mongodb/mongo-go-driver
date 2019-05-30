@@ -51,14 +51,12 @@ func buildInsertResult(response bsoncore.Document, srvr driver.Server) (InsertRe
 	ir := InsertResult{}
 	for _, element := range elements {
 		switch element.Key() {
-
 		case "n":
 			var ok bool
 			ir.N, ok = element.Value().AsInt32OK()
 			if !ok {
 				err = fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
 			}
-
 		}
 	}
 	return ir, nil
@@ -76,10 +74,8 @@ func (i *Insert) Result() InsertResult { return i.result }
 
 func (i *Insert) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
 	var err error
-
 	i.result, err = buildInsertResult(response, srvr)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
@@ -112,16 +108,12 @@ func (i *Insert) Execute(ctx context.Context) error {
 
 func (i *Insert) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "insert", i.collection)
-	if i.bypassDocumentValidation != nil &&
-		(desc.WireVersion != nil && desc.WireVersion.Includes(4)) {
-
+	if i.bypassDocumentValidation != nil && (desc.WireVersion != nil && desc.WireVersion.Includes(4)) {
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *i.bypassDocumentValidation)
 	}
 	if i.ordered != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *i.ordered)
 	}
-
 	return dst, nil
 }
 

@@ -36,8 +36,7 @@ type Distinct struct {
 	readConcern    *readconcern.ReadConcern
 	readPreference *readpref.ReadPref
 	selector       description.ServerSelector
-
-	result DistinctResult
+	result         DistinctResult
 }
 
 type DistinctResult struct {
@@ -53,10 +52,8 @@ func buildDistinctResult(response bsoncore.Document, srvr driver.Server) (Distin
 	dr := DistinctResult{}
 	for _, element := range elements {
 		switch element.Key() {
-
 		case "values":
 			dr.Values = element.Value()
-
 		}
 	}
 	return dr, nil
@@ -65,8 +62,8 @@ func buildDistinctResult(response bsoncore.Document, srvr driver.Server) (Distin
 // NewDistinct constructs and returns a new Distinct.
 func NewDistinct(key string, query bsoncore.Document) *Distinct {
 	return &Distinct{
-		query: query,
 		key:   &key,
+		query: query,
 	}
 }
 
@@ -75,10 +72,8 @@ func (d *Distinct) Result() DistinctResult { return d.result }
 
 func (d *Distinct) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
 	var err error
-
 	d.result, err = buildDistinctResult(response, srvr)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
@@ -90,15 +85,14 @@ func (d *Distinct) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         d.command,
 		ProcessResponseFn: d.processResponse,
-
-		Client:         d.session,
-		Clock:          d.clock,
-		CommandMonitor: d.monitor,
-		Database:       d.database,
-		Deployment:     d.deployment,
-		ReadConcern:    d.readConcern,
-		ReadPreference: d.readPreference,
-		Selector:       d.selector,
+		Client:            d.session,
+		Clock:             d.clock,
+		CommandMonitor:    d.monitor,
+		Database:          d.database,
+		Deployment:        d.deployment,
+		ReadConcern:       d.readConcern,
+		ReadPreference:    d.readPreference,
+		Selector:          d.selector,
 	}.Execute(ctx, nil)
 
 }
@@ -106,25 +100,20 @@ func (d *Distinct) Execute(ctx context.Context) error {
 func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "distinct", d.collection)
 	if d.collation != nil {
-
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
 			return nil, errors.New("the 'collation' command parameter requires a minimum server wire version of 5")
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", d.collation)
 	}
 	if d.key != nil {
-
 		dst = bsoncore.AppendStringElement(dst, "key", *d.key)
 	}
 	if d.maxTimeMS != nil {
-
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *d.maxTimeMS)
 	}
 	if d.query != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "query", d.query)
 	}
-
 	return dst, nil
 }
 

@@ -1,314 +1,84 @@
 package drivergen
 
-import "text/template"
+import (
+	"text/template"
+
+	"github.com/gobuffalo/packr/v2"
+)
 
 // commandCollectionDatabaseTmpl is the template used to set the command name when the command can
 // apply to either a collection or a database.
-var commandCollectionDatabaseTmpl = template.Must(template.New("").Parse(
-	`header := bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, {{$.ShortName}}.collection)}
-if {{$.ShortName}}.collection == "" {
-	header = bsoncore.Value{Type: bsontype.Int32, Data: []byte{0x01, 0x00, 0x00, 0x00}}
-}
-dst = bsoncore.AppendValueElement(dst, "{{$.Command.Name}}", header)
-`))
-
-// commandDatabaseTmpl is the template used to set the command name when the parameter will be a database.
-var commandDatabaseTmpl = template.Must(template.New("").Parse(
-	`dst = bsoncore.AppendInt32Element(dst, "{{$.Command.Name}}", 1)
-`))
+var commandCollectionDatabaseTmpl *template.Template
 
 // commandCollectionTmpl is the template used to set the command name when the parameter will be a
 // collection.
-var commandCollectionTmpl = template.Must(template.New("").Parse(
-	`dst = bsoncore.AppendStringElement(dst, "{{$.Command.Name}}", {{$.ShortName}}.collection)
-`))
+var commandCollectionTmpl *template.Template
 
-const commandMinWireVersionTmpl = `{{define "minWireVersion"}}{{if $.MinWireVersion}} &&
-(desc.WireVersion != nil && desc.WireVersion.Includes({{$.MinWireVersion}})){{end}}{{end}}`
+// commandDatabaseTmpl is the template used to set the command name when the parameter will be a database.
+var commandDatabaseTmpl *template.Template
 
-const commandMinWireVersionRequiredTmpl = `{{define "minWireVersionRequired"}}{{if $.MinWireVersionRequired}}
-if desc.WireVersion == nil || !desc.WireVersion.Includes({{$.MinWireVersionRequired}}) {
-	return nil, errors.New("the '{{$.ParameterName}}' command parameter requires a minimum server wire version of {{$.MinWireVersionRequired}}")
-}{{end}}{{end}}`
+var commandParamDocumentTmpl *template.Template
+var commandParamArrayTmpl *template.Template
+var commandParamValueTmpl *template.Template
+var commandParamInt32Tmpl *template.Template
+var commandParamInt64Tmpl *template.Template
+var commandParamDoubleTmpl *template.Template
+var commandParamBooleanTmpl *template.Template
+var commandParamStringTmpl *template.Template
 
-// parseTemplates parses each tmpl into a single unnamed *template.Template.
-func parseTemplates(tmpls ...string) *template.Template {
-	t := template.New("")
-	for _, tmpl := range tmpls {
-		t = template.Must(t.Parse(tmpl))
-	}
-	return t
-}
+var responseFieldInt64Tmpl *template.Template
+var responseFieldInt32Tmpl *template.Template
+var responseFieldBooleanTmpl *template.Template
+var responseFieldStringTmpl *template.Template
+var responseFieldValueTmpl *template.Template
+var responseFieldDocumentTmpl *template.Template
 
-// parseCommandParamTemplate parses a commandParam template and adds definitions for the minWireVersion and minWireVersionRequired templates.
-func parseCommandParamTemplate(tmpl string) *template.Template {
-	tmpls := [3]string{tmpl, commandMinWireVersionTmpl, commandMinWireVersionRequiredTmpl}
-	return parseTemplates(tmpls[:]...)
-}
+var typeTemplate string
 
-var commandParamDocumentTmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}} != nil {{template "minWireVersion" $}} {
-{{template "minWireVersionRequired" $}}
-	dst = bsoncore.AppendDocumentElement(dst, "{{$.ParameterName}}", {{$.ShortName}}.{{$.Name}})
-}
-`)
+var templates = packr.New("templates", "./templates")
 
-var commandParamArrayImpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}} != nil {{template "minWireVersion" $}} {
-{{template "minWireVersionRequired" $}}
-	dst = bsoncore.AppendArrayElement(dst, "{{$.ParameterName}}", {{$.ShortName}}.{{$.Name}})
-}
-`)
-
-var commandParamValueTmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}}.Type != bsontype.Type(0) {{template "minWireVersion" $}} {
-{{template "minWireVersionRequired" $}}
-	dst = bsoncore.AppendValueElement(dst, "{{$.ParameterName}}", {{$.ShortName}}.{{$.Name}})
-}
-`)
-
-var commandParamInt32Tmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}} != nil {{template "minWireVersion" $}} {
-{{template "minWireVersionRequired" $}}
-	dst = bsoncore.AppendInt32Element(dst, "{{$.ParameterName}}", *{{$.ShortName}}.{{$.Name}})
-}
-`)
-
-var commandParamInt64Tmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}} != nil {{template "minWireVersion" $}} {
-{{template "minWireVersionRequired" $}}
-	dst = bsoncore.AppendInt64Element(dst, "{{$.ParameterName}}", *{{$.ShortName}}.{{$.Name}})
-}
-`)
-
-var commandParamDoubleTmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}} != nil {{template "minWireVersion" $}} {
-{{template "minWireVersionRequired" $}}
-	dst = bsoncore.AppendDoubleElement(dst, "{{$.ParameterName}}", *{{$.ShortName}}.{{$.Name}})
-}
-`)
-
-var commandParamBooleanTmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}} != nil {{template "minWireVersion" $}} {
-{{template "minWireVersionRequired" $}}
-	dst = bsoncore.AppendBooleanElement(dst, "{{$.ParameterName}}", *{{$.ShortName}}.{{$.Name}})
-}
-`)
-
-var commandParamStringTmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}} != nil {{template "minWireVersion" $}} {
-{{template "minWireVersionRequired" $}}
-	dst = bsoncore.AppendStringElement(dst, "{{$.ParameterName}}", *{{$.ShortName}}.{{$.Name}})
-}
-`)
-
-var responseFieldInt64Tmpl = parseTemplates(`
-	case "{{$.ResponseName}}":
-		var ok bool
-		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().AsInt64OK()
-		if !ok {
-			err = fmt.Errorf("response field '{{$.ResponseName}}' is type int64, but received BSON type %s", element.Value().Type)
-		}
-`)
-
-var responseFieldInt32Tmpl = parseTemplates(`
-	case "{{$.ResponseName}}":
-		var ok bool
-		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().AsInt32OK()
-		if !ok {
-			err = fmt.Errorf("response field '{{$.ResponseName}}' is type int32, but received BSON type %s", element.Value().Type)
-		}
-`)
-
-var responseFieldBooleanTmpl = parseTemplates(`
-	case "{{$.ResponseName}}":
-		var ok bool
-		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().BooleanOK()
-		if !ok {
-			err = fmt.Errorf("response field '{{$.ResponseName}}' is type bool, but received BSON type %s", element.Value().Type)
-		}
-`)
-
-var responseFieldStringTmpl = parseTemplates(`
-	case "{{$.ResponseName}}":
-		var ok bool
-		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().StringValueOK()
-		if !ok {
-			err = fmt.Errorf("response field '{{$.ResponseName}}' is type string, but received BSON type %s", element.Value().Type)
-		}
-`)
-
-var responseFieldValueTmpl = parseTemplates(`
-	case "{{$.ResponseName}}":
-		{{$.ResponseShortName}}.{{$.Field}} = element.Value()
-`)
-
-var responseFieldDocumentTmpl = parseTemplates(`
-	case "{{$.ResponseName}}":
-		var ok bool
-		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().DocumentOK()
-		if !ok {
-			err = fmt.Errorf("response field '{{$.ResponseName}}' is type document, but received BSON type %s", element.Value().Type)
-		}
-`)
-
-const typeTemplate string = `// Copyright (C) MongoDB, Inc. 2019-present.
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-// Code generated by operationgen. DO NOT EDIT.
-
-package {{$.PackageName}}
-
-import "go.mongodb.org/mongo-driver/x/mongo/driver"
-
-{{$.EscapeDocumentation $.Documentation}}
-type {{$.Name}} struct {
-{{range $name, $field := $.Request}}	{{$name}} {{$field.DeclarationType}}
-{{end}}{{range $builtin := $.Properties.Builtins}}	{{$builtin.ReferenceName}} {{$builtin.Type}}
-{{end}}{{if $.Properties.Retryable.Mode}}	retry *driver.RetryMode{{end}}
-{{if $.Response.Name}}	result {{$.ResultType}}{{end}}
-{{if or (eq $.Response.Type "batch cursor") (eq $.Response.Type "list collections batch cursor")}}	result driver.CursorResponse{{end}}
-}
-
-{{if $.Response.Name}}
-type {{$.Response.Name}} struct {
-{{range $name, $field := $.Response.Field}}// {{$field.Documentation}}
-	{{$.Title $name}} {{$field.DeclarationType}}
-{{end}}
-}
-
-func build{{$.Response.Name}}(response bsoncore.Document, srvr driver.Server) ({{$.Response.Name}}, error) {
-	elements, err := response.Elements()
+// Initialize sets up drivergen for use. It must be called or all of the templates will be nil.
+func Initialize() error {
+	commandParameters, err := templates.FindString("command_parameter.tmpl")
 	if err != nil {
-		return {{$.Response.Name}}{}, err
+		return err
 	}
-	{{$.Response.ShortName}} := {{$.Response.Name}}{}
-	for _, element := range elements {
-		switch element.Key() {
-		{{$.Response.BuildMethod}}
-		}
-	}
-	return {{$.Response.ShortName}}, nil
-}
-{{end}}
-
-// New{{$.Name}} constructs and returns a new {{$.Name}}.
-func New{{$.Name}}({{$.ConstructorParameters}}) *{{$.Name}} {
-	return &{{$.Name}}{
-{{range $field := $.ConstructorFields}}		{{$field}}
-{{end}}
-	}
-}
-
-{{if $.Response.Name}}
-// Result returns the result of executing this operation.
-func ({{$.ShortName}} *{{$.Name}}) Result() {{$.ResultType}} { return {{$.ShortName}}.result }{{end}}
-{{if eq $.Response.Type "batch cursor"}}
-// Result returns the result of executing this operation.
-func ({{$.ShortName}} *{{$.Name}}) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
-{{if $builtin := $.Properties.IsEnabled "client session"}}
-clientSession := {{$.ShortName}}.{{$builtin.ReferenceName}}{{else}}
-var clientSession *session.Client{{end}}
-{{if $builtin := $.Properties.IsEnabled "cluster clock"}}
-clock := {{$.ShortName}}.{{$builtin.ReferenceName}}{{else}}
-var clock *session.ClusterClock{{end}}
-	return driver.NewBatchCursor({{$.ShortName}}.result, clientSession, clock, opts)
-}{{end}}
-
-{{if eq $.Response.Type "list collections batch cursor"}}
-// Result returns the result of executing this operation.
-func ({{$.ShortName}} *{{$.Name}}) Result(opts driver.CursorOptions) (*driver.ListCollectionsBatchCursor, error) {
-{{if $builtin := $.Properties.IsEnabled "client session"}}
-clientSession := {{$.ShortName}}.{{$builtin.ReferenceName}}{{else}}
-var clientSession *session.Client{{end}}
-{{if $builtin := $.Properties.IsEnabled "cluster clock"}}
-clock := {{$.ShortName}}.{{$builtin.ReferenceName}}{{else}}
-var clock *session.ClusterClock{{end}}
-	bc, err := driver.NewBatchCursor({{$.ShortName}}.result, clientSession, clock, opts)
+	commandParametersTmpl, err := template.New("commandParameters").Parse(commandParameters)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	desc := {{$.ShortName}}.result.Desc
-	if desc.WireVersion == nil || desc.WireVersion.Max < 3 {
-		return driver.NewLegacyListCollectionsBatchCursor(bc)
+	responseFields, err := templates.FindString("response_field.tmpl")
+	if err != nil {
+		return err
 	}
-	return driver.NewListCollectionsBatchCursor(bc)
-}{{end}}
-
-func ({{$.ShortName}} *{{$.Name}}) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
-	var err error
-{{if $.Response.Name}}
-	{{$.ShortName}}.result, err = build{{$.Response.Name}}(response, srvr)
-	return err
-{{end}}
-{{if or (eq $.Response.Type "batch cursor") (eq $.Response.Type "list collections batch cursor")}}
-	{{$.ShortName}}.result, err = driver.NewCursorResponse(response, srvr, desc)
-	return err
-{{end}}
-}
-
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
-func ({{$.ShortName}} *{{$.Name}}) Execute(ctx context.Context) error {
-	if {{$.ShortName}}.deployment == nil {
-		return errors.New("the {{$.Name}} operation must have a Deployment set before Execute can be called")
+	responseFieldsTmpl, err := template.New("responseFields").Parse(responseFields)
+	if err != nil {
+		return err
 	}
-{{if $.Properties.Batches}}		batches := &driver.Batches{
-			Identifier: "{{$.Properties.Batches}}",
-			Documents: {{$.ShortName}}.{{$.Properties.Batches}},{{if index $.Request "ordered"}}
-			Ordered: {{$.ShortName}}.ordered,
-{{end}}}{{end}}
-{{with $builtins := $.Properties.BuiltinsMap}}
-	return driver.Operation{
-		CommandFn: {{$.ShortName}}.command,
-		ProcessResponseFn: {{$.ShortName}}.processResponse,{{if $.Properties.Batches}}
-		Batches: batches,{{end}}
-{{if $.Properties.Retryable.Mode}}	RetryMode: {{$.ShortName}}.retry,{{end}}
-{{if eq $.Properties.Retryable.Type "writes"}}	RetryType: driver.RetryWrite,
-{{end}}{{range $b := $.Properties.ExecuteBuiltins}}{{$b.ExecuteName}}: {{$.ShortName}}.{{$b.ReferenceName}},
-{{end}}{{if $.Properties.MinimumWriteConcernWireVersion}}MinimumWriteConcernWireVersion: {{$.Properties.MinimumWriteConcernWireVersion}},
-{{end}}{{if $.Properties.MinimumReadConcernWireVersion}}MinimumReadConcernWireVersion: {{$.Properties.MinimumReadConcernWireVersion}},
-{{end}}{{if ne $.Properties.Legacy ""}}Legacy: {{$.Properties.LegacyOperationKind}},
-{{end}}
-	}.Execute(ctx, nil)
-{{end}}
-}
-
-func ({{$.ShortName}} *{{$.Name}}) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
-	{{$.CommandMethod}}
-	return dst, nil
-}
-
-{{range $name, $field := $.Request}}
-{{$.EscapeDocumentation $field.Documentation}}
-func ({{$.ShortName}} *{{$.Name}}) {{$.Title $name}}({{$name}} {{$field.ParameterType}}) *{{$.Name}} {
-	if {{$.ShortName}} == nil {
-		{{$.ShortName}} = new({{$.Name}})
+	typeTemplate, err = templates.FindString("operation.tmpl")
+	if err != nil {
+		return err
 	}
 
-	{{$.ShortName}}.{{$name}} = {{if $field.PointerType}}&{{end}}{{$name}}
-	return {{$.ShortName}}
+	commandCollectionDatabaseTmpl = commandParametersTmpl.Lookup("commandParamCollectionDatabase")
+	commandCollectionTmpl = commandParametersTmpl.Lookup("commandParamCollection")
+	commandDatabaseTmpl = commandParametersTmpl.Lookup("commandParamDatabase")
+
+	commandParamDocumentTmpl = commandParametersTmpl.Lookup("commandParamDocument")
+	commandParamArrayTmpl = commandParametersTmpl.Lookup("commandParamArray")
+	commandParamBooleanTmpl = commandParametersTmpl.Lookup("commandParamBoolean")
+	commandParamValueTmpl = commandParametersTmpl.Lookup("commandParamValue")
+	commandParamInt32Tmpl = commandParametersTmpl.Lookup("commandParamInt32")
+	commandParamInt64Tmpl = commandParametersTmpl.Lookup("commandParamInt64")
+	commandParamDoubleTmpl = commandParametersTmpl.Lookup("commandParamDouble")
+	commandParamStringTmpl = commandParametersTmpl.Lookup("commandParamString")
+
+	responseFieldInt64Tmpl = responseFieldsTmpl.Lookup("responseFieldInt64")
+	responseFieldInt32Tmpl = responseFieldsTmpl.Lookup("responseFieldInt32")
+	responseFieldBooleanTmpl = responseFieldsTmpl.Lookup("responseFieldBoolean")
+	responseFieldStringTmpl = responseFieldsTmpl.Lookup("responseFieldString")
+	responseFieldValueTmpl = responseFieldsTmpl.Lookup("responseFieldValue")
+	responseFieldDocumentTmpl = responseFieldsTmpl.Lookup("responseFieldDocument")
+
+	return nil
 }
-
-{{end}}
-
-{{range $builtin := $.Properties.Builtins}}
-{{$.EscapeDocumentation $builtin.Documentation}}
-func ({{$.ShortName}} *{{$.Name}}) {{$builtin.SetterName}}({{$builtin.ReferenceName}} {{$builtin.Type}}) *{{$.Name}} {
-	if {{$.ShortName}} == nil {
-		{{$.ShortName}} = new({{$.Name}})
-	}
-
-	{{$.ShortName}}.{{$builtin.ReferenceName}} = {{$builtin.ReferenceName}}
-	return {{$.ShortName}}
-}
-{{end}}
-
-{{if $.Properties.Retryable.Mode}}
-// Retry enables retryable writes for this operation. Retries are not handled automatically,
-// instead a boolean is returned from Execute and SelectAndExecute that indicates if the
-// operation can be retried. Retrying is handled by calling RetryExecute.
-func ({{$.ShortName}} *{{$.Name}}) Retry(retry driver.RetryMode) *{{$.Name}} {
-	if {{$.ShortName}} == nil {
-		{{$.ShortName}} = new({{$.Name}})
-	}
-
-	{{$.ShortName}}.retry = &retry
-	return {{$.ShortName}}
-}
-{{end}}
-`
