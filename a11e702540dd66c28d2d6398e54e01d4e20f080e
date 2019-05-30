@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bcd84115_3d2d2cb8",
+        "filename": "mongo/database.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 271,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-30T21:29:43Z",
+      "side": 1,
+      "message": "cursor",
+      "range": {
+        "startLine": 271,
+        "startChar": 33,
+        "endLine": 271,
+        "endChar": 38
+      },
+      "revId": "a11e702540dd66c28d2d6398e54e01d4e20f080e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a0ca7bf9_bb57fd86",
+        "filename": "mongo/database.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 273,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-30T21:29:43Z",
+      "side": 1,
+      "message": "We need to keep the user-supplied options and also add the name-only option here so this should be:\nnameOpts :\u003d append(opts, options.ListCollections().SetNameOnly(true))\nreturn db.ListCollections(ctx, filter, nameOpts...)",
+      "range": {
+        "startLine": 273,
+        "startChar": 11,
+        "endLine": 273,
+        "endChar": 26
+      },
+      "revId": "a11e702540dd66c28d2d6398e54e01d4e20f080e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "54029931_0b2761a8",
+        "filename": "mongo/database_internal_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 325,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-30T21:29:43Z",
+      "side": 1,
+      "message": "I like these tests but I think we can make them table-driven for readability (https://github.com/golang/go/wiki/TableDrivenTests). The table could take a filter and a boolean to indicate whether or not the collection that it\u0027s running against should be found. We could also add another test to have a filter that returns no collections so we\u0027d have 3 tests total:\n\n1. No filter. Collection name should be returned.\n2. Filter that matches the collection. The collection name should be returned.\n3. Filter that does not match the collection. The collection name should not be returned.",
+      "range": {
+        "startLine": 325,
+        "startChar": 5,
+        "endLine": 325,
+        "endChar": 28
+      },
+      "revId": "a11e702540dd66c28d2d6398e54e01d4e20f080e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
