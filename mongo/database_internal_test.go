@@ -182,6 +182,9 @@ func TestDatabase_NilDocumentError(t *testing.T) {
 
 	_, err = db.ListCollections(context.Background(), nil)
 	require.Equal(t, err, ErrNilDocument)
+
+	_, err = db.ListCollectionNames(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
 }
 
 func TestDatabase_Drop(t *testing.T) {
@@ -199,6 +202,46 @@ func TestDatabase_Drop(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, list, name)
 
+}
+
+func TestListCollectionNames(t *testing.T) {
+	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
+	require.NoError(t, err)
+
+	if compareVersions(t, serverVersion, "4.0") < 0 {
+		t.Skip()
+	}
+
+	testcases := []struct {
+		name   string
+		filter bson.D
+		found  bool
+	}{
+		{"no_filter", bson.D{}, true},
+		{"filter", bson.D{{"name", "filter"}}, true},
+		{"filter_not_found", bson.D{{"name", "123"}}, false},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			dbName := "TestListCollectionNames"
+			coll := createTestCollection(t, &dbName, &tc.name)
+			defer func() {
+				_ = coll.Drop(ctx)
+			}()
+
+			cols, err := coll.Database().ListCollectionNames(context.Background(), tc.filter)
+			require.NoError(t, err)
+			if !tc.found {
+				require.Len(t, cols, 0)
+				return
+			}
+
+			require.Len(t, cols, 1)
+			require.Equal(t, tc.name, cols[0],
+				"collection name mismatch; expected %s, got %s", tc.name, cols[0])
+		})
+	}
 }
 
 // creates 1 normal collection and 1 capped collection of size 64*1024

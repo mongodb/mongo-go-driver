@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -16,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -260,6 +262,39 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	}
 	cursor, err := newCursorWithSession(bc, db.registry, sess)
 	return cursor, replaceErrors(err)
+}
+
+// ListCollectionNames returns a slice containing the names of all of the collections on the server.
+func (db *Database) ListCollectionNames(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) ([]string, error) {
+	opts = append(opts, options.ListCollections().SetNameOnly(true))
+
+	res, err := db.ListCollections(ctx, filter, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	names := make([]string, 0)
+	for res.Next(ctx) {
+		next := &bsonx.Doc{}
+		err = res.Decode(next)
+		if err != nil {
+			return nil, err
+		}
+
+		elem, err := next.LookupErr("name")
+		if err != nil {
+			return nil, err
+		}
+
+		if elem.Type() != bson.TypeString {
+			return nil, fmt.Errorf("incorrect type for 'name'. got %v. want %v", elem.Type(), bson.TypeString)
+		}
+
+		elemName := elem.StringValue()
+		names = append(names, elemName)
+	}
+
+	return names, nil
 }
 
 // ReadConcern returns the read concern of this database.
