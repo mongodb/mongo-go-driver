@@ -241,7 +241,6 @@ func TestOperationLegacy(t *testing.T) {
 			t.Fatalf("error marshalling response: %v", err)
 		}
 		fakeOpReply := drivertest.MakeReply(resBytes)
-		readPrefElem := bson.E{Key: "$readPreference", Value: bson.D{{"mode", "primaryPreferred"}}}
 
 		maxDoc := bson.D{{"indexBounds", bson.D{{"x", 50}}}}
 		minDoc := bson.D{{"indexBounds", bson.D{{"x", 50}}}}
@@ -296,7 +295,6 @@ func TestOperationLegacy(t *testing.T) {
 			{"$showDiskLoc", false},
 			{"$snapshot", false},
 			{"$orderby", sort},
-			readPrefElem,
 		}
 		findQuery := opQuery{
 			flags:                wiremessage.QueryFlag(wiremessage.Partial | wiremessage.TailableCursor | wiremessage.NoCursorTimeout | wiremessage.OplogReplay | wiremessage.SlaveOK),
@@ -311,8 +309,7 @@ func TestOperationLegacy(t *testing.T) {
 		regexDoc := bson.D{{"name", primitive.Regex{Pattern: "^[^$]*$"}}}
 		modifiedFilterDoc := bson.D{{"name", fullCollName("foo")}}
 		listCollDoc := bson.D{
-			{"$query", bson.D{{"$and", bson.A{regexDoc, modifiedFilterDoc}}}},
-			readPrefElem,
+			{"$and", bson.A{regexDoc, modifiedFilterDoc}},
 		}
 		listCollQuery := opQuery{
 			flags:              wiremessage.SlaveOK,
@@ -324,7 +321,6 @@ func TestOperationLegacy(t *testing.T) {
 		listIndexesDoc := bson.D{
 			{"$query", bson.D{{"ns", fullCollName("foo")}}},
 			{"$maxTimeMS", int64(10000)},
-			readPrefElem,
 		}
 		listIndexesQuery := opQuery{
 			flags:              wiremessage.SlaveOK,
