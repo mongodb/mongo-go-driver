@@ -136,8 +136,12 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 		rp = c.readPreference
 	}
 
-	_, err := c.topology.SelectServer(ctx, description.ReadPrefSelector(rp))
-	return replaceErrors(err)
+	db := c.Database("admin")
+	res := db.RunCommand(ctx, bson.D{
+		{"ping", 1},
+	})
+
+	return replaceErrors(res.Err())
 }
 
 // StartSession starts a new session.
