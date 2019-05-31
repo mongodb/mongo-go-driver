@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2d786538_00b3fbd4",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-31T18:50:18Z",
+      "side": 1,
+      "message": "I think the meaning here is a bit opaque. Could we say instead: \"where T is compared first, followed by I.\"?",
+      "range": {
+        "startLine": 113,
+        "startChar": 54,
+        "endLine": 113,
+        "endChar": 76
+      },
+      "revId": "97812439ba677f117d2b59daaab30bf65f6bae08",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "876f38f4_8e4ffacb",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-31T18:50:18Z",
+      "side": 1,
+      "message": "This should be called CompareTimestamp, since there are many other types within this package.",
+      "range": {
+        "startLine": 115,
+        "startChar": 5,
+        "endLine": 115,
+        "endChar": 12
+      },
+      "revId": "97812439ba677f117d2b59daaab30bf65f6bae08",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
