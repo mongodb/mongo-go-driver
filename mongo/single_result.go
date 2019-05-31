@@ -55,7 +55,7 @@ func (sr *SingleResult) DecodeBytes() (bson.Raw, error) {
 		return nil, sr.err
 	}
 
-	if sr.err = sr.setRdrContents(); sr.err != nil {
+	if sr.err = sr.setRdrContents(); sr.err != nil { // this is only needed in the return ErrNoDocuments case so why not sr.err = ErrNoDocuments in setRdrContents??
 		return nil, sr.err
 	}
 	return sr.rdr, nil
@@ -86,6 +86,7 @@ func (sr *SingleResult) setRdrContents() error {
 
 // HasResult returns true if the single result has bytes for a result.
 // If there was an error running the command that generated this result, the error will be returned
+// TODO: does this need to set sr.err if ErrNoDocuments is returned
 func (sr *SingleResult) HasResult() (bool, error) {
 	err := sr.setRdrContents()
 	if err != nil {
