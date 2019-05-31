@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "3d30f671_ae05ac07",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-31T17:57:22Z",
+      "side": 1,
+      "message": "We should be following the Compare signature from things like https://golang.org/pkg/bytes/#Compare. Basically, we should take 2 timestamps and compare them rather than having a receiver.\n\nAlso, the T and I fields have specific meanings (https://docs.mongodb.com/manual/reference/bson-types/#timestamps) so to compare them, you first compare the T values and then compare the I values if the Ts are equal. For example, timestamp A is greater than timestamp B if (A.T \u003e B.T || (A.T \u003d\u003d B.T \u0026\u0026 A.I \u003e B.I)).",
+      "range": {
+        "startLine": 114,
+        "startChar": 20,
+        "endLine": 114,
+        "endChar": 27
+      },
+      "revId": "865cfc5587e218b7bbc11be847e77cb63a226c64",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "37949a0b_15d275d6",
         "filename": "bson/primitive/primitive.go",
         "patchSetId": 1
