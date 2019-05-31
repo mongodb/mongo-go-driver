@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "763c9b38_8004f76a",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-31T19:13:05Z",
+      "side": 1,
+      "message": "Super small, but can we make this a lowercase \u0027s\u0027 to match the s in Timestamp?",
+      "range": {
+        "startLine": 115,
+        "startChar": 16,
+        "endLine": 115,
+        "endChar": 17
+      },
+      "revId": "a20722fec650db688a6c974622211be483a4c60d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
