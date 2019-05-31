@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d42f9336_16cf1fff",
+        "filename": "mongo/single_result_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-31T17:24:47Z",
+      "side": 1,
+      "message": "Instead of having the extra nil check, you can change the t.Fatalf call to print err directly using %v (generic format modifier for values).",
+      "range": {
+        "startLine": 53,
+        "startChar": 3,
+        "endLine": 57,
+        "endChar": 4
+      },
+      "revId": "1851449d919d9b97b7e35829000b7ed26787336d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
