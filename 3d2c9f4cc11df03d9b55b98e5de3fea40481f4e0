@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "436951d4_8a5e01d1",
+        "filename": "x/mongo/driver/topology/resource_pool_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-31T18:57:14Z",
+      "side": 1,
+      "message": "We should call this before we do the PushBack so that we don\u0027t prune in the middle of doing that.",
+      "range": {
+        "startLine": 62,
+        "startChar": 1,
+        "endLine": 62,
+        "endChar": 21
+      },
+      "revId": "3d2c9f4cc11df03d9b55b98e5de3fea40481f4e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
