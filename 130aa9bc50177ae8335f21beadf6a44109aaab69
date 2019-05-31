@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "afe0d71a_516a5e78",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 877,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-31T14:13:16Z",
+      "side": 1,
+      "message": "Forgot to comment this before approving: can these lines be moved below the new check so we avoid doing a slice allocation if we\u0027re not going to append a read preference?",
+      "range": {
+        "startLine": 873,
+        "startChar": 1,
+        "endLine": 877,
+        "endChar": 2
+      },
+      "revId": "130aa9bc50177ae8335f21beadf6a44109aaab69",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
