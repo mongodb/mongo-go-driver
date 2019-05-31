@@ -110,7 +110,7 @@ func (tp Timestamp) Equal(tp2 Timestamp) bool {
 	return tp.T == tp2.T && tp.I == tp2.I
 }
 
-// Compare returns an integer comparing two Timestamps, where T is compared first, followed by I.
+// CompareTimestamp returns an integer comparing two Timestamps, where T is compared first, followed by I.
 // Returns 0 if tp = tp2, 1 if tp > tp2, -1 if tp < tp2.
 func CompareTimestamp(tp, tp2 Timestamp) int {
 	if tp.Equal(tp2) {
