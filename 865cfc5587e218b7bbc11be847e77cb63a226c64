@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "37949a0b_15d275d6",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-05-31T17:52:49Z",
+      "side": 1,
+      "message": "What about {T: 3, I: 3} and {T: 2, I: 4}? They would both return -1 when comparing against the other one.",
+      "range": {
+        "startLine": 117,
+        "startChar": 24,
+        "endLine": 117,
+        "endChar": 26
+      },
+      "revId": "865cfc5587e218b7bbc11be847e77cb63a226c64",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
