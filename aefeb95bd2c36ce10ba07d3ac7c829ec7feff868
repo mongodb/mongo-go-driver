@@ -22,6 +22,30 @@
       "revId": "aefeb95bd2c36ce10ba07d3ac7c829ec7feff868",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "16b23c4c_a6816463",
+        "filename": "x/mongo/driver/operation/ismaster.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 374,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-31T21:29:58Z",
+      "side": 1,
+      "message": "Moved both of these to handshakeCommand in the latest patch.",
+      "parentUuid": "e3b8477e_957b83a4",
+      "range": {
+        "startLine": 367,
+        "startChar": 0,
+        "endLine": 374,
+        "endChar": 2
+      },
+      "revId": "aefeb95bd2c36ce10ba07d3ac7c829ec7feff868",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
