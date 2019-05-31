@@ -85,7 +85,7 @@ func TestSingleResult(t *testing.T) {
 
 		})
 
-		t.Run("false/err: cur nil", func(t *testing.T) {
+		t.Run("false", func(t *testing.T) {
 
 			sr := &SingleResult{cur: nil, reg: bson.DefaultRegistry, rdr: nil}
 			res, err := sr.HasResult()
@@ -94,7 +94,7 @@ func TestSingleResult(t *testing.T) {
 				t.Fatalf("HasResult returned an unexpected result - expected: %t, actual: %t", false, res)
 			}
 
-			if err != ErrNoDocuments {
+			if err != nil {
 				t.Fatalf("HasResult returned an error when successful execution was expected: %s", err.Error())
 			}
 
