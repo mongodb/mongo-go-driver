@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8cc2d9fe_b317383d",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-31T18:25:02Z",
+      "side": 1,
+      "message": "Can we update this comment to be more explicit? See the comment on https://golang.org/pkg/bytes/#Compare for an idea of what this should look like.",
+      "range": {
+        "startLine": 113,
+        "startChar": 0,
+        "endLine": 113,
+        "endChar": 54
+      },
+      "revId": "423d31daa06cc1c221e6531be72f9ff4235d64f0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b6a5d844_6446ee64",
+        "filename": "bson/primitive/primitive_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-31T18:25:02Z",
+      "side": 1,
+      "message": "The formatting here is showing up weird because some lines are not indented the same as others. Can you see if this is an issue in your editor?",
+      "range": {
+        "startLine": 24,
+        "startChar": 4,
+        "endLine": 24,
+        "endChar": 21
+      },
+      "revId": "423d31daa06cc1c221e6531be72f9ff4235d64f0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
