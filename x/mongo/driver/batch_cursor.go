@@ -209,7 +209,7 @@ func (bc *BatchCursor) clearBatch() {
 }
 
 func (bc *BatchCursor) killCursor(ctx context.Context) error {
-	if bc.server == nil {
+	if bc.server == nil || bc.id == 0 {
 		return nil
 	}
 

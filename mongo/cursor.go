@@ -149,7 +149,7 @@ func (c *Cursor) Err() error { return c.err }
 
 // Close closes this cursor.
 func (c *Cursor) Close(ctx context.Context) error {
-	c.closeImplicitSession()
+	defer c.closeImplicitSession()
 	return c.bc.Close(ctx)
 }
 
