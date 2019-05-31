@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -67,4 +68,29 @@ func TestBatches(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("killCursor", func(t *testing.T) {
+
+		testcases := []struct {
+			bc   *BatchCursor
+			want error
+			ctx  context.Context
+		}{
+			{nil, nil, context.TODO()},
+			{nil, nil, context.TODO()},
+		}
+
+		// bc := NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *session.ClusterClock, opts CursorOptions)
+
+		for _, test := range testcases {
+			if err := test.bc.killCursor(test.ctx); err != test.want {
+				t.Errorf("killCursor was not correctly killed. Got: %v Expected: %v", err, test.want)
+			}
+
+			// check that cursor was actually killed
+
+		}
+
+	})
+
 }
