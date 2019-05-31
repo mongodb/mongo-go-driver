@@ -45,6 +45,30 @@
       "revId": "865cfc5587e218b7bbc11be847e77cb63a226c64",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0582795b_52cc15de",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-05-31T18:22:05Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "37949a0b_15d275d6",
+      "range": {
+        "startLine": 117,
+        "startChar": 24,
+        "endLine": 117,
+        "endChar": 26
+      },
+      "revId": "865cfc5587e218b7bbc11be847e77cb63a226c64",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
