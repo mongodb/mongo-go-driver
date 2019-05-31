@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "02e26b68_92c58026",
+        "filename": "x/mongo/driver/topology/resource_pool_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-31T15:31:21Z",
+      "side": 1,
+      "message": "I think the changes for this ticket should be in this function. It can call newResourcePool with a high interval and then do the stop/reset with the given pruneInterval. This function should also use rp.Put to insert resources rather than calling rp.deque.pushBack. This makes it easier to write new tests for pruning in the future if needed.",
+      "range": {
+        "startLine": 55,
+        "startChar": 5,
+        "endLine": 55,
+        "endChar": 13
+      },
+      "revId": "4309457f2e966dc5f0cb224276897ee0e654388c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
