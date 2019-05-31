@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e2f6219c_304fb5a3",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-31T15:10:20Z",
+      "side": 1,
+      "message": "As discussed offline, I don\u0027t think we should add another method for this information (especially since this returns both a boolean and an error). The ErrNoDocuments error isn\u0027t a traditional error, it\u0027s more of an informative error, indicating to the user that the result they received is empty. We should call setRdrContents in the Err method and return the error from that.",
+      "range": {
+        "startLine": 89,
+        "startChar": 0,
+        "endLine": 98,
+        "endChar": 1
+      },
+      "revId": "6086e80a6f782f5e08faccbe5614a069175aec3e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
