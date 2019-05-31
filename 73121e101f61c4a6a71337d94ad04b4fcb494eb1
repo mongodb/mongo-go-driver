@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "e74e801a_bb880b43",
+        "filename": "x/mongo/driver/operation/createIndexes.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-31T17:45:29Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2c475ce8_d4028bff",
+      "range": {
+        "startLine": 115,
+        "startChar": 1,
+        "endLine": 115,
+        "endChar": 3
+      },
+      "revId": "73121e101f61c4a6a71337d94ad04b4fcb494eb1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "dc2e35ab_198c1aa8",
         "filename": "x/mongo/driver/operation/distinct.go",
         "patchSetId": 5
@@ -45,6 +69,30 @@
       "revId": "73121e101f61c4a6a71337d94ad04b4fcb494eb1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3c0f914a_c1705940",
+        "filename": "x/mongo/driver/operation/distinct.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-31T17:45:29Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "dc2e35ab_198c1aa8",
+      "range": {
+        "startLine": 66,
+        "startChar": 0,
+        "endLine": 67,
+        "endChar": 0
+      },
+      "revId": "73121e101f61c4a6a71337d94ad04b4fcb494eb1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
