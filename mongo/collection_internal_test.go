@@ -1769,6 +1769,22 @@ func TestCollection_Find_NegativeLimit(t *testing.T) {
 	require.Equal(t, 2, numDocs)
 }
 
+func TestCollection_Find_ExhaustCursor(t *testing.T) {
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+	c, err := coll.Find(ctx, bson.D{})
+	require.NoError(t, err)
+
+	var numDocs int
+	for c.Next(ctx) {
+		numDocs++
+	}
+	require.Equal(t, 5, numDocs)
+
+	err = c.Close(ctx)
+	require.NoError(t, err)
+}
+
 func TestCollection_FindOne_LimitSet(t *testing.T) {
 	client := createMonitoredClient(t, monitor)
 	coll := client.Database("FindOneLimitDB").Collection("FindOneLimitColl")

@@ -186,6 +186,9 @@ func (bc *BatchCursor) Err() error { return bc.err }
 
 // Close closes this batch cursor.
 func (bc *BatchCursor) Close(ctx context.Context) error {
+	if bc.id == 0 {
+		return nil
+	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
