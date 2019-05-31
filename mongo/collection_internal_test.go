@@ -1752,6 +1752,28 @@ func TestCollection_Find_Error(t *testing.T) {
 		require.NotNil(t, c.Err())
 		_ = c.Close(context.Background())
 	})
+
+	t.Run("Test killCursor is killed server side", func(t *testing.T) {
+
+		coll := createTestCollection(t, nil, nil)
+		initCollection(t, coll)
+
+		c, err := coll.Find(context.Background(), bsonx.Doc{}, options.Find().SetBatchSize(2))
+		require.Nil(t, err, "error running find: %s", err)
+
+		id := c.ID()
+		require.True(t, c.Next(context.Background()))
+		err = c.Close(context.Background())
+		require.NoError(t, err)
+
+		sr := coll.Database().RunCommand(context.Background(), bson.D{
+			{"getMore", id},
+			{"collection", coll.Name()},
+		})
+
+		ce := sr.Err().(CommandError)
+		require.Equal(t, int(ce.Code), int(43)) // CursorNotFound
+	})
 }
 
 func TestCollection_Find_NegativeLimit(t *testing.T) {
