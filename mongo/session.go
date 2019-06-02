@@ -46,12 +46,16 @@ type sessionKey struct {
 // Session is the interface that represents a sequential set of operations executed.
 // Instances of this interface can be used to use transactions against the server
 // and to enable causally consistent behavior for applications.
+//
+// The provided SessionContext can be used in the Collection methods to perform operations under
+// the session and transaction.
 type Session interface {
 	EndSession(context.Context)
 	WithTransaction(ctx context.Context, fn func(sessCtx SessionContext) (interface{}, error), opts ...*options.TransactionOptions) (interface{}, error)
 	StartTransaction(...*options.TransactionOptions) error
 	AbortTransaction(context.Context) error
 	CommitTransaction(context.Context) error
+	WithContext(ctx context.Context) SessionContext
 	ClusterTime() bson.Raw
 	AdvanceClusterTime(bson.Raw) error
 	OperationTime() *primitive.Timestamp
@@ -230,6 +234,10 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 
 func (s *sessionImpl) ClusterTime() bson.Raw {
 	return s.clientSession.ClusterTime
+}
+
+func (s *sessionContext) WithContext(ctx context.Context) SessionContext {
+	return contextWithSession(ctx, s)
 }
 
 func (s *sessionImpl) AdvanceClusterTime(d bson.Raw) error {
