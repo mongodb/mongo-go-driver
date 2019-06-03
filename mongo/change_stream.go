@@ -538,7 +538,7 @@ func (cs *ChangeStream) loopNext(ctx context.Context) {
 			continue
 		}
 
-		cs.err = cs.cursor.Err()
+		cs.err = replaceErrors(cs.cursor.Err())
 		if cs.err == nil {
 			// If a getMore was done but the batch was empty, the batch cursor will return false with no error
 			if len(cs.batch) == 0 {
@@ -549,8 +549,8 @@ func (cs *ChangeStream) loopNext(ctx context.Context) {
 		}
 
 		switch t := cs.err.(type) {
-		case command.Error:
-			if t.Code == errorInterrupted || t.Code == errorCappedPositionLost || t.Code == errorCursorKilled {
+		case CommandError:
+			if t.Code == errorInterrupted || t.Code == errorCappedPositionLost || t.Code == errorCursorKilled || t.HasErrorLabel("NonResumableChangeStreamError") {
 				return
 			}
 		}
