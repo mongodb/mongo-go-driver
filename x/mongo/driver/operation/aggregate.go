@@ -106,7 +106,7 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 	if a.batchSize != nil {
 		cursorDoc = bsoncore.AppendInt32Element(cursorDoc, "batchSize", *a.batchSize)
 	}
-	if a.bypassDocumentValidation != nil {
+	if a.bypassDocumentValidation != nil && *a.bypassDocumentValidation {
 
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *a.bypassDocumentValidation)
 	}

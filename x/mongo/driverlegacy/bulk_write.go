@@ -243,7 +243,7 @@ func runInsert(
 	}
 
 	cmd.Opts = []bsonx.Elem{{"ordered", bsonx.Boolean(!continueOnError)}}
-	if bypassDocValidation != nil {
+	if bypassDocValidation != nil && *bypassDocValidation {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"bypassDocumentValidation", bsonx.Boolean(*bypassDocValidation)})
 	}
 
@@ -387,7 +387,7 @@ func runUpdate(
 	}
 
 	cmd.Opts = []bsonx.Elem{{"ordered", bsonx.Boolean(!continueOnError)}}
-	if bypassDocValidation != nil {
+	if bypassDocValidation != nil && *bypassDocValidation {
 		// TODO this is temporary!
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"bypassDocumentValidation", bsonx.Boolean(*bypassDocValidation)})
 		//cmd.Opts = []option.UpdateOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}

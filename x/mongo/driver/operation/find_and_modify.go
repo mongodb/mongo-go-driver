@@ -144,7 +144,7 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 		}
 		dst = bsoncore.AppendArrayElement(dst, "arrayFilters", fam.arrayFilters)
 	}
-	if fam.bypassDocumentValidation != nil {
+	if fam.bypassDocumentValidation != nil && *fam.bypassDocumentValidation {
 
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *fam.bypassDocumentValidation)
 	}

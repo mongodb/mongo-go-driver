@@ -55,7 +55,7 @@ func FindOneAndReplace(
 	}
 
 	ro := options.MergeFindOneAndReplaceOptions(opts...)
-	if ro.BypassDocumentValidation != nil {
+	if ro.BypassDocumentValidation != nil && *ro.BypassDocumentValidation {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"byapssDocumentValidation", bsonx.Boolean(*ro.BypassDocumentValidation)})
 	}
 	if ro.Collation != nil {

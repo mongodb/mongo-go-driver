@@ -56,7 +56,7 @@ func MergeUpdateOptions(opts ...*UpdateOptions) *UpdateOptions {
 		if uo.ArrayFilters != nil {
 			uOpts.ArrayFilters = uo.ArrayFilters
 		}
-		if uo.BypassDocumentValidation != nil {
+		if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 			uOpts.BypassDocumentValidation = uo.BypassDocumentValidation
 		}
 		if uo.Collation != nil {

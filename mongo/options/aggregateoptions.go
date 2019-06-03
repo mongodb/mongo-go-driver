@@ -95,7 +95,7 @@ func MergeAggregateOptions(opts ...*AggregateOptions) *AggregateOptions {
 		if ao.BatchSize != nil {
 			aggOpts.BatchSize = ao.BatchSize
 		}
-		if ao.BypassDocumentValidation != nil {
+		if ao.BypassDocumentValidation != nil && *ao.BypassDocumentValidation {
 			aggOpts.BypassDocumentValidation = ao.BypassDocumentValidation
 		}
 		if ao.Collation != nil {

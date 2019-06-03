@@ -156,7 +156,7 @@ func (u *Update) Execute(ctx context.Context) error {
 
 func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "update", u.collection)
-	if u.bypassDocumentValidation != nil &&
+	if (u.bypassDocumentValidation != nil && *u.bypassDocumentValidation) &&
 		(desc.WireVersion != nil && desc.WireVersion.Includes(4)) {
 
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *u.bypassDocumentValidation)

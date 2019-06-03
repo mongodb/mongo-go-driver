@@ -30,7 +30,7 @@ func MergeInsertOneOptions(opts ...*InsertOneOptions) *InsertOneOptions {
 		if ioo == nil {
 			continue
 		}
-		if ioo.BypassDocumentValidation != nil {
+		if ioo.BypassDocumentValidation != nil && *ioo.BypassDocumentValidation {
 			ioOpts.BypassDocumentValidation = ioo.BypassDocumentValidation
 		}
 	}
@@ -72,7 +72,7 @@ func MergeInsertManyOptions(opts ...*InsertManyOptions) *InsertManyOptions {
 		if imo == nil {
 			continue
 		}
-		if imo.BypassDocumentValidation != nil {
+		if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 			imOpts.BypassDocumentValidation = imo.BypassDocumentValidation
 		}
 		if imo.Ordered != nil {

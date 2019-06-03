@@ -71,7 +71,7 @@ func Update(
 		}
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"arrayFilters", bsonx.Array(arr)})
 	}
-	if updateOpts.BypassDocumentValidation != nil && ss.Description().WireVersion.Includes(4) {
+	if (updateOpts.BypassDocumentValidation != nil && *updateOpts.BypassDocumentValidation) && ss.Description().WireVersion.Includes(4) {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"bypassDocumentValidation", bsonx.Boolean(*updateOpts.BypassDocumentValidation)})
 	}
 	if updateOpts.Collation != nil {

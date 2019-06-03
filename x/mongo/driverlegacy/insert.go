@@ -53,7 +53,7 @@ func Insert(
 
 	insertOpts := options.MergeInsertManyOptions(opts...)
 
-	if insertOpts.BypassDocumentValidation != nil && ss.Description().WireVersion.Includes(4) {
+	if (insertOpts.BypassDocumentValidation != nil && *insertOpts.BypassDocumentValidation) && ss.Description().WireVersion.Includes(4) {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"bypassDocumentValidation", bsonx.Boolean(*insertOpts.BypassDocumentValidation)})
 	}
 	if insertOpts.Ordered != nil {

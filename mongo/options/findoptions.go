@@ -501,7 +501,7 @@ func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAn
 		if opt == nil {
 			continue
 		}
-		if opt.BypassDocumentValidation != nil {
+		if opt.BypassDocumentValidation != nil && *opt.BypassDocumentValidation {
 			fo.BypassDocumentValidation = opt.BypassDocumentValidation
 		}
 		if opt.Collation != nil {
@@ -604,7 +604,7 @@ func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndU
 		if opt.ArrayFilters != nil {
 			fo.ArrayFilters = opt.ArrayFilters
 		}
-		if opt.BypassDocumentValidation != nil {
+		if opt.BypassDocumentValidation != nil && *opt.BypassDocumentValidation {
 			fo.BypassDocumentValidation = opt.BypassDocumentValidation
 		}
 		if opt.Collation != nil {

@@ -45,7 +45,7 @@ func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
 		if ro == nil {
 			continue
 		}
-		if ro.BypassDocumentValidation != nil {
+		if ro.BypassDocumentValidation != nil && *ro.BypassDocumentValidation {
 			rOpts.BypassDocumentValidation = ro.BypassDocumentValidation
 		}
 		if ro.Collation != nil {

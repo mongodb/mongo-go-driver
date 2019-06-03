@@ -92,7 +92,7 @@ func Aggregate(
 		cmd.CursorOpts = append(cmd.CursorOpts, elem)
 		batchSize = *aggOpts.BatchSize
 	}
-	if aggOpts.BypassDocumentValidation != nil && desc.WireVersion.Includes(4) {
+	if (aggOpts.BypassDocumentValidation != nil && *aggOpts.BypassDocumentValidation) && desc.WireVersion.Includes(4) {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"bypassDocumentValidation", bsonx.Boolean(*aggOpts.BypassDocumentValidation)})
 	}
 	if aggOpts.Collation != nil {

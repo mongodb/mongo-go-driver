@@ -262,7 +262,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.topology)
 	imo := options.MergeInsertManyOptions(opts...)
-	if imo.BypassDocumentValidation != nil {
+	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
 	}
 	if imo.Ordered != nil {
@@ -284,7 +284,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	imOpts := make([]*options.InsertManyOptions, len(opts))
 	for i, opt := range opts {
 		imo := options.InsertMany()
-		if opt.BypassDocumentValidation != nil {
+		if opt.BypassDocumentValidation != nil && *opt.BypassDocumentValidation {
 			imo = imo.SetBypassDocumentValidation(*opt.BypassDocumentValidation)
 		}
 		imOpts[i] = imo
@@ -485,7 +485,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter, update bson
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.topology)
 
-	if uo.BypassDocumentValidation != nil {
+	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
 	}
 	retry := driver.RetryNone
@@ -660,7 +660,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		op.BatchSize(*ao.BatchSize)
 		cursorOpts.BatchSize = *ao.BatchSize
 	}
-	if ao.BypassDocumentValidation != nil {
+	if ao.BypassDocumentValidation != nil && *ao.BypassDocumentValidation {
 		op.BypassDocumentValidation(*ao.BypassDocumentValidation)
 	}
 	if ao.Collation != nil {
@@ -1188,7 +1188,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 
 	fo := options.MergeFindOneAndReplaceOptions(opts...)
 	op := operation.NewFindAndModify(f).Update(r)
-	if fo.BypassDocumentValidation != nil {
+	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
 	}
 	if fo.Collation != nil {
@@ -1255,7 +1255,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		}
 		op = op.ArrayFilters(bsoncore.Document(filtersDoc))
 	}
-	if fo.BypassDocumentValidation != nil {
+	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
 	}
 	if fo.Collation != nil {

@@ -46,7 +46,7 @@ func MergeBulkWriteOptions(opts ...*BulkWriteOptions) *BulkWriteOptions {
 		if opt.Ordered != nil {
 			b.Ordered = opt.Ordered
 		}
-		if opt.BypassDocumentValidation != nil {
+		if opt.BypassDocumentValidation != nil && *opt.BypassDocumentValidation {
 			b.BypassDocumentValidation = opt.BypassDocumentValidation
 		}
 	}

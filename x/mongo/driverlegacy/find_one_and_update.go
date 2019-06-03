@@ -71,7 +71,7 @@ func FindOneAndUpdate(
 		}
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"arrayFilters", bsonx.Array(arr)})
 	}
-	if uo.BypassDocumentValidation != nil {
+	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"bypassDocumentValidation", bsonx.Boolean(*uo.BypassDocumentValidation)})
 	}
 	if uo.Collation != nil {
