@@ -72,22 +72,25 @@ func TestBatches(t *testing.T) {
 	t.Run("killCursor", func(t *testing.T) {
 
 		testcases := []struct {
-			bc   *BatchCursor
-			want error
-			ctx  context.Context
+			description    string
+			bc             *BatchCursor
+			want           error
+			expectedCursor bsoncore.DocumentSequence
+			ctx            context.Context
 		}{
-			{nil, nil, context.TODO()},
-			{nil, nil, context.TODO()},
+			{"Empty Batch Cursor: TODO", NewEmptyBatchCursor(), nil, bsoncore.DocumentSequence{}, context.TODO()},
+			{"Empty Batch Cursor: background", NewEmptyBatchCursor(), nil, bsoncore.DocumentSequence{}, context.Background()},
 		}
-
-		// bc := NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *session.ClusterClock, opts CursorOptions)
 
 		for _, test := range testcases {
 			if err := test.bc.killCursor(test.ctx); err != test.want {
-				t.Errorf("killCursor was not correctly killed. Got: %v Expected: %v", err, test.want)
+				t.Errorf("test: %s: killCursor was not correctly killed. Got: %v Expected: %v", test.description, err, test.want)
 			}
 
-			// check that cursor was actually killed
+			test.bc.getMore(test.ctx)
+			if !cmp.Equal(*test.bc.Batch(), test.expectedCursor) {
+				t.Errorf("test: %s: killCursor returned but didn't kill cursor: got: %v, expected: %v", test.description, test.bc.Batch(), test.expectedCursor)
+			}
 
 		}
 
