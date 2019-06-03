@@ -1,7 +1,6 @@
 package driver
 
 import (
-	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -66,34 +65,6 @@ func TestBatches(t *testing.T) {
 			if !cmp.Equal(tc.batches, tc.want) {
 				t.Errorf("Batches is not in correct state after AdvanceBatch. got %v; want %v", tc.batches, tc.want)
 			}
-		}
-	})
-
-	t.Run("killCursor", func(t *testing.T) {
-
-		testcases := []struct {
-			description    string
-			bc             *BatchCursor
-			want           error
-			expectedCursor bsoncore.DocumentSequence
-			ctx            context.Context
-		}{
-			{"Empty Batch Cursor: TODO", NewEmptyBatchCursor(), nil, bsoncore.DocumentSequence{}, context.TODO()},
-			{"Empty Batch Cursor: Background", NewEmptyBatchCursor(), nil, bsoncore.DocumentSequence{}, context.Background()},
-			/*{"NonEmpty Batch Cursor: TODO", nil, nil, bsoncore.DocumentSequence{}, context.TODO()},
-			{"NonEmpty Batch Cursor: Background", nil, nil, bsoncore.DocumentSequence{}, context.Background()},*/
-		}
-
-		for _, test := range testcases {
-			if err := test.bc.killCursor(test.ctx); err != test.want {
-				t.Errorf("test: %s: killCursor was not correctly killed. Got: %v Expected: %v", test.description, err, test.want)
-			}
-
-			test.bc.getMore(test.ctx)
-			if !cmp.Equal(*test.bc.Batch(), test.expectedCursor) {
-				t.Errorf("test: %s: killCursor returned but didn't kill cursor: got: %v, expected: %v", test.description, test.bc.Batch(), test.expectedCursor)
-			}
-
 		}
 	})
 }
