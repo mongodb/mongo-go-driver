@@ -11,10 +11,9 @@ import (
 
 	"errors"
 
-	"time"
-
 	"io"
 	"math"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -188,7 +187,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	bytesLen := int32(len(dataBytes))
 	if ds.expectedChunk == ds.numChunks {
 		// final chunk can be fewer than ds.chunkSize bytes
-		bytesDownloaded := ds.chunkSize * (ds.expectedChunk - 1)
+		bytesDownloaded := int64(ds.chunkSize) * (int64(ds.expectedChunk) - int64(1))
 		bytesRemaining := ds.fileLen - int64(bytesDownloaded)
 
 		if int64(bytesLen) != bytesRemaining {
