@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4e61c37b_3614cd90",
+        "filename": "mongo/gridfs/download_stream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-03T19:25:00Z",
+      "side": 1,
+      "message": "This was probably done by an IDE as the result of adding/removing imports, but this should be avoided in the future because it increases diff size. I don\u0027t think this is something that you need another patch for now - just something to keep in mind for future tickets.",
+      "range": {
+        "startLine": 16,
+        "startChar": 1,
+        "endLine": 16,
+        "endChar": 7
+      },
+      "revId": "0e6c0a7868539200cb406318c3de0f3bf7878202",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
