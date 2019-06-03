@@ -38,6 +38,8 @@ var (
 	NetworkError = "NetworkError"
 	// ReplyDocumentMismatch is an error label for OP_QUERY field mismatch errors.
 	ReplyDocumentMismatch = "malformed OP_REPLY: NumberReturned does not match number of documents returned"
+	// NonRetryableChangeStreamError is an error label for a sever error response that is not resumable.
+	NonRetryableChangeStreamError = "NonRetryableChangeStreamError"
 )
 
 var retryableCodes = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001}

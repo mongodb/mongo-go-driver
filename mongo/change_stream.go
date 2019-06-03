@@ -550,7 +550,7 @@ func (cs *ChangeStream) loopNext(ctx context.Context) {
 
 		switch t := cs.err.(type) {
 		case command.Error:
-			if t.Code == errorInterrupted || t.Code == errorCappedPositionLost || t.Code == errorCursorKilled {
+			if t.Code == errorInterrupted || t.Code == errorCappedPositionLost || t.Code == errorCursorKilled || t.HasErrorLabel("NonRetryableChangeStreamError") {
 				return
 			}
 		}
