@@ -85,9 +85,33 @@ func getStreamOptions(test *csTest) *options.ChangeStreamOptions {
 func changeStreamCompareErrors(t *testing.T, expected map[string]interface{}, actual error) {
 	if cmdErr, ok := actual.(CommandError); ok {
 		expectedCode := int32(expected["code"].(float64))
-
 		if cmdErr.Code != expectedCode {
 			t.Fatalf("error code mismatch. expected %d, got %d", expectedCode, cmdErr.Code)
+		}
+
+		if expected["errorLabels"] != nil {
+			expectedLabels := expected["errorLabels"].([]interface{})
+			var labelStrings []string
+			for _, label := range expectedLabels {
+				labelStrings = append(labelStrings, label.(string))
+			}
+
+			if len(labelStrings) != len(cmdErr.Labels) {
+				t.Fatalf("error label length mismatch")
+			}
+
+			for _, exp := range labelStrings {
+				var found bool
+				for _, label := range cmdErr.Labels {
+					if label == exp {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Fatalf("error label %s not found", exp)
+				}
+			}
 		}
 	} else {
 		t.Fatalf("error was not of type CommandError")
@@ -253,6 +277,13 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 					changeStreamCompareErrors(t, test.Result.Error, opErr)
 					return
 				}
+			}
+
+			if len(test.Result.Success) == 0 && len(test.Result.Error) != 0 {
+				if cursor.Next(ctx) {
+					t.Fatalf("Next returned true instead of false")
+				}
+				changeStreamCompareErrors(t, test.Result.Error, cursor.Err())
 			}
 
 			for i := 0; i < len(test.Result.Success); i++ {
