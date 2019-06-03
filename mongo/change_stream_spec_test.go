@@ -255,6 +255,13 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 				}
 			}
 
+			if len(test.Result.Success) == 0 && len(test.Result.Error) != 0 {
+				if cursor.Next(ctx) {
+					t.Fatalf("Next returned true instead of false")
+				}
+				changeStreamCompareErrors(t, test.Result.Error, cursor.Err())
+			}
+
 			for i := 0; i < len(test.Result.Success); i++ {
 				if !cursor.Next(ctx) {
 					t.Fatalf("Next returned false at iteration %d; expected %d changes", i, len(test.Result.Success))
