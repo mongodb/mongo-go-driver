@@ -79,7 +79,9 @@ func TestBatches(t *testing.T) {
 			ctx            context.Context
 		}{
 			{"Empty Batch Cursor: TODO", NewEmptyBatchCursor(), nil, bsoncore.DocumentSequence{}, context.TODO()},
-			{"Empty Batch Cursor: background", NewEmptyBatchCursor(), nil, bsoncore.DocumentSequence{}, context.Background()},
+			{"Empty Batch Cursor: Background", NewEmptyBatchCursor(), nil, bsoncore.DocumentSequence{}, context.Background()},
+			/*{"NonEmpty Batch Cursor: TODO", nil, nil, bsoncore.DocumentSequence{}, context.TODO()},
+			{"NonEmpty Batch Cursor: Background", nil, nil, bsoncore.DocumentSequence{}, context.Background()},*/
 		}
 
 		for _, test := range testcases {
@@ -93,7 +95,5 @@ func TestBatches(t *testing.T) {
 			}
 
 		}
-
 	})
-
 }
