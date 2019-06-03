@@ -101,8 +101,13 @@ func BulkWrite(
 			continue
 		}
 
+		bypassDocValidation := bwOpts.BypassDocumentValidation
+		if bypassDocValidation != nil && !*bypassDocValidation {
+			bypassDocValidation = nil
+		}
+
 		batchRes, batchErr, err := runBatch(ctx, ns, topo, selector, ss, sess, clock, writeConcern, retryWrite,
-			bwOpts.BypassDocumentValidation, continueOnError, batch, registry)
+			bypassDocValidation, continueOnError, batch, registry)
 
 		mergeResults(&bwRes, batchRes, opIndex)
 		bwErr.WriteConcernError = batchErr.WriteConcernError
