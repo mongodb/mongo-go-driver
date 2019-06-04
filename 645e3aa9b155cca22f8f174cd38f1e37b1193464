@@ -22,6 +22,53 @@
       "revId": "645e3aa9b155cca22f8f174cd38f1e37b1193464",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "decdd075_d75062d3",
+        "filename": "x/mongo/driver/operation/drop_database.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-04T17:56:17Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d9aa9f12_015b1e5f",
+      "range": {
+        "startLine": 36,
+        "startChar": 5,
+        "endLine": 36,
+        "endChar": 23
+      },
+      "revId": "645e3aa9b155cca22f8f174cd38f1e37b1193464",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6d7bb1a7_4ea0c4a2",
+        "filename": "x/mongo/driver/operation/drop_database.toml",
+        "patchSetId": 1
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-04T17:56:17Z",
+      "side": 1,
+      "message": "Seems like this was copy/pasted from the distinct documentation.",
+      "range": {
+        "startLine": 18,
+        "startChar": 17,
+        "endLine": 18,
+        "endChar": 50
+      },
+      "revId": "645e3aa9b155cca22f8f174cd38f1e37b1193464",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
