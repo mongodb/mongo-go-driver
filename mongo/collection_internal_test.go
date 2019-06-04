@@ -1756,8 +1756,16 @@ func TestCollection_Find_Error(t *testing.T) {
 	t.Run("Test killCursor is killed server side", func(t *testing.T) {
 
 		coll := createTestCollection(t, nil, nil)
-		initCollection(t, coll)
+		version, err := getServerVersion(coll.db)
+		if err != nil {
+			t.Fatalf("getServerVersion failed %v", err)
+		}
 
+		if compareVersions(t, version, "3.0") <= 0 {
+			t.Skip("skipping because less than 3.0 server version")
+		}
+
+		initCollection(t, coll)
 		c, err := coll.Find(context.Background(), bsonx.Doc{}, options.Find().SetBatchSize(2))
 		require.Nil(t, err, "error running find: %s", err)
 
