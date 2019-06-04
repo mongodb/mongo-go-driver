@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c04eee0f_65d2aafc",
+        "filename": "mongo/database.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-04T18:54:47Z",
+      "side": 1,
+      "message": "This should use the NamespaceNotFound() function in driver/errors.go because command.IsNotFound only works for type command.Error, not driver.Error. We should also add a test that drops a non-existent database and asserts that no errors are returned.",
+      "range": {
+        "startLine": 220,
+        "startChar": 19,
+        "endLine": 220,
+        "endChar": 37
+      },
+      "revId": "646eb54a52f25b5511dd621587fa1ef0d825e8df",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
