@@ -60,10 +60,10 @@ func buildDistinctResult(response bsoncore.Document, srvr driver.Server) (Distin
 }
 
 // NewDistinct constructs and returns a new Distinct.
-func NewDistinct(key string, query bsoncore.Document) *Distinct {
+func NewDistinct(query bsoncore.Document, key string) *Distinct {
 	return &Distinct{
-		key:   &key,
 		query: query,
+		key:   &key,
 	}
 }
 

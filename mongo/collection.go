@@ -841,7 +841,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 
 	option := options.MergeDistinctOptions(opts...)
 
-	op := operation.NewDistinct(fieldName, bsoncore.Document(f)).
+	op := operation.NewDistinct(bsoncore.Document(f), fieldName).
 		Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.topology).ReadConcern(rc).ReadPreference(coll.readPreference).

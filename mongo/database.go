@@ -22,7 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
@@ -186,24 +185,38 @@ func (db *Database) Drop(ctx context.Context) error {
 	}
 
 	sess := sessionFromContext(ctx)
+	if sess == nil && db.client.topology.SessionPool != nil {
+		sess, err := session.NewClientSession(db.client.topology.SessionPool, db.client.id, session.Implicit)
+		if err != nil {
+			return err
+		}
+		defer sess.EndSession()
+	}
 
 	err := db.client.validSession(sess)
 	if err != nil {
 		return err
 	}
 
-	cmd := command.DropDatabase{
-		DB:      db.name,
-		Session: sess,
-		Clock:   db.client.clock,
+	wc := db.writeConcern
+	if sess.TransactionRunning() {
+		wc = nil
 	}
-	_, err = driverlegacy.DropDatabase(
-		ctx, cmd,
-		db.client.topology,
-		db.writeSelector,
-		db.client.id,
-		db.client.topology.SessionPool,
-	)
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
+	}
+
+	selector := db.writeSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
+	}
+
+	op := operation.NewDropDatabase().
+		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
+		ServerSelector(selector).ClusterClock(db.client.clock).
+		Database(db.name).Deployment(db.client.topology)
+
+	err = op.Execute(ctx)
 	if err != nil && !command.IsNotFound(err) {
 		return replaceErrors(err)
 	}
