@@ -503,6 +503,11 @@ func (p *parser) addOption(pair string) error {
 	case "readpreference":
 		p.ReadPreference = value
 	case "readpreferencetags":
+		if value == "" {
+			// for when readPreferenceTags= at end of URI
+			break
+		}
+
 		tags := make(map[string]string)
 		items := strings.Split(value, ",")
 		for _, item := range items {
