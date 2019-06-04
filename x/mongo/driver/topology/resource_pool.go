@@ -42,7 +42,9 @@ func newResourcePool(maxSize uint64, expiredFn expiredFunc, closeFn closeFunc, p
 		closeFn:       closeFn,
 		pruneInterval: pruneInterval,
 	}
+	rp.Lock()
 	rp.pruneTimer = time.AfterFunc(rp.pruneInterval, rp.Prune)
+	rp.Unlock()
 	return rp
 }
 

@@ -182,12 +182,13 @@ func (p *pool) close(c *connection) error {
 	}
 	p.Lock()
 	delete(p.opened, c.poolID)
+	nc := c.nc
+	c.nc = nil
 	p.Unlock()
-	if c.nc == nil {
+	if nc == nil {
 		return nil // We're closing an already closed connection.
 	}
-	err := c.nc.Close()
-	c.nc = nil
+	err := nc.Close()
 	if err != nil {
 		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to close net.Conn"}
 	}
