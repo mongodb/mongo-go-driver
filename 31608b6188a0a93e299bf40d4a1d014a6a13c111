@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "333cb212_2e9af1ed",
+        "filename": "mongo/change_stream_spec_test.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-04T21:06:46Z",
+      "side": 1,
+      "message": "this should be set inside the first loop because it should be \"reset\" for each exp. also, this can be written as \"var found bool\" because the 0-value of a bool is false.",
+      "range": {
+        "startLine": 102,
+        "startChar": 2,
+        "endLine": 102,
+        "endChar": 16
+      },
+      "revId": "31608b6188a0a93e299bf40d4a1d014a6a13c111",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
