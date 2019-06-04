@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fc92169c_06f4d1b6",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1764,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-04T18:47:28Z",
+      "side": 1,
+      "message": "this comment isn\u0027t really clear as-is. also, the meaning of c.Next() is well-defined so i don\u0027t think we need a comment here at all.",
+      "range": {
+        "startLine": 1764,
+        "startChar": 51,
+        "endLine": 1764,
+        "endChar": 125
+      },
+      "revId": "2ba5184c410eaa61fcbcf603896721a983c6c09a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a7e78c3a_6a0388f4",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1765,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-04T18:47:28Z",
+      "side": 1,
+      "message": "this comment is outdated",
+      "range": {
+        "startLine": 1765,
+        "startChar": 51,
+        "endLine": 1765,
+        "endChar": 82
+      },
+      "revId": "2ba5184c410eaa61fcbcf603896721a983c6c09a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c200203e_d5c6ca90",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1769,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-04T18:47:28Z",
+      "side": 1,
+      "message": "Close is going to set the ID to 0, so you have to capture the ID before calling Close()",
+      "range": {
+        "startLine": 1769,
+        "startChar": 15,
+        "endLine": 1769,
+        "endChar": 21
+      },
+      "revId": "2ba5184c410eaa61fcbcf603896721a983c6c09a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0cbd06b7_5773a5a2",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1773,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-04T18:47:28Z",
+      "side": 1,
+      "message": "We should be checking that this error is of type mongo.CommandError and that the code matches the \"cursor killed\" code (i think it\u0027s 237).",
+      "range": {
+        "startLine": 1773,
+        "startChar": 2,
+        "endLine": 1773,
+        "endChar": 29
+      },
+      "revId": "2ba5184c410eaa61fcbcf603896721a983c6c09a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
