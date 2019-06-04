@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d9aa9f12_015b1e5f",
+        "filename": "x/mongo/driver/operation/drop_database.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-04T17:12:29Z",
+      "side": 1,
+      "message": "driverlegacy.DropDatabase() returned a bson.Raw instead",
+      "range": {
+        "startLine": 36,
+        "startChar": 5,
+        "endLine": 36,
+        "endChar": 23
+      },
+      "revId": "645e3aa9b155cca22f8f174cd38f1e37b1193464",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
