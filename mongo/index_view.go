@@ -299,7 +299,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, name string) (bson.Raw, error) {
+func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -332,11 +332,16 @@ func (iv IndexView) drop(ctx context.Context, name string) (bson.Raw, error) {
 		selector = sess.PinnedServer
 	}
 
+	dio := options.MergeDropIndexesOptions(opts...)
 	op := operation.NewDropIndexes(name).
 		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.topology)
+	if dio.MaxTime != nil {
+		op.MaxTimeMS(int64(*dio.MaxTime / time.Millisecond))
+	}
+
 	err = op.Execute(ctx)
 	if err != nil {
 		return nil, replaceErrors(err)
@@ -355,12 +360,12 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 		return nil, ErrMultipleIndexDrop
 	}
 
-	return iv.drop(ctx, name)
+	return iv.drop(ctx, name, opts...)
 }
 
 // DropAll drops all indexes in the collection.
 func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
-	return iv.drop(ctx, "*")
+	return iv.drop(ctx, "*", opts...)
 }
 
 func getOrGenerateIndexName(registry *bsoncodec.Registry, model IndexModel) (string, error) {
