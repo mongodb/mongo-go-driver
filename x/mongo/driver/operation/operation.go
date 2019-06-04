@@ -7,3 +7,4 @@ package operation
 //go:generate operationgen drop_collection.toml operation drop_collection.go
 //go:generate operationgen distinct.toml operation distinct.go
 //go:generate operationgen delete.toml operation delete.go
+//go:generate operationgen drop_database.toml operation drop_database.go
