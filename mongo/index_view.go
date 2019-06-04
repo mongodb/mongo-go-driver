@@ -19,13 +19,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 // ErrInvalidIndexValue indicates that the index Keys document has a value that isn't either a number or a string.
@@ -300,60 +299,68 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 	return optsDoc, nil
 }
 
+func (iv IndexView) drop(ctx context.Context, name string) (bson.Raw, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	sess := sessionFromContext(ctx)
+	if sess == nil && iv.coll.client.topology.SessionPool != nil {
+		var err error
+		sess, err = session.NewClientSession(iv.coll.client.topology.SessionPool, iv.coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+		defer sess.EndSession()
+	}
+
+	err := iv.coll.client.validSession(sess)
+	if err != nil {
+		return nil, err
+	}
+
+	wc := iv.coll.writeConcern
+	if sess.TransactionRunning() {
+		wc = nil
+	}
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
+	}
+
+	selector := iv.coll.writeSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
+	}
+
+	op := operation.NewDropIndexes(name).
+		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
+		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
+		Database(iv.coll.db.name).Collection(iv.coll.name).
+		Deployment(iv.coll.client.topology)
+	err = op.Execute(ctx)
+	if err != nil {
+		return nil, replaceErrors(err)
+	}
+
+	// TODO: it's weird to return a bson.Raw here because we have to convert the result back to BSON
+	ridx, res := bsoncore.AppendDocumentStart(nil)
+	res = bsoncore.AppendInt32Element(res, "nIndexesWas", op.Result().NIndexesWas)
+	res, _ = bsoncore.AppendDocumentEnd(res, ridx)
+	return res, nil
+}
+
 // DropOne drops the index with the given name from the collection.
 func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
 	if name == "*" {
 		return nil, ErrMultipleIndexDrop
 	}
 
-	sess := sessionFromContext(ctx)
-
-	err := iv.coll.client.validSession(sess)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := command.DropIndexes{
-		NS:      iv.coll.namespace(),
-		Index:   name,
-		Session: sess,
-		Clock:   iv.coll.client.clock,
-	}
-
-	return driverlegacy.DropIndexes(
-		ctx, cmd,
-		iv.coll.client.topology,
-		iv.coll.writeSelector,
-		iv.coll.client.id,
-		iv.coll.client.topology.SessionPool,
-		opts...,
-	)
+	return iv.drop(ctx, name)
 }
 
 // DropAll drops all indexes in the collection.
 func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
-	sess := sessionFromContext(ctx)
-
-	err := iv.coll.client.validSession(sess)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := command.DropIndexes{
-		NS:      iv.coll.namespace(),
-		Index:   "*",
-		Session: sess,
-		Clock:   iv.coll.client.clock,
-	}
-
-	return driverlegacy.DropIndexes(
-		ctx, cmd,
-		iv.coll.client.topology,
-		iv.coll.writeSelector,
-		iv.coll.client.id,
-		iv.coll.client.topology.SessionPool,
-		opts...,
-	)
+	return iv.drop(ctx, "*")
 }
 
 func getOrGenerateIndexName(registry *bsoncodec.Registry, model IndexModel) (string, error) {
