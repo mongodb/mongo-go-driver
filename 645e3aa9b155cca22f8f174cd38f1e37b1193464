@@ -69,6 +69,30 @@
       "revId": "645e3aa9b155cca22f8f174cd38f1e37b1193464",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8471ce0d_674aaa04",
+        "filename": "x/mongo/driver/operation/drop_database.toml",
+        "patchSetId": 1
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-04T18:16:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6d7bb1a7_4ea0c4a2",
+      "range": {
+        "startLine": 18,
+        "startChar": 17,
+        "endLine": 18,
+        "endChar": 50
+      },
+      "revId": "645e3aa9b155cca22f8f174cd38f1e37b1193464",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
