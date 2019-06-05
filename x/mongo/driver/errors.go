@@ -17,6 +17,8 @@ var (
 )
 
 var (
+	// UnknownTransactionCommitResult is an error label for unknown transaction commit results.
+	UnknownTransactionCommitResult = "UnknownTransactionCommitResult"
 	// TransientTransactionError is an error label for transient errors with transactions.
 	TransientTransactionError = "TransientTransactionError"
 	// NetworkError is an error label for network errors.

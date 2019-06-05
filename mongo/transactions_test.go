@@ -123,7 +123,9 @@ var transMonitor = &event.CommandMonitor{
 // test case for all TransactionSpec tests
 func TestTransactionSpec(t *testing.T) {
 	for _, file := range testhelpers.FindJSONFilesInDir(t, transactionTestsDir) {
-		runTransactionTestFile(t, path.Join(transactionTestsDir, file))
+		t.Run(file, func(t *testing.T) {
+			runTransactionTestFile(t, path.Join(transactionTestsDir, file))
+		})
 	}
 }
 
