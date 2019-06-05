@@ -14,7 +14,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
@@ -208,19 +212,28 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 		s.clientSession.RetryingCommit = true
 	}
 
-	cmd := command.CommitTransaction{
-		Session: s.clientSession,
+	var selector description.ServerSelectorFunc = func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
+		if s.clientSession.PinnedServer != nil {
+			return s.clientSession.PinnedServer.SelectServer(t, svrs)
+		}
+		return description.WriteSelector().SelectServer(t, svrs)
 	}
 
-	// Hack to ensure that session stays in committed state
-	if s.clientSession.TransactionCommitted() {
-		s.clientSession.Committing = true
-		defer func() {
-			s.clientSession.Committing = false
-		}()
-	}
-	_, err = driverlegacy.CommitTransaction(ctx, cmd, s.topo, description.WriteSelector())
+	s.clientSession.Committing = true
+	err = operation.NewCommitTransaction().
+		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.topo).
+		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
+		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).Execute(ctx)
+	s.clientSession.Committing = false
 	commitErr := s.clientSession.CommitTransaction()
+
+	// We set the write concern to majority for subsequent calls to CommitTransaction.
+	wc := s.clientSession.CurrentWc
+	timeout := 10 * time.Second
+	if wc != nil && wc.GetWTimeout() != 0 {
+		timeout = wc.GetWTimeout()
+	}
+	s.clientSession.CurrentWc = wc.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(timeout))
 
 	if err != nil {
 		return replaceErrors(err)
