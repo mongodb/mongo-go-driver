@@ -133,3 +133,27 @@ func TestParseDecimal128FromBigInt(t *testing.T) {
 		}
 	}
 }
+
+func TestParseDecimal128(t *testing.T) {
+	cases := append(bigIntTestCases,
+		[]bigIntTestCase{
+			{s: "0.10000000000000000000000000000000000000000000", h: 0x2ffbed09bead87c0, l: 0x378d8e6400000000},
+			{s: "-000001.0000000000000000000000000000000000000000000", h: 0xaffded09bead87c0, l: 0x378d8e6400000000},
+			{s: "-0001231.453454000000565600000000E-21", h: 0xafe6000003faa269, l: 0x81cfeceaabdb1800},
+			{s: "12345E+21", h: 0x306a000000000000, l: 12345},
+			{s: "0.10000000000000000000000000000000000000000001", remark: "parse fail"},
+		}...)
+	for _, c := range cases {
+		switch c.remark {
+		case "overflow", "parse fail":
+			_, err := ParseDecimal128(c.s)
+			require.Error(t, err)
+		case "", "rounding", "subnormal", "clamped", "NaN", "Infinity", "-Infinity":
+			d128, err := ParseDecimal128(c.s)
+			require.NoError(t, err)
+
+			require.Equal(t, c.h, d128.h, "case %s", c.s, d128.l)
+			require.Equal(t, c.l, d128.l, "case %s", c.s, d128.h)
+		}
+	}
+}

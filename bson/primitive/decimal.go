@@ -12,6 +12,7 @@ package primitive
 import (
 	"fmt"
 	"math/big"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -219,177 +220,61 @@ func dErr(s string) (Decimal128, error) {
 	return dNaN, fmt.Errorf("cannot parse %q as a decimal128", s)
 }
 
+var regDecimal128 = regexp.MustCompile(`^(?P<int>[-+]?\d+)(?:\.(?P<dec>\d+))?(?:[Ee](?P<exp>[-+]?\d+))?$`)
+
 // ParseDecimal128 takes the given string and attempts to parse it into a valid
 // Decimal128 value.
 func ParseDecimal128(s string) (Decimal128, error) {
-	orig := s
-	if s == "" {
-		return dErr(orig)
-	}
-	neg := s[0] == '-'
-	if neg || s[0] == '+' {
-		s = s[1:]
-	}
-
-	if (len(s) == 3 || len(s) == 8) && (s[0] == 'N' || s[0] == 'n' || s[0] == 'I' || s[0] == 'i') {
+	matches := regDecimal128.FindStringSubmatch(s)
+	if len(matches) == 0 {
 		if s == "NaN" || s == "nan" || strings.EqualFold(s, "nan") {
 			return dNaN, nil
 		}
 		if s == "Inf" || s == "inf" || strings.EqualFold(s, "inf") || strings.EqualFold(s, "infinity") {
-			if neg {
-				return dNegInf, nil
-			}
 			return dPosInf, nil
 		}
-		return dErr(orig)
+		if s == "-Inf" || s == "-inf" || strings.EqualFold(s, "-inf") || strings.EqualFold(s, "-infinity") {
+			return dNegInf, nil
+		}
+		return dErr(s)
 	}
 
-	var h, l uint64
-	var e int
+	ip := matches[1]
+	dp := matches[2]
+	ep := matches[3]
 
-	var add, ovr uint32
-	var mul uint32 = 1
-	var dot = -1
-	var digits = 0
-	var i = 0
-	for i < len(s) {
-		c := s[i]
-		if mul == 1e9 {
-			h, l, ovr = muladd(h, l, mul, add)
-			mul, add = 1, 0
-			if ovr > 0 || h&((1<<15-1)<<49) > 0 {
-				return dErr(orig)
-			}
-		}
-		if c >= '0' && c <= '9' {
-			i++
-			if c > '0' || digits > 0 {
-				digits++
-			}
-			if digits > 34 {
-				if c == '0' {
-					// Exact rounding.
-					e++
-					continue
-				}
-				return dErr(orig)
-			}
-			mul *= 10
-			add *= 10
-			add += uint32(c - '0')
-			continue
-		}
-		if c == '.' {
-			i++
-			if dot >= 0 || i == 1 && len(s) == 1 {
-				return dErr(orig)
-			}
-			if i == len(s) {
-				break
-			}
-			if s[i] < '0' || s[i] > '9' || e > 0 {
-				return dErr(orig)
-			}
-			dot = i
-			continue
-		}
-		break
-	}
-	if i == 0 {
-		return dErr(orig)
-	}
-	if mul > 1 {
-		h, l, ovr = muladd(h, l, mul, add)
-		if ovr > 0 || h&((1<<15-1)<<49) > 0 {
-			return dErr(orig)
+	var err error
+	e := 0
+	if ep != "" {
+		e, err = strconv.Atoi(ep)
+		if err != nil {
+			return dErr(s)
 		}
 	}
-	if dot >= 0 {
-		e += dot - i
-	}
-	if i+1 < len(s) && (s[i] == 'E' || s[i] == 'e') {
-		i++
-		eneg := s[i] == '-'
-		if eneg || s[i] == '+' {
-			i++
-			if i == len(s) {
-				return dErr(orig)
-			}
-		}
-		n := 0
-		for i < len(s) && n < 1e4 {
-			c := s[i]
-			i++
-			if c < '0' || c > '9' {
-				return dErr(orig)
-			}
-			n *= 10
-			n += int(c - '0')
-		}
-		if eneg {
-			n = -n
-		}
-		e += n
-		for e < MinDecimal128Exp {
-			// Subnormal.
-			var div uint32 = 1
-			for div < 1e9 && e < MinDecimal128Exp {
-				div *= 10
-				e++
-			}
-			var rem uint32
-			h, l, rem = divmod(h, l, div)
-			if rem > 0 {
-				return dErr(orig)
-			}
-		}
-		for e > MaxDecimal128Exp {
-			// Clamped.
-			var mul uint32 = 1
-			for mul < 1e9 && e > MaxDecimal128Exp {
-				mul *= 10
-				e--
-			}
-			h, l, ovr = muladd(h, l, mul, 0)
-			if ovr > 0 || h&((1<<15-1)<<49) > 0 {
-				return dErr(orig)
-			}
-		}
-		if e < MinDecimal128Exp || e > MaxDecimal128Exp {
-			return dErr(orig)
-		}
+	if dp != "" {
+		e -= len(dp)
 	}
 
-	if i < len(s) {
-		return dErr(orig)
+	if len(strings.Trim(ip+dp, "-0")) > 35 {
+		return dErr(s)
 	}
 
-	h |= uint64(e-MinDecimal128Exp) & uint64(1<<14-1) << 49
-	if neg {
-		h |= 1 << 63
+	bi, ok := new(big.Int).SetString(ip+dp, 10)
+	if !ok {
+		return dErr(s)
 	}
-	return Decimal128{h, l}, nil
-}
 
-func muladd(h, l uint64, mul uint32, add uint32) (resh, resl uint64, overflow uint32) {
-	mul64 := uint64(mul)
-	a := mul64 * (l & (1<<32 - 1))
-	b := a>>32 + mul64*(l>>32)
-	c := b>>32 + mul64*(h&(1<<32-1))
-	d := c>>32 + mul64*(h>>32)
-
-	a = a&(1<<32-1) + uint64(add)
-	b = b&(1<<32-1) + a>>32
-	c = c&(1<<32-1) + b>>32
-	d = d&(1<<32-1) + c>>32
-
-	return (d<<32 | c&(1<<32-1)), (b<<32 | a&(1<<32-1)), uint32(d >> 32)
+	d, ok := ParseDecimal128FromBigInt(bi, e)
+	if !ok {
+		return dErr(s)
+	}
+	return d, nil
 }
 
 var (
 	ten  = big.NewInt(10)
 	zero = new(big.Int)
-	maxS = new(big.Int).SetBytes([]byte{0x1, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}) // 14 bits
+	maxS = new(big.Int).SetBytes([]byte{0x1, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}) // 113 bits
 )
 
 // ParseDecimal128FromBigInt attempts to parse the given significand and exponent into a valid Decimal128 value.
