@@ -268,7 +268,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	if retryable == RetryWrite && op.Client != nil && op.RetryMode != nil {
 		if *op.RetryMode > RetryNone {
 			op.Client.RetryWrite = true
-			op.Client.IncrementTxnNumber()
+			if !op.Client.Committing {
+				op.Client.IncrementTxnNumber()
+			}
 		}
 
 		switch *op.RetryMode {
@@ -364,12 +366,33 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				defer conn.Close() // Avoid leaking the new connection.
+				if op.Client != nil && op.Client.Committing {
+					// Apply majority write concern for retries
+					currWC := op.WriteConcern
+					timeout := 10 * time.Second
+					if currWC != nil && currWC.GetWTimeout() != 0 {
+						timeout = currWC.GetWTimeout()
+					}
+					op.WriteConcern = currWC.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(timeout))
+				}
 				continue
 			}
 			// If batching is enabled and either ordered is the default (which is true) or
 			// explicitly set to true and we have write errors, return the errors.
 			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered == true) && len(tt.WriteErrors) > 0 {
 				return tt
+			}
+			if op.Client != nil && op.Client.Committing && tt.WriteConcernError != nil {
+				// When running commitTransaction we return WriteConcernErrors as an Error.
+				err := Error{
+					Name:    tt.WriteConcernError.Name,
+					Code:    int32(tt.WriteConcernError.Code),
+					Message: tt.WriteConcernError.Message,
+				}
+				if err.Code == 64 || tt.WriteConcernError.Retryable() {
+					err.Labels = []string{UnknownTransactionCommitResult}
+				}
+				return err
 			}
 			operationErr.WriteConcernError = tt.WriteConcernError
 			operationErr.WriteErrors = append(operationErr.WriteErrors, tt.WriteErrors...)
@@ -393,9 +416,21 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				defer conn.Close() // Avoid leaking the new connection.
+				if op.Client != nil && op.Client.Committing {
+					// Apply majority write concern for retries
+					currWC := op.WriteConcern
+					timeout := 10 * time.Second
+					if currWC != nil && currWC.GetWTimeout() != 0 {
+						timeout = currWC.GetWTimeout()
+					}
+					op.WriteConcern = currWC.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(timeout))
+				}
 				continue
 			}
-			return err
+			if op.Client != nil && op.Client.Committing {
+				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
+			}
+			return tt
 		case nil:
 			if moreToCome {
 				return ErrUnacknowledgedWrite
@@ -447,12 +482,26 @@ func (op Operation) retryable(desc description.Server) RetryType {
 func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
 	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
+		labels := []string{NetworkError}
+		if op.Client != nil && op.Client.TransactionInProgress() && !op.Client.Committing {
+			labels = append(labels, TransientTransactionError)
+		}
+		if op.Client != nil && op.Client.Committing {
+			labels = append(labels, UnknownTransactionCommitResult)
+		}
+		return nil, Error{Message: err.Error(), Labels: labels}
 	}
 
 	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
-		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
+		labels := []string{NetworkError}
+		if op.Client != nil && op.Client.TransactionInProgress() && !op.Client.Committing {
+			labels = append(labels, TransientTransactionError)
+		}
+		if op.Client != nil && op.Client.Committing {
+			labels = append(labels, UnknownTransactionCommitResult)
+		}
+		return nil, Error{Message: err.Error(), Labels: labels}
 	}
 
 	// decompress wiremessage
