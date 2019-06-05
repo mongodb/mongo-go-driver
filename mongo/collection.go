@@ -991,6 +991,9 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 			Sort:                opt.Sort,
 		}
 	}
+	// Unconditionally send a limit to make sure only one document is returned and the cursor is not kept open
+	// by the server.
+	findOpts = append(findOpts, options.Find().SetLimit(-1))
 
 	batchCursor, err := driver.Find(
 		ctx, cmd,
