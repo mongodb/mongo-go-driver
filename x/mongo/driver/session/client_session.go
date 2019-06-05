@@ -8,6 +8,7 @@ package session // import "go.mongodb.org/mongo-driver/x/mongo/driver/session"
 
 import (
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -321,6 +322,18 @@ func (c *Client) CommitTransaction() error {
 	}
 	c.state = Committed
 	return nil
+}
+
+// UpdateCommitTransactionWriteConcern will set the write concern to majority and potentially set  a
+// w timeout of 10 seconds. This should be called after a commit transaction operation fails with a
+// retryable error or after a successful commit transaction operation.
+func (c *Client) UpdateCommitTransactionWriteConcern() {
+	wc := c.CurrentWc
+	timeout := 10 * time.Second
+	if wc != nil && wc.GetWTimeout() != 0 {
+		timeout = wc.GetWTimeout()
+	}
+	c.CurrentWc = wc.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(timeout))
 }
 
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns
