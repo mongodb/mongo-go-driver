@@ -16,18 +16,19 @@ import (
 // BatchCursor is a batch implementation of a cursor. It returns documents in entire batches instead
 // of one at a time. An individual document cursor can be built on top of this batch cursor.
 type BatchCursor struct {
-	clientSession *session.Client
-	clock         *session.ClusterClock
-	database      string
-	collection    string
-	id            int64
-	err           error
-	server        Server
-	batchSize     int32
-	maxTimeMS     int64
-	currentBatch  *bsoncore.DocumentSequence
-	firstBatch    bool
-	cmdMonitor    *event.CommandMonitor
+	clientSession        *session.Client
+	clock                *session.ClusterClock
+	database             string
+	collection           string
+	id                   int64
+	err                  error
+	server               Server
+	batchSize            int32
+	maxTimeMS            int64
+	currentBatch         *bsoncore.DocumentSequence
+	firstBatch           bool
+	cmdMonitor           *event.CommandMonitor
+	postBatchResumeToken bsoncore.Document
 
 	// legacy server (< 3.2) fields
 	legacy      bool // This field is provided for ListCollectionsBatchCursor.
@@ -38,12 +39,13 @@ type BatchCursor struct {
 // CursorResponse represents the response from a command the results in a cursor. A BatchCursor can
 // be constructed from a CursorResponse.
 type CursorResponse struct {
-	Server     Server
-	Desc       description.Server
-	FirstBatch *bsoncore.DocumentSequence
-	Database   string
-	Collection string
-	ID         int64
+	Server               Server
+	Desc                 description.Server
+	FirstBatch           *bsoncore.DocumentSequence
+	Database             string
+	Collection           string
+	ID                   int64
+	postBatchResumeToken bsoncore.Document
 }
 
 // NewCursorResponse constructs a cursor response from the given response and server. This method
@@ -83,6 +85,11 @@ func NewCursorResponse(response bsoncore.Document, server Server, desc descripti
 			if !ok {
 				return CursorResponse{}, fmt.Errorf("id should be an int64 but it is a BSON %s", elem.Value().Type)
 			}
+		case "postBatchResumeToken":
+			curresp.postBatchResumeToken, ok = elem.Value().DocumentOK()
+			if !ok {
+				return CursorResponse{}, fmt.Errorf("post batch resume token should be a document but it is a BSON %s", elem.Value().Type)
+			}
 		}
 	}
 	return curresp, nil
@@ -100,16 +107,17 @@ type CursorOptions struct {
 func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *session.ClusterClock, opts CursorOptions) (*BatchCursor, error) {
 	ds := cr.FirstBatch
 	bc := &BatchCursor{
-		clientSession: clientSession,
-		clock:         clock,
-		database:      cr.Database,
-		collection:    cr.Collection,
-		id:            cr.ID,
-		server:        cr.Server,
-		batchSize:     opts.BatchSize,
-		maxTimeMS:     opts.MaxTimeMS,
-		cmdMonitor:    opts.CommandMonitor,
-		firstBatch:    true,
+		clientSession:        clientSession,
+		clock:                clock,
+		database:             cr.Database,
+		collection:           cr.Collection,
+		id:                   cr.ID,
+		server:               cr.Server,
+		batchSize:            opts.BatchSize,
+		maxTimeMS:            opts.MaxTimeMS,
+		cmdMonitor:           opts.CommandMonitor,
+		firstBatch:           true,
+		postBatchResumeToken: cr.postBatchResumeToken,
 	}
 
 	if ds != nil {
@@ -190,7 +198,7 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	err := bc.killCursor(ctx)
+	err := bc.KillCursor(ctx)
 	bc.id = 0
 	bc.currentBatch.Data = nil
 	bc.currentBatch.Style = 0
@@ -208,7 +216,8 @@ func (bc *BatchCursor) clearBatch() {
 	bc.currentBatch.Data = bc.currentBatch.Data[:0]
 }
 
-func (bc *BatchCursor) killCursor(ctx context.Context) error {
+// KillCursor kills cursor on server without closing batch cursor
+func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 	if bc.server == nil || bc.id == 0 {
 		return nil
 	}
@@ -276,6 +285,21 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			bc.currentBatch.Data = batch
 			bc.currentBatch.ResetIterator()
 			bc.numReturned += int32(bc.currentBatch.DocumentCount()) // Required for legacy operations which don't support limit.
+
+			pbrt, err := response.LookupErr("cursor", "postBatchResumeToken")
+			if err != nil {
+				// I don't really understand why we don't set bc.err here
+				return nil
+			}
+
+			pbrtDoc, ok := pbrt.DocumentOK()
+			if !ok {
+				bc.err = fmt.Errorf("expected BSON type for post batch resume token to be EmbeddedDocument but got %s", pbrt.Type)
+				return nil
+			}
+
+			bc.postBatchResumeToken = bsoncore.Document(pbrtDoc)
+
 			return nil
 		},
 		Client:         bc.clientSession,
@@ -286,11 +310,16 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 
 	// Required for legacy operations which don't support limit.
 	if bc.limit != 0 && bc.numReturned >= bc.limit {
-		// call killCursor instead of Close because Close will clear out the data for the current batch.
-		err := bc.killCursor(ctx)
+		// call KillCursor instead of Close because Close will clear out the data for the current batch.
+		err := bc.KillCursor(ctx)
 		if err != nil && bc.err == nil {
 			bc.err = err
 		}
 	}
 	return
+}
+
+// PostBatchResumeToken returns the latest seen post batch resume token.
+func (bc *BatchCursor) PostBatchResumeToken() bsoncore.Document {
+	return bc.postBatchResumeToken
 }

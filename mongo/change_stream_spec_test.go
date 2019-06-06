@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -83,6 +84,9 @@ func getStreamOptions(test *csTest) *options.ChangeStreamOptions {
 }
 
 func changeStreamCompareErrors(t *testing.T, expected map[string]interface{}, actual error) {
+
+	fmt.Printf("acutal: %v, expected: %v\n", actual, expected)
+
 	if cmdErr, ok := actual.(CommandError); ok {
 		expectedCode := int32(expected["code"].(float64))
 		if cmdErr.Code != expectedCode {
@@ -114,7 +118,7 @@ func changeStreamCompareErrors(t *testing.T, expected map[string]interface{}, ac
 			}
 		}
 	} else {
-		t.Fatalf("error was not of type CommandError")
+		t.Fatalf("error type mismatch; expected CommandError, got %T", actual)
 	}
 }
 
@@ -243,6 +247,7 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 				cursor, err = clientColl.Watch(ctx, test.Pipeline, opts)
 			case "database":
 				cursor, err = clientDb.Watch(ctx, test.Pipeline, opts)
+				fmt.Printf("Database name: %v\n", clientDb.Name())
 			case "client":
 				cursor, err = client.Watch(ctx, test.Pipeline, opts)
 			default:
