@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "05c47c19_50736411",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 613,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-06T22:14:51Z",
+      "side": 1,
+      "message": "Instead of having 12 parameters here, let\u0027s define a new type (perhaps \"aggregate\") and make most of these parameters fields on that. Then we can make this function a method on that type.",
+      "range": {
+        "startLine": 610,
+        "startChar": 15,
+        "endLine": 613,
+        "endChar": 111
+      },
+      "revId": "3bf4fbecf75e30f530904ed35f63f8541cfcbfbb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
