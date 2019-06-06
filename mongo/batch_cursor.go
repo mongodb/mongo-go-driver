@@ -30,10 +30,13 @@ type batchCursor interface {
 	Close(context.Context) error
 }
 
-// pbrtBatchCursor is the interface implemented by batch cursors that also provide the functionality for retrieving
-// a postBatchResumeToken from commands.
-type pbrtBatchCursor interface {
+// changeStreamCursor is the interface implemented by batch cursors that also provide the functionality for retrieving
+// a postBatchResumeToken from commands and allows for the cursor to be killed rather than closed
+type changeStreamCursor interface {
 	batchCursor
 	// PostBatchResumeToken returns the latest seen post batch resume token.
 	PostBatchResumeToken() bsoncore.Document
+
+	// KillCursor kills cursor on server without closing batch cursor
+	KillCursor(context.Context) error
 }
