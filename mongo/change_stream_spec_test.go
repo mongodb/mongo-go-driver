@@ -114,7 +114,7 @@ func changeStreamCompareErrors(t *testing.T, expected map[string]interface{}, ac
 			}
 		}
 	} else {
-		t.Fatalf("error was not of type CommandError")
+		t.Fatalf("error type mismatch; expected CommandError, got %T", actual)
 	}
 }
 

@@ -552,5 +552,13 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 		return nil, ErrClientDisconnected
 	}
 
-	return newClientChangeStream(ctx, c, pipeline, opts...)
+	csConfig := changeStreamConfig{
+		readConcern:    c.readConcern,
+		readPreference: c.readPreference,
+		client:         c,
+		registry:       c.registry,
+		streamType:     ClientStream,
+	}
+
+	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
