@@ -63,6 +63,10 @@ func (a *Aggregate) Result(opts driver.CursorOptions) (*driver.BatchCursor, erro
 	return driver.NewBatchCursor(a.result, clientSession, clock, opts)
 }
 
+func (a *Aggregate) ResultCursorResponse() driver.CursorResponse {
+	return a.result
+}
+
 func (a *Aggregate) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
 	var err error
 
