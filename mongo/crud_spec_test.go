@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -30,6 +31,7 @@ type testFile struct {
 	Data             json.RawMessage
 	MinServerVersion string
 	MaxServerVersion string
+	DatabaseName     string `json:"database_name"`
 	Tests            []testCase
 }
 
@@ -42,6 +44,7 @@ type testCase struct {
 type op struct {
 	Name      string
 	Arguments map[string]interface{}
+	Object    string
 }
 
 type outcome struct {
@@ -54,9 +57,14 @@ type collection struct {
 	Data json.RawMessage
 }
 
+type aggregator interface {
+	Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*Cursor, error)
+}
+
 const crudTestsDir = "../data/crud"
-const readTestsDir = "read"
-const writeTestsDir = "write"
+const readTestsDir = "v1/read"
+const writeTestsDir = "v1/write"
+const v2Dir = "v2"
 
 // compareVersions compares two version number strings (i.e. positive integers separated by
 // periods). Comparisons are done to the lesser precision of the two versions. For example, 3.2 is
@@ -108,30 +116,41 @@ func getServerVersion(db *Database) (string, error) {
 
 // Test case for all CRUD spec tests.
 func TestCRUDSpec(t *testing.T) {
-	dbName := "crud-spec-tests"
-	db := createTestDatabase(t, &dbName)
-
 	for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(crudTestsDir, readTestsDir)) {
-		runCRUDTestFile(t, path.Join(crudTestsDir, readTestsDir, file), db)
+		runCRUDTestFile(t, path.Join(crudTestsDir, readTestsDir, file))
 	}
 
 	for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(crudTestsDir, writeTestsDir)) {
-		runCRUDTestFile(t, path.Join(crudTestsDir, writeTestsDir, file), db)
+		runCRUDTestFile(t, path.Join(crudTestsDir, writeTestsDir, file))
+	}
+
+	for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(crudTestsDir, v2Dir)) {
+		runCRUDTestFile(t, path.Join(crudTestsDir, v2Dir, file))
 	}
 }
 
-func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
+func runCRUDTestFile(t *testing.T, filepath string) {
 	content, err := ioutil.ReadFile(filepath)
 	require.NoError(t, err)
 
 	var testfile testFile
 	require.NoError(t, json.Unmarshal(content, &testfile))
 
+	var db *Database
+	if testfile.DatabaseName != "" {
+		dbName := testfile.DatabaseName
+		db = createTestDatabase(t, &dbName)
+	} else {
+		dbName := "crud-spec-tests"
+		db = createTestDatabase(t, &dbName)
+	}
+
 	if shouldSkip(t, testfile.MinServerVersion, testfile.MaxServerVersion, db) {
 		return
 	}
 
 	for _, test := range testfile.Tests {
+
 		collName := sanitizeCollectionName("crud-spec-tests", test.Description)
 
 		_ = db.RunCommand(
@@ -147,16 +166,23 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 		}
 
 		coll := db.Collection(collName)
-		docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, testfile.Data))
 
 		wcColl, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
 		require.NoError(t, err)
-		_, err = wcColl.InsertMany(context.Background(), docsToInsert)
-		require.NoError(t, err)
+
+		if len(testfile.Data) != 0 {
+			docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, testfile.Data))
+			_, err = wcColl.InsertMany(context.Background(), docsToInsert)
+			require.NoError(t, err)
+		}
 
 		switch test.Operation.Name {
 		case "aggregate":
-			aggregateTest(t, db, coll, &test)
+			if test.Operation.Object == "database" {
+				aggregateTest(t, db, db, &test)
+			} else {
+				aggregateTest(t, db, coll, &test)
+			}
 		case "bulkWrite":
 			bulkWriteTest(t, wcColl, &test)
 		case "count":
@@ -189,8 +215,13 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 	}
 }
 
-func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase) {
+func aggregateTest(t *testing.T, db *Database, a aggregator, test *testCase) {
 	t.Run(test.Description, func(t *testing.T) {
+		if test.Operation.Object == "database" {
+			if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+				t.Skip("don't run $currentOp on sharded clusters")
+			}
+		}
 		pipeline := test.Operation.Arguments["pipeline"].([]interface{})
 
 		opts := options.Aggregate()
@@ -203,6 +234,10 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 			opts = opts.SetCollation(collationFromMap(collation.(map[string]interface{})))
 		}
 
+		if diskUse, found := test.Operation.Arguments["allowDiskUse"]; found {
+			opts = opts.SetAllowDiskUse(diskUse.(bool))
+		}
+
 		out := false
 		if len(pipeline) > 0 {
 			if _, found := pipeline[len(pipeline)-1].(map[string]interface{})["$out"]; found {
@@ -210,20 +245,23 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 			}
 		}
 
-		cursor, err := coll.Aggregate(context.Background(), pipeline, opts)
+		cursor, err := a.Aggregate(context.Background(), pipeline, opts)
 		require.NoError(t, err)
 
 		if !out {
 			verifyCursorResult2(t, cursor, test.Outcome.Result)
 		}
 
-		if test.Outcome.Collection != nil {
-			outColl := coll
-			if len(test.Outcome.Collection.Name) > 0 {
-				outColl = db.Collection(test.Outcome.Collection.Name)
-			}
+		if test.Operation.Object != "database" {
+			if test.Outcome.Collection != nil {
+				collName := sanitizeCollectionName("crud-spec-tests", test.Description)
+				outColl := db.Collection(collName)
+				if len(test.Outcome.Collection.Name) > 0 {
+					outColl = db.Collection(test.Outcome.Collection.Name)
+				}
 
-			verifyCollectionContents(t, outColl, test.Outcome.Collection.Data)
+				verifyCollectionContents(t, outColl, test.Outcome.Collection.Data)
+			}
 		}
 	})
 }
@@ -545,6 +583,46 @@ func updateOneTest(t *testing.T, coll *Collection, test *testCase) {
 		if test.Outcome.Collection != nil {
 			verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 		}
+	})
+}
+
+func dbAggregateTest(t *testing.T, db *Database, test *testCase) {
+	t.Run(test.Description, func(t *testing.T) {
+		if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+			t.Skip("don't run $currentOp on sharded clusters")
+		}
+		pipeline := test.Operation.Arguments["pipeline"].([]interface{})
+		for _, member := range pipeline {
+			replaceFloatsWithInts(member.(map[string]interface{}))
+		}
+		opts := options.Aggregate()
+
+		if batchSize, found := test.Operation.Arguments["batchSize"]; found {
+			opts = opts.SetBatchSize(int32(batchSize.(float64)))
+		}
+
+		if collation, found := test.Operation.Arguments["collation"]; found {
+			opts = opts.SetCollation(collationFromMap(collation.(map[string]interface{})))
+		}
+
+		if diskUse, found := test.Operation.Arguments["allowDiskUse"]; found {
+			opts = opts.SetAllowDiskUse(diskUse.(bool))
+		}
+
+		out := false
+		if len(pipeline) > 0 {
+			if _, found := pipeline[len(pipeline)-1].(map[string]interface{})["$out"]; found {
+				out = true
+			}
+		}
+
+		cursor, err := db.Aggregate(context.Background(), pipeline, opts)
+		require.NoError(t, err)
+
+		if !out {
+			verifyCursorResult(t, cursor, test.Outcome.Result)
+		}
+
 	})
 }
 
