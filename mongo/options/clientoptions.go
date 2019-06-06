@@ -114,7 +114,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		return c
 	}
 
-	cs, err := connstring.Parse(uri)
+	cs, err := connstring.Parse(uri, true)
 	if err != nil {
 		c.err = err
 		return c
@@ -124,7 +124,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.AppName = &cs.AppName
 	}
 
-	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil || cs.AuthSource != "admin" ||
+	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil || cs.AuthSource != "" ||
 		cs.Username != "" || cs.PasswordSet {
 		c.Auth = &Credential{
 			AuthMechanism:           cs.AuthMechanism,

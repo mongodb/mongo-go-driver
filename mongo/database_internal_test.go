@@ -371,7 +371,7 @@ func getSecondaryConnString(t *testing.T) connstring.ConnString {
 		}
 
 		fullAddr := "mongodb://" + server.Addr.String() + "/?connect=direct"
-		cs, err := connstring.Parse(fullAddr)
+		cs, err := connstring.Parse(fullAddr, true)
 		require.NoError(t, err)
 		return cs
 	}

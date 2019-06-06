@@ -44,9 +44,6 @@ type testContainer struct {
 
 const connstringTestsDir = "../../../../data/connection-string/"
 
-// Note a test supporting the deprecated gssapiServiceName property was removed from data/auth/auth_tests.json
-const authTestsDir = "../../../../data/auth/"
-
 func (h *host) toString() string {
 	switch h.Type {
 	case "unix":
@@ -97,10 +94,8 @@ func runTestsInFile(t *testing.T, dirname string, filename string) {
 }
 
 func runTest(t *testing.T, filename string, test *testCase) {
-	testName := filename + ":" + test.Description
-
-	t.Run(testName, func(t *testing.T) {
-		cs, err := connstring.Parse(test.URI)
+	t.Run(test.Description, func(t *testing.T) {
+		cs, err := connstring.Parse(test.URI, true)
 		if test.Valid {
 			require.NoError(t, err)
 		} else {
@@ -149,9 +144,5 @@ func runTest(t *testing.T, filename string, test *testCase) {
 func TestConnStringSpec(t *testing.T) {
 	for _, file := range testhelpers.FindJSONFilesInDir(t, connstringTestsDir) {
 		runTestsInFile(t, connstringTestsDir, file)
-	}
-
-	for _, file := range testhelpers.FindJSONFilesInDir(t, authTestsDir) {
-		runTestsInFile(t, authTestsDir, file)
 	}
 }

@@ -110,7 +110,7 @@ func runDocumentTestsInFile(t *testing.T, filename string) {
 
 func runConnectionStringTest(t *testing.T, testName string, testCase *connectionStringTest) {
 	t.Run(testName, func(t *testing.T) {
-		cs, err := connstring.Parse(testCase.URI)
+		cs, err := connstring.Parse(testCase.URI, true)
 		if !testCase.Valid {
 			require.Error(t, err)
 			return

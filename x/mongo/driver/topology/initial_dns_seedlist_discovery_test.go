@@ -78,7 +78,7 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 			t.Skip("Skipping to avoid Go 1.11 problem with multiple strings in one TXT record")
 		}
 
-		cs, err := connstring.Parse(test.URI)
+		cs, err := connstring.Parse(test.URI, false)
 		if test.Error {
 			require.Error(t, err)
 			return

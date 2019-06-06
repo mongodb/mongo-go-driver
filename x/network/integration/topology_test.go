@@ -97,7 +97,7 @@ func TestTopologyTopology(t *testing.T) {
 			topo, err := topology.New(
 				topology.WithConnString(
 					func(connstring.ConnString) connstring.ConnString {
-						cs, err := connstring.Parse("mongodb://" + addr.String() + "/")
+						cs, err := connstring.Parse("mongodb://"+addr.String()+"/", true)
 						noerr(t, err)
 						cs.ConnectTimeout = 20 * time.Millisecond
 						return cs

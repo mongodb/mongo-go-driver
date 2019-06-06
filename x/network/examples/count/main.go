@@ -35,7 +35,7 @@ func main() {
 		log.Fatalf("uri flag must have a value")
 	}
 
-	cs, err := connstring.Parse(*uri)
+	cs, err := connstring.Parse(*uri, true)
 	if err != nil {
 		log.Fatal(err)
 	}

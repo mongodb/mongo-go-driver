@@ -126,7 +126,7 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 	}
 	for _, tt := range srvPollingTests {
 		t.Run(tt.name, func(t *testing.T) {
-			cs, err := connstring.Parse("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
+			cs, err := connstring.Parse("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100", true)
 			require.NoError(t, err, "Problem parsing the uri: %v", err)
 			topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 			require.NoError(t, err, "Could not create the topology: %v", err)
@@ -162,7 +162,7 @@ func TestPollSRVRecords(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 	t.Run("Not unknown or sharded topology", func(t *testing.T) {
-		cs, err := connstring.Parse("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
+		cs, err := connstring.Parse("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100", true)
 		require.NoError(t, err, "Problem parsing the uri: %v", err)
 		topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 		require.NoError(t, err, "Could not create the topology: %v", err)
@@ -204,7 +204,7 @@ func TestPollSRVRecords(t *testing.T) {
 
 	})
 	t.Run("Failed Hostname Verification", func(t *testing.T) {
-		cs, err := connstring.Parse("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
+		cs, err := connstring.Parse("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100", true)
 		require.NoError(t, err, "Problem parsing the uri: %v", err)
 		topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 		require.NoError(t, err, "Could not create the topology: %v", err)
@@ -235,7 +235,7 @@ func TestPollSRVRecords(t *testing.T) {
 
 	})
 	t.Run("Return to polling time", func(t *testing.T) {
-		cs, err := connstring.Parse("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
+		cs, err := connstring.Parse("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100", true)
 		require.NoError(t, err, "Problem parsing the uri: %v", err)
 		topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 		require.NoError(t, err, "Could not create the topology: %v", err)

@@ -22,9 +22,9 @@ import (
 )
 
 // Parse parses the provided uri and returns a URI object.
-func Parse(s string) (ConnString, error) {
+func Parse(s string, validAuth bool) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
-	err := p.parse(s)
+	err := p.parse(s, validAuth)
 	if err != nil {
 		err = internal.WrapErrorf(err, "error parsing uri")
 	}
@@ -121,7 +121,7 @@ type parser struct {
 	dnsResolver *dns.Resolver
 }
 
-func (p *parser) parse(original string) error {
+func (p *parser) parse(original string, validAuth bool) error {
 	p.Original = original
 	uri := original
 
@@ -240,9 +240,11 @@ func (p *parser) parse(original string) error {
 		return err
 	}
 
-	err = p.validateAuth()
-	if err != nil {
-		return err
+	if validAuth {
+		err = p.validateAuth()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Check for invalid write concern (i.e. w=0 and j=true)
@@ -294,7 +296,7 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 			}
 		}
 	case "":
-		if p.AuthSource == "" {
+		if p.AuthSource == "" && (p.AuthMechanismProperties != nil || p.Username != "" || p.PasswordSet) {
 			p.AuthSource = dbName
 			if p.AuthSource == "" {
 				p.AuthSource = "admin"
@@ -365,6 +367,9 @@ func (p *parser) validateAuth() error {
 			return fmt.Errorf("SCRAM-SHA-256 cannot have mechanism properties")
 		}
 	case "":
+		if p.Username == "" && p.AuthSource != "" {
+			return fmt.Errorf("authsource without username is invalid")
+		}
 	default:
 		return fmt.Errorf("invalid auth mechanism")
 	}
