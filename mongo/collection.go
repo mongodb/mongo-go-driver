@@ -703,6 +703,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 }
 
 // CountDocuments gets the number of documents matching the filter.
+// For a fast count of the total documents in a collection see EstimatedDocumentCount.
 func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	opts ...*options.CountOptions) (int64, error) {
 
