@@ -9,6 +9,7 @@ package mongo
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -23,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
@@ -72,7 +72,7 @@ func (ebc *errorBatchCursor) PostBatchResumeToken() bsoncore.Document {
 }
 
 func killChangeStreamCursor(t *testing.T, cs *ChangeStream) {
-	_, err := driverlegacy.KillCursors(context.Background(), cs.ns, cs.cursor.Server(), cs.ID())
+	err := cs.cursor.Close(context.Background())
 	if err != nil {
 		t.Fatalf("error killing cursor: %v", err)
 	}
@@ -224,15 +224,13 @@ func TestChangeStream(t *testing.T) {
 		require.NoError(t, err)
 		defer changes.Close(ctx)
 
-		require.NotEqual(t, len(changes.pipeline), 0)
+		require.NotEqual(t, len(changes.pipelineSlice), 0)
 
-		elem := changes.pipeline[0]
-
-		doc := elem.Document()
-		require.Equal(t, 1, len(doc))
-
-		_, err = doc.LookupErr("$changeStream")
-		require.NoError(t, err)
+		csDoc := changes.pipelineSlice[0]
+		elem, err := csDoc.IndexErr(0)
+		require.NoError(t, err, "no elements in change stream document")
+		require.Equal(t, "$changeStream", elem.Key(),
+			"key mismatch; expected $changeStream, got %s", elem.Key())
 	})
 
 	t.Run("TestReplaceRoot", func(t *testing.T) {
@@ -253,12 +251,14 @@ func TestChangeStream(t *testing.T) {
 		_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(7)}})
 		require.NoError(t, err)
 
-		pipeline := make(bsonx.Arr, 0)
-		pipeline = append(pipeline,
-			bsonx.Document(bsonx.Doc{{"$replaceRoot",
-				bsonx.Document(bsonx.Doc{{"newRoot",
-					bsonx.Document(bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}, {"x", bsonx.Int32(1)}})}}),
-			}}))
+		projectIdStage := bson.D{
+			{"$replaceRoot", bson.D{
+				{"newRoot", bson.D{
+					{"x", 1},
+				}},
+			}},
+		}
+		pipeline := bson.A{projectIdStage}
 		changes, err := coll.Watch(context.Background(), pipeline)
 		require.NoError(t, err)
 		defer changes.Close(ctx)
@@ -476,7 +476,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		defer closeCursor(stream)
 		cs := stream
 
-		if cs.sess.(*sessionImpl).clientSession.Terminated {
+		if cs.sess.Terminated {
 			t.Fatalf("session was prematurely terminated")
 		}
 	})
@@ -712,6 +712,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error inserting doc: %v", err)
 		drainChannels()
 
+		fmt.Println("about to call Next")
 		if !stream.Next(ctx) {
 			t.Fatal("Next returned false, expected true")
 		}

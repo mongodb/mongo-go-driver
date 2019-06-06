@@ -1296,7 +1296,17 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 // for a change stream to be created successfully.
 func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
-	return newChangeStream(ctx, coll, pipeline, opts...)
+
+	csConfig := changeStreamConfig{
+		readConcern:    coll.readConcern,
+		readPreference: coll.readPreference,
+		client:         coll.client,
+		registry:       coll.registry,
+		streamType:     CollectionStream,
+		collectionName:     coll.Name(),
+		databaseName:    coll.db.Name(),
+	}
+	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
 
 // Indexes returns the index view for this collection.

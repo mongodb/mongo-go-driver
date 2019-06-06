@@ -24,7 +24,9 @@ type ChangeStreamOptions struct {
 
 // ChangeStream returns a pointer to a new ChangeStreamOptions
 func ChangeStream() *ChangeStreamOptions {
-	return &ChangeStreamOptions{}
+	cso := &ChangeStreamOptions{}
+	cso.SetFullDocument(Default)
+	return cso
 }
 
 // SetBatchSize specifies the number of documents to return per batch

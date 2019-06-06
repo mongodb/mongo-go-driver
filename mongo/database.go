@@ -332,5 +332,13 @@ func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 func (db *Database) Watch(ctx context.Context, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
 
-	return newDbChangeStream(ctx, db, pipeline, opts...)
+	csConfig := changeStreamConfig{
+		readConcern:    db.readConcern,
+		readPreference: db.readPreference,
+		client:         db.client,
+		registry:       db.registry,
+		streamType:     DatabaseStream,
+		databaseName:     db.Name(),
+	}
+	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
