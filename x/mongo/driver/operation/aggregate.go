@@ -96,7 +96,11 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 }
 
 func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
-	dst = bsoncore.AppendStringElement(dst, "aggregate", a.collection)
+	header := bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, a.collection)}
+	if a.collection == "" {
+		header = bsoncore.Value{Type: bsontype.Int32, Data: []byte{0x01, 0x00, 0x00, 0x00}}
+	}
+	dst = bsoncore.AppendValueElement(dst, "aggregate", header)
 
 	cursorIdx, cursorDoc := bsoncore.AppendDocumentStart(nil)
 	if a.allowDiskUse != nil {
