@@ -870,8 +870,8 @@ func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) 
 }
 
 func (op Operation) createReadPref(serverKind description.ServerKind, topologyKind description.TopologyKind, isOpQuery bool) (bsoncore.Document, error) {
-	if isOpQuery && serverKind != description.Mongos {
-		// Don't send read preference for non-mongos when using OP_QUERY
+	if serverKind == description.Standalone || (isOpQuery && serverKind != description.Mongos) {
+		// Don't send read preference for non-mongos when using OP_QUERY or for all standalones
 		return nil, nil
 	}
 
