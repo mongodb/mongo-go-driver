@@ -83,6 +83,10 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 			require.Error(t, err)
 			return
 		}
+		// The resolved connstring may not have valid credentials
+		if err != nil && err.Error() == "error parsing uri: authsource without username is invalid" {
+			err = nil
+		}
 		require.NoError(t, err)
 
 		// DNS records may be out of order from the test files ordering

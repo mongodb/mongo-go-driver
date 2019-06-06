@@ -309,7 +309,7 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 			}
 		}
 	case "":
-		if p.AuthSource == "" {
+		if p.AuthSource == "" && (p.AuthMechanismProperties != nil || p.Username != "" || p.PasswordSet) {
 			p.AuthSource = dbName
 			if p.AuthSource == "" {
 				p.AuthSource = "admin"
@@ -380,6 +380,9 @@ func (p *parser) validateAuth() error {
 			return fmt.Errorf("SCRAM-SHA-256 cannot have mechanism properties")
 		}
 	case "":
+		if p.Username == "" && p.AuthSource != "" {
+			return fmt.Errorf("authsource without username is invalid")
+		}
 	default:
 		return fmt.Errorf("invalid auth mechanism")
 	}

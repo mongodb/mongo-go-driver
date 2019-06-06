@@ -233,9 +233,16 @@ func TestClientOptions(t *testing.T) {
 				}),
 			},
 			{
-				"AuthSource",
+				"AuthSourceNoUsername",
 				"mongodb://localhost/?authSource=random-database-example",
-				baseClient().SetAuth(Credential{AuthSource: "random-database-example"}),
+				&ClientOptions{err: internal.WrapErrorf(
+					errors.New("authsource without username is invalid"), "error parsing uri",
+				)},
+			},
+			{
+				"AuthSource",
+				"mongodb://foo@localhost/?authSource=random-database-example",
+				baseClient().SetAuth(Credential{AuthSource: "random-database-example", Username: "foo"}),
 			},
 			{
 				"Username",
@@ -266,9 +273,14 @@ func TestClientOptions(t *testing.T) {
 				baseClient().SetCompressors([]string{"zlib", "snappy"}),
 			},
 			{
-				"Database",
+				"DatabaseNoAuth",
 				"mongodb://localhost/example-database",
-				baseClient().SetAuth(Credential{AuthSource: "example-database"}),
+				baseClient(),
+			},
+			{
+				"DatabaseAsDefault",
+				"mongodb://foo@localhost/example-database",
+				baseClient().SetAuth(Credential{AuthSource: "example-database", Username: "foo"}),
 			},
 			{
 				"HeartbeatInterval",
