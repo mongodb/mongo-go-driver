@@ -10,6 +10,7 @@ MinimumWriteConcernWireVersion = 5
 [command]
 name = "aggregate"
 parameter = "collection"
+database = true
 
 [request.pipeline]
 type = "array"
