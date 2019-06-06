@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -30,6 +31,7 @@ type testFile struct {
 	Data             json.RawMessage
 	MinServerVersion string
 	MaxServerVersion string
+	DatabaseName     string `json:"database_name"`
 	Tests            []testCase
 }
 
@@ -42,6 +44,7 @@ type testCase struct {
 type op struct {
 	Name      string
 	Arguments map[string]interface{}
+	Object    string
 }
 
 type outcome struct {
@@ -55,8 +58,9 @@ type collection struct {
 }
 
 const crudTestsDir = "../data/crud"
-const readTestsDir = "read"
-const writeTestsDir = "write"
+const readTestsDir = "v1/read"
+const writeTestsDir = "v1/write"
+const dbTestsDir = "v2"
 
 // compareVersions compares two version number strings (i.e. positive integers separated by
 // periods). Comparisons are done to the lesser precision of the two versions. For example, 3.2 is
@@ -118,6 +122,10 @@ func TestCRUDSpec(t *testing.T) {
 	for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(crudTestsDir, writeTestsDir)) {
 		runCRUDTestFile(t, path.Join(crudTestsDir, writeTestsDir, file), db)
 	}
+
+	for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(crudTestsDir, dbTestsDir)) {
+		runCRUDTestFile(t, path.Join(crudTestsDir, dbTestsDir, file), db)
+	}
 }
 
 func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
@@ -131,7 +139,13 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 		return
 	}
 
+	if testfile.DatabaseName != "" {
+		dbName := testfile.DatabaseName
+		db = createTestDatabase(t, &dbName)
+	}
+
 	for _, test := range testfile.Tests {
+
 		collName := sanitizeCollectionName("crud-spec-tests", test.Description)
 
 		_ = db.RunCommand(
@@ -147,16 +161,23 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 		}
 
 		coll := db.Collection(collName)
-		docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, testfile.Data))
 
 		wcColl, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
 		require.NoError(t, err)
-		_, err = wcColl.InsertMany(context.Background(), docsToInsert)
-		require.NoError(t, err)
+
+		if len(testfile.Data) != 0 {
+			docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, testfile.Data))
+			_, err = wcColl.InsertMany(context.Background(), docsToInsert)
+			require.NoError(t, err)
+		}
 
 		switch test.Operation.Name {
 		case "aggregate":
-			aggregateTest(t, db, coll, &test)
+			if test.Operation.Object == "database" {
+				dbAggregateTest(t, db, &test)
+			} else {
+				aggregateTest(t, db, coll, &test)
+			}
 		case "bulkWrite":
 			bulkWriteTest(t, wcColl, &test)
 		case "count":
@@ -545,6 +566,46 @@ func updateOneTest(t *testing.T, coll *Collection, test *testCase) {
 		if test.Outcome.Collection != nil {
 			verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 		}
+	})
+}
+
+func dbAggregateTest(t *testing.T, db *Database, test *testCase) {
+	t.Run(test.Description, func(t *testing.T) {
+		if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+			t.Skip("don't run $currentOp on sharded clusters")
+		}
+		pipeline := test.Operation.Arguments["pipeline"].([]interface{})
+		for _, member := range pipeline {
+			replaceFloatsWithInts(member.(map[string]interface{}))
+		}
+		opts := options.Aggregate()
+
+		if batchSize, found := test.Operation.Arguments["batchSize"]; found {
+			opts = opts.SetBatchSize(int32(batchSize.(float64)))
+		}
+
+		if collation, found := test.Operation.Arguments["collation"]; found {
+			opts = opts.SetCollation(collationFromMap(collation.(map[string]interface{})))
+		}
+
+		if diskUse, found := test.Operation.Arguments["allowDiskUse"]; found {
+			opts = opts.SetAllowDiskUse(diskUse.(bool))
+		}
+
+		out := false
+		if len(pipeline) > 0 {
+			if _, found := pipeline[len(pipeline)-1].(map[string]interface{})["$out"]; found {
+				out = true
+			}
+		}
+
+		cursor, err := db.Aggregate(context.Background(), pipeline, opts)
+		require.NoError(t, err)
+
+		if !out {
+			verifyCursorResult(t, cursor, test.Outcome.Result)
+		}
+
 	})
 }
 

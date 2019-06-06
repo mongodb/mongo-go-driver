@@ -97,6 +97,15 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 	return newCollection(db, name, opts...)
 }
 
+// Aggregate runs an aggregation framework pipeline.
+//
+// See https://docs.mongodb.com/manual/aggregation/.
+func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
+	opts ...*options.AggregateOptions) (*Cursor, error) {
+	return aggregate(ctx, pipeline, db.client, db.registry, db.readConcern, db.writeConcern, db.name, "",
+		db.readSelector, db.writeSelector, db.readPreference, opts...)
+}
+
 func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
 

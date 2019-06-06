@@ -602,32 +602,41 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 // See https://docs.mongodb.com/manual/aggregation/.
 func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	opts ...*options.AggregateOptions) (*Cursor, error) {
+	return aggregate(ctx, pipeline, coll.client, coll.registry, coll.readConcern, coll.writeConcern, coll.db.name, coll.name,
+		coll.readSelector, coll.writeSelector, coll.readPreference, opts...)
+}
+
+// aggreate is the helper method for Aggregate
+func aggregate(ctx context.Context, pipeline interface{},
+	client *Client, registry *bsoncodec.Registry, readConcern *readconcern.ReadConcern,
+	writeConcern *writeconcern.WriteConcern, db string, col string, readSelector description.ServerSelector,
+	writeSelector description.ServerSelector, readPreference *readpref.ReadPref, opts ...*options.AggregateOptions) (*Cursor, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	pipelineArr, hasDollarOut, err := transformAggregatePipelinev2(coll.registry, pipeline)
+	pipelineArr, hasDollarOut, err := transformAggregatePipelinev2(registry, pipeline)
 	if err != nil {
 		return nil, err
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && coll.client.topology.SessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+	if sess == nil && client.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(client.topology.SessionPool, client.id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if err = coll.client.validSession(sess); err != nil {
+	if err = client.validSession(sess); err != nil {
 		return nil, err
 	}
 
 	var wc *writeconcern.WriteConcern
 	if hasDollarOut {
-		wc = coll.writeConcern
+		wc = writeConcern
 	}
-	rc := coll.readConcern
+	rc := readConcern
 	if sess.TransactionRunning() {
 		wc = nil
 		rc = nil
@@ -637,9 +646,9 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		sess = nil
 	}
 
-	selector := coll.readSelector
+	selector := readSelector
 	if hasDollarOut {
-		selector = coll.writeSelector
+		selector = writeSelector
 	}
 	if sess != nil && sess.PinnedServer != nil {
 		selector = sess.PinnedServer
@@ -647,11 +656,11 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 
 	ao := options.MergeAggregateOptions(opts...)
 	cursorOpts := driver.CursorOptions{
-		CommandMonitor: coll.client.monitor,
+		CommandMonitor: client.monitor,
 	}
 
-	op := operation.NewAggregate(pipelineArr).Session(sess).WriteConcern(wc).ReadConcern(rc).ReadPreference(coll.readPreference).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).Deployment(coll.client.topology)
+	op := operation.NewAggregate(pipelineArr).Session(sess).WriteConcern(wc).ReadConcern(rc).ReadPreference(readPreference).CommandMonitor(client.monitor).
+		ServerSelector(selector).ClusterClock(client.clock).Database(db).Collection(col).Deployment(client.topology)
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
 	}
@@ -676,7 +685,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		op.Comment(*ao.Comment)
 	}
 	if ao.Hint != nil {
-		hintVal, err := transformValue(coll.registry, ao.Hint)
+		hintVal, err := transformValue(registry, ao.Hint)
 		if err != nil {
 			closeImplicitSession(sess)
 			return nil, err
@@ -698,7 +707,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
-	cursor, err := newCursorWithSession(bc, coll.registry, sess)
+	cursor, err := newCursorWithSession(bc, registry, sess)
 	return cursor, replaceErrors(err)
 }
 
