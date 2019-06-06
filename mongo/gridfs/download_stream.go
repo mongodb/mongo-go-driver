@@ -8,6 +8,7 @@ package gridfs
 
 import (
 	"context"
+	"fmt"
 
 	"errors"
 
@@ -91,6 +92,8 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 
 	bytesCopied := 0
 	var err error
+
+	fmt.Printf("ds.bufferStart: %v, ds.bufferEnd: %v\n", ds.bufferStart, ds.bufferEnd)
 
 	for bytesCopied < len(p) {
 		if ds.bufferStart >= ds.bufferEnd {
