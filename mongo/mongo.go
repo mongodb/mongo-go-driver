@@ -333,11 +333,11 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 func transformValue(registry *bsoncodec.Registry, val interface{}) (bsoncore.Value, error) {
 	switch conv := val.(type) {
 	case string:
-		return bsoncore.Value{Type: bsontype.String, Data: []byte(conv)}, nil
+		return bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, conv)}, nil
 	default:
 		doc, err := transformBsoncoreDocument(registry, val)
 		if err != nil {
-			return bsoncore.Value{}, nil
+			return bsoncore.Value{}, err
 		}
 
 		return bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: doc}, nil
