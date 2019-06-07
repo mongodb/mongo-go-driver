@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fdbc508b_45eb9e0f",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 739,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-06-07T21:12:53Z",
+      "side": 1,
+      "message": "I don\u0027t like that we have one pattern for read concern (encode and check document length, which feels like a hack), and another for write concern (ErrEmptyWriteConcern function, which feels more elegant).  Can we apply the write concern pattern to read concern?",
+      "revId": "77f98fa1cdacd1c2ad41a92198b4d8532a29c38d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
