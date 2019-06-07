@@ -36,6 +36,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// EmptyDocumentLength is the length of a document that has been started/ended but has no elements.
+const EmptyDocumentLength = 5
+
 // AppendType will append t to dst and return the extended buffer.
 func AppendType(dst []byte, t bsontype.Type) []byte { return append(dst, byte(t)) }
 

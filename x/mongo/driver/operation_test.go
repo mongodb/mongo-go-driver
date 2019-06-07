@@ -225,13 +225,26 @@ func TestOperation(t *testing.T) {
 		}
 	})
 	t.Run("addReadConcern", func(t *testing.T) {
-		want := bsoncore.AppendDocumentElement(nil, "readConcern", bsoncore.BuildDocument(nil,
+		majorityRc := bsoncore.AppendDocumentElement(nil, "readConcern", bsoncore.BuildDocument(nil,
 			bsoncore.AppendStringElement(nil, "level", "majority"),
 		))
-		got, err := Operation{ReadConcern: readconcern.Majority()}.addReadConcern(nil, description.SelectedServer{})
-		noerr(t, err)
-		if !bytes.Equal(got, want) {
-			t.Errorf("ReadConcern elements do not match. got %v; want %v", got, want)
+
+		testCases := []struct {
+			name string
+			rc   *readconcern.ReadConcern
+			want bsoncore.Document
+		}{
+			{"nil", nil, nil},
+			{"empty", readconcern.New(), nil},
+			{"non-empty", readconcern.Majority(), majorityRc},
+		}
+
+		for _, tc := range testCases {
+			got, err := Operation{ReadConcern: tc.rc}.addReadConcern(nil, description.SelectedServer{})
+			noerr(t, err)
+			if !bytes.Equal(got, tc.want) {
+				t.Errorf("ReadConcern elements do not match. got %v; want %v", got, tc.want)
+			}
 		}
 	})
 	t.Run("addWriteConcern", func(t *testing.T) {
