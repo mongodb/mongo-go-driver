@@ -765,6 +765,9 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		data, _ = bsoncore.AppendDocumentEnd(data, 0)
 	}
 
+	if len(data) == bsoncore.EmptyDocumentLength {
+		return dst, nil
+	}
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
