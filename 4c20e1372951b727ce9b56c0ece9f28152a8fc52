@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d2dd8a58_cdd092a0",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 340,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-07T18:11:24Z",
+      "side": 0,
+      "message": "should this return the error?",
+      "revId": "4c20e1372951b727ce9b56c0ece9f28152a8fc52",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
