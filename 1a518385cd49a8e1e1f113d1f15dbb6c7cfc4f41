@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "001970fa_90c74e64",
+        "filename": "mongo/crud_spec_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-07T21:14:36Z",
+      "side": 1,
+      "message": "Instead of an if-else with two createTestDatabase calls, you can do something like:\n\ndbName :\u003d \"crud-spec-tests\"\nif testfile.DatabaseName !\u003d \"\" {\n    dbName \u003d testfile.DatabaseName\n}\ndb :\u003d createTestDatabase(\u0026dbName)",
+      "range": {
+        "startLine": 139,
+        "startChar": 1,
+        "endLine": 146,
+        "endChar": 2
+      },
+      "revId": "1a518385cd49a8e1e1f113d1f15dbb6c7cfc4f41",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5a2f289d_cb639c38",
+        "filename": "mongo/crud_spec_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 255,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-07T21:14:36Z",
+      "side": 1,
+      "message": "I don\u0027t think we need this check. For the current database-level aggregation tests, test.Outcome.Collection should always be nil. I think Jeff mentioned that a stage like $out is planned for db-level aggregates, so there might be future tests for the function that do have outcome collections and having this if-statement would skip checking the outcome.",
+      "range": {
+        "startLine": 255,
+        "startChar": 2,
+        "endLine": 255,
+        "endChar": 42
+      },
+      "revId": "1a518385cd49a8e1e1f113d1f15dbb6c7cfc4f41",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
