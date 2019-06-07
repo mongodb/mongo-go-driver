@@ -1815,6 +1815,26 @@ func TestCollection_Find_ExhaustCursor(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestCollection_Find_Hint(t *testing.T) {
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	t.Run("string", func(t *testing.T) {
+		c, err := coll.Find(ctx, bson.D{}, options.Find().SetHint("_id_"))
+		if err != nil {
+			t.Fatalf("find error: %v", err)
+		}
+		_ = c.Close(ctx)
+	})
+	t.Run("document", func(t *testing.T) {
+		c, err := coll.Find(ctx, bson.D{}, options.Find().SetHint(bson.D{{"_id", 1}}))
+		if err != nil {
+			t.Fatalf("find error: %v", err)
+		}
+		_ = c.Close(ctx)
+	})
+}
+
 func TestCollection_FindOne_LimitSet(t *testing.T) {
 	client := createMonitoredClient(t, monitor)
 	coll := client.Database("FindOneLimitDB").Collection("FindOneLimitColl")
