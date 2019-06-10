@@ -70,6 +70,8 @@ type RegistryBuilder struct {
 	interfaceDecoders []interfaceValueDecoder
 	kindDecoders      map[reflect.Kind]ValueDecoder
 
+	disallowUnknownFields bool
+
 	typeMap map[bsontype.Type]reflect.Type
 }
 
@@ -86,6 +88,8 @@ type Registry struct {
 	kindDecoders map[reflect.Kind]ValueDecoder
 
 	typeMap map[bsontype.Type]reflect.Type
+
+	disallowUnknownFields bool
 
 	mu sync.RWMutex
 }
@@ -202,6 +206,12 @@ func (rb *RegistryBuilder) RegisterTypeMapEntry(bt bsontype.Type, rt reflect.Typ
 	return rb
 }
 
+// DisallowUnknownFields will instruct the Struct decoder to report missing fields as errors
+func (rb *RegistryBuilder) DisallowUnknownFields() *RegistryBuilder {
+	rb.disallowUnknownFields = true
+	return rb
+}
+
 // Build creates a Registry from the current state of this RegistryBuilder.
 func (rb *RegistryBuilder) Build() *Registry {
 	registry := new(Registry)
@@ -236,6 +246,8 @@ func (rb *RegistryBuilder) Build() *Registry {
 	for bt, rt := range rb.typeMap {
 		registry.typeMap[bt] = rt
 	}
+
+	registry.disallowUnknownFields = rb.disallowUnknownFields
 
 	return registry
 }

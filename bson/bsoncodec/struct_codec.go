@@ -162,8 +162,10 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 		fd, exists := sd.fm[name]
 		if !exists {
 			if sd.inlineMap < 0 {
-				// The encoding/json package requires a flag to return on error for non-existent fields.
-				// This functionality seems appropriate for the struct codec.
+				if r.Registry.disallowUnknownFields {
+					return fmt.Errorf("cannot decode element '%s' into type '%s'; field is not declared", val.Type().String(), name)
+				}
+
 				err = vr.Skip()
 				if err != nil {
 					return err

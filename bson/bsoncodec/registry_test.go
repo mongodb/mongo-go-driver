@@ -331,6 +331,24 @@ func TestRegistry(t *testing.T) {
 			t.Errorf("Did not get expected type. got %v; want %v", got, want)
 		}
 	})
+	t.Run("Disallow Unknown Fields", func(t *testing.T) {
+		reg := NewRegistryBuilder().DisallowUnknownFields().
+			Build()
+
+		want := true
+
+		if got := reg.disallowUnknownFields; got != want {
+			t.Errorf("Did not get expected disallowUnknownFields value. got %v; want %v", got, want)
+		}
+
+		reg = NewRegistryBuilder().Build()
+
+		want = false
+
+		if got := reg.disallowUnknownFields; got != want {
+			t.Errorf("Did not get expected disallowUnknownFields value. got %v; want %v", got, want)
+		}
+	})
 }
 
 type fakeType1 struct{ b bool }
