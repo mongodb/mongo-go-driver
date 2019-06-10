@@ -16,6 +16,24 @@
       "revId": "77f98fa1cdacd1c2ad41a92198b4d8532a29c38d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c9a59ceb_e4fc5a6d",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 739,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-10T14:10:24Z",
+      "side": 1,
+      "message": "The default write concern in the driver is nil, which signals that we shouldn\u0027t encode anything to the server. The default read concern is readconcern.New, rather than nil, which is why this change was needed. I think we use readconcern.New as the default rather than nil because of something to do with causal consistency.",
+      "parentUuid": "fdbc508b_45eb9e0f",
+      "revId": "77f98fa1cdacd1c2ad41a92198b4d8532a29c38d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
