@@ -163,7 +163,7 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 		if !exists {
 			if sd.inlineMap < 0 {
 				if r.Registry.disallowUnknownFields {
-					return fmt.Errorf("cannot decode element '%s' into type '%s'; field is not declared", val.Type().String(), name)
+					return fmt.Errorf("cannot decode element '%s' into type '%s'; field is not declared", name, val.Type().String())
 				}
 
 				err = vr.Skip()
