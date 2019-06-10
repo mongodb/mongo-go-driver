@@ -333,23 +333,24 @@ func (bc *BatchCursor) legacyGetMore(ctx context.Context) {
 		return
 	}
 
-	conn, err := bc.server.Connection(ctx)
-	if err != nil {
-		bc.err = err
-		return
-	}
-
 	numToReturn := bc.batchSize
 	if bc.limit != 0 && bc.numReturned+bc.batchSize > bc.limit {
 		numToReturn = bc.limit - bc.numReturned
 		if numToReturn <= 0 {
-			err = bc.Close(ctx)
+			err := bc.Close(ctx)
 			if err != nil {
 				bc.err = err
 			}
 			return
 		}
 	}
+
+	conn, err := bc.server.Connection(ctx)
+	if err != nil {
+		bc.err = err
+		return
+	}
+
 	gm := wiremessage.GetMore{
 		FullCollectionName: bc.namespace.DB + "." + bc.namespace.Collection,
 		CursorID:           bc.id,
