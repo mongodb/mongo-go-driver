@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "213df5a8_68026611",
+        "filename": "mongo/collection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-10T18:17:47Z",
+      "side": 1,
+      "message": "Change this comment to be more descriptive. Documentation comments for a type should describe its purpose so something like \"aggregateParams is used to store information to configure an Aggregate operation\" would be more fitting.",
+      "range": {
+        "startLine": 45,
+        "startChar": 3,
+        "endLine": 45,
+        "endChar": 18
+      },
+      "revId": "51b6fd5d4e5897e181ea660673ac1d771f5dd5dc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b77709c2_05c106f9",
+        "filename": "mongo/database.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-10T18:17:47Z",
+      "side": 1,
+      "message": "The default value of a string in Go is the empty string, so you don\u0027t need to set this explicitly.",
+      "range": {
+        "startLine": 113,
+        "startChar": 2,
+        "endLine": 113,
+        "endChar": 21
+      },
+      "revId": "51b6fd5d4e5897e181ea660673ac1d771f5dd5dc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
