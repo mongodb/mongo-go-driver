@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "ae35c377_9113a919",
+        "filename": "mongo/batch_cursor.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-11T21:44:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "defeb4fa_adb26559",
+      "range": {
+        "startLine": 33,
+        "startChar": 3,
+        "endLine": 34,
+        "endChar": 40
+      },
+      "revId": "e7074a4b8818370fd32d67739885a0277199bf27",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e6e7d9c3_ef2fef47",
         "filename": "mongo/change_stream.go",
         "patchSetId": 7
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "19841e19_07605e0a",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 203,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-11T21:44:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e6e7d9c3_ef2fef47",
+      "range": {
+        "startLine": 203,
+        "startChar": 3,
+        "endLine": 203,
+        "endChar": 30
+      },
+      "revId": "e7074a4b8818370fd32d67739885a0277199bf27",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "174c1e6b_4d0c0c38",
         "filename": "mongo/change_stream.go",
         "patchSetId": 7
@@ -59,6 +107,30 @@
       "writtenOn": "2019-06-11T21:01:32Z",
       "side": 1,
       "message": "This is a little awkward with all of the +1s. Let\u0027s instead do this:\n1) make the length 1 and the capacity val.Len()+1\n2) use append within the for loop.\n\nThis will make the for loop a simple range and remove the need to track the i variable. Since append adds onto the slice, we\u0027ll have the first slot still open for the $changeStream doc.",
+      "range": {
+        "startLine": 249,
+        "startChar": 1,
+        "endLine": 259,
+        "endChar": 2
+      },
+      "revId": "e7074a4b8818370fd32d67739885a0277199bf27",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a60416f7_4bcd9b42",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-11T21:44:02Z",
+      "side": 1,
+      "message": "I was able to rewrite this without the +1s but I couldnt get the range to work. I had trouble creating an iterable thing from the val or pipeline, but I fixed everything else",
+      "parentUuid": "174c1e6b_4d0c0c38",
       "range": {
         "startLine": 249,
         "startChar": 1,
@@ -91,6 +163,30 @@
       "revId": "e7074a4b8818370fd32d67739885a0277199bf27",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "24fdf68d_03f6dfff",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 271,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-11T21:44:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8a05060d_84d8b5dc",
+      "range": {
+        "startLine": 261,
+        "startChar": 0,
+        "endLine": 271,
+        "endChar": 28
+      },
+      "revId": "e7074a4b8818370fd32d67739885a0277199bf27",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
