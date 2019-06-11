@@ -715,8 +715,8 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.12"
       - id: "osx-go-1-12"
-        display_name: "MacOS 10.12"
-        run_on: macos-1012
+        display_name: "MacOS 10.14"
+        run_on: macos-1014
         variables:
           GO_DIST: "/opt/golang/go1.12"
 
