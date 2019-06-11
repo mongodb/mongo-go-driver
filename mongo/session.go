@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
@@ -183,14 +182,21 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 		return s.clientSession.AbortTransaction()
 	}
 
-	cmd := command.AbortTransaction{
-		Session: s.clientSession,
+	var selector description.ServerSelectorFunc = func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
+		if s.clientSession.PinnedServer != nil {
+			return s.clientSession.PinnedServer.SelectServer(t, svrs)
+		}
+		return description.WriteSelector().SelectServer(t, svrs)
 	}
 
 	s.clientSession.Aborting = true
-	_, err = driverlegacy.AbortTransaction(ctx, cmd, s.topo, description.WriteSelector())
+	err = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
+		Deployment(s.topo).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
+		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).Execute(ctx)
 
+	s.clientSession.Aborting = false
 	_ = s.clientSession.AbortTransaction()
+
 	return replaceErrors(err)
 }
 
