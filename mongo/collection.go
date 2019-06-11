@@ -184,45 +184,50 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	}
 
 	sess := sessionFromContext(ctx)
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		sess, err := session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+		defer sess.EndSession()
+	}
 
 	err := coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
 
-	dispatchModels := make([]driverlegacy.WriteModel, len(models))
-	for i, model := range models {
+	wc := coll.writeConcern
+	if sess.TransactionRunning() {
+		wc = nil
+	}
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
+	}
+
+	selector := makePinnedSelector(sess, coll.writeSelector)
+
+	for _, model := range models {
 		if model == nil {
 			return nil, ErrNilDocument
 		}
-		dispatchModels[i] = model.convertModel()
 	}
 
-	res, err := driverlegacy.BulkWrite(
-		ctx,
-		coll.namespace(),
-		dispatchModels,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.client.retryWrites,
-		sess,
-		coll.writeConcern,
-		coll.client.clock,
-		coll.registry,
-		opts...,
-	)
-	result := BulkWriteResult{
-		InsertedCount: res.InsertedCount,
-		MatchedCount:  res.MatchedCount,
-		ModifiedCount: res.ModifiedCount,
-		DeletedCount:  res.DeletedCount,
-		UpsertedCount: res.UpsertedCount,
-		UpsertedIDs:   res.UpsertedIDs,
+	bwo := options.MergeBulkWriteOptions(opts...)
+
+	op := bulkWrite{
+		ordered:                  bwo.Ordered,
+		bypassDocumentValidation: bwo.BypassDocumentValidation,
+		models:                   models,
+		session:                  sess,
+		collection:               coll,
+		selector:                 selector,
+		writeConcern:             wc,
 	}
 
-	return &result, replaceErrors(err)
+	err = op.execute(ctx)
+
+	return &op.result, replaceErrors(err)
 }
 
 func (coll *Collection) insert(ctx context.Context, documents []interface{},
