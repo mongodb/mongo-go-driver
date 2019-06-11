@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f419b326_6f6c1eed",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-11T14:40:54Z",
+      "side": 1,
+      "message": "We might not have been doing this before, but we should default to context.Background() if ctx is nil. Many of our functions have this behavior, so we should be consistent.",
+      "range": {
+        "startLine": 73,
+        "startChar": 5,
+        "endLine": 73,
+        "endChar": 20
+      },
+      "revId": "5befd269cf9c1f5142d1790df11d8c58acb859a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f854cc05_d7bff73a",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-11T14:40:54Z",
+      "side": 1,
+      "message": "nit: nil is the zero-value for an interface so you don\u0027t need to initialize this explicitly.",
+      "range": {
+        "startLine": 77,
+        "startChar": 2,
+        "endLine": 77,
+        "endChar": 18
+      },
+      "revId": "5befd269cf9c1f5142d1790df11d8c58acb859a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "68f0f1c3_e1cbe10f",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-11T14:40:54Z",
+      "side": 1,
+      "message": "I\u0027d prefer to have functions like these explicitly return an error. They can set cs.err but they should also return the error so we don\u0027t risk suppressing any errors.",
+      "range": {
+        "startLine": 137,
+        "startChar": 7,
+        "endLine": 137,
+        "endChar": 25
+      },
+      "revId": "5befd269cf9c1f5142d1790df11d8c58acb859a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "19135cf0_d5b6d944",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-11T14:40:54Z",
+      "side": 1,
+      "message": "Discussed offline: we need to cache the operation time from the aggregate response if the conditions described in https://github.com/mongodb/specifications/blob/master/source/change-streams/change-streams.rst#startatoperationtime are met.",
+      "range": {
+        "startLine": 149,
+        "startChar": 0,
+        "endLine": 150,
+        "endChar": 0
+      },
+      "revId": "5befd269cf9c1f5142d1790df11d8c58acb859a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b85dd964_41a221f0",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 241,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-11T14:40:54Z",
+      "side": 1,
+      "message": "declare this inside the loop.",
+      "range": {
+        "startLine": 241,
+        "startChar": 1,
+        "endLine": 241,
+        "endChar": 16
+      },
+      "revId": "5befd269cf9c1f5142d1790df11d8c58acb859a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "363d12f2_cc558818",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 330,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-11T14:40:54Z",
+      "side": 1,
+      "message": "Discussed offline: we should have a cached version of the operation time because the session\u0027s operation time might be too far ahead of the one we want to use.",
+      "range": {
+        "startLine": 330,
+        "startChar": 5,
+        "endLine": 330,
+        "endChar": 26
+      },
+      "revId": "5befd269cf9c1f5142d1790df11d8c58acb859a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "43b1983c_73aa0bba",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 376,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-11T14:40:54Z",
+      "side": 1,
+      "message": "I\u0027m concerned that we check for the cursor being closed by cs.cursor \u003d\u003d nil, but we never actually set it to nil, so we might call cs.cursor.Close multiple times. This should set cs.cursor to nil after the Close call.",
+      "range": {
+        "startLine": 376,
+        "startChar": 24,
+        "endLine": 376,
+        "endChar": 29
+      },
+      "revId": "5befd269cf9c1f5142d1790df11d8c58acb859a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
