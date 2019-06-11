@@ -269,7 +269,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.Client.RetryWrite = false
 		if *op.RetryMode > RetryNone {
 			op.Client.RetryWrite = true
-			if !op.Client.Committing {
+			if !op.Client.Committing && !op.Client.Aborting {
 				op.Client.IncrementTxnNumber()
 			}
 		}
@@ -467,6 +467,9 @@ func (op Operation) retryable(desc description.Server) RetryType {
 			description.SessionsSupported(desc.WireVersion) &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
+			return RetryWrite
+		}
+		if op.Client != nil && op.Client.Aborting {
 			return RetryWrite
 		}
 	}
