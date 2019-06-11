@@ -266,9 +266,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	// TODO(GODRIVER-617): Add support for retryable reads.
 	retryable := op.retryable(desc.Server)
 	if retryable == RetryWrite && op.Client != nil && op.RetryMode != nil {
+		op.Client.RetryWrite = false
 		if *op.RetryMode > RetryNone {
 			op.Client.RetryWrite = true
-			op.Client.IncrementTxnNumber()
+			if !op.Client.Aborting {
+				op.Client.IncrementTxnNumber()
+			}
 		}
 
 		switch *op.RetryMode {
@@ -438,6 +441,9 @@ func (op Operation) retryable(desc description.Server) RetryType {
 			writeconcern.AckWrite(op.WriteConcern) {
 			return RetryWrite
 		}
+		if op.Client != nil && op.Client.Aborting {
+			return RetryWrite
+		}
 	}
 	return RetryType(0)
 }
@@ -598,17 +604,9 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 		return dst, info, err
 	}
 
-	dst, addedTxnNumber, err := op.addSession(dst, desc)
+	dst, err = op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
-	}
-
-	// TODO(GODRIVER-617): This should likely be part of addSession, but we need to ensure that we
-	// either turn off RetryWrite when we are doing a retryable read or that we pass in RetryType to
-	// addSession. We should also only be adding this if the connection supports sessions, but I
-	// think that's a given if we've set RetryWrite to true.
-	if !addedTxnNumber && op.RetryType == RetryWrite && op.Client != nil && op.Client.RetryWrite {
-		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
 
 	dst = op.addClusterTime(dst, desc)
@@ -659,17 +657,9 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 		return dst, info, err
 	}
 
-	dst, addedTxnNumber, err := op.addSession(dst, desc)
+	dst, err = op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
-	}
-
-	// TODO(GODRIVER-617): This should likely be part of addSession, but we need to ensure that we
-	// either turn off RetryWrite when we are doing a retryable read or that we pass in RetryType to
-	// addSession. We should also only be adding this if the connection supports sessions, but I
-	// think that's a given if we've set RetryWrite to true.
-	if !addedTxnNumber && op.RetryType == RetryWrite && op.Client != nil && op.Client.RetryWrite {
-		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
 
 	dst = op.addClusterTime(dst, desc)
@@ -759,21 +749,26 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 	return append(bsoncore.AppendHeader(dst, t, "writeConcern"), data...), nil
 }
 
-func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, bool, error) {
+func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	client := op.Client
 	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
-		return dst, false, nil
+		return dst, nil
 	}
 	if client.Terminated {
-		return dst, false, session.ErrSessionEnded
+		return dst, session.ErrSessionEnded
 	}
 	lsid, _ := client.SessionID.MarshalBSON()
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)
 
 	var addedTxnNumber bool
-	if client.TransactionRunning() || client.RetryingCommit {
-		dst = bsoncore.AppendInt64Element(dst, "txnNumber", client.TxnNumber)
+	if op.RetryType == RetryWrite && client != nil && client.RetryWrite {
 		addedTxnNumber = true
+		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
+	}
+	if client.TransactionRunning() || client.RetryingCommit {
+		if !addedTxnNumber {
+			dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
+		}
 		if client.TransactionStarting() {
 			dst = bsoncore.AppendBooleanElement(dst, "startTransaction", true)
 		}
@@ -782,7 +777,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 
 	client.ApplyCommand(desc.Server)
 
-	return dst, addedTxnNumber, nil
+	return dst, nil
 }
 
 func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {
