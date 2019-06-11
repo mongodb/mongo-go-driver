@@ -8,9 +8,7 @@ package gridfs
 
 import (
 	"context"
-
 	"errors"
-
 	"io"
 	"math"
 	"time"
@@ -91,13 +89,16 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 
 	bytesCopied := 0
 	var err error
-
 	for bytesCopied < len(p) {
 		if ds.bufferStart >= ds.bufferEnd {
 			// Buffer is empty and can load in data from new chunk.
 			err = ds.fillBuffer(ctx)
 			if err != nil {
 				if err == errNoMoreChunks {
+					if bytesCopied == 0 {
+						ds.done = true
+						return 0, io.EOF
+					}
 					return bytesCopied, nil
 				}
 				return bytesCopied, err
