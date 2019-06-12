@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "1b1f6e03_290c9854",
+        "filename": "mongo/session.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 192,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-12T18:27:33Z",
+      "side": 1,
+      "message": "This is actually correct. See GODRIVER-1130.",
+      "parentUuid": "68619873_176fd34f",
+      "range": {
+        "startLine": 187,
+        "startChar": 1,
+        "endLine": 192,
+        "endChar": 2
+      },
+      "revId": "2e94428a52b161c82e7c139d14ea0b7ea4dcef31",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0f7da9a9_975897d6",
         "filename": "mongo/session.go",
         "patchSetId": 6
