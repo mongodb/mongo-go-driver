@@ -118,7 +118,6 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 
 func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
-
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.topology.SessionPool != nil {
 		var err error
@@ -187,8 +186,14 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 	op, sess, err := db.processRunCommand(ctx, runCommand, opts...)
 	if err != nil {
 		closeImplicitSession(sess)
-		return nil, err
+		return nil, replaceErrors(err)
 	}
+
+	if err = op.Execute(ctx); err != nil {
+		closeImplicitSession(sess)
+		return nil, replaceErrors(err)
+	}
+
 	bc, err := op.ResultCursor(driver.CursorOptions{})
 	if err != nil {
 		closeImplicitSession(sess)
