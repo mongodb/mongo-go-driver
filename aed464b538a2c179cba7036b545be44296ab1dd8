@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "483b37d8_5c1a3ca7",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 377,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-12T15:44:15Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ee114664_4f1480ef",
+      "range": {
+        "startLine": 371,
+        "startChar": 5,
+        "endLine": 377,
+        "endChar": 99
+      },
+      "revId": "aed464b538a2c179cba7036b545be44296ab1dd8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f7b2a6e3_a041de6a",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 3
@@ -36,6 +60,30 @@
       "writtenOn": "2019-06-11T20:16:25Z",
       "side": 1,
       "message": "Should we be adding TransientTransactionError if the transaction is starting? If so, we can use TransactionRunning, which is Starting or InProgress.",
+      "range": {
+        "startLine": 490,
+        "startChar": 35,
+        "endLine": 490,
+        "endChar": 56
+      },
+      "revId": "aed464b538a2c179cba7036b545be44296ab1dd8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "42b19d74_b9f7fb85",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 490,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-12T15:44:15Z",
+      "side": 1,
+      "message": "I\u0027m not sure but the spec tests and currently passing with it set like this.",
+      "parentUuid": "f7b2a6e3_a041de6a",
       "range": {
         "startLine": 490,
         "startChar": 35,
