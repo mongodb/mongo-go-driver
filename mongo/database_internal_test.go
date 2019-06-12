@@ -429,3 +429,64 @@ func TestDatabase_ListCollections(t *testing.T) {
 		})
 	}
 }
+
+func TestDatabase_RunCommandCursor(t *testing.T) {
+	var elms []interface{}
+	for i := 0; i < 5; i++ {
+		elms = append(elms, bson.D{
+			{"x", i},
+		})
+	}
+
+	tests := []struct {
+		name        string
+		ctx         context.Context
+		runCommand  interface{}
+		readPref    *readpref.ReadPref
+		toInsert    []interface{}
+		expectedErr error
+		minVersion  string
+	}{
+		{"Success", nil, bson.D{
+			{"find", "bar"},
+		}, nil, elms, nil, "3.2"},
+		{"Success", nil, bson.D{
+			{"aggregate", "bar"},
+			{"pipeline", bson.A{}},
+			{"cursor", bson.D{}},
+		}, nil, elms, nil, "2.6"},
+		{"Failure", nil, bson.D{
+			{"ping", 1},
+		}, nil, elms, errors.New("cursor should be an embedded document but is of BSON type invalid"), "2.6"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(tt *testing.T) {
+			serverVersion, err := getServerVersion(createTestDatabase(t, nil))
+			require.NoError(t, err)
+			if compareVersions(t, serverVersion, test.minVersion) < 0 {
+				tt.Skip()
+			}
+
+			foo := "foo"
+			bar := "bar"
+			coll := createTestCollection(t, &foo, &bar, options.Collection().SetWriteConcern(wcMajority).SetReadPreference(test.readPref))
+			defer func() {
+				_ = coll.Drop(ctx)
+			}()
+
+			res, err := coll.InsertMany(test.ctx, test.toInsert)
+			require.NoError(t, err, "error inserting into database")
+
+			cursor, err := coll.Database().RunCommandCursor(test.ctx, test.runCommand)
+			require.Equal(tt, test.expectedErr, err, "db.RunCommandCursor returned different error than expected")
+			if cursor != nil {
+				var count int
+				for cursor.Next(test.ctx) {
+					count++
+				}
+				require.Equal(t, len(res.InsertedIDs), count, "doc count mismatch; expected %d, got %d", len(res.InsertedIDs), count)
+			}
+		})
+	}
+}
