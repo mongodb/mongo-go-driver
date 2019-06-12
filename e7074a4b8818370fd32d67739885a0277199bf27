@@ -143,6 +143,30 @@
     },
     {
       "key": {
+        "uuid": "7398aaf5_454ab3df",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-12T13:17:47Z",
+      "side": 1,
+      "message": "Ah right, the reflection API doesn\u0027t allow you to get a slice of reflect.Values representing the slice.",
+      "parentUuid": "a60416f7_4bcd9b42",
+      "range": {
+        "startLine": 249,
+        "startChar": 1,
+        "endLine": 259,
+        "endChar": 2
+      },
+      "revId": "e7074a4b8818370fd32d67739885a0277199bf27",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8a05060d_84d8b5dc",
         "filename": "mongo/change_stream.go",
         "patchSetId": 7
