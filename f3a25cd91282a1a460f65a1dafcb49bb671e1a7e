@@ -22,6 +22,30 @@
       "revId": "f3a25cd91282a1a460f65a1dafcb49bb671e1a7e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c803a7a_3a32dfff",
+        "filename": "mongo/session.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-06-12T16:15:03Z",
+      "side": 1,
+      "message": "Yes, my bad will resolve.",
+      "parentUuid": "8caf806d_b5ddc827",
+      "range": {
+        "startLine": 201,
+        "startChar": 1,
+        "endLine": 201,
+        "endChar": 22
+      },
+      "revId": "f3a25cd91282a1a460f65a1dafcb49bb671e1a7e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

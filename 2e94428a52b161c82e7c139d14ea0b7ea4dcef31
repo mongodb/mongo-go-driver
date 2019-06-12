@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "68619873_176fd34f",
+        "filename": "mongo/session.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 192,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-06-12T16:15:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "958a243a_f8df9437",
+      "range": {
+        "startLine": 187,
+        "startChar": 1,
+        "endLine": 192,
+        "endChar": 2
+      },
+      "revId": "2e94428a52b161c82e7c139d14ea0b7ea4dcef31",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0f7da9a9_975897d6",
         "filename": "mongo/session.go",
         "patchSetId": 6
@@ -45,6 +69,30 @@
       "revId": "2e94428a52b161c82e7c139d14ea0b7ea4dcef31",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0b17362a_b93ba60e",
+        "filename": "mongo/session.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-06-12T16:15:03Z",
+      "side": 1,
+      "message": "I think I only added it because Kris had it in CommitTransactions, but since we omitted it before I will take it out.",
+      "parentUuid": "0f7da9a9_975897d6",
+      "range": {
+        "startLine": 200,
+        "startChar": 1,
+        "endLine": 200,
+        "endChar": 9
+      },
+      "revId": "2e94428a52b161c82e7c139d14ea0b7ea4dcef31",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
