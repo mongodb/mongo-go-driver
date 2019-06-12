@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1aa8443f_b85d3d8a",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-12T13:35:30Z",
+      "side": 1,
+      "message": "Goland sometimes does this, but out imports should be organized into standard-lib and non-standard lib.",
+      "range": {
+        "startLine": 13,
+        "startChar": 1,
+        "endLine": 13,
+        "endChar": 45
+      },
+      "revId": "91e7a63adb7a03344604c47ecbb7ef3fff75ef55",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "93a71825_f0d5db4d",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-12T13:35:30Z",
+      "side": 1,
+      "message": "After creating the operation, we should look to see if cs.options.Collation is non-nil so we can set it on the Aggregate operation.",
+      "range": {
+        "startLine": 101,
+        "startChar": 1,
+        "endLine": 101,
+        "endChar": 13
+      },
+      "revId": "91e7a63adb7a03344604c47ecbb7ef3fff75ef55",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed3aaf2f_12e09f76",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-12T13:35:30Z",
+      "side": 1,
+      "message": "I think buildPipelineSlice and buildPipelineArray are confusing method names. One makes a []interface{} and the other makes a BSON array. Maybe renaming buildPipelineArray to pipelineToBSON might help?",
+      "range": {
+        "startLine": 141,
+        "startChar": 16,
+        "endLine": 141,
+        "endChar": 34
+      },
+      "revId": "91e7a63adb7a03344604c47ecbb7ef3fff75ef55",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "475235e5_d62f78eb",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-12T13:35:30Z",
+      "side": 1,
+      "message": "Originally, we only needed this in the resuming case because we would pass the whole topology down as the deployment for the initial aggregate. Now that we\u0027re always using a SingleConnectionDeployment though, this should happen for both resuming and non-resuming cases.",
+      "range": {
+        "startLine": 193,
+        "startChar": 1,
+        "endLine": 195,
+        "endChar": 2
+      },
+      "revId": "91e7a63adb7a03344604c47ecbb7ef3fff75ef55",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e53c1282_7baa826a",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-12T13:35:30Z",
+      "side": 1,
+      "message": "This is already such a long conditional so we can move the call to updatePbrtFromCommand up a line to avoid making it longer than it needs to be.",
+      "range": {
+        "startLine": 201,
+        "startChar": 4,
+        "endLine": 201,
+        "endChar": 28
+      },
+      "revId": "91e7a63adb7a03344604c47ecbb7ef3fff75ef55",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5fee73a4_710e5d18",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 397,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-12T13:35:30Z",
+      "side": 1,
+      "message": "cs.err instead of err",
+      "range": {
+        "startLine": 397,
+        "startChar": 1,
+        "endLine": 397,
+        "endChar": 4
+      },
+      "revId": "91e7a63adb7a03344604c47ecbb7ef3fff75ef55",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "00a4cd57_865153ba",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 446,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-12T13:35:30Z",
+      "side": 1,
+      "message": "Is there a reason this doesn\u0027t call updatePbrtFromCommand anymore? Seems like it does the same thing as the helper. Also, I think the continue was necessary here because this happens when we get an empty batch, so we should call cs.cursor.Next again instead of going to the logic below, which is for the case when Next returns false.",
+      "range": {
+        "startLine": 443,
+        "startChar": 3,
+        "endLine": 446,
+        "endChar": 0
+      },
+      "revId": "91e7a63adb7a03344604c47ecbb7ef3fff75ef55",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
