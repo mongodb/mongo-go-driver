@@ -429,3 +429,53 @@ func TestDatabase_ListCollections(t *testing.T) {
 		})
 	}
 }
+
+func TestDatabase_RunCommandCursor(t *testing.T) {
+	var elms []interface{}
+	for i := 0; i < 5; i++ {
+		elms = append(elms, bson.D{
+			{"x", i},
+		})
+	}
+
+	tests := []struct {
+		name        string
+		ctx         context.Context
+		runCommand  interface{}
+		readPref    *readpref.ReadPref
+		toInsert    []interface{}
+		expectedErr error
+	}{
+		{"Success", nil, bson.D{
+			{"find", "bar"},
+			{"batchSize", 2},
+		}, nil, elms, nil},
+		{"Failure", nil, bson.D{
+			{"ping", 1},
+		}, nil, elms, errors.New("cursor should be an embedded document but is of BSON type invalid")},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(tt *testing.T) {
+			foo := "foo"
+			bar := "bar"
+			coll := createTestCollection(t, &foo, &bar, options.Collection().SetWriteConcern(wcMajority).SetReadPreference(test.readPref))
+			defer func() {
+				_ = coll.Drop(ctx)
+			}()
+
+			res, err := coll.InsertMany(test.ctx, test.toInsert)
+			require.NoError(t, err, "error inserting into database")
+
+			cursor, err := coll.Database().RunCommandCursor(test.ctx, test.runCommand)
+			require.Equal(tt, test.expectedErr, err, "db.RunCommandCursor returned different error than expected")
+			if cursor != nil {
+				count := 0
+				for cursor.Next(test.ctx) {
+					count++
+				}
+				require.Equal(t, len(res.InsertedIDs), count, "different number of docs in cursor than expected")
+			}
+		})
+	}
+}
