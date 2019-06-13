@@ -211,12 +211,7 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 		s.clientSession.RetryingCommit = true
 	}
 
-	var selector description.ServerSelectorFunc = func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
-		if s.clientSession.PinnedServer != nil {
-			return s.clientSession.PinnedServer.SelectServer(t, svrs)
-		}
-		return description.WriteSelector().SelectServer(t, svrs)
-	}
+	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
 
 	s.clientSession.Committing = true
 	err = operation.NewCommitTransaction().

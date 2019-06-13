@@ -226,10 +226,7 @@ func (db *Database) Drop(ctx context.Context) error {
 		sess = nil
 	}
 
-	selector := db.writeSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := makePinnedSelector(sess, db.writeSelector)
 
 	op := operation.NewDropDatabase().
 		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
@@ -270,10 +267,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, err
 	}
 
-	selector := db.readSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := makePinnedSelector(sess, db.readSelector)
 
 	lco := options.MergeListCollectionsOptions(opts...)
 	op := operation.NewListCollections(filterDoc).
