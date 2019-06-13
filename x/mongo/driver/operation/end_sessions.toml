@@ -1,0 +1,14 @@
+version = 0
+name = "EndSessions"
+documentation = "EndSessions performs an endSessions operation."
+
+[properties]
+enabled = ["cluster clock"]
+
+[command]
+name = "endSessions"
+parameter = "database"
+
+[request.sessionIDs]
+type = "array"
+documentation = "sessionIDs specify the sessions to be expired."
