@@ -88,7 +88,8 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeMapEntry(bsontype.Undefined, tUndefined).
 		RegisterTypeMapEntry(bsontype.ObjectID, tOID).
 		RegisterTypeMapEntry(bsontype.Boolean, tBool).
-		RegisterTypeMapEntry(bsontype.DateTime, tDateTime).
+		//decode 0x09 to time.Time, not primitive.DateTime.
+		RegisterTypeMapEntry(bsontype.DateTime, tTime).
 		RegisterTypeMapEntry(bsontype.Regex, tRegex).
 		RegisterTypeMapEntry(bsontype.DBPointer, tDBPointer).
 		RegisterTypeMapEntry(bsontype.JavaScript, tJavaScript).

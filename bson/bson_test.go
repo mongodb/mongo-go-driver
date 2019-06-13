@@ -78,6 +78,24 @@ func TestNonNullTimeRoundTrip(t *testing.T) {
 	if !cmp.Equal(val, rtval) {
 		t.Errorf("Did not round trip properly. got %v; want %v", val, rtval)
 	}
+
+	beforeTimeVal := time.Now()
+	beforeTimeMap := map[string]interface{}{"ts": beforeTimeVal}
+	before, err := Marshal(beforeTimeMap)
+	noerr(t, err)
+
+	afterTimeMap := map[string]interface{}{}
+	err = Unmarshal(before, &afterTimeMap)
+	noerr(t, err)
+	afterTime, ok := afterTimeMap["ts"].(time.Time)
+	if !ok {
+		t.Errorf("after time format error. after time info:%#v", afterTimeMap)
+		return
+	}
+	if afterTime.Unix() != beforeTimeVal.Unix() {
+		t.Errorf("after time not equal before time. befere:%#v, after:%#v", beforeTimeVal.UnixNano(), afterTime.UnixNano())
+		return
+	}
 }
 
 func TestD(t *testing.T) {
