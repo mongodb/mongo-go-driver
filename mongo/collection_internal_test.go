@@ -1833,6 +1833,17 @@ func TestCollection_Find_Hint(t *testing.T) {
 		}
 		_ = c.Close(ctx)
 	})
+	t.Run("error", func(t *testing.T) {
+		c, err := coll.Find(ctx, bson.D{}, options.Find().SetHint("foobar"))
+		if err == nil {
+			_ = c.Close(ctx)
+			t.Fatal("expected bad hint error but got nil")
+		}
+		_, ok := err.(CommandError)
+		if !ok {
+			t.Fatalf("err type mismatch; expected CommandError, got %T", err)
+		}
+	})
 }
 
 func TestCollection_FindOne_LimitSet(t *testing.T) {
