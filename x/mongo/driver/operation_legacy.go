@@ -51,6 +51,10 @@ func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, con
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, firstBatchIdentifier)
 	op.publishFinishedEvent(ctx, finishedInfo)
 
+	if finishedInfo.cmdErr != nil {
+		return finishedInfo.cmdErr
+	}
+
 	if op.ProcessResponseFn != nil {
 		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
 	}
@@ -219,6 +223,10 @@ func (op Operation) legacyGetMore(ctx context.Context, dst []byte, srvr Server, 
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, nextBatchIdentifier)
 	op.publishFinishedEvent(ctx, finishedInfo)
 
+	if finishedInfo.cmdErr != nil {
+		return finishedInfo.cmdErr
+	}
+
 	if op.ProcessResponseFn != nil {
 		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
 	}
@@ -383,6 +391,10 @@ func (op Operation) legacyListCollections(ctx context.Context, dst []byte, srvr 
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, firstBatchIdentifier)
 	op.publishFinishedEvent(ctx, finishedInfo)
 
+	if finishedInfo.cmdErr != nil {
+		return finishedInfo.cmdErr
+	}
+
 	if op.ProcessResponseFn != nil {
 		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
 	}
@@ -505,6 +517,10 @@ func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Serv
 
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, firstBatchIdentifier)
 	op.publishFinishedEvent(ctx, finishedInfo)
+
+	if finishedInfo.cmdErr != nil {
+		return finishedInfo.cmdErr
+	}
 
 	if op.ProcessResponseFn != nil {
 		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)

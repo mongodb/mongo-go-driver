@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -1832,6 +1833,17 @@ func TestCollection_Find_Hint(t *testing.T) {
 			t.Fatalf("find error: %v", err)
 		}
 		_ = c.Close(ctx)
+	})
+	t.Run("error", func(t *testing.T) {
+		c, err := coll.Find(ctx, bson.D{}, options.Find().SetHint("foobar"))
+		if err == nil {
+			_ = c.Close(ctx)
+			t.Fatal("expected bad hint error but got nil")
+		}
+		ce, ok := err.(CommandError)
+		if !ok {
+			t.Fatalf("err type mismatch; expected CommandError, got %T", err)
+		}
 	})
 }
 
