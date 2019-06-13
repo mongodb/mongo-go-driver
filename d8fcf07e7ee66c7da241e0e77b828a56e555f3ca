@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1fe1304a_a03a89b0",
+        "filename": "x/mongo/driver/operation/end_sessions.toml",
+        "patchSetId": 1
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-06-13T16:25:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fda97d77_8ab7b84e",
+      "revId": "d8fcf07e7ee66c7da241e0e77b828a56e555f3ca",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2b83d698_49661584",
         "filename": "x/mongo/driver/operation/end_sessions.toml",
         "patchSetId": 1
@@ -39,6 +57,30 @@
       "revId": "d8fcf07e7ee66c7da241e0e77b828a56e555f3ca",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9a8b383f_757e79e4",
+        "filename": "x/mongo/driver/operation/end_sessions.toml",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-06-13T16:25:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2b83d698_49661584",
+      "range": {
+        "startLine": 10,
+        "startChar": 0,
+        "endLine": 10,
+        "endChar": 22
+      },
+      "revId": "d8fcf07e7ee66c7da241e0e77b828a56e555f3ca",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
