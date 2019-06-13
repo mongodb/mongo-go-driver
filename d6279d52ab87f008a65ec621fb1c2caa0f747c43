@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6003c0c6_4394ccbe",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 463,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-13T18:42:23Z",
+      "side": 1,
+      "message": "nit: this could be combined with the change below for:\nif op.Client !\u003d nil \u0026\u0026 (op.Client.Committing || op.Client.Aborting) {",
+      "range": {
+        "startLine": 463,
+        "startChar": 21,
+        "endLine": 463,
+        "endChar": 22
+      },
+      "revId": "d6279d52ab87f008a65ec621fb1c2caa0f747c43",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
