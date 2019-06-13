@@ -267,10 +267,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		sess = nil
 	}
 
-	selector := coll.writeSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := MakePinnedSelector(sess, coll.writeSelector)
 
 	op := operation.NewInsert(docs...).
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
@@ -386,10 +383,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		sess = nil
 	}
 
-	selector := coll.writeSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := MakePinnedSelector(sess, coll.writeSelector)
 
 	var limit int32
 	if deleteOne {
@@ -490,10 +484,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter, update bson
 		sess = nil
 	}
 
-	selector := coll.writeSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := MakePinnedSelector(sess, coll.writeSelector)
 
 	op := operation.NewUpdate(updateDoc).
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
@@ -672,12 +663,9 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		sess = nil
 	}
 
-	selector := a.readSelector
+	var selector description.ServerSelector = MakePinnedSelector(sess, a.readSelector)
 	if hasDollarOut {
 		selector = a.writeSelector
-	}
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
 	}
 
 	ao := options.MergeAggregateOptions(a.opts...)
@@ -870,10 +858,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		rc = nil
 	}
 
-	selector := coll.readSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := MakePinnedSelector(sess, coll.readSelector)
 
 	option := options.MergeDistinctOptions(opts...)
 
@@ -951,10 +936,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	selector := coll.writeSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := MakePinnedSelector(sess, coll.writeSelector)
 
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
@@ -1142,10 +1124,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		sess = nil
 	}
 
-	selector := coll.writeSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := MakePinnedSelector(sess, coll.writeSelector)
 
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
@@ -1378,10 +1357,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 		sess = nil
 	}
 
-	selector := coll.writeSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := MakePinnedSelector(sess, coll.writeSelector)
 
 	op := operation.NewDropCollection().
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
@@ -1396,4 +1372,29 @@ func (coll *Collection) Drop(ctx context.Context) error {
 		return replaceErrors(err)
 	}
 	return nil
+}
+
+// MakePinnedSelector makes a selector for a pinned session with a pinned server. Will attempt to do server selection on
+// the pinned server but if that fails it will go through a list of default selectors
+func MakePinnedSelector(sess *session.Client, defaultSelectors ...description.ServerSelector) description.ServerSelectorFunc {
+	return func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
+		var err error
+		if sess != nil && sess.PinnedServer != nil {
+			res, err := sess.PinnedServer.SelectServer(t, svrs)
+			if err == nil {
+				return res, err
+			}
+		}
+
+		for _, sel := range defaultSelectors {
+			if sel != nil {
+				res, err := sel.SelectServer(t, svrs)
+				if err == nil {
+					return res, err
+				}
+			}
+		}
+
+		return nil, err
+	}
 }
