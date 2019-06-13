@@ -211,12 +211,7 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 		s.clientSession.RetryingCommit = true
 	}
 
-	var selector description.ServerSelectorFunc = func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
-		if s.clientSession.PinnedServer != nil {
-			return s.clientSession.PinnedServer.SelectServer(t, svrs)
-		}
-		return description.WriteSelector().SelectServer(t, svrs)
-	}
+	selector := makePinnedSelector(s.clientSession)
 
 	s.clientSession.Committing = true
 	err = operation.NewCommitTransaction().
@@ -273,5 +268,17 @@ func contextWithSession(ctx context.Context, sess Session) SessionContext {
 	return &sessionContext{
 		Context: context.WithValue(ctx, sessionKey{}, sess),
 		Session: sess,
+	}
+}
+
+func makePinnedSelector(client *session.Client) description.ServerSelectorFunc {
+	return func(top description.Topology, servers []description.Server) ([]description.Server, error) {
+		if client.PinnedServer != nil {
+			sel, err := client.PinnedServer.SelectServer(top, servers)
+			if err == nil {
+				return sel, err
+			}
+		}
+		return description.WriteSelector().SelectServer(top, servers)
 	}
 }
