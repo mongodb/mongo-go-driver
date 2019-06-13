@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "75d4de78_207e3083",
+        "filename": "mongo/database.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 227,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-13T14:49:39Z",
+      "side": 1,
+      "message": "This method checks if the session is nil.",
+      "range": {
+        "startLine": 227,
+        "startChar": 31,
+        "endLine": 227,
+        "endChar": 86
+      },
+      "revId": "f6ea1dccbd6926e5e76151a6ed6dc10a27d79c9f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
