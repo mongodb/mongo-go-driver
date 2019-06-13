@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ad31bef1_0d7e7dc6",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-13T15:09:21Z",
+      "side": 1,
+      "message": "Should this be \u0026\u0026?",
+      "range": {
+        "startLine": 272,
+        "startChar": 27,
+        "endLine": 272,
+        "endChar": 31
+      },
+      "revId": "8bba0965695cea35cf5acb5ca2e727ff25853055",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
