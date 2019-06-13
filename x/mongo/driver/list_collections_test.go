@@ -12,6 +12,20 @@ import (
 	"testing"
 )
 
+func addRegexFitler(filter bsonx.Doc) bsonx.Doc {
+	regexFilter := bsonx.Doc{
+		{"name", bsonx.Regex("^[^$]*$", "")},
+	}
+	if filter == nil {
+		return regexFilter
+	}
+
+	arr := bsonx.Arr{bsonx.Document(regexFilter), bsonx.Document(filter)}
+	return bsonx.Doc{
+		{"$and", bsonx.Array(arr)},
+	}
+}
+
 func TestListCollections(t *testing.T) {
 	dbName := "db"
 	noNameFilter := bsonx.Doc{
@@ -34,10 +48,10 @@ func TestListCollections(t *testing.T) {
 			expectedFilter bsonx.Doc
 			err            error
 		}{
-			{"TestNilFilter", nil, nil, nil},
-			{"TestNoName", noNameFilter, noNameFilter, nil},
+			{"TestNilFilter", nil, addRegexFitler(nil), nil},
+			{"TestNoName", noNameFilter, addRegexFitler(noNameFilter), nil},
 			{"TestNonStringName", nonStringFilter, nil, ErrFilterType},
-			{"TestName", nameFilter, modifiedFilter, nil},
+			{"TestName", nameFilter, addRegexFitler(modifiedFilter), nil},
 		}
 
 		for _, tc := range testCases {

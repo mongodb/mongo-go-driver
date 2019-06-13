@@ -115,19 +115,27 @@ func legacyListCollections(
 // modify the user-supplied filter to prefix the "name" field with the database name.
 // returns the original filter if the name field is not present or a copy with the modified name field if it is
 func transformFilter(filter bsonx.Doc, dbName string) (bsonx.Doc, error) {
-	if filter == nil {
-		return filter, nil
+	regexFilter := bsonx.Doc{
+		{"name", bsonx.Regex("^[^$]*$", "")},
 	}
 
-	if nameVal, err := filter.LookupErr("name"); err == nil {
-		name, ok := nameVal.StringValueOK()
+	if filter == nil {
+		return regexFilter, nil
+	}
+
+	converted := filter
+	if nameIdx := filter.IndexOf("name"); nameIdx != -1 {
+		name, ok := filter[nameIdx].Value.StringValueOK()
 		if !ok {
 			return nil, ErrFilterType
 		}
 
-		filterCopy := filter.Copy()
-		filterCopy.Set("name", bsonx.String(dbName+"."+name))
-		return filterCopy, nil
+		converted = filter.Copy()
+		converted[nameIdx].Value = bsonx.String(dbName + "." + name)
 	}
-	return filter, nil
+
+	filterArr := bsonx.Arr{bsonx.Document(regexFilter), bsonx.Document(converted)}
+	return bsonx.Doc{
+		{"$and", bsonx.Array(filterArr)},
+	}, nil
 }

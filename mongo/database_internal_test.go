@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"fmt"
@@ -380,4 +381,51 @@ func TestDatabase_ListCollections(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestDatabase_LegacyListCollections(t *testing.T) {
+	db := createTestDatabase(t, nil, nil)
+	version, err := getServerVersion(db)
+	noerr(t, err)
+	if compareVersions(t, version, "2.6") > 0 {
+		t.Skip("skipping for server versions > 2.6")
+	}
+
+	coll := db.Collection("bar", options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
+	initCollection(t, coll)
+
+	t.Run("ignore indexes", func(t *testing.T) {
+		// legacy list collections should not return any collections containing a $
+		c, err := db.ListCollections(ctx, bson.D{})
+		noerr(t, err)
+		defer func() {
+			_ = c.Close(ctx)
+		}()
+
+		for c.Next(ctx) {
+			name := c.Current.Lookup("name").StringValue()
+			if strings.Contains(name, "$") {
+				t.Fatalf("index %s returned from ListCollections", name)
+			}
+		}
+	})
+	t.Run("filter name", func(t *testing.T) {
+		c, err := db.ListCollections(ctx, bson.D{{"name", "bar"}})
+		noerr(t, err)
+		defer func() {
+			_ = c.Close(ctx)
+		}()
+
+		var foundBar bool
+		for c.Next(ctx) {
+			name := c.Current.Lookup("name").StringValue()
+			if name == "bar" {
+				foundBar = true
+				break
+			}
+		}
+		if !foundBar {
+			t.Fatalf("collection bar not returned from ListCollections")
+		}
+	})
 }
