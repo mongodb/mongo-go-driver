@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"crypto/tls"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
@@ -27,8 +29,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -190,12 +190,28 @@ func (c *Client) endSessions(ctx context.Context) {
 	if c.topology.SessionPool == nil {
 		return
 	}
-	cmd := command.EndSessions{
-		Clock:      c.clock,
-		SessionIDs: c.topology.SessionPool.IDSlice(),
+
+	sess, _ := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit)
+
+	var selector description.ServerSelectorFunc = func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
+		if sess.PinnedServer != nil {
+			return sess.PinnedServer.SelectServer(t, svrs)
+		}
+		return description.WriteSelector().SelectServer(t, svrs)
 	}
 
-	_, _ = driverlegacy.EndSessions(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.PrimaryPreferred()))
+	ids := c.topology.SessionPool.IDSlice()
+	idx, idArray := bsoncore.AppendArrayStart(nil)
+	for i, id := range ids {
+		idDoc, _ := id.MarshalBSON()
+		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), idDoc)
+	}
+	idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
+
+	_ = operation.NewEndSessions().Session(sess).SessionIDs(idArray).ClusterClock(c.clock).
+		ServerSelector(selector).CommandMonitor(c.monitor).Execute(ctx)
+
+	sess.Terminated = true
 }
 
 func (c *Client) configure(opts *options.ClientOptions) error {
