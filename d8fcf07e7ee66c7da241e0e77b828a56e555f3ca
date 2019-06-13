@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fda97d77_8ab7b84e",
+        "filename": "x/mongo/driver/operation/end_sessions.toml",
+        "patchSetId": 1
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-13T14:58:41Z",
+      "side": 1,
+      "message": "Cluster clock is a builtin, so you shouldn\u0027t need to explicitly enable it.",
+      "revId": "d8fcf07e7ee66c7da241e0e77b828a56e555f3ca",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2b83d698_49661584",
+        "filename": "x/mongo/driver/operation/end_sessions.toml",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-13T14:58:41Z",
+      "side": 1,
+      "message": "The parameter for endSessions is the array of session IDs. So this field should be \"sessionIDs\". You might need to update drivergen to make it not also add sessionIDs to the command body. If you don\u0027t it\u0027ll generate a command that looks like this:\n\n    {\"endSessions\": [1234, 5678], \"sessionIDs\": [1234, 5678]}\n\nwhen what we want is this:\n\n    {\"endSessions\": [1234, 5678]}",
+      "range": {
+        "startLine": 10,
+        "startChar": 0,
+        "endLine": 10,
+        "endChar": 22
+      },
+      "revId": "d8fcf07e7ee66c7da241e0e77b828a56e555f3ca",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
