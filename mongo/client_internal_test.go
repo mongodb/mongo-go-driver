@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -544,4 +545,29 @@ func TestClient_Watch_Disconnected(t *testing.T) {
 	change, err := c.Watch(context.Background(), []bson.D{})
 	require.Nil(t, change)
 	require.Equal(t, err, ErrClientDisconnected)
+}
+
+func TestEndSessions(t *testing.T) {
+	cs := testutil.ConnString(t)
+	client, err := NewClient(options.Client().ApplyURI(cs.String()).SetMonitor(monitor))
+	require.NoError(t, err)
+	err = client.Connect(nil)
+	require.NoError(t, err)
+
+	_, err = client.ListDatabases(ctx, bsonx.Doc{})
+	require.NoError(t, err)
+
+	drainChannels()
+
+	err = client.Disconnect(ctx)
+	require.NoError(t, err)
+
+	var started *event.CommandStartedEvent
+	select {
+	case started = <-startedChan:
+	default:
+		t.Fatalf("expected a CommandStartedEvent but none found")
+	}
+
+	require.Equal(t, "endSessions", started.CommandName)
 }
