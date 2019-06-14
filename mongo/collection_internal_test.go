@@ -1745,6 +1745,20 @@ func TestCollection_Find_Error(t *testing.T) {
 		require.NotNil(t, c.Err())
 		_ = c.Close(context.Background())
 	})
+
+	t.Run("error type", func(t *testing.T) {
+		coll := createTestCollection(t, nil, nil)
+		initCollection(t, coll)
+		c, err := coll.Find(ctx, bson.D{}, options.Find().SetHint("foobar"))
+		if err == nil {
+			_ = c.Close(ctx)
+			t.Fatal("expected bad hint error but got nil")
+		}
+		_, ok := err.(CommandError)
+		if !ok {
+			t.Fatalf("err type mismatch; expected CommandError, got %T", err)
+		}
+	})
 }
 
 func TestCollection_Find_NegativeLimit(t *testing.T) {

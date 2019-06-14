@@ -47,6 +47,21 @@ func replaceErrors(err error) error {
 			WriteErrors:       convertBulkWriteErrors(conv.WriteErrors),
 		}
 	}
+	if qe, ok := err.(command.QueryFailureError); ok {
+		// qe.Message is "command failure"
+		ce := CommandError{Name: qe.Message}
+
+		dollarErr, err := qe.Response.LookupErr("$err")
+		if err == nil {
+			ce.Message, _ = dollarErr.StringValueOK()
+		}
+		code, err := qe.Response.LookupErr("code")
+		if err == nil {
+			ce.Code, _ = code.Int32OK()
+		}
+
+		return ce
+	}
 
 	return err
 }
