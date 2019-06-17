@@ -48,6 +48,30 @@
     },
     {
       "key": {
+        "uuid": "d7e6ac98_50be8a6a",
+        "filename": "x/mongo/driver/operation/end_sessions.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-17T17:38:45Z",
+      "side": 1,
+      "message": "Oh wait, we can\u0027t actually do that. I guess we should open a ticket for the new codegen epic. The feature we need is that they value for the command parameter must never be nil and should return an error if it is.",
+      "parentUuid": "2bdd79f2_9a440160",
+      "range": {
+        "startLine": 61,
+        "startChar": 0,
+        "endLine": 63,
+        "endChar": 2
+      },
+      "revId": "71e6d7f1702df47622e748b70b01f942a91100d8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c50ce43c_203f29bf",
         "filename": "x/mongo/driver/operation/end_sessions.toml",
         "patchSetId": 3
