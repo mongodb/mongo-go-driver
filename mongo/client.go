@@ -172,6 +172,9 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	if sopts.DefaultReadPreference != nil {
 		coreOpts.DefaultReadPreference = sopts.DefaultReadPreference
 	}
+	if sopts.DefaultMaxCommitTime != nil {
+		coreOpts.DefaultMaxCommitTime = sopts.DefaultMaxCommitTime
+	}
 
 	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit, coreOpts)
 	if err != nil {

@@ -386,7 +386,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					Code:    int32(tt.WriteConcernError.Code),
 					Message: tt.WriteConcernError.Message,
 				}
-				if err.Code == 64 || tt.WriteConcernError.Retryable() {
+				if err.Code == 64 || err.Code == 50 || tt.WriteConcernError.Retryable() {
 					err.Labels = []string{UnknownTransactionCommitResult}
 				}
 				return err
@@ -420,7 +420,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				continue
 			}
-			if op.Client != nil && op.Client.Committing && tt.Retryable() { // If we got a retryable error, we add UnknownTransactionCommitResult.
+			if op.Client != nil && op.Client.Committing && (tt.Retryable() || tt.Code == 50) {
+				// If we got a retryable error or MaxTimeMSExpired error, we add UnknownTransactionCommitResult.
 				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
 			}
 			return tt
@@ -508,7 +509,6 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 
 	// decode
 	res, err := op.decodeResult(wm)
-
 	// Pull out $clusterTime and operationTime and update session and clock. We handle this before
 	// handling the error to ensure we are properly gossiping the cluster time.
 	op.updateClusterTimes(res)

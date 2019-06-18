@@ -139,10 +139,10 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 			}
 
 			if cerr, ok := err.(CommandError); ok {
-				if cerr.HasErrorLabel(command.UnknownTransactionCommitResult) {
+				if cerr.HasErrorLabel(driver.UnknownTransactionCommitResult) && !cerr.IsMaxTimeMSExpiredError() {
 					continue
 				}
-				if cerr.HasErrorLabel(command.TransientTransactionError) {
+				if cerr.HasErrorLabel(driver.TransientTransactionError) {
 					break CommitLoop
 				}
 			}
@@ -165,6 +165,7 @@ func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) erro
 		ReadConcern:    topts.ReadConcern,
 		ReadPreference: topts.ReadPreference,
 		WriteConcern:   topts.WriteConcern,
+		MaxCommitTime:  topts.MaxCommitTime,
 	}
 
 	return s.clientSession.StartTransaction(coreOpts)
@@ -215,10 +216,15 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
 
 	s.clientSession.Committing = true
-	err = operation.NewCommitTransaction().
+	op := operation.NewCommitTransaction().
 		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.topo).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
-		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).Execute(ctx)
+		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken))
+	if s.clientSession.CurrentMct != nil {
+		op.MaxTimeMS(int64(*s.clientSession.CurrentMct / time.Millisecond))
+	}
+
+	err = op.Execute(ctx)
 	s.clientSession.Committing = false
 	commitErr := s.clientSession.CommitTransaction()
 
