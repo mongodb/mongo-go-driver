@@ -98,6 +98,11 @@ func (e CommandError) HasErrorLabel(label string) bool {
 	return false
 }
 
+// IsMaxTimeMSExpiredError indicates if the error is a MaxTimeMSExpiredError.
+func (e CommandError) IsMaxTimeMSExpiredError() bool {
+	return e.Code == 50 || e.Name == "MaxTimeMSExpired"
+}
+
 // WriteError is a non-write concern failure that occurred as a result of a write
 // operation.
 type WriteError struct {

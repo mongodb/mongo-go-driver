@@ -13,6 +13,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
@@ -526,6 +527,8 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 			opts = opts.SetBatchSize(int32(opt.(float64)))
 		case "collation":
 			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
+		case "maxTimeMS":
+			opts = opts.SetMaxTime(time.Duration(opt.(float64)) * time.Millisecond)
 		}
 	}
 

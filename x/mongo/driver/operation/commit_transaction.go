@@ -22,6 +22,7 @@ import (
 
 // CommitTransaction attempts to commit a transaction.
 type CommitTransaction struct {
+	maxTimeMS     *int64
 	recoveryToken bsoncore.Document
 	session       *session.Client
 	clock         *session.ClusterClock
@@ -68,10 +69,23 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 func (ct *CommitTransaction) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 
 	dst = bsoncore.AppendInt32Element(dst, "commitTransaction", 1)
+	if ct.maxTimeMS != nil {
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *ct.maxTimeMS)
+	}
 	if ct.recoveryToken != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "recoveryToken", ct.recoveryToken)
 	}
 	return dst, nil
+}
+
+// MaxTimeMS specifies the maximum amount of time to allow the query to run.
+func (ct *CommitTransaction) MaxTimeMS(maxTimeMS int64) *CommitTransaction {
+	if ct == nil {
+		ct = new(CommitTransaction)
+	}
+
+	ct.maxTimeMS = &maxTimeMS
+	return ct
 }
 
 // RecoveryToken sets the recovery token to use when committing or aborting a sharded transaction.
