@@ -794,6 +794,9 @@ func getSessionOptions(opts map[string]interface{}) *options.SessionOptions {
 			if transOpts["readPreference"] != nil {
 				sessOpts = sessOpts.SetDefaultReadPreference(getReadPref(transOpts["readPreference"]))
 			}
+			if transOpts["maxCommitTimeMS"] != nil {
+				sessOpts = sessOpts.SetDefaultMaxCommitTime(getMaxCommitTime(transOpts["maxCommitTimeMS"]))
+			}
 		}
 	}
 
@@ -810,6 +813,8 @@ func getTransactionOptions(opts map[string]interface{}) *options.TransactionOpti
 			transOpts = transOpts.SetReadPreference(getReadPref(opt))
 		case "readConcern":
 			transOpts = transOpts.SetReadConcern(getReadConcern(opt))
+		case "maxCommitTimeMS":
+			transOpts = transOpts.SetMaxCommitTime(getMaxCommitTime(opt))
 		}
 	}
 	return transOpts
@@ -841,6 +846,14 @@ func getReadConcern(opt interface{}) *readconcern.ReadConcern {
 func getReadPref(opt interface{}) *readpref.ReadPref {
 	if conv, ok := opt.(map[string]interface{}); ok {
 		return readPrefFromString(conv["mode"].(string))
+	}
+	return nil
+}
+
+func getMaxCommitTime(opt interface{}) *time.Duration {
+	if max, ok := opt.(float64); ok {
+		res := time.Duration(max) * time.Millisecond
+		return &res
 	}
 	return nil
 }
