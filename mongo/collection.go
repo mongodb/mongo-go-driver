@@ -642,7 +642,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		a.ctx = context.Background()
 	}
 
-	pipelineArr, hasDollarOut, err := transformAggregatePipelinev2(a.registry, a.pipeline)
+	pipelineArr, hasSpecialStage, err := transformAggregatePipelinev2(a.registry, a.pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -659,7 +659,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	}
 
 	var wc *writeconcern.WriteConcern
-	if hasDollarOut {
+	if hasSpecialStage {
 		wc = a.writeConcern
 	}
 	rc := a.readConcern
@@ -673,7 +673,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	}
 
 	selector := a.readSelector
-	if hasDollarOut {
+	if hasSpecialStage {
 		selector = a.writeSelector
 	}
 	if sess != nil && sess.PinnedServer != nil {
@@ -691,7 +691,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		op.AllowDiskUse(*ao.AllowDiskUse)
 	}
 	// ignore batchSize of 0 with $out
-	if ao.BatchSize != nil && !(*ao.BatchSize == 0 && hasDollarOut) {
+	if ao.BatchSize != nil && !(*ao.BatchSize == 0 && hasSpecialStage) {
 		op.BatchSize(*ao.BatchSize)
 		cursorOpts.BatchSize = *ao.BatchSize
 	}

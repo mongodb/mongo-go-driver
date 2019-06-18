@@ -60,7 +60,7 @@ type transTestCase struct {
 	SessionOptions      map[string]interface{} `json:"sessionOptions"`
 	Operations          []*transOperation      `json:"operations"`
 	Outcome             *transOutcome          `json:"outcome"`
-	Expectations        []*transExpectation    `json:"expectations"`
+	Expectations        []*expectation         `json:"expectations"`
 	UseMultipleMongoses bool                   `json:"useMultipleMongoses"`
 }
 
@@ -97,7 +97,7 @@ type transOutcome struct {
 	} `json:"collection"`
 }
 
-type transExpectation struct {
+type expectation struct {
 	CommandStartedEvent struct {
 		CommandName  string          `json:"command_name"`
 		DatabaseName string          `json:"database_name"`
@@ -329,7 +329,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		sess0.EndSession(ctx)
 		sess1.EndSession(ctx)
 
-		checkExpectations(t, test.Expectations, lsid0, lsid1)
+		checkTransactionExpectations(t, test.Expectations, lsid0, lsid1)
 
 		disableFailpoints(t, &failPointNames)
 
@@ -687,7 +687,7 @@ func getErrorFromResult(t *testing.T, result json.RawMessage) *transError {
 	return &expected
 }
 
-func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bsonx.Doc, id1 bsonx.Doc) {
+func checkTransactionExpectations(t *testing.T, expectations []*expectation, id0 bsonx.Doc, id1 bsonx.Doc) {
 	for _, expectation := range expectations {
 		var evt *event.CommandStartedEvent
 		select {
