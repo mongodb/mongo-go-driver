@@ -48,6 +48,7 @@ type Client struct {
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
 	monitor         *event.CommandMonitor
+	maxCommitTimeMS *time.Duration
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -155,9 +156,10 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 
 	sopts := options.MergeSessionOptions(opts...)
 	coreOpts := &session.ClientOptions{
-		DefaultReadConcern:    c.readConcern,
-		DefaultReadPreference: c.readPreference,
-		DefaultWriteConcern:   c.writeConcern,
+		DefaultReadConcern:     c.readConcern,
+		DefaultReadPreference:  c.readPreference,
+		DefaultWriteConcern:    c.writeConcern,
+		DefaultMaxCommitTimeMS: c.maxCommitTimeMS,
 	}
 	if sopts.CausalConsistency != nil {
 		coreOpts.CausalConsistency = sopts.CausalConsistency
@@ -170,6 +172,9 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	}
 	if sopts.DefaultReadPreference != nil {
 		coreOpts.DefaultReadPreference = sopts.DefaultReadPreference
+	}
+	if sopts.DefaultMaxCommitTimeMS != nil {
+		coreOpts.DefaultMaxCommitTimeMS = sopts.DefaultMaxCommitTimeMS
 	}
 
 	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit, coreOpts)

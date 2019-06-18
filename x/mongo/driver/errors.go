@@ -343,3 +343,9 @@ func extractError(rdr bsoncore.Document) error {
 
 	return nil
 }
+
+// IsMaxTimeMSExpiredError indicates if the error is a MaxTimeMSExpiredError.
+func IsMaxTimeMSExpiredError(err error) bool {
+	e, ok := err.(Error)
+	return ok && (e.Code == 50)
+}
