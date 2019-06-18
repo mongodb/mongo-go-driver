@@ -296,13 +296,16 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 			return nil, false, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", btype, bsontype.Array)
 		}
 
-		var hasDollarOut bool
+		var hasOutputStage bool
 		pipelineDoc := bsoncore.Document(val)
 		if _, err := pipelineDoc.LookupErr("$out"); err == nil {
-			hasDollarOut = true
+			hasOutputStage = true
+		}
+		if _, err := pipelineDoc.LookupErr("$merge"); err == nil {
+			hasOutputStage = true
 		}
 
-		return pipelineDoc, hasDollarOut, nil
+		return pipelineDoc, hasOutputStage, nil
 	default:
 		val := reflect.ValueOf(t)
 		if !val.IsValid() || (val.Kind() != reflect.Slice && val.Kind() != reflect.Array) {
@@ -310,7 +313,7 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 		}
 
 		aidx, arr := bsoncore.AppendArrayStart(nil)
-		var hasDollarOut bool
+		var hasOutputStage bool
 		valLen := val.Len()
 		for idx := 0; idx < valLen; idx++ {
 			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface())
@@ -319,14 +322,14 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 			}
 
 			if idx == valLen-1 {
-				if elem, err := doc.IndexErr(0); err == nil && elem.Key() == "$out" {
-					hasDollarOut = true
+				if elem, err := doc.IndexErr(0); err == nil && (elem.Key() == "$out" || elem.Key() == "$merge") {
+					hasOutputStage = true
 				}
 			}
 			arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(idx), doc)
 		}
 		arr, _ = bsoncore.AppendArrayEnd(arr, aidx)
-		return arr, hasDollarOut, nil
+		return arr, hasOutputStage, nil
 	}
 }
 
