@@ -271,3 +271,18 @@ func processWriteError(wce *result.WriteConcernError, wes []result.WriteError, e
 		return rrAll, nil
 	}
 }
+
+// IsMaxTimeMSExpiredError indicates if the error is a MaxTimeMSExpiredError.
+func IsMaxTimeMSExpiredError(err CommandError) bool {
+	return err.Code == 50 || err.Name == "MaxTimeMSExpired"
+}
+
+// IsUnsatisfiableWriteConcernError indicates if the error is an UnsatisfiableWriteConcernError.
+func IsUnsatisfiableWriteConcernError(err CommandError) bool {
+	return err.Name == "UnsatisfiableWriteConcern"
+}
+
+// IsUnknownReplWriteConcernError indicates if the error is an UnknownReplWriteConcernError.
+func IsUnknownReplWriteConcernError(err CommandError) bool {
+	return err.Name == "UnknownReplWriteConcern"
+}
