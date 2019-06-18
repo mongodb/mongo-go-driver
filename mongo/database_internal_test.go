@@ -40,6 +40,19 @@ func createTestDatabase(t *testing.T, name *string, opts ...*options.DatabaseOpt
 	return client.Database(*name, dbOpts...)
 }
 
+func createMonitoredTestDatabase(t *testing.T, name *string, opts ...*options.DatabaseOptions) *Database {
+	if name == nil {
+		db := testutil.DBName(t)
+		name = &db
+	}
+
+	client := createMonitoredClient(t, monitor)
+
+	dbOpts := []*options.DatabaseOptions{options.Database().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))}
+	dbOpts = append(dbOpts, opts...)
+	return client.Database(*name, dbOpts...)
+}
+
 func TestDatabase_initialize(t *testing.T) {
 	t.Parallel()
 
