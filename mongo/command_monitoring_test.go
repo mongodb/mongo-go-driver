@@ -457,7 +457,7 @@ func compareDocs(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
 			compareDocs(t, doc, aVal.Document())
 
 			// nested docs were equal
-			continue
+			continue // dont we need to make sure that the values are the same if not arent we just comparing the values and no keys?
 		}
 
 		if !compareValues(eVal, aVal) {

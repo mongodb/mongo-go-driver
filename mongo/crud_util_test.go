@@ -11,7 +11,6 @@ import (
 	"context"
 	"encoding/json"
 	"math"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -799,18 +798,6 @@ func verifyCollectionContents(t *testing.T, coll *Collection, result json.RawMes
 	verifyCursorResult(t, cursor, result)
 }
 
-func sanitizeCollectionName(kind string, name string) string {
-	// Collections can't have "$" in their names, so we substitute it with "%".
-	name = strings.Replace(name, "$", "%", -1)
-
-	// Namespaces can only have 120 bytes max.
-	if len(kind+"."+name) >= 119 {
-		name = name[:119-len(kind+".")]
-	}
-
-	return name
-}
-
 func compareElements(t *testing.T, expected bsonx.Elem, actual bsonx.Elem) {
 	if expected.Value.IsNumber() {
 		if expectedNum, ok := expected.Value.Int64OK(); ok {
@@ -916,16 +903,6 @@ func docSliceFromRaw(t *testing.T, raw json.RawMessage) []bsonx.Doc {
 	}
 
 	return docs
-}
-
-func docSliceToInterfaceSlice(docs []bsonx.Doc) []interface{} {
-	out := make([]interface{}, 0, len(docs))
-
-	for _, doc := range docs {
-		out = append(out, doc)
-	}
-
-	return out
 }
 
 func replaceFloatsWithInts(m map[string]interface{}) {
