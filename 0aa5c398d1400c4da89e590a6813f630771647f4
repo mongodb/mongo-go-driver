@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "496b783a_69b69686",
+        "filename": "mongo/client.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 189,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-19T15:16:55Z",
+      "side": 1,
+      "message": "This is something we discussed earlier, but I do think we should add logic to batch the operations to close 10000 sessions at a time. This is a \"should\" in the spec, but it\u0027s something we\u0027re already doing in the current code (see x/network/command/end_sessions.go) and it makes sense to keep it. This should be pretty simple - you can create a single operation with all of the generic fields (deployment, monitor, selector, etc) and then create a new BSON array in a loop for every 10000 sessions.",
+      "range": {
+        "startLine": 189,
+        "startChar": 17,
+        "endLine": 189,
+        "endChar": 28
+      },
+      "revId": "0aa5c398d1400c4da89e590a6813f630771647f4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dd42fadf_7b0fbfca",
+        "filename": "mongo/client.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-19T15:16:55Z",
+      "side": 1,
+      "message": "A few correctness issues here:\n\n1. The original code wasn\u0027t sending a session (either explicit or implicit) along with the endSessions command. This makes sense to me because the goal is to close all server sessions and sending an implicit session would create a new one. The spec doesn\u0027t mention endSessions in https://github.com/mongodb/specifications/blob/master/source/sessions/driver-sessions.rst#exceptions-to-sending-the-session-id-to-the-server-on-all-commands so I\u0027ve filed https://jira.mongodb.org/browse/SPEC-1329. I think we should get rid of the session creation on line 194 and keep it how it was.\n\n2. Because we won\u0027t have a session, we can\u0027t have a PinnedServer, so you won\u0027t need a custom server selector.\n\n3. Instead of WriteSelector, this should be a ReadPrefSelector with readpref.PrimaryPreferred(). This is because the spec says that endSessions can be sent to any mongos in a sharded cluster, but in a replica set, it must be sent to the primary if it\u0027s available or any valid secondary if it\u0027s not.",
+      "range": {
+        "startLine": 194,
+        "startChar": 1,
+        "endLine": 201,
+        "endChar": 2
+      },
+      "revId": "0aa5c398d1400c4da89e590a6813f630771647f4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
