@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "10f523e8_beff0686",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 790,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-20T19:04:41Z",
+      "side": 1,
+      "message": "Not sure what the correct error message would be.",
+      "range": {
+        "startLine": 790,
+        "startChar": 24,
+        "endLine": 790,
+        "endChar": 26
+      },
+      "revId": "7a944aa2c90ca9765613ab4b00d4970f19572e5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
