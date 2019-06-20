@@ -753,39 +753,49 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
-	sess := sessionFromContext(ctx)
+	//make agg opts from count opts
+	aggOpts := options.Aggregate()
 
-	err = coll.client.validSession(sess)
+	if countOpts.Collation != nil {
+		aggOpts = aggOpts.SetCollation(countOpts.Collation)
+	}
+	if countOpts.Hint != nil {
+		aggOpts = aggOpts.SetHint(countOpts.Hint)
+	}
+	if countOpts.MaxTime != nil {
+		aggOpts = aggOpts.SetMaxTime(*countOpts.MaxTime)
+	}
+
+	a := aggregateParams{
+		ctx:            ctx,
+		pipeline:       pipelineArr,
+		client:         coll.client,
+		registry:       coll.registry,
+		readConcern:    coll.readConcern,
+		writeConcern:   coll.writeConcern,
+		db:             coll.db.name,
+		col:            coll.name,
+		readSelector:   coll.readSelector,
+		writeSelector:  coll.writeSelector,
+		readPreference: coll.readPreference,
+		opts:           []*options.AggregateOptions{aggOpts},
+	}
+
+	cur, err := aggregate(a)
 	if err != nil {
 		return 0, err
 	}
 
-	rc := coll.readConcern
-	if sess.TransactionRunning() {
-		rc = nil
+	if !cur.Next(ctx) {
+		return 0, errors.New("No document recieved from server")
+	}
+	res := struct{ N int64 }{}
+	err = cur.Decode(&res)
+	if err != nil {
+		return 0, err
 	}
 
-	oldns := coll.namespace()
-	cmd := command.CountDocuments{
-		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Pipeline:    pipelineArr,
-		ReadPref:    coll.readPreference,
-		ReadConcern: rc,
-		Session:     sess,
-		Clock:       coll.client.clock,
-	}
-
-	count, err := driverlegacy.CountDocuments(
-		ctx, cmd,
-		coll.client.topology,
-		coll.readSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.registry,
-		countOpts,
-	)
-
-	return count, replaceErrors(err)
+	return res.N, replaceErrors(err)
 }
 
 // EstimatedDocumentCount gets an estimate of the count of documents in a collection using collection metadata.
