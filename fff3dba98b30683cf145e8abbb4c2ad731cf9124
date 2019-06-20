@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0a3eaaa5_c652b6e0",
+        "filename": "mongo/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-20T14:07:17Z",
+      "side": 1,
+      "message": "Can we make this a TODO with a ticket number?",
+      "range": {
+        "startLine": 187,
+        "startChar": 1,
+        "endLine": 187,
+        "endChar": 12
+      },
+      "revId": "fff3dba98b30683cf145e8abbb4c2ad731cf9124",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "92852b3d_35273466",
+        "filename": "mongo/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-20T14:07:17Z",
+      "side": 1,
+      "message": "Can we make this a type switch?",
+      "range": {
+        "startLine": 206,
+        "startChar": 0,
+        "endLine": 211,
+        "endChar": 3
+      },
+      "revId": "fff3dba98b30683cf145e8abbb4c2ad731cf9124",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "267ade15_7710c598",
+        "filename": "mongo/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-20T14:07:17Z",
+      "side": 1,
+      "message": "Let\u0027s make this a type switch as well.",
+      "range": {
+        "startLine": 267,
+        "startChar": 2,
+        "endLine": 276,
+        "endChar": 3
+      },
+      "revId": "fff3dba98b30683cf145e8abbb4c2ad731cf9124",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7e725975_69dcd1b5",
+        "filename": "mongo/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-20T14:07:17Z",
+      "side": 1,
+      "message": "This appears to be a lot of overhead caused by us using a slice here. Can we either use a map or can we make a type with fields for each bulk write batch type? Since we return the ordered batches from here as well, the type would likely need additional data about which batches to run at which point, but that feels a little less clunky than this.",
+      "range": {
+        "startLine": 353,
+        "startChar": 0,
+        "endLine": 364,
+        "endChar": 20
+      },
+      "revId": "fff3dba98b30683cf145e8abbb4c2ad731cf9124",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
