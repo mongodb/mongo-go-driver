@@ -11,3 +11,4 @@ package operation
 //go:generate operationgen drop_database.toml operation drop_database.go
 //go:generate operationgen commit_transaction.toml operation commit_transaction.go
 //go:generate operationgen abort_transaction.toml operation abort_transaction.go
+//go:generate operationgen count.toml operation count.go
