@@ -754,9 +754,14 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	}
 
 	sess := sessionFromContext(ctx)
-
-	err = coll.client.validSession(sess)
-	if err != nil {
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return 0, err
+		}
+		defer sess.EndSession()
+	}
+	if err = coll.client.validSession(sess); err != nil {
 		return 0, err
 	}
 
@@ -765,27 +770,52 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	oldns := coll.namespace()
-	cmd := command.CountDocuments{
-		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Pipeline:    pipelineArr,
-		ReadPref:    coll.readPreference,
-		ReadConcern: rc,
-		Session:     sess,
-		Clock:       coll.client.clock,
+	var selector description.ServerSelectorFunc = func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
+		if sess != nil && sess.PinnedServer != nil {
+			return sess.PinnedServer.SelectServer(t, svrs)
+		}
+		return coll.readSelector.SelectServer(t, svrs)
 	}
 
-	count, err := driverlegacy.CountDocuments(
-		ctx, cmd,
-		coll.client.topology,
-		coll.readSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.registry,
-		countOpts,
-	)
+	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
+		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
+		Collection(coll.name).Deployment(coll.client.topology)
+	if countOpts.Collation != nil {
+		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
+	}
+	if countOpts.MaxTime != nil {
+		op.MaxTimeMS(int64(*countOpts.MaxTime / time.Millisecond))
+	}
+	if countOpts.Hint != nil {
+		hintVal, err := transformValue(coll.registry, countOpts.Hint)
+		if err != nil {
+			return 0, err
+		}
+		op.Hint(hintVal)
+	}
 
-	return count, replaceErrors(err)
+	err = op.Execute(ctx)
+	if err != nil {
+		return 0, replaceErrors(err)
+	}
+
+	batch := op.ResultCursorResponse().FirstBatch
+	if batch == nil {
+		return 0, errors.New("Invalid response from server, no 'firstBatch' field")
+	}
+
+	docs, err := batch.Documents()
+
+	if err != nil || len(docs) == 0 {
+		return 0, nil
+	}
+
+	val, ok := docs[0].Lookup("n").AsInt64OK()
+	if !ok {
+		return 0, errors.New("Invalid response from server, no 'n' field")
+	}
+
+	return val, nil
 }
 
 // EstimatedDocumentCount gets an estimate of the count of documents in a collection using collection metadata.
