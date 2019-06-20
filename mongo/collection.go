@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
@@ -787,42 +786,39 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 
 	sess := sessionFromContext(ctx)
 
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		sess, err := session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return 0, err
+		}
+		defer sess.EndSession()
+	}
+
 	err := coll.client.validSession(sess)
 	if err != nil {
 		return 0, err
 	}
 
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+	if sess.TransactionRunning() {
 		rc = nil
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Count{
-		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:       bsonx.Doc{},
-		ReadPref:    coll.readPreference,
-		ReadConcern: rc,
-		Session:     sess,
-		Clock:       coll.client.clock,
+	selector := makePinnedSelector(sess, coll.readSelector)
+
+	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
+		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
+		Deployment(coll.client.topology).ReadConcern(rc).ReadPreference(coll.readPreference).
+		ServerSelector(selector)
+
+	co := options.MergeEstimatedDocumentCountOptions(opts...)
+	if co.MaxTime != nil {
+		op = op.MaxTimeMS(int64(*co.MaxTime / time.Millisecond))
 	}
 
-	countOpts := options.Count()
-	if len(opts) >= 1 {
-		countOpts = countOpts.SetMaxTime(*opts[len(opts)-1].MaxTime)
-	}
+	err = op.Execute(ctx)
 
-	count, err := driverlegacy.Count(
-		ctx, cmd,
-		coll.client.topology,
-		coll.readSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.registry,
-		countOpts,
-	)
-
-	return count, replaceErrors(err)
+	return op.Result().N, replaceErrors(err)
 }
 
 // Distinct finds the distinct values for a specified field across a single

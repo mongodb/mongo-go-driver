@@ -182,12 +182,7 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 		return s.clientSession.AbortTransaction()
 	}
 
-	var selector description.ServerSelectorFunc = func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
-		if s.clientSession.PinnedServer != nil {
-			return s.clientSession.PinnedServer.SelectServer(t, svrs)
-		}
-		return description.WriteSelector().SelectServer(t, svrs)
-	}
+	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
 
 	s.clientSession.Aborting = true
 	err = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
