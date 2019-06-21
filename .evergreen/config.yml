@@ -659,6 +659,10 @@ axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "4.2"
+        display_name: "4.2"
+        variables:
+          VERSION: "4.2"
       - id: "4.0"
         display_name: "4.0"
         variables:
@@ -774,7 +778,7 @@ buildvariants:
     - name: ".test !.enterprise-auth !.zlib"
 
 - matrix_name: "tests-nonlegacy-servers-with-zlib-support"
-  matrix_spec: { version: ["3.6", "4.0", "latest"], os-ssl-32: "*" }
+  matrix_spec: { version: ["3.6", "4.0", "4.2", "latest"], os-ssl-32: "*" }
   display_name: "${version} ${os-ssl-32}"
   tasks:
     - name: ".test !.enterprise-auth"
