@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0e0a8d84_dac3cfd1",
+        "filename": "mongo/crud_spec_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-21T15:02:05Z",
+      "side": 1,
+      "message": "This is a bit confusing.",
+      "range": {
+        "startLine": 163,
+        "startChar": 13,
+        "endLine": 163,
+        "endChar": 45
+      },
+      "revId": "cebfa74aa7574875683171e1fd437b0727aac2e3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8f6fbe51_c9d3d465",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-21T15:02:05Z",
+      "side": 1,
+      "message": "Same here, a little confusing.",
+      "range": {
+        "startLine": 162,
+        "startChar": 13,
+        "endLine": 162,
+        "endChar": 45
+      },
+      "revId": "cebfa74aa7574875683171e1fd437b0727aac2e3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1180a6a8_7039a357",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-21T15:02:05Z",
+      "side": 1,
+      "message": "Does this need to be an else if?",
+      "range": {
+        "startLine": 281,
+        "startChar": 3,
+        "endLine": 281,
+        "endChar": 7
+      },
+      "revId": "cebfa74aa7574875683171e1fd437b0727aac2e3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cc9d8b5c_8734e954",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 322,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-21T15:02:05Z",
+      "side": 1,
+      "message": "Did you file a SPEC ticket for this?",
+      "range": {
+        "startLine": 322,
+        "startChar": 7,
+        "endLine": 322,
+        "endChar": 147
+      },
+      "revId": "cebfa74aa7574875683171e1fd437b0727aac2e3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
