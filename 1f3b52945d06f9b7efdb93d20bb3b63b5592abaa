@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2dcaf8c0_5d07cde0",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 3
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-21T15:02:55Z",
+      "side": 1,
+      "message": "I think this will work, but I usually put the ticket numbers on two different lines.",
+      "range": {
+        "startLine": 9,
+        "startChar": 0,
+        "endLine": 9,
+        "endChar": 26
+      },
+      "revId": "1f3b52945d06f9b7efdb93d20bb3b63b5592abaa",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
