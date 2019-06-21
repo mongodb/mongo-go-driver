@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "ef96d442_22aa3e17",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 784,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-21T14:39:43Z",
+      "side": 1,
+      "message": "I wonder if there\u0027s a way to get just the cursor response without making an actual cursor here. We do this for change streams and the command package implementation of count documents does this as well.",
+      "range": {
+        "startLine": 784,
+        "startChar": 1,
+        "endLine": 784,
+        "endChar": 25
+      },
+      "revId": "7a944aa2c90ca9765613ab4b00d4970f19572e5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "10f523e8_beff0686",
         "filename": "mongo/collection.go",
         "patchSetId": 2
@@ -18,6 +41,53 @@
         "startChar": 24,
         "endLine": 790,
         "endChar": 26
+      },
+      "revId": "7a944aa2c90ca9765613ab4b00d4970f19572e5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fe399ec9_f1dc9297",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 790,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-21T14:39:43Z",
+      "side": 1,
+      "message": "Since we manually search through the document fields in the command.CountDocuments implementation, we just return \"Invalid response from server, no \u0027\u003cfield\u003e\u0027 field\".",
+      "parentUuid": "10f523e8_beff0686",
+      "range": {
+        "startLine": 790,
+        "startChar": 24,
+        "endLine": 790,
+        "endChar": 26
+      },
+      "revId": "7a944aa2c90ca9765613ab4b00d4970f19572e5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d6bef9fb_c2b3f69c",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 793,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-21T14:39:43Z",
+      "side": 1,
+      "message": "Since we\u0027re just reading an int64, can we use cur.Current and just get the Int64 directly via the AsInt64 method?",
+      "range": {
+        "startLine": 792,
+        "startChar": 1,
+        "endLine": 793,
+        "endChar": 23
       },
       "revId": "7a944aa2c90ca9765613ab4b00d4970f19572e5f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
