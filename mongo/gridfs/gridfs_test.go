@@ -191,7 +191,7 @@ func TestGridFS(t *testing.T) {
 
 	t.Run("RoundTrip", func(t *testing.T) {
 
-		oneMeg := 1024 * 1024
+		oneK := 1024
 		smallBuffSize := 100
 
 		tests := []struct {
@@ -200,12 +200,12 @@ func TestGridFS(t *testing.T) {
 			fileSize  int
 			bufSize   int // make -1 for no capacity for no bufSize
 		}{
-			{"RoundTrip: original", -1, UploadBufferSize, -1},
-			{"RoundTrip: chunk size multiple of file", oneMeg, UploadBufferSize, -1},
-			{"RoundTrip: chunk size is file size", oneMeg, oneMeg, -1},
-			{"RoundTrip: chunk size multiple of file size and with strict buffer size", oneMeg, UploadBufferSize, smallBuffSize},
-			{"RoundTrip: chunk size multiple of file size and buffer size", oneMeg, UploadBufferSize, UploadBufferSize},
-			{"RoundTrip: chunk size, file size, buffer size all the same", oneMeg, oneMeg, oneMeg},
+			{"RoundTrip: original", -1, oneK, -1},
+			{"RoundTrip: chunk size multiple of file", oneK, oneK * 16, -1},
+			{"RoundTrip: chunk size is file size", oneK, oneK, -1},
+			{"RoundTrip: chunk size multiple of file size and with strict buffer size", oneK, oneK * 16, smallBuffSize},
+			{"RoundTrip: chunk size multiple of file size and buffer size", oneK, oneK * 16, oneK * 16},
+			{"RoundTrip: chunk size, file size, buffer size all the same", oneK, oneK, oneK},
 		}
 
 		for _, test := range tests {
