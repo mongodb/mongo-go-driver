@@ -424,6 +424,30 @@
     },
     {
       "key": {
+        "uuid": "3dd4257d_d4ff90f1",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 252,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T19:21:02Z",
+      "side": 1,
+      "message": "Yes - the only errors checked by spec tests right now are ones on the aggregate. Instead of having the verifyCursorResultWithErrors function, let\u0027s stick with the simple cursor result verification function for now and revisit this if/when there are new tests that check for errors on cursor operations. I prefer that approach because we can actually ensure the test code we write is being executed and for all we know, new tests might have a completely different format to indicate which operation causes the error, so this code would have to be rewritten anyway.",
+      "parentUuid": "e4089ab5_b34843cd",
+      "range": {
+        "startLine": 252,
+        "startChar": 12,
+        "endLine": 252,
+        "endChar": 40
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0153b2ee_f221d126",
         "filename": "mongo/crud_spec_v2_test.go",
         "patchSetId": 4
