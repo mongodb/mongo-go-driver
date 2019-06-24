@@ -376,6 +376,30 @@
     },
     {
       "key": {
+        "uuid": "8a512ce4_1a1feb78",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 252,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T19:13:43Z",
+      "side": 1,
+      "message": "Can you link an example of a spec test where the error happens on the cursor rather than the aggregate itself?",
+      "parentUuid": "b471e17a_52a022eb",
+      "range": {
+        "startLine": 252,
+        "startChar": 12,
+        "endLine": 252,
+        "endChar": 40
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0153b2ee_f221d126",
         "filename": "mongo/crud_spec_v2_test.go",
         "patchSetId": 4
