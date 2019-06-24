@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "ddc59947_bc244e07",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-24T19:11:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ad64ce34_df56afd6",
+      "range": {
+        "startLine": 6,
+        "startChar": 1,
+        "endLine": 9,
+        "endChar": 49
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "de6f47d8_ecb63476",
         "filename": "mongo/crud_spec_v2_test.go",
         "patchSetId": 4
@@ -117,6 +141,30 @@
     },
     {
       "key": {
+        "uuid": "304a9a09_c3122ec5",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-24T19:11:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4338bafa_d8b16ad9",
+      "range": {
+        "startLine": 206,
+        "startChar": 4,
+        "endLine": 206,
+        "endChar": 86
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c2d5ea77_19758bfb",
         "filename": "mongo/crud_spec_v2_test.go",
         "patchSetId": 4
@@ -163,6 +211,30 @@
     },
     {
       "key": {
+        "uuid": "f1ff3688_c481505a",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-24T19:11:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "19a67885_98f81d90",
+      "range": {
+        "startLine": 236,
+        "startChar": 1,
+        "endLine": 236,
+        "endChar": 13
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8ca871b0_70267d4b",
         "filename": "mongo/crud_spec_v2_test.go",
         "patchSetId": 4
@@ -183,6 +255,30 @@
       "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0817636c_ff4aa4aa",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-24T19:11:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8ca871b0_70267d4b",
+      "range": {
+        "startLine": 243,
+        "startChar": 1,
+        "endLine": 243,
+        "endChar": 17
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -209,6 +305,30 @@
     },
     {
       "key": {
+        "uuid": "abe5779e_ecad3e5c",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 250,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-24T19:11:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e984d7d7_017ba4b9",
+      "range": {
+        "startLine": 245,
+        "startChar": 1,
+        "endLine": 250,
+        "endChar": 0
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1d0e5306_02425db3",
         "filename": "mongo/crud_spec_v2_test.go",
         "patchSetId": 4
@@ -220,6 +340,30 @@
       "writtenOn": "2019-06-24T18:26:36Z",
       "side": 1,
       "message": "Can you explain why we need this function? I don\u0027t see anything in the aggregate spec about errors on cursor operations. It seems like oper.Error is the error for the actual aggregate and the only times that happens in the v2 spec tests is when an invalid read concern or a linearizable read concern is passed to an aggregate with $out.",
+      "range": {
+        "startLine": 252,
+        "startChar": 12,
+        "endLine": 252,
+        "endChar": 40
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b471e17a_52a022eb",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 252,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-24T19:11:22Z",
+      "side": 1,
+      "message": "In https://github.com/mongodb/specifications/tree/master/source/crud/tests when actually running each operation you need to check if that operation yields an error when that operation is run. So we need to check if the cursor has an error at the end and if it does then we should fail the test if one is not expected and set the erroredness to true if an error is expected. I have rewritten this to be more clear",
+      "parentUuid": "1d0e5306_02425db3",
       "range": {
         "startLine": 252,
         "startChar": 12,
@@ -252,6 +396,30 @@
       "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0fa267fd_b062f16f",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-24T19:11:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0153b2ee_f221d126",
+      "range": {
+        "startLine": 329,
+        "startChar": 3,
+        "endLine": 329,
+        "endChar": 24
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
