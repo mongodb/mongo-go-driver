@@ -1,0 +1,257 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ad64ce34_df56afd6",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "These should go with the non stdlib imports below.",
+      "range": {
+        "startLine": 6,
+        "startChar": 1,
+        "endLine": 9,
+        "endChar": 49
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de6f47d8_ecb63476",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 168,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "Why does this check for existence/length of test.Expectations? All of the logic is to verify the contents of the outcome collection, which is in test.Outcome.",
+      "range": {
+        "startLine": 168,
+        "startChar": 1,
+        "endLine": 168,
+        "endChar": 61
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5c5013c0_8d12b018",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "These lines can be inside the if-statement.",
+      "range": {
+        "startLine": 169,
+        "startChar": 2,
+        "endLine": 170,
+        "endChar": 36
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "254d121e_596bf7a2",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 199,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "The new db aggregate tests don\u0027t use $currentOp so this may no longer be necessary.",
+      "range": {
+        "startLine": 197,
+        "startChar": 1,
+        "endLine": 199,
+        "endChar": 2
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4338bafa_d8b16ad9",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "nit: the previous branch does a Fatalf, so this can be a separate if-statement instead of an else-if.",
+      "range": {
+        "startLine": 206,
+        "startChar": 4,
+        "endLine": 206,
+        "endChar": 86
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c2d5ea77_19758bfb",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "The Fatalf should contain the error e.g. t.Fatalf(\"unable to clone collection: %v\", err)",
+      "range": {
+        "startLine": 215,
+        "startChar": 4,
+        "endLine": 215,
+        "endChar": 41
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "19a67885_98f81d90",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "nit: false is the default value for booleans so this can be \"var out bool\"",
+      "range": {
+        "startLine": 236,
+        "startChar": 1,
+        "endLine": 236,
+        "endChar": 13
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8ca871b0_70267d4b",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "nit: var errored bool",
+      "range": {
+        "startLine": 243,
+        "startChar": 1,
+        "endLine": 243,
+        "endChar": 17
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e984d7d7_017ba4b9",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 250,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "Instead of initializing errored above and checking like this, can this be:\n\nerrored :\u003d err !\u003d nil\nif errored !\u003d oper.Error {\n    t.Fatalf(\"got error: %v; expected an error: %v\", err, oper.Error)\n}",
+      "range": {
+        "startLine": 245,
+        "startChar": 1,
+        "endLine": 250,
+        "endChar": 0
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1d0e5306_02425db3",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 252,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "Can you explain why we need this function? I don\u0027t see anything in the aggregate spec about errors on cursor operations. It seems like oper.Error is the error for the actual aggregate and the only times that happens in the v2 spec tests is when an invalid read concern or a linearizable read concern is passed to an aggregate with $out.",
+      "range": {
+        "startLine": 252,
+        "startChar": 12,
+        "endLine": 252,
+        "endChar": 40
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0153b2ee_f221d126",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:26:36Z",
+      "side": 1,
+      "message": "Instead of an if/else-if/else block, can we do three if-blocks with a continue statement at the end of each?",
+      "range": {
+        "startLine": 329,
+        "startChar": 3,
+        "endLine": 329,
+        "endChar": 24
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
