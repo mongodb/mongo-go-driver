@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3fe32bbe_6a10f6f3",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 773,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-24T19:04:32Z",
+      "side": 1,
+      "message": "it doesn\u0027t compile if the type isn\u0027t explicitly declared",
+      "parentUuid": "84fd40c1_11cc767d",
+      "range": {
+        "startLine": 773,
+        "startChar": 14,
+        "endLine": 773,
+        "endChar": 44
+      },
+      "revId": "3134f6b1ee4cc5a7a554dd3bd52af7a612719898",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6734baa4_9c8cc4d1",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "a1472343_5c39fe02",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 804,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-24T19:04:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6734baa4_9c8cc4d1",
+      "range": {
+        "startLine": 804,
+        "startChar": 24,
+        "endLine": 804,
+        "endChar": 31
+      },
+      "revId": "3134f6b1ee4cc5a7a554dd3bd52af7a612719898",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1ab41892_308ce61e",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -65,6 +113,24 @@
     },
     {
       "key": {
+        "uuid": "00fa6c0e_10b824a4",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 808,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-24T19:04:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1ab41892_308ce61e",
+      "revId": "3134f6b1ee4cc5a7a554dd3bd52af7a612719898",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "18ae489c_5184d556",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -76,6 +142,30 @@
       "writtenOn": "2019-06-24T18:50:20Z",
       "side": 1,
       "message": "Should this be return 0, err?",
+      "range": {
+        "startLine": 810,
+        "startChar": 12,
+        "endLine": 810,
+        "endChar": 15
+      },
+      "revId": "3134f6b1ee4cc5a7a554dd3bd52af7a612719898",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7214549b_6c7a8194",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 810,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-24T19:04:32Z",
+      "side": 1,
+      "message": "In command/count_documents.go it doesn\u0027t error if it can\u0027t get a first document so I matched that behavior.",
+      "parentUuid": "18ae489c_5184d556",
       "range": {
         "startLine": 810,
         "startChar": 12,
@@ -108,6 +198,30 @@
       "revId": "3134f6b1ee4cc5a7a554dd3bd52af7a612719898",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "521237b8_e987d691",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 815,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-24T19:04:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6c74545a_12c3ca41",
+      "range": {
+        "startLine": 815,
+        "startChar": 24,
+        "endLine": 815,
+        "endChar": 31
+      },
+      "revId": "3134f6b1ee4cc5a7a554dd3bd52af7a612719898",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
