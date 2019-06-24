@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4c715110_175ffa8c",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 813,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-24T17:41:31Z",
+      "side": 1,
+      "message": "I think we can do this in 1 pass here and ensure we don\u0027t panic by calling Lookup instead of LookupErr and then calling AsInt64OK. As it is now, if there is an \u0027n\u0027 field but it\u0027s not something convertible to an int64 then we\u0027ll panic.",
+      "range": {
+        "startLine": 813,
+        "startChar": 13,
+        "endLine": 813,
+        "endChar": 35
+      },
+      "revId": "6896cfd211517dcb4c8266b19d9c42d347917355",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
