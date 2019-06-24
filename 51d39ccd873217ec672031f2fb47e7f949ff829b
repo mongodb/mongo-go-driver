@@ -448,6 +448,30 @@
     },
     {
       "key": {
+        "uuid": "527879d9_600824e2",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 252,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-24T19:33:00Z",
+      "side": 1,
+      "message": "Sounds fair. I will remove that check",
+      "parentUuid": "3dd4257d_d4ff90f1",
+      "range": {
+        "startLine": 252,
+        "startChar": 12,
+        "endLine": 252,
+        "endChar": 40
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0153b2ee_f221d126",
         "filename": "mongo/crud_spec_v2_test.go",
         "patchSetId": 4
