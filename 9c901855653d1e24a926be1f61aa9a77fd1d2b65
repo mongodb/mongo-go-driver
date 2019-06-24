@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2d151ddd_e2c3852d",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T23:14:25Z",
+      "side": 1,
+      "message": "Instead of createMonitoredTestDatabase, can we use createMonitoredClient and then the Client.Database function? I\u0027d prefer to avoid extraneous helpers when possible.",
+      "range": {
+        "startLine": 116,
+        "startChar": 6,
+        "endLine": 116,
+        "endChar": 33
+      },
+      "revId": "9c901855653d1e24a926be1f61aa9a77fd1d2b65",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b312a408_e8f356f3",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T23:14:25Z",
+      "side": 1,
+      "message": "This can be :\u003d so you don\u0027t need the declaration on line 111.",
+      "range": {
+        "startLine": 116,
+        "startChar": 1,
+        "endLine": 116,
+        "endChar": 45
+      },
+      "revId": "9c901855653d1e24a926be1f61aa9a77fd1d2b65",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c0e3c631_394bc27b",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T23:14:25Z",
+      "side": 1,
+      "message": "This might\u0027ve gotten lost in the comment stream earlier so I\u0027ll comment again: this check doesn\u0027t make sense because the if-statement doesn\u0027t make any assertions about test.Expectations.",
+      "range": {
+        "startLine": 167,
+        "startChar": 1,
+        "endLine": 167,
+        "endChar": 61
+      },
+      "revId": "9c901855653d1e24a926be1f61aa9a77fd1d2b65",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de387f9f_2f50e594",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 251,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T23:14:25Z",
+      "side": 1,
+      "message": "Why can\u0027t this use the existing verifyCollectionContents function? Also, if there is a reason this needs to be a new function, it should be named verifyCollectionContentsV2 to match the other renames. The error check on line 253 should also have the error in the message.",
+      "range": {
+        "startLine": 251,
+        "startChar": 5,
+        "endLine": 251,
+        "endChar": 30
+      },
+      "revId": "9c901855653d1e24a926be1f61aa9a77fd1d2b65",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
