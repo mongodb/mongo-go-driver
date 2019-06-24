@@ -400,6 +400,30 @@
     },
     {
       "key": {
+        "uuid": "e4089ab5_b34843cd",
+        "filename": "mongo/crud_spec_v2_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 252,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-06-24T19:16:46Z",
+      "side": 1,
+      "message": "There are none that I know of, but I think the spec allows it so should I check for it in that case? Also rereading the spec makes me think that the error returned from the cursor creation is all that needs to be checked. Is that correct?",
+      "parentUuid": "8a512ce4_1a1feb78",
+      "range": {
+        "startLine": 252,
+        "startChar": 12,
+        "endLine": 252,
+        "endChar": 40
+      },
+      "revId": "51d39ccd873217ec672031f2fb47e7f949ff829b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0153b2ee_f221d126",
         "filename": "mongo/crud_spec_v2_test.go",
         "patchSetId": 4
