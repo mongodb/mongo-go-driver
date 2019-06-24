@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "08844e2c_4ee18995",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 818,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:40:39Z",
+      "side": 1,
+      "message": "nit: Use :\u003d here for consistency.",
+      "range": {
+        "startLine": 818,
+        "startChar": 14,
+        "endLine": 818,
+        "endChar": 44
+      },
+      "revId": "c704687edfc34d8b738421112a9c9e1f729efc43",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a70d9c7c_755ea6b8",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 832,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:40:39Z",
+      "side": 1,
+      "message": "I know this was here before, but I don\u0027t think this will work if someone passes a *CountOptions with a nil MaxTime. I think this should be something like:\n\nco :\u003d options.MergeEstimatedDocumentCountOptions(opts...)\nif co.MaxTime !\u003d nil { // set MaxTimeMS on operation }",
+      "range": {
+        "startLine": 830,
+        "startChar": 1,
+        "endLine": 832,
+        "endChar": 2
+      },
+      "revId": "c704687edfc34d8b738421112a9c9e1f729efc43",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
