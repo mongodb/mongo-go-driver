@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2c90fc1a_4085a39a",
+        "filename": "mongo/client.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T18:36:27Z",
+      "side": 1,
+      "message": "I think this will allocate a new slice for every batch. To keep using the same slice, we should be able to do:\n\nidArray \u003d idArray[:0]\nidx \u003d 0\n\nThis will keep re-slicing the existing slice and only allocate/copy if the next batch takes up more space than the current one.",
+      "range": {
+        "startLine": 214,
+        "startChar": 3,
+        "endLine": 214,
+        "endChar": 48
+      },
+      "revId": "d9c1eea5c2e7bafeefa381208c883fd78a19dafd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
