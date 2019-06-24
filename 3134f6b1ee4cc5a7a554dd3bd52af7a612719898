@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "338483f8_3dea44bb",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 773,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T19:07:46Z",
+      "side": 1,
+      "message": "whoops forgot about that.",
+      "parentUuid": "3fe32bbe_6a10f6f3",
+      "range": {
+        "startLine": 773,
+        "startChar": 14,
+        "endLine": 773,
+        "endChar": 44
+      },
+      "revId": "3134f6b1ee4cc5a7a554dd3bd52af7a612719898",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6734baa4_9c8cc4d1",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -175,6 +199,30 @@
       "revId": "3134f6b1ee4cc5a7a554dd3bd52af7a612719898",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "165040a0_f0beecfe",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 810,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-24T19:07:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7214549b_6c7a8194",
+      "range": {
+        "startLine": 810,
+        "startChar": 12,
+        "endLine": 810,
+        "endChar": 15
+      },
+      "revId": "3134f6b1ee4cc5a7a554dd3bd52af7a612719898",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
