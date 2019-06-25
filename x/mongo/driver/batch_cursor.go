@@ -166,7 +166,7 @@ func (bc *BatchCursor) Next(ctx context.Context) bool {
 
 	if bc.firstBatch {
 		bc.firstBatch = false
-		return true
+		return !bc.currentBatch.Empty()
 	}
 
 	if bc.id == 0 || bc.server == nil {
@@ -175,14 +175,7 @@ func (bc *BatchCursor) Next(ctx context.Context) bool {
 
 	bc.getMore(ctx)
 
-	switch bc.currentBatch.Style {
-	case bsoncore.SequenceStyle:
-		return len(bc.currentBatch.Data) > 0
-	case bsoncore.ArrayStyle:
-		return len(bc.currentBatch.Data) > 5
-	default:
-		return false
-	}
+	return !bc.currentBatch.Empty()
 }
 
 // Batch will return a DocumentSequence for the current batch of documents. The returned

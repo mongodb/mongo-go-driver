@@ -474,7 +474,7 @@ func (cs *ChangeStream) loopNext(ctx context.Context) {
 
 // Returns true if the underlying cursor's batch is empty
 func (cs *ChangeStream) emptyBatch() bool {
-	return len(cs.cursor.Batch().Data) == 5 // empty BSON array
+	return cs.cursor.Batch().Empty()
 }
 
 // StreamType represents the type of a change stream.
