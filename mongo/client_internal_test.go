@@ -40,6 +40,7 @@ func createTestClient(t *testing.T) *Client {
 		readPreference: readpref.Primary(),
 		clock:          &session.ClusterClock{},
 		registry:       bson.DefaultRegistry,
+		retryWrites:    true,
 	}
 }
 
