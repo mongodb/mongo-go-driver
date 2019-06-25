@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 )
@@ -222,4 +223,11 @@ func (c *Cursor) closeImplicitSession() {
 	if c.clientSession != nil && c.clientSession.SessionType == session.Implicit {
 		c.clientSession.EndSession()
 	}
+}
+
+// BatchCursorFromCursor returns a driver.BatchCursor for the given Cursor. If there is no underlying driver.BatchCursor,
+// nil is returned. This method is deprecated and does not have any stability guarantees. It may be removed in the future.
+func BatchCursorFromCursor(c *Cursor) *driver.BatchCursor {
+	bc, _ := c.bc.(*driver.BatchCursor)
+	return bc
 }
