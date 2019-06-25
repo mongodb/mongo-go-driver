@@ -9,9 +9,6 @@
   "tests": [
     {
       "description": "InsertMany succeeds after PrimarySteppedDown",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -69,9 +66,6 @@
     },
     {
       "description": "InsertMany succeeds after WriteConcernError ShutdownInProgress",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {

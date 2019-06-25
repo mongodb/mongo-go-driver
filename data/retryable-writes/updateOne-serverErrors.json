@@ -13,9 +13,6 @@
   "tests": [
     {
       "description": "UpdateOne succeeds after PrimarySteppedDown",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -63,9 +60,6 @@
     },
     {
       "description": "UpdateOne succeeds after WriteConcernError ShutdownInProgress",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {

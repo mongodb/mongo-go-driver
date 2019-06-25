@@ -13,9 +13,6 @@
   "tests": [
     {
       "description": "BulkWrite succeeds after PrimarySteppedDown",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -71,6 +68,7 @@
       "outcome": {
         "result": {
           "deletedCount": 1,
+          "insertedCount": 1,
           "insertedIds": {
             "1": 3
           },
@@ -95,9 +93,6 @@
     },
     {
       "description": "BulkWrite succeeds after WriteConcernError ShutdownInProgress",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -156,6 +151,7 @@
       "outcome": {
         "result": {
           "deletedCount": 1,
+          "insertedCount": 1,
           "insertedIds": {
             "1": 3
           },

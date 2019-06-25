@@ -13,9 +13,6 @@
   "tests": [
     {
       "description": "DeleteOne is committed on first attempt",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -46,9 +43,6 @@
     },
     {
       "description": "DeleteOne is not committed on first attempt",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -82,9 +76,6 @@
     },
     {
       "description": "DeleteOne is never committed",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
