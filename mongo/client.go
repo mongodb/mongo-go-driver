@@ -369,6 +369,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		))
 	}
 	// RetryWrites
+	c.retryWrites = true // retry writes on by default
 	if opts.RetryWrites != nil {
 		c.retryWrites = *opts.RetryWrites
 	}

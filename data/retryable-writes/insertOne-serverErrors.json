@@ -13,9 +13,6 @@
   "tests": [
     {
       "description": "InsertOne succeeds after connection failure",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -61,9 +58,6 @@
     },
     {
       "description": "InsertOne succeeds after NotMaster",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -110,9 +104,6 @@
     },
     {
       "description": "InsertOne succeeds after NotMasterOrSecondary",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -159,9 +150,6 @@
     },
     {
       "description": "InsertOne succeeds after NotMasterNoSlaveOk",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -207,10 +195,7 @@
       }
     },
     {
-      "description": "InsertOne succeeds after InterruptedDueToReplStateChange",
-      "clientOptions": {
-        "retryWrites": true
-      },
+      "description": "InsertOne succeeds after InterruptedDueToStepDown",
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -257,9 +242,6 @@
     },
     {
       "description": "InsertOne succeeds after InterruptedAtShutdown",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -306,9 +288,6 @@
     },
     {
       "description": "InsertOne succeeds after PrimarySteppedDown",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -355,9 +334,6 @@
     },
     {
       "description": "InsertOne succeeds after ShutdownInProgress",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -404,9 +380,6 @@
     },
     {
       "description": "InsertOne succeeds after HostNotFound",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -453,9 +426,6 @@
     },
     {
       "description": "InsertOne succeeds after HostUnreachable",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -502,9 +472,6 @@
     },
     {
       "description": "InsertOne succeeds after SocketException",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -551,9 +518,6 @@
     },
     {
       "description": "InsertOne succeeds after NetworkTimeout",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -600,9 +564,6 @@
     },
     {
       "description": "InsertOne fails after Interrupted",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -643,9 +604,6 @@
     },
     {
       "description": "InsertOne succeeds after WriteConcernError InterruptedAtShutdown",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -693,10 +651,7 @@
       }
     },
     {
-      "description": "InsertOne succeeds after WriteConcernError InterruptedDueToReplStateChange",
-      "clientOptions": {
-        "retryWrites": true
-      },
+      "description": "InsertOne succeeds after WriteConcernError InterruptedDueToStepDown",
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -745,9 +700,6 @@
     },
     {
       "description": "InsertOne succeeds after WriteConcernError PrimarySteppedDown",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -796,9 +748,6 @@
     },
     {
       "description": "InsertOne succeeds after WriteConcernError ShutdownInProgress",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -847,9 +796,6 @@
     },
     {
       "description": "InsertOne fails after multiple retryable writeConcernErrors",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -896,9 +842,6 @@
     },
     {
       "description": "InsertOne fails after WriteConcernError Interrupted",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -945,9 +888,6 @@
     },
     {
       "description": "InsertOne fails after WriteConcernError WriteConcernFailed",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {

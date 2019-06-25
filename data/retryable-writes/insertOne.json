@@ -13,9 +13,6 @@
   "tests": [
     {
       "description": "InsertOne is committed on first attempt",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -55,9 +52,6 @@
     },
     {
       "description": "InsertOne is not committed on first attempt",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -100,9 +94,6 @@
     },
     {
       "description": "InsertOne is never committed",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
