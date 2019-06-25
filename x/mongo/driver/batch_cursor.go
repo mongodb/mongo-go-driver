@@ -166,7 +166,7 @@ func (bc *BatchCursor) Next(ctx context.Context) bool {
 
 	if bc.firstBatch {
 		bc.firstBatch = false
-		return true
+		return bc.id != 0
 	}
 
 	if bc.id == 0 || bc.server == nil {
