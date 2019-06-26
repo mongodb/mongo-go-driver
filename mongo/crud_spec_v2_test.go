@@ -156,7 +156,7 @@ func testOperations(t *testing.T, coll *Collection, db *Database, test *testCase
 	for _, operation := range test.Operations {
 		switch operation.Name {
 		case "aggregate":
-			runOperationAggregate(t, coll, db, &operation, test)
+			runOperationAggregate(t, coll, db, &operation)
 		default:
 			t.Fatalf("Unknown operation name: %v", operation.Name)
 		}
@@ -176,22 +176,7 @@ func testOperations(t *testing.T, coll *Collection, db *Database, test *testCase
 	}
 }
 
-func shouldSkip(t *testing.T, minVersion string, maxVersion string, db *Database) bool {
-	versionStr, err := getServerVersion(db)
-	require.NoError(t, err)
-
-	if len(minVersion) > 0 && compareVersions(t, minVersion, versionStr) > 0 {
-		return true
-	}
-
-	if len(maxVersion) > 0 && compareVersions(t, maxVersion, versionStr) < 0 {
-		return true
-	}
-
-	return false
-}
-
-func runOperationAggregate(t *testing.T, coll *Collection, db *Database, oper *op, test *testCaseV2) {
+func runOperationAggregate(t *testing.T, coll *Collection, db *Database, oper *op) {
 	var a aggregator = db
 	var err error
 	if oper.Object == "collection" {

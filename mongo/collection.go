@@ -47,6 +47,7 @@ type aggregateParams struct {
 	registry       *bsoncodec.Registry
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
+	retryRead      bool
 	db             string
 	col            string
 	readSelector   description.ServerSelector
@@ -613,6 +614,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		registry:       coll.registry,
 		readConcern:    coll.readConcern,
 		writeConcern:   coll.writeConcern,
+		retryRead:      coll.client.retryReads,
 		db:             coll.db.name,
 		col:            coll.name,
 		readSelector:   coll.readSelector,
@@ -705,6 +707,12 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		op.Hint(hintVal)
 	}
 
+	retry := driver.RetryNone
+	if a.retryRead && !hasOutputStage {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
+
 	err = op.Execute(a.ctx)
 	if err != nil {
 		closeImplicitSession(sess)
@@ -774,6 +782,11 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		}
 		op.Hint(hintVal)
 	}
+	retry := driver.RetryNone
+	if coll.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -808,15 +821,16 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 
 	sess := sessionFromContext(ctx)
 
+	var err error
 	if sess == nil && coll.client.topology.SessionPool != nil {
-		sess, err := session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
 		if err != nil {
 			return 0, err
 		}
 		defer sess.EndSession()
 	}
 
-	err := coll.client.validSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return 0, err
 	}
@@ -837,6 +851,11 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	if co.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*co.MaxTime / time.Millisecond))
 	}
+	retry := driver.RetryNone
+	if coll.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op.Retry(retry)
 
 	err = op.Execute(ctx)
 
@@ -893,6 +912,11 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	if option.MaxTime != nil {
 		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
 	}
+	retry := driver.RetryNone
+	if coll.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -1063,6 +1087,11 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 		op.Sort(sort)
 	}
+	retry := driver.RetryNone
+	if coll.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
 
 	if err = op.Execute(ctx); err != nil {
 		closeImplicitSession(sess)
