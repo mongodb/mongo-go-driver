@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -23,6 +24,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 )
+
+type cursor interface {
+	Err() error
+	Next(context.Context) bool
+	Decode(interface{}) error
+}
 
 // Various helper functions for crud related operations
 
@@ -683,22 +690,7 @@ func verifyInsertManyResult(t *testing.T, res *InsertManyResult, result json.Raw
 	}
 }
 
-func verifyCursorResult2(t *testing.T, cur *Cursor, result json.RawMessage) {
-	for _, expected := range docSliceFromRaw(t, result) {
-		require.NotNil(t, cur)
-		require.True(t, cur.Next(context.Background()))
-
-		var actual bsonx.Doc
-		require.NoError(t, cur.Decode(&actual))
-
-		compareDocs(t, expected, actual)
-	}
-
-	require.False(t, cur.Next(ctx))
-	require.NoError(t, cur.Err())
-}
-
-func verifyCursorResult(t *testing.T, cur *Cursor, result json.RawMessage) {
+func verifyCursorResult(t *testing.T, cur cursor, result json.RawMessage) {
 	for _, expected := range docSliceFromRaw(t, result) {
 		require.NotNil(t, cur)
 		require.True(t, cur.Next(context.Background()))
@@ -825,6 +817,11 @@ func verifyCollectionContents(t *testing.T, coll *Collection, result json.RawMes
 func sanitizeCollectionName(kind string, name string) string {
 	// Collections can't have "$" in their names, so we substitute it with "%".
 	name = strings.Replace(name, "$", "%", -1)
+
+	// must have enough room for kind + "." + one character of name, can't have collection name end in .
+	if len(kind) > 118 {
+		kind = kind[:118]
+	}
 
 	// Namespaces can only have 120 bytes max.
 	if len(kind+"."+name) >= 119 {
@@ -963,4 +960,61 @@ func replaceFloatsWithInts(m map[string]interface{}) {
 			m[key] = innerM
 		}
 	}
+}
+
+func shouldSkip(t *testing.T, minVersion string, maxVersion string, db *Database) bool {
+	versionStr, err := getServerVersion(db)
+	require.NoError(t, err)
+
+	if len(minVersion) > 0 && compareVersions(t, minVersion, versionStr) > 0 {
+		return true
+	}
+
+	if len(maxVersion) > 0 && compareVersions(t, maxVersion, versionStr) < 0 {
+		return true
+	}
+
+	return false
+}
+
+func canRunOn(t *testing.T, runOn runOn, dbAdmin *Database) bool {
+	if shouldSkip(t, runOn.MinServerVersion, runOn.MaxServerVersion, dbAdmin) {
+		return false
+	}
+
+	if runOn.Topology == nil || len(runOn.Topology) == 0 {
+		return true
+	}
+
+	for _, top := range runOn.Topology {
+		if os.Getenv("TOPOLOGY") == runOnTopologyToEnvTopology(t, top) {
+			return true
+		}
+	}
+	return false
+}
+
+func runOnTopologyToEnvTopology(t *testing.T, runOnTopology string) string {
+	switch runOnTopology {
+	case "single":
+		return "server"
+	case "replicaset":
+		return "replica_set"
+	case "sharded":
+		return "sharded_cluster"
+	default:
+		t.Fatalf("unknown topology %v", runOnTopology)
+	}
+	return ""
+}
+
+func skipIfNecessaryRunOnSlice(t *testing.T, runOns []runOn, dbAdmin *Database) {
+	for _, runOn := range runOns {
+		if canRunOn(t, runOn, dbAdmin) {
+			return
+		}
+	}
+	versionStr, err := getServerVersion(dbAdmin)
+	require.NoError(t, err, "unable to run on current server version, topology combination, error getting server version")
+	t.Skipf("unable to run on %v %v", os.Getenv("TOPOLOGY"), versionStr)
 }
