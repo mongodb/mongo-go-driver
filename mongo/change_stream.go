@@ -101,7 +101,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	cs.aggregate = operation.NewAggregate(nil).
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.topology).ClusterClock(cs.client.clock).
-		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector)
+		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone)
 
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
@@ -188,9 +188,41 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.aggregate.Pipeline(plArr)
 	}
 
-	if cs.err = replaceErrors(cs.aggregate.Execute(ctx)); cs.err != nil {
-		return cs.Err()
+	if original := cs.aggregate.Execute(ctx); original != nil {
+		retryableRead := cs.client != nil && cs.client.retryReads && cs.client.topology.SupportsRetry() && description.SessionsSupported(conn.Description().WireVersion)
+		if !retryableRead {
+			cs.err = replaceErrors(original)
+			return cs.err
+		}
+
+		err := original
+		if tt, ok := err.(driver.Error); ok {
+			if tt.Retryable() {
+				_ = conn.Close()
+				if server, err = cs.client.topology.SelectServer(ctx, cs.selector); err == nil {
+					if conn, err = server.Connection(ctx); err == nil {
+						if cs.client.topology.SupportsRetry() && description.SessionsSupported(conn.Description().WireVersion) {
+							cs.aggregate.Deployment(driver.SingleConnectionDeployment{
+								C: conn,
+							})
+							err = cs.aggregate.Execute(ctx)
+						}
+					}
+				}
+			}
+		}
+		if err != nil {
+			if ep, ok := server.(driver.ErrorProcessor); ok {
+				ep.ProcessError(err)
+			}
+			if _, ok := err.(driver.Error); ok {
+				err = original
+			}
+			cs.err = err
+			return cs.Err()
+		}
 	}
+	cs.err = nil
 
 	cr := cs.aggregate.ResultCursorResponse()
 	cr.Server = server

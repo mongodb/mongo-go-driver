@@ -74,7 +74,7 @@ func (wce WriteCommandError) Error() string {
 	return buf.String()
 }
 
-// Retryable returns true if the error is retryable
+// Retryable returns true if the error is retryableWrite
 func (wce WriteCommandError) Retryable() bool {
 	if wce.WriteConcernError == nil {
 		return false
@@ -98,7 +98,7 @@ func (wce WriteConcernError) Error() string {
 	return wce.Message
 }
 
-// Retryable returns true if the error is retryable
+// Retryable returns true if the error is retryableWrite
 func (wce WriteConcernError) Retryable() bool {
 	for _, code := range retryableCodes {
 		if wce.Code == int64(code) {
@@ -167,7 +167,7 @@ func (e Error) HasErrorLabel(label string) bool {
 	return false
 }
 
-// Retryable returns true if the error is retryable
+// Retryable returns true if the error is retryableWrite
 func (e Error) Retryable() bool {
 	for _, label := range e.Labels {
 		if label == NetworkError {

@@ -46,7 +46,7 @@ type op struct {
 	Arguments         map[string]interface{}
 	Object            string
 	CollectionOptions *collOpts `json:"collectionOptions"`
-	Error             bool
+	Error             bool      `json:"error"`
 	Result            json.RawMessage
 }
 
@@ -199,7 +199,7 @@ func aggregateTest(t *testing.T, db *Database, a aggregator, test *testCaseV1) {
 		require.NoError(t, err)
 
 		if !out {
-			verifyCursorResult2(t, cursor, test.Outcome.Result)
+			verifyCursorResult(t, cursor, test.Outcome.Result)
 		}
 
 		if test.Outcome.Collection != nil {

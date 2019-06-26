@@ -81,6 +81,7 @@ type ClientOptions struct {
 	Registry               *bsoncodec.Registry
 	ReplicaSet             *string
 	RetryWrites            *bool
+	RetryReads             *bool
 	ServerSelectionTimeout *time.Duration
 	Direct                 *bool
 	SocketTimeout          *time.Duration

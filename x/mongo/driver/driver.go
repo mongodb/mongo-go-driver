@@ -136,7 +136,7 @@ const (
 	RetryRead
 )
 
-// RetryMode specifies the way that retries are handled for retryable operations.
+// RetryMode specifies the way that retries are handled for retryableWrite operations.
 type RetryMode uint
 
 // These are the modes available for retrying.

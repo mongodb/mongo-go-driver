@@ -9,6 +9,7 @@ package gridfs // import "go.mongodb.org/mongo-driver/mongo/gridfs"
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	"io"
 
@@ -194,9 +195,11 @@ func (b *Bucket) OpenDownloadStream(fileID interface{}) (*DownloadStream, error)
 func (b *Bucket) DownloadToStream(fileID interface{}, stream io.Writer) (int64, error) {
 	ds, err := b.OpenDownloadStream(fileID)
 	if err != nil {
+		fmt.Println("unable to open download stream")
 		return 0, err
 	}
 
+	fmt.Printf("here\n")
 	return b.downloadToStream(ds, stream)
 }
 
@@ -335,8 +338,11 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 
 	cursor, err := b.findFile(ctx, filter, opts...)
 	if err != nil {
+		fmt.Println("unable to find file")
 		return nil, err
 	}
+
+	fmt.Println("here")
 
 	fileLenElem, err := cursor.Current.LookupErr("length")
 	if err != nil {
@@ -375,6 +381,8 @@ func deadlineContext(deadline time.Time) (context.Context, context.CancelFunc) {
 }
 
 func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, error) {
+	fmt.Println("here again")
+
 	err := ds.SetReadDeadline(b.readDeadline)
 	if err != nil {
 		_ = ds.Close()
@@ -402,10 +410,13 @@ func (b *Bucket) deleteChunks(ctx context.Context, fileID interface{}) error {
 func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error) {
 	cursor, err := b.filesColl.Find(ctx, filter, opts...)
 	if err != nil {
+		fmt.Println("unable to create cursor")
 		return nil, err
 	}
+	fmt.Println("cursor made!!")
 
 	if !cursor.Next(ctx) {
+		fmt.Println("empty cursor :(")
 		_ = cursor.Close(ctx)
 		return nil, ErrFileNotFound
 	}
