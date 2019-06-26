@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7636e61a_3b5bdeef",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-26T14:27:18Z",
+      "side": 1,
+      "message": "I don\u0027t think this will work for tailable cursors, which can have a non-zero cursor ID with an empty batch. For example, there\u0027s some code to handle batch cursors returning true for an empty first batch in mongo/change_stream.go. Maybe this should be return bc.currentBatch.DocumentCount() !\u003d 0",
+      "range": {
+        "startLine": 169,
+        "startChar": 9,
+        "endLine": 169,
+        "endChar": 19
+      },
+      "revId": "7188bb9b56a17a20869df1e8f9874f4e0b28f1a9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
