@@ -125,7 +125,7 @@ func TestOperation(t *testing.T) {
 			})
 		}
 	})
-	t.Run("retryable", func(t *testing.T) {
+	t.Run("retryableWrite", func(t *testing.T) {
 		deploymentRetry := new(mockDeployment)
 		deploymentRetry.returns.retry = true
 
@@ -183,7 +183,7 @@ func TestOperation(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				got := tc.op.retryable(tc.desc)
+				got := tc.op.retryableType(tc.desc)
 				if got != tc.want {
 					t.Errorf("Did not receive expected RetryType. got %v; want %v", got, tc.want)
 				}
