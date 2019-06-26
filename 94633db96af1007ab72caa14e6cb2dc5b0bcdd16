@@ -22,6 +22,30 @@
       "revId": "94633db96af1007ab72caa14e6cb2dc5b0bcdd16",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2e7573ab_a0ddf2fb",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-26T18:15:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6119725a_50292ead",
+      "range": {
+        "startLine": 78,
+        "startChar": 36,
+        "endLine": 79,
+        "endChar": 7
+      },
+      "revId": "94633db96af1007ab72caa14e6cb2dc5b0bcdd16",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

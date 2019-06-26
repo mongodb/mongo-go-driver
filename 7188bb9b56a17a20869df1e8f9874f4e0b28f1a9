@@ -22,6 +22,30 @@
       "revId": "7188bb9b56a17a20869df1e8f9874f4e0b28f1a9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b5682c3f_7345372a",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-06-26T18:15:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7636e61a_3b5bdeef",
+      "range": {
+        "startLine": 169,
+        "startChar": 9,
+        "endLine": 169,
+        "endChar": 19
+      },
+      "revId": "7188bb9b56a17a20869df1e8f9874f4e0b28f1a9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
