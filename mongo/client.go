@@ -42,6 +42,7 @@ type Client struct {
 	connString      connstring.ConnString
 	localThreshold  time.Duration
 	retryWrites     bool
+	retryReads      bool
 	clock           *session.ClusterClock
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern
@@ -182,6 +183,7 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	}
 
 	sess.RetryWrite = c.retryWrites
+	sess.RetryRead = c.retryReads
 
 	return &sessionImpl{
 		clientSession: sess,
@@ -396,6 +398,10 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.RetryWrites != nil {
 		c.retryWrites = *opts.RetryWrites
 	}
+	c.retryReads = true
+	if opts.RetryReads != nil {
+		c.retryReads = *opts.RetryReads
+	}
 	// ServerSelectionTimeout
 	if opts.ServerSelectionTimeout != nil {
 		topologyOpts = append(topologyOpts, topology.WithServerSelectionTimeout(
@@ -490,6 +496,11 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	if ldo.NameOnly != nil {
 		op = op.NameOnly(*ldo.NameOnly)
 	}
+	retry := driver.RetryNone
+	if c.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op.Retry(retry)
 
 	err = op.Execute(ctx)
 	if err != nil {
