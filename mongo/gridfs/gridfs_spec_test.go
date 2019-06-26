@@ -80,84 +80,6 @@ var chunks, files, expectedChunks, expectedFiles *mongo.Collection
 var downloadBuffer = make([]byte, downloadBufferSize)
 var deadline = time.Now().Add(time.Hour)
 
-// load initial data files into a files and chunks collection
-// returns the chunkSize embedded in the documents if there is one
-func loadInitialFiles(t *testing.T, data dataSection) int32 {
-	filesDocs := make([]interface{}, 0, len(data.Files))
-	chunksDocs := make([]interface{}, 0, len(data.Chunks))
-	var chunkSize int32
-
-	for _, v := range data.Files {
-		docBytes, err := v.MarshalJSON()
-		testhelpers.RequireNil(t, err, "error converting raw message to bytes: %s", err)
-		doc := bsonx.Doc{}
-		err = bson.UnmarshalExtJSON(docBytes, false, &doc)
-		testhelpers.RequireNil(t, err, "error creating file document: %s", err)
-
-		// convert length from int32 to int64
-		if length, err := doc.LookupErr("length"); err == nil {
-			doc = doc.Delete("length")
-			doc = doc.Append("length", bsonx.Int64(int64(length.Int32())))
-		}
-		if cs, err := doc.LookupErr("chunkSize"); err == nil {
-			chunkSize = cs.Int32()
-		}
-
-		filesDocs = append(filesDocs, doc)
-	}
-
-	for _, v := range data.Chunks {
-		docBytes, err := v.MarshalJSON()
-		testhelpers.RequireNil(t, err, "error converting raw message to bytes: %s", err)
-		doc := bsonx.Doc{}
-		err = bson.UnmarshalExtJSON(docBytes, false, &doc)
-		testhelpers.RequireNil(t, err, "error creating file document: %s", err)
-
-		// convert data $hex to binary value
-		if hexStr, err := doc.LookupErr("data", "$hex"); err == nil {
-			hexBytes := convertHexToBytes(t, hexStr.StringValue())
-			doc = doc.Delete("data")
-			doc = append(doc, bsonx.Elem{"data", bsonx.Binary(0x00, hexBytes)})
-		}
-
-		// convert n from int64 to int32
-		if n, err := doc.LookupErr("n"); err == nil {
-			doc = doc.Delete("n")
-			doc = append(doc, bsonx.Elem{"n", bsonx.Int32(n.Int32())})
-		}
-
-		chunksDocs = append(chunksDocs, doc)
-	}
-
-	if len(filesDocs) > 0 {
-		_, err := files.InsertMany(ctx, filesDocs)
-		testhelpers.RequireNil(t, err, "error inserting into files: %s", err)
-		_, err = expectedFiles.InsertMany(ctx, filesDocs)
-		testhelpers.RequireNil(t, err, "error inserting into expected files: %s", err)
-	}
-
-	if len(chunksDocs) > 0 {
-		_, err := chunks.InsertMany(ctx, chunksDocs)
-		testhelpers.RequireNil(t, err, "error inserting into chunks: %s", err)
-		_, err = expectedChunks.InsertMany(ctx, chunksDocs)
-		testhelpers.RequireNil(t, err, "error inserting into expected chunks: %s", err)
-	}
-
-	return chunkSize
-}
-
-func dropColl(t *testing.T, c *mongo.Collection) {
-	err := c.Drop(ctx)
-	testhelpers.RequireNil(t, err, "error dropping %s: %s", c.Name(), err)
-}
-
-func clearCollections(t *testing.T) {
-	dropColl(t, files)
-	dropColl(t, expectedFiles)
-	dropColl(t, chunks)
-	dropColl(t, expectedChunks)
-}
-
 func TestGridFSSpec(t *testing.T) {
 	var err error
 	cs := testutil.ConnString(t)
@@ -187,7 +109,7 @@ func runGridFSTestFile(t *testing.T, filepath string, db *mongo.Database) {
 	testhelpers.RequireNil(t, err, "error unmarshalling test file for %s: %s", filepath, err)
 
 	clearCollections(t)
-	chunkSize := loadInitialFiles(t, testfile.Data)
+	chunkSize := loadInitialFiles(t, testfile.Data.Files, testfile.Data.Chunks, files, chunks, expectedFiles, expectedChunks)
 	if chunkSize == 0 {
 		chunkSize = DefaultChunkSize
 	}
@@ -219,7 +141,7 @@ func runGridFSTestFile(t *testing.T, filepath string, db *mongo.Database) {
 
 		if test.Arrange.Data != nil {
 			clearCollections(t)
-			loadInitialFiles(t, testfile.Data)
+			loadInitialFiles(t, testfile.Data.Files, testfile.Data.Chunks, files, chunks, expectedFiles, expectedChunks)
 		}
 	}
 }
