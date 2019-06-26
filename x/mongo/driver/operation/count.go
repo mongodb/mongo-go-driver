@@ -35,6 +35,7 @@ type Count struct {
 	readConcern    *readconcern.ReadConcern
 	readPreference *readpref.ReadPref
 	selector       description.ServerSelector
+	retry          *driver.RetryMode
 	result         CountResult
 }
 
@@ -85,6 +86,8 @@ func (c *Count) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         c.command,
 		ProcessResponseFn: c.processResponse,
+		RetryMode:         c.retry,
+		RetryType:         driver.RetryRead,
 		Client:            c.session,
 		Clock:             c.clock,
 		CommandMonitor:    c.monitor,
@@ -215,5 +218,17 @@ func (c *Count) ServerSelector(selector description.ServerSelector) *Count {
 	}
 
 	c.selector = selector
+	return c
+}
+
+// Retry enables retryable writes for this operation. Retries are not handled automatically,
+// instead a boolean is returned from Execute and SelectAndExecute that indicates if the
+// operation can be retried. Retrying is handled by calling RetryExecute.
+func (c *Count) Retry(retry driver.RetryMode) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.retry = &retry
 	return c
 }
