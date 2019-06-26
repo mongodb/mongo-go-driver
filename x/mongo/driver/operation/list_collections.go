@@ -31,6 +31,7 @@ type ListCollections struct {
 	deployment     driver.Deployment
 	readPreference *readpref.ReadPref
 	selector       description.ServerSelector
+	retry          *driver.RetryMode
 	result         driver.CursorResponse
 }
 
@@ -69,6 +70,8 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         lc.command,
 		ProcessResponseFn: lc.processResponse,
+		RetryMode:         lc.retry,
+		RetryType:         driver.RetryRead,
 		Client:            lc.session,
 		Clock:             lc.clock,
 		CommandMonitor:    lc.monitor,
@@ -180,5 +183,17 @@ func (lc *ListCollections) ServerSelector(selector description.ServerSelector) *
 	}
 
 	lc.selector = selector
+	return lc
+}
+
+// Retry enables retryable writes for this operation. Retries are not handled automatically,
+// instead a boolean is returned from Execute and SelectAndExecute that indicates if the
+// operation can be retried. Retrying is handled by calling RetryExecute.
+func (lc *ListCollections) Retry(retry driver.RetryMode) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.retry = &retry
 	return lc
 }

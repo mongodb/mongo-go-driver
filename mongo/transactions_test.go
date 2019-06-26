@@ -171,6 +171,9 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		// kill sessions from previously failed tests
 		killSessions(t, dbAdmin.client)
 
+		if testfile.CollectionName == "" {
+			testfile.CollectionName = "collection_name"
+		}
 		collName := sanitizeCollectionName(testfile.DatabaseName, testfile.CollectionName)
 
 		var shardedHost string
@@ -569,7 +572,7 @@ func executeCollectionOperation(t *testing.T, op *transOperation, sess *sessionI
 	case "aggregate":
 		res, err := executeAggregate(sess, coll, op.ArgMap)
 		if !resultHasError(t, op.Result) && err == nil {
-			verifyCursorResult2(t, res, op.Result)
+			verifyCursorResult(t, res, op.Result)
 		}
 		return err
 	case "bulkWrite":
@@ -918,7 +921,7 @@ func executeTransactionsTest(t *testing.T, serverVersion string, reqs *runOn) bo
 				return true
 			}
 		case "sharded_cluster":
-			if top == "sharded" && compareVersions(t, serverVersion, "4.0") > 0 {
+			if top == "sharded" {
 				return true
 			}
 		}

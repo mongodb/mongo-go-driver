@@ -125,7 +125,7 @@ func TestOperation(t *testing.T) {
 			})
 		}
 	})
-	t.Run("retryable", func(t *testing.T) {
+	t.Run("retryableWrite", func(t *testing.T) {
 		deploymentRetry := new(mockDeployment)
 		deploymentRetry.returns.retry = true
 
@@ -184,7 +184,7 @@ func TestOperation(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				got := tc.op.retryable(tc.desc)
-				if got != tc.want {
+				if got != (tc.want != RetryType(0)) {
 					t.Errorf("Did not receive expected RetryType. got %v; want %v", got, tc.want)
 				}
 			})
@@ -508,7 +508,15 @@ func (m *mockDeployment) SelectServer(ctx context.Context, desc description.Serv
 	return m.returns.server, m.returns.err
 }
 
-func (m *mockDeployment) SupportsRetry() bool            { return m.returns.retry }
+func (m *mockDeployment) RetryType() RetryType {
+	if !m.returns.retry {
+		return RetryType(0)
+	}
+	if m.Kind() == description.Single {
+		return RetryRead
+	}
+	return RetryWrite
+}
 func (m *mockDeployment) Kind() description.TopologyKind { return m.returns.kind }
 
 type mockServerSelector struct{}
