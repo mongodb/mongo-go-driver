@@ -54,6 +54,7 @@ type Find struct {
 	readConcern         *readconcern.ReadConcern
 	readPreference      *readpref.ReadPref
 	selector            description.ServerSelector
+	retry               *driver.RetryMode
 	result              driver.CursorResponse
 }
 
@@ -84,6 +85,8 @@ func (f *Find) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         f.command,
 		ProcessResponseFn: f.processResponse,
+		RetryMode:         f.retry,
+		RetryType:         driver.RetryRead,
 		Client:            f.session,
 		Clock:             f.clock,
 		CommandMonitor:    f.monitor,
@@ -465,5 +468,17 @@ func (f *Find) ServerSelector(selector description.ServerSelector) *Find {
 	}
 
 	f.selector = selector
+	return f
+}
+
+// Retry enables retryable writes for this operation. Retries are not handled automatically,
+// instead a boolean is returned from Execute and SelectAndExecute that indicates if the
+// operation can be retried. Retrying is handled by calling RetryExecute.
+func (f *Find) Retry(retry driver.RetryMode) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.retry = &retry
 	return f
 }
