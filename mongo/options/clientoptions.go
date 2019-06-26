@@ -81,6 +81,7 @@ type ClientOptions struct {
 	Registry               *bsoncodec.Registry
 	ReplicaSet             *string
 	RetryWrites            *bool
+	RetryReads             *bool
 	ServerSelectionTimeout *time.Duration
 	Direct                 *bool
 	SocketTimeout          *time.Duration
@@ -487,6 +488,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.RetryWrites != nil {
 			c.RetryWrites = opt.RetryWrites
 		}
+		if opt.RetryReads != nil {
+			c.RetryReads = opt.RetryReads
+		}
 		if opt.ServerSelectionTimeout != nil {
 			c.ServerSelectionTimeout = opt.ServerSelectionTimeout
 		}
@@ -508,6 +512,7 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.err != nil {
 			c.err = opt.err
 		}
+
 	}
 
 	return c

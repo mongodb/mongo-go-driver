@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -50,14 +51,15 @@ var monitor = &event.CommandMonitor{
 }
 
 func createMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Client {
-	return &Client{
-		topology:       testutil.GlobalMonitoredTopology(t, monitor),
-		connString:     testutil.ConnString(t),
-		readPreference: readpref.Primary(),
-		clock:          &session.ClusterClock{},
-		registry:       bson.DefaultRegistry,
-		monitor:        monitor,
-	}
+	client, err := NewClient()
+	require.NoError(t, err, "unable to create client")
+	client.topology = testutil.GlobalMonitoredTopology(t, monitor)
+	client.connString = testutil.ConnString(t)
+	client.readPreference = readpref.Primary()
+	client.clock = &session.ClusterClock{}
+	client.registry = bson.DefaultRegistry
+	client.monitor = monitor
+	return client
 }
 
 func skipCmTest(t *testing.T, testCase bsonx.Doc, serverVersion string) bool {
