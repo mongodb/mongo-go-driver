@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "6a35653d_57b7fcdb",
+        "filename": "mongo/client.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-26T17:36:09Z",
+      "side": 1,
+      "message": "This doesn\u0027t need to be a member of Client because there\u0027s no default value for max commit time.",
+      "range": {
+        "startLine": 51,
+        "startChar": 1,
+        "endLine": 51,
+        "endChar": 31
+      },
+      "revId": "9dc1542a1b45bacea335fa4133c3edbaf34735fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "365aa3b4_c3acb97e",
         "filename": "mongo/errors.go",
         "patchSetId": 2
@@ -18,6 +41,75 @@
         "startChar": 5,
         "endLine": 276,
         "endChar": 28
+      },
+      "revId": "9dc1542a1b45bacea335fa4133c3edbaf34735fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "15df9304_2f3946ad",
+        "filename": "mongo/options/sessionoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-26T17:36:09Z",
+      "side": 1,
+      "message": "For consistency with other options, we should call this DefaultMaxCommitTime and convert to milliseconds when we\u0027re actually passing it to the CommitTransaction operation.",
+      "range": {
+        "startLine": 26,
+        "startChar": 1,
+        "endLine": 26,
+        "endChar": 23
+      },
+      "revId": "9dc1542a1b45bacea335fa4133c3edbaf34735fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f362c7be_cb6a2173",
+        "filename": "mongo/options/transactionoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-26T17:36:09Z",
+      "side": 1,
+      "message": "Same as other comment - we should use MaxCommitTime for consistency.",
+      "range": {
+        "startLine": 22,
+        "startChar": 1,
+        "endLine": 22,
+        "endChar": 16
+      },
+      "revId": "9dc1542a1b45bacea335fa4133c3edbaf34735fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e0e0e3bf_40531f91",
+        "filename": "mongo/session.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 97,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-06-26T17:36:09Z",
+      "side": 1,
+      "message": "Talked offline - there should be a way to fix this that avoids this extra variable.",
+      "range": {
+        "startLine": 97,
+        "startChar": 1,
+        "endLine": 97,
+        "endChar": 26
       },
       "revId": "9dc1542a1b45bacea335fa4133c3edbaf34735fb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
