@@ -216,9 +216,8 @@ func (d *Delete) WriteConcern(writeConcern *writeconcern.WriteConcern) *Delete {
 	return d
 }
 
-// Retry enables retryable writes for this operation. Retries are not handled automatically,
-// instead a boolean is returned from Execute and SelectAndExecute that indicates if the
-// operation can be retried. Retrying is handled by calling RetryExecute.
+// Retry enables retryable mode for this operation. Retries are handled automatically in driver.Operation.Execute based
+// on how the operation is set.
 func (d *Delete) Retry(retry driver.RetryMode) *Delete {
 	if d == nil {
 		d = new(Delete)

@@ -256,8 +256,10 @@ func (t *Topology) SupportsSessions() bool {
 	return t.Description().SessionTimeoutMinutes != 0 && t.Description().Kind != description.Single
 }
 
-// SupportsRetry returns true if the topology supports retryability, which it does if it supports sessions.
-func (t *Topology) SupportsRetry() bool { return t.SupportsSessions() }
+// SupportsRetryWrites returns true if the topology supports retryable writes, which it does if it supports sessions.
+func (t *Topology) SupportsRetryWrites() bool {
+	return t.SupportsSessions()
+}
 
 // SelectServer selects a server with given a selector. SelectServer complies with the
 // server selection spec, and will time out after severSelectionTimeout or when the

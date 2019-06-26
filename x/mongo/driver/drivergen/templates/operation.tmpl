@@ -182,6 +182,10 @@ func ({{$.ShortName}} *{{$.Name}}) Execute(ctx context.Context) error {
         Type: driver.Write,
         {{- end -}}
 
+        {{- if eq $.Properties.Retryable.Type "reads"}}
+        Type: driver.Read,
+        {{- end -}}
+
         {{- range $b := $.Properties.ExecuteBuiltins}}
         {{$b.ExecuteName}}: {{$.ShortName}}.{{$b.ReferenceName}},
         {{- end -}}
@@ -231,9 +235,8 @@ func ({{$.ShortName}} *{{$.Name}}) {{$builtin.SetterName}}({{$builtin.ReferenceN
 {{end}}
 
 {{if $.Properties.Retryable.Mode}}
-// Retry enables retryable writes for this operation. Retries are not handled automatically,
-// instead a boolean is returned from Execute and SelectAndExecute that indicates if the
-// operation can be retried. Retrying is handled by calling RetryExecute.
+// Retry enables retryable mode for this operation. Retries are handled automatically in driver.Operation.Execute based
+// on how the operation is set.
 func ({{$.ShortName}} *{{$.Name}}) Retry(retry driver.RetryMode) *{{$.Name}} {
 	if {{$.ShortName}} == nil {
 		{{$.ShortName}} = new({{$.Name}})
