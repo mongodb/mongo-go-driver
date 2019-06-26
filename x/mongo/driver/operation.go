@@ -261,22 +261,35 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	var operationErr WriteCommandError
 	var original error
 	var retries int
-	// TODO(GODRIVER-617): Add support for retryable reads.
 	retryable := op.retryable(desc.Server)
-	if retryable == Write && op.Client != nil && op.RetryMode != nil {
-		op.Client.RetryWrite = false
-		if *op.RetryMode > RetryNone {
-			op.Client.RetryWrite = true
-			if !op.Client.Committing && !op.Client.Aborting {
-				op.Client.IncrementTxnNumber()
+	if retryable && op.RetryMode != nil {
+		switch op.Type {
+		case Write:
+			if op.Client == nil {
+				break
 			}
-		}
+			switch *op.RetryMode {
+			case RetryOnce, RetryOncePerCommand:
+				retries = 1
+			case RetryContext:
+				retries = -1
+			}
 
-		switch *op.RetryMode {
-		case RetryOnce, RetryOncePerCommand:
-			retries = 1
-		case RetryContext:
-			retries = -1
+			op.Client.RetryWrite = false
+			if *op.RetryMode > RetryNone {
+				op.Client.RetryWrite = true
+				if !op.Client.Committing && !op.Client.Aborting {
+					op.Client.IncrementTxnNumber()
+				}
+			}
+
+		case Read:
+			switch *op.RetryMode {
+			case RetryOnce, RetryOncePerCommand:
+				retries = 1
+			case RetryContext:
+				retries = -1
+			}
 		}
 	}
 	batching := op.Batches.Valid()
@@ -346,10 +359,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if op.ProcessResponseFn != nil {
 			perr = op.ProcessResponseFn(res, srvr, desc.Server)
 		}
-
 		switch tt := err.(type) {
 		case WriteCommandError:
-			if retryable == Write && tt.Retryable() && retries != 0 {
+			if retryable && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -358,7 +370,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				conn, err = srvr.Connection(ctx)
-				if err != nil || conn == nil || op.retryable(conn.Description()) != Write {
+				if err != nil || conn == nil || !op.retryable(conn.Description()) {
 					if conn != nil {
 						conn.Close()
 					}
@@ -395,7 +407,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				op.Client.ClearPinnedServer()
 			}
-			if retryable == Write && tt.Retryable() && retries != 0 {
+			if retryable && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -404,7 +416,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				conn, err = srvr.Connection(ctx)
-				if err != nil || conn == nil || op.retryable(conn.Description()) != Write {
+				if err != nil || conn == nil || !op.retryable(conn.Description()) {
 					if conn != nil {
 						conn.Close()
 					}
@@ -435,7 +447,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		if batching && len(op.Batches.Documents) > 0 {
-			if retryable == Write && op.Client != nil && op.RetryMode != nil {
+			if retryable && op.Client != nil && op.RetryMode != nil {
 				if *op.RetryMode > RetryNone {
 					op.Client.IncrementTxnNumber()
 				}
@@ -456,20 +468,28 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 // Retryable writes are supported if the server supports sessions, the operation is not
 // within a transaction, and the write is acknowledged
-func (op Operation) retryable(desc description.Server) Type {
+func (op Operation) retryable(desc description.Server) bool {
 	switch op.Type {
 	case Write:
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
-			return Write
+			return true
 		}
-		if op.Deployment.SupportsRetry() &&
-			description.SessionsSupported(desc.WireVersion) &&
+		if op.Deployment.RetryType() == Write &&
+			desc.WireVersion != nil && desc.WireVersion.Max >= 6 &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
-			return Write
+			return true
+		}
+	case Read:
+		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
+			return true
+		}
+		if desc.WireVersion != nil && desc.WireVersion.Max >= 6 &&
+			(op.Client == nil || !(op.Client.TransactionInProgress() || op.Client.TransactionStarting())) {
+			return true
 		}
 	}
-	return Type(0)
+	return false
 }
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter

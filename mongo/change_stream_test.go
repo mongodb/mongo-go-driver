@@ -82,7 +82,7 @@ func killChangeStreamCursor(t *testing.T, cs *ChangeStream) {
 
 func skipIfBelow36(t *testing.T) {
 	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
-	require.NoError(t, err)
+	require.NoError(t, err, "unable to get server version of database")
 
 	if compareVersions(t, serverVersion, "3.6") < 0 {
 		t.Skip()

@@ -10,7 +10,7 @@ import (
 // Deployment is implemented by types that can select a server from a deployment.
 type Deployment interface {
 	SelectServer(context.Context, description.ServerSelector) (Server, error)
-	SupportsRetry() bool
+	RetryType() Type
 	Kind() description.TopologyKind
 }
 
@@ -77,9 +77,9 @@ func (ssd SingleServerDeployment) SelectServer(context.Context, description.Serv
 	return ssd.Server, nil
 }
 
-// SupportsRetry implements the Deployment interface. It always returns false, because a single
+// RetryType implements the Deployment interface. It always returns Type(0), because a single
 // server does not support retryability.
-func (SingleServerDeployment) SupportsRetry() bool { return false }
+func (SingleServerDeployment) RetryType() Type { return Type(0) }
 
 // Kind implements the Deployment interface. It always returns description.Single.
 func (SingleServerDeployment) Kind() description.TopologyKind { return description.Single }
@@ -98,9 +98,9 @@ func (ssd SingleConnectionDeployment) SelectServer(context.Context, description.
 	return ssd, nil
 }
 
-// SupportsRetry implements the Deployment interface. It always returns false, because a single
+// RetryType implements the Deployment interface. It always returns Type(0), because a single
 // connection does not support retryability.
-func (ssd SingleConnectionDeployment) SupportsRetry() bool { return false }
+func (ssd SingleConnectionDeployment) RetryType() Type { return Type(0) }
 
 // Kind implements the Deployment interface. It always returns description.Single.
 func (ssd SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }
