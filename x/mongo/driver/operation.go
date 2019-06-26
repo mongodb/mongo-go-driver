@@ -262,14 +262,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	var operationErr WriteCommandError
 	var original error
 	var retries int
-	// TODO(GODRIVER-617): Add support for retryable reads.
-	retryable := op.retryable(desc.Server)
-	if retryable == RetryWrite && op.Client != nil && op.RetryMode != nil {
-		op.Client.RetryWrite = false
-		if *op.RetryMode > RetryNone {
-			op.Client.RetryWrite = true
-			if !op.Client.Committing && !op.Client.Aborting {
-				op.Client.IncrementTxnNumber()
+	retryableWrite := op.retryableWrite(desc.Server)
+	retryableRead := op.retryableRead(desc.Server)
+	retryable := retryableRead || retryableWrite
+	if retryable && op.Client != nil && op.RetryMode != nil {
+		if retryableWrite {
+			op.Client.RetryWrite = false
+			if *op.RetryMode > RetryNone {
+				op.Client.RetryWrite = true
+				if retryableWrite && !op.Client.Committing && !op.Client.Aborting {
+					op.Client.IncrementTxnNumber()
+				}
 			}
 		}
 
@@ -347,10 +350,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if op.ProcessResponseFn != nil {
 			perr = op.ProcessResponseFn(res, srvr, desc.Server)
 		}
-
 		switch tt := err.(type) {
 		case WriteCommandError:
-			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
+			if retryable && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -359,7 +361,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				conn, err = srvr.Connection(ctx)
-				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
+				if err != nil || conn == nil || (!op.retryableWrite(conn.Description()) && retryableWrite) || (!op.retryableRead(conn.Description()) && retryableRead) {
 					if conn != nil {
 						conn.Close()
 					}
@@ -396,7 +398,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				op.Client.ClearPinnedServer()
 			}
-			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
+			if retryable && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -405,7 +407,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				conn, err = srvr.Connection(ctx)
-				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
+				if err != nil || conn == nil || (!op.retryableWrite(conn.Description()) && retryableWrite) || (!op.retryableRead(conn.Description()) && retryableRead) {
 					if conn != nil {
 						conn.Close()
 					}
@@ -436,7 +438,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		if batching && len(op.Batches.Documents) > 0 {
-			if retryable == RetryWrite && op.Client != nil && op.RetryMode != nil {
+			if retryable && op.Client != nil && op.RetryMode != nil {
 				if *op.RetryMode > RetryNone {
 					op.Client.IncrementTxnNumber()
 				}
@@ -457,18 +459,44 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 // Retryable writes are supported if the server supports sessions, the operation is not
 // within a transaction, and the write is acknowledged
-func (op Operation) retryable(desc description.Server) RetryType {
+func (op Operation) retryableWrite(desc description.Server) bool {
 	switch op.RetryType {
 	case RetryWrite:
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
-			return RetryWrite
+			return true
 		}
-		if op.Deployment.SupportsRetry() &&
-			description.SessionsSupported(desc.WireVersion) &&
+		if op.Deployment.RetryType() == RetryWrite &&
+			desc.WireVersion != nil && desc.WireVersion.Max >= 6 &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
-			return RetryWrite
+			return true
 		}
+	}
+	return false
+}
+
+// Retryable reads are supported if the server supports sessions, the operation is not
+// within a transaction, and the write is acknowledged
+func (op Operation) retryableRead(desc description.Server) bool {
+	switch op.RetryType {
+	case RetryRead:
+		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
+			return true
+		}
+		if desc.WireVersion != nil && desc.WireVersion.Max >= 6 &&
+			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) {
+			return true
+		}
+	}
+	return false
+}
+
+func (op Operation) retryableType(desc description.Server) RetryType {
+	if op.retryableWrite(desc) {
+		return RetryWrite
+	}
+	if op.retryableRead(desc) {
+		return RetryRead
 	}
 	return RetryType(0)
 }
