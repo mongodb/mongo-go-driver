@@ -287,18 +287,22 @@ func (s *Server) ProcessError(err error) {
 		desc.LastError = err
 		// updates description to unknown
 		s.updateDescription(desc, false)
-		s.RequestImmediateCheck()
-		s.pool.drain()
+		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
+			s.RequestImmediateCheck()
+			s.pool.drain()
+		}
 		return
 	}
 	if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
 		desc := s.Description()
 		desc.Kind = description.Unknown
 		desc.LastError = err
-		// updates description to unknown
-		s.updateDescription(desc, false)
-		s.RequestImmediateCheck()
-		s.pool.drain()
+		// updates description to unknown without draining pool
+		s.updateDescription(desc, true)
+		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
+			s.RequestImmediateCheck()
+			s.pool.drain()
+		}
 		return
 	}
 
