@@ -26,7 +26,7 @@ type serverConfig struct {
 	heartbeatTimeout          time.Duration
 	maxConns                  uint64
 	minConns                  uint64
-	poolMonitor               event.PoolMonitor
+	poolMonitor               *event.PoolMonitor
 	connectionPoolMaxIdleTime time.Duration
 	registry                  *bsoncodec.Registry
 }
@@ -114,8 +114,8 @@ func WithConnectionPoolMaxIdleTime(fn func(time.Duration) time.Duration) ServerO
 	}
 }
 
-// WithConnectionPoolMonitor configures the a monitor for all connection pool actions
-func WithConnectionPoolMonitor(fn func(event.PoolMonitor) event.PoolMonitor) ServerOption {
+// WithConnectionPoolMonitor configures the monitor for all connection pool actions
+func WithConnectionPoolMonitor(fn func(*event.PoolMonitor) *event.PoolMonitor) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.poolMonitor = fn(cfg.poolMonitor)
 		return nil
