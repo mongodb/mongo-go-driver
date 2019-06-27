@@ -206,7 +206,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 
 	if s.pool.monitor != nil {
-		s.pool.monitor(event.PoolEvent{
+		s.pool.monitor.Event(event.PoolEvent{
 			Type:    "ConnectionCheckOutStarted",
 			Address: s.pool.address.String(),
 		})
@@ -219,7 +219,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 	err := s.sem.Acquire(ctx, 1)
 	if err != nil {
 		if s.pool.monitor != nil {
-			s.pool.monitor(event.PoolEvent{
+			s.pool.monitor.Event(event.PoolEvent{
 				Type:    "ConnectionCheckOutFailed",
 				Address: s.pool.address.String(),
 				Reason:  "timeout",
@@ -310,20 +310,24 @@ func (s *Server) ProcessError(err error) {
 		desc := s.Description()
 		desc.Kind = description.Unknown
 		desc.LastError = err
-		// updates description to unknown
+		// updates description to unknown without draining pool
 		s.updateDescription(desc, false)
-		s.RequestImmediateCheck()
-		s.pool.clear() // we want to synchronously clear the pool
+		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
+			s.RequestImmediateCheck()
+			s.pool.clear() // we want to synchronously clear the pool
+		}
 		return
 	}
 	if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
 		desc := s.Description()
 		desc.Kind = description.Unknown
 		desc.LastError = err
-		// updates description to unknown
+		// updates description to unknown without draining pool
 		s.updateDescription(desc, false)
-		s.RequestImmediateCheck()
-		s.pool.clear() // we want to synchronously clear the pool
+		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
+			s.RequestImmediateCheck()
+			s.pool.clear() // we want to synchronously clear the pool
+		}
 		return
 	}
 
