@@ -86,4 +86,6 @@ type PoolEvent struct {
 }
 
 // PoolMonitor is a function that allows the user to gain access to events occurring in the pool
-type PoolMonitor func(PoolEvent)
+type PoolMonitor struct {
+	Event func(*PoolEvent)
+}

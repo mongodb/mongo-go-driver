@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	retryableCodes        = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001}
-	nodeIsRecoveringCodes = []int32{11600, 11602, 13436, 189, 91}
-	notMasterCodes        = []int32{10107, 13435}
+	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001}
+	nodeIsRecoveringCodes   = []int32{11600, 11602, 13436, 189, 91}
+	notMasterCodes          = []int32{10107, 13435}
+	nodeIsShuttingDownCodes = []int32{11600, 91}
 )
 
 var (
@@ -136,6 +137,16 @@ func (wce WriteConcernError) NodeIsRecovering() bool {
 	return strings.Contains(wce.Message, "node is recovering")
 }
 
+// NodeIsShuttingDown returns true if this error is a node is shutting down error.
+func (wce WriteConcernError) NodeIsShuttingDown() bool {
+	for _, code := range nodeIsShuttingDownCodes {
+		if wce.Code == int64(code) {
+			return true
+		}
+	}
+	return strings.Contains(wce.Message, "node is shutting down")
+}
+
 // NotMaster returns true if this error is a not master error.
 func (wce WriteConcernError) NotMaster() bool {
 	for _, code := range notMasterCodes {
@@ -243,6 +254,16 @@ func (e Error) NodeIsRecovering() bool {
 		}
 	}
 	return strings.Contains(e.Message, "node is recovering")
+}
+
+// NodeIsShuttingDown returns true if this error is a node is shutting down error.
+func (e Error) NodeIsShuttingDown() bool {
+	for _, code := range nodeIsShuttingDownCodes {
+		if e.Code == code {
+			return true
+		}
+	}
+	return strings.Contains(e.Message, "node is shutting down")
 }
 
 // NotMaster returns true if this error is a not master error.

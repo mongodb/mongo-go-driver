@@ -46,7 +46,7 @@ type poolConfig struct {
 	MinPoolSize uint64
 	MaxPoolSize uint64 // MaxPoolSize is not used because handling the max number of connections in the pool is handled in server. This is only used for command monitoring
 	MaxIdleTime time.Duration
-	PoolMonitor event.PoolMonitor
+	PoolMonitor *event.PoolMonitor
 }
 
 // checkOutResult is all the values that can be returned from a checkOut
@@ -62,7 +62,7 @@ type pool struct {
 	opts       []ConnectionOption
 	conns      *resourcePool // pool for non-checked out connections
 	generation uint64        // must be accessed using atomic package
-	monitor    event.PoolMonitor
+	monitor    *event.PoolMonitor
 
 	connected int32 // Must be accessed using the sync/atomic package.
 	nextid    uint64
@@ -98,7 +98,7 @@ func connectionExpiredFunc(v interface{}) bool {
 
 	res := disconnected || stale || idle
 	if res && c.pool.monitor != nil {
-		c.pool.monitor(event.PoolEvent{
+		c.pool.monitor.Event(&event.PoolEvent{
 			Type:         event.ConnectionClosed,
 			Address:      c.pool.address.String(),
 			ConnectionID: c.poolID,
@@ -154,7 +154,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 	}
 
 	if pool.monitor != nil {
-		pool.monitor(event.PoolEvent{
+		pool.monitor.Event(&event.PoolEvent{
 			Type: event.PoolCreated,
 			PoolOptions: &event.MonitorPoolOptions{
 				MaxPoolSize:        config.MaxPoolSize,
@@ -240,7 +240,7 @@ func (p *pool) disconnect(ctx context.Context) error {
 	p.Unlock()
 	for _, pc := range toClose {
 		if p.monitor != nil {
-			p.monitor(event.PoolEvent{
+			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionClosed,
 				Address:      p.address.String(),
 				ConnectionID: pc.poolID,
@@ -252,7 +252,7 @@ func (p *pool) disconnect(ctx context.Context) error {
 	atomic.StoreInt32(&p.connected, disconnected)
 
 	if p.monitor != nil {
-		p.monitor(event.PoolEvent{
+		p.monitor.Event(&event.PoolEvent{
 			Type:    event.PoolClosedEvent,
 			Address: p.address.String(),
 		})
@@ -273,7 +273,7 @@ func (p *pool) makeNewConnection(ctx context.Context) (*connection, string, erro
 	c.generation = p.generation
 
 	if p.monitor != nil {
-		p.monitor(event.PoolEvent{
+		p.monitor.Event(&event.PoolEvent{
 			Type:         event.ConnectionCreated,
 			Address:      p.address.String(),
 			ConnectionID: c.poolID,
@@ -282,7 +282,7 @@ func (p *pool) makeNewConnection(ctx context.Context) (*connection, string, erro
 
 	if atomic.LoadInt32(&p.connected) != connected {
 		if p.monitor != nil {
-			p.monitor(event.PoolEvent{
+			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionClosed,
 				Address:      p.address.String(),
 				ConnectionID: c.poolID,
@@ -310,7 +310,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 
 	if atomic.LoadInt32(&p.connected) != connected {
 		if p.monitor != nil {
-			p.monitor(event.PoolEvent{
+			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonPoolClosed,
@@ -322,7 +322,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 	connVal := p.conns.Get()
 	if c, ok := connVal.(*connection); ok && connVal != nil {
 		if p.monitor != nil {
-			p.monitor(event.PoolEvent{
+			p.monitor.Event(&event.PoolEvent{
 				Type:         event.GetSucceeded,
 				Address:      p.address.String(),
 				ConnectionID: c.poolID,
@@ -334,7 +334,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 	select {
 	case <-ctx.Done():
 		if p.monitor != nil {
-			p.monitor(event.PoolEvent{
+			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonTimedOut,
@@ -345,7 +345,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		c, reason, err := p.makeNewConnection(ctx)
 		if err != nil {
 			if p.monitor != nil {
-				p.monitor(event.PoolEvent{
+				p.monitor.Event(&event.PoolEvent{
 					Type:    event.GetFailed,
 					Address: p.address.String(),
 					Reason:  reason,
@@ -355,7 +355,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		}
 
 		if p.monitor != nil {
-			p.monitor(event.PoolEvent{
+			p.monitor.Event(&event.PoolEvent{
 				Type:         event.GetSucceeded,
 				Address:      p.address.String(),
 				ConnectionID: c.poolID,
@@ -395,7 +395,7 @@ func (p *pool) put(c *connection) error {
 			cid = c.poolID
 			addr = c.addr.String()
 		}
-		p.monitor(event.PoolEvent{
+		p.monitor.Event(&event.PoolEvent{
 			Type:         event.ConnectionReturned,
 			ConnectionID: cid,
 			Address:      addr,
@@ -418,7 +418,7 @@ func (p *pool) put(c *connection) error {
 // clear clears the pool by incrementing the generation and then maintaining the pool
 func (p *pool) clear() {
 	if p.monitor != nil {
-		p.monitor(event.PoolEvent{
+		p.monitor.Event(&event.PoolEvent{
 			Type:    event.PoolCleared,
 			Address: p.address.String(),
 		})
