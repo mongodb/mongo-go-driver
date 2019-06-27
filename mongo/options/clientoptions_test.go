@@ -45,7 +45,6 @@ func TestClientOptions(t *testing.T) {
 		}
 	})
 	t.Run("Set", func(t *testing.T) {
-		var poolMonitor event.PoolMonitor = func(_ event.PoolEvent) {}
 		testCases := []struct {
 			name        string
 			fn          interface{} // method to be run
@@ -64,7 +63,7 @@ func TestClientOptions(t *testing.T) {
 			{"MaxConnIdleTime", (*ClientOptions).SetMaxConnIdleTime, 5 * time.Second, "MaxConnIdleTime", true},
 			{"MaxPoolSize", (*ClientOptions).SetMaxPoolSize, uint64(250), "MaxPoolSize", true},
 			{"MinPoolSize", (*ClientOptions).SetMinPoolSize, uint64(10), "MinPoolSize", true},
-			{"PoolMonitor", (*ClientOptions).SetPoolMonitor, &poolMonitor, "PoolMonitor", false},
+			{"PoolMonitor", (*ClientOptions).SetPoolMonitor, &event.PoolMonitor{}, "PoolMonitor", false},
 			{"Monitor", (*ClientOptions).SetMonitor, &event.CommandMonitor{}, "Monitor", false},
 			{"ReadConcern", (*ClientOptions).SetReadConcern, readconcern.Majority(), "ReadConcern", false},
 			{"ReadPreference", (*ClientOptions).SetReadPreference, readpref.SecondaryPreferred(), "ReadPreference", false},

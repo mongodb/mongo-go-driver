@@ -110,10 +110,8 @@ func runCMAPTest(t *testing.T, testFileName string) {
 		WithConnectionPoolMaxIdleTime(func(duration time.Duration) time.Duration {
 			return time.Duration(test.PoolOptions.MaxIdleTimeMS) * time.Millisecond
 		}),
-		WithConnectionPoolMonitor(func(monitor event.PoolMonitor) event.PoolMonitor {
-			return func(event event.PoolEvent) {
-				testInfo.originalEventChan <- event
-			}
+		WithConnectionPoolMonitor(func(monitor *event.PoolMonitor) *event.PoolMonitor {
+			return &event.PoolMonitor{func(event event.PoolEvent) { testInfo.originalEventChan <- event }}
 		}))
 	testHelpers.RequireNil(t, err, "error creating server: %v", err)
 	s.connectionstate = connected

@@ -375,7 +375,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.PoolMonitor != nil {
 		serverOpts = append(
 			serverOpts,
-			topology.WithConnectionPoolMonitor(func(event.PoolMonitor) event.PoolMonitor { return *opts.PoolMonitor }),
+			topology.WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return opts.PoolMonitor }),
 		)
 	}
 	// Monitor
