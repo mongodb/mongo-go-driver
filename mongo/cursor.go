@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 )
 
 // Cursor is used to iterate a stream of documents. Each document is decoded into the result
@@ -79,7 +78,7 @@ func newCursorWithSession(bc batchCursor, registry *bsoncodec.Registry, clientSe
 }
 
 func newEmptyCursor() *Cursor {
-	return &Cursor{bc: driverlegacy.NewEmptyBatchCursor()}
+	return &Cursor{bc: driver.NewEmptyBatchCursor()}
 }
 
 // ID returns the ID of this cursor.

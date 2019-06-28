@@ -21,7 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
-	"go.mongodb.org/mongo-driver/x/network/result"
 )
 
 func makeIsMasterReply() []byte {
@@ -98,7 +97,7 @@ func TestServer(t *testing.T) {
 			s.connectionstate = connected
 			s.pool.connected = connected
 
-			_, err = s.ConnectionLegacy(context.Background())
+			_, err = s.Connection(context.Background())
 
 			switch {
 			case tt.connectionError && !cmp.Equal(err, authErr, cmp.Comparer(compareErrors)):
@@ -130,17 +129,16 @@ func TestServer(t *testing.T) {
 		s.connectionstate = connected
 		s.pool.connected = connected
 
-		wce := result.WriteConcernError{"", 10107, "not master", []byte{}}
-		require.Equal(t, wceIsNotMasterOrRecovering(&wce), true)
-		s.ProcessWriteConcernError(&wce)
+		wce := driver.WriteConcernError{"", 10107, "not master", []byte{}}
+		s.ProcessError(wce)
 
 		// should set ServerDescription to Unknown
 		resultDesc := s.Description()
 		require.Equal(t, resultDesc.Kind, (description.ServerKind)(description.Unknown))
-		require.Equal(t, resultDesc.LastError, &wce)
+		require.Equal(t, resultDesc.LastError, wce)
 
 		// pool should be drained
-		if s.pool.generation != 1 {
+		if s.pool.generation < 1 {
 			t.Errorf("Expected pool to be drained once from a write concern error. got %d; want %d", s.pool.generation, 1)
 		}
 	})
@@ -155,9 +153,8 @@ func TestServer(t *testing.T) {
 		s.connectionstate = connected
 		s.pool.connected = connected
 
-		wce := result.WriteConcernError{}
-		require.Equal(t, wceIsNotMasterOrRecovering(&wce), false)
-		s.ProcessWriteConcernError(&wce)
+		wce := driver.WriteConcernError{}
+		s.ProcessError(&wce)
 
 		// should not be a LastError
 		require.Nil(t, s.Description().LastError)

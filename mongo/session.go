@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 // ErrWrongClient is returned when a user attempts to pass in a session created by a different client than
@@ -113,7 +112,7 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 			}
 
 			if cerr, ok := err.(CommandError); ok {
-				if cerr.HasErrorLabel(command.TransientTransactionError) {
+				if cerr.HasErrorLabel(driver.TransientTransactionError) {
 					continue
 				}
 			}

@@ -3,12 +3,21 @@ package wiremessage
 import (
 	"bytes"
 	"strings"
+	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // WireMessage represents a MongoDB wire message in binary form.
 type WireMessage []byte
+
+var globalRequestID int32
+
+// CurrentRequestID returns the current request ID.
+func CurrentRequestID() int32 { return atomic.LoadInt32(&globalRequestID) }
+
+// NextRequestID returns the next request ID.
+func NextRequestID() int32 { return atomic.AddInt32(&globalRequestID, 1) }
 
 // OpCode represents a MongoDB wire protocol opcode.
 type OpCode int32

@@ -28,11 +28,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 var sessionStarted *event.CommandStartedEvent
@@ -205,20 +206,9 @@ func createMonitoredTopology(t *testing.T, clock *session.ClusterClock, monitor 
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := sessionsMonitoredTop.SelectServerLegacy(context.Background(), description.WriteSelector())
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	c, err := s.ConnectionLegacy(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = (&command.Write{
-		DB:      testutil.DBName(t),
-		Command: bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}},
-	}).RoundTrip(context.Background(), s.SelectedDescription(), c)
+	err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
+		Database(testutil.DBName(t)).ServerSelector(description.WriteSelector()).Deployment(sessionsMonitoredTop).Execute(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

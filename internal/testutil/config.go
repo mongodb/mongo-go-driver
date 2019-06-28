@@ -19,11 +19,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 var connectionString connstring.ConnString
@@ -102,16 +102,9 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 		t.Fatal(err)
 	} else {
 		monitoredTopology.Connect()
-		s, err := monitoredTopology.SelectServerLegacy(context.Background(), description.WriteSelector())
-		require.NoError(t, err)
 
-		c, err := s.ConnectionLegacy(context.Background())
-		require.NoError(t, err)
-
-		_, err = (&command.Write{
-			DB:      dbName,
-			Command: bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}},
-		}).RoundTrip(context.Background(), s.SelectedDescription(), c)
+		err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
+			Database(dbName).ServerSelector(description.WriteSelector()).Deployment(monitoredTopology).Execute(context.Background())
 
 		require.NoError(t, err)
 	}
@@ -146,16 +139,9 @@ func GlobalMonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topol
 			monitoredTopologyErr = err
 		} else {
 			monitoredTopology.Connect()
-			s, err := monitoredTopology.SelectServerLegacy(context.Background(), description.WriteSelector())
-			require.NoError(t, err)
 
-			c, err := s.ConnectionLegacy(context.Background())
-			require.NoError(t, err)
-
-			_, err = (&command.Write{
-				DB:      DBName(t),
-				Command: bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}},
-			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
+			err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
+				Database(DBName(t)).ServerSelector(description.WriteSelector()).Deployment(monitoredTopology).Execute(context.Background())
 
 			require.NoError(t, err)
 		}
@@ -178,16 +164,9 @@ func Topology(t *testing.T) *topology.Topology {
 			liveTopologyErr = err
 		} else {
 			liveTopology.Connect()
-			s, err := liveTopology.SelectServerLegacy(context.Background(), description.WriteSelector())
-			require.NoError(t, err)
 
-			c, err := s.ConnectionLegacy(context.Background())
-			require.NoError(t, err)
-
-			_, err = (&command.Write{
-				DB:      DBName(t),
-				Command: bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}},
-			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
+			err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
+				Database(DBName(t)).ServerSelector(description.WriteSelector()).Deployment(liveTopology).Execute(context.Background())
 			require.NoError(t, err)
 		}
 	})

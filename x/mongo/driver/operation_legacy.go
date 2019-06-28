@@ -15,8 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	wiremessagex "go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 var (
@@ -173,11 +172,11 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 	}
 
 	var wmIdx int32
-	wmIdx, dst = wiremessagex.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
-	dst = wiremessagex.AppendQueryFlags(dst, flags)
-	dst = wiremessagex.AppendQueryFullCollectionName(dst, op.getFullCollectionName(collName))
-	dst = wiremessagex.AppendQueryNumberToSkip(dst, numToSkip)
-	dst = wiremessagex.AppendQueryNumberToReturn(dst, numToReturn)
+	wmIdx, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
+	dst = wiremessage.AppendQueryFlags(dst, flags)
+	dst = wiremessage.AppendQueryFullCollectionName(dst, op.getFullCollectionName(collName))
+	dst = wiremessage.AppendQueryNumberToSkip(dst, numToSkip)
+	dst = wiremessage.AppendQueryNumberToReturn(dst, numToReturn)
 	dst = op.appendLegacyQueryDocument(dst, filter, optsElems)
 	if len(returnFieldsSelector) != 0 {
 		// returnFieldsSelector is optional
@@ -271,11 +270,11 @@ func (op Operation) createLegacyGetMoreWiremessage(dst []byte, desc description.
 	}
 
 	var wmIdx int32
-	wmIdx, dst = wiremessagex.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpGetMore)
-	dst = wiremessagex.AppendGetMoreZero(dst)
-	dst = wiremessagex.AppendGetMoreFullCollectionName(dst, op.getFullCollectionName(collName))
-	dst = wiremessagex.AppendGetMoreNumberToReturn(dst, numToReturn)
-	dst = wiremessagex.AppendGetMoreCursorID(dst, cursorID)
+	wmIdx, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpGetMore)
+	dst = wiremessage.AppendGetMoreZero(dst)
+	dst = wiremessage.AppendGetMoreFullCollectionName(dst, op.getFullCollectionName(collName))
+	dst = wiremessage.AppendGetMoreNumberToReturn(dst, numToReturn)
+	dst = wiremessage.AppendGetMoreCursorID(dst, cursorID)
 
 	return bsoncore.UpdateLength(dst, wmIdx, int32(len(dst[wmIdx:]))), info, collName, nil
 }
@@ -365,10 +364,10 @@ func (op Operation) createLegacyKillCursorsWiremessage(dst []byte, desc descript
 	}
 
 	var wmIdx int32
-	wmIdx, dst = wiremessagex.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpKillCursors)
-	dst = wiremessagex.AppendKillCursorsZero(dst)
-	dst = wiremessagex.AppendKillCursorsNumberIDs(dst, int32(len(cursorIDs)))
-	dst = wiremessagex.AppendKillCursorsCursorIDs(dst, cursorIDs)
+	wmIdx, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpKillCursors)
+	dst = wiremessage.AppendKillCursorsZero(dst)
+	dst = wiremessage.AppendKillCursorsNumberIDs(dst, int32(len(cursorIDs)))
+	dst = wiremessage.AppendKillCursorsCursorIDs(dst, cursorIDs)
 
 	return bsoncore.UpdateLength(dst, wmIdx, int32(len(dst[wmIdx:]))), info, collName, nil
 }
@@ -442,11 +441,11 @@ func (op Operation) createLegacyListCollectionsWiremessage(dst []byte, desc desc
 	}
 
 	var wmIdx int32
-	wmIdx, dst = wiremessagex.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
-	dst = wiremessagex.AppendQueryFlags(dst, op.slaveOK(desc))
-	dst = wiremessagex.AppendQueryFullCollectionName(dst, op.getFullCollectionName(listCollectionsNamespace))
-	dst = wiremessagex.AppendQueryNumberToSkip(dst, 0)
-	dst = wiremessagex.AppendQueryNumberToReturn(dst, 0)
+	wmIdx, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
+	dst = wiremessage.AppendQueryFlags(dst, op.slaveOK(desc))
+	dst = wiremessage.AppendQueryFullCollectionName(dst, op.getFullCollectionName(listCollectionsNamespace))
+	dst = wiremessage.AppendQueryNumberToSkip(dst, 0)
+	dst = wiremessage.AppendQueryNumberToReturn(dst, 0)
 	dst = op.appendLegacyQueryDocument(dst, filter, optsElems)
 	// leave out returnFieldsSelector because it is optional
 
@@ -582,11 +581,11 @@ func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc descript
 	}
 
 	var wmIdx int32
-	wmIdx, dst = wiremessagex.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
-	dst = wiremessagex.AppendQueryFlags(dst, op.slaveOK(desc))
-	dst = wiremessagex.AppendQueryFullCollectionName(dst, op.getFullCollectionName(listIndexesNamespace))
-	dst = wiremessagex.AppendQueryNumberToSkip(dst, 0)
-	dst = wiremessagex.AppendQueryNumberToReturn(dst, batchSize)
+	wmIdx, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
+	dst = wiremessage.AppendQueryFlags(dst, op.slaveOK(desc))
+	dst = wiremessage.AppendQueryFullCollectionName(dst, op.getFullCollectionName(listIndexesNamespace))
+	dst = wiremessage.AppendQueryNumberToSkip(dst, 0)
+	dst = wiremessage.AppendQueryNumberToReturn(dst, batchSize)
 	dst = op.appendLegacyQueryDocument(dst, filter, optsElems)
 	// leave out returnFieldsSelector because it is optional
 
