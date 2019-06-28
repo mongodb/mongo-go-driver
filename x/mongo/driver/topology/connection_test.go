@@ -109,7 +109,7 @@ func TestConnection(t *testing.T) {
 			t.Run("completed context", func(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				conn := &connection{id: "foobar", nc: &net.TCPConn{}}
+				conn := &connection{id: "foobar", nc: &net.TCPConn{}, connected: connected}
 				want := ConnectionError{ConnectionID: "foobar", Wrapped: ctx.Err(), message: "failed to write"}
 				got := conn.writeWireMessage(ctx, []byte{})
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
@@ -144,7 +144,7 @@ func TestConnection(t *testing.T) {
 							message:      "failed to set write deadline",
 						}
 						tnc := &testNetConn{deadlineerr: errors.New("set writeDeadline error")}
-						conn := &connection{id: "foobar", nc: tnc, writeTimeout: tc.timeout}
+						conn := &connection{id: "foobar", nc: tnc, writeTimeout: tc.timeout, connected: connected}
 						got := conn.writeWireMessage(ctx, []byte{})
 						if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 							t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -160,7 +160,7 @@ func TestConnection(t *testing.T) {
 					err := errors.New("Write error")
 					want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "unable to write wire message to network"}
 					tnc := &testNetConn{writeerr: err}
-					conn := &connection{id: "foobar", nc: tnc}
+					conn := &connection{id: "foobar", nc: tnc, connected: connected}
 					got := conn.writeWireMessage(context.Background(), []byte{})
 					if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 						t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -170,7 +170,7 @@ func TestConnection(t *testing.T) {
 					}
 				})
 				tnc := &testNetConn{}
-				conn := &connection{id: "foobar", nc: tnc}
+				conn := &connection{id: "foobar", nc: tnc, connected: connected}
 				want := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}
 				err := conn.writeWireMessage(context.Background(), want)
 				noerr(t, err)
@@ -192,7 +192,7 @@ func TestConnection(t *testing.T) {
 			t.Run("completed context", func(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				conn := &connection{id: "foobar", nc: &net.TCPConn{}}
+				conn := &connection{id: "foobar", nc: &net.TCPConn{}, connected: connected}
 				want := ConnectionError{ConnectionID: "foobar", Wrapped: ctx.Err(), message: "failed to read"}
 				_, got := conn.readWireMessage(ctx, []byte{})
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
@@ -227,7 +227,7 @@ func TestConnection(t *testing.T) {
 							message:      "failed to set read deadline",
 						}
 						tnc := &testNetConn{deadlineerr: errors.New("set readDeadline error")}
-						conn := &connection{id: "foobar", nc: tnc, readTimeout: tc.timeout}
+						conn := &connection{id: "foobar", nc: tnc, readTimeout: tc.timeout, connected: connected}
 						_, got := conn.readWireMessage(ctx, []byte{})
 						if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 							t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -242,7 +242,7 @@ func TestConnection(t *testing.T) {
 				err := errors.New("Read error")
 				want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "unable to decode message length"}
 				tnc := &testNetConn{readerr: err}
-				conn := &connection{id: "foobar", nc: tnc}
+				conn := &connection{id: "foobar", nc: tnc, connected: connected}
 				_, got := conn.readWireMessage(context.Background(), []byte{})
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -255,7 +255,7 @@ func TestConnection(t *testing.T) {
 				err := errors.New("Read error")
 				want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "unable to read full message"}
 				tnc := &testNetConn{readerr: err, buf: []byte{0x11, 0x00, 0x00, 0x00}}
-				conn := &connection{id: "foobar", nc: tnc}
+				conn := &connection{id: "foobar", nc: tnc, connected: connected}
 				_, got := conn.readWireMessage(context.Background(), []byte{})
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -268,7 +268,7 @@ func TestConnection(t *testing.T) {
 				want := []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}
 				tnc := &testNetConn{buf: make([]byte, len(want))}
 				copy(tnc.buf, want)
-				conn := &connection{id: "foobar", nc: tnc}
+				conn := &connection{id: "foobar", nc: tnc, connected: connected}
 				got, err := conn.readWireMessage(context.Background(), nil)
 				noerr(t, err)
 				if !cmp.Equal(got, want) {

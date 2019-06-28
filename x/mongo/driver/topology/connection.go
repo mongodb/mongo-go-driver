@@ -47,6 +47,7 @@ type connection struct {
 	desc             description.Server
 	compressor       wiremessage.CompressorID
 	zliblevel        int
+	connected        int32 // must be accessed using the sync/atomic package
 
 	// pool related fields
 	pool       *pool
@@ -91,6 +92,7 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 		readTimeout:      cfg.readTimeout,
 		writeTimeout:     cfg.writeTimeout,
 	}
+	atomic.StoreInt32(&c.connected, connected)
 
 	c.bumpIdleDeadline()
 
@@ -134,7 +136,7 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	var err error
-	if c.nc == nil {
+	if atomic.LoadInt32(&c.connected) != connected {
 		return ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
 	select {
@@ -168,7 +170,7 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 
 // readWireMessage reads a wiremessage from the connection. The dst parameter will be overwritten.
 func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
-	if c.nc == nil {
+	if atomic.LoadInt32(&c.connected) != connected {
 		return dst, ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
 
@@ -231,12 +233,12 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 }
 
 func (c *connection) close() error {
-	if c.nc == nil {
+	if atomic.LoadInt32(&c.connected) != connected {
 		return nil
 	}
 	if c.pool == nil {
 		err := c.nc.Close()
-		c.nc = nil
+		atomic.StoreInt32(&c.connected, disconnected)
 		return err
 	}
 	return c.pool.close(c)
@@ -252,7 +254,7 @@ func (c *connection) expired() bool {
 		return true
 	}
 
-	return c.nc == nil
+	return atomic.LoadInt32(&c.connected) == disconnected
 }
 
 func (c *connection) bumpIdleDeadline() {
