@@ -21,8 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	wiremessagex "go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 var dollarCmd = [...]byte{'.', '$', 'c', 'm', 'd'}
@@ -306,7 +305,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
-		moreToCome := wiremessagex.IsMsgMoreToCome(wm)
+		moreToCome := wiremessage.IsMsgMoreToCome(wm)
 
 		// compress wiremessage if allowed
 		if compressor, ok := conn.(Compressor); ok && op.canCompress(startedInfo.cmdName) {
@@ -540,7 +539,7 @@ func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, w
 // is not compressed, this method will return the wiremessage.
 func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	// read the header and ensure this is a compressed wire message
-	length, reqid, respto, opcode, rem, ok := wiremessagex.ReadHeader(wm)
+	length, reqid, respto, opcode, rem, ok := wiremessage.ReadHeader(wm)
 	if !ok || len(wm) < int(length) {
 		return nil, errors.New("malformed wire message: insufficient bytes")
 	}
@@ -548,28 +547,28 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 		return wm, nil
 	}
 	// get the original opcode and uncompressed size
-	opcode, rem, ok = wiremessagex.ReadCompressedOriginalOpCode(rem)
+	opcode, rem, ok = wiremessage.ReadCompressedOriginalOpCode(rem)
 	if !ok {
 		return nil, errors.New("malformed OP_COMPRESSED: missing original opcode")
 	}
-	uncompressedSize, rem, ok := wiremessagex.ReadCompressedUncompressedSize(rem)
+	uncompressedSize, rem, ok := wiremessage.ReadCompressedUncompressedSize(rem)
 	if !ok {
 		return nil, errors.New("malformed OP_COMPRESSED: missing uncompressed size")
 	}
 	// get the compressor ID and decompress the message
-	compressorID, rem, ok := wiremessagex.ReadCompressedCompressorID(rem)
+	compressorID, rem, ok := wiremessage.ReadCompressedCompressorID(rem)
 	if !ok {
 		return nil, errors.New("malformed OP_COMPRESSED: missing compressor ID")
 	}
 	compressedSize := length - 25 // header (16) + original opcode (4) + uncompressed size (4) + compressor ID (1)
 	// return the original wiremessage
-	msg, rem, ok := wiremessagex.ReadCompressedCompressedMessage(rem, compressedSize)
+	msg, rem, ok := wiremessage.ReadCompressedCompressedMessage(rem, compressedSize)
 	if !ok {
 		return nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
 	}
 
 	header := make([]byte, 0, uncompressedSize+16)
-	header = wiremessagex.AppendHeader(header, uncompressedSize, reqid, respto, opcode)
+	header = wiremessage.AppendHeader(header, uncompressedSize, reqid, respto, opcode)
 	uncompressed := make([]byte, uncompressedSize)
 	switch compressorID {
 	case wiremessage.CompressorSnappy:
@@ -614,14 +613,14 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	flags := op.slaveOK(desc)
 	var wmindex int32
 	info.requestID = wiremessage.NextRequestID()
-	wmindex, dst = wiremessagex.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
-	dst = wiremessagex.AppendQueryFlags(dst, flags)
+	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
+	dst = wiremessage.AppendQueryFlags(dst, flags)
 	// FullCollectionName
 	dst = append(dst, op.Database...)
 	dst = append(dst, dollarCmd[:]...)
 	dst = append(dst, 0x00)
-	dst = wiremessagex.AppendQueryNumberToSkip(dst, 0)
-	dst = wiremessagex.AppendQueryNumberToReturn(dst, -1)
+	dst = wiremessage.AppendQueryNumberToSkip(dst, 0)
+	dst = wiremessage.AppendQueryNumberToReturn(dst, -1)
 
 	wrapper := int32(-1)
 	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, true)
@@ -685,10 +684,10 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 		flags = wiremessage.MoreToCome
 	}
 	info.requestID = wiremessage.NextRequestID()
-	wmindex, dst = wiremessagex.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
-	dst = wiremessagex.AppendMsgFlags(dst, flags)
+	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
+	dst = wiremessage.AppendMsgFlags(dst, flags)
 	// Body
-	dst = wiremessagex.AppendMsgSectionType(dst, wiremessage.SingleDocument)
+	dst = wiremessage.AppendMsgSectionType(dst, wiremessage.SingleDocument)
 
 	idx, dst := bsoncore.AppendDocumentStart(dst)
 
@@ -727,7 +726,7 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 
 	if op.Batches != nil && len(op.Batches.Current) > 0 {
 		info.documentSequenceIncluded = true
-		dst = wiremessagex.AppendMsgSectionType(dst, wiremessage.DocumentSequence)
+		dst = wiremessage.AppendMsgSectionType(dst, wiremessage.DocumentSequence)
 		idx, dst = bsoncore.ReserveLength(dst)
 
 		dst = append(dst, op.Batches.Identifier...)
@@ -1021,8 +1020,8 @@ func (Operation) decodeOpReply(wm []byte, includesHeader bool) opReply {
 	if includesHeader {
 		wmLength := len(wm)
 		var length int32
-		var opcode wiremessagex.OpCode
-		length, _, _, opcode, wm, ok = wiremessagex.ReadHeader(wm)
+		var opcode wiremessage.OpCode
+		length, _, _, opcode, wm, ok = wiremessage.ReadHeader(wm)
 		if !ok || int(length) > wmLength {
 			reply.err = errors.New("malformed wire message: insufficient bytes")
 			return reply
@@ -1033,27 +1032,27 @@ func (Operation) decodeOpReply(wm []byte, includesHeader bool) opReply {
 		}
 	}
 
-	reply.responseFlags, wm, ok = wiremessagex.ReadReplyFlags(wm)
+	reply.responseFlags, wm, ok = wiremessage.ReadReplyFlags(wm)
 	if !ok {
 		reply.err = errors.New("malformed OP_REPLY: missing flags")
 		return reply
 	}
-	reply.cursorID, wm, ok = wiremessagex.ReadReplyCursorID(wm)
+	reply.cursorID, wm, ok = wiremessage.ReadReplyCursorID(wm)
 	if !ok {
 		reply.err = errors.New("malformed OP_REPLY: missing cursorID")
 		return reply
 	}
-	reply.startingFrom, wm, ok = wiremessagex.ReadReplyStartingFrom(wm)
+	reply.startingFrom, wm, ok = wiremessage.ReadReplyStartingFrom(wm)
 	if !ok {
 		reply.err = errors.New("malformed OP_REPLY: missing startingFrom")
 		return reply
 	}
-	reply.numReturned, wm, ok = wiremessagex.ReadReplyNumberReturned(wm)
+	reply.numReturned, wm, ok = wiremessage.ReadReplyNumberReturned(wm)
 	if !ok {
 		reply.err = errors.New("malformed OP_REPLY: missing numberReturned")
 		return reply
 	}
-	reply.documents, wm, ok = wiremessagex.ReadReplyDocuments(wm)
+	reply.documents, wm, ok = wiremessage.ReadReplyDocuments(wm)
 	if !ok {
 		reply.err = errors.New("malformed OP_REPLY: could not read documents from reply")
 	}
@@ -1079,7 +1078,7 @@ func (Operation) decodeOpReply(wm []byte, includesHeader bool) opReply {
 
 func (op Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
 	wmLength := len(wm)
-	length, _, _, opcode, wm, ok := wiremessagex.ReadHeader(wm)
+	length, _, _, opcode, wm, ok := wiremessage.ReadHeader(wm)
 	if !ok || int(length) > wmLength {
 		return nil, errors.New("malformed wire message: insufficient bytes")
 	}
@@ -1105,7 +1104,7 @@ func (op Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
 
 		return rdr, extractError(rdr)
 	case wiremessage.OpMsg:
-		_, wm, ok = wiremessagex.ReadMsgFlags(wm)
+		_, wm, ok = wiremessage.ReadMsgFlags(wm)
 		if !ok {
 			return nil, errors.New("malformed wire message: missing OP_MSG flags")
 		}
@@ -1113,20 +1112,20 @@ func (op Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
 		var res bsoncore.Document
 		for len(wm) > 0 {
 			var stype wiremessage.SectionType
-			stype, wm, ok = wiremessagex.ReadMsgSectionType(wm)
+			stype, wm, ok = wiremessage.ReadMsgSectionType(wm)
 			if !ok {
 				return nil, errors.New("malformed wire message: insuffienct bytes to read section type")
 			}
 
 			switch stype {
 			case wiremessage.SingleDocument:
-				res, wm, ok = wiremessagex.ReadMsgSectionSingleDocument(wm)
+				res, wm, ok = wiremessage.ReadMsgSectionSingleDocument(wm)
 				if !ok {
 					return nil, errors.New("malformed wire message: insufficient bytes to read single document")
 				}
 			case wiremessage.DocumentSequence:
 				// TODO(GODRIVER-617): Implement document sequence returns.
-				_, _, wm, ok = wiremessagex.ReadMsgSectionDocumentSequence(wm)
+				_, _, wm, ok = wiremessage.ReadMsgSectionDocumentSequence(wm)
 				if !ok {
 					return nil, errors.New("malformed wire message: insufficient bytes to read document sequence")
 				}

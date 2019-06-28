@@ -32,9 +32,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 const transactionTestsDir = "../data/transactions"
@@ -352,19 +353,9 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 }
 
 func killSessions(t *testing.T, client *Client) {
-	s, err := client.topology.SelectServerLegacy(ctx, description.WriteSelector())
+	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendArrayElement(nil, "killAllSessions", bsoncore.BuildArray(nil)))).
+		Database("admin").ServerSelector(description.WriteSelector()).Deployment(client.topology).Execute(context.Background())
 	require.NoError(t, err)
-
-	vals := make(bsonx.Arr, 0, 0)
-	cmd := command.Write{
-		DB:      "admin",
-		Command: bsonx.Doc{{"killAllSessions", bsonx.Array(vals)}},
-	}
-	conn, err := s.ConnectionLegacy(ctx)
-	require.NoError(t, err)
-	defer testhelpers.RequireNoErrorOnClose(t, conn)
-	// ignore the error because command kills its own implicit session
-	_, _ = cmd.RoundTrip(context.Background(), s.SelectedDescription(), conn)
 }
 
 func disableFailpoints(t *testing.T, failPointNames *[]string) {

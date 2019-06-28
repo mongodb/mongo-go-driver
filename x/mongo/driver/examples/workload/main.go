@@ -9,26 +9,23 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
-
-	"go.mongodb.org/mongo-driver/bson"
-
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 var concurrency = flag.Int("concurrency", 24, "how much concurrency should be used")
@@ -43,10 +40,20 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 
-	c, err := topology.New()
-
+	cs, err := connstring.Parse("mongodb://localhost:27017/")
+	if err != nil {
+		log.Fatalf("unable to parse connection string: %v", err)
+	}
+	c, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
+		return cs
+	}))
 	if err != nil {
 		log.Fatalf("unable to create topology: %s", err)
+	}
+
+	err = c.Connect()
+	if err != nil {
+		log.Fatalf("unable to connect topology: %s", err)
 	}
 
 	done := make(chan struct{})
@@ -77,48 +84,37 @@ func main() {
 
 func prep(ctx context.Context, c *topology.Topology) error {
 
-	var docs = make([]bsonx.Doc, 0, 1000)
+	var docs = make([]bsoncore.Document, 0, 1000)
 	for i := 0; i < 1000; i++ {
-		docs = append(docs, bsonx.Doc{{"_id", bsonx.Int32(int32(i))}})
+		docs = append(docs, bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", int32(i))))
 	}
 
-	ns := command.ParseNamespace(*ns)
-
-	s, err := c.SelectServerLegacy(ctx, description.WriteSelector())
+	collection, database, err := parseNamespace(*ns)
 	if err != nil {
 		return err
 	}
 
-	conn, err := s.ConnectionLegacy(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	deletes := []bsonx.Doc{{
-		{"q", bsonx.Document(bsonx.Doc{})},
-		{"limit", bsonx.Int32(0)},
-	}}
-	_, err = (&command.Delete{WriteConcern: nil, NS: ns, Deletes: deletes}).RoundTrip(ctx, s.Description(), conn)
-	if err != nil {
-		return err
-	}
-
-	_, err = (&command.Insert{
-		NS:   ns,
-		Docs: docs,
-	}).RoundTrip(
-		ctx,
-		s.Description(),
-		conn,
+	deletes := bsoncore.BuildDocument(nil,
+		bsoncore.BuildDocumentElement(nil, "q"),
+		bsoncore.AppendInt32Element(nil, "limit", 0),
 	)
+	err = operation.NewDelete(deletes).Collection(collection).Database(database).
+		Deployment(c).ServerSelector(description.WriteSelector()).Execute(ctx)
+	if err != nil {
+		return err
+	}
 
+	err = operation.NewInsert(docs...).Collection(collection).Database(database).Deployment(c).
+		ServerSelector(description.WriteSelector()).Execute(ctx)
 	return err
 }
 
 func work(ctx context.Context, idx int, c *topology.Topology) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	ns := command.ParseNamespace(*ns)
+	collection, database, err := parseNamespace(*ns)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse namespace: %v", err))
+	}
 	rp := readpref.Nearest()
 	for {
 		select {
@@ -127,32 +123,24 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 
 			limit := r.Intn(999) + 1
 
-			pipeline := bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(int32(limit))}})}
+			pipeline := bsoncore.BuildArray(nil, bsoncore.BuildDocumentValue(bsoncore.AppendInt32Element(nil, "$limit", int32(limit))))
 
-			id, _ := uuid.New()
-			aggOpts := options.Aggregate().SetBatchSize(200)
-			cmd := command.Aggregate{
-				NS:       ns,
-				Pipeline: pipeline,
-				ReadPref: rp,
-			}
-			cursor, err := driverlegacy.Aggregate(
-				ctx, cmd, c,
-				description.ReadPrefSelector(rp),
-				description.ReadPrefSelector(rp),
-				id,
-				&session.Pool{},
-				bson.DefaultRegistry,
-				aggOpts,
-			)
+			op := operation.NewAggregate(pipeline).Collection(collection).Database(database).Deployment(c).BatchSize(200).
+				ServerSelector(description.ReadPrefSelector(rp))
+			err := op.Execute(ctx)
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue
 			}
 
+			cursor, err := op.Result(driver.CursorOptions{BatchSize: 200})
+			if err != nil {
+				log.Printf("%d-failed to create cursor: %v", idx, err)
+				continue
+			}
 			count := 0
 			for cursor.Next(ctx) {
-				count++
+				count += cursor.Batch().DocumentCount()
 			}
 			if cursor.Err() != nil {
 				_ = cursor.Close(ctx)
@@ -164,4 +152,12 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 			log.Printf("%d-iterated %d docs", idx, count)
 		}
 	}
+}
+
+func parseNamespace(ns string) (collection, database string, err error) {
+	idx := strings.Index(ns, ".")
+	if idx == -1 {
+		return "", "", fmt.Errorf("invalid namespace: %s", ns)
+	}
+	return ns[idx+1:], ns[:idx], nil
 }

@@ -112,6 +112,26 @@ func (wce WriteConcernError) Retryable() bool {
 	return false
 }
 
+// NodeIsRecovering returns true if this error is a node is recovering error.
+func (wce WriteConcernError) NodeIsRecovering() bool {
+	for _, code := range nodeIsRecoveringCodes {
+		if wce.Code == int64(code) {
+			return true
+		}
+	}
+	return strings.Contains(wce.Message, "node is recovering")
+}
+
+// NotMaster returns true if this error is a not master error.
+func (wce WriteConcernError) NotMaster() bool {
+	for _, code := range notMasterCodes {
+		if wce.Code == int64(code) {
+			return true
+		}
+	}
+	return strings.Contains(wce.Message, "not master")
+}
+
 // WriteError is a non-write concern failure that occurred as a result of a write
 // operation.
 type WriteError struct {

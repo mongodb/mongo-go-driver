@@ -154,11 +154,9 @@ func (op Operation) CommandMethod() (string, error) {
 			return "", fmt.Errorf("unknown request field type %s", field.Type)
 		}
 		var rf struct {
-			ShortName              string
-			Name                   string
-			ParameterName          string
-			MinWireVersion         int
-			MinWireVersionRequired int
+			ShortName     string
+			Name          string
+			ParameterName string
 		}
 		rf.ShortName = op.ShortName()
 		rf.Name = op.Command.Parameter
@@ -175,7 +173,7 @@ func (op Operation) CommandMethod() (string, error) {
 	sort.Strings(names)
 	for _, name := range names {
 		field := op.Request[name]
-		if name == op.Properties.Batches || field.Skip {
+		if name == op.Properties.Batches {
 			continue
 		}
 		var tmpl *template.Template
@@ -540,7 +538,6 @@ type RequestField struct {
 	Slice                  bool
 	Constructor            bool
 	Variadic               bool
-	Skip                   bool
 	Documentation          string
 	MinWireVersion         int
 	MinWireVersionRequired int
