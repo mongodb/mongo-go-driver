@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 // Collection performs operations on a given collection.
@@ -156,11 +155,6 @@ func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, 
 // Name provides access to the name of the collection.
 func (coll *Collection) Name() string {
 	return coll.name
-}
-
-// namespace returns the namespace of the collection.
-func (coll *Collection) namespace() command.Namespace {
-	return command.NewNamespace(coll.db.name, coll.name)
 }
 
 // Database provides access to the database that contains the collection.
@@ -307,7 +301,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts...)
 
-	rr, err := processWriteError(nil, nil, err)
+	rr, err := processWriteError(err)
 	if rr&rrOne == 0 {
 		return nil, err
 	}
@@ -323,7 +317,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	result, err := coll.insert(ctx, documents, opts...)
-	rr, err := processWriteError(nil, nil, err)
+	rr, err := processWriteError(err)
 	if rr&rrMany == 0 {
 		return nil, err
 	}
@@ -413,7 +407,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		retryMode = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retryMode)
-	rr, err := processWriteError(nil, nil, op.Execute(ctx))
+	rr, err := processWriteError(op.Execute(ctx))
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
@@ -506,7 +500,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter, update bson
 	op = op.Retry(retry)
 	err = op.Execute(ctx)
 
-	rr, err := processWriteError(nil, nil, err)
+	rr, err := processWriteError(err)
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
@@ -1166,7 +1160,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		Deployment(coll.client.topology).
 		Retry(retry)
 
-	_, err = processWriteError(nil, nil, op.Execute(ctx))
+	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
 		return &SingleResult{err: err}
 	}

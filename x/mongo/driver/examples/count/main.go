@@ -13,15 +13,11 @@ import (
 
 	"flag"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 var uri = flag.String("uri", "mongodb://localhost:27017", "the mongodb uri to use")
@@ -57,27 +53,12 @@ func main() {
 		dbname = "test"
 	}
 
-	id, _ := uuid.New()
-	cmd := command.Read{DB: dbname, Command: bsonx.Doc{{"count", bsonx.String(*col)}}}
-	rdr, err := driverlegacy.Read(
-		ctx, cmd, t,
-		description.WriteSelector(),
-		id,
-		&session.Pool{},
-	)
+	op := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "count", *col))).
+		Deployment(t).Database(dbname).ServerSelector(description.WriteSelector())
+	err = op.Execute(ctx)
 	if err != nil {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}
-
-	doc := bsonx.Doc{}
-	err = doc.UnmarshalBSON(rdr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	result, err := bson.MarshalExtJSON(doc, true, false)
-	if err != nil {
-		log.Fatalf("failed to convert BSON to extended JSON: %s", err)
-	}
-	log.Println(string(result))
+	rdr := op.Result()
+	log.Println(rdr)
 }

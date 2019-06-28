@@ -17,11 +17,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/network/command"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 const convenientTransactionTestsDir = "../data/convenient-transactions"
@@ -149,12 +149,12 @@ func TestConvenientTransactions(t *testing.T) {
 			require.NoError(t, err)
 			defer sess.EndSession(context.Background())
 			_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
-				return nil, CommandError{Name: "test Error", Labels: []string{command.TransientTransactionError}}
+				return nil, CommandError{Name: "test Error", Labels: []string{driver.TransientTransactionError}}
 			})
 			require.Error(t, err)
 			cmdErr, ok := err.(CommandError)
 			require.True(t, ok)
-			require.True(t, cmdErr.HasErrorLabel(command.TransientTransactionError))
+			require.True(t, cmdErr.HasErrorLabel(driver.TransientTransactionError))
 		})
 		t.Run("UnknownTransactionCommitResult", func(t *testing.T) {
 			//set failpoint
@@ -179,7 +179,7 @@ func TestConvenientTransactions(t *testing.T) {
 			require.Error(t, err)
 			cmdErr, ok := err.(CommandError)
 			require.True(t, ok)
-			require.True(t, cmdErr.HasErrorLabel(command.UnknownTransactionCommitResult))
+			require.True(t, cmdErr.HasErrorLabel(driver.UnknownTransactionCommitResult))
 		})
 		t.Run("CommitWithTransientTransactionError", func(t *testing.T) {
 			//set failpoint
@@ -205,7 +205,7 @@ func TestConvenientTransactions(t *testing.T) {
 			require.Error(t, err)
 			cmdErr, ok := err.(CommandError)
 			require.True(t, ok)
-			require.True(t, cmdErr.HasErrorLabel(command.TransientTransactionError))
+			require.True(t, cmdErr.HasErrorLabel(driver.TransientTransactionError))
 		})
 	})
 }

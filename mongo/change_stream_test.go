@@ -17,13 +17,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 var collectionStartingDoc = bsonx.Doc{
@@ -57,7 +56,7 @@ func (ebc *errorBatchCursor) Server() driver.Server {
 }
 
 func (ebc *errorBatchCursor) Err() error {
-	return command.Error{
+	return driver.Error{
 		Code: ebc.errCode,
 	}
 }

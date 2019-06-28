@@ -28,8 +28,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 var impossibleWriteConcern = writeconcern.New(writeconcern.W(50), writeconcern.WTimeout(time.Second))
@@ -234,27 +232,6 @@ func TestCollection_ReplaceTopologyError(t *testing.T) {
 
 	result = coll.FindOneAndUpdate(context.Background(), doc1, update)
 	require.Equal(t, result.err, ErrClientDisconnected)
-}
-
-func TestCollection_namespace(t *testing.T) {
-	dbName := "foo"
-	collName := "bar"
-
-	coll := createTestCollection(t, &dbName, &collName)
-	namespace := coll.namespace()
-	require.Equal(t, namespace.FullName(), fmt.Sprintf("%s.%s", dbName, collName))
-
-}
-
-func TestCollection_name_accessor(t *testing.T) {
-	dbName := "foo"
-	collName := "bar"
-
-	coll := createTestCollection(t, &dbName, &collName)
-	namespace := coll.namespace()
-	require.Equal(t, coll.Name(), collName)
-	require.Equal(t, coll.Name(), namespace.Collection)
-
 }
 
 func TestCollection_database_accessor(t *testing.T) {
@@ -1731,26 +1708,6 @@ func TestCollection_Find_Error(t *testing.T) {
 		cursor, err := coll.Find(context.Background(), bsonx.Doc{{"$foo", bsonx.Int32(1)}})
 		require.NotNil(t, err, "expected error for invalid identifier, got nil")
 		require.Nil(t, cursor, "expected nil cursor for invalid identifier, got non-nil")
-	})
-
-	t.Run("TestKillCursor", func(t *testing.T) {
-		coll := createTestCollection(t, nil, nil)
-		initCollection(t, coll)
-		c, err := coll.Find(context.Background(), bsonx.Doc{}, options.Find().SetBatchSize(2))
-		require.Nil(t, err, "error running find: %s", err)
-
-		// exhaust first batch
-		require.True(t, c.Next(context.Background()))
-		require.True(t, c.Next(context.Background()))
-
-		_, err = driverlegacy.KillCursors(ctx, command.Namespace{
-			DB:         coll.db.name,
-			Collection: coll.name,
-		}, c.bc.Server(), c.ID())
-		require.NoError(t, err)
-		require.False(t, c.Next(context.Background()))
-		require.NotNil(t, c.Err())
-		_ = c.Close(context.Background())
 	})
 
 	t.Run("Test killCursor is killed server side", func(t *testing.T) {

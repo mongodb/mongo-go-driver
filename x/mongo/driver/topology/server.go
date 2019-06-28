@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,15 +21,11 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
-	"go.mongodb.org/mongo-driver/x/network/result"
 	"golang.org/x/sync/semaphore"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
 const connectionSemaphoreSize = math.MaxInt64
-
-var isMasterOrRecoveringCodes = []int32{11600, 11602, 10107, 13435, 13436, 189, 91}
 
 // ErrServerClosed occurs when an attempt to get a connection is made after
 // the server has been closed.
@@ -230,38 +225,6 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 	return &Connection{connection: conn, s: s}, nil
 }
 
-// ConnectionLegacy gets a connection to the server.
-func (s *Server) ConnectionLegacy(ctx context.Context) (connectionlegacy.Connection, error) {
-	if atomic.LoadInt32(&s.connectionstate) != connected {
-		return nil, ErrServerClosed
-	}
-
-	err := s.sem.Acquire(ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := s.pool.get(ctx)
-	if err != nil {
-		s.sem.Release(1)
-		connerr, ok := err.(ConnectionError)
-		if !ok {
-			return nil, err
-		}
-
-		// Since the only kind of ConnectionError we receive from pool.get will be an initialization
-		// error, we should set the description.Server appropriately.
-		desc := description.Server{
-			Kind:      description.Unknown,
-			LastError: connerr.Wrapped,
-		}
-		s.updateDescription(desc, false)
-
-		return nil, err
-	}
-	return newConnectionLegacy(conn, s, s.cfg.connectionOpts...)
-}
-
 // Description returns a description of the server as of the last heartbeat.
 func (s *Server) Description() description.Server {
 	return s.desc.Load().(description.Server)
@@ -328,6 +291,16 @@ func (s *Server) ProcessError(err error) {
 		s.pool.drain()
 		return
 	}
+	if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
+		desc := s.Description()
+		desc.Kind = description.Unknown
+		desc.LastError = err
+		// updates description to unknown
+		s.updateDescription(desc, false)
+		s.RequestImmediateCheck()
+		s.pool.drain()
+		return
+	}
 
 	ne, ok := err.(ConnectionError)
 	if !ok {
@@ -346,32 +319,6 @@ func (s *Server) ProcessError(err error) {
 	desc.LastError = err
 	// updates description to unknown
 	s.updateDescription(desc, false)
-}
-
-// ProcessWriteConcernError checks if a WriteConcernError is an isNotMaster or
-// isRecovering error, and if so updates the server accordingly.
-func (s *Server) ProcessWriteConcernError(err *result.WriteConcernError) {
-	if err == nil || !wceIsNotMasterOrRecovering(err) {
-		return
-	}
-	desc := s.Description()
-	desc.Kind = description.Unknown
-	desc.LastError = err
-	// updates description to unknown
-	s.updateDescription(desc, false)
-	s.RequestImmediateCheck()
-}
-
-func wceIsNotMasterOrRecovering(wce *result.WriteConcernError) bool {
-	for _, code := range isMasterOrRecoveringCodes {
-		if int32(wce.Code) == code {
-			return true
-		}
-	}
-	if strings.Contains(wce.ErrMsg, "not master") || strings.Contains(wce.ErrMsg, "node is recovering") {
-		return true
-	}
-	return false
 }
 
 // update handles performing heartbeats and updating any subscribers of the

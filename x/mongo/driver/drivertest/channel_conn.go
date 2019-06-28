@@ -13,8 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	wiremessagex "go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // ChannelConn implements the driver.Connection interface by reading and writing wire messages
@@ -68,11 +67,11 @@ func (c *ChannelConn) Address() address.Address { return address.Address("0.0.0.
 // MakeReply creates an OP_REPLY wiremessage from a BSON document
 func MakeReply(doc bsoncore.Document) []byte {
 	var dst []byte
-	idx, dst := wiremessagex.AppendHeaderStart(dst, 10, 9, wiremessage.OpReply)
-	dst = wiremessagex.AppendReplyFlags(dst, 0)
-	dst = wiremessagex.AppendReplyCursorID(dst, 0)
-	dst = wiremessagex.AppendReplyStartingFrom(dst, 0)
-	dst = wiremessagex.AppendReplyNumberReturned(dst, 1)
+	idx, dst := wiremessage.AppendHeaderStart(dst, 10, 9, wiremessage.OpReply)
+	dst = wiremessage.AppendReplyFlags(dst, 0)
+	dst = wiremessage.AppendReplyCursorID(dst, 0)
+	dst = wiremessage.AppendReplyStartingFrom(dst, 0)
+	dst = wiremessage.AppendReplyNumberReturned(dst, 1)
 	dst = append(dst, doc...)
 	return bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
 }
