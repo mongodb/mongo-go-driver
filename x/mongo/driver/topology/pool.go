@@ -183,9 +183,9 @@ func (p *pool) close(c *connection) error {
 	p.Lock()
 	delete(p.opened, c.poolID)
 	nc := c.nc
-	c.nc = nil
+	state := atomic.SwapInt32(&c.connected, disconnected)
 	p.Unlock()
-	if nc == nil {
+	if state == disconnected {
 		return nil // We're closing an already closed connection.
 	}
 	err := nc.Close()
