@@ -14,8 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/result"
 )
 
 // ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
@@ -37,9 +35,6 @@ var ErrEmptySlice = errors.New("must provide at least one element in input slice
 func replaceErrors(err error) error {
 	if err == topology.ErrTopologyClosed {
 		return ErrClientDisconnected
-	}
-	if ce, ok := err.(command.Error); ok {
-		return CommandError{Code: ce.Code, Message: ce.Message, Labels: ce.Labels, Name: ce.Name}
 	}
 	if de, ok := err.(driver.Error); ok {
 		return CommandError{Code: de.Code, Message: de.Message, Labels: de.Labels, Name: de.Name}
@@ -118,14 +113,6 @@ func (we WriteErrors) Error() string {
 	return buf.String()
 }
 
-func writeErrorsFromResult(rwes []result.WriteError) WriteErrors {
-	wes := make(WriteErrors, 0, len(rwes))
-	for _, err := range rwes {
-		wes = append(wes, WriteError{Index: err.Index, Code: err.Code, Message: err.ErrMsg})
-	}
-	return wes
-}
-
 func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
 	wes := make(WriteErrors, 0, len(errs))
 	for _, err := range errs {
@@ -162,14 +149,6 @@ func (mwe WriteException) Error() string {
 	fmt.Fprintf(&buf, "{%s}, ", mwe.WriteErrors)
 	fmt.Fprintf(&buf, "{%s}]", mwe.WriteConcernError)
 	return buf.String()
-}
-
-func convertWriteConcernError(wce *result.WriteConcernError) *WriteConcernError {
-	if wce == nil {
-		return nil
-	}
-
-	return &WriteConcernError{Name: wce.Name, Code: wce.Code, Message: wce.ErrMsg, Details: wce.ErrInfo}
 }
 
 func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcernError {
@@ -225,9 +204,9 @@ const (
 // This function will wrap the errors from other packages and return them as errors from this package.
 //
 // WriteConcernError will be returned over WriteErrors if both are present.
-func processWriteError(wce *result.WriteConcernError, wes []result.WriteError, err error) (returnResult, error) {
+func processWriteError(err error) (returnResult, error) {
 	switch {
-	case err == command.ErrUnacknowledgedWrite, err == driver.ErrUnacknowledgedWrite:
+	case err == driver.ErrUnacknowledgedWrite:
 		return rrAll, ErrUnacknowledgedWrite
 	case err != nil:
 		switch tt := err.(type) {
@@ -238,11 +217,6 @@ func processWriteError(wce *result.WriteConcernError, wes []result.WriteError, e
 			}
 		default:
 			return rrNone, replaceErrors(err)
-		}
-	case wce != nil || len(wes) > 0:
-		return rrMany, WriteException{
-			WriteConcernError: convertWriteConcernError(wce),
-			WriteErrors:       writeErrorsFromResult(wes),
 		}
 	default:
 		return rrAll, nil

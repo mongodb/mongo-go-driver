@@ -223,18 +223,9 @@ func AppendDocumentElement(dst []byte, key string, doc []byte) []byte {
 	return AppendDocument(AppendHeader(dst, bsontype.EmbeddedDocument, key), doc)
 }
 
-// BuildDocument will create a document with the given elements and will append it to dst.
-func BuildDocument(dst []byte, elems []byte) []byte {
-	idx, dst := ReserveLength(dst)
-	dst = append(dst, elems...)
-	dst = append(dst, 0x00)
-	dst = UpdateLength(dst, idx, int32(len(dst[idx:])))
-	return dst
-}
-
-// BuildDocumentFromElements will create a document with the given slice of elements and will append
+// BuildDocument will create a document with the given slice of elements and will append
 // it to dst and return the extended buffer.
-func BuildDocumentFromElements(dst []byte, elems ...[]byte) []byte {
+func BuildDocument(dst []byte, elems ...[]byte) []byte {
 	idx, dst := ReserveLength(dst)
 	for _, elem := range elems {
 		dst = append(dst, elem...)
@@ -243,6 +234,20 @@ func BuildDocumentFromElements(dst []byte, elems ...[]byte) []byte {
 	dst = UpdateLength(dst, idx, int32(len(dst[idx:])))
 	return dst
 }
+
+// BuildDocumentValue creates an Embedded Document value from the given elements.
+func BuildDocumentValue(elems ...[]byte) Value {
+	return Value{Type: bsontype.EmbeddedDocument, Data: BuildDocument(nil, elems...)}
+}
+
+// BuildDocumentElement will append a BSON embedded document elemnt using key and the provided
+// elements and return the extended buffer.
+func BuildDocumentElement(dst []byte, key string, elems ...[]byte) []byte {
+	return BuildDocument(AppendHeader(dst, bsontype.EmbeddedDocument, key), elems...)
+}
+
+// BuildDocumentFromElements is an alaias for the BuildDocument function.
+var BuildDocumentFromElements = BuildDocument
 
 // ReadDocument will read a document from src. If there are not enough bytes it
 // will return false.

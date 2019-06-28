@@ -13,8 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	. "go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	wiremessagex "go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 func TestCreateAuthenticator(t *testing.T) {
@@ -48,30 +47,30 @@ func TestCreateAuthenticator(t *testing.T) {
 }
 
 func compareResponses(t *testing.T, wm []byte, expectedPayload bsoncore.Document, dbName string) {
-	_, _, _, opcode, wm, ok := wiremessagex.ReadHeader(wm)
+	_, _, _, opcode, wm, ok := wiremessage.ReadHeader(wm)
 	if !ok {
 		t.Fatalf("wiremessage is too short to unmarshal")
 	}
 	var actualPayload bsoncore.Document
 	switch opcode {
 	case wiremessage.OpQuery:
-		_, wm, ok := wiremessagex.ReadQueryFlags(wm)
+		_, wm, ok := wiremessage.ReadQueryFlags(wm)
 		if !ok {
 			t.Fatalf("wiremessage is too short to unmarshal")
 		}
-		_, wm, ok = wiremessagex.ReadQueryFullCollectionName(wm)
+		_, wm, ok = wiremessage.ReadQueryFullCollectionName(wm)
 		if !ok {
 			t.Fatalf("wiremessage is too short to unmarshal")
 		}
-		_, wm, ok = wiremessagex.ReadQueryNumberToSkip(wm)
+		_, wm, ok = wiremessage.ReadQueryNumberToSkip(wm)
 		if !ok {
 			t.Fatalf("wiremessage is too short to unmarshal")
 		}
-		_, wm, ok = wiremessagex.ReadQueryNumberToReturn(wm)
+		_, wm, ok = wiremessage.ReadQueryNumberToReturn(wm)
 		if !ok {
 			t.Fatalf("wiremessage is too short to unmarshal")
 		}
-		actualPayload, _, ok = wiremessagex.ReadQueryQuery(wm)
+		actualPayload, _, ok = wiremessage.ReadQueryQuery(wm)
 		if !ok {
 			t.Fatalf("wiremessage is too short to unmarshal")
 		}
@@ -92,27 +91,27 @@ func compareResponses(t *testing.T, wm []byte, expectedPayload bsoncore.Document
 		}
 		expectedPayload = bsoncore.BuildDocumentFromElements(nil, bslc...)
 
-		_, wm, ok := wiremessagex.ReadMsgFlags(wm)
+		_, wm, ok := wiremessage.ReadMsgFlags(wm)
 		if !ok {
 			t.Fatalf("wiremessage is too short to unmarshal")
 		}
 	loop:
 		for {
 			var stype wiremessage.SectionType
-			stype, wm, ok = wiremessagex.ReadMsgSectionType(wm)
+			stype, wm, ok = wiremessage.ReadMsgSectionType(wm)
 			if !ok {
 				t.Fatalf("wiremessage is too short to unmarshal")
 				break
 			}
 			switch stype {
 			case wiremessage.DocumentSequence:
-				_, _, wm, ok = wiremessagex.ReadMsgSectionDocumentSequence(wm)
+				_, _, wm, ok = wiremessage.ReadMsgSectionDocumentSequence(wm)
 				if !ok {
 					t.Fatalf("wiremessage is too short to unmarshal")
 					break loop
 				}
 			case wiremessage.SingleDocument:
-				actualPayload, wm, ok = wiremessagex.ReadMsgSectionSingleDocument(wm)
+				actualPayload, wm, ok = wiremessage.ReadMsgSectionSingleDocument(wm)
 				if !ok {
 					t.Fatalf("wiremessage is too short to unmarshal")
 				}
