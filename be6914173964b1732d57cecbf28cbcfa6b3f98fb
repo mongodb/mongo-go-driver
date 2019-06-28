@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9538bb37_637e5873",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-06-28T21:47:25Z",
+      "side": 1,
+      "message": "nit: instead this could be\nstate :\u003d atomic.SwapInt32(\u0026c.connected, disconnected)",
+      "range": {
+        "startLine": 186,
+        "startChar": 1,
+        "endLine": 187,
+        "endChar": 46
+      },
+      "revId": "be6914173964b1732d57cecbf28cbcfa6b3f98fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
