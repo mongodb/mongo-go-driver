@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 const testTimeout = 2 * time.Second
@@ -281,7 +281,7 @@ func TestServerSelection(t *testing.T) {
 		serv, err := topo.FindServer(desc.Servers[0])
 		noerr(t, err)
 		atomic.StoreInt32(&serv.connectionstate, connected)
-		serv.ProcessError(command.Error{Message: "not master"})
+		serv.ProcessError(driver.Error{Message: "not master"})
 
 		resp := make(chan []description.Server)
 

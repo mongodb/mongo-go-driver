@@ -26,7 +26,7 @@ doc:
 
 .PHONY: build-examples
 build-examples:
-	go build $(BUILD_TAGS) ./examples/... ./x/network/examples/...
+	go build $(BUILD_TAGS) ./examples/... ./x/mongo/driver/examples/...
 
 .PHONY: build
 build:

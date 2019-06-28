@@ -1,21 +1,15 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
 package integration
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"testing"
 
-	"context"
-	"os"
-
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -59,7 +53,9 @@ func TestSCRAM(t *testing.T) {
 	wc := writeconcern.New(writeconcern.WMajority())
 	collOne := testutil.ColName(t)
 	testutil.DropCollection(t, testutil.DBName(t), collOne)
-	testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bsonx.Doc{{"name", bsonx.String("scram_test")}})
+	testutil.InsertDocs(t, testutil.DBName(t),
+		collOne, wc, bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "name", "scram_test")),
+	)
 
 	// Test step 1: Create users for test cases
 	err = createScramUsers(t, server.Server, testUsers)
@@ -140,7 +136,7 @@ func runScramAuthTest(t *testing.T, cs connstring.ConnString) error {
 	ss, err := topology.SelectServerLegacy(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
-	cmd := bsonx.Doc{{"dbstats", bsonx.Int32(1)}}
+	cmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dbstats", 1))
 	_, err = testutil.RunCommand(t, ss.Server, testutil.DBName(t), cmd)
 	return err
 }
@@ -148,23 +144,21 @@ func runScramAuthTest(t *testing.T, cs connstring.ConnString) error {
 func createScramUsers(t *testing.T, s *topology.Server, cases []scramTestCase) error {
 	db := testutil.DBName(t)
 	for _, c := range cases {
-		mechsAsBSON := bsonx.Arr{}
+		var values []bsoncore.Value
 		for _, v := range c.mechanisms {
-			mechsAsBSON = append(mechsAsBSON, bsonx.String(v))
+			values = append(values, bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, v)})
 		}
-		newUserCmd := bsonx.Doc{
-			{"createUser", bsonx.String(c.username)},
-			{"pwd", bsonx.String(c.password)},
-			{"roles", bsonx.Array(bsonx.Arr{
-				bsonx.Document(
-					bsonx.Doc{
-						{"role", bsonx.String("readWrite")},
-						{"db", bsonx.String(db)},
-					},
-				),
-			})},
-			{"mechanisms", bsonx.Array(mechsAsBSON)},
-		}
+		newUserCmd := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendStringElement(nil, "createUser", c.username),
+			bsoncore.AppendStringElement(nil, "pwd", c.password),
+			bsoncore.AppendArrayElement(nil, "roles", bsoncore.BuildArray(nil,
+				bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: bsoncore.BuildDocumentFromElements(nil,
+					bsoncore.AppendStringElement(nil, "role", "readWrite"),
+					bsoncore.AppendStringElement(nil, "db", "db"),
+				)},
+			)),
+			bsoncore.AppendArrayElement(nil, "mechanisms", bsoncore.BuildArray(nil, values...)),
+		)
 		_, err := testutil.RunCommand(t, s, db, newUserCmd)
 		if err != nil {
 			return fmt.Errorf("Couldn't create user '%s' on db '%s': %v", c.username, testutil.DBName(t), err)
