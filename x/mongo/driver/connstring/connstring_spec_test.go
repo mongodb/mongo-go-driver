@@ -33,6 +33,7 @@ type testCase struct {
 	Description string
 	URI         string
 	Valid       bool
+	Warning     bool
 	Hosts       []host
 	Auth        *auth
 	Options     map[string]interface{}
@@ -43,6 +44,7 @@ type testContainer struct {
 }
 
 const connstringTestsDir = "../../../../data/connection-string/"
+const urioptionsTestDir = "../../../../data/uri-options/"
 
 func (h *host) toString() string {
 	switch h.Type {
@@ -77,7 +79,7 @@ func hostsToStrings(hosts []host) []string {
 	return out
 }
 
-func runTestsInFile(t *testing.T, dirname string, filename string) {
+func runTestsInFile(t *testing.T, dirname string, filename string, warningsError bool) {
 	filepath := path.Join(dirname, filename)
 	content, err := ioutil.ReadFile(filepath)
 	require.NoError(t, err)
@@ -89,14 +91,40 @@ func runTestsInFile(t *testing.T, dirname string, filename string) {
 	filename = filename[:len(filename)-5]
 
 	for _, testCase := range container.Tests {
-		runTest(t, filename, &testCase)
+		runTest(t, filename, &testCase, warningsError)
 	}
 }
 
-func runTest(t *testing.T, filename string, test *testCase) {
+var skipTest = map[string]struct{}{
+	"tlsAllowInvalidHostnames and tlsInsecure both present (and false) raises an error":    struct{}{},
+	"tlsAllowInvalidHostnames and tlsInsecure both present (and true) raises an error":     struct{}{},
+	"tlsInsecure and tlsAllowInvalidHostnames both present (and false) raises an error":    struct{}{},
+	"tlsInsecure and tlsAllowInvalidHostnames both present (and true) raises an error":     struct{}{},
+	"tlsAllowInvalidCertificates and tlsInsecure both present (and false) raises an error": struct{}{},
+	"tlsAllowInvalidCertificates and tlsInsecure both present (and true) raises an error":  struct{}{},
+	"tlsInsecure and tlsAllowInvalidCertificates both present (and false) raises an error": struct{}{},
+	"tlsInsecure and tlsAllowInvalidCertificates both present (and true) raises an error":  struct{}{},
+	"Invalid tlsAllowInvalidHostnames causes a warning":                                    struct{}{},
+	"tlsAllowInvalidHostnames is parsed correctly":                                         struct{}{},
+	"Invalid tlsAllowInvalidCertificates causes a warning":                                 struct{}{},
+	"tlsAllowInvalidCertificates is parsed correctly":                                      struct{}{},
+	"Invalid serverSelectionTryOnce causes a warning":                                      struct{}{},
+	"Valid options specific to single-threaded drivers are parsed correctly":               struct{}{},
+}
+
+func runTest(t *testing.T, filename string, test *testCase, warningsError bool) {
 	t.Run(test.Description, func(t *testing.T) {
+		if _, skip := skipTest[test.Description]; skip {
+			t.Skip()
+		}
 		cs, err := connstring.Parse(test.URI)
-		if test.Valid {
+		// Since we don't have warnings in Go, we return warnings as errors.
+		//
+		// This is a bit unfortuante, but since we do raise warnings as errors with the newer
+		// URI options, but don't with some of the older things, we do a switch on the filename
+		// here. We are trying to not break existing user applications that have unrecognized
+		// options.
+		if test.Valid && !(test.Warning && warningsError) {
 			require.NoError(t, err)
 		} else {
 			require.Error(t, err)
@@ -135,14 +163,18 @@ func runTest(t *testing.T, filename string, test *testCase) {
 
 		_, ok = test.Options["maxpoolsize"]
 		require.Equal(t, ok, cs.MaxPoolSizeSet)
-
-		require.Equal(t, test.Auth != nil && test.Auth.Password != nil, cs.PasswordSet)
 	})
 }
 
 // Test case for all connection string spec tests.
 func TestConnStringSpec(t *testing.T) {
 	for _, file := range testhelpers.FindJSONFilesInDir(t, connstringTestsDir) {
-		runTestsInFile(t, connstringTestsDir, file)
+		runTestsInFile(t, connstringTestsDir, file, false)
+	}
+}
+
+func TestURIOptionsSpec(t *testing.T) {
+	for _, file := range testhelpers.FindJSONFilesInDir(t, urioptionsTestDir) {
+		runTestsInFile(t, urioptionsTestDir, file, true)
 	}
 }
