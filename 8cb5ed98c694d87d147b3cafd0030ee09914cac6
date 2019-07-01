@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "60fb02ce_4e6ac108",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-07-01T18:53:44Z",
+      "side": 1,
+      "message": "you don\u0027t need this bit, it\u0027s already happening earlier.",
+      "range": {
+        "startLine": 223,
+        "startChar": 2,
+        "endLine": 229,
+        "endChar": 25
+      },
+      "revId": "8cb5ed98c694d87d147b3cafd0030ee09914cac6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "820bf4cb_01c04488",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 653,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-07-01T18:53:44Z",
+      "side": 1,
+      "message": "Add the default \"unknown operation\" case here too.",
+      "revId": "8cb5ed98c694d87d147b3cafd0030ee09914cac6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a594aec6_8e12d491",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 658,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-07-01T18:53:44Z",
+      "side": 1,
+      "message": "make this sameLsidOnLastTwoCommandEvents and just return a boolean if it\u0027s true or not to executeTestRunnerOperation",
+      "range": {
+        "startLine": 658,
+        "startChar": 5,
+        "endLine": 658,
+        "endChar": 25
+      },
+      "revId": "8cb5ed98c694d87d147b3cafd0030ee09914cac6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
