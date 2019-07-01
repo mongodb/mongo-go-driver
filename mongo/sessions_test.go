@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"path"
 	"reflect"
 	"testing"
 
@@ -34,6 +35,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
+
+const sessionTestsDir = "../data/sessions"
 
 var sessionStarted *event.CommandStartedEvent
 var sessionSucceeded *event.CommandSucceededEvent
@@ -712,4 +715,10 @@ func TestSessions(t *testing.T) {
 			})
 		}
 	})
+
+	for _, file := range testhelpers.FindJSONFilesInDir(t, sessionTestsDir) {
+		t.Run(file, func(t *testing.T) {
+			runTransactionTestFile(t, path.Join(sessionTestsDir, file))
+		})
+	}
 }

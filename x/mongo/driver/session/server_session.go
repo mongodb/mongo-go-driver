@@ -22,6 +22,7 @@ type Server struct {
 	SessionID bsonx.Doc
 	TxnNumber int64
 	LastUsed  time.Time
+	Dirty     bool
 }
 
 // returns whether or not a session has expired given a timeout in minutes
@@ -57,6 +58,11 @@ func newServerSession() (*Server, error) {
 // IncrementTxnNumber increments the transaction number.
 func (ss *Server) IncrementTxnNumber() {
 	ss.TxnNumber++
+}
+
+// MarkDirty marks the session as dirty.
+func (ss *Server) MarkDirty() {
+	ss.Dirty = true
 }
 
 // UUIDSubtype is the BSON binary subtype that a UUID should be encoded as
