@@ -30,6 +30,12 @@ type Connection interface {
 	Address() address.Address
 }
 
+// Expirable represents an expirable object.
+type Expirable interface {
+	Expire() error
+	Alive() bool
+}
+
 // Compressor is an interface used to compress wire messages. If a Connection supports compression
 // it should implement this interface as well. The CompressWireMessage method will be called during
 // the execution of an operation if the wire message is allowed to be compressed.
