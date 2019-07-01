@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "be6cfa9f_a4998457",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-01T20:38:38Z",
+      "side": 1,
+      "message": "We don\u0027t really need to use a separate variable anymore.",
+      "range": {
+        "startLine": 185,
+        "startChar": 1,
+        "endLine": 185,
+        "endChar": 11
+      },
+      "revId": "7a4f0b858ddeb083f7b8affb4632dbf94db6f4bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a4ba9010_67cf35f6",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-01T20:38:38Z",
+      "side": 1,
+      "message": "I know Isabella already asked you to change this, but instead of doing a Swap just to check the state in one place, can we do an atomic.CompareAndSwapInt32? If it returns true we know that we need to call Close on the net.Conn, if it returns true then we\u0027re already disconnected and we can just return.",
+      "range": {
+        "startLine": 186,
+        "startChar": 10,
+        "endLine": 186,
+        "endChar": 54
+      },
+      "revId": "7a4f0b858ddeb083f7b8affb4632dbf94db6f4bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d423be4b_59a03363",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-01T20:38:38Z",
+      "side": 1,
+      "message": "I don\u0027t think we need to do the atomic operations while holding the pool lock.",
+      "range": {
+        "startLine": 187,
+        "startChar": 1,
+        "endLine": 187,
+        "endChar": 11
+      },
+      "revId": "7a4f0b858ddeb083f7b8affb4632dbf94db6f4bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f746538d_737c5b1f",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-01T20:38:38Z",
+      "side": 1,
+      "message": "We can call c.nc.Close here.",
+      "range": {
+        "startLine": 191,
+        "startChar": 8,
+        "endLine": 191,
+        "endChar": 18
+      },
+      "revId": "7a4f0b858ddeb083f7b8affb4632dbf94db6f4bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
