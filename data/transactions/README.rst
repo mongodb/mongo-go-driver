@@ -45,9 +45,17 @@ document are to be interpreted as described in
 **Terms**
 ~~~~~~~~~
 
-This specification uses the terms defined in the
-`Driver Sessions Specification`_ and `Retryable Writes Specification`_.
-Additional terms are defined below.
+- ``failCommands``: Required, the list of command names to fail.
+- ``closeConnection``: Boolean option, which defaults to ``false``. If
+  ``true``, the command will not be executed, the connection will be closed, and
+  the client will see a network error.
+- ``errorCode``: Integer option, which is unset by default. If set, the command
+  will not be executed and the specified command error code will be returned as
+  a command error.
+- ``writeConcernError``: A document, which is unset by default. If set, the
+  server will return this document in the "writeConcernError" field. This
+  failure response only applies to commands that support write concern and
+  happens *after* the command finishes (regardless of success or failure).
 
 Resource Management Block
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -85,14 +93,235 @@ Command Error
 A server response with ok:0. A server response with ok:1 and
 writeConcernError or writeErrors is not considered a command error.
 
-Network Error
-^^^^^^^^^^^^^
+  - ``skipReason``: Optional, string describing why this test should be
+    skipped.
 
-Any error or timeout that occurs while selecting a server or reading
-from or writing to a network socket.
+  - ``useMultipleMongoses`` (optional): If ``true``, the MongoClient for this
+    test should be initialized with multiple mongos seed addresses. If ``false``
+    or omitted, only a single mongos address should be specified. This field has
+    no effect for non-sharded topologies.
 
-Error Label
-^^^^^^^^^^^
+  - ``clientOptions``: Optional, parameters to pass to MongoClient().
+
+  - ``failPoint``: Optional, a server failpoint to enable expressed as the
+    configureFailPoint command to run on the admin database. This option and
+    ``useMultipleMongoses: true`` are mutually exclusive.
+
+  - ``sessionOptions``: Optional, parameters to pass to
+    MongoClient.startSession().
+
+  - ``operations``: Array of documents, each describing an operation to be
+    executed. Each document has the following fields:
+
+    - ``name``: The name of the operation on ``object``.
+
+    - ``object``: The name of the object to perform the operation on. Can be
+      "database", "collection", "session0", "session1", or "testRunner". See
+      the "targetedFailPoint" operation in `Special Test Operations`_.
+
+    - ``collectionOptions``: Optional, parameters to pass to the Collection()
+      used for this operation.
+
+    - ``command_name``: Present only when ``name`` is "runCommand". The name
+      of the command to run. Required for languages that are unable preserve
+      the order keys in the "command" argument when parsing JSON/YAML.
+
+    - ``arguments``: Optional, the names and values of arguments.
+
+    - ``error``: Optional. If true, the test should expect an error or
+      exception.
+
+    - ``result``: The return value from the operation, if any. This field may
+      be a single document or an array of documents in the case of a
+      multi-document read. If the operation is expected to return an error, the
+      ``result`` is a single document that has one or more of the following
+      fields:
+
+      - ``errorContains``: A substring of the expected error message.
+
+      - ``errorCodeName``: The expected "codeName" field in the server
+        error response.
+
+      - ``errorLabelsContain``: A list of error label strings that the
+        error is expected to have.
+
+      - ``errorLabelsOmit``: A list of error label strings that the
+        error is expected not to have.
+
+  - ``expectations``: Optional list of command-started events.
+
+  - ``outcome``: Document describing the return value and/or expected state of
+    the collection after the operation is executed. Contains the following
+    fields:
+
+    - ``collection``:
+
+      - ``data``: The data that should exist in the collection after the
+        operations have run.
+
+Use as Integration Tests
+========================
+
+Run a MongoDB replica set with a primary, a secondary, and an arbiter,
+**server version 4.0.0 or later**. (Including a secondary ensures that
+server selection in a transaction works properly. Including an arbiter helps
+ensure that no new bugs have been introduced related to arbiters.)
+
+A driver that implements support for sharded transactions MUST also run these
+tests against a MongoDB sharded cluster with multiple mongoses and
+**server version 4.2 or later**. Some tests require
+initializing the MongoClient with multiple mongos seeds to ensures that mongos
+transaction pinning and the recoveryToken works properly.
+
+Load each YAML (or JSON) file using a Canonical Extended JSON parser.
+
+Then for each element in ``tests``:
+
+#. If the ``skipReason`` field is present, skip this test completely.
+#. Create a MongoClient and call
+   ``client.admin.runCommand({killAllSessions: []})`` to clean up any open
+   transactions from previous test failures.
+
+   - Running ``killAllSessions`` cleans up any open transactions from
+     a previously failed test to prevent the current test from blocking.
+     It is sufficient to run this command once before starting the test suite
+     and once after each failed test.
+   - When testing against a sharded cluster run this command on ALL mongoses.
+
+#. Create a collection object from the MongoClient, using the ``database_name``
+   and ``collection_name`` fields of the YAML file.
+#. Drop the test collection, using writeConcern "majority".
+#. Execute the "create" command to recreate the collection, using writeConcern
+   "majority". (Creating the collection inside a transaction is prohibited, so
+   create it explicitly.)
+#. If the YAML file contains a ``data`` array, insert the documents in ``data``
+   into the test collection, using writeConcern "majority".
+#. When testing against a sharded cluster run a ``distinct`` command on the
+   newly created collection on all mongoses. For an explanation see,
+   `Why do tests that run distinct sometimes fail with StaleDbVersion?`_
+#. If ``failPoint`` is specified, its value is a configureFailPoint command.
+   Run the command on the admin database to enable the fail point.
+#. Create a **new** MongoClient ``client``, with Command Monitoring listeners
+   enabled. (Using a new MongoClient for each test ensures a fresh session pool
+   that hasn't executed any transactions previously, so the tests can assert
+   actual txnNumbers, starting from 1.) Pass this test's ``clientOptions`` if
+   present.
+
+   - When testing against a sharded cluster and ``useMultipleMongoses`` is
+     ``true`` the client MUST be created with multiple (valid) mongos seed
+     addreses.
+
+#. Call ``client.startSession`` twice to create ClientSession objects
+   ``session0`` and ``session1``, using the test's "sessionOptions" if they
+   are present. Save their lsids so they are available after calling
+   ``endSession``, see `Logical Session Id`.
+#. For each element in ``operations``:
+
+   - If the operation ``name`` is a special test operation type, execute it and
+     go to the next operation, otherwise proceed to the next step.
+   - Enter a "try" block or your programming language's closest equivalent.
+   - Create a Database object from the MongoClient, using the ``database_name``
+     field at the top level of the test file.
+   - Create a Collection object from the Database, using the
+     ``collection_name`` field at the top level of the test file.
+     If ``collectionOptions`` is present create the Collection object with the
+     provided options. Otherwise create the object with the default options.
+   - Execute the named method on the provided ``object``, passing the
+     arguments listed. Pass ``session0`` or ``session1`` to the method,
+     depending on which session's name is in the arguments list.
+     If ``arguments`` contains no "session", pass no explicit session to the
+     method.
+   - If the driver throws an exception / returns an error while executing this
+     series of operations, store the error message and server error code.
+   - If the operation's ``error`` field is ``true``, verify that the method
+     threw an exception or returned an error.
+   - If the result document has an "errorContains" field, verify that the
+     method threw an exception or returned an error, and that the value of the
+     "errorContains" field matches the error string. "errorContains" is a
+     substring (case-insensitive) of the actual error message.
+
+     If the result document has an "errorCodeName" field, verify that the
+     method threw a command failed exception or returned an error, and that
+     the value of the "errorCodeName" field matches the "codeName" in the
+     server error response.
+
+     If the result document has an "errorLabelsContain" field, verify that the
+     method threw an exception or returned an error. Verify that all of the
+     error labels in "errorLabelsContain" are present in the error or exception
+     using the ``hasErrorLabel`` method.
+
+     If the result document has an "errorLabelsOmit" field, verify that the
+     method threw an exception or returned an error. Verify that none of the
+     error labels in "errorLabelsOmit" are present in the error or exception
+     using the ``hasErrorLabel`` method.
+   - If the operation returns a raw command response, eg from ``runCommand``,
+     then compare only the fields present in the expected result document.
+     Otherwise, compare the method's return value to ``result`` using the same
+     logic as the CRUD Spec Tests runner.
+
+#. Call ``session0.endSession()`` and ``session1.endSession``.
+#. If the test includes a list of command-started events in ``expectations``,
+   compare them to the actual command-started events using the
+   same logic as the Command Monitoring Spec Tests runner, plus the rules in
+   the Command-Started Events instructions below.
+#. If ``failPoint`` is specified, disable the fail point to avoid spurious
+   failures in subsequent tests. The fail point may be disabled like so::
+
+    db.adminCommand({
+        configureFailPoint: <fail point name>,
+        mode: "off"
+    });
+
+#. For each element in ``outcome``:
+
+   - If ``name`` is "collection", verify that the test collection contains
+     exactly the documents in the ``data`` array. Ensure this find reads the
+     latest data by using **primary read preference** with
+     **local read concern** even when the MongoClient is configured with
+     another read preference or read concern.
+
+Special Test Operations
+```````````````````````
+
+Certain operations that appear in the "operations" array do not correspond to
+API methods but instead represent special test operations. Such operations are
+defined on the "testRunner" object and documented here:
+
+targetedFailPoint
+~~~~~~~~~~~~~~~~~
+
+The "targetedFailPoint" operation instructs the test runner to configure a fail
+point on a specific mongos. The mongos to run the ``configureFailPoint`` is
+determined by the "session" argument (either "session0" or "session1").
+The session must already be pinned to a mongos server. The "failPoint" argument
+is the ``configureFailPoint`` command to run.
+
+If a test uses ``targetedFailPoint``, disable the fail point after running
+all ``operations`` to avoid spurious failures in subsequent tests. The fail
+point may be disabled like so::
+
+    db.adminCommand({
+        configureFailPoint: <fail point name>,
+        mode: "off"
+    });
+
+Here is an example which instructs the test runner to enable the failCommand
+fail point on the mongos server which "session0" is pinned to::
+
+      # Enable the fail point only on the Mongos that session0 is pinned to.
+      - name: targetedFailPoint
+        object: testRunner
+        arguments:
+          session: session0
+          failPoint:
+            configureFailPoint: failCommand
+            mode: { times: 1 }
+            data:
+              failCommands: ["commitTransaction"]
+              closeConnection: true
+
+assertSessionPinned
+~~~~~~~~~~~~~~~~~~~
 
 Starting in MongoDB 4.0, any command error may include a top level
 "errorLabels" field. The field contains an array of string error labels.
@@ -1359,29 +1588,14 @@ In the event of retryable error, the driver can upgrade commitTransaction to use
 of committing the transaction twice. Note that users may still be vulnerable to
 rollbacks by using ``w:1`` (as with any write operation).
 
-While it's possible that the original write concern may provide greater
-guarantees than majority (e.g. ``w:3`` in a three-node replica set,
-`custom write concern`_), drivers are not in a position to make that comparison
-due to the possibility of hidden members or the opaque nature of custom write
-concerns. Excluding the edge case where `writeConcernMajorityJournalDefault`_
-has been disabled, drivers can readily trust that a majority write concern is
-durable, which achieves the primary objective of avoiding duplicate commits.
-
-.. _custom write concern: https://docs.mongodb.com/manual/tutorial/configure-replica-set-tag-sets/#tag-sets-and-custom-write-concern-behavior
-
-.. _writeConcernMajorityJournalDefault: https://docs.mongodb.com/manual/reference/replica-configuration/#rsconf.writeConcernMajorityJournalDefault
-
-**Changelog**
--------------
-
-:2019-05-13: Add support for maxTimeMS on transaction commit, MaxTimeMSExpired
-             errors on commit are labelled UnknownTransactionCommitResult.
-:2019-02-19: Add support for sharded transaction recoveryToken.
-:2019-02-19: Clarify FAQ entry for not retrying commit on wtimeout
-:2019-01-18: Apply majority write concern when retrying commitTransaction
-:2018-11-13: Add mongos pinning to support sharded transaction.
-:2018-06-18: Explicit readConcern and/or writeConcern are prohibited within
-             transactions, with a client-side error.
-:2018-06-07: The count command is not supported within transactions.
-:2018-06-14: Any retryable writes error raised by commitTransaction must be
-             labelled "UnknownTransactionCommitResult".
+:2019-05-15: Add operation level ``error`` field to assert any error.
+:2019-03-25: Add workaround for StaleDbVersion on distinct.
+:2019-03-01: Add top-level ``runOn`` field to denote server version and/or
+             topology requirements requirements for the test file. Removes the
+             ``topology`` top-level field, which is now expressed within
+             ``runOn`` elements.
+:2019-02-28: ``useMultipleMongoses: true`` and non-targeted fail points are
+             mutually exclusive.
+:2019-02-13: Modify test format for 4.2 sharded transactions, including
+             "useMultipleMongoses", ``object: testRunner``, the
+             ``targetedFailPoint`` operation, and recoveryToken assertions.
