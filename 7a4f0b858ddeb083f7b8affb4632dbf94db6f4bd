@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "f6f66bae_9d066b5e",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-01T21:11:38Z",
+      "side": 1,
+      "message": "For context, I did this before because we didn\u0027t have an atomic way to set nc \u003d nil, so I borrowed the lock from the pool to handle this. Now that the connection has an atomic state to switch on we don\u0027t need to borrow the pool\u0027s lock.",
+      "parentUuid": "99f66750_e9035a29",
+      "range": {
+        "startLine": 185,
+        "startChar": 1,
+        "endLine": 185,
+        "endChar": 11
+      },
+      "revId": "7a4f0b858ddeb083f7b8affb4632dbf94db6f4bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a4ba9010_67cf35f6",
         "filename": "x/mongo/driver/topology/pool.go",
         "patchSetId": 2
@@ -84,6 +108,30 @@
       "side": 1,
       "message": "Similar to above: because we explicitly do p.Unlock rather than a defer p.Unlock, adding a conditional return would be something like:\n\np.Lock()\nif !atomic.CompareAndSwapInt32(\u0026c.connected, connected, disconnected) {\n    p.Unlock()\n    return\n}\np.Unlock()\n\nThis doesn\u0027t seem any better to me but I can change it if you think it\u0027s worth it.",
       "parentUuid": "a4ba9010_67cf35f6",
+      "range": {
+        "startLine": 186,
+        "startChar": 10,
+        "endLine": 186,
+        "endChar": 54
+      },
+      "revId": "7a4f0b858ddeb083f7b8affb4632dbf94db6f4bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ad8c6db2_01912aa6",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-01T21:11:38Z",
+      "side": 1,
+      "message": "I don\u0027t think we need to hold the lock while we do the compare and swap and I don\u0027t think we need to hold the lock while closing the connection. Doing a compare and swap will necessitate that only 1 call to pool.close will ever actually close the connection, the rest will just return.",
+      "parentUuid": "52536448_fbeef82c",
       "range": {
         "startLine": 186,
         "startChar": 10,
