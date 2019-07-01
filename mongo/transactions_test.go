@@ -113,10 +113,12 @@ type transError struct {
 }
 
 var transStartedChan = make(chan *event.CommandStartedEvent, 100)
+var commandStarted []*event.CommandStartedEvent
 
 var transMonitor = &event.CommandMonitor{
 	Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 		transStartedChan <- cse
+		commandStarted = append(commandStarted, cse)
 	},
 }
 
@@ -200,6 +202,42 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 			}
 		}
 
+		client := createTransactionsMonitoredClient(t, transMonitor, test.ClientOptions, shardedHost)
+		addClientOptions(client, test.ClientOptions)
+
+		db := client.Database(testfile.DatabaseName)
+
+		_ = db.Collection(collName, options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))).Drop(context.Background())
+
+		err := db.RunCommand(
+			context.Background(),
+			bsonx.Doc{{"create", bsonx.String(collName)}},
+		).Err()
+		require.NoError(t, err)
+
+		// client for setup data
+		var i map[string]interface{}
+		setupClient := createTransactionsMonitoredClient(t, transMonitor, i, shardedHost)
+		setupDb := setupClient.Database(testfile.DatabaseName)
+
+		_ = setupDb.Collection(collName, options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))).Drop(context.Background())
+
+		err = setupDb.RunCommand(
+			context.Background(),
+			bsonx.Doc{{"create", bsonx.String(collName)}},
+		).Err()
+		require.NoError(t, err)
+
+		// insert data if present
+		coll := setupDb.Collection(collName)
+		docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, testfile.Data))
+		if len(docsToInsert) > 0 {
+			coll2, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
+			require.NoError(t, err)
+			_, err = coll2.InsertMany(context.Background(), docsToInsert)
+			require.NoError(t, err)
+		}
+
 		if test.FailPoint != nil {
 			doc := createFailPointDoc(t, test.FailPoint)
 			mongodbURI := testutil.ConnString(t)
@@ -219,29 +257,6 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 			failPointNames = append(failPointNames, test.FailPoint.ConfigureFailPoint)
 		}
 
-		client := createTransactionsMonitoredClient(t, transMonitor, test.ClientOptions, shardedHost)
-		addClientOptions(client, test.ClientOptions)
-
-		db := client.Database(testfile.DatabaseName)
-
-		_ = db.Collection(collName, options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))).Drop(context.Background())
-
-		err := db.RunCommand(
-			context.Background(),
-			bsonx.Doc{{"create", bsonx.String(collName)}},
-		).Err()
-		require.NoError(t, err)
-
-		// insert data if present
-		coll := db.Collection(collName)
-		docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, testfile.Data))
-		if len(docsToInsert) > 0 {
-			coll2, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
-			require.NoError(t, err)
-			_, err = coll2.InsertMany(context.Background(), docsToInsert)
-			require.NoError(t, err)
-		}
-
 		var sess0Opts *options.SessionOptions
 		var sess1Opts *options.SessionOptions
 		if test.SessionOptions != nil {
@@ -251,6 +266,8 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 				sess1Opts = getSessionOptions(test.SessionOptions["session1"].(map[string]interface{}))
 			}
 		}
+
+		commandStarted = commandStarted[:0]
 
 		session0, err := client.StartSession(sess0Opts)
 		require.NoError(t, err)
@@ -329,7 +346,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		sess0.EndSession(ctx)
 		sess1.EndSession(ctx)
 
-		checkTransactionExpectations(t, test.Expectations, lsid0, lsid1)
+		checkExpectations(t, test.Expectations, lsid0, lsid1)
 
 		disableFailpoints(t, &failPointNames)
 
@@ -480,6 +497,11 @@ func executeSessionOperation(t *testing.T, op *transOperation, sess *sessionImpl
 		return sess.AbortTransaction(ctx)
 	case "withTransaction":
 		return executeWithTransaction(t, sess, collName, db, op.Arguments)
+	case "endSession":
+		sess.EndSession(ctx)
+		return nil
+	default:
+		require.Fail(t, "unknown operation", op.Name)
 	}
 	return nil
 }
@@ -617,8 +639,26 @@ func executeTestRunnerOperation(t *testing.T, op *transOperation, sess *sessionI
 		require.NotNil(t, sess.clientSession.PinnedServer)
 	case "assertSessionUnpinned":
 		require.Nil(t, sess.clientSession.PinnedServer)
+	case "assertSessionDirty":
+		require.NotNil(t, sess.clientSession.Server)
+		require.True(t, sess.clientSession.Server.Dirty)
+	case "assertSessionNotDirty":
+		require.NotNil(t, sess.clientSession.Server)
+		require.False(t, sess.clientSession.Server.Dirty)
+	case "assertSameLsidOnLastTwoCommands":
+		event := lastTwoCommandEvents(t)
+		require.Equal(t, event[0].Command.Lookup("lsid"), event[1].Command.Lookup("lsid"))
+	case "assertDifferentLsidOnLastTwoCommands":
+		event := lastTwoCommandEvents(t)
+		require.NotEqual(t, event[0].Command.Lookup("lsid"), event[1].Command.Lookup("lsid"))
 	}
 	return "", nil
+}
+
+func lastTwoCommandEvents(t *testing.T) []*event.CommandStartedEvent {
+	res := commandStarted[len(commandStarted)-2:]
+	require.Equal(t, len(res), 2)
+	return res
 }
 
 func verifyError(t *testing.T, e error, result json.RawMessage) {
@@ -687,14 +727,12 @@ func getErrorFromResult(t *testing.T, result json.RawMessage) *transError {
 	return &expected
 }
 
-func checkTransactionExpectations(t *testing.T, expectations []*expectation, id0 bsonx.Doc, id1 bsonx.Doc) {
-	for _, expectation := range expectations {
-		var evt *event.CommandStartedEvent
-		select {
-		case evt = <-transStartedChan:
-		default:
+func checkExpectations(t *testing.T, expectations []*expectation, id0 bsonx.Doc, id1 bsonx.Doc) {
+	for i, expectation := range expectations {
+		if i == len(commandStarted) {
 			require.Fail(t, "Expected command started event", expectation.CommandStartedEvent.CommandName)
 		}
+		evt := commandStarted[i]
 
 		require.Equal(t, expectation.CommandStartedEvent.CommandName, evt.CommandName)
 		require.Equal(t, expectation.CommandStartedEvent.DatabaseName, evt.DatabaseName)

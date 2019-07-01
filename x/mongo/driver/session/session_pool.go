@@ -124,6 +124,11 @@ func (p *Pool) ReturnSession(ss *Server) {
 		return
 	}
 
+	// session is dirty
+	if ss.Dirty {
+		return
+	}
+
 	newNode := &Node{
 		Server: ss,
 		next:   nil,

@@ -479,6 +479,9 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		labels := []string{NetworkError}
+		if op.Client != nil {
+			op.Client.MarkDirty()
+		}
 		if op.Client != nil && op.Client.TransactionRunning() && !op.Client.Committing {
 			labels = append(labels, TransientTransactionError)
 		}
@@ -491,6 +494,9 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
 		labels := []string{NetworkError}
+		if op.Client != nil {
+			op.Client.MarkDirty()
+		}
 		if op.Client != nil && op.Client.TransactionRunning() && !op.Client.Committing {
 			labels = append(labels, TransientTransactionError)
 		}
@@ -522,6 +528,9 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
 	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
+		if op.Client != nil {
+			op.Client.MarkDirty()
+		}
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 	return bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)), err
