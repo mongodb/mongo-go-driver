@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2d50ff46_cdea9607",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 423,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-01T14:53:09Z",
+      "side": 1,
+      "message": "This comment should be updated to include the new condition.",
+      "range": {
+        "startLine": 423,
+        "startChar": 86,
+        "endLine": 423,
+        "endChar": 156
+      },
+      "revId": "bf4dfebdd0b1ad5244522d564f53226e9b7ead4d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e56f409f_4d79ca78",
+        "filename": "x/mongo/driver/session/client_session.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-01T14:53:09Z",
+      "side": 1,
+      "message": "nit: it\u0027s not obvious to me that this means \"max commit time\" so I think either renaming this to transactionMaxCommitTime or adding a comment would help.",
+      "range": {
+        "startLine": 89,
+        "startChar": 1,
+        "endLine": 89,
+        "endChar": 15
+      },
+      "revId": "bf4dfebdd0b1ad5244522d564f53226e9b7ead4d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
