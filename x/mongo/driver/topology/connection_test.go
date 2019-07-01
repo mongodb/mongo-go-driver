@@ -310,6 +310,17 @@ func TestConnection(t *testing.T) {
 				t.Errorf("errors do not match. got %v; want %v", got, want)
 			}
 
+			got = conn.Expire()
+			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
+				t.Errorf("errors do not match. got %v; want %v", got, want)
+			}
+
+			want = false
+			got = conn.Alive()
+			if !cmp.Equal(got, want) {
+				t.Errorf("Alive does not match. got %v; want %v", got, want)
+			}
+
 			want = "<closed>"
 			got = conn.ID()
 			if !cmp.Equal(got, want) {

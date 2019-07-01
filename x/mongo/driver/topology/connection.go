@@ -279,7 +279,7 @@ func (c initConnection) ReadWireMessage(ctx context.Context, dst []byte) ([]byte
 	return c.readWireMessage(ctx, dst)
 }
 
-// Connection implements the driver.Connection interface. It allows reading and writing wire
+// Connection implements the driver.ExpirableConnection interface. It allows reading and writing wire
 // messages.
 type Connection struct {
 	*connection
@@ -384,6 +384,29 @@ func (c *Connection) Close() error {
 	}
 	c.connection = nil
 	return nil
+}
+
+// Expire closes this connection and will close the underlying socket.
+func (c *Connection) Expire() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.connection == nil {
+		return nil
+	}
+	if c.s != nil {
+		c.s.sem.Release(1)
+	}
+	err := c.close()
+	if err != nil {
+		return err
+	}
+	c.connection = nil
+	return nil
+}
+
+// Alive returns if the connection is still alive.
+func (c *Connection) Alive() bool {
+	return c.connection != nil
 }
 
 // ID returns the ID of this connection.

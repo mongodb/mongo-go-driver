@@ -30,6 +30,13 @@ type Connection interface {
 	Address() address.Address
 }
 
+// ExpirableConnection represents a connection to a MongoDB server that can explicitly expire connections.
+type ExpirableConnection interface {
+	Connection
+	Expire() error
+	Alive() bool
+}
+
 // Compressor is an interface used to compress wire messages. If a Connection supports compression
 // it should implement this interface as well. The CompressWireMessage method will be called during
 // the execution of an operation if the wire message is allowed to be compressed.
