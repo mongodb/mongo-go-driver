@@ -107,6 +107,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
 	}
 	if cs.options.BatchSize != nil {
+		cs.aggregate.BatchSize(*cs.options.BatchSize)
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
 	}
 	if cs.options.MaxAwaitTime != nil {

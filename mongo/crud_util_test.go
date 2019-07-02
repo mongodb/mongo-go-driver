@@ -562,6 +562,26 @@ func executeWithTransaction(t *testing.T, sess *sessionImpl, collName string, db
 	return err
 }
 
+func executeRenameCollection(sess Session, coll *Collection, argmap map[string]interface{}) *SingleResult {
+	to := argmap["to"].(string)
+
+	cmd := bson.D{
+		{"renameCollection", strings.Join([]string{coll.db.name, coll.name}, ".")},
+		{"to", strings.Join([]string{coll.db.name, to}, ".")},
+	}
+
+	admin := coll.db.client.Database("admin")
+	if sess != nil {
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return admin.RunCommand(sessCtx, cmd)
+	}
+
+	return admin.RunCommand(ctx, cmd)
+}
+
 func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}, args json.RawMessage) *SingleResult {
 	var cmd bsonx.Doc
 	opts := options.RunCmd()

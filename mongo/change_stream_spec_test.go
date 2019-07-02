@@ -42,7 +42,7 @@ type csTest struct {
 	Target           string                       `json:"target"`
 	Topology         []string                     `json:"topology"`
 	Pipeline         []interface{}                `json:"changeStreamPipeline"`
-	Options          map[string]interface{}       `json:"options"`
+	Options          map[string]interface{}       `json:"changeStreamOptions"`
 	Operations       []csOperation                `json:"operations"`
 	Expectations     []map[string]json.RawMessage `json:"expectations"`
 	Result           csResult                     `json:"result"`
@@ -73,9 +73,15 @@ func closeCursor(stream *ChangeStream) {
 	_ = stream.Close(ctx)
 }
 
-func getStreamOptions(test *csTest) *options.ChangeStreamOptions {
+func getStreamOptions(t *testing.T, test *csTest) *options.ChangeStreamOptions {
 	opts := options.ChangeStream()
-	if len(test.Options) > 0 {
+	for name, opt := range test.Options {
+		switch name {
+		case "batchSize":
+			opts = opts.SetBatchSize(int32(opt.(float64)))
+		default:
+			t.Fatalf("unknown changeStream option: %s", name)
+		}
 	}
 
 	// no options
@@ -236,7 +242,7 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 			testhelpers.RequireNil(t, err, "error inserting into client coll: %s", err)
 
 			drainChannels()
-			opts := getStreamOptions(&test)
+			opts := getStreamOptions(t, &test)
 			var cursor *ChangeStream
 			switch test.Target {
 			case "collection":
@@ -268,7 +274,17 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 				var opErr error
 				switch op.Name {
 				case "insertOne":
-					opErr = insertOne(t, opColl, op.Arguments)
+					_, opErr = executeInsertOne(nil, opColl, op.Arguments)
+				case "updateOne":
+					_, opErr = executeUpdateOne(nil, opColl, op.Arguments)
+				case "replaceOne":
+					_, opErr = executeReplaceOne(nil, opColl, op.Arguments)
+				case "deleteOne":
+					_, opErr = executeDeleteOne(nil, opColl, op.Arguments)
+				case "rename":
+					opErr = executeRenameCollection(nil, opColl, op.Arguments).Err()
+				case "drop":
+					opErr = opColl.Drop(ctx)
 				default:
 					t.Fatalf("unknown operation for test %s: %s", t.Name(), op.Name)
 				}
@@ -297,12 +313,4 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 			}
 		})
 	}
-}
-
-func insertOne(t *testing.T, coll *Collection, args map[string]interface{}) error {
-	doc, err := transformDocument(nil, args["document"])
-	testhelpers.RequireNil(t, err, "error transforming insertOne document: %s", err)
-
-	_, err = coll.InsertOne(ctx, doc)
-	return err
 }
