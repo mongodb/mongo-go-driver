@@ -22,6 +22,30 @@
       "revId": "f1523aea6de2c130181ca9c9968610f17dd81081",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de3af678_7dd130eb",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-07-02T18:11:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fd18e3c8_104ca762",
+      "range": {
+        "startLine": 117,
+        "startChar": 4,
+        "endLine": 117,
+        "endChar": 20
+      },
+      "revId": "f1523aea6de2c130181ca9c9968610f17dd81081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
