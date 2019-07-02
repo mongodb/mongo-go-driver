@@ -8,8 +8,10 @@ package mongo
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"path"
@@ -42,7 +44,7 @@ type csTest struct {
 	Target           string                       `json:"target"`
 	Topology         []string                     `json:"topology"`
 	Pipeline         []interface{}                `json:"changeStreamPipeline"`
-	Options          map[string]interface{}       `json:"options"`
+	Options          map[string]interface{}       `json:"changeStreamOptions"`
 	Operations       []csOperation                `json:"operations"`
 	Expectations     []map[string]json.RawMessage `json:"expectations"`
 	Result           csResult                     `json:"result"`
@@ -73,9 +75,15 @@ func closeCursor(stream *ChangeStream) {
 	_ = stream.Close(ctx)
 }
 
-func getStreamOptions(test *csTest) *options.ChangeStreamOptions {
+func getStreamOptions(t *testing.T, test *csTest) *options.ChangeStreamOptions {
 	opts := options.ChangeStream()
-	if len(test.Options) > 0 {
+	for name, opt := range test.Options {
+		switch name {
+		case "batchSize":
+			opts = opts.SetBatchSize(int32(opt.(float64)))
+		default:
+			t.Fatalf("unknown changeStream option: %s", name)
+		}
 	}
 
 	// no options
@@ -236,7 +244,7 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 			testhelpers.RequireNil(t, err, "error inserting into client coll: %s", err)
 
 			drainChannels()
-			opts := getStreamOptions(&test)
+			opts := getStreamOptions(t, &test)
 			var cursor *ChangeStream
 			switch test.Target {
 			case "collection":
@@ -269,6 +277,16 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 				switch op.Name {
 				case "insertOne":
 					opErr = insertOne(t, opColl, op.Arguments)
+				case "updateOne":
+					opErr = updateOne(t, opColl, op.Arguments)
+				case "replaceOne":
+					opErr = replaceOne(t, opColl, op.Arguments)
+				case "deleteOne":
+					opErr = deleteOne(t, opColl, op.Arguments)
+				case "rename":
+					opErr = rename(t, opColl, op.Arguments)
+				case "drop":
+					opErr = opColl.Drop(ctx)
 				default:
 					t.Fatalf("unknown operation for test %s: %s", t.Name(), op.Name)
 				}
@@ -305,4 +323,46 @@ func insertOne(t *testing.T, coll *Collection, args map[string]interface{}) erro
 
 	_, err = coll.InsertOne(ctx, doc)
 	return err
+}
+
+func updateOne(t *testing.T, coll *Collection, args map[string]interface{}) error {
+	filter, err := transformDocument(nil, args["filter"])
+	testhelpers.RequireNil(t, err, "error transforming updateOne filter: %s", err)
+	update, err := transformDocument(nil, args["update"])
+	testhelpers.RequireNil(t, err, "error transforming updateOne update: %s", err)
+
+	_, err = coll.UpdateOne(ctx, filter, update)
+	return err
+}
+
+func replaceOne(t *testing.T, coll *Collection, args map[string]interface{}) error {
+	filter, err := transformDocument(nil, args["filter"])
+	testhelpers.RequireNil(t, err, "error transforming replaceOne filter: %s", err)
+	replacement, err := transformDocument(nil, args["replacement"])
+	testhelpers.RequireNil(t, err, "error transforming replaceOne replacement: %s", err)
+
+	_, err = coll.ReplaceOne(ctx, filter, replacement)
+	return err
+}
+
+func deleteOne(t *testing.T, coll *Collection, args map[string]interface{}) error {
+	filter, err := transformDocument(nil, args["filter"])
+	testhelpers.RequireNil(t, err, "error transforming deleteOne filter: %s", err)
+
+	_, err = coll.DeleteOne(ctx, filter)
+	return err
+}
+
+func rename(t *testing.T, coll *Collection, args map[string]interface{}) error {
+	to, ok := args["to"].(string)
+	if !ok {
+		return errors.New("error reading renameCollection to")
+	}
+
+	admin := coll.db.client.Database("admin")
+	res := admin.RunCommand(ctx, bson.D{
+		{"renameCollection", strings.Join([]string{coll.db.name, coll.name}, ".")},
+		{"to", strings.Join([]string{coll.db.name, to}, ".")},
+	})
+	return res.Err()
 }
