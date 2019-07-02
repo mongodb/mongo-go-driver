@@ -200,6 +200,14 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 			return ErrNoDecoder{Type: field.Elem().Type()}
 		}
 
+		// compatible with null value
+		if vr.Type() == bsontype.Null {
+			if err := vr.ReadNull(); err != nil {
+				return err
+			}
+			continue
+		}
+
 		if decoder, ok := fd.decoder.(ValueDecoder); ok {
 			err = decoder.DecodeValue(dctx, vr, field.Elem())
 			if err != nil {
