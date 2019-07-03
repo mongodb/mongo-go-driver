@@ -1,11 +1,24 @@
 {
+  "runOn": [
+    {
+      "minServerVersion": "4.0",
+      "topology": [
+        "replicaset"
+      ]
+    },
+    {
+      "minServerVersion": "4.1.7",
+      "topology": [
+        "sharded"
+      ]
+    }
+  ],
   "data": [
     {
       "_id": 1,
       "x": 11
     }
   ],
-  "minServerVersion": "3.99",
   "tests": [
     {
       "description": "InsertMany succeeds after PrimarySteppedDown",

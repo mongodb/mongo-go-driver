@@ -28,7 +28,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -37,18 +36,18 @@ import (
 const retryWritesDir = "../data/retryable-writes"
 
 type retryTestFile struct {
-	Data             json.RawMessage  `json:"data"`
-	MinServerVersion string           `json:"minServerVersion"`
-	MaxServerVersion string           `json:"maxServerVersion"`
-	Tests            []*retryTestCase `json:"tests"`
+	RunOn []*runOn         `json:"runOn"`
+	Data  json.RawMessage  `json:"data"`
+	Tests []*retryTestCase `json:"tests"`
 }
 
 type retryTestCase struct {
-	Description   string                 `json:"description"`
-	FailPoint     *failPoint             `json:"failPoint"`
-	ClientOptions map[string]interface{} `json:"clientOptions"`
-	Operation     *retryOperation        `json:"operation"`
-	Outcome       *retryOutcome          `json:"outcome"`
+	Description         string                 `json:"description"`
+	FailPoint           *failPoint             `json:"failPoint"`
+	ClientOptions       map[string]interface{} `json:"clientOptions"`
+	Operation           *retryOperation        `json:"operation"`
+	Outcome             *retryOutcome          `json:"outcome"`
+	UseMultipleMongoses bool                   `json:"useMultipleMongoses"`
 }
 
 type retryOperation struct {
@@ -169,15 +168,16 @@ func runRetryTestFile(t *testing.T, filepath string) {
 
 	version, err := getServerVersion(dbAdmin)
 	require.NoError(t, err)
-
-	// check if we should skip all retry tests
-	if shouldSkipRetryTest(t, version) || os.Getenv("TOPOLOGY") == "sharded_cluster" {
-		t.Skip()
+	runTest := len(testfile.RunOn) == 0
+	for _, reqs := range testfile.RunOn {
+		if executeRetryTest(t, version, reqs) {
+			runTest = true
+			break
+		}
 	}
 
-	// check if we should skip individual test file
-	if shouldSkip(t, testfile.MinServerVersion, testfile.MaxServerVersion, dbAdmin) {
-		return
+	if !runTest {
+		t.Skip()
 	}
 
 	for _, test := range testfile.Tests {
@@ -188,6 +188,34 @@ func runRetryTestFile(t *testing.T, filepath string) {
 
 func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, dbAdmin *Database) {
 	t.Run(test.Description, func(t *testing.T) {
+		var shardedHost string
+		var failPointNames []string
+
+		defer disableFailpoints(t, &failPointNames)
+
+		if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+			if test.FailPoint != nil {
+				if test.FailPoint.ConfigureFailPoint == "onPrimaryTransactionalWrite" {
+					return
+				}
+			}
+			mongodbURI := testutil.ConnString(t)
+			opts := options.Client().ApplyURI(mongodbURI.String())
+			hosts := opts.Hosts
+			for _, host := range hosts {
+				shardClient, err := NewClient(opts.SetHosts([]string{host}))
+				require.NoError(t, err)
+				addClientOptions(shardClient, test.ClientOptions)
+				err = shardClient.Connect(context.Background())
+				require.NoError(t, err)
+				if !test.UseMultipleMongoses {
+					shardedHost = host
+					break
+				}
+				_ = shardClient.Disconnect(ctx)
+			}
+		}
+
 		client := createTestClient(t)
 
 		db := client.Database("retry-writes")
@@ -209,21 +237,28 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 		// configure failpoint if needed
 		if test.FailPoint != nil {
 			doc := createFailPointDoc(t, test.FailPoint)
-			err := dbAdmin.RunCommand(ctx, doc).Err()
+			mongodbURI := testutil.ConnString(t)
+			opts := options.Client().ApplyURI(mongodbURI.String())
+			if len(shardedHost) > 0 {
+				opts.SetHosts([]string{shardedHost})
+			}
+			fpClient, err := NewClient(opts)
 			require.NoError(t, err)
-
-			defer func() {
-				// disable failpoint if specified
-				_ = dbAdmin.RunCommand(ctx, bsonx.Doc{
-					{"configureFailPoint", bsonx.String(test.FailPoint.ConfigureFailPoint)},
-					{"mode", bsonx.String("off")},
-				})
-			}()
+			addClientOptions(fpClient, test.ClientOptions)
+			err = fpClient.Connect(context.Background())
+			require.NoError(t, err)
+			fpDatabase := fpClient.Database("admin")
+			err = fpDatabase.RunCommand(ctx, doc).Err()
+			require.NoError(t, err)
+			_ = fpClient.Disconnect(context.Background())
+			failPointNames = append(failPointNames, test.FailPoint.ConfigureFailPoint)
 		}
 
 		addClientOptions(client, test.ClientOptions)
 
 		executeRetryOperation(t, test.Operation, test.Outcome, coll)
+
+		disableFailpoints(t, &failPointNames)
 
 		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})
@@ -396,4 +431,36 @@ func createRetryMonitoredTopology(t *testing.T, clock *session.ClusterClock, mon
 func shouldSkipRetryTest(t *testing.T, serverVersion string) bool {
 	return compareVersions(t, serverVersion, "3.6") < 0 ||
 		os.Getenv("TOPOLOGY") == "server"
+}
+
+func executeRetryTest(t *testing.T, serverVersion string, reqs *runOn) bool {
+	if len(reqs.MinServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MinServerVersion) < 0 {
+		return false
+	}
+	if len(reqs.MaxServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MaxServerVersion) > 0 {
+		return false
+	}
+	if compareVersions(t, serverVersion, "3.6") < 0 {
+		return false
+	}
+	if len(reqs.Topology) == 0 {
+		return true
+	}
+	for _, top := range reqs.Topology {
+		switch os.Getenv("TOPOLOGY") {
+		case "server":
+			if top == "single" {
+				return false
+			}
+		case "replica_set":
+			if top == "replicaset" {
+				return true
+			}
+		case "sharded_cluster":
+			if top == "sharded" {
+				return true
+			}
+		}
+	}
+	return false
 }
