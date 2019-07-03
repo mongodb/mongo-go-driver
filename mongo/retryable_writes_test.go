@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
@@ -37,18 +38,18 @@ import (
 const retryWritesDir = "../data/retryable-writes"
 
 type retryTestFile struct {
-	Data             json.RawMessage  `json:"data"`
-	MinServerVersion string           `json:"minServerVersion"`
-	MaxServerVersion string           `json:"maxServerVersion"`
-	Tests            []*retryTestCase `json:"tests"`
+	RunOn []*runOn         `json:"runOn"`
+	Data  json.RawMessage  `json:"data"`
+	Tests []*retryTestCase `json:"tests"`
 }
 
 type retryTestCase struct {
-	Description   string                 `json:"description"`
-	FailPoint     *failPoint             `json:"failPoint"`
-	ClientOptions map[string]interface{} `json:"clientOptions"`
-	Operation     *retryOperation        `json:"operation"`
-	Outcome       *retryOutcome          `json:"outcome"`
+	Description         string                 `json:"description"`
+	FailPoint           *failPoint             `json:"failPoint"`
+	ClientOptions       map[string]interface{} `json:"clientOptions"`
+	Operation           *retryOperation        `json:"operation"`
+	Outcome             *retryOutcome          `json:"outcome"`
+	UseMultipleMongoses bool                   `json:"useMultipleMongoses"`
 }
 
 type retryOperation struct {
@@ -150,7 +151,9 @@ func TestTxnNumberIncluded(t *testing.T) {
 // test case for all RetryableWritesSpec tests
 func TestRetryableWritesSpec(t *testing.T) {
 	for _, file := range testhelpers.FindJSONFilesInDir(t, retryWritesDir) {
-		runRetryTestFile(t, path.Join(retryWritesDir, file))
+		t.Run(file, func(t *testing.T) {
+			runRetryTestFile(t, path.Join(retryWritesDir, file))
+		})
 	}
 }
 
@@ -169,15 +172,16 @@ func runRetryTestFile(t *testing.T, filepath string) {
 
 	version, err := getServerVersion(dbAdmin)
 	require.NoError(t, err)
-
-	// check if we should skip all retry tests
-	if shouldSkipRetryTest(t, version) || os.Getenv("TOPOLOGY") == "sharded_cluster" {
-		t.Skip()
+	runTest := len(testfile.RunOn) == 0
+	for _, reqs := range testfile.RunOn {
+		if executeRetryTest(t, version, reqs) {
+			runTest = true
+			break
+		}
 	}
 
-	// check if we should skip individual test file
-	if shouldSkip(t, testfile.MinServerVersion, testfile.MaxServerVersion, dbAdmin) {
-		return
+	if !runTest {
+		t.Skip()
 	}
 
 	for _, test := range testfile.Tests {
@@ -188,7 +192,24 @@ func runRetryTestFile(t *testing.T, filepath string) {
 
 func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, dbAdmin *Database) {
 	t.Run(test.Description, func(t *testing.T) {
-		client := createTestClient(t)
+		var shardedHost string
+		var failPointNames []string
+
+		if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+			if test.FailPoint != nil {
+				if test.FailPoint.ConfigureFailPoint == "onPrimaryTransactionalWrite" {
+					return
+				}
+			}
+			mongodbURI := testutil.ConnString(t)
+			opts := options.Client().ApplyURI(mongodbURI.String())
+			hosts := opts.Hosts
+			if !test.UseMultipleMongoses {
+				shardedHost = hosts[0]
+			}
+		}
+
+		client := createTransactionsMonitoredClient(t, nil, test.ClientOptions, shardedHost)
 
 		db := client.Database("retry-writes")
 		collName := sanitizeCollectionName("retry-writes", test.Description)
@@ -197,20 +218,26 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 		require.NoError(t, err)
 
 		// insert data if present
-		coll := db.Collection(collName)
+		majorityWc := writeconcern.New(writeconcern.WMajority())
+		coll := db.Collection(collName, options.Collection().SetWriteConcern(majorityWc))
 		docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, data))
 		if len(docsToInsert) > 0 {
-			coll2, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
 			require.NoError(t, err)
-			_, err = coll2.InsertMany(ctx, docsToInsert)
+			res, err := coll.InsertMany(ctx, docsToInsert)
 			require.NoError(t, err)
+			require.Equal(t, len(docsToInsert), len(res.InsertedIDs),
+				"expected %d docs inserted, got %d", len(docsToInsert), len(res.InsertedIDs))
 		}
+
+		// defer disableFailpoints(t, &failPointNames)
 
 		// configure failpoint if needed
 		if test.FailPoint != nil {
 			doc := createFailPointDoc(t, test.FailPoint)
-			err := dbAdmin.RunCommand(ctx, doc).Err()
+			dbAdmin := client.Database("admin")
+			err = dbAdmin.RunCommand(ctx, doc).Err()
 			require.NoError(t, err)
+			failPointNames = append(failPointNames, test.FailPoint.ConfigureFailPoint)
 
 			defer func() {
 				// disable failpoint if specified
@@ -221,9 +248,12 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 			}()
 		}
 
-		addClientOptions(client, test.ClientOptions)
-
 		executeRetryOperation(t, test.Operation, test.Outcome, coll)
+
+		disableFailpoints(t, &failPointNames)
+
+		coll.readConcern = readconcern.Majority()
+		coll.readPreference = readpref.Primary()
 
 		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})
@@ -244,8 +274,16 @@ func executeRetryOperation(t *testing.T, op *retryOperation, outcome *retryOutco
 			verifyDeleteResult(t, res, outcome.Result)
 		}
 	case "deleteMany":
-		_, _ = executeDeleteMany(nil, coll, op.Arguments)
-		// no checking required for deleteMany
+		res, err := executeDeleteMany(nil, coll, op.Arguments)
+		if outcome == nil {
+			return
+		}
+		if outcome.Error {
+			require.Error(t, err)
+			return
+		}
+		require.NoError(t, err)
+		verifyDeleteResult(t, res, outcome.Result)
 	case "updateOne":
 		res, err := executeUpdateOne(nil, coll, op.Arguments)
 		if outcome == nil {
@@ -396,4 +434,29 @@ func createRetryMonitoredTopology(t *testing.T, clock *session.ClusterClock, mon
 func shouldSkipRetryTest(t *testing.T, serverVersion string) bool {
 	return compareVersions(t, serverVersion, "3.6") < 0 ||
 		os.Getenv("TOPOLOGY") == "server"
+}
+
+func executeRetryTest(t *testing.T, serverVersion string, reqs *runOn) bool {
+	if len(reqs.MinServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MinServerVersion) < 0 {
+		return false
+	}
+	if len(reqs.MaxServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MaxServerVersion) > 0 {
+		return false
+	}
+	if len(reqs.Topology) == 0 {
+		return true
+	}
+	for _, top := range reqs.Topology {
+		switch os.Getenv("TOPOLOGY") {
+		case "replica_set":
+			if top == "replicaset" {
+				return true
+			}
+		case "sharded_cluster":
+			if top == "sharded" {
+				return true
+			}
+		}
+	}
+	return false
 }

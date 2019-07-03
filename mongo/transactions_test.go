@@ -399,6 +399,7 @@ func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonit
 		clock:          clock,
 		registry:       bson.NewRegistryBuilder().Build(),
 		monitor:        monitor,
+		retryWrites:    true,
 	}
 	addClientOptions(c, opts)
 

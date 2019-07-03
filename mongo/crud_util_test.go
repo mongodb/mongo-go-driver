@@ -701,7 +701,7 @@ func verifyCursorResult2(t *testing.T, cur *Cursor, result json.RawMessage) {
 func verifyCursorResult(t *testing.T, cur *Cursor, result json.RawMessage) {
 	for _, expected := range docSliceFromRaw(t, result) {
 		require.NotNil(t, cur)
-		require.True(t, cur.Next(context.Background()))
+		require.True(t, cur.Next(context.Background()), cur.Err())
 
 		var actual bsonx.Doc
 		require.NoError(t, cur.Decode(&actual))
