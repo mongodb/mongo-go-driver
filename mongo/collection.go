@@ -955,7 +955,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.writeSelector)
+	selector := makePinnedSelector(sess, coll.readSelector)
 
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
