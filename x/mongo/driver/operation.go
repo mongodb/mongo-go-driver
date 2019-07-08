@@ -39,6 +39,13 @@ var (
 	ErrNonPrimaryReadPref = errors.New("read preference in a transaction must be primary")
 )
 
+const (
+	// maximum BSON object size when client side encryption is enabled
+	cryptMaxBsonObjectSize uint32 = 2097152
+	// minimum wire version necessary to use automatic encryption
+	cryptMinWireVersion int32 = 8
+)
+
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
 // from an instance of Operation.
 type InvalidOperationError struct{ MissingField string }
@@ -172,6 +179,14 @@ type Operation struct {
 	// CommandMonitor specifies the monitor to use for APM events. If this field is not set,
 	// no events will be reported.
 	CommandMonitor *event.CommandMonitor
+
+	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
+	Crypt *Crypt
+}
+
+// shouldEncrypt returns true if this operation should automatically be encrypted.
+func (op Operation) shouldEncrypt() bool {
+	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption
 }
 
 // selectServer handles performing server selection for an operation.
@@ -297,7 +312,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	batching := op.Batches.Valid()
 	for {
 		if batching {
-			err = op.Batches.AdvanceBatch(int(desc.MaxBatchCount), int(desc.MaxDocumentSize))
+			maxDocSize := desc.MaxDocumentSize
+			if op.shouldEncrypt() {
+				maxDocSize = cryptMaxBsonObjectSize
+			}
+
+			err = op.Batches.AdvanceBatch(int(desc.MaxBatchCount), int(maxDocSize))
 			if err != nil {
 				// TODO(GODRIVER-982): Should we also be returning operationErr?
 				return err
@@ -308,7 +328,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(scratch, desc)
+		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc)
 		if err != nil {
 			return err
 		}
@@ -357,6 +377,15 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.updateOperationTime(res)
 		op.Client.UpdateRecoveryToken(bson.Raw(res))
 
+		// automatically attempt to decrypt all results if client side encryption enabled
+		if op.Crypt != nil {
+			// use decryptErr isntead of err because err is used below for retrying
+			var decryptErr error
+			res, decryptErr = op.Crypt.Decrypt(ctx, res)
+			if decryptErr != nil {
+				return decryptErr
+			}
+		}
 		var perr error
 		if op.ProcessResponseFn != nil {
 			perr = op.ProcessResponseFn(res, srvr, desc.Server)
@@ -619,11 +648,13 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	return append(header, uncompressed...), nil
 }
 
-func (op Operation) createWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createWireMessage(ctx context.Context, dst []byte,
+	desc description.SelectedServer) ([]byte, startedInformation, error) {
+
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return op.createQueryWireMessage(dst, desc)
 	}
-	return op.createMsgWireMessage(dst, desc)
+	return op.createMsgWireMessage(ctx, dst, desc)
 }
 
 func (op Operation) addBatchArray(dst []byte) []byte {
@@ -701,7 +732,7 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
 }
 
-func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	var info startedInformation
 	var flags wiremessage.MsgFlag
 	var wmindex int32
@@ -718,7 +749,7 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 
 	idx, dst := bsoncore.AppendDocumentStart(dst)
 
-	dst, err := op.CommandFn(dst, desc)
+	dst, err := op.addCommandFields(ctx, dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -751,7 +782,9 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 	// The command document for monitoring shouldn't include the type 1 payload as a document sequence
 	info.cmd = dst[idx:]
 
-	if op.Batches != nil && len(op.Batches.Current) > 0 {
+	// add batch as a document sequence if auto encryption is not enabled
+	// if auto encryption is enabled, the batch will already be an array in the command document
+	if !op.shouldEncrypt() && op.Batches != nil && len(op.Batches.Current) > 0 {
 		info.documentSequenceIncluded = true
 		dst = wiremessage.AppendMsgSectionType(dst, wiremessage.DocumentSequence)
 		idx, dst = bsoncore.ReserveLength(dst)
@@ -767,6 +800,40 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 	}
 
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
+}
+
+// addCommandFields adds the fields for a command to the wire message in dst. This assumes that the start of the document
+// has already been added and does not add the final 0 byte.
+func (op Operation) addCommandFields(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, error) {
+	if !op.shouldEncrypt() {
+		return op.CommandFn(dst, desc)
+	}
+
+	if desc.WireVersion.Max < cryptMinWireVersion {
+		return dst, errors.New("auto-encryption requires a MongoDB version of 4.2")
+	}
+
+	// create temporary command document
+	cidx, cmdDst := bsoncore.AppendDocumentStart(nil)
+	var err error
+	cmdDst, err = op.CommandFn(cmdDst, desc)
+	if err != nil {
+		return dst, err
+	}
+	// use a BSON array instead of a type 1 payload because mongocryptd will convert to arrays regardless
+	if op.Batches != nil && len(op.Batches.Current) > 0 {
+		cmdDst = op.addBatchArray(cmdDst)
+	}
+	cmdDst, _ = bsoncore.AppendDocumentEnd(cmdDst, cidx)
+
+	// encrypt the command
+	encrypted, err := op.Crypt.Encrypt(ctx, op.Database, cmdDst)
+	if err != nil {
+		return dst, err
+	}
+	// append encrypted command to original destination, removing the first 4 bytes (length) and final byte (terminator)
+	dst = append(dst, encrypted[4:len(encrypted)-1]...)
+	return dst, nil
 }
 
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
