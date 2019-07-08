@@ -442,7 +442,7 @@ func TestOperationLegacy(t *testing.T) {
 				expected = append(expected, docBytes)
 			}
 
-			res, srvr := runOperationWithDeployment(t, cmd, db.client.topology, driver.LegacyFind)
+			res, srvr := runOperationWithDeployment(t, cmd, db.client.deployment, driver.LegacyFind)
 			docs := parseAndIterateCursor(t, res, srvr, 2)
 			if len(docs) != len(expected) {
 				t.Fatalf("documents length match; expected %d, got %d", len(expected), len(docs))
@@ -459,7 +459,7 @@ func TestOperationLegacy(t *testing.T) {
 			}
 
 			cmd := bson.D{{"listCollections", 1}}
-			res, srvr := runOperationWithDeployment(t, cmd, db.client.topology, driver.LegacyListCollections)
+			res, srvr := runOperationWithDeployment(t, cmd, db.client.deployment, driver.LegacyListCollections)
 			docs := parseAndIterateCursor(t, res, srvr, 2)
 			if len(docs) != 3 {
 				t.Fatalf("documents length mismatch; expected 3, got %d", len(docs))
@@ -481,7 +481,7 @@ func TestOperationLegacy(t *testing.T) {
 			cmd := bson.D{
 				{"listIndexes", "foo"},
 			}
-			res, srvr := runOperationWithDeployment(t, cmd, db.client.topology, driver.LegacyListIndexes)
+			res, srvr := runOperationWithDeployment(t, cmd, db.client.deployment, driver.LegacyListIndexes)
 			docs := parseAndIterateCursor(t, res, srvr, 2)
 			if len(docs) != 3 {
 				t.Fatalf("documents length mismatch; expected 3, got %d", len(docs))
@@ -509,7 +509,7 @@ func TestOperationLegacy(t *testing.T) {
 				{"killCursors", "foo"},
 				{"cursors", bson.A{int64(1), int64(2)}},
 			}
-			res, _ := runOperationWithDeployment(t, cmd, db.client.topology, driver.LegacyKillCursors)
+			res, _ := runOperationWithDeployment(t, cmd, db.client.deployment, driver.LegacyKillCursors)
 			if len(res) != 0 {
 				t.Fatalf("got non-empty response %v", res)
 			}
