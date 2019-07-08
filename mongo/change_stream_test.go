@@ -205,8 +205,6 @@ func TestChangeStream(t *testing.T) {
 	skipIfBelow36(t)
 
 	t.Run("TestFirstStage", func(t *testing.T) {
-		t.Parallel()
-
 		if testing.Short() {
 			t.Skip()
 		}
@@ -236,8 +234,6 @@ func TestChangeStream(t *testing.T) {
 	})
 
 	t.Run("TestReplaceRoot", func(t *testing.T) {
-		t.Parallel()
-
 		if testing.Short() {
 			t.Skip()
 		}
@@ -280,8 +276,6 @@ func TestChangeStream(t *testing.T) {
 	})
 
 	t.Run("TestNoCustomStandaloneError", func(t *testing.T) {
-		t.Parallel()
-
 		if testing.Short() {
 			t.Skip()
 		}
