@@ -88,7 +88,7 @@ func getIndexableCollection(t *testing.T) (string, *Collection) {
 }
 
 func TestIndexView_List(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -121,7 +121,7 @@ func TestIndexView_List(t *testing.T) {
 }
 
 func TestIndexView_CreateOne(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -162,7 +162,7 @@ func TestIndexView_CreateOne(t *testing.T) {
 }
 
 func TestIndexView_CreateOneWithNameOption(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -206,7 +206,7 @@ func TestIndexView_CreateOneWithNameOption(t *testing.T) {
 
 // Omits collation option because it's incompatible with version option
 func TestIndexView_CreateOneWithAllOptions(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -248,7 +248,7 @@ func TestIndexView_CreateOneWithAllOptions(t *testing.T) {
 
 func TestIndexView_CreateOneWithCollationOption(t *testing.T) {
 	skipIfBelow34(t, createTestDatabase(t, nil)) // collation invalid for server versions < 3.4
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -315,7 +315,7 @@ func TestIndexView_CreateOneWildcard(t *testing.T) {
 }
 
 func TestIndexView_CreateOneWithNilKeys(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -334,7 +334,7 @@ func TestIndexView_CreateOneWithNilKeys(t *testing.T) {
 }
 
 func TestIndexView_CreateMany(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -397,7 +397,7 @@ func TestIndexView_CreateMany(t *testing.T) {
 }
 
 func TestIndexView_DropOne(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -447,7 +447,7 @@ func TestIndexView_DropOne(t *testing.T) {
 }
 
 func TestIndexView_DropAll(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -497,7 +497,7 @@ func TestIndexView_DropAll(t *testing.T) {
 }
 
 func TestIndexView_CreateIndexesOptioner(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
@@ -567,7 +567,7 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 }
 
 func TestIndexView_DropIndexesOptioner(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	if testing.Short() {
 		t.Skip()
