@@ -15,8 +15,6 @@ import (
 )
 
 func TestDeleteResult_unmarshalInto(t *testing.T) {
-	t.Parallel()
-
 	doc := bsonx.Doc{
 		{"n", bsonx.Int64(2)},
 		{"ok", bsonx.Int64(1)},
@@ -32,8 +30,6 @@ func TestDeleteResult_unmarshalInto(t *testing.T) {
 }
 
 func TestDeleteResult_marshalFrom(t *testing.T) {
-	t.Parallel()
-
 	result := DeleteResult{DeletedCount: 1}
 	buf, err := bson.Marshal(result)
 	require.Nil(t, err)
@@ -49,8 +45,6 @@ func TestDeleteResult_marshalFrom(t *testing.T) {
 }
 
 func TestUpdateOneResult_unmarshalInto(t *testing.T) {
-	t.Parallel()
-
 	doc := bsonx.Doc{
 		{"n", bsonx.Int32(1)},
 		{"nModified", bsonx.Int32(2)},

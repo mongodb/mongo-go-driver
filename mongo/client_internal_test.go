@@ -43,12 +43,13 @@ func createTestClient(t *testing.T) *Client {
 	id, _ := uuid.New()
 	return &Client{
 		id:             id,
-		topology:       testutil.Topology(t),
+		deployment:     testutil.Topology(t),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 		clock:          &session.ClusterClock{},
 		registry:       bson.DefaultRegistry,
 		retryWrites:    true,
+		sessionPool:    testutil.SessionPool(),
 	}
 }
 
@@ -56,7 +57,7 @@ func createTestClientWithConnstring(t *testing.T, cs connstring.ConnString) *Cli
 	id, _ := uuid.New()
 	return &Client{
 		id:             id,
-		topology:       testutil.TopologyWithConnString(t, cs),
+		deployment:     testutil.TopologyWithConnString(t, cs),
 		connString:     cs,
 		readPreference: readpref.Primary(),
 		clock:          &session.ClusterClock{},
@@ -74,15 +75,11 @@ func skipIfBelow30(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	t.Parallel()
-
 	c := createTestClient(t)
-	require.NotNil(t, c.topology)
+	require.NotNil(t, c.deployment)
 }
 
 func TestClient_Database(t *testing.T) {
-	t.Parallel()
-
 	dbName := "foo"
 
 	c := createTestClient(t)
@@ -149,8 +146,6 @@ func TestClientRegistryPassedToCursors(t *testing.T) {
 
 func TestClient_TLSConnection(t *testing.T) {
 	skipIfBelow30(t) // 3.0 doesn't return a security field in the serverStatus response
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip()
 	}
@@ -182,8 +177,6 @@ func TestClient_TLSConnection(t *testing.T) {
 }
 
 func TestClient_X509Auth(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip()
 	}
@@ -265,8 +258,6 @@ func TestClient_X509Auth(t *testing.T) {
 }
 
 func TestClient_ReplaceTopologyError(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip()
 	}
@@ -427,7 +418,7 @@ func TestRetryWritesError20Wrapped(t *testing.T) {
 
 			op := operation.NewInsert(writeError).CommandMonitor(coll.client.monitor).ClusterClock(coll.client.clock).
 				Database(coll.db.name).Collection(coll.name).
-				Deployment(coll.client.topology).Deployment(deployment).Retry(driver.RetryOnce).Session(sess.(*sessionImpl).clientSession)
+				Deployment(coll.client.deployment).Deployment(deployment).Retry(driver.RetryOnce).Session(sess.(*sessionImpl).clientSession)
 
 			err = op.Execute(context.Background())
 			if test.shouldError {
@@ -446,8 +437,6 @@ func TestRetryWritesError20Wrapped(t *testing.T) {
 }
 
 func TestClient_ListDatabases_noFilter(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip()
 	}
@@ -478,8 +467,6 @@ func TestClient_ListDatabases_noFilter(t *testing.T) {
 }
 
 func TestClient_ListDatabases_filter(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip()
 	}
@@ -508,8 +495,6 @@ func TestClient_ListDatabases_filter(t *testing.T) {
 }
 
 func TestClient_ListDatabaseNames_noFilter(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip()
 	}
@@ -540,8 +525,6 @@ func TestClient_ListDatabaseNames_noFilter(t *testing.T) {
 }
 
 func TestClient_ListDatabaseNames_filter(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip()
 	}
@@ -571,8 +554,6 @@ func TestClient_ListDatabaseNames_filter(t *testing.T) {
 }
 
 func TestClient_NilDocumentError(t *testing.T) {
-	t.Parallel()
-
 	c := createTestClient(t)
 
 	_, err := c.Watch(context.Background(), nil)
@@ -586,8 +567,6 @@ func TestClient_NilDocumentError(t *testing.T) {
 }
 
 func TestClient_ReadPreference(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip()
 	}
@@ -619,8 +598,6 @@ func TestClient_ReadPreference(t *testing.T) {
 }
 
 func TestClient_ReadPreferenceAbsent(t *testing.T) {
-	t.Parallel()
-
 	cs := testutil.ConnString(t)
 	c, err := NewClient(options.Client().ApplyURI(cs.String()))
 	require.NoError(t, err)
@@ -754,7 +731,7 @@ func TestIsMaster(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	isMaster := operation.NewIsMaster().ClusterClock(client.clock).Deployment(client.topology).
+	isMaster := operation.NewIsMaster().ClusterClock(client.clock).Deployment(client.deployment).
 		AppName(cs.AppName).Compressors(cs.Compressors)
 
 	err = isMaster.Execute(ctx)

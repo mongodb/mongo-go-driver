@@ -52,7 +52,8 @@ var monitor = &event.CommandMonitor{
 func createMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Client {
 	client, err := NewClient()
 	testhelpers.RequireNil(t, err, "unable to create client")
-	client.topology = testutil.GlobalMonitoredTopology(t, monitor)
+	client.deployment = testutil.GlobalMonitoredTopology(t, monitor)
+	client.sessionPool = testutil.GlobalMonitoredSessionPool()
 	client.connString = testutil.ConnString(t)
 	client.readPreference = readpref.Primary()
 	client.clock = &session.ClusterClock{}

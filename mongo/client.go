@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -42,7 +43,7 @@ var keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority(
 type Client struct {
 	id              uuid.UUID
 	topologyOptions []topology.Option
-	topology        *topology.Topology
+	deployment      driver.Deployment
 	connString      connstring.ConnString
 	localThreshold  time.Duration
 	retryWrites     bool
@@ -54,6 +55,7 @@ type Client struct {
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
 	monitor         *event.CommandMonitor
+	sessionPool     *session.Pool
 
 	// client-side encryption fields
 	keyVaultClient *Client
@@ -102,7 +104,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	client.topology, err = topology.New(client.topologyOptions...)
+	client.deployment, err = topology.New(client.topologyOptions...)
 	if err != nil {
 		return nil, replaceErrors(err)
 	}
@@ -113,20 +115,33 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 // Connect initializes the Client by starting background monitoring goroutines.
 // This method must be called before a Client can be used.
 func (c *Client) Connect(ctx context.Context) error {
-	err := c.topology.Connect()
-	if err != nil {
-		return replaceErrors(err)
+	if connector, ok := c.deployment.(driver.Connector); ok {
+		err := connector.Connect()
+		if err != nil {
+			return replaceErrors(err)
+		}
 	}
+
 	if c.mongocryptd != nil {
-		if err = c.mongocryptd.connect(ctx); err != nil {
+		if err := c.mongocryptd.connect(ctx); err != nil {
 			return err
 		}
 	}
 	if c.keyVaultClient != nil {
-		if err = c.keyVaultClient.Connect(ctx); err != nil {
+		if err := c.keyVaultClient.Connect(ctx); err != nil {
 			return err
 		}
 	}
+
+	var updateChan <-chan description.Topology
+	if subscriber, ok := c.deployment.(driver.Subscriber); ok {
+		sub, err := subscriber.Subscribe()
+		if err != nil {
+			return replaceErrors(err)
+		}
+		updateChan = sub.Updates
+	}
+	c.sessionPool = session.NewPool(updateChan)
 	return nil
 }
 
@@ -157,7 +172,11 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	if c.crypt != nil {
 		c.crypt.Close()
 	}
-	return replaceErrors(c.topology.Disconnect(ctx))
+
+	if disconnector, ok := c.deployment.(driver.Disconnector); ok {
+		return replaceErrors(disconnector.Disconnect(ctx))
+	}
+	return nil
 }
 
 // Ping verifies that the client can connect to the topology.
@@ -182,7 +201,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 
 // StartSession starts a new session.
 func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
-	if c.topology.SessionPool == nil {
+	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
 
@@ -208,7 +227,7 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 		coreOpts.DefaultMaxCommitTime = sopts.DefaultMaxCommitTime
 	}
 
-	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit, coreOpts)
+	sess, err := session.NewClientSession(c.sessionPool, c.id, session.Explicit, coreOpts)
 	if err != nil {
 		return nil, replaceErrors(err)
 	}
@@ -219,16 +238,16 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	return &sessionImpl{
 		clientSession: sess,
 		client:        c,
-		topo:          c.topology,
+		deployment:    c.deployment,
 	}, nil
 }
 
 func (c *Client) endSessions(ctx context.Context) {
-	if c.topology.SessionPool == nil {
+	if c.sessionPool == nil {
 		return
 	}
 
-	ids := c.topology.SessionPool.IDSlice()
+	ids := c.sessionPool.IDSlice()
 	idx, idArray := bsoncore.AppendArrayStart(nil)
 	for i, id := range ids {
 		idDoc, _ := id.MarshalBSON()
@@ -236,7 +255,7 @@ func (c *Client) endSessions(ctx context.Context) {
 	}
 	idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
 
-	op := operation.NewEndSessions(idArray).ClusterClock(c.clock).Deployment(c.topology).
+	op := operation.NewEndSessions(idArray).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
 		Database("admin").Crypt(c.crypt)
 
@@ -493,6 +512,14 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
 	))
 
+	// Deployment
+	if opts.Deployment != nil {
+		if len(serverOpts) > 2 || len(topologyOpts) > 1 {
+			return errors.New("cannot specify topology or server options with a deployment")
+		}
+		c.deployment = opts.Deployment
+	}
+
 	return nil
 }
 
@@ -585,8 +612,8 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	sess := sessionFromContext(ctx)
 
 	err := c.validSession(sess)
-	if sess == nil && c.topology.SessionPool != nil {
-		sess, err = session.NewClientSession(c.topology.SessionPool, c.id, session.Implicit)
+	if sess == nil && c.sessionPool != nil {
+		sess, err = session.NewClientSession(c.sessionPool, c.id, session.Implicit)
 		if err != nil {
 			return ListDatabasesResult{}, err
 		}
@@ -611,7 +638,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	ldo := options.MergeListDatabasesOptions(opts...)
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
-		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.topology).Crypt(c.crypt)
+		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.crypt)
 	if ldo.NameOnly != nil {
 		op = op.NameOnly(*ldo.NameOnly)
 	}
@@ -699,7 +726,7 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 // The client must have read concern majority or no read concern for a change stream to be created successfully.
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
-	if c.topology.SessionPool == nil {
+	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
 
