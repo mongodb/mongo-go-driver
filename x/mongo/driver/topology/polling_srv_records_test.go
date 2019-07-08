@@ -141,7 +141,7 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 			require.NoError(t, err, "Couldn't subscribe: %v", err)
 			var desc description.Topology
 			for atomic.LoadInt32(&mockRes.ranLookup) < 2 {
-				desc = <-sub.C
+				desc = <-sub.Updates
 			}
 
 			require.True(t, tt.heartbeatTime == topo.pollHeartbeatTime.Load().(bool), "Not polling on correct intervals")
@@ -187,7 +187,7 @@ func TestPollSRVRecords(t *testing.T) {
 		}
 
 		for i := 0; i < 4; i++ {
-			<-sub.C
+			<-sub.Updates
 		}
 		require.False(t, atomic.LoadInt32(&mockRes.ranLookup) > 0)
 
@@ -219,7 +219,7 @@ func TestPollSRVRecords(t *testing.T) {
 		require.NoError(t, err, "Couldn't subscribe: %v", err)
 		var desc description.Topology
 		for atomic.LoadInt32(&mockRes.ranLookup) < 2 {
-			desc = <-sub.C
+			desc = <-sub.Updates
 		}
 
 		require.False(t, topo.pollHeartbeatTime.Load().(bool))
@@ -251,7 +251,7 @@ func TestPollSRVRecords(t *testing.T) {
 		require.NoError(t, err, "Couldn't subscribe: %v", err)
 		var desc description.Topology
 		for atomic.LoadInt32(&mockRes.ranLookup) < 3 {
-			desc = <-sub.C
+			desc = <-sub.Updates
 		}
 
 		require.False(t, topo.pollHeartbeatTime.Load().(bool))

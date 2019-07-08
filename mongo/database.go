@@ -120,9 +120,9 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
 	sess := sessionFromContext(ctx)
-	if sess == nil && db.client.topology.SessionPool != nil {
+	if sess == nil && db.client.sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(db.client.topology.SessionPool, db.client.id, session.Implicit)
+		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
 		if err != nil {
 			return nil, sess, err
 		}
@@ -153,7 +153,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	return operation.NewCommand(runCmdDoc).
 		Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.topology).ReadConcern(db.readConcern).Crypt(db.client.crypt), sess, nil
+		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).Crypt(db.client.crypt), sess, nil
 }
 
 // RunCommand runs a command on the database. A user can supply a custom
@@ -211,8 +211,8 @@ func (db *Database) Drop(ctx context.Context) error {
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && db.client.topology.SessionPool != nil {
-		sess, err := session.NewClientSession(db.client.topology.SessionPool, db.client.id, session.Implicit)
+	if sess == nil && db.client.sessionPool != nil {
+		sess, err := session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
 		if err != nil {
 			return err
 		}
@@ -237,7 +237,7 @@ func (db *Database) Drop(ctx context.Context) error {
 	op := operation.NewDropDatabase().
 		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.topology).Crypt(db.client.crypt)
+		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.crypt)
 
 	err = op.Execute(ctx)
 
@@ -260,8 +260,8 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && db.client.topology.SessionPool != nil {
-		sess, err = session.NewClientSession(db.client.topology.SessionPool, db.client.id, session.Implicit)
+	if sess == nil && db.client.sessionPool != nil {
+		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
@@ -283,7 +283,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.topology).Crypt(db.client.crypt)
+		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.crypt)
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)
 	}

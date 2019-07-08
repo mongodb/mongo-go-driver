@@ -370,7 +370,7 @@ func createRetryMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Cl
 	clock := &session.ClusterClock{}
 
 	c := &Client{
-		topology:       createRetryMonitoredTopology(t, clock, monitor),
+		deployment:     createRetryMonitoredTopology(t, clock, monitor),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 		clock:          clock,
@@ -378,9 +378,9 @@ func createRetryMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Cl
 		monitor:        monitor,
 	}
 
-	subscription, err := c.topology.Subscribe()
+	subscription, err := c.deployment.(driver.Subscriber).Subscribe()
 	testhelpers.RequireNil(t, err, "error subscribing to topology: %s", err)
-	c.topology.SessionPool = session.NewPool(subscription.C)
+	c.sessionPool = session.NewPool(subscription.Updates)
 
 	return c
 }
