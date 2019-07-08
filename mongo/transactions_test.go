@@ -156,6 +156,14 @@ func runTransactionTestFile(t *testing.T, filepath string) {
 		t.Skip()
 	}
 
+	if os.Getenv("TOPOLOGY") == "replica_set" {
+		err := dbAdmin.RunCommand(ctx, bson.D{
+			{"setParameter", 1},
+			{"transactionLifetimeLimitSeconds", 3},
+		}).Err()
+		require.NoError(t, err)
+	}
+
 	for _, test := range testfile.Tests {
 		runTransactionsTestCase(t, test, testfile, dbAdmin)
 	}
