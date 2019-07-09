@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6a9ceda3_80e99894",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-09T22:31:40Z",
+      "side": 1,
+      "message": "Comment should be updated to say \"the error will be returned along with the result.\"",
+      "range": {
+        "startLine": 49,
+        "startChar": 65,
+        "endLine": 51,
+        "endChar": 19
+      },
+      "revId": "4c46dfee37c50939fa012060c862e1a7d0e5c915",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
