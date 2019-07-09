@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -51,6 +52,17 @@ func TestSingleResult(t *testing.T) {
 		err := sr.Err()
 		if err != ErrNoDocuments {
 			t.Fatalf("Error returned by SingleResult.Err() was %v when ErrNoDocuments was expected", err)
+		}
+	})
+
+	t.Run("TestDecodeWithErr", func(t *testing.T) {
+		sr := &SingleResult{rdr: []byte("foo"), err: errors.New("DecodeBytes error")}
+		res, err := sr.DecodeBytes()
+		if bytes.Equal(res, nil) {
+			t.Fatalf("error on DecodeBytes call; document expected but not returned")
+		}
+		if err != sr.err {
+			t.Fatalf("Error returned by DecodeBytes was %v when %v was expected", err, sr.err)
 		}
 	})
 }
