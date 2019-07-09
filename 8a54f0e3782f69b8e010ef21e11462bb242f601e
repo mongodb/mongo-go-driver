@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "3c34accb_00bf8eb6",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 194,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-09T21:00:26Z",
+      "side": 1,
+      "message": "two comments:\n1. There\u0027s only one fail point per test so I don\u0027t think we need to add the failPointNames slice.\n2. nit: I\u0027d prefer to put the defer near the place we actually set the failpoint because this defer is not useful if we fail before actually setting it. This would also make it easier for us to confirm that we\u0027re properly cleaning up resources.",
+      "range": {
+        "startLine": 194,
+        "startChar": 8,
+        "endLine": 194,
+        "endChar": 25
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0bf85cce_1c33601b",
         "filename": "mongo/retryable_writes_test.go",
         "patchSetId": 3
@@ -46,6 +69,121 @@
       "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b36fa91b_eafeffde",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-09T21:00:26Z",
+      "side": 1,
+      "message": "related to above comment: this is already being deferred so it doesn\u0027t need to be called here.",
+      "range": {
+        "startLine": 262,
+        "startChar": 2,
+        "endLine": 262,
+        "endChar": 19
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a05afe51_424649d7",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 435,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-09T21:00:26Z",
+      "side": 1,
+      "message": "Can this be deleted now?",
+      "range": {
+        "startLine": 431,
+        "startChar": 0,
+        "endLine": 435,
+        "endChar": 1
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "848399a5_a4bb4ea6",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 437,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-09T21:00:26Z",
+      "side": 1,
+      "message": "nit: this function isn\u0027t actually executing the test so I think shouldExecuteRetryTest would be a better name. Also, is there a reason we can\u0027t reuse the executeTransactionsTest function from transactions_test.go? I\u0027d prefer to rename and reuse that function if possible.",
+      "range": {
+        "startLine": 437,
+        "startChar": 5,
+        "endLine": 437,
+        "endChar": 21
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f4ce23b4_727eefbc",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 446,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-09T21:00:26Z",
+      "side": 1,
+      "message": "Is this not handled by reqs.MinimumServerVersion?",
+      "range": {
+        "startLine": 444,
+        "startChar": 1,
+        "endLine": 446,
+        "endChar": 2
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e20e5385_243f0ad4",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 454,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-09T21:00:26Z",
+      "side": 1,
+      "message": "Should this be return true to match the other cases?",
+      "range": {
+        "startLine": 454,
+        "startChar": 4,
+        "endLine": 454,
+        "endChar": 16
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
