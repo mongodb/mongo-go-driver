@@ -93,7 +93,7 @@ func (d *Delete) Execute(ctx context.Context) error {
 		ProcessResponseFn: d.processResponse,
 		Batches:           batches,
 		RetryMode:         d.retry,
-		RetryType:         driver.RetryWrite,
+		Type:              driver.Write,
 		Client:            d.session,
 		Clock:             d.clock,
 		CommandMonitor:    d.monitor,
