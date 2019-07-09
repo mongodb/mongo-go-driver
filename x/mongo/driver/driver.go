@@ -120,20 +120,20 @@ type nopCloserConnection struct{ Connection }
 
 func (ncc nopCloserConnection) Close() error { return nil }
 
-// TODO(GODRUVER-617): We can likely use 1 type for both the RetryType and the RetryMode by using
+// TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using
 // 2 bits for the mode and 1 bit for the type. Although in the practical sense, we might not want to
 // do that since the type of retryability is tied to the operation itself and isn't going change,
 // e.g. and insert operation will always be a write, however some operations are both reads and
 // writes, for instance aggregate is a read but with a $out parameter it's a write.
 
-// RetryType specifies whether a retry is a read, write, or disabled.
-type RetryType uint
+// Type specifies whether an operation is a read, write, or unknown.
+type Type uint
 
-// THese are the availables types of retry.
+// THese are the availables types of Type.
 const (
-	_ RetryType = iota
-	RetryWrite
-	RetryRead
+	_ Type = iota
+	Write
+	Read
 )
 
 // RetryMode specifies the way that retries are handled for retryable operations.

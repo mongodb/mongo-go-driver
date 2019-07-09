@@ -54,7 +54,7 @@ func (at *AbortTransaction) Execute(ctx context.Context) error {
 		CommandFn:         at.command,
 		ProcessResponseFn: at.processResponse,
 		RetryMode:         at.retry,
-		RetryType:         driver.RetryWrite,
+		Type:              driver.Write,
 		Client:            at.session,
 		Clock:             at.clock,
 		CommandMonitor:    at.monitor,

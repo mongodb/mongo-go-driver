@@ -123,7 +123,7 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		ProcessResponseFn: fam.processResponse,
 
 		RetryMode:      fam.retry,
-		RetryType:      driver.RetryWrite,
+		Type:           driver.Write,
 		Client:         fam.session,
 		Clock:          fam.clock,
 		CommandMonitor: fam.monitor,

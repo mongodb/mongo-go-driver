@@ -94,7 +94,7 @@ func (i *Insert) Execute(ctx context.Context) error {
 		ProcessResponseFn: i.processResponse,
 		Batches:           batches,
 		RetryMode:         i.retry,
-		RetryType:         driver.RetryWrite,
+		Type:              driver.Write,
 		Client:            i.session,
 		Clock:             i.clock,
 		CommandMonitor:    i.monitor,
