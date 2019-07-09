@@ -52,7 +52,7 @@ func (sr *SingleResult) Decode(v interface{}) error {
 // returned.
 func (sr *SingleResult) DecodeBytes() (bson.Raw, error) {
 	if sr.err != nil {
-		return nil, sr.err
+		return sr.rdr, sr.err
 	}
 
 	if sr.err = sr.setRdrContents(); sr.err != nil {
