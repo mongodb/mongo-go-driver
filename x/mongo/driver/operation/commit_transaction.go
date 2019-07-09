@@ -54,7 +54,7 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		CommandFn:         ct.command,
 		ProcessResponseFn: ct.processResponse,
 		RetryMode:         ct.retry,
-		RetryType:         driver.RetryWrite,
+		Type:              driver.Write,
 		Client:            ct.session,
 		Clock:             ct.clock,
 		CommandMonitor:    ct.monitor,

@@ -154,13 +154,17 @@ func (op Operation) CommandMethod() (string, error) {
 			return "", fmt.Errorf("unknown request field type %s", field.Type)
 		}
 		var rf struct {
-			ShortName     string
-			Name          string
-			ParameterName string
+			ShortName              string
+			Name                   string
+			ParameterName          string
+			MinWireVersion         int
+			MinWireVersionRequired int
 		}
 		rf.ShortName = op.ShortName()
 		rf.Name = op.Command.Parameter
 		rf.ParameterName = op.Command.Name
+		rf.MinWireVersion = field.MinWireVersion
+		rf.MinWireVersionRequired = field.MinWireVersionRequired
 		err := tmpl.Execute(&buf, rf)
 		if err != nil {
 			return "", err
