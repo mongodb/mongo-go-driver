@@ -179,7 +179,7 @@ func ({{$.ShortName}} *{{$.Name}}) Execute(ctx context.Context) error {
         {{- end -}}
 
         {{- if eq $.Properties.Retryable.Type "writes"}}
-        RetryType: driver.RetryWrite,
+        Type: driver.Write,
         {{- end -}}
 
         {{- range $b := $.Properties.ExecuteBuiltins}}

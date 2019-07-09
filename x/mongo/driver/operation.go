@@ -148,14 +148,13 @@ type Operation struct {
 
 	// RetryMode specifies how to retry. There are three modes that enable retry: RetryOnce,
 	// RetryOncePerCommand, and RetryContext. For more information about what these modes do, please
-	// refer to their definitions. Both RetryMode and RetryType must be set for retryability to be
-	// enabled.
+	// refer to their definitions. Both RetryMode and Type must be set for retryability to be enabled.
 	RetryMode *RetryMode
 
-	// RetryType specifies the kinds of operations that can be retried. There is only one mode that
-	// enables retry: RetryWrites. For more information about what this mode does, please refer to
-	// it's definition. Both RetryType and RetryMode must be set for retryability to be enabled.
-	RetryType RetryType
+	// Type specifies the kind of operation this is. There is only one mode that enables retry: Write.
+	// For more information about what this mode does, please refer to it's definition. Both Type and
+	// RetryMode must be set for retryability to be enabled.
+	Type Type
 
 	// Batches contains the documents that are split when executing a write command that potentially
 	// has more documents than can fit in a single command. This should only be specified for
@@ -264,7 +263,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	var retries int
 	// TODO(GODRIVER-617): Add support for retryable reads.
 	retryable := op.retryable(desc.Server)
-	if retryable == RetryWrite && op.Client != nil && op.RetryMode != nil {
+	if retryable == Write && op.Client != nil && op.RetryMode != nil {
 		op.Client.RetryWrite = false
 		if *op.RetryMode > RetryNone {
 			op.Client.RetryWrite = true
@@ -350,7 +349,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 		switch tt := err.(type) {
 		case WriteCommandError:
-			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
+			if retryable == Write && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -359,7 +358,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				conn, err = srvr.Connection(ctx)
-				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
+				if err != nil || conn == nil || op.retryable(conn.Description()) != Write {
 					if conn != nil {
 						conn.Close()
 					}
@@ -396,7 +395,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				op.Client.ClearPinnedServer()
 			}
-			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
+			if retryable == Write && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -405,7 +404,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				conn, err = srvr.Connection(ctx)
-				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
+				if err != nil || conn == nil || op.retryable(conn.Description()) != Write {
 					if conn != nil {
 						conn.Close()
 					}
@@ -436,7 +435,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		if batching && len(op.Batches.Documents) > 0 {
-			if retryable == RetryWrite && op.Client != nil && op.RetryMode != nil {
+			if retryable == Write && op.Client != nil && op.RetryMode != nil {
 				if *op.RetryMode > RetryNone {
 					op.Client.IncrementTxnNumber()
 				}
@@ -457,20 +456,20 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 // Retryable writes are supported if the server supports sessions, the operation is not
 // within a transaction, and the write is acknowledged
-func (op Operation) retryable(desc description.Server) RetryType {
-	switch op.RetryType {
-	case RetryWrite:
+func (op Operation) retryable(desc description.Server) Type {
+	switch op.Type {
+	case Write:
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
-			return RetryWrite
+			return Write
 		}
 		if op.Deployment.SupportsRetry() &&
 			description.SessionsSupported(desc.WireVersion) &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
-			return RetryWrite
+			return Write
 		}
 	}
-	return RetryType(0)
+	return Type(0)
 }
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
@@ -811,7 +810,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)
 
 	var addedTxnNumber bool
-	if op.RetryType == RetryWrite && client != nil && client.RetryWrite {
+	if op.Type == Write && client != nil && client.RetryWrite {
 		addedTxnNumber = true
 		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
@@ -896,11 +895,6 @@ func (op Operation) updateOperationTime(response bsoncore.Document) {
 }
 
 func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) {
-	// don't validate read preference for write commands
-	if op.RetryType == RetryWrite {
-		return op.ReadPreference, nil
-	}
-
 	if op.Client != nil && op.Client.TransactionRunning() {
 		// Transaction's read preference always takes priority
 		rp := op.Client.CurrentRp
@@ -915,7 +909,7 @@ func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) 
 }
 
 func (op Operation) createReadPref(serverKind description.ServerKind, topologyKind description.TopologyKind, isOpQuery bool) (bsoncore.Document, error) {
-	if serverKind == description.Standalone || (isOpQuery && serverKind != description.Mongos) {
+	if serverKind == description.Standalone || (isOpQuery && serverKind != description.Mongos) || op.Type == Write {
 		// Don't send read preference for non-mongos when using OP_QUERY or for all standalones
 		return nil, nil
 	}

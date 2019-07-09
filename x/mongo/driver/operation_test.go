@@ -159,25 +159,25 @@ func TestOperation(t *testing.T) {
 			name string
 			op   Operation
 			desc description.Server
-			want RetryType
+			want Type
 		}{
-			{"deployment doesn't support", Operation{Deployment: deploymentNoRetry}, description.Server{}, RetryType(0)},
-			{"wire version too low", Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcAck}, descNotRetryable, RetryType(0)},
+			{"deployment doesn't support", Operation{Deployment: deploymentNoRetry}, description.Server{}, Type(0)},
+			{"wire version too low", Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcAck}, descNotRetryable, Type(0)},
 			{
 				"transaction in progress",
 				Operation{Deployment: deploymentRetry, Client: sessInProgressTransaction, WriteConcern: wcAck},
-				descRetryable, RetryType(0),
+				descRetryable, Type(0),
 			},
 			{
 				"transaction starting",
 				Operation{Deployment: deploymentRetry, Client: sessStartingTransaction, WriteConcern: wcAck},
-				descRetryable, RetryType(0),
+				descRetryable, Type(0),
 			},
-			{"unacknowledged write concern", Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcUnack}, descRetryable, RetryType(0)},
+			{"unacknowledged write concern", Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcUnack}, descRetryable, Type(0)},
 			{
 				"acknowledged write concern",
-				Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcAck, RetryType: RetryWrite},
-				descRetryable, RetryWrite,
+				Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcAck, Type: Write},
+				descRetryable, Write,
 			},
 		}
 
@@ -185,7 +185,7 @@ func TestOperation(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				got := tc.op.retryable(tc.desc)
 				if got != tc.want {
-					t.Errorf("Did not receive expected RetryType. got %v; want %v", got, tc.want)
+					t.Errorf("Did not receive expected Type. got %v; want %v", got, tc.want)
 				}
 			})
 		}

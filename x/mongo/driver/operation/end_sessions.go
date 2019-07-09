@@ -65,6 +65,9 @@ func (es *EndSessions) command(dst []byte, desc description.SelectedServer) ([]b
 	if es.sessionIDs != nil {
 		dst = bsoncore.AppendArrayElement(dst, "endSessions", es.sessionIDs)
 	}
+	if es.sessionIDs != nil {
+		dst = bsoncore.AppendArrayElement(dst, "sessionIDs", es.sessionIDs)
+	}
 	return dst, nil
 }
 
