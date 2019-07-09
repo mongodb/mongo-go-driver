@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e3d79ccb_4fd793a6",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-09T20:52:07Z",
+      "side": 1,
+      "message": "s/a/an/",
+      "range": {
+        "startLine": 129,
+        "startChar": 26,
+        "endLine": 129,
+        "endChar": 27
+      },
+      "revId": "f351a45b3e03e4efcb15dfc9287d3f2535cedf7c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5d43006d_7d14fdf8",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-09T20:52:07Z",
+      "side": 1,
+      "message": "disabled seems weird here, maybe unknown?",
+      "range": {
+        "startLine": 129,
+        "startChar": 59,
+        "endLine": 129,
+        "endChar": 67
+      },
+      "revId": "f351a45b3e03e4efcb15dfc9287d3f2535cedf7c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "738ad108_d180754c",
+        "filename": "x/mongo/driver/operation/end_sessions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-09T20:52:07Z",
+      "side": 1,
+      "message": "This shouldn\u0027t be here. Looks like I broke this in https://review.gerrithub.io/c/mongodb/mongo-go-driver/+/459836/5/x/mongo/driver/drivergen/drivergen.go#b178.",
+      "range": {
+        "startLine": 68,
+        "startChar": 0,
+        "endLine": 70,
+        "endChar": 2
+      },
+      "revId": "f351a45b3e03e4efcb15dfc9287d3f2535cedf7c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}

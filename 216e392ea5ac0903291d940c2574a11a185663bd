@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "edf4ebcb_904fd1a1",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 902,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-09T20:52:07Z",
+      "side": 0,
+      "message": "Why is this removed?",
+      "range": {
+        "startLine": 900,
+        "startChar": 1,
+        "endLine": 902,
+        "endChar": 2
+      },
+      "revId": "216e392ea5ac0903291d940c2574a11a185663bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
