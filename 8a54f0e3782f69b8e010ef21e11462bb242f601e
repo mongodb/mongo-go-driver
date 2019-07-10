@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "8ea5d012_29ce1644",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 194,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-10T15:25:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d3308e27_e84b2101",
+      "range": {
+        "startLine": 194,
+        "startChar": 8,
+        "endLine": 194,
+        "endChar": 25
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0bf85cce_1c33601b",
         "filename": "mongo/retryable_writes_test.go",
         "patchSetId": 3
@@ -190,6 +214,30 @@
     },
     {
       "key": {
+        "uuid": "89cbf7e5_f761cef0",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 435,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-10T15:25:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "6784c2a0_17a040b0",
+      "range": {
+        "startLine": 431,
+        "startChar": 0,
+        "endLine": 435,
+        "endChar": 1
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "848399a5_a4bb4ea6",
         "filename": "mongo/retryable_writes_test.go",
         "patchSetId": 3
@@ -295,6 +343,30 @@
       "side": 1,
       "message": "The retry spec says the tests only run in replica sets and sharded clusters.",
       "parentUuid": "e20e5385_243f0ad4",
+      "range": {
+        "startLine": 454,
+        "startChar": 4,
+        "endLine": 454,
+        "endChar": 16
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "32faded2_d953d346",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 454,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-10T15:25:57Z",
+      "side": 1,
+      "message": "The runOn block in the test JSON should never have \"single\" as a topology then. In general, we shouldn\u0027t need any test-specific logic to validate a runOn block.",
+      "parentUuid": "711f3335_a9551b26",
       "range": {
         "startLine": 454,
         "startChar": 4,
