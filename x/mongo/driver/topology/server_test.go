@@ -94,8 +94,10 @@ func TestServer(t *testing.T) {
 				desc = &descript
 				require.Nil(t, desc.LastError)
 			}
+			//err = s.Connect(nil)
+			err = s.pool.Connect()
+			require.NoError(t, err, "unable to Connect to pool")
 			s.connectionstate = connected
-			s.pool.connected = connected
 
 			_, err = s.Connection(context.Background())
 
@@ -113,7 +115,7 @@ func TestServer(t *testing.T) {
 				require.NotNil(t, s.Description().LastError)
 			}
 
-			if (tt.connectionError || tt.networkError) && s.pool.generation != 1 {
+			if (tt.connectionError || tt.networkError) && atomic.LoadUint64(&s.pool.generation) != 1 {
 				t.Errorf("Expected pool to be drained once on connection or network error. got %d; want %d", s.pool.generation, 1)
 			}
 		})

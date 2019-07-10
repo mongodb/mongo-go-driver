@@ -21,17 +21,16 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"golang.org/x/sync/semaphore"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
 const connectionSemaphoreSize = math.MaxInt64
 
-// ErrServerClosed occurs when an attempt to get a connection is made after
+// ErrServerClosed occurs when an attempt to CheckOut a connection is made after
 // the server has been closed.
 var ErrServerClosed = errors.New("server is closed")
 
-// ErrServerConnected occurs when at attempt to connect is made after a server
+// ErrServerConnected occurs when at attempt to Connect is made after a server
 // has already been connected.
 var ErrServerConnected = errors.New("server is connected")
 
@@ -83,7 +82,6 @@ type Server struct {
 
 	// connection related fields
 	pool *pool
-	sem  *semaphore.Weighted
 
 	// goroutine management fields
 	done     chan struct{}
@@ -125,7 +123,7 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 		return nil, err
 	}
 
-	var maxConns = uint64(cfg.maxConns)
+	var maxConns = cfg.maxConns
 	if maxConns == 0 {
 		maxConns = math.MaxInt64
 	}
@@ -133,8 +131,6 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 	s := &Server{
 		cfg:     cfg,
 		address: addr,
-
-		sem: semaphore.NewWeighted(int64(maxConns)),
 
 		done:     make(chan struct{}),
 		checkNow: make(chan struct{}, 1),
@@ -144,8 +140,17 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 	s.desc.Store(description.Server{Addr: addr})
 
 	callback := func(desc description.Server) { s.updateDescription(desc, false) }
-	s.pool = newPool(addr, uint64(cfg.maxIdleConns), withServerDescriptionCallback(callback, cfg.connectionOpts...)...)
-
+	pc := poolConfig{
+		Address:     addr,
+		MaxPoolSize: cfg.maxConns,
+		MinPoolSize: cfg.minConns,
+		MaxIdleTime: cfg.connectionPoolMaxIdleTime,
+		PoolMonitor: cfg.poolMonitor,
+	}
+	s.pool, err = newPool(pc, withServerDescriptionCallback(callback, cfg.connectionOpts...)...)
+	if err != nil {
+		return nil, err
+	}
 	return s, nil
 }
 
@@ -159,12 +164,12 @@ func (s *Server) Connect(updateCallback func(description.Server)) error {
 	s.updateTopologyCallback.Store(updateCallback)
 	go s.update()
 	s.closewg.Add(1)
-	return s.pool.connect()
+	return s.pool.Connect()
 }
 
 // Disconnect closes sockets to the server referenced by this Server.
 // Subscriptions to this Server will be closed. Disconnect will shutdown
-// any monitoring goroutines, close the idle connection pool, and will
+// any monitoring goroutines, closeConnection the idle connection pool, and will
 // wait until all the in use connections have been returned to the connection
 // pool and are closed before returning. If the context expires via
 // cancellation, deadline, or timeout before the in use connections have been
@@ -181,7 +186,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 	// For every call to Connect there must be at least 1 goroutine that is
 	// waiting on the done channel.
 	s.done <- struct{}{}
-	err := s.pool.disconnect(ctx)
+	err := s.pool.Disconnect(ctx)
 	if err != nil {
 		return err
 	}
@@ -198,20 +203,14 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		return nil, ErrServerClosed
 	}
 
-	err := s.sem.Acquire(ctx, 1)
+	conn, err := s.pool.CheckOut(ctx)
 	if err != nil {
-		return nil, err
-	}
-
-	conn, err := s.pool.get(ctx)
-	if err != nil {
-		s.sem.Release(1)
 		connerr, ok := err.(ConnectionError)
 		if !ok {
 			return nil, err
 		}
 
-		// Since the only kind of ConnectionError we receive from pool.get will be an initialization
+		// Since the only kind of ConnectionError we receive from pool.CheckOut will be an initialization
 		// error, we should set the description.Server appropriately.
 		desc := description.Server{
 			Kind:      description.Unknown,
@@ -526,20 +525,6 @@ func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
 		s.averageRTT = time.Duration(alpha*float64(delay) + (1-alpha)*float64(s.averageRTT))
 	}
 	return s.averageRTT
-}
-
-// Drain will drain the connection pool of this server. This is mainly here so the
-// pool for the server doesn't need to be directly exposed and so that when an error
-// is returned from reading or writing, a client can drain the pool for this server.
-// This is exposed here so we don't have to wrap the Connection type and sniff responses
-// for errors that would cause the pool to be drained, which can in turn centralize the
-// logic for handling errors in the Client type.
-//
-// TODO(GODRIVER-617): I don't think we actually need this method. It's likely replaced by
-// ProcessError.
-func (s *Server) Drain() error {
-	s.pool.drain()
-	return nil
 }
 
 // String implements the Stringer interface.
