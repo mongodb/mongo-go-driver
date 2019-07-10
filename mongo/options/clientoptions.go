@@ -74,7 +74,9 @@ type ClientOptions struct {
 	Hosts                  []string
 	LocalThreshold         *time.Duration
 	MaxConnIdleTime        *time.Duration
-	MaxPoolSize            *uint16
+	MaxPoolSize            *uint64
+	MinPoolSize            *uint64
+	PoolMonitor            *event.PoolMonitor
 	Monitor                *event.CommandMonitor
 	ReadConcern            *readconcern.ReadConcern
 	ReadPreference         *readpref.ReadPref
@@ -166,6 +168,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if cs.MaxPoolSizeSet {
 		c.MaxPoolSize = &cs.MaxPoolSize
+	}
+
+	if cs.MinPoolSizeSet {
+		c.MinPoolSize = &cs.MinPoolSize
 	}
 
 	if cs.ReadConcernLevel != "" {
@@ -349,8 +355,20 @@ func (c *ClientOptions) SetMaxConnIdleTime(d time.Duration) *ClientOptions {
 }
 
 // SetMaxPoolSize specifies the max size of a server's connection pool.
-func (c *ClientOptions) SetMaxPoolSize(u uint16) *ClientOptions {
+func (c *ClientOptions) SetMaxPoolSize(u uint64) *ClientOptions {
 	c.MaxPoolSize = &u
+	return c
+}
+
+// SetMinPoolSize specifies the min size of a server's connection pool.
+func (c *ClientOptions) SetMinPoolSize(u uint64) *ClientOptions {
+	c.MinPoolSize = &u
+	return c
+}
+
+// SetPoolMonitor specifies the PoolMonitor for a server's connection pool.
+func (c *ClientOptions) SetPoolMonitor(m *event.PoolMonitor) *ClientOptions {
+	c.PoolMonitor = m
 	return c
 }
 
@@ -469,6 +487,12 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.MaxPoolSize != nil {
 			c.MaxPoolSize = opt.MaxPoolSize
+		}
+		if opt.MinPoolSize != nil {
+			c.MinPoolSize = opt.MinPoolSize
+		}
+		if opt.PoolMonitor != nil {
+			c.PoolMonitor = opt.PoolMonitor
 		}
 		if opt.Monitor != nil {
 			c.Monitor = opt.Monitor

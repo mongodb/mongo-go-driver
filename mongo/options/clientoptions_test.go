@@ -45,6 +45,7 @@ func TestClientOptions(t *testing.T) {
 		}
 	})
 	t.Run("Set", func(t *testing.T) {
+		var poolMonitor event.PoolMonitor = func(_ event.PoolEvent) {}
 		testCases := []struct {
 			name        string
 			fn          interface{} // method to be run
@@ -61,7 +62,9 @@ func TestClientOptions(t *testing.T) {
 			{"Hosts", (*ClientOptions).SetHosts, []string{"localhost:27017", "localhost:27018", "localhost:27019"}, "Hosts", true},
 			{"LocalThreshold", (*ClientOptions).SetLocalThreshold, 5 * time.Second, "LocalThreshold", true},
 			{"MaxConnIdleTime", (*ClientOptions).SetMaxConnIdleTime, 5 * time.Second, "MaxConnIdleTime", true},
-			{"MaxPoolSize", (*ClientOptions).SetMaxPoolSize, uint16(250), "MaxPoolSize", true},
+			{"MaxPoolSize", (*ClientOptions).SetMaxPoolSize, uint64(250), "MaxPoolSize", true},
+			{"MinPoolSize", (*ClientOptions).SetMinPoolSize, uint64(10), "MinPoolSize", true},
+			{"PoolMonitor", (*ClientOptions).SetPoolMonitor, &poolMonitor, "PoolMonitor", false},
 			{"Monitor", (*ClientOptions).SetMonitor, &event.CommandMonitor{}, "Monitor", false},
 			{"ReadConcern", (*ClientOptions).SetReadConcern, readconcern.Majority(), "ReadConcern", false},
 			{"ReadPreference", (*ClientOptions).SetReadPreference, readpref.SecondaryPreferred(), "ReadPreference", false},
@@ -132,6 +135,7 @@ func TestClientOptions(t *testing.T) {
 					cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
 					cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
 					cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
+					cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
 				) {
 					t.Errorf("Field not set properly. got %v; want %v", got.Interface(), want.Interface())
 				}
@@ -145,6 +149,7 @@ func TestClientOptions(t *testing.T) {
 				cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
 				cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
 				cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
+				cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
 				cmp.AllowUnexported(ClientOptions{}),
 			); diff != "" {
 				t.Errorf("diff:\n%s", diff)
