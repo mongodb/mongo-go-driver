@@ -359,8 +359,21 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.MaxPoolSize != nil {
 		serverOpts = append(
 			serverOpts,
-			topology.WithMaxConnections(func(uint16) uint16 { return *opts.MaxPoolSize }),
-			topology.WithMaxIdleConnections(func(uint16) uint16 { return *opts.MaxPoolSize }),
+			topology.WithMaxConnections(func(uint64) uint64 { return *opts.MaxPoolSize }),
+		)
+	}
+	// MinPoolSize
+	if opts.MinPoolSize != nil {
+		serverOpts = append(
+			serverOpts,
+			topology.WithMinConnections(func(uint64) uint64 { return *opts.MinPoolSize }),
+		)
+	}
+	// PoolMonitor
+	if opts.PoolMonitor != nil {
+		serverOpts = append(
+			serverOpts,
+			topology.WithConnectionPoolMonitor(func(event.PoolMonitor) event.PoolMonitor { return *opts.PoolMonitor }),
 		)
 	}
 	// Monitor
