@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "d7f33c89_a0ebcc4d",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-10T15:20:16Z",
+      "side": 1,
+      "message": "Yeah its shorter now that we don\u0027t care about the topology, but",
+      "parentUuid": "162db527_f69dc404",
+      "range": {
+        "startLine": 193,
+        "startChar": 19,
+        "endLine": 193,
+        "endChar": 235
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c6a1f0a1_720071b7",
         "filename": "mongo/change_stream.go",
         "patchSetId": 7
@@ -45,6 +69,30 @@
       "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9bc388a9_c713c8f9",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-10T15:20:16Z",
+      "side": 1,
+      "message": "From offline discussion, we just check the wire version and dont check the topology",
+      "parentUuid": "c6a1f0a1_720071b7",
+      "range": {
+        "startLine": 205,
+        "startChar": 9,
+        "endLine": 205,
+        "endChar": 181
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "cfc8c969_91dc7af2",
+        "filename": "mongo/command_monitoring_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-10T15:20:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5482508c_fd4876f7",
+      "range": {
+        "startLine": 55,
+        "startChar": 1,
+        "endLine": 55,
+        "endChar": 51
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6da0451e_939b4932",
         "filename": "mongo/crud_util_test.go",
         "patchSetId": 7
@@ -91,6 +163,30 @@
       "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "57d2e6cd_afee98ff",
+        "filename": "mongo/crud_util_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 693,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-10T15:20:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6da0451e_939b4932",
+      "range": {
+        "startLine": 693,
+        "startChar": 5,
+        "endLine": 693,
+        "endChar": 23
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "e44160f9_421e593b",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-10T15:20:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d768dae7_7f4d3115",
+      "range": {
+        "startLine": 268,
+        "startChar": 16,
+        "endLine": 268,
+        "endChar": 34
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e9e0478f_046cfd7b",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 7
@@ -137,6 +257,30 @@
       "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "758c6056_d9a6b803",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-10T15:20:16Z",
+      "side": 1,
+      "message": "This will only enter the if statement if there is some type of connection error or the connection we select doesnt support retryable reads/writes and we are trying to retry a read/write. So in any of those cases we should enter the if statement.",
+      "parentUuid": "e9e0478f_046cfd7b",
+      "range": {
+        "startLine": 364,
+        "startChar": 36,
+        "endLine": 364,
+        "endChar": 154
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -163,6 +307,30 @@
     },
     {
       "key": {
+        "uuid": "fdfa6935_5ce13d5c",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-10T15:20:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4355d951_fa70353b",
+      "range": {
+        "startLine": 410,
+        "startChar": 36,
+        "endLine": 410,
+        "endChar": 154
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bc5ec90b_26e44d27",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 7
@@ -174,6 +342,30 @@
       "writtenOn": "2019-07-09T21:41:36Z",
       "side": 1,
       "message": "It feels like we should be able to have these as one function. If you want to know if something is definitively a retryable read or a retryable write the method can take in a RetryType.",
+      "range": {
+        "startLine": 460,
+        "startChar": 0,
+        "endLine": 493,
+        "endChar": 1
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "26d4b878_19872f67",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 493,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-10T15:20:16Z",
+      "side": 1,
+      "message": "I changed the retryableRead one a bit since we dont need to check the topology. Should I still try to combine them then?",
+      "parentUuid": "bc5ec90b_26e44d27",
       "range": {
         "startLine": 460,
         "startChar": 0,
@@ -206,6 +398,30 @@
       "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fb2d1911_8e8a0dfc",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 261,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-10T15:20:16Z",
+      "side": 1,
+      "message": "So since we only care about whether a topology supports retryable writes. If the topology supports sessions, then its type is retrywrite. If it doesnt then it supports none because for retry reads we should never check the deployment\u0027s retry type.",
+      "parentUuid": "f68426ee_e0e0bee0",
+      "range": {
+        "startLine": 261,
+        "startChar": 4,
+        "endLine": 261,
+        "endChar": 46
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
