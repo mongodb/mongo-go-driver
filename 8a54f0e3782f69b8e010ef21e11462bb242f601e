@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "d3308e27_e84b2101",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 194,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-07-10T14:44:51Z",
+      "side": 1,
+      "message": "1. disableFailpoints expect a slice of failpoint names, so I think we should keep it if we want to reuse the function.",
+      "parentUuid": "3c34accb_00bf8eb6",
+      "range": {
+        "startLine": 194,
+        "startChar": 8,
+        "endLine": 194,
+        "endChar": 25
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0bf85cce_1c33601b",
         "filename": "mongo/retryable_writes_test.go",
         "patchSetId": 3
@@ -95,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "cd83a729_d464e40f",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-07-10T14:44:51Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b36fa91b_eafeffde",
+      "range": {
+        "startLine": 262,
+        "startChar": 2,
+        "endLine": 262,
+        "endChar": 19
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a05afe51_424649d7",
         "filename": "mongo/retryable_writes_test.go",
         "patchSetId": 3
@@ -106,6 +154,30 @@
       "writtenOn": "2019-07-09T21:00:26Z",
       "side": 1,
       "message": "Can this be deleted now?",
+      "range": {
+        "startLine": 431,
+        "startChar": 0,
+        "endLine": 435,
+        "endChar": 1
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6784c2a0_17a040b0",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 435,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-07-10T14:44:51Z",
+      "side": 1,
+      "message": "TestTexnNumberIncluded uses it, and I\u0027m not sure if it uses the same versioning constraints as the retry spec so I kept it.",
+      "parentUuid": "a05afe51_424649d7",
       "range": {
         "startLine": 431,
         "startChar": 0,
@@ -164,6 +236,30 @@
     },
     {
       "key": {
+        "uuid": "db406a21_b79c43e2",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 446,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-07-10T14:44:51Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f4ce23b4_727eefbc",
+      "range": {
+        "startLine": 444,
+        "startChar": 1,
+        "endLine": 446,
+        "endChar": 2
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e20e5385_243f0ad4",
         "filename": "mongo/retryable_writes_test.go",
         "patchSetId": 3
@@ -175,6 +271,30 @@
       "writtenOn": "2019-07-09T21:00:26Z",
       "side": 1,
       "message": "Should this be return true to match the other cases?",
+      "range": {
+        "startLine": 454,
+        "startChar": 4,
+        "endLine": 454,
+        "endChar": 16
+      },
+      "revId": "8a54f0e3782f69b8e010ef21e11462bb242f601e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "711f3335_a9551b26",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 454,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-07-10T14:44:51Z",
+      "side": 1,
+      "message": "The retry spec says the tests only run in replica sets and sharded clusters.",
+      "parentUuid": "e20e5385_243f0ad4",
       "range": {
         "startLine": 454,
         "startChar": 4,
