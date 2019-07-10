@@ -17,15 +17,17 @@ import (
 var defaultRegistry = bson.NewRegistryBuilder().Build()
 
 type serverConfig struct {
-	clock             *session.ClusterClock
-	compressionOpts   []string
-	connectionOpts    []ConnectionOption
-	appname           string
-	heartbeatInterval time.Duration
-	heartbeatTimeout  time.Duration
-	maxConns          uint16
-	maxIdleConns      uint16
-	registry          *bsoncodec.Registry
+	clock                     *session.ClusterClock
+	compressionOpts           []string
+	connectionOpts            []ConnectionOption
+	appname                   string
+	heartbeatInterval         time.Duration
+	heartbeatTimeout          time.Duration
+	maxConns                  uint64
+	minConns                  uint64
+	poolMonitor               PoolMonitor
+	connectionPoolMaxIdleTime time.Duration
+	registry                  *bsoncodec.Registry
 }
 
 func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
@@ -33,7 +35,6 @@ func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
 		heartbeatInterval: 10 * time.Second,
 		heartbeatTimeout:  10 * time.Second,
 		maxConns:          100,
-		maxIdleConns:      100,
 		registry:          defaultRegistry,
 	}
 
@@ -84,20 +85,38 @@ func WithHeartbeatTimeout(fn func(time.Duration) time.Duration) ServerOption {
 }
 
 // WithMaxConnections configures the maximum number of connections to allow for
-// a given server. If max is 0, then there is no upper limit to the number of
-// connections.
-func WithMaxConnections(fn func(uint16) uint16) ServerOption {
+// a given server. If max is 0, then the default will be 100
+func WithMaxConnections(fn func(uint64) uint64) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.maxConns = fn(cfg.maxConns)
 		return nil
 	}
 }
 
-// WithMaxIdleConnections configures the maximum number of idle connections
-// allowed for the server.
-func WithMaxIdleConnections(fn func(uint16) uint16) ServerOption {
+// WithMinConnections configures the minimum number of connections to allow for
+// a given server. If min is 0, then there is no lower limit to the number of
+// connections.
+func WithMinConnections(fn func(uint64) uint64) ServerOption {
 	return func(cfg *serverConfig) error {
-		cfg.maxIdleConns = fn(cfg.maxIdleConns)
+		cfg.minConns = fn(cfg.minConns)
+		return nil
+	}
+}
+
+// WithConnectionPoolMaxIdleTime configures the maximum time that a connection can remain idle in the connection pool
+// before being removed. If connectionPoolMaxIdleTime is 0, then no idle time is set and connections will not be removed
+// because of their age
+func WithConnectionPoolMaxIdleTime(fn func(time.Duration) time.Duration) ServerOption {
+	return func(cfg *serverConfig) error {
+		cfg.connectionPoolMaxIdleTime = fn(cfg.connectionPoolMaxIdleTime)
+		return nil
+	}
+}
+
+// WithConnectionPoolMonitor configures the a monitor for all connection pool actions
+func WithConnectionPoolMonitor(fn func(PoolMonitor) PoolMonitor) ServerOption {
+	return func(cfg *serverConfig) error {
+		cfg.poolMonitor = fn(cfg.poolMonitor)
 		return nil
 	}
 }

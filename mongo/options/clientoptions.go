@@ -74,7 +74,8 @@ type ClientOptions struct {
 	Hosts                  []string
 	LocalThreshold         *time.Duration
 	MaxConnIdleTime        *time.Duration
-	MaxPoolSize            *uint16
+	MaxPoolSize            *uint64
+	MinPoolSize            *uint64
 	Monitor                *event.CommandMonitor
 	ReadConcern            *readconcern.ReadConcern
 	ReadPreference         *readpref.ReadPref
@@ -165,6 +166,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if cs.MaxPoolSizeSet {
 		c.MaxPoolSize = &cs.MaxPoolSize
+	}
+
+	if cs.MinPoolSizeSet {
+		c.MinPoolSize = &cs.MinPoolSize
 	}
 
 	if cs.ReadConcernLevel != "" {
@@ -348,8 +353,14 @@ func (c *ClientOptions) SetMaxConnIdleTime(d time.Duration) *ClientOptions {
 }
 
 // SetMaxPoolSize specifies the max size of a server's connection pool.
-func (c *ClientOptions) SetMaxPoolSize(u uint16) *ClientOptions {
+func (c *ClientOptions) SetMaxPoolSize(u uint64) *ClientOptions {
 	c.MaxPoolSize = &u
+	return c
+}
+
+// SetMinPoolSize specifies the min size of a server's connection pool.
+func (c *ClientOptions) SetMinPoolSize(u uint64) *ClientOptions {
+	c.MinPoolSize = &u
 	return c
 }
 
