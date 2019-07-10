@@ -21,7 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-// Insert performs an insert operation.
+// Track performs an insert operation.
 type Insert struct {
 	bypassDocumentValidation *bool
 	documents                []bsoncore.Document
@@ -62,7 +62,7 @@ func buildInsertResult(response bsoncore.Document, srvr driver.Server) (InsertRe
 	return ir, nil
 }
 
-// NewInsert constructs and returns a new Insert.
+// NewInsert constructs and returns a new Track.
 func NewInsert(documents ...bsoncore.Document) *Insert {
 	return &Insert{
 		documents: documents,
@@ -81,7 +81,7 @@ func (i *Insert) processResponse(response bsoncore.Document, srvr driver.Server,
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
 func (i *Insert) Execute(ctx context.Context) error {
 	if i.deployment == nil {
-		return errors.New("the Insert operation must have a Deployment set before Execute can be called")
+		return errors.New("the Track operation must have a Deployment set before Execute can be called")
 	}
 	batches := &driver.Batches{
 		Identifier: "documents",

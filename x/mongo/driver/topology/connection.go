@@ -15,11 +15,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"strings"
 
 	"github.com/golang/snappy"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -29,7 +28,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
-var globalConnectionID uint64
+var globalConnectionID = uint64(1)
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
@@ -174,7 +173,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 
 	select {
 	case <-ctx.Done():
-		// We close the connection because we don't know if there is an unread message on the wire.
+		// We closeConnection the connection because we don't know if there is an unread message on the wire.
 		c.close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: ctx.Err(), message: "failed to read"}
 	default:
@@ -202,7 +201,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	// reading messages from an exhaust cursor.
 	_, err := io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
-		// We close the connection because we don't know if there are other bytes left to read.
+		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to decode message length"}
 	}
@@ -221,7 +220,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 
 	_, err = io.ReadFull(c.nc, dst[4:])
 	if err != nil {
-		// We close the connection because we don't know if there are other bytes left to read.
+		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to read full message"}
 	}
@@ -239,7 +238,7 @@ func (c *connection) close() error {
 		atomic.StoreInt32(&c.connected, disconnected)
 		return err
 	}
-	return c.pool.close(c)
+	return c.pool.closeConnection(c)
 }
 
 func (c *connection) expired() bool {
@@ -368,7 +367,7 @@ func (c *Connection) Description() description.Server {
 	return c.desc
 }
 
-// Close returns this connection to the connection pool. This method may not close the underlying
+// Close returns this connection to the connection pool. This method may not closeConnection the underlying
 // socket.
 func (c *Connection) Close() error {
 	c.mu.Lock()
@@ -376,10 +375,7 @@ func (c *Connection) Close() error {
 	if c.connection == nil {
 		return nil
 	}
-	if c.s != nil {
-		c.s.sem.Release(1)
-	}
-	err := c.pool.put(c.connection)
+	err := c.pool.CheckIn(c.connection)
 	if err != nil {
 		return err
 	}
@@ -387,15 +383,15 @@ func (c *Connection) Close() error {
 	return nil
 }
 
-// Expire closes this connection and will close the underlying socket.
+// Expire closes this connection and will closeConnection the underlying socket.
 func (c *Connection) Expire() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.connection == nil {
 		return nil
 	}
-	if c.s != nil {
-		c.s.sem.Release(1)
+	if c.pool != nil {
+		atomicSubtract1Uint64(&c.pool.connsCheckedOut)
 	}
 	err := c.close()
 	if err != nil {
