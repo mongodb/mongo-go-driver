@@ -315,6 +315,8 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.
 		if err != nil {
 			return err
 		}
+	case bsontype.Null:
+		str = ""
 	default:
 		return fmt.Errorf("cannot decode %v into a string type", vr.Type())
 	}
