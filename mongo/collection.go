@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -428,7 +429,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	return coll.delete(ctx, filter, false, rrMany, opts...)
 }
 
-func (coll *Collection) updateOrReplace(ctx context.Context, filter, update bsoncore.Document, multi bool, expectedRr returnResult,
+func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Document, update interface{}, multi bool, expectedRr returnResult,
 	opts ...*options.UpdateOptions) (*UpdateResult, error) {
 
 	if ctx == nil {
@@ -438,8 +439,29 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter, update bson
 	uo := options.MergeUpdateOptions(opts...)
 	uidx, updateDoc := bsoncore.AppendDocumentStart(nil)
 	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "q", filter)
-	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", update)
-	updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
+
+	switch update.(type) {
+	case bsoncore.Document:
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", update.(bsoncore.Document))
+	case []interface{}:
+		u, err := transformUpdatePipeline(coll.registry, update)
+		if err != nil {
+			return nil, err
+		}
+		updateDoc = bsoncore.AppendArrayElement(updateDoc, "u", u)
+	default:
+		u, err := transformBsoncoreDocument(coll.registry, update)
+		if err != nil {
+			return nil, err
+		}
+		if err := ensureDollarKeyv2(u); err != nil {
+			return nil, err
+		}
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", u)
+	}
+	if multi {
+		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
+	}
 
 	// collation, arrayFilters, and upsert are included on the individual update documents rather than as part of the
 	// command
@@ -531,15 +553,8 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 	if err != nil {
 		return nil, err
 	}
-	u, err := transformBsoncoreDocument(coll.registry, update)
-	if err != nil {
-		return nil, err
-	}
-	if err := ensureDollarKeyv2(u); err != nil {
-		return nil, err
-	}
 
-	return coll.updateOrReplace(ctx, f, u, false, rrOne, opts...)
+	return coll.updateOrReplace(ctx, f, update, false, rrOne, opts...)
 }
 
 // UpdateMany updates multiple documents in the collection.
@@ -555,16 +570,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		return nil, err
 	}
 
-	u, err := transformBsoncoreDocument(coll.registry, update)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = ensureDollarKeyv2(u); err != nil {
-		return nil, err
-	}
-
-	return coll.updateOrReplace(ctx, f, u, true, rrMany, opts...)
+	return coll.updateOrReplace(ctx, f, update, true, rrMany, opts...)
 }
 
 // ReplaceOne replaces a single document in the collection.
@@ -1221,7 +1227,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	}
 
 	fo := options.MergeFindOneAndReplaceOptions(opts...)
-	op := operation.NewFindAndModify(f).Update(r)
+	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: r})
 	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
 	}
@@ -1268,19 +1274,32 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-	u, err := transformBsoncoreDocument(coll.registry, update)
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-	err = ensureDollarKeyv2(u)
-	if err != nil {
-		return &SingleResult{
-			err: err,
-		}
-	}
 
 	fo := options.MergeFindOneAndUpdateOptions(opts...)
-	op := operation.NewFindAndModify(f).Update(u)
+	op := operation.NewFindAndModify(f)
+
+	var u bsoncore.Value
+	switch update.(type) {
+	case []interface{}:
+		u.Data, err = transformUpdatePipeline(coll.registry, update)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		u.Type = bsontype.Array
+	default:
+		u.Data, err = transformBsoncoreDocument(coll.registry, update)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		err = ensureDollarKeyv2(u.Data)
+		if err != nil {
+			return &SingleResult{
+				err: err,
+			}
+		}
+		u.Type = bsontype.EmbeddedDocument
+	}
+	op = op.Update(u)
 
 	if fo.ArrayFilters != nil {
 		filtersDoc, err := fo.ArrayFilters.ToArrayDocument()
