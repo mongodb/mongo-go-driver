@@ -378,6 +378,30 @@
     },
     {
       "key": {
+        "uuid": "7eb229c3_8db19ee2",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 493,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-12T17:59:59Z",
+      "side": 1,
+      "message": "Made a new comment about this in a newer patch, so resolving this one.",
+      "parentUuid": "26d4b878_19872f67",
+      "range": {
+        "startLine": 460,
+        "startChar": 0,
+        "endLine": 493,
+        "endChar": 1
+      },
+      "revId": "f88c47f4d661d4b03af9c11b0319a7052ea948ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f68426ee_e0e0bee0",
         "filename": "x/mongo/driver/topology/topology.go",
         "patchSetId": 7

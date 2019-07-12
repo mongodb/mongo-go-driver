@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ee9f338d_abd8682f",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-12T17:59:59Z",
+      "side": 1,
+      "message": "Do we actually need this check? The retryableType method will only return RetryWrite or RetryRead if op.RetryMode is set to RetryWrite or RetryRead.",
+      "range": {
+        "startLine": 267,
+        "startChar": 17,
+        "endLine": 267,
+        "endChar": 37
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cce10ad1_e7ef8636",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 286,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-12T17:59:59Z",
+      "side": 1,
+      "message": "The check at the end that sets retries \u003d 0 indicates that there is a code flow problem here. I think we can rewrite this whole section as a switch statement: one for retryable reads and one for retryable writes. We can also extract the *op.RetryMode switch statement into another method (or just duplicate the code).",
+      "range": {
+        "startLine": 268,
+        "startChar": 2,
+        "endLine": 286,
+        "endChar": 3
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dfebca9b_7284c43c",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 494,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-12T17:59:59Z",
+      "side": 1,
+      "message": "Do we use these anymore? I don\u0027t see them being used.",
+      "range": {
+        "startLine": 462,
+        "startChar": 0,
+        "endLine": 494,
+        "endChar": 1
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c0bd2914_548220f7",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 496,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-12T17:59:59Z",
+      "side": 1,
+      "message": "Looking through the code more, it feels like this can just return a boolean (and it\u0027s name be changed to \"retryable\"). For the places where we\u0027re comparing RetryType, we\u0027re comparing it to the previous value this method returned:\n\n    op.retryableType(conn.Description()) !\u003d retryType\n\nis the same as\n\n    op.retryableType(conn.Description()) !\u003d op.retryableType(oldconn.Description())\n\nand we don\u0027t actually care if the old connection supported retryability because the only time we do this check we already know that the old connection did support retryability.",
+      "range": {
+        "startLine": 496,
+        "startChar": 20,
+        "endLine": 496,
+        "endChar": 68
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "27496edf_e85e7406",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 513,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-12T17:59:59Z",
+      "side": 1,
+      "message": "This conditional only matters for the latter statement, so I think we change it to:\n\n    (op.Client \u003d\u003d nil || !(op.Client.TransactionInProgress() || op.Client.TransactionStarting))\n\nThis means that we don\u0027t need a session to do retryable reads.",
+      "range": {
+        "startLine": 513,
+        "startChar": 3,
+        "endLine": 513,
+        "endChar": 19
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
