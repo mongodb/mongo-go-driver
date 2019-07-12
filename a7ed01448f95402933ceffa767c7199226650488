@@ -22,6 +22,29 @@
       "revId": "a7ed01448f95402933ceffa767c7199226650488",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fd263795_4f604315",
+        "filename": "mongo/single_result_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-12T18:01:53Z",
+      "side": 1,
+      "message": "I think Kris meant we should be doing a check to make sure res is \"foo\", rather than just confirming that it\u0027s not nil.",
+      "range": {
+        "startLine": 61,
+        "startChar": 5,
+        "endLine": 61,
+        "endChar": 26
+      },
+      "revId": "a7ed01448f95402933ceffa767c7199226650488",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
