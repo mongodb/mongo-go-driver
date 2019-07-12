@@ -153,7 +153,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	return operation.NewCommand(runCmdDoc).
 		Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.topology).ReadConcern(db.readConcern), sess, nil
+		Database(db.name).Deployment(db.client.topology).ReadConcern(db.readConcern).Crypt(db.client.crypt), sess, nil
 }
 
 // RunCommand runs a command on the database. A user can supply a custom
@@ -237,7 +237,7 @@ func (db *Database) Drop(ctx context.Context) error {
 	op := operation.NewDropDatabase().
 		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.topology)
+		Database(db.name).Deployment(db.client.topology).Crypt(db.client.crypt)
 
 	err = op.Execute(ctx)
 
@@ -279,7 +279,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.topology)
+		Database(db.name).Deployment(db.client.topology).Crypt(db.client.crypt)
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)
 	}
@@ -295,7 +295,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, replaceErrors(err)
 	}
 
-	bc, err := op.Result(driver.CursorOptions{})
+	bc, err := op.Result(driver.CursorOptions{Crypt: db.client.crypt})
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)

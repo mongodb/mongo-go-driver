@@ -18,11 +18,19 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+)
+
+// constants for AWS environment variables for auto encryption.
+const (
+	awsAccessKeyID     = "AWS_ACCESS_KEY_ID"
+	awsSecretAccessKey = "AWS_SECRET_ACCESS_KEY"
 )
 
 type cursor interface {
@@ -50,8 +58,124 @@ func addClientOptions(c *Client, opts map[string]interface{}) {
 			c.readConcern = readconcern.New(readconcern.Level(opt.(string)))
 		case "readPreference":
 			c.readPreference = readPrefFromString(opt.(string))
+		case "autoEncryptOpts":
 		}
 	}
+}
+
+func createClientOptions(t *testing.T, opts bson.Raw) *options.ClientOptions {
+	t.Helper()
+
+	clientOpts := options.Client()
+	elems, _ := opts.Elements()
+	for _, elem := range elems {
+		name := elem.Key()
+		opt := elem.Value()
+
+		switch name {
+		case "retryWrites":
+			clientOpts.SetRetryWrites(opt.Boolean())
+		case "w":
+			switch opt.Type {
+			case bson.TypeDouble:
+				w := int(opt.Double())
+				clientOpts.SetWriteConcern(writeconcern.New(writeconcern.W(w)))
+			case bson.TypeString:
+				clientOpts.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+			}
+		case "readConcernLevel":
+			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(opt.StringValue())))
+		case "readPreference":
+			clientOpts.SetReadPreference(readPrefFromString(opt.StringValue()))
+		case "autoEncryptOpts":
+			clientOpts.SetAutoEncryptionOptions(createAutoEncryptionOptions(t, opt.Document()))
+		default:
+			t.Fatalf("unknown client option: %v", name)
+		}
+	}
+
+	return clientOpts
+}
+
+func createAutoEncryptionOptions(t *testing.T, opts bson.Raw) *options.AutoEncryptionOptions {
+	t.Helper()
+
+	aeo := options.AutoEncryption()
+	var kvnsFound bool
+	elems, _ := opts.Elements()
+
+	for _, elem := range elems {
+		name := elem.Key()
+		opt := elem.Value()
+
+		switch name {
+		case "kmsProviders":
+			aeo.SetKmsProviders(createKmsProvidersMap(t, opt.Document()))
+		case "schemaMap":
+			var schemaMap map[string]interface{}
+			err := bson.Unmarshal(opt.Document(), &schemaMap)
+			if err != nil {
+				t.Fatalf("error creating schema mpa: %v", err)
+			}
+
+			aeo.SetSchemaMap(schemaMap)
+		case "keyVaultNamespace":
+			kvnsFound = true
+			aeo.SetKeyVaultNamespace(opt.StringValue())
+		case "bypassAutoEncryption":
+			aeo.SetBypassAutoEncryption(opt.Boolean())
+		default:
+			t.Fatalf("unknown auto encryption option: %v", name)
+		}
+	}
+	if !kvnsFound {
+		aeo.SetKeyVaultNamespace("admin.datakeys")
+	}
+
+	return aeo
+}
+
+func createKmsProvidersMap(t *testing.T, opts bson.Raw) map[string]map[string]interface{} {
+	t.Helper()
+
+	// aws: value is always empty object. create new map value from access key ID and secret access key
+	// local: value is {"key": primitive.Binary}. transform to {"key": []byte}
+
+	kmsMap := make(map[string]map[string]interface{})
+	elems, _ := opts.Elements()
+
+	for _, elem := range elems {
+		provider := elem.Key()
+		providerOpt := elem.Value()
+
+		switch provider {
+		case "aws":
+			keyID := os.Getenv(awsAccessKeyID)
+			if keyID == "" {
+				t.Fatalf("%s env var not set", awsAccessKeyID)
+			}
+			secretAccessKey := os.Getenv(awsSecretAccessKey)
+			if secretAccessKey == "" {
+				t.Fatalf("%s env var not set", awsSecretAccessKey)
+			}
+
+			awsMap := map[string]interface{}{
+				"accessKeyId":     keyID,
+				"secretAccessKey": secretAccessKey,
+			}
+			kmsMap["aws"] = awsMap
+		case "local":
+			_, key := providerOpt.Document().Lookup("key").Binary()
+			localMap := map[string]interface{}{
+				"key": key,
+			}
+			kmsMap["local"] = localMap
+		default:
+			t.Fatalf("unknown KMS provider: %v", provider)
+		}
+	}
+
+	return kmsMap
 }
 
 // Mutates the collection to add options
@@ -66,6 +190,75 @@ func addCollectionOptions(c *Collection, opts map[string]interface{}) {
 			c.readPreference = readPrefFromString(opt.(map[string]interface{})["mode"].(string))
 		}
 	}
+}
+
+func createWriteConcernFromRawValue(t *testing.T, opt bson.RawValue) *writeconcern.WriteConcern {
+	wcDoc, ok := opt.DocumentOK()
+	if !ok {
+		return nil
+	}
+
+	var opts []writeconcern.Option
+	elems, _ := wcDoc.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "wtimeout":
+			wtimeout := time.Duration(val.Int32()) * time.Millisecond
+			opts = append(opts, writeconcern.WTimeout(wtimeout))
+		case "j":
+			opts = append(opts, writeconcern.J(val.Boolean()))
+		case "w":
+			switch val.Type {
+			case bson.TypeString:
+				if val.StringValue() != "majority" {
+					break
+				}
+				opts = append(opts, writeconcern.WMajority())
+			case bson.TypeInt32:
+				w := int(val.Int32())
+				opts = append(opts, writeconcern.W(w))
+			default:
+				t.Fatalf("unknown type for w: %v", val.Type)
+			}
+		default:
+			t.Fatalf("unknown write concern option: %v", key)
+		}
+	}
+	return writeconcern.New(opts...)
+}
+
+func createReadPreferenceFromRawValue(opt bson.RawValue) *readpref.ReadPref {
+	mode := opt.Document().Lookup("mode").StringValue()
+	return readPrefFromString(mode)
+}
+
+func createCollectionOptions(t *testing.T, opts bson.Raw) *options.CollectionOptions {
+	t.Helper()
+
+	co := options.Collection()
+	elems, _ := opts.Elements()
+	for _, elem := range elems {
+		name := elem.Key()
+		opt := elem.Value()
+
+		switch name {
+		case "readConcern":
+			level := opt.Document().Lookup("level").StringValue()
+			rc := readconcern.New(readconcern.Level(level))
+			co.SetReadConcern(rc)
+		case "writeConcern":
+			co.SetWriteConcern(createWriteConcernFromRawValue(t, opt))
+		case "readPreference":
+			co.SetReadPreference(createReadPreferenceFromRawValue(opt))
+		default:
+			t.Fatalf("unknown collection option: %v", name)
+		}
+	}
+
+	return co
 }
 
 func executeCount(sess *sessionImpl, coll *Collection, args map[string]interface{}) (int64, error) {
@@ -551,7 +744,7 @@ func executeUpdateMany(sess *sessionImpl, coll *Collection, args map[string]inte
 	return coll.UpdateMany(ctx, filter, update, opts)
 }
 
-func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*Cursor, error) {
+func executeAggregate(sess *sessionImpl, agg aggregator, args map[string]interface{}) (*Cursor, error) {
 	var pipeline []interface{}
 	opts := options.Aggregate()
 	for name, opt := range args {
@@ -572,9 +765,9 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.Aggregate(sessCtx, pipeline, opts)
+		return agg.Aggregate(sessCtx, pipeline, opts)
 	}
-	return coll.Aggregate(ctx, pipeline, opts)
+	return agg.Aggregate(ctx, pipeline, opts)
 }
 
 func executeWithTransaction(t *testing.T, sess *sessionImpl, collName string, db *Database, args json.RawMessage) error {
@@ -882,6 +1075,12 @@ func compareElements(t *testing.T, expected bsonx.Elem, actual bsonx.Elem) {
 			}
 		}
 	} else if conv, ok := expected.Value.DocumentOK(); ok {
+		if typeVal, err := conv.LookupErr("$$type"); err == nil {
+			// e.g. field: {$$type: "binData"} should assert that "field" is an element of type binary
+			assertType(t, actual.Value.Type(), typeVal.StringValue())
+			return
+		}
+
 		actualConv, actualOk := actual.Value.DocumentOK()
 		require.True(t, actualOk)
 		compareDocs(t, conv, actualConv)
@@ -892,6 +1091,59 @@ func compareElements(t *testing.T, expected bsonx.Elem, actual bsonx.Elem) {
 	} else {
 		require.True(t, actual.Equal(expected), "For key %s, expected %v\nactual: %v", expected.Key, expected, actual)
 	}
+}
+
+// helper for $$type assertions
+func assertType(t *testing.T, actual bsontype.Type, typeStr string) {
+	var expected bsontype.Type
+	switch typeStr {
+	case "double":
+		expected = bsontype.Double
+	case "string":
+		expected = bsontype.String
+	case "object":
+		expected = bsontype.EmbeddedDocument
+	case "array":
+		expected = bsontype.Array
+	case "binData":
+		expected = bsontype.Binary
+	case "undefined":
+		expected = bsontype.Undefined
+	case "objectId":
+		expected = bsontype.ObjectID
+	case "boolean":
+		expected = bsontype.Boolean
+	case "date":
+		expected = bsontype.DateTime
+	case "null":
+		expected = bsontype.Null
+	case "regex":
+		expected = bsontype.Regex
+	case "dbPointer":
+		expected = bsontype.DBPointer
+	case "javascript":
+		expected = bsontype.JavaScript
+	case "symbol":
+		expected = bsontype.Symbol
+	case "javascriptWithScope":
+		expected = bsontype.CodeWithScope
+	case "int":
+		expected = bsontype.Int32
+	case "timestamp":
+		expected = bsontype.Timestamp
+	case "long":
+		expected = bsontype.Int64
+	case "decimal":
+		expected = bsontype.Decimal128
+	case "minKey":
+		expected = bsontype.MinKey
+	case "maxKey":
+		expected = bsontype.MaxKey
+	default:
+		t.Fatalf("unrecognized type string: %v", typeStr)
+	}
+
+	require.Equal(t, expected, actual, "BSON type mismatch; expected %v, got %v", expected, actual)
 }
 
 func compareArrays(t *testing.T, expected bsonx.Arr, actual bsonx.Arr) {
@@ -905,6 +1157,49 @@ func compareArrays(t *testing.T, expected bsonx.Arr, actual bsonx.Arr) {
 		actualDoc := actual[idx].Document()
 		compareDocs(t, expectedDoc, actualDoc)
 	}
+}
+
+func interfaceSliceFromRawArray(t *testing.T, arr bson.Raw) []interface{} {
+	t.Helper()
+	vals, err := arr.Values()
+	require.NoError(t, err, "error getting array values: %v", err)
+
+	elems := make([]interface{}, len(vals))
+	for i, val := range vals {
+		elems[i] = val.Document()
+	}
+	return elems
+}
+
+func collationFromRaw(t *testing.T, m bson.Raw) *options.Collation {
+	var collation options.Collation
+	elems, _ := m.Elements()
+
+	for _, elem := range elems {
+		switch elem.Key() {
+		case "locale":
+			collation.Locale = elem.Value().StringValue()
+		case "caseLevel":
+			collation.CaseLevel = elem.Value().Boolean()
+		case "caseFirst":
+			collation.CaseFirst = elem.Value().StringValue()
+		case "strength":
+			collation.Strength = int(elem.Value().Int32())
+		case "numericOrdering":
+			collation.NumericOrdering = elem.Value().Boolean()
+		case "alternate":
+			collation.Alternate = elem.Value().StringValue()
+		case "maxVariable":
+			collation.MaxVariable = elem.Value().StringValue()
+		case "normalization":
+			collation.Normalization = elem.Value().Boolean()
+		case "backwards":
+			collation.Backwards = elem.Value().Boolean()
+		default:
+			t.Fatalf("unrecognized collation option: %v", elem.Key())
+		}
+	}
+	return &collation
 }
 
 func collationFromMap(m map[string]interface{}) *options.Collation {
@@ -964,6 +1259,16 @@ func docSliceFromRaw(t *testing.T, raw json.RawMessage) []bsonx.Doc {
 	}
 
 	return docs
+}
+
+func rawSliceToInterfaceSlice(docs []bson.Raw) []interface{} {
+	out := make([]interface{}, 0, len(docs))
+
+	for _, doc := range docs {
+		out = append(out, doc)
+	}
+
+	return out
 }
 
 func docSliceToInterfaceSlice(docs []bsonx.Doc) []interface{} {
