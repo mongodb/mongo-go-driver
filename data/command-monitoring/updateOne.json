@@ -50,9 +50,7 @@
                     "$inc": {
                       "x": 1
                     }
-                  },
-                  "multi": false,
-                  "upsert": false
+                  }
                 }
               ]
             },
@@ -103,7 +101,6 @@
                       "x": 1
                     }
                   },
-                  "multi": false,
                   "upsert": true
                 }
               ]
@@ -163,9 +160,7 @@
                     "$nothing": {
                       "x": 1
                     }
-                  },
-                  "multi": false,
-                  "upsert": false
+                  }
                 }
               ]
             },
