@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "10bebca3_3928c0c6",
+        "filename": "mongo/single_result_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-12T18:01:46Z",
+      "side": 1,
+      "message": "Sorry, I meant we should compare the actual bytes:\n\n     want :\u003d []byte(\"foo\")\n     if !bytes.Equal(res, want) {",
+      "range": {
+        "startLine": 61,
+        "startChar": 5,
+        "endLine": 61,
+        "endChar": 26
+      },
+      "revId": "a7ed01448f95402933ceffa767c7199226650488",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
