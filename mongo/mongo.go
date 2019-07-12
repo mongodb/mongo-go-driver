@@ -333,6 +333,42 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 	}
 }
 
+func transformUpdatePipeline(registry *bsoncodec.Registry, pipeline interface{}) (bsoncore.Document, error) {
+	switch t := pipeline.(type) {
+	case bsoncodec.ValueMarshaler:
+		btype, val, err := t.MarshalBSONValue()
+		if err != nil {
+			return nil, err
+		}
+		if btype != bsontype.Array {
+			return nil, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", btype, bsontype.Array)
+		}
+		return bsoncore.Document(val), nil
+	default:
+		val := reflect.ValueOf(t)
+		if !val.IsValid() || (val.Kind() != reflect.Slice && val.Kind() != reflect.Array) {
+			return nil, fmt.Errorf("can only transform slices and arrays into update pipelines, but got %v", val.Kind())
+		}
+
+		aidx, arr := bsoncore.AppendArrayStart(nil)
+		valLen := val.Len()
+		for idx := 0; idx < valLen; idx++ {
+			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface())
+			if err != nil {
+				return nil, err
+			}
+
+			if err := ensureDollarKeyv2(doc); err != nil {
+				return nil, err
+			}
+
+			arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(idx), doc)
+		}
+		arr, _ = bsoncore.AppendArrayEnd(arr, aidx)
+		return arr, nil
+	}
+}
+
 func transformValue(registry *bsoncodec.Registry, val interface{}) (bsoncore.Value, error) {
 	switch conv := val.(type) {
 	case string:

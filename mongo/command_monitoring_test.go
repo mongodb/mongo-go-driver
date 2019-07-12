@@ -778,7 +778,7 @@ func getUpdateParams(args bsonx.Doc) (bsonx.Doc, bsonx.Doc, []*options.UpdateOpt
 	filter := args.Lookup("filter").Document()
 	update := args.Lookup("update").Document()
 
-	opts := []*options.UpdateOptions{options.Update().SetUpsert(false)}
+	opts := []*options.UpdateOptions{options.Update()}
 	if upsert, err := args.LookupErr("upsert"); err == nil {
 		opts = append(opts, options.Update().SetUpsert(upsert.Boolean()))
 	}
