@@ -34,6 +34,10 @@ import (
 const defaultLocalThreshold = 15 * time.Millisecond
 const batchSize = 10000
 
+// keyVaultCollOpts specifies options used to communicate with the key vault collection
+var keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
+	SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+
 // Client performs operations on a given topology.
 type Client struct {
 	id              uuid.UUID
@@ -50,6 +54,12 @@ type Client struct {
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
 	monitor         *event.CommandMonitor
+
+	// client-side encryption fields
+	keyVaultClient *Client
+	keyVaultColl   *Collection
+	mongocryptd    *mongocryptdClient
+	crypt          *driver.Crypt
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -107,9 +117,17 @@ func (c *Client) Connect(ctx context.Context) error {
 	if err != nil {
 		return replaceErrors(err)
 	}
-
+	if c.mongocryptd != nil {
+		if err = c.mongocryptd.connect(ctx); err != nil {
+			return err
+		}
+	}
+	if c.keyVaultClient != nil {
+		if err = c.keyVaultClient.Connect(ctx); err != nil {
+			return err
+		}
+	}
 	return nil
-
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will
@@ -126,6 +144,19 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	}
 
 	c.endSessions(ctx)
+	if c.mongocryptd != nil {
+		if err := c.mongocryptd.disconnect(ctx); err != nil {
+			return err
+		}
+	}
+	if c.keyVaultClient != nil {
+		if err := c.keyVaultClient.Disconnect(ctx); err != nil {
+			return err
+		}
+	}
+	if c.crypt != nil {
+		c.crypt.Close()
+	}
 	return replaceErrors(c.topology.Disconnect(ctx))
 }
 
@@ -206,7 +237,8 @@ func (c *Client) endSessions(ctx context.Context) {
 	idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
 
 	op := operation.NewEndSessions(idArray).ClusterClock(c.clock).Deployment(c.topology).
-		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).Database("admin")
+		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
+		Database("admin").Crypt(c.crypt)
 
 	idx, idArray = bsoncore.AppendArrayStart(nil)
 	totalNumIDs := len(ids)
@@ -442,6 +474,12 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.WriteConcern != nil {
 		c.writeConcern = opts.WriteConcern
 	}
+	// AutoEncryptionOptions
+	if opts.AutoEncryptionOptions != nil {
+		if err := c.configureAutoEncryption(opts.AutoEncryptionOptions); err != nil {
+			return err
+		}
+	}
 
 	// ClusterClock
 	c.clock = new(session.ClusterClock)
@@ -456,6 +494,76 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	))
 
 	return nil
+}
+
+func (c *Client) configureAutoEncryption(opts *options.AutoEncryptionOptions) error {
+	if err := c.configureKeyVault(opts); err != nil {
+		return err
+	}
+	if err := c.configureMongocryptd(opts); err != nil {
+		return err
+	}
+	return c.configureCrypt(opts)
+}
+
+func (c *Client) configureKeyVault(opts *options.AutoEncryptionOptions) error {
+	// parse key vault options and create new client if necessary
+	if opts.KeyVaultClientOptions != nil {
+		var err error
+		c.keyVaultClient, err = NewClient(opts.KeyVaultClientOptions)
+		if err != nil {
+			return err
+		}
+	}
+
+	var dbName, collName string
+	if opts.KeyVaultNamespace != nil {
+		dbName, collName = splitNamespace(*opts.KeyVaultNamespace)
+	}
+	client := c.keyVaultClient
+	if client == nil {
+		client = c
+	}
+	c.keyVaultColl = client.Database(dbName).Collection(collName, keyVaultCollOpts)
+	return nil
+}
+
+func (c *Client) configureMongocryptd(opts *options.AutoEncryptionOptions) error {
+	var err error
+	c.mongocryptd, err = newMongocryptdClient(opts.ExtraOptions)
+	return err
+}
+
+func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
+	// convert schemas in SchemaMap to bsoncore documents
+	cryptSchemaMap := make(map[string]bsoncore.Document)
+	for k, v := range opts.SchemaMap {
+		schema, err := transformBsoncoreDocument(c.registry, v)
+		if err != nil {
+			return err
+		}
+		cryptSchemaMap[k] = schema
+	}
+
+	// configure options
+	var bypass bool
+	if opts.BypassAutoEncryption != nil {
+		bypass = *opts.BypassAutoEncryption
+	}
+	kr := keyRetriever{coll: c.keyVaultColl}
+	cir := collInfoRetriever{client: c}
+	cryptOpts := &driver.CryptOptions{
+		CollInfoFn:           cir.cryptCollInfo,
+		KeyFn:                kr.cryptKeys,
+		MarkFn:               c.mongocryptd.markCommand,
+		KmsProviders:         opts.KmsProviders,
+		BypassAutoEncryption: bypass,
+		SchemaMap:            cryptSchemaMap,
+	}
+
+	var err error
+	c.crypt, err = driver.NewCrypt(cryptOpts)
+	return err
 }
 
 // validSession returns an error if the session doesn't belong to the client
@@ -506,7 +614,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	ldo := options.MergeListDatabasesOptions(opts...)
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
-		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.topology)
+		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.topology).Crypt(c.crypt)
 	if ldo.NameOnly != nil {
 		op = op.NameOnly(*ldo.NameOnly)
 	}

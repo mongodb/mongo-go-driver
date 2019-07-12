@@ -90,6 +90,7 @@ type ClientOptions struct {
 	TLSConfig              *tls.Config
 	WriteConcern           *writeconcern.WriteConcern
 	ZlibLevel              *int
+	AutoEncryptionOptions  *AutoEncryptionOptions
 
 	err error
 
@@ -444,6 +445,12 @@ func (c *ClientOptions) SetZlibLevel(level int) *ClientOptions {
 	return c
 }
 
+// SetAutoEncryptionOptions specifies options used to configure automatic encryption.
+func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *ClientOptions {
+	c.AutoEncryptionOptions = opts
+	return c
+}
+
 // MergeClientOptions combines the given connstring and *ClientOptions into a single *ClientOptions in a last one wins
 // fashion. The given connstring will be used for the default options, which can be overwritten using the given
 // *ClientOptions.
@@ -532,6 +539,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.ZlibLevel != nil {
 			c.ZlibLevel = opt.ZlibLevel
+		}
+		if opt.AutoEncryptionOptions != nil {
+			c.AutoEncryptionOptions = opt.AutoEncryptionOptions
 		}
 		if opt.err != nil {
 			c.err = opt.err
