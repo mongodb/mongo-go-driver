@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "edcbec90_acc5ceaa",
+        "filename": "mongo/single_result_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-12T15:10:55Z",
+      "side": 1,
+      "message": "I like the test, but would this be simpler if we had something like the following:\n\n// doc is a []byte corresponding a BSON document\nsr :\u003d \u0026SingleResult{rdr: doc, err: errors.New(\"DecodeBytes error\")}\nres, err :\u003d sr.DecodeBytes()\n// same checks that you already have",
+      "range": {
+        "startLine": 58,
+        "startChar": 8,
+        "endLine": 58,
+        "endChar": 25
+      },
+      "revId": "5bef0527102771fdce930e36d7d8409ca65cdc43",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
