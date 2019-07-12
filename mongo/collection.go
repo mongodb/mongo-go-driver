@@ -272,7 +272,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.topology)
+		Deployment(coll.client.topology).Crypt(coll.client.crypt)
 	imo := options.MergeInsertManyOptions(opts...)
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
@@ -401,7 +401,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.topology)
+		Deployment(coll.client.topology).Crypt(coll.client.crypt)
 
 	// deleteMany cannot be retried
 	retryMode := driver.RetryNone
@@ -496,7 +496,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.topology)
+		Deployment(coll.client.topology).Crypt(coll.client.crypt)
 
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
@@ -663,10 +663,11 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	ao := options.MergeAggregateOptions(a.opts...)
 	cursorOpts := driver.CursorOptions{
 		CommandMonitor: a.client.monitor,
+		Crypt:          a.client.crypt,
 	}
 
 	op := operation.NewAggregate(pipelineArr).Session(sess).WriteConcern(wc).ReadConcern(rc).ReadPreference(a.readPreference).CommandMonitor(a.client.monitor).
-		ServerSelector(selector).ClusterClock(a.client.clock).Database(a.db).Collection(a.col).Deployment(a.client.topology)
+		ServerSelector(selector).ClusterClock(a.client.clock).Database(a.db).Collection(a.col).Deployment(a.client.topology).Crypt(a.client.crypt)
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
 	}
@@ -760,7 +761,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
-		Collection(coll.name).Deployment(coll.client.topology)
+		Collection(coll.name).Deployment(coll.client.topology).Crypt(coll.client.crypt)
 	if countOpts.Collation != nil {
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
@@ -837,7 +838,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.topology).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector)
+		ServerSelector(selector).Crypt(coll.client.crypt)
 
 	co := options.MergeEstimatedDocumentCountOptions(opts...)
 	if co.MaxTime != nil {
@@ -896,7 +897,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.topology).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector)
+		ServerSelector(selector).Crypt(coll.client.crypt)
 
 	if option.Collation != nil {
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
@@ -977,11 +978,12 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.topology)
+		Deployment(coll.client.topology).Crypt(coll.client.crypt)
 
 	fo := options.MergeFindOptions(opts...)
 	cursorOpts := driver.CursorOptions{
 		CommandMonitor: coll.client.monitor,
+		Crypt:          coll.client.crypt,
 	}
 
 	if fo.AllowPartialResults != nil {
@@ -1179,7 +1181,8 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		Database(coll.db.name).
 		Collection(coll.name).
 		Deployment(coll.client.topology).
-		Retry(retry)
+		Retry(retry).
+		Crypt(coll.client.crypt)
 
 	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
@@ -1399,7 +1402,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.topology)
+		Deployment(coll.client.topology).Crypt(coll.client.crypt)
 	err = op.Execute(ctx)
 
 	// ignore namespace not found erorrs
