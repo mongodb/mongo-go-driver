@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// +build cse
+
 package mongocrypt
 
 import (
@@ -298,8 +300,8 @@ func TestMongoCrypt(t *testing.T) {
 				Subtype: 0x04, // 0x04 is UUID subtype
 				Data:    []byte("aaaaaaaaaaaaaaaa"),
 			}
-			opts := options.ExplicitEncryption().SetKeyID(keyID)
-			encryptCtx, err := crypt.CreateExplicitEncryptionContext(originalDoc, algorithm, opts)
+			opts := options.ExplicitEncryption().SetKeyID(keyID).SetAlgorithm(algorithm)
+			encryptCtx, err := crypt.CreateExplicitEncryptionContext(originalDoc, opts)
 			noerr(t, err)
 			defer encryptCtx.Close()
 			compareStates(t, NeedMongoKeys, encryptCtx.State())
@@ -331,8 +333,8 @@ func TestMongoCrypt(t *testing.T) {
 			defer crypt.Close()
 
 			// create explicit encryption context and check initial state
-			opts := options.ExplicitEncryption().SetKeyAltName("altKeyName")
-			encryptCtx, err := crypt.CreateExplicitEncryptionContext(originalDoc, algorithm, opts)
+			opts := options.ExplicitEncryption().SetKeyAltName("altKeyName").SetAlgorithm(algorithm)
+			encryptCtx, err := crypt.CreateExplicitEncryptionContext(originalDoc, opts)
 			noerr(t, err)
 			defer encryptCtx.Close()
 			compareStates(t, NeedMongoKeys, encryptCtx.State())

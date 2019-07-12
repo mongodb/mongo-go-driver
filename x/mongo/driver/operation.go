@@ -39,6 +39,13 @@ var (
 	ErrNonPrimaryReadPref = errors.New("read preference in a transaction must be primary")
 )
 
+const (
+	// maximum BSON object size when client side encryption is enabled
+	cryptMaxBsonObjectSize uint32 = 2097152
+	// minimum wire version necessary to use automatic encryption
+	cryptMinWireVersion int32 = 8
+)
+
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
 // from an instance of Operation.
 type InvalidOperationError struct{ MissingField string }
@@ -172,6 +179,14 @@ type Operation struct {
 	// CommandMonitor specifies the monitor to use for APM events. If this field is not set,
 	// no events will be reported.
 	CommandMonitor *event.CommandMonitor
+
+	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
+	Crypt *Crypt
+}
+
+// shouldEncrypt returns true if this operation should automatically be encrypted.
+func (op Operation) shouldEncrypt() bool {
+	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption
 }
 
 // selectServer handles performing server selection for an operation.
@@ -297,7 +312,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	batching := op.Batches.Valid()
 	for {
 		if batching {
-			err = op.Batches.AdvanceBatch(int(desc.MaxBatchCount), int(desc.MaxDocumentSize))
+			maxDocSize := desc.MaxDocumentSize
+			if op.shouldEncrypt() {
+				maxDocSize = cryptMaxBsonObjectSize
+			}
+
+			err = op.Batches.AdvanceBatch(int(desc.MaxBatchCount), int(maxDocSize))
 			if err != nil {
 				// TODO(GODRIVER-982): Should we also be returning operationErr?
 				return err
@@ -308,7 +328,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(scratch, desc)
+		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc)
 		if err != nil {
 			return err
 		}
@@ -357,6 +377,15 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.updateOperationTime(res)
 		op.Client.UpdateRecoveryToken(bson.Raw(res))
 
+		// automatically attempt to decrypt all results if client side encryption enabled
+		if op.Crypt != nil {
+			// use decryptErr isntead of err because err is used below for retrying
+			var decryptErr error
+			res, decryptErr = op.Crypt.Decrypt(ctx, res)
+			if decryptErr != nil {
+				return decryptErr
+			}
+		}
 		var perr error
 		if op.ProcessResponseFn != nil {
 			perr = op.ProcessResponseFn(res, srvr, desc.Server)
@@ -619,9 +648,14 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	return append(header, uncompressed...), nil
 }
 
-func (op Operation) createWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createWireMessage(ctx context.Context, dst []byte,
+	desc description.SelectedServer) ([]byte, startedInformation, error) {
+
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return op.createQueryWireMessage(dst, desc)
+	}
+	if op.shouldEncrypt() {
+		return op.cryptCreateMsgWireMessage(ctx, dst, desc)
 	}
 	return op.createMsgWireMessage(dst, desc)
 }
@@ -766,6 +800,80 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 		dst = bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
 	}
 
+	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
+}
+
+func (op Operation) cryptCreateMsgWireMessage(ctx context.Context, dst []byte,
+	desc description.SelectedServer) ([]byte, startedInformation, error) {
+	var info startedInformation
+
+	if desc.WireVersion.Max < cryptMinWireVersion {
+		return dst, info, errors.New("auto-encryption requires a minimum MongoDB version of 4.2")
+	}
+
+	// general OP_MSG setup
+	var flags wiremessage.MsgFlag
+	var wmindex int32
+	// We set the MoreToCome bit if we have a write concern, it's unacknowledged, and we either
+	// aren't batching or we are encoding the last batch.
+	if op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern) && (op.Batches == nil || len(op.Batches.Documents) == 0) {
+		flags = wiremessage.MoreToCome
+	}
+	info.requestID = wiremessage.NextRequestID()
+	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
+	dst = wiremessage.AppendMsgFlags(dst, flags)
+
+	// create temporary command document
+	cmdIdx, cmdDst := bsoncore.AppendDocumentStart(nil)
+	var err error
+	cmdDst, err = op.CommandFn(cmdDst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+	// use a BSON array instead of a type 1 payload because mongocryptd will convert to arrays regardless
+	if op.Batches != nil && len(op.Batches.Current) > 0 {
+		cmdDst = op.addBatchArray(cmdDst)
+	}
+	cmdDst, _ = bsoncore.AppendDocumentEnd(cmdDst, cmdIdx)
+
+	// encrypt the command
+	encrypted, err := op.Crypt.Encrypt(ctx, op.Database, cmdDst)
+	if err != nil {
+		return dst, info, err
+	}
+
+	// take off final byte
+	encrypted = encrypted[:len(encrypted)-1]
+	// append other command fields
+	encrypted, err = op.addReadConcern(encrypted, desc)
+	if err != nil {
+		return dst, info, err
+	}
+	encrypted, err = op.addWriteConcern(encrypted, desc)
+	if err != nil {
+		return dst, info, err
+	}
+	encrypted, err = op.addSession(encrypted, desc)
+	if err != nil {
+		return dst, info, err
+	}
+	encrypted = op.addClusterTime(encrypted, desc)
+	encrypted = bsoncore.AppendStringElement(encrypted, "$db", op.Database)
+	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, false)
+	if err != nil {
+		return dst, info, err
+	}
+	if len(rp) > 0 {
+		encrypted = bsoncore.AppendDocumentElement(encrypted, "$readPreference", rp)
+	}
+	encrypted, _ = bsoncore.AppendDocumentEnd(encrypted, 0)
+
+	// set the command for APM after encryption so un-encrypted data is not published
+	info.cmd = encrypted
+
+	// append encrypted command back onto original wire message
+	dst = wiremessage.AppendMsgSectionType(dst, wiremessage.SingleDocument)
+	dst = append(dst, encrypted...)
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
 }
 

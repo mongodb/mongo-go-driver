@@ -37,7 +37,8 @@ func (dko *DataKeyOptions) SetMasterKey(key bsoncore.Document) *DataKeyOptions {
 // ExplicitEncryptionOptions specifies options for configuring an explicit encryption context.
 type ExplicitEncryptionOptions struct {
 	KeyID      *primitive.Binary
-	KeyAltName string
+	KeyAltName *string
+	Algorithm  *string
 }
 
 // ExplicitEncryption creates a new ExplicitEncryptionOptions instance.
@@ -53,6 +54,12 @@ func (eeo *ExplicitEncryptionOptions) SetKeyID(keyID primitive.Binary) *Explicit
 
 // SetKeyAltName sets the key alternative name.
 func (eeo *ExplicitEncryptionOptions) SetKeyAltName(keyAltName string) *ExplicitEncryptionOptions {
-	eeo.KeyAltName = keyAltName
+	eeo.KeyAltName = &keyAltName
+	return eeo
+}
+
+// SetAlgorithm specifies an encryption algorithm.
+func (eeo *ExplicitEncryptionOptions) SetAlgorithm(algorithm string) *ExplicitEncryptionOptions {
+	eeo.Algorithm = &algorithm
 	return eeo
 }
