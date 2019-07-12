@@ -146,7 +146,7 @@ func runTransactionTestFile(t *testing.T, filepath string) {
 	require.NoError(t, err)
 	runTest := len(testfile.RunOn) == 0
 	for _, reqs := range testfile.RunOn {
-		if executeTransactionsTest(t, version, reqs) {
+		if shouldExecuteTest(t, version, reqs) {
 			runTest = true
 			break
 		}
@@ -905,7 +905,7 @@ func readPrefFromString(s string) *readpref.ReadPref {
 	return readpref.Primary()
 }
 
-func executeTransactionsTest(t *testing.T, serverVersion string, reqs *runOn) bool {
+func shouldExecuteTest(t *testing.T, serverVersion string, reqs *runOn) bool {
 	if len(reqs.MinServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MinServerVersion) < 0 {
 		return false
 	}
@@ -926,7 +926,7 @@ func executeTransactionsTest(t *testing.T, serverVersion string, reqs *runOn) bo
 				return true
 			}
 		case "sharded_cluster":
-			if top == "sharded" && compareVersions(t, serverVersion, "4.0") > 0 {
+			if top == "sharded" {
 				return true
 			}
 		}

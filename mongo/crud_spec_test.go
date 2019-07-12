@@ -377,6 +377,7 @@ func bulkWriteTest(t *testing.T, coll *Collection, test *testCaseV1) {
 		}
 
 		res, err := coll.BulkWrite(ctx, models, opts)
+		require.Nil(t, err)
 		verifyBulkWriteResult(t, res, test.Outcome.Result)
 		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})
