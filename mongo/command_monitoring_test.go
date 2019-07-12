@@ -441,19 +441,21 @@ func compareDocs(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
 	// this is necessary even though Equal() exists for documents because types not match between commands and the BSON
 	// documents given in test cases. for example, all numbers in the test case JSON are parsed as int64, but many nubmers
 	// sent over the wire are type int32
-	if len(expected) != len(actual) {
-		t.Errorf("doc length mismatch. expected %d got %d", len(expected), len(actual))
-		t.FailNow()
-	}
-
 	for _, expectedElem := range expected {
-
-		aVal, err := actual.LookupErr(expectedElem.Key)
+		aElem, err := actual.LookupElementErr(expectedElem.Key)
 		testhelpers.RequireNil(t, err, "docs not equal. key %s not found in actual", expectedElem.Key)
+		aVal := aElem.Value
 
 		eVal := expectedElem.Value
 
 		if doc, ok := eVal.DocumentOK(); ok {
+			// special $$type assertion
+			if typeVal, err := doc.LookupErr("$$type"); err == nil {
+				// e.g. field: {$$type: "binData"} should assert that "field" is an element of type binary
+				assertType(t, aElem.Value.Type(), typeVal.StringValue())
+				continue
+			}
+
 			// nested doc
 			compareDocs(t, doc, aVal.Document())
 
@@ -462,7 +464,7 @@ func compareDocs(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
 		}
 
 		if !compareValues(eVal, aVal) {
-			t.Errorf("docs not equal because value mismatch for key %s", expectedElem.Key)
+			t.Fatalf("docs not equal because value mismatch for key %s", expectedElem.Key)
 		}
 	}
 }

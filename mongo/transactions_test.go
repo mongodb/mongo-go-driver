@@ -49,9 +49,9 @@ type transTestFile struct {
 }
 
 type runOn struct {
-	MinServerVersion string   `json:"minServerVersion"`
-	MaxServerVersion string   `json:"maxServerVersion"`
-	Topology         []string `json:"topology"`
+	MinServerVersion string   `json:"minServerVersion" bson:"minServerVersion"`
+	MaxServerVersion string   `json:"maxServerVersion" bson:"maxServerVersion"`
+	Topology         []string `json:"topology" bson:"topology"`
 }
 
 type transTestCase struct {
