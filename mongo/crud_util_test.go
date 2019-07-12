@@ -252,12 +252,17 @@ func executeFindOneAndUpdate(sess *sessionImpl, coll *Collection, args map[strin
 	opts := options.FindOneAndUpdate()
 	var filter map[string]interface{}
 	var update map[string]interface{}
+	var updatePipe []interface{}
+	var ok bool
 	for name, opt := range args {
 		switch name {
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "update":
-			update = opt.(map[string]interface{})
+			update, ok = opt.(map[string]interface{})
+			if !ok {
+				updatePipe = opt.([]interface{})
+			}
 		case "arrayFilters":
 			opts = opts.SetArrayFilters(options.ArrayFilters{
 				Filters: opt.([]interface{}),
@@ -293,7 +298,13 @@ func executeFindOneAndUpdate(sess *sessionImpl, coll *Collection, args map[strin
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
+		if updatePipe != nil {
+			return coll.FindOneAndUpdate(sessCtx, filter, updatePipe, opts)
+		}
 		return coll.FindOneAndUpdate(sessCtx, filter, update, opts)
+	}
+	if updatePipe != nil {
+		return coll.FindOneAndUpdate(ctx, filter, updatePipe, opts)
 	}
 	return coll.FindOneAndUpdate(ctx, filter, update, opts)
 }
@@ -447,12 +458,17 @@ func executeUpdateOne(sess *sessionImpl, coll *Collection, args map[string]inter
 	opts := options.Update()
 	var filter map[string]interface{}
 	var update map[string]interface{}
+	var updatePipe []interface{}
+	var ok bool
 	for name, opt := range args {
 		switch name {
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "update":
-			update = opt.(map[string]interface{})
+			update, ok = opt.(map[string]interface{})
+			if !ok {
+				updatePipe = opt.([]interface{})
+			}
 		case "arrayFilters":
 			opts = opts.SetArrayFilters(options.ArrayFilters{Filters: opt.([]interface{})})
 		case "upsert":
@@ -470,15 +486,19 @@ func executeUpdateOne(sess *sessionImpl, coll *Collection, args map[string]inter
 	replaceFloatsWithInts(filter)
 	replaceFloatsWithInts(update)
 
-	if opts.Upsert == nil {
-		opts = opts.SetUpsert(false)
-	}
 	if sess != nil {
 		sessCtx := sessionContext{
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
+		if updatePipe != nil {
+			return coll.UpdateOne(sessCtx, filter, updatePipe, opts)
+		}
 		return coll.UpdateOne(sessCtx, filter, update, opts)
+	}
+
+	if updatePipe != nil {
+		return coll.UpdateOne(ctx, filter, updatePipe, opts)
 	}
 	return coll.UpdateOne(ctx, filter, update, opts)
 }
@@ -487,12 +507,17 @@ func executeUpdateMany(sess *sessionImpl, coll *Collection, args map[string]inte
 	opts := options.Update()
 	var filter map[string]interface{}
 	var update map[string]interface{}
+	var updatePipe []interface{}
+	var ok bool
 	for name, opt := range args {
 		switch name {
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "update":
-			update = opt.(map[string]interface{})
+			update, ok = opt.(map[string]interface{})
+			if !ok {
+				updatePipe = opt.([]interface{})
+			}
 		case "arrayFilters":
 			opts = opts.SetArrayFilters(options.ArrayFilters{Filters: opt.([]interface{})})
 		case "upsert":
@@ -510,15 +535,18 @@ func executeUpdateMany(sess *sessionImpl, coll *Collection, args map[string]inte
 	replaceFloatsWithInts(filter)
 	replaceFloatsWithInts(update)
 
-	if opts.Upsert == nil {
-		opts = opts.SetUpsert(false)
-	}
 	if sess != nil {
 		sessCtx := sessionContext{
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
+		if updatePipe != nil {
+			return coll.UpdateMany(sessCtx, filter, updatePipe, opts)
+		}
 		return coll.UpdateMany(sessCtx, filter, update, opts)
+	}
+	if updatePipe != nil {
+		return coll.UpdateMany(ctx, filter, updatePipe, opts)
 	}
 	return coll.UpdateMany(ctx, filter, update, opts)
 }
