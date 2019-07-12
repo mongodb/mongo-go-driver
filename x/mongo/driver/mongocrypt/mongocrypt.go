@@ -4,10 +4,13 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// +build cse
+
 package mongocrypt
 
-// #cgo CFLAGS: -Iinclude
-// #cgo LDFLAGS: -lmongocrypt
+// #cgo linux solaris darwin pkg-config: libmongocrypt
+// #cgo windows CFLAGS: -I"c:/libmongocrypt/include"
+// #cgo windows LDFLAGS: -lmongocrypt -Lc:/libmongocrypt/bin
 // #include <mongocrypt.h>
 // #include <stdlib.h>
 import "C"
@@ -103,6 +106,21 @@ func lookupString(doc bsoncore.Document, key string) string {
 	return strVal
 }
 
+func setAltName(ctx *Context, altName string) error {
+	// create document {"keyAltName": keyAltName}
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendStringElement(doc, "keyAltName", altName)
+	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
+
+	keyAltBinary := newBinaryFromBytes(doc)
+	defer keyAltBinary.close()
+
+	if ok := C.mongocrypt_ctx_setopt_key_alt_name(ctx.wrapped, keyAltBinary.wrapped); !ok {
+		return ctx.createErrorFromStatus()
+	}
+	return nil
+}
+
 // CreateDataKeyContext creates a Context to use for creating a data key.
 func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.DataKeyOptions) (*Context, error) {
 	ctx := newContext(C.mongocrypt_ctx_new(m.wrapped))
@@ -128,6 +146,12 @@ func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.Data
 		return nil, ctx.createErrorFromStatus()
 	}
 
+	for _, altName := range opts.KeyAltNames {
+		if err := setAltName(ctx, altName); err != nil {
+			return nil, err
+		}
+	}
+
 	if ok := C.mongocrypt_ctx_datakey_init(ctx.wrapped); !ok {
 		return nil, ctx.createErrorFromStatus()
 	}
@@ -135,8 +159,7 @@ func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.Data
 }
 
 // CreateExplicitEncryptionContext creates a Context to use for explicit encryption.
-func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, algorithm string,
-	opts *options.ExplicitEncryptionOptions) (*Context, error) {
+func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts *options.ExplicitEncryptionOptions) (*Context, error) {
 
 	ctx := newContext(C.mongocrypt_ctx_new(m.wrapped))
 	if ctx.wrapped == nil {
@@ -151,20 +174,13 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, algo
 			return nil, ctx.createErrorFromStatus()
 		}
 	}
-	if opts.KeyAltName != "" {
-		// create document {"keyAltName": keyAltName}
-		idx, doc := bsoncore.AppendDocumentStart(nil)
-		doc = bsoncore.AppendStringElement(doc, "keyAltName", opts.KeyAltName)
-		doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
-		keyAltBinary := newBinaryFromBytes(doc)
-		defer keyAltBinary.close()
-
-		if ok := C.mongocrypt_ctx_setopt_key_alt_name(ctx.wrapped, keyAltBinary.wrapped); !ok {
-			return nil, ctx.createErrorFromStatus()
+	if opts.KeyAltName != nil {
+		if err := setAltName(ctx, *opts.KeyAltName); err != nil {
+			return nil, err
 		}
 	}
 
-	algoStr := C.CString(algorithm)
+	algoStr := C.CString(*opts.Algorithm)
 	defer C.free(unsafe.Pointer(algoStr))
 	if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
 		return nil, ctx.createErrorFromStatus()
@@ -224,7 +240,6 @@ func (m *MongoCrypt) setAwsProviderOpts(opts *options.AwsKmsProviderOptions) err
 	// create C strings for function params
 	accessKeyID := C.CString(opts.AccessKeyID)
 	secretAccessKey := C.CString(opts.SecretAccessKey)
-	// TODO: confirm that it's safe to free the cstring after calling setopt_kms_provider_aws
 	defer C.free(unsafe.Pointer(accessKeyID))
 	defer C.free(unsafe.Pointer(secretAccessKey))
 
@@ -260,7 +275,6 @@ func (m *MongoCrypt) setLocalSchemaMap(schemaMap map[string]bsoncore.Document) e
 func (m *MongoCrypt) createErrorFromStatus() error {
 	status := C.mongocrypt_status_new()
 	defer C.mongocrypt_status_destroy(status)
-	// TODO: mongocrypt_status returns a boolean. figure out what to do with it
 	C.mongocrypt_status(m.wrapped, status)
 	return errorFromStatus(status)
 }
