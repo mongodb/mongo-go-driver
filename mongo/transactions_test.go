@@ -926,7 +926,7 @@ func executeTransactionsTest(t *testing.T, serverVersion string, reqs *runOn) bo
 				return true
 			}
 		case "sharded_cluster":
-			if top == "sharded" && compareVersions(t, serverVersion, "4.0") > 0 {
+			if top == "sharded" {
 				return true
 			}
 		}
