@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "e57cfbe4_c6cbefed",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-12T17:56:30Z",
+      "side": 1,
+      "message": "Actually, in the case of a cursor, we would never get an error and have a valid cursor, so we don\u0027t need to do that check.",
+      "parentUuid": "ce36b603_907adf98",
+      "range": {
+        "startLine": 55,
+        "startChar": 9,
+        "endLine": 55,
+        "endChar": 16
+      },
+      "revId": "ade98b383053df68a0fbbbe6a07b1270467e92e3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6a72d75f_c883f33c",
         "filename": "mongo/single_result_test.go",
         "patchSetId": 3
