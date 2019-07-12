@@ -317,14 +317,24 @@ func createUpdateDoc(
 	if err != nil {
 		return nil, err
 	}
-	u, err := transformBsoncoreDocument(registry, update)
-	if err != nil {
-		return nil, err
-	}
 
 	uidx, updateDoc := bsoncore.AppendDocumentStart(nil)
 	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "q", f)
-	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", u)
+
+	if _, ok := update.([]interface{}); ok {
+		u, err := transformUpdatePipeline(registry, update)
+		if err != nil {
+			return nil, err
+		}
+		updateDoc = bsoncore.AppendArrayElement(updateDoc, "u", u)
+	} else {
+		u, err := transformBsoncoreDocument(registry, update)
+		if err != nil {
+			return nil, err
+		}
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", u)
+	}
+
 	updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
 
 	if arrayFilters != nil {

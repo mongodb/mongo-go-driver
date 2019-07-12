@@ -94,7 +94,6 @@
                       "count": 1
                     }
                   },
-                  "multi": false,
                   "upsert": false
                 }
               ],
@@ -124,7 +123,6 @@
                       "count": 1
                     }
                   },
-                  "multi": false,
                   "upsert": false
                 }
               ],
@@ -261,7 +259,6 @@
                       "count": 1
                     }
                   },
-                  "multi": false,
                   "upsert": false
                 }
               ],
