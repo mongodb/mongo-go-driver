@@ -22,6 +22,30 @@
       "revId": "5bef0527102771fdce930e36d7d8409ca65cdc43",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0f8da1c3_f452e910",
+        "filename": "mongo/single_result_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-12T15:13:40Z",
+      "side": 1,
+      "message": "even simpler: the bytes for rdr don\u0027t even have to be valid BSON, so I think this could be super simple:\nsr :\u003d \u0026SingleResult{rdr: []byte(\"foo\"), err: errors.New(\"DecodeBytes error\")}",
+      "parentUuid": "edcbec90_acc5ceaa",
+      "range": {
+        "startLine": 58,
+        "startChar": 8,
+        "endLine": 58,
+        "endChar": 25
+      },
+      "revId": "5bef0527102771fdce930e36d7d8409ca65cdc43",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
