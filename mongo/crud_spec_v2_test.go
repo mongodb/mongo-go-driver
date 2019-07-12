@@ -22,12 +22,11 @@ import (
 )
 
 type testFileV2 struct {
-	Data             json.RawMessage
-	MinServerVersion string
-	MaxServerVersion string
-	DatabaseName     string `json:"database_name"`
-	CollectionName   string `json:"collection_name"`
-	Tests            []testCaseV2
+	Data           json.RawMessage
+	RunOn          []*runOn `json:"runOn"`
+	DatabaseName   string   `json:"database_name"`
+	CollectionName string   `json:"collection_name"`
+	Tests          []testCaseV2
 }
 
 type testCaseV2 struct {
@@ -97,7 +96,9 @@ func getServerVersion(db *Database) (string, error) {
 
 func TestCRUDSpecV2(t *testing.T) {
 	for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(crudTestsDir, v2Dir)) {
-		runCRUDTestFileV2(t, path.Join(crudTestsDir, v2Dir, file))
+		t.Run(file, func(t *testing.T) {
+			runCRUDTestFileV2(t, path.Join(crudTestsDir, v2Dir, file))
+		})
 	}
 }
 
@@ -115,8 +116,18 @@ func runCRUDTestFileV2(t *testing.T, filepath string) {
 	client := createMonitoredClient(t, monitor)
 	db := client.Database(dbName)
 
-	if shouldSkip(t, testfile.MinServerVersion, testfile.MaxServerVersion, db) {
-		return
+	version, err := getServerVersion(db)
+	require.NoError(t, err)
+	runTest := len(testfile.RunOn) == 0
+	for _, reqs := range testfile.RunOn {
+		if executeTransactionsTest(t, version, reqs) {
+			runTest = true
+			break
+		}
+	}
+
+	if !runTest {
+		t.Skip()
 	}
 
 	for _, test := range testfile.Tests {
@@ -154,19 +165,40 @@ func testOperations(t *testing.T, coll *Collection, db *Database, test *testCase
 	}
 
 	for _, operation := range test.Operations {
+		var opError error
 		switch operation.Name {
 		case "aggregate":
 			runOperationAggregate(t, coll, db, &operation, test)
+		case "updateOne":
+			res, err := executeUpdateOne(nil, coll, operation.Arguments)
+			if operation.Result != nil && !resultHasError(t, operation.Result) && err == nil {
+				verifyUpdateResult(t, res, operation.Result)
+			}
+			opError = err
+		case "updateMany":
+			res, err := executeUpdateMany(nil, coll, operation.Arguments)
+			if operation.Result != nil && !resultHasError(t, operation.Result) && err == nil {
+				verifyUpdateResult(t, res, operation.Result)
+			}
+			opError = err
+		case "findOneAndUpdate":
+			res := executeFindOneAndUpdate(nil, coll, operation.Arguments)
+			if operation.Result != nil && !resultHasError(t, operation.Result) && res.err == nil {
+				verifySingleResult(t, res, operation.Result)
+			}
+			opError = res.err
 		default:
 			t.Fatalf("Unknown operation name: %v", operation.Name)
 		}
+
+		// ensure error is what we expect
+		verifyError(t, opError, operation.Result)
 	}
 
 	checkCrudExpectations(t, test.Expectations)
 
 	if test.Outcome != nil {
-		collName := sanitizeCollectionName("crud-spec-tests", test.Description)
-		outColl := db.Collection(collName)
+		outColl := db.Collection(coll.name)
 		if test.Outcome.Collection != nil {
 			if len(test.Outcome.Collection.Name) > 0 {
 				outColl = db.Collection(test.Outcome.Collection.Name)
