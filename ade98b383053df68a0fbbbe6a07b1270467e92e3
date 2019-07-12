@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "ce36b603_907adf98",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-12T17:33:39Z",
+      "side": 1,
+      "message": "If we want this to be general behavior for all operations that return a SingleResult, we should figure out how to do this for cursors too. But if this is RunCommand specific, I think this is fine as-is because the only operation that sets cursor is FindOne (afaik).",
+      "parentUuid": "a3a78438_5ee2eb5b",
+      "range": {
+        "startLine": 55,
+        "startChar": 9,
+        "endLine": 55,
+        "endChar": 16
+      },
+      "revId": "ade98b383053df68a0fbbbe6a07b1270467e92e3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6a72d75f_c883f33c",
         "filename": "mongo/single_result_test.go",
         "patchSetId": 3
