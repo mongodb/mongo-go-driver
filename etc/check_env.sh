@@ -15,7 +15,7 @@ if [ ! -z $SSL ] && [[ ! $SSL =~ ^(nossl|ssl)$ ]]; then
     exit 1
 fi
 
-if [ ! -z $MONGO_GO_DRIVER_COMPRESSOR ] && [[ ! $MONGO_GO_DRIVER_COMPRESSOR =~ ^(snappy|zlib)$ ]]; then
-    >&2 echo "Invalid value of MONGO_GO_DRIVER_COMPRESSOR. MONGO_GO_DRIVER_COMPRESSOR can optionally be set to one of: snappy, zlib"
+if [ ! -z $MONGO_GO_DRIVER_COMPRESSOR ] && [[ ! $MONGO_GO_DRIVER_COMPRESSOR =~ ^(snappy|zlib|zstd)$ ]]; then
+    >&2 echo "Invalid value of MONGO_GO_DRIVER_COMPRESSOR. MONGO_GO_DRIVER_COMPRESSOR can optionally be set to one of: snappy, zlib, zstd"
     exit 1
 fi

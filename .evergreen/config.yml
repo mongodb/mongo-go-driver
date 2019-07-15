@@ -436,6 +436,21 @@ tasks:
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
+    - name: test-standalone-noauth-nossl-zstd-compression
+      tags: ["test", "standalone", "compression", "zstd"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
+
     - name: test-standalone-auth-ssl
       tags: ["test", "standalone", "authssl"]
       commands:
@@ -479,6 +494,21 @@ tasks:
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
+
+    - name: test-standalone-auth-ssl-zstd-compression
+      tags: ["test", "standalone", "authssl", "compression", "zstd"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
 
     - name: test-replicaset-noauth-nossl
       tags: ["test", "replicaset"]
@@ -552,6 +582,21 @@ tasks:
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
+    - name: test-sharded-noauth-nossl-zstd-compression
+      tags: ["test", "sharded", "compression", "zstd"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "noauth"
+            SSL: "nossl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "noauth"
+            SSL: "nossl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
+
     - name: test-sharded-auth-ssl
       tags: ["test", "sharded", "authssl"]
       commands:
@@ -595,6 +640,21 @@ tasks:
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
+
+    - name: test-sharded-auth-ssl-zstd-compression
+      tags: ["test", "sharded", "authssl", "compression", "zstd"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "auth"
+            SSL: "ssl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
 
     - name: test-enterprise-auth-plain
       tags: ["test", "enterprise-auth"]
@@ -775,13 +835,19 @@ buildvariants:
   matrix_spec: { version: "3.4", os-ssl-32: "*" }
   display_name: "${version} ${os-ssl-32}"
   tasks:
-    - name: ".test !.enterprise-auth !.zlib"
+    - name: ".test !.enterprise-auth .snappy"
 
 - matrix_name: "tests-nonlegacy-servers-with-zlib-support"
   matrix_spec: { version: ["3.6", "4.0", "4.2", "latest"], os-ssl-32: "*" }
-  display_name: "${version} ${os-ssl-32}"
+  display_name: "${version} ${os-ssl-32} zlib"
   tasks:
-    - name: ".test !.enterprise-auth"
+    - name: ".test !.enterprise-auth .zlib"
+
+- matrix_name: "tests-nonlegacy-servers-with-zstd-support"
+  matrix_spec: { version: ["4.2", "latest"], os-ssl-32: "*" }
+  display_name: "${version} ${os-ssl-32} zstd"
+  tasks:
+    - name: ".test !.enterprise-auth .zstd"
 
 - matrix_name: "enterprise-auth-tests"
   matrix_spec: { os-ssl-32: "*" }

@@ -21,6 +21,7 @@ import (
 
 	"strings"
 
+	"github.com/DataDog/zstd"
 	"github.com/golang/snappy"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -45,6 +46,7 @@ type connection struct {
 	desc             description.Server
 	compressor       wiremessage.CompressorID
 	zliblevel        int
+	zstdLevel        int
 	connected        int32 // must be accessed using the sync/atomic package
 
 	// pool related fields
@@ -122,6 +124,12 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 						c.zliblevel = wiremessage.DefaultZlibLevel
 						if cfg.zlibLevel != nil {
 							c.zliblevel = *cfg.zlibLevel
+						}
+					case "zstd":
+						c.compressor = wiremessage.CompressorZstd
+						c.zstdLevel = wiremessage.DefaultZstdLevel
+						if cfg.zstdLevel != nil {
+							c.zstdLevel = *cfg.zstdLevel
 						}
 					}
 					break clientMethodLoop
@@ -343,6 +351,18 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 			return dst, err
 		}
 		_, err = w.Write(rem)
+		if err != nil {
+			return dst, err
+		}
+		err = w.Close()
+		if err != nil {
+			return dst, err
+		}
+		dst = wiremessage.AppendCompressedCompressedMessage(dst, b.Bytes())
+	case wiremessage.CompressorZstd:
+		var b bytes.Buffer
+		w := zstd.NewWriterLevel(&b, c.connection.zstdLevel)
+		_, err := w.Write(rem)
 		if err != nil {
 			return dst, err
 		}

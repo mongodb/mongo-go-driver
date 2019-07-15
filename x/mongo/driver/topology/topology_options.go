@@ -202,9 +202,14 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			}))
 
 			for _, comp := range cs.Compressors {
-				if comp == "zlib" {
+				switch comp {
+				case "zlib":
 					connOpts = append(connOpts, WithZlibLevel(func(level *int) *int {
-						return &cs.ZlibLevel
+						return cs.ZlibLevel
+					}))
+				case "zstd":
+					connOpts = append(connOpts, WithZstdLevel(func(level *int) *int {
+						return cs.ZstdLevel
 					}))
 				}
 			}

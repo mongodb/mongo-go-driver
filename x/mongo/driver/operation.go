@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/DataDog/zstd"
 	"github.com/golang/snappy"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -293,7 +294,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(scratch, desc)
+		wm, startedInfo, err := op.CreateWireMessage(scratch, desc)
 		if err != nil {
 			return err
 		}
@@ -506,7 +507,7 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 	}
 
 	// decompress wiremessage
-	wm, err = op.decompressWireMessage(wm)
+	wm, err = op.DecompressWireMessage(wm)
 	if err != nil {
 		return nil, err
 	}
@@ -534,9 +535,9 @@ func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, w
 	return bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)), err
 }
 
-// decompressWireMessage handles decompressing a wiremessage. If the wiremessage
+// DecompressWireMessage handles decompressing a wiremessage. If the wiremessage
 // is not compressed, this method will return the wiremessage.
-func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
+func (Operation) DecompressWireMessage(wm []byte) ([]byte, error) {
 	// read the header and ensure this is a compressed wire message
 	length, reqid, respto, opcode, rem, ok := wiremessage.ReadHeader(wm)
 	if !ok || len(wm) < int(length) {
@@ -567,7 +568,7 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	}
 
 	header := make([]byte, 0, uncompressedSize+16)
-	header = wiremessage.AppendHeader(header, uncompressedSize, reqid, respto, opcode)
+	header = wiremessage.AppendHeader(header, uncompressedSize+16, reqid, respto, opcode)
 	uncompressed := make([]byte, uncompressedSize)
 	switch compressorID {
 	case wiremessage.CompressorSnappy:
@@ -585,13 +586,19 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+	case wiremessage.CompressorZstd:
+		decompressor := zstd.NewReader(bytes.NewReader(msg))
+		_, err := io.ReadFull(decompressor, uncompressed)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("unknown compressorID %d", compressorID)
 	}
 	return append(header, uncompressed...), nil
 }
 
-func (op Operation) createWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) CreateWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return op.createQueryWireMessage(dst, desc)
 	}

@@ -270,7 +270,7 @@ func TestClientOptions(t *testing.T) {
 			{
 				"Compressors",
 				"mongodb://localhost/?compressors=zlib,snappy",
-				baseClient().SetCompressors([]string{"zlib", "snappy"}),
+				baseClient().SetCompressors([]string{"zlib", "snappy"}).SetZlibLevel(6),
 			},
 			{
 				"DatabaseNoAuth",

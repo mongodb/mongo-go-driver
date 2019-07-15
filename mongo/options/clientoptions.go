@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // ContextDialer makes new network connections
@@ -87,6 +88,7 @@ type ClientOptions struct {
 	TLSConfig              *tls.Config
 	WriteConcern           *writeconcern.WriteConcern
 	ZlibLevel              *int
+	ZstdLevel              *int
 
 	err error
 
@@ -147,6 +149,20 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if len(cs.Compressors) > 0 {
 		c.Compressors = cs.Compressors
+		if stringSliceContains(c.Compressors, "zlib") {
+			defaultLevel := wiremessage.DefaultZlibLevel
+			c.ZlibLevel = &defaultLevel
+		}
+		if stringSliceContains(c.Compressors, "zstd") {
+			defaultLevel := wiremessage.DefaultZstdLevel
+			c.ZstdLevel = &defaultLevel
+		}
+	}
+	if cs.ZlibLevel != nil {
+		c.ZlibLevel = cs.ZlibLevel
+	}
+	if cs.ZstdLevel != nil {
+		c.ZstdLevel = cs.ZstdLevel
 	}
 
 	if cs.HeartbeatIntervalSet {
@@ -268,10 +284,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		}
 
 		c.WriteConcern = writeconcern.New(opts...)
-	}
-
-	if cs.ZlibLevelSet {
-		c.ZlibLevel = &cs.ZlibLevel
 	}
 
 	return c
@@ -425,6 +437,13 @@ func (c *ClientOptions) SetZlibLevel(level int) *ClientOptions {
 	return c
 }
 
+// SetZstdLevel sets the level for the zstd compressor.
+func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
+	c.ZstdLevel = &level
+
+	return c
+}
+
 // MergeClientOptions combines the given connstring and *ClientOptions into a single *ClientOptions in a last one wins
 // fashion. The given connstring will be used for the default options, which can be overwritten using the given
 // *ClientOptions.
@@ -504,6 +523,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.ZlibLevel != nil {
 			c.ZlibLevel = opt.ZlibLevel
+		}
+		if opt.ZstdLevel != nil {
+			c.ZstdLevel = opt.ZstdLevel
 		}
 		if opt.err != nil {
 			c.err = opt.err
@@ -630,4 +652,13 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (strin
 	}
 
 	return x509CertSubject(crt), nil
+}
+
+func stringSliceContains(source []string, target string) bool {
+	for _, str := range source {
+		if str == target {
+			return true
+		}
+	}
+	return false
 }
