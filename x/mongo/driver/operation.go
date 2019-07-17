@@ -11,17 +11,17 @@ import (
 	"time"
 
 	"github.com/golang/snappy"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"github.com/launchpadcentral/mongo-driver/bson"
+	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-driver/event"
+	"github.com/launchpadcentral/mongo-driver/mongo/readconcern"
+	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/session"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 var dollarCmd = [...]byte{'.', '$', 'c', 'm', 'd'}

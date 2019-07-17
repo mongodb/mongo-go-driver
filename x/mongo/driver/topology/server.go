@@ -16,11 +16,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"github.com/launchpadcentral/mongo-driver/event"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/address"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/operation"
 	"golang.org/x/sync/semaphore"
 )
 

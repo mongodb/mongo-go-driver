@@ -9,9 +9,9 @@ package options
 import (
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-driver/mongo/readconcern"
+	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
 )
 
 // DefaultCausalConsistency is the default value for the CausalConsistency option.

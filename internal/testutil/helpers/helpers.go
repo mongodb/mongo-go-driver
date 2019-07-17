@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package testhelpers // import "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+package testhelpers // import "github.com/launchpadcentral/mongo-driver/internal/testutil/helpers"
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ import (
 	"reflect"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/connstring"
 )
 
 // Test helpers

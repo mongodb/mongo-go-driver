@@ -12,11 +12,11 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"github.com/launchpadcentral/mongo-driver/event"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/session"
 )
 
 // EndSessions performs an endSessions operation.

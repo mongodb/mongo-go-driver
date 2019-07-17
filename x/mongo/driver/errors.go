@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-driver/bson"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
 )
 
 var (

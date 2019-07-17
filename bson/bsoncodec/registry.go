@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
 )
 
 // ErrNilType is returned when nil is passed to either LookupEncoder or LookupDecoder.

@@ -8,7 +8,7 @@ package internal
 
 import (
 	"time"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-driver/bson/primitive"
 )
 
 // IsMasterResult is the result of executing this

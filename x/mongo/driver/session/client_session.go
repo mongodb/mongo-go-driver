@@ -4,19 +4,19 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package session // import "go.mongodb.org/mongo-driver/x/mongo/driver/session"
+package session // import "github.com/launchpadcentral/mongo-driver/x/mongo/driver/session"
 
 import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
+	"github.com/launchpadcentral/mongo-driver/bson"
+	"github.com/launchpadcentral/mongo-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-driver/mongo/readconcern"
+	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/uuid"
 )
 
 // ErrSessionEnded is returned when a client session is used after a call to endSession().

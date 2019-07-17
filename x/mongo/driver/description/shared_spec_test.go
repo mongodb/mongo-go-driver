@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-driver/tag"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/address"
 )
 
 type testCase struct {

@@ -13,12 +13,12 @@ import (
 	"errors"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"github.com/launchpadcentral/mongo-driver/event"
+	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/session"
 )
 
 // Insert performs an insert operation.

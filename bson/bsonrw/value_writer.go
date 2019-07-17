@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
 )
 
 var _ ValueWriter = (*valueWriter)(nil)

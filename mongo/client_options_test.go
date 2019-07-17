@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"github.com/launchpadcentral/mongo-driver/internal/testutil"
+	"github.com/launchpadcentral/mongo-driver/mongo/options"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx"
 )
 
 func TestClientOptions_CustomDialer(t *testing.T) {

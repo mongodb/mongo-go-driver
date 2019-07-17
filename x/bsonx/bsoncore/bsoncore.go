@@ -23,7 +23,7 @@
 // given dst slice. If the slice has enough capacity, it will not grow the
 // slice. The Append*Element functions within this package operate in the same
 // way, but additionally append the BSON type and the key before the value.
-package bsoncore // import "go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+package bsoncore // import "github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
 
 import (
 	"bytes"
@@ -32,8 +32,8 @@ import (
 	"strconv"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-driver/bson/primitive"
 )
 
 // EmptyDocumentLength is the length of a document that has been started/ended but has no elements.

@@ -10,9 +10,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/address"
+	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
 )
 
 var supportedWireVersions = description.NewVersionRange(2, 8)

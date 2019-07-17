@@ -9,7 +9,7 @@ package main
 import (
 	"os"
 
-	"go.mongodb.org/mongo-driver/benchmark"
+	"github.com/launchpadcentral/mongo-driver/benchmark"
 )
 
 func main() {

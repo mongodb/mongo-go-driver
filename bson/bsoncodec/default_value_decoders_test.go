@@ -18,11 +18,11 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-driver/bson/bsonrw"
+	"github.com/launchpadcentral/mongo-driver/bson/bsonrw/bsonrwtest"
+	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestDefaultValueDecoders(t *testing.T) {

@@ -11,8 +11,8 @@ import (
 	"errors"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
 )
 
 // ErrNilDocument indicates that an operation was attempted on a nil *bson.Document.

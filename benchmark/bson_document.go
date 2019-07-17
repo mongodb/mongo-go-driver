@@ -10,7 +10,7 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx"
 )
 
 func bsonDocumentEncoding(ctx context.Context, tm TimerManager, iters int, source string) error {

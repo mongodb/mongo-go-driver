@@ -6,7 +6,7 @@
 
 // +build !go1.9
 
-package bson // import "go.mongodb.org/mongo-driver/bson"
+package bson // import "github.com/launchpadcentral/mongo-driver/bson"
 
 import (
 	"math"

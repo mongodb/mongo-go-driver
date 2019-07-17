@@ -12,9 +12,9 @@ import (
 	"reflect"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
+	"github.com/launchpadcentral/mongo-driver/bson/bsoncodec"
+	"github.com/launchpadcentral/mongo-driver/bson/bsonrw"
+	"github.com/launchpadcentral/mongo-driver/bson/bsonrw/bsonrwtest"
 )
 
 func TestBasicEncode(t *testing.T) {

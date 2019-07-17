@@ -17,13 +17,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"github.com/launchpadcentral/mongo-driver/internal/testutil"
+	"github.com/launchpadcentral/mongo-driver/internal/testutil/helpers"
+	"github.com/launchpadcentral/mongo-driver/mongo"
+	"github.com/launchpadcentral/mongo-driver/mongo/options"
+	"github.com/launchpadcentral/mongo-driver/x/bsonx"
 
-	"go.mongodb.org/mongo-driver/internal/testutil/israce"
+	"github.com/launchpadcentral/mongo-driver/internal/testutil/israce"
 	"golang.org/x/net/context"
 )
 
