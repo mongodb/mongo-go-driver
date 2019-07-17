@@ -13,11 +13,11 @@ import (
 
 	"io"
 
-	"github.com/launchpadcentral/mongo-driver/bson"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/operation"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/operation"
 )
 
 // MONGODBCR is the mechanism name for MONGODB-CR.

@@ -12,11 +12,11 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/launchpadcentral/mongo-driver/bson"
-	"github.com/launchpadcentral/mongo-driver/bson/bsoncodec"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/session"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsoncodec"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/session"
 )
 
 // Cursor is used to iterate a stream of documents. Each document is decoded into the result

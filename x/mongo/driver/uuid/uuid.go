@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package uuid // import "github.com/launchpadcentral/mongo-driver/x/mongo/driver/uuid"
+package uuid // import "github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/uuid"
 
 import (
 	"bytes"

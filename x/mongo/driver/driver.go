@@ -1,10 +1,10 @@
-package driver // import "github.com/launchpadcentral/mongo-driver/x/mongo/driver"
+package driver // import "github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
 
 import (
 	"context"
 
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/address"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/address"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
 )
 
 // Deployment is implemented by types that can select a server from a deployment.

@@ -4,15 +4,15 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package writeconcern // import "github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
+package writeconcern // import "github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
 
 import (
 	"errors"
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/bson"
-	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // ErrInconsistent indicates that an inconsistent write concern was specified.

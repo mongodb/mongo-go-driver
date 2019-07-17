@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/bson/primitive"
-	"github.com/launchpadcentral/mongo-driver/tag"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/address"
+	"github.com/launchpadcentral/mongo-go-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-go-driver/tag"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/address"
 )
 
 // UnsetRTT is the unset value for a round trip time.

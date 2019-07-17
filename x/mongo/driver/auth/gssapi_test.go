@@ -12,8 +12,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/address"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/address"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
 )
 
 func TestGSSAPIAuthenticator(t *testing.T) {

@@ -4,12 +4,12 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package event // import "github.com/launchpadcentral/mongo-driver/event"
+package event // import "github.com/launchpadcentral/mongo-go-driver/event"
 
 import (
 	"context"
 
-	"github.com/launchpadcentral/mongo-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
 )
 
 // CommandStartedEvent represents an event generated when a command is sent to a server.

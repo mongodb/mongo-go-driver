@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
-	"github.com/launchpadcentral/mongo-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-go-driver/bson/primitive"
 )
 
 // These constants uniquely refer to each BSON type.

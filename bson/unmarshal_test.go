@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/launchpadcentral/mongo-driver/bson/bsoncodec"
-	"github.com/launchpadcentral/mongo-driver/bson/bsonrw"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsoncodec"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsonrw"
 )
 
 func TestUnmarshal(t *testing.T) {

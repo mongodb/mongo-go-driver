@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
-	"github.com/launchpadcentral/mongo-driver/event"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/session"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-go-driver/event"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/session"
 )
 
 // BatchCursor is a batch implementation of a cursor. It returns documents in entire batches instead

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/connstring"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/connstring"
 )
 
 func TestOptionsSetting(t *testing.T) {

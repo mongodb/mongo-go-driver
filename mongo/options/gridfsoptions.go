@@ -9,11 +9,11 @@ package options
 import (
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/bson"
-	"github.com/launchpadcentral/mongo-driver/bson/bsoncodec"
-	"github.com/launchpadcentral/mongo-driver/mongo/readconcern"
-	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsoncodec"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readconcern"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
 )
 
 // DefaultName is the default name for a GridFS bucket.

@@ -7,10 +7,10 @@
 package options
 
 import (
-	"github.com/launchpadcentral/mongo-driver/bson/bsoncodec"
-	"github.com/launchpadcentral/mongo-driver/mongo/readconcern"
-	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsoncodec"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readconcern"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
 )
 
 // CollectionOptions represent all possible options to configure a Collection.

@@ -9,8 +9,8 @@ package mongo
 import (
 	"fmt"
 
-	"github.com/launchpadcentral/mongo-driver/bson"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/operation"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/operation"
 )
 
 // BulkWriteResult holds the result of a bulk write operation.

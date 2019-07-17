@@ -7,7 +7,7 @@
 package mongo
 
 import (
-	"github.com/launchpadcentral/mongo-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
 )
 
 // IndexOptionsBuilder constructs a BSON document for index options

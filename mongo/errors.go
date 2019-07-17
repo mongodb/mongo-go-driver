@@ -11,9 +11,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/launchpadcentral/mongo-driver/bson"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/topology"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/topology"
 )
 
 // ErrUnacknowledgedWrite is returned from functions that have an unacknowledged

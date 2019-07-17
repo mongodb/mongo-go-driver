@@ -12,12 +12,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/launchpadcentral/mongo-driver/event"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/session"
+	"github.com/launchpadcentral/mongo-go-driver/event"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/session"
 )
 
 // CommitTransaction attempts to commit a transaction.

@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/launchpadcentral/mongo-driver/bson"
-	"github.com/launchpadcentral/mongo-driver/mongo/options"
-	"github.com/launchpadcentral/mongo-driver/mongo/readconcern"
-	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/options"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readconcern"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
 )
 
 func ExampleClient_Connect() {

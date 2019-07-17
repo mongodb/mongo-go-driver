@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/auth"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/connstring"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/topology"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/auth"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/connstring"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/topology"
 )
 
 var host *string

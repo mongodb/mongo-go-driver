@@ -9,9 +9,9 @@ package session
 import (
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/mongo/readconcern"
-	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readconcern"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
 )
 
 // ClientOptions represents all possible options for creating a client session.

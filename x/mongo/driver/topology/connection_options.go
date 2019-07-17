@@ -6,9 +6,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/event"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/event"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
 )
 
 // Dialer is used to make network connections.

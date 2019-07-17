@@ -14,9 +14,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/auth/internal/gssapi"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/auth/internal/gssapi"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
 )
 
 // GSSAPI is the mechanism name for GSSAPI.

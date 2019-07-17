@@ -14,17 +14,17 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/bson"
-	"github.com/launchpadcentral/mongo-driver/bson/bsoncodec"
-	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
-	"github.com/launchpadcentral/mongo-driver/mongo/options"
-	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/operation"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/session"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsoncodec"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/options"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/operation"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/session"
 )
 
 // ErrInvalidIndexValue indicates that the index Keys document has a value that isn't either a number or a string.

@@ -12,7 +12,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // ListCollectionsBatchCursor is a special batch cursor returned from ListCollections that properly

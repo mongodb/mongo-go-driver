@@ -8,7 +8,7 @@
 // of servers. This package is designed to expose enough inner workings of service discovery
 // and monitoring to allow low level applications to have fine grained control, while hiding
 // most of the detailed implementation of the algorithms.
-package topology // import "github.com/launchpadcentral/mongo-driver/x/mongo/driver/topology"
+package topology // import "github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/topology"
 
 import (
 	"context"
@@ -21,11 +21,11 @@ import (
 
 	"fmt"
 
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/address"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/dns"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/session"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/address"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/dns"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/session"
 )
 
 // ErrSubscribeAfterClosed is returned when a user attempts to subscribe to a

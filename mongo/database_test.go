@@ -10,7 +10,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
 )
 
 // Individual commands can be sent to the server and response retrieved via run command.

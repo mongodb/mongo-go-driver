@@ -17,11 +17,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/launchpadcentral/mongo-driver/bson"
-	testhelpers "github.com/launchpadcentral/mongo-driver/internal/testutil/helpers"
-	"github.com/launchpadcentral/mongo-driver/mongo/options"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	testhelpers "github.com/launchpadcentral/mongo-go-driver/internal/testutil/helpers"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/options"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx"
 )
 
 type testFileV1 struct {

@@ -7,7 +7,7 @@
 package options
 
 import (
-	"github.com/launchpadcentral/mongo-driver/bson/primitive"
+	"github.com/launchpadcentral/mongo-go-driver/bson/primitive"
 	"time"
 )
 

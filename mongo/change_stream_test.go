@@ -14,15 +14,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/launchpadcentral/mongo-driver/bson"
-	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
-	"github.com/launchpadcentral/mongo-driver/bson/primitive"
-	testhelpers "github.com/launchpadcentral/mongo-driver/internal/testutil/helpers"
-	"github.com/launchpadcentral/mongo-driver/mongo/options"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/bson"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-go-driver/bson/primitive"
+	testhelpers "github.com/launchpadcentral/mongo-go-driver/internal/testutil/helpers"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/options"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
 )
 
 var collectionStartingDoc = bsonx.Doc{

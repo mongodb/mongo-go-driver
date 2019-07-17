@@ -9,8 +9,8 @@ package session
 import (
 	"testing"
 
-	"github.com/launchpadcentral/mongo-driver/internal/testutil/helpers"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/internal/testutil/helpers"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
 )
 
 func TestSessionPool(t *testing.T) {

@@ -9,9 +9,9 @@ package options
 import (
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/mongo/readconcern"
-	"github.com/launchpadcentral/mongo-driver/mongo/readpref"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readconcern"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/readpref"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
 )
 
 // TransactionOptions represents all possible options for starting a transaction.

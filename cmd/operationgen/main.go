@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/drivergen"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/drivergen"
 	"golang.org/x/tools/imports"
 )
 

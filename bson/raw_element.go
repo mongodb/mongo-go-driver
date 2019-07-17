@@ -7,7 +7,7 @@
 package bson
 
 import (
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // RawElement represents a BSON element in byte form. This type provides a simple way to

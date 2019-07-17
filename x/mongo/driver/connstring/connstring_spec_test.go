@@ -13,8 +13,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	testhelpers "github.com/launchpadcentral/mongo-driver/internal/testutil/helpers"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/connstring"
+	testhelpers "github.com/launchpadcentral/mongo-go-driver/internal/testutil/helpers"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/connstring"
 )
 
 type host struct {

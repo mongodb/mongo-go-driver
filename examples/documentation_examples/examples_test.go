@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/launchpadcentral/mongo-driver/examples/documentation_examples"
-	"github.com/launchpadcentral/mongo-driver/internal/testutil"
-	"github.com/launchpadcentral/mongo-driver/mongo"
-	"github.com/launchpadcentral/mongo-driver/mongo/options"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx"
+	"github.com/launchpadcentral/mongo-go-driver/examples/documentation_examples"
+	"github.com/launchpadcentral/mongo-go-driver/internal/testutil"
+	"github.com/launchpadcentral/mongo-go-driver/mongo"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/options"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx"
 )
 
 func TestDocumentationExamples(t *testing.T) {

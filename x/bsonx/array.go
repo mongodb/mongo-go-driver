@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package bsonx // import "github.com/launchpadcentral/mongo-driver/x/bsonx"
+package bsonx // import "github.com/launchpadcentral/mongo-go-driver/x/bsonx"
 
 import (
 	"bytes"
@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/launchpadcentral/mongo-driver/bson/bsontype"
-	"github.com/launchpadcentral/mongo-driver/x/bsonx/bsoncore"
+	"github.com/launchpadcentral/mongo-go-driver/bson/bsontype"
+	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // ErrNilArray indicates that an operation was attempted on a nil *Array.

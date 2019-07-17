@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package connstring // import "github.com/launchpadcentral/mongo-driver/x/mongo/driver/connstring"
+package connstring // import "github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/connstring"
 
 import (
 	"errors"
@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/launchpadcentral/mongo-driver/internal"
-	"github.com/launchpadcentral/mongo-driver/mongo/writeconcern"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/dns"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/wiremessage"
+	"github.com/launchpadcentral/mongo-go-driver/internal"
+	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/dns"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/wiremessage"
 )
 
 // Parse parses the provided uri and returns a URI object.

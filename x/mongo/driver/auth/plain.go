@@ -9,8 +9,8 @@ package auth
 import (
 	"context"
 
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver"
-	"github.com/launchpadcentral/mongo-driver/x/mongo/driver/description"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver"
+	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/description"
 )
 
 // PLAIN is the mechanism name for PLAIN.
