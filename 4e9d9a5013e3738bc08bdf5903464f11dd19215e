@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "11bcc32b_ec527937",
+        "filename": "data/retryable-reads/aggregate.yml",
+        "patchSetId": 5
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-24T13:55:16Z",
+      "side": 1,
+      "message": "They pass on evergreen and I have tested them locally. We check that the current configuration we are connected to matches one of the runOns. I also changed this a lot in the latest patch.",
+      "parentUuid": "50d10e9e_52fa70c3",
+      "range": {
+        "startLine": 4,
+        "startChar": 0,
+        "endLine": 4,
+        "endChar": 8
+      },
+      "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1096a0bf_8b50f5fc",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 5
@@ -39,6 +63,24 @@
       "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "787a4a48_97c2ab90",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-24T13:55:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1096a0bf_8b50f5fc",
+      "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -65,6 +107,30 @@
     },
     {
       "key": {
+        "uuid": "4a1a4baf_36113239",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 478,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-24T13:55:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "baeb7518_4c9e9603",
+      "range": {
+        "startLine": 478,
+        "startChar": 1,
+        "endLine": 478,
+        "endChar": 2
+      },
+      "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c9aee5a8_898e2275",
         "filename": "x/mongo/driver/topology/topology.go",
         "patchSetId": 5
@@ -85,6 +151,30 @@
       "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "558ee88e_52fc1e6d",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-24T13:55:16Z",
+      "side": 1,
+      "message": "I talked offline about this with kris and divjot. We no longer check the topology type instead only check the wire version",
+      "parentUuid": "c9aee5a8_898e2275",
+      "range": {
+        "startLine": 259,
+        "startChar": 1,
+        "endLine": 259,
+        "endChar": 74
+      },
+      "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

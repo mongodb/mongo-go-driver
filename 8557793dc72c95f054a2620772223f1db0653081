@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "f5247e7c_274102ff",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-24T13:55:16Z",
+      "side": 1,
+      "message": "retryableType only checks op.RetryType it doesnt check the retrymode. All the methods that are retryable do set op.RetryMode, but there could be an issue in the future where someone sets the op.RetryType without setting the RetryMode and will get a panic so idk I should remove it.",
+      "parentUuid": "ee9f338d_abd8682f",
+      "range": {
+        "startLine": 267,
+        "startChar": 17,
+        "endLine": 267,
+        "endChar": 37
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "cce10ad1_e7ef8636",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 10
@@ -45,6 +69,30 @@
       "revId": "8557793dc72c95f054a2620772223f1db0653081",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "075e275f_56e5abad",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 286,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-24T13:55:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "cce10ad1_e7ef8636",
+      "range": {
+        "startLine": 268,
+        "startChar": 2,
+        "endLine": 286,
+        "endChar": 3
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "bf04896a_093ac481",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 494,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-24T13:55:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "dfebca9b_7284c43c",
+      "range": {
+        "startLine": 462,
+        "startChar": 0,
+        "endLine": 494,
+        "endChar": 1
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c0bd2914_548220f7",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 10
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "799eac60_b78da6eb",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 496,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-24T13:55:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c0bd2914_548220f7",
+      "range": {
+        "startLine": 496,
+        "startChar": 20,
+        "endLine": 496,
+        "endChar": 68
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "27496edf_e85e7406",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 10
@@ -114,6 +210,30 @@
       "revId": "8557793dc72c95f054a2620772223f1db0653081",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "94b8b074_5aee0120",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 513,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-07-24T13:55:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "27496edf_e85e7406",
+      "range": {
+        "startLine": 513,
+        "startChar": 3,
+        "endLine": 513,
+        "endChar": 19
+      },
+      "revId": "8557793dc72c95f054a2620772223f1db0653081",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
