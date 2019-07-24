@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "50d10e9e_52fa70c3",
+        "filename": "data/retryable-reads/aggregate.yml",
+        "patchSetId": 5
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-07-24T13:44:00Z",
+      "side": 1,
+      "message": "I\u0027m surprised the tests pass on topology single since we\u0027re excluding that topology incorrectly from retrying reads.  Are we doing something wrong with our runOn handling, or did you just not try to run the tests against a standalone yet?",
+      "range": {
+        "startLine": 4,
+        "startChar": 0,
+        "endLine": 4,
+        "endChar": 8
+      },
+      "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1096a0bf_8b50f5fc",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-07-24T13:44:00Z",
+      "side": 1,
+      "message": "Why are we checking for retryable reads on a WriteCommandError?",
+      "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "baeb7518_4c9e9603",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 478,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-07-24T13:44:00Z",
+      "side": 1,
+      "message": "This is not correct according to the spec: https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst#requirements-for-retryable-reads",
+      "range": {
+        "startLine": 478,
+        "startChar": 1,
+        "endLine": 478,
+        "endChar": 2
+      },
+      "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c9aee5a8_898e2275",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-07-24T13:44:00Z",
+      "side": 1,
+      "message": "According to https://github.com/mongodb/specifications/blob/master/source/retryable-reads/retryable-reads.rst#requirements-for-retryable-reads, retryable reads support is based on server version (3.6 and up) not topology type.\n\nYou probably have to update the test runner to ensure that the spec tests run on standalone (unless I\u0027m misunderstanding this code)",
+      "range": {
+        "startLine": 259,
+        "startChar": 1,
+        "endLine": 259,
+        "endChar": 74
+      },
+      "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
