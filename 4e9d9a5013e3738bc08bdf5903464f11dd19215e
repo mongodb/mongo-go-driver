@@ -131,6 +131,29 @@
     },
     {
       "key": {
+        "uuid": "31c7bc1e_2b519e28",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-07-24T14:18:31Z",
+      "side": 1,
+      "message": "Calling SessionsSupported here is misleading, since session support is not required for read retryability.  It just so happens that session support and retry reads support are both wire version 6 and up, but best to be clear here and call a new method like description.RetryableReadsSupported instead of reusing description.SessionsSupported.",
+      "range": {
+        "startLine": 487,
+        "startChar": 0,
+        "endLine": 487,
+        "endChar": 1
+      },
+      "revId": "4e9d9a5013e3738bc08bdf5903464f11dd19215e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c9aee5a8_898e2275",
         "filename": "x/mongo/driver/topology/topology.go",
         "patchSetId": 5
