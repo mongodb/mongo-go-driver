@@ -34,7 +34,7 @@ build:
 
 .PHONY: check-fmt
 check-fmt:
-	@gofmt -l -s $(PKGS) | read; if [ $$? == 0 ]; then echo "gofmt check failed for:"; gofmt -l -s $(PKGS) | sed -e 's/^/ - /'; exit 1; fi
+	etc/check_fmt.sh $(PKGS)
 
 .PHONY: fmt
 fmt:
