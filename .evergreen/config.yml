@@ -326,6 +326,30 @@ functions:
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
           MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
 
+  run-atlas-test:
+    - command: shell.exec
+      type: test
+      params:
+        silent: true
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          export GOPATH="$GOPATH"
+          export GOROOT="${GO_DIST}"
+          export GOCACHE="$GOCACHE"
+          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
+          export ATLAS_FREE="${atlas_free_tier_uri}"
+          export ATLAS_REPLSET="${atlas_replica_set_uri}"
+          export ATLAS_SHARD="${atlas_sharded_uri}"
+          export ATLAS_TLS11="${atlas_tls_v11_uri}"
+          export ATLAS_TLS12="${atlas_tls_v12_uri}"
+          export ATLAS_FREE_SRV="${atlas_free_tier_uri_srv}"
+          export ATLAS_REPLSET_SRV="${atlas_replica_set_uri_srv}"
+          export ATLAS_SHARD_SRV="${atlas_sharded_uri_srv}"
+          export ATLAS_TLS11_SRV="${atlas_tls_v11_uri_srv}"
+          export ATLAS_TLS12_SRV="${atlas_tls_v12_uri_srv}"
+          MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-atlas
+
 pre:
   - func: fetch-source
   - func: prepare-resources
@@ -655,6 +679,13 @@ tasks:
             targets: "build"
             BUILD_ENV: "GOARCH=ppc64le"
 
+    - name: "atlas-test"
+      depends_on:
+        - variant: "static-checks"
+          name: "static-analysis"
+      commands:
+        - func: "run-atlas-test"
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -788,3 +819,9 @@ buildvariants:
   display_name: "Enterprise Auth - ${os-ssl-32}"
   tasks:
      - name: ".test .enterprise-auth"
+
+- name: atlas-test
+  display_name: "Atlas test"
+  run_on: *hosts
+  tasks:
+    - name: "atlas-test"

@@ -53,12 +53,18 @@ func main() {
 		dbname = "test"
 	}
 
-	op := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "count", *col))).
+	isMasterOp := operation.NewIsMaster().Deployment(t)
+	err = isMasterOp.Execute(ctx)
+	if err != nil {
+		log.Fatalf("failed executing isMaster command: %v", err)
+	}
+
+	findOneOp := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "count", *col))).
 		Deployment(t).Database(dbname).ServerSelector(description.WriteSelector())
-	err = op.Execute(ctx)
+	err = findOneOp.Execute(ctx)
 	if err != nil {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}
-	rdr := op.Result()
+	rdr := findOneOp.Result()
 	log.Println(rdr)
 }

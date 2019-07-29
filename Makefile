@@ -115,6 +115,10 @@ evg-test:
 evg-test-auth:
 	go run -tags gssapi ./x/mongo/driver/examples/count/main.go -uri $(MONGODB_URI)
 
+.PHONY: evg-test-atlas
+evg-test-atlas:
+	go run -tags gssapi ./x/mongo/driver/examples/count/main.go -uri $(MONGODB_URI)
+
 # benchmark specific targets and support
 perf:driver-test-data.tar.gz
 	tar -zxf $< $(if $(eq $(UNAME_S),Darwin),-s , --transform=s)/data/perf/
