@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6410fa77_ea6c74cb",
+        "filename": "x/mongo/driver/examples/count/main.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-29T21:30:29Z",
+      "side": 1,
+      "message": "This is a count operation, not a findOne.",
+      "range": {
+        "startLine": 62,
+        "startChar": 1,
+        "endLine": 62,
+        "endChar": 10
+      },
+      "revId": "da45fae5c52373da5e6294f4cb28f2aedadd14e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
