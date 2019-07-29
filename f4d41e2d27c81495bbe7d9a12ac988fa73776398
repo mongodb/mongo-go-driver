@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "39b56b5c_68c55f39",
+        "filename": "mongo/bulk_write.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 325,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-29T21:17:47Z",
+      "side": 1,
+      "message": "Is it possible that the user provides the pipeline as something other than a []interface? I\u0027m thinking a mongo.Pipeline or something else that is effectively a slice of documents.",
+      "range": {
+        "startLine": 325,
+        "startChar": 1,
+        "endLine": 325,
+        "endChar": 20
+      },
+      "revId": "f4d41e2d27c81495bbe7d9a12ac988fa73776398",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "67851eef_dd198d28",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 337,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-29T21:17:47Z",
+      "side": 1,
+      "message": "We might want to add a specific case here where we check for a mongo.Pipeline.",
+      "range": {
+        "startLine": 337,
+        "startChar": 1,
+        "endLine": 337,
+        "endChar": 28
+      },
+      "revId": "f4d41e2d27c81495bbe7d9a12ac988fa73776398",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8cac3760_1f16e6de",
+        "filename": "x/mongo/driver/operation/find_and_modify.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-29T21:17:47Z",
+      "side": 1,
+      "message": "We can just use bsoncore.AppendValueElement here.",
+      "range": {
+        "startLine": 183,
+        "startChar": 2,
+        "endLine": 187,
+        "endChar": 3
+      },
+      "revId": "f4d41e2d27c81495bbe7d9a12ac988fa73776398",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
