@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f72d4062_376596bd",
+        "filename": "x/mongo/driver/libmongocrypt/binary.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-30T18:03:24Z",
+      "side": 1,
+      "message": "why are we naming the package libmongocrypt? Wouldn\u0027t mongocrypt be sufficient?",
+      "range": {
+        "startLine": 7,
+        "startChar": 8,
+        "endLine": 7,
+        "endChar": 21
+      },
+      "revId": "19977e15b98193f74e08ffaf1eced6262d3b36f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "968b5314_df1e74ca",
+        "filename": "x/mongo/driver/libmongocrypt/binary.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-30T18:03:24Z",
+      "side": 1,
+      "message": "Given my comment below, we should probably have a destroy method of some sort that will call C.free when cleaning up this type.",
+      "range": {
+        "startLine": 16,
+        "startChar": 5,
+        "endLine": 16,
+        "endChar": 11
+      },
+      "revId": "19977e15b98193f74e08ffaf1eced6262d3b36f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4d74b8af_ac19625f",
+        "filename": "x/mongo/driver/libmongocrypt/binary.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-30T18:03:24Z",
+      "side": 1,
+      "message": "Should this be using C.CBytes? If it isn\u0027t the underlying array is still in Go\u0027s heap and might be garbage collected if data goes out of scope.",
+      "range": {
+        "startLine": 33,
+        "startChar": 1,
+        "endLine": 33,
+        "endChar": 47
+      },
+      "revId": "19977e15b98193f74e08ffaf1eced6262d3b36f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a85b8cb7_ba1118de",
+        "filename": "x/mongo/driver/libmongocrypt/errors.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-07-30T18:03:24Z",
+      "side": 1,
+      "message": "We can probably call this \"errorFromStatus\".",
+      "range": {
+        "startLine": 27,
+        "startChar": 5,
+        "endLine": 27,
+        "endChar": 30
+      },
+      "revId": "19977e15b98193f74e08ffaf1eced6262d3b36f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
