@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "5f6751bc_def8605f",
+        "filename": "x/mongo/driver/mongocrypt/mongocrypt_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 326,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-31T20:07:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "96b7ac2a_094a8f89",
+      "revId": "777c906bc8cf2b75b710367d5d0273480269fb5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "aaa18f8e_fce134c0",
         "filename": "x/mongo/driver/mongocrypt/mongocrypt_test.go",
         "patchSetId": 3
@@ -39,6 +57,30 @@
       "revId": "777c906bc8cf2b75b710367d5d0273480269fb5b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "53966cf4_82ee1532",
+        "filename": "x/mongo/driver/mongocrypt/mongocrypt_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-07-31T20:07:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "aaa18f8e_fce134c0",
+      "range": {
+        "startLine": 332,
+        "startChar": 3,
+        "endLine": 335,
+        "endChar": 64
+      },
+      "revId": "777c906bc8cf2b75b710367d5d0273480269fb5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
