@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "86b913c1_b8a0e4f1",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-08-01T21:07:29Z",
+      "side": 1,
+      "message": "The idea is to not echo the connection strings, which contain passwords",
+      "parentUuid": "37c99b10_d95de190",
+      "range": {
+        "startLine": 335,
+        "startChar": 10,
+        "endLine": 335,
+        "endChar": 62
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "90a50d8f_5ad48ceb",
         "filename": ".evergreen/config.yml",
         "patchSetId": 3
@@ -36,6 +60,30 @@
       "writtenOn": "2019-08-01T19:49:40Z",
       "side": 1,
       "message": "why static analysis?",
+      "range": {
+        "startLine": 690,
+        "startChar": 12,
+        "endLine": 690,
+        "endChar": 31
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9841b97c_9949d19d",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 690,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-08-01T21:07:29Z",
+      "side": 1,
+      "message": "Java driver no longer does this.  It used to make all tests dependent on compilation succeeding first, but it no longer does that (optimistic concurrency ;) )",
+      "parentUuid": "90a50d8f_5ad48ceb",
       "range": {
         "startLine": 690,
         "startChar": 12,
