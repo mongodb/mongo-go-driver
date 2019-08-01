@@ -1,0 +1,211 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "37c99b10_d95de190",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-01T19:49:40Z",
+      "side": 1,
+      "message": "do we have to explicitly call PREPARE_SHELL? in the run-tests function, the script has ${PREPARE_SHELL}.",
+      "range": {
+        "startLine": 335,
+        "startChar": 10,
+        "endLine": 335,
+        "endChar": 62
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "90a50d8f_5ad48ceb",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 690,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-01T19:49:40Z",
+      "side": 1,
+      "message": "why static analysis?",
+      "range": {
+        "startLine": 690,
+        "startChar": 12,
+        "endLine": 690,
+        "endChar": 31
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "954c3dda_db6e6b94",
+        "filename": "mongo/testatlas/main.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-01T19:49:40Z",
+      "side": 1,
+      "message": "nit: this should go between \"context\" and \"log\"",
+      "range": {
+        "startLine": 13,
+        "startChar": 1,
+        "endLine": 13,
+        "endChar": 7
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84c6715e_a7c5960d",
+        "filename": "mongo/testatlas/main.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-01T19:49:40Z",
+      "side": 1,
+      "message": "nit: can use mongo.Connect here to merge the NewClient() and client.Connect() calls.",
+      "range": {
+        "startLine": 33,
+        "startChar": 23,
+        "endLine": 33,
+        "endChar": 32
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e16c2687_e26b386c",
+        "filename": "mongo/testatlas/main.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-01T19:49:40Z",
+      "side": 1,
+      "message": "I think we can avoid the connstring.Parse() call above by doing ApplyURI(uri) here. Right now, we\u0027re going string -\u003e connstring.Connstring -\u003e string.",
+      "range": {
+        "startLine": 33,
+        "startChar": 50,
+        "endLine": 33,
+        "endChar": 71
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "66f12f9e_e3fc0b5f",
+        "filename": "mongo/testatlas/main.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-01T19:49:40Z",
+      "side": 1,
+      "message": "this error and the one below for Connect should have some context around them like the errors for commands e.g. log.Fatalf(\"failed to create client: %v\", err)",
+      "range": {
+        "startLine": 35,
+        "startChar": 13,
+        "endLine": 35,
+        "endChar": 16
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "77602cc6_f46a96a8",
+        "filename": "mongo/testatlas/main.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-01T19:49:40Z",
+      "side": 1,
+      "message": "avoid using both bson and bsonx. this can be bson.D{{\"isMaster\", 1}}",
+      "range": {
+        "startLine": 48,
+        "startChar": 3,
+        "endLine": 48,
+        "endChar": 40
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8185438d_3bab777c",
+        "filename": "mongo/testatlas/main.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-01T19:49:40Z",
+      "side": 1,
+      "message": "same comment as above.",
+      "range": {
+        "startLine": 54,
+        "startChar": 31,
+        "endLine": 54,
+        "endChar": 60
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e13344d3_fc5ab8b7",
+        "filename": "mongo/testatlas/main.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-01T19:49:40Z",
+      "side": 1,
+      "message": "same as above. this particular case doesn\u0027t mix bson and bsonx, but I\u0027d prefer to only depend on one of the packages.",
+      "range": {
+        "startLine": 59,
+        "startChar": 27,
+        "endLine": 59,
+        "endChar": 59
+      },
+      "revId": "725959fbb771ba99fbcd10c96ab34ba6c48d2f76",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
