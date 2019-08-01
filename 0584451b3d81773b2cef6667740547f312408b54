@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fb9345ca_553b6c34",
+        "filename": "x/mongo/driver/mongocrypt/errors.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-01T15:55:52Z",
+      "side": 1,
+      "message": "Since this is a private function why are we returning an error interface instead of the concrete Error type?",
+      "range": {
+        "startLine": 27,
+        "startChar": 52,
+        "endLine": 27,
+        "endChar": 57
+      },
+      "revId": "0584451b3d81773b2cef6667740547f312408b54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4eb5755a_5c501d6d",
+        "filename": "x/mongo/driver/mongocrypt/mongocrypt.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 227,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-01T15:55:52Z",
+      "side": 1,
+      "message": "Did you confirm this?",
+      "range": {
+        "startLine": 227,
+        "startChar": 4,
+        "endLine": 227,
+        "endChar": 90
+      },
+      "revId": "0584451b3d81773b2cef6667740547f312408b54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
