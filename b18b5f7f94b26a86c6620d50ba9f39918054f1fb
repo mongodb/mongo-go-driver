@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "20bb8f4e_81daee05",
+        "filename": "x/mongo/driver/operation/listDatabases.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-01T21:04:22Z",
+      "side": 1,
+      "message": "comment",
+      "revId": "b18b5f7f94b26a86c6620d50ba9f39918054f1fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "162f2b6f_dff6b6ae",
+        "filename": "x/mongo/driver/operation/list_indexes.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-01T21:04:22Z",
+      "side": 1,
+      "message": "Wrong comment",
+      "range": {
+        "startLine": 191,
+        "startChar": 3,
+        "endLine": 191,
+        "endChar": 17
+      },
+      "revId": "b18b5f7f94b26a86c6620d50ba9f39918054f1fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5798621e_037f1def",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-01T21:04:22Z",
+      "side": 1,
+      "message": "\"returns true if\"",
+      "range": {
+        "startLine": 259,
+        "startChar": 30,
+        "endLine": 259,
+        "endChar": 31
+      },
+      "revId": "b18b5f7f94b26a86c6620d50ba9f39918054f1fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
