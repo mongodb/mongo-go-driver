@@ -30,6 +30,11 @@ type Connection interface {
 	Address() address.Address
 }
 
+// LocalAddresser is a type that is able to supply its local address
+type LocalAddresser interface {
+	LocalAddress() address.Address
+}
+
 // Expirable represents an expirable object.
 type Expirable interface {
 	Expire() error
