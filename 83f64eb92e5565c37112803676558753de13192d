@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "58c0b61f_7e0caf17",
+        "filename": "mongo/testatlas/main.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-02T15:45:05Z",
+      "side": 1,
+      "message": "Question: does something clean up the database and collection after the test finishes running? It seems to me that we would get duplicate key errors the second time we run the tests.",
+      "range": {
+        "startLine": 42,
+        "startChar": 2,
+        "endLine": 50,
+        "endChar": 3
+      },
+      "revId": "83f64eb92e5565c37112803676558753de13192d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
