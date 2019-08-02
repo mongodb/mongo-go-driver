@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6acfcf52_b678f0a1",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 369,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-02T15:39:21Z",
+      "side": 1,
+      "message": "The user should be able to return a bsontype.EmbeddedDocument here and we should treat it as if it was a Marshaler or another type of document.",
+      "range": {
+        "startLine": 369,
+        "startChar": 2,
+        "endLine": 369,
+        "endChar": 30
+      },
+      "revId": "9e83d20cee6f885932751b1878a3fc9abc0ed7ed",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
