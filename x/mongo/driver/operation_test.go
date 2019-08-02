@@ -536,6 +536,7 @@ func (m *mockConnection) Description() description.Server { return m.rDesc }
 func (m *mockConnection) Close() error                    { return m.rCloseErr }
 func (m *mockConnection) ID() string                      { return m.rID }
 func (m *mockConnection) Address() address.Address        { return m.rAddr }
+func (m *mockConnection) LocalAddress() address.Address   { return address.Address("0.0.0.0") }
 
 func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	m.pWriteWM = wm

@@ -28,6 +28,7 @@ type Connection interface {
 	Close() error
 	ID() string
 	Address() address.Address
+	LocalAddress() address.Address
 }
 
 // Expirable represents an expirable object.

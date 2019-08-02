@@ -272,6 +272,12 @@ func (c initConnection) Description() description.Server { return description.Se
 func (c initConnection) Close() error                    { return nil }
 func (c initConnection) ID() string                      { return c.id }
 func (c initConnection) Address() address.Address        { return c.addr }
+func (c initConnection) LocalAddress() address.Address {
+	if c.connection == nil || c.nc == nil {
+		return address.Address("0.0.0.0")
+	}
+	return address.Address(c.nc.LocalAddr().String())
+}
 func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
 }
@@ -428,6 +434,16 @@ func (c *Connection) Address() address.Address {
 		return address.Address("0.0.0.0")
 	}
 	return c.addr
+}
+
+// LocalAddress returns the local address of the connection
+func (c *Connection) LocalAddress() address.Address {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.connection == nil || c.nc == nil {
+		return address.Address("0.0.0.0")
+	}
+	return address.Address(c.nc.LocalAddr().String())
 }
 
 var notMasterCodes = []int32{10107, 13435}

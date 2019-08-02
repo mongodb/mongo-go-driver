@@ -332,6 +332,12 @@ func TestConnection(t *testing.T) {
 			if !cmp.Equal(got, want) {
 				t.Errorf("Addresses do not match. got %v; want %v", got, want)
 			}
+
+			want = address.Address("0.0.0.0")
+			got = conn.LocalAddress()
+			if !cmp.Equal(got, want) {
+				t.Errorf("LocalAddresses do not match. got %v; want %v", got, want)
+			}
 		})
 	})
 }

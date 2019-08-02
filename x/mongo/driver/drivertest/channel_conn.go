@@ -64,6 +64,9 @@ func (c *ChannelConn) ID() string {
 // Address implements the driver.Connection interface.
 func (c *ChannelConn) Address() address.Address { return address.Address("0.0.0.0") }
 
+// LocalAddress implements the driver.Connection interface
+func (c *ChannelConn) LocalAddress() address.Address { return address.Address("0.0.0.0") }
+
 // MakeReply creates an OP_REPLY wiremessage from a BSON document
 func MakeReply(doc bsoncore.Document) []byte {
 	var dst []byte
