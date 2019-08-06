@@ -22,6 +22,30 @@
       "revId": "83f64eb92e5565c37112803676558753de13192d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4d2ac626_b28b0537",
+        "filename": "mongo/testatlas/main.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1016589
+      },
+      "writtenOn": "2019-08-06T04:31:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "58c0b61f_7e0caf17",
+      "range": {
+        "startLine": 42,
+        "startChar": 2,
+        "endLine": 50,
+        "endChar": 3
+      },
+      "revId": "83f64eb92e5565c37112803676558753de13192d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
