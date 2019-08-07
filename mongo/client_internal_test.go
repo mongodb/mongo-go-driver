@@ -735,3 +735,27 @@ func TestEndSessions(t *testing.T) {
 
 	require.Equal(t, "endSessions", started.CommandName)
 }
+
+func TestIsMaster(t *testing.T) {
+	cs := testutil.ConnString(t)
+	client, err := NewClient(options.Client().ApplyURI(cs.String()))
+	require.NoError(t, err)
+	err = client.Connect(nil)
+	require.NoError(t, err)
+
+	coll := createTestCollection(t, nil, nil)
+	_, err = coll.InsertOne(
+		context.Background(),
+		bsonx.Doc{{"x", bsonx.Int32(1)}},
+	)
+	require.NoError(t, err)
+
+	isMaster := operation.NewIsMaster().ClusterClock(client.clock).Deployment(client.topology).
+		AppName(cs.AppName).Compressors(cs.Compressors)
+
+	err = isMaster.Execute(ctx)
+	require.NoError(t, err)
+
+	res := isMaster.Result("")
+	require.False(t, res.LastWriteTime.IsZero())
+}
