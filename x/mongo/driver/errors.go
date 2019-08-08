@@ -28,6 +28,9 @@ var (
 	// ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
 	// write concern.
 	ErrUnacknowledgedWrite = errors.New("unacknowledged write")
+	// ErrUnsupportedStorageEngine is returned when a retryable write is attempted against a server
+	// that uses a storage engine that does not support retryable writes
+	ErrUnsupportedStorageEngine = errors.New("this MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string")
 )
 
 // QueryFailureError is an error representing a command failure as a document.
@@ -64,6 +67,17 @@ func (e ResponseError) Error() string {
 type WriteCommandError struct {
 	WriteConcernError *WriteConcernError
 	WriteErrors       WriteErrors
+}
+
+// UnsupportedStorageEngine returns whether or not the WriteCommandError comes from a retryable write being attempted
+// against a server that has a storage engine where they are not supported
+func (wce WriteCommandError) UnsupportedStorageEngine() bool {
+	for _, writeError := range wce.WriteErrors {
+		if writeError.Code == 20 && strings.HasPrefix(strings.ToLower(writeError.Message), "transaction numbers") {
+			return true
+		}
+	}
+	return false
 }
 
 func (wce WriteCommandError) Error() string {
@@ -165,6 +179,11 @@ type Error struct {
 	Message string
 	Labels  []string
 	Name    string
+}
+
+// UnsupportedStorageEngine returns whether e came as a result of an unsupported storage engine
+func (e Error) UnsupportedStorageEngine() bool {
+	return e.Code == 20 && strings.HasPrefix(strings.ToLower(e.Message), "transaction numbers")
 }
 
 // Error implements the error interface.
