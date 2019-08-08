@@ -10,7 +10,6 @@ EXAMPLES_PKGS = $(shell etc/list_pkgs.sh ./examples)
 EXAMPLES_TEST_PKGS = $(shell etc/list_test_pkgs.sh ./examples)
 PKGS = $(BSON_PKGS) $(MONGO_PKGS) $(UNSTABLE_PKGS) $(TAG_PKG) $(EXAMPLES_PKGS)
 TEST_PKGS = $(BSON_TEST_PKGS) $(MONGO_TEST_PKGS) $(UNSTABLE_TEST_PKGS) $(TAG_PKG) $(EXAMPLES_TEST_PKGS)
-ATLAS_URIS = "$(ATLAS_FREE)" "$(ATLAS_REPLSET)" "$(ATLAS_SHARD)" "$(ATLAS_TLS11)" "$(ATLAS_TLS12)" "$(ATLAS_FREE_SRV)" "$(ATLAS_REPLSET_SRV)" "$(ATLAS_SHARD_SRV)" "$(ATLAS_TLS11_SRV)" "$(ATLAS_TLS12_SRV)"
 
 TEST_TIMEOUT = 600
 
@@ -125,10 +124,6 @@ evg-test:
 .PHONY: evg-test-auth
 evg-test-auth:
 	go run -tags gssapi ./x/mongo/driver/examples/count/main.go -uri $(MONGODB_URI)
-
-.PHONY: evg-test-atlas
-evg-test-atlas:
-	go run ./mongo/testatlas/main.go $(ATLAS_URIS)
 
 # benchmark specific targets and support
 perf:driver-test-data.tar.gz
