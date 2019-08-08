@@ -233,7 +233,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
 	scratch = scratch[:0]
@@ -361,10 +361,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 		switch tt := err.(type) {
 		case WriteCommandError:
+			if e := err.(WriteCommandError); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
+				return ErrUnsupportedStorageEngine
+			}
 			if retryable && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
-				conn.Close() // Avoid leaking the connection.
+				_ = conn.Close() // Avoid leaking the connection.
 				srvr, err = op.selectServer(ctx)
 				if err != nil {
 					return original
@@ -372,11 +375,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				conn, err = srvr.Connection(ctx)
 				if err != nil || conn == nil || !op.retryable(conn.Description()) {
 					if conn != nil {
-						conn.Close()
+						_ = conn.Close()
 					}
 					return original
 				}
-				defer conn.Close() // Avoid leaking the new connection.
+				defer func() { _ = conn.Close() }() // Avoid leaking the new connection.
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
@@ -407,10 +410,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				op.Client.ClearPinnedServer()
 			}
+			if e := err.(Error); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
+				return ErrUnsupportedStorageEngine
+			}
 			if retryable && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
-				conn.Close() // Avoid leaking the connection.
+				_ = conn.Close() // Avoid leaking the connection.
 				srvr, err = op.selectServer(ctx)
 				if err != nil {
 					return original
@@ -418,11 +424,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				conn, err = srvr.Connection(ctx)
 				if err != nil || conn == nil || !op.retryable(conn.Description()) {
 					if conn != nil {
-						conn.Close()
+						_ = conn.Close()
 					}
 					return original
 				}
-				defer conn.Close() // Avoid leaking the new connection.
+				defer func() { _ = conn.Close() }() // Avoid leaking the new connection.
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
@@ -830,7 +836,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)
 
 	var addedTxnNumber bool
-	if op.Type == Write && client != nil && client.RetryWrite {
+	if op.Type == Write && client.RetryWrite {
 		addedTxnNumber = true
 		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
