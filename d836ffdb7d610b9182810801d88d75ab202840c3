@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "e1c68af5_a4981318",
+        "filename": "mongo/options/clientoptions_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2c716491_9821eb0a",
+      "range": {
+        "startLine": 64,
+        "startChar": 3,
+        "endLine": 64,
+        "endChar": 86
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fc495d4d_5ebf2539",
         "filename": "x/mongo/driver/operation/insert.go",
         "patchSetId": 2
@@ -45,6 +69,30 @@
       "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c5222cb7_9bf692d4",
+        "filename": "x/mongo/driver/operation/insert.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "yup",
+      "parentUuid": "fc495d4d_5ebf2539",
+      "range": {
+        "startLine": 24,
+        "startChar": 3,
+        "endLine": 24,
+        "endChar": 8
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "631907fe_361ad958",
+        "filename": "x/mongo/driver/topology/CMAP_spec_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0cdf2292_e8fc06a1",
+      "range": {
+        "startLine": 100,
+        "startChar": 62,
+        "endLine": 100,
+        "endChar": 69
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5ea7e5de_1848ce7a",
         "filename": "x/mongo/driver/topology/CMAP_spec_test.go",
         "patchSetId": 2
@@ -91,6 +163,30 @@
       "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "34b0182c_379ba05f",
+        "filename": "x/mongo/driver/topology/CMAP_spec_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5ea7e5de_1848ce7a",
+      "range": {
+        "startLine": 113,
+        "startChar": 2,
+        "endLine": 113,
+        "endChar": 30
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "d24b4668_86f11fee",
+        "filename": "x/mongo/driver/topology/CMAP_spec_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 325,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "527eea5c_a3eee39e",
+      "range": {
+        "startLine": 325,
+        "startChar": 48,
+        "endLine": 325,
+        "endChar": 55
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2738b2af_e8e2aa6c",
         "filename": "x/mongo/driver/topology/CMAP_spec_test.go",
         "patchSetId": 2
@@ -137,6 +257,30 @@
       "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "24d36d0d_2a8d10ab",
+        "filename": "x/mongo/driver/topology/CMAP_spec_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 379,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2738b2af_e8e2aa6c",
+      "range": {
+        "startLine": 379,
+        "startChar": 101,
+        "endLine": 379,
+        "endChar": 108
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -163,6 +307,30 @@
     },
     {
       "key": {
+        "uuid": "a7173846_92337335",
+        "filename": "x/mongo/driver/topology/connection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4e1e31db_2788179c",
+      "range": {
+        "startLine": 31,
+        "startChar": 25,
+        "endLine": 31,
+        "endChar": 34
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "37ed763e_ef670744",
         "filename": "x/mongo/driver/topology/pool.go",
         "patchSetId": 2
@@ -183,6 +351,30 @@
       "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "795c908a_7a5a5f1a",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "I unmarshal stuff from the spec tests into both Options and Events",
+      "parentUuid": "37ed763e_ef670744",
+      "range": {
+        "startLine": 49,
+        "startChar": 28,
+        "endLine": 49,
+        "endChar": 32
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -209,6 +401,30 @@
     },
     {
       "key": {
+        "uuid": "1fec5918_40dc80dc",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a528e3e2_c34ce0fb",
+      "range": {
+        "startLine": 64,
+        "startChar": 17,
+        "endLine": 64,
+        "endChar": 18
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ef27bb77_b9fe5a18",
         "filename": "x/mongo/driver/topology/pool.go",
         "patchSetId": 2
@@ -229,6 +445,30 @@
       "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9486a9b3_14287532",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ef27bb77_b9fe5a18",
+      "range": {
+        "startLine": 95,
+        "startChar": 1,
+        "endLine": 95,
+        "endChar": 37
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -255,6 +495,30 @@
     },
     {
       "key": {
+        "uuid": "3957db7a_8b61f6ac",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0b40c0b4_20ac1123",
+      "range": {
+        "startLine": 118,
+        "startChar": 11,
+        "endLine": 118,
+        "endChar": 23
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8c89db3c_0d60e915",
         "filename": "x/mongo/driver/topology/pool.go",
         "patchSetId": 2
@@ -275,6 +539,30 @@
       "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d2a756b8_8cee7580",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 159,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8c89db3c_0d60e915",
+      "range": {
+        "startLine": 156,
+        "startChar": 0,
+        "endLine": 159,
+        "endChar": 2
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -301,6 +589,30 @@
     },
     {
       "key": {
+        "uuid": "c3ce8dc7_9b6ccb57",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "70e1840c_b22c8570",
+      "range": {
+        "startLine": 161,
+        "startChar": 0,
+        "endLine": 165,
+        "endChar": 2
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "faa02883_709ef09f",
         "filename": "x/mongo/driver/topology/pool.go",
         "patchSetId": 2
@@ -321,6 +633,30 @@
       "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f75b17d0_6b3ffbd2",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "faa02883_709ef09f",
+      "range": {
+        "startLine": 167,
+        "startChar": 24,
+        "endLine": 167,
+        "endChar": 35
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -347,6 +683,30 @@
     },
     {
       "key": {
+        "uuid": "cab21ef4_c76a7502",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "62670bd9_5c0804ce",
+      "range": {
+        "startLine": 174,
+        "startChar": 0,
+        "endLine": 175,
+        "endChar": 19
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e3206151_6b6dc4da",
         "filename": "x/mongo/driver/topology/pool.go",
         "patchSetId": 2
@@ -367,6 +727,30 @@
       "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "07808d07_e1cbdcbd",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e3206151_6b6dc4da",
+      "range": {
+        "startLine": 182,
+        "startChar": 1,
+        "endLine": 182,
+        "endChar": 26
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -393,6 +777,30 @@
     },
     {
       "key": {
+        "uuid": "53be2896_331f0684",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 223,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a3d76af2_45741383",
+      "range": {
+        "startLine": 214,
+        "startChar": 0,
+        "endLine": 223,
+        "endChar": 1
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d463d34b_e67e5e56",
         "filename": "x/mongo/driver/topology/pool.go",
         "patchSetId": 2
@@ -416,6 +824,30 @@
     },
     {
       "key": {
+        "uuid": "4f5aa584_37602a14",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 269,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d463d34b_e67e5e56",
+      "range": {
+        "startLine": 269,
+        "startChar": 53,
+        "endLine": 269,
+        "endChar": 60
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5bf2b018_fb08caa7",
         "filename": "x/mongo/driver/topology/pool.go",
         "patchSetId": 2
@@ -436,6 +868,30 @@
       "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4b2d00a7_45344b03",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 514,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-08T14:31:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5bf2b018_fb08caa7",
+      "range": {
+        "startLine": 514,
+        "startChar": 15,
+        "endLine": 514,
+        "endChar": 23
+      },
+      "revId": "d836ffdb7d610b9182810801d88d75ab202840c3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
