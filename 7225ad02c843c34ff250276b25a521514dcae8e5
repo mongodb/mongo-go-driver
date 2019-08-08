@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a2968cbd_c94acbad",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-08T18:47:43Z",
+      "side": 1,
+      "message": "pool monitor should be in the event package so we don\u0027t expose an unstable API through the stable API.",
+      "range": {
+        "startLine": 80,
+        "startChar": 25,
+        "endLine": 80,
+        "endChar": 33
+      },
+      "revId": "7225ad02c843c34ff250276b25a521514dcae8e5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "89542194_fb3893da",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-08T18:47:43Z",
+      "side": 1,
+      "message": "Can we make the suffix a prefix so it\u0027s ReasonIdle that way they all autocomplete together?",
+      "range": {
+        "startLine": 36,
+        "startChar": 1,
+        "endLine": 36,
+        "endChar": 11
+      },
+      "revId": "7225ad02c843c34ff250276b25a521514dcae8e5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bebdd940_b4f00ae1",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-08T18:47:43Z",
+      "side": 1,
+      "message": "Is this still true?",
+      "range": {
+        "startLine": 103,
+        "startChar": 66,
+        "endLine": 103,
+        "endChar": 161
+      },
+      "revId": "7225ad02c843c34ff250276b25a521514dcae8e5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4aca5548_d0016e22",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-08T18:47:43Z",
+      "side": 1,
+      "message": "Why is this returning a checkOutResult type and not just a connection and an error?",
+      "range": {
+        "startLine": 304,
+        "startChar": 54,
+        "endLine": 304,
+        "endChar": 68
+      },
+      "revId": "7225ad02c843c34ff250276b25a521514dcae8e5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "92b1eb17_d7f3e949",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 346,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-08T18:47:43Z",
+      "side": 1,
+      "message": "The methods on pool don\u0027t need to be exported since the pool type is only used inside of the topology package.",
+      "range": {
+        "startLine": 346,
+        "startChar": 15,
+        "endLine": 346,
+        "endChar": 18
+      },
+      "revId": "7225ad02c843c34ff250276b25a521514dcae8e5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ebae93f3_a4e16d8b",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-08T18:47:43Z",
+      "side": 1,
+      "message": "This shouldn\u0027t be in this block it should be in the block below.",
+      "range": {
+        "startLine": 13,
+        "startChar": 1,
+        "endLine": 13,
+        "endChar": 30
+      },
+      "revId": "7225ad02c843c34ff250276b25a521514dcae8e5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
