@@ -12,13 +12,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"testing"
-
 	"strings"
-
-	"time"
-
 	"sync"
+	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
@@ -29,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -145,6 +143,38 @@ func TestTxnNumberIncluded(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRetryableWritesErrorOnMMAPV1(t *testing.T) {
+	name := "test"
+	version, err := getServerVersion(createTestDatabase(t, &name))
+	require.NoError(t, err)
+
+	if shouldSkipRetryTest(t, version) {
+		t.Skip("only run on 3.6.x and not on standalone")
+	}
+
+	client := createTestClient(t)
+	require.NoError(t, err)
+	db := client.Database("test")
+	defer func() { _ = db.Drop(context.Background()) }()
+	coll := client.Database("test").Collection("test")
+	defer func() { _ = coll.Drop(context.Background()) }()
+
+	res := db.RunCommand(context.Background(), bson.D{
+		{"serverStatus", 1},
+	})
+	noerr(t, res.Err())
+
+	storageEngine, ok := res.rdr.Lookup("storageEngine", "name").StringValueOK()
+	if !ok || storageEngine != "mmapv1" {
+		t.Skip("only run on mmapv1")
+	}
+
+	_, err = coll.InsertOne(context.Background(), bson.D{
+		{"_id", 1},
+	})
+	require.Equal(t, driver.ErrUnsupportedStorageEngine, err)
 }
 
 // test case for all RetryableWritesSpec tests

@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -27,7 +28,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
@@ -281,6 +288,161 @@ func TestClient_ReplaceTopologyError(t *testing.T) {
 	err = c.Disconnect(ctx)
 	require.Equal(t, err, ErrClientDisconnected)
 
+}
+
+type retryableSSD struct {
+	C driver.Connection
+}
+
+var _ driver.Deployment = retryableSSD{}
+var _ driver.Server = retryableSSD{}
+
+func (rssd retryableSSD) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
+	return rssd, nil
+}
+
+func (rssd retryableSSD) Kind() description.TopologyKind {
+	return description.Single
+}
+
+func (rssd retryableSSD) Connection(context.Context) (driver.Connection, error) {
+	return rssd.C, nil
+}
+
+func (rssd retryableSSD) SupportsRetryWrites() bool {
+	return true
+}
+
+func TestRetryWritesError20Wrapped(t *testing.T) {
+	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
+	require.NoError(t, err)
+
+	if compareVersions(t, serverVersion, "3.6") < 0 {
+		t.Skip()
+	}
+
+	idx, writeError := bsoncore.AppendDocumentStart(nil)
+	writeError = bsoncore.AppendInt32Element(writeError, "ok", 1)
+	elemIdx, elem := bsoncore.AppendDocumentStart(nil)
+	elem = bsoncore.AppendInt32Element(elem, "index", 0)
+	elem = bsoncore.AppendStringElement(elem, "errmsg", "Transaction numbers")
+	elem = bsoncore.AppendInt32Element(elem, "code", 20)
+	elem, _ = bsoncore.AppendDocumentEnd(elem, elemIdx)
+	writeErrorsIdx, writeErrors := bsoncore.AppendArrayStart(nil)
+	writeErrors = bsoncore.AppendDocumentElement(writeErrors, strconv.Itoa(0), elem)
+	writeErrors, _ = bsoncore.AppendArrayEnd(writeErrors, writeErrorsIdx)
+	writeError = bsoncore.AppendArrayElement(writeError, "writeErrors", writeErrors)
+	writeError, _ = bsoncore.AppendDocumentEnd(writeError, idx)
+
+	idx, writeErrorNot20 := bsoncore.AppendDocumentStart(nil)
+	writeErrorNot20 = bsoncore.AppendInt32Element(writeErrorNot20, "ok", 1)
+	elemIdx, elem = bsoncore.AppendDocumentStart(nil)
+	elem = bsoncore.AppendInt32Element(elem, "index", 0)
+	elem = bsoncore.AppendStringElement(elem, "errmsg", "Transaction numbers")
+	elem = bsoncore.AppendInt32Element(elem, "code", 19)
+	elem, _ = bsoncore.AppendDocumentEnd(elem, elemIdx)
+	writeErrorsIdx, writeErrors = bsoncore.AppendArrayStart(nil)
+	writeErrors = bsoncore.AppendDocumentElement(writeErrors, strconv.Itoa(0), elem)
+	writeErrors, _ = bsoncore.AppendArrayEnd(writeErrors, writeErrorsIdx)
+	writeErrorNot20 = bsoncore.AppendArrayElement(writeErrorNot20, "writeErrors", writeErrors)
+	writeErrorNot20, _ = bsoncore.AppendDocumentEnd(writeErrorNot20, idx)
+
+	idx, writeErrorOnly20 := bsoncore.AppendDocumentStart(nil)
+	writeErrorOnly20 = bsoncore.AppendInt32Element(writeErrorOnly20, "ok", 1)
+	elemIdx, elem = bsoncore.AppendDocumentStart(nil)
+	elem = bsoncore.AppendInt32Element(elem, "index", 0)
+	elem = bsoncore.AppendStringElement(elem, "errmsg", "something other than transaction numbers")
+	elem = bsoncore.AppendInt32Element(elem, "code", 20)
+	elem, _ = bsoncore.AppendDocumentEnd(elem, elemIdx)
+	writeErrorsIdx, writeErrors = bsoncore.AppendArrayStart(nil)
+	writeErrors = bsoncore.AppendDocumentElement(writeErrors, strconv.Itoa(0), elem)
+	writeErrors, _ = bsoncore.AppendArrayEnd(writeErrors, writeErrorsIdx)
+	writeErrorOnly20 = bsoncore.AppendArrayElement(writeErrorOnly20, "writeErrors", writeErrors)
+	writeErrorOnly20, _ = bsoncore.AppendDocumentEnd(writeErrorOnly20, idx)
+
+	idx, notOk := bsoncore.AppendDocumentStart(nil)
+	notOk = bsoncore.AppendInt64Element(notOk, "ok", 0)
+	notOk = bsoncore.AppendStringElement(notOk, "errmsg", "Transaction numbers")
+	notOk = bsoncore.AppendInt32Element(notOk, "code", 20)
+	notOk, _ = bsoncore.AppendDocumentEnd(notOk, idx)
+
+	idx, not20notOK := bsoncore.AppendDocumentStart(nil)
+	not20notOK = bsoncore.AppendInt64Element(not20notOK, "ok", 0)
+	not20notOK = bsoncore.AppendStringElement(not20notOK, "errmsg", "Transaction numbers")
+	not20notOK = bsoncore.AppendInt32Element(not20notOK, "code", 19)
+	not20notOK, _ = bsoncore.AppendDocumentEnd(not20notOK, idx)
+
+	idx, only20NotOK := bsoncore.AppendDocumentStart(nil)
+	only20NotOK = bsoncore.AppendInt64Element(only20NotOK, "ok", 0)
+	only20NotOK = bsoncore.AppendStringElement(only20NotOK, "errmsg", "something other than transaction numbers")
+	only20NotOK = bsoncore.AppendInt32Element(only20NotOK, "code", 20)
+	only20NotOK, _ = bsoncore.AppendDocumentEnd(only20NotOK, idx)
+
+	tests := []struct {
+		name                 string
+		wireMessage          []byte // bsoncore byte slice
+		shouldError          bool
+		expectedErrorMessage string
+	}{
+		{"writeError", writeError, true, driver.ErrUnsupportedStorageEngine.Error()},
+		{"writeError with only err code 20 and wrong err message", writeErrorOnly20, true, "write command error: [{write errors: [{something other than transaction numbers}]}, {<nil>}]"},
+		{"writeError with only err code 19 and right err message", writeErrorNot20, true, "write command error: [{write errors: [{Transaction numbers}]}, {<nil>}]"},
+		{"NotOkError", notOk, true, driver.ErrUnsupportedStorageEngine.Error()},
+		{"NotOkError with err code 20 and wrong err message", only20NotOK, true, "something other than transaction numbers"},
+		{"NotOkError with err code 19 and right err message", not20notOK, true, "Transaction numbers"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			conn := &drivertest.ChannelConn{
+				Written: make(chan []byte, 1),
+				Desc: description.Server{
+					CanonicalAddr:         address.Address("localhost:27017"),
+					MaxDocumentSize:       16777216,
+					MaxMessageSize:        48000000,
+					MaxBatchCount:         100000,
+					SessionTimeoutMinutes: 30,
+					Kind:                  description.RSPrimary,
+					WireVersion: &description.VersionRange{
+						Max: 8,
+					},
+				},
+				ReadResp: make(chan []byte, 1),
+			}
+
+			conn.ReadResp <- drivertest.MakeReply(test.wireMessage)
+
+			deployment := retryableSSD{C: conn}
+
+			client := createTestClient(t)
+			coll := client.Database("test").Collection("test")
+
+			sess, err := client.StartSession()
+			defer sess.EndSession(context.Background())
+			noerr(t, err)
+
+			idx, writeError = bsoncore.AppendDocumentStart(nil)
+			writeError = bsoncore.AppendStringElement(writeError, "_id", "1")
+			writeError, _ = bsoncore.AppendDocumentEnd(writeError, idx)
+
+			op := operation.NewInsert(writeError).CommandMonitor(coll.client.monitor).ClusterClock(coll.client.clock).
+				Database(coll.db.name).Collection(coll.name).
+				Deployment(coll.client.topology).Deployment(deployment).Retry(driver.RetryOnce).Session(sess.(*sessionImpl).clientSession)
+
+			err = op.Execute(context.Background())
+			if test.shouldError {
+				if err == nil || err.Error() != test.expectedErrorMessage {
+					t.Fatalf("unexpected error occured, wanted: %v got: %v", test.expectedErrorMessage, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("did not expect an error, instead recieved: %v", err)
+			}
+
+		})
+	}
 }
 
 func TestClient_ListDatabases_noFilter(t *testing.T) {
