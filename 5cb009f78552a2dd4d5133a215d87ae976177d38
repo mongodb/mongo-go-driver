@@ -22,6 +22,30 @@
       "revId": "5cb009f78552a2dd4d5133a215d87ae976177d38",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "98ac4f83_4e467259",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 419,
+      "author": {
+        "id": 1016593
+      },
+      "writtenOn": "2019-08-09T14:59:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "04aa413f_71879e66",
+      "range": {
+        "startLine": 419,
+        "startChar": 4,
+        "endLine": 419,
+        "endChar": 7
+      },
+      "revId": "5cb009f78552a2dd4d5133a215d87ae976177d38",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
