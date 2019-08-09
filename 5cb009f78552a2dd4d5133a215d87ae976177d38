@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "04aa413f_71879e66",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 419,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-09T14:28:24Z",
+      "side": 1,
+      "message": "We shouldn\u0027t need to do this. If errcheck is throwing errors that means the .errcheck-excludes file doesn\u0027t contain this type and it should.",
+      "range": {
+        "startLine": 419,
+        "startChar": 4,
+        "endLine": 419,
+        "endChar": 7
+      },
+      "revId": "5cb009f78552a2dd4d5133a215d87ae976177d38",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
