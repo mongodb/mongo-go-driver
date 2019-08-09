@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "44936eba_d818049b",
+        "filename": "event/monitoring.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-09T14:31:59Z",
+      "side": 1,
+      "message": "We shouldn\u0027t have this \u003d here, we aren\u0027t doing a type alias we\u0027re doing a type declaration.",
+      "range": {
+        "startLine": 89,
+        "startChar": 16,
+        "endLine": 89,
+        "endChar": 19
+      },
+      "revId": "e5ead4744cef75878b0da7b56b86d4fc5f049b35",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
