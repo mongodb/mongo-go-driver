@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5256d1fa_94c9f6bf",
+        "filename": "mongo/client_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-09T18:45:07Z",
+      "side": 1,
+      "message": "should be in the other section of imports.",
+      "range": {
+        "startLine": 13,
+        "startChar": 1,
+        "endLine": 13,
+        "endChar": 38
+      },
+      "revId": "c3ab977fd601168416aeb6ef13529c755fd83187",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ade1a5e9_b75c603a",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-09T18:45:07Z",
+      "side": 1,
+      "message": "same as above",
+      "range": {
+        "startLine": 12,
+        "startChar": 1,
+        "endLine": 12,
+        "endChar": 45
+      },
+      "revId": "c3ab977fd601168416aeb6ef13529c755fd83187",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
