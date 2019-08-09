@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cc7f1fbf_30adc096",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 291,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-09T14:01:31Z",
+      "side": 0,
+      "message": "should places that call pool.drain() call pool.clear() instead?",
+      "revId": "1cde213101cb894c5ff754550cc4f31b4e930469",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
