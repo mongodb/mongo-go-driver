@@ -441,9 +441,13 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	uidx, updateDoc := bsoncore.AppendDocumentStart(nil)
 	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "q", filter)
 
-	switch update.(type) {
+	switch converted := update.(type) {
 	case bsoncore.Document:
-		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", update.(bsoncore.Document))
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", converted)
+	case bson.Raw:
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", converted)
+	case []byte:
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", converted)
 	default:
 		u, err := transformUpdateValue(coll.registry, update, true)
 		if err != nil {
