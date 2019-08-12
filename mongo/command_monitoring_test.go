@@ -50,14 +50,15 @@ var monitor = &event.CommandMonitor{
 }
 
 func createMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Client {
-	return &Client{
-		topology:       testutil.GlobalMonitoredTopology(t, monitor),
-		connString:     testutil.ConnString(t),
-		readPreference: readpref.Primary(),
-		clock:          &session.ClusterClock{},
-		registry:       bson.DefaultRegistry,
-		monitor:        monitor,
-	}
+	client, err := NewClient()
+	testhelpers.RequireNil(t, err, "unable to create client")
+	client.topology = testutil.GlobalMonitoredTopology(t, monitor)
+	client.connString = testutil.ConnString(t)
+	client.readPreference = readpref.Primary()
+	client.clock = &session.ClusterClock{}
+	client.registry = bson.DefaultRegistry
+	client.monitor = monitor
+	return client
 }
 
 func skipCmTest(t *testing.T, testCase bsonx.Doc, serverVersion string) bool {
@@ -778,7 +779,7 @@ func getUpdateParams(args bsonx.Doc) (bsonx.Doc, bsonx.Doc, []*options.UpdateOpt
 	filter := args.Lookup("filter").Document()
 	update := args.Lookup("update").Document()
 
-	opts := []*options.UpdateOptions{options.Update().SetUpsert(false)}
+	opts := []*options.UpdateOptions{options.Update()}
 	if upsert, err := args.LookupErr("upsert"); err == nil {
 		opts = append(opts, options.Update().SetUpsert(upsert.Boolean()))
 	}

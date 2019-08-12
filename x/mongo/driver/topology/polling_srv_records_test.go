@@ -134,7 +134,7 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 			topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
 			topo.rescanSRVInterval = time.Millisecond * 5
 			err = topo.Connect()
-			require.NoError(t, err, "Could not connect to the topology: %v", err)
+			require.NoError(t, err, "Could not Connect to the topology: %v", err)
 
 			// wait for description to update
 			sub, err := topo.Subscribe()
@@ -170,7 +170,7 @@ func TestPollSRVRecords(t *testing.T) {
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
 		topo.rescanSRVInterval = time.Millisecond * 5
 		err = topo.Connect()
-		require.NoError(t, err, "Could not connect to the topology: %v", err)
+		require.NoError(t, err, "Could not Connect to the topology: %v", err)
 		topo.serversLock.Lock()
 		topo.fsm.Kind = description.Single
 		topo.desc.Store(description.Topology{
@@ -212,7 +212,7 @@ func TestPollSRVRecords(t *testing.T) {
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
 		topo.rescanSRVInterval = time.Millisecond * 5
 		err = topo.Connect()
-		require.NoError(t, err, "Could not connect to the topology: %v", err)
+		require.NoError(t, err, "Could not Connect to the topology: %v", err)
 
 		// wait for description to update
 		sub, err := topo.Subscribe()
@@ -244,7 +244,7 @@ func TestPollSRVRecords(t *testing.T) {
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
 		topo.rescanSRVInterval = time.Millisecond * 5
 		err = topo.Connect()
-		require.NoError(t, err, "Could not connect to the topology: %v", err)
+		require.NoError(t, err, "Could not Connect to the topology: %v", err)
 
 		// wait for description to update
 		sub, err := topo.Subscribe()

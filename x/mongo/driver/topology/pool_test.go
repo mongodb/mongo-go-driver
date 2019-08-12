@@ -3,65 +3,63 @@ package topology
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"net"
-	"runtime"
-	"sync"
+
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 )
 
 func TestPool(t *testing.T) {
 	t.Run("newPool", func(t *testing.T) {
 		t.Run("should be connected", func(t *testing.T) {
-			p := newPool(address.Address(""), 2)
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(""),
+			}
+			p, err := newPool(pc)
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			if p.connected != connected {
 				t.Errorf("Expected new pool to be connected. got %v; want %v", p.connected, connected)
 			}
 		})
 	})
-	t.Run("close", func(t *testing.T) {
+	t.Run("closeConnection", func(t *testing.T) {
 		t.Run("can't put connection from different pool", func(t *testing.T) {
-			p1 := newPool(address.Address(""), 2)
-			p2 := newPool(address.Address(""), 2)
-			err := p1.connect()
+			pc1 := poolConfig{
+				Address: address.Address(""),
+			}
+			p1, err := newPool(pc1)
+			noerr(t, err)
+			err = p1.connect()
+			noerr(t, err)
+
+			pc2 := poolConfig{
+				Address: address.Address(""),
+			}
+			p2, err := newPool(pc2)
 			noerr(t, err)
 			err = p2.connect()
 			noerr(t, err)
 
 			c1 := &connection{pool: p1}
 			want := ErrWrongPool
-			got := p2.close(c1)
+			got := p2.closeConnection(c1)
 			if got != want {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
 		})
 	})
-	t.Run("put", func(t *testing.T) {
-		t.Run("can't put connection from different pool", func(t *testing.T) {
-			p1 := newPool(address.Address(""), 2)
-			p2 := newPool(address.Address(""), 2)
-			err := p1.connect()
-			noerr(t, err)
-			err = p2.connect()
-			noerr(t, err)
-
-			c1 := &connection{pool: p1}
-			want := ErrWrongPool
-			got := p2.put(c1)
-			if got != want {
-				t.Errorf("Errors do not match. got %v; want %v", got, want)
+	t.Run("disconnect", func(t *testing.T) {
+		t.Run("cannot close twice", func(t *testing.T) {
+			pc := poolConfig{
+				Address: address.Address(""),
 			}
-		})
-	})
-	t.Run("Disconnect", func(t *testing.T) {
-		t.Run("cannot disconnect twice", func(t *testing.T) {
-			p := newPool(address.Address(""), 2)
-			err := p.connect()
+			p, err := newPool(pc)
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			err = p.disconnect(context.Background())
 			noerr(t, err)
@@ -74,11 +72,17 @@ func TestPool(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 3, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address:     address.Address(addr.String()),
+				MaxIdleTime: 100 * time.Millisecond,
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+
+			err = p.connect()
 			noerr(t, err)
 			conns := [3]*connection{}
 			for idx := range [3]struct{}{} {
@@ -93,21 +97,27 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have opened 3 connections, but didn't. got %d; want %d", d.lenopened(), 3)
 			}
 			err = p.disconnect(context.Background())
+			time.Sleep(time.Second)
+
 			noerr(t, err)
 			if d.lenclosed() != 3 {
 				t.Errorf("Should have closed 3 connections, but didn't. got %d; want %d", d.lenclosed(), 3)
 			}
 			close(cleanup)
 		})
-		t.Run("closes inflight connections when context expires", func(t *testing.T) {
+		t.Run("closes all connections currently in pool and closes all remaining connections", func(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 3, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			conns := [3]*connection{}
 			for idx := range [3]struct{}{} {
@@ -122,29 +132,32 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have opened 3 connections, but didn't. got %d; want %d", d.lenopened(), 3)
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Microsecond)
-			cancel()
+			defer cancel()
 			err = p.disconnect(ctx)
 			noerr(t, err)
 			if d.lenclosed() != 3 {
 				t.Errorf("Should have closed 3 connections, but didn't. got %d; want %d", d.lenclosed(), 3)
 			}
 			close(cleanup)
-			err = p.close(conns[2])
-			noerr(t, err)
 		})
 		t.Run("properly sets the connection state on return", func(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 3, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address:     address.Address(addr.String()),
+				MinPoolSize: 0,
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			c, err := p.get(context.Background())
 			noerr(t, err)
-			err = p.close(c)
+			err = p.closeConnection(c)
 			noerr(t, err)
 			if d.lenopened() != 1 {
 				t.Errorf("Should have opened 1 connections, but didn't. got %d; want %d", d.lenopened(), 1)
@@ -163,22 +176,26 @@ func TestPool(t *testing.T) {
 			}
 		})
 	})
-	t.Run("Connect", func(t *testing.T) {
+	t.Run("connect", func(t *testing.T) {
 		t.Run("can reconnect a disconnected pool", func(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 3, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			c, err := p.get(context.Background())
 			noerr(t, err)
 			gen := c.generation
-			if gen != 1 {
-				t.Errorf("Connection should have a newer generation. got %d; want %d", gen, 1)
+			if gen != 0 {
+				t.Errorf("Connection should have a newer generation. got %d; want %d", gen, 0)
 			}
 			err = p.put(c)
 			noerr(t, err)
@@ -203,8 +220,8 @@ func TestPool(t *testing.T) {
 			c, err = p.get(context.Background())
 			noerr(t, err)
 			gen = atomic.LoadUint64(&c.generation)
-			if gen != 2 {
-				t.Errorf("Connection should have a newer generation. got %d; want %d", gen, 2)
+			if gen != 1 {
+				t.Errorf("Connection should have a newer generation. got %d; want %d", gen, 1)
 			}
 			err = p.put(c)
 			noerr(t, err)
@@ -213,8 +230,12 @@ func TestPool(t *testing.T) {
 			}
 		})
 		t.Run("cannot connect multiple times without disconnect", func(t *testing.T) {
-			p := newPool(address.Address(""), 3)
-			err := p.connect()
+			pc := poolConfig{
+				Address: "",
+			}
+			p, err := newPool(pc)
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			err = p.connect()
 			if err != ErrPoolConnected {
@@ -232,8 +253,12 @@ func TestPool(t *testing.T) {
 			}
 		})
 		t.Run("can disconnect and reconnect multiple times", func(t *testing.T) {
-			p := newPool(address.Address(""), 3)
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(""),
+			}
+			p, err := newPool(pc)
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			err = p.disconnect(context.Background())
 			noerr(t, err)
@@ -255,16 +280,20 @@ func TestPool(t *testing.T) {
 			}
 		})
 	})
-	t.Run("Get", func(t *testing.T) {
+	t.Run("get", func(t *testing.T) {
 		t.Run("return context error when already cancelled", func(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 3, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			cancel()
@@ -278,8 +307,12 @@ func TestPool(t *testing.T) {
 			wanterr := errors.New("create new connection error")
 			var want error = ConnectionError{Wrapped: wanterr, init: true}
 			var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) { return nil, wanterr }
-			p := newPool(address.Address(""), 2, WithDialer(func(Dialer) Dialer { return dialer }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(""),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return dialer }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			_, got := p.get(context.Background())
 			if got != want {
@@ -290,11 +323,15 @@ func TestPool(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 3, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
@@ -304,23 +341,31 @@ func TestPool(t *testing.T) {
 			if inflight != 1 {
 				t.Errorf("Incorrect number of inlight connections. got %d; want %d", inflight, 1)
 			}
-			err = p.close(c)
+			err = p.closeConnection(c)
 			noerr(t, err)
 			close(cleanup)
 		})
-		t.Run("closes expired connections", func(t *testing.T) {
+		t.Run("closes stale connections", func(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 2, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(
-				address.Address(addr.String()), 3,
+			closedChan := make(chan struct{}, 1)
+			d.closeCallBack = func() {
+				closedChan <- struct{}{}
+			}
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(
+				pc,
 				WithDialer(func(Dialer) Dialer { return d }),
 				WithIdleTimeout(func(time.Duration) time.Duration { return 10 * time.Millisecond }),
 			)
-			err := p.connect()
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
@@ -329,20 +374,20 @@ func TestPool(t *testing.T) {
 			if d.lenopened() != 1 {
 				t.Errorf("Should have opened 1 connection, but didn't. got %d; want %d", d.lenopened(), 1)
 			}
+			time.Sleep(15 * time.Millisecond)
 			err = p.put(c)
 			noerr(t, err)
-			time.Sleep(15 * time.Millisecond)
-			if d.lenclosed() != 0 {
-				t.Errorf("Should have closed 0 connections, but didn't. got %d; want %d", d.lenopened(), 0)
+			<-closedChan
+			if d.lenclosed() != 1 {
+				t.Errorf("Should have closed 1 connections, but didn't. got %d; want %d", d.lenclosed(), 1)
 			}
 			c, err = p.get(ctx)
 			noerr(t, err)
 			if d.lenopened() != 2 {
 				t.Errorf("Should have opened 2 connections, but didn't. got %d; want %d", d.lenopened(), 2)
 			}
-			time.Sleep(10 * time.Millisecond)
 			if d.lenclosed() != 1 {
-				t.Errorf("Should have closed 1 connection, but didn't. got %d; want %d", d.lenopened(), 1)
+				t.Errorf("Should have closed 1 connection, but didn't. got %d; want %d", d.lenclosed(), 1)
 			}
 			close(cleanup)
 		})
@@ -350,11 +395,15 @@ func TestPool(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 3, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			for range [3]struct{}{} {
 				c, err := p.get(context.Background())
@@ -371,11 +420,15 @@ func TestPool(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 3, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
 			defer cancel()
@@ -391,17 +444,23 @@ func TestPool(t *testing.T) {
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 1, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			conns := [3]*connection{}
 			for idx := range [3]struct{}{} {
 				conns[idx], err = p.get(context.Background())
 				noerr(t, err)
 			}
+			err = p.disconnect(context.Background())
+			noerr(t, err)
 			for idx := range [3]struct{}{} {
 				err = p.put(conns[idx])
 				noerr(t, err)
@@ -409,45 +468,9 @@ func TestPool(t *testing.T) {
 			if d.lenopened() != 3 {
 				t.Errorf("Should have opened 3 connections, but didn't. got %d; want %d", d.lenopened(), 3)
 			}
-			if d.lenclosed() != 2 {
-				t.Errorf("Should have closed 2 connections, but didn't. got %d; want %d", d.lenclosed(), 2)
+			if d.lenclosed() != 3 {
+				t.Errorf("Should have closed 3 connections, but didn't. got %d; want %d", d.lenclosed(), 3)
 			}
-			close(cleanup)
-		})
-		t.Run("Cannot starve connection request", func(t *testing.T) {
-			cleanup := make(chan struct{})
-			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
-				<-cleanup
-				nc.Close()
-			})
-			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 1, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
-			noerr(t, err)
-			conn, err := p.get(context.Background())
-			if d.lenopened() != 1 {
-				t.Errorf("Should have opened 1 connections, but didn't. got %d; want %d", d.lenopened(), 1)
-			}
-
-			var wg sync.WaitGroup
-
-			wg.Add(1)
-			ch := make(chan struct{})
-			go func() {
-				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-				defer cancel()
-				ch <- struct{}{}
-				_, err := p.get(ctx)
-				if err != nil {
-					t.Errorf("Should not be able to starve connection request, but got error: %v", err)
-				}
-				wg.Done()
-			}()
-			<-ch
-			runtime.Gosched()
-			err = p.put(conn)
-			noerr(t, err)
-			wg.Wait()
 			close(cleanup)
 		})
 	})
@@ -457,11 +480,15 @@ func TestPool(t *testing.T) {
 			defer close(cleanup)
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 4, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			c, err := p.get(context.Background())
 			noerr(t, err)
@@ -472,7 +499,7 @@ func TestPool(t *testing.T) {
 			noerr(t, err)
 			err = c1.Close()
 			if err != nil {
-				t.Errorf("Connection Close should not error after Pool is Disconnected, but got error: %v", err)
+				t.Errorf("Connection close should not error after Pool is Disconnected, but got error: %v", err)
 			}
 		})
 		t.Run("Does not return to pool twice", func(t *testing.T) {
@@ -480,24 +507,28 @@ func TestPool(t *testing.T) {
 			defer close(cleanup)
 			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
 				<-cleanup
-				nc.Close()
+				_ = nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p := newPool(address.Address(addr.String()), 4, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
 			noerr(t, err)
 			c, err := p.get(context.Background())
 			c1 := &Connection{connection: c}
 			noerr(t, err)
-			if p.conns.len != 0 {
-				t.Errorf("Should be no connections in pool. got %d; want %d", p.conns.len, 0)
+			if p.conns.size != 0 {
+				t.Errorf("Should be no connections in pool. got %d; want %d", p.conns.size, 0)
 			}
 			err = c1.Close()
 			noerr(t, err)
 			err = c1.Close()
 			noerr(t, err)
-			if p.conns.len != 1 {
-				t.Errorf("Should not return connection to pool twice. got %d; want %d", p.conns.len, 1)
+			if p.conns.size != 1 {
+				t.Errorf("Should not return connection to pool twice. got %d; want %d", p.conns.size, 1)
 			}
 		})
 	})

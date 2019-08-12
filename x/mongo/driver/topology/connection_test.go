@@ -171,7 +171,7 @@ func TestConnection(t *testing.T) {
 						t.Errorf("errors do not match. got %v; want %v", got, want)
 					}
 					if !tnc.closed {
-						t.Errorf("failed to close net.Conn after error writing bytes.")
+						t.Errorf("failed to closeConnection net.Conn after error writing bytes.")
 					}
 				})
 				tnc := &testNetConn{}
@@ -253,7 +253,7 @@ func TestConnection(t *testing.T) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
 				if !tnc.closed {
-					t.Errorf("failed to close net.Conn after error writing bytes.")
+					t.Errorf("failed to closeConnection net.Conn after error writing bytes.")
 				}
 			})
 			t.Run("Read (wire message)", func(t *testing.T) {
@@ -266,7 +266,7 @@ func TestConnection(t *testing.T) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
 				if !tnc.closed {
-					t.Errorf("failed to close net.Conn after error writing bytes.")
+					t.Errorf("failed to closeConnection net.Conn after error writing bytes.")
 				}
 			})
 			t.Run("Read (success)", func(t *testing.T) {
@@ -336,6 +336,12 @@ func TestConnection(t *testing.T) {
 			got = conn.Address()
 			if !cmp.Equal(got, want) {
 				t.Errorf("Addresses do not match. got %v; want %v", got, want)
+			}
+
+			want = address.Address("0.0.0.0")
+			got = conn.LocalAddress()
+			if !cmp.Equal(got, want) {
+				t.Errorf("LocalAddresses do not match. got %v; want %v", got, want)
 			}
 		})
 	})
@@ -502,8 +508,9 @@ func (nc *netconn) Close() error {
 
 type dialer struct {
 	Dialer
-	opened map[*netconn]struct{}
-	closed map[*netconn]struct{}
+	opened        map[*netconn]struct{}
+	closed        map[*netconn]struct{}
+	closeCallBack func()
 	sync.Mutex
 }
 
@@ -527,6 +534,9 @@ func (d *dialer) connclosed(nc *netconn) {
 	d.Lock()
 	defer d.Unlock()
 	d.closed[nc] = struct{}{}
+	if d.closeCallBack != nil {
+		d.closeCallBack()
+	}
 }
 
 func (d *dialer) lenopened() int {
