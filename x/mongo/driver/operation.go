@@ -24,6 +24,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
+const defaultLocalThreshold = 15 * time.Millisecond
+
 var dollarCmd = [...]byte{'.', '$', 'c', 'm', 'd'}
 
 var (
@@ -192,7 +194,7 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 		}
 		selector = description.CompositeSelector([]description.ServerSelector{
 			description.ReadPrefSelector(rp),
-			description.LatencySelector(15 * time.Millisecond),
+			description.LatencySelector(defaultLocalThreshold),
 		})
 	}
 
