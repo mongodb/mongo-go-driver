@@ -430,8 +430,8 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	return coll.delete(ctx, filter, false, rrMany, opts...)
 }
 
-func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Document, update interface{}, multi bool, expectedRr returnResult,
-	opts ...*options.UpdateOptions) (*UpdateResult, error) {
+func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Document, update interface{}, multi bool,
+	expectedRr returnResult, checkDollarKey bool, opts ...*options.UpdateOptions) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -441,16 +441,11 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	uidx, updateDoc := bsoncore.AppendDocumentStart(nil)
 	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "q", filter)
 
-	switch update.(type) {
-	case bsoncore.Document:
-		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", update.(bsoncore.Document))
-	default:
-		u, err := transformUpdateValue(coll.registry, update, true)
-		if err != nil {
-			return nil, err
-		}
-		updateDoc = bsoncore.AppendValueElement(updateDoc, "u", u)
+	u, err := transformUpdateValue(coll.registry, update, checkDollarKey)
+	if err != nil {
+		return nil, err
 	}
+	updateDoc = bsoncore.AppendValueElement(updateDoc, "u", u)
 	if multi {
 		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
 	}
@@ -482,7 +477,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		defer sess.EndSession()
 	}
 
-	err := coll.client.validSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -546,7 +541,7 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		return nil, err
 	}
 
-	return coll.updateOrReplace(ctx, f, update, false, rrOne, opts...)
+	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, opts...)
 }
 
 // UpdateMany updates multiple documents in the collection.
@@ -562,7 +557,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		return nil, err
 	}
 
-	return coll.updateOrReplace(ctx, f, update, true, rrMany, opts...)
+	return coll.updateOrReplace(ctx, f, update, true, rrMany, true, opts...)
 }
 
 // ReplaceOne replaces a single document in the collection.
@@ -596,7 +591,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		updateOptions = append(updateOptions, uOpts)
 	}
 
-	return coll.updateOrReplace(ctx, f, r, false, rrOne, updateOptions...)
+	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, updateOptions...)
 }
 
 // Aggregate runs an aggregation framework pipeline.
