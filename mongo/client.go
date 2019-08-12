@@ -348,6 +348,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		func(...string) []string { return hosts },
 	))
 	// LocalThreshold
+	c.localThreshold = defaultLocalThreshold
 	if opts.LocalThreshold != nil {
 		c.localThreshold = *opts.LocalThreshold
 	}
