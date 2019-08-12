@@ -270,7 +270,7 @@ func (p *pool) makeNewConnection(ctx context.Context) (*connection, string, erro
 
 	c.pool = p
 	c.poolID = atomic.AddUint64(&p.nextid, 1)
-	c.generation = p.generation
+	c.generation = atomic.LoadUint64(&p.generation)
 
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
