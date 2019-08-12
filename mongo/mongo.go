@@ -339,13 +339,34 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, chec
 	switch t := update.(type) {
 	case nil:
 		return u, ErrNilDocument
-	case primitive.D:
+	case primitive.D, bsonx.Doc:
 		u.Type = bsontype.EmbeddedDocument
 		u.Data, err = transformBsoncoreDocument(registry, update)
 		if err != nil {
 			return u, err
 		}
 
+		if checkDocDollarKey {
+			err = ensureDollarKeyv2(u.Data)
+		}
+		return u, err
+	case bson.Raw:
+		u.Type = bsontype.EmbeddedDocument
+		u.Data = t
+		if checkDocDollarKey {
+			err = ensureDollarKeyv2(u.Data)
+		}
+		return u, err
+	case bsoncore.Document:
+		u.Type = bsontype.EmbeddedDocument
+		u.Data = t
+		if checkDocDollarKey {
+			err = ensureDollarKeyv2(u.Data)
+		}
+		return u, err
+	case []byte:
+		u.Type = bsontype.EmbeddedDocument
+		u.Data = t
 		if checkDocDollarKey {
 			err = ensureDollarKeyv2(u.Data)
 		}
