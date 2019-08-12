@@ -22,6 +22,30 @@
       "revId": "ef6fec89b53daf68716ee10ed61b29e94ec4b8fa",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "66724dea_de3968b5",
+        "filename": "event/monitoring.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-12T17:34:15Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4afb339f_27187a7f",
+      "range": {
+        "startLine": 90,
+        "startChar": 1,
+        "endLine": 90,
+        "endChar": 14
+      },
+      "revId": "ef6fec89b53daf68716ee10ed61b29e94ec4b8fa",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
