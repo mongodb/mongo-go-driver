@@ -7,8 +7,6 @@
 package topology
 
 import (
-	"bytes"
-	"compress/zlib"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -20,8 +18,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/DataDog/zstd"
-	"github.com/golang/snappy"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
@@ -345,41 +341,16 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 	dst = wiremessage.AppendCompressedOriginalOpCode(dst, origcode)
 	dst = wiremessage.AppendCompressedUncompressedSize(dst, int32(len(rem)))
 	dst = wiremessage.AppendCompressedCompressorID(dst, c.connection.compressor)
-	switch c.connection.compressor {
-	case wiremessage.CompressorSnappy:
-		compressed := snappy.Encode(nil, rem)
-		dst = wiremessage.AppendCompressedCompressedMessage(dst, compressed)
-	case wiremessage.CompressorZLib:
-		var b bytes.Buffer
-		w, err := zlib.NewWriterLevel(&b, c.connection.zliblevel)
-		if err != nil {
-			return dst, err
-		}
-		_, err = w.Write(rem)
-		if err != nil {
-			return dst, err
-		}
-		err = w.Close()
-		if err != nil {
-			return dst, err
-		}
-		dst = wiremessage.AppendCompressedCompressedMessage(dst, b.Bytes())
-	case wiremessage.CompressorZstd:
-		var b bytes.Buffer
-		w := zstd.NewWriterLevel(&b, c.connection.zstdLevel)
-		_, err := w.Write(rem)
-		if err != nil {
-			return dst, err
-		}
-		err = w.Close()
-		if err != nil {
-			return dst, err
-		}
-		dst = wiremessage.AppendCompressedCompressedMessage(dst, b.Bytes())
-	default:
-		return dst, fmt.Errorf("unknown compressor ID %v", c.connection.compressor)
+	opts := driver.CompressionOpts{
+		Compressor: c.connection.compressor,
+		ZlibLevel:  c.connection.zliblevel,
+		ZstdLevel:  c.connection.zstdLevel,
 	}
-
+	compressed, err := driver.CompressPlayoad(rem, opts)
+	if err != nil {
+		return nil, err
+	}
+	dst = wiremessage.AppendCompressedCompressedMessage(dst, compressed)
 	return bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:]))), nil
 }
 

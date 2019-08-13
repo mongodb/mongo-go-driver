@@ -10,19 +10,14 @@ import (
 	"context"
 	"errors"
 	"net"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 type netErr struct {
@@ -344,34 +339,6 @@ func TestConnection(t *testing.T) {
 				t.Errorf("LocalAddresses do not match. got %v; want %v", got, want)
 			}
 		})
-	})
-	t.Run("roundtripMsgCompression", func(t *testing.T) {
-		compressors := []wiremessage.CompressorID{
-			wiremessage.CompressorNoOp,
-			wiremessage.CompressorSnappy,
-			wiremessage.CompressorZLib,
-			wiremessage.CompressorZstd,
-		}
-		op := driver.Operation{
-			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
-				dst = bsoncore.AppendStringElement(dst, "foo", "bar")
-				return dst, nil
-			},
-		}
-		for _, compressor := range compressors {
-			dst, _, err := op.CreateWireMessage(nil, description.SelectedServer{})
-			require.NoError(t, err)
-			t.Run(strconv.Itoa(int(compressor)), func(t *testing.T) {
-				c := Connection{connection: &connection{compressor: compressor}}
-				dst, err = c.CompressWireMessage(dst, dst)
-				require.NoError(t, err)
-				assert.NotEqual(t, 0, len(dst))
-
-				decompressed, err := op.DecompressWireMessage(dst)
-				require.NoError(t, err)
-				assert.Equal(t, dst, decompressed)
-			})
-		}
 	})
 }
 
