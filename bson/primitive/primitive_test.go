@@ -33,3 +33,23 @@ func TestTimestampCompare(t *testing.T) {
 		})
 	}
 }
+
+func TestPrimitiveIsZero(t *testing.T) {
+	testcases := []struct {
+		name    string
+		zero    Zeroer
+		nonzero Zeroer
+	}{
+		{"binary", Binary{}, Binary{Data: []byte{0x01, 0x02, 0x03}, Subtype: 0xFF}},
+		{"regex", Regex{}, Regex{Pattern: "foo", Options: "bar"}},
+		{"dbPointer", DBPointer{}, DBPointer{DB: "foobar", Pointer: ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}}},
+		{"timestamp", Timestamp{}, Timestamp{T: 12345, I: 67890}},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.True(t, tc.zero.IsZero())
+			require.False(t, tc.nonzero.IsZero())
+		})
+	}
+}

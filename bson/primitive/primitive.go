@@ -15,18 +15,30 @@ import (
 	"time"
 )
 
+// Zeroer allows custom struct types to implement a report of zero
+// state. All struct types that don't implement Zeroer or where IsZero
+// returns false are considered to be not zero.
+type Zeroer interface {
+	IsZero() bool
+}
+
 // Binary represents a BSON binary value.
 type Binary struct {
 	Subtype byte
 	Data    []byte
 }
 
-// Equal compaes bp to bp2 and returns true is the are equal.
+// Equal compares bp to bp2 and returns true is the are equal.
 func (bp Binary) Equal(bp2 Binary) bool {
 	if bp.Subtype != bp2.Subtype {
 		return false
 	}
 	return bytes.Equal(bp.Data, bp2.Data)
+}
+
+// IsZero returns if bp is the empty Binary
+func (bp Binary) IsZero() bool {
+	return bp.Subtype == 0 && len(bp.Data) == 0
 }
 
 // Undefined represents the BSON undefined value type.
@@ -50,7 +62,7 @@ func NewDateTimeFromTime(t time.Time) DateTime {
 	return DateTime(t.UnixNano() / 1000000)
 }
 
-// Null repreesnts the BSON null value.
+// Null represents the BSON null value.
 type Null struct{}
 
 // Regex represents a BSON regex value.
@@ -63,9 +75,14 @@ func (rp Regex) String() string {
 	return fmt.Sprintf(`{"pattern": "%s", "options": "%s"}`, rp.Pattern, rp.Options)
 }
 
-// Equal compaes rp to rp2 and returns true is the are equal.
+// Equal compares rp to rp2 and returns true is the are equal.
 func (rp Regex) Equal(rp2 Regex) bool {
 	return rp.Pattern == rp2.Pattern && rp.Options == rp.Options
+}
+
+// IsZero returns if rp is the empty Regex
+func (rp Regex) IsZero() bool {
+	return rp.Pattern == "" && rp.Options == ""
 }
 
 // DBPointer represents a BSON dbpointer value.
@@ -78,9 +95,14 @@ func (d DBPointer) String() string {
 	return fmt.Sprintf(`{"db": "%s", "pointer": "%s"}`, d.DB, d.Pointer)
 }
 
-// Equal compaes d to d2 and returns true is the are equal.
+// Equal compares d to d2 and returns true is the are equal.
 func (d DBPointer) Equal(d2 DBPointer) bool {
 	return d.DB == d2.DB && bytes.Equal(d.Pointer[:], d2.Pointer[:])
+}
+
+// IsZero returns if d is the empty DBPointer
+func (d DBPointer) IsZero() bool {
+	return d.DB == "" && d.Pointer.IsZero()
 }
 
 // JavaScript represents a BSON JavaScript code value.
@@ -105,9 +127,14 @@ type Timestamp struct {
 	I uint32
 }
 
-// Equal compaes tp to tp2 and returns true is the are equal.
+// Equal compares tp to tp2 and returns true is the are equal.
 func (tp Timestamp) Equal(tp2 Timestamp) bool {
 	return tp.T == tp2.T && tp.I == tp2.I
+}
+
+// IsZero returns if tp is the zero Timestamp
+func (tp Timestamp) IsZero() bool {
+	return tp.T == 0 && tp.I == 0
 }
 
 // CompareTimestamp returns an integer comparing two Timestamps, where T is compared first, followed by I.
