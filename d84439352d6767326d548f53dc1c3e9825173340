@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a19a476b_6dba5afb",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-15T15:30:40Z",
+      "side": 1,
+      "message": "Why do we need to define the interface here? It\u0027s already defined in https://github.com/mongodb/mongo-go-driver/blob/master/bson/bsoncodec/struct_codec.go#L27.",
+      "range": {
+        "startLine": 21,
+        "startChar": 0,
+        "endLine": 21,
+        "endChar": 21
+      },
+      "revId": "d84439352d6767326d548f53dc1c3e9825173340",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "db9e2f42_597ba616",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-15T15:30:40Z",
+      "side": 1,
+      "message": "Question: is it valid to have a binary with empty data?",
+      "range": {
+        "startLine": 40,
+        "startChar": 17,
+        "endLine": 40,
+        "endChar": 23
+      },
+      "revId": "d84439352d6767326d548f53dc1c3e9825173340",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
