@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "b22daf46_83bb1619",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-15T18:42:36Z",
+      "side": 1,
+      "message": "Oh is the interface declaration just for testing? I don\u0027t like the fact that we can\u0027t use the one in bsoncodec but I also don\u0027t think we can move it from bsoncodec to bson because that\u0027s an API change in a public package. Resolving this comment because I don\u0027t think there\u0027s anything that can really be done here.",
+      "parentUuid": "2f1831e3_4f93d00b",
+      "range": {
+        "startLine": 21,
+        "startChar": 0,
+        "endLine": 21,
+        "endChar": 21
+      },
+      "revId": "d84439352d6767326d548f53dc1c3e9825173340",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "db9e2f42_597ba616",
         "filename": "bson/primitive/primitive.go",
         "patchSetId": 1
