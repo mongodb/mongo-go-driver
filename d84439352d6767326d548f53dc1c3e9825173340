@@ -117,6 +117,30 @@
       "revId": "d84439352d6767326d548f53dc1c3e9825173340",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1d5497a7_95b75547",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-15T19:59:22Z",
+      "side": 1,
+      "message": "Done. Talked to Kris and we decided its fine if we check both.",
+      "parentUuid": "68b369f1_ae2c6fd5",
+      "range": {
+        "startLine": 40,
+        "startChar": 17,
+        "endLine": 40,
+        "endChar": 23
+      },
+      "revId": "d84439352d6767326d548f53dc1c3e9825173340",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
