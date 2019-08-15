@@ -142,6 +142,9 @@ func TestParseDecimal128(t *testing.T) {
 			{s: "-0001231.453454000000565600000000E-21", h: 0xafe6000003faa269, l: 0x81cfeceaabdb1800},
 			{s: "12345E+21", h: 0x306a000000000000, l: 12345},
 			{s: "0.10000000000000000000000000000000000000000001", remark: "parse fail"},
+			{s: ".125e1", h: 0x303c000000000000, l: 125},
+			{s: ".125", h: 0x303a000000000000, l: 125},
+			{s: "", remark: "parse fail"},
 		}...)
 	for _, c := range cases {
 		switch c.remark {

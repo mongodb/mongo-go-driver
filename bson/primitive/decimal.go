@@ -10,6 +10,7 @@
 package primitive
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"regexp"
@@ -20,6 +21,12 @@ import (
 const (
 	MaxDecimal128Exp = 6111
 	MinDecimal128Exp = -6176
+)
+
+var (
+	ErrParseNaN    = errors.New("cannot parse NaN as a *big.Int")
+	ErrParseInf    = errors.New("cannot parse Infinity as a *big.Int")
+	ErrParseNegInf = errors.New("cannot parse -Infinity as a *big.Int")
 )
 
 // Decimal128 holds decimal128 BSON values.
@@ -40,52 +47,53 @@ func (d Decimal128) GetBytes() (uint64, uint64) {
 
 // String returns a string representation of the decimal value.
 func (d Decimal128) String() string {
-	var pos int     // positive sign
-	var e int       // exponent
-	var h, l uint64 // significand high/low
+	var posSign int      // positive sign
+	var exp int          // exponent
+	var high, low uint64 // significand high/low
 
 	if d.h>>63&1 == 0 {
-		pos = 1
+		posSign = 1
 	}
 
 	switch d.h >> 58 & (1<<5 - 1) {
 	case 0x1F:
 		return "NaN"
 	case 0x1E:
-		return "-Infinity"[pos:]
+		return "-Infinity"[posSign:]
 	}
 
-	l = d.l
+	low = d.l
 	if d.h>>61&3 == 3 {
 		// Bits: 1*sign 2*ignored 14*exponent 111*significand.
 		// Implicit 0b100 prefix in significand.
-		e = int(d.h>>47&(1<<14-1)) + MinDecimal128Exp
-		//h = 4<<47 | d.h&(1<<47-1)
+		exp = int(d.h >> 47 & (1<<14 - 1))
+		//high = 4<<47 | d.h&(1<<47-1)
 		// Spec says all of these values are out of range.
-		h, l = 0, 0
+		high, low = 0, 0
 	} else {
 		// Bits: 1*sign 14*exponent 113*significand
-		e = int(d.h>>49&(1<<14-1)) + MinDecimal128Exp
-		h = d.h & (1<<49 - 1)
+		exp = int(d.h >> 49 & (1<<14 - 1))
+		high = d.h & (1<<49 - 1)
 	}
+	exp += MinDecimal128Exp
 
 	// Would be handled by the logic below, but that's trivial and common.
-	if h == 0 && l == 0 && e == 0 {
-		return "-0"[pos:]
+	if high == 0 && low == 0 && exp == 0 {
+		return "-0"[posSign:]
 	}
 
 	var repr [48]byte // Loop 5 times over 9 digits plus dot, negative sign, and leading zero.
 	var last = len(repr)
 	var i = len(repr)
-	var dot = len(repr) + e
+	var dot = len(repr) + exp
 	var rem uint32
 Loop:
 	for d9 := 0; d9 < 5; d9++ {
-		h, l, rem = divmod(h, l, 1e9)
+		high, low, rem = divmod(high, low, 1e9)
 		for d1 := 0; d1 < 9; d1++ {
 			// Handle "-0.0", "0.00123400", "-1.00E-6", "1.050E+3", etc.
-			if i < len(repr) && (dot == i || l == 0 && h == 0 && rem > 0 && rem < 10 && (dot < i-6 || e > 0)) {
-				e += len(repr) - i
+			if i < len(repr) && (dot == i || low == 0 && high == 0 && rem > 0 && rem < 10 && (dot < i-6 || exp > 0)) {
+				exp += len(repr) - i
 				i--
 				repr[i] = '.'
 				last = i - 1
@@ -96,7 +104,7 @@ Loop:
 			i--
 			repr[i] = c
 			// Handle "0E+3", "1E+3", etc.
-			if l == 0 && h == 0 && rem == 0 && i == len(repr)-1 && (dot < i-5 || e > 0) {
+			if low == 0 && high == 0 && rem == 0 && i == len(repr)-1 && (dot < i-5 || exp > 0) {
 				last = i
 				break Loop
 			}
@@ -104,7 +112,7 @@ Loop:
 				last = i
 			}
 			// Break early. Works without it, but why.
-			if dot > i && l == 0 && h == 0 && rem == 0 {
+			if dot > i && low == 0 && high == 0 && rem == 0 {
 				break Loop
 			}
 		}
@@ -112,47 +120,49 @@ Loop:
 	repr[last-1] = '-'
 	last--
 
-	if e > 0 {
-		return string(repr[last+pos:]) + "E+" + strconv.Itoa(e)
+	if exp > 0 {
+		return string(repr[last+posSign:]) + "E+" + strconv.Itoa(exp)
 	}
-	if e < 0 {
-		return string(repr[last+pos:]) + "E" + strconv.Itoa(e)
+	if exp < 0 {
+		return string(repr[last+posSign:]) + "E" + strconv.Itoa(exp)
 	}
-	return string(repr[last+pos:])
+	return string(repr[last+posSign:])
 }
 
 // BigInt returns significand as big.Int and exponent, bi * 10 ^ exp.
 func (d Decimal128) BigInt() (bi *big.Int, exp int, err error) {
-	h, l := d.GetBytes()
-	var pos int // positive sign
+	high, low := d.GetBytes()
+	var posSign bool // positive sign
 
-	if h>>63&1 == 0 {
-		pos = 1
-	}
+	posSign = high>>63&1 == 0
 
-	switch h >> 58 & (1<<5 - 1) {
+	switch high >> 58 & (1<<5 - 1) {
 	case 0x1F:
-		return nil, 0, fmt.Errorf("cannot parse NaN as a *big.Int")
+		return nil, 0, ErrParseNaN
 	case 0x1E:
-		return nil, 0, fmt.Errorf("cannot parse %s as a *big.Int", "-Infinity"[pos:])
+		if posSign {
+			return nil, 0, ErrParseInf
+		}
+		return nil, 0, ErrParseNegInf
 	}
 
-	if h>>61&3 == 3 {
+	if high>>61&3 == 3 {
 		// Bits: 1*sign 2*ignored 14*exponent 111*significand.
 		// Implicit 0b100 prefix in significand.
-		exp = int(h>>47&(1<<14-1)) + MinDecimal128Exp
-		//h = 4<<47 | d.h&(1<<47-1)
+		exp = int(high >> 47 & (1<<14 - 1))
+		//high = 4<<47 | d.h&(1<<47-1)
 		// Spec says all of these values are out of range.
-		h, l = 0, 0
+		high, low = 0, 0
 	} else {
 		// Bits: 1*sign 14*exponent 113*significand
-		exp = int(h>>49&(1<<14-1)) + MinDecimal128Exp
-		h = h & (1<<49 - 1)
+		exp = int(high >> 49 & (1<<14 - 1))
+		high = high & (1<<49 - 1)
 	}
+	exp += MinDecimal128Exp
 
 	// Would be handled by the logic below, but that's trivial and common.
-	if h == 0 && l == 0 && exp == 0 {
-		if pos == 1 {
+	if high == 0 && low == 0 && exp == 0 {
+		if posSign {
 			return new(big.Int), 0, nil
 		}
 		return new(big.Int), 0, nil
@@ -161,12 +171,12 @@ func (d Decimal128) BigInt() (bi *big.Int, exp int, err error) {
 	bi = big.NewInt(0)
 	const host32bit = ^uint(0)>>32 == 0
 	if host32bit {
-		bi.SetBits([]big.Word{big.Word(l), big.Word(l >> 32), big.Word(h), big.Word(h >> 32)})
+		bi.SetBits([]big.Word{big.Word(low), big.Word(low >> 32), big.Word(high), big.Word(high >> 32)})
 	} else {
-		bi.SetBits([]big.Word{big.Word(l), big.Word(h)})
+		bi.SetBits([]big.Word{big.Word(low), big.Word(high)})
 	}
 
-	if pos == 0 {
+	if !posSign {
 		return bi.Neg(bi), exp, nil
 	}
 	return
@@ -190,9 +200,8 @@ func (d Decimal128) IsInf() int {
 
 	if d.h>>63&1 == 0 {
 		return 1
-	} else {
-		return -1
 	}
+	return -1
 }
 
 func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {
@@ -220,12 +229,13 @@ func dErr(s string) (Decimal128, error) {
 	return dNaN, fmt.Errorf("cannot parse %q as a decimal128", s)
 }
 
-var regDecimal128 = regexp.MustCompile(`^(?P<int>[-+]?\d+)(?:\.(?P<dec>\d+))?(?:[Ee](?P<exp>[-+]?\d+))?$`)
+// match scientific notation number, example -10.15e-18
+var normalNumber = regexp.MustCompile(`^(?P<int>[-+]?\d+)?(?:\.(?P<dec>\d+))?(?:[Ee](?P<exp>[-+]?\d+))?$`)
 
 // ParseDecimal128 takes the given string and attempts to parse it into a valid
 // Decimal128 value.
 func ParseDecimal128(s string) (Decimal128, error) {
-	matches := regDecimal128.FindStringSubmatch(s)
+	matches := normalNumber.FindStringSubmatch(s)
 	if len(matches) == 0 {
 		if s == "NaN" || s == "nan" || strings.EqualFold(s, "nan") {
 			return dNaN, nil
@@ -239,32 +249,32 @@ func ParseDecimal128(s string) (Decimal128, error) {
 		return dErr(s)
 	}
 
-	ip := matches[1]
-	dp := matches[2]
-	ep := matches[3]
+	intPart := matches[1]
+	decPart := matches[2]
+	expPart := matches[3]
 
 	var err error
-	e := 0
-	if ep != "" {
-		e, err = strconv.Atoi(ep)
+	exp := 0
+	if expPart != "" {
+		exp, err = strconv.Atoi(expPart)
 		if err != nil {
 			return dErr(s)
 		}
 	}
-	if dp != "" {
-		e -= len(dp)
+	if decPart != "" {
+		exp -= len(decPart)
 	}
 
-	if len(strings.Trim(ip+dp, "-0")) > 35 {
+	if len(strings.Trim(intPart+decPart, "-0")) > 35 {
 		return dErr(s)
 	}
 
-	bi, ok := new(big.Int).SetString(ip+dp, 10)
+	bi, ok := new(big.Int).SetString(intPart+decPart, 10)
 	if !ok {
 		return dErr(s)
 	}
 
-	d, ok := ParseDecimal128FromBigInt(bi, e)
+	d, ok := ParseDecimal128FromBigInt(bi, exp)
 	if !ok {
 		return dErr(s)
 	}
@@ -322,9 +332,9 @@ func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
 	for i := 0; i < len(b); i++ {
 		if i < len(b)-8 {
 			h = h<<8 | uint64(b[i])
-		} else {
-			l = l<<8 | uint64(b[i])
+			continue
 		}
+		l = l<<8 | uint64(b[i])
 	}
 
 	h |= uint64(exp-MinDecimal128Exp) & uint64(1<<14-1) << 49
