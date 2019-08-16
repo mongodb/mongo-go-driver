@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "90f22c92_0b81c9e3",
+        "filename": "mongo/client_encryption.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-16T20:53:59Z",
+      "side": 1,
+      "message": "Should the constructors error if they don\u0027t have a required option?",
+      "range": {
+        "startLine": 37,
+        "startChar": 8,
+        "endLine": 37,
+        "endChar": 25
+      },
+      "revId": "2a71a55f4e73f3a9bc55c69940859766ead89345",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1de9a03b_f7124ec0",
+        "filename": "x/mongo/driver/crypt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-16T20:53:59Z",
+      "side": 1,
+      "message": "libmongocrypt",
+      "range": {
+        "startLine": 45,
+        "startChar": 22,
+        "endLine": 45,
+        "endChar": 35
+      },
+      "revId": "2a71a55f4e73f3a9bc55c69940859766ead89345",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
