@@ -290,11 +290,7 @@ var (
 // ParseDecimal128FromBigInt attempts to parse the given significand and exponent into a valid Decimal128 value.
 func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
 	//copy
-	if bi == nil {
-		bi = new(big.Int)
-	} else {
-		bi = new(big.Int).Set(bi)
-	}
+	bi = new(big.Int).Set(bi)
 
 	q := new(big.Int)
 	r := new(big.Int)
