@@ -22,6 +22,30 @@
       "revId": "099f2a37e99ad357cad57d72963376a731296fee",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5e5d72f4_b5a42ca7",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-20T20:59:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7e44fcba_cd1dad36",
+      "range": {
+        "startLine": 18,
+        "startChar": 0,
+        "endLine": 23,
+        "endChar": 1
+      },
+      "revId": "099f2a37e99ad357cad57d72963376a731296fee",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
