@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "b66e6fd7_066da4d9",
+        "filename": "mongo/mongocryptd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-20T19:18:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d4e8279a_4ffe3b12",
+      "range": {
+        "startLine": 31,
+        "startChar": 5,
+        "endLine": 31,
+        "endChar": 22
+      },
+      "revId": "e10bcbd0668561888c937a5c107bc3291a150f4b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "29cb3252_a139520a",
         "filename": "mongo/mongocryptd.go",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2019-08-20T18:52:11Z",
       "side": 1,
       "message": "Why is this called \"markCommand\" instead of just \"command\" or \"runCommand\"?",
+      "range": {
+        "startLine": 69,
+        "startChar": 29,
+        "endLine": 69,
+        "endChar": 40
+      },
+      "revId": "e10bcbd0668561888c937a5c107bc3291a150f4b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1ce9b0ea_6c518bab",
+        "filename": "mongo/mongocryptd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-20T19:18:52Z",
+      "side": 1,
+      "message": "It\u0027s called markCommand because mongocryptd takes a command document and adds markers to indicate which fields should be encrypted. It doesn\u0027t actually \"run\" a command. I\u0027m open to changing it if you have strong feelings about the name though.",
+      "parentUuid": "29cb3252_a139520a",
       "range": {
         "startLine": 69,
         "startChar": 29,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "ee6b9b86_cc29f41c",
+        "filename": "x/mongo/driver/crypt.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-20T19:18:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "da1fb884_bddd9b94",
+      "range": {
+        "startLine": 111,
+        "startChar": 16,
+        "endLine": 111,
+        "endChar": 33
+      },
+      "revId": "e10bcbd0668561888c937a5c107bc3291a150f4b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "79934daf_478e27bd",
         "filename": "x/mongo/driver/crypt.go",
         "patchSetId": 2
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "c97d0ac1_364bf6ca",
+        "filename": "x/mongo/driver/crypt.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-20T19:18:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "79934daf_478e27bd",
+      "range": {
+        "startLine": 132,
+        "startChar": 16,
+        "endLine": 132,
+        "endChar": 33
+      },
+      "revId": "e10bcbd0668561888c937a5c107bc3291a150f4b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3dfe7273_f374afee",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 2
@@ -105,6 +201,30 @@
       "writtenOn": "2019-08-20T18:52:11Z",
       "side": 1,
       "message": "Is there a reason we need to do this this after we encrypt? I\u0027d like to share more code with the regular OP_MSG path if possible.",
+      "range": {
+        "startLine": 847,
+        "startChar": 1,
+        "endLine": 847,
+        "endChar": 31
+      },
+      "revId": "e10bcbd0668561888c937a5c107bc3291a150f4b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ef74a855_9ab4d339",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 847,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-20T19:18:52Z",
+      "side": 1,
+      "message": "We need to send just the command document to Crypt.Encrypt because that may send a wire message to mongocryptd. Generating that new wire message will add things like $db on its own. Adding them here before encrypting will cause errors because some keys can\u0027t appear twice. I agree the current logic is messy. It might be possible to fold this logic into createMsgWireMessage and not need a new function at all. I\u0027ll play around with that to try to clean this up.",
+      "parentUuid": "3dfe7273_f374afee",
       "range": {
         "startLine": 847,
         "startChar": 1,
