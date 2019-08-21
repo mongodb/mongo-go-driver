@@ -273,7 +273,11 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, err
 	}
 
-	selector := makePinnedSelector(sess, db.readSelector)
+	selector := description.CompositeSelector([]description.ServerSelector{
+		description.ReadPrefSelector(readpref.Primary()),
+		description.LatencySelector(db.client.localThreshold),
+	})
+	selector = makeReadPrefSelector(sess, selector, db.client.localThreshold)
 
 	lco := options.MergeListCollectionsOptions(opts...)
 	op := operation.NewListCollections(filterDoc).
