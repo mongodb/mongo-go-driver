@@ -336,7 +336,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// Stream must continuously track last seen resumeToken
 
 		coll, stream := createCollectionStream(t, "TrackTokenDB", "TrackTokenColl", nil)
-		defer closeCursor(stream)
+		defer closeCursor(t, stream)
 
 		coll.writeConcern = wcMajority
 		_, err := coll.InsertOne(ctx, doc1)
@@ -361,7 +361,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		}
 
 		coll, stream := createCollectionStream(t, "MissingTokenDB", "MissingTokenColl", pipeline)
-		defer closeCursor(stream)
+		defer closeCursor(t, stream)
 
 		coll.writeConcern = wcMajority
 		_, err := coll.InsertOne(ctx, doc1)
@@ -382,7 +382,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// pipeline and options, except for the addition/update of a resumeToken.
 
 		coll, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", nil)
-		defer closeCursor(stream)
+		defer closeCursor(t, stream)
 		startCmd := (<-startedChan).Command
 		startPipeline := startCmd.Lookup("pipeline").Array()
 
@@ -447,7 +447,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				_, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", nil)
-				defer closeCursor(stream)
+				defer closeCursor(t, stream)
 				cs := stream
 				cs.cursor = &errorBatchCursor{
 					errCode: tc.errCode,
@@ -475,7 +475,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// Ensure that a cursor returned from an aggregate command with a cursor id and an initial empty batch is not
 
 		_, stream := createCollectionStream(t, "CursorNotClosedDB", "CursorNotClosedColl", nil)
-		defer closeCursor(stream)
+		defer closeCursor(t, stream)
 		cs := stream
 
 		if cs.sess.Terminated {
@@ -499,7 +499,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		}
 
 		coll, stream := createMonitoredStream(t, "NoExceptionsDB", "NoExceptionsColl", nil)
-		defer closeCursor(stream)
+		defer closeCursor(t, stream)
 		cs := stream
 
 		// kill cursor to force a resumable error
@@ -549,7 +549,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		}
 
 		_, stream := createMonitoredStream(t, "IncludeTimeDB", "IncludeTimeColl", nil)
-		defer closeCursor(stream)
+		defer closeCursor(t, stream)
 		cs := stream
 
 		// kill cursor to force a resumable error
@@ -699,7 +699,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// Test that the underlying cursor is advanced after a resumeable error occurs.
 
 		coll, stream := createCollectionStream(t, "ResumeNextDB", "ResumeNextColl", nil)
-		defer closeCursor(stream)
+		defer closeCursor(t, stream)
 		ensureResumeToken(t, coll, stream)
 
 		// kill the stream's underlying cursor to force a resumeable error
@@ -751,7 +751,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 				}
 				token := stream.ResumeToken()
 				testhelpers.RequireNotNil(t, token, "got nil token")
-				closeCursor(stream)
+				closeCursor(t, stream)
 
 				cases := []struct {
 					name                 string
@@ -771,7 +771,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 						drainChannels()
 						stream, err := coll.Watch(ctx, Pipeline{}, tc.opts)
 						testhelpers.RequireNil(t, err, "error restarting stream: %v", err)
-						defer closeCursor(stream)
+						defer closeCursor(t, stream)
 						aggPbrt, _ := getAggregateInfo(t)
 
 						compareResumeTokens(t, stream, tc.expectedInitialToken)
@@ -814,7 +814,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 				}
 				token := stream.ResumeToken()
 				testhelpers.RequireNotNil(t, token, "got nil resume token")
-				closeCursor(stream)
+				closeCursor(t, stream)
 
 				cases := []struct {
 					name                 string
@@ -829,7 +829,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 					t.Run(tc.name, func(t *testing.T) {
 						stream, err := coll.Watch(ctx, Pipeline{}, tc.opts)
 						testhelpers.RequireNil(t, err, "error restarting stream: %v", err)
-						defer closeCursor(stream)
+						defer closeCursor(t, stream)
 						compareResumeTokens(t, stream, tc.expectedInitialToken)
 
 						// if the stream is not expected to have any results, do not try calling Next

@@ -69,8 +69,9 @@ func TestChangeStreamSpec(t *testing.T) {
 	}
 }
 
-func closeCursor(stream *ChangeStream) {
-	_ = stream.Close(ctx)
+func closeCursor(t *testing.T, stream *ChangeStream) {
+	err := stream.Close(ctx)
+	testhelpers.RequireNil(t, err, "error closing ChangeStream: %v", err)
 }
 
 func getStreamOptions(t *testing.T, test *csTest) *options.ChangeStreamOptions {
@@ -260,7 +261,7 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 				return
 			}
 
-			defer closeCursor(cursor) // end implicit session
+			defer closeCursor(t, cursor) // end implicit session
 
 			// run operations
 			for _, op := range test.Operations {

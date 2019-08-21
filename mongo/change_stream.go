@@ -433,7 +433,7 @@ func (cs *ChangeStream) Close(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	closeImplicitSession(cs.sess)
+	defer closeImplicitSession(cs.sess)
 
 	if cs.cursor == nil {
 		return nil // cursor is already closed
