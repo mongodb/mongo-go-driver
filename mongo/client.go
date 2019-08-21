@@ -498,10 +498,12 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		return ListDatabasesResult{}, err
 	}
 
-	selector := makePinnedSelector(sess, description.CompositeSelector([]description.ServerSelector{
+	selector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(readpref.Primary()),
 		description.LatencySelector(c.localThreshold),
-	}))
+	})
+	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
+	selector = makePinnedSelector(sess, selector)
 
 	ldo := options.MergeListDatabasesOptions(opts...)
 	op := operation.NewListDatabases(filterDoc).

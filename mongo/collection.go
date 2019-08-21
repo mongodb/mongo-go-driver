@@ -63,6 +63,17 @@ func closeImplicitSession(sess *session.Client) {
 	}
 }
 
+func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelector {
+	if sess == nil || !sess.TransactionRunning() {
+		return selector
+	}
+
+	return description.CompositeSelector([]description.ServerSelector{
+		description.ReadPrefSelector(sess.CurrentRp),
+		description.LatencySelector(localThreshold),
+	})
+}
+
 func newCollection(db *Database, name string, opts ...*options.CollectionOptions) *Collection {
 	collOpt := options.MergeCollectionOptions(opts...)
 
@@ -654,11 +665,11 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		sess = nil
 	}
 
-	defaultSelector := a.readSelector
-	if hasOutputStage {
-		defaultSelector = a.writeSelector
+	selector := a.writeSelector
+	if !hasOutputStage {
+		selector = makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
 	}
-	selector := makePinnedSelector(sess, defaultSelector)
+	selector = makePinnedSelector(sess, selector)
 
 	ao := options.MergeAggregateOptions(a.opts...)
 	cursorOpts := driver.CursorOptions{
@@ -756,7 +767,8 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.readSelector)
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
+	selector = makePinnedSelector(sess, selector)
 
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
@@ -832,7 +844,8 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.readSelector)
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
+	selector = makePinnedSelector(sess, selector)
 
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
@@ -888,7 +901,8 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.readSelector)
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
+	selector = makePinnedSelector(sess, selector)
 
 	option := options.MergeDistinctOptions(opts...)
 
@@ -971,7 +985,8 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.readSelector)
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
+	selector = makePinnedSelector(sess, selector)
 
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
