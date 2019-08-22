@@ -22,6 +22,30 @@
       "revId": "a82c33f3902e43cffd81196e923100b37fba5ef5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "34afec78_0c48cc5e",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 506,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-22T14:53:57Z",
+      "side": 1,
+      "message": "Changed makeReadPrefSelector to call makePinnedSelector in the new patch.",
+      "parentUuid": "b70e6603_9d8859f7",
+      "range": {
+        "startLine": 501,
+        "startChar": 0,
+        "endLine": 506,
+        "endChar": 46
+      },
+      "revId": "a82c33f3902e43cffd81196e923100b37fba5ef5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
