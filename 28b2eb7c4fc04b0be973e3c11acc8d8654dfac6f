@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bccc00ae_f2ef7f9c",
+        "filename": "mongo/client_encryption.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-08-22T21:41:05Z",
+      "side": 1,
+      "message": "Can you do this for the AutoEncryptionOptions class as well, so it\u0027s more obvious that auto-encryption is also in beta?",
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f8bb5d6a_0d055c8c",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-08-22T21:41:05Z",
+      "side": 1,
+      "message": "This shows how to bypass auto encryption, not how to bypass auto-spawning of mongocryptd",
+      "range": {
+        "startLine": 110,
+        "startChar": 0,
+        "endLine": 110,
+        "endChar": 1
+      },
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
