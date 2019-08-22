@@ -77,5 +77,43 @@
 // https://github.com/golang/go/issues/10622. If you receive an error with the message "cannot
 // unmarshal DNS message" while running an operation, we suggest you use a different DNS server.
 //
+// Client Side Encryption
+//
+// Client-side encryption is a new feature in MongoDB 4.2 specific data fields to be encrypted.
+//
+// Important: This feature is beta. The API for both automatic and explicit encryption/decryption does not have any
+// stability guarantees and backwards-breaking changes may be made before the final release.
+//
+// Note: Auto encryption is an enterprise-only feature.
+//
+// The libmongocrypt C library is required when using client-side encryption. To install libmongocrypt, do the following:
+//
+//    // run the clone command in an empty folder because the compile script will create new directories.
+//    git clone https://github.com/mongodb/libmongocrypt
+//    ./libmongocrypt/.evergreen/compile.sh
+//
+//    // Linux/Darwin: (this requires pkg-config to be installed on the system)
+//    Add <installation_dir>/install/libmongocrypt/lib/pkgconfig:<installation_dir>/install/mongo-c-driver/lib/pkgconfig to PKG_CONFIG_PATH.
+//    Add <installation_dir>/install/libmongocrypt/lib to LD_LIBRARY_PATH
+//
+//    // Windows:
+//    mkdir -p c:/libmongocrypt/include
+//    mkdir -p c:/libmongocrypt/bin
+//    cp ./install/libmongocrypt/lib/mongocrypt.dll c:/libmongocrypt/bin
+//    cp ./install/libmongocrypt/include/mongocrypt/*.h c:/libmongocrypt/include
+//    // add c:/libmongocrypt/bin to PATH
+//
+// libmongocrypt communicates with the mongocryptd process for automatic encryption. This process can be started manually
+// or auto-spawned by the driver itself. To enable auto-spawning, ensure the process binary is on the PATH. To start it
+// manually, use AutoEncryptionOptions:
+//
+//    aeo := options.AutoEncryption()
+//    mongocryptdOpts := map[string]interface{}{
+//        "bypassAutoEncryption": true,
+//    }
+//    aeo.SetExtraOptions(mongocryptdOpts)
+// To specify a process URI for mongocryptd, the "mongocryptdURI" option can be passed in the ExtraOptions map as well.
+// More information about mongocryptd will soon be available from the official documentation.
+//
 // [1] See https://docs.mongodb.com/manual/reference/connection-string/#dns-seedlist-connection-format
 package mongo
