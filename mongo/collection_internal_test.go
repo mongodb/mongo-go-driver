@@ -12,22 +12,21 @@ import (
 	"fmt"
 	"os"
 	"testing"
-
-	"github.com/launchpadcentral/mongo-go-driver/mongo/options"
-	"github.com/launchpadcentral/mongo-go-driver/x/bsonx"
-
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/launchpadcentral/mongo-go-driver/bson"
-	"github.com/launchpadcentral/mongo-go-driver/bson/primitive"
-	"github.com/launchpadcentral/mongo-go-driver/event"
-	"github.com/launchpadcentral/mongo-go-driver/internal/testutil"
-	"github.com/launchpadcentral/mongo-go-driver/mongo/readconcern"
-	"github.com/launchpadcentral/mongo-go-driver/mongo/readpref"
-	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 var impossibleWriteConcern = writeconcern.New(writeconcern.W(50), writeconcern.WTimeout(time.Second))
@@ -2220,4 +2219,45 @@ func TestCollection_BulkWrite(t *testing.T) {
 			})
 		}
 	})
+}
+
+// test special types that should be converted to a document for updates even though the underlying type is a
+// slice/array
+func TestCollection_Update_SpecialSliceTypes(t *testing.T) {
+	doc := bson.D{{"$set", bson.D{{"x", 2}}}}
+	docBytes, err := bson.Marshal(doc)
+	require.NoError(t, err, "error getting document bytes: %v", err)
+	xUpdate := bsonx.Doc{{"x", bsonx.Int32(2)}}
+	xDoc := bsonx.Doc{{"$set", bsonx.Document(xUpdate)}}
+
+	testCases := []struct {
+		name   string
+		update interface{}
+	}{
+		{"bsoncore Document", bsoncore.Document(docBytes)},
+		{"bson Raw", bson.Raw(docBytes)},
+		{"bson D", doc},
+		{"bsonx Document", xDoc},
+		{"byte slice", docBytes},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			coll := createTestCollection(t, nil, &tc.name)
+			defer func() {
+				_ = coll.Drop(ctx)
+			}()
+
+			insertedDoc := bson.D{{"x", 1}}
+			_, err = coll.InsertOne(ctx, insertedDoc)
+			require.NoError(t, err, "error inserting document: %v", err)
+
+			res, err := coll.UpdateOne(ctx, insertedDoc, tc.update)
+			require.NoError(t, err, "error updating document: %v", err)
+			require.Equal(t, int64(1), res.MatchedCount,
+				"matched count mismatch; expected %d, got %d", 1, res.MatchedCount)
+			require.Equal(t, int64(1), res.ModifiedCount,
+				"modified count mismatch; expected %d, got %d", 1, res.ModifiedCount)
+		})
+	}
 }

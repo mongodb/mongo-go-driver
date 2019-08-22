@@ -15,11 +15,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"strings"
 
 	"github.com/golang/snappy"
 	"github.com/launchpadcentral/mongo-go-driver/x/bsonx/bsoncore"
@@ -29,7 +28,7 @@ import (
 	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/wiremessage"
 )
 
-var globalConnectionID uint64
+var globalConnectionID uint64 = 1
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
@@ -174,7 +173,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 
 	select {
 	case <-ctx.Done():
-		// We close the connection because we don't know if there is an unread message on the wire.
+		// We closeConnection the connection because we don't know if there is an unread message on the wire.
 		c.close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: ctx.Err(), message: "failed to read"}
 	default:
@@ -202,7 +201,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	// reading messages from an exhaust cursor.
 	_, err := io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
-		// We close the connection because we don't know if there are other bytes left to read.
+		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to decode message length"}
 	}
@@ -221,7 +220,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 
 	_, err = io.ReadFull(c.nc, dst[4:])
 	if err != nil {
-		// We close the connection because we don't know if there are other bytes left to read.
+		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to read full message"}
 	}
@@ -239,7 +238,7 @@ func (c *connection) close() error {
 		atomic.StoreInt32(&c.connected, disconnected)
 		return err
 	}
-	return c.pool.close(c)
+	return c.pool.closeConnection(c)
 }
 
 func (c *connection) expired() bool {
@@ -272,6 +271,12 @@ func (c initConnection) Description() description.Server { return description.Se
 func (c initConnection) Close() error                    { return nil }
 func (c initConnection) ID() string                      { return c.id }
 func (c initConnection) Address() address.Address        { return c.addr }
+func (c initConnection) LocalAddress() address.Address {
+	if c.connection == nil || c.nc == nil {
+		return address.Address("0.0.0.0")
+	}
+	return address.Address(c.nc.LocalAddr().String())
+}
 func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
 }
@@ -368,7 +373,7 @@ func (c *Connection) Description() description.Server {
 	return c.desc
 }
 
-// Close returns this connection to the connection pool. This method may not close the underlying
+// Close returns this connection to the connection pool. This method may not closeConnection the underlying
 // socket.
 func (c *Connection) Close() error {
 	c.mu.Lock()
@@ -377,7 +382,7 @@ func (c *Connection) Close() error {
 		return nil
 	}
 	if c.s != nil {
-		c.s.sem.Release(1)
+		defer c.s.sem.Release(1)
 	}
 	err := c.pool.put(c.connection)
 	if err != nil {
@@ -387,7 +392,7 @@ func (c *Connection) Close() error {
 	return nil
 }
 
-// Expire closes this connection and will close the underlying socket.
+// Expire closes this connection and will closeConnection the underlying socket.
 func (c *Connection) Expire() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -428,6 +433,16 @@ func (c *Connection) Address() address.Address {
 		return address.Address("0.0.0.0")
 	}
 	return c.addr
+}
+
+// LocalAddress returns the local address of the connection
+func (c *Connection) LocalAddress() address.Address {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.connection == nil || c.nc == nil {
+		return address.Address("0.0.0.0")
+	}
+	return address.Address(c.nc.LocalAddr().String())
 }
 
 var notMasterCodes = []int32{10107, 13435}

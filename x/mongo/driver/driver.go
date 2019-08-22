@@ -10,7 +10,7 @@ import (
 // Deployment is implemented by types that can select a server from a deployment.
 type Deployment interface {
 	SelectServer(context.Context, description.ServerSelector) (Server, error)
-	SupportsRetry() bool
+	SupportsRetryWrites() bool
 	Kind() description.TopologyKind
 }
 
@@ -28,6 +28,11 @@ type Connection interface {
 	Close() error
 	ID() string
 	Address() address.Address
+}
+
+// LocalAddresser is a type that is able to supply its local address
+type LocalAddresser interface {
+	LocalAddress() address.Address
 }
 
 // Expirable represents an expirable object.
@@ -77,9 +82,9 @@ func (ssd SingleServerDeployment) SelectServer(context.Context, description.Serv
 	return ssd.Server, nil
 }
 
-// SupportsRetry implements the Deployment interface. It always returns false, because a single
+// SupportsRetryWrites implements the Deployment interface. It always returns Type(0), because a single
 // server does not support retryability.
-func (SingleServerDeployment) SupportsRetry() bool { return false }
+func (SingleServerDeployment) SupportsRetryWrites() bool { return false }
 
 // Kind implements the Deployment interface. It always returns description.Single.
 func (SingleServerDeployment) Kind() description.TopologyKind { return description.Single }
@@ -98,9 +103,9 @@ func (ssd SingleConnectionDeployment) SelectServer(context.Context, description.
 	return ssd, nil
 }
 
-// SupportsRetry implements the Deployment interface. It always returns false, because a single
+// SupportsRetryWrites implements the Deployment interface. It always returns Type(0), because a single
 // connection does not support retryability.
-func (ssd SingleConnectionDeployment) SupportsRetry() bool { return false }
+func (ssd SingleConnectionDeployment) SupportsRetryWrites() bool { return false }
 
 // Kind implements the Deployment interface. It always returns description.Single.
 func (ssd SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }

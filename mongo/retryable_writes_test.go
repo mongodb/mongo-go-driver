@@ -12,31 +12,29 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"testing"
-
 	"strings"
-
+	"sync"
+	"testing"
 	"time"
 
-	"sync"
-
 	"github.com/stretchr/testify/require"
-	"github.com/launchpadcentral/mongo-go-driver/bson"
-	"github.com/launchpadcentral/mongo-go-driver/event"
-	"github.com/launchpadcentral/mongo-go-driver/internal/testutil"
-	testhelpers "github.com/launchpadcentral/mongo-go-driver/internal/testutil/helpers"
-	"github.com/launchpadcentral/mongo-go-driver/mongo/options"
-	"github.com/launchpadcentral/mongo-go-driver/mongo/readpref"
-	"github.com/launchpadcentral/mongo-go-driver/mongo/writeconcern"
-	"github.com/launchpadcentral/mongo-go-driver/x/bsonx"
-	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/connstring"
-	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/session"
-	"github.com/launchpadcentral/mongo-go-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 const retryWritesDir = "../data/retryable-writes"
 
-type retryTestFile struct {
+type retryWriteTestFile struct {
 	Data             json.RawMessage  `json:"data"`
 	MinServerVersion string           `json:"minServerVersion"`
 	MaxServerVersion string           `json:"maxServerVersion"`
@@ -47,11 +45,11 @@ type retryTestCase struct {
 	Description   string                 `json:"description"`
 	FailPoint     *failPoint             `json:"failPoint"`
 	ClientOptions map[string]interface{} `json:"clientOptions"`
-	Operation     *retryOperation        `json:"operation"`
+	Operation     *retryWriteOperation   `json:"operation"`
 	Outcome       *retryOutcome          `json:"outcome"`
 }
 
-type retryOperation struct {
+type retryWriteOperation struct {
 	Name      string                 `json:"name"`
 	Arguments map[string]interface{} `json:"arguments"`
 }
@@ -65,19 +63,19 @@ type retryOutcome struct {
 	} `json:"collection"`
 }
 
-var retryMonitoredTopology *topology.Topology
-var retryMonitoredTopologyOnce sync.Once
+var retryWritesMonitoredTopology *topology.Topology
+var retryWritesMonitoredTopologyOnce sync.Once
 
-var retryStartedChan = make(chan *event.CommandStartedEvent, 100)
+var retryWritesStartedChan = make(chan *event.CommandStartedEvent, 100)
 
-var retryMonitor = &event.CommandMonitor{
+var retryWritesMonitor = &event.CommandMonitor{
 	Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
-		retryStartedChan <- cse
+		retryWritesStartedChan <- cse
 	},
 }
 
 func TestTxnNumberIncluded(t *testing.T) {
-	client := createRetryMonitoredClient(t, retryMonitor)
+	client := createRetryMonitoredClient(t, retryWritesMonitor)
 	client.retryWrites = true
 
 	db := client.Database("retry-writes")
@@ -92,22 +90,22 @@ func TestTxnNumberIncluded(t *testing.T) {
 	doc2 := map[string]interface{}{"y": 2}
 	update := map[string]interface{}{"$inc": 1}
 	var cases = []struct {
-		op          *retryOperation
+		op          *retryWriteOperation
 		includesTxn bool
 	}{
-		{&retryOperation{Name: "deleteOne"}, true},
-		{&retryOperation{Name: "deleteMany"}, false},
-		{&retryOperation{Name: "updateOne", Arguments: map[string]interface{}{"update": update}}, true},
-		{&retryOperation{Name: "updateMany", Arguments: map[string]interface{}{"update": update}}, false},
-		{&retryOperation{Name: "replaceOne"}, true},
-		{&retryOperation{Name: "insertOne", Arguments: map[string]interface{}{"document": doc1}}, true},
-		{&retryOperation{Name: "insertMany", Arguments: map[string]interface{}{
+		{&retryWriteOperation{Name: "deleteOne"}, true},
+		{&retryWriteOperation{Name: "deleteMany"}, false},
+		{&retryWriteOperation{Name: "updateOne", Arguments: map[string]interface{}{"update": update}}, true},
+		{&retryWriteOperation{Name: "updateMany", Arguments: map[string]interface{}{"update": update}}, false},
+		{&retryWriteOperation{Name: "replaceOne"}, true},
+		{&retryWriteOperation{Name: "insertOne", Arguments: map[string]interface{}{"document": doc1}}, true},
+		{&retryWriteOperation{Name: "insertMany", Arguments: map[string]interface{}{
 			"ordered": true, "documents": []interface{}{doc1, doc2}}}, true},
-		{&retryOperation{Name: "insertMany", Arguments: map[string]interface{}{
+		{&retryWriteOperation{Name: "insertMany", Arguments: map[string]interface{}{
 			"ordered": false, "documents": []interface{}{doc1, doc2}}}, true},
-		{&retryOperation{Name: "findOneAndReplace"}, true},
-		{&retryOperation{Name: "findOneAndUpdate", Arguments: map[string]interface{}{"update": update}}, true},
-		{&retryOperation{Name: "findOneAndDelete"}, true},
+		{&retryWriteOperation{Name: "findOneAndReplace"}, true},
+		{&retryWriteOperation{Name: "findOneAndUpdate", Arguments: map[string]interface{}{"update": update}}, true},
+		{&retryWriteOperation{Name: "findOneAndDelete"}, true},
 	}
 
 	err = db.Drop(ctx)
@@ -125,15 +123,15 @@ func TestTxnNumberIncluded(t *testing.T) {
 			_, err = coll.InsertOne(ctx, doc2)
 			require.NoError(t, err)
 
-			for len(retryStartedChan) > 0 {
-				<-retryStartedChan
+			for len(retryWritesStartedChan) > 0 {
+				<-retryWritesStartedChan
 			}
 
 			executeRetryOperation(t, tc.op, nil, coll)
 
 			var evt *event.CommandStartedEvent
 			select {
-			case evt = <-retryStartedChan:
+			case evt = <-retryWritesStartedChan:
 			default:
 				require.Fail(t, "Expected command started event")
 			}
@@ -147,21 +145,53 @@ func TestTxnNumberIncluded(t *testing.T) {
 	}
 }
 
+func TestRetryableWritesErrorOnMMAPV1(t *testing.T) {
+	name := "test"
+	version, err := getServerVersion(createTestDatabase(t, &name))
+	require.NoError(t, err)
+
+	if shouldSkipRetryTest(t, version) {
+		t.Skip("only run on 3.6.x and not on standalone")
+	}
+
+	client := createTestClient(t)
+	require.NoError(t, err)
+	db := client.Database("test")
+	defer func() { _ = db.Drop(context.Background()) }()
+	coll := client.Database("test").Collection("test")
+	defer func() { _ = coll.Drop(context.Background()) }()
+
+	res := db.RunCommand(context.Background(), bson.D{
+		{"serverStatus", 1},
+	})
+	noerr(t, res.Err())
+
+	storageEngine, ok := res.rdr.Lookup("storageEngine", "name").StringValueOK()
+	if !ok || storageEngine != "mmapv1" {
+		t.Skip("only run on mmapv1")
+	}
+
+	_, err = coll.InsertOne(context.Background(), bson.D{
+		{"_id", 1},
+	})
+	require.Equal(t, driver.ErrUnsupportedStorageEngine, err)
+}
+
 // test case for all RetryableWritesSpec tests
 func TestRetryableWritesSpec(t *testing.T) {
 	for _, file := range testhelpers.FindJSONFilesInDir(t, retryWritesDir) {
-		runRetryTestFile(t, path.Join(retryWritesDir, file))
+		runRetryWritesTestFile(t, path.Join(retryWritesDir, file))
 	}
 }
 
-func runRetryTestFile(t *testing.T, filepath string) {
+func runRetryWritesTestFile(t *testing.T, filepath string) {
 	if strings.Contains(filepath, "bulk") {
 		return
 	}
 	content, err := ioutil.ReadFile(filepath)
 	require.NoError(t, err)
 
-	var testfile retryTestFile
+	var testfile retryWriteTestFile
 	require.NoError(t, json.Unmarshal(content, &testfile))
 
 	dbName := "admin"
@@ -181,12 +211,12 @@ func runRetryTestFile(t *testing.T, filepath string) {
 	}
 
 	for _, test := range testfile.Tests {
-		runRetryTestCase(t, test, testfile.Data, dbAdmin)
+		runRetryWriteTestCase(t, test, testfile.Data, dbAdmin)
 	}
 
 }
 
-func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, dbAdmin *Database) {
+func runRetryWriteTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, dbAdmin *Database) {
 	t.Run(test.Description, func(t *testing.T) {
 		client := createTestClient(t)
 
@@ -223,14 +253,18 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 
 		addClientOptions(client, test.ClientOptions)
 
-		executeRetryOperation(t, test.Operation, test.Outcome, coll)
+		if test.Operation != nil && test.Outcome != nil {
+			executeRetryOperation(t, test.Operation, test.Outcome, coll)
+		}
 
-		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
+		if test.Outcome != nil {
+			verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
+		}
 	})
 
 }
 
-func executeRetryOperation(t *testing.T, op *retryOperation, outcome *retryOutcome, coll *Collection) {
+func executeRetryOperation(t *testing.T, op *retryWriteOperation, outcome *retryOutcome, coll *Collection) {
 	switch op.Name {
 	case "deleteOne":
 		res, err := executeDeleteOne(nil, coll, op.Arguments)
@@ -376,7 +410,7 @@ func createRetryMonitoredTopology(t *testing.T, clock *session.ClusterClock, mon
 		}),
 	}
 
-	retryMonitoredTopologyOnce.Do(func() {
+	retryWritesMonitoredTopologyOnce.Do(func() {
 		retryMonitoredTopo, err := topology.New(opts...)
 		if err != nil {
 			t.Fatal(err)
@@ -386,10 +420,10 @@ func createRetryMonitoredTopology(t *testing.T, clock *session.ClusterClock, mon
 			t.Fatal(err)
 		}
 
-		retryMonitoredTopology = retryMonitoredTopo
+		retryWritesMonitoredTopology = retryMonitoredTopo
 	})
 
-	return retryMonitoredTopology
+	return retryWritesMonitoredTopology
 }
 
 // skip entire test suite if server version less than 3.6 OR not a replica set

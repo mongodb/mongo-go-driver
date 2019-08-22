@@ -146,7 +146,7 @@ func runTransactionTestFile(t *testing.T, filepath string) {
 	require.NoError(t, err)
 	runTest := len(testfile.RunOn) == 0
 	for _, reqs := range testfile.RunOn {
-		if executeTransactionsTest(t, version, reqs) {
+		if shouldExecuteTest(t, version, reqs) {
 			runTest = true
 			break
 		}
@@ -179,6 +179,9 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		// kill sessions from previously failed tests
 		killSessions(t, dbAdmin.client)
 
+		if testfile.CollectionName == "" {
+			testfile.CollectionName = "collection_name"
+		}
 		collName := sanitizeCollectionName(testfile.DatabaseName, testfile.CollectionName)
 
 		var shardedHost string
@@ -577,7 +580,7 @@ func executeCollectionOperation(t *testing.T, op *transOperation, sess *sessionI
 	case "aggregate":
 		res, err := executeAggregate(sess, coll, op.ArgMap)
 		if !resultHasError(t, op.Result) && err == nil {
-			verifyCursorResult2(t, res, op.Result)
+			verifyCursorResult(t, res, op.Result)
 		}
 		return err
 	case "bulkWrite":
@@ -905,7 +908,7 @@ func readPrefFromString(s string) *readpref.ReadPref {
 	return readpref.Primary()
 }
 
-func executeTransactionsTest(t *testing.T, serverVersion string, reqs *runOn) bool {
+func shouldExecuteTest(t *testing.T, serverVersion string, reqs *runOn) bool {
 	if len(reqs.MinServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MinServerVersion) < 0 {
 		return false
 	}
@@ -916,7 +919,8 @@ func executeTransactionsTest(t *testing.T, serverVersion string, reqs *runOn) bo
 		return true
 	}
 	for _, top := range reqs.Topology {
-		switch os.Getenv("TOPOLOGY") {
+		envTop := os.Getenv("TOPOLOGY")
+		switch envTop {
 		case "server":
 			if top == "single" {
 				return true
@@ -926,9 +930,11 @@ func executeTransactionsTest(t *testing.T, serverVersion string, reqs *runOn) bo
 				return true
 			}
 		case "sharded_cluster":
-			if top == "sharded" && compareVersions(t, serverVersion, "4.0") > 0 {
+			if top == "sharded" {
 				return true
 			}
+		default:
+			t.Fatalf("unrecognized TOPOLOGY: %v", envTop)
 		}
 	}
 	return false

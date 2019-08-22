@@ -39,7 +39,7 @@ type IsMaster struct {
 	Hosts                        []string           `bson:"hosts,omitempty"`
 	IsMaster                     bool               `bson:"ismaster,omitempty"`
 	IsReplicaSet                 bool               `bson:"isreplicaset,omitempty"`
-	LastWriteTimestamp           time.Time          `bson:"lastWriteDate,omitempty"`
+	LastWrite                    *lastWriteDate     `bson:"lastWrite,omitempty"`
 	LogicalSessionTimeoutMinutes uint32             `bson:"logicalSessionTimeoutMinutes,omitempty"`
 	MaxBSONObjectSize            uint32             `bson:"maxBsonObjectSize,omitempty"`
 	MaxMessageSizeBytes          uint32             `bson:"maxMessageSizeBytes,omitempty"`
@@ -56,6 +56,10 @@ type IsMaster struct {
 	SetName                      string             `bson:"setName,omitempty"`
 	SetVersion                   uint32             `bson:"setVersion,omitempty"`
 	Tags                         map[string]string  `bson:"tags,omitempty"`
+}
+
+type lastWriteDate struct {
+	LastWriteDate time.Time `bson:"lastWriteDate"`
 }
 
 type server struct {

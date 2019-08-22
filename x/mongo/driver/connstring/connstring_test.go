@@ -227,7 +227,7 @@ func TestMaxConnIdleTime(t *testing.T) {
 func TestMaxPoolSize(t *testing.T) {
 	tests := []struct {
 		s        string
-		expected uint16
+		expected uint64
 		err      bool
 	}{
 		{s: "maxPoolSize=10", expected: 10},
@@ -246,6 +246,33 @@ func TestMaxPoolSize(t *testing.T) {
 				require.NoError(t, err)
 				require.True(t, cs.MaxPoolSizeSet)
 				require.Equal(t, test.expected, cs.MaxPoolSize)
+			}
+		})
+	}
+}
+
+func TestMinPoolSize(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected uint64
+		err      bool
+	}{
+		{s: "minPoolSize=10", expected: 10},
+		{s: "minPoolSize=100", expected: 100},
+		{s: "minPoolSize=-2", err: true},
+		{s: "minPoolSize=gsdge", err: true},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.True(t, cs.MinPoolSizeSet)
+				require.Equal(t, test.expected, cs.MinPoolSize)
 			}
 		})
 	}

@@ -86,9 +86,7 @@
                     "$set": {
                       "x": 333
                     }
-                  },
-                  "upsert": false,
-                  "multi": false
+                  }
                 }
               ],
               "ordered": true

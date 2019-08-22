@@ -9,8 +9,11 @@ package topology
 import (
 	"context"
 	"net"
+	"runtime"
+	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
@@ -94,8 +97,10 @@ func TestServer(t *testing.T) {
 				desc = &descript
 				require.Nil(t, desc.LastError)
 			}
+			//err = s.Connect(nil)
+			err = s.pool.connect()
+			require.NoError(t, err, "unable to connect to pool")
 			s.connectionstate = connected
-			s.pool.connected = connected
 
 			_, err = s.Connection(context.Background())
 
@@ -113,11 +118,57 @@ func TestServer(t *testing.T) {
 				require.NotNil(t, s.Description().LastError)
 			}
 
-			if (tt.connectionError || tt.networkError) && s.pool.generation != 1 {
+			if (tt.connectionError || tt.networkError) && atomic.LoadUint64(&s.pool.generation) != 1 {
 				t.Errorf("Expected pool to be drained once on connection or network error. got %d; want %d", s.pool.generation, 1)
 			}
 		})
 	}
+
+	t.Run("Cannot starve connection request", func(t *testing.T) {
+		cleanup := make(chan struct{})
+		addr := bootstrapConnections(t, 3, func(nc net.Conn) {
+			<-cleanup
+			_ = nc.Close()
+		})
+		d := newdialer(&net.Dialer{})
+		s, err := NewServer(address.Address(addr.String()),
+			WithConnectionOptions(func(option ...ConnectionOption) []ConnectionOption {
+				return []ConnectionOption{WithDialer(func(_ Dialer) Dialer { return d })}
+			}),
+			WithMaxConnections(func(u uint64) uint64 {
+				return 1
+			}))
+		noerr(t, err)
+		s.connectionstate = connected
+		err = s.pool.connect()
+		noerr(t, err)
+
+		conn, err := s.Connection(context.Background())
+		if d.lenopened() != 1 {
+			t.Errorf("Should have opened 1 connections, but didn't. got %d; want %d", d.lenopened(), 1)
+		}
+
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		ch := make(chan struct{})
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+			ch <- struct{}{}
+			_, err := s.Connection(ctx)
+			if err != nil {
+				t.Errorf("Should not be able to starve connection request, but got error: %v", err)
+			}
+			wg.Done()
+		}()
+		<-ch
+		runtime.Gosched()
+		err = conn.Close()
+		noerr(t, err)
+		wg.Wait()
+		close(cleanup)
+	})
 	t.Run("WriteConcernError", func(t *testing.T) {
 		s, err := NewServer(address.Address("localhost"))
 		require.NoError(t, err)
