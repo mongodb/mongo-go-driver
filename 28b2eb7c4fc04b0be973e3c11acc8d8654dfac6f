@@ -19,6 +19,52 @@
     },
     {
       "key": {
+        "uuid": "d083fb77_d894a72d",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-22T21:45:13Z",
+      "side": 1,
+      "message": "MongoDB 4.2 that allows specific data fields",
+      "range": {
+        "startLine": 82,
+        "startChar": 46,
+        "endLine": 82,
+        "endChar": 78
+      },
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6be756a7_e5231306",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-22T21:45:13Z",
+      "side": 1,
+      "message": "nit: this note could be closer to where auto encryption is discussed",
+      "range": {
+        "startLine": 87,
+        "startChar": 2,
+        "endLine": 87,
+        "endChar": 55
+      },
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f8bb5d6a_0d055c8c",
         "filename": "mongo/doc.go",
         "patchSetId": 1
