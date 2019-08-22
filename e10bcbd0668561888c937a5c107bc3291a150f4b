@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "4d3c4bf5_1f706d1b",
+        "filename": "mongo/mongocryptd.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-22T14:45:27Z",
+      "side": 1,
+      "message": "Created https://jira.mongodb.org/browse/SPEC-1427 to hopefully fix this in the future.",
+      "parentUuid": "1ce9b0ea_6c518bab",
+      "range": {
+        "startLine": 69,
+        "startChar": 29,
+        "endLine": 69,
+        "endChar": 40
+      },
+      "revId": "e10bcbd0668561888c937a5c107bc3291a150f4b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da1fb884_bddd9b94",
         "filename": "x/mongo/driver/crypt.go",
         "patchSetId": 2
@@ -234,6 +258,30 @@
       "revId": "e10bcbd0668561888c937a5c107bc3291a150f4b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4facd7b7_9eeade60",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 847,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-22T14:45:27Z",
+      "side": 1,
+      "message": "The new method handles this much more clearly. Nice work!",
+      "parentUuid": "ef74a855_9ab4d339",
+      "range": {
+        "startLine": 847,
+        "startChar": 1,
+        "endLine": 847,
+        "endChar": 31
+      },
+      "revId": "e10bcbd0668561888c937a5c107bc3291a150f4b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
