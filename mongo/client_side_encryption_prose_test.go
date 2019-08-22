@@ -605,6 +605,10 @@ func teardown(t *testing.T, cpt cseProseTest) {
 	require.NoError(t, err, "error disconnecting client: %v", err)
 	err = cpt.cseClient.Disconnect(ctx)
 	require.NoError(t, err, "error disconnecting encrypted client: %v", err)
+	if cpt.clientEnc != nil {
+		err = cpt.clientEnc.Close(ctx)
+		require.NoError(t, err, "error closing ClientEncryption: %v", err)
+	}
 }
 
 func rawValueToCoreValue(rv bson.RawValue) bsoncore.Value {

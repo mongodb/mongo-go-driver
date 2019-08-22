@@ -117,6 +117,13 @@ func (ce *ClientEncryption) Decrypt(ctx context.Context, val primitive.Binary) (
 	return bson.RawValue{Type: decrypted.Type, Value: decrypted.Data}, nil
 }
 
+// Close cleans up any resources associated with the ClientEncryption instance. This includes disconnecting the
+// key-vault Client instance.
+func (ce *ClientEncryption) Close(ctx context.Context) error {
+	ce.crypt.Close()
+	return ce.keyVaultClient.Disconnect(ctx)
+}
+
 // splitNamespace takes a namespace in the form "database.collection" and returns (database name, collection name)
 func splitNamespace(ns string) (string, string) {
 	firstDot := strings.Index(ns, ".")
