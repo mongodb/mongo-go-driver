@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "46b49687_7b0c87f1",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-22T14:34:05Z",
+      "side": 1,
+      "message": "We could probably just move this to the test file, alternatively we could make sure that the types that implement zeroer actually implement it:\n\nvar _ zeroer \u003d Binary{}",
+      "range": {
+        "startLine": 19,
+        "startChar": 0,
+        "endLine": 21,
+        "endChar": 1
+      },
+      "revId": "e864a64a9221b16dbe954371d6c7d6063f34a64b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
