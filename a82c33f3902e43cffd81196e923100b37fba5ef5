@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b70e6603_9d8859f7",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 506,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-22T14:38:39Z",
+      "side": 1,
+      "message": "Can we encapsulate this into one function? It looks like it would only need 2 parameters: a session and the localThreshold.",
+      "range": {
+        "startLine": 501,
+        "startChar": 0,
+        "endLine": 506,
+        "endChar": 46
+      },
+      "revId": "a82c33f3902e43cffd81196e923100b37fba5ef5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
