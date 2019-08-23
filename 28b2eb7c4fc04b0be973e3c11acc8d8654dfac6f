@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ea2dcf23_56c23e09",
+        "filename": "mongo/client_encryption.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-23T14:45:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bccc00ae_f2ef7f9c",
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d083fb77_d894a72d",
         "filename": "mongo/doc.go",
         "patchSetId": 1
@@ -39,6 +57,30 @@
       "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a57515bd_de76c03c",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-23T14:45:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d083fb77_d894a72d",
+      "range": {
+        "startLine": 82,
+        "startChar": 46,
+        "endLine": 82,
+        "endChar": 78
+      },
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -65,6 +107,30 @@
     },
     {
       "key": {
+        "uuid": "3abf804a_6fe0d593",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-23T14:45:47Z",
+      "side": 1,
+      "message": "I can\u0027t really think of a better place to put this. The idea was that the \"Important\" and \"Note\" would be together and in special formatting but GoDoc doesn\u0027t really support any special formatting so this is the closest I could get.",
+      "parentUuid": "6be756a7_e5231306",
+      "range": {
+        "startLine": 87,
+        "startChar": 2,
+        "endLine": 87,
+        "endChar": 55
+      },
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f8bb5d6a_0d055c8c",
         "filename": "mongo/doc.go",
         "patchSetId": 1
@@ -85,6 +151,30 @@
       "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "350bcb53_5f304aef",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-23T14:45:47Z",
+      "side": 1,
+      "message": "whoops - fixed in new patch.",
+      "parentUuid": "f8bb5d6a_0d055c8c",
+      "range": {
+        "startLine": 110,
+        "startChar": 0,
+        "endLine": 110,
+        "endChar": 1
+      },
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
