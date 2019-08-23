@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "e203e8c9_02edb559",
+        "filename": "mongo/client_encryption.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-08-23T15:29:45Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ea2dcf23_56c23e09",
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d083fb77_d894a72d",
         "filename": "mongo/doc.go",
         "patchSetId": 1
@@ -166,6 +184,30 @@
       "side": 1,
       "message": "whoops - fixed in new patch.",
       "parentUuid": "f8bb5d6a_0d055c8c",
+      "range": {
+        "startLine": 110,
+        "startChar": 0,
+        "endLine": 110,
+        "endChar": 1
+      },
+      "revId": "28b2eb7c4fc04b0be973e3c11acc8d8654dfac6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9e5d7908_a3b6fead",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-08-23T15:29:45Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "350bcb53_5f304aef",
       "range": {
         "startLine": 110,
         "startChar": 0,
