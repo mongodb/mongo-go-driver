@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "105f7651_6978e402",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1421,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-23T15:54:11Z",
+      "side": 1,
+      "message": "I don\u0027t think we need to make a new variable here, we should just be able to reassign selector in the if statement.",
+      "range": {
+        "startLine": 1421,
+        "startChar": 1,
+        "endLine": 1421,
+        "endChar": 23
+      },
+      "revId": "a161261d7025bf4a06d656ab1a422a8582498c7e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
