@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "86c370f4_c2c41162",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 208,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-26T19:53:40Z",
+      "side": 1,
+      "message": "remove the commented out calls to parallel()",
+      "range": {
+        "startLine": 208,
+        "startChar": 2,
+        "endLine": 208,
+        "endChar": 16
+      },
+      "revId": "3a20f8005e9d25f25540c44aa8a5b03fd65b8766",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7015fe5a_bd10f01a",
+        "filename": "mongo/client_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-26T19:53:40Z",
+      "side": 1,
+      "message": "remove the commented out calls to parallel()",
+      "range": {
+        "startLine": 78,
+        "startChar": 0,
+        "endLine": 78,
+        "endChar": 15
+      },
+      "revId": "3a20f8005e9d25f25540c44aa8a5b03fd65b8766",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bba4f0bb_0050ac8c",
+        "filename": "mongo/database_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-26T19:53:40Z",
+      "side": 1,
+      "message": "remove the commented out calls to parallel()",
+      "range": {
+        "startLine": 44,
+        "startChar": 1,
+        "endLine": 44,
+        "endChar": 15
+      },
+      "revId": "3a20f8005e9d25f25540c44aa8a5b03fd65b8766",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "30bafb8a_44ccaf03",
+        "filename": "mongo/index_view_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-26T19:53:40Z",
+      "side": 1,
+      "message": "remove the commented out calls to parallel()",
+      "range": {
+        "startLine": 91,
+        "startChar": 1,
+        "endLine": 91,
+        "endChar": 15
+      },
+      "revId": "3a20f8005e9d25f25540c44aa8a5b03fd65b8766",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f45f2fcf_9647ca8c",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-26T19:53:40Z",
+      "side": 1,
+      "message": "are",
+      "range": {
+        "startLine": 98,
+        "startChar": 91,
+        "endLine": 98,
+        "endChar": 95
+      },
+      "revId": "3a20f8005e9d25f25540c44aa8a5b03fd65b8766",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c2ea367_7ce1d046",
+        "filename": "mongo/results_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-08-26T19:53:40Z",
+      "side": 1,
+      "message": "remove the commented out calls to parallel()",
+      "range": {
+        "startLine": 18,
+        "startChar": 1,
+        "endLine": 18,
+        "endChar": 15
+      },
+      "revId": "3a20f8005e9d25f25540c44aa8a5b03fd65b8766",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
