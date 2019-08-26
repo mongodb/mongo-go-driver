@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a872260d_3f9cf87c",
+        "filename": "internal/testutil/assert/assert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-26T16:28:43Z",
+      "side": 1,
+      "message": "The reflect.DeepEqual method has a lot of sharp edges to it. It would likely change the API a bit, but could we use cmp instead?\n\nhttps://godoc.org/github.com/google/go-cmp/cmp",
+      "range": {
+        "startLine": 18,
+        "startChar": 5,
+        "endLine": 18,
+        "endChar": 22
+      },
+      "revId": "fedb26e4c767a416135d67511768acee674a7288",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
