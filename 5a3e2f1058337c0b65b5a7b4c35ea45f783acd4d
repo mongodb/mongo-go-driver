@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "48d398a6_4b6c7ed1",
+        "filename": "internal/testutil/config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-26T18:31:12Z",
+      "side": 1,
+      "message": "MonitoredTopology already exists above this function. I\u0027m not really sure what the difference is, but the goal is to delete all of these functions as part of this epic, so I\u0027d rather make the minimal number of changes needed to make this work.",
+      "parentUuid": "ca8a44ac_75fe9fe5",
+      "range": {
+        "startLine": 119,
+        "startChar": 5,
+        "endLine": 119,
+        "endChar": 28
+      },
+      "revId": "5a3e2f1058337c0b65b5a7b4c35ea45f783acd4d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c4fd8084_3ec8163a",
         "filename": "mongo/client.go",
         "patchSetId": 2
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "6c81fd21_9f174a28",
+        "filename": "mongo/client.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-26T18:31:12Z",
+      "side": 1,
+      "message": "Changed this to an option and removed NewClientFromDeployment and added checks to make sure other topology or server options aren\u0027t specified.",
+      "parentUuid": "c4fd8084_3ec8163a",
+      "range": {
+        "startLine": 115,
+        "startChar": 29,
+        "endLine": 115,
+        "endChar": 89
+      },
+      "revId": "5a3e2f1058337c0b65b5a7b4c35ea45f783acd4d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4442851f_ec3a0e0d",
         "filename": "mongo/command_monitoring_test.go",
         "patchSetId": 2
@@ -59,6 +107,30 @@
       "writtenOn": "2019-08-26T16:23:59Z",
       "side": 1,
       "message": "Do we still need to have this?",
+      "range": {
+        "startLine": 52,
+        "startChar": 5,
+        "endLine": 52,
+        "endChar": 26
+      },
+      "revId": "5a3e2f1058337c0b65b5a7b4c35ea45f783acd4d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dbe2139d_7f2508d7",
+        "filename": "mongo/command_monitoring_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-26T18:31:12Z",
+      "side": 1,
+      "message": "Yes, a bunch of tests still use this. The default client from createTestClient does not have command monitoring enabled.",
+      "parentUuid": "4442851f_ec3a0e0d",
       "range": {
         "startLine": 52,
         "startChar": 5,
