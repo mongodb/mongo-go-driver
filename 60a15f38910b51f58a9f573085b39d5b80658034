@@ -22,6 +22,30 @@
       "revId": "60a15f38910b51f58a9f573085b39d5b80658034",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b45d3657_278f194a",
+        "filename": "mongo/client.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-08-26T21:49:31Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "00184869_067dc588",
+      "range": {
+        "startLine": 16,
+        "startChar": 2,
+        "endLine": 16,
+        "endChar": 23
+      },
+      "revId": "60a15f38910b51f58a9f573085b39d5b80658034",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
