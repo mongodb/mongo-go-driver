@@ -350,13 +350,11 @@ func TestMongoCrypt(t *testing.T) {
 			compareResources(t, resourceToDocument(t, "encrypted-value.json"), encryptedDoc)
 
 			// create explicit decryption context and check initial state
+			// the cryptCtx should automatically be in the Ready state because the key should be cached from the
+			// encryption process.
 			decryptCtx, err := crypt.CreateExplicitDecryptionContext(encryptedDoc)
 			noerr(t, err)
 			defer decryptCtx.Close()
-			compareStates(t, NeedMongoKeys, decryptCtx.State())
-
-			// mock KMS communication and iterate decryptCtx
-			testKmsCtx(t, decryptCtx, false)
 			compareStates(t, Ready, decryptCtx.State())
 
 			// perform final decryption

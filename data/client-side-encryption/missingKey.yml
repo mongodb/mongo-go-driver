@@ -19,7 +19,7 @@ tests:
         arguments:
           document: &doc0 { _id: 1, encrypted_string: "string0", random: "abc" }
         result:
-          errorContains: "did not provide all keys"
+          errorContains: "not all keys requested were satisfied"
     outcome:
       collection:
         # Outcome is checked using a separate MongoClient without auto encryption.
