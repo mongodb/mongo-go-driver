@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ca8a44ac_75fe9fe5",
+        "filename": "internal/testutil/config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-26T16:23:59Z",
+      "side": 1,
+      "message": "Can we change this to \"MonitoredTopology\" to match \"Topology\"?",
+      "range": {
+        "startLine": 119,
+        "startChar": 5,
+        "endLine": 119,
+        "endChar": 28
+      },
+      "revId": "5a3e2f1058337c0b65b5a7b4c35ea45f783acd4d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c4fd8084_3ec8163a",
+        "filename": "mongo/client.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-26T16:23:59Z",
+      "side": 1,
+      "message": "I don\u0027t think it would introduce a dependency cycle to have driver.Deployment be an option. If we did that, we could put it directly on the struct, not add a setter for it, and it would be like the authentication thing we did before. It will be slightly more annoying for us to set up, but we can write a function in the testing framework that handles it for us.\n\nWe can also add functionality that ensures you don\u0027t set fields that would be overwritten or confusing if you set, e.g. you can\u0027t set min or max poolsize if you provide a deployment, and I don\u0027t think there\u0027s a sensible way to overwrite just one of those options either. In those cases I think we should just return an error.",
+      "range": {
+        "startLine": 115,
+        "startChar": 29,
+        "endLine": 115,
+        "endChar": 89
+      },
+      "revId": "5a3e2f1058337c0b65b5a7b4c35ea45f783acd4d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4442851f_ec3a0e0d",
+        "filename": "mongo/command_monitoring_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-26T16:23:59Z",
+      "side": 1,
+      "message": "Do we still need to have this?",
+      "range": {
+        "startLine": 52,
+        "startChar": 5,
+        "endLine": 52,
+        "endChar": 26
+      },
+      "revId": "5a3e2f1058337c0b65b5a7b4c35ea45f783acd4d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
