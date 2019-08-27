@@ -194,7 +194,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	db := c.Database("admin")
 	res := db.RunCommand(ctx, bson.D{
 		{"ping", 1},
-	})
+	}, options.RunCmd().SetReadPreference(rp))
 
 	return replaceErrors(res.Err())
 }
