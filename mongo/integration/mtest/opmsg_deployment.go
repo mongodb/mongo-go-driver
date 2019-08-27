@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package integration
+package mtest
 
 import (
 	"context"
@@ -106,10 +106,10 @@ func (md *mockDeployment) SelectServer(context.Context, description.ServerSelect
 	return md, nil
 }
 
-// SupportsRetry implements the Deployment interface. It always returns false, because a single
-// connection does not support retryability.
+// SupportsRetry implements the Deployment interface. It always returns true to allow for testing
+// retryability.
 func (md *mockDeployment) SupportsRetryWrites() bool {
-	return false
+	return true
 }
 
 // Kind implements the Deployment interface. It always returns description.Single.
