@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
@@ -437,4 +438,20 @@ func TestSessionTimeout(t *testing.T) {
 			t.Errorf("session timeout minutes mismatch. got: %d. expected: 0", currDesc.SessionTimeoutMinutes)
 		}
 	})
+}
+
+func TestMinPoolSize(t *testing.T) {
+	connStr := connstring.ConnString{
+		Hosts:          []string{"localhost:27017"},
+		MinPoolSize:    10,
+		MinPoolSizeSet: true,
+	}
+	topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return connStr }))
+	if err != nil {
+		t.Errorf("topology.New shouldn't error. got: %v", err)
+	}
+	err = topo.Connect()
+	if err != nil {
+		t.Errorf("topology.Connect shouldn't error. got: %v", err)
+	}
 }
