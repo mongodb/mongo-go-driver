@@ -545,6 +545,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.AutoEncryptionOptions != nil {
 			c.AutoEncryptionOptions = opt.AutoEncryptionOptions
 		}
+		if opt.Deployment != nil {
+			c.Deployment = opt.Deployment
+		}
 		if opt.err != nil {
 			c.err = opt.err
 		}

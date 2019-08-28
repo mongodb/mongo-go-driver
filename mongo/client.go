@@ -104,11 +104,12 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	client.deployment, err = topology.New(client.topologyOptions...)
-	if err != nil {
-		return nil, replaceErrors(err)
+	if client.deployment == nil {
+		client.deployment, err = topology.New(client.topologyOptions...)
+		if err != nil {
+			return nil, replaceErrors(err)
+		}
 	}
-
 	return client, nil
 }
 

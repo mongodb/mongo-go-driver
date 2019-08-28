@@ -740,3 +740,46 @@ func TestIsMaster(t *testing.T) {
 	res := isMaster.Result("")
 	require.False(t, res.LastWriteTime.IsZero())
 }
+
+type mockDeployment struct{}
+
+func (md mockDeployment) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
+	return nil, nil
+}
+
+func (md mockDeployment) SupportsRetryWrites() bool {
+	return false
+}
+
+func (md mockDeployment) Kind() description.TopologyKind {
+	return description.Single
+}
+
+func TestClient_CustomDeployment(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		client, err := NewClient(&options.ClientOptions{Deployment: mockDeployment{}})
+		require.NoError(t, err, "error creating client with mock deployment: %v", err)
+		_, ok := client.deployment.(mockDeployment)
+		require.True(t, ok, "deployment type mismatch; expected %T, got %T", mockDeployment{}, client.deployment)
+	})
+	t.Run("error", func(t *testing.T) {
+		errmsg := "cannot specify topology or server options with a deployment"
+
+		t.Run("specify topology options", func(t *testing.T) {
+			opts := &options.ClientOptions{Deployment: mockDeployment{}}
+			opts.SetServerSelectionTimeout(1 * time.Second)
+			_, err := NewClient(opts)
+			require.Error(t, err, "expected error creating client but got nil")
+			require.Equal(t, errmsg, err.Error(),
+				"error mismatch; expected %v, got %v", errmsg, err.Error())
+		})
+		t.Run("specify server options", func(t *testing.T) {
+			opts := &options.ClientOptions{Deployment: mockDeployment{}}
+			opts.SetMinPoolSize(1)
+			_, err := NewClient(opts)
+			require.Error(t, err, "expected error creating client but got nil")
+			require.Equal(t, errmsg, err.Error(),
+				"error mismatch; expected %v, got %v", errmsg, err.Error())
+		})
+	})
+}
