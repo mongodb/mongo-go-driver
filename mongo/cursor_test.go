@@ -13,6 +13,7 @@ import (
 type testBatchCursor struct {
 	batches []*bsoncore.DocumentSequence
 	batch   *bsoncore.DocumentSequence
+	closed  bool
 }
 
 func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
@@ -74,6 +75,7 @@ func (tbc *testBatchCursor) Err() error {
 }
 
 func (tbc *testBatchCursor) Close(context.Context) error {
+	tbc.closed = true
 	return nil
 }
 
@@ -132,6 +134,17 @@ func TestCursor(t *testing.T) {
 			for index, doc := range docs {
 				require.Equal(t, doc, bson.D{{"foo", int32(index)}})
 			}
+		})
+
+		t.Run("cursor is closed after All is called", func(t *testing.T) {
+			var docs []bson.D
+
+			tbc := newTestBatchCursor(1, 5)
+			cursor, err := newCursor(tbc, nil)
+			err = cursor.All(context.Background(), &docs)
+
+			require.Nil(t, err)
+			require.True(t, tbc.closed)
 		})
 	})
 }
