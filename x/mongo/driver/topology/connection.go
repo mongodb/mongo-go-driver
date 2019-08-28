@@ -45,6 +45,8 @@ type connection struct {
 	compressor       wiremessage.CompressorID
 	zliblevel        int
 	connected        int32 // must be accessed using the sync/atomic package
+	connectChan      chan error
+	config           *connectionConfig
 
 	// pool related fields
 	pool       *pool
@@ -52,25 +54,11 @@ type connection struct {
 	generation uint64
 }
 
-// newConnection handles the creation of a connection. It will dial, configure TLS, and perform
-// initialization handshakes.
+// newConnection handles the creation of a connection. It does not connect the connection.
 func newConnection(ctx context.Context, addr address.Address, opts ...ConnectionOption) (*connection, error) {
 	cfg, err := newConnectionConfig(opts...)
 	if err != nil {
 		return nil, err
-	}
-
-	nc, err := cfg.dialer.DialContext(ctx, addr.Network(), addr.String())
-	if err != nil {
-		return nil, ConnectionError{Wrapped: err, init: true}
-	}
-
-	if cfg.tlsConfig != nil {
-		tlsConfig := cfg.tlsConfig.Clone()
-		nc, err = configureTLS(ctx, nc, addr, tlsConfig)
-		if err != nil {
-			return nil, ConnectionError{Wrapped: err, init: true}
-		}
 	}
 
 	var lifetimeDeadline time.Time
@@ -82,32 +70,65 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 
 	c := &connection{
 		id:               id,
-		nc:               nc,
 		addr:             addr,
 		idleTimeout:      cfg.idleTimeout,
 		lifetimeDeadline: lifetimeDeadline,
 		readTimeout:      cfg.readTimeout,
 		writeTimeout:     cfg.writeTimeout,
+		connectChan:      make(chan error, 1),
+		config:           cfg,
 	}
-	atomic.StoreInt32(&c.connected, connected)
+	atomic.StoreInt32(&c.connected, initialized)
+
+	return c, nil
+}
+
+// connect handles the I/O for a connection. It will dial, configure TLS, and perform
+// initialization handshakes.
+func (c *connection) connect(ctx context.Context) {
+	if !atomic.CompareAndSwapInt32(&c.connected, initialized, connected) {
+		return
+	}
+	var err error
+	c.nc, err = c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
+	if err != nil {
+		atomic.StoreInt32(&c.connected, disconnected)
+		c.connectChan <- ConnectionError{Wrapped: err, init: true}
+		close(c.connectChan)
+		return
+	}
+
+	if c.config.tlsConfig != nil {
+		tlsConfig := c.config.tlsConfig.Clone()
+		c.nc, err = configureTLS(ctx, c.nc, c.addr, tlsConfig)
+		if err != nil {
+			atomic.StoreInt32(&c.connected, disconnected)
+			c.connectChan <- ConnectionError{Wrapped: err, init: true}
+			close(c.connectChan)
+			return
+		}
+	}
 
 	c.bumpIdleDeadline()
 
 	// running isMaster and authentication is handled by a handshaker on the configuration instance.
-	if cfg.handshaker != nil {
-		c.desc, err = cfg.handshaker.Handshake(ctx, c.addr, initConnection{c})
+	if c.config.handshaker != nil {
+		c.desc, err = c.config.handshaker.Handshake(ctx, c.addr, initConnection{c})
 		if err != nil {
 			if c.nc != nil {
 				_ = c.nc.Close()
 			}
-			return nil, ConnectionError{Wrapped: err, init: true}
+			atomic.StoreInt32(&c.connected, disconnected)
+			c.connectChan <- ConnectionError{Wrapped: err, init: true}
+			close(c.connectChan)
+			return
 		}
-		if cfg.descCallback != nil {
-			cfg.descCallback(c.desc)
+		if c.config.descCallback != nil {
+			c.config.descCallback(c.desc)
 		}
 		if len(c.desc.Compression) > 0 {
 		clientMethodLoop:
-			for _, method := range cfg.compressors {
+			for _, method := range c.config.compressors {
 				for _, serverMethod := range c.desc.Compression {
 					if method != serverMethod {
 						continue
@@ -119,8 +140,8 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 					case "zlib":
 						c.compressor = wiremessage.CompressorZLib
 						c.zliblevel = wiremessage.DefaultZlibLevel
-						if cfg.zlibLevel != nil {
-							c.zliblevel = *cfg.zlibLevel
+						if c.config.zlibLevel != nil {
+							c.zliblevel = *c.config.zlibLevel
 						}
 					}
 					break clientMethodLoop
@@ -128,7 +149,9 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 			}
 		}
 	}
-	return c, nil
+
+	c.connectChan <- nil
+	close(c.connectChan)
 }
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {

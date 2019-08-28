@@ -45,12 +45,19 @@ func TestConnection(t *testing.T) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
 			})
+		})
+		t.Run("connect", func(t *testing.T) {
 			t.Run("dialer error", func(t *testing.T) {
 				err := errors.New("dialer error")
 				var want error = ConnectionError{Wrapped: err}
-				_, got := newConnection(context.Background(), address.Address(""), WithDialer(func(Dialer) Dialer {
+				conn, got := newConnection(context.Background(), address.Address(""), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))
+				if got != nil {
+					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
+				}
+				conn.connect(context.Background())
+				got = <-conn.connectChan
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
@@ -58,7 +65,7 @@ func TestConnection(t *testing.T) {
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")
 				var want error = ConnectionError{Wrapped: err}
-				_, got := newConnection(context.Background(), address.Address(""),
+				conn, got := newConnection(context.Background(), address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return HandshakerFunc(func(context.Context, address.Address, driver.Connection) (description.Server, error) {
 							return description.Server{}, err
@@ -70,6 +77,11 @@ func TestConnection(t *testing.T) {
 						})
 					}),
 				)
+				if got != nil {
+					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
+				}
+				conn.connect(context.Background())
+				got = <-conn.connectChan
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
@@ -77,7 +89,7 @@ func TestConnection(t *testing.T) {
 			t.Run("calls description callback", func(t *testing.T) {
 				want := description.Server{Addr: address.Address("1.2.3.4:56789")}
 				var got description.Server
-				_, err := newConnection(context.Background(), address.Address(""),
+				conn, err := newConnection(context.Background(), address.Address(""),
 					withServerDescriptionCallback(func(desc description.Server) { got = desc },
 						WithHandshaker(func(Handshaker) Handshaker {
 							return HandshakerFunc(func(context.Context, address.Address, driver.Connection) (description.Server, error) {
@@ -91,6 +103,9 @@ func TestConnection(t *testing.T) {
 						}),
 					)...,
 				)
+				noerr(t, err)
+				conn.connect(context.Background())
+				err = <-conn.connectChan
 				noerr(t, err)
 				if !cmp.Equal(got, want) {
 					t.Errorf("Server descriptions do not match. got %v; want %v", got, want)
