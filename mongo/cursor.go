@@ -167,6 +167,8 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	var index int
 	var err error
 
+	defer c.Close(ctx)
+
 	batch := c.batch // exhaust the current batch before iterating the batch cursor
 	for {
 		sliceVal, index, err = c.addFromBatch(sliceVal, elementType, batch, index)
