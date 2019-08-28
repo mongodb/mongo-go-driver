@@ -125,6 +125,9 @@ func (p *pool) connectionInitFunc() interface{} {
 	if err != nil {
 		return nil
 	}
+
+	go c.connect(context.Background())
+
 	return c
 }
 
@@ -321,6 +324,24 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 
 	connVal := p.conns.Get()
 	if c, ok := connVal.(*connection); ok && connVal != nil {
+		// call connect if not connected
+		if atomic.LoadInt32(&c.connected) == initialized {
+			c.connect(ctx)
+		}
+
+		// wait for conn to be connected
+		err, _ := <-c.connectChan
+		if err != nil {
+			if p.monitor != nil {
+				p.monitor.Event(&event.PoolEvent{
+					Type:    event.GetFailed,
+					Address: p.address.String(),
+					Reason:  event.ReasonConnectionErrored,
+				})
+			}
+			return nil, err
+		}
+
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.GetSucceeded,
@@ -343,6 +364,21 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		return nil, ctx.Err()
 	default:
 		c, reason, err := p.makeNewConnection(ctx)
+
+		if err != nil {
+			if p.monitor != nil {
+				p.monitor.Event(&event.PoolEvent{
+					Type:    event.GetFailed,
+					Address: p.address.String(),
+					Reason:  reason,
+				})
+			}
+			return nil, err
+		}
+
+		c.connect(ctx)
+		// wait for conn to be connected
+		err = <-c.connectChan
 		if err != nil {
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{

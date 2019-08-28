@@ -58,6 +58,7 @@ const (
 	disconnecting
 	connected
 	connecting
+	initialized
 )
 
 func connectionStateString(state int32) string {
@@ -70,6 +71,8 @@ func connectionStateString(state int32) string {
 		return "Connected"
 	case 3:
 		return "Connecting"
+	case 4:
+		return "Initialized"
 	}
 
 	return ""
@@ -493,6 +496,11 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 			}))
 
 			conn, err = newConnection(ctx, s.address, opts...)
+
+			conn.connect(ctx)
+
+			// wait for conn to be connected
+			err, _ := <-conn.connectChan
 			if err == nil {
 				descPtr = &conn.desc
 			}
