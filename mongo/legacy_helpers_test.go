@@ -24,6 +24,12 @@ import (
 
 // temporary file to hold test helpers as we are porting tests to the new integration testing framework.
 
+var wcMajority = writeconcern.New(writeconcern.WMajority())
+
+var doc1 = bsonx.Doc{
+	{"x", bsonx.Int32(1)},
+}
+
 func createTestClient(t *testing.T) *Client {
 	id, _ := uuid.New()
 	return &Client{
@@ -99,4 +105,22 @@ func initCollection(t *testing.T, coll *Collection) {
 
 	_, err := coll.InsertMany(ctx, docs)
 	require.Nil(t, err)
+}
+
+func skipIfBelow36(t *testing.T) {
+	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
+	require.NoError(t, err, "unable to get server version of database")
+
+	if compareVersions(t, serverVersion, "3.6") < 0 {
+		t.Skip()
+	}
+}
+
+func skipIfBelow32(t *testing.T) {
+	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
+	require.NoError(t, err)
+
+	if compareVersions(t, serverVersion, "3.2") < 0 {
+		t.Skip()
+	}
 }
