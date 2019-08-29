@@ -161,12 +161,17 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) error {
 	var server driver.Server
 	var conn driver.Connection
+	var err error
+
 	if server, cs.err = cs.client.topology.SelectServer(ctx, cs.selector); cs.err != nil {
 		return cs.Err()
 	}
 	if conn, cs.err = server.Connection(ctx); cs.err != nil {
 		return cs.Err()
 	}
+
+	defer conn.Close()
+
 	cs.aggregate.Deployment(driver.SingleConnectionDeployment{
 		C: conn,
 	})
@@ -204,12 +209,15 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 				break
 			}
 
-			server, err := cs.client.topology.SelectServer(ctx, cs.selector)
+			server, err = cs.client.topology.SelectServer(ctx, cs.selector)
 			if err != nil {
 				break
 			}
 
-			conn, err := server.Connection(ctx)
+			conn.Close()
+			conn, err = server.Connection(ctx)
+			defer conn.Close()
+
 			if err != nil {
 				break
 			}
