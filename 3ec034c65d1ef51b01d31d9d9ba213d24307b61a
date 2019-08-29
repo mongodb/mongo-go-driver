@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "aee97df4_91655eda",
+        "filename": "x/mongo/driver/topology/connection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-29T21:07:26Z",
+      "side": 1,
+      "message": "Why are we sending the error down the channel here? It seems like we\u0027re using the channel as a way to know if they connection has been connected and also if there was an error doing so. Perhaps it would be simpler to add an error property to the connection. The thing I\u0027m worried about is if there are two things listening on connect.Chan one of them will receive and error and the other will not. Perhaps that\u0027s not a use case we have right now but it seems like something we could have in the future.\n\nWe might also want to a wait method that encapsulates listening on this channel. That method could also return the error if there is one.",
+      "range": {
+        "startLine": 96,
+        "startChar": 2,
+        "endLine": 98,
+        "endChar": 8
+      },
+      "revId": "3ec034c65d1ef51b01d31d9d9ba213d24307b61a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8499880f_ab3e884a",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 333,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-29T21:07:26Z",
+      "side": 1,
+      "message": "We should be able to make this\n\n    err :\u003d \u003c-c.connectChan",
+      "range": {
+        "startLine": 333,
+        "startChar": 2,
+        "endLine": 333,
+        "endChar": 27
+      },
+      "revId": "3ec034c65d1ef51b01d31d9d9ba213d24307b61a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "906f3a73_ec258a35",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 502,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-29T21:07:26Z",
+      "side": 1,
+      "message": "Isn\u0027t connection.connect synchronous? We aren\u0027t waiting as much as we are retrieving the result.",
+      "range": {
+        "startLine": 502,
+        "startChar": 3,
+        "endLine": 502,
+        "endChar": 35
+      },
+      "revId": "3ec034c65d1ef51b01d31d9d9ba213d24307b61a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "97d4f454_d038b5c0",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 503,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-08-29T21:07:26Z",
+      "side": 1,
+      "message": "This can be\n\n    err :\u003d \u003c-conn.connectChan",
+      "range": {
+        "startLine": 503,
+        "startChar": 3,
+        "endLine": 503,
+        "endChar": 31
+      },
+      "revId": "3ec034c65d1ef51b01d31d9d9ba213d24307b61a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
