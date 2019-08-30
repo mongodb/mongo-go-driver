@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
@@ -60,12 +61,32 @@ type Session interface {
 	session()
 }
 
+// XSession is an unstable interface for internal use only. This interface is deprecated and is not part of the
+// stability guarantee. It may be removed at any time.
+type XSession interface {
+	ClientSession() *session.Client
+	ID() bsonx.Doc
+}
+
 // sessionImpl represents a set of sequential operations executed by an application that are related in some way.
 type sessionImpl struct {
 	clientSession       *session.Client
 	client              *Client
 	deployment          driver.Deployment
 	didCommitAfterStart bool // true if commit was called after start with no other operations
+}
+
+var _ Session = &sessionImpl{}
+var _ XSession = &sessionImpl{}
+
+// ClientSession implements the XSession interface.
+func (s *sessionImpl) ClientSession() *session.Client {
+	return s.clientSession
+}
+
+// ID implements the XSession interface.
+func (s *sessionImpl) ID() bsonx.Doc {
+	return s.clientSession.SessionID
 }
 
 // EndSession ends the session.
