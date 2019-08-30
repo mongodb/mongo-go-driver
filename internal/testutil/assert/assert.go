@@ -15,6 +15,14 @@ import (
 )
 
 var cmpOpts sync.Map
+var errorCompareFn = func(e1, e2 error) bool {
+	if e1 == nil || e2 == nil {
+		return e1 == nil && e2 == nil
+	}
+
+	return e1.Error() == e2.Error()
+}
+var errorCompareOpts = cmp.Options{cmp.Comparer(errorCompareFn)}
 
 // RegisterOpts registers go-cmp options for a type. These options will be used when comparing two objects for equality.
 func RegisterOpts(t reflect.Type, opts ...cmp.Option) {
@@ -74,10 +82,14 @@ func NotNil(t testing.TB, obj interface{}, msg string, args ...interface{}) {
 
 func getCmpOpts(obj interface{}) cmp.Options {
 	opts, ok := cmpOpts.Load(reflect.TypeOf(obj))
-	if !ok {
-		return nil
+	if ok {
+		return opts.(cmp.Options)
 	}
-	return opts.(cmp.Options)
+
+	if _, ok := obj.(error); ok {
+		return errorCompareOpts
+	}
+	return nil
 }
 
 func isNil(object interface{}) bool {
