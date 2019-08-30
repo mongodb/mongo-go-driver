@@ -81,6 +81,7 @@ type T struct {
 	minServerVersion string
 	maxServerVersion string
 	validTopologies  []TopologyKind
+	auth             *bool
 
 	// options copied to sub-tests
 	clientType  ClientType
@@ -506,6 +507,9 @@ func (t *T) shouldSkip() bool {
 		return true
 	}
 	if !matchesTopology(t.validTopologies) {
+		return true
+	}
+	if t.auth != nil && *t.auth != testContext.authEnabled {
 		return true
 	}
 
