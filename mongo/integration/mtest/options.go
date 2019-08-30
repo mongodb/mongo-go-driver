@@ -156,3 +156,12 @@ func (op *Options) Topologies(topos ...TopologyKind) *Options {
 	})
 	return op
 }
+
+// Auth specifies whether or not auth should be enabled for this test to run. By default, a test will run regardless
+// of whether or not auth is enabled.
+func (op *Options) Auth(auth bool) *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.auth = &auth
+	})
+	return op
+}
