@@ -303,12 +303,13 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 	t.createTestCollection()
 }
 
-// CreateCollection creates a new collection with the given options. The collection will be dropped after the test
-// finishes running. If createOnServer is true, the function ensures that the collection has been created server-side
-// by running the create command. The create command will appear in command monitoring channels.
-func (t *T) CreateCollection(name string, createOnServer bool, opts ...*options.CollectionOptions) *mongo.Collection {
+func (t *T) createCollection(name string, createOnServer bool, createOpts bson.D,
+	opts ...*options.CollectionOptions) *mongo.Collection {
+
 	if createOnServer && t.clientType != Mock {
 		cmd := bson.D{{"create", name}}
+		cmd = append(cmd, createOpts...)
+
 		if err := t.DB.RunCommand(Background, cmd).Err(); err != nil {
 			// ignore NamespaceExists errors for idempotency
 
@@ -322,6 +323,19 @@ func (t *T) CreateCollection(name string, createOnServer bool, opts ...*options.
 	coll := t.DB.Collection(name, opts...)
 	t.createdColls = append(t.createdColls, coll)
 	return coll
+}
+
+// CreateCollection creates a new collection with the given options. The collection will be dropped after the test
+// finishes running. If createOnServer is true, the function ensures that the collection has been created server-side
+// by running the create command. The create command will appear in command monitoring channels.
+func (t *T) CreateCollection(name string, createOnServer bool, opts ...*options.CollectionOptions) *mongo.Collection {
+	return t.createCollection(name, createOnServer, nil, opts...)
+}
+
+// CreateCollectionWithOptions behaves the same as CreateCollection but allows for extra options to be added to the
+// create command sent to the server via the createOpts parameter.
+func (t *T) CreateCollectionWithOptions(name string, createOpts bson.D, opts ...*options.CollectionOptions) *mongo.Collection {
+	return t.createCollection(name, true, createOpts, opts...)
 }
 
 // ClearCollections drops all collections previously created by this test.
