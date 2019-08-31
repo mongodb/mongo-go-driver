@@ -11,7 +11,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
@@ -43,4 +45,17 @@ func createTestClientWithConnstring(t *testing.T, cs connstring.ConnString) *Cli
 		clock:          &session.ClusterClock{},
 		registry:       bson.DefaultRegistry,
 	}
+}
+
+func createTestDatabase(t *testing.T, name *string, opts ...*options.DatabaseOptions) *Database {
+	if name == nil {
+		db := testutil.DBName(t)
+		name = &db
+	}
+
+	client := createTestClient(t)
+
+	dbOpts := []*options.DatabaseOptions{options.Database().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))}
+	dbOpts = append(dbOpts, opts...)
+	return client.Database(*name, dbOpts...)
 }
