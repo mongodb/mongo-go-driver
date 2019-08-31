@@ -14,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
@@ -24,6 +25,7 @@ func TestMain(m *testing.M) {
 	}))
 	assert.RegisterOpts(reflect.TypeOf(&readconcern.ReadConcern{}), cmp.AllowUnexported(readconcern.ReadConcern{}))
 	assert.RegisterOpts(reflect.TypeOf(&writeconcern.WriteConcern{}), cmp.AllowUnexported(writeconcern.WriteConcern{}))
+	assert.RegisterOpts(reflect.TypeOf(&readpref.ReadPref{}), cmp.AllowUnexported(readpref.ReadPref{}))
 
 	os.Exit(m.Run())
 }
