@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b58405bc_2b352c41",
+        "filename": "bson/truncation_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-03T18:18:22Z",
+      "side": 1,
+      "message": "nit: this line and the one below it should be grouped together in alphabetical order.",
+      "range": {
+        "startLine": 6,
+        "startChar": 2,
+        "endLine": 6,
+        "endChar": 4
+      },
+      "revId": "1f4487846776d27046bb9e5cb8ac206be1628b81",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9b201218_3b00e942",
+        "filename": "bson/truncation_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-03T18:18:22Z",
+      "side": 1,
+      "message": "We\u0027re trying to set things up as sub-tests so this should be written as:\n\nfunc TestTruncation(t *testing.T) {\n    t.Run(\"truncate\", func(t *testing.T) {\n        // test for truncate \u003d true\n    }\n    t.Run(\"no truncate\", func(t *testing.T) {\n        // test for truncate \u003d false\n    }\n}",
+      "range": {
+        "startLine": 21,
+        "startChar": 5,
+        "endLine": 21,
+        "endChar": 19
+      },
+      "revId": "1f4487846776d27046bb9e5cb8ac206be1628b81",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
