@@ -87,8 +87,8 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	}
 
 	cs.sess = sessionFromContext(ctx)
-	if cs.sess == nil && cs.client.topology.SessionPool != nil {
-		cs.sess, cs.err = session.NewClientSession(cs.client.topology.SessionPool, cs.client.id, session.Implicit)
+	if cs.sess == nil && cs.client.sessionPool != nil {
+		cs.sess, cs.err = session.NewClientSession(cs.client.sessionPool, cs.client.id, session.Implicit)
 		if cs.err != nil {
 			return nil, cs.Err()
 		}
@@ -100,7 +100,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cs.aggregate = operation.NewAggregate(nil).
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
-		Deployment(cs.client.topology).ClusterClock(cs.client.clock).
+		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone)
 
 	if cs.options.Collation != nil {
@@ -161,7 +161,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) error {
 	var server driver.Server
 	var conn driver.Connection
-	if server, cs.err = cs.client.topology.SelectServer(ctx, cs.selector); cs.err != nil {
+	if server, cs.err = cs.client.deployment.SelectServer(ctx, cs.selector); cs.err != nil {
 		return cs.Err()
 	}
 	if conn, cs.err = server.Connection(ctx); cs.err != nil {
@@ -204,7 +204,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 				break
 			}
 
-			server, err := cs.client.topology.SelectServer(ctx, cs.selector)
+			server, err := cs.client.deployment.SelectServer(ctx, cs.selector)
 			if err != nil {
 				break
 			}
@@ -433,7 +433,7 @@ func (cs *ChangeStream) Close(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	closeImplicitSession(cs.sess)
+	defer closeImplicitSession(cs.sess)
 
 	if cs.cursor == nil {
 		return nil // cursor is already closed

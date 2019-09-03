@@ -41,8 +41,6 @@ func createTestDatabase(t *testing.T, name *string, opts ...*options.DatabaseOpt
 }
 
 func TestDatabase_initialize(t *testing.T) {
-	t.Parallel()
-
 	name := "foo"
 
 	db := createTestDatabase(t, &name)
@@ -110,8 +108,6 @@ func TestDatabase_InheritOptions(t *testing.T) {
 }
 
 func TestDatabase_ReplaceTopologyError(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip()
 	}
@@ -134,8 +130,6 @@ func TestDatabase_ReplaceTopologyError(t *testing.T) {
 }
 
 func TestDatabase_RunCommand(t *testing.T) {
-	t.Parallel()
-
 	db := createTestDatabase(t, nil)
 
 	var result bsonx.Doc
@@ -154,8 +148,6 @@ func TestDatabase_RunCommand(t *testing.T) {
 }
 
 func TestDatabase_RunCommand_DecodeStruct(t *testing.T) {
-	t.Parallel()
-
 	db := createTestDatabase(t, nil)
 
 	result := struct {
@@ -170,8 +162,6 @@ func TestDatabase_RunCommand_DecodeStruct(t *testing.T) {
 }
 
 func TestDatabase_NilDocumentError(t *testing.T) {
-	t.Parallel()
-
 	db := createTestDatabase(t, nil)
 
 	err := db.RunCommand(context.Background(), nil).Err()
@@ -188,8 +178,6 @@ func TestDatabase_NilDocumentError(t *testing.T) {
 }
 
 func TestDatabase_Drop(t *testing.T) {
-	t.Parallel()
-
 	name := "TestDatabase_Drop"
 
 	db := createTestDatabase(t, &name)

@@ -73,6 +73,19 @@ functions:
            go version
            go env
 
+           if [ "Windows_NT" = "$OS" ]; then
+              mkdir -p c:/libmongocrypt/include
+              mkdir -p c:/libmongocrypt/bin
+              curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows-test/master/latest/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
+              tar -xvzf libmongocrypt.tar.gz
+              cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
+              cp ./include/mongocrypt/*.h c:/libmongocrypt/include
+              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+           else
+              git clone https://github.com/mongodb/libmongocrypt
+              ./libmongocrypt/.evergreen/compile.sh
+           fi
+
            cat <<EOT > expansion.yml
            CURRENT_VERSION: "$CURRENT_VERSION"
            DRIVERS_TOOLS: "$DRIVERS_TOOLS"
@@ -94,6 +107,8 @@ functions:
               export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
               export PATH="$PATH"
               export PROJECT="$PROJECT"
+              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
+              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
            EOT
            # See what we've done
            cat expansion.yml
@@ -241,8 +256,18 @@ functions:
               fi
           fi
 
-          AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} make evg-test
-
+          set +o xtrace
+          AUTH=${AUTH} \
+          SSL=${SSL} \
+          MONGODB_URI="${MONGODB_URI}" \
+          TOPOLOGY=${TOPOLOGY} \
+          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
+          BUILD_TAGS="-tags cse" \
+          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
+          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
+          make evg-test \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
   send-perf-data:
    - command: json.send
@@ -749,6 +774,14 @@ tasks:
     - name: "atlas-test"
       commands:
         - func: "run-atlas-test"
+
+    - name: go1.10-build-cse
+      tags: ["compile-check"]
+      commands:
+        - func: run-make
+          vars:
+            targets: "build-cse"
+            BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
 
 axes:
   - id: version

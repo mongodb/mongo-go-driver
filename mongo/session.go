@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 // ErrWrongClient is returned when a user attempts to pass in a session created by a different client than
@@ -65,7 +64,7 @@ type Session interface {
 type sessionImpl struct {
 	clientSession       *session.Client
 	client              *Client
-	topo                *topology.Topology
+	deployment          driver.Deployment
 	didCommitAfterStart bool // true if commit was called after start with no other operations
 }
 
@@ -185,14 +184,14 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
 
 	s.clientSession.Aborting = true
-	err = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
-		Deployment(s.topo).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
+	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
+		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
 		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).Execute(ctx)
 
 	s.clientSession.Aborting = false
 	_ = s.clientSession.AbortTransaction()
 
-	return replaceErrors(err)
+	return nil
 }
 
 // CommitTransaction commits the sesson's transaction.
@@ -216,7 +215,7 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 
 	s.clientSession.Committing = true
 	op := operation.NewCommitTransaction().
-		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.topo).
+		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
 		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken))
 	if s.clientSession.CurrentMct != nil {

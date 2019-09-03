@@ -36,6 +36,15 @@ func ExampleClient_Connect() {
 
 func TestClient(t *testing.T) {
 	t.Run("Can configure LocalThreshold", func(t *testing.T) {
+		t.Run("Should have default LocalThreshold set", func(t *testing.T) {
+			client := new(Client)
+			err := client.configure(options.Client())
+			noerr(t, err)
+			want, got := defaultLocalThreshold, client.localThreshold
+			if got != want {
+				t.Errorf("Default LocalThreshold not set on client. got %v; want %v", got, want)
+			}
+		})
 		opts := options.Client().SetLocalThreshold(10 * time.Second)
 		client := new(Client)
 		err := client.configure(opts)

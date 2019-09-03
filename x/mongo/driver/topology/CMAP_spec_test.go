@@ -58,8 +58,8 @@ type simThread struct {
 
 type testInfo struct {
 	objects                map[string]interface{}
-	originalEventChan      chan event.PoolEvent
-	finalEventChan         chan event.PoolEvent
+	originalEventChan      chan *event.PoolEvent
+	finalEventChan         chan *event.PoolEvent
 	threads                map[string]*simThread
 	backgroundThreadErrors chan error
 	eventCounts            map[string]uint64
@@ -90,8 +90,8 @@ func runCMAPTest(t *testing.T, testFileName string) {
 
 	testInfo := &testInfo{
 		objects:                make(map[string]interface{}),
-		originalEventChan:      make(chan event.PoolEvent, 200),
-		finalEventChan:         make(chan event.PoolEvent, 200),
+		originalEventChan:      make(chan *event.PoolEvent, 200),
+		finalEventChan:         make(chan *event.PoolEvent, 200),
 		threads:                make(map[string]*simThread),
 		eventCounts:            make(map[string]uint64),
 		backgroundThreadErrors: make(chan error, 100),
@@ -110,10 +110,8 @@ func runCMAPTest(t *testing.T, testFileName string) {
 		WithConnectionPoolMaxIdleTime(func(duration time.Duration) time.Duration {
 			return time.Duration(test.PoolOptions.MaxIdleTimeMS) * time.Millisecond
 		}),
-		WithConnectionPoolMonitor(func(monitor event.PoolMonitor) event.PoolMonitor {
-			return func(event event.PoolEvent) {
-				testInfo.originalEventChan <- event
-			}
+		WithConnectionPoolMonitor(func(monitor *event.PoolMonitor) *event.PoolMonitor {
+			return &event.PoolMonitor{func(event *event.PoolEvent) { testInfo.originalEventChan <- event }}
 		}))
 	testHelpers.RequireNil(t, err, "error creating server: %v", err)
 	s.connectionstate = connected
@@ -184,7 +182,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 
 }
 
-func checkEvents(t *testing.T, expectedEvents []cmapEvent, actualEvents chan event.PoolEvent, ignoreEvents []string) {
+func checkEvents(t *testing.T, expectedEvents []cmapEvent, actualEvents chan *event.PoolEvent, ignoreEvents []string) {
 	for _, expectedEvent := range expectedEvents {
 		validEvent := nextValidEvent(t, actualEvents, ignoreEvents)
 
@@ -265,7 +263,7 @@ EventsLeft:
 	}
 }
 
-func nextValidEvent(t *testing.T, events chan event.PoolEvent, ignoreEvents []string) event.PoolEvent {
+func nextValidEvent(t *testing.T, events chan *event.PoolEvent, ignoreEvents []string) *event.PoolEvent {
 	t.Helper()
 NextEvent:
 	for {

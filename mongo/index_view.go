@@ -61,9 +61,9 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && iv.coll.client.topology.SessionPool != nil {
+	if sess == nil && iv.coll.client.sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(iv.coll.client.topology.SessionPool, iv.coll.client.id, session.Implicit)
+		sess, err = session.NewClientSession(iv.coll.client.sessionPool, iv.coll.client.id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
@@ -75,15 +75,16 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		return nil, err
 	}
 
-	readSelector := description.CompositeSelector([]description.ServerSelector{
+	selector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(readpref.Primary()),
 		description.LatencySelector(iv.coll.client.localThreshold),
 	})
+	selector = makeReadPrefSelector(sess, selector, iv.coll.client.localThreshold)
 	op := operation.NewListIndexes().
 		Session(sess).CommandMonitor(iv.coll.client.monitor).
-		ServerSelector(readSelector).ClusterClock(iv.coll.client.clock).
+		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
-		Deployment(iv.coll.client.topology)
+		Deployment(iv.coll.client.deployment)
 
 	var cursorOpts driver.CursorOptions
 	lio := options.MergeListIndexesOptions(opts...)
@@ -184,8 +185,8 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 	sess := sessionFromContext(ctx)
 
-	if sess == nil && iv.coll.client.topology.SessionPool != nil {
-		sess, err = session.NewClientSession(iv.coll.client.topology.SessionPool, iv.coll.client.id, session.Implicit)
+	if sess == nil && iv.coll.client.sessionPool != nil {
+		sess, err = session.NewClientSession(iv.coll.client.sessionPool, iv.coll.client.id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
@@ -197,17 +198,14 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		return nil, err
 	}
 
-	selector := iv.coll.writeSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
 	option := options.MergeCreateIndexesOptions(opts...)
 
 	op := operation.NewCreateIndexes(indexes).
 		Session(sess).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
-		Deployment(iv.coll.client.topology).ServerSelector(selector)
+		Deployment(iv.coll.client.deployment).ServerSelector(selector)
 
 	if option.MaxTime != nil {
 		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
@@ -310,9 +308,9 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && iv.coll.client.topology.SessionPool != nil {
+	if sess == nil && iv.coll.client.sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(iv.coll.client.topology.SessionPool, iv.coll.client.id, session.Implicit)
+		sess, err = session.NewClientSession(iv.coll.client.sessionPool, iv.coll.client.id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
@@ -332,17 +330,14 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 		sess = nil
 	}
 
-	selector := iv.coll.writeSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
 	dio := options.MergeDropIndexesOptions(opts...)
 	op := operation.NewDropIndexes(name).
 		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
-		Deployment(iv.coll.client.topology)
+		Deployment(iv.coll.client.deployment)
 	if dio.MaxTime != nil {
 		op.MaxTimeMS(int64(*dio.MaxTime / time.Millisecond))
 	}

@@ -7,18 +7,15 @@
 package mongo
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
-	"testing"
-
-	"context"
-
-	"strings"
-	"time"
-
-	"bytes"
 	"os"
 	"path"
+	"strings"
+	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
@@ -33,6 +30,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -49,9 +47,9 @@ type transTestFile struct {
 }
 
 type runOn struct {
-	MinServerVersion string   `json:"minServerVersion"`
-	MaxServerVersion string   `json:"maxServerVersion"`
-	Topology         []string `json:"topology"`
+	MinServerVersion string   `json:"minServerVersion" bson:"minServerVersion"`
+	MaxServerVersion string   `json:"maxServerVersion" bson:"maxServerVersion"`
+	Topology         []string `json:"topology" bson:"topology"`
 }
 
 type transTestCase struct {
@@ -365,7 +363,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 func killSessions(t *testing.T, client *Client) {
 	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendArrayElement(nil, "killAllSessions", bsoncore.BuildArray(nil)))).
-		Database("admin").ServerSelector(description.WriteSelector()).Deployment(client.topology).Execute(context.Background())
+		Database("admin").ServerSelector(description.WriteSelector()).Deployment(client.deployment).Execute(context.Background())
 	require.NoError(t, err)
 }
 
@@ -396,7 +394,7 @@ func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonit
 		cs.Hosts = []string{host}
 	}
 	c := &Client{
-		topology:       createMonitoredTopology(t, clock, monitor, &cs),
+		deployment:     createMonitoredTopology(t, clock, monitor, &cs),
 		connString:     cs,
 		readPreference: readpref.Primary(),
 		clock:          clock,
@@ -405,9 +403,9 @@ func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonit
 	}
 	addClientOptions(c, opts)
 
-	subscription, err := c.topology.Subscribe()
+	subscription, err := c.deployment.(driver.Subscriber).Subscribe()
 	testhelpers.RequireNil(t, err, "error subscribing to topology: %s", err)
-	c.topology.SessionPool = session.NewPool(subscription.C)
+	c.sessionPool = session.NewPool(subscription.Updates)
 
 	return c
 }

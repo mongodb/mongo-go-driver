@@ -25,6 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -92,12 +93,14 @@ type ClientOptions struct {
 	WriteConcern           *writeconcern.WriteConcern
 	ZlibLevel              *int
 	ZstdLevel              *int
+	AutoEncryptionOptions  *AutoEncryptionOptions
 
 	err error
 
-	// Adds an option for internal use only and should not be set. This option is deprecated and is
-	// not part of the stability guarantee. It may be removed in the future.
+	// These options are for internal use only and should not be set. They are deprecated and are
+	// not part of the stability guarantee. They may be removed in the future.
 	AuthenticateToAnything *bool
+	Deployment             driver.Deployment
 }
 
 // Client creates a new ClientOptions instance.
@@ -459,7 +462,12 @@ func (c *ClientOptions) SetZlibLevel(level int) *ClientOptions {
 // SetZstdLevel sets the level for the zstd compressor.
 func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
 	c.ZstdLevel = &level
+	return c
+}
 
+// SetAutoEncryptionOptions specifies options used to configure automatic encryption.
+func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *ClientOptions {
+	c.AutoEncryptionOptions = opts
 	return c
 }
 
@@ -554,6 +562,12 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.ZstdLevel != nil {
 			c.ZstdLevel = opt.ZstdLevel
+		}
+		if opt.AutoEncryptionOptions != nil {
+			c.AutoEncryptionOptions = opt.AutoEncryptionOptions
+		}
+		if opt.Deployment != nil {
+			c.Deployment = opt.Deployment
 		}
 		if opt.err != nil {
 			c.err = opt.err
