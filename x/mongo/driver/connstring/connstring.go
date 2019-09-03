@@ -86,8 +86,10 @@ type ConnString struct {
 	WNumber                            int
 	WNumberSet                         bool
 	Username                           string
-	ZlibLevel                          *int
-	ZstdLevel                          *int
+	ZlibLevel                          int
+	ZlibLevelSet                       bool
+	ZstdLevel                          int
+	ZstdLevelSet                       bool
 
 	WTimeout              time.Duration
 	WTimeoutSet           bool
@@ -647,7 +649,8 @@ func (p *parser) addOption(pair string) error {
 		if level == -1 {
 			level = wiremessage.DefaultZlibLevel
 		}
-		p.ZlibLevel = &level
+		p.ZlibLevel = level
+		p.ZlibLevelSet = true
 	case "zstdcompressionlevel":
 		const maxZstdLevel = 22 // https://github.com/facebook/zstd/blob/a880ca239b447968493dd2fed3850e766d6305cc/contrib/linux-kernel/lib/zstd/compress.c#L3291
 		level, err := strconv.Atoi(value)
@@ -658,7 +661,8 @@ func (p *parser) addOption(pair string) error {
 		if level == -1 {
 			level = wiremessage.DefaultZstdLevel
 		}
-		p.ZstdLevel = &level
+		p.ZstdLevel = level
+		p.ZstdLevelSet = true
 	default:
 		if p.UnknownOptions == nil {
 			p.UnknownOptions = make(map[string][]string)

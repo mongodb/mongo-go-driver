@@ -525,10 +525,10 @@ func TestCompressionOptions(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, tc.compressors, cs.Compressors)
 				if tc.zlibLevel != 0 {
-					assert.Equal(t, tc.zlibLevel, *cs.ZlibLevel)
+					assert.Equal(t, tc.zlibLevel, cs.ZlibLevel)
 				}
 				if tc.zstdLevel != 0 {
-					assert.Equal(t, tc.zstdLevel, *cs.ZstdLevel)
+					assert.Equal(t, tc.zstdLevel, cs.ZstdLevel)
 				}
 			}
 		})

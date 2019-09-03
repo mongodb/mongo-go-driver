@@ -560,7 +560,7 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 	}
 
 	// decompress wiremessage
-	wm, err = decompressWireMessage(wm)
+	wm, err = op.decompressWireMessage(wm)
 	if err != nil {
 		return nil, err
 	}
@@ -590,7 +590,7 @@ func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, w
 
 // decompressWireMessage handles decompressing a wiremessage. If the wiremessage
 // is not compressed, this method will return the wiremessage.
-func decompressWireMessage(wm []byte) ([]byte, error) {
+func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	// read the header and ensure this is a compressed wire message
 	length, reqid, respto, opcode, rem, ok := wiremessage.ReadHeader(wm)
 	if !ok || len(wm) < int(length) {

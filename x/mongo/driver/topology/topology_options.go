@@ -208,11 +208,11 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 				switch comp {
 				case "zlib":
 					connOpts = append(connOpts, WithZlibLevel(func(level *int) *int {
-						return cs.ZlibLevel
+						return &cs.ZlibLevel
 					}))
 				case "zstd":
 					connOpts = append(connOpts, WithZstdLevel(func(level *int) *int {
-						return cs.ZstdLevel
+						return &cs.ZstdLevel
 					}))
 				}
 			}

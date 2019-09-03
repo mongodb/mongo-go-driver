@@ -29,10 +29,16 @@ func TestCompression(t *testing.T) {
 				UncompressedSize: int32(len(payload)),
 			}
 			compressed, err := CompressPlayoad([]byte(payload), opts)
-			require.NoError(t, err)
+			if err != nil {
+				require.Contains(t, err.Error(), "support requires cgo")
+				return
+			}
 			assert.NotEqual(t, 0, len(compressed))
 			decompressed, err := DecompressPayload(compressed, opts)
-			require.NoError(t, err)
+			if err != nil {
+				require.Contains(t, err.Error(), "support requires cgo")
+				return
+			}
 			assert.EqualValues(t, payload, decompressed)
 		})
 	}

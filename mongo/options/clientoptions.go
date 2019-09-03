@@ -164,12 +164,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 			c.ZstdLevel = &defaultLevel
 		}
 	}
-	if cs.ZlibLevel != nil {
-		c.ZlibLevel = cs.ZlibLevel
-	}
-	if cs.ZstdLevel != nil {
-		c.ZstdLevel = cs.ZstdLevel
-	}
 
 	if cs.HeartbeatIntervalSet {
 		c.HeartbeatInterval = &cs.HeartbeatInterval
@@ -294,6 +288,13 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		}
 
 		c.WriteConcern = writeconcern.New(opts...)
+	}
+
+	if cs.ZlibLevelSet {
+		c.ZlibLevel = &cs.ZlibLevel
+	}
+	if cs.ZstdLevelSet {
+		c.ZstdLevel = &cs.ZstdLevel
 	}
 
 	return c
