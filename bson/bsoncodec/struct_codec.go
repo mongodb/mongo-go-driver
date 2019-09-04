@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
@@ -159,6 +160,8 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 			return err
 		}
 
+		// lowercase the element key because the field names in the struct description are all in lowercase
+		name = strings.ToLower(name)
 		fd, exists := sd.fm[name]
 		if !exists {
 			if sd.inlineMap < 0 {
