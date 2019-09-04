@@ -22,6 +22,30 @@
       "revId": "bc263b790d0adaa22a37fa36d8c16890f483369d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f504608d_0308745a",
+        "filename": "Gopkg.lock",
+        "patchSetId": 4
+      },
+      "lineNbr": 346,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-04T19:46:53Z",
+      "side": 1,
+      "message": "Seems like some of the FLE code is using it. Some of the dependencies we vendor like gogen and packr are using it as well. It probably showed up in the lock file because I ran \"dep ensure\" to get the cmpopts stuff.",
+      "parentUuid": "68abb054_61e5de8a",
+      "range": {
+        "startLine": 346,
+        "startChar": 3,
+        "endLine": 346,
+        "endChar": 28
+      },
+      "revId": "bc263b790d0adaa22a37fa36d8c16890f483369d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
