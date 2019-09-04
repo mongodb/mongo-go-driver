@@ -46,6 +46,30 @@
       "revId": "bc263b790d0adaa22a37fa36d8c16890f483369d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7462075b_d97e00c5",
+        "filename": "Gopkg.lock",
+        "patchSetId": 4
+      },
+      "lineNbr": 346,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-04T20:28:35Z",
+      "side": 1,
+      "message": "I filed https://jira.mongodb.org/browse/GODRIVER-1300 to remove the dependency from our code.",
+      "parentUuid": "f504608d_0308745a",
+      "range": {
+        "startLine": 346,
+        "startChar": 3,
+        "endLine": 346,
+        "endChar": 28
+      },
+      "revId": "bc263b790d0adaa22a37fa36d8c16890f483369d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
