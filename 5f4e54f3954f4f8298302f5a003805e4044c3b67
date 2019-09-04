@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "e7942bad_74ebd0bd",
+        "filename": "mongo/integration/collection_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-04T19:50:36Z",
+      "side": 1,
+      "message": "Every test here is taken from collection_internal_test. The only difference is that I made some of them table tests to reduce code. One of the scope goals was to port over tests without changing correctness or coverage so I don\u0027t think it makes sense to change the test organization in this patch (or even this project). For the time being, I\u0027d like to keep these here and maybe reorganize them in a later ticket/project.",
+      "parentUuid": "33e498c4_a280d052",
+      "revId": "5f4e54f3954f4f8298302f5a003805e4044c3b67",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0567db15_46601b6f",
         "filename": "mongo/integration/collection_test.go",
         "patchSetId": 2
@@ -30,6 +48,30 @@
       "writtenOn": "2019-09-04T18:27:36Z",
       "side": 1,
       "message": "Should this test still be here? Should we move it further down into the driver package?",
+      "range": {
+        "startLine": 91,
+        "startChar": 9,
+        "endLine": 91,
+        "endChar": 18
+      },
+      "revId": "5f4e54f3954f4f8298302f5a003805e4044c3b67",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "330c5c44_cab78b1a",
+        "filename": "mongo/integration/collection_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-04T19:50:36Z",
+      "side": 1,
+      "message": "Similar to my other comment - it might make sense to move this to the driver package given that\u0027s where the Batches abstraction is, but I think this is just meant to be an integration test to call InsertMany with a batch \u003e 16 MB. Moving it would violate scope goals and I think it\u0027s something best done in a later project.",
+      "parentUuid": "0567db15_46601b6f",
       "range": {
         "startLine": 91,
         "startChar": 9,
