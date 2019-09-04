@@ -81,6 +81,29 @@
       "revId": "5f4e54f3954f4f8298302f5a003805e4044c3b67",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ef835a87_197fa561",
+        "filename": "mongo/integration/collection_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 772,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-09-04T21:54:00Z",
+      "side": 1,
+      "message": "delete",
+      "range": {
+        "startLine": 765,
+        "startChar": 2,
+        "endLine": 772,
+        "endChar": 4
+      },
+      "revId": "5f4e54f3954f4f8298302f5a003805e4044c3b67",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
