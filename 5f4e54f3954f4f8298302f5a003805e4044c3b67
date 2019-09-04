@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "33e498c4_a280d052",
+        "filename": "mongo/integration/collection_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-09-04T18:27:36Z",
+      "side": 1,
+      "message": "This file has a lot of tests in it. I wonder if we can find a better format to declare the actual tests in and then generate the actual assertions from that? It feels very noisy and was difficult to code review, although it looks like these are the same tests we had before with the assertion library swapped out.",
+      "revId": "5f4e54f3954f4f8298302f5a003805e4044c3b67",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0567db15_46601b6f",
+        "filename": "mongo/integration/collection_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-09-04T18:27:36Z",
+      "side": 1,
+      "message": "Should this test still be here? Should we move it further down into the driver package?",
+      "range": {
+        "startLine": 91,
+        "startChar": 9,
+        "endLine": 91,
+        "endChar": 18
+      },
+      "revId": "5f4e54f3954f4f8298302f5a003805e4044c3b67",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
