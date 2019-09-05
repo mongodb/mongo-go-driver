@@ -161,6 +161,6 @@ func TestInvalid12BytesJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := "encoding/hex: invalid byte: U+007B '{'"
-	err := json.Unmarshal(b, &struct{}{})
+	err := json.Unmarshal(b, &struct{ ID ObjectID }{})
 	require.Equal(t, expected, err)
 }
