@@ -101,8 +101,7 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 	var err error
 	switch len(b) {
 	case 12:
-		_, err := hex.Decode(buf[:], b)
-		if err != nil {
+		if _, err := hex.Decode(buf[:], b); err != nil {
 			return err
 		}
 	default:
