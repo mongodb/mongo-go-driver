@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1e6d1375_45e1202e",
+        "filename": "mongo/integration/change_stream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-05T15:21:51Z",
+      "side": 1,
+      "message": "Whoops forgot to leave a comment on the CR to explain. TestReplaceRoot tests the same functionality as TestMissingResumeToken so I removed it. Both use an aggregation stage to remove the _id field and assert that Next() errors because the resume token is missing.",
+      "parentUuid": "b8b14557_b3cc97f4",
+      "revId": "2e4ee12c0c87409245a7ee9109c54f12c1598c3c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "179bae4f_9967f56c",
         "filename": "mongo/legacy_helpers_test.go",
         "patchSetId": 1
