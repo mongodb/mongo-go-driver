@@ -11,6 +11,7 @@ import (
 
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"time"
 
 	"github.com/stretchr/testify/require"
@@ -147,4 +148,19 @@ func TestCounterOverflow(t *testing.T) {
 	objectIDCounter = 0xFFFFFFFF
 	NewObjectID()
 	require.Equal(t, uint32(0), objectIDCounter)
+}
+
+func TestInvalid12BytesJSON(t *testing.T) {
+	p := map[string]interface{}{
+		"id": map[string]interface{}{
+			"$oid": 123,
+		},
+	}
+
+	b, err := json.Marshal(p)
+	require.NoError(t, err)
+
+	expected := "encoding/hex: invalid byte: U+007B '{'"
+	err := json.Unmarshal(b, &struct{}{})
+	require.Equal(t, expected, err)
 }

@@ -101,7 +101,10 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 	var err error
 	switch len(b) {
 	case 12:
-		copy(id[:], b)
+		_, err := hex.Decode(buf[:], b)
+		if err != nil {
+			return err
+		}
 	default:
 		// Extended JSON
 		var res interface{}
