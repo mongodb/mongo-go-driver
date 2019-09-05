@@ -57,7 +57,7 @@ func TestConnection(t *testing.T) {
 					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
 				}
 				conn.connect(context.Background())
-				got = conn.connectWait()
+				got = conn.wait()
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
@@ -81,7 +81,7 @@ func TestConnection(t *testing.T) {
 					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
 				}
 				conn.connect(context.Background())
-				got = conn.connectWait()
+				got = conn.wait()
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
@@ -105,7 +105,7 @@ func TestConnection(t *testing.T) {
 				)
 				noerr(t, err)
 				conn.connect(context.Background())
-				err = conn.connectWait()
+				err = conn.wait()
 				noerr(t, err)
 				if !cmp.Equal(got, want) {
 					t.Errorf("Server descriptions do not match. got %v; want %v", got, want)

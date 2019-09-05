@@ -3,12 +3,12 @@ package topology
 import (
 	"context"
 	"errors"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"net"
-
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 )
 
 func TestPool(t *testing.T) {
@@ -531,5 +531,41 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should not return connection to pool twice. got %d; want %d", p.conns.size, 1)
 			}
 		})
+		t.Run("close does not panic if expires before connected", func(t *testing.T) {
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+			d := newSleepDialer(&net.Dialer{})
+			pc := poolConfig{
+				Address:     address.Address(addr.String()),
+				MinPoolSize: 1,
+			}
+			maintainInterval = time.Second
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }),
+				WithLifeTimeout(func(time.Duration) time.Duration { return 10 * time.Millisecond }),
+			)
+			maintainInterval = time.Minute
+			noerr(t, err)
+			err = p.connect()
+			noerr(t, err)
+			_, err = p.get(context.Background())
+			noerr(t, err)
+		})
 	})
+}
+
+type sleepDialer struct {
+	Dialer
+}
+
+func newSleepDialer(d Dialer) *sleepDialer {
+	return &sleepDialer{d}
+}
+
+func (d *sleepDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	time.Sleep(5 * time.Second)
+	return d.Dialer.DialContext(ctx, network, address)
 }
