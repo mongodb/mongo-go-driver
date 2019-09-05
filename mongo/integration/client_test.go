@@ -330,4 +330,20 @@ func TestClient(t *testing.T) {
 			})
 		}
 	})
+	mt.RunOpts("unconnectable connection doesnt hang",
+		mtest.NewOptions().Topologies(mtest.ReplicaSet).Auth(true).CreateClient(false), func(mt *mtest.T) {
+			baseConnString := mt.ConnString()
+			// remove username/password from base conn string
+			revisedConnString := "mongodb://fakeUser:password@"
+			split := strings.Split(baseConnString, "@")
+
+			assert.Equal(t, 2, len(split), "expected 2 parts after split, got %v (connstring %v)", split, baseConnString)
+			revisedConnString += split[1]
+
+			unconnectedClientOpts := options.Client().ApplyURI(revisedConnString).SetMinPoolSize(1).SetConnectTimeout(1 * time.Second)
+			c, err := mongo.Connect(mtest.Background, unconnectedClientOpts)
+			defer c.Disconnect(mtest.Background)
+			err = c.Ping(mtest.Background, readpref.Primary())
+			assert.NotNil(mt, err, "expected error got nil")
+		})
 }
