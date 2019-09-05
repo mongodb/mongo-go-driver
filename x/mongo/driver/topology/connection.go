@@ -151,8 +151,10 @@ func (c *connection) connect(ctx context.Context) {
 	}
 }
 
-func (c *connection) connectWait() error {
-	<-c.connectDone
+func (c *connection) wait() error {
+	if c.connectDone != nil {
+		<-c.connectDone
+	}
 	return c.connectErr
 }
 
@@ -259,7 +261,11 @@ func (c *connection) close() error {
 		return nil
 	}
 	if c.pool == nil {
-		err := c.nc.Close()
+		var err error
+
+		if c.nc != nil {
+			err = c.nc.Close()
+		}
 		atomic.StoreInt32(&c.connected, disconnected)
 		return err
 	}

@@ -329,7 +329,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 			c.connect(ctx)
 		}
 
-		err := c.connectWait()
+		err := c.wait()
 		if err != nil {
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
@@ -377,7 +377,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 
 		c.connect(ctx)
 		// wait for conn to be connected
-		err = c.connectWait()
+		err = c.wait()
 		if err != nil {
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
@@ -410,9 +410,13 @@ func (p *pool) closeConnection(c *connection) error {
 	delete(p.opened, c.poolID)
 	p.Unlock()
 
+	// wait for connection to finish trying to connect
+	_ = c.wait()
+
 	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
 		return nil // We're closing an already closed connection
 	}
+
 	err := c.nc.Close()
 	if err != nil {
 		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to closeConnection net.Conn"}
