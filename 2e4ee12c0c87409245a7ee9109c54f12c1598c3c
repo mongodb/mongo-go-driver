@@ -22,6 +22,30 @@
       "revId": "2e4ee12c0c87409245a7ee9109c54f12c1598c3c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1e8d3da8_c32c5bc4",
+        "filename": "mongo/legacy_helpers_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-05T15:08:37Z",
+      "side": 1,
+      "message": "It\u0027s being referenced in change_stream_spec_test.go. I left it as-is to minimize code churn and that file will be deleted soon when the spec tests are cut over.",
+      "parentUuid": "179bae4f_9967f56c",
+      "range": {
+        "startLine": 28,
+        "startChar": 0,
+        "endLine": 30,
+        "endChar": 1
+      },
+      "revId": "2e4ee12c0c87409245a7ee9109c54f12c1598c3c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
