@@ -37,7 +37,7 @@ type connection struct {
 	nc               net.Conn // When nil, the connection is closed.
 	addr             address.Address
 	idleTimeout      time.Duration
-	idleDeadline     time.Time
+	idleDeadline     atomic.Value // Stores a time.Time
 	lifetimeDeadline time.Time
 	readTimeout      time.Duration
 	writeTimeout     time.Duration
@@ -87,6 +87,7 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform
 // initialization handshakes.
 func (c *connection) connect(ctx context.Context) {
+
 	if !atomic.CompareAndSwapInt32(&c.connected, initialized, connected) {
 		return
 	}
@@ -151,8 +152,10 @@ func (c *connection) connect(ctx context.Context) {
 	}
 }
 
-func (c *connection) connectWait() error {
-	<-c.connectDone
+func (c *connection) wait() error {
+	if c.connectDone != nil {
+		<-c.connectDone
+	}
 	return c.connectErr
 }
 
@@ -259,7 +262,11 @@ func (c *connection) close() error {
 		return nil
 	}
 	if c.pool == nil {
-		err := c.nc.Close()
+		var err error
+
+		if c.nc != nil {
+			err = c.nc.Close()
+		}
 		atomic.StoreInt32(&c.connected, disconnected)
 		return err
 	}
@@ -268,7 +275,9 @@ func (c *connection) close() error {
 
 func (c *connection) expired() bool {
 	now := time.Now()
-	if !c.idleDeadline.IsZero() && now.After(c.idleDeadline) {
+	idleVal := c.idleDeadline.Load()
+	idleDeadline, ok := idleVal.(time.Time)
+	if ok && now.After(idleDeadline) {
 		return true
 	}
 
@@ -281,7 +290,7 @@ func (c *connection) expired() bool {
 
 func (c *connection) bumpIdleDeadline() {
 	if c.idleTimeout > 0 {
-		c.idleDeadline = time.Now().Add(c.idleTimeout)
+		c.idleDeadline.Store(time.Now().Add(c.idleTimeout))
 	}
 }
 
