@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "b7dfb328_b20c5cd1",
+        "filename": "mongo/integration/collection_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-09-05T15:07:29Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e7942bad_74ebd0bd",
+      "revId": "5f4e54f3954f4f8298302f5a003805e4044c3b67",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0567db15_46601b6f",
         "filename": "mongo/integration/collection_test.go",
         "patchSetId": 2
@@ -72,6 +90,30 @@
       "side": 1,
       "message": "Similar to my other comment - it might make sense to move this to the driver package given that\u0027s where the Batches abstraction is, but I think this is just meant to be an integration test to call InsertMany with a batch \u003e 16 MB. Moving it would violate scope goals and I think it\u0027s something best done in a later project.",
       "parentUuid": "0567db15_46601b6f",
+      "range": {
+        "startLine": 91,
+        "startChar": 9,
+        "endLine": 91,
+        "endChar": 18
+      },
+      "revId": "5f4e54f3954f4f8298302f5a003805e4044c3b67",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "055ca74d_44cf8317",
+        "filename": "mongo/integration/collection_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-09-05T15:07:29Z",
+      "side": 1,
+      "message": "Can you file a ticket for this?",
+      "parentUuid": "330c5c44_cab78b1a",
       "range": {
         "startLine": 91,
         "startChar": 9,
