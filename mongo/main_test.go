@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 func TestMain(m *testing.M) {
@@ -26,6 +27,8 @@ func TestMain(m *testing.M) {
 	assert.RegisterOpts(reflect.TypeOf(&readconcern.ReadConcern{}), cmp.AllowUnexported(readconcern.ReadConcern{}))
 	assert.RegisterOpts(reflect.TypeOf(&writeconcern.WriteConcern{}), cmp.AllowUnexported(writeconcern.WriteConcern{}))
 	assert.RegisterOpts(reflect.TypeOf(&readpref.ReadPref{}), cmp.AllowUnexported(readpref.ReadPref{}))
+	assert.RegisterOpts(reflect.TypeOf(bsonx.Doc{}), cmp.AllowUnexported(bsonx.Elem{}, bsonx.Val{}))
+	assert.RegisterOpts(reflect.TypeOf(bsonx.Arr{}), cmp.AllowUnexported(bsonx.Val{}))
 
 	os.Exit(m.Run())
 }
