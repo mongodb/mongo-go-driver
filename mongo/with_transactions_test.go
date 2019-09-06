@@ -10,66 +10,17 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 const convenientTransactionTestsDir = "../data/convenient-transactions"
-
-type withTransactionArgs struct {
-	Callback *struct {
-		Operations []*transOperation `json:"operations"`
-	} `json:"callback"`
-	Options map[string]interface{} `json:"options"`
-}
-
-// test case for all TransactionSpec tests
-func TestConvTransactionSpec(t *testing.T) {
-	for _, file := range testhelpers.FindJSONFilesInDir(t, convenientTransactionTestsDir) {
-		runTransactionTestFile(t, path.Join(convenientTransactionTestsDir, file))
-	}
-}
-
-func runWithTransactionOperations(t *testing.T, operations []*transOperation, sess *sessionImpl, collName string, db *Database) error {
-	for _, op := range operations {
-		if op.Name == "count" {
-			t.Skip("count has been deprecated")
-		}
-
-		// Arguments aren't marshaled directly into a map because runcommand
-		// needs to convert them into BSON docs.  We convert them to a map here
-		// for getting the session and for all other collection operations
-		op.ArgMap = getArgMap(t, op.Arguments)
-
-		// create collection with default read preference Primary (needed to prevent server selection fail)
-		coll := db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local()))
-		addCollectionOptions(coll, op.CollectionOptions)
-
-		// execute the command on given object
-		var err error
-		switch op.Object {
-		case "session0":
-			err = executeSessionOperation(t, op, sess, collName, db)
-		case "collection":
-			err = executeCollectionOperation(t, op, sess, coll)
-		}
-
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 func TestConvenientTransactions(t *testing.T) {
 	cs := testutil.ConnString(t)
