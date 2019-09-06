@@ -11,7 +11,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"reflect"
 	"strings"
 	"testing"
@@ -704,10 +703,4 @@ func TestSessions(t *testing.T) {
 			})
 		}
 	})
-
-	for _, file := range testhelpers.FindJSONFilesInDir(t, sessionTestsDir) {
-		t.Run(file, func(t *testing.T) {
-			runTransactionTestFile(t, path.Join(sessionTestsDir, file))
-		})
-	}
 }
