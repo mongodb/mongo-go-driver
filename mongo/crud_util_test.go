@@ -770,26 +770,6 @@ func executeAggregate(sess *sessionImpl, agg aggregator, args map[string]interfa
 	return agg.Aggregate(ctx, pipeline, opts)
 }
 
-func executeWithTransaction(t *testing.T, sess *sessionImpl, collName string, db *Database, args json.RawMessage) error {
-	expectedBytes, err := args.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	var testArgs withTransactionArgs
-	err = json.Unmarshal(expectedBytes, &testArgs)
-	if err != nil {
-		return err
-	}
-	opts := getTransactionOptions(testArgs.Options)
-
-	_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
-		err := runWithTransactionOperations(t, testArgs.Callback.Operations, sess, collName, db)
-		return nil, err
-	}, opts)
-	return err
-}
-
 func executeRenameCollection(sess Session, coll *Collection, argmap map[string]interface{}) *SingleResult {
 	to := argmap["to"].(string)
 
@@ -808,44 +788,6 @@ func executeRenameCollection(sess Session, coll *Collection, argmap map[string]i
 	}
 
 	return admin.RunCommand(ctx, cmd)
-}
-
-func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}, args json.RawMessage) *SingleResult {
-	var cmd bsonx.Doc
-	opts := options.RunCmd()
-	for name, opt := range argmap {
-		switch name {
-		case "command":
-			argBytes, err := args.MarshalJSON()
-			if err != nil {
-				return &SingleResult{err: err}
-			}
-
-			var argCmdStruct struct {
-				Cmd json.RawMessage `json:"command"`
-			}
-			err = json.NewDecoder(bytes.NewBuffer(argBytes)).Decode(&argCmdStruct)
-			if err != nil {
-				return &SingleResult{err: err}
-			}
-
-			err = bson.UnmarshalExtJSON(argCmdStruct.Cmd, true, &cmd)
-			if err != nil {
-				return &SingleResult{err: err}
-			}
-		case "readPreference":
-			opts = opts.SetReadPreference(getReadPref(opt))
-		}
-	}
-
-	if sess != nil {
-		sessCtx := sessionContext{
-			Context: context.WithValue(ctx, sessionKey{}, sess),
-			Session: sess,
-		}
-		return db.RunCommand(sessCtx, cmd, opts)
-	}
-	return db.RunCommand(ctx, cmd, opts)
 }
 
 func verifyBulkWriteResult(t *testing.T, res *BulkWriteResult, result json.RawMessage) {

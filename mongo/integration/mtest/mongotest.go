@@ -300,7 +300,19 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 
 	_ = t.Client.Disconnect(Background)
 	t.createTestClient()
-	t.createTestCollection()
+	t.DB = t.Client.Database(t.dbName)
+	t.Coll = t.DB.Collection(t.collName)
+
+	created := make([]*mongo.Collection, len(t.createdColls))
+	for i, coll := range t.createdColls {
+		if coll.Name() == t.collName {
+			created[i] = t.Coll
+			continue
+		}
+
+		created[i] = t.DB.Collection(coll.Name())
+	}
+	t.createdColls = created
 }
 
 func (t *T) createCollection(name string, createOnServer bool, createOpts bson.D,
@@ -429,10 +441,11 @@ func sanitizeCollectionName(db string, coll string) string {
 	coll = strings.Replace(coll, "$", "%", -1)
 
 	// Namespaces can only have 120 bytes max.
-	if len(db+"."+coll) >= 119 {
-		coll = coll[:119-len(coll+".")]
+	if len(db+"."+coll) >= 120 {
+		// coll len must be <= remaining
+		remaining := 120 - (len(db) + 1) // +1 for "."
+		coll = coll[len(coll)-remaining:]
 	}
-
 	return coll
 }
 
