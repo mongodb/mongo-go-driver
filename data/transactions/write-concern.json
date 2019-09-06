@@ -877,6 +877,7 @@
                       "x": 1
                     }
                   },
+                  "multi": false,
                   "upsert": true
                 }
               ],
