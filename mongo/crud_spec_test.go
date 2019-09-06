@@ -41,6 +41,12 @@ type testCaseV1 struct {
 	Expectations  []map[string]expectation
 }
 
+type collOpts struct {
+	ReadConcern *struct {
+		Level string `json:"level"`
+	} `json:"readConcern"`
+}
+
 type op struct {
 	Name              string
 	Arguments         map[string]interface{}
