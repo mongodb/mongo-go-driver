@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "939a42cf_e2d79e90",
+        "filename": "mongo/integration/cmd_monitoring_helpers_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-09T21:42:22Z",
+      "side": 1,
+      "message": "The switch statements for actual.Type in the int64 and int32 cases should have a \"default\" case that fails the test because the type isn\u0027t convertible to int64. Added in latest patch.",
+      "parentUuid": "987a4801_32b7dfe0",
+      "range": {
+        "startLine": 22,
+        "startChar": 1,
+        "endLine": 22,
+        "endChar": 21
+      },
+      "revId": "96a29b818a0cffe83ecd6b47643e334238de7ca5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1abf6350_b4b855b2",
         "filename": "mongo/integration/cmd_monitoring_helpers_test.go",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2019-09-09T21:31:30Z",
       "side": 1,
       "message": "I feel like this code is generally reusable. Can we explore putting this in bsoncore and explicitly defining what equality means? I think we\u0027ll be doing this in the future and the current code for equality only exists for bsoncore.Value instances and it compares bytes directly, instead of comparing the semantic values (for example that a int64 1 is the same as int32 1).",
+      "range": {
+        "startLine": 66,
+        "startChar": 5,
+        "endLine": 66,
+        "endChar": 16
+      },
+      "revId": "96a29b818a0cffe83ecd6b47643e334238de7ca5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aea3c0d6_0668166f",
+        "filename": "mongo/integration/cmd_monitoring_helpers_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-09T21:42:22Z",
+      "side": 1,
+      "message": "We can add something like that to bsoncore, but these tests can\u0027t call it because there are some spec-specific comparisons needed. For example, the FLE spec tests have documents containing $$type (e.g. {foo: {$$type: \"string\"}}). In this case any document where the value for key \"foo\" is a string would be considered equal, but this isn\u0027t a definition of equality that we should add to the bsoncore API. I do think something like this for bsoncore could be helpful though. I created https://jira.mongodb.org/browse/GODRIVER-1306 so we can talk more about this in grooming.",
+      "parentUuid": "1abf6350_b4b855b2",
       "range": {
         "startLine": 66,
         "startChar": 5,
