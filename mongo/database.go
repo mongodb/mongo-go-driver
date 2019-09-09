@@ -212,7 +212,8 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
-		sess, err := session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
+		var err error
+		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
 		if err != nil {
 			return err
 		}
