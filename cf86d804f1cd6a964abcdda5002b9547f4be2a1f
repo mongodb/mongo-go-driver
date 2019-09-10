@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8885fcda_b6295049",
+        "filename": "x/mongo/driver/topology/connection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-09-10T23:52:56Z",
+      "side": 1,
+      "message": "I think we should probably use the ,ok syntax here, that way we don\u0027t have to worry about checking for nil (or really anything else that it might be).",
+      "range": {
+        "startLine": 278,
+        "startChar": 1,
+        "endLine": 278,
+        "endChar": 38
+      },
+      "revId": "cf86d804f1cd6a964abcdda5002b9547f4be2a1f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c972eeb3_30e75b87",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 424,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-09-10T23:52:56Z",
+      "side": 1,
+      "message": "This was probably a rename from an IDE somewhere, but I think should be close instead of closeConnection.",
+      "range": {
+        "startLine": 424,
+        "startChar": 80,
+        "endLine": 424,
+        "endChar": 95
+      },
+      "revId": "cf86d804f1cd6a964abcdda5002b9547f4be2a1f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
