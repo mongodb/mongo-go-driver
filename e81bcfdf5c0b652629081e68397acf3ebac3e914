@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "98fca5a2_7b61fbbc",
+        "filename": "x/mongo/driver/topology/connection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-10T20:17:43Z",
+      "side": 1,
+      "message": "Why was this changed to atomic.Value? Race condition?",
+      "range": {
+        "startLine": 40,
+        "startChar": 1,
+        "endLine": 40,
+        "endChar": 13
+      },
+      "revId": "e81bcfdf5c0b652629081e68397acf3ebac3e914",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
