@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "180e0ef2_300dc99a",
+        "filename": "x/mongo/driver/topology/connection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 279,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-09-11T15:47:53Z",
+      "side": 1,
+      "message": "We should be able to write this in a single line:\n\n    idleDeadline, ok :\u003d c.idleDeadline.Load().(time.Time)",
+      "range": {
+        "startLine": 278,
+        "startChar": 1,
+        "endLine": 279,
+        "endChar": 40
+      },
+      "revId": "7a28c25dd0d7f906a03090bc7684d72141b4810e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
