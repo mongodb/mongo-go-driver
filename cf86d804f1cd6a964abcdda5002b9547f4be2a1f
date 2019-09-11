@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "975ad13a_23916887",
+        "filename": "mongo/integration/client_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 333,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-09-11T15:13:56Z",
+      "side": 1,
+      "message": "This was intended to test a bug that I introduced while working on this (and fixed), but I couldn\u0027t manage to actually write a test that repros it specifically.",
+      "range": {
+        "startLine": 333,
+        "startChar": 2,
+        "endLine": 333,
+        "endChar": 50
+      },
+      "revId": "cf86d804f1cd6a964abcdda5002b9547f4be2a1f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8885fcda_b6295049",
         "filename": "x/mongo/driver/topology/connection.go",
         "patchSetId": 3
@@ -25,6 +48,30 @@
     },
     {
       "key": {
+        "uuid": "4c23310d_b6f5e14c",
+        "filename": "x/mongo/driver/topology/connection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-09-11T15:13:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8885fcda_b6295049",
+      "range": {
+        "startLine": 278,
+        "startChar": 1,
+        "endLine": 278,
+        "endChar": 38
+      },
+      "revId": "cf86d804f1cd6a964abcdda5002b9547f4be2a1f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c972eeb3_30e75b87",
         "filename": "x/mongo/driver/topology/pool.go",
         "patchSetId": 3
@@ -45,6 +92,30 @@
       "revId": "cf86d804f1cd6a964abcdda5002b9547f4be2a1f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "76b23879_fe062fc7",
+        "filename": "x/mongo/driver/topology/pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 424,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-09-11T15:13:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c972eeb3_30e75b87",
+      "range": {
+        "startLine": 424,
+        "startChar": 80,
+        "endLine": 424,
+        "endChar": 95
+      },
+      "revId": "cf86d804f1cd6a964abcdda5002b9547f4be2a1f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
