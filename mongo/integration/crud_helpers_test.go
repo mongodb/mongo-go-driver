@@ -974,6 +974,11 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		if collation, err := args.LookupErr("collation"); err == nil {
 			uom.SetCollation(createCollation(mt, collation.Document()))
 		}
+		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
+			uom.SetArrayFilters(options.ArrayFilters{
+				Filters: rawArrayToInterfaceSlice(arrayFilters.Array()),
+			})
+		}
 		if uom.Upsert == nil {
 			uom.SetUpsert(false)
 		}
@@ -988,6 +993,11 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		}
 		if collation, err := args.LookupErr("collation"); err == nil {
 			umm.SetCollation(createCollation(mt, collation.Document()))
+		}
+		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
+			umm.SetArrayFilters(options.ArrayFilters{
+				Filters: rawArrayToInterfaceSlice(arrayFilters.Array()),
+			})
 		}
 		if umm.Upsert == nil {
 			umm.SetUpsert(false)
