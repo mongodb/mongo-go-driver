@@ -447,3 +447,7 @@ func skipInvalidTopology(t *testing.T) {
 		t.Skip("skipping for non-session supporting topology")
 	}
 }
+
+type aggregator interface {
+	Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*Cursor, error)
+}

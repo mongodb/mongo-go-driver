@@ -114,10 +114,12 @@ type expectation struct {
 }
 
 type outcome struct {
-	Collection struct {
-		Name string      `bson:"name"`
-		Data interface{} `bson:"data"`
-	} `bson:"collection"`
+	Collection *outcomeCollection `bson:"collection"`
+}
+
+type outcomeCollection struct {
+	Name string      `bson:"name"`
+	Data interface{} `bson:"data"`
 }
 
 type operationError struct {
@@ -271,18 +273,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		checkExpectations(mt, test.Expectations, getSessionID(mt, sess0), getSessionID(mt, sess1))
 
 		if test.Outcome != nil {
-			coll := mt.Coll
-			if test.Outcome.Collection.Name != "" {
-				coll = mt.CreateCollection(test.Outcome.Collection.Name, false)
-			}
-
-			// Verify with primary read pref
-			coll, err := coll.Clone(checkOutcomeOpts)
-			assert.Nil(mt, err, "clone error: %v", err)
-			cur, err := coll.Find(mtest.Background, bson.D{})
-			assert.Nil(mt, err, "Find error: %v", err)
-
-			verifyCursorResult(mt, cur, test.Outcome.Collection.Data)
+			verifyTestOutcome(mt, test.Outcome.Collection)
 		}
 	})
 }
@@ -727,4 +718,18 @@ func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 			testCase.chunkSize = csVal.Int32()
 		}
 	}
+}
+
+func verifyTestOutcome(mt *mtest.T, outcomeColl *outcomeCollection) {
+	coll := mt.Coll
+	if outcomeColl.Name != "" {
+		coll = mt.CreateCollection(outcomeColl.Name, false)
+	}
+	var err error
+	coll, err = coll.Clone(checkOutcomeOpts)
+	assert.Nil(mt, err, "Clone error: %v", err)
+
+	cursor, err := coll.Find(mtest.Background, bson.D{})
+	assert.Nil(mt, err, "Find error: %v", err)
+	verifyCursorResult(mt, cursor, outcomeColl.Data)
 }
