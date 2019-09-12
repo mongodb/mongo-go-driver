@@ -70,7 +70,7 @@ func TestDatabase(t *testing.T) {
 	lcNamesOpts := mtest.NewOptions().MinServerVersion("4.0")
 	mt.RunOpts("list collection names", lcNamesOpts, func(mt *mtest.T) {
 		collName := "lcNamesCollection"
-		mt.CreateCollection(collName, true)
+		mt.CreateCollection(mtest.Collection{Name: collName}, true)
 
 		testCases := []struct {
 			name   string
@@ -115,11 +115,11 @@ func TestDatabase(t *testing.T) {
 		for _, tc := range testCases {
 			tcOpts := mtest.NewOptions().Topologies(tc.expectedTopology)
 			mt.RunOpts(tc.name, tcOpts, func(mt *mtest.T) {
-				mt.CreateCollection(listCollUncapped, true)
-				mt.CreateCollectionWithOptions(listCollCapped, bson.D{
-					{"capped", true},
-					{"size", 64 * 1024},
-				})
+				mt.CreateCollection(mtest.Collection{Name: listCollUncapped}, true)
+				mt.CreateCollection(mtest.Collection{
+					Name:       listCollCapped,
+					CreateOpts: bson.D{{"capped", true}, {"size", 64 * 1024}},
+				}, true)
 
 				filter := bson.D{}
 				if tc.cappedOnly {

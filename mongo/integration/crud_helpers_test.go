@@ -48,10 +48,12 @@ func createUpdate(mt *mtest.T, updateVal bson.RawValue) interface{} {
 	return nil
 }
 
+// kill all open sessions on the server. This function uses mt.GlobalClient() because killAllSessions is not allowed
+// for clients configured with specific options (e.g. client side encryption).
 func killSessions(mt *mtest.T) {
 	mt.Helper()
 
-	err := mt.Client.Database("admin").RunCommand(mtest.Background, bson.D{
+	err := mt.GlobalClient().Database("admin").RunCommand(mtest.Background, bson.D{
 		{"killAllSessions", bson.A{}},
 	}, options.RunCmd().SetReadPreference(mtest.PrimaryRp)).Err()
 	if err == nil {
