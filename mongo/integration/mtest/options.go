@@ -55,6 +55,16 @@ func NewOptions() *Options {
 	return &Options{}
 }
 
+// CollectionCreateOptions sets the options to pass to the create command when creating a collection for a test.
+// For example, if opts = {"capped": "true"}, the create command sent to the server will be
+// {create: <collectionName>, foo: bar}.
+func (op *Options) CollectionCreateOptions(opts bson.D) *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.collCreateOpts = opts
+	})
+	return op
+}
+
 // CollectionOptions sets the options to use when creating a collection for a test.
 func (op *Options) CollectionOptions(opts *options.CollectionOptions) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {

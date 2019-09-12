@@ -179,7 +179,10 @@ func TestCollection(t *testing.T) {
 		})
 		mt.Run("write error", func(mt *mtest.T) {
 			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
-			capped := mt.CreateCollectionWithOptions("deleteOne_capped", cappedOpts)
+			capped := mt.CreateCollection(mtest.Collection{
+				Name:       "deleteOne_capped",
+				CreateOpts: cappedOpts,
+			}, true)
 			_, err := capped.DeleteOne(mtest.Background, bson.D{{"x", 1}})
 
 			we, ok := err.(mongo.WriteException)
@@ -225,7 +228,10 @@ func TestCollection(t *testing.T) {
 		})
 		mt.Run("write error", func(mt *mtest.T) {
 			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
-			capped := mt.CreateCollectionWithOptions("deleteMany_capped", cappedOpts)
+			capped := mt.CreateCollection(mtest.Collection{
+				Name:       "deleteMany_capped",
+				CreateOpts: cappedOpts,
+			}, true)
 			_, err := capped.DeleteMany(mtest.Background, bson.D{{"x", 1}})
 
 			we, ok := err.(mongo.WriteException)
@@ -882,7 +888,10 @@ func TestCollection(t *testing.T) {
 			doc := mongo.NewDeleteOneModel().SetFilter(bson.D{{"x", 1}})
 			models := []mongo.WriteModel{doc, doc}
 			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
-			capped := mt.CreateCollectionWithOptions("delete_write_errors", cappedOpts)
+			capped := mt.CreateCollection(mtest.Collection{
+				Name:       "delete_write_errors",
+				CreateOpts: cappedOpts,
+			}, true)
 
 			testCases := []struct {
 				name           string

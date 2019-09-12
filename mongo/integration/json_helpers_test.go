@@ -9,6 +9,7 @@ package integration
 import (
 	"io/ioutil"
 	"math"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -21,6 +22,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+)
+
+const (
+	awsAccessKeyID     = "AWS_ACCESS_KEY_ID"
+	awsSecretAccessKey = "AWS_SECRET_ACCESS_KEY"
 )
 
 // Helper functions to do read JSON spec test files and convert JSON objects into the appropriate driver types.
@@ -82,12 +88,95 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 			clientOpts.SetHeartbeatInterval(hfms)
 		case "retryReads":
 			clientOpts.SetRetryReads(opt.Boolean())
+		case "autoEncryptOpts":
+			clientOpts.SetAutoEncryptionOptions(createAutoEncryptionOptions(t, opt.Document()))
 		default:
 			t.Fatalf("unrecognized client option: %v", name)
 		}
 	}
 
 	return clientOpts
+}
+
+func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncryptionOptions {
+	t.Helper()
+
+	aeo := options.AutoEncryption()
+	var kvnsFound bool
+	elems, _ := opts.Elements()
+
+	for _, elem := range elems {
+		name := elem.Key()
+		opt := elem.Value()
+
+		switch name {
+		case "kmsProviders":
+			aeo.SetKmsProviders(createKmsProvidersMap(t, opt.Document()))
+		case "schemaMap":
+			var schemaMap map[string]interface{}
+			err := bson.Unmarshal(opt.Document(), &schemaMap)
+			if err != nil {
+				t.Fatalf("error creating schema map: %v", err)
+			}
+
+			aeo.SetSchemaMap(schemaMap)
+		case "keyVaultNamespace":
+			kvnsFound = true
+			aeo.SetKeyVaultNamespace(opt.StringValue())
+		case "bypassAutoEncryption":
+			aeo.SetBypassAutoEncryption(opt.Boolean())
+		default:
+			t.Fatalf("unrecognized auto encryption option: %v", name)
+		}
+	}
+	if !kvnsFound {
+		aeo.SetKeyVaultNamespace("admin.datakeys")
+	}
+
+	return aeo
+}
+
+func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]interface{} {
+	t.Helper()
+
+	// aws: value is always empty object. create new map value from access key ID and secret access key
+	// local: value is {"key": primitive.Binary}. transform to {"key": []byte}
+
+	kmsMap := make(map[string]map[string]interface{})
+	elems, _ := opts.Elements()
+
+	for _, elem := range elems {
+		provider := elem.Key()
+		providerOpt := elem.Value()
+
+		switch provider {
+		case "aws":
+			keyID := os.Getenv(awsAccessKeyID)
+			if keyID == "" {
+				t.Fatalf("%s env var not set", awsAccessKeyID)
+			}
+			secretAccessKey := os.Getenv(awsSecretAccessKey)
+			if secretAccessKey == "" {
+				t.Fatalf("%s env var not set", awsSecretAccessKey)
+			}
+
+			awsMap := map[string]interface{}{
+				"accessKeyId":     keyID,
+				"secretAccessKey": secretAccessKey,
+			}
+			kmsMap["aws"] = awsMap
+		case "local":
+			_, key := providerOpt.Document().Lookup("key").Binary()
+			localMap := map[string]interface{}{
+				"key": key,
+			}
+			kmsMap["local"] = localMap
+		default:
+			t.Fatalf("unrecognized KMS provider: %v", provider)
+		}
+	}
+
+	return kmsMap
 }
 
 // create session options from a map
