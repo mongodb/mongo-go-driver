@@ -39,10 +39,9 @@ type testFile struct {
 	CollectionName string             `bson:"collection_name"`
 	BucketName     string             `bson:"bucket_name"`
 	Data           testData           `bson:"data"`
+	JSONSchema     bson.Raw           `bson:"json_schema"`
+	KeyVaultData   []bson.Raw         `bson:"key_vault_data"`
 	Tests          []*testCase        `bson:"tests"`
-
-	// set in code after determining if tests for the file require the client to be reset after setup
-	resetClient bool
 }
 
 type testData struct {
@@ -139,25 +138,12 @@ var directories = []string{
 	"sessions",
 }
 
-// resetClientMap is a set of spec test directories. if a spec test is in this set, the client created for the test
-// must be reset before running test operations.
-var resetClientMap = map[string]struct{}{
-	"transactions":            {},
-	"convenient-transactions": {},
-	"sessions":                {},
-}
-
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
-var specTestRegistry *bsoncodec.Registry
+var specTestRegistry = bson.NewRegistryBuilder().
+	RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{})).
+	RegisterDecoder(reflect.TypeOf(testData{}), bsoncodec.ValueDecoderFunc(decodeTestData)).Build()
 
 func TestUnifiedSpecs(t *testing.T) {
-	// have embedded objects unmarshal into bson.Raw because we need to preserve ordering for some of the fields
-	rawType := reflect.TypeOf(bson.Raw{})
-	specTestRegistry = bson.NewRegistryBuilder().
-		RegisterTypeMapEntry(bson.TypeEmbeddedDocument, rawType).
-		RegisterDecoder(reflect.TypeOf(testData{}), bsoncodec.ValueDecoderFunc(decodeTestData)).
-		Build()
-
 	for _, specDir := range directories {
 		t.Run(specDir, func(t *testing.T) {
 			for _, fileName := range jsonFilesInDir(t, path.Join(dataPath, specDir)) {
@@ -169,6 +155,8 @@ func TestUnifiedSpecs(t *testing.T) {
 	}
 }
 
+// specDir: name of directory for a spec in the data/ folder
+// fileName: name of test file in specDir
 func runSpecTestFile(t *testing.T, specDir, fileName string) {
 	filePath := path.Join(dataPath, specDir, fileName)
 	content, err := ioutil.ReadFile(filePath)
@@ -177,10 +165,6 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 	var testFile testFile
 	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
 	assert.Nil(t, err, "unable to unmarshal spec test file at %v: %v", filePath, err)
-
-	if _, ok := resetClientMap[specDir]; ok {
-		testFile.resetClient = true
-	}
 
 	// create mtest wrapper and skip if needed
 	mt := mtest.New(t, mtest.NewOptions().RunOn(testFile.RunOn...).CreateClient(false))
@@ -202,20 +186,30 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 	testClientOpts := createClientOptions(mt, test.ClientOptions)
 	testClientOpts.SetHeartbeatInterval(50 * time.Millisecond)
 
-	opts := mtest.NewOptions().DatabaseName(testFile.DatabaseName).CollectionName(testFile.CollectionName)
+	opts := mtest.NewOptions().DatabaseName(testFile.DatabaseName).CollectionName(testFile.CollectionName).
+		ClientOptions(testClientOpts)
 	if mt.TopologyKind() == mtest.Sharded && !test.UseMultipleMongoses {
 		// pin to a single mongos
 		opts = opts.ClientType(mtest.Pinned)
 	}
-	// only specify client options if the test won't reset the client
-	// otherwise, the client options will be used when resetting.
-	if !testFile.resetClient {
-		opts.ClientOptions(testClientOpts)
+	if len(testFile.JSONSchema) > 0 {
+		validator := bson.D{
+			{"$jsonSchema", testFile.JSONSchema},
+		}
+		opts.CollectionCreateOptions(bson.D{
+			{"validator", validator},
+		})
 	}
 
 	mt.RunOpts(test.Description, opts, func(mt *mtest.T) {
 		if len(test.SkipReason) > 0 {
 			mt.Skip(test.SkipReason)
+		}
+		if test.Description == "operation fails with maxWireVersion < 8" {
+			// This test checks to see if the correct error is thrown when auto encrypting with a server < 4.2.
+			// Currently, the test will fail because a server < 4.2 wouldn't have mongocryptd, so Client construction
+			// would fail with a mongocryptd spawn error. SPEC-1403 tracks the work to fix this.
+			mt.Skip("skipping maxWireVersion test")
 		}
 
 		// work around for SERVER-39704: run a non-transactional distinct against each shard in a sharded cluster
@@ -236,12 +230,6 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// in error cases.
 		defer killSessions(mt)
 		setupTest(mt, &testFile, test)
-
-		// reset the client so all sessions used in operations have a starting txnNumber of 0
-		// do not call mt.ClearCollections because we do not want to clear the test data.
-		if testFile.resetClient {
-			mt.ResetClient(testClientOpts)
-		}
 
 		// create the GridFS bucket after resetting the client so it will be created with a connected client
 		createBucket(mt, testFile, test)
@@ -692,12 +680,23 @@ func insertDocuments(mt *mtest.T, coll *mongo.Collection, rawDocs []bson.Raw) {
 func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 	mt.Helper()
 
-	collOpts := options.Collection().SetWriteConcern(mtest.MajorityWc)
+	// all setup should be done with the global client instead of the test client to prevent any errors created by
+	// client configurations.
+	setupClient := mt.GlobalClient()
+	// key vault data
+	if len(testFile.KeyVaultData) > 0 {
+		keyVaultColl := mt.CreateCollection(mtest.Collection{
+			Name:   "datakeys",
+			DB:     "admin",
+			Client: setupClient,
+		}, false)
+
+		insertDocuments(mt, keyVaultColl, testFile.KeyVaultData)
+	}
 
 	// regular documents
 	if testFile.Data.Documents != nil {
-		insertColl, err := mt.Coll.Clone(collOpts)
-		assert.Nil(mt, err, "Clone error: %v", err)
+		insertColl := setupClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
 		insertDocuments(mt, insertColl, testFile.Data.Documents)
 		return
 	}
@@ -706,11 +705,17 @@ func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 	gfsData := testFile.Data.GridFSData
 
 	if gfsData.Chunks != nil {
-		chunks := mt.CreateCollection(gridFSChunks, true, collOpts)
+		chunks := mt.CreateCollection(mtest.Collection{
+			Name:   gridFSChunks,
+			Client: setupClient,
+		}, false)
 		insertDocuments(mt, chunks, gfsData.Chunks)
 	}
 	if gfsData.Files != nil {
-		files := mt.CreateCollection(gridFSFiles, true, collOpts)
+		files := mt.CreateCollection(mtest.Collection{
+			Name:   gridFSFiles,
+			Client: setupClient,
+		}, false)
 		insertDocuments(mt, files, gfsData.Files)
 
 		csVal, err := gfsData.Files[0].LookupErr("chunkSize")
@@ -721,10 +726,16 @@ func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 }
 
 func verifyTestOutcome(mt *mtest.T, outcomeColl *outcomeCollection) {
-	coll := mt.Coll
+	// Outcome needs to be verified using the global client instead of the test client because certain client
+	// configurations will cause outcome checking to fail. For example, a client configured with auto encryption
+	// will decrypt results, causing comparisons to fail.
+
+	collName := mt.Coll.Name()
 	if outcomeColl.Name != "" {
-		coll = mt.CreateCollection(outcomeColl.Name, false)
+		collName = outcomeColl.Name
 	}
+	coll := mt.GlobalClient().Database(mt.DB.Name()).Collection(collName)
+
 	var err error
 	coll, err = coll.Clone(checkOutcomeOpts)
 	assert.Nil(mt, err, "Clone error: %v", err)

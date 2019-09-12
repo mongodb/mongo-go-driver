@@ -8,6 +8,7 @@ package integration
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/x/bsonx"
@@ -54,6 +55,13 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) {
 		}
 	case bson.TypeEmbeddedDocument:
 		e := expected.Document()
+		if typeVal, err := e.LookupErr("$$type"); err == nil {
+			// $$type represents a type assertion
+			// for example {field: {$$type: "binData"}} should assert that "field" is an element with a binary value
+			assertType(mt, actual.Type, typeVal.StringValue())
+			return
+		}
+
 		a := actual.Document()
 		compareDocs(mt, e, a)
 	case bson.TypeArray:
@@ -64,6 +72,61 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) {
 		assert.Equal(mt, expected.Value, actual.Value,
 			"value mismatch; expected %v, got %v", expected.Value, actual.Value)
 	}
+}
+
+// helper for $$type assertions
+func assertType(mt *mtest.T, actual bsontype.Type, typeStr string) {
+	mt.Helper()
+
+	var expected bsontype.Type
+	switch typeStr {
+	case "double":
+		expected = bsontype.Double
+	case "string":
+		expected = bsontype.String
+	case "object":
+		expected = bsontype.EmbeddedDocument
+	case "array":
+		expected = bsontype.Array
+	case "binData":
+		expected = bsontype.Binary
+	case "undefined":
+		expected = bsontype.Undefined
+	case "objectId":
+		expected = bsontype.ObjectID
+	case "boolean":
+		expected = bsontype.Boolean
+	case "date":
+		expected = bsontype.DateTime
+	case "null":
+		expected = bsontype.Null
+	case "regex":
+		expected = bsontype.Regex
+	case "dbPointer":
+		expected = bsontype.DBPointer
+	case "javascript":
+		expected = bsontype.JavaScript
+	case "symbol":
+		expected = bsontype.Symbol
+	case "javascriptWithScope":
+		expected = bsontype.CodeWithScope
+	case "int":
+		expected = bsontype.Int32
+	case "timestamp":
+		expected = bsontype.Timestamp
+	case "long":
+		expected = bsontype.Int64
+	case "decimal":
+		expected = bsontype.Decimal128
+	case "minKey":
+		expected = bsontype.MinKey
+	case "maxKey":
+		expected = bsontype.MaxKey
+	default:
+		mt.Fatalf("unrecognized type string: %v", typeStr)
+	}
+
+	assert.Equal(mt, expected, actual, "BSON type mismatch; expected %v, got %v", expected, actual)
 }
 
 // compare expected and actual BSON documents. comparison succeeds if actual contains each element in expected.
@@ -80,6 +143,12 @@ func compareDocs(mt *mtest.T, expected, actual bson.Raw) {
 
 		eVal := e.Value()
 		if doc, ok := eVal.DocumentOK(); ok {
+			// special $$type assertion
+			if typeVal, err := doc.LookupErr("$$type"); err == nil {
+				assertType(mt, aVal.Type, typeVal.StringValue())
+				continue
+			}
+
 			// nested doc
 			compareDocs(mt, doc, aVal.Document())
 			continue
@@ -124,8 +193,9 @@ func checkExpectations(mt *mtest.T, expectations []*expectation, id0 bsonx.Doc, 
 				assert.Equal(mt, bson.RawValue{}, actualVal, "expected value for key %s to be nil but got %v", key, actualVal)
 				continue
 			}
-			if key == "ordered" {
+			if key == "ordered" || key == "cursor" {
 				// TODO: some tests specify that "ordered" must be a key in the event but ordered isn't a valid option for some of these cases (e.g. insertOne)
+				// TODO: some FLE tests specify "cursor" subdocument for listCollections
 				continue
 			}
 
@@ -153,12 +223,17 @@ func checkExpectations(mt *mtest.T, expectations []*expectation, id0 bsonx.Doc, 
 				assert.Equal(mt, expectedID, actualID,
 					"session ID mismatch for session %v; expected %v, got %v", sessName, expectedID, actualID)
 			case "getMore":
-				expectedID := val.Int64()
-				// ignore placeholder cursor ID (42)
-				if expectedID != 42 {
+				expectedID, ok := val.Int64OK()
+				if ok {
+					// ignore placeholder ID (42)
+					if expectedID == 42 {
+						continue
+					}
 					actualID := actualVal.Int64()
-					assert.Equal(mt, expectedID, actualID, "cursor ID mismatch; expected %v, got %v", expectedID, actualID)
+					assert.Equal(mt, expectedID, actualID, "expected cursor ID; expected %v, got %v", expectedID, actualID)
+					continue
 				}
+				compareValues(mt, key, val, actualVal)
 			case "readConcern":
 				expectedRc := val.Document()
 				actualRc := actualVal.Document()
