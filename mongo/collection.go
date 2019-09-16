@@ -180,7 +180,8 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
-		sess, err := session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+		var err error
+		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}

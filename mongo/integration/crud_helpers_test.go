@@ -229,9 +229,15 @@ func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.I
 		switch key {
 		case "documents":
 			docs = rawArrayToInterfaceSlice(val.Array())
+		case "options":
+			// Some of the older tests use this to set the "ordered" option
+			optsDoc := val.Document()
+			optsElems, _ := optsDoc.Elements()
+			assert.Equal(mt, 1, len(optsElems), "expected 1 options element, got %v", len(optsElems))
+			opts.SetOrdered(optsDoc.Lookup("ordered").Boolean())
 		case "session":
 		default:
-			mt.Fatalf("unregonized insertMany option: %v", key)
+			mt.Fatalf("unrecognized insertMany option: %v", key)
 		}
 	}
 
