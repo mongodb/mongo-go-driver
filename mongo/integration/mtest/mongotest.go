@@ -31,6 +31,8 @@ var (
 	PrimaryRp = readpref.Primary()
 	// LocalRc is the local read concern
 	LocalRc = readconcern.Local()
+	// Majority is the majority read concern
+	MajorityRc = readconcern.Majority()
 )
 
 const (
