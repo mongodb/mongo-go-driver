@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fdb70148_b7ce616e",
+        "filename": "mongo/integration/retryable_writes_prose_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-09-16T15:25:19Z",
+      "side": 1,
+      "message": "should these run on sharded clusters too? the original tests only skip standalones.",
+      "range": {
+        "startLine": 22,
+        "startChar": 91,
+        "endLine": 22,
+        "endChar": 107
+      },
+      "revId": "f69d7fedd83d89b3058a36cd48d9d9b6d43021ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
