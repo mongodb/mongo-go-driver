@@ -81,6 +81,8 @@ type T struct {
 	minServerVersion string
 	maxServerVersion string
 	validTopologies  []TopologyKind
+	auth             *bool
+	collCreateOpts   bson.D
 
 	// options copied to sub-tests
 	clientType  ClientType
@@ -299,28 +301,74 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 
 	_ = t.Client.Disconnect(Background)
 	t.createTestClient()
-	t.createTestCollection()
+	t.DB = t.Client.Database(t.dbName)
+	t.Coll = t.DB.Collection(t.collName)
+
+	created := make([]*mongo.Collection, len(t.createdColls))
+	for i, coll := range t.createdColls {
+		if coll.Name() == t.collName {
+			created[i] = t.Coll
+			continue
+		}
+
+		created[i] = t.DB.Collection(coll.Name())
+	}
+	t.createdColls = created
 }
 
-// CreateCollection creates a new collection with the given options. The collection will be dropped after the test
+// Collection is used to configure a new collection created during a test.
+type Collection struct {
+	Name       string
+	DB         string        // defaults to mt.DB.Name() if not specified
+	Client     *mongo.Client // defaults to mt.Client if not specified
+	Opts       *options.CollectionOptions
+	CreateOpts bson.D
+}
+
+// returns database to use for creating a new collection
+func (t *T) extractDatabase(coll Collection) *mongo.Database {
+	// default to t.DB unless coll overrides it
+	var createNewDb bool
+	dbName := t.DB.Name()
+	if coll.DB != "" {
+		createNewDb = true
+		dbName = coll.DB
+	}
+
+	// if a client is specified, a new database must be created
+	if coll.Client != nil {
+		return coll.Client.Database(dbName)
+	}
+	// if dbName is the same as t.DB.Name(), t.DB can be used
+	if !createNewDb {
+		return t.DB
+	}
+	// a new database must be created from t.Client
+	return t.Client.Database(dbName)
+}
+
+// CreateCollection creates a new collection with the given configuration. The collection will be dropped after the test
 // finishes running. If createOnServer is true, the function ensures that the collection has been created server-side
 // by running the create command. The create command will appear in command monitoring channels.
-func (t *T) CreateCollection(name string, createOnServer bool, opts ...*options.CollectionOptions) *mongo.Collection {
+func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collection {
+	db := t.extractDatabase(coll)
 	if createOnServer && t.clientType != Mock {
-		cmd := bson.D{{"create", name}}
-		if err := t.DB.RunCommand(Background, cmd).Err(); err != nil {
+		cmd := bson.D{{"create", coll.Name}}
+		cmd = append(cmd, coll.CreateOpts...)
+
+		if err := db.RunCommand(Background, cmd).Err(); err != nil {
 			// ignore NamespaceExists errors for idempotency
 
 			cmdErr, ok := err.(mongo.CommandError)
 			if !ok || cmdErr.Code != namespaceExistsErrCode {
-				t.Fatalf("error creating collection on server: %v", err)
+				t.Fatalf("error creating collection %v on server: %v", coll.Name, err)
 			}
 		}
 	}
 
-	coll := t.DB.Collection(name, opts...)
-	t.createdColls = append(t.createdColls, coll)
-	return coll
+	created := db.Collection(coll.Name, coll.Opts)
+	t.createdColls = append(t.createdColls, created)
+	return created
 }
 
 // ClearCollections drops all collections previously created by this test.
@@ -409,15 +457,22 @@ func (t *T) CloneCollection(opts *options.CollectionOptions) {
 	assert.Nil(t, err, "error cloning collection: %v", err)
 }
 
+// GlobalClient returns a client configured with read concern majority, write concern majority, and read preference
+// primary. The returned client is not tied to the receiver and is valid outside the lifetime of the receiver.
+func (T) GlobalClient() *mongo.Client {
+	return testContext.client
+}
+
 func sanitizeCollectionName(db string, coll string) string {
 	// Collections can't have "$" in their names, so we substitute it with "%".
 	coll = strings.Replace(coll, "$", "%", -1)
 
 	// Namespaces can only have 120 bytes max.
-	if len(db+"."+coll) >= 119 {
-		coll = coll[:119-len(coll+".")]
+	if len(db+"."+coll) >= 120 {
+		// coll len must be <= remaining
+		remaining := 120 - (len(db) + 1) // +1 for "."
+		coll = coll[len(coll)-remaining:]
 	}
-
 	return coll
 }
 
@@ -465,7 +520,11 @@ func (t *T) createTestClient() {
 func (t *T) createTestCollection() {
 	t.DB = t.Client.Database(t.dbName)
 	t.createdColls = t.createdColls[:0]
-	t.Coll = t.CreateCollection(t.collName, true, t.collOpts)
+	t.Coll = t.CreateCollection(Collection{
+		Name:       t.collName,
+		CreateOpts: t.collCreateOpts,
+		Opts:       t.collOpts,
+	}, true)
 }
 
 // matchesServerVersion checks if the current server version is in the range [min, max]. Server versions will only be
@@ -506,6 +565,9 @@ func (t *T) shouldSkip() bool {
 		return true
 	}
 	if !matchesTopology(t.validTopologies) {
+		return true
+	}
+	if t.auth != nil && *t.auth != testContext.authEnabled {
 		return true
 	}
 

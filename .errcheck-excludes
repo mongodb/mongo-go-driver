@@ -9,6 +9,7 @@
 (go.mongodb.org/mongo-driver/x/network/wiremessage.ReadWriteCloser).Close
 (*go.mongodb.org/mongo-driver/mongo.Cursor).Close
 (*go.mongodb.org/mongo-driver/mongo.ChangeStream).Close
+(*go.mongodb.org/mongo-driver/mongo.Client).Disconnect
 (net.Conn).Close
 encoding/pem.Encode
 fmt.Fprintf

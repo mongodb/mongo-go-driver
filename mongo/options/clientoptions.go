@@ -427,6 +427,12 @@ func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
 	return c
 }
 
+// SetRetryReads specifies whether the client has retryable reads enabled.
+func (c *ClientOptions) SetRetryReads(b bool) *ClientOptions {
+	c.RetryReads = &b
+	return c
+}
+
 // SetServerSelectionTimeout specifies a timeout in milliseconds to block for server selection.
 func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOptions {
 	c.ServerSelectionTimeout = &d
