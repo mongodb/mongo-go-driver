@@ -22,6 +22,30 @@
       "revId": "f69d7fedd83d89b3058a36cd48d9d9b6d43021ae",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a0e8eb15_445510ae",
+        "filename": "mongo/integration/retryable_writes_prose_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-16T15:50:51Z",
+      "side": 1,
+      "message": "I added Sharded and it seems to work (at least locally) so the latest patch has that change. I thought retryable writes only worked for sharded \u003e\u003d 4.2 but I was confusing them with transactions.",
+      "parentUuid": "fdb70148_b7ce616e",
+      "range": {
+        "startLine": 22,
+        "startChar": 91,
+        "endLine": 22,
+        "endChar": 107
+      },
+      "revId": "f69d7fedd83d89b3058a36cd48d9d9b6d43021ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
