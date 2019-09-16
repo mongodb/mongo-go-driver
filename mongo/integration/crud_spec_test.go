@@ -45,6 +45,7 @@ type crudOperation struct {
 }
 
 type crudOutcome struct {
+	Error      bool               `bson:"error"` // only used by retryable writes tests
 	Result     interface{}        `bson:"result"`
 	Collection *outcomeCollection `bson:"collection"`
 }
@@ -87,90 +88,156 @@ func runCrudTest(mt *mtest.T, test crudTest, testFile crudTestFile) {
 		assert.Nil(mt, err, "InsertMany error: %v", err)
 	}
 
-	switch test.Operation.Name {
+	runCrudOperation(mt, test.Description, test.Operation, test.Outcome)
+}
+
+// run a CRUD operation and verify errors and outcomes.
+// the test description is needed to see determine if the test is an aggregate with $out
+func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperation, outcome crudOutcome) {
+	switch operation.Name {
 	case "aggregate":
-		cursor, err := executeAggregate(mt, mt.Coll, nil, test.Operation.Arguments)
+		cursor, err := executeAggregate(mt, mt.Coll, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected Aggregate error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "Aggregate error: %v", err)
 		// only verify cursor contents for pipelines without $out
-		if !strings.Contains(test.Description, "$out") {
-			verifyCursorResult(mt, cursor, test.Outcome.Result)
+		if !strings.Contains(testDescription, "$out") {
+			verifyCursorResult(mt, cursor, outcome.Result)
 		}
 	case "bulkWrite":
-		res, err := executeBulkWrite(mt, nil, test.Operation.Arguments)
+		res, err := executeBulkWrite(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected BulkWrite error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "BulkWrite error: %v", err)
-		verifyBulkWriteResult(mt, res, test.Outcome.Result)
+		verifyBulkWriteResult(mt, res, outcome.Result)
 	case "count":
-		res, err := executeCountDocuments(mt, nil, test.Operation.Arguments)
+		res, err := executeCountDocuments(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected CountDocuments error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "CountDocuments error: %v", err)
-		verifyCountResult(mt, res, test.Outcome.Result)
+		verifyCountResult(mt, res, outcome.Result)
 	case "distinct":
-		res, err := executeDistinct(mt, nil, test.Operation.Arguments)
+		res, err := executeDistinct(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected Distinct error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "Distinct error: %v", err)
-		verifyDistinctResult(mt, res, test.Outcome.Result)
+		verifyDistinctResult(mt, res, outcome.Result)
 	case "find":
-		cursor, err := executeFind(mt, nil, test.Operation.Arguments)
+		cursor, err := executeFind(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected Find error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "Find error: %v", err)
-		verifyCursorResult(mt, cursor, test.Outcome.Result)
+		verifyCursorResult(mt, cursor, outcome.Result)
 	case "deleteOne":
-		res, err := executeDeleteOne(mt, nil, test.Operation.Arguments)
+		res, err := executeDeleteOne(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected DeleteOne error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "DeleteOne error: %v", err)
-		verifyDeleteResult(mt, res, test.Outcome.Result)
+		verifyDeleteResult(mt, res, outcome.Result)
 	case "deleteMany":
-		res, err := executeDeleteMany(mt, nil, test.Operation.Arguments)
+		res, err := executeDeleteMany(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected DeleteMany error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "DeleteMany error: %v", err)
-		verifyDeleteResult(mt, res, test.Outcome.Result)
+		verifyDeleteResult(mt, res, outcome.Result)
 	case "findOneAndDelete":
-		res := executeFindOneAndDelete(mt, nil, test.Operation.Arguments)
+		res := executeFindOneAndDelete(mt, nil, operation.Arguments)
 		err := res.Err()
-		if test.Outcome.Result == nil {
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected FindOneAndDelete error, got nil")
+			return
+		}
+		if outcome.Result == nil {
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
 			break
 		}
 		assert.Nil(mt, err, "FindOneAndDelete error: %v", err)
-		verifySingleResult(mt, res, test.Outcome.Result)
+		verifySingleResult(mt, res, outcome.Result)
 	case "findOneAndReplace":
-		res := executeFindOneAndReplace(mt, nil, test.Operation.Arguments)
+		res := executeFindOneAndReplace(mt, nil, operation.Arguments)
 		err := res.Err()
-		if test.Outcome.Result == nil {
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected FindOneAndReplace error, got nil")
+			return
+		}
+		if outcome.Result == nil {
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
 			break
 		}
 		assert.Nil(mt, err, "FindOneAndReplace error: %v", err)
-		verifySingleResult(mt, res, test.Outcome.Result)
+		verifySingleResult(mt, res, outcome.Result)
 	case "findOneAndUpdate":
-		res := executeFindOneAndUpdate(mt, nil, test.Operation.Arguments)
+		res := executeFindOneAndUpdate(mt, nil, operation.Arguments)
 		err := res.Err()
-		if test.Outcome.Result == nil {
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected FindOneAndUpdate error, got nil")
+			return
+		}
+		if outcome.Result == nil {
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
 			break
 		}
 		assert.Nil(mt, err, "FindOneAndUpdate error: %v", err)
-		verifySingleResult(mt, res, test.Outcome.Result)
+		verifySingleResult(mt, res, outcome.Result)
 	case "insertOne":
-		res, err := executeInsertOne(mt, nil, test.Operation.Arguments)
+		res, err := executeInsertOne(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected InsertOne error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "InsertOne error: %v", err)
-		verifyInsertOneResult(mt, res, test.Outcome.Result)
+		verifyInsertOneResult(mt, res, outcome.Result)
 	case "insertMany":
-		res, err := executeInsertMany(mt, nil, test.Operation.Arguments)
+		res, err := executeInsertMany(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected InsertMany error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "InsertMany error: %v", err)
-		verifyInsertManyResult(mt, res, test.Outcome.Result)
+		verifyInsertManyResult(mt, res, outcome.Result)
 	case "replaceOne":
-		res, err := executeReplaceOne(mt, nil, test.Operation.Arguments)
+		res, err := executeReplaceOne(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected ReplaceOne error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "ReplaceOne error: %v", err)
-		verifyUpdateResult(mt, res, test.Outcome.Result)
+		verifyUpdateResult(mt, res, outcome.Result)
 	case "updateOne":
-		res, err := executeUpdateOne(mt, nil, test.Operation.Arguments)
+		res, err := executeUpdateOne(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected UpdateOne error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "UpdateOne error: %v", err)
-		verifyUpdateResult(mt, res, test.Outcome.Result)
+		verifyUpdateResult(mt, res, outcome.Result)
 	case "updateMany":
-		res, err := executeUpdateMany(mt, nil, test.Operation.Arguments)
+		res, err := executeUpdateMany(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected UpdateMany error, got nil")
+			return
+		}
 		assert.Nil(mt, err, "UpdateMany error: %v", err)
-		verifyUpdateResult(mt, res, test.Outcome.Result)
+		verifyUpdateResult(mt, res, outcome.Result)
 	default:
-		mt.Fatalf("unrecognized operation: %v", test.Operation.Name)
+		mt.Fatalf("unrecognized operation: %v", operation.Name)
 	}
 
-	if test.Outcome.Collection != nil {
-		verifyTestOutcome(mt, test.Outcome.Collection)
+	if outcome.Collection != nil {
+		verifyTestOutcome(mt, outcome.Collection)
 	}
 }
