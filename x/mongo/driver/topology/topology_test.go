@@ -455,3 +455,27 @@ func TestMinPoolSize(t *testing.T) {
 		t.Errorf("topology.Connect shouldn't error. got: %v", err)
 	}
 }
+
+func TestTopology_String_Race(t *testing.T) {
+	ch := make(chan bool)
+	topo := &Topology{
+		servers: make(map[address.Address]*Server),
+	}
+
+	go func() {
+		topo.serversLock.Lock()
+		srv := &Server{}
+		srv.desc.Store(description.Server{})
+		topo.servers[address.Address("127.0.0.1:27017")] = srv
+		topo.serversLock.Unlock()
+		ch <- true
+	}()
+
+	go func() {
+		topo.String()
+		ch <- true
+	}()
+
+	<-ch
+	<-ch
+}
