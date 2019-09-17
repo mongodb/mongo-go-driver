@@ -108,14 +108,17 @@ func compareHosts(t *testing.T, received []description.Server, expected []string
 		t.Fatalf("Number of hosts in topology does not match expected value. Got %v; want %v.", len(received), len(expected))
 	}
 
-	actual := serverSorter(received)
+	// Take a copy of servers so we don't risk a data race similar to GODRIVER-1301.
+	servers := make([]description.Server, len(received))
+	copy(servers, received)
+	actual := serverSorter(servers)
 	sort.Sort(actual)
 	sort.Strings(expected)
 
-	for i := range received {
-		if received[i].Addr.String() != expected[i] {
+	for i := range servers {
+		if servers[i].Addr.String() != expected[i] {
 			t.Errorf("Hosts in topology differ from expected values. Got %v; want %v.",
-				received[i].Addr.String(), expected[i])
+				servers[i].Addr.String(), expected[i])
 		}
 	}
 }
