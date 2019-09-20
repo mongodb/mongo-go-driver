@@ -141,7 +141,7 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 			flags |= wiremessage.TailableCursor
 		case "awaitData":
 			flags |= wiremessage.AwaitData
-		case "oplogReply":
+		case "oplogReplay":
 			flags |= wiremessage.OplogReplay
 		case "noCursorTimeout":
 			flags |= wiremessage.NoCursorTimeout
@@ -560,8 +560,12 @@ func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc descript
 		switch elem.Key() {
 		case "listIndexes":
 			filterCollName = elem.Value().StringValue()
-		case "batchSize":
-			batchSize = elem.Value().Int32()
+		case "cursor":
+			// the batchSize option is embedded in a cursor subdocument
+			cursorDoc := elem.Value().Document()
+			if val, err := cursorDoc.LookupErr("batchSize"); err == nil {
+				batchSize = val.Int32()
+			}
 		case "maxTimeMS":
 			optsElems = bsoncore.AppendValueElement(optsElems, "$maxTimeMS", elem.Value())
 		}

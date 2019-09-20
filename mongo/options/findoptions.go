@@ -21,6 +21,7 @@ type FindOptions struct {
 	Limit               *int64         // Sets a limit on the number of results to return.
 	Max                 interface{}    // Sets an exclusive upper bound for a specific index
 	MaxAwaitTime        *time.Duration // Specifies the maximum amount of time for the server to wait on new documents.
+	MaxScan             *int64         // Specifies the maximum number of documents or index keys to scan when executing the query.
 	MaxTime             *time.Duration // Specifies the maximum amount of time to allow the query to run.
 	Min                 interface{}    // Specifies the inclusive lower bound for a specific index.
 	NoCursorTimeout     *bool          // If true, prevents cursors from timing out after an inactivity period.
@@ -94,6 +95,12 @@ func (f *FindOptions) SetMax(max interface{}) *FindOptions {
 // For server versions < 3.2, this option is ignored.
 func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
 	f.MaxAwaitTime = &d
+	return f
+}
+
+// SetMaxScan specifies the maximum amount of documents or index keys to scan when executing a query.
+func (f *FindOptions) SetMaxScan(ms int64) *FindOptions {
+	f.MaxScan = &ms
 	return f
 }
 
@@ -194,6 +201,9 @@ func MergeFindOptions(opts ...*FindOptions) *FindOptions {
 		}
 		if opt.MaxAwaitTime != nil {
 			fo.MaxAwaitTime = opt.MaxAwaitTime
+		}
+		if opt.MaxScan != nil {
+			fo.MaxScan = opt.MaxScan
 		}
 		if opt.MaxTime != nil {
 			fo.MaxTime = opt.MaxTime
