@@ -500,7 +500,10 @@ func (t *T) createTestClient() {
 	var err error
 	switch t.clientType {
 	case Default:
-		clientOpts.ApplyURI(testContext.connString.Original)
+		// only specify URI if the deployment is not set to avoid setting topology/server options along with the deployment
+		if clientOpts.Deployment == nil {
+			clientOpts.ApplyURI(testContext.connString.Original)
+		}
 		t.Client, err = mongo.NewClient(clientOpts)
 	case Pinned:
 		// pin to first mongos
