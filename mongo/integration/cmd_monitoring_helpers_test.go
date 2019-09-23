@@ -16,43 +16,41 @@ import (
 
 // Helper functions to compare BSON values and command monitoring expectations.
 
+func numberFromValue(mt *mtest.T, val bson.RawValue) int64 {
+	switch val.Type {
+	case bson.TypeInt32:
+		return int64(val.Int32())
+	case bson.TypeInt64:
+		return val.Int64()
+	case bson.TypeDouble:
+		return int64(val.Double())
+	default:
+		mt.Fatalf("unexpected type for number: %v", val.Type)
+	}
+
+	return 0
+}
+
+func compareNumberValues(mt *mtest.T, key string, expected, actual bson.RawValue) {
+	eInt := numberFromValue(mt, expected)
+	if eInt == 42 {
+		assert.NotEqual(mt, bson.TypeNull, actual.Type, "expected non-null value for key %v, got null", key)
+		return
+	}
+
+	aInt := numberFromValue(mt, actual)
+	assert.Equal(mt, eInt, aInt, "value mismatch for key %s; expected %v, got %v", key, expected, actual)
+}
+
 // compare BSON values and fail if they are not equal. the key parameter is used for error strings.
+// if the expected value is a numeric type (int32, int64, or double) and the value is 42, the function only asserts that
+// the actual value is non-null.
 func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) {
 	mt.Helper()
 
 	switch expected.Type {
-	case bson.TypeInt64:
-		e := expected.Int64()
-
-		switch actual.Type {
-		case bson.TypeInt32:
-			a := actual.Int32()
-			assert.Equal(mt, e, int64(a), "value mismatch for key %s; expected %v, got %v", key, e, a)
-		case bson.TypeInt64:
-			a := actual.Int64()
-			assert.Equal(mt, e, a, "value mismatch for key %s; expected %v, got %v", key, e, a)
-		case bson.TypeDouble:
-			a := actual.Double()
-			assert.Equal(mt, e, int64(a), "value mismatch for key %s; expected %v, got %v", key, e, a)
-		default:
-			mt.Fatalf("cannot convert value of type %v for key %s to int64", actual.Type, key)
-		}
-	case bson.TypeInt32:
-		e := expected.Int32()
-
-		switch actual.Type {
-		case bson.TypeInt32:
-			a := actual.Int32()
-			assert.Equal(mt, e, a, "value mismatch for key %s; expected %v, got %v", key, e, a)
-		case bson.TypeInt64:
-			a := actual.Int64()
-			assert.Equal(mt, e, int32(a), "value mismatch for key %s; expected %v, got %v", key, e, a)
-		case bson.TypeDouble:
-			a := actual.Double()
-			assert.Equal(mt, e, int32(a), "value mismatch for key %s; expected %v, got %v", key, e, a)
-		default:
-			mt.Fatalf("cannot convert value of type %v for key %s to int32", actual.Type, key)
-		}
+	case bson.TypeInt32, bson.TypeInt64, bson.TypeDouble:
+		compareNumberValues(mt, key, expected, actual)
 	case bson.TypeEmbeddedDocument:
 		e := expected.Document()
 		if typeVal, err := e.LookupErr("$$type"); err == nil {
@@ -70,7 +68,7 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) {
 		compareDocs(mt, e, a)
 	default:
 		assert.Equal(mt, expected.Value, actual.Value,
-			"value mismatch; expected %v, got %v", expected.Value, actual.Value)
+			"value mismatch for key %v; expected %v, got %v", key, expected.Value, actual.Value)
 	}
 }
 
@@ -158,114 +156,156 @@ func compareDocs(mt *mtest.T, expected, actual bson.Raw) {
 	}
 }
 
-func checkExpectations(mt *mtest.T, expectations []*expectation, id0 bsonx.Doc, id1 bsonx.Doc) {
+func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bsonx.Doc) {
 	mt.Helper()
 
-	started := mt.GetAllStartedEvents()
+	for _, expectation := range expectations {
+		if expectation.CommandStartedEvent != nil {
+			compareStartedEvent(mt, expectation, id0, id1)
+		}
+		if expectation.CommandSucceededEvent != nil {
+			compareSucceededEvent(mt, expectation)
+		}
+		if expectation.CommandFailedEvent != nil {
+			compareFailedEvent(mt, expectation)
+		}
+	}
+}
 
-	for i, expectation := range expectations {
-		expected := expectation.CommandStartedEvent
-		if i == len(started) {
-			mt.Fatalf("expected event for %s", expectation.CommandStartedEvent.CommandName)
+func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bsonx.Doc) {
+	mt.Helper()
+
+	expected := expectation.CommandStartedEvent
+	evt := mt.GetStartedEvent()
+	assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
+
+	if expected.CommandName != "" {
+		assert.Equal(mt, expected.CommandName, evt.CommandName,
+			"cmd name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
+	}
+	if expected.DatabaseName != "" {
+		assert.Equal(mt, expected.DatabaseName, evt.DatabaseName,
+			"db name mismatch; expected %s, got %s", expected.DatabaseName, evt.DatabaseName)
+	}
+
+	eElems, err := expected.Command.Elements()
+	assert.Nil(mt, err, "error getting expected elements: %v", err)
+
+	for _, elem := range eElems {
+		key := elem.Key()
+		val := elem.Value()
+
+		actualVal := evt.Command.Lookup(key)
+
+		// Keys that may be nil
+		if val.Type == bson.TypeNull {
+			assert.Equal(mt, bson.RawValue{}, actualVal, "expected value for key %s to be nil but got %v", key, actualVal)
+			continue
+		}
+		if key == "ordered" || key == "cursor" || key == "batchSize" {
+			// TODO: some tests specify that "ordered" must be a key in the event but ordered isn't a valid option for some of these cases (e.g. insertOne)
+			// TODO: some FLE tests specify "cursor" subdocument for listCollections
+			// TODO: find.json cmd monitoring tests expect different batch sizes for find/getMore commands based on an optional limit
+			continue
 		}
 
-		evt := started[i]
-		if expected.CommandName != "" {
-			assert.Equal(mt, expected.CommandName, evt.CommandName,
-				"cmd name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
-		}
-		if expected.DatabaseName != "" {
-			assert.Equal(mt, expected.DatabaseName, evt.DatabaseName,
-				"db name mismatch; expected %s, got %s", expected.DatabaseName, evt.DatabaseName)
-		}
+		// keys that should not be nil
+		assert.NotEqual(mt, bson.TypeNull, actualVal.Type, "expected value %v for key %s but got nil", val, key)
+		err = actualVal.Validate()
+		assert.Nil(mt, err, "error validating value for key %s: %v", key, err)
 
-		eElems, err := expected.Command.Elements()
-		assert.Nil(mt, err, "error getting expected elements: %v", err)
+		switch key {
+		case "lsid":
+			sessName := val.StringValue()
+			var expectedID bson.Raw
+			actualID := actualVal.Document()
 
-		for _, elem := range eElems {
-			key := elem.Key()
-			val := elem.Value()
-
-			actualVal := evt.Command.Lookup(key)
-
-			// Keys that may be nil
-			if val.Type == bson.TypeNull {
-				assert.Equal(mt, bson.RawValue{}, actualVal, "expected value for key %s to be nil but got %v", key, actualVal)
-				continue
-			}
-			if key == "ordered" || key == "cursor" {
-				// TODO: some tests specify that "ordered" must be a key in the event but ordered isn't a valid option for some of these cases (e.g. insertOne)
-				// TODO: some FLE tests specify "cursor" subdocument for listCollections
-				continue
-			}
-
-			// keys that should not be nil
-			assert.NotEqual(mt, bson.TypeNull, actualVal.Type, "expected value %v for key %s but got nil", val, key)
-			err = actualVal.Validate()
-			assert.Nil(mt, err, "error validating value for key %s: %v", key, err)
-
-			switch key {
-			case "lsid":
-				sessName := val.StringValue()
-				var expectedID bson.Raw
-				actualID := actualVal.Document()
-
-				switch sessName {
-				case "session0":
-					expectedID, err = id0.MarshalBSON()
-				case "session1":
-					expectedID, err = id1.MarshalBSON()
-				default:
-					mt.Fatalf("unrecognized session identifier: %v", sessName)
-				}
-				assert.Nil(mt, err, "error getting expected session ID bytes: %v", err)
-
-				assert.Equal(mt, expectedID, actualID,
-					"session ID mismatch for session %v; expected %v, got %v", sessName, expectedID, actualID)
-			case "getMore":
-				expectedID, ok := val.Int64OK()
-				if ok {
-					// ignore placeholder ID (42)
-					if expectedID == 42 {
-						continue
-					}
-					actualID := actualVal.Int64()
-					assert.Equal(mt, expectedID, actualID, "expected cursor ID; expected %v, got %v", expectedID, actualID)
-					continue
-				}
-				compareValues(mt, key, val, actualVal)
-			case "readConcern":
-				expectedRc := val.Document()
-				actualRc := actualVal.Document()
-				eClusterTime := expectedRc.Lookup("afterClusterTime")
-				eLevel := expectedRc.Lookup("level")
-
-				if eClusterTime.Type != bson.TypeNull {
-					aClusterTime := actualRc.Lookup("afterClusterTime")
-					// ignore placeholder cluster time (42)
-					ctInt32, ok := eClusterTime.Int32OK()
-					if ok && ctInt32 == 42 {
-						continue
-					}
-
-					assert.Equal(mt, eClusterTime, aClusterTime,
-						"cluster time mismatch; expected %v, got %v", eClusterTime, aClusterTime)
-				}
-				if eLevel.Type != bson.TypeNull {
-					aLevel := actualRc.Lookup("level")
-					assert.Equal(mt, eLevel, aLevel, "level mismatch; expected %v, got %v", eLevel, aLevel)
-				}
-			case "recoveryToken":
-				// recovery token is a document but can be "42" in the expectations
-				if rt, ok := val.Int32OK(); ok {
-					assert.Equal(mt, rt, int32(42), "expected int32 recovery token to be 42, got %v", rt)
-					return
-				}
-
-				compareDocs(mt, val.Document(), actualVal.Document())
+			switch sessName {
+			case "session0":
+				expectedID, err = id0.MarshalBSON()
+			case "session1":
+				expectedID, err = id1.MarshalBSON()
 			default:
-				compareValues(mt, key, val, actualVal)
+				mt.Fatalf("unrecognized session identifier: %v", sessName)
 			}
+			assert.Nil(mt, err, "error getting expected session ID bytes: %v", err)
+
+			assert.Equal(mt, expectedID, actualID,
+				"session ID mismatch for session %v; expected %v, got %v", sessName, expectedID, actualID)
+		default:
+			compareValues(mt, key, val, actualVal)
 		}
+	}
+}
+
+func compareWriteErrors(mt *mtest.T, expected, actual bson.Raw) {
+	mt.Helper()
+
+	expectedErrors, _ := expected.Values()
+	actualErrors, _ := actual.Values()
+
+	for i, expectedErrVal := range expectedErrors {
+		expectedErr := expectedErrVal.Document()
+		actualErr := actualErrors[i].Document()
+
+		eIdx := expectedErr.Lookup("index").Int32()
+		aIdx := actualErr.Lookup("index").Int32()
+		assert.Equal(mt, eIdx, aIdx, "expected error index %v, got %v", eIdx, aIdx)
+
+		eCode := expectedErr.Lookup("code").Int32()
+		aCode := actualErr.Lookup("code").Int32()
+		if eCode != 42 {
+			assert.Equal(mt, eCode, aCode, "expected error code %v, got %v", eCode, aCode)
+		}
+
+		eMsg := expectedErr.Lookup("errmsg").StringValue()
+		aMsg := actualErr.Lookup("errmsg").StringValue()
+		if eMsg == "" {
+			assert.NotEqual(mt, aMsg, "", "expected non-empty error message, got empty")
+			return
+		}
+		assert.Equal(mt, eMsg, aMsg, "expected error message %v, got %v", eMsg, aMsg)
+	}
+}
+
+func compareSucceededEvent(mt *mtest.T, expectation *expectation) {
+	mt.Helper()
+
+	expected := expectation.CommandSucceededEvent
+	evt := mt.GetSucceededEvent()
+	assert.NotNil(mt, evt, "expected CommandSucceededEvent, got nil")
+
+	if expected.CommandName != "" {
+		assert.Equal(mt, expected.CommandName, evt.CommandName,
+			"cmd name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
+	}
+
+	eElems, err := expected.Reply.Elements()
+	assert.Nil(mt, err, "error getting expected elements: %v", err)
+
+	for _, elem := range eElems {
+		key := elem.Key()
+		val := elem.Value()
+		actualVal := evt.Reply.Lookup(key)
+
+		switch key {
+		case "writeErrors":
+			compareWriteErrors(mt, val.Array(), actualVal.Array())
+		default:
+			compareValues(mt, key, val, actualVal)
+		}
+	}
+}
+
+func compareFailedEvent(mt *mtest.T, expectation *expectation) {
+	mt.Helper()
+
+	expected := expectation.CommandFailedEvent
+	evt := mt.GetFailedEvent()
+	assert.NotNil(mt, evt, "expected CommandFailedEvent, got nil")
+
+	if expected.CommandName != "" {
+		assert.Equal(mt, expected.CommandName, evt.CommandName,
+			"cmd name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
 	}
 }

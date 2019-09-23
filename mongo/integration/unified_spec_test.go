@@ -106,11 +106,18 @@ type operation struct {
 }
 
 type expectation struct {
-	CommandStartedEvent struct {
+	CommandStartedEvent *struct {
 		CommandName  string   `bson:"command_name"`
 		DatabaseName string   `bson:"database_name"`
 		Command      bson.Raw `bson:"command"`
 	} `bson:"command_started_event"`
+	CommandSucceededEvent *struct {
+		CommandName string   `bson:"command_name"`
+		Reply       bson.Raw `bson:"reply"`
+	} `bson:"command_succeeded_event"`
+	CommandFailedEvent *struct {
+		CommandName string `bson:"command_name"`
+	} `bson:"command_failed_event"`
 }
 
 type outcome struct {

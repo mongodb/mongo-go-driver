@@ -229,6 +229,12 @@ func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.I
 		switch key {
 		case "documents":
 			docs = rawArrayToInterfaceSlice(val.Array())
+		case "options":
+			// Some of the older tests use this to set the "ordered" option
+			optsDoc := val.Document()
+			optsElems, _ := optsDoc.Elements()
+			assert.Equal(mt, 1, len(optsElems), "expected 1 options element, got %v", len(optsElems))
+			opts.SetOrdered(optsDoc.Lookup("ordered").Boolean())
 		case "session":
 		default:
 			mt.Fatalf("unregonized insertMany option: %v", key)
@@ -245,6 +251,31 @@ func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.I
 		return res, err
 	}
 	return mt.Coll.InsertMany(mtest.Background, docs)
+}
+
+func setFindModifiers(mt *mtest.T, modifiersDoc bson.Raw, opts *options.FindOptions) {
+	elems, _ := modifiersDoc.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "$comment":
+			opts.SetComment(val.StringValue())
+		case "$hint":
+			opts.SetHint(val.Document())
+		case "$max":
+			opts.SetMax(val.Document())
+		case "$maxTimeMS":
+			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		case "$min":
+			opts.SetMin(val.Document())
+		case "$returnKey":
+			opts.SetReturnKey(val.Boolean())
+		case "$showDiskLoc":
+			opts.SetShowRecordID(val.Boolean())
+		}
+	}
 }
 
 func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
@@ -264,13 +295,15 @@ func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor,
 		case "sort":
 			opts = opts.SetSort(val.Document())
 		case "skip":
-			opts = opts.SetSkip(int64(val.Int32()))
+			opts = opts.SetSkip(numberFromValue(mt, val))
 		case "limit":
-			opts = opts.SetLimit(int64(val.Int32()))
+			opts = opts.SetLimit(numberFromValue(mt, val))
 		case "batchSize":
-			opts = opts.SetBatchSize(val.Int32())
+			opts = opts.SetBatchSize(int32(numberFromValue(mt, val)))
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
+		case "modifiers":
+			setFindModifiers(mt, val.Document(), opts)
 		case "session":
 		default:
 			mt.Fatalf("unrecognized find option: %v", key)
