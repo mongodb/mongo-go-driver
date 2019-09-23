@@ -22,6 +22,30 @@
       "revId": "aec72535126231cc4a529c4a61e685ef9eadc0f9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1a803f12_d8f957c0",
+        "filename": "mongo/integration/operation_legacy_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-23T17:16:09Z",
+      "side": 1,
+      "message": "The options aren\u0027t really that useful. The previous tests already determine that the fields are being serialized correctly in wire messages. The batchSize option was being used to force multiple batches, but that is now handled by the \"find and killCursors\" test below.",
+      "parentUuid": "55ba34ac_dc3b423d",
+      "range": {
+        "startLine": 81,
+        "startChar": 58,
+        "endLine": 81,
+        "endChar": 73
+      },
+      "revId": "aec72535126231cc4a529c4a61e685ef9eadc0f9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
