@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"math"
@@ -75,6 +76,22 @@ var sessionsMonitor = &event.CommandMonitor{
 	},
 	Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
 		sessionSucceeded = cse
+	},
+}
+
+var startedChan = make(chan *event.CommandStartedEvent, 100)
+var succeededChan = make(chan *event.CommandSucceededEvent, 100)
+var failedChan = make(chan *event.CommandFailedEvent, 100)
+
+var monitor = &event.CommandMonitor{
+	Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
+		startedChan <- cse
+	},
+	Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
+		succeededChan <- cse
+	},
+	Failed: func(ctx context.Context, cfe *event.CommandFailedEvent) {
+		failedChan <- cfe
 	},
 }
 
@@ -450,4 +467,102 @@ func skipInvalidTopology(t *testing.T) {
 
 type aggregator interface {
 	Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*Cursor, error)
+}
+
+func createMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Client {
+	client, err := NewClient()
+	testhelpers.RequireNil(t, err, "unable to create client")
+	client.deployment = testutil.GlobalMonitoredTopology(t, monitor)
+	client.sessionPool = testutil.GlobalMonitoredSessionPool()
+	client.connString = testutil.ConnString(t)
+	client.readPreference = readpref.Primary()
+	client.clock = &session.ClusterClock{}
+	client.registry = bson.DefaultRegistry
+	client.monitor = monitor
+	return client
+}
+
+func drainChannels() {
+	for len(startedChan) > 0 {
+		<-startedChan
+	}
+
+	for len(succeededChan) > 0 {
+		<-succeededChan
+	}
+
+	for len(failedChan) > 0 {
+		<-failedChan
+	}
+}
+
+func getInt64(val bsonx.Val) int64 {
+	switch val.Type() {
+	case bson.TypeInt32:
+		return int64(val.Int32())
+	case bson.TypeInt64:
+		return val.Int64()
+	case bson.TypeDouble:
+		return int64(val.Double())
+	}
+
+	return 0
+}
+
+func compareValues(expected bsonx.Val, actual bsonx.Val) bool {
+	if expected.IsNumber() {
+		if !actual.IsNumber() {
+			return false
+		}
+
+		return getInt64(expected) == getInt64(actual)
+	}
+
+	switch expected.Type() {
+	case bson.TypeString:
+		if aStr, ok := actual.StringValueOK(); !(ok && aStr == expected.StringValue()) {
+			return false
+		}
+	case bson.TypeBinary:
+		aSub, aBytes := actual.Binary()
+		eSub, eBytes := expected.Binary()
+
+		if (aSub != eSub) || (!bytes.Equal(aBytes, eBytes)) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func compareDocs(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
+	// this is necessary even though Equal() exists for documents because types not match between commands and the BSON
+	// documents given in test cases. for example, all numbers in the test case JSON are parsed as int64, but many nubmers
+	// sent over the wire are type int32
+	for _, expectedElem := range expected {
+		aElem, err := actual.LookupElementErr(expectedElem.Key)
+		testhelpers.RequireNil(t, err, "docs not equal. key %s not found in actual", expectedElem.Key)
+		aVal := aElem.Value
+
+		eVal := expectedElem.Value
+
+		if doc, ok := eVal.DocumentOK(); ok {
+			// special $$type assertion
+			if typeVal, err := doc.LookupErr("$$type"); err == nil {
+				// e.g. field: {$$type: "binData"} should assert that "field" is an element of type binary
+				assertType(t, aElem.Value.Type(), typeVal.StringValue())
+				continue
+			}
+
+			// nested doc
+			compareDocs(t, doc, aVal.Document())
+
+			// nested docs were equal
+			continue
+		}
+
+		if !compareValues(eVal, aVal) {
+			t.Fatalf("docs not equal because value mismatch for key %s", expectedElem.Key)
+		}
+	}
 }
