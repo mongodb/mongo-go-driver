@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "bb0adf08_823fe4ff",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T15:58:48Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "40a43b3d_81bd834f",
+      "range": {
+        "startLine": 183,
+        "startChar": 0,
+        "endLine": 183,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "392d73e2_4143e3ca",
         "filename": "mongo/integration/crud_spec_test.go",
         "patchSetId": 3
@@ -84,6 +108,24 @@
     },
     {
       "key": {
+        "uuid": "c47cad4e_fed2777a",
+        "filename": "mongo/integration/crud_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T15:58:48Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "845e5a18_ee33fc61",
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "91e6c318_a2d7b6f0",
         "filename": "mongo/integration/retryable_writes_spec_test.go",
         "patchSetId": 3
@@ -116,6 +158,24 @@
       "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b7a9913f_65409720",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T15:58:48Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "01074008_bbda4755",
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -213,6 +273,30 @@
     },
     {
       "key": {
+        "uuid": "693c4272_6fd7d671",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T15:58:48Z",
+      "side": 1,
+      "message": "RunWithOptions seems a better name then, but I won\u0027t insist on it.",
+      "parentUuid": "017ad90d_2350ed16",
+      "range": {
+        "startLine": 71,
+        "startChar": 0,
+        "endLine": 71,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "00382265_3bb32b8c",
         "filename": "mongo/integration/retryable_writes_spec_test.go",
         "patchSetId": 3
@@ -257,6 +341,30 @@
       "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0e48b47b_b21c2911",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T15:58:48Z",
+      "side": 1,
+      "message": "OK, I\u0027m fine with this then.",
+      "parentUuid": "04488c44_d8ae7868",
+      "range": {
+        "startLine": 75,
+        "startChar": 0,
+        "endLine": 75,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
