@@ -50,6 +50,7 @@ type IsMaster struct {
 	Msg                          string             `bson:"msg,omitempty"`
 	OK                           int32              `bson:"ok"`
 	Passives                     []string           `bson:"passives,omitempty"`
+	Primary                      string             `bson:"primary,omitempty"`
 	ReadOnly                     bool               `bson:"readOnly,omitempty"`
 	SaslSupportedMechs           []string           `bson:"saslSupportedMechs,omitempty"`
 	Secondary                    bool               `bson:"secondary,omitempty"`

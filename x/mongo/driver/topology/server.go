@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -105,6 +106,8 @@ type Server struct {
 	subscribers         map[uint64]chan description.Server
 	currentSubscriberID uint64
 	subscriptionsClosed bool
+
+	topologyID atomic.Value // holds a uuid.UUID
 }
 
 // ConnectServer creates a new Server and then initializes it using the
@@ -161,6 +164,9 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	s.publishServerOpeningEvent(s.address)
+
 	return s, nil
 }
 
@@ -170,6 +176,7 @@ func (s *Server) Connect(updateCallback func(description.Server)) error {
 	if !atomic.CompareAndSwapInt32(&s.connectionstate, disconnected, connected) {
 		return ErrServerConnected
 	}
+
 	s.desc.Store(description.Server{Addr: s.address})
 	s.updateTopologyCallback.Store(updateCallback)
 	go s.update()
@@ -443,7 +450,14 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 		//  ¯\_(ツ)_/¯
 		_ = recover()
 	}()
+
+	prev, ok := s.desc.Load().(description.Server)
+	if !ok {
+		return
+	}
+
 	s.desc.Store(desc)
+	s.publishServerDescriptionChangedEvent(prev, desc)
 
 	callback, ok := s.updateTopologyCallback.Load().(func(description.Server))
 	if ok && callback != nil {
@@ -479,6 +493,8 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 	var desc description.Server
 	var set bool
 	var err error
+	var duration int64
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() {
@@ -536,11 +552,20 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 				NewIsMaster().
 				ClusterClock(s.cfg.clock).
 				Deployment(driver.SingleConnectionDeployment{initConnection{conn}})
+
+			s.publishServerHeartbeatStartedEvent(ctx, conn.ID())
+
+			start := time.Now()
 			err = op.Execute(ctx)
+			end := time.Now()
+			duration = int64(end.Sub(start))
+
 			if err == nil {
 				tmpDesc := op.Result(s.address)
 				descPtr = &tmpDesc
+				s.publishServerHeartbeatSucceededEvent(ctx, conn.ID(), duration, descPtr)
 			}
+			s.publishServerHeartbeatFailedEvent(ctx, conn.ID(), duration, err)
 		}
 
 		// we do a retry if the server is connected, if succeed return new server desc (see below)
@@ -635,4 +660,111 @@ func (ss *ServerSubscription) Unsubscribe() error {
 	delete(ss.s.subscribers, ss.id)
 
 	return nil
+}
+
+// publishes a ServerDescriptionChangedEvent to indicate the server description has changed
+func (s *Server) publishServerDescriptionChangedEvent(prev description.Server, current description.Server) {
+
+	prevDesc := event.ServerDescription{
+		Address:  event.ServerAddress(prev.Addr.String()),
+		Arbiters: event.AddressToServerAddress(prev.Arbiters),
+		Hosts:    event.AddressToServerAddress(prev.Hosts),
+		Passives: event.AddressToServerAddress(prev.Passives),
+		Primary:  event.ServerAddress(prev.Primary.String()),
+		SetName:  prev.SetName,
+		Kind:     event.ServerKind(prev.Kind),
+	}
+	newDesc := event.ServerDescription{
+		Address:  event.ServerAddress(current.Addr.String()),
+		Arbiters: event.AddressToServerAddress(current.Arbiters),
+		Hosts:    event.AddressToServerAddress(current.Hosts),
+		Passives: event.AddressToServerAddress(current.Passives),
+		Primary:  event.ServerAddress(current.Primary.String()),
+		SetName:  current.SetName,
+		Kind:     event.ServerKind(current.Kind),
+	}
+
+	topID, _ := s.topologyID.Load().(uuid.UUID)
+	serverDescriptionChanged := &event.ServerDescriptionChangedEvent{
+		Address:             event.ServerAddress(s.address.String()),
+		ID:                  event.TopologyID(topID),
+		PreviousDescription: prevDesc,
+		NewDescription:      newDesc,
+	}
+
+	if s.cfg.sdamMonitor != nil && s.cfg.sdamMonitor.ServerDescriptionChanged != nil {
+		sdam := s.cfg.sdamMonitor
+		sdam.ServerDescriptionChanged(context.TODO(), serverDescriptionChanged)
+	}
+
+}
+
+// publishes a ServerOpeningEvent to indicate the server is being initialized
+func (s *Server) publishServerOpeningEvent(addr address.Address) {
+	topID, _ := s.topologyID.Load().(uuid.UUID)
+	serverOpening := &event.ServerOpeningEvent{
+		Address: event.ServerAddress(addr.String()),
+		ID:      event.TopologyID(topID),
+	}
+
+	if s.cfg.sdamMonitor != nil && s.cfg.sdamMonitor.ServerOpening != nil {
+		sdam := s.cfg.sdamMonitor
+		sdam.ServerOpening(context.TODO(), serverOpening)
+	}
+}
+
+// publishes a ServerHeartbeatStartedEvent to indicate an ismaster command has started
+func (s *Server) publishServerHeartbeatStartedEvent(ctx context.Context, connectionID string) {
+	serverHeartbeatStarted := &event.ServerHeartbeatStartedEvent{
+		ConnectionID: connectionID,
+	}
+
+	if s.cfg.sdamMonitor != nil && s.cfg.sdamMonitor.ServerHeartbeatStarted != nil {
+		sdam := s.cfg.sdamMonitor
+		sdam.ServerHeartbeatStarted(ctx, serverHeartbeatStarted)
+	}
+}
+
+// publishes a ServerHeartbeatSucceededEvent to indicate ismaster has succeeded
+func (s *Server) publishServerHeartbeatSucceededEvent(ctx context.Context,
+	connectionID string,
+	duration int64,
+	desc *description.Server) {
+	serverDesc := event.ServerDescription{
+		Address:  event.ServerAddress(desc.Addr.String()),
+		Arbiters: event.AddressToServerAddress(desc.Arbiters),
+		Hosts:    event.AddressToServerAddress(desc.Hosts),
+		Passives: event.AddressToServerAddress(desc.Passives),
+		Primary:  event.ServerAddress(desc.Primary.String()),
+		SetName:  desc.SetName,
+		Kind:     event.ServerKind(desc.Kind),
+	}
+
+	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
+		Duration:     duration,
+		Reply:        serverDesc,
+		ConnectionID: connectionID,
+	}
+
+	if s.cfg.sdamMonitor != nil && s.cfg.sdamMonitor.ServerHeartbeatSucceeded != nil {
+		sdam := s.cfg.sdamMonitor
+		sdam.ServerHeartbeatSucceeded(ctx, serverHeartbeatSucceeded)
+	}
+}
+
+// publishes a ServerHeartbeatFailedEvent to indicate ismaster has failed
+func (s *Server) publishServerHeartbeatFailedEvent(ctx context.Context,
+	connectionID string,
+	duration int64,
+	err error) {
+	serverHeartbeatFailed := &event.ServerHeartbeatFailedEvent{
+		Duration:     duration,
+		Reply:        err,
+		ConnectionID: connectionID,
+	}
+
+	if s.cfg.sdamMonitor != nil && s.cfg.sdamMonitor.ServerHeartbeatFailed != nil {
+		sdam := s.cfg.sdamMonitor
+		sdam.ServerHeartbeatFailed(ctx, serverHeartbeatFailed)
+	}
 }

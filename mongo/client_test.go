@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -197,5 +198,11 @@ func TestClient(t *testing.T) {
 		wc := writeconcern.New(writeconcern.WMajority())
 		client := setupClient(options.Client().SetWriteConcern(wc))
 		assert.Equal(t, wc, client.writeConcern, "mismatch; expected write concern %v, got %v", wc, client.writeConcern)
+	})
+	t.Run("sdam monitor", func(t *testing.T) {
+		sdam := &event.SdamMonitor{}
+		opts := &options.ClientOptions{SdamMonitor: sdam}
+		client, _ := NewClient(opts)
+		assert.Equal(t, sdam, client.sdamMonitor, "expected sdam monitor %v, got %v", sdam, client.sdamMonitor)
 	})
 }

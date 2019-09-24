@@ -219,6 +219,13 @@ func (im *IsMaster) Result(addr address.Address) description.Server {
 				desc.LastError = err
 				return desc
 			}
+		case "primary":
+			primary, ok := element.Value().StringValueOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'primary' to be a string but it's a BSON %s", element.Value().Type)
+				return desc
+			}
+			desc.Primary = address.Address(primary)
 		case "readOnly":
 			desc.ReadOnly, ok = element.Value().BooleanOK()
 			if !ok {
@@ -263,14 +270,17 @@ func (im *IsMaster) Result(addr address.Address) description.Server {
 
 	for _, host := range hosts {
 		desc.Members = append(desc.Members, address.Address(host).Canonicalize())
+		desc.Hosts = append(desc.Hosts, address.Address(host).Canonicalize())
 	}
 
 	for _, passive := range passives {
 		desc.Members = append(desc.Members, address.Address(passive).Canonicalize())
+		desc.Passives = append(desc.Passives, address.Address(passive).Canonicalize())
 	}
 
 	for _, arbiter := range arbiters {
 		desc.Members = append(desc.Members, address.Address(arbiter).Canonicalize())
+		desc.Arbiters = append(desc.Arbiters, address.Address(arbiter).Canonicalize())
 	}
 
 	desc.Kind = description.Standalone

@@ -37,7 +37,8 @@
               },
               "newDescription": {
                 "topologyType": "ReplicaSetNoPrimary",
-                "servers": [
+				"setName": "rs",
+				"servers": [
                   {
                     "address": "a:27017",
                     "arbiters": [],
@@ -98,7 +99,8 @@
               "topologyId": "42",
               "previousDescription": {
                 "topologyType": "ReplicaSetNoPrimary",
-                "servers": [
+				"setName": "rs",
+				"servers": [
                   {
                     "address": "a:27017",
                     "arbiters": [],

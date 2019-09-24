@@ -21,10 +21,12 @@ import (
 
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
 // ErrSubscribeAfterClosed is returned when a user attempts to subscribe to a
@@ -86,6 +88,8 @@ type Topology struct {
 	serversLock   sync.Mutex
 	serversClosed bool
 	servers       map[address.Address]*Server
+
+	id uuid.UUID
 }
 
 var _ driver.Deployment = &Topology{}
@@ -94,6 +98,11 @@ var _ driver.Subscriber = &Topology{}
 // New creates a new topology.
 func New(opts ...Option) (*Topology, error) {
 	cfg, err := newConfig(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	newID, err := uuid.New()
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +116,7 @@ func New(opts ...Option) (*Topology, error) {
 		subscribers:       make(map[uint64]chan description.Topology),
 		servers:           make(map[address.Address]*Server),
 		dnsResolver:       dns.DefaultResolver,
+		id:                newID,
 	}
 	t.desc.Store(description.Topology{})
 
@@ -118,6 +128,9 @@ func New(opts ...Option) (*Topology, error) {
 	if cfg.mode == SingleMode {
 		t.fsm.Kind = description.Single
 	}
+
+	t.publishTopologyOpeningEvent(context.TODO())
+	t.publishInitialTopologyDescriptionChangedEvent(context.TODO(), t.fsm.Topology, t.fsm.Topology)
 
 	return t, nil
 }
@@ -170,6 +183,7 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 
 	for _, server := range servers {
 		_ = server.Disconnect(ctx)
+		t.publishServerClosedEvent(ctx, server.address)
 	}
 
 	t.subLock.Lock()
@@ -188,6 +202,9 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 	t.desc.Store(description.Topology{})
 
 	atomic.StoreInt32(&t.connectionstate, disconnected)
+
+	t.publishTopologyClosedEvent(ctx)
+
 	return nil
 }
 
@@ -510,6 +527,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		}()
 		delete(t.servers, addr)
 		t.fsm.removeServerByAddr(addr)
+		t.publishServerClosedEvent(context.TODO(), s.address) // TODO: publish tdce after this?
 	}
 	for _, a := range diff.Added {
 		addr := address.Address(a).Canonicalize()
@@ -564,9 +582,15 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) {
 				cancelCtx, cancel := context.WithCancel(ctx)
 				cancel()
 				_ = s.Disconnect(cancelCtx)
+
 			}()
 			delete(t.servers, removed.Addr)
+			t.publishServerClosedEvent(ctx, s.address)
 		}
+	}
+
+	if diffTopology(prev, current) {
+		t.publishTopologyDescriptionChangedEvent(ctx, prev, current)
 	}
 
 	for _, added := range diff.Added {
@@ -596,11 +620,13 @@ func (t *Topology) addServer(addr address.Address) error {
 	topoFunc := func(desc description.Server) {
 		t.apply(context.TODO(), desc)
 	}
+
 	svr, err := ConnectServer(addr, topoFunc, t.cfg.serverOpts...)
 	if err != nil {
 		return err
 	}
 
+	svr.topologyID.Store(t.id)
 	t.servers[addr] = svr
 
 	return nil
@@ -617,4 +643,330 @@ func (t *Topology) String() string {
 		serversStr += "{ " + s.String() + " }, "
 	}
 	return fmt.Sprintf("Type: %s, Servers: [%s]", desc.Kind, serversStr)
+}
+
+// publishes a ServerClosedEvent to indicate the server has closed
+func (t *Topology) publishServerClosedEvent(ctx context.Context, addr address.Address) {
+	serverClosed := &event.ServerClosedEvent{
+		Address: event.ServerAddress(addr.String()),
+		ID:      event.TopologyID(t.id),
+	}
+
+	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.ServerClosed != nil {
+		sdam := t.cfg.sdamMonitor
+		sdam.ServerClosed(ctx, serverClosed)
+	}
+}
+
+func (t *Topology) publishInitialTopologyDescriptionChangedEvent(ctx context.Context,
+	prev description.Topology,
+	current description.Topology) {
+
+	var prevDesc, newDesc event.TopologyDescription
+	var kind event.TopologyKind
+	var setName string
+	var servers []event.ServerDescription
+
+	// create an unknown description for initial description
+	prevDesc = event.TopologyDescription{
+		Kind:    event.TopologyKind(0),
+		Servers: []event.ServerDescription{},
+		SetName: "",
+	}
+
+	// create empty server descriptions
+	for _, s := range t.cfg.seedList {
+		server := event.ServerDescription{
+			Address:  event.ServerAddress(address.Address(s).String()),
+			Arbiters: []event.ServerAddress{},
+			Hosts:    []event.ServerAddress{},
+			Passives: []event.ServerAddress{},
+			Kind:     event.ServerKind(0), // TODO
+		}
+		servers = append(servers, server)
+	}
+
+	if t.cfg.replicaSetName != "" {
+		setName = t.cfg.replicaSetName
+	}
+	if current.Kind.String() != "Unknown" {
+		kind = event.TopologyKind(current.Kind)
+	}
+	if len(servers) == 1 {
+		kind = event.Single
+	}
+
+	newDesc = event.TopologyDescription{
+		Kind:    kind,
+		Servers: servers,
+		SetName: setName,
+	}
+
+	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
+		ID:                  event.TopologyID(t.id),
+		PreviousDescription: prevDesc,
+		NewDescription:      newDesc,
+	}
+
+	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyDescriptionChanged != nil {
+		sdam := t.cfg.sdamMonitor
+		sdam.TopologyDescriptionChanged(ctx, topologyDescriptionChanged)
+	}
+}
+
+// publishes a TopologyDescriptionChangedEvent to indicate the topology description has changed
+func (t *Topology) publishTopologyDescriptionChangedEvent(ctx context.Context,
+	prev description.Topology,
+	current description.Topology) {
+
+	var prevServers, newServers []event.ServerDescription
+	var prevName, newName string
+
+	// creates event.ServerDescriptions from desc.Servers
+	for _, s := range prev.Servers {
+		server := event.ServerDescription{
+			Address:  event.ServerAddress(s.Addr.String()),
+			Arbiters: event.AddressToServerAddress(s.Arbiters),
+			Hosts:    event.AddressToServerAddress(s.Hosts),
+			Passives: event.AddressToServerAddress(s.Passives),
+			Primary:  event.ServerAddress(s.Primary.String()),
+			SetName:  s.SetName,
+			Kind:     event.ServerKind(s.Kind),
+		}
+		if s.SetName != "" {
+			prevName = s.SetName
+		}
+		prevServers = append(prevServers, server)
+	}
+
+	for _, s := range current.Servers {
+		server := event.ServerDescription{
+			Address:  event.ServerAddress(s.Addr.String()),
+			Arbiters: event.AddressToServerAddress(s.Arbiters),
+			Hosts:    event.AddressToServerAddress(s.Hosts),
+			Passives: event.AddressToServerAddress(s.Passives),
+			Primary:  event.ServerAddress(s.Primary.String()),
+			SetName:  s.SetName,
+			Kind:     event.ServerKind(s.Kind),
+		}
+
+		if s.SetName != "" {
+			newName = s.SetName
+		}
+		newServers = append(newServers, server)
+	}
+
+	if t.cfg.replicaSetName != "" {
+		prevName = t.cfg.replicaSetName
+		newName = t.cfg.replicaSetName
+	}
+
+	var prevDesc, newDesc event.TopologyDescription
+	prevDesc = event.TopologyDescription{
+		Kind:    event.TopologyKind(prev.Kind),
+		Servers: prevServers,
+		SetName: prevName,
+	}
+	newDesc = event.TopologyDescription{
+		Kind:    event.TopologyKind(current.Kind),
+		Servers: newServers,
+		SetName: newName,
+	}
+
+	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
+		ID:                  event.TopologyID(t.id),
+		PreviousDescription: prevDesc,
+		NewDescription:      newDesc,
+	}
+
+	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyDescriptionChanged != nil {
+		sdam := t.cfg.sdamMonitor
+		sdam.TopologyDescriptionChanged(ctx, topologyDescriptionChanged)
+	}
+}
+
+// publishes a TopologyOpeningEvent to indicate the topology is being initialized
+func (t *Topology) publishTopologyOpeningEvent(ctx context.Context) {
+	topologyOpening := &event.TopologyOpeningEvent{
+		ID: event.TopologyID(t.id),
+	}
+
+	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyOpening != nil {
+		sdam := t.cfg.sdamMonitor
+		sdam.TopologyOpening(ctx, topologyOpening)
+	}
+}
+
+func (t *Topology) publishTopologyClosedEvent(ctx context.Context) {
+	topologyClosed := &event.TopologyClosedEvent{
+		ID: event.TopologyID(t.id),
+	}
+
+	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyClosed != nil {
+		sdam := t.cfg.sdamMonitor
+		sdam.TopologyClosed(ctx, topologyClosed)
+	}
+}
+
+// hasReadableServer returns true if a topology has a server available for reading
+// based on the specified read preference.
+func (t *Topology) hasReadableServer(mode readpref.Mode) bool {
+	desc := t.Description()
+	switch desc.Kind {
+	case description.Single, description.Sharded:
+		return hasAvailableServer(desc.Servers, 0)
+	case description.ReplicaSetWithPrimary:
+		return hasAvailableServer(desc.Servers, mode)
+	case description.ReplicaSetNoPrimary, description.ReplicaSet:
+		if mode == readpref.PrimaryMode {
+			return false
+		}
+		// invalid read preference
+		if mode > readpref.NearestMode || mode < readpref.PrimaryMode {
+			return false
+		}
+
+		return hasAvailableServer(desc.Servers, mode)
+	}
+	return false
+}
+
+// hasWritableServer returns true if a topology has a server available for writing
+func (t *Topology) hasWritableServer() bool {
+	desc := t.Description()
+	switch desc.Kind {
+	case description.Single, description.ReplicaSetWithPrimary:
+		return true
+	case description.ReplicaSet, description.ReplicaSetNoPrimary, description.Sharded:
+		return hasAvailableServer(desc.Servers, 0)
+	}
+	return false
+}
+
+// hasAvailableServer returns true if any servers are available based on
+// the read preference.
+func hasAvailableServer(servers []description.Server, mode readpref.Mode) bool {
+	switch mode {
+	case readpref.PrimaryMode:
+		for _, s := range servers {
+			if s.Kind == description.RSPrimary {
+				return true
+			}
+		}
+	case readpref.PrimaryPreferredMode, readpref.SecondaryPreferredMode, readpref.NearestMode:
+		for _, s := range servers {
+			if s.Kind == description.RSPrimary || s.Kind == description.RSSecondary {
+				return true
+			}
+		}
+	case readpref.SecondaryMode:
+		for _, s := range servers {
+			if s.Kind == description.RSSecondary {
+				return true
+			}
+		}
+	}
+
+	// read preference is not specified
+	for _, s := range servers {
+		switch s.Kind {
+		case description.Standalone,
+			description.RSMember,
+			description.RSPrimary,
+			description.RSSecondary,
+			description.RSArbiter,
+			description.RSGhost,
+			description.Mongos:
+			return true
+		}
+	}
+
+	return false
+}
+
+// diffServer compares two server descriptions and returns true if they are different
+func diffServer(prev description.Server, current description.Server) bool {
+	// address will already have effectively been checked
+	// the rest of the fields are not used in sdam monitoring server descriptions
+
+	if len(prev.Arbiters) != len(current.Arbiters) {
+		return true
+	}
+	for idx, a := range prev.Arbiters {
+		if a != current.Arbiters[idx] {
+			return true
+		}
+	}
+
+	if len(prev.Hosts) != len(current.Hosts) {
+		return true
+	}
+	for idx, h := range prev.Hosts {
+		if h != current.Hosts[idx] {
+			return true
+		}
+	}
+
+	if len(prev.Passives) != len(current.Passives) {
+		return true
+	}
+	for idx, p := range prev.Passives {
+		if p != current.Passives[idx] {
+			return true
+		}
+	}
+
+	if prev.Primary != current.Primary {
+		return true
+	}
+
+	if prev.SetName != current.SetName {
+		return true
+	}
+
+	if prev.Kind != current.Kind {
+		return true
+	}
+
+	return false
+}
+
+// diffTopology compares two server descriptions and returns true if they are different
+func diffTopology(prev description.Topology, current description.Topology) bool {
+
+	diff := description.DiffTopology(prev, current)
+	if len(diff.Added) != 0 || len(diff.Removed) != 0 {
+		return true
+	}
+
+	if prev.Kind != current.Kind {
+		return true
+	}
+
+	oldServers := make(map[string]description.Server)
+	for _, s := range prev.Servers {
+		oldServers[s.Addr.String()] = s
+	}
+
+	newServers := make(map[string]description.Server)
+	for _, s := range current.Servers {
+		newServers[s.Addr.String()] = s
+	}
+
+	if len(oldServers) != len(newServers) {
+		return true
+	}
+
+	for _, old := range oldServers {
+		new := newServers[old.Addr.String()]
+		if new.Addr.String() != old.Addr.String() {
+			return true
+		}
+
+		if diffServer(old, new) {
+			return true
+		}
+	}
+
+	return false
 }
