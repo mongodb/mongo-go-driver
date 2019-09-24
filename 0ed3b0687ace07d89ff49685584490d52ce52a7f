@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "40a43b3d_81bd834f",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-24T15:30:46Z",
+      "side": 1,
+      "message": "Doing \"sess, err :\u003d\" is shadowing, so \"sess\" wouldn\u0027t be set to the correct value outside of this conditional. The result is that the operation never has an implicit session.",
+      "parentUuid": "6a80890a_9059686e",
+      "range": {
+        "startLine": 183,
+        "startChar": 0,
+        "endLine": 183,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "392d73e2_4143e3ca",
         "filename": "mongo/integration/crud_spec_test.go",
         "patchSetId": 3
@@ -42,6 +66,24 @@
     },
     {
       "key": {
+        "uuid": "845e5a18_ee33fc61",
+        "filename": "mongo/integration/crud_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-24T15:30:46Z",
+      "side": 1,
+      "message": "runCrudOperation is used by the CRUD spec tests and retryable writes spec tests, but they use different \"test\" struct types. The retryable writes tests have some more information like \"UseMultipleMongoses\" and \"FailPoint\", but the operation type is the same, so they can reuse the operation execution code.",
+      "parentUuid": "392d73e2_4143e3ca",
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "91e6c318_a2d7b6f0",
         "filename": "mongo/integration/retryable_writes_spec_test.go",
         "patchSetId": 3
@@ -53,6 +95,24 @@
       "writtenOn": "2019-09-24T14:48:23Z",
       "side": 1,
       "message": "Nit: I\u0027m still surprised there is no convention that would let you avoid the struct tag when the only difference is capitalization of the first letter.  Am I missing something?",
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "01074008_bbda4755",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-24T15:30:46Z",
+      "side": 1,
+      "message": "We can probably remove all of these struct tags, but I personally think it\u0027s good practice to always use them to avoid weird BSON library idiosyncrasies.",
+      "parentUuid": "91e6c318_a2d7b6f0",
       "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -82,6 +142,30 @@
     },
     {
       "key": {
+        "uuid": "6072fd0e_64d094e1",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-24T15:30:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "43dfc74b_8f857ff7",
+      "range": {
+        "startLine": 53,
+        "startChar": 0,
+        "endLine": 53,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "66d79ba4_20a7ced1",
         "filename": "mongo/integration/retryable_writes_spec_test.go",
         "patchSetId": 3
@@ -105,6 +189,30 @@
     },
     {
       "key": {
+        "uuid": "017ad90d_2350ed16",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-24T15:30:46Z",
+      "side": 1,
+      "message": "It\u0027s \"options\". The opts variable here is an mtest.Options variable.",
+      "parentUuid": "66d79ba4_20a7ced1",
+      "range": {
+        "startLine": 71,
+        "startChar": 0,
+        "endLine": 71,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "00382265_3bb32b8c",
         "filename": "mongo/integration/retryable_writes_spec_test.go",
         "patchSetId": 3
@@ -116,6 +224,30 @@
       "writtenOn": "2019-09-24T14:48:23Z",
       "side": 1,
       "message": "Where is the failpoint cleared?  It would make sense to me if the place where the failpoint is set were close to the place where it\u0027s cleared.",
+      "range": {
+        "startLine": 75,
+        "startChar": 0,
+        "endLine": 75,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "04488c44_d8ae7868",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-24T15:30:46Z",
+      "side": 1,
+      "message": "It\u0027s cleared by mtest after the callback is done executing (https://github.com/mongodb/mongo-go-driver/blob/master/mongo/integration/mtest/mongotest.go#L210).",
+      "parentUuid": "00382265_3bb32b8c",
       "range": {
         "startLine": 75,
         "startChar": 0,
