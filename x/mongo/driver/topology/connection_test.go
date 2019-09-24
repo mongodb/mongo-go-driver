@@ -67,9 +67,11 @@ func TestConnection(t *testing.T) {
 				var want error = ConnectionError{Wrapped: err}
 				conn, got := newConnection(context.Background(), address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
-						return HandshakerFunc(func(context.Context, address.Address, driver.Connection) (description.Server, error) {
-							return description.Server{}, err
-						})
+						return &testHandshaker{
+							finishHandshake: func(context.Context, driver.Connection) error {
+								return err
+							},
+						}
 					}),
 					WithDialer(func(Dialer) Dialer {
 						return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
@@ -92,9 +94,11 @@ func TestConnection(t *testing.T) {
 				conn, err := newConnection(context.Background(), address.Address(""),
 					withServerDescriptionCallback(func(desc description.Server) { got = desc },
 						WithHandshaker(func(Handshaker) Handshaker {
-							return HandshakerFunc(func(context.Context, address.Address, driver.Connection) (description.Server, error) {
-								return want, nil
-							})
+							return &testHandshaker{
+								getDescription: func(context.Context, address.Address, driver.Connection) (description.Server, error) {
+									return want, nil
+								},
+							}
 						}),
 						WithDialer(func(Dialer) Dialer {
 							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
