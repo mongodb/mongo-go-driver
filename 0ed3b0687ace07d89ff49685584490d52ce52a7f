@@ -1,0 +1,130 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6a80890a_9059686e",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T14:48:23Z",
+      "side": 1,
+      "message": "What motivated this change?",
+      "range": {
+        "startLine": 183,
+        "startChar": 0,
+        "endLine": 183,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "392d73e2_4143e3ca",
+        "filename": "mongo/integration/crud_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T14:48:23Z",
+      "side": 1,
+      "message": "Nit: why not just pass in \"test\" instead of breaking it down like this?",
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "91e6c318_a2d7b6f0",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T14:48:23Z",
+      "side": 1,
+      "message": "Nit: I\u0027m still surprised there is no convention that would let you avoid the struct tag when the only difference is capitalization of the first letter.  Am I missing something?",
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "43dfc74b_8f857ff7",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T14:48:23Z",
+      "side": 1,
+      "message": "Nice",
+      "range": {
+        "startLine": 53,
+        "startChar": 0,
+        "endLine": 53,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "66d79ba4_20a7ced1",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T14:48:23Z",
+      "side": 1,
+      "message": "What is opts short for in RunOpts?  Is it Operations?  If so, that\u0027s pretty confusing given that it\u0027s also the abbreviation for options.",
+      "range": {
+        "startLine": 71,
+        "startChar": 0,
+        "endLine": 71,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "00382265_3bb32b8c",
+        "filename": "mongo/integration/retryable_writes_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-24T14:48:23Z",
+      "side": 1,
+      "message": "Where is the failpoint cleared?  It would make sense to me if the place where the failpoint is set were close to the place where it\u0027s cleared.",
+      "range": {
+        "startLine": 75,
+        "startChar": 0,
+        "endLine": 75,
+        "endChar": 1
+      },
+      "revId": "0ed3b0687ace07d89ff49685584490d52ce52a7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
