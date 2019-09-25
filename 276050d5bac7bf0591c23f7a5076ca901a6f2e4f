@@ -16,6 +16,24 @@
       "revId": "276050d5bac7bf0591c23f7a5076ca901a6f2e4f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ef16555e_3aeef75b",
+        "filename": "mongo/options/findoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-09-25T15:46:22Z",
+      "side": 1,
+      "message": "Removed in latest patch.",
+      "parentUuid": "0ad8f2bf_95cadd99",
+      "revId": "276050d5bac7bf0591c23f7a5076ca901a6f2e4f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
