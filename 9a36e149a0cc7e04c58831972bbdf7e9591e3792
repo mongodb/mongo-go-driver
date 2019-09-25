@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2e69eedd_dba92521",
+        "filename": "x/mongo/driver/operation_legacy.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 563,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-25T15:30:05Z",
+      "side": 1,
+      "message": "Is the listCollections legacy wire message ok with regard to batch size?",
+      "range": {
+        "startLine": 563,
+        "startChar": 8,
+        "endLine": 563,
+        "endChar": 14
+      },
+      "revId": "9a36e149a0cc7e04c58831972bbdf7e9591e3792",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
