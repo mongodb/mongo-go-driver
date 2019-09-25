@@ -70,6 +70,63 @@
       "revId": "aec72535126231cc4a529c4a61e685ef9eadc0f9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e4df30d1_b94a0ebc",
+        "filename": "mongo/options/findoptions.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-25T14:16:14Z",
+      "side": 1,
+      "message": "I\u0027d prefer that functional changes like this be pulled out into a separate ticket/commit.",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "aec72535126231cc4a529c4a61e685ef9eadc0f9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b27fcd0c_6cc9854a",
+        "filename": "x/mongo/driver/operation/find.toml",
+        "patchSetId": 4
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-25T14:16:14Z",
+      "side": 1,
+      "message": "Same: This should be a separate ticket/commit.",
+      "revId": "aec72535126231cc4a529c4a61e685ef9eadc0f9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1b215788_6f710887",
+        "filename": "x/mongo/driver/operation_legacy.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 144,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-09-25T14:16:14Z",
+      "side": 1,
+      "message": "This should be a separate commit/ticket.",
+      "revId": "aec72535126231cc4a529c4a61e685ef9eadc0f9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
