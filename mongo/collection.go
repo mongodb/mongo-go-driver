@@ -1032,6 +1032,9 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.MaxAwaitTime != nil {
 		cursorOpts.MaxTimeMS = int64(*fo.MaxAwaitTime / time.Millisecond)
 	}
+	if fo.MaxScan != nil {
+		op.MaxScan(*fo.MaxScan)
+	}
 	if fo.MaxTime != nil {
 		op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
 	}

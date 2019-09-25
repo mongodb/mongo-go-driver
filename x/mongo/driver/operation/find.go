@@ -33,6 +33,7 @@ type Find struct {
 	hint                bsoncore.Value
 	limit               *int64
 	max                 bsoncore.Document
+	maxScan             *int64
 	maxTimeMS           *int64
 	min                 bsoncore.Document
 	noCursorTimeout     *bool
@@ -133,6 +134,9 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 	}
 	if f.max != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "max", f.max)
+	}
+	if f.maxScan != nil {
+		dst = bsoncore.AppendInt64Element(dst, "maxScan", *f.maxScan)
 	}
 	if f.maxTimeMS != nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *f.maxTimeMS)
@@ -260,6 +264,16 @@ func (f *Find) Max(max bsoncore.Document) *Find {
 	}
 
 	f.max = max
+	return f
+}
+
+// MaxScan specifies the maximum number of documents or index keys to scan when executing the query.
+func (f *Find) MaxScan(maxScan int64) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.maxScan = &maxScan
 	return f
 }
 

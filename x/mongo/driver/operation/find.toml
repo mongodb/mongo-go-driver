@@ -98,3 +98,7 @@ documentation = "Collation specifies a collation to be used."
 [request.snapshot]
 type = "boolean"
 documentation = "Snapshot prevents the cursor from returning a document more than once because of an intervening write operation."
+
+[request.maxScan]
+type = "int64"
+documentation = "MaxScan specifies the maximum number of documents or index keys to scan when executing the query."
