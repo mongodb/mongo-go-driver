@@ -51,6 +51,14 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) {
 	switch expected.Type {
 	case bson.TypeInt32, bson.TypeInt64, bson.TypeDouble:
 		compareNumberValues(mt, key, expected, actual)
+	case bson.TypeString:
+		val := expected.StringValue()
+		if val == "42" {
+			assert.NotEqual(mt, bson.TypeNull, actual.Type, "expected non-null value for key %v, got null", key)
+			return
+		}
+		assert.Equal(mt, expected.Value, actual.Value,
+			"value mismatch for key %v; expected %v, got %v", key, expected.Value, actual.Value)
 	case bson.TypeEmbeddedDocument:
 		e := expected.Document()
 		if typeVal, err := e.LookupErr("$$type"); err == nil {
