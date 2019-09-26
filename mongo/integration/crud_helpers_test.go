@@ -1135,6 +1135,41 @@ func executeGridFSDownloadByName(mt *mtest.T, bucket *gridfs.Bucket, args bson.R
 	return bucket.DownloadToStreamByName(file, new(bytes.Buffer))
 }
 
+// returns the result from the operation and the name of the target collection
+func executeRenameCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.SingleResult, string) {
+	mt.Helper()
+
+	var toName string
+	elems, _ := args.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		opt := elem.Value()
+
+		switch key {
+		case "to":
+			toName = opt.StringValue()
+		default:
+			mt.Fatalf("unrecognized renameCollection option %v", key)
+		}
+	}
+
+	renameCmd := bson.D{
+		{"renameCollection", mt.DB.Name() + "." + mt.Coll.Name()},
+		{"to", mt.DB.Name() + "." + toName},
+	}
+	admin := mt.Client.Database("admin")
+
+	if sess != nil {
+		var res *mongo.SingleResult
+		_ = mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+			res = admin.RunCommand(sc, renameCmd)
+			return nil
+		})
+		return res, toName
+	}
+	return admin.RunCommand(mtest.Background, renameCmd), toName
+}
+
 // verification function to use for all count operations
 func verifyCountResult(mt *mtest.T, actualResult int64, expectedResult interface{}) {
 	mt.Helper()
