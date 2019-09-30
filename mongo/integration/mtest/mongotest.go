@@ -84,6 +84,7 @@ type T struct {
 	maxServerVersion string
 	validTopologies  []TopologyKind
 	auth             *bool
+	enterprise       *bool
 	collCreateOpts   bson.D
 
 	// options copied to sub-tests
@@ -573,6 +574,9 @@ func (t *T) shouldSkip() bool {
 		return true
 	}
 	if t.auth != nil && *t.auth != testContext.authEnabled {
+		return true
+	}
+	if t.enterprise != nil && *t.enterprise != testContext.enterpriseServer {
 		return true
 	}
 
