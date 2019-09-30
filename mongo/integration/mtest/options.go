@@ -175,3 +175,11 @@ func (op *Options) Auth(auth bool) *Options {
 	})
 	return op
 }
+
+// Enterprise specifies whether or not this test should only be run on enterprise server variants. Defaults to false.
+func (op *Options) Enterprise(ent bool) *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.enterprise = &ent
+	})
+	return op
+}
