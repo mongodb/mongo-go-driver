@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -67,6 +68,36 @@ func initCollection(t *testing.T, coll *Collection) {
 
 	_, err := coll.InsertMany(ctx, docs)
 	require.Nil(t, err)
+}
+
+func create16MBDocument(t *testing.T) bsoncore.Document {
+	// 4 bytes = document length
+	// 1 byte = element type (ObjectID = \x07)
+	// 4 bytes = key name ("_id" + \x00)
+	// 12 bytes = ObjectID value
+	// 1 byte = element type (string = \x02)
+	// 4 bytes = key name ("key" + \x00)
+	// 4 bytes = string length
+	// X bytes = string of length X bytes
+	// 1 byte = \x00
+	// 1 byte = \x00
+	//
+	// Therefore the string length should be: 1024*1024*16 - 32
+
+	targetDocSize := 1024 * 1024 * 16
+	strSize := targetDocSize - 32
+	var b strings.Builder
+	b.Grow(strSize)
+	for i := 0; i < strSize; i++ {
+		b.WriteByte('A')
+	}
+
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendObjectIDElement(doc, "_id", primitive.NewObjectID())
+	doc = bsoncore.AppendStringElement(doc, "key", b.String())
+	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
+	require.Equal(t, targetDocSize, len(doc), "expected document length %v, got %v", targetDocSize, len(doc))
+	return doc
 }
 
 func TestCollection_initialize(t *testing.T) {
@@ -623,6 +654,36 @@ func TestCollection_InsertMany_Batches(t *testing.T) {
 	require.Nil(t, err)
 	require.Len(t, result.InsertedIDs, numDocs)
 
+}
+
+func TestCollection_InsertMany_LargeDocumentBatches(t *testing.T) {
+	// TODO(GODRIVER-425): remove this as part a larger project to
+	// refactor integration and other longrunning tasks.
+	if os.Getenv("EVR_TASK_ID") == "" {
+		t.Skip("skipping long running integration test outside of evergreen")
+	}
+
+	client := createMonitoredClient(t, monitor)
+	db := client.Database("insertmany_largebatches_db")
+	coll := db.Collection("insertmany_largebatches_coll")
+	err := coll.Drop(ctx)
+	require.NoError(t, err, "Drop error: %v", err)
+	docs := []interface{}{create16MBDocument(t), create16MBDocument(t)}
+
+	drainChannels()
+	_, err = coll.InsertMany(ctx, docs)
+	require.NoError(t, err, "InsertMany error: %v", err)
+
+	for i := 0; i < 2; i++ {
+		var evt *event.CommandStartedEvent
+		select {
+		case evt = <-startedChan:
+		default:
+			t.Fatalf("no insert event found for iteration %v", i)
+		}
+
+		require.Equal(t, "insert", evt.CommandName, "expected 'insert' event, got '%v'", evt.CommandName)
+	}
 }
 
 func TestCollection_InsertMany_ErrorCases(t *testing.T) {
