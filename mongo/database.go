@@ -317,6 +317,8 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
+	defer res.Close(ctx)
+
 	names := make([]string, 0)
 	for res.Next(ctx) {
 		next := &bsonx.Doc{}
@@ -338,6 +340,7 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 		names = append(names, elemName)
 	}
 
+	res.Close(ctx)
 	return names, nil
 }
 
