@@ -58,13 +58,18 @@ func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) 
 		wc = dbOpt.WriteConcern
 	}
 
+	reg := client.registry
+	if dbOpt.Registry != nil {
+		reg = dbOpt.Registry
+	}
+
 	db := &Database{
 		client:         client,
 		name:           name,
 		readPreference: rp,
 		readConcern:    rc,
 		writeConcern:   wc,
-		registry:       client.registry,
+		registry:       reg,
 	}
 
 	db.readSelector = description.CompositeSelector([]description.ServerSelector{

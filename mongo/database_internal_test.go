@@ -16,6 +16,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -58,6 +59,8 @@ func compareDbs(t *testing.T, expected *Database, got *Database) {
 		t.Errorf("expected read concern %#v. got %#v", expected.readConcern, got.readConcern)
 	case expected.writeConcern != got.writeConcern:
 		t.Errorf("expected write concern %#v. got %#v", expected.writeConcern, got.writeConcern)
+	case expected.registry != got.registry:
+		t.Errorf("expected registry %#v, got %#v", expected.registry, got.registry)
 	}
 }
 
@@ -69,14 +72,16 @@ func TestDatabase_Options(t *testing.T) {
 	wc2 := writeconcern.New(writeconcern.W(10))
 	rcLocal := readconcern.Local()
 	rcMajority := readconcern.Majority()
+	reg := bsoncodec.NewRegistryBuilder().Build()
 
 	opts := options.Database().SetReadPreference(rpPrimary).SetReadConcern(rcLocal).SetWriteConcern(wc1).
-		SetReadPreference(rpSecondary).SetReadConcern(rcMajority).SetWriteConcern(wc2)
+		SetReadPreference(rpSecondary).SetReadConcern(rcMajority).SetWriteConcern(wc2).SetRegistry(reg)
 
 	expectedDb := &Database{
 		readConcern:    rcMajority,
 		readPreference: rpSecondary,
 		writeConcern:   wc2,
+		registry:       reg,
 	}
 
 	t.Run("IndividualOptions", func(t *testing.T) {
@@ -94,9 +99,10 @@ func TestDatabase_InheritOptions(t *testing.T) {
 	rcLocal := readconcern.Local()
 	client.readPreference = rpPrimary
 	client.readConcern = rcLocal
+	reg := bsoncodec.NewRegistryBuilder().Build()
 
 	wc1 := writeconcern.New(writeconcern.W(10))
-	db := client.Database(name, options.Database().SetWriteConcern(wc1))
+	db := client.Database(name, options.Database().SetWriteConcern(wc1).SetRegistry(reg))
 
 	// db should inherit read preference and read concern from client
 	switch {
@@ -106,6 +112,8 @@ func TestDatabase_InheritOptions(t *testing.T) {
 		t.Errorf("expected read concern local. got %#v", db.readConcern)
 	case db.writeConcern != wc1:
 		t.Errorf("expected write concern %#v. got %#v", wc1, db.writeConcern)
+	case db.registry != reg:
+		t.Errorf("expected registry %#v, got %#v", reg, db.registry)
 	}
 }
 
