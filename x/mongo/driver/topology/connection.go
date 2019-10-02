@@ -418,10 +418,10 @@ func (c *Connection) Close() error {
 		defer c.s.sem.Release(1)
 	}
 	err := c.pool.put(c.connection)
+	c.connection = nil
 	if err != nil {
 		return err
 	}
-	c.connection = nil
 	return nil
 }
 
