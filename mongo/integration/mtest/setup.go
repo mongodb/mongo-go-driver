@@ -33,12 +33,13 @@ const (
 // once during the global setup in TestMain. These variables should only be accessed indirectly through MongoTest
 // instances.
 var testContext struct {
-	connString    connstring.ConnString
-	topo          *topology.Topology
-	topoKind      TopologyKind
-	client        *mongo.Client // client used for setup and teardown
-	serverVersion string
-	authEnabled   bool
+	connString       connstring.ConnString
+	topo             *topology.Topology
+	topoKind         TopologyKind
+	client           *mongo.Client // client used for setup and teardown
+	serverVersion    string
+	authEnabled      bool
+	enterpriseServer bool
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
@@ -102,6 +103,22 @@ func Setup() error {
 	}
 
 	testContext.authEnabled = len(os.Getenv("MONGO_GO_DRIVER_CA_FILE")) != 0
+	biRes, err := testContext.client.Database("admin").RunCommand(Background, bson.D{{"buildInfo", 1}}).DecodeBytes()
+	if err != nil {
+		log.Printf("error running buildInfo: %v", err)
+		return err
+	}
+	modulesRaw, err := biRes.LookupErr("modules")
+	if err == nil {
+		// older server versions don't report "modules" field in buildInfo result
+		modules, _ := modulesRaw.Array().Values()
+		for _, module := range modules {
+			if module.StringValue() == "enterprise" {
+				testContext.enterpriseServer = true
+				break
+			}
+		}
+	}
 	return nil
 }
 

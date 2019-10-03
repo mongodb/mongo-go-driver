@@ -112,45 +112,53 @@ func (c *connection) connect(ctx context.Context) {
 	c.bumpIdleDeadline()
 
 	// running isMaster and authentication is handled by a handshaker on the configuration instance.
-	if c.config.handshaker != nil {
-		c.desc, err = c.config.handshaker.Handshake(ctx, c.addr, initConnection{c})
-		if err != nil {
-			if c.nc != nil {
-				_ = c.nc.Close()
-			}
-			atomic.StoreInt32(&c.connected, disconnected)
-			c.connectErr = ConnectionError{Wrapped: err, init: true}
-			return
-		}
-		if c.config.descCallback != nil {
-			c.config.descCallback(c.desc)
-		}
-		if len(c.desc.Compression) > 0 {
-		clientMethodLoop:
-			for _, method := range c.config.compressors {
-				for _, serverMethod := range c.desc.Compression {
-					if method != serverMethod {
-						continue
-					}
+	handshaker := c.config.handshaker
+	if handshaker == nil {
+		return
+	}
 
-					switch strings.ToLower(method) {
-					case "snappy":
-						c.compressor = wiremessage.CompressorSnappy
-					case "zlib":
-						c.compressor = wiremessage.CompressorZLib
-						c.zliblevel = wiremessage.DefaultZlibLevel
-						if c.config.zlibLevel != nil {
-							c.zliblevel = *c.config.zlibLevel
-						}
-					case "zstd":
-						c.compressor = wiremessage.CompressorZstd
-						c.zstdLevel = wiremessage.DefaultZstdLevel
-						if c.config.zstdLevel != nil {
-							c.zstdLevel = *c.config.zstdLevel
-						}
-					}
-					break clientMethodLoop
+	handshakeConn := initConnection{c}
+	c.desc, err = handshaker.GetDescription(ctx, c.addr, handshakeConn)
+	if err == nil {
+		err = handshaker.FinishHandshake(ctx, handshakeConn)
+	}
+	if err != nil {
+		if c.nc != nil {
+			_ = c.nc.Close()
+		}
+		atomic.StoreInt32(&c.connected, disconnected)
+		c.connectErr = ConnectionError{Wrapped: err, init: true}
+		return
+	}
+
+	if c.config.descCallback != nil {
+		c.config.descCallback(c.desc)
+	}
+	if len(c.desc.Compression) > 0 {
+	clientMethodLoop:
+		for _, method := range c.config.compressors {
+			for _, serverMethod := range c.desc.Compression {
+				if method != serverMethod {
+					continue
 				}
+
+				switch strings.ToLower(method) {
+				case "snappy":
+					c.compressor = wiremessage.CompressorSnappy
+				case "zlib":
+					c.compressor = wiremessage.CompressorZLib
+					c.zliblevel = wiremessage.DefaultZlibLevel
+					if c.config.zlibLevel != nil {
+						c.zliblevel = *c.config.zlibLevel
+					}
+				case "zstd":
+					c.compressor = wiremessage.CompressorZstd
+					c.zstdLevel = wiremessage.DefaultZstdLevel
+					if c.config.zstdLevel != nil {
+						c.zstdLevel = *c.config.zstdLevel
+					}
+				}
+				break clientMethodLoop
 			}
 		}
 	}
@@ -304,10 +312,15 @@ type initConnection struct{ *connection }
 
 var _ driver.Connection = initConnection{}
 
-func (c initConnection) Description() description.Server { return description.Server{} }
-func (c initConnection) Close() error                    { return nil }
-func (c initConnection) ID() string                      { return c.id }
-func (c initConnection) Address() address.Address        { return c.addr }
+func (c initConnection) Description() description.Server {
+	if c.connection == nil {
+		return description.Server{}
+	}
+	return c.connection.desc
+}
+func (c initConnection) Close() error             { return nil }
+func (c initConnection) ID() string               { return c.id }
+func (c initConnection) Address() address.Address { return c.addr }
 func (c initConnection) LocalAddress() address.Address {
 	if c.connection == nil || c.nc == nil {
 		return address.Address("0.0.0.0")
@@ -409,11 +422,8 @@ func (c *Connection) Close() error {
 		defer c.s.sem.Release(1)
 	}
 	err := c.pool.put(c.connection)
-	if err != nil {
-		return err
-	}
 	c.connection = nil
-	return nil
+	return err
 }
 
 // Expire closes this connection and will closeConnection the underlying socket.
@@ -427,11 +437,8 @@ func (c *Connection) Expire() error {
 		c.s.sem.Release(1)
 	}
 	err := c.close()
-	if err != nil {
-		return err
-	}
 	c.connection = nil
-	return nil
+	return err
 }
 
 // Alive returns if the connection is still alive.

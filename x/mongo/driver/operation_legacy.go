@@ -107,8 +107,6 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 			optsElems = bsoncore.AppendValueElement(optsElems, "$hint", elem.Value())
 		case "comment":
 			optsElems = bsoncore.AppendValueElement(optsElems, "$comment", elem.Value())
-		case "maxScan":
-			optsElems = bsoncore.AppendValueElement(optsElems, "$maxScan", elem.Value())
 		case "max":
 			optsElems = bsoncore.AppendValueElement(optsElems, "$max", elem.Value())
 		case "min":
@@ -141,7 +139,7 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 			flags |= wiremessage.TailableCursor
 		case "awaitData":
 			flags |= wiremessage.AwaitData
-		case "oplogReply":
+		case "oplogReplay":
 			flags |= wiremessage.OplogReplay
 		case "noCursorTimeout":
 			flags |= wiremessage.NoCursorTimeout
@@ -309,7 +307,7 @@ func (op Operation) legacyKillCursors(ctx context.Context, dst []byte, srvr Serv
 
 	ridx, response := bsoncore.AppendDocumentStart(nil)
 	response = bsoncore.AppendInt32Element(response, "ok", 1)
-	response = bsoncore.AppendArrayElement(response, "cursorsKilled", startedInfo.cmd.Lookup("cursors").Array())
+	response = bsoncore.AppendArrayElement(response, "cursorsUnknown", startedInfo.cmd.Lookup("cursors").Array())
 	response, _ = bsoncore.AppendDocumentEnd(response, ridx)
 
 	finishedInfo.response = response
@@ -560,8 +558,12 @@ func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc descript
 		switch elem.Key() {
 		case "listIndexes":
 			filterCollName = elem.Value().StringValue()
-		case "batchSize":
-			batchSize = elem.Value().Int32()
+		case "cursor":
+			// the batchSize option is embedded in a cursor subdocument
+			cursorDoc := elem.Value().Document()
+			if val, err := cursorDoc.LookupErr("batchSize"); err == nil {
+				batchSize = val.Int32()
+			}
 		case "maxTimeMS":
 			optsElems = bsoncore.AppendValueElement(optsElems, "$maxTimeMS", elem.Value())
 		}

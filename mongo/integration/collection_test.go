@@ -9,6 +9,7 @@ package integration
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -117,6 +118,21 @@ func TestCollection(t *testing.T) {
 			res, err := mt.Coll.InsertMany(context.Background(), docs)
 			assert.Nil(mt, err, "InsertMany error: %v", err)
 			assert.Equal(mt, numDocs, len(res.InsertedIDs), "expected %v inserted IDs, got %v", numDocs, len(res.InsertedIDs))
+		})
+		mt.Run("large document batches", func(mt *mtest.T) {
+			// TODO(GODRIVER-425): remove this as part a larger project to
+			// refactor integration and other longrunning tasks.
+			if os.Getenv("EVR_TASK_ID") == "" {
+				mt.Skip("skipping long running integration test outside of evergreen")
+			}
+
+			docs := []interface{}{create16MBDocument(mt), create16MBDocument(mt)}
+			_, err := mt.Coll.InsertMany(mtest.Background, docs)
+			assert.Nil(mt, err, "InsertMany error: %v", err)
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "insert", evt.CommandName, "expected 'insert' event, got '%v'", evt.CommandName)
+			evt = mt.GetStartedEvent()
+			assert.Equal(mt, "insert", evt.CommandName, "expected 'insert' event, got '%v'", evt.CommandName)
 		})
 		mt.RunOpts("write error", noClientOpts, func(mt *mtest.T) {
 			docs := []interface{}{
@@ -994,4 +1010,34 @@ func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts *options.Aggre
 		assert.Equal(mt, bson.TypeInt32, num.Type, "expected 'x' type %v, got %v", bson.TypeInt32, num.Type)
 		assert.Equal(mt, int32(i), num.Int32(), "expected x value %v, got %v", i, num.Int32())
 	}
+}
+
+func create16MBDocument(mt *mtest.T) bsoncore.Document {
+	// 4 bytes = document length
+	// 1 byte = element type (ObjectID = \x07)
+	// 4 bytes = key name ("_id" + \x00)
+	// 12 bytes = ObjectID value
+	// 1 byte = element type (string = \x02)
+	// 4 bytes = key name ("key" + \x00)
+	// 4 bytes = string length
+	// X bytes = string of length X bytes
+	// 1 byte = \x00
+	// 1 byte = \x00
+	//
+	// Therefore the string length should be: 1024*1024*16 - 32
+
+	targetDocSize := 1024 * 1024 * 16
+	strSize := targetDocSize - 32
+	var b strings.Builder
+	b.Grow(strSize)
+	for i := 0; i < strSize; i++ {
+		b.WriteByte('A')
+	}
+
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendObjectIDElement(doc, "_id", primitive.NewObjectID())
+	doc = bsoncore.AppendStringElement(doc, "key", b.String())
+	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
+	assert.Equal(mt, targetDocSize, len(doc), "expected document length %v, got %v", targetDocSize, len(doc))
+	return doc
 }

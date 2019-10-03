@@ -31,6 +31,8 @@ var (
 	PrimaryRp = readpref.Primary()
 	// LocalRc is the local read concern
 	LocalRc = readconcern.Local()
+	// MajorityRc is the majority read concern
+	MajorityRc = readconcern.Majority()
 )
 
 const (
@@ -82,6 +84,7 @@ type T struct {
 	maxServerVersion string
 	validTopologies  []TopologyKind
 	auth             *bool
+	enterprise       *bool
 	collCreateOpts   bson.D
 
 	// options copied to sub-tests
@@ -498,7 +501,10 @@ func (t *T) createTestClient() {
 	var err error
 	switch t.clientType {
 	case Default:
-		clientOpts.ApplyURI(testContext.connString.Original)
+		// only specify URI if the deployment is not set to avoid setting topology/server options along with the deployment
+		if clientOpts.Deployment == nil {
+			clientOpts.ApplyURI(testContext.connString.Original)
+		}
 		t.Client, err = mongo.NewClient(clientOpts)
 	case Pinned:
 		// pin to first mongos
@@ -568,6 +574,9 @@ func (t *T) shouldSkip() bool {
 		return true
 	}
 	if t.auth != nil && *t.auth != testContext.authEnabled {
+		return true
+	}
+	if t.enterprise != nil && *t.enterprise != testContext.enterpriseServer {
 		return true
 	}
 
