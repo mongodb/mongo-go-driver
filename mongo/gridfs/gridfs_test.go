@@ -10,14 +10,20 @@ import (
 	"context"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 func TestGridFS(t *testing.T) {
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb://localhost:27017"))
-	assert.Nil(t, err, "NewClient error: %v", err)
+	cs := testutil.ConnString(t)
+	clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
+		SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+	client, err := mongo.Connect(context.Background(), clientOpts)
+	assert.Nil(t, err, "Connect error: %v", err)
 	db := client.Database("gridfs")
 	defer db.Drop(context.Background())
 
