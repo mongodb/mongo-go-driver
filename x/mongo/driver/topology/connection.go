@@ -431,11 +431,8 @@ func (c *Connection) Close() error {
 		defer c.s.sem.Release(1)
 	}
 	err := c.pool.put(c.connection)
-	if err != nil {
-		return err
-	}
 	c.connection = nil
-	return nil
+	return err
 }
 
 // Expire closes this connection and will closeConnection the underlying socket.
@@ -449,11 +446,8 @@ func (c *Connection) Expire() error {
 		c.s.sem.Release(1)
 	}
 	err := c.close()
-	if err != nil {
-		return err
-	}
 	c.connection = nil
-	return nil
+	return err
 }
 
 // Alive returns if the connection is still alive.
