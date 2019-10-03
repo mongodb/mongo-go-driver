@@ -25,7 +25,9 @@ func TestGridFS(t *testing.T) {
 	client, err := mongo.Connect(context.Background(), clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 	db := client.Database("gridfs")
-	defer db.Drop(context.Background())
+	defer func() {
+		_ = db.Drop(context.Background())
+	}()
 
 	// Unit tests showing the chunk size is set correctly on the bucket and upload stream objects.
 	t.Run("ChunkSize", func(t *testing.T) {
