@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
+// CompressionOpts holds settings for how to compress a payload
 type CompressionOpts struct {
 	Compressor       wiremessage.CompressorID
 	ZlibLevel        int
@@ -23,6 +24,7 @@ type CompressionOpts struct {
 	UncompressedSize int32
 }
 
+// CompressPlayoad takes a byte slice and compresses it according to the options passed
 func CompressPlayoad(in []byte, opts CompressionOpts) ([]byte, error) {
 	switch opts.Compressor {
 	case wiremessage.CompressorNoOp:
@@ -51,6 +53,7 @@ func CompressPlayoad(in []byte, opts CompressionOpts) ([]byte, error) {
 	}
 }
 
+// DecompressPayload takes a byte slice that has been compressed and undoes it according to the options passed
 func DecompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 	switch opts.Compressor {
 	case wiremessage.CompressorNoOp:
