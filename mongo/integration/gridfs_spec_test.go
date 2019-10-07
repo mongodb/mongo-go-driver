@@ -342,6 +342,7 @@ func executeGfsDownloadToStream(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket
 func compareGfsDownloadAssert(mt *mtest.T, copied int, err error, test gfsTest) {
 	if test.Assert.Error != "" {
 		assert.NotNil(mt, err, "expected Read error, got nil")
+		compareGfsAssertError(mt, test.Assert.Error, err)
 	}
 	if test.Assert.Result != nil {
 		result := test.Assert.Result.(bson.Raw)
@@ -397,6 +398,7 @@ func executeGfsDelete(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
 	err := bucket.Delete(test.Act.Arguments.Lookup("id").ObjectID())
 	if test.Assert.Error != "" {
 		assert.NotNil(mt, err, "expected Delete error, got nil")
+		compareGfsAssertError(mt, test.Assert.Error, err)
 		return
 	}
 	var cmds []interface{}
@@ -475,4 +477,20 @@ func clearGfsCollections(mt *mtest.T) {
 		_, err := mt.DB.Collection(coll).DeleteMany(mtest.Background, bson.D{})
 		assert.Nil(mt, err, "DeleteMany error for %v: %v", coll, err)
 	}
+}
+
+func compareGfsAssertError(mt *mtest.T, assertErrString string, err error) {
+	var wantErr error
+	switch assertErrString {
+	case "FileNotFound", "RevisionNotFound":
+		wantErr = gridfs.ErrFileNotFound
+	case "ChunkIsMissing":
+		wantErr = gridfs.ErrWrongIndex
+	case "ChunkIsWrongSize":
+		wantErr = gridfs.ErrWrongSize
+	default:
+		mt.Fatalf("unrecognized assert error string %v", assertErrString)
+	}
+
+	assert.Equal(mt, wantErr, err, "expected error %s, got %s", wantErr, err)
 }
