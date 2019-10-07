@@ -480,6 +480,8 @@ func clearGfsCollections(mt *mtest.T) {
 }
 
 func compareGfsAssertError(mt *mtest.T, assertErrString string, err error) {
+	mt.Helper()
+
 	var wantErr error
 	switch assertErrString {
 	case "FileNotFound", "RevisionNotFound":
