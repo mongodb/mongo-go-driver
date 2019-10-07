@@ -9,9 +9,9 @@ package connstring_test
 import (
 	"fmt"
 	"testing"
-
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
@@ -502,13 +502,17 @@ func TestCompressionOptions(t *testing.T) {
 		uriOptions  string
 		compressors []string
 		zlibLevel   int
+		zstdLevel   int
 		err         bool
 	}{
 		{name: "SingleCompressor", uriOptions: "compressors=zlib", compressors: []string{"zlib"}},
-		{name: "BothCompressors", uriOptions: "compressors=snappy,zlib", compressors: []string{"snappy", "zlib"}},
+		{name: "MultiCompressors", uriOptions: "compressors=snappy,zlib", compressors: []string{"snappy", "zlib"}},
 		{name: "ZlibWithLevel", uriOptions: "compressors=zlib&zlibCompressionLevel=7", compressors: []string{"zlib"}, zlibLevel: 7},
 		{name: "DefaultZlibLevel", uriOptions: "compressors=zlib&zlibCompressionLevel=-1", compressors: []string{"zlib"}, zlibLevel: 6},
 		{name: "InvalidZlibLevel", uriOptions: "compressors=zlib&zlibCompressionLevel=-2", compressors: []string{"zlib"}, err: true},
+		{name: "ZstdWithLevel", uriOptions: "compressors=zstd&zstdCompressionLevel=20", compressors: []string{"zstd"}, zstdLevel: 20},
+		{name: "DefaultZstdLevel", uriOptions: "compressors=zstd&zstdCompressionLevel=-1", compressors: []string{"zstd"}, zstdLevel: 6},
+		{name: "InvalidZstdLevel", uriOptions: "compressors=zstd&zstdCompressionLevel=30", compressors: []string{"zstd"}, err: true},
 	}
 
 	for _, tc := range tests {
@@ -516,11 +520,16 @@ func TestCompressionOptions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cs, err := connstring.Parse(uri)
 			if tc.err {
-				require.Error(t, err)
+				assert.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tc.compressors, cs.Compressors)
-				require.Equal(t, tc.zlibLevel, cs.ZlibLevel)
+				assert.Equal(t, tc.compressors, cs.Compressors)
+				if tc.zlibLevel != 0 {
+					assert.Equal(t, tc.zlibLevel, cs.ZlibLevel)
+				}
+				if tc.zstdLevel != 0 {
+					assert.Equal(t, tc.zstdLevel, cs.ZstdLevel)
+				}
 			}
 		})
 	}

@@ -303,9 +303,14 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		))
 
 		for _, comp := range comps {
-			if comp == "zlib" {
+			switch comp {
+			case "zlib":
 				connOpts = append(connOpts, topology.WithZlibLevel(func(level *int) *int {
 					return opts.ZlibLevel
+				}))
+			case "zstd":
+				connOpts = append(connOpts, topology.WithZstdLevel(func(level *int) *int {
+					return opts.ZstdLevel
 				}))
 			}
 		}

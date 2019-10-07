@@ -2,15 +2,12 @@ package driver
 
 import (
 	"bytes"
-	"compress/zlib"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"time"
 
-	"github.com/golang/snappy"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -624,27 +621,16 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	}
 
 	header := make([]byte, 0, uncompressedSize+16)
-	header = wiremessage.AppendHeader(header, uncompressedSize, reqid, respto, opcode)
-	uncompressed := make([]byte, uncompressedSize)
-	switch compressorID {
-	case wiremessage.CompressorSnappy:
-		var err error
-		uncompressed, err = snappy.Decode(uncompressed, msg)
-		if err != nil {
-			return nil, err
-		}
-	case wiremessage.CompressorZLib:
-		decompressor, err := zlib.NewReader(bytes.NewReader(msg))
-		if err != nil {
-			return nil, err
-		}
-		_, err = io.ReadFull(decompressor, uncompressed)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unknown compressorID %d", compressorID)
+	header = wiremessage.AppendHeader(header, uncompressedSize+16, reqid, respto, opcode)
+	opts := CompressionOpts{
+		Compressor:       compressorID,
+		UncompressedSize: uncompressedSize,
 	}
+	uncompressed, err := DecompressPayload(msg, opts)
+	if err != nil {
+		return nil, err
+	}
+
 	return append(header, uncompressed...), nil
 }
 

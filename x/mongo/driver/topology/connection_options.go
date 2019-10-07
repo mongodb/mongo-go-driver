@@ -48,6 +48,7 @@ type connectionConfig struct {
 	tlsConfig      *tls.Config
 	compressors    []string
 	zlibLevel      *int
+	zstdLevel      *int
 	descCallback   func(description.Server)
 }
 
@@ -178,6 +179,14 @@ func WithMonitor(fn func(*event.CommandMonitor) *event.CommandMonitor) Connectio
 func WithZlibLevel(fn func(*int) *int) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.zlibLevel = fn(c.zlibLevel)
+		return nil
+	}
+}
+
+// WithZstdLevel sets the zstd compression level.
+func WithZstdLevel(fn func(*int) *int) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.zstdLevel = fn(c.zstdLevel)
 		return nil
 	}
 }

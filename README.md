@@ -174,7 +174,7 @@ Notes:
 
 ### Testing Compression
 
-The MongoDB Go Driver supports wire protocol compression using Snappy or zLib. To run tests with wire protocol compression, set `MONGO_GO_DRIVER_COMPRESSOR` to `snappy` or `zlib`.  For example:
+The MongoDB Go Driver supports wire protocol compression using Snappy, zLib, or zstd. To run tests with wire protocol compression, set `MONGO_GO_DRIVER_COMPRESSOR` to `snappy`, `zlib`, or `zstd`.  For example:
 
 ```
 MONGO_GO_DRIVER_COMPRESSOR=snappy make
