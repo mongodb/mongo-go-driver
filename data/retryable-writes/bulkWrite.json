@@ -9,9 +9,6 @@
   "tests": [
     {
       "description": "First command is retried",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -61,6 +58,7 @@
       "outcome": {
         "result": {
           "deletedCount": 1,
+          "insertedCount": 1,
           "insertedIds": {
             "0": 2
           },
@@ -81,9 +79,6 @@
     },
     {
       "description": "All commands are retried",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -178,6 +173,7 @@
       "outcome": {
         "result": {
           "deletedCount": 1,
+          "insertedCount": 3,
           "insertedIds": {
             "0": 2,
             "2": 3,
@@ -214,9 +210,6 @@
     },
     {
       "description": "Both commands are retried after their first statement fails",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -271,6 +264,7 @@
       "outcome": {
         "result": {
           "deletedCount": 0,
+          "insertedCount": 1,
           "insertedIds": {
             "0": 2
           },
@@ -295,9 +289,6 @@
     },
     {
       "description": "Second command is retried after its second statement fails",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -352,6 +343,7 @@
       "outcome": {
         "result": {
           "deletedCount": 0,
+          "insertedCount": 1,
           "insertedIds": {
             "0": 2
           },
@@ -376,9 +368,6 @@
     },
     {
       "description": "BulkWrite with unordered execution",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -416,6 +405,7 @@
       "outcome": {
         "result": {
           "deletedCount": 0,
+          "insertedCount": 2,
           "insertedIds": {
             "0": 2,
             "1": 3
@@ -445,9 +435,6 @@
     },
     {
       "description": "First insertOne is never committed",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -501,6 +488,7 @@
         "error": true,
         "result": {
           "deletedCount": 0,
+          "insertedCount": 0,
           "insertedIds": {},
           "matchedCount": 0,
           "modifiedCount": 0,
@@ -519,9 +507,6 @@
     },
     {
       "description": "Second updateOne is never committed",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -575,6 +560,7 @@
         "error": true,
         "result": {
           "deletedCount": 0,
+          "insertedCount": 1,
           "insertedIds": {
             "0": 2
           },
@@ -599,9 +585,6 @@
     },
     {
       "description": "Third updateOne is never committed",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -660,6 +643,7 @@
         "error": true,
         "result": {
           "deletedCount": 0,
+          "insertedCount": 1,
           "insertedIds": {
             "1": 2
           },
@@ -684,9 +668,6 @@
     },
     {
       "description": "Single-document write following deleteMany is retried",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -726,6 +707,7 @@
       "outcome": {
         "result": {
           "deletedCount": 1,
+          "insertedCount": 1,
           "insertedIds": {
             "1": 2
           },
@@ -746,9 +728,6 @@
     },
     {
       "description": "Single-document write following updateMany is retried",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -793,6 +772,7 @@
       "outcome": {
         "result": {
           "deletedCount": 0,
+          "insertedCount": 1,
           "insertedIds": {
             "1": 2
           },

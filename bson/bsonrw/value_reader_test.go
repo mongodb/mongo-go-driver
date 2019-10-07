@@ -1204,184 +1204,185 @@ func TestValueReader(t *testing.T) {
 		cwsbytes := bsoncore.AppendCodeWithScope(nil, "var hellow = world;", docb)
 		strbytes := []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}
 		testCases := []struct {
-			name   string
-			t      bsontype.Type
-			data   []byte
-			err    error
-			offset int64
+			name           string
+			t              bsontype.Type
+			data           []byte
+			err            error
+			offset         int64
+			startingOffset int64
 		}{
 			{
 				"Array/invalid length",
 				bsontype.Array,
 				[]byte{0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"Array/not enough bytes",
 				bsontype.Array,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"Array/success",
 				bsontype.Array,
 				[]byte{0x08, 0x00, 0x00, 0x00, 0x0A, '1', 0x00, 0x00},
-				nil, 8,
+				nil, 8, 0,
 			},
 			{
 				"EmbeddedDocument/invalid length",
 				bsontype.EmbeddedDocument,
 				[]byte{0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"EmbeddedDocument/not enough bytes",
 				bsontype.EmbeddedDocument,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"EmbeddedDocument/success",
 				bsontype.EmbeddedDocument,
 				[]byte{0x08, 0x00, 0x00, 0x00, 0x0A, 'A', 0x00, 0x00},
-				nil, 8,
+				nil, 8, 0,
 			},
 			{
 				"CodeWithScope/invalid length",
 				bsontype.CodeWithScope,
 				[]byte{0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"CodeWithScope/not enough bytes",
 				bsontype.CodeWithScope,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"CodeWithScope/success",
 				bsontype.CodeWithScope,
 				cwsbytes,
-				nil, 41,
+				nil, 41, 0,
 			},
 			{
 				"Binary/invalid length",
 				bsontype.Binary,
 				[]byte{0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"Binary/not enough bytes",
 				bsontype.Binary,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"Binary/success",
 				bsontype.Binary,
 				[]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
-				nil, 8,
+				nil, 8, 0,
 			},
 			{
 				"Boolean/invalid length",
 				bsontype.Boolean,
 				[]byte{},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"Boolean/success",
 				bsontype.Boolean,
 				[]byte{0x01},
-				nil, 1,
+				nil, 1, 0,
 			},
 			{
 				"DBPointer/invalid length",
 				bsontype.DBPointer,
 				[]byte{0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"DBPointer/not enough bytes",
 				bsontype.DBPointer,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"DBPointer/success",
 				bsontype.DBPointer,
 				[]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-				nil, 17,
+				nil, 17, 0,
 			},
-			{"DBPointer/not enough bytes", bsontype.DateTime, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
-			{"DBPointer/success", bsontype.DateTime, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
-			{"Double/not enough bytes", bsontype.Double, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
-			{"Double/success", bsontype.Double, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
-			{"Int64/not enough bytes", bsontype.Int64, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
-			{"Int64/success", bsontype.Int64, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
-			{"Timestamp/not enough bytes", bsontype.Timestamp, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
-			{"Timestamp/success", bsontype.Timestamp, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
+			{"DBPointer/not enough bytes", bsontype.DateTime, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0, 0},
+			{"DBPointer/success", bsontype.DateTime, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8, 0},
+			{"Double/not enough bytes", bsontype.Double, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0, 0},
+			{"Double/success", bsontype.Double, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8, 0},
+			{"Int64/not enough bytes", bsontype.Int64, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0, 0},
+			{"Int64/success", bsontype.Int64, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8, 0},
+			{"Timestamp/not enough bytes", bsontype.Timestamp, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0, 0},
+			{"Timestamp/success", bsontype.Timestamp, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8, 0},
 			{
 				"Decimal128/not enough bytes",
 				bsontype.Decimal128,
 				[]byte{0x01, 0x02, 0x03, 0x04},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"Decimal128/success",
 				bsontype.Decimal128,
 				[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10},
-				nil, 16,
+				nil, 16, 0,
 			},
-			{"Int32/not enough bytes", bsontype.Int32, []byte{0x01, 0x02}, io.EOF, 0},
-			{"Int32/success", bsontype.Int32, []byte{0x01, 0x02, 0x03, 0x04}, nil, 4},
-			{"Javascript/invalid length", bsontype.JavaScript, strbytes[:2], io.EOF, 0},
-			{"Javascript/not enough bytes", bsontype.JavaScript, strbytes[:5], io.EOF, 0},
-			{"Javascript/success", bsontype.JavaScript, strbytes, nil, 8},
-			{"String/invalid length", bsontype.String, strbytes[:2], io.EOF, 0},
-			{"String/not enough bytes", bsontype.String, strbytes[:5], io.EOF, 0},
-			{"String/success", bsontype.String, strbytes, nil, 8},
-			{"Symbol/invalid length", bsontype.Symbol, strbytes[:2], io.EOF, 0},
-			{"Symbol/not enough bytes", bsontype.Symbol, strbytes[:5], io.EOF, 0},
-			{"Symbol/success", bsontype.Symbol, strbytes, nil, 8},
-			{"MaxKey/success", bsontype.MaxKey, []byte{}, nil, 0},
-			{"MinKey/success", bsontype.MinKey, []byte{}, nil, 0},
-			{"Null/success", bsontype.Null, []byte{}, nil, 0},
-			{"Undefined/success", bsontype.Undefined, []byte{}, nil, 0},
+			{"Int32/not enough bytes", bsontype.Int32, []byte{0x01, 0x02}, io.EOF, 0, 0},
+			{"Int32/success", bsontype.Int32, []byte{0x01, 0x02, 0x03, 0x04}, nil, 4, 0},
+			{"Javascript/invalid length", bsontype.JavaScript, strbytes[:2], io.EOF, 0, 0},
+			{"Javascript/not enough bytes", bsontype.JavaScript, strbytes[:5], io.EOF, 0, 0},
+			{"Javascript/success", bsontype.JavaScript, strbytes, nil, 8, 0},
+			{"String/invalid length", bsontype.String, strbytes[:2], io.EOF, 0, 0},
+			{"String/not enough bytes", bsontype.String, strbytes[:5], io.EOF, 0, 0},
+			{"String/success", bsontype.String, strbytes, nil, 8, 0},
+			{"Symbol/invalid length", bsontype.Symbol, strbytes[:2], io.EOF, 0, 0},
+			{"Symbol/not enough bytes", bsontype.Symbol, strbytes[:5], io.EOF, 0, 0},
+			{"Symbol/success", bsontype.Symbol, strbytes, nil, 8, 0},
+			{"MaxKey/success", bsontype.MaxKey, []byte{}, nil, 0, 0},
+			{"MinKey/success", bsontype.MinKey, []byte{}, nil, 0, 0},
+			{"Null/success", bsontype.Null, []byte{}, nil, 0, 0},
+			{"Undefined/success", bsontype.Undefined, []byte{}, nil, 0, 0},
 			{
 				"ObjectID/not enough bytes",
 				bsontype.ObjectID,
 				[]byte{0x01, 0x02, 0x03, 0x04},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"ObjectID/success",
 				bsontype.ObjectID,
 				[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-				nil, 12,
+				nil, 12, 0,
 			},
 			{
 				"Regex/not enough bytes (first string)",
 				bsontype.Regex,
 				[]byte{'f', 'o', 'o'},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"Regex/not enough bytes (second string)",
 				bsontype.Regex,
 				[]byte{'f', 'o', 'o', 0x00, 'b', 'a', 'r'},
-				io.EOF, 0,
+				io.EOF, 0, 0,
 			},
 			{
 				"Regex/success",
 				bsontype.Regex,
-				[]byte{'f', 'o', 'o', 0x00, 'b', 'a', 'r', 0x00},
-				nil, 8,
+				[]byte{0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00, 'i', 0x00},
+				nil, 9, 3,
 			},
 			{
 				"Unknown Type",
 				bsontype.Type(0),
 				nil,
-				fmt.Errorf("attempted to read bytes of unknown BSON type %v", bsontype.Type(0)), 0,
+				fmt.Errorf("attempted to read bytes of unknown BSON type %v", bsontype.Type(0)), 0, 0,
 			},
 		}
 
@@ -1394,7 +1395,8 @@ func TestValueReader(t *testing.T) {
 							{mode: mTopLevel},
 							{mode: mElement, vType: tc.t},
 						},
-						frame: 1,
+						frame:  1,
+						offset: tc.startingOffset,
 					}
 
 					err := vr.Skip()
@@ -1412,7 +1414,8 @@ func TestValueReader(t *testing.T) {
 							{mode: mTopLevel},
 							{mode: mElement, vType: tc.t},
 						},
-						frame: 1,
+						frame:  1,
+						offset: tc.startingOffset,
 					}
 
 					_, got, err := vr.ReadValueBytes(nil)
@@ -1422,8 +1425,8 @@ func TestValueReader(t *testing.T) {
 					if tc.err == nil && vr.offset != tc.offset {
 						t.Errorf("Offset not set at correct position; got %d; want %d", vr.offset, tc.offset)
 					}
-					if tc.err == nil && !bytes.Equal(got, tc.data) {
-						t.Errorf("Did not receive expected bytes. got %v; want %v", got, tc.data)
+					if tc.err == nil && !bytes.Equal(got, tc.data[tc.startingOffset:]) {
+						t.Errorf("Did not receive expected bytes. got %v; want %v", got, tc.data[tc.startingOffset:])
 					}
 				})
 			})

@@ -9,10 +9,10 @@ package auth
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/x/bsonx"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
 // MongoDBX509 is the mechanism name for MongoDBX509.
@@ -28,19 +28,19 @@ type MongoDBX509Authenticator struct {
 }
 
 // Auth implements the Authenticator interface.
-func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
-	authRequestDoc := bsonx.Doc{
-		{"authenticate", bsonx.Int32(1)},
-		{"mechanism", bsonx.String(MongoDBX509)},
+func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Server, conn driver.Connection) error {
+	requestDoc := bsoncore.AppendInt32Element(nil, "authenticate", 1)
+	requestDoc = bsoncore.AppendStringElement(requestDoc, "mechanism", MongoDBX509)
+
+	if desc.WireVersion == nil || desc.WireVersion.Max < 5 {
+		requestDoc = bsoncore.AppendStringElement(requestDoc, "user", a.User)
 	}
 
-	if desc.WireVersion.Max < 5 {
-		authRequestDoc = append(authRequestDoc, bsonx.Elem{"user", bsonx.String(a.User)})
-	}
-
-	authCmd := command.Read{DB: "$external", Command: authRequestDoc}
-	ssdesc := description.SelectedServer{Server: desc}
-	_, err := authCmd.RoundTrip(ctx, ssdesc, rw)
+	authCmd := operation.
+		NewCommand(bsoncore.BuildDocument(nil, requestDoc)).
+		Database("$external").
+		Deployment(driver.SingleConnectionDeployment{conn})
+	err := authCmd.Execute(ctx)
 	if err != nil {
 		return newAuthError("round trip error", err)
 	}

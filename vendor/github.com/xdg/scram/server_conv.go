@@ -1,3 +1,9 @@
+// Copyright 2018 by David A. Golden. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package scram
 
 import (
@@ -15,7 +21,9 @@ const (
 	serverDone
 )
 
-// ServerConversation ...
+// ServerConversation implements the server-side of an authentication
+// conversation with a client.  A new conversation must be created for
+// each authentication attempt.
 type ServerConversation struct {
 	nonceGen     NonceGeneratorFcn
 	hashGen      HashGeneratorFcn
@@ -25,13 +33,16 @@ type ServerConversation struct {
 	valid        bool
 	gs2Header    string
 	username     string
-	authID       string
+	authzID      string
 	nonce        string
 	c1b          string
 	s1           string
 }
 
-// Step ...
+// Step takes a string provided from a client and attempts to move the
+// authentication conversation forward.  It returns a string to be sent to the
+// client or an error if the client message is invalid.  Calling Step after a
+// conversation completes is also an error.
 func (sc *ServerConversation) Step(challenge string) (response string, err error) {
 	switch sc.state {
 	case serverFirst:
@@ -46,24 +57,28 @@ func (sc *ServerConversation) Step(challenge string) (response string, err error
 	return
 }
 
-// Done ...
+// Done returns true if the conversation is completed or has errored.
 func (sc *ServerConversation) Done() bool {
 	return sc.state == serverDone
 }
 
-// Valid ...
+// Valid returns true if the conversation successfully authenticated the
+// client.
 func (sc *ServerConversation) Valid() bool {
 	return sc.valid
 }
 
-// Username ...
+// Username returns the client-provided username.  This is valid to call
+// if the first conversation Step() is successful.
 func (sc *ServerConversation) Username() string {
 	return sc.username
 }
 
-// AuthID ...
-func (sc *ServerConversation) AuthID() string {
-	return sc.authID
+// AuthzID returns the (optional) client-provided authorization identity, if
+// any.  If one was not provided, it returns the empty string.  This is valid
+// to call if the first conversation Step() is successful.
+func (sc *ServerConversation) AuthzID() string {
+	return sc.authzID
 }
 
 func (sc *ServerConversation) firstMsg(c1 string) (string, error) {
@@ -75,7 +90,7 @@ func (sc *ServerConversation) firstMsg(c1 string) (string, error) {
 
 	sc.gs2Header = msg.gs2Header
 	sc.username = msg.username
-	sc.authID = msg.authID
+	sc.authzID = msg.authzID
 
 	sc.credential, err = sc.credentialCB(msg.username)
 	if err != nil {

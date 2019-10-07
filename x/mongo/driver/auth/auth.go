@@ -10,11 +10,10 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/x/network/address"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/connection"
-	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
 // AuthenticatorFactory constructs an authenticator.
@@ -46,51 +45,6 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 	authFactories[name] = factory
 }
 
-// // Opener returns a connection opener that will open and authenticate the connection.
-// func Opener(opener conn.Opener, authenticator Authenticator) conn.Opener {
-// 	return func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
-// 		return NewConnection(ctx, authenticator, opener, addr, opts...)
-// 	}
-// }
-//
-// // NewConnection opens a connection and authenticates it.
-// func NewConnection(ctx context.Context, authenticator Authenticator, opener conn.Opener, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
-// 	conn, err := opener(ctx, addr, opts...)
-// 	if err != nil {
-// 		if conn != nil {
-// 			// Ignore any error that occurs since we're already returning a different one.
-// 			_ = conn.Close()
-// 		}
-// 		return nil, err
-// 	}
-//
-// 	err = authenticator.Auth(ctx, conn)
-// 	if err != nil {
-// 		// Ignore any error that occurs since we're already returning a different one.
-// 		_ = conn.Close()
-// 		return nil, err
-// 	}
-//
-// 	return conn, nil
-// }
-
-// Configurer creates a connection configurer for the given authenticator.
-//
-// TODO(skriptble): Fully implement this once this package is moved over to the new connection type.
-// func Configurer(configurer connection.Configurer, authenticator Authenticator) connection.Configurer {
-// 	return connection.ConfigurerFunc(func(ctx context.Context, conn connection.Connection) (connection.Connection, error) {
-// 		err := authenticator.Auth(ctx, conn)
-// 		if err != nil {
-// 			conn.Close()
-// 			return nil, err
-// 		}
-// 		if configurer == nil {
-// 			return conn, nil
-// 		}
-// 		return configurer.Configure(ctx, conn)
-// 	})
-// }
-
 // HandshakeOptions packages options that can be passed to the Handshaker()
 // function.  DBUser is optional but must be of the form <dbname.username>;
 // if non-empty, then the connection will do SASL mechanism negotiation.
@@ -102,46 +56,65 @@ type HandshakeOptions struct {
 	PerformAuthentication func(description.Server) bool
 }
 
-// Handshaker creates a connection handshaker for the given authenticator.
-func Handshaker(h connection.Handshaker, options *HandshakeOptions) connection.Handshaker {
-	return connection.HandshakerFunc(func(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
-		desc, err := (&command.Handshake{
-			Client:             command.ClientDoc(options.AppName),
-			Compressors:        options.Compressors,
-			SaslSupportedMechs: options.DBUser,
-		}).Handshake(ctx, addr, rw)
+type authHandshaker struct {
+	wrapped driver.Handshaker
+	options *HandshakeOptions
+}
 
+// GetDescription performs an isMaster to retrieve the initial description for conn.
+func (ah *authHandshaker) GetDescription(ctx context.Context, addr address.Address, conn driver.Connection) (description.Server, error) {
+	if ah.wrapped != nil {
+		return ah.wrapped.GetDescription(ctx, addr, conn)
+	}
+
+	desc, err := operation.NewIsMaster().
+		AppName(ah.options.AppName).
+		Compressors(ah.options.Compressors).
+		SASLSupportedMechs(ah.options.DBUser).
+		GetDescription(ctx, addr, conn)
+	if err != nil {
+		return description.Server{}, newAuthError("handshake failure", err)
+	}
+	return desc, nil
+}
+
+// FinishHandshake performs authentication for conn if necessary.
+func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Connection) error {
+	performAuth := ah.options.PerformAuthentication
+	if performAuth == nil {
+		performAuth = func(serv description.Server) bool {
+			return serv.Kind == description.RSPrimary ||
+				serv.Kind == description.RSSecondary ||
+				serv.Kind == description.Mongos ||
+				serv.Kind == description.Standalone
+		}
+	}
+	desc := conn.Description()
+	if performAuth(desc) && ah.options.Authenticator != nil {
+		err := ah.options.Authenticator.Auth(ctx, desc, conn)
 		if err != nil {
-			return description.Server{}, newAuthError("handshake failure", err)
+			return newAuthError("auth error", err)
 		}
+	}
 
-		performAuth := options.PerformAuthentication
-		if performAuth == nil {
-			performAuth = func(serv description.Server) bool {
-				return serv.Kind == description.RSPrimary ||
-					serv.Kind == description.RSSecondary ||
-					serv.Kind == description.Mongos ||
-					serv.Kind == description.Standalone
-			}
-		}
-		if performAuth(desc) && options.Authenticator != nil {
-			err = options.Authenticator.Auth(ctx, desc, rw)
-			if err != nil {
-				return description.Server{}, newAuthError("auth error", err)
-			}
+	if ah.wrapped == nil {
+		return nil
+	}
+	return ah.wrapped.FinishHandshake(ctx, conn)
+}
 
-		}
-		if h == nil {
-			return desc, nil
-		}
-		return h.Handshake(ctx, addr, rw)
-	})
+// Handshaker creates a connection handshaker for the given authenticator.
+func Handshaker(h driver.Handshaker, options *HandshakeOptions) driver.Handshaker {
+	return &authHandshaker{
+		wrapped: h,
+		options: options,
+	}
 }
 
 // Authenticator handles authenticating a connection.
 type Authenticator interface {
 	// Auth authenticates the connection.
-	Auth(context.Context, description.Server, wiremessage.ReadWriter) error
+	Auth(context.Context, description.Server, driver.Connection) error
 }
 
 func newAuthError(msg string, inner error) error {

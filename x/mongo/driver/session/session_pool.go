@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"go.mongodb.org/mongo-driver/x/bsonx"
-	"go.mongodb.org/mongo-driver/x/network/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // Node represents a server session in a linked list
@@ -121,6 +121,11 @@ func (p *Pool) ReturnSession(ss *Server) {
 
 	// session expired
 	if ss.expired(p.timeout) {
+		return
+	}
+
+	// session is dirty
+	if ss.Dirty {
 		return
 	}
 

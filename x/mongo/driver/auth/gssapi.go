@@ -14,9 +14,9 @@ import (
 	"fmt"
 	"net"
 
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi"
-	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // GSSAPI is the mechanism name for GSSAPI.
@@ -44,7 +44,7 @@ type GSSAPIAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *GSSAPIAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
+func (a *GSSAPIAuthenticator) Auth(ctx context.Context, desc description.Server, conn driver.Connection) error {
 	target := desc.Addr.String()
 	hostname, _, err := net.SplitHostPort(target)
 	if err != nil {
@@ -56,5 +56,5 @@ func (a *GSSAPIAuthenticator) Auth(ctx context.Context, desc description.Server,
 	if err != nil {
 		return newAuthError("error creating gssapi", err)
 	}
-	return ConductSaslConversation(ctx, desc, rw, "$external", client)
+	return ConductSaslConversation(ctx, conn, "$external", client)
 }

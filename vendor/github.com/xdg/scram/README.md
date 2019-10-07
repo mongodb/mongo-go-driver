@@ -3,24 +3,65 @@
 
 # scram – Go implementation of RFC-5802
 
-## Synopsis
-
-```
-    TBD
-```
-
 ## Description
 
-This is a work-in-progress on a Go implementation of the Salted Challenge
-Response Authentication Mechanism (SCRAM) described in RFC-5802.
+Package scram provides client and server implementations of the Salted
+Challenge Response Authentication Mechanism (SCRAM) described in
+[RFC-5802](https://tools.ietf.org/html/rfc5802) and
+[RFC-7677](https://tools.ietf.org/html/rfc7677).
 
 It includes both client and server side support.
 
-Channel binding and extensions are not yet supported.
+Channel binding and extensions are not (yet) supported.
 
 ## Examples
 
-TBD
+### Client side
+
+    package main
+
+    import "github.com/xdg/scram"
+
+    func main() {
+        // Get Client with username, password and (optional) authorization ID.
+        clientSHA1, err := scram.SHA1.NewClient("mulder", "trustno1", "")
+        if err != nil {
+            panic(err)
+        }
+
+        // Prepare the authentication conversation. Use the empty string as the
+        // initial server message argument to start the conversation.
+        conv := clientSHA1.NewConversation()
+        var serverMsg string
+
+        // Get the first message, send it and read the response.
+        firstMsg, err := conv.Step(serverMsg)
+        if err != nil {
+            panic(err)
+        }
+        serverMsg = sendClientMsg(firstMsg)
+
+        // Get the second message, send it, and read the response.
+        secondMsg, err := conv.Step(serverMsg)
+        if err != nil {
+            panic(err)
+        }
+        serverMsg = sendClientMsg(secondMsg)
+
+        // Validate the server's final message.  We have no further message to
+        // send so ignore that return value.
+        _, err = conv.Step(serverMsg)
+        if err != nil {
+            panic(err)
+        }
+
+        return
+    }
+
+    func sendClientMsg(s string) string {
+        // A real implementation would send this to a server and read a reply.
+        return ""
+    }
 
 ## Copyright and License
 

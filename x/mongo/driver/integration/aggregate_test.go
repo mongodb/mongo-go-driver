@@ -1,28 +1,21 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
 package integration
 
 import (
+	"bytes"
 	"context"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/description"
-	"testing"
-	"time"
 )
 
 func setUpMonitor() (*event.CommandMonitor, chan *event.CommandStartedEvent, chan *event.CommandSucceededEvent, chan *event.CommandFailedEvent) {
@@ -44,10 +37,10 @@ func setUpMonitor() (*event.CommandMonitor, chan *event.CommandStartedEvent, cha
 }
 
 func skipIfBelow32(ctx context.Context, t *testing.T, topo *topology.Topology) {
-	server, err := topo.SelectServer(ctx, description.WriteSelector())
+	server, err := topo.SelectServerLegacy(ctx, description.WriteSelector())
 	noerr(t, err)
 
-	versionCmd := bsonx.Doc{{"serverStatus", bsonx.Int32(1)}}
+	versionCmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1))
 	serverStatus, err := testutil.RunCommand(t, server.Server, dbName, versionCmd)
 	version, err := serverStatus.LookupErr("version")
 
@@ -66,56 +59,28 @@ func TestAggregate(t *testing.T) {
 		clearChannels(started, succeeded, failed)
 		skipIfBelow32(ctx, t, top)
 
-		clientID, err := uuid.New()
-		noerr(t, err)
-
-		ns := command.Namespace{
-			DB:         dbName,
-			Collection: collName,
-		}
-		pool := &session.Pool{}
-
 		clearChannels(started, succeeded, failed)
-		_, err = driver.Insert(
-			ctx,
-			command.Insert{
-				NS: ns,
-				Docs: []bsonx.Doc{
-					{{"x", bsonx.Int32(1)}},
-					{{"x", bsonx.Int32(1)}},
-					{{"x", bsonx.Int32(1)}},
-				},
-			},
-			top,
-			description.WriteSelector(),
-			clientID,
-			pool,
-			false,
-		)
+		err := operation.NewInsert(
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
+		).Collection(collName).Database(dbName).
+			Deployment(top).ServerSelector(description.WriteSelector()).Execute(context.Background())
 		noerr(t, err)
 
 		clearChannels(started, succeeded, failed)
-		cmd := command.Aggregate{
-			NS:       ns,
-			Pipeline: bsonx.Arr{},
-		}
-		batchCursor, err := driver.Aggregate(
-			ctx,
-			cmd,
-			top,
-			description.ReadPrefSelector(readpref.Primary()),
-			description.WriteSelector(),
-			clientID,
-			pool,
-			bson.DefaultRegistry,
-			options.Aggregate().SetMaxAwaitTime(10*time.Millisecond).SetBatchSize(2),
-		)
+		op := operation.NewAggregate(bsoncore.BuildDocumentFromElements(nil)).
+			Collection(collName).Database(dbName).Deployment(top).ServerSelector(description.WriteSelector()).
+			CommandMonitor(monitor).BatchSize(2)
+		err = op.Execute(context.Background())
+		noerr(t, err)
+		batchCursor, err := op.Result(driver.CursorOptions{MaxTimeMS: 10, BatchSize: 2, CommandMonitor: monitor})
 		noerr(t, err)
 
 		var e *event.CommandStartedEvent
 		select {
 		case e = <-started:
-		case <-time.After(200 * time.Millisecond):
+		case <-time.After(2000 * time.Millisecond):
 			t.Fatal("timed out waiting for aggregate")
 		}
 
@@ -136,6 +101,73 @@ func TestAggregate(t *testing.T) {
 		_, err = e.Command.LookupErr("maxTimeMS")
 		noerr(t, err)
 	})
+	t.Run("Multiple Batches", func(t *testing.T) {
+		ds := []bsoncore.Document{
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 1)),
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 2)),
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 3)),
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 4)),
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 5)),
+		}
+		wc := writeconcern.New(writeconcern.WMajority())
+		testutil.AutoInsertDocs(t, wc, ds...)
+
+		op := operation.NewAggregate(bsoncore.BuildArray(nil,
+			bsoncore.BuildDocumentValue(
+				bsoncore.BuildDocumentElement(nil,
+					"$match", bsoncore.BuildDocumentElement(nil,
+						"_id", bsoncore.AppendInt32Element(nil, "$gt", 2),
+					),
+				),
+			),
+			bsoncore.BuildDocumentValue(
+				bsoncore.BuildDocumentElement(nil,
+					"$sort", bsoncore.AppendInt32Element(nil, "_id", 1),
+				),
+			),
+		)).Collection(testutil.ColName(t)).Database(dbName).Deployment(testutil.Topology(t)).
+			ServerSelector(description.WriteSelector()).BatchSize(2)
+		err := op.Execute(context.Background())
+		noerr(t, err)
+		cursor, err := op.Result(driver.CursorOptions{BatchSize: 2})
+		noerr(t, err)
+
+		var got []bsoncore.Document
+		for i := 0; i < 2; i++ {
+			if !cursor.Next(context.Background()) {
+				t.Error("Cursor should have results, but does not have a next result")
+			}
+			docs, err := cursor.Batch().Documents()
+			noerr(t, err)
+			got = append(got, docs...)
+		}
+		readers := ds[2:]
+		for i, g := range got {
+			if !bytes.Equal(g[:len(readers[i])], readers[i]) {
+				t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(g[:len(readers[i])]), readers[i])
+			}
+		}
+
+		if cursor.Next(context.Background()) {
+			t.Error("Cursor should be exhausted but has more results")
+		}
+	})
+	t.Run("AllowDiskUse", func(t *testing.T) {
+		ds := []bsoncore.Document{
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 1)),
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 2)),
+		}
+		wc := writeconcern.New(writeconcern.WMajority())
+		testutil.AutoInsertDocs(t, wc, ds...)
+
+		op := operation.NewAggregate(bsoncore.BuildArray(nil)).Collection(testutil.ColName(t)).Database(dbName).
+			Deployment(testutil.Topology(t)).ServerSelector(description.WriteSelector()).AllowDiskUse(true)
+		err := op.Execute(context.Background())
+		if err != nil {
+			t.Errorf("Expected no error from allowing disk use, but got %v", err)
+		}
+	})
+
 }
 
 func clearChannels(s chan *event.CommandStartedEvent, succ chan *event.CommandSucceededEvent, f chan *event.CommandFailedEvent) {

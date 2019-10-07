@@ -8,12 +8,14 @@ package session // import "go.mongodb.org/mongo-driver/x/mongo/driver/session"
 
 import (
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
@@ -72,20 +74,25 @@ type Client struct {
 	Committing     bool
 	Aborting       bool
 	RetryWrite     bool
+	RetryRead      bool
 
 	// options for the current transaction
 	// most recently set by transactionopt
-	CurrentRc *readconcern.ReadConcern
-	CurrentRp *readpref.ReadPref
-	CurrentWc *writeconcern.WriteConcern
+	CurrentRc  *readconcern.ReadConcern
+	CurrentRp  *readpref.ReadPref
+	CurrentWc  *writeconcern.WriteConcern
+	CurrentMct *time.Duration
 
 	// default transaction options
-	transactionRc *readconcern.ReadConcern
-	transactionRp *readpref.ReadPref
-	transactionWc *writeconcern.WriteConcern
+	transactionRc            *readconcern.ReadConcern
+	transactionRp            *readpref.ReadPref
+	transactionWc            *writeconcern.WriteConcern
+	transactionMaxCommitTime *time.Duration
 
-	pool  *Pool
-	state state
+	pool          *Pool
+	state         state
+	PinnedServer  *description.Server
+	RecoveryToken bson.Raw
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -146,6 +153,9 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...
 	if mergedOpts.DefaultWriteConcern != nil {
 		c.transactionWc = mergedOpts.DefaultWriteConcern
 	}
+	if mergedOpts.DefaultMaxCommitTime != nil {
+		c.transactionMaxCommitTime = mergedOpts.DefaultMaxCommitTime
+	}
 
 	servSess, err := pool.GetSession()
 	if err != nil {
@@ -194,6 +204,27 @@ func (c *Client) UpdateUseTime() error {
 	}
 	c.updateUseTime()
 	return nil
+}
+
+// UpdateRecoveryToken updates the session's recovery token from the server response.
+func (c *Client) UpdateRecoveryToken(response bson.Raw) {
+	if c == nil {
+		return
+	}
+
+	token, err := response.LookupErr("recoveryToken")
+	if err != nil {
+		return
+	}
+
+	c.RecoveryToken = token.Document()
+}
+
+// ClearPinnedServer sets the PinnedServer to nil.
+func (c *Client) ClearPinnedServer() {
+	if c != nil {
+		c.PinnedServer = nil
+	}
 }
 
 // EndSession ends the session.
@@ -253,6 +284,7 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 		c.CurrentRc = opts.ReadConcern
 		c.CurrentRp = opts.ReadPreference
 		c.CurrentWc = opts.WriteConcern
+		c.CurrentMct = opts.MaxCommitTime
 	}
 
 	if c.CurrentRc == nil {
@@ -267,12 +299,17 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 		c.CurrentWc = c.transactionWc
 	}
 
+	if c.CurrentMct == nil {
+		c.CurrentMct = c.transactionMaxCommitTime
+	}
+
 	if !writeconcern.AckWrite(c.CurrentWc) {
 		c.clearTransactionOpts()
 		return ErrUnackWCUnsupported
 	}
 
 	c.state = Starting
+	c.PinnedServer = nil
 	return nil
 }
 
@@ -298,6 +335,18 @@ func (c *Client) CommitTransaction() error {
 	return nil
 }
 
+// UpdateCommitTransactionWriteConcern will set the write concern to majority and potentially set  a
+// w timeout of 10 seconds. This should be called after a commit transaction operation fails with a
+// retryable error or after a successful commit transaction operation.
+func (c *Client) UpdateCommitTransactionWriteConcern() {
+	wc := c.CurrentWc
+	timeout := 10 * time.Second
+	if wc != nil && wc.GetWTimeout() != 0 {
+		timeout = wc.GetWTimeout()
+	}
+	c.CurrentWc = wc.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(timeout))
+}
+
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns
 // an error if not allowed.
 func (c *Client) CheckAbortTransaction() error {
@@ -311,7 +360,7 @@ func (c *Client) CheckAbortTransaction() error {
 	return nil
 }
 
-// AbortTransaction updates the state for a successfully committed transaction and returns
+// AbortTransaction updates the state for a successfully aborted transaction and returns
 // an error if not permissible.  It does not actually perform the abort.
 func (c *Client) AbortTransaction() error {
 	err := c.CheckAbortTransaction()
@@ -324,13 +373,17 @@ func (c *Client) AbortTransaction() error {
 }
 
 // ApplyCommand advances the state machine upon command execution.
-func (c *Client) ApplyCommand() {
+func (c *Client) ApplyCommand(desc description.Server) {
 	if c.Committing {
 		// Do not change state if committing after already committed
 		return
 	}
 	if c.state == Starting {
 		c.state = InProgress
+		// If this is in a transaction and the server is a mongos, pin it
+		if desc.Kind == description.Mongos {
+			c.PinnedServer = &desc
+		}
 	} else if c.state == Committed || c.state == Aborted {
 		c.clearTransactionOpts()
 		c.state = None
@@ -344,4 +397,6 @@ func (c *Client) clearTransactionOpts() {
 	c.CurrentWc = nil
 	c.CurrentRp = nil
 	c.CurrentRc = nil
+	c.PinnedServer = nil
+	c.RecoveryToken = nil
 }

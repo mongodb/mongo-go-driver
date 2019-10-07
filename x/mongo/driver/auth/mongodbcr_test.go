@@ -12,11 +12,10 @@ import (
 
 	"strings"
 
-	"go.mongodb.org/mongo-driver/internal"
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	. "go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 )
 
 func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
@@ -28,21 +27,26 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	resps := make(chan wiremessage.WireMessage, 2)
-	writeReplies(t, resps, bsonx.Doc{
-		{"ok", bsonx.Int32(1)},
-		{"nonce", bsonx.String("2375531c32080ae8")},
-	}, bsonx.Doc{
-		{"ok", bsonx.Int32(0)},
-	})
+	resps := make(chan []byte, 2)
+	writeReplies(t, resps, bsoncore.BuildDocumentFromElements(nil,
+		bsoncore.AppendInt32Element(nil, "ok", 1),
+		bsoncore.AppendStringElement(nil, "nonce", "2375531c32080ae8"),
+	), bsoncore.BuildDocumentFromElements(nil,
+		bsoncore.AppendInt32Element(nil, "ok", 0),
+	))
 
-	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
-
-	err := authenticator.Auth(context.Background(), description.Server{
+	desc := description.Server{
 		WireVersion: &description.VersionRange{
 			Max: 6,
 		},
-	}, c)
+	}
+	c := &drivertest.ChannelConn{
+		Written:  make(chan []byte, 2),
+		ReadResp: resps,
+		Desc:     desc,
+	}
+
+	err := authenticator.Auth(context.Background(), desc, c)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -62,21 +66,26 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		Password: "pencil",
 	}
 
-	resps := make(chan wiremessage.WireMessage, 2)
-	writeReplies(t, resps, bsonx.Doc{
-		{"ok", bsonx.Int32(1)},
-		{"nonce", bsonx.String("2375531c32080ae8")},
-	}, bsonx.Doc{
-		{"ok", bsonx.Int32(1)},
-	})
+	resps := make(chan []byte, 2)
+	writeReplies(t, resps, bsoncore.BuildDocumentFromElements(nil,
+		bsoncore.AppendInt32Element(nil, "ok", 1),
+		bsoncore.AppendStringElement(nil, "nonce", "2375531c32080ae8"),
+	), bsoncore.BuildDocumentFromElements(nil,
+		bsoncore.AppendInt32Element(nil, "ok", 1),
+	))
 
-	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
-
-	err := authenticator.Auth(context.Background(), description.Server{
+	desc := description.Server{
 		WireVersion: &description.VersionRange{
 			Max: 6,
 		},
-	}, c)
+	}
+	c := &drivertest.ChannelConn{
+		Written:  make(chan []byte, 2),
+		ReadResp: resps,
+		Desc:     desc,
+	}
+
+	err := authenticator.Auth(context.Background(), desc, c)
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
@@ -85,25 +94,21 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		t.Fatalf("expected 2 messages to be sent but had %d", len(c.Written))
 	}
 
-	want := bsonx.Doc{{"getnonce", bsonx.Int32(1)}}
+	want := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "getnonce", 1))
 	compareResponses(t, <-c.Written, want, "source")
 
-	expectedAuthenticateDoc := bsonx.Doc{
-		{"authenticate", bsonx.Int32(1)},
-		{"user", bsonx.String("user")},
-		{"nonce", bsonx.String("2375531c32080ae8")},
-		{"key", bsonx.String("21742f26431831d5cfca035a08c5bdf6")},
-	}
+	expectedAuthenticateDoc := bsoncore.BuildDocumentFromElements(nil,
+		bsoncore.AppendInt32Element(nil, "authenticate", 1),
+		bsoncore.AppendStringElement(nil, "user", "user"),
+		bsoncore.AppendStringElement(nil, "nonce", "2375531c32080ae8"),
+		bsoncore.AppendStringElement(nil, "key", "21742f26431831d5cfca035a08c5bdf6"),
+	)
 	compareResponses(t, <-c.Written, expectedAuthenticateDoc, "source")
 }
 
-func writeReplies(t *testing.T, c chan wiremessage.WireMessage, docs ...bsonx.Doc) {
+func writeReplies(t *testing.T, c chan []byte, docs ...bsoncore.Document) {
 	for _, doc := range docs {
-		reply, err := internal.MakeReply(doc)
-		if err != nil {
-			t.Fatalf("error constructing reply: %v", err)
-		}
-
+		reply := drivertest.MakeReply(doc)
 		c <- reply
 	}
 }

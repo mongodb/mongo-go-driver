@@ -8,13 +8,19 @@ package topology
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"fmt"
+	"io/ioutil"
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/connection"
-	"go.mongodb.org/mongo-driver/x/network/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
 // Option is a configuration option for a topology.
@@ -55,10 +61,10 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			c.serverSelectionTimeout = cs.ServerSelectionTimeout
 		}
 
-		var connOpts []connection.Option
+		var connOpts []ConnectionOption
 
 		if cs.AppName != "" {
-			connOpts = append(connOpts, connection.WithAppName(func(string) string { return cs.AppName }))
+			connOpts = append(connOpts, WithAppName(func(string) string { return cs.AppName }))
 		}
 
 		switch cs.Connect {
@@ -70,14 +76,14 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 
 		if cs.ConnectTimeout > 0 {
 			c.serverOpts = append(c.serverOpts, WithHeartbeatTimeout(func(time.Duration) time.Duration { return cs.ConnectTimeout }))
-			connOpts = append(connOpts, connection.WithConnectTimeout(func(time.Duration) time.Duration { return cs.ConnectTimeout }))
+			connOpts = append(connOpts, WithConnectTimeout(func(time.Duration) time.Duration { return cs.ConnectTimeout }))
 		}
 
 		if cs.SocketTimeoutSet {
 			connOpts = append(
 				connOpts,
-				connection.WithReadTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
-				connection.WithWriteTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
+				WithReadTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
+				WithWriteTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
 			)
 		}
 
@@ -86,12 +92,15 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		}
 
 		if cs.MaxConnIdleTime > 0 {
-			connOpts = append(connOpts, connection.WithIdleTimeout(func(time.Duration) time.Duration { return cs.MaxConnIdleTime }))
+			connOpts = append(connOpts, WithIdleTimeout(func(time.Duration) time.Duration { return cs.MaxConnIdleTime }))
 		}
 
 		if cs.MaxPoolSizeSet {
-			c.serverOpts = append(c.serverOpts, WithMaxConnections(func(uint16) uint16 { return cs.MaxPoolSize }))
-			c.serverOpts = append(c.serverOpts, WithMaxIdleConnections(func(uint16) uint16 { return cs.MaxPoolSize }))
+			c.serverOpts = append(c.serverOpts, WithMaxConnections(func(uint64) uint64 { return cs.MaxPoolSize }))
+		}
+
+		if cs.MinPoolSizeSet {
+			c.serverOpts = append(c.serverOpts, WithMinConnections(func(u uint64) uint64 { return cs.MinPoolSize }))
 		}
 
 		if cs.ReplicaSet != "" {
@@ -100,24 +109,25 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 
 		var x509Username string
 		if cs.SSL {
-			tlsConfig := connection.NewTLSConfig()
+			tlsConfig := new(tls.Config)
 
 			if cs.SSLCaFileSet {
-				err := tlsConfig.AddCACertFromFile(cs.SSLCaFile)
+				err := addCACertFromFile(tlsConfig, cs.SSLCaFile)
 				if err != nil {
 					return err
 				}
 			}
 
 			if cs.SSLInsecure {
-				tlsConfig.SetInsecure(true)
+				tlsConfig.InsecureSkipVerify = true
 			}
 
 			if cs.SSLClientCertificateKeyFileSet {
+				var keyPasswd string
 				if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
-					tlsConfig.SetClientCertDecryptPassword(cs.SSLClientCertificateKeyPassword)
+					keyPasswd = cs.SSLClientCertificateKeyPassword()
 				}
-				s, err := tlsConfig.AddClientCertFromFile(cs.SSLClientCertificateKeyFile)
+				s, err := addClientCertFromFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
 				if err != nil {
 					return err
 				}
@@ -137,7 +147,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 				x509Username = b.String()
 			}
 
-			connOpts = append(connOpts, connection.WithTLSConfig(func(*connection.TLSConfig) *connection.TLSConfig { return tlsConfig }))
+			connOpts = append(connOpts, WithTLSConfig(func(*tls.Config) *tls.Config { return tlsConfig }))
 		}
 
 		if cs.Username != "" || cs.AuthMechanism == auth.MongoDBX509 || cs.AuthMechanism == auth.GSSAPI {
@@ -170,7 +180,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 				return err
 			}
 
-			connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
+			connOpts = append(connOpts, WithHandshaker(func(h Handshaker) Handshaker {
 				options := &auth.HandshakeOptions{
 					AppName:       cs.AppName,
 					Authenticator: authenticator,
@@ -184,20 +194,25 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			}))
 		} else {
 			// We need to add a non-auth Handshaker to the connection options
-			connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-				return &command.Handshake{Client: command.ClientDoc(cs.AppName), Compressors: cs.Compressors}
+			connOpts = append(connOpts, WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
+				return operation.NewIsMaster().AppName(cs.AppName).Compressors(cs.Compressors)
 			}))
 		}
 
 		if len(cs.Compressors) > 0 {
-			connOpts = append(connOpts, connection.WithCompressors(func(compressors []string) []string {
+			connOpts = append(connOpts, WithCompressors(func(compressors []string) []string {
 				return append(compressors, cs.Compressors...)
 			}))
 
 			for _, comp := range cs.Compressors {
-				if comp == "zlib" {
-					connOpts = append(connOpts, connection.WithZlibLevel(func(level *int) *int {
+				switch comp {
+				case "zlib":
+					connOpts = append(connOpts, WithZlibLevel(func(level *int) *int {
 						return &cs.ZlibLevel
+					}))
+				case "zstd":
+					connOpts = append(connOpts, WithZstdLevel(func(level *int) *int {
+						return &cs.ZstdLevel
 					}))
 				}
 			}
@@ -208,7 +223,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		}
 
 		if len(connOpts) > 0 {
-			c.serverOpts = append(c.serverOpts, WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+			c.serverOpts = append(c.serverOpts, WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
 				return append(opts, connOpts...)
 			}))
 		}
@@ -257,4 +272,123 @@ func WithServerSelectionTimeout(fn func(time.Duration) time.Duration) Option {
 		cfg.serverSelectionTimeout = fn(cfg.serverSelectionTimeout)
 		return nil
 	}
+}
+
+// addCACertFromFile adds a root CA certificate to the configuration given a path
+// to the containing file.
+func addCACertFromFile(cfg *tls.Config, file string) error {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	certBytes, err := loadCert(data)
+	if err != nil {
+		return err
+	}
+
+	cert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return err
+	}
+
+	if cfg.RootCAs == nil {
+		cfg.RootCAs = x509.NewCertPool()
+	}
+
+	cfg.RootCAs.AddCert(cert)
+
+	return nil
+}
+
+func loadCert(data []byte) ([]byte, error) {
+	var certBlock *pem.Block
+
+	for certBlock == nil {
+		if data == nil || len(data) == 0 {
+			return nil, errors.New(".pem file must have both a CERTIFICATE and an RSA PRIVATE KEY section")
+		}
+
+		block, rest := pem.Decode(data)
+		if block == nil {
+			return nil, errors.New("invalid .pem file")
+		}
+
+		switch block.Type {
+		case "CERTIFICATE":
+			if certBlock != nil {
+				return nil, errors.New("multiple CERTIFICATE sections in .pem file")
+			}
+
+			certBlock = block
+		}
+
+		data = rest
+	}
+
+	return certBlock.Bytes, nil
+}
+
+// addClientCertFromFile adds a client certificate to the configuration given a path to the
+// containing file and returns the certificate's subject name.
+func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (string, error) {
+	data, err := ioutil.ReadFile(clientFile)
+	if err != nil {
+		return "", err
+	}
+
+	var currentBlock *pem.Block
+	var certBlock, certDecodedBlock, keyBlock []byte
+
+	remaining := data
+	start := 0
+	for {
+		currentBlock, remaining = pem.Decode(remaining)
+		if currentBlock == nil {
+			break
+		}
+
+		if currentBlock.Type == "CERTIFICATE" {
+			certBlock = data[start : len(data)-len(remaining)]
+			certDecodedBlock = currentBlock.Bytes
+			start += len(certBlock)
+		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
+			if keyPasswd != "" && x509.IsEncryptedPEMBlock(currentBlock) {
+				var encoded bytes.Buffer
+				buf, err := x509.DecryptPEMBlock(currentBlock, []byte(keyPasswd))
+				if err != nil {
+					return "", err
+				}
+
+				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: buf})
+				keyBlock = encoded.Bytes()
+				start = len(data) - len(remaining)
+			} else {
+				keyBlock = data[start : len(data)-len(remaining)]
+				start += len(keyBlock)
+			}
+		}
+	}
+	if len(certBlock) == 0 {
+		return "", fmt.Errorf("failed to find CERTIFICATE")
+	}
+	if len(keyBlock) == 0 {
+		return "", fmt.Errorf("failed to find PRIVATE KEY")
+	}
+
+	cert, err := tls.X509KeyPair(certBlock, keyBlock)
+	if err != nil {
+		return "", err
+	}
+
+	cfg.Certificates = append(cfg.Certificates, cert)
+
+	// The documentation for the tls.X509KeyPair indicates that the Leaf certificate is not
+	// retained.
+	crt, err := x509.ParseCertificate(certDecodedBlock)
+	if err != nil {
+		return "", err
+	}
+
+	return x509CertSubject(crt), nil
 }

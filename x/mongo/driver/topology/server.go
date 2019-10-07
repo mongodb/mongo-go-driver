@@ -11,30 +11,27 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"strings"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/network/address"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/connection"
-	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/result"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"golang.org/x/sync/semaphore"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
 const connectionSemaphoreSize = math.MaxInt64
 
-var isMasterOrRecoveringCodes = []int32{11600, 11602, 10107, 13435, 13436, 189, 91}
-
-// ErrServerClosed occurs when an attempt to get a connection is made after
+// ErrServerClosed occurs when an attempt to Get a connection is made after
 // the server has been closed.
 var ErrServerClosed = errors.New("server is closed")
 
-// ErrServerConnected occurs when at attempt to connect is made after a server
+// ErrServerConnected occurs when at attempt to Connect is made after a server
 // has already been connected.
 var ErrServerConnected = errors.New("server is connected")
 
@@ -61,6 +58,7 @@ const (
 	disconnecting
 	connected
 	connecting
+	initialized
 )
 
 func connectionStateString(state int32) string {
@@ -73,6 +71,8 @@ func connectionStateString(state int32) string {
 		return "Connected"
 	case 3:
 		return "Connecting"
+	case 4:
+		return "Initialized"
 	}
 
 	return ""
@@ -80,35 +80,40 @@ func connectionStateString(state int32) string {
 
 // Server is a single server within a topology.
 type Server struct {
-	cfg     *serverConfig
-	address address.Address
-
+	cfg             *serverConfig
+	address         address.Address
 	connectionstate int32
-	done            chan struct{}
-	checkNow        chan struct{}
-	closewg         sync.WaitGroup
-	pool            connection.Pool
 
-	desc atomic.Value // holds a description.Server
+	// connection related fields
+	pool *pool
+	sem  *semaphore.Weighted
 
-	averageRTTSet bool
-	averageRTT    time.Duration
+	// goroutine management fields
+	done     chan struct{}
+	checkNow chan struct{}
+	closewg  sync.WaitGroup
 
+	// description related fields
+	desc                   atomic.Value // holds a description.Server
+	updateTopologyCallback atomic.Value
+	averageRTTSet          bool
+	averageRTT             time.Duration
+
+	// subscriber related fields
 	subLock             sync.Mutex
 	subscribers         map[uint64]chan description.Server
 	currentSubscriberID uint64
-
 	subscriptionsClosed bool
 }
 
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
-func ConnectServer(ctx context.Context, addr address.Address, opts ...ServerOption) (*Server, error) {
+func ConnectServer(addr address.Address, updateCallback func(description.Server), opts ...ServerOption) (*Server, error) {
 	srvr, err := NewServer(addr, opts...)
 	if err != nil {
 		return nil, err
 	}
-	err = srvr.Connect(ctx)
+	err = srvr.Connect(updateCallback)
 	if err != nil {
 		return nil, err
 	}
@@ -123,9 +128,16 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 		return nil, err
 	}
 
+	var maxConns = cfg.maxConns
+	if maxConns == 0 {
+		maxConns = math.MaxInt64
+	}
+
 	s := &Server{
 		cfg:     cfg,
 		address: addr,
+
+		sem: semaphore.NewWeighted(int64(maxConns)),
 
 		done:     make(chan struct{}),
 		checkNow: make(chan struct{}, 1),
@@ -134,36 +146,38 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 	}
 	s.desc.Store(description.Server{Addr: addr})
 
-	var maxConns uint64
-	if cfg.maxConns == 0 {
-		maxConns = math.MaxInt64
-	} else {
-		maxConns = uint64(cfg.maxConns)
+	callback := func(desc description.Server) { s.updateDescription(desc, false) }
+	pc := poolConfig{
+		Address:     addr,
+		MinPoolSize: cfg.minConns,
+		MaxPoolSize: cfg.maxConns,
+		MaxIdleTime: cfg.connectionPoolMaxIdleTime,
+		PoolMonitor: cfg.poolMonitor,
 	}
 
-	s.pool, err = connection.NewPool(addr, uint64(cfg.maxIdleConns), maxConns, cfg.connectionOpts...)
+	s.pool, err = newPool(pc, withServerDescriptionCallback(callback, cfg.connectionOpts...)...)
 	if err != nil {
 		return nil, err
 	}
-
 	return s, nil
 }
 
-// Connect initialzies the Server by starting background monitoring goroutines.
+// Connect initializes the Server by starting background monitoring goroutines.
 // This method must be called before a Server can be used.
-func (s *Server) Connect(ctx context.Context) error {
+func (s *Server) Connect(updateCallback func(description.Server)) error {
 	if !atomic.CompareAndSwapInt32(&s.connectionstate, disconnected, connected) {
 		return ErrServerConnected
 	}
 	s.desc.Store(description.Server{Addr: s.address})
+	s.updateTopologyCallback.Store(updateCallback)
 	go s.update()
 	s.closewg.Add(1)
-	return s.pool.Connect(ctx)
+	return s.pool.connect()
 }
 
 // Disconnect closes sockets to the server referenced by this Server.
 // Subscriptions to this Server will be closed. Disconnect will shutdown
-// any monitoring goroutines, close the idle connection pool, and will
+// any monitoring goroutines, closeConnection the idle connection pool, and will
 // wait until all the in use connections have been returned to the connection
 // pool and are closed before returning. If the context expires via
 // cancellation, deadline, or timeout before the in use connections have been
@@ -175,10 +189,12 @@ func (s *Server) Disconnect(ctx context.Context) error {
 		return ErrServerClosed
 	}
 
+	s.updateTopologyCallback.Store((func(description.Server))(nil))
+
 	// For every call to Connect there must be at least 1 goroutine that is
 	// waiting on the done channel.
 	s.done <- struct{}{}
-	err := s.pool.Disconnect(ctx)
+	err := s.pool.disconnect(ctx)
 	if err != nil {
 		return err
 	}
@@ -190,33 +206,51 @@ func (s *Server) Disconnect(ctx context.Context) error {
 }
 
 // Connection gets a connection to the server.
-func (s *Server) Connection(ctx context.Context) (connection.Connection, error) {
+func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
+
+	if s.pool.monitor != nil {
+		s.pool.monitor.Event(&event.PoolEvent{
+			Type:    "ConnectionCheckOutStarted",
+			Address: s.pool.address.String(),
+		})
+	}
+
 	if atomic.LoadInt32(&s.connectionstate) != connected {
 		return nil, ErrServerClosed
 	}
-	conn, desc, err := s.pool.Get(ctx)
+
+	err := s.sem.Acquire(ctx, 1)
 	if err != nil {
-		if _, ok := err.(*auth.Error); ok {
-			// authentication error --> drain connection
-			_ = s.pool.Drain()
+		if s.pool.monitor != nil {
+			s.pool.monitor.Event(&event.PoolEvent{
+				Type:    "ConnectionCheckOutFailed",
+				Address: s.pool.address.String(),
+				Reason:  "timeout",
+			})
 		}
-		if _, ok := err.(*connection.NetworkError); ok {
-			// update description to unknown and clears the connection pool
-			if desc != nil {
-				desc.Kind = description.Unknown
-				desc.LastError = err
-				s.updateDescription(*desc, false)
-			} else {
-				_ = s.pool.Drain()
-			}
+		return nil, ErrWaitQueueTimeout
+	}
+
+	conn, err := s.pool.get(ctx)
+	if err != nil {
+		s.sem.Release(1)
+		connErr, ok := err.(ConnectionError)
+		if !ok {
+			return nil, err
 		}
+
+		// Since the only kind of ConnectionError we receive from pool.Get will be an initialization
+		// error, we should set the description.Server appropriately.
+		desc := description.Server{
+			Kind:      description.Unknown,
+			LastError: connErr.Wrapped,
+		}
+		s.updateDescription(desc, false)
+
 		return nil, err
 	}
-	if desc != nil {
-		go s.updateDescription(*desc, false)
-	}
-	sc := &sconn{Connection: conn, s: s}
-	return sc, nil
+
+	return &Connection{connection: conn, s: s}, nil
 }
 
 // Description returns a description of the server as of the last heartbeat.
@@ -272,31 +306,53 @@ func (s *Server) RequestImmediateCheck() {
 	}
 }
 
-// ProcessWriteConcernError checks if a WriteConcernError is an isNotMaster or
-// isRecovering error, and if so updates the server accordingly.
-func (s *Server) ProcessWriteConcernError(err *result.WriteConcernError) {
-	if err == nil || !wceIsNotMasterOrRecovering(err) {
+// ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
+func (s *Server) ProcessError(err error) {
+	// Invalidate server description if not master or node recovering error occurs
+	if cerr, ok := err.(driver.Error); ok && (cerr.NetworkError() || cerr.NodeIsRecovering() || cerr.NotMaster()) {
+		desc := s.Description()
+		desc.Kind = description.Unknown
+		desc.LastError = err
+		// updates description to unknown
+		s.updateDescription(desc, false)
+		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
+		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
+			s.RequestImmediateCheck()
+			s.pool.clear()
+		}
 		return
 	}
+	if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
+		desc := s.Description()
+		desc.Kind = description.Unknown
+		desc.LastError = err
+		// updates description to unknown
+		s.updateDescription(desc, false)
+		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
+		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
+			s.RequestImmediateCheck()
+			s.pool.clear()
+		}
+		return
+	}
+
+	ne, ok := err.(ConnectionError)
+	if !ok {
+		return
+	}
+
+	if netErr, ok := ne.Wrapped.(net.Error); ok && netErr.Timeout() {
+		return
+	}
+	if ne.Wrapped == context.Canceled || ne.Wrapped == context.DeadlineExceeded {
+		return
+	}
+
 	desc := s.Description()
 	desc.Kind = description.Unknown
 	desc.LastError = err
 	// updates description to unknown
 	s.updateDescription(desc, false)
-	s.RequestImmediateCheck()
-	_ = s.pool.Drain()
-}
-
-func wceIsNotMasterOrRecovering(wce *result.WriteConcernError) bool {
-	for _, code := range isMasterOrRecoveringCodes {
-		if int32(wce.Code) == code {
-			return true
-		}
-	}
-	if strings.Contains(wce.ErrMsg, "not master") || strings.Contains(wce.ErrMsg, "node is recovering") {
-		return true
-	}
-	return false
 }
 
 // update handles performing heartbeats and updating any subscribers of the
@@ -321,7 +377,7 @@ func (s *Server) update() {
 		}
 	}()
 
-	var conn connection.Connection
+	var conn *connection
 	var desc description.Server
 
 	desc, conn = s.heartbeat(nil)
@@ -336,10 +392,10 @@ func (s *Server) update() {
 		}
 		s.subscriptionsClosed = true
 		s.subLock.Unlock()
-		if conn == nil {
+		if conn == nil || conn.nc == nil {
 			return
 		}
-		conn.Close()
+		conn.nc.Close()
 	}
 	for {
 		select {
@@ -373,6 +429,11 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 	}()
 	s.desc.Store(desc)
 
+	callback, ok := s.updateTopologyCallback.Load().(func(description.Server))
+	if ok && callback != nil {
+		callback(desc)
+	}
+
 	s.subLock.Lock()
 	for _, c := range s.subscribers {
 		select {
@@ -391,12 +452,12 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 
 	switch desc.Kind {
 	case description.Unknown:
-		_ = s.pool.Drain()
+		s.pool.drain()
 	}
 }
 
 // heartbeat sends a heartbeat to the server using the given connection. The connection can be nil.
-func (s *Server) heartbeat(conn connection.Connection) (description.Server, connection.Connection) {
+func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 	const maxRetry = 2
 	var saved error
 	var desc description.Server
@@ -405,57 +466,68 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 	ctx := context.Background()
 
 	for i := 1; i <= maxRetry; i++ {
-		if conn != nil && conn.Expired() {
-			conn.Close()
+		var now time.Time
+		var descPtr *description.Server
+
+		if conn != nil && conn.expired() {
+			if conn.nc != nil {
+				conn.nc.Close()
+			}
 			conn = nil
 		}
 
 		if conn == nil {
-			opts := []connection.Option{
-				connection.WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-				connection.WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-				connection.WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+			opts := []ConnectionOption{
+				WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+				WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+				WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 			}
 			opts = append(opts, s.cfg.connectionOpts...)
-			// We override whatever handshaker is currently attached to the options with an empty
+			// We override whatever handshaker is currently attached to the options with a basic
 			// one because need to make sure we don't do auth.
-			opts = append(opts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-				return nil
+			opts = append(opts, WithHandshaker(func(h Handshaker) Handshaker {
+				now = time.Now()
+				return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
 			}))
 
 			// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
-			opts = append(opts, connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
+			opts = append(opts, WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
 				return nil
 			}))
-			conn, _, err = connection.New(ctx, s.address, opts...)
-			if err != nil {
-				saved = err
-				if conn != nil {
-					conn.Close()
-				}
-				conn = nil
-				if _, ok := err.(*connection.NetworkError); ok {
-					_ = s.pool.Drain()
-					// If the server is not connected, give up and exit loop
-					if s.Description().Kind == description.Unknown {
-						break
-					}
-				}
-				continue
+
+			conn, err = newConnection(ctx, s.address, opts...)
+
+			conn.connect(ctx)
+
+			err := conn.wait()
+			if err == nil {
+				descPtr = &conn.desc
 			}
 		}
 
-		now := time.Now()
+		// do a heartbeat because a new connection wasn't created so a handshake was not performed
+		if descPtr == nil && err == nil {
+			now = time.Now()
+			op := operation.
+				NewIsMaster().
+				ClusterClock(s.cfg.clock).
+				Deployment(driver.SingleConnectionDeployment{initConnection{conn}})
+			err = op.Execute(ctx)
+			if err == nil {
+				tmpDesc := op.Result(s.address)
+				descPtr = &tmpDesc
+			}
+		}
 
-		isMasterCmd := &command.IsMaster{Compressors: s.cfg.compressionOpts}
-		isMaster, err := isMasterCmd.RoundTrip(ctx, conn)
 		// we do a retry if the server is connected, if succeed return new server desc (see below)
 		if err != nil {
 			saved = err
-			conn.Close()
+			if conn != nil && conn.nc != nil {
+				conn.nc.Close()
+			}
 			conn = nil
-			if _, ok := err.(connection.NetworkError); ok {
-				_ = s.pool.Drain()
+			if _, ok := err.(ConnectionError); ok {
+				s.pool.drain()
 				// If the server is not connected, give up and exit loop
 				if s.Description().Kind == description.Unknown {
 					break
@@ -464,13 +536,9 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 			continue
 		}
 
-		clusterTime := isMaster.ClusterTime
-		if s.cfg.clock != nil {
-			s.cfg.clock.AdvanceClusterTime(clusterTime)
-		}
-
+		desc = *descPtr
 		delay := time.Since(now)
-		desc = description.NewServer(s.address, isMaster).SetAverageRTT(s.updateAverageRTT(delay))
+		desc = desc.SetAverageRTT(s.updateAverageRTT(delay))
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
 		set = true
 
@@ -498,14 +566,6 @@ func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
 	return s.averageRTT
 }
 
-// Drain will drain the connection pool of this server. This is mainly here so the
-// pool for the server doesn't need to be directly exposed and so that when an error
-// is returned from reading or writing, a client can drain the pool for this server.
-// This is exposed here so we don't have to wrap the Connection type and sniff responses
-// for errors that would cause the pool to be drained, which can in turn centralize the
-// logic for handling errors in the Client type.
-func (s *Server) Drain() error { return s.pool.Drain() }
-
 // String implements the Stringer interface.
 func (s *Server) String() string {
 	desc := s.Description()
@@ -516,7 +576,7 @@ func (s *Server) String() string {
 		str += fmt.Sprintf(", Tag sets: %s", desc.Tags)
 	}
 	if connState == connected {
-		str += fmt.Sprintf(", Avergage RTT: %d", desc.AverageRTT)
+		str += fmt.Sprintf(", Average RTT: %d", desc.AverageRTT)
 	}
 	if desc.LastError != nil {
 		str += fmt.Sprintf(", Last error: %s", desc.LastError)

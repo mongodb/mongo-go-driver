@@ -235,6 +235,18 @@ func TestDecoderv2(t *testing.T) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
 		}
 	})
+	t.Run("DecodeToNil", func(t *testing.T) {
+		data := docToBytes(D{{"item", "canvas"}, {"qty", 4}})
+		vr := bsonrw.NewBSONDocumentReader(data)
+		dec, err := NewDecoder(vr)
+		noerr(t, err)
+
+		var got *D
+		err = dec.Decode(got)
+		if err != ErrDecodeToNil {
+			t.Fatalf("Decode error mismatch; expected %v, got %v", ErrDecodeToNil, err)
+		}
+	})
 }
 
 type testDecoderCodec struct {

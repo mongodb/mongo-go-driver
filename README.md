@@ -14,7 +14,7 @@ The MongoDB supported driver for Go.
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Bugs/Feature Reporting](#bugs-feature-reporting)
+- [Bugs / Feature Reporting](#bugs--feature-reporting)
 - [Testing / Development](#testing--development)
 - [Continuous Integration](#continuous-integration)
 - [License](#license)
@@ -31,7 +31,7 @@ The MongoDB supported driver for Go.
 The recommended way to get started using the MongoDB Go driver is by using `dep` to install the dependency in your project.
 
 ```bash
-dep ensure -add "go.mongodb.org/mongo-driver/mongo@~1.0.0"
+dep ensure -add "go.mongodb.org/mongo-driver/mongo@~1.1.0"
 ```
 
 -------------------------
@@ -40,7 +40,10 @@ dep ensure -add "go.mongodb.org/mongo-driver/mongo@~1.0.0"
 To get started with the driver, import the `mongo` package, create a `mongo.Client`:
 
 ```go
-import "go.mongodb.org/mongo-driver/mongo"
+import (
+    "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/mongo/options"
+)
 
 client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
 ```
@@ -171,7 +174,7 @@ Notes:
 
 ### Testing Compression
 
-The MongoDB Go Driver supports wire protocol compression using Snappy or zLib. To run tests with wire protocol compression, set `MONGO_GO_DRIVER_COMPRESSOR` to `snappy` or `zlib`.  For example:
+The MongoDB Go Driver supports wire protocol compression using Snappy, zLib, or zstd. To run tests with wire protocol compression, set `MONGO_GO_DRIVER_COMPRESSOR` to `snappy`, `zlib`, or `zstd`.  For example:
 
 ```
 MONGO_GO_DRIVER_COMPRESSOR=snappy make

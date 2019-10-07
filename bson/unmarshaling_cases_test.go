@@ -64,4 +64,17 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 		},
 		docToBytes(D{{"foo", A{true}}}),
 	},
+	{
+		"struct with mixed case fields",
+		nil,
+		reflect.TypeOf(struct {
+			FooBar int32
+		}{}),
+		&struct {
+			FooBar int32
+		}{
+			FooBar: 10,
+		},
+		docToBytes(D{{"fooBar", int32(10)}}),
+	},
 }

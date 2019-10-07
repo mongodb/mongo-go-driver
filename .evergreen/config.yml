@@ -50,11 +50,13 @@ functions:
 
            export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
            export PROJECT_DIRECTORY="$(pwd)"
+           export GOCACHE="$(pwd)/.cache"
 
            # Python has cygwin path problems on Windows. Detect prospective mongo-orchestration home directory
            if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
               export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
               export PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
+              export GOCACHE=$(cygpath -m $GOCACHE)
            fi
 
            export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
@@ -71,6 +73,19 @@ functions:
            go version
            go env
 
+           if [ "Windows_NT" = "$OS" ]; then
+              mkdir -p c:/libmongocrypt/include
+              mkdir -p c:/libmongocrypt/bin
+              curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows-test/master/latest/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
+              tar -xvzf libmongocrypt.tar.gz
+              cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
+              cp ./include/mongocrypt/*.h c:/libmongocrypt/include
+              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+           else
+              git clone https://github.com/mongodb/libmongocrypt
+              ./libmongocrypt/.evergreen/compile.sh
+           fi
+
            cat <<EOT > expansion.yml
            CURRENT_VERSION: "$CURRENT_VERSION"
            DRIVERS_TOOLS: "$DRIVERS_TOOLS"
@@ -83,6 +98,7 @@ functions:
               set -o xtrace
               export GOPATH="$GOPATH"
               export GOROOT="${GO_DIST}"
+              export GOCACHE="$GOCACHE"
               export DRIVERS_TOOLS="$DRIVERS_TOOLS"
               export MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
               export MONGODB_BINARIES="$MONGODB_BINARIES"
@@ -91,6 +107,8 @@ functions:
               export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
               export PATH="$PATH"
               export PROJECT="$PROJECT"
+              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
+              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
            EOT
            # See what we've done
            cat expansion.yml
@@ -238,8 +256,18 @@ functions:
               fi
           fi
 
-          AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} make evg-test
-
+          set +o xtrace
+          AUTH=${AUTH} \
+          SSL=${SSL} \
+          MONGODB_URI="${MONGODB_URI}" \
+          TOPOLOGY=${TOPOLOGY} \
+          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
+          BUILD_TAGS="-tags cse" \
+          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
+          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
+          make evg-test \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
   send-perf-data:
    - command: json.send
@@ -258,11 +286,14 @@ functions:
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
           else
             export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
+            export GOCACHE="$(pwd)/.cache"
           fi;
           export GOPATH="$GOPATH"
           export GOROOT="${GO_DIST}"
+          export GOCACHE="$GOCACHE"
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
           MONGODB_URI="${MONGODB_URI}" MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
 
@@ -275,9 +306,11 @@ functions:
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
             export MONGODB_URI=${gssapi_auth_windows_mongodb_uri}
           else
             export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
+            export GOCACHE="$(pwd)/.cache"
             echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
             base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
             mkdir -p ~/.krb5
@@ -287,6 +320,7 @@ functions:
           fi;
           export GOPATH="$GOPATH"
           export GOROOT="${GO_DIST}"
+          export GOCACHE="$GOCACHE"
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
           MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
 
@@ -299,9 +333,11 @@ functions:
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
             export MONGODB_URI="${gssapi_service_host_auth_windows_mongodb_uri}"
           else
             export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
+            export GOCACHE="$(pwd)/.cache"
             echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
             base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
             mkdir -p ~/.krb5
@@ -311,8 +347,40 @@ functions:
           fi;
           export GOPATH="$GOPATH"
           export GOROOT="${GO_DIST}"
+          export GOCACHE="$GOCACHE"
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
           MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
+
+  run-atlas-test:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
+          else
+            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
+            export GOCACHE="$(pwd)/.cache"
+          fi;
+          export GOPATH="$GOPATH"
+          export GOROOT="${GO_DIST}"
+          export GOCACHE="$GOCACHE"
+          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
+          export ATLAS_FREE="${atlas_free_tier_uri}"
+          export ATLAS_REPLSET="${atlas_replica_set_uri}"
+          export ATLAS_SHARD="${atlas_sharded_uri}"
+          export ATLAS_TLS11="${atlas_tls_v11_uri}"
+          export ATLAS_TLS12="${atlas_tls_v12_uri}"
+          export ATLAS_FREE_SRV="${atlas_free_tier_uri_srv}"
+          export ATLAS_REPLSET_SRV="${atlas_replica_set_uri_srv}"
+          export ATLAS_SHARD_SRV="${atlas_sharded_uri_srv}"
+          export ATLAS_TLS11_SRV="${atlas_tls_v11_uri_srv}"
+          export ATLAS_TLS12_SRV="${atlas_tls_v12_uri_srv}"
+          make -s evg-test-atlas
+
 
 pre:
   - func: fetch-source
@@ -424,6 +492,21 @@ tasks:
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
+    - name: test-standalone-noauth-nossl-zstd-compression
+      tags: ["test", "standalone", "compression", "zstd"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
+
     - name: test-standalone-auth-ssl
       tags: ["test", "standalone", "authssl"]
       commands:
@@ -467,6 +550,21 @@ tasks:
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
+
+    - name: test-standalone-auth-ssl-zstd-compression
+      tags: ["test", "standalone", "authssl", "compression", "zstd"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
 
     - name: test-replicaset-noauth-nossl
       tags: ["test", "replicaset"]
@@ -540,6 +638,21 @@ tasks:
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
+    - name: test-sharded-noauth-nossl-zstd-compression
+      tags: ["test", "sharded", "compression", "zstd"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "noauth"
+            SSL: "nossl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "noauth"
+            SSL: "nossl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
+
     - name: test-sharded-auth-ssl
       tags: ["test", "sharded", "authssl"]
       commands:
@@ -584,6 +697,21 @@ tasks:
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
+    - name: test-sharded-auth-ssl-zstd-compression
+      tags: ["test", "sharded", "authssl", "compression", "zstd"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "auth"
+            SSL: "ssl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
+
     - name: test-enterprise-auth-plain
       tags: ["test", "enterprise-auth"]
       commands:
@@ -611,6 +739,14 @@ tasks:
             targets: "build"
             BUILD_ENV: "PATH=/opt/golang/go1.8/bin:$PATH GOROOT=/opt/golang/go1.8"
 
+    - name: go1.8-build-nocgo
+      tags: ["compile-check"]
+      commands:
+        - func: run-make
+          vars:
+            targets: "build"
+            BUILD_ENV: "CGO_ENABLED=0 PATH=/opt/golang/go1.8/bin:$PATH GOROOT=/opt/golang/go1.8"
+
     - name: go1.10-build
       tags: ["compile-check"]
       commands:
@@ -618,6 +754,14 @@ tasks:
           vars:
             targets: "build"
             BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
+
+    - name: go1.10-build-nocgo
+      tags: ["compile-check"]
+      commands:
+        - func: run-make
+          vars:
+            targets: "build"
+            BUILD_ENV: "CGO_ENABLED=0 PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
 
     - name: linux-32-bit
       tags: ["compile-check"]
@@ -643,10 +787,26 @@ tasks:
             targets: "build"
             BUILD_ENV: "GOARCH=ppc64le"
 
+    - name: "atlas-test"
+      commands:
+        - func: "run-atlas-test"
+
+    - name: go1.10-build-cse
+      tags: ["compile-check"]
+      commands:
+        - func: run-make
+          vars:
+            targets: "build-cse"
+            BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
+
 axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "4.2"
+        display_name: "4.2"
+        variables:
+          VERSION: "4.2"
       - id: "4.0"
         display_name: "4.0"
         variables:
@@ -680,33 +840,33 @@ axes:
   - id: os-ssl-legacy
     display_name: OS
     values:
-      - id: "ubuntu1404-go-1-11"
+      - id: "ubuntu1404-go-1-12"
         display_name: "Ubuntu 14.04"
         run_on: ubuntu1404-test
         variables:
-          GO_DIST: "/opt/golang/go1.11"
+          GO_DIST: "/opt/golang/go1.12"
 
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-11"
+      - id: "windows-64-go-1-12"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2015-test
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.11"
-      - id: "ubuntu1604-64-go-1-11"
+          GO_DIST: "C:\\golang\\go1.12"
+      - id: "ubuntu1604-64-go-1-12"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
-          GO_DIST: "/opt/golang/go1.11"
-      - id: "osx-go-1-11"
-        display_name: "MacOS 10.12"
-        run_on: macos-1012
+          GO_DIST: "/opt/golang/go1.12"
+      - id: "osx-go-1-12"
+        display_name: "MacOS 10.14"
+        run_on: macos-1014
         variables:
-          GO_DIST: "/opt/golang/go1.11"
+          GO_DIST: "/opt/golang/go1.12"
 
 
 buildvariants:
@@ -715,7 +875,7 @@ buildvariants:
   run_on:
     - ubuntu1604-build
   expansions:
-    GO_DIST: "/opt/golang/go1.9"
+    GO_DIST: "/opt/golang/go1.12"
   tasks:
     - name: ".static-analysis"
 
@@ -724,7 +884,7 @@ buildvariants:
   run_on:
     - ubuntu1604-build
   expansions:
-    GO_DIST: "/opt/golang/go1.9"
+    GO_DIST: "/opt/golang/go1.12"
   tasks:
     - name: ".performance"
 
@@ -733,9 +893,18 @@ buildvariants:
   run_on:
     - ubuntu1604-test
   expansions:
-    GO_DIST: "/opt/golang/go1.10"
+    GO_DIST: "/opt/golang/go1.12"
   tasks:
     - name: ".compile-check"
+
+- name: atlas-test
+  display_name: "Atlas test"
+  run_on:
+    - ubuntu1604-build
+  expansions:
+    GO_DIST: "/opt/golang/go1.12"
+  tasks:
+    - name: "atlas-test"
 
 - matrix_name: "tests-legacy-auth-ssl"
   matrix_spec: { version: ["2.6", "3.0"], os-ssl-legacy: "*" }
@@ -759,13 +928,19 @@ buildvariants:
   matrix_spec: { version: "3.4", os-ssl-32: "*" }
   display_name: "${version} ${os-ssl-32}"
   tasks:
-    - name: ".test !.enterprise-auth !.zlib"
+    - name: ".test !.enterprise-auth !.zlib !.zstd"
 
-- matrix_name: "tests-nonlegacy-servers-with-zlib-support"
-  matrix_spec: { version: ["3.6", "4.0", "latest"], os-ssl-32: "*" }
+- matrix_name: "tests-36-40-with-zlib-support"
+  matrix_spec: { version: ["3.6", "4.0"], os-ssl-32: "*" }
   display_name: "${version} ${os-ssl-32}"
   tasks:
-    - name: ".test !.enterprise-auth"
+    - name: ".test !.enterprise-auth !.snappy !.zstd"
+
+- matrix_name: "tests-42-lts-zlib-zstd-support"
+  matrix_spec: { version: ["4.2", "latest"], os-ssl-32: "*" }
+  display_name: "${version} ${os-ssl-32}"
+  tasks:
+    - name: ".test !.enterprise-auth !.snappy"
 
 - matrix_name: "enterprise-auth-tests"
   matrix_spec: { os-ssl-32: "*" }

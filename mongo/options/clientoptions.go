@@ -25,7 +25,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/network/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // ContextDialer makes new network connections
@@ -74,25 +76,31 @@ type ClientOptions struct {
 	Hosts                  []string
 	LocalThreshold         *time.Duration
 	MaxConnIdleTime        *time.Duration
-	MaxPoolSize            *uint16
+	MaxPoolSize            *uint64
+	MinPoolSize            *uint64
+	PoolMonitor            *event.PoolMonitor
 	Monitor                *event.CommandMonitor
 	ReadConcern            *readconcern.ReadConcern
 	ReadPreference         *readpref.ReadPref
 	Registry               *bsoncodec.Registry
 	ReplicaSet             *string
 	RetryWrites            *bool
+	RetryReads             *bool
 	ServerSelectionTimeout *time.Duration
 	Direct                 *bool
 	SocketTimeout          *time.Duration
 	TLSConfig              *tls.Config
 	WriteConcern           *writeconcern.WriteConcern
 	ZlibLevel              *int
+	ZstdLevel              *int
+	AutoEncryptionOptions  *AutoEncryptionOptions
 
 	err error
 
-	// Adds an option for internal use only and should not be set. This option is deprecated and is
-	// not part of the stability guarantee. It may be removed in the future.
+	// These options are for internal use only and should not be set. They are deprecated and are
+	// not part of the stability guarantee. They may be removed in the future.
 	AuthenticateToAnything *bool
+	Deployment             driver.Deployment
 }
 
 // Client creates a new ClientOptions instance.
@@ -124,7 +132,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.AppName = &cs.AppName
 	}
 
-	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil || cs.AuthSource != "admin" ||
+	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil || cs.AuthSource != "" ||
 		cs.Username != "" || cs.PasswordSet {
 		c.Auth = &Credential{
 			AuthMechanism:           cs.AuthMechanism,
@@ -147,6 +155,14 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if len(cs.Compressors) > 0 {
 		c.Compressors = cs.Compressors
+		if stringSliceContains(c.Compressors, "zlib") {
+			defaultLevel := wiremessage.DefaultZlibLevel
+			c.ZlibLevel = &defaultLevel
+		}
+		if stringSliceContains(c.Compressors, "zstd") {
+			defaultLevel := wiremessage.DefaultZstdLevel
+			c.ZstdLevel = &defaultLevel
+		}
 	}
 
 	if cs.HeartbeatIntervalSet {
@@ -165,6 +181,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if cs.MaxPoolSizeSet {
 		c.MaxPoolSize = &cs.MaxPoolSize
+	}
+
+	if cs.MinPoolSizeSet {
+		c.MinPoolSize = &cs.MinPoolSize
 	}
 
 	if cs.ReadConcernLevel != "" {
@@ -273,6 +293,9 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	if cs.ZlibLevelSet {
 		c.ZlibLevel = &cs.ZlibLevel
 	}
+	if cs.ZstdLevelSet {
+		c.ZstdLevel = &cs.ZstdLevel
+	}
 
 	return c
 }
@@ -348,8 +371,20 @@ func (c *ClientOptions) SetMaxConnIdleTime(d time.Duration) *ClientOptions {
 }
 
 // SetMaxPoolSize specifies the max size of a server's connection pool.
-func (c *ClientOptions) SetMaxPoolSize(u uint16) *ClientOptions {
+func (c *ClientOptions) SetMaxPoolSize(u uint64) *ClientOptions {
 	c.MaxPoolSize = &u
+	return c
+}
+
+// SetMinPoolSize specifies the min size of a server's connection pool.
+func (c *ClientOptions) SetMinPoolSize(u uint64) *ClientOptions {
+	c.MinPoolSize = &u
+	return c
+}
+
+// SetPoolMonitor specifies the PoolMonitor for a server's connection pool.
+func (c *ClientOptions) SetPoolMonitor(m *event.PoolMonitor) *ClientOptions {
+	c.PoolMonitor = m
 	return c
 }
 
@@ -392,6 +427,12 @@ func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
 	return c
 }
 
+// SetRetryReads specifies whether the client has retryable reads enabled.
+func (c *ClientOptions) SetRetryReads(b bool) *ClientOptions {
+	c.RetryReads = &b
+	return c
+}
+
 // SetServerSelectionTimeout specifies a timeout in milliseconds to block for server selection.
 func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOptions {
 	c.ServerSelectionTimeout = &d
@@ -422,6 +463,18 @@ func (c *ClientOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientOp
 func (c *ClientOptions) SetZlibLevel(level int) *ClientOptions {
 	c.ZlibLevel = &level
 
+	return c
+}
+
+// SetZstdLevel sets the level for the zstd compressor.
+func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
+	c.ZstdLevel = &level
+	return c
+}
+
+// SetAutoEncryptionOptions specifies options used to configure automatic encryption.
+func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *ClientOptions {
+	c.AutoEncryptionOptions = opts
 	return c
 }
 
@@ -469,6 +522,12 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.MaxPoolSize != nil {
 			c.MaxPoolSize = opt.MaxPoolSize
 		}
+		if opt.MinPoolSize != nil {
+			c.MinPoolSize = opt.MinPoolSize
+		}
+		if opt.PoolMonitor != nil {
+			c.PoolMonitor = opt.PoolMonitor
+		}
 		if opt.Monitor != nil {
 			c.Monitor = opt.Monitor
 		}
@@ -486,6 +545,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.RetryWrites != nil {
 			c.RetryWrites = opt.RetryWrites
+		}
+		if opt.RetryReads != nil {
+			c.RetryReads = opt.RetryReads
 		}
 		if opt.ServerSelectionTimeout != nil {
 			c.ServerSelectionTimeout = opt.ServerSelectionTimeout
@@ -505,6 +567,19 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.ZlibLevel != nil {
 			c.ZlibLevel = opt.ZlibLevel
 		}
+		if opt.ZstdLevel != nil {
+			c.ZstdLevel = opt.ZstdLevel
+		}
+		if opt.AutoEncryptionOptions != nil {
+			c.AutoEncryptionOptions = opt.AutoEncryptionOptions
+		}
+		if opt.Deployment != nil {
+			c.Deployment = opt.Deployment
+		}
+		if opt.err != nil {
+			c.err = opt.err
+		}
+
 	}
 
 	return c
@@ -627,4 +702,13 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (strin
 	}
 
 	return x509CertSubject(crt), nil
+}
+
+func stringSliceContains(source []string, target string) bool {
+	for _, str := range source {
+		if str == target {
+			return true
+		}
+	}
+	return false
 }

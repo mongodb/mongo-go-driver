@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -51,6 +52,13 @@ func noerr(t *testing.T, err error) {
 		t.Errorf("Unexpected error: (%T)%v", err, err)
 		t.FailNow()
 	}
+}
+
+func compareTime(t1, t2 time.Time) bool {
+	if t1.Location() != t2.Location() {
+		return false
+	}
+	return t1.Equal(t2)
 }
 
 func compareErrors(err1, err2 error) bool {

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
-	"go.mongodb.org/mongo-driver/x/network/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 func TestSessionPool(t *testing.T) {

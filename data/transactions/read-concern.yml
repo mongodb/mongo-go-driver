@@ -1,3 +1,11 @@
+runOn:
+    -
+        minServerVersion: "4.0"
+        topology: ["replicaset"]
+    -
+        minServerVersion: "4.1.8"
+        topology: ["sharded"]
+
 database_name: &database_name "transaction-tests"
 collection_name: &collection_name "test"
 
@@ -17,7 +25,7 @@ tests:
         arguments:
           options:
             readConcern:
-              level: snapshot
+              level: majority
       - &countDocuments
         name: countDocuments
         object: collection
@@ -39,11 +47,11 @@ tests:
             aggregate: *collection_name
             pipeline:
               - $match: {_id: {$gte: 2}}
-              - $group: {_id: null, n: {$sum: 1}}
+              - $group: {_id: 1, n: {$sum: 1}}
             cursor: {}
             lsid: session0
             readConcern:
-              level: snapshot
+              level: majority
             txnNumber:
               $numberLong: "1"
             startTransaction: true
@@ -55,7 +63,7 @@ tests:
             aggregate: *collection_name
             pipeline:
               - $match: {_id: {$gte: 2}}
-              - $group: {_id: null, n: {$sum: 1}}
+              - $group: {_id: 1, n: {$sum: 1}}
             cursor: {}
             lsid: session0
             readConcern:  # No readConcern
@@ -108,7 +116,7 @@ tests:
             batchSize: 3
             lsid: session0
             readConcern:
-              level: snapshot
+              level: majority
             txnNumber:
               $numberLong: "1"
             startTransaction: true
@@ -194,7 +202,7 @@ tests:
               batchSize: 3
             lsid: session0
             readConcern:
-              level: snapshot
+              level: majority
             txnNumber:
               $numberLong: "1"
             startTransaction: true
@@ -274,7 +282,7 @@ tests:
             key: _id
             lsid: session0
             readConcern:
-              level: snapshot
+              level: majority
             txnNumber:
               $numberLong: "1"
             startTransaction: true
@@ -320,7 +328,7 @@ tests:
             find: *collection_name
             lsid: session0
             readConcern:
-              level: snapshot
+              level: majority
             txnNumber:
               $numberLong: "1"
             startTransaction: true
@@ -360,7 +368,7 @@ tests:
             aggregate: *collection_name
             pipeline:
               - $match: {_id: {$gte: 2}}
-              - $group: {_id: null, n: {$sum: 1}}
+              - $group: {_id: 1, n: {$sum: 1}}
             cursor: {}
             lsid: session0
             readConcern:  # No readConcern
@@ -375,7 +383,7 @@ tests:
             aggregate: *collection_name
             pipeline:
               - $match: {_id: {$gte: 2}}
-              - $group: {_id: null, n: {$sum: 1}}
+              - $group: {_id: 1, n: {$sum: 1}}
             cursor: {}
             lsid: session0
             readConcern:  # No readConcern

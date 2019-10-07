@@ -28,7 +28,7 @@ func TestClientOptions(t *testing.T) {
 	t.Run("ApplyURI/doesn't overwrite previous errors", func(t *testing.T) {
 		uri := "not-mongo-db-uri://"
 		want := internal.WrapErrorf(
-			errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri (%s)", "not-mongo-db-uri://",
+			errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
 		)
 		co := Client().ApplyURI(uri).ApplyURI("mongodb://localhost/")
 		got := co.Validate()
@@ -61,7 +61,9 @@ func TestClientOptions(t *testing.T) {
 			{"Hosts", (*ClientOptions).SetHosts, []string{"localhost:27017", "localhost:27018", "localhost:27019"}, "Hosts", true},
 			{"LocalThreshold", (*ClientOptions).SetLocalThreshold, 5 * time.Second, "LocalThreshold", true},
 			{"MaxConnIdleTime", (*ClientOptions).SetMaxConnIdleTime, 5 * time.Second, "MaxConnIdleTime", true},
-			{"MaxPoolSize", (*ClientOptions).SetMaxPoolSize, uint16(250), "MaxPoolSize", true},
+			{"MaxPoolSize", (*ClientOptions).SetMaxPoolSize, uint64(250), "MaxPoolSize", true},
+			{"MinPoolSize", (*ClientOptions).SetMinPoolSize, uint64(10), "MinPoolSize", true},
+			{"PoolMonitor", (*ClientOptions).SetPoolMonitor, &event.PoolMonitor{}, "PoolMonitor", false},
 			{"Monitor", (*ClientOptions).SetMonitor, &event.CommandMonitor{}, "Monitor", false},
 			{"ReadConcern", (*ClientOptions).SetReadConcern, readconcern.Majority(), "ReadConcern", false},
 			{"ReadPreference", (*ClientOptions).SetReadPreference, readpref.SecondaryPreferred(), "ReadPreference", false},
@@ -132,6 +134,7 @@ func TestClientOptions(t *testing.T) {
 					cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
 					cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
 					cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
+					cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
 				) {
 					t.Errorf("Field not set properly. got %v; want %v", got.Interface(), want.Interface())
 				}
@@ -145,10 +148,23 @@ func TestClientOptions(t *testing.T) {
 				cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
 				cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
 				cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
+				cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
 				cmp.AllowUnexported(ClientOptions{}),
 			); diff != "" {
 				t.Errorf("diff:\n%s", diff)
 				t.Errorf("Merged client options do not match. got %v; want %v", got, want)
+			}
+		})
+
+		// go-cmp dont support error comparisons (https://github.com/google/go-cmp/issues/24)
+		// Use specifique test for this
+		t.Run("MergeClientOptions/err", func(t *testing.T) {
+			opt1, opt2 := Client(), Client()
+			opt1.err = errors.New("Test error")
+
+			got := MergeClientOptions(nil, opt1, opt2)
+			if got.err.Error() != "Test error" {
+				t.Errorf("Merged client options do not match. got %v; want %v", got.err.Error(), opt1.err.Error())
 			}
 		})
 	})
@@ -165,7 +181,7 @@ func TestClientOptions(t *testing.T) {
 				"ParseError",
 				"not-mongo-db-uri://",
 				&ClientOptions{err: internal.WrapErrorf(
-					errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri (%s)", "not-mongo-db-uri://",
+					errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
 				)},
 			},
 			{
@@ -221,9 +237,16 @@ func TestClientOptions(t *testing.T) {
 				}),
 			},
 			{
-				"AuthSource",
+				"AuthSourceNoUsername",
 				"mongodb://localhost/?authSource=random-database-example",
-				baseClient().SetAuth(Credential{AuthSource: "random-database-example"}),
+				&ClientOptions{err: internal.WrapErrorf(
+					errors.New("authsource without username is invalid"), "error parsing uri",
+				)},
+			},
+			{
+				"AuthSource",
+				"mongodb://foo@localhost/?authSource=random-database-example",
+				baseClient().SetAuth(Credential{AuthSource: "random-database-example", Username: "foo"}),
 			},
 			{
 				"Username",
@@ -251,12 +274,17 @@ func TestClientOptions(t *testing.T) {
 			{
 				"Compressors",
 				"mongodb://localhost/?compressors=zlib,snappy",
-				baseClient().SetCompressors([]string{"zlib", "snappy"}),
+				baseClient().SetCompressors([]string{"zlib", "snappy"}).SetZlibLevel(6),
 			},
 			{
-				"Database",
+				"DatabaseNoAuth",
 				"mongodb://localhost/example-database",
-				baseClient().SetAuth(Credential{AuthSource: "example-database"}),
+				baseClient(),
+			},
+			{
+				"DatabaseAsDefault",
+				"mongodb://foo@localhost/example-database",
+				baseClient().SetAuth(Credential{AuthSource: "example-database", Username: "foo"}),
 			},
 			{
 				"HeartbeatInterval",

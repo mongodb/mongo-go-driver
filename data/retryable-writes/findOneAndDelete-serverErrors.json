@@ -13,9 +13,6 @@
   "tests": [
     {
       "description": "FindOneAndDelete succeeds after PrimarySteppedDown",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -58,9 +55,6 @@
     },
     {
       "description": "FindOneAndDelete succeeds after WriteConcernError ShutdownInProgress",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {

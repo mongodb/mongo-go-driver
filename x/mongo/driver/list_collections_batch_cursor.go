@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package driver
 
 import (
@@ -7,13 +13,12 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 // ListCollectionsBatchCursor is a special batch cursor returned from ListCollections that properly
 // handles current and legacy ListCollections operations.
 type ListCollectionsBatchCursor struct {
-	legacy       bool
+	legacy       bool // server version < 3.0
 	bc           *BatchCursor
 	currentBatch *bsoncore.DocumentSequence
 	err          error
@@ -85,7 +90,7 @@ func (lcbc *ListCollectionsBatchCursor) Next(ctx context.Context) bool {
 func (lcbc *ListCollectionsBatchCursor) Batch() *bsoncore.DocumentSequence { return lcbc.currentBatch }
 
 // Server returns a pointer to the cursor's server.
-func (lcbc *ListCollectionsBatchCursor) Server() *topology.Server { return lcbc.bc.server }
+func (lcbc *ListCollectionsBatchCursor) Server() Server { return lcbc.bc.server }
 
 // Err returns the latest error encountered.
 func (lcbc *ListCollectionsBatchCursor) Err() error {

@@ -103,7 +103,7 @@ func TestDocumentSequence(t *testing.T) {
 					Style: tc.style,
 					Data:  tc.data,
 				}
-				documents, err := ds.documents()
+				documents, err := ds.Documents()
 				if !cmp.Equal(documents, tc.documents) {
 					t.Errorf("Documents do not match. got %v; want %v", documents, tc.documents)
 				}
@@ -252,7 +252,7 @@ func TestDocumentSequence(t *testing.T) {
 					Style: tc.style,
 					Data:  tc.data,
 				}
-				docs, err := ds.documents()
+				docs, err := ds.Documents()
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
@@ -349,6 +349,29 @@ func TestDocumentSequence(t *testing.T) {
 			})
 		}
 	})
+	t.Run("Empty", func(t *testing.T) {
+		testCases := []struct {
+			name    string
+			ds      *DocumentSequence
+			isEmpty bool
+		}{
+			{"ArrayStyle/is empty/nil", nil, true},
+			{"ArrayStyle/is empty/0", &DocumentSequence{Style: ArrayStyle, Data: []byte{0x05, 0x00, 0x00, 0x00, 0x00}}, true},
+			{"ArrayStyle/is not empty/non-0", &DocumentSequence{Style: ArrayStyle, Data: genArrayStyle(10)}, false},
+			{"SequenceStyle/is empty/nil", nil, true},
+			{"SequenceStyle/is empty/0", &DocumentSequence{Style: SequenceStyle, Data: []byte{}}, true},
+			{"SequenceStyle/is not empty/non-0", &DocumentSequence{Style: SequenceStyle, Data: genSequenceStyle(10)}, false},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				isEmpty := tc.ds.Empty()
+				if isEmpty != tc.isEmpty {
+					t.Errorf("Unexpected Empty result. got %v; want %v", isEmpty, tc.isEmpty)
+				}
+			})
+		}
+	})
 	t.Run("ResetIterator", func(t *testing.T) {
 		ds := &DocumentSequence{Pos: 1234567890}
 		want := 0
@@ -368,6 +391,11 @@ func TestDocumentSequence(t *testing.T) {
 			var ds *DocumentSequence
 			_ = ds.DocumentCount()
 		})
+		t.Run("Empty", func(t *testing.T) {
+			defer capturePanic()
+			var ds *DocumentSequence
+			_ = ds.Empty()
+		})
 		t.Run("ResetIterator", func(t *testing.T) {
 			defer capturePanic()
 			var ds *DocumentSequence
@@ -376,7 +404,7 @@ func TestDocumentSequence(t *testing.T) {
 		t.Run("Documents", func(t *testing.T) {
 			defer capturePanic()
 			var ds *DocumentSequence
-			_, _ = ds.documents()
+			_, _ = ds.Documents()
 		})
 		t.Run("Next", func(t *testing.T) {
 			defer capturePanic()

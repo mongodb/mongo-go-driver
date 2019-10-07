@@ -17,9 +17,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
-	"go.mongodb.org/mongo-driver/x/network/connstring"
-	"go.mongodb.org/mongo-driver/x/network/description"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 const seedlistTestDir string = "../../../../data/initial-dns-seedlist-discovery/"
@@ -83,7 +83,13 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 			require.Error(t, err)
 			return
 		}
+		// The resolved connstring may not have valid credentials
+		if err != nil && err.Error() == "error parsing uri: authsource without username is invalid" {
+			err = nil
+		}
 		require.NoError(t, err)
+		require.Equal(t, cs.Scheme, "mongodb+srv")
+		require.Equal(t, cs.Scheme, connstring.SchemeMongoDBSRV)
 
 		// DNS records may be out of order from the test files ordering
 		seeds := buildSet(test.Seeds)
@@ -96,7 +102,7 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 		// make a topology from the options
 		c, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 		require.NoError(t, err)
-		err = c.Connect(context.Background())
+		err = c.Connect()
 		require.NoError(t, err)
 
 		for _, host := range test.Hosts {
@@ -144,7 +150,7 @@ func getServerByAddress(address string, c *Topology) (description.Server, error)
 		return []description.Server{}, nil
 	})
 
-	selectedServer, err := c.SelectServer(context.Background(), selectByName)
+	selectedServer, err := c.SelectServerLegacy(context.Background(), selectByName)
 	if err != nil {
 		return description.Server{}, err
 	}

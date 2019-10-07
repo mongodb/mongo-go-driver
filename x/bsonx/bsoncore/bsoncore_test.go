@@ -72,6 +72,12 @@ func TestAppend(t *testing.T) {
 			[]byte{byte(bsontype.Null), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
+			"AppendValueElement",
+			AppendValueElement,
+			[]interface{}{make([]byte, 0), "testing", Value{Type: bsontype.Boolean, Data: []byte{0x01}}},
+			[]byte{byte(bsontype.Boolean), 't', 'e', 's', 't', 'i', 'n', 'g', 0x00, 0x01},
+		},
+		{
 			"AppendDouble",
 			AppendDouble,
 			[]interface{}{make([]byte, 0), float64(3.14159)},
@@ -126,6 +132,29 @@ func TestAppend(t *testing.T) {
 			[]byte{byte(bsontype.Array),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x05, 0x00, 0x00, 0x00, 0x00,
+			},
+		},
+		{
+			"BuildArray",
+			BuildArray,
+			[]interface{}{make([]byte, 0), Value{Type: bsontype.Double, Data: AppendDouble(nil, 3.14159)}},
+			[]byte{
+				0x10, 0x00, 0x00, 0x00,
+				byte(bsontype.Double), '0', 0x00,
+				pi[0], pi[1], pi[2], pi[3], pi[4], pi[5], pi[6], pi[7],
+				0x00,
+			},
+		},
+		{
+			"BuildArrayElement",
+			BuildArrayElement,
+			[]interface{}{make([]byte, 0), "foobar", Value{Type: bsontype.Double, Data: AppendDouble(nil, 3.14159)}},
+			[]byte{byte(bsontype.Array),
+				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				0x10, 0x00, 0x00, 0x00,
+				byte(bsontype.Double), '0', 0x00,
+				pi[0], pi[1], pi[2], pi[3], pi[4], pi[5], pi[6], pi[7],
+				0x00,
 			},
 		},
 		{

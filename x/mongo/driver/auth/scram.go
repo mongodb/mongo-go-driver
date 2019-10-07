@@ -18,8 +18,8 @@ import (
 
 	"github.com/xdg/scram"
 	"github.com/xdg/stringprep"
-	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // SCRAMSHA1 holds the mechanism name "SCRAM-SHA-1"
@@ -67,9 +67,9 @@ type ScramAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *ScramAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
+func (a *ScramAuthenticator) Auth(ctx context.Context, _ description.Server, conn driver.Connection) error {
 	adapter := &scramSaslAdapter{conversation: a.client.NewConversation(), mechanism: a.mechanism}
-	err := ConductSaslConversation(ctx, desc, rw, a.source, adapter)
+	err := ConductSaslConversation(ctx, conn, a.source, adapter)
 	if err != nil {
 		return newAuthError("sasl conversation error", err)
 	}

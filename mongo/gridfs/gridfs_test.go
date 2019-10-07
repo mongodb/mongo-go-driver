@@ -190,51 +190,93 @@ func TestGridFS(t *testing.T) {
 	})
 
 	t.Run("RoundTrip", func(t *testing.T) {
-		if !canRunRoundTripTest(t, db) {
-			t.Skip()
+
+		oneK := 1024
+		smallBuffSize := 100
+
+		tests := []struct {
+			name      string
+			chunkSize int // make -1 for no capacity for no chunkSize
+			fileSize  int
+			bufSize   int // make -1 for no capacity for no bufSize
+		}{
+			{"RoundTrip: original", -1, oneK, -1},
+			{"RoundTrip: chunk size multiple of file", oneK, oneK * 16, -1},
+			{"RoundTrip: chunk size is file size", oneK, oneK, -1},
+			{"RoundTrip: chunk size multiple of file size and with strict buffer size", oneK, oneK * 16, smallBuffSize},
+			{"RoundTrip: chunk size multiple of file size and buffer size", oneK, oneK * 16, oneK * 16},
+			{"RoundTrip: chunk size, file size, buffer size all the same", oneK, oneK, oneK},
 		}
 
-		bucket, err := NewBucket(db, nil)
-		if err != nil {
-			t.Fatalf("Failed to create bucket: %v", err)
+		for _, test := range tests {
+
+			t.Run(test.name, func(t *testing.T) {
+
+				if !canRunRoundTripTest(t, db) {
+					t.Skip()
+				}
+
+				var chunkSize *int32
+				var temp int32
+				if test.chunkSize != -1 {
+					temp = int32(test.chunkSize)
+					chunkSize = &temp
+				}
+
+				bucket, err := NewBucket(db, &options.BucketOptions{
+					ChunkSizeBytes: chunkSize,
+				})
+				if err != nil {
+					t.Fatalf("Failed to create bucket: %v", err)
+				}
+
+				timeout := 5 * time.Second
+				if israce.Enabled {
+					timeout = 20 * time.Second // race detector causes 2-20x slowdown
+				}
+
+				err = bucket.SetWriteDeadline(time.Now().Add(timeout))
+				if err != nil {
+					t.Fatalf("Failed to set write deadline: %v", err)
+				}
+				err = bucket.Drop()
+				if err != nil {
+					t.Fatalf("Drop failed: %v", err)
+				}
+
+				// Test that Upload works when the buffer to write is longer than the upload stream's internal buffer.
+				// This requires multiple calls to uploadChunks.
+				size := test.fileSize
+				p := make([]byte, size)
+				for i := 0; i < size; i++ {
+					p[i] = byte(rand.Intn(100))
+				}
+
+				_, err = bucket.UploadFromStream("filename", bytes.NewReader(p))
+				if err != nil {
+					t.Fatalf("Upload failed: %v", err)
+				}
+
+				var w *bytes.Buffer
+				if test.bufSize == -1 {
+					w = bytes.NewBuffer(make([]byte, 0))
+				} else {
+					w = bytes.NewBuffer(make([]byte, 0, test.bufSize))
+				}
+
+				_, err = bucket.DownloadToStreamByName("filename", w)
+				if err != nil {
+					t.Fatalf("Download failed: %v", err)
+				}
+
+				if !bytes.Equal(p, w.Bytes()) {
+					t.Errorf("Downloaded file did not match p.")
+				}
+
+			})
+
 		}
 
-		timeout := 5 * time.Second
-		if israce.Enabled {
-			timeout = 20 * time.Second // race detector causes 2-20x slowdown
-		}
-
-		err = bucket.SetWriteDeadline(time.Now().Add(timeout))
-		if err != nil {
-			t.Fatalf("Failed to set write deadline: %v", err)
-		}
-		err = bucket.Drop()
-		if err != nil {
-			t.Fatalf("Drop failed: %v", err)
-		}
-
-		// Test that Upload works when the buffer to write is longer than the upload stream's internal buffer.
-		// This requires multiple calls to uploadChunks.
-		size := UploadBufferSize + 1000000
-		p := make([]byte, size)
-		for i := 0; i < size; i++ {
-			p[i] = byte(rand.Intn(100))
-		}
-
-		_, err = bucket.UploadFromStream("filename", bytes.NewReader(p))
-		if err != nil {
-			t.Fatalf("Upload failed: %v", err)
-		}
-
-		w := bytes.NewBuffer(make([]byte, 0))
-		_, err = bucket.DownloadToStreamByName("filename", w)
-		if err != nil {
-			t.Fatalf("Download failed: %v", err)
-		}
-
-		if !bytes.Equal(p, w.Bytes()) {
-			t.Errorf("Downloaded file did not match p.")
-		}
 	})
 
 	err = client.Disconnect(ctx)

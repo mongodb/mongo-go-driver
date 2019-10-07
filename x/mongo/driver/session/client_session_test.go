@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
@@ -148,7 +149,7 @@ func TestClientSession(t *testing.T) {
 			t.Errorf("expected error, got %v", err)
 		}
 
-		sess.ApplyCommand()
+		sess.ApplyCommand(description.Server{Kind: description.Standalone})
 		if sess.state != InProgress {
 			t.Errorf("incorrect session state, expected InProgress, received %v", sess.state)
 		}

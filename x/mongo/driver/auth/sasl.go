@@ -10,10 +10,9 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
 // SaslClient is the client piece of a sasl conversation.
@@ -30,7 +29,7 @@ type SaslClientCloser interface {
 }
 
 // ConductSaslConversation handles running a sasl conversation with MongoDB.
-func ConductSaslConversation(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter, db string, client SaslClient) error {
+func ConductSaslConversation(ctx context.Context, conn driver.Connection, db string, client SaslClient) error {
 
 	if db == "" {
 		db = defaultAuthDB
@@ -45,14 +44,12 @@ func ConductSaslConversation(ctx context.Context, desc description.Server, rw wi
 		return newError(err, mech)
 	}
 
-	saslStartCmd := command.Read{
-		DB: db,
-		Command: bsonx.Doc{
-			{"saslStart", bsonx.Int32(1)},
-			{"mechanism", bsonx.String(mech)},
-			{"payload", bsonx.Binary(0x00, payload)},
-		},
-	}
+	doc := bsoncore.BuildDocumentFromElements(nil,
+		bsoncore.AppendInt32Element(nil, "saslStart", 1),
+		bsoncore.AppendStringElement(nil, "mechanism", mech),
+		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
+	)
+	saslStartCmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 
 	type saslResponse struct {
 		ConversationID int    `bson:"conversationId"`
@@ -63,11 +60,11 @@ func ConductSaslConversation(ctx context.Context, desc description.Server, rw wi
 
 	var saslResp saslResponse
 
-	ssdesc := description.SelectedServer{Server: desc}
-	rdr, err := saslStartCmd.RoundTrip(ctx, ssdesc, rw)
+	err = saslStartCmd.Execute(ctx)
 	if err != nil {
 		return newError(err, mech)
 	}
+	rdr := saslStartCmd.Result()
 
 	err = bson.Unmarshal(rdr, &saslResp)
 	if err != nil {
@@ -94,19 +91,18 @@ func ConductSaslConversation(ctx context.Context, desc description.Server, rw wi
 			return nil
 		}
 
-		saslContinueCmd := command.Read{
-			DB: db,
-			Command: bsonx.Doc{
-				{"saslContinue", bsonx.Int32(1)},
-				{"conversationId", bsonx.Int32(int32(cid))},
-				{"payload", bsonx.Binary(0x00, payload)},
-			},
-		}
+		doc := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendInt32Element(nil, "saslContinue", 1),
+			bsoncore.AppendInt32Element(nil, "conversationId", int32(cid)),
+			bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
+		)
+		saslContinueCmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 
-		rdr, err = saslContinueCmd.RoundTrip(ctx, ssdesc, rw)
+		err = saslContinueCmd.Execute(ctx)
 		if err != nil {
 			return newError(err, mech)
 		}
+		rdr = saslContinueCmd.Result()
 
 		err = bson.Unmarshal(rdr, &saslResp)
 		if err != nil {

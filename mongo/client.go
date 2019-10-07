@@ -8,6 +8,9 @@ package mongo
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,33 +21,47 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/connection"
-	"go.mongodb.org/mongo-driver/x/network/connstring"
-	"go.mongodb.org/mongo-driver/x/network/description"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
+const batchSize = 10000
+
+// keyVaultCollOpts specifies options used to communicate with the key vault collection
+var keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
+	SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
 
 // Client performs operations on a given topology.
 type Client struct {
 	id              uuid.UUID
 	topologyOptions []topology.Option
-	topology        *topology.Topology
+	deployment      driver.Deployment
 	connString      connstring.ConnString
 	localThreshold  time.Duration
 	retryWrites     bool
+	retryReads      bool
 	clock           *session.ClusterClock
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern
 	writeConcern    *writeconcern.WriteConcern
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
+	monitor         *event.CommandMonitor
+	sessionPool     *session.Pool
+
+	// client-side encryption fields
+	keyVaultClient *Client
+	keyVaultColl   *Collection
+	mongocryptd    *mcryptClient
+	crypt          *driver.Crypt
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -87,24 +104,46 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	client.topology, err = topology.New(client.topologyOptions...)
-	if err != nil {
-		return nil, replaceErrors(err)
+	if client.deployment == nil {
+		client.deployment, err = topology.New(client.topologyOptions...)
+		if err != nil {
+			return nil, replaceErrors(err)
+		}
 	}
-
 	return client, nil
 }
 
 // Connect initializes the Client by starting background monitoring goroutines.
 // This method must be called before a Client can be used.
 func (c *Client) Connect(ctx context.Context) error {
-	err := c.topology.Connect(ctx)
-	if err != nil {
-		return replaceErrors(err)
+	if connector, ok := c.deployment.(driver.Connector); ok {
+		err := connector.Connect()
+		if err != nil {
+			return replaceErrors(err)
+		}
 	}
 
-	return nil
+	if c.mongocryptd != nil {
+		if err := c.mongocryptd.connect(ctx); err != nil {
+			return err
+		}
+	}
+	if c.keyVaultClient != nil {
+		if err := c.keyVaultClient.Connect(ctx); err != nil {
+			return err
+		}
+	}
 
+	var updateChan <-chan description.Topology
+	if subscriber, ok := c.deployment.(driver.Subscriber); ok {
+		sub, err := subscriber.Subscribe()
+		if err != nil {
+			return replaceErrors(err)
+		}
+		updateChan = sub.Updates
+	}
+	c.sessionPool = session.NewPool(updateChan)
+	return nil
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will
@@ -121,7 +160,24 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	}
 
 	c.endSessions(ctx)
-	return replaceErrors(c.topology.Disconnect(ctx))
+	if c.mongocryptd != nil {
+		if err := c.mongocryptd.disconnect(ctx); err != nil {
+			return err
+		}
+	}
+	if c.keyVaultClient != nil {
+		if err := c.keyVaultClient.Disconnect(ctx); err != nil {
+			return err
+		}
+	}
+	if c.crypt != nil {
+		c.crypt.Close()
+	}
+
+	if disconnector, ok := c.deployment.(driver.Disconnector); ok {
+		return replaceErrors(disconnector.Disconnect(ctx))
+	}
+	return nil
 }
 
 // Ping verifies that the client can connect to the topology.
@@ -136,13 +192,17 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 		rp = c.readPreference
 	}
 
-	_, err := c.topology.SelectServer(ctx, description.ReadPrefSelector(rp))
-	return replaceErrors(err)
+	db := c.Database("admin")
+	res := db.RunCommand(ctx, bson.D{
+		{"ping", 1},
+	}, options.RunCmd().SetReadPreference(rp))
+
+	return replaceErrors(res.Err())
 }
 
 // StartSession starts a new session.
 func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
-	if c.topology.SessionPool == nil {
+	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
 
@@ -164,30 +224,55 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	if sopts.DefaultReadPreference != nil {
 		coreOpts.DefaultReadPreference = sopts.DefaultReadPreference
 	}
+	if sopts.DefaultMaxCommitTime != nil {
+		coreOpts.DefaultMaxCommitTime = sopts.DefaultMaxCommitTime
+	}
 
-	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit, coreOpts)
+	sess, err := session.NewClientSession(c.sessionPool, c.id, session.Explicit, coreOpts)
 	if err != nil {
 		return nil, replaceErrors(err)
 	}
 
 	sess.RetryWrite = c.retryWrites
+	sess.RetryRead = c.retryReads
 
 	return &sessionImpl{
-		Client: sess,
-		topo:   c.topology,
+		clientSession: sess,
+		client:        c,
+		deployment:    c.deployment,
 	}, nil
 }
 
 func (c *Client) endSessions(ctx context.Context) {
-	if c.topology.SessionPool == nil {
+	if c.sessionPool == nil {
 		return
 	}
-	cmd := command.EndSessions{
-		Clock:      c.clock,
-		SessionIDs: c.topology.SessionPool.IDSlice(),
+
+	ids := c.sessionPool.IDSlice()
+	idx, idArray := bsoncore.AppendArrayStart(nil)
+	for i, id := range ids {
+		idDoc, _ := id.MarshalBSON()
+		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), idDoc)
+	}
+	idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
+
+	op := operation.NewEndSessions(idArray).ClusterClock(c.clock).Deployment(c.deployment).
+		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
+		Database("admin").Crypt(c.crypt)
+
+	idx, idArray = bsoncore.AppendArrayStart(nil)
+	totalNumIDs := len(ids)
+	for i := 0; i < totalNumIDs; i++ {
+		idDoc, _ := ids[i].MarshalBSON()
+		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), idDoc)
+		if ((i+1)%batchSize) == 0 || i == totalNumIDs-1 {
+			idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
+			_ = op.SessionIDs(idArray).Execute(ctx)
+			idArray = idArray[:0]
+			idx = 0
+		}
 	}
 
-	_, _ = driver.EndSessions(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.PrimaryPreferred()))
 }
 
 func (c *Client) configure(opts *options.ClientOptions) error {
@@ -195,7 +280,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		return err
 	}
 
-	var connOpts []connection.Option
+	var connOpts []topology.ConnectionOption
 	var serverOpts []topology.ServerOption
 	var topologyOpts []topology.Option
 
@@ -211,16 +296,21 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if len(opts.Compressors) > 0 {
 		comps = opts.Compressors
 
-		connOpts = append(connOpts, connection.WithCompressors(
+		connOpts = append(connOpts, topology.WithCompressors(
 			func(compressors []string) []string {
 				return append(compressors, comps...)
 			},
 		))
 
 		for _, comp := range comps {
-			if comp == "zlib" {
-				connOpts = append(connOpts, connection.WithZlibLevel(func(level *int) *int {
+			switch comp {
+			case "zlib":
+				connOpts = append(connOpts, topology.WithZlibLevel(func(level *int) *int {
 					return opts.ZlibLevel
+				}))
+			case "zstd":
+				connOpts = append(connOpts, topology.WithZstdLevel(func(level *int) *int {
+					return opts.ZstdLevel
 				}))
 			}
 		}
@@ -230,7 +320,9 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		))
 	}
 	// Handshaker
-	var handshaker connection.Handshaker = &command.Handshake{Client: command.ClientDoc(appName), Compressors: comps}
+	var handshaker = func(driver.Handshaker) driver.Handshaker {
+		return operation.NewIsMaster().AppName(appName).Compressors(comps)
+	}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
 		cred := &auth.Cred{
@@ -272,24 +364,24 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			}
 		}
 
-		handshaker = auth.Handshaker(nil, handshakeOpts)
+		handshaker = func(driver.Handshaker) driver.Handshaker {
+			return auth.Handshaker(nil, handshakeOpts)
+		}
 	}
-	connOpts = append(connOpts, connection.WithHandshaker(
-		func(connection.Handshaker) connection.Handshaker { return handshaker },
-	))
+	connOpts = append(connOpts, topology.WithHandshaker(handshaker))
 	// ConnectTimeout
 	if opts.ConnectTimeout != nil {
 		serverOpts = append(serverOpts, topology.WithHeartbeatTimeout(
 			func(time.Duration) time.Duration { return *opts.ConnectTimeout },
 		))
-		connOpts = append(connOpts, connection.WithConnectTimeout(
+		connOpts = append(connOpts, topology.WithConnectTimeout(
 			func(time.Duration) time.Duration { return *opts.ConnectTimeout },
 		))
 	}
 	// Dialer
 	if opts.Dialer != nil {
-		connOpts = append(connOpts, connection.WithDialer(
-			func(connection.Dialer) connection.Dialer { return opts.Dialer },
+		connOpts = append(connOpts, topology.WithDialer(
+			func(topology.Dialer) topology.Dialer { return opts.Dialer },
 		))
 	}
 	// Direct
@@ -313,12 +405,13 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		func(...string) []string { return hosts },
 	))
 	// LocalThreshold
+	c.localThreshold = defaultLocalThreshold
 	if opts.LocalThreshold != nil {
 		c.localThreshold = *opts.LocalThreshold
 	}
 	// MaxConIdleTime
 	if opts.MaxConnIdleTime != nil {
-		connOpts = append(connOpts, connection.WithIdleTimeout(
+		connOpts = append(connOpts, topology.WithIdleTimeout(
 			func(time.Duration) time.Duration { return *opts.MaxConnIdleTime },
 		))
 	}
@@ -326,13 +419,27 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.MaxPoolSize != nil {
 		serverOpts = append(
 			serverOpts,
-			topology.WithMaxConnections(func(uint16) uint16 { return *opts.MaxPoolSize }),
-			topology.WithMaxIdleConnections(func(uint16) uint16 { return *opts.MaxPoolSize }),
+			topology.WithMaxConnections(func(uint64) uint64 { return *opts.MaxPoolSize }),
+		)
+	}
+	// MinPoolSize
+	if opts.MinPoolSize != nil {
+		serverOpts = append(
+			serverOpts,
+			topology.WithMinConnections(func(uint64) uint64 { return *opts.MinPoolSize }),
+		)
+	}
+	// PoolMonitor
+	if opts.PoolMonitor != nil {
+		serverOpts = append(
+			serverOpts,
+			topology.WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return opts.PoolMonitor }),
 		)
 	}
 	// Monitor
 	if opts.Monitor != nil {
-		connOpts = append(connOpts, connection.WithMonitor(
+		c.monitor = opts.Monitor
+		connOpts = append(connOpts, topology.WithMonitor(
 			func(*event.CommandMonitor) *event.CommandMonitor { return opts.Monitor },
 		))
 	}
@@ -358,8 +465,13 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		))
 	}
 	// RetryWrites
+	c.retryWrites = true // retry writes on by default
 	if opts.RetryWrites != nil {
 		c.retryWrites = *opts.RetryWrites
+	}
+	c.retryReads = true
+	if opts.RetryReads != nil {
+		c.retryReads = *opts.RetryReads
 	}
 	// ServerSelectionTimeout
 	if opts.ServerSelectionTimeout != nil {
@@ -371,21 +483,27 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.SocketTimeout != nil {
 		connOpts = append(
 			connOpts,
-			connection.WithReadTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
-			connection.WithWriteTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
+			topology.WithReadTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
+			topology.WithWriteTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
 		)
 	}
 	// TLSConfig
 	if opts.TLSConfig != nil {
-		connOpts = append(connOpts, connection.WithTLSConfig(
-			func(*connection.TLSConfig) *connection.TLSConfig {
-				return &connection.TLSConfig{Config: opts.TLSConfig}
+		connOpts = append(connOpts, topology.WithTLSConfig(
+			func(*tls.Config) *tls.Config {
+				return opts.TLSConfig
 			},
 		))
 	}
 	// WriteConcern
 	if opts.WriteConcern != nil {
 		c.writeConcern = opts.WriteConcern
+	}
+	// AutoEncryptionOptions
+	if opts.AutoEncryptionOptions != nil {
+		if err := c.configureAutoEncryption(opts.AutoEncryptionOptions); err != nil {
+			return err
+		}
 	}
 
 	// ClusterClock
@@ -394,13 +512,88 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	serverOpts = append(
 		serverOpts,
 		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
-		topology.WithConnectionOptions(func(...connection.Option) []connection.Option { return connOpts }),
+		topology.WithConnectionOptions(func(...topology.ConnectionOption) []topology.ConnectionOption { return connOpts }),
 	)
 	c.topologyOptions = append(topologyOpts, topology.WithServerOptions(
 		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
 	))
 
+	// Deployment
+	if opts.Deployment != nil {
+		if len(serverOpts) > 2 || len(topologyOpts) > 1 {
+			return errors.New("cannot specify topology or server options with a deployment")
+		}
+		c.deployment = opts.Deployment
+	}
+
 	return nil
+}
+
+func (c *Client) configureAutoEncryption(opts *options.AutoEncryptionOptions) error {
+	if err := c.configureKeyVault(opts); err != nil {
+		return err
+	}
+	if err := c.configureMongocryptd(opts); err != nil {
+		return err
+	}
+	return c.configureCrypt(opts)
+}
+
+func (c *Client) configureKeyVault(opts *options.AutoEncryptionOptions) error {
+	// parse key vault options and create new client if necessary
+	if opts.KeyVaultClientOptions != nil {
+		var err error
+		c.keyVaultClient, err = NewClient(opts.KeyVaultClientOptions)
+		if err != nil {
+			return err
+		}
+	}
+
+	dbName, collName := splitNamespace(opts.KeyVaultNamespace)
+	client := c.keyVaultClient
+	if client == nil {
+		client = c
+	}
+	c.keyVaultColl = client.Database(dbName).Collection(collName, keyVaultCollOpts)
+	return nil
+}
+
+func (c *Client) configureMongocryptd(opts *options.AutoEncryptionOptions) error {
+	var err error
+	c.mongocryptd, err = newMcryptClient(opts.ExtraOptions)
+	return err
+}
+
+func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
+	// convert schemas in SchemaMap to bsoncore documents
+	cryptSchemaMap := make(map[string]bsoncore.Document)
+	for k, v := range opts.SchemaMap {
+		schema, err := transformBsoncoreDocument(c.registry, v)
+		if err != nil {
+			return err
+		}
+		cryptSchemaMap[k] = schema
+	}
+
+	// configure options
+	var bypass bool
+	if opts.BypassAutoEncryption != nil {
+		bypass = *opts.BypassAutoEncryption
+	}
+	kr := keyRetriever{coll: c.keyVaultColl}
+	cir := collInfoRetriever{client: c}
+	cryptOpts := &driver.CryptOptions{
+		CollInfoFn:           cir.cryptCollInfo,
+		KeyFn:                kr.cryptKeys,
+		MarkFn:               c.mongocryptd.markCommand,
+		KmsProviders:         opts.KmsProviders,
+		BypassAutoEncryption: bypass,
+		SchemaMap:            cryptSchemaMap,
+	}
+
+	var err error
+	c.crypt, err = driver.NewCrypt(cryptOpts)
+	return err
 }
 
 // validSession returns an error if the session doesn't belong to the client
@@ -425,38 +618,49 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	sess := sessionFromContext(ctx)
 
 	err := c.validSession(sess)
+	if sess == nil && c.sessionPool != nil {
+		sess, err = session.NewClientSession(c.sessionPool, c.id, session.Implicit)
+		if err != nil {
+			return ListDatabasesResult{}, err
+		}
+		defer sess.EndSession()
+	}
+
+	err = c.validSession(sess)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
 
-	f, err := transformDocument(c.registry, filter)
+	filterDoc, err := transformBsoncoreDocument(c.registry, filter)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
 
-	cmd := command.ListDatabases{
-		Filter:  f,
-		Session: sess,
-		Clock:   c.clock,
-	}
-
-	readSelector := description.CompositeSelector([]description.ServerSelector{
+	selector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(readpref.Primary()),
 		description.LatencySelector(c.localThreshold),
 	})
-	res, err := driver.ListDatabases(
-		ctx, cmd,
-		c.topology,
-		readSelector,
-		c.id,
-		c.topology.SessionPool,
-		opts...,
-	)
+	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
+
+	ldo := options.MergeListDatabasesOptions(opts...)
+	op := operation.NewListDatabases(filterDoc).
+		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
+		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.crypt)
+	if ldo.NameOnly != nil {
+		op = op.NameOnly(*ldo.NameOnly)
+	}
+	retry := driver.RetryNone
+	if c.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op.Retry(retry)
+
+	err = op.Execute(ctx)
 	if err != nil {
 		return ListDatabasesResult{}, replaceErrors(err)
 	}
 
-	return (ListDatabasesResult{}).fromResult(res), nil
+	return newListDatabasesResultFromOperation(op.Result()), nil
 }
 
 // ListDatabaseNames returns a slice containing the names of all of the databases on the server.
@@ -529,6 +733,17 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 // The client must have read concern majority or no read concern for a change stream to be created successfully.
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+	if c.sessionPool == nil {
+		return nil, ErrClientDisconnected
+	}
 
-	return newClientChangeStream(ctx, c, pipeline, opts...)
+	csConfig := changeStreamConfig{
+		readConcern:    c.readConcern,
+		readPreference: c.readPreference,
+		client:         c,
+		registry:       c.registry,
+		streamType:     ClientStream,
+	}
+
+	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }

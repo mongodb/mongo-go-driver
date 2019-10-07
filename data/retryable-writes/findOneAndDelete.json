@@ -13,9 +13,6 @@
   "tests": [
     {
       "description": "FindOneAndDelete is committed on first attempt",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -52,9 +49,6 @@
     },
     {
       "description": "FindOneAndDelete is not committed on first attempt",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {
@@ -94,9 +88,6 @@
     },
     {
       "description": "FindOneAndDelete is never committed",
-      "clientOptions": {
-        "retryWrites": true
-      },
       "failPoint": {
         "configureFailPoint": "onPrimaryTransactionalWrite",
         "mode": {

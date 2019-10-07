@@ -14,10 +14,10 @@ import (
 	"io"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
 // MONGODBCR is the mechanism name for MONGODB-CR.
@@ -45,19 +45,20 @@ type MongoDBCRAuthenticator struct {
 // Auth authenticates the connection.
 //
 // The MONGODB-CR authentication mechanism is deprecated in MongoDB 4.0.
-func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
+func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, _ description.Server, conn driver.Connection) error {
 
 	db := a.DB
 	if db == "" {
 		db = defaultAuthDB
 	}
 
-	cmd := command.Read{DB: db, Command: bsonx.Doc{{"getnonce", bsonx.Int32(1)}}}
-	ssdesc := description.SelectedServer{Server: desc}
-	rdr, err := cmd.RoundTrip(ctx, ssdesc, rw)
+	doc := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "getnonce", 1))
+	cmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
+	err := cmd.Execute(ctx)
 	if err != nil {
 		return newError(err, MONGODBCR)
 	}
+	rdr := cmd.Result()
 
 	var getNonceResult struct {
 		Nonce string `bson:"nonce"`
@@ -68,16 +69,14 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, desc description.Serv
 		return newAuthError("unmarshal error", err)
 	}
 
-	cmd = command.Read{
-		DB: db,
-		Command: bsonx.Doc{
-			{"authenticate", bsonx.Int32(1)},
-			{"user", bsonx.String(a.Username)},
-			{"nonce", bsonx.String(getNonceResult.Nonce)},
-			{"key", bsonx.String(a.createKey(getNonceResult.Nonce))},
-		},
-	}
-	_, err = cmd.RoundTrip(ctx, ssdesc, rw)
+	doc = bsoncore.BuildDocumentFromElements(nil,
+		bsoncore.AppendInt32Element(nil, "authenticate", 1),
+		bsoncore.AppendStringElement(nil, "user", a.Username),
+		bsoncore.AppendStringElement(nil, "nonce", getNonceResult.Nonce),
+		bsoncore.AppendStringElement(nil, "key", a.createKey(getNonceResult.Nonce)),
+	)
+	cmd = operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
+	err = cmd.Execute(ctx)
 	if err != nil {
 		return newError(err, MONGODBCR)
 	}

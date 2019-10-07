@@ -1,4 +1,18 @@
 {
+  "runOn": [
+    {
+      "minServerVersion": "4.0",
+      "topology": [
+        "replicaset"
+      ]
+    },
+    {
+      "minServerVersion": "4.1.8",
+      "topology": [
+        "sharded"
+      ]
+    }
+  ],
   "database_name": "transaction-tests",
   "collection_name": "test",
   "data": [
@@ -102,7 +116,6 @@
                       "x": 1
                     }
                   },
-                  "multi": false,
                   "upsert": true
                 }
               ],
@@ -132,7 +145,6 @@
                   "u": {
                     "y": 1
                   },
-                  "multi": false,
                   "upsert": false
                 }
               ],
@@ -165,8 +177,7 @@
                       "z": 1
                     }
                   },
-                  "multi": true,
-                  "upsert": false
+                  "multi": true
                 }
               ],
               "ordered": true,
@@ -332,7 +343,6 @@
                       "x": 1
                     }
                   },
-                  "multi": false,
                   "upsert": true
                 }
               ],
@@ -362,7 +372,6 @@
                   "u": {
                     "y": 1
                   },
-                  "multi": false,
                   "upsert": false
                 }
               ],
@@ -395,8 +404,7 @@
                       "z": 1
                     }
                   },
-                  "multi": true,
-                  "upsert": false
+                  "multi": true
                 }
               ],
               "ordered": true,

@@ -2035,7 +2035,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		oids := []primitive.ObjectID{primitive.NewObjectID(), primitive.NewObjectID(), primitive.NewObjectID()}
 		var str = new(string)
 		*str = "bar"
-		now := time.Now().Truncate(time.Millisecond)
+		now := time.Now().Truncate(time.Millisecond).UTC()
 		murl, err := url.Parse("https://mongodb.com/random-url?hello=world")
 		if err != nil {
 			t.Errorf("Error parsing URL: %v", err)
@@ -2573,6 +2573,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						cmp.Comparer(compareDecimal128),
 						cmp.Comparer(compareNoPrivateFields),
 						cmp.Comparer(compareZeroTest),
+						cmp.Comparer(compareTime),
 					); diff != "" {
 						t.Errorf("difference:\n%s", diff)
 						t.Errorf("Values are not equal.\ngot: %#v\nwant:%#v", got, want)

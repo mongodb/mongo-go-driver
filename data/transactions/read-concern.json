@@ -1,4 +1,18 @@
 {
+  "runOn": [
+    {
+      "minServerVersion": "4.0",
+      "topology": [
+        "replicaset"
+      ]
+    },
+    {
+      "minServerVersion": "4.1.8",
+      "topology": [
+        "sharded"
+      ]
+    }
+  ],
   "database_name": "transaction-tests",
   "collection_name": "test",
   "data": [
@@ -25,7 +39,7 @@
           "arguments": {
             "options": {
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               }
             }
           }
@@ -86,7 +100,7 @@
                 },
                 {
                   "$group": {
-                    "_id": null,
+                    "_id": 1,
                     "n": {
                       "$sum": 1
                     }
@@ -96,7 +110,7 @@
               "cursor": {},
               "lsid": "session0",
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               },
               "txnNumber": {
                 "$numberLong": "1"
@@ -122,7 +136,7 @@
                 },
                 {
                   "$group": {
-                    "_id": null,
+                    "_id": 1,
                     "n": {
                       "$sum": 1
                     }
@@ -188,7 +202,7 @@
           "arguments": {
             "options": {
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               }
             }
           }
@@ -260,7 +274,7 @@
               "batchSize": 3,
               "lsid": "session0",
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               },
               "txnNumber": {
                 "$numberLong": "1"
@@ -375,7 +389,7 @@
           "arguments": {
             "options": {
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               }
             }
           }
@@ -470,7 +484,7 @@
               },
               "lsid": "session0",
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               },
               "txnNumber": {
                 "$numberLong": "1"
@@ -594,7 +608,7 @@
           "arguments": {
             "options": {
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               }
             }
           }
@@ -650,7 +664,7 @@
               "key": "_id",
               "lsid": "session0",
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               },
               "txnNumber": {
                 "$numberLong": "1"
@@ -727,7 +741,7 @@
           "arguments": {
             "options": {
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               }
             }
           }
@@ -766,7 +780,7 @@
               "find": "test",
               "lsid": "session0",
               "readConcern": {
-                "level": "snapshot"
+                "level": "majority"
               },
               "txnNumber": {
                 "$numberLong": "1"
@@ -896,7 +910,7 @@
                 },
                 {
                   "$group": {
-                    "_id": null,
+                    "_id": 1,
                     "n": {
                       "$sum": 1
                     }
@@ -930,7 +944,7 @@
                 },
                 {
                   "$group": {
-                    "_id": null,
+                    "_id": 1,
                     "n": {
                       "$sum": 1
                     }

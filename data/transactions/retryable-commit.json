@@ -1,4 +1,18 @@
 {
+  "runOn": [
+    {
+      "minServerVersion": "4.0",
+      "topology": [
+        "replicaset"
+      ]
+    },
+    {
+      "minServerVersion": "4.1.8",
+      "topology": [
+        "sharded"
+      ]
+    }
+  ],
   "database_name": "transaction-tests",
   "collection_name": "test",
   "data": [],
@@ -928,7 +942,7 @@
       }
     },
     {
-      "description": "commitTransaction succeeds after InterruptedDueToReplStateChange",
+      "description": "commitTransaction succeeds after InterruptedDueToStepDown",
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -1911,7 +1925,7 @@
       }
     },
     {
-      "description": "commitTransaction succeeds after WriteConcernError InterruptedDueToReplStateChange",
+      "description": "commitTransaction succeeds after WriteConcernError InterruptedDueToStepDown",
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
