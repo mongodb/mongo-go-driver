@@ -731,21 +731,21 @@ tasks:
           vars:
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
-    - name: go1.8-build
+    - name: go1.9-build
       tags: ["compile-check"]
       commands:
         - func: run-make
           vars:
             targets: "build"
-            BUILD_ENV: "PATH=/opt/golang/go1.8/bin:$PATH GOROOT=/opt/golang/go1.8"
+            BUILD_ENV: "PATH=/opt/golang/go1.9/bin:$PATH GOROOT=/opt/golang/go1.9"
 
-    - name: go1.8-build-nocgo
+    - name: go1.9-build-nocgo
       tags: ["compile-check"]
       commands:
         - func: run-make
           vars:
             targets: "build"
-            BUILD_ENV: "CGO_ENABLED=0 PATH=/opt/golang/go1.8/bin:$PATH GOROOT=/opt/golang/go1.8"
+            BUILD_ENV: "CGO_ENABLED=0 PATH=/opt/golang/go1.9/bin:$PATH GOROOT=/opt/golang/go1.9"
 
     - name: go1.10-build
       tags: ["compile-check"]
