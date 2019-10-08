@@ -7,7 +7,6 @@
 package integration
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -20,7 +19,6 @@ import (
 
 type index struct {
 	Key  map[string]int
-	NS   string
 	Name string
 }
 
@@ -33,7 +31,6 @@ func TestIndexView(t *testing.T) {
 			Key: map[string]int{
 				"_id": 1,
 			},
-			NS:   getExpectedNS(mt),
 			Name: "_id_",
 		})
 	})
@@ -47,7 +44,6 @@ func TestIndexView(t *testing.T) {
 
 			verifyIndexExists(mt, iv, index{
 				Key:  map[string]int{"foo": -1},
-				NS:   getExpectedNS(mt),
 				Name: indexName,
 			})
 		})
@@ -61,7 +57,6 @@ func TestIndexView(t *testing.T) {
 
 			verifyIndexExists(mt, iv, index{
 				Key:  map[string]int{"foo": -1},
-				NS:   getExpectedNS(mt),
 				Name: indexName,
 			})
 		})
@@ -115,7 +110,6 @@ func TestIndexView(t *testing.T) {
 				assert.Nil(mt, err, "CreateOne error: %v", err)
 				verifyIndexExists(mt, iv, index{
 					Key:  map[string]int{"$**": 1},
-					NS:   getExpectedNS(mt),
 					Name: indexName,
 				})
 			})
@@ -156,15 +150,12 @@ func TestIndexView(t *testing.T) {
 		assert.Nil(mt, err, "CreateMany error: %v", err)
 		assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
 
-		ns := getExpectedNS(mt)
 		verifyIndexExists(mt, iv, index{
 			Key:  map[string]int{"foo": -1},
-			NS:   ns,
 			Name: indexNames[0],
 		})
 		verifyIndexExists(mt, iv, index{
 			Key:  map[string]int{"bar": 1, "baz": -1},
-			NS:   ns,
 			Name: indexNames[1],
 		})
 	})
@@ -186,13 +177,10 @@ func TestIndexView(t *testing.T) {
 
 		cursor, err := iv.List(mtest.Background)
 		assert.Nil(mt, err, "List error: %v", err)
-		expectedNS := getExpectedNS(mt)
 		for cursor.Next(mtest.Background) {
 			var idx index
 			err = cursor.Decode(&idx)
 			assert.Nil(mt, err, "Decode error: %v (document %v)", err, cursor.Current)
-
-			assert.Equal(mt, expectedNS, idx.NS, "expected NS %v, got %v", expectedNS, idx.NS)
 			assert.NotEqual(mt, indexNames[1], idx.Name, "found index %v after dropping", indexNames[1])
 		}
 		assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
@@ -212,24 +200,17 @@ func TestIndexView(t *testing.T) {
 		_, err = iv.DropAll(mtest.Background)
 		assert.Nil(mt, err, "DropAll error: %v", err)
 
-		expectedNS := getExpectedNS(mt)
 		cursor, err := iv.List(mtest.Background)
 		assert.Nil(mt, err, "List error: %v", err)
 		for cursor.Next(mtest.Background) {
 			var idx index
 			err = cursor.Decode(&idx)
 			assert.Nil(mt, err, "Decode error: %v (document %v)", err, cursor.Current)
-			assert.Equal(mt, expectedNS, idx.NS, "expected NS %v, got %v", expectedNS, idx.NS)
-
 			assert.NotEqual(mt, names[0], idx.Name, "found index %v, after dropping", names[0])
 			assert.NotEqual(mt, names[1], idx.Name, "found index %v, after dropping", names[1])
 		}
 		assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
 	})
-}
-
-func getExpectedNS(mt *mtest.T) string {
-	return fmt.Sprintf("%v.%v", mt.Coll.Database().Name(), mt.Coll.Name())
 }
 
 func getIndexDoc(mt *mtest.T, iv mongo.IndexView, expectedKeyDoc bson.D) bson.D {
@@ -278,9 +259,6 @@ func verifyIndexExists(mt *mtest.T, iv mongo.IndexView, expected index) {
 		var idx index
 		err = cursor.Decode(&idx)
 		assert.Nil(mt, err, "Decode error: %v", err)
-		if expected.NS != "" {
-			assert.Equal(mt, expected.NS, idx.NS, "expected NS %v, got %v", expected.NS, idx.NS)
-		}
 
 		if idx.Name == expected.Name {
 			if expected.Key != nil {
