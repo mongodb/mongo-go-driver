@@ -230,23 +230,33 @@ func dErr(s string) (Decimal128, error) {
 }
 
 // match scientific notation number, example -10.15e-18
-var normalNumber = regexp.MustCompile(`^(?P<int>[-+]?\d+)?(?:\.(?P<dec>\d+))?(?:[Ee](?P<exp>[-+]?\d+))?$`)
+var normalNumber = regexp.MustCompile(`^(?P<int>[-+]?\d*)?(?:\.(?P<dec>\d*))?(?:[Ee](?P<exp>[-+]?\d+))?$`)
 
 // ParseDecimal128 takes the given string and attempts to parse it into a valid
 // Decimal128 value.
 func ParseDecimal128(s string) (Decimal128, error) {
+	if s == "" {
+		return dErr(s)
+	}
+
 	matches := normalNumber.FindStringSubmatch(s)
 	if len(matches) == 0 {
+		orig := s
+		neg := s[0] == '-'
+		if neg || s[0] == '+' {
+			s = s[1:]
+		}
+
 		if s == "NaN" || s == "nan" || strings.EqualFold(s, "nan") {
 			return dNaN, nil
 		}
 		if s == "Inf" || s == "inf" || strings.EqualFold(s, "inf") || strings.EqualFold(s, "infinity") {
+			if neg {
+				return dNegInf, nil
+			}
 			return dPosInf, nil
 		}
-		if s == "-Inf" || s == "-inf" || strings.EqualFold(s, "-inf") || strings.EqualFold(s, "-infinity") {
-			return dNegInf, nil
-		}
-		return dErr(s)
+		return dErr(orig)
 	}
 
 	intPart := matches[1]
@@ -278,13 +288,19 @@ func ParseDecimal128(s string) (Decimal128, error) {
 	if !ok {
 		return dErr(s)
 	}
+
+	if bi.Sign() == 0 && s[0] == '-' {
+		d.h |= 1 << 63
+	}
+
 	return d, nil
 }
 
 var (
 	ten  = big.NewInt(10)
 	zero = new(big.Int)
-	maxS = new(big.Int).SetBytes([]byte{0x1, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}) // 113 bits
+
+	maxS, _ = new(big.Int).SetString("9999999999999999999999999999999999", 10)
 )
 
 // ParseDecimal128FromBigInt attempts to parse the given significand and exponent into a valid Decimal128 value.

@@ -66,22 +66,8 @@ var bigIntTestCases = []bigIntTestCase{
 	{s: "99999999999999999999999999999.99999", h: 3474506263649159104, l: 4003012203950112767, bi: bi9_34, exp: -5},
 	{s: "-99999999999999999999999999999.99999", h: 12697878300503934912, l: 4003012203950112767, bi: biN9_34, exp: -5},
 
-	{s: "10384593717069655257060992658440191", h: 0x3041ffffffffffff, l: 1<<64 - 1, bi: biMaxS},
-	{s: "-10384593717069655257060992658440191", h: 0xb041ffffffffffff, l: 1<<64 - 1, bi: biNMaxS},
-
-	{s: "1.0384593717069655257060992658440191E+6145", h: 0x5fffffffffffffff, l: 1<<64 - 1, bi: biMaxS, exp: MaxDecimal128Exp},
-	{s: "-1.0384593717069655257060992658440191E+6145", h: 0xdfffffffffffffff, l: 1<<64 - 1, bi: biNMaxS, exp: MaxDecimal128Exp},
-	{s: "1.0384593717069655257060992658440191E-6142", h: 0x1ffffffffffff, l: 1<<64 - 1, bi: biMaxS, exp: MinDecimal128Exp},
-	{s: "-1.0384593717069655257060992658440191E-6142", h: 0x8001ffffffffffff, l: 1<<64 - 1, bi: biNMaxS, exp: MinDecimal128Exp},
-
-	{s: "1.0384593717069655257060992658440191E+6145", remark: "rounding", h: 0x5fffffffffffffff, l: 1<<64 - 1, bi: new(big.Int).Mul(biMaxS, ten), exp: MaxDecimal128Exp - 1},
-	{s: "-1.0384593717069655257060992658440191E+6145", remark: "rounding", h: 0xdfffffffffffffff, l: 1<<64 - 1, bi: new(big.Int).Mul(biNMaxS, ten), exp: MaxDecimal128Exp - 1},
-
 	{s: "1.038459371706965525706099265844019E-6143", remark: "subnormal", h: 0x333333333333, l: 0x3333333333333333, bi: parseBigInt("10384593717069655257060992658440190"), exp: MinDecimal128Exp - 1},
 	{s: "-1.038459371706965525706099265844019E-6143", remark: "subnormal", h: 0x8000333333333333, l: 0x3333333333333333, bi: parseBigInt("-10384593717069655257060992658440190"), exp: MinDecimal128Exp - 1},
-
-	{s: "1.0384593717069655257060992658440190E+6145", remark: "clamped", h: 0x5fffffffffffffff, l: 1<<64 - 2, bi: parseBigInt("1038459371706965525706099265844019"), exp: MaxDecimal128Exp + 1},
-	{s: "-1.0384593717069655257060992658440190E+6145", remark: "clamped", h: 0xdfffffffffffffff, l: 1<<64 - 2, bi: parseBigInt("-1038459371706965525706099265844019"), exp: MaxDecimal128Exp + 1},
 
 	{s: "rounding overflow 1", remark: "overflow", bi: parseBigInt("103845937170696552570609926584401910"), exp: MaxDecimal128Exp},
 	{s: "rounding overflow 2", remark: "overflow", bi: parseBigInt("103845937170696552570609926584401910"), exp: MaxDecimal128Exp},
@@ -137,8 +123,6 @@ func TestParseDecimal128FromBigInt(t *testing.T) {
 func TestParseDecimal128(t *testing.T) {
 	cases := append(bigIntTestCases,
 		[]bigIntTestCase{
-			{s: "0.10000000000000000000000000000000000000000000", h: 0x2ffbed09bead87c0, l: 0x378d8e6400000000},
-			{s: "-000001.0000000000000000000000000000000000000000000", h: 0xaffded09bead87c0, l: 0x378d8e6400000000},
 			{s: "-0001231.453454000000565600000000E-21", h: 0xafe6000003faa269, l: 0x81cfeceaabdb1800},
 			{s: "12345E+21", h: 0x306a000000000000, l: 12345},
 			{s: "0.10000000000000000000000000000000000000000001", remark: "parse fail"},
