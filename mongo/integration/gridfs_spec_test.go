@@ -167,10 +167,6 @@ func compareGridfsDocs(mt *mtest.T, expected, actual bson.Raw) {
 
 	eElems, err := expected.Elements()
 	assert.Nil(mt, err, "error getting expected elements: %v", err)
-	aElems, err := actual.Elements()
-	assert.Nil(mt, err, "error getting actual elements: %v", err)
-	assert.Equal(mt, len(eElems), len(aElems),
-		"expected document %s with %v elements, got %v", expected, len(eElems), len(aElems))
 
 	for _, e := range eElems {
 		eKey := e.Key()
