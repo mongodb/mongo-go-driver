@@ -25,48 +25,48 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-type gfsTestFile struct {
-	Data  gfsData   `bson:"data"`
-	Tests []gfsTest `bson:"tests"`
+type gridfsTestFile struct {
+	Data  gridfsData   `bson:"data"`
+	Tests []gridfsTest `bson:"tests"`
 }
 
-type gfsData struct {
+type gridfsData struct {
 	Files  []bson.Raw  `bson:"files"`
 	Chunks []bsonx.Doc `bson:"chunks"`
 }
 
-type gfsTest struct {
-	Description string     `bson:"description"`
-	Arrange     gfsArrange `bson:"arrange"`
-	Act         gfsAct     `bson:"act"`
-	Assert      gfsAssert  `bson:"assert"`
+type gridfsTest struct {
+	Description string        `bson:"description"`
+	Arrange     gridfsArrange `bson:"arrange"`
+	Act         gridfsAct     `bson:"act"`
+	Assert      gridfsAssert  `bson:"assert"`
 }
 
-type gfsArrange struct {
+type gridfsArrange struct {
 	Data []bsonx.Doc `bson:"data"`
 }
 
-type gfsAct struct {
+type gridfsAct struct {
 	Operation string   `bson:"operation"`
 	Arguments bson.Raw `bson:"arguments"`
 }
 
-type gfsAssert struct {
+type gridfsAssert struct {
 	Result interface{} `bson:"result"`
 	Error  string      `bson:"error"`
 	Data   []bsonx.Doc `bson:"data"`
 }
 
 const (
-	gfsTestsDir       = "../../data/gridfs"
-	gfsFiles          = "fs.files"
-	gfsChunks         = "fs.chunks"
-	gfsExpectedFiles  = "expected.files"
-	gfsExpectedChunks = "expected.chunks"
+	gridfsTestsDir       = "../../data/gridfs"
+	gridfsFiles          = "fs.files"
+	gridfsChunks         = "fs.chunks"
+	gridfsExpectedFiles  = "expected.files"
+	gridfsExpectedChunks = "expected.chunks"
 )
 
 var (
-	gfsDeadline    = time.Now().Add(time.Hour)
+	gridfsDeadline = time.Now().Add(time.Hour)
 	downloadBuffer = make([]byte, 100)
 )
 
@@ -74,78 +74,78 @@ func TestGridFSSpec(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 	defer mt.Close()
 
-	for _, file := range jsonFilesInDir(mt, gfsTestsDir) {
+	for _, file := range jsonFilesInDir(mt, gridfsTestsDir) {
 		mt.Run(file, func(mt *mtest.T) {
-			runGfsTestFile(mt, path.Join(gfsTestsDir, file))
+			runGridfsTestFile(mt, path.Join(gridfsTestsDir, file))
 		})
 	}
 }
 
-func runGfsTestFile(mt *mtest.T, filePath string) {
+func runGridfsTestFile(mt *mtest.T, filePath string) {
 	content, err := ioutil.ReadFile(filePath)
 	assert.Nil(mt, err, "ReadFile error for %v: %v", filePath, err)
 
-	var testFile gfsTestFile
+	var testFile gridfsTestFile
 	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
 	assert.Nil(mt, err, "UnmarshalExtJSONWithRegistry error: %v", err)
 
 	for _, test := range testFile.Tests {
 		mt.Run(test.Description, func(mt *mtest.T) {
-			runGfsTest(mt, test, testFile)
+			runGridfsTest(mt, test, testFile)
 		})
 	}
 }
 
-func runGfsTest(mt *mtest.T, test gfsTest, testFile gfsTestFile) {
-	chunkSize := setupGfsTest(mt, testFile.Data)
+func runGridfsTest(mt *mtest.T, test gridfsTest, testFile gridfsTestFile) {
+	chunkSize := setupGridfsTest(mt, testFile.Data)
 	if chunkSize == 0 {
 		chunkSize = gridfs.DefaultChunkSize
 	}
 	bucket, err := gridfs.NewBucket(mt.DB, options.GridFSBucket().SetChunkSizeBytes(chunkSize))
 	assert.Nil(mt, err, "NewBucket error: %v", err)
-	err = bucket.SetWriteDeadline(gfsDeadline)
+	err = bucket.SetWriteDeadline(gridfsDeadline)
 	assert.Nil(mt, err, "SetWriteDeadline error: %v", err)
-	err = bucket.SetReadDeadline(gfsDeadline)
+	err = bucket.SetReadDeadline(gridfsDeadline)
 	assert.Nil(mt, err, "SetReadDeadline error: %v", err)
 
-	arrangeGfsCollections(mt, test.Arrange)
+	arrangeGridfsCollections(mt, test.Arrange)
 	switch test.Act.Operation {
 	case "upload":
-		executeGfsUpload(mt, test, bucket)
-		checkGfsResults(mt, test)
-		clearGfsCollections(mt)
+		executeGridfsUpload(mt, test, bucket)
+		checkGridfsResults(mt, test)
+		clearGridfsCollections(mt)
 
-		arrangeGfsCollections(mt, test.Arrange)
-		executeGfsUploadFromStream(mt, test, bucket)
-		checkGfsResults(mt, test)
+		arrangeGridfsCollections(mt, test.Arrange)
+		executeGridfsUploadFromStream(mt, test, bucket)
+		checkGridfsResults(mt, test)
 	case "download":
-		executeGfsDownload(mt, test, bucket)
-		checkGfsResults(mt, test)
+		executeGridfsDownload(mt, test, bucket)
+		checkGridfsResults(mt, test)
 
-		executeGfsDownloadToStream(mt, test, bucket)
-		checkGfsResults(mt, test)
+		executeGridfsDownloadToStream(mt, test, bucket)
+		checkGridfsResults(mt, test)
 	case "download_by_name":
-		executeGfsDownloadByName(mt, test, bucket)
-		checkGfsResults(mt, test)
+		executeGridfsDownloadByName(mt, test, bucket)
+		checkGridfsResults(mt, test)
 
-		executeGfsDownloadByNameToStream(mt, test, bucket)
-		checkGfsResults(mt, test)
+		executeGridfsDownloadByNameToStream(mt, test, bucket)
+		checkGridfsResults(mt, test)
 	case "delete":
-		executeGfsDelete(mt, test, bucket)
-		checkGfsResults(mt, test)
+		executeGridfsDelete(mt, test, bucket)
+		checkGridfsResults(mt, test)
 	}
 }
 
-func checkGfsResults(mt *mtest.T, test gfsTest) {
+func checkGridfsResults(mt *mtest.T, test gridfsTest) {
 	if test.Assert.Error != "" {
 		// don't compare collections in error cases
 		return
 	}
-	compareGfsCollections(mt, gfsExpectedChunks, gfsChunks)
-	compareGfsCollections(mt, gfsExpectedFiles, gfsFiles)
+	compareGridfsCollections(mt, gridfsExpectedChunks, gridfsChunks)
+	compareGridfsCollections(mt, gridfsExpectedFiles, gridfsFiles)
 }
 
-func compareGfsCollections(mt *mtest.T, expected, actual string) {
+func compareGridfsCollections(mt *mtest.T, expected, actual string) {
 	expectedCursor, err := mt.DB.Collection(expected).Find(mtest.Background, bson.D{})
 	assert.Nil(mt, err, "Find error for collection %v: %v", expected, err)
 	actualCursor, err := mt.DB.Collection(actual).Find(mtest.Background, bson.D{})
@@ -156,13 +156,13 @@ func compareGfsCollections(mt *mtest.T, expected, actual string) {
 		assert.True(mt, actualCursor.Next(mtest.Background), "Next returned false at index %v", idx)
 		idx++
 
-		compareGfsDocs(mt, expectedCursor.Current, actualCursor.Current)
+		compareGridfsDocs(mt, expectedCursor.Current, actualCursor.Current)
 	}
 	assert.False(mt, actualCursor.Next(mtest.Background),
 		"found unexpected document in collection %v: %s", expected, actualCursor.Current)
 }
 
-func compareGfsDocs(mt *mtest.T, expected, actual bson.Raw) {
+func compareGridfsDocs(mt *mtest.T, expected, actual bson.Raw) {
 	mt.Helper()
 
 	eElems, err := expected.Elements()
@@ -192,7 +192,7 @@ func compareGfsDocs(mt *mtest.T, expected, actual bson.Raw) {
 	}
 }
 
-func arrangeGfsCollections(mt *mtest.T, arrange gfsArrange) {
+func arrangeGridfsCollections(mt *mtest.T, arrange gridfsArrange) {
 	if len(arrange.Data) == 0 {
 		return
 	}
@@ -230,7 +230,7 @@ func arrangeGfsCollections(mt *mtest.T, arrange gfsArrange) {
 	runCommands(mt, arrangeCmds)
 }
 
-func executeUploadAssert(mt *mtest.T, fileID primitive.ObjectID, assert gfsAssert) {
+func executeUploadAssert(mt *mtest.T, fileID primitive.ObjectID, assert gridfsAssert) {
 	fileIDVal := bsonx.ObjectID(fileID)
 
 	var assertCommands []interface{}
@@ -308,13 +308,13 @@ func createUploadOptions(mt *mtest.T, args bson.Raw) *options.UploadOptions {
 	return opts
 }
 
-func executeGfsUpload(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
+func executeGridfsUpload(mt *mtest.T, test gridfsTest, bucket *gridfs.Bucket) {
 	args := test.Act.Arguments
 	uploadOpts := createUploadOptions(mt, args)
 	hexBytes := hexStringToBytes(mt, args.Lookup("source", "$hex").StringValue())
 	fileID := primitive.NewObjectID()
 	stream, err := bucket.OpenUploadStreamWithID(fileID, args.Lookup("filename").StringValue(), uploadOpts)
-	err = stream.SetWriteDeadline(gfsDeadline)
+	err = stream.SetWriteDeadline(gridfsDeadline)
 	assert.Nil(mt, err, "SetWriteDeadline error: %v", err)
 
 	n, err := stream.Write(hexBytes)
@@ -325,7 +325,7 @@ func executeGfsUpload(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
 	executeUploadAssert(mt, fileID, test.Assert)
 }
 
-func executeGfsUploadFromStream(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
+func executeGridfsUploadFromStream(mt *mtest.T, test gridfsTest, bucket *gridfs.Bucket) {
 	args := test.Act.Arguments
 	uploadOpts := createUploadOptions(mt, args)
 	hexBytes := hexStringToBytes(mt, args.Lookup("source", "$hex").StringValue())
@@ -337,25 +337,25 @@ func executeGfsUploadFromStream(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket
 	executeUploadAssert(mt, fileID, test.Assert)
 }
 
-func executeGfsDownload(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
+func executeGridfsDownload(mt *mtest.T, test gridfsTest, bucket *gridfs.Bucket) {
 	stream, err := bucket.OpenDownloadStream(test.Act.Arguments.Lookup("id").ObjectID())
 	var copied int
 	if err == nil {
 		copied, err = stream.Read(downloadBuffer)
 	}
-	compareGfsDownloadAssert(mt, copied, err, test)
+	compareGridfsDownloadAssert(mt, copied, err, test)
 }
 
-func executeGfsDownloadToStream(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
+func executeGridfsDownloadToStream(mt *mtest.T, test gridfsTest, bucket *gridfs.Bucket) {
 	buffer := bytes.NewBuffer(downloadBuffer)
 	copied, err := bucket.DownloadToStream(test.Act.Arguments.Lookup("id").ObjectID(), buffer)
-	compareGfsDownloadAssert(mt, int(copied), err, test)
+	compareGridfsDownloadAssert(mt, int(copied), err, test)
 }
 
-func compareGfsDownloadAssert(mt *mtest.T, copied int, err error, test gfsTest) {
+func compareGridfsDownloadAssert(mt *mtest.T, copied int, err error, test gridfsTest) {
 	if test.Assert.Error != "" {
 		assert.NotNil(mt, err, "expected Read error, got nil")
-		compareGfsAssertError(mt, test.Assert.Error, err)
+		compareGridfsAssertError(mt, test.Assert.Error, err)
 	}
 	if test.Assert.Result != nil {
 		result := test.Assert.Result.(bson.Raw)
@@ -388,7 +388,7 @@ func createDownloadByNameOptions(mt *mtest.T, args bson.Raw) *options.NameOption
 	return opts
 }
 
-func executeGfsDownloadByName(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
+func executeGridfsDownloadByName(mt *mtest.T, test gridfsTest, bucket *gridfs.Bucket) {
 	args := test.Act.Arguments
 	opts := createDownloadByNameOptions(mt, args)
 	stream, err := bucket.OpenDownloadStreamByName(args.Lookup("filename").StringValue(), opts)
@@ -396,22 +396,22 @@ func executeGfsDownloadByName(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) 
 	if err == nil {
 		copied, err = stream.Read(downloadBuffer)
 	}
-	compareGfsDownloadAssert(mt, copied, err, test)
+	compareGridfsDownloadAssert(mt, copied, err, test)
 }
 
-func executeGfsDownloadByNameToStream(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
+func executeGridfsDownloadByNameToStream(mt *mtest.T, test gridfsTest, bucket *gridfs.Bucket) {
 	args := test.Act.Arguments
 	opts := createDownloadByNameOptions(mt, args)
 	buffer := bytes.NewBuffer(downloadBuffer)
 	copied, err := bucket.DownloadToStreamByName(args.Lookup("filename").StringValue(), buffer, opts)
-	compareGfsDownloadAssert(mt, int(copied), err, test)
+	compareGridfsDownloadAssert(mt, int(copied), err, test)
 }
 
-func executeGfsDelete(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
+func executeGridfsDelete(mt *mtest.T, test gridfsTest, bucket *gridfs.Bucket) {
 	err := bucket.Delete(test.Act.Arguments.Lookup("id").ObjectID())
 	if test.Assert.Error != "" {
 		assert.NotNil(mt, err, "expected Delete error, got nil")
-		compareGfsAssertError(mt, test.Assert.Error, err)
+		compareGridfsAssertError(mt, test.Assert.Error, err)
 		return
 	}
 	var cmds []interface{}
@@ -421,11 +421,11 @@ func executeGfsDelete(mt *mtest.T, test gfsTest, bucket *gridfs.Bucket) {
 	runCommands(mt, cmds)
 }
 
-func setupGfsTest(mt *mtest.T, data gfsData) int32 {
-	filesColl := mt.CreateCollection(mtest.Collection{Name: gfsFiles}, true)
-	chunksColl := mt.CreateCollection(mtest.Collection{Name: gfsChunks}, true)
-	expectedFilesColl := mt.CreateCollection(mtest.Collection{Name: gfsExpectedFiles}, true)
-	expectedChunksColl := mt.CreateCollection(mtest.Collection{Name: gfsExpectedChunks}, true)
+func setupGridfsTest(mt *mtest.T, data gridfsData) int32 {
+	filesColl := mt.CreateCollection(mtest.Collection{Name: gridfsFiles}, true)
+	chunksColl := mt.CreateCollection(mtest.Collection{Name: gridfsChunks}, true)
+	expectedFilesColl := mt.CreateCollection(mtest.Collection{Name: gridfsExpectedFiles}, true)
+	expectedChunksColl := mt.CreateCollection(mtest.Collection{Name: gridfsExpectedChunks}, true)
 
 	var chunkSize int32
 	for _, file := range data.Files {
@@ -484,15 +484,15 @@ func runCommands(mt *mtest.T, commands []interface{}) {
 	}
 }
 
-func clearGfsCollections(mt *mtest.T) {
+func clearGridfsCollections(mt *mtest.T) {
 	mt.Helper()
-	for _, coll := range []string{gfsFiles, gfsChunks, gfsExpectedFiles, gfsExpectedChunks} {
+	for _, coll := range []string{gridfsFiles, gridfsChunks, gridfsExpectedFiles, gridfsExpectedChunks} {
 		_, err := mt.DB.Collection(coll).DeleteMany(mtest.Background, bson.D{})
 		assert.Nil(mt, err, "DeleteMany error for %v: %v", coll, err)
 	}
 }
 
-func compareGfsAssertError(mt *mtest.T, assertErrString string, err error) {
+func compareGridfsAssertError(mt *mtest.T, assertErrString string, err error) {
 	mt.Helper()
 
 	var wantErr error
