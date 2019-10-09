@@ -138,7 +138,7 @@ func runGfsTest(mt *mtest.T, test gfsTest, testFile gfsTestFile) {
 
 func checkGfsResults(mt *mtest.T, test gfsTest) {
 	if test.Assert.Error != "" {
-		// don't compare collections in non-error cases
+		// don't compare collections in error cases
 		return
 	}
 	compareGfsCollections(mt, gfsExpectedChunks, gfsChunks)
@@ -158,6 +158,8 @@ func compareGfsCollections(mt *mtest.T, expected, actual string) {
 
 		compareGfsDocs(mt, expectedCursor.Current, actualCursor.Current)
 	}
+	assert.False(mt, actualCursor.Next(mtest.Background),
+		"found unexpected document in collection %v: %s", expected, actualCursor.Current)
 }
 
 func compareGfsDocs(mt *mtest.T, expected, actual bson.Raw) {
@@ -165,15 +167,26 @@ func compareGfsDocs(mt *mtest.T, expected, actual bson.Raw) {
 
 	eElems, err := expected.Elements()
 	assert.Nil(mt, err, "error getting expected elements: %v", err)
+	aElems, err := actual.Elements()
+	assert.Nil(mt, err, "error getting actual elements: %v", err)
+	assert.Equal(mt, len(eElems), len(aElems),
+		"expected document %s with %v elements, got %v", expected, len(eElems), len(aElems))
 
 	for _, e := range eElems {
 		eKey := e.Key()
-		if eKey == "_id" || eKey == "uploadDate" || eKey == "md5" || eKey == "contentType" {
+		// skip deprecated fields
+		if eKey == "md5" || eKey == "contentType" {
 			continue
 		}
 
 		aVal, err := actual.LookupErr(eKey)
 		assert.Nil(mt, err, "key %s not found in result", e.Key())
+
+		// skip fields with unknown values
+		if eKey == "_id" || eKey == "uploadDate" {
+			continue
+		}
+
 		eVal := e.Value()
 		compareValues(mt, eKey, eVal, aVal)
 	}
