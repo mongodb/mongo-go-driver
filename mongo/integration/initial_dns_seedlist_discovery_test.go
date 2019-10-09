@@ -55,10 +55,10 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &test)
 	assert.Nil(mt, err, "UnmarshalExtJSONWithRegistry error: %v", err)
 
-	if runtime.GOOS == "windows" && file == "two-txt-records" {
+	if runtime.GOOS == "windows" && file == "two-txt-records.json" {
 		mt.Skip("skipping to avoid windows multiple TXT record lookup bug")
 	}
-	if strings.HasPrefix(runtime.Version(), "go1.11") && file == "one-txt-record-multiple-strings" {
+	if strings.HasPrefix(runtime.Version(), "go1.11") && file == "one-txt-record-multiple-strings.json" {
 		mt.Skip("skipping to avoid go1.11 problem with multiple strings in one TXT record")
 	}
 
