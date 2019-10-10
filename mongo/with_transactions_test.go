@@ -21,7 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -192,11 +191,10 @@ func setupConvenientTransactions(t *testing.T) *Client {
 }
 
 func getServerVersion(db *Database) (string, error) {
-	var serverStatus bsonx.Doc
-	err := db.RunCommand(
+	serverStatus, err := db.RunCommand(
 		context.Background(),
 		bson.D{{"serverStatus", 1}},
-	).Decode(&serverStatus)
+	).DecodeBytes()
 	if err != nil {
 		return "", err
 	}
