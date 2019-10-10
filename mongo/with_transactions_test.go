@@ -195,7 +195,7 @@ func getServerVersion(db *Database) (string, error) {
 	var serverStatus bsonx.Doc
 	err := db.RunCommand(
 		context.Background(),
-		bsonx.Doc{{"serverStatus", bsonx.Int32(1)}},
+		bson.D{{"serverStatus", 1}},
 	).Decode(&serverStatus)
 	if err != nil {
 		return "", err

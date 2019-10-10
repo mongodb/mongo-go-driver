@@ -15,7 +15,11 @@ ATLAS_URIS = "$(ATLAS_FREE)" "$(ATLAS_REPLSET)" "$(ATLAS_SHARD)" "$(ATLAS_TLS11)
 TEST_TIMEOUT = 600
 
 .PHONY: default
-default: check-fmt vet build-examples lint errcheck test-cover test-race
+default: check-env check-fmt vet build-examples lint errcheck test-cover test-race
+
+.PHONY: check-env
+check-env:
+	etc/check_env.sh
 
 .PHONY: doc
 doc:
