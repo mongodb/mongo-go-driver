@@ -176,7 +176,7 @@ functions:
           cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem
           cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem
 
-          MONGODB_VERSION=${VERSION} TOPOLOGY=${TOPOLOGY} AUTH=${AUTH} SSL=${SSL} sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+          MONGODB_VERSION=${VERSION} AUTH=${AUTH} SSL=${SSL} sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
         file: mo-expansion.yml
@@ -260,7 +260,6 @@ functions:
           AUTH=${AUTH} \
           SSL=${SSL} \
           MONGODB_URI="${MONGODB_URI}" \
-          TOPOLOGY=${TOPOLOGY} \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           BUILD_TAGS="-tags cse" \
           AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
@@ -433,7 +432,6 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-make
@@ -453,12 +451,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
-            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
 
@@ -467,12 +463,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
-            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -482,12 +476,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
-            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
@@ -497,12 +489,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
-            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zstd"
@@ -512,12 +502,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
-            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
 
@@ -526,12 +514,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
-            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -541,12 +527,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
-            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
@@ -556,12 +540,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
-            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zstd"
@@ -571,12 +553,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "replica_set"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
-            TOPOLOGY: "replica_set"
             AUTH: "noauth"
             SSL: "nossl"
 
@@ -585,12 +565,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "replica_set"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
-            TOPOLOGY: "replica_set"
             AUTH: "auth"
             SSL: "ssl"
 
@@ -599,12 +577,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
 
@@ -613,12 +589,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -628,12 +602,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
@@ -643,12 +615,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zstd"
@@ -658,12 +628,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
 
@@ -672,12 +640,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -687,12 +653,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
@@ -702,12 +666,10 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
-            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zstd"
