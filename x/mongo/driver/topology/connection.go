@@ -243,7 +243,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
-		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to decode message length"}
+		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "incomplete read of message header"}
 	}
 
 	// read the length as an int32
@@ -262,7 +262,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
-		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to read full message"}
+		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "incomplete read of full message"}
 	}
 
 	c.bumpIdleDeadline()
