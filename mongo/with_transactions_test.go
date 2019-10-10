@@ -9,6 +9,9 @@ package mongo
 import (
 	"context"
 	"errors"
+	"math"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,36 +26,13 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-func setupConvenientTransactions(t *testing.T) *Client {
-	cs := testutil.ConnString(t)
-	clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
-		SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
-	client, err := Connect(ctx, clientOpts)
-	assert.Nil(t, err, "Connect error: %v", err)
-
-	version, err := getServerVersion(client.Database("admin"))
-	assert.Nil(t, err, "getServerVersion error: %v", err)
-	topoKind := client.deployment.(*topology.Topology).Kind()
-	if compareVersions(t, version, "4.1") < 0 || topoKind == description.Single {
-		t.Skip("skipping standalones and versions < 4.1")
-	}
-
-	// pin to a single mongos if necessary
-	if topoKind != description.Sharded {
-		return client
-	}
-	client, err = Connect(ctx, clientOpts.SetHosts([]string{cs.Hosts[0]}))
-	assert.Nil(t, err, "Connect error: %v", err)
-	return client
-}
-
 func TestConvenientTransactions(t *testing.T) {
 	client := setupConvenientTransactions(t)
 	db := client.Database("TestConvenientTransactions")
 	dbAdmin := client.Database("admin")
 
 	defer func() {
-		err := dbAdmin.RunCommand(ctx, bson.D{
+		err := dbAdmin.RunCommand(bgCtx, bson.D{
 			{"killAllSessions", bson.A{}},
 		}).Err()
 		if err != nil {
@@ -61,13 +41,13 @@ func TestConvenientTransactions(t *testing.T) {
 			}
 		}
 
-		_ = db.Drop(ctx)
-		_ = client.Disconnect(ctx)
+		_ = db.Drop(bgCtx)
+		_ = client.Disconnect(bgCtx)
 	}()
 
 	t.Run("callback raises custom error", func(t *testing.T) {
 		coll := db.Collection(t.Name())
-		_, err := coll.InsertOne(ctx, bson.D{{"x", 1}})
+		_, err := coll.InsertOne(bgCtx, bson.D{{"x", 1}})
 		assert.Nil(t, err, "InsertOne error: %v", err)
 
 		sess, err := client.StartSession()
@@ -82,7 +62,7 @@ func TestConvenientTransactions(t *testing.T) {
 	})
 	t.Run("callback returns value", func(t *testing.T) {
 		coll := db.Collection(t.Name())
-		_, err := coll.InsertOne(ctx, bson.D{{"x", 1}})
+		_, err := coll.InsertOne(bgCtx, bson.D{{"x", 1}})
 		assert.Nil(t, err, "InsertOne error: %v", err)
 
 		sess, err := client.StartSession()
@@ -101,7 +81,7 @@ func TestConvenientTransactions(t *testing.T) {
 		withTransactionTimeout = time.Second
 
 		coll := db.Collection(t.Name())
-		_, err := coll.InsertOne(ctx, bson.D{{"x", 1}})
+		_, err := coll.InsertOne(bgCtx, bson.D{{"x", 1}})
 		assert.Nil(t, err, "InsertOne error: %v", err)
 
 		t.Run("transient transaction error", func(t *testing.T) {
@@ -127,10 +107,10 @@ func TestConvenientTransactions(t *testing.T) {
 					{"closeConnection", true},
 				}},
 			}
-			err = dbAdmin.RunCommand(ctx, failpoint).Err()
+			err = dbAdmin.RunCommand(bgCtx, failpoint).Err()
 			assert.Nil(t, err, "error setting failpoint: %v", err)
 			defer func() {
-				err = dbAdmin.RunCommand(ctx, bson.D{
+				err = dbAdmin.RunCommand(bgCtx, bson.D{
 					{"configureFailPoint", "failCommand"},
 					{"mode", "off"},
 				}).Err()
@@ -160,10 +140,10 @@ func TestConvenientTransactions(t *testing.T) {
 					{"errorCode", 251},
 				}},
 			}
-			err = dbAdmin.RunCommand(ctx, failpoint).Err()
+			err = dbAdmin.RunCommand(bgCtx, failpoint).Err()
 			assert.Nil(t, err, "error setting failpoint: %v", err)
 			defer func() {
-				err = dbAdmin.RunCommand(ctx, bson.D{
+				err = dbAdmin.RunCommand(bgCtx, bson.D{
 					{"configureFailPoint", "failCommand"},
 					{"mode", "off"},
 				}).Err()
@@ -185,4 +165,74 @@ func TestConvenientTransactions(t *testing.T) {
 				"expected error with label %v, got %v", driver.TransientTransactionError, cmdErr)
 		})
 	})
+}
+
+func setupConvenientTransactions(t *testing.T) *Client {
+	cs := testutil.ConnString(t)
+	clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
+		SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+	client, err := Connect(bgCtx, clientOpts)
+	assert.Nil(t, err, "Connect error: %v", err)
+
+	version, err := getServerVersion(client.Database("admin"))
+	assert.Nil(t, err, "getServerVersion error: %v", err)
+	topoKind := client.deployment.(*topology.Topology).Kind()
+	if compareVersions(t, version, "4.1") < 0 || topoKind == description.Single {
+		t.Skip("skipping standalones and versions < 4.1")
+	}
+
+	// pin to a single mongos if necessary
+	if topoKind != description.Sharded {
+		return client
+	}
+	client, err = Connect(bgCtx, clientOpts.SetHosts([]string{cs.Hosts[0]}))
+	assert.Nil(t, err, "Connect error: %v", err)
+	return client
+}
+
+func getServerVersion(db *Database) (string, error) {
+	serverStatus, err := db.RunCommand(
+		context.Background(),
+		bson.D{{"serverStatus", 1}},
+	).DecodeBytes()
+	if err != nil {
+		return "", err
+	}
+
+	version, err := serverStatus.LookupErr("version")
+	if err != nil {
+		return "", err
+	}
+
+	return version.StringValue(), nil
+}
+
+// compareVersions compares two version number strings (i.e. positive integers separated by
+// periods). Comparisons are done to the lesser precision of the two versions. For example, 3.2 is
+// considered equal to 3.2.11, whereas 3.2.0 is considered less than 3.2.11.
+//
+// Returns a positive int if version1 is greater than version2, a negative int if version1 is less
+// than version2, and 0 if version1 is equal to version2.
+func compareVersions(t *testing.T, v1 string, v2 string) int {
+	n1 := strings.Split(v1, ".")
+	n2 := strings.Split(v2, ".")
+
+	for i := 0; i < int(math.Min(float64(len(n1)), float64(len(n2)))); i++ {
+		i1, err := strconv.Atoi(n1[i])
+		if err != nil {
+			return 1
+		}
+
+		i2, err := strconv.Atoi(n2[i])
+		if err != nil {
+			return -1
+		}
+
+		difference := i1 - i2
+		if difference != 0 {
+			return difference
+		}
+	}
+
+	return 0
 }

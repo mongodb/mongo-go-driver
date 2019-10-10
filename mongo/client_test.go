@@ -66,16 +66,16 @@ func TestClient(t *testing.T) {
 		_, err := client.StartSession()
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		_, err = client.ListDatabases(ctx, bson.D{})
+		_, err = client.ListDatabases(bgCtx, bson.D{})
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		err = client.Ping(ctx, nil)
+		err = client.Ping(bgCtx, nil)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		err = client.Disconnect(ctx)
+		err = client.Disconnect(bgCtx)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		_, err = client.Watch(ctx, []bson.D{})
+		_, err = client.Watch(bgCtx, []bson.D{})
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 	})
 	t.Run("nil document error", func(t *testing.T) {
