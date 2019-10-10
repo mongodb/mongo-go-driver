@@ -149,12 +149,13 @@ func (dve DefaultValueEncoders) IntEncodeValue(ec EncodeContext, vw bsonrw.Value
 
 // UintEncodeValue is the ValueEncoderFunc for uint types.
 func (dve DefaultValueEncoders) UintEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
-	switch val.Kind() {
+	valKind := val.Kind()
+	switch valKind {
 	case reflect.Uint8, reflect.Uint16:
 		return vw.WriteInt32(int32(val.Uint()))
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		u64 := val.Uint()
-		if ec.MinSize && u64 <= math.MaxInt32 {
+		if (ec.MinSize || valKind <= reflect.Uint32) && u64 <= math.MaxInt32 {
 			return vw.WriteInt32(int32(u64))
 		}
 		if u64 > math.MaxInt64 {
