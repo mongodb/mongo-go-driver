@@ -685,7 +685,7 @@ func insertDocuments(mt *mtest.T, coll *mongo.Collection, rawDocs []bson.Raw) {
 	}
 
 	_, err := coll.InsertMany(mtest.Background, docsToInsert)
-	assert.Nil(mt, err, "InsertMany error: %v", err)
+	assert.Nil(mt, err, "InsertMany error for collection %v: %v", coll.Name(), err)
 }
 
 // load initial data into appropriate collections and set chunkSize for the test case if necessary
