@@ -86,6 +86,7 @@ type T struct {
 	auth             *bool
 	enterprise       *bool
 	collCreateOpts   bson.D
+	connsCheckedOut  int // net number of connections checked out during test execution
 
 	// options copied to sub-tests
 	clientType  ClientType
@@ -208,6 +209,11 @@ func (t *T) RunOpts(name string, opts *Options, callback func(*T)) {
 				return
 			}
 
+			// store number of sessions and connections checked out here but assert that they're equal to 0 after
+			// cleaning up test resources to make sure resources are always cleared
+			sessions := sub.Client.SessionsCheckedOut()
+			conns := sub.connsCheckedOut
+
 			if sub.clientType != Mock {
 				sub.ClearFailPoints()
 				sub.ClearCollections()
@@ -216,6 +222,8 @@ func (t *T) RunOpts(name string, opts *Options, callback func(*T)) {
 			if sub.shareClient == nil || !*sub.shareClient {
 				_ = sub.Client.Disconnect(Background)
 			}
+			assert.Equal(sub, 0, sessions, "%v sessions checked out", sessions)
+			assert.Equal(sub, 0, conns, "%v connections checked out", conns)
 		}()
 
 		// clear any events that may have happened during setup and run the test
@@ -497,6 +505,19 @@ func (t *T) createTestClient() {
 			t.failed = append(t.failed, cfe)
 		},
 	})
+	// only specify connection pool monitor if no deployment is given
+	if clientOpts.Deployment == nil {
+		clientOpts.SetPoolMonitor(&event.PoolMonitor{
+			Event: func(evt *event.PoolEvent) {
+				switch evt.Type {
+				case event.GetSucceeded:
+					t.connsCheckedOut++
+				case event.ConnectionReturned:
+					t.connsCheckedOut--
+				}
+			},
+		})
+	}
 
 	var err error
 	switch t.clientType {
@@ -511,6 +532,8 @@ func (t *T) createTestClient() {
 		clientOpts.ApplyURI(testContext.connString.Original).SetHosts([]string{testContext.connString.Hosts[0]})
 		t.Client, err = mongo.NewClient(clientOpts)
 	case Mock:
+		// clear pool monitor to avoid configuration error
+		clientOpts.PoolMonitor = nil
 		t.mockDeployment = newMockDeployment()
 		clientOpts.Deployment = t.mockDeployment
 		t.Client, err = mongo.NewClient(clientOpts)

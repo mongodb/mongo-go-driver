@@ -10,6 +10,7 @@ import (
 	"context"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,15 +19,35 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
+var (
+	connsCheckedOut int
+)
+
 func TestGridFS(t *testing.T) {
 	cs := testutil.ConnString(t)
+	poolMonitor := &event.PoolMonitor{
+		Event: func(evt *event.PoolEvent) {
+			switch evt.Type {
+			case event.GetSucceeded:
+				connsCheckedOut++
+			case event.ConnectionReturned:
+				connsCheckedOut--
+			}
+		},
+	}
 	clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
-		SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetPoolMonitor(poolMonitor)
 	client, err := mongo.Connect(context.Background(), clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 	db := client.Database("gridfs")
 	defer func() {
+		sessions := client.SessionsCheckedOut()
+		conns := connsCheckedOut
+
 		_ = db.Drop(context.Background())
+		_ = client.Disconnect(context.Background())
+		assert.Equal(t, 0, sessions, "%v sessions checked out", sessions)
+		assert.Equal(t, 0, conns, "%v connections checked out", conns)
 	}()
 
 	// Unit tests showing the chunk size is set correctly on the bucket and upload stream objects.

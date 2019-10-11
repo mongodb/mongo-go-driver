@@ -747,3 +747,9 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
+
+// SessionsCheckedOut returns the number of sessions checked out from the client's session pool.
+// This method is deprecated and does not have any stability guarantees. It may be removed in the future.
+func (c *Client) SessionsCheckedOut() int {
+	return c.sessionPool.CheckedOut()
+}
