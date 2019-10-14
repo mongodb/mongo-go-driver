@@ -1002,7 +1002,7 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 	case "updateOne":
 		uom := mongo.NewUpdateOneModel()
 		uom.SetFilter(args.Lookup("filter").Document())
-		uom.SetUpdate(args.Lookup("update").Document())
+		uom.SetUpdate(createUpdate(mt, args.Lookup("update")))
 		if upsert, err := args.LookupErr("upsert"); err == nil {
 			uom.SetUpsert(upsert.Boolean())
 		}
@@ -1022,7 +1022,7 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 	case "updateMany":
 		umm := mongo.NewUpdateManyModel()
 		umm.SetFilter(args.Lookup("filter").Document())
-		umm.SetUpdate(args.Lookup("update").Document())
+		umm.SetUpdate(createUpdate(mt, args.Lookup("update")))
 		if upsert, err := args.LookupErr("upsert"); err == nil {
 			umm.SetUpsert(upsert.Boolean())
 		}
