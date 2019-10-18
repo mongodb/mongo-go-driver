@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -26,12 +27,19 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
+var (
+	connsCheckedOut int
+)
+
 func TestConvenientTransactions(t *testing.T) {
 	client := setupConvenientTransactions(t)
 	db := client.Database("TestConvenientTransactions")
 	dbAdmin := client.Database("admin")
 
 	defer func() {
+		sessions := client.NumberSessionsInProgress()
+		conns := connsCheckedOut
+
 		err := dbAdmin.RunCommand(bgCtx, bson.D{
 			{"killAllSessions", bson.A{}},
 		}).Err()
@@ -43,6 +51,9 @@ func TestConvenientTransactions(t *testing.T) {
 
 		_ = db.Drop(bgCtx)
 		_ = client.Disconnect(bgCtx)
+
+		assert.Equal(t, 0, sessions, "%v sessions checked out", sessions)
+		assert.Equal(t, 0, conns, "%v connections checked out", conns)
 	}()
 
 	t.Run("callback raises custom error", func(t *testing.T) {
@@ -169,8 +180,18 @@ func TestConvenientTransactions(t *testing.T) {
 
 func setupConvenientTransactions(t *testing.T) *Client {
 	cs := testutil.ConnString(t)
+	poolMonitor := &event.PoolMonitor{
+		Event: func(evt *event.PoolEvent) {
+			switch evt.Type {
+			case event.GetSucceeded:
+				connsCheckedOut++
+			case event.ConnectionReturned:
+				connsCheckedOut--
+			}
+		},
+	}
 	clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
-		SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetPoolMonitor(poolMonitor)
 	client, err := Connect(bgCtx, clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 

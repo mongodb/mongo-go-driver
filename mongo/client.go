@@ -747,3 +747,9 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
+
+// NumberSessionsInProgress returns the number of sessions that have been started for this client but have not been
+// closed (i.e. EndSession has not been called).
+func (c *Client) NumberSessionsInProgress() int {
+	return c.sessionPool.CheckedOut()
+}

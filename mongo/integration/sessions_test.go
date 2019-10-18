@@ -129,6 +129,7 @@ func TestSessions(t *testing.T) {
 		sessionFunctions := createFunctionsSlice()
 		sess, err := mt.Client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
+		defer sess.EndSession(mtest.Background)
 
 		for _, sf := range sessionFunctions {
 			mt.Run(sf.name, func(mt *mtest.T) {

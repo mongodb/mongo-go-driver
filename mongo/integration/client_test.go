@@ -211,7 +211,9 @@ func TestClient(t *testing.T) {
 		mt.Run("invalid host", func(mt *mtest.T) {
 			// manually create client rather than using RunOpts with ClientOptions because the testing lib will
 			// apply the correct URI.
-			invalidClientOpts := options.Client().SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"})
+			invalidClientOpts := options.Client().
+				SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"}).
+				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond)
 			client, err := mongo.Connect(mtest.Background, invalidClientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			err = client.Ping(mtest.Background, readpref.Primary())
@@ -264,6 +266,7 @@ func TestClient(t *testing.T) {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				sess, err := mt.Client.StartSession(tc.opts)
 				assert.Nil(mt, err, "StartSession error: %v", err)
+				defer sess.EndSession(mtest.Background)
 				xs := sess.(mongo.XSession)
 				consistent := xs.ClientSession().Consistent
 				assert.Equal(mt, tc.consistent, consistent, "expected consistent to be %v, got %v", tc.consistent, consistent)
