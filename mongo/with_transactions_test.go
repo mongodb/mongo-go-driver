@@ -37,7 +37,7 @@ func TestConvenientTransactions(t *testing.T) {
 	dbAdmin := client.Database("admin")
 
 	defer func() {
-		sessions := client.SessionsCheckedOut()
+		sessions := client.NumberSessionsInProgress()
 		conns := connsCheckedOut
 
 		err := dbAdmin.RunCommand(bgCtx, bson.D{

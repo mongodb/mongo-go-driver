@@ -41,7 +41,7 @@ func TestGridFS(t *testing.T) {
 	assert.Nil(t, err, "Connect error: %v", err)
 	db := client.Database("gridfs")
 	defer func() {
-		sessions := client.SessionsCheckedOut()
+		sessions := client.NumberSessionsInProgress()
 		conns := connsCheckedOut
 
 		_ = db.Drop(context.Background())
