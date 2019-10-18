@@ -216,11 +216,10 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 
 			conn.Close()
 			conn, err = server.Connection(ctx)
-			defer conn.Close()
-
 			if err != nil {
 				break
 			}
+			defer conn.Close()
 
 			wireVersion := conn.Description().WireVersion
 			if wireVersion == nil || wireVersion.Max < 6 {
