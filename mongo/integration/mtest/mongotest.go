@@ -211,7 +211,7 @@ func (t *T) RunOpts(name string, opts *Options, callback func(*T)) {
 
 			// store number of sessions and connections checked out here but assert that they're equal to 0 after
 			// cleaning up test resources to make sure resources are always cleared
-			sessions := sub.Client.SessionsCheckedOut()
+			sessions := sub.Client.NumberSessionsInProgress()
 			conns := sub.connsCheckedOut
 
 			if sub.clientType != Mock {
