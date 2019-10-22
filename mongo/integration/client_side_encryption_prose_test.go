@@ -91,7 +91,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				cpt := setup(mt, aeo, defaultKvClientOptions, ceo)
+				var startedEvents []*event.CommandStartedEvent
+				monitor := &event.CommandMonitor{
+					Started: func(_ context.Context, evt *event.CommandStartedEvent) {
+						startedEvents = append(startedEvents, evt)
+					},
+				}
+				kvClientOpts := options.Client().ApplyURI(mt.ConnString()).SetMonitor(monitor)
+				cpt := setup(mt, aeo, kvClientOpts, ceo)
 				defer cpt.teardown(mt)
 
 				// create data key
@@ -112,6 +119,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				provider := cursor.Current.Lookup("masterKey", "provider").StringValue()
 				assert.Equal(mt, tc.provider, provider, "expected provider %v, got %v", tc.provider, provider)
 				assert.False(mt, cursor.Next(mtest.Background), "unexpected document in key vault: %v", cursor.Current)
+
+				// verify that the key was inserted using write concern majority
+				assert.Equal(mt, 1, len(startedEvents), "expected 1 CommandStartedEvent, got %v", len(startedEvents))
+				evt := startedEvents[0]
+				assert.Equal(mt, "insert", evt.CommandName, "expected command 'insert', got '%v'", evt.CommandName)
+				writeConcernVal, err := evt.Command.LookupErr("writeConcern")
+				assert.Nil(mt, err, "expected writeConcern in command %s", evt.Command)
+				wString := writeConcernVal.Document().Lookup("w").StringValue()
+				assert.Equal(mt, "majority", wString, "expected write concern 'majority', got %v", wString)
 
 				// encrypt a value with the new key by ID
 				rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, tc.value)}
