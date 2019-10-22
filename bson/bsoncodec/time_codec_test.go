@@ -28,81 +28,61 @@ func TestTimeCodec(t *testing.T) {
 		err  error
 	}
 
-	testCases := []struct {
-		name     string
-		reader   *bsonrwtest.ValueReaderWriter
-		subtests []timeSubtest
-	}{
-		{
-			"UseLocalTimeZone",
-			&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(now.UnixNano() / int64(time.Millisecond))},
-			[]timeSubtest{
-				{
-					"default",
-					bsonoptions.TimeCodec(),
-					true,
-					nil,
-				},
-				{
-					"false",
-					bsonoptions.TimeCodec().SetUseLocalTimeZone(false),
-					true,
-					nil,
-				},
-				{
-					"true",
-					bsonoptions.TimeCodec().SetUseLocalTimeZone(true),
-					false,
-					nil,
-				},
-			},
-		},
-		{
-			"DecodeFromString",
-			&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: now.Format(timeFormatString)},
-			[]timeSubtest{
-				{
-					"default",
-					bsonoptions.TimeCodec(),
-					true,
-					fmt.Errorf("cannot decode string into a time.Time"),
-				},
-				{
-					"false",
-					bsonoptions.TimeCodec().SetDecodeFromString(false),
-					true,
-					fmt.Errorf("cannot decode string into a time.Time"),
-				},
-				{
-					"true",
-					bsonoptions.TimeCodec().SetDecodeFromString(true),
-					true,
-					nil,
-				},
-			},
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			for _, rc := range tc.subtests {
-				t.Run(rc.name, func(t *testing.T) {
-					timeCodec, err := NewTimeCodec(rc.opts)
-					assert.Nil(t, err, "NewTimeCodec error: %v", err)
+	t.Run("UseLocalTimeZone", func(t *testing.T) {
+		reader := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(now.UnixNano() / int64(time.Millisecond))}
+		testCases := []struct {
+			name string
+			opts *bsonoptions.TimeCodecOptions
+			utc  bool
+		}{
+			{"default", bsonoptions.TimeCodec(), true},
+			{"false", bsonoptions.TimeCodec().SetUseLocalTimeZone(false), true},
+			{"true", bsonoptions.TimeCodec().SetUseLocalTimeZone(true), false},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				timeCodec, err := NewTimeCodec(tc.opts)
+				assert.Nil(t, err, "NewTimeCodec error: %v", err)
 
-					actual := reflect.New(reflect.TypeOf(now)).Elem()
-					err = timeCodec.DecodeValue(DecodeContext{}, tc.reader, actual)
-					if !compareErrors(err, rc.err) {
-						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
-					}
+				actual := reflect.New(reflect.TypeOf(now)).Elem()
+				err = timeCodec.DecodeValue(DecodeContext{}, reader, actual)
+				assert.Nil(t, err, "TimeCodec.DecodeValue error: %v", err)
 
-					if rc.err == nil {
-						actualTime := actual.Interface().(time.Time)
-						assert.Equal(t, actualTime.Location().String() == "UTC", rc.utc,
-							"Expected UTC: %v, got %v", rc.utc, actualTime.Location())
-						assert.Equal(t, now, actualTime, "expected time %v, got %v", now, actualTime)
-					}
-				})
-			}
-		})
-	}
+				actualTime := actual.Interface().(time.Time)
+				assert.Equal(t, actualTime.Location().String() == "UTC", tc.utc,
+					"Expected UTC: %v, got %v", tc.utc, actualTime.Location())
+				assert.Equal(t, now, actualTime, "expected time %v, got %v", now, actualTime)
+			})
+		}
+	})
+
+	t.Run("DecodeFromString", func(t *testing.T) {
+		reader := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: now.Format(timeFormatString)}
+		testCases := []struct {
+			name string
+			opts *bsonoptions.TimeCodecOptions
+			err  error
+		}{
+			{"default", bsonoptions.TimeCodec(), fmt.Errorf("cannot decode string into a time.Time")},
+			{"false", bsonoptions.TimeCodec().SetDecodeFromString(false), fmt.Errorf("cannot decode string into a time.Time")},
+			{"true", bsonoptions.TimeCodec().SetDecodeFromString(true), nil},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				timeCodec, err := NewTimeCodec(tc.opts)
+				assert.Nil(t, err, "NewTimeCodec error: %v", err)
+
+				actual := reflect.New(reflect.TypeOf(now)).Elem()
+				err = timeCodec.DecodeValue(DecodeContext{}, reader, actual)
+				if !compareErrors(err, tc.err) {
+					t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
+				}
+
+				if tc.err == nil {
+					actualTime := actual.Interface().(time.Time)
+					assert.Equal(t, now, actualTime, "expected time %v, got %v", now, actualTime)
+				}
+			})
+		}
+	})
 }
