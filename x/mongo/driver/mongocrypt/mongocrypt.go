@@ -131,12 +131,24 @@ func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.Data
 	var ok bool
 	switch kmsProvider {
 	case AwsProvider:
+		// set region and key (required fields)
 		region := C.CString(lookupString(opts.MasterKey, "region"))
 		key := C.CString(lookupString(opts.MasterKey, "key"))
 		defer C.free(unsafe.Pointer(region))
 		defer C.free(unsafe.Pointer(key))
-
 		ok = bool(C.mongocrypt_ctx_setopt_masterkey_aws(ctx.wrapped, region, -1, key, -1))
+		if !ok {
+			break
+		}
+
+		// set endpoint (not a required field)
+		endpoint := lookupString(opts.MasterKey, "endpoint")
+		if endpoint == "" {
+			break
+		}
+		endpointCStr := C.CString(endpoint)
+		defer C.free(unsafe.Pointer(endpointCStr))
+		ok = bool(C.mongocrypt_ctx_setopt_masterkey_aws_endpoint(ctx.wrapped, endpointCStr, -1))
 	case LocalProvider:
 		ok = bool(C.mongocrypt_ctx_setopt_masterkey_local(ctx.wrapped))
 	default:

@@ -512,6 +512,85 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("custom endpoint", func(mt *mtest.T) {
+		kmsProviders := map[string]map[string]interface{}{
+			"aws": {
+				"accessKeyId":     keyID,
+				"secretAccessKey": secretAccessKey,
+			},
+		}
+		ceo := options.ClientEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace)
+		cpt := setup(mt, nil, defaultKvClientOptions, ceo)
+		defer cpt.teardown(mt)
+
+		successKeyWithoutEndpoint := map[string]interface{}{
+			"region": "us-east-1",
+			"key":    "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+		}
+		successKeyWithEndpoint := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "kms.us-east-1.amazonaws.com",
+		}
+		successKeyWithEndpointHttps := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "kms.us-east-1.amazonaws.com:443",
+		}
+		failureKeyConnectionErr := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "kms.us-east-1.amazonaws.com:12345",
+		}
+		failureKeyWrongEndpoint := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "kms.us-east-2.amazonaws.com",
+		}
+		failureKeyParseError := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "example.com",
+		}
+
+		testCases := []struct {
+			name           string
+			masterKey      interface{}
+			expectError    bool
+			errorSubstring string
+		}{
+			{"success without endpoint", successKeyWithoutEndpoint, false, ""},
+			{"success with endpoint", successKeyWithEndpoint, false, ""},
+			{"success with https endpoint", successKeyWithEndpointHttps, false, ""},
+			{"failure with connection error", failureKeyConnectionErr, true, "connection refused"},
+			{"failure with wrong endpoint", failureKeyWrongEndpoint, true, "us-east-1"},
+			{"failure with parse error", failureKeyParseError, true, "parse error"},
+		}
+		for _, tc := range testCases {
+			mt.RunOpts(tc.name, noClientOpts, func(mt *mtest.T) {
+				dkOpts := options.DataKey().SetMasterKey(tc.masterKey)
+				createdKey, err := cpt.clientEnc.CreateDataKey(mtest.Background, "aws", dkOpts)
+				if tc.expectError {
+					assert.NotNil(mt, err, "expected error, got nil")
+					assert.True(mt, strings.Contains(err.Error(), tc.errorSubstring),
+						"expected error '%s' to contain '%s'", err.Error(), tc.errorSubstring)
+					return
+				}
+				assert.Nil(mt, err, "CreateDataKey error: %v", err)
+
+				encOpts := options.Encrypt().SetKeyID(createdKey).SetAlgorithm(deterministicAlgorithm)
+				testVal := bson.RawValue{
+					Type:  bson.TypeString,
+					Value: bsoncore.AppendString(nil, "test"),
+				}
+				encrypted, err := cpt.clientEnc.Encrypt(mtest.Background, testVal, encOpts)
+				assert.Nil(mt, err, "Encrypt error: %v", err)
+				decrypted, err := cpt.clientEnc.Decrypt(mtest.Background, encrypted)
+				assert.Nil(mt, err, "Decrypt error: %v", err)
+				assert.Equal(mt, testVal, decrypted, "expected value %s, got %s", testVal, decrypted)
+			})
+		}
+	})
 }
 
 type cseProseTest struct {
@@ -563,10 +642,12 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 func (cpt *cseProseTest) teardown(mt *mtest.T) {
 	mt.Helper()
 
-	err := cpt.cseClient.Disconnect(mtest.Background)
-	assert.Nil(mt, err, "encrypted client Disconnect error: %v", err)
+	if cpt.cseClient != nil {
+		err := cpt.cseClient.Disconnect(mtest.Background)
+		assert.Nil(mt, err, "encrypted client Disconnect error: %v", err)
+	}
 	if cpt.clientEnc != nil {
-		err = cpt.clientEnc.Close(mtest.Background)
+		err := cpt.clientEnc.Close(mtest.Background)
 		assert.Nil(mt, err, "ClientEncryption Close error: %v", err)
 	}
 }
