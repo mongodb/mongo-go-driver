@@ -101,7 +101,10 @@ func (mc *mcryptClient) disconnect(ctx context.Context) error {
 }
 
 func (mc *mcryptClient) spawnProcess() error {
-	return exec.Command(mc.path, mc.spawnArgs...).Start()
+	cmd := exec.Command(mc.path, mc.spawnArgs...)
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	return cmd.Start()
 }
 
 // createSpawnArgs creates arguments to spawn mcryptClient. It returns the path and a slice of arguments.
