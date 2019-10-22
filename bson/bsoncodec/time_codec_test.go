@@ -7,6 +7,7 @@
 package bsoncodec
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -19,28 +20,89 @@ import (
 
 func TestTimeCodec(t *testing.T) {
 	now := time.Now().Truncate(time.Millisecond)
-	t.Run("UseLocalTimeZone", func(t *testing.T) {
-		timeCodec, err := NewTimeCodec(bsonoptions.TimeCodec().SetUseLocalTimeZone(true))
-		assert.Nil(t, err, "NewTimeCodec error: %v", err)
 
-		actual := reflect.New(reflect.TypeOf(now)).Elem()
-		reader := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(now.UnixNano() / int64(time.Millisecond))}
-		err = timeCodec.DecodeValue(DecodeContext{}, reader, actual)
-		assert.Nil(t, err, "TimeCodec.DecodeValue error: %v", err)
+	type timeSubtest struct {
+		name string
+		opts *bsonoptions.TimeCodecOptions
+		utc  bool
+		err  error
+	}
 
-		actualTime := actual.Interface().(time.Time)
-		assert.True(t, actualTime.Location() != time.UTC, "Should decode to local time instead of UTC")
-	})
-	t.Run("DecodeFromString", func(t *testing.T) {
-		timeCodec, err := NewTimeCodec(bsonoptions.TimeCodec().SetDecodeFromString(true))
-		assert.Nil(t, err, "NewTimeCodec error: %v", err)
+	testCases := []struct {
+		name     string
+		reader   *bsonrwtest.ValueReaderWriter
+		subtests []timeSubtest
+	}{
+		{
+			"UseLocalTimeZone",
+			&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(now.UnixNano() / int64(time.Millisecond))},
+			[]timeSubtest{
+				{
+					"default",
+					bsonoptions.TimeCodec(),
+					true,
+					nil,
+				},
+				{
+					"false",
+					bsonoptions.TimeCodec().SetUseLocalTimeZone(false),
+					true,
+					nil,
+				},
+				{
+					"true",
+					bsonoptions.TimeCodec().SetUseLocalTimeZone(true),
+					false,
+					nil,
+				},
+			},
+		},
+		{
+			"DecodeFromString",
+			&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: now.Format(timeFormatString)},
+			[]timeSubtest{
+				{
+					"default",
+					bsonoptions.TimeCodec(),
+					true,
+					fmt.Errorf("cannot decode string into a time.Time"),
+				},
+				{
+					"false",
+					bsonoptions.TimeCodec().SetDecodeFromString(false),
+					true,
+					fmt.Errorf("cannot decode string into a time.Time"),
+				},
+				{
+					"true",
+					bsonoptions.TimeCodec().SetDecodeFromString(true),
+					true,
+					nil,
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, rc := range tc.subtests {
+				t.Run(rc.name, func(t *testing.T) {
+					timeCodec, err := NewTimeCodec(rc.opts)
+					assert.Nil(t, err, "NewTimeCodec error: %v", err)
 
-		actual := reflect.New(reflect.TypeOf(now)).Elem()
-		reader := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: now.Format(timeFormatString)}
-		err = timeCodec.DecodeValue(DecodeContext{}, reader, actual)
-		assert.Nil(t, err, "TimeCodec.DecodeValue error: %v", err)
+					actual := reflect.New(reflect.TypeOf(now)).Elem()
+					err = timeCodec.DecodeValue(DecodeContext{}, tc.reader, actual)
+					if !compareErrors(err, rc.err) {
+						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
+					}
 
-		actualTime := actual.Interface().(time.Time)
-		assert.True(t, actualTime.Equal(now), "Should be equal to the original time")
-	})
+					if rc.err == nil {
+						actualTime := actual.Interface().(time.Time)
+						assert.Equal(t, actualTime.Location().String() == "UTC", rc.utc,
+							"Expected UTC: %v, got %v", rc.utc, actualTime.Location())
+						assert.Equal(t, now, actualTime, "expected time %v, got %v", now, actualTime)
+					}
+				})
+			}
+		})
+	}
 }

@@ -28,8 +28,7 @@ type TimeCodec struct {
 	DecodeFromString bool
 }
 
-var _ ValueEncoder = &TimeCodec{}
-var _ ValueDecoder = &TimeCodec{}
+var _ ValueCodec = &TimeCodec{}
 
 // NewTimeCodec returns a TimeCodec with options opts.
 func NewTimeCodec(opts ...*bsonoptions.TimeCodecOptions) (*TimeCodec, error) {
