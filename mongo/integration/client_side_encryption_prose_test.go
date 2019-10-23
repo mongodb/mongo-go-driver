@@ -40,6 +40,7 @@ const (
 	keySubtype               byte = 4                // expected subtype for data keys
 	encryptedValueSubtype    byte = 6                // expected subtypes for encrypted values
 	cryptMaxBsonObjSize           = 2097152          // max bytes in BSON object when auto encryption is enabled
+	maxBsonObjSize                = 16777216         // max bytes in BSON object
 )
 
 func TestClientSideEncryptionProse(t *testing.T) {
@@ -246,23 +247,22 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		_, err = cpt.keyVaultColl.InsertOne(mtest.Background, key)
 		assert.Nil(mt, err, "InsertOne error for key: %v", err)
 
-		var completeStr []byte
+		var builder2mb, builder16mb strings.Builder
 		for i := 0; i < cryptMaxBsonObjSize; i++ {
-			completeStr = append(completeStr, 'a')
+			builder2mb.WriteByte('a')
 		}
+		for i := 0; i < maxBsonObjSize; i++ {
+			builder16mb.WriteByte('a')
+		}
+		complete2mbStr := builder2mb.String()
+		complete16mbStr := builder16mb.String()
 
-		// insert a doc smaller than 2MiB
-		str := completeStr[:cryptMaxBsonObjSize-18000] // remove last 18000 bytes
-		doc := bson.D{{"_id", "no_encryption_under_2mib"}, {"unencrypted", string(str)}}
+		// insert a document over 2MiB
+		doc := bson.D{{"over_2mib_under_16mib", complete2mbStr}}
 		_, err = cpt.cseColl.InsertOne(mtest.Background, doc)
-		assert.Nil(mt, err, "InsertOne error for document smaller than 2MiB: %v", err)
+		assert.Nil(mt, err, "InsertOne error for 2MiB document: %v", err)
 
-		// insert a doc larger than 2MiB
-		doc = bson.D{{"_id", "no_encryption_over_2mib"}, {"unencrypted", string(completeStr)}}
-		_, err = cpt.cseColl.InsertOne(mtest.Background, doc)
-		assert.NotNil(mt, err, "expected error for inserting document larger than 2MiB, got nil")
-
-		str = completeStr[:cryptMaxBsonObjSize-20000] // remove last 20000 bytes
+		str := complete2mbStr[:cryptMaxBsonObjSize-2000] // remove last 2000 bytes
 		limitsDoc := readJSONFile(mt, "limits-doc.json")
 
 		// insert a doc smaller than 2MiB that is bigger than 2MiB after encryption
@@ -270,22 +270,23 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		extendedLimitsDoc = append(extendedLimitsDoc, limitsDoc...)
 		extendedLimitsDoc = extendedLimitsDoc[:len(extendedLimitsDoc)-1] // remove last byte to add new fields
 		extendedLimitsDoc = bsoncore.AppendStringElement(extendedLimitsDoc, "_id", "encryption_exceeds_2mib")
-		extendedLimitsDoc = bsoncore.AppendStringElement(extendedLimitsDoc, "unencrypted", string(str))
+		extendedLimitsDoc = bsoncore.AppendStringElement(extendedLimitsDoc, "unencrypted", str)
 		extendedLimitsDoc, _ = bsoncore.AppendDocumentEnd(extendedLimitsDoc, 0)
 		_, err = cpt.cseColl.InsertOne(mtest.Background, extendedLimitsDoc)
 		assert.Nil(mt, err, "error inserting extended limits document: %v", err)
 
-		// bulk insert two documents
+		// bulk insert two 2MiB documents, each over 2 MiB
+		// each document should be split into its own batch because the documents are bigger than 2MiB but smaller
+		// than 16MiB
 		cpt.cseStarted = cpt.cseStarted[:0]
-		str = completeStr[:cryptMaxBsonObjSize-18000]
-		firstDoc := bson.D{{"_id", "no_encryption_under_2mib_1"}, {"unencrypted", string(str)}}
-		secondDoc := bson.D{{"_id", "no_encryption_under_2mib_2"}, {"unencrypted", string(str)}}
+		firstDoc := bson.D{{"_id", "over_2mib_1"}, {"unencrypted", complete2mbStr}}
+		secondDoc := bson.D{{"_id", "over_2mib_2"}, {"unencrypted", complete2mbStr}}
 		_, err = cpt.cseColl.InsertMany(mtest.Background, []interface{}{firstDoc, secondDoc})
 		assert.Nil(mt, err, "InsertMany error for small documents: %v", err)
 		assert.Equal(mt, 2, len(cpt.cseStarted), "expected 2 insert events, got %d", len(cpt.cseStarted))
 
-		// bulk insert two larger documents
-		str = completeStr[:cryptMaxBsonObjSize-20000]
+		// bulk insert two documents
+		str = complete2mbStr[:cryptMaxBsonObjSize-20000]
 		firstBulkDoc := make([]byte, len(limitsDoc))
 		copy(firstBulkDoc, limitsDoc)
 		firstBulkDoc = firstBulkDoc[:len(firstBulkDoc)-1] // remove last byte to append new fields
@@ -304,6 +305,21 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		_, err = cpt.cseColl.InsertMany(mtest.Background, []interface{}{firstBulkDoc, secondBulkDoc})
 		assert.Nil(mt, err, "InsertMany error for large documents: %v", err)
 		assert.Equal(mt, 2, len(cpt.cseStarted), "expected 2 insert events, got %d", len(cpt.cseStarted))
+
+		// insert a document slightly smaller than 16MiB and expect the operation to succeed
+		doc = bson.D{{"_id", "under_16mib"}, {"unencrypted", complete16mbStr[:maxBsonObjSize-2000]}}
+		_, err = cpt.cseColl.InsertOne(mtest.Background, doc)
+		assert.Nil(mt, err, "InsertOne error: %v", err)
+
+		// insert a document over 16MiB and expect the operation to fail
+		var over16mb []byte
+		over16mb = append(over16mb, limitsDoc...)
+		over16mb = over16mb[:len(over16mb)-1] // remove last byte
+		over16mb = bsoncore.AppendStringElement(over16mb, "_id", "encryption_exceeds_16mib")
+		over16mb = bsoncore.AppendStringElement(over16mb, "unencrypted", complete16mbStr[:maxBsonObjSize-2000])
+		over16mb, _ = bsoncore.AppendDocumentEnd(over16mb, 0)
+		_, err = cpt.cseColl.InsertOne(mtest.Background, over16mb)
+		assert.NotNil(mt, err, "expected InsertOne error for document over 16MiB, got nil")
 	})
 	mt.Run("views are prohibited", func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{

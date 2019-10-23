@@ -309,12 +309,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	batching := op.Batches.Valid()
 	for {
 		if batching {
+			targetBatchSize := desc.MaxDocumentSize
 			maxDocSize := desc.MaxDocumentSize
 			if op.shouldEncrypt() {
-				maxDocSize = cryptMaxBsonObjectSize
+				// For client-side encryption, we want the batch to be split at 2 MiB instead of 16MiB.
+				// If there's only one document in the batch, it can be up to 16MiB, so we set target batch size to
+				// 2MiB but max document size to 16MiB. This will allow the AdvanceBatch call to create a batch
+				// with a single large document.
+				targetBatchSize = cryptMaxBsonObjectSize
 			}
 
-			err = op.Batches.AdvanceBatch(int(desc.MaxBatchCount), int(maxDocSize))
+			err = op.Batches.AdvanceBatch(int(desc.MaxBatchCount), int(targetBatchSize), int(maxDocSize))
 			if err != nil {
 				// TODO(GODRIVER-982): Should we also be returning operationErr?
 				return err
