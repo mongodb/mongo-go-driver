@@ -18,11 +18,13 @@ import (
 	"strings"
 )
 
+// These constants are the maximum and minimum values for the exponent field in a decimal128 value.
 const (
 	MaxDecimal128Exp = 6111
 	MinDecimal128Exp = -6176
 )
 
+// These errors are returned when an invalid value is parsed as a big.Int.
 var (
 	ErrParseNaN    = errors.New("cannot parse NaN as a *big.Int")
 	ErrParseInf    = errors.New("cannot parse Infinity as a *big.Int")
