@@ -289,29 +289,44 @@ func (dve DefaultValueEncoders) MapEncodeValue(ec EncodeContext, vw bsonrw.Value
 // struct codec.
 func (dve DefaultValueEncoders) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
 
-	encoder, err := ec.LookupEncoder(val.Type().Elem())
-	if err != nil {
-		return err
+	encoder, encErr := ec.LookupEncoder(val.Type().Elem())
+	if encErr != nil && val.Type().Elem().Kind() != reflect.Interface {
+		return encErr
 	}
 
 	keys := val.MapKeys()
+	var err error
 	for _, key := range keys {
 		if collisionFn != nil && collisionFn(key.String()) {
 			return fmt.Errorf("Key %s of inlined map conflicts with a struct field name", key)
 		}
+
+		currVal := val.MapIndex(key)
+		currEncoder := encoder
+		if currEncoder == nil && (currVal.Kind() == reflect.Interface) {
+			currVal = currVal.Elem()
+			if !currVal.IsValid() {
+				return encErr
+			}
+			currEncoder, err = ec.LookupEncoder(currVal.Type())
+		}
+		if err != nil {
+			return err
+		}
+
 		vw, err := dw.WriteDocumentElement(key.String())
 		if err != nil {
 			return err
 		}
 
-		if enc, ok := encoder.(ValueEncoder); ok {
-			err = enc.EncodeValue(ec, vw, val.MapIndex(key))
+		if enc, ok := currEncoder.(ValueEncoder); ok {
+			err = enc.EncodeValue(ec, vw, currVal)
 			if err != nil {
 				return err
 			}
 			continue
 		}
-		err = encoder.EncodeValue(ec, vw, val.MapIndex(key))
+		err = encoder.EncodeValue(ec, vw, currVal)
 		if err != nil {
 			return err
 		}
@@ -349,18 +364,31 @@ func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.Val
 		return err
 	}
 
-	encoder, err := ec.LookupEncoder(val.Type().Elem())
-	if err != nil {
-		return err
+	encoder, encErr := ec.LookupEncoder(val.Type().Elem())
+	if encErr != nil && val.Type().Elem().Kind() != reflect.Interface {
+		return encErr
 	}
 
 	for idx := 0; idx < val.Len(); idx++ {
+		currVal := val.Index(idx)
+		currEncoder := encoder
+		if currEncoder == nil && (currVal.Kind() == reflect.Interface) {
+			currVal = currVal.Elem()
+			if !currVal.IsValid() {
+				return encErr
+			}
+			currEncoder, err = ec.LookupEncoder(currVal.Type())
+		}
+		if err != nil {
+			return err
+		}
+
 		vw, err := aw.WriteArrayElement()
 		if err != nil {
 			return err
 		}
 
-		err = encoder.EncodeValue(ec, vw, val.Index(idx))
+		err = currEncoder.EncodeValue(ec, vw, currVal)
 		if err != nil {
 			return err
 		}
@@ -402,18 +430,31 @@ func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.Val
 		return err
 	}
 
-	encoder, err := ec.LookupEncoder(val.Type().Elem())
-	if err != nil {
-		return err
+	encoder, encErr := ec.LookupEncoder(val.Type().Elem())
+	if encErr != nil && val.Type().Elem().Kind() != reflect.Interface {
+		return encErr
 	}
 
 	for idx := 0; idx < val.Len(); idx++ {
+		currVal := val.Index(idx)
+		currEncoder := encoder
+		if currEncoder == nil && (currVal.Kind() == reflect.Interface) {
+			currVal = currVal.Elem()
+			if !currVal.IsValid() {
+				return encErr
+			}
+			currEncoder, err = ec.LookupEncoder(currVal.Type())
+		}
+		if err != nil {
+			return err
+		}
+
 		vw, err := aw.WriteArrayElement()
 		if err != nil {
 			return err
 		}
 
-		err = encoder.EncodeValue(ec, vw, val.Index(idx))
+		err = currEncoder.EncodeValue(ec, vw, currVal)
 		if err != nil {
 			return err
 		}
