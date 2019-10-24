@@ -39,7 +39,7 @@ const (
 	kvNamespace                   = "admin.datakeys" // default namespace for the key vault collection
 	keySubtype               byte = 4                // expected subtype for data keys
 	encryptedValueSubtype    byte = 6                // expected subtypes for encrypted values
-	cryptMaxBsonObjSize           = 2097152          // max bytes in BSON object when auto encryption is enabled
+	cryptMaxBatchSizeBytes        = 2097152          // max bytes in write batch when auto encryption is enabled
 	maxBsonObjSize                = 16777216         // max bytes in BSON object
 )
 
@@ -248,7 +248,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		assert.Nil(mt, err, "InsertOne error for key: %v", err)
 
 		var builder2mb, builder16mb strings.Builder
-		for i := 0; i < cryptMaxBsonObjSize; i++ {
+		for i := 0; i < cryptMaxBatchSizeBytes; i++ {
 			builder2mb.WriteByte('a')
 		}
 		for i := 0; i < maxBsonObjSize; i++ {
@@ -262,7 +262,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		_, err = cpt.cseColl.InsertOne(mtest.Background, doc)
 		assert.Nil(mt, err, "InsertOne error for 2MiB document: %v", err)
 
-		str := complete2mbStr[:cryptMaxBsonObjSize-2000] // remove last 2000 bytes
+		str := complete2mbStr[:cryptMaxBatchSizeBytes-2000] // remove last 2000 bytes
 		limitsDoc := readJSONFile(mt, "limits-doc.json")
 
 		// insert a doc smaller than 2MiB that is bigger than 2MiB after encryption
@@ -286,7 +286,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		assert.Equal(mt, 2, len(cpt.cseStarted), "expected 2 insert events, got %d", len(cpt.cseStarted))
 
 		// bulk insert two documents
-		str = complete2mbStr[:cryptMaxBsonObjSize-20000]
+		str = complete2mbStr[:cryptMaxBatchSizeBytes-20000]
 		firstBulkDoc := make([]byte, len(limitsDoc))
 		copy(firstBulkDoc, limitsDoc)
 		firstBulkDoc = firstBulkDoc[:len(firstBulkDoc)-1] // remove last byte to append new fields
