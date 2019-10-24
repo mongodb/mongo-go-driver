@@ -313,7 +313,7 @@ func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
 	q := new(big.Int)
 	r := new(big.Int)
 
-	for bi.CmpAbs(maxS) == 1 {
+	for bigIntCmpAbs(bi, maxS) == 1 {
 		bi, _ = q.QuoRem(bi, ten, r)
 		if r.Cmp(zero) != 0 {
 			return Decimal128{}, false
@@ -335,7 +335,7 @@ func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
 	for exp > MaxDecimal128Exp {
 		// Clamped.
 		bi.Mul(bi, ten)
-		if bi.CmpAbs(maxS) == 1 {
+		if bigIntCmpAbs(bi, maxS) == 1 {
 			return Decimal128{}, false
 		}
 		exp--
@@ -357,4 +357,20 @@ func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
 	}
 
 	return Decimal128{h: h, l: l}, true
+}
+
+// computes big.Int.Comp(absoluteValue(x), absouteValue(y))
+func bigIntCmpAbs(x, y *big.Int) int {
+	xAbs := bigIntAbsValue(x)
+	yAbs := bigIntAbsValue(y)
+	return xAbs.Cmp(yAbs)
+}
+
+// returns a big.Int containing the absolute value of b
+// if b is already a non-negative number, it is returned without any changes or copies
+func bigIntAbsValue(b *big.Int) *big.Int {
+	if b.Sign() >= 0 {
+		return b // already positive
+	}
+	return new(big.Int).Abs(b)
 }
