@@ -359,7 +359,7 @@ func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
 	return Decimal128{h: h, l: l}, true
 }
 
-// computes big.Int.Comp(absoluteValue(x), absouteValue(y))
+// computes big.Int.Cmp(absoluteValue(x), absouteValue(y))
 func bigIntCmpAbs(x, y *big.Int) int {
 	xAbs := bigIntAbsValue(x)
 	yAbs := bigIntAbsValue(y)
