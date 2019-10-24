@@ -359,15 +359,15 @@ func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
 	return Decimal128{h: h, l: l}, true
 }
 
-// computes big.Int.Cmp(absoluteValue(x), absouteValue(y))
+// bigIntCmpAbs computes big.Int.Cmp(absoluteValue(x), absoluteValue(y)).
 func bigIntCmpAbs(x, y *big.Int) int {
 	xAbs := bigIntAbsValue(x)
 	yAbs := bigIntAbsValue(y)
 	return xAbs.Cmp(yAbs)
 }
 
-// returns a big.Int containing the absolute value of b
-// if b is already a non-negative number, it is returned without any changes or copies
+// bigIntAbsValue returns a big.Int containing the absolute value of b.
+// If b is already a non-negative number, it is returned without any changes or copies.
 func bigIntAbsValue(b *big.Int) *big.Int {
 	if b.Sign() >= 0 {
 		return b // already positive
