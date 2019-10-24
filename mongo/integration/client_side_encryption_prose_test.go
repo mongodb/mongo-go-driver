@@ -39,7 +39,8 @@ const (
 	kvNamespace                   = "admin.datakeys" // default namespace for the key vault collection
 	keySubtype               byte = 4                // expected subtype for data keys
 	encryptedValueSubtype    byte = 6                // expected subtypes for encrypted values
-	cryptMaxBsonObjSize           = 2097152          // max bytes in BSON object when auto encryption is enabled
+	cryptMaxBatchSizeBytes        = 2097152          // max bytes in write batch when auto encryption is enabled
+	maxBsonObjSize                = 16777216         // max bytes in BSON object
 )
 
 func TestClientSideEncryptionProse(t *testing.T) {
@@ -91,7 +92,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				cpt := setup(mt, aeo, defaultKvClientOptions, ceo)
+				var startedEvents []*event.CommandStartedEvent
+				monitor := &event.CommandMonitor{
+					Started: func(_ context.Context, evt *event.CommandStartedEvent) {
+						startedEvents = append(startedEvents, evt)
+					},
+				}
+				kvClientOpts := options.Client().ApplyURI(mt.ConnString()).SetMonitor(monitor)
+				cpt := setup(mt, aeo, kvClientOpts, ceo)
 				defer cpt.teardown(mt)
 
 				// create data key
@@ -112,6 +120,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				provider := cursor.Current.Lookup("masterKey", "provider").StringValue()
 				assert.Equal(mt, tc.provider, provider, "expected provider %v, got %v", tc.provider, provider)
 				assert.False(mt, cursor.Next(mtest.Background), "unexpected document in key vault: %v", cursor.Current)
+
+				// verify that the key was inserted using write concern majority
+				assert.Equal(mt, 1, len(startedEvents), "expected 1 CommandStartedEvent, got %v", len(startedEvents))
+				evt := startedEvents[0]
+				assert.Equal(mt, "insert", evt.CommandName, "expected command 'insert', got '%v'", evt.CommandName)
+				writeConcernVal, err := evt.Command.LookupErr("writeConcern")
+				assert.Nil(mt, err, "expected writeConcern in command %s", evt.Command)
+				wString := writeConcernVal.Document().Lookup("w").StringValue()
+				assert.Equal(mt, "majority", wString, "expected write concern 'majority', got %v", wString)
 
 				// encrypt a value with the new key by ID
 				rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, tc.value)}
@@ -230,23 +247,22 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		_, err = cpt.keyVaultColl.InsertOne(mtest.Background, key)
 		assert.Nil(mt, err, "InsertOne error for key: %v", err)
 
-		var completeStr []byte
-		for i := 0; i < cryptMaxBsonObjSize; i++ {
-			completeStr = append(completeStr, 'a')
+		var builder2mb, builder16mb strings.Builder
+		for i := 0; i < cryptMaxBatchSizeBytes; i++ {
+			builder2mb.WriteByte('a')
 		}
+		for i := 0; i < maxBsonObjSize; i++ {
+			builder16mb.WriteByte('a')
+		}
+		complete2mbStr := builder2mb.String()
+		complete16mbStr := builder16mb.String()
 
-		// insert a doc smaller than 2MiB
-		str := completeStr[:cryptMaxBsonObjSize-18000] // remove last 18000 bytes
-		doc := bson.D{{"_id", "no_encryption_under_2mib"}, {"unencrypted", string(str)}}
+		// insert a document over 2MiB
+		doc := bson.D{{"over_2mib_under_16mib", complete2mbStr}}
 		_, err = cpt.cseColl.InsertOne(mtest.Background, doc)
-		assert.Nil(mt, err, "InsertOne error for document smaller than 2MiB: %v", err)
+		assert.Nil(mt, err, "InsertOne error for 2MiB document: %v", err)
 
-		// insert a doc larger than 2MiB
-		doc = bson.D{{"_id", "no_encryption_over_2mib"}, {"unencrypted", string(completeStr)}}
-		_, err = cpt.cseColl.InsertOne(mtest.Background, doc)
-		assert.NotNil(mt, err, "expected error for inserting document larger than 2MiB, got nil")
-
-		str = completeStr[:cryptMaxBsonObjSize-20000] // remove last 20000 bytes
+		str := complete2mbStr[:cryptMaxBatchSizeBytes-2000] // remove last 2000 bytes
 		limitsDoc := readJSONFile(mt, "limits-doc.json")
 
 		// insert a doc smaller than 2MiB that is bigger than 2MiB after encryption
@@ -254,22 +270,23 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		extendedLimitsDoc = append(extendedLimitsDoc, limitsDoc...)
 		extendedLimitsDoc = extendedLimitsDoc[:len(extendedLimitsDoc)-1] // remove last byte to add new fields
 		extendedLimitsDoc = bsoncore.AppendStringElement(extendedLimitsDoc, "_id", "encryption_exceeds_2mib")
-		extendedLimitsDoc = bsoncore.AppendStringElement(extendedLimitsDoc, "unencrypted", string(str))
+		extendedLimitsDoc = bsoncore.AppendStringElement(extendedLimitsDoc, "unencrypted", str)
 		extendedLimitsDoc, _ = bsoncore.AppendDocumentEnd(extendedLimitsDoc, 0)
 		_, err = cpt.cseColl.InsertOne(mtest.Background, extendedLimitsDoc)
 		assert.Nil(mt, err, "error inserting extended limits document: %v", err)
 
-		// bulk insert two documents
+		// bulk insert two 2MiB documents, each over 2 MiB
+		// each document should be split into its own batch because the documents are bigger than 2MiB but smaller
+		// than 16MiB
 		cpt.cseStarted = cpt.cseStarted[:0]
-		str = completeStr[:cryptMaxBsonObjSize-18000]
-		firstDoc := bson.D{{"_id", "no_encryption_under_2mib_1"}, {"unencrypted", string(str)}}
-		secondDoc := bson.D{{"_id", "no_encryption_under_2mib_2"}, {"unencrypted", string(str)}}
+		firstDoc := bson.D{{"_id", "over_2mib_1"}, {"unencrypted", complete2mbStr}}
+		secondDoc := bson.D{{"_id", "over_2mib_2"}, {"unencrypted", complete2mbStr}}
 		_, err = cpt.cseColl.InsertMany(mtest.Background, []interface{}{firstDoc, secondDoc})
 		assert.Nil(mt, err, "InsertMany error for small documents: %v", err)
 		assert.Equal(mt, 2, len(cpt.cseStarted), "expected 2 insert events, got %d", len(cpt.cseStarted))
 
-		// bulk insert two larger documents
-		str = completeStr[:cryptMaxBsonObjSize-20000]
+		// bulk insert two documents
+		str = complete2mbStr[:cryptMaxBatchSizeBytes-20000]
 		firstBulkDoc := make([]byte, len(limitsDoc))
 		copy(firstBulkDoc, limitsDoc)
 		firstBulkDoc = firstBulkDoc[:len(firstBulkDoc)-1] // remove last byte to append new fields
@@ -288,6 +305,21 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		_, err = cpt.cseColl.InsertMany(mtest.Background, []interface{}{firstBulkDoc, secondBulkDoc})
 		assert.Nil(mt, err, "InsertMany error for large documents: %v", err)
 		assert.Equal(mt, 2, len(cpt.cseStarted), "expected 2 insert events, got %d", len(cpt.cseStarted))
+
+		// insert a document slightly smaller than 16MiB and expect the operation to succeed
+		doc = bson.D{{"_id", "under_16mib"}, {"unencrypted", complete16mbStr[:maxBsonObjSize-2000]}}
+		_, err = cpt.cseColl.InsertOne(mtest.Background, doc)
+		assert.Nil(mt, err, "InsertOne error: %v", err)
+
+		// insert a document over 16MiB and expect the operation to fail
+		var over16mb []byte
+		over16mb = append(over16mb, limitsDoc...)
+		over16mb = over16mb[:len(over16mb)-1] // remove last byte
+		over16mb = bsoncore.AppendStringElement(over16mb, "_id", "encryption_exceeds_16mib")
+		over16mb = bsoncore.AppendStringElement(over16mb, "unencrypted", complete16mbStr[:maxBsonObjSize-2000])
+		over16mb, _ = bsoncore.AppendDocumentEnd(over16mb, 0)
+		_, err = cpt.cseColl.InsertOne(mtest.Background, over16mb)
+		assert.NotNil(mt, err, "expected InsertOne error for document over 16MiB, got nil")
 	})
 	mt.Run("views are prohibited", func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{
@@ -512,6 +544,85 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("custom endpoint", func(mt *mtest.T) {
+		kmsProviders := map[string]map[string]interface{}{
+			"aws": {
+				"accessKeyId":     keyID,
+				"secretAccessKey": secretAccessKey,
+			},
+		}
+		ceo := options.ClientEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace)
+		cpt := setup(mt, nil, defaultKvClientOptions, ceo)
+		defer cpt.teardown(mt)
+
+		successKeyWithoutEndpoint := map[string]interface{}{
+			"region": "us-east-1",
+			"key":    "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+		}
+		successKeyWithEndpoint := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "kms.us-east-1.amazonaws.com",
+		}
+		successKeyWithEndpointHttps := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "kms.us-east-1.amazonaws.com:443",
+		}
+		failureKeyConnectionErr := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "kms.us-east-1.amazonaws.com:12345",
+		}
+		failureKeyWrongEndpoint := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "kms.us-east-2.amazonaws.com",
+		}
+		failureKeyParseError := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "example.com",
+		}
+
+		testCases := []struct {
+			name           string
+			masterKey      interface{}
+			expectError    bool
+			errorSubstring string
+		}{
+			{"success without endpoint", successKeyWithoutEndpoint, false, ""},
+			{"success with endpoint", successKeyWithEndpoint, false, ""},
+			{"success with https endpoint", successKeyWithEndpointHttps, false, ""},
+			{"failure with connection error", failureKeyConnectionErr, true, "connection refused"},
+			{"failure with wrong endpoint", failureKeyWrongEndpoint, true, "us-east-1"},
+			{"failure with parse error", failureKeyParseError, true, "parse error"},
+		}
+		for _, tc := range testCases {
+			mt.RunOpts(tc.name, noClientOpts, func(mt *mtest.T) {
+				dkOpts := options.DataKey().SetMasterKey(tc.masterKey)
+				createdKey, err := cpt.clientEnc.CreateDataKey(mtest.Background, "aws", dkOpts)
+				if tc.expectError {
+					assert.NotNil(mt, err, "expected error, got nil")
+					assert.True(mt, strings.Contains(err.Error(), tc.errorSubstring),
+						"expected error '%s' to contain '%s'", err.Error(), tc.errorSubstring)
+					return
+				}
+				assert.Nil(mt, err, "CreateDataKey error: %v", err)
+
+				encOpts := options.Encrypt().SetKeyID(createdKey).SetAlgorithm(deterministicAlgorithm)
+				testVal := bson.RawValue{
+					Type:  bson.TypeString,
+					Value: bsoncore.AppendString(nil, "test"),
+				}
+				encrypted, err := cpt.clientEnc.Encrypt(mtest.Background, testVal, encOpts)
+				assert.Nil(mt, err, "Encrypt error: %v", err)
+				decrypted, err := cpt.clientEnc.Decrypt(mtest.Background, encrypted)
+				assert.Nil(mt, err, "Decrypt error: %v", err)
+				assert.Equal(mt, testVal, decrypted, "expected value %s, got %s", testVal, decrypted)
+			})
+		}
+	})
 }
 
 type cseProseTest struct {
@@ -563,10 +674,12 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 func (cpt *cseProseTest) teardown(mt *mtest.T) {
 	mt.Helper()
 
-	err := cpt.cseClient.Disconnect(mtest.Background)
-	assert.Nil(mt, err, "encrypted client Disconnect error: %v", err)
+	if cpt.cseClient != nil {
+		err := cpt.cseClient.Disconnect(mtest.Background)
+		assert.Nil(mt, err, "encrypted client Disconnect error: %v", err)
+	}
 	if cpt.clientEnc != nil {
-		err = cpt.clientEnc.Close(mtest.Background)
+		err := cpt.clientEnc.Close(mtest.Background)
 		assert.Nil(mt, err, "ClientEncryption Close error: %v", err)
 	}
 }

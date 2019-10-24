@@ -107,7 +107,6 @@
           "command_started_event": {
             "command": {
               "listCollections": 1,
-              "cursor": {},
               "filter": {
                 "name": "default"
               }
@@ -119,7 +118,6 @@
           "command_started_event": {
             "command": {
               "listCollections": 1,
-              "cursor": {},
               "filter": {
                 "name": "datakeys"
               },

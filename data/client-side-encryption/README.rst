@@ -71,9 +71,9 @@ Each YAML file has the following keys:
 
   - ``clientOptions``: Optional, parameters to pass to MongoClient().
 
-    - ``auto_encrypt_opts``: Optional
+    - ``autoEncryptOpts``: Optional
 
-      - ``kms_providers`` A dictionary of KMS providers to set on the key vault ("aws" or "local")
+      - ``kmsProviders`` A dictionary of KMS providers to set on the key vault ("aws" or "local")
 
         - ``aws`` The AWS KMS provider. An empty object. Drivers MUST fill in AWS credentials from the environment.
 
@@ -81,16 +81,18 @@ Each YAML file has the following keys:
 
           - ``key`` A 96 byte local key.
 
-      - ``schema_map``: Optional, a map from namespaces to local JSON schemas.
+      - ``schemaMap``: Optional, a map from namespaces to local JSON schemas.
 
       - ``keyVaultNamespace``: Optional, a namespace to the key vault collection. Defaults to "admin.datakeys".
+
+      - ``bypassAutoEncryption``: Optional, a boolean to indicate whether or not auto encryption should be bypassed. Defaults to ``false``.
 
   - ``operations``: Array of documents, each describing an operation to be
     executed. Each document has the following fields:
 
     - ``name``: |txn|
 
-    - ``object``: |txn|
+    - ``object``: |txn|. Defaults to "collection" if omitted.
 
     - ``collectionOptions``: |txn|
 
@@ -125,18 +127,25 @@ Then for each element in ``tests``:
    #. Drop the ``admin.datakeys`` collection using writeConcern "majority".
    #. Insert the data specified into the ``admin.datakeys`` with write concern "majority".
 
-#. Create a MongoClient using ``clientOptions``.
+#. Create a MongoClient.
 
-   #. If ``autoEncryptOpts`` includes ``aws`` as a KMS provider, pass in AWS credentials from the environment.
-   #. If ``autoEncryptOpts`` does not include ``keyVaultNamespace``, default it to ``admin.datakeys``
-   
 #. Create a collection object from the MongoClient, using the ``database_name``
-   and ``collection_name`` fields from the YAML file.
-#. Drop the test collection, using writeConcern "majority".
+   and ``collection_name`` fields from the YAML file. Drop the collection 
+   with writeConcern "majority". If a ``json_schema`` is defined in the test,
+   use the ``createCollection`` command to explicitly create the collection:
+
+   .. code:: typescript
+
+      {"create": <collection>, "validator": {"$jsonSchema": <json_schema>}}
+
 #. If the YAML file contains a ``data`` array, insert the documents in ``data``
    into the test collection, using writeConcern "majority".
 
-#. Set Command Monitoring listeners on the MongoClient.
+#. Create a **new** MongoClient using ``clientOptions``.
+
+   #. If ``autoEncryptOpts`` includes ``aws`` as a KMS provider, pass in AWS credentials from the environment.
+   #. If ``autoEncryptOpts`` does not include ``keyVaultNamespace``, default it to ``admin.datakeys``.
+
 #. For each element in ``operations``:
 
    - Enter a "try" block or your programming language's closest equivalent.
@@ -204,7 +213,7 @@ Data key and double encryption
 
 First, perform the setup.
 
-#. Create a MongoClient without encryption enabled (referred to as ``client``).
+#. Create a MongoClient without encryption enabled (referred to as ``client``). Enable command monitoring to listen for command_started events.
 
 #. Using ``client``, drop the collections ``admin.datakeys`` and ``db.coll``.
 
@@ -243,6 +252,8 @@ First, perform the setup.
         }
       }
 
+   Configure ``client_encryption`` with the ``keyVaultClient`` of the previously created ``client``.
+
 Then, test creating and using data keys from a ``local`` KMS provider:
 
 #. Call ``client_encryption.createDataKey()`` with the ``local`` KMS provider and keyAltNames set to ``["local_altname"]``.
@@ -250,6 +261,7 @@ Then, test creating and using data keys from a ``local`` KMS provider:
    - Expect a BSON binary with subtype 4 to be returned, referred to as ``local_datakey_id``.
    - Use ``client`` to run a ``find`` on ``admin.datakeys`` by querying with the ``_id`` set to the ``local_datakey_id``.
    - Expect that exactly one document is returned with the "masterKey.provider" equal to "local".
+   - Check that ``client`` captured a command_started event for the ``insert`` command containing a majority writeConcern.
 
 #. Call ``client_encryption.encrypt()`` with the value "hello local", the algorithm ``AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic``, and the ``key_id`` of ``local_datakey_id``.
 
@@ -276,6 +288,7 @@ Then, repeat the above tests with the ``aws`` KMS provider:
    - Expect a BSON binary with subtype 4 to be returned, referred to as ``aws_datakey_id``.
    - Use ``client`` to run a ``find`` on ``admin.datakeys`` by querying with the ``_id`` set to the ``aws_datakey_id``.
    - Expect that exactly one document is returned with the "masterKey.provider" equal to "aws".
+   - Check that ``client`` captured a command_started event for the ``insert`` command containing a majority writeConcern.
 
 #. Call ``client_encryption.encrypt()`` with the value "hello aws", the algorithm ``AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic``, and the ``key_id`` of ``aws_datakey_id``.
 
@@ -325,7 +338,7 @@ Run the following tests twice, parameterized by a boolean ``withExternalKeyVault
    If ``withExternalKeyVault == true``, configure both objects with an external key vault client. The external client MUST connect to the same
    MongoDB cluster that is being tested against, except it MUST use the username ``fake-user`` and password ``fake-pwd``.
 
-#. Use ``client_encrypted`` to insert the document ``{"encrypt": "test"}`` into ``db.coll``.
+#. Use ``client_encrypted`` to insert the document ``{"encrypted": "test"}`` into ``db.coll``.
    If ``withExternalKeyVault == true``, expect an authentication exception to be thrown. Otherwise, expect the insert to succeed.
 
 #. Use ``client_encryption`` to explicitly encrypt the string ``"test"`` with key ID ``LOCALAAAAAAAAAAAAAAAAA==`` and deterministic algorithm.
@@ -355,13 +368,9 @@ First, perform the setup.
 
 Using ``client_encrypted`` perform the following operations:
 
-#. Insert ``{ "_id": "no_encryption_under_2mib", "unencrypted": <the string "a" repeated (2097152 - 1000) times> }``. (Note 2097152 is 2^21 bytes, or 2 MiB).
+#. Insert ``{ "_id": "over_2mib_under_16mib", "unencrypted": <the string "a" repeated 2097152 times> }``.
 
-   Expect this to succeed.
-
-#. Insert ``{ "_id": "no_encryption_over_2mib", "unencrypted": <the string "a" repeated 2097152 times> }``.
-
-   Expect this to throw an exception due to exceeding the reduced maximum BSON document size.
+   Expect this to succeed since this is still under the ``maxBsonObjectSize`` limit.
 
 #. Insert the document `limits/limits-doc.json <../limits/limits-doc.json>`_ concatenated with ``{ "_id": "encryption_exceeds_2mib", "unencrypted": < the string "a" repeated (2097152 - 2000) times > }``
    Note: limits-doc.json is a 1005 byte BSON document that encrypts to a ~10,000 byte document.
@@ -371,9 +380,9 @@ Using ``client_encrypted`` perform the following operations:
 
 #. Bulk insert the following:
 
-   - ``{ "_id": "no_encryption_under_2mib_1", "unencrypted": <the string "a" repeated (2097152 - 1000) times> }``
+   - ``{ "_id": "over_2mib_1", "unencrypted": <the string "a" repeated (2097152) times> }``
 
-   - ``{ "_id": "no_encryption_under_2mib_2", "unencrypted": <the string "a" repeated (2097152 - 1000) times> }``
+   - ``{ "_id": "over_2mib_2", "unencrypted": <the string "a" repeated (2097152) times> }``
 
    Expect the bulk write to succeed and split after first doc (i.e. two inserts occur). This may be verified using `command monitoring <https://github.com/mongodb/specifications/tree/master/source/command-monitoring/command-monitoring.rst>`_.
 
@@ -383,7 +392,15 @@ Using ``client_encrypted`` perform the following operations:
 
    - The document `limits/limits-doc.json <../limits/limits-doc.json>`_ concatenated with ``{ "_id": "encryption_exceeds_2mib_2", "unencrypted": < the string "a" repeated (2097152 - 2000) times > }``
 
-   Expect the bulk write to succeed and split after first doc (i.e. two inserts occur).
+   Expect the bulk write to succeed and split after first doc (i.e. two inserts occur). This may be verified using `command monitoring <https://github.com/mongodb/specifications/tree/master/source/command-monitoring/command-monitoring.rst>`_.
+
+#. Insert ``{ "_id": "under_16mib", "unencrypted": <the string "a" repeated 16777216 - 2000 times>``.
+
+   Expect this to succeed since this is still (just) under the ``maxBsonObjectSize`` limit.
+
+#. Insert the document `limits/limits-doc.json <../limits/limits-doc.json>`_ concatenated with ``{ "_id": "encryption_exceeds_16mib", "unencrypted": < the string "a" repeated (16777216 - 2000) times > }``
+
+   Expect this to fail since encryption results in a document exceeding the ``maxBsonObjectSize`` limit.
 
 Optionally, if it is possible to mock the maxWriteBatchSize (i.e. the maximum number of documents in a batch) test that setting maxWriteBatchSize=1 and inserting the two documents ``{ "_id": "a" }, { "_id": "b" }`` with ``client_encrypted`` splits the operation into two inserts.
 
@@ -487,5 +504,93 @@ The corpus test exhaustively enumerates all ways to encrypt all BSON value types
    - If ``allowed`` is true, decrypt the value with ``client_encryption``. Decrypt the value of the corresponding field of ``corpus_encrypted`` and validate that they are both equal.
    - If ``allowed`` is false, validate the value exactly equals the value of the corresponding field of ``corpus`` (neither was encrypted).
 
-9. Repeat steps 1-8 with a local JSON schema. I.e. amend step 4 to configure the schema on ``client_encrypted`` and ``client_encryption`` with the ``schema_map`` option.
+9. Repeat steps 1-8 with a local JSON schema. I.e. amend step 4 to configure the schema on ``client_encrypted`` with the ``schema_map`` option.
+
+Custom Endpoint Test
+====================
+
+Data keys created with AWS KMS may specify a custom endpoint to contact (instead of the default endpoint derived from the AWS region).
+
+1. Create a ``ClientEncryption`` object (referred to as ``client_encryption``)
+
+   Configure with ``aws`` KMS providers as follows:
+
+   .. code:: javascript
+
+      {
+          "aws": { <AWS credentials> }
+      }
+
+   Configure with ``keyVaultNamespace`` set to ``admin.datakeys``, and a default MongoClient as the ``keyVaultClient``.
+
+2. Call `client_encryption.createDataKey()` with "aws" as the provider and the following masterKey:
+
+   .. code:: javascript
+
+      {
+        region: "us-east-1",
+        key: "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0"
+      }
+
+   Expect this to succeed. Use the returned UUID of the key to explicitly encrypt and decrypt the string "test" to validate it works.
+
+3. Call `client_encryption.createDataKey()` with "aws" as the provider and the following masterKey:
+
+   .. code:: javascript
+
+      {
+        region: "us-east-1",
+        key: "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+        endpoint: "kms.us-east-1.amazonaws.com"
+      }
+
+   Expect this to succeed. Use the returned UUID of the key to explicitly encrypt and decrypt the string "test" to validate it works.
+
+4. Call `client_encryption.createDataKey()` with "aws" as the provider and the following masterKey:
+
+   .. code:: javascript
+
+      {
+        region: "us-east-1",
+        key: "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+        endpoint: "kms.us-east-1.amazonaws.com:443"
+      }
+
+   Expect this to succeed. Use the returned UUID of the key to explicitly encrypt and decrypt the string "test" to validate it works.
+
+5. Call `client_encryption.createDataKey()` with "aws" as the provider and the following masterKey:
+
+   .. code:: javascript
+
+      {
+        region: "us-east-1",
+        key: "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+        endpoint: "kms.us-east-1.amazonaws.com:12345"
+      }
+
+   Expect this to fail with a socket connection error.
+
+6. Call `client_encryption.createDataKey()` with "aws" as the provider and the following masterKey:
+
+   .. code:: javascript
+
+      {
+        region: "us-east-1",
+        key: "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+        endpoint: "kms.us-east-2.amazonaws.com"
+      }
+
+   Expect this to fail with an exception with a message containing the string: "us-east-1"
+
+7. Call `client_encryption.createDataKey()` with "aws" as the provider and the following masterKey:
+
+   .. code:: javascript
+
+      {
+        region: "us-east-1",
+        key: "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+        endpoint: "example.com"
+      }
+
+   Expect this to fail with an exception with a message containing the string: "parse error"
 

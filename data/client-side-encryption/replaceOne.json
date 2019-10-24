@@ -141,7 +141,6 @@
           "command_started_event": {
             "command": {
               "listCollections": 1,
-              "cursor": {},
               "filter": {
                 "name": "default"
               }
@@ -153,7 +152,6 @@
           "command_started_event": {
             "command": {
               "listCollections": 1,
-              "cursor": {},
               "filter": {
                 "name": "datakeys"
               },
@@ -187,7 +185,10 @@
                   }
                 ]
               },
-              "$db": "admin"
+              "$db": "admin",
+              "readConcern": {
+                "level": "majority"
+              }
             },
             "command_name": "find"
           }

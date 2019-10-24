@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -258,7 +259,12 @@ func (c *Crypt) decryptKey(ctx context.Context, kmsCtx *mongocrypt.KmsContext) e
 		return err
 	}
 
-	addr := fmt.Sprintf("%s:%d", host, defaultKmsPort)
+	// add a port to the address if it's not already present
+	addr := host
+	if idx := strings.IndexByte(host, ':'); idx == -1 {
+		addr = fmt.Sprintf("%s:%d", host, defaultKmsPort)
+	}
+
 	conn, err := tls.Dial("tcp", addr, &tls.Config{})
 	if err != nil {
 		return err
