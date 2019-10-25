@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -604,8 +605,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				createdKey, err := cpt.clientEnc.CreateDataKey(mtest.Background, "aws", dkOpts)
 				if tc.expectError {
 					assert.NotNil(mt, err, "expected error, got nil")
-					assert.True(mt, strings.Contains(err.Error(), tc.errorSubstring),
-						"expected error '%s' to contain '%s'", err.Error(), tc.errorSubstring)
+					errSubstr := tc.errorSubstring
+					if runtime.GOOS == "windows" && errSubstr == "connection refused" {
+						// tls.Dial returns an error that does not contain the substring "connection refused"
+						// on Windows machines
+						errSubstr = "No connection could be made because the target machine actively refused it"
+					}
+					assert.True(mt, strings.Contains(err.Error(), errSubstr),
+						"expected error '%s' to contain '%s'", err.Error(), errSubstr)
 					return
 				}
 				assert.Nil(mt, err, "CreateDataKey error: %v", err)
