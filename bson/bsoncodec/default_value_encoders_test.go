@@ -253,7 +253,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&EncodeContext{Registry: NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteDocument,
-					ErrNoEncoder{Type: reflect.TypeOf((*interface{})(nil)).Elem()},
+					fmt.Errorf("Cannot encode invalid element"),
 				},
 				{
 					"WriteDocumentElement Error",
@@ -315,7 +315,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&EncodeContext{Registry: NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteArray,
-					ErrNoEncoder{Type: reflect.TypeOf((*interface{})(nil)).Elem()},
+					fmt.Errorf("Cannot encode invalid element"),
 				},
 				{
 					"WriteArrayElement Error",
@@ -385,7 +385,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&EncodeContext{Registry: NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteArray,
-					ErrNoEncoder{Type: reflect.TypeOf((*interface{})(nil)).Elem()},
+					fmt.Errorf("Cannot encode invalid element"),
 				},
 				{
 					"WriteArrayElement Error",
