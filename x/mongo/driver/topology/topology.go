@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
@@ -508,6 +509,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 	if t.serversClosed {
 		return false
 	}
+	prev := t.fsm.Topology
 	diff := t.fsm.Topology.DiffHostlist(parsedHosts)
 
 	if len(diff.Added) == 0 && len(diff.Removed) == 0 {
@@ -527,7 +529,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		}()
 		delete(t.servers, addr)
 		t.fsm.removeServerByAddr(addr)
-		t.publishServerClosedEvent(context.TODO(), s.address) // TODO: publish tdce after this?
+		t.publishServerClosedEvent(context.TODO(), s.address)
 	}
 	for _, a := range diff.Added {
 		addr := address.Address(a).Canonicalize()
@@ -541,6 +543,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 	}
 	t.desc.Store(newDesc)
+	t.publishTopologyDescriptionChangedEvent(ctx, prev, newDesc)
 
 	t.subLock.Lock()
 	for _, ch := range t.subscribers {
@@ -658,6 +661,8 @@ func (t *Topology) publishServerClosedEvent(ctx context.Context, addr address.Ad
 	}
 }
 
+// publishes an initial TopologyDescriptionChangedEvent with an unknown previous
+// topology description
 func (t *Topology) publishInitialTopologyDescriptionChangedEvent(ctx context.Context,
 	prev description.Topology,
 	current description.Topology) {
@@ -669,9 +674,11 @@ func (t *Topology) publishInitialTopologyDescriptionChangedEvent(ctx context.Con
 
 	// create an unknown description for initial description
 	prevDesc = event.TopologyDescription{
-		Kind:    event.TopologyKind(0),
-		Servers: []event.ServerDescription{},
-		SetName: "",
+		Kind:              event.TopologyKind(0),
+		Servers:           []event.ServerDescription{},
+		SetName:           "",
+		HasReadableServer: t.HasReadableServer,
+		HasWritableServer: t.HasWritableServer,
 	}
 
 	// create empty server descriptions
@@ -681,25 +688,27 @@ func (t *Topology) publishInitialTopologyDescriptionChangedEvent(ctx context.Con
 			Arbiters: []event.ServerAddress{},
 			Hosts:    []event.ServerAddress{},
 			Passives: []event.ServerAddress{},
-			Kind:     event.ServerKind(0), // TODO
+			Kind:     event.ServerKind(0),
 		}
 		servers = append(servers, server)
 	}
 
-	if t.cfg.replicaSetName != "" {
-		setName = t.cfg.replicaSetName
-	}
 	if current.Kind.String() != "Unknown" {
 		kind = event.TopologyKind(current.Kind)
 	}
 	if len(servers) == 1 {
 		kind = event.Single
 	}
+	if t.cfg.replicaSetName != "" {
+		setName = t.cfg.replicaSetName
+	}
 
 	newDesc = event.TopologyDescription{
-		Kind:    kind,
-		Servers: servers,
-		SetName: setName,
+		Kind:              kind,
+		Servers:           servers,
+		SetName:           setName,
+		HasReadableServer: t.HasReadableServer,
+		HasWritableServer: t.HasWritableServer,
 	}
 
 	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
@@ -763,14 +772,18 @@ func (t *Topology) publishTopologyDescriptionChangedEvent(ctx context.Context,
 
 	var prevDesc, newDesc event.TopologyDescription
 	prevDesc = event.TopologyDescription{
-		Kind:    event.TopologyKind(prev.Kind),
-		Servers: prevServers,
-		SetName: prevName,
+		Kind:              event.TopologyKind(prev.Kind),
+		Servers:           prevServers,
+		SetName:           prevName,
+		HasReadableServer: t.HasReadableServer,
+		HasWritableServer: t.HasWritableServer,
 	}
 	newDesc = event.TopologyDescription{
-		Kind:    event.TopologyKind(current.Kind),
-		Servers: newServers,
-		SetName: newName,
+		Kind:              event.TopologyKind(current.Kind),
+		Servers:           newServers,
+		SetName:           newName,
+		HasReadableServer: t.HasReadableServer,
+		HasWritableServer: t.HasWritableServer,
 	}
 
 	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
@@ -797,6 +810,7 @@ func (t *Topology) publishTopologyOpeningEvent(ctx context.Context) {
 	}
 }
 
+// publishes a TopologyClosedEvent to indicate the topology has been closed
 func (t *Topology) publishTopologyClosedEvent(ctx context.Context) {
 	topologyClosed := &event.TopologyClosedEvent{
 		ID: event.TopologyID(t.id),
@@ -808,9 +822,9 @@ func (t *Topology) publishTopologyClosedEvent(ctx context.Context) {
 	}
 }
 
-// hasReadableServer returns true if a topology has a server available for reading
+// HasReadableServer returns true if a topology has a server available for reading
 // based on the specified read preference.
-func (t *Topology) hasReadableServer(mode readpref.Mode) bool {
+func (t *Topology) HasReadableServer(mode readpref.Mode) bool {
 	desc := t.Description()
 	switch desc.Kind {
 	case description.Single, description.Sharded:
@@ -831,8 +845,8 @@ func (t *Topology) hasReadableServer(mode readpref.Mode) bool {
 	return false
 }
 
-// hasWritableServer returns true if a topology has a server available for writing
-func (t *Topology) hasWritableServer() bool {
+// HasWritableServer returns true if a topology has a server available for writing
+func (t *Topology) HasWritableServer() bool {
 	desc := t.Description()
 	switch desc.Kind {
 	case description.Single, description.ReplicaSetWithPrimary:
@@ -853,18 +867,21 @@ func hasAvailableServer(servers []description.Server, mode readpref.Mode) bool {
 				return true
 			}
 		}
+		return false
 	case readpref.PrimaryPreferredMode, readpref.SecondaryPreferredMode, readpref.NearestMode:
 		for _, s := range servers {
 			if s.Kind == description.RSPrimary || s.Kind == description.RSSecondary {
 				return true
 			}
 		}
+		return false
 	case readpref.SecondaryMode:
 		for _, s := range servers {
 			if s.Kind == description.RSSecondary {
 				return true
 			}
 		}
+		return false
 	}
 
 	// read preference is not specified
@@ -889,27 +906,24 @@ func diffServer(prev description.Server, current description.Server) bool {
 	// address will already have effectively been checked
 	// the rest of the fields are not used in sdam monitoring server descriptions
 
-	if len(prev.Arbiters) != len(current.Arbiters) {
+	if len(prev.Arbiters) != len(current.Arbiters) ||
+		len(prev.Hosts) != len(current.Hosts) ||
+		len(prev.Passives) != len(current.Passives) {
 		return true
 	}
+
 	for idx, a := range prev.Arbiters {
 		if a != current.Arbiters[idx] {
 			return true
 		}
 	}
 
-	if len(prev.Hosts) != len(current.Hosts) {
-		return true
-	}
 	for idx, h := range prev.Hosts {
 		if h != current.Hosts[idx] {
 			return true
 		}
 	}
 
-	if len(prev.Passives) != len(current.Passives) {
-		return true
-	}
 	for idx, p := range prev.Passives {
 		if p != current.Passives[idx] {
 			return true
