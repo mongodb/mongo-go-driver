@@ -112,7 +112,7 @@ func Example_clientSideEncryptionCreateKey() {
 	dbName := "test"
 	collName := "coll"
 	schemaMap := map[string]interface{}{
-		dbName + collName: schemaDoc,
+		dbName + "." + collName: schemaDoc,
 	}
 	autoEncryptionOpts := options.AutoEncryption().
 		SetKmsProviders(kmsProviders).
