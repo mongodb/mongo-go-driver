@@ -21,13 +21,6 @@ import (
 func TestTimeCodec(t *testing.T) {
 	now := time.Now().Truncate(time.Millisecond)
 
-	type timeSubtest struct {
-		name string
-		opts *bsonoptions.TimeCodecOptions
-		utc  bool
-		err  error
-	}
-
 	t.Run("UseLocalTimeZone", func(t *testing.T) {
 		reader := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(now.UnixNano() / int64(time.Millisecond))}
 		testCases := []struct {
