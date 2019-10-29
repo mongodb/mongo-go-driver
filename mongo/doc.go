@@ -79,7 +79,8 @@
 //
 // Client Side Encryption
 //
-// Client-side encryption is a new feature in MongoDB 4.2 that allows specific data fields to be encrypted.
+// Client-side encryption is a new feature in MongoDB 4.2 that allows specific data fields to be encrypted. Using this
+// feature requires specifying the "cse" build tag during compilation.
 //
 // Important: This feature is beta. The API for both automatic and explicit encryption/decryption does not have any
 // stability guarantees and backwards-breaking changes may be made before the final release.
