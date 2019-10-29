@@ -39,7 +39,11 @@ func Example_clientSideEncryption() {
 	if err != nil {
 		log.Fatalf("Connect error: %v", err)
 	}
-	defer client.Disconnect(context.TODO())
+	defer func() {
+		if err = client.Disconnect(context.TODO()); err != nil {
+			log.Fatalf("Disconnect error: %v", err)
+		}
+	}()
 
 	collection := client.Database("test").Collection("coll")
 	if err := collection.Drop(context.TODO()); err != nil {
@@ -74,7 +78,12 @@ func Example_clientSideEncryptionCreateKey() {
 	if err != nil {
 		log.Fatalf("NewClientEncryption error: %v", err)
 	}
-	defer clientEnc.Close(context.TODO()) // this will disconnect the keyVaultClient as well
+	defer func() {
+		// this will disconnect the keyVaultClient as well
+		if err = clientEnc.Close(context.TODO()); err != nil {
+			log.Fatalf("Close error: %v", err)
+		}
+	}()
 
 	// Create a new data key and encode it as base64
 	dataKeyID, err := clientEnc.CreateDataKey(context.TODO(), "local")
@@ -125,5 +134,7 @@ func Example_clientSideEncryptionCreateKey() {
 
 	// Use client for operations.
 
-	_ = client.Disconnect(context.TODO())
+	if err = client.Disconnect(context.TODO()); err != nil {
+		log.Fatalf("Disconnect error: %v", err)
+	}
 }
