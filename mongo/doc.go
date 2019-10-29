@@ -113,7 +113,8 @@
 //    }
 //    aeo.SetExtraOptions(mongocryptdOpts)
 // To specify a process URI for mongocryptd, the "mongocryptdURI" option can be passed in the ExtraOptions map as well.
-// More information about mongocryptd will soon be available from the official documentation.
+// More information about mongocryptd will soon be available from the official documentation. See the
+// ClientSideEncryption and ClientSideEncryptionCreateKey examples below for code samples about using this feature.
 //
 // [1] See https://docs.mongodb.com/manual/reference/connection-string/#dns-seedlist-connection-format
 package mongo
