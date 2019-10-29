@@ -9,7 +9,6 @@ package bsonoptions
 // TimeCodecOptions represents all possible options for time.Time encoding and decoding.
 type TimeCodecOptions struct {
 	UseLocalTimeZone *bool // Specifies if we should decode into the local time zone. Defaults to false.
-	DecodeFromString *bool // Specifies if we should unmarshal from a bsontype.String. Defaults to false.
 }
 
 // TimeCodec creates a new *TimeCodecOptions
@@ -23,12 +22,6 @@ func (t *TimeCodecOptions) SetUseLocalTimeZone(b bool) *TimeCodecOptions {
 	return t
 }
 
-// SetDecodeFromString specifies if we should unmarshal from a bsontype.String. Defaults to false.
-func (t *TimeCodecOptions) SetDecodeFromString(b bool) *TimeCodecOptions {
-	t.DecodeFromString = &b
-	return t
-}
-
 // MergeTimeCodecOptions combines the given *TimeCodecOptions into a single *TimeCodecOptions in a last one wins fashion.
 func MergeTimeCodecOptions(opts ...*TimeCodecOptions) *TimeCodecOptions {
 	t := TimeCodec()
@@ -38,9 +31,6 @@ func MergeTimeCodecOptions(opts ...*TimeCodecOptions) *TimeCodecOptions {
 		}
 		if opt.UseLocalTimeZone != nil {
 			t.UseLocalTimeZone = opt.UseLocalTimeZone
-		}
-		if opt.DecodeFromString != nil {
-			t.DecodeFromString = opt.DecodeFromString
 		}
 	}
 

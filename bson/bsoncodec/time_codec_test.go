@@ -7,7 +7,6 @@
 package bsoncodec
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestTimeCodec(t *testing.T) {
@@ -56,32 +56,31 @@ func TestTimeCodec(t *testing.T) {
 		}
 	})
 
-	t.Run("DecodeFromString", func(t *testing.T) {
-		reader := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: now.Format(timeFormatString)}
+	t.Run("DecodeFromBsontype", func(t *testing.T) {
 		testCases := []struct {
-			name string
-			opts *bsonoptions.TimeCodecOptions
-			err  error
+			name   string
+			reader *bsonrwtest.ValueReaderWriter
 		}{
-			{"default", bsonoptions.TimeCodec(), fmt.Errorf("cannot decode string into a time.Time")},
-			{"false", bsonoptions.TimeCodec().SetDecodeFromString(false), fmt.Errorf("cannot decode string into a time.Time")},
-			{"true", bsonoptions.TimeCodec().SetDecodeFromString(true), nil},
+			{"string", &bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: now.Format(timeFormatString)}},
+			{"int64", &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: now.Unix()*1000 + int64(now.Nanosecond()/1e6)}},
+			{"timestamp", &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Timestamp,
+				Return: bsoncore.Value{
+					Type: bsontype.Timestamp,
+					Data: bsoncore.AppendTimestamp(nil, uint32(now.Unix()), 0),
+				}},
+			},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				timeCodec, err := NewTimeCodec(tc.opts)
-				assert.Nil(t, err, "NewTimeCodec error: %v", err)
-
 				actual := reflect.New(reflect.TypeOf(now)).Elem()
-				err = timeCodec.DecodeValue(DecodeContext{}, reader, actual)
-				if !compareErrors(err, tc.err) {
-					t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
-				}
+				err := defaultTimeCodec.DecodeValue(DecodeContext{}, tc.reader, actual)
+				assert.Nil(t, err, "DecodeValue error: %v", err)
 
-				if tc.err == nil {
-					actualTime := actual.Interface().(time.Time)
-					assert.Equal(t, now, actualTime, "expected time %v, got %v", now, actualTime)
+				actualTime := actual.Interface().(time.Time)
+				if tc.name == "timestamp" {
+					now = time.Unix(now.Unix(), 0)
 				}
+				assert.Equal(t, now, actualTime, "expected time %v, got %v", now, actualTime)
 			})
 		}
 	})

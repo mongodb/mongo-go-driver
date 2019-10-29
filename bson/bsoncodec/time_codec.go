@@ -25,7 +25,6 @@ var defaultTimeCodec = &TimeCodec{}
 // TimeCodec is the Codec used for struct values.
 type TimeCodec struct {
 	UseLocalTimeZone bool
-	DecodeFromString bool
 }
 
 var _ ValueCodec = &TimeCodec{}
@@ -37,9 +36,6 @@ func NewTimeCodec(opts ...*bsonoptions.TimeCodecOptions) (*TimeCodec, error) {
 	codec := TimeCodec{}
 	if timeOpt.UseLocalTimeZone != nil {
 		codec.UseLocalTimeZone = *timeOpt.UseLocalTimeZone
-	}
-	if timeOpt.DecodeFromString != nil {
-		codec.DecodeFromString = *timeOpt.DecodeFromString
 	}
 	return &codec, nil
 }
@@ -54,16 +50,12 @@ func (tc *TimeCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val re
 	valueType := vr.Type()
 	switch valueType {
 	case bsontype.DateTime:
-		// default logic
 		dt, err := vr.ReadDateTime()
 		if err != nil {
 			return err
 		}
 		timeVal = time.Unix(dt/1000, dt%1000*1000000)
 	case bsontype.String:
-		if !tc.DecodeFromString {
-			return fmt.Errorf("cannot decode %v into a time.Time", valueType)
-		}
 		// assume strings are in the isoTimeFormat
 		timeStr, err := vr.ReadString()
 		if err != nil {
@@ -73,6 +65,18 @@ func (tc *TimeCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val re
 		if err != nil {
 			return err
 		}
+	case bsontype.Int64:
+		i64, err := vr.ReadInt64()
+		if err != nil {
+			return err
+		}
+		timeVal = time.Unix(i64/1000, i64%1000*1000000)
+	case bsontype.Timestamp:
+		t, _, err := vr.ReadTimestamp()
+		if err != nil {
+			return err
+		}
+		timeVal = time.Unix(int64(t), 0)
 	default:
 		return fmt.Errorf("cannot decode %v into a time.Time", valueType)
 	}
