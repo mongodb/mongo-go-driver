@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -42,4 +43,80 @@ func TestCursor(t *testing.T) {
 		ce := err.(mongo.CommandError)
 		assert.Equal(mt, int32(errorCursorNotFound), ce.Code, "expected error code %v, got %v", errorCursorNotFound, ce.Code)
 	})
+	mt.RunOpts("try next", noClientOpts, func(mt *mtest.T) {
+		mt.Run("existing non-empty batch", func(mt *mtest.T) {
+			// If there's already documents in the current batch, TryNext should return true without doing a getMore
+
+			initCollection(mt, mt.Coll)
+			cursor, err := mt.Coll.Find(mtest.Background, bson.D{})
+			assert.Nil(mt, err, "Find error: %v", err)
+			defer cursor.Close(mtest.Background)
+			tryNextExistingBatchTest(mt, cursor)
+		})
+		mt.Run("one getMore sent", func(mt *mtest.T) {
+			// If the current batch is empty, TryNext should send one getMore and return.
+
+			cursor, err := mt.Coll.Find(mtest.Background, bson.D{})
+			assert.Nil(mt, err, "Find error: %v", err)
+			defer cursor.Close(mtest.Background)
+			tryNextOneGetmoreTest(mt, cursor)
+		})
+		mt.RunOpts("getMore error", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
+			findRes := mtest.CreateCursorResponse(50, "foo.bar", mtest.FirstBatch)
+			mt.AddMockResponses(findRes)
+			cursor, err := mt.Coll.Find(mtest.Background, bson.D{})
+			assert.Nil(mt, err, "Find error: %v", err)
+			defer cursor.Close(mtest.Background)
+			tryNextGetmoreError(mt, cursor)
+		})
+	})
+}
+
+type tryNextCursor interface {
+	TryNext(context.Context) bool
+	Err() error
+}
+
+func tryNextExistingBatchTest(mt *mtest.T, cursor tryNextCursor) {
+	mt.Helper()
+
+	mt.ClearEvents()
+	assert.True(mt, cursor.TryNext(mtest.Background), "expected TryNext to return true, got false")
+	evt := mt.GetStartedEvent()
+	if evt != nil {
+		mt.Fatalf("unexpected event sent during TryNext: %v", evt.CommandName)
+	}
+}
+
+func tryNextOneGetmoreTest(mt *mtest.T, cursor tryNextCursor) {
+	mt.Helper()
+
+	assert.False(mt, cursor.TryNext(mtest.Background), "unexpected Next to return false, got true")
+	evt := mt.GetStartedEvent()
+	assert.NotNil(mt, evt, "expected getMore event, got nil")
+	evt = mt.GetStartedEvent()
+	if evt != nil {
+		mt.Fatalf("unexpected event sent during TryNext: %v", evt.CommandName)
+	}
+}
+
+// should be called in a test run with a mock deployment
+func tryNextGetmoreError(mt *mtest.T, cursor tryNextCursor) {
+	getMoreRes := mtest.CreateCommandErrorResponse(mtest.CommandError{
+		Code:    100,
+		Message: "getMore error",
+		Name:    "CursorError",
+		Labels:  []string{"NonResumableChangeStreamError"},
+	})
+	mt.AddMockResponses(getMoreRes)
+
+	// first call to TryNext should return false because first batch was empty so batch cursor returns false
+	// without doing a getMore
+	// next call to TryNext should attempt a getMore
+	for i := 0; i < 2; i++ {
+		assert.False(mt, cursor.TryNext(mtest.Background), "next returned true on iteration %v", i)
+	}
+
+	err := cursor.Err()
+	assert.NotNil(mt, err, "expected change stream error, got nil")
 }

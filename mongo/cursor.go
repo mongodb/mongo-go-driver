@@ -87,6 +87,18 @@ func (c *Cursor) ID() int64 { return c.bc.ID() }
 // Next gets the next result from this cursor. Returns true if there were no errors and the next
 // result is available for decoding.
 func (c *Cursor) Next(ctx context.Context) bool {
+	return c.next(ctx, false)
+}
+
+// TryNext attempts to get the next result from this cursor. It returns true if there were no errors and the next
+// result is available for decoding. It returns false if the cursor was closed by the server, there was an
+// error getting more results from the server, or the server returned an empty batch of events. If an error occurred or
+// the cursor was closed (can be checked with c.ID() == 0), TryNext must not be called again.
+func (c *Cursor) TryNext(ctx context.Context) bool {
+	return c.next(ctx, true)
+}
+
+func (c *Cursor) next(ctx context.Context, stopAfterOne bool) bool {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -116,7 +128,11 @@ func (c *Cursor) Next(ctx context.Context) bool {
 				c.closeImplicitSession()
 				return false
 			}
-			// empty batch, but cursor is still valid, so continue.
+			// empty batch, but cursor is still valid.
+			// use stopAfterOne to determine if we should continue or return control to the caller.
+			if stopAfterOne {
+				return false
+			}
 			continue
 		}
 
