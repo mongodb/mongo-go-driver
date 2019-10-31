@@ -2198,6 +2198,34 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
+				"inline struct pointer",
+				struct {
+					Foo *struct {
+						A int64 `bson:",minsize"`
+					} `bson:",inline"`
+				}{
+					Foo: &struct {
+						A int64 `bson:",minsize"`
+					}{
+						A: 12345,
+					},
+				},
+				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
+				nil,
+			},
+			{
+				"inline nil struct pointer",
+				struct {
+					Foo *struct {
+						A int64 `bson:",minsize"`
+					} `bson:",inline"`
+				}{
+					Foo: nil,
+				},
+				buildDocument([]byte{}),
+				nil,
+			},
+			{
 				"inline map",
 				struct {
 					Foo map[string]string `bson:",inline"`

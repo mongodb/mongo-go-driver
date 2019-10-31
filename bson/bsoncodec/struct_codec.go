@@ -71,7 +71,10 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, val r
 		if desc.inline == nil {
 			rv = val.Field(desc.idx)
 		} else {
-			rv = val.FieldByIndex(desc.inline)
+			rv, err = fieldByIndexErr(val, desc.inline)
+			if err != nil {
+				continue
+			}
 		}
 
 		if desc.encoder == nil {
@@ -192,7 +195,24 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 		if fd.inline == nil {
 			field = val.Field(fd.idx)
 		} else {
-			field = val.FieldByIndex(fd.inline)
+			field, err = fieldByIndexErr(val, fd.inline)
+			if err != nil {
+				inlineParent := fd.inline[:len(fd.inline)-1]
+
+				// fix parent
+				var fParent reflect.Value
+				if fParent, err = fieldByIndexErr(val, inlineParent); err != nil {
+					return err
+				}
+
+				fParent.Set(getZeroField(val, inlineParent))
+
+				// retry now
+				field, err = fieldByIndexErr(val, fd.inline)
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		if !field.CanSet() { // Being settable is a super set of being addressable.
@@ -295,11 +315,12 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 			continue
 		}
 
-		encoder, err := r.LookupEncoder(sf.Type)
+		sfType := sf.Type
+		encoder, err := r.LookupEncoder(sfType)
 		if err != nil {
 			encoder = nil
 		}
-		decoder, err := r.LookupDecoder(sf.Type)
+		decoder, err := r.LookupDecoder(sfType)
 		if err != nil {
 			decoder = nil
 		}
@@ -319,17 +340,23 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 		description.truncate = stags.Truncate
 
 		if stags.Inline {
-			switch sf.Type.Kind() {
+			switch sfType.Kind() {
 			case reflect.Map:
 				if sd.inlineMap >= 0 {
 					return nil, errors.New("(struct " + t.String() + ") multiple inline maps")
 				}
-				if sf.Type.Key() != tString {
+				if sfType.Key() != tString {
 					return nil, errors.New("(struct " + t.String() + ") inline map must have a string keys")
 				}
 				sd.inlineMap = description.idx
+			case reflect.Ptr:
+				sfType = sfType.Elem()
+				if sfType.Kind() != reflect.Struct {
+					return nil, fmt.Errorf("(struct %s) inline fields must be a struct, a struct pointer, or a map", t.String())
+				}
+				fallthrough
 			case reflect.Struct:
-				inlinesf, err := sc.describeStruct(r, sf.Type)
+				inlinesf, err := sc.describeStruct(r, sfType)
 				if err != nil {
 					return nil, err
 				}
@@ -346,7 +373,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 					sd.fl = append(sd.fl, fd)
 				}
 			default:
-				return nil, fmt.Errorf("(struct %s) inline fields must be either a struct or a map", t.String())
+				return nil, fmt.Errorf("(struct %s) inline fields must be a struct, a struct pointer, or a map", t.String())
 			}
 			continue
 		}
@@ -364,4 +391,70 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 	sc.l.Unlock()
 
 	return sd, nil
+}
+
+func fieldByIndexErr(v reflect.Value, index []int) (result reflect.Value, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			switch r := recovered.(type) {
+			case string:
+				err = fmt.Errorf("%s", r)
+			case error:
+				err = r
+			}
+		}
+	}()
+
+	result = v.FieldByIndex(index)
+	return
+}
+
+// recursivePointerTo calls reflect.New(v.Type) but recursively for its fields inside
+func recursivePointerTo(v reflect.Value) reflect.Value {
+	v = reflect.Indirect(v)
+	result := reflect.New(v.Type())
+	if v.Kind() == reflect.Struct {
+		for i := 0; i < v.NumField(); i++ {
+			if f := v.Field(i); f.Kind() == reflect.Ptr {
+				if f.Elem().Kind() == reflect.Struct {
+					result.Elem().Field(i).Set(recursivePointerTo(f))
+				}
+			}
+		}
+	}
+
+	return result
+}
+
+// deepZero returns recursive zero object
+func deepZero(st reflect.Type) reflect.Value {
+	result := reflect.Indirect(reflect.New(st))
+
+	if result.Kind() == reflect.Struct {
+		for i := 0; i < result.NumField(); i++ {
+			if f := result.Field(i); f.Kind() == reflect.Ptr {
+				if f.CanInterface() {
+					if ft := reflect.TypeOf(f.Interface()); ft.Elem().Kind() == reflect.Struct {
+						result.Field(i).Set(recursivePointerTo(deepZero(ft.Elem())))
+					}
+				}
+			}
+		}
+	}
+
+	return result
+}
+
+// getZeroField returns recursive zero object
+func getZeroField(v reflect.Value, index []int) reflect.Value {
+	for _, ind := range index {
+		if v.Kind() == reflect.Ptr && v.Elem().Kind() == reflect.Struct {
+			v = v.Elem()
+		}
+
+		v = v.Field(ind)
+	}
+
+	dz := deepZero(v.Type().Elem())
+	return reflect.New(dz.Type())
 }
