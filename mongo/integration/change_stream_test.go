@@ -494,7 +494,15 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
 			assert.Nil(mt, err, "Watch error: %v", err)
 			defer closeStream(cs)
-			tryNextOneGetmoreTest(mt, cs)
+
+			mt.ClearEvents()
+			// first call to TryNext should return false because first batch was empty so batch cursor returns false
+			// without doing a getMore
+			// next call to TryNext should attempt a getMore
+			for i := 0; i < 2; i++ {
+				assert.False(mt, cs.TryNext(mtest.Background), "TryNext returned true on iteration %v", i)
+			}
+			verifyOneGetmoreSent(mt, cs)
 		})
 		mt.RunOpts("getMore error", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			// If the getMore attempt errors with a non-resumable error, TryNext returns false

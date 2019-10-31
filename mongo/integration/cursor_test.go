@@ -53,13 +53,25 @@ func TestCursor(t *testing.T) {
 			defer cursor.Close(mtest.Background)
 			tryNextExistingBatchTest(mt, cursor)
 		})
-		mt.Run("one getMore sent", func(mt *mtest.T) {
+		cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
+		mt.RunOpts("one getMore sent", mtest.NewOptions().CollectionCreateOptions(cappedOpts), func(mt *mtest.T) {
 			// If the current batch is empty, TryNext should send one getMore and return.
 
-			cursor, err := mt.Coll.Find(mtest.Background, bson.D{})
+			// insert a document because a tailable cursor will only have a non-zero ID if the initial Find matches
+			// at least one document
+			_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+
+			cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetCursorType(options.Tailable))
 			assert.Nil(mt, err, "Find error: %v", err)
 			defer cursor.Close(mtest.Background)
-			tryNextOneGetmoreTest(mt, cursor)
+
+			// first call to TryNext should return 1 document
+			assert.True(mt, cursor.TryNext(mtest.Background), "expected Next to return true, got false")
+			// TryNext should attempt one getMore
+			mt.ClearEvents()
+			assert.False(mt, cursor.TryNext(mtest.Background), "unexpected document %v", cursor.Current)
+			verifyOneGetmoreSent(mt, cursor)
 		})
 		mt.RunOpts("getMore error", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			findRes := mtest.CreateCursorResponse(50, "foo.bar", mtest.FirstBatch)
@@ -88,10 +100,10 @@ func tryNextExistingBatchTest(mt *mtest.T, cursor tryNextCursor) {
 	}
 }
 
-func tryNextOneGetmoreTest(mt *mtest.T, cursor tryNextCursor) {
+// use command monitoring to verify that a single getMore was sent
+func verifyOneGetmoreSent(mt *mtest.T, cursor tryNextCursor) {
 	mt.Helper()
 
-	assert.False(mt, cursor.TryNext(mtest.Background), "unexpected Next to return false, got true")
 	evt := mt.GetStartedEvent()
 	assert.NotNil(mt, evt, "expected getMore event, got nil")
 	assert.Equal(mt, "getMore", evt.CommandName, "expected 'getMore' event, got '%v'", evt.CommandName)
@@ -115,7 +127,7 @@ func tryNextGetmoreError(mt *mtest.T, cursor tryNextCursor) {
 	// without doing a getMore
 	// next call to TryNext should attempt a getMore
 	for i := 0; i < 2; i++ {
-		assert.False(mt, cursor.TryNext(mtest.Background), "next returned true on iteration %v", i)
+		assert.False(mt, cursor.TryNext(mtest.Background), "TryNext returned true on iteration %v", i)
 	}
 
 	err := cursor.Err()
