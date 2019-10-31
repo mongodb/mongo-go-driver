@@ -94,6 +94,7 @@ func tryNextOneGetmoreTest(mt *mtest.T, cursor tryNextCursor) {
 	assert.False(mt, cursor.TryNext(mtest.Background), "unexpected Next to return false, got true")
 	evt := mt.GetStartedEvent()
 	assert.NotNil(mt, evt, "expected getMore event, got nil")
+	assert.Equal(mt, "getMore", evt.CommandName, "expected 'getMore' event, got '%v'", evt.CommandName)
 	evt = mt.GetStartedEvent()
 	if evt != nil {
 		mt.Fatalf("unexpected event sent during TryNext: %v", evt.CommandName)
