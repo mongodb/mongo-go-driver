@@ -482,8 +482,11 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 
 	if len(cs.batch) == 0 {
 		cs.loopNext(ctx, nonBlocking)
-		if cs.err != nil || len(cs.batch) == 0 {
+		if cs.err != nil {
 			cs.err = replaceErrors(cs.err)
+			return false
+		}
+		if len(cs.batch) == 0 {
 			return false
 		}
 	}
