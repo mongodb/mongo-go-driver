@@ -475,13 +475,13 @@ func (cs *ChangeStream) TryNext(ctx context.Context) bool {
 	return cs.next(ctx, true)
 }
 
-func (cs *ChangeStream) next(ctx context.Context, stopAfterOne bool) bool {
+func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if len(cs.batch) == 0 {
-		cs.loopNext(ctx, stopAfterOne)
+		cs.loopNext(ctx, nonBlocking)
 		if cs.err != nil || len(cs.batch) == 0 {
 			cs.err = replaceErrors(cs.err)
 			return false
@@ -497,7 +497,7 @@ func (cs *ChangeStream) next(ctx context.Context, stopAfterOne bool) bool {
 	return true
 }
 
-func (cs *ChangeStream) loopNext(ctx context.Context, stopAfterOne bool) {
+func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 	for {
 		if cs.cursor == nil {
 			return
@@ -514,7 +514,7 @@ func (cs *ChangeStream) loopNext(ctx context.Context, stopAfterOne bool) {
 			// If a getMore was done but the batch was empty, the batch cursor will return false with no error.
 			// Update the tracked resume token to catch the post batch resume token from the server response.
 			cs.updatePbrtFromCommand()
-			if stopAfterOne {
+			if nonBlocking {
 				// stop after a successful getMore, even though the batch was empty
 				return
 			}
