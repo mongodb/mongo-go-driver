@@ -484,6 +484,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			assert.Nil(mt, err, "Watch error: %v", err)
 			defer closeStream(cs)
 			generateEvents(mt, 5)
+			// call Next to make sure a batch is retrieved
 			assert.True(mt, cs.Next(mtest.Background), "expected Next to return true, got false")
 			tryNextExistingBatchTest(mt, cs)
 		})
