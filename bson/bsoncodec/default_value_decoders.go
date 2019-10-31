@@ -52,7 +52,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDecoder(tJavaScript, ValueDecoderFunc(dvd.JavaScriptDecodeValue)).
 		RegisterDecoder(tSymbol, ValueDecoderFunc(dvd.SymbolDecodeValue)).
 		RegisterDecoder(tByteSlice, ValueDecoderFunc(dvd.ByteSliceDecodeValue)).
-		RegisterDecoder(tTime, ValueDecoderFunc(dvd.TimeDecodeValue)).
+		RegisterDecoder(tTime, defaultTimeCodec).
 		RegisterDecoder(tEmpty, ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue)).
 		RegisterDecoder(tOID, ValueDecoderFunc(dvd.ObjectIDDecodeValue)).
 		RegisterDecoder(tDecimal, ValueDecoderFunc(dvd.Decimal128DecodeValue)).
@@ -79,7 +79,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDefaultDecoder(reflect.Map, ValueDecoderFunc(dvd.MapDecodeValue)).
 		RegisterDefaultDecoder(reflect.Slice, ValueDecoderFunc(dvd.SliceDecodeValue)).
 		RegisterDefaultDecoder(reflect.String, ValueDecoderFunc(dvd.StringDecodeValue)).
-		RegisterDefaultDecoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser}).
+		RegisterDefaultDecoder(reflect.Struct, defaultStructCodec).
 		RegisterDefaultDecoder(reflect.Ptr, NewPointerCodec()).
 		RegisterTypeMapEntry(bsontype.Double, tFloat64).
 		RegisterTypeMapEntry(bsontype.String, tString).
