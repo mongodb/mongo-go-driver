@@ -446,7 +446,7 @@ func (dve DefaultValueEncoders) lookupElementEncoder(ec EncodeContext, origEncod
 	}
 	currVal = currVal.Elem()
 	if !currVal.IsValid() {
-		return nil, currVal, fmt.Errorf("Cannot encode invalid element")
+		return nil, currVal, fmt.Errorf("cannot encode invalid element")
 	}
 	currEncoder, err := ec.LookupEncoder(currVal.Type())
 
