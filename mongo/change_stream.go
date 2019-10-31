@@ -459,7 +459,8 @@ func (cs *ChangeStream) ResumeToken() bson.Raw {
 // Next gets the next result from this change stream. Returns true if there were no errors and the next
 // result is available for decoding. Next blocks until an event is available for decoding or ctx expires.
 // If the given context expires during execution, the stream's error will be set and the change stream may be in an
-// invalid state and should be re-created.
+// invalid state and should be re-created. If Next returns false and an error occurred (i.e. cs.Err() != nil),
+// it must not be called again.
 func (cs *ChangeStream) Next(ctx context.Context) bool {
 	return cs.next(ctx, false)
 }
@@ -476,6 +477,11 @@ func (cs *ChangeStream) TryNext(ctx context.Context) bool {
 }
 
 func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
+	// return false right away if the change stream has already errored.
+	if cs.err != nil {
+		return false
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}

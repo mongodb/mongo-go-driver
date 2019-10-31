@@ -85,7 +85,10 @@ func newEmptyCursor() *Cursor {
 func (c *Cursor) ID() int64 { return c.bc.ID() }
 
 // Next gets the next result from this cursor. Returns true if there were no errors and the next
-// result is available for decoding.
+// result is available for decoding. Next blocks until an event is available for decoding or ctx expires.
+// If the given context expires during execution, the cursor's error will be set and the cursor may be in an
+// invalid state and should be re-created. If Next returns false and an error occurred (i.e. c.Err() != nil),
+// it must not be called again.
 func (c *Cursor) Next(ctx context.Context) bool {
 	return c.next(ctx, false)
 }
@@ -93,13 +96,20 @@ func (c *Cursor) Next(ctx context.Context) bool {
 // TryNext attempts to get the next result from this cursor. It returns true if there were no errors and the next
 // result is available for decoding. It returns false if the cursor was closed by the server, there was an
 // error getting more results from the server, or the server returned an empty batch of documents. If an error occurred or
-// the cursor was closed (can be checked with c.ID() == 0), TryNext must not be called again.
+// the cursor was closed (can be checked with c.ID() == 0), TryNext must not be called again. If the given context
+// expires during execution, the cursor's error will be set and the cursor may be in an invalid state and should
+// be re-created.
 // Added in version 1.2.0.
 func (c *Cursor) TryNext(ctx context.Context) bool {
 	return c.next(ctx, true)
 }
 
 func (c *Cursor) next(ctx context.Context, stopAfterOne bool) bool {
+	// return false right away if the cursor has already errored.
+	if c.err != nil {
+		return false
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
