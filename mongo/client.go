@@ -39,7 +39,11 @@ const batchSize = 10000
 var keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
 	SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
 
-// Client performs operations on a given topology.
+// Client is a handle representing a pool of connections to a MongoDB instance. It is safe for concurrent use by
+// multiple goroutines.
+//
+// The Client type opens and closes connections automatically and maintains a pool of idle connections. For
+// connection pool configuration options, see documentation for the ClientOptions type in the mongo/options package.
 type Client struct {
 	id              uuid.UUID
 	topologyOptions []topology.Option
@@ -65,6 +69,10 @@ type Client struct {
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
+// This function starts background goroutines to monitor the state of the deployment and does not do any I/O.
+//
+// The Client.Ping method can be used to verify that the deployment is successfully connected and the
+// Client was correctly configured.
 func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, error) {
 	c, err := NewClient(opts...)
 	if err != nil {
@@ -114,7 +122,10 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 }
 
 // Connect initializes the Client by starting background monitoring goroutines.
-// This method must be called before a Client can be used.
+// If the Client was created using the NewClient function, this method must be called before a Client can be used.
+//
+// Connect does not do any I/O. The Client.Ping method can be used to verify that the connection was created
+// successfully.
 func (c *Client) Connect(ctx context.Context) error {
 	if connector, ok := c.deployment.(driver.Connector); ok {
 		err := connector.Connect()
@@ -180,9 +191,10 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	return nil
 }
 
-// Ping verifies that the client can connect to the topology.
-// If readPreference is nil then will use the client's default read
-// preference.
+// Ping sends a ping command to verify that the client can connect to the cluster.
+//
+// The rp paramter is used to determine which server is selected for the operation.
+// If it is nil, the client's read preference is used.
 func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -200,7 +212,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	return replaceErrors(res.Err())
 }
 
-// StartSession starts a new session.
+// StartSession starts a new session configured with the given options.
 func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
@@ -604,12 +616,17 @@ func (c *Client) validSession(sess *session.Client) error {
 	return nil
 }
 
-// Database returns a handle for a given database.
+// Database returns a handle for a database with the given name configured with the given DatabaseOptions.
 func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Database {
 	return newDatabase(c, name, opts...)
 }
 
-// ListDatabases returns a ListDatabasesResult.
+// ListDatabases performs a listDatabases operation and returns the result.
+//
+// The filter parameter should be a document containing query parameters and can be used to select which
+// documents are included in the result. It cannot be nil.
+//
+// The opts paramter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -663,7 +680,11 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	return newListDatabasesResultFromOperation(op.Result()), nil
 }
 
-// ListDatabaseNames returns a slice containing the names of all of the databases on the server.
+// ListDatabaseNames performs a listDatabases operation and returns a slice containing the names of all of the databases
+// on the server. This is equivalent to calling ListDatabases with the NameOnly option set to true.
+//
+// The filter parameter should be a document containing query parameters and can be used to select which documents
+// are included in the result. It cannot be nil.
 func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
@@ -696,13 +717,13 @@ func WithSession(ctx context.Context, sess Session, fn func(SessionContext) erro
 	return fn(contextWithSession(ctx, sess))
 }
 
-// UseSession creates a default session, that is only valid for the
+// UseSession creates a new session that is only valid for the
 // lifetime of the closure. No cleanup outside of closing the session
 // is done upon exiting the closure. This means that an outstanding
 // transaction will be aborted, even if the closure returns an error.
 //
 // If ctx already contains a mongo.Session, that mongo.Session will be
-// replaced with the newly created mongo.Session.
+// replaced with the newly created one.
 //
 // Errors returned from the closure are transparently returned from
 // this method.
@@ -728,9 +749,17 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 	return fn(sessCtx)
 }
 
-// Watch returns a change stream cursor used to receive information of changes to the client. This method is preferred
+// Watch returns a change stream used to receive information of changes to the client. This method is preferred
 // to running a raw aggregation with a $changeStream stage because it supports resumability in the case of some errors.
+//
 // The client must have read concern majority or no read concern for a change stream to be created successfully.
+//
+// The pipeline parameter should be an array of documents, each representing a pipeline stage. See
+// https://docs.mongodb.com/manual/changeStreams/ for a list of pipeline stages that can be used with change streams.
+// For a pipeline of bson.D documents, the mongo.Pipeline{} type can be used.
+//
+// The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
+// documentation).
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
 	if c.sessionPool == nil {
