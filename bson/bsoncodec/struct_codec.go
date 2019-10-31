@@ -74,13 +74,7 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, val r
 			rv = val.FieldByIndex(desc.inline)
 		}
 
-		if desc.encoder == nil && (rv.Kind() == reflect.Interface) {
-			rv = rv.Elem()
-			if !rv.IsValid() {
-				return err
-			}
-			desc.encoder, err = r.LookupEncoder(rv.Type())
-		}
+		desc.encoder, rv, err = defaultValueEncoders.lookupElementEncoder(r, desc.encoder, rv)
 
 		if desc.encoder == nil {
 			return ErrNoEncoder{Type: rv.Type()}
