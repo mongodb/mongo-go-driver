@@ -104,7 +104,7 @@ func (c *Cursor) TryNext(ctx context.Context) bool {
 	return c.next(ctx, true)
 }
 
-func (c *Cursor) next(ctx context.Context, stopAfterOne bool) bool {
+func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 	// return false right away if the cursor has already errored.
 	if c.err != nil {
 		return false
@@ -140,8 +140,8 @@ func (c *Cursor) next(ctx context.Context, stopAfterOne bool) bool {
 				return false
 			}
 			// empty batch, but cursor is still valid.
-			// use stopAfterOne to determine if we should continue or return control to the caller.
-			if stopAfterOne {
+			// use nonBlocking to determine if we should continue or return control to the caller.
+			if nonBlocking {
 				return false
 			}
 			continue
