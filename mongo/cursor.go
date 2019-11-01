@@ -97,9 +97,9 @@ func (c *Cursor) Next(ctx context.Context) bool {
 // result is available for decoding. It returns false if the cursor was closed by the server, there was an
 // error getting more results from the server, the server returned an empty batch of documents, or the given context
 // expires.
-// If an error occurred or the cursor was closed (can be checked with c.ID() == 0), TryNext must not be called again.
-// If the given context expires during execution, the cursor's error will be set and the cursor may be in an invalid
-// state and should be re-created.
+// If an error occurred or the cursor was closed (can be checked with c.Err() != nil || c.ID() == 0), TryNext must not
+// be called again. If the given context expires during execution, the cursor's error will be set and the cursor may
+// be in an invalid state and should be re-created.
 // Added in version 1.2.0.
 func (c *Cursor) TryNext(ctx context.Context) bool {
 	return c.next(ctx, true)

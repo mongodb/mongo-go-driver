@@ -467,9 +467,9 @@ func (cs *ChangeStream) Next(ctx context.Context) bool {
 // TryNext attempts to get the next result from this change stream. It returns true if there were no errors and the next
 // result is available for decoding. It returns false if the change stream was closed by the server, there was an
 // error getting more results from the server, the server returned an empty batch of events, or the given context expires.
-// If an error occurred or the stream was closed (can be checked with cs.ID() == 0), TryNext must not be called again.
-// If the given context expires during execution, the stream's error will be set and the change stream may be in an
-// invalid state and should be re-created.
+// If an error occurred or the stream was closed (can be checked with cs.Err() != nil || cs.ID() == 0), TryNext must
+// not be called again. If the given context expires during execution, the stream's error will be set and the change
+// stream may be in an invalid state and should be re-created.
 // Added in version 1.2.0.
 func (cs *ChangeStream) TryNext(ctx context.Context) bool {
 	return cs.next(ctx, true)
