@@ -71,7 +71,10 @@ type Client struct {
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
 // NewClient followed by Client.Connect.
 //
-// This function starts background goroutines to monitor the state of the deployment and does not do any I/O.
+// The NewClient function does not do any I/O and returns an error if the given options are invalid.
+// The Client.Connect method starts background goroutines to monitor the state of the deployment and does not do
+// any I/O in the main goroutine to prevent the main goroutine from blocking. Therefore, it will not error if the
+// deployment is down.
 //
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
 // Client was correctly configured.
@@ -126,8 +129,8 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 // Connect initializes the Client by starting background monitoring goroutines.
 // If the Client was created using the NewClient function, this method must be called before a Client can be used.
 //
-// Connect does not do any I/O. The Client.Ping method can be used to verify that the connection was created
-// successfully.
+// Connect starts background goroutines to monitor the state of the cluster and does not do any I/O in the main
+// goroutine. The Client.Ping method can be used to verify that the connection was created successfully.
 func (c *Client) Connect(ctx context.Context) error {
 	if connector, ok := c.deployment.(driver.Connector); ok {
 		err := connector.Connect()
@@ -197,6 +200,10 @@ func (c *Client) Disconnect(ctx context.Context) error {
 //
 // The rp paramter is used to determine which server is selected for the operation.
 // If it is nil, the client's read preference is used.
+//
+// If the server is down, Ping will try to select a server until the client's server selection timeout expires.
+// This can be configured through the ClientOptions.SetServerSelectionTimeout option when creating a new Client.
+// After the timeout expires, a server selection error is returned.
 func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -626,7 +633,8 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 // ListDatabases performs a listDatabases operation and returns the result.
 //
 // The filter parameter should be a document containing query parameters and can be used to select which
-// documents are included in the result. It cannot be nil.
+// databases are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include
+// all databases.
 //
 // The opts paramter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
@@ -683,10 +691,11 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 }
 
 // ListDatabaseNames performs a listDatabases operation and returns a slice containing the names of all of the databases
-// on the server. This is equivalent to calling ListDatabases with the NameOnly option set to true.
+// on the server.
 //
-// The filter parameter should be a document containing query parameters and can be used to select which documents
-// are included in the result. It cannot be nil.
+// The filter parameter should be a document containing query parameters and can be used to select which databases
+// are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
+// databases.
 func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
@@ -720,7 +729,7 @@ func WithSession(ctx context.Context, sess Session, fn func(SessionContext) erro
 }
 
 // UseSession creates a new session that is only valid for the
-// lifetime of the closure. No cleanup outside of closing the session
+// lifetime of the fn callback. No cleanup outside of closing the session
 // is done upon exiting the closure. This means that an outstanding
 // transaction will be aborted, even if the closure returns an error.
 //
@@ -751,8 +760,8 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 	return fn(sessCtx)
 }
 
-// Watch returns a change stream used to receive information of changes to the client. This method is preferred
-// to running a raw aggregation with a $changeStream stage because it supports resumability in the case of some errors.
+// Watch returns a change stream for all changes on the connected deployment. See https://docs.mongodb.com/manual/changeStreams/
+// for more information about change streams.
 //
 // The client must have read concern majority or no read concern for a change stream to be created successfully.
 //
