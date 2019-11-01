@@ -68,7 +68,9 @@ type Client struct {
 	crypt          *driver.Crypt
 }
 
-// Connect creates a new Client and then initializes it using the Connect method.
+// Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
+// NewClient followed by Client.Connect.
+//
 // This function starts background goroutines to monitor the state of the deployment and does not do any I/O.
 //
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
