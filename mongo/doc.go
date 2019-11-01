@@ -55,10 +55,10 @@
 // Methods that only return a single document will return a *SingleResult, which works
 // like a *sql.Row:
 //
-// 	  result := struct{
-// 	  	Foo string
-// 	  	Bar int32
-// 	  }{}
+//    result := struct{
+//      Foo string
+//      Bar int32
+//    }{}
 //    filter := bson.D{{"hello", "world"}}
 //    err := collection.FindOne(context.Background(), filter).Decode(&result)
 //    if err != nil { return err }
