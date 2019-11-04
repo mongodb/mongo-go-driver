@@ -39,7 +39,7 @@ const batchSize = 10000
 var keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
 	SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
 
-// Client is a handle representing a pool of connections to a MongoDB instance. It is safe for concurrent use by
+// Client is a handle representing a pool of connections to a MongoDB deployment. It is safe for concurrent use by
 // multiple goroutines.
 //
 // The Client type opens and closes connections automatically and maintains a pool of idle connections. For
