@@ -30,13 +30,7 @@ var _ ValueCodec = &StringCodec{}
 // NewStringCodec returns a StringCodec with options opts.
 func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) (*StringCodec, error) {
 	stringOpt := bsonoptions.MergeStringCodecOptions(opts...)
-
-	codec := StringCodec{true}
-	if stringOpt.DecodeObjectIDAsHex != nil {
-		codec.DecodeObjectIDAsHex = *stringOpt.DecodeObjectIDAsHex
-	}
-
-	return &codec, nil
+	return &StringCodec{*stringOpt.DecodeObjectIDAsHex}, nil
 }
 
 // EncodeValue is the ValueEncoder for string types.
