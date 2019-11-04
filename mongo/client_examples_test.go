@@ -63,9 +63,11 @@ func ExampleConnect_ping() {
 func ExampleConnect_replicaSet() {
 	// Create and connect a Client to a replica set deployment.
 	// Given this URI, the Go driver will first communicate with localhost:27017 and use the response to discover
-	// any other nodes in the replica set.
+	// any other members in the replica set.
+	// The URI in this example specifies multiple members of the replica set to increase resiliency as one of the
+	// members may be down when the application is started.
 
-	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017/?replicaSet=replset")
+	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017,localhost:27018/?replicaSet=replset")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
 		log.Fatal(err)
@@ -75,7 +77,7 @@ func ExampleConnect_replicaSet() {
 
 func ExampleConnect_sharded() {
 	// Create and connect a Client to a sharded deployment.
-	// The URI for a sharded cluster should specify all mongos nodes in the cluster.
+	// The URI for a sharded deployment should specify all mongos servers in the cluster.
 
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017,localhost:27018")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
