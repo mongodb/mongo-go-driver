@@ -77,7 +77,8 @@ func ExampleConnect_replicaSet() {
 
 func ExampleConnect_sharded() {
 	// Create and connect a Client to a sharded deployment.
-	// The URI for a sharded deployment should specify all mongos servers in the cluster.
+	// The URI for a sharded deployment should specify the mongos servers that the application wants to send
+	// messages to.
 
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017,localhost:27018")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
@@ -123,7 +124,7 @@ func ExampleConnect_direct() {
 func ExampleConnect_sCRAM() {
 	// Configure a Client with SCRAM authentication (https://docs.mongodb.com/manual/core/security-scram/).
 	// The default authentication database for SCRAM is "admin". This can be configured via the
-	// database field in the URI or the AuthSource field in the options.Credential struct.
+	// authSource query parameter in the URI or the AuthSource field in the options.Credential struct.
 	// SCRAM is the default auth mechanism so specifying a mechanism is not required.
 
 	// To configure auth via URI instead of a Credential, use
@@ -175,6 +176,7 @@ func ExampleConnect_pLAIN() {
 	// (https://docs.mongodb.com/manual/core/authentication-mechanisms-enterprise/#security-auth-ldap).
 	// MongoDB Enterprise supports proxy authentication through an LDAP service that can be used through the PLAIN
 	// authentication mechanism.
+	// This auth mechanism sends the password in plaintext and therefore should only be used with TLS connections.
 
 	// To configure auth via a URI instead of a Credential, use
 	// "mongodb://ldap-user:ldap-pwd@localhost:27017/?authMechanism=PLAIN".
