@@ -30,14 +30,12 @@ func ExampleClient() {
 		}
 	}()
 
-	names, err := client.ListDatabaseNames(context.TODO(), bson.D{})
+	collection := client.Database("db").Collection("coll")
+	result, err := collection.InsertOne(context.TODO(), bson.D{{"x", 1}})
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	for _, name := range names {
-		fmt.Println(name)
-	}
+	fmt.Printf("inserted ID: %v\n", result.InsertedID)
 }
 
 func ExampleConnect_ping() {
