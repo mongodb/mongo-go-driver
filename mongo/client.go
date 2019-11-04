@@ -71,6 +71,18 @@ type Client struct {
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
 // NewClient followed by Client.Connect.
 //
+// When creating an options.ClientOptions, the order the methods are called matters. Later Set*
+// methods will overwrite the values from previous Set* method invocations. This includes the
+// ApplyURI method. This allows callers to determine the order of precedence for option
+// application. For instance, if ApplyURI is called before SetAuth, the Credential from
+// SetAuth will overwrite the values from the connection string. If ApplyURI is called
+// after SetAuth, then its values will overwrite those from SetAuth.
+//
+// The opts parameter is processed using options.MergeClientOptions, which will overwrite entire
+// option fields of previous options, there is no partial overwriting. For example, if Username is
+// set in the Auth field for the first option, and Password is set for the second but with no
+// Username, after the merge the Username field will be empty.
+//
 // The NewClient function does not do any I/O and returns an error if the given options are invalid.
 // The Client.Connect method starts background goroutines to monitor the state of the deployment and does not do
 // any I/O in the main goroutine to prevent the main goroutine from blocking. Therefore, it will not error if the
@@ -90,7 +102,7 @@ func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, erro
 	return c, nil
 }
 
-// NewClient creates a new client to connect to a cluster specified by the uri.
+// NewClient creates a new client to connect to a deployment specified by the uri.
 //
 // When creating an options.ClientOptions, the order the methods are called matters. Later Set*
 // methods will overwrite the values from previous Set* method invocations. This includes the
@@ -129,7 +141,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 // Connect initializes the Client by starting background monitoring goroutines.
 // If the Client was created using the NewClient function, this method must be called before a Client can be used.
 //
-// Connect starts background goroutines to monitor the state of the cluster and does not do any I/O in the main
+// Connect starts background goroutines to monitor the state of the deployment and does not do any I/O in the main
 // goroutine. The Client.Ping method can be used to verify that the connection was created successfully.
 func (c *Client) Connect(ctx context.Context) error {
 	if connector, ok := c.deployment.(driver.Connector); ok {
@@ -196,7 +208,7 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	return nil
 }
 
-// Ping sends a ping command to verify that the client can connect to the cluster.
+// Ping sends a ping command to verify that the client can connect to the deployment.
 //
 // The rp paramter is used to determine which server is selected for the operation.
 // If it is nil, the client's read preference is used.
@@ -635,7 +647,7 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 
 // ListDatabases performs a listDatabases operation and returns the result.
 //
-// The filter parameter should be a document containing query parameters and can be used to select which
+// The filter parameter should be a document containing query operatiors and can be used to select which
 // databases are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include
 // all databases.
 //
@@ -696,7 +708,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // ListDatabaseNames performs a listDatabases operation and returns a slice containing the names of all of the databases
 // on the server.
 //
-// The filter parameter should be a document containing query parameters and can be used to select which databases
+// The filter parameter should be a document containing query operators and can be used to select which databases
 // are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
 // databases.
 func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
@@ -766,7 +778,8 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 // Watch returns a change stream for all changes on the connected deployment. See https://docs.mongodb.com/manual/changeStreams/
 // for more information about change streams.
 //
-// The client must have read concern majority or no read concern for a change stream to be created successfully.
+// The client must be configured with read concern majority or no read concern for a change stream to be created
+// successfully.
 //
 // The pipeline parameter should be an array of documents, each representing a pipeline stage. See
 // https://docs.mongodb.com/manual/changeStreams/ for a list of pipeline stages that can be used with change streams.
