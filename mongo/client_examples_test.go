@@ -16,12 +16,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-func ExampleConnect_replicaSet() {
-	// Create and connect a Client to a replica set deployment.
-	// Given this URI, the Go driver will first communicate with localhost:27017 and use the response to discover
-	// any other nodes in the replica set.
+func ExampleConnect_ping() {
+	// Create a Client to a MongoDB server and use Ping to verify that the server is running.
 
-	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017/?replicaSet=replset")
+	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
 		log.Fatal(err)
@@ -33,20 +31,29 @@ func ExampleConnect_replicaSet() {
 	}()
 
 	// Call Ping to verify that the deployment is up and the Client was configured successfully.
+	// As mentioned in the Ping documentation, this reduces application resiliency as the server may be
+	// temporarily unavailable when Ping is called.
 	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
 		log.Fatal(err)
 	}
 }
 
+func ExampleConnect_replicaSet() {
+	// Create and connect a Client to a replica set deployment.
+	// Given this URI, the Go driver will first communicate with localhost:27017 and use the response to discover
+	// any other nodes in the replica set.
+
+	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017/?replicaSet=replset")
+	client, err := mongo.Connect(context.TODO(), clientOpts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_ = client
+}
+
 func ExampleConnect_sharded() {
 	// Create and connect a Client to a sharded deployment.
 	// The URI for a sharded cluster should specify all mongos nodes in the cluster.
-
-	// Versions 1.1.0 or later of the driver support SRV polling for mongos discovery. Prior to this version, using
-	// an SRV connection string for a sharded cluster was supported, but the hosts were only resolved during initial
-	// connection string parsing. Because individual mongos servers are not aware of each other, added/removed mongos
-	// nodes wouldn't be discovered without an application restart. SRV polling allows the driver to periodically
-	// perform DNS resolution in the background and update the its view of the cluster when nodes are added/removed.
 
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017,localhost:27018")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
@@ -61,8 +68,15 @@ func ExampleConnect_sRV() {
 	// SRV records allow administrators to configure a single domain to return a list of host names.
 	// The driver will resolve SRV records prefixed with "_mongodb_tcp" and use the returned host names to
 	// build its view of the deployment.
+	// See https://docs.mongodb.com/manual/reference/connection-string/ for more information about SRV.
 
-	clientOpts := options.Client().ApplyURI("mongodb+srv://server.mongodb.com")
+	// Versions 1.1.0 or later of the driver support SRV polling for mongos discovery. Prior to this version, using
+	// an SRV connection string for a sharded cluster was supported, but the hosts were only resolved during initial
+	// connection string parsing. Because individual mongos servers are not aware of each other, added/removed mongos
+	// nodes wouldn't be discovered without an application restart. SRV polling allows the driver to periodically
+	// perform DNS resolution in the background and update the its view of the cluster when nodes are added/removed.
+
+	clientOpts := options.Client().ApplyURI("mongodb+srv://mongodb.example.com")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
 		log.Fatal(err)
@@ -86,13 +100,13 @@ func ExampleConnect_sCRAM() {
 	// Configure a Client with SCRAM authentication (https://docs.mongodb.com/manual/core/security-scram/).
 	// The default authentication database for SCRAM is "admin". This can be configured via the
 	// database field in the URI or the AuthSource field in the options.Credential struct.
+	// SCRAM is the default auth mechanism so specifying a mechanism is not required.
 
 	// To configure auth via URI instead of a Credential, use
-	// "mongodb://user:password@localhost:27017/?authMechanism=scram-sha-1".
+	// "mongodb://user:password@localhost:27017".
 	credential := options.Credential{
-		AuthMechanism: "SCRAM-SHA-256", // can be SCRAM-SHA-1 also
-		Username:      "user",
-		Password:      "password",
+		Username: "user",
+		Password: "password",
 	}
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(credential)
 	client, err := mongo.Connect(context.TODO(), clientOpts)
