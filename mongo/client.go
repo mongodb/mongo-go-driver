@@ -204,6 +204,9 @@ func (c *Client) Disconnect(ctx context.Context) error {
 // If the server is down, Ping will try to select a server until the client's server selection timeout expires.
 // This can be configured through the ClientOptions.SetServerSelectionTimeout option when creating a new Client.
 // After the timeout expires, a server selection error is returned.
+//
+// Using Ping reduces application resilience because applications starting up will error if the server is temporarily
+// unavailable or is failing over (e.g. during autoscaling due to a load spike).
 func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	if ctx == nil {
 		ctx = context.Background()
