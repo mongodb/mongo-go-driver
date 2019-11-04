@@ -11,10 +11,34 @@ import (
 	"fmt"
 	"log"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
+
+func ExampleClient() {
+	// Create a Client and execute a ListDatabases operation.
+
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err = client.Disconnect(context.TODO()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	names, err := client.ListDatabaseNames(context.TODO(), bson.D{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, name := range names {
+		fmt.Println(name)
+	}
+}
 
 func ExampleConnect_ping() {
 	// Create a Client to a MongoDB server and use Ping to verify that the server is running.
