@@ -84,6 +84,35 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		assert.True(mt, cs.Next(mtest.Background), "expected next to return true, got false")
 		assert.NotNil(mt, cs.ResumeToken(), "expected resume token, got nil")
 	})
+	mt.RunOpts("resume token updated on empty batch", mtest.NewOptions().MinServerVersion("4.0.7"), func(mt *mtest.T) {
+		// The resume token is updated when an empty batch is returned using the server's post batch resume token.
+
+		cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
+		assert.Nil(mt, err, "Watch error: %v", err)
+		defer closeStream(cs)
+
+		// cause an event to occur so the resume token is updated
+		generateEvents(mt, 1)
+		assert.True(mt, cs.Next(mtest.Background), "expected next to return true, got false")
+		firstToken := cs.ResumeToken()
+
+		// cause an event on a different collection than the one being watched so the server's PBRT is updated
+		diffColl := mt.CreateCollection(mtest.Collection{Name: "diffCollUpdatePbrt"}, false)
+		_, err = diffColl.InsertOne(mtest.Background, bson.D{{"x", 1}})
+		assert.Nil(mt, err, "InsertOne error: %v", err)
+
+		// verify that the resume token is updated using the PBRT from an empty batch
+		mt.ClearEvents()
+		assert.False(mt, cs.TryNext(mtest.Background), "unexpected event document: %v", cs.Current)
+		assert.Nil(mt, cs.Err(), "change stream error getting new batch: %v", cs.Err())
+		newToken := cs.ResumeToken()
+		assert.NotEqual(mt, newToken, firstToken, "resume token was not updated after an empty batch was returned")
+
+		evt := mt.GetSucceededEvent()
+		assert.Equal(mt, "getMore", evt.CommandName, "expected event for 'getMore', got '%v'", evt.CommandName)
+		getMorePbrt := evt.Reply.Lookup("cursor", "postBatchResumeToken").Document()
+		assert.Equal(mt, newToken, getMorePbrt, "expected resume token %v, got %v", getMorePbrt, newToken)
+	})
 	mt.Run("missing resume token", func(mt *mtest.T) {
 		// ChangeStream will throw an exception if the server response is missing the resume token
 
@@ -445,6 +474,45 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 					})
 				}
 			})
+		})
+	})
+	mt.RunOpts("try next", noClientOpts, func(mt *mtest.T) {
+		mt.Run("existing non-empty batch", func(mt *mtest.T) {
+			// If there's already documents in the current batch, TryNext should return true without doing a getMore
+
+			cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
+			assert.Nil(mt, err, "Watch error: %v", err)
+			defer closeStream(cs)
+			generateEvents(mt, 5)
+			// call Next to make sure a batch is retrieved
+			assert.True(mt, cs.Next(mtest.Background), "expected Next to return true, got false")
+			tryNextExistingBatchTest(mt, cs)
+		})
+		mt.Run("one getMore sent", func(mt *mtest.T) {
+			// If the current batch is empty, TryNext should send one getMore and return.
+
+			cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
+			assert.Nil(mt, err, "Watch error: %v", err)
+			defer closeStream(cs)
+
+			mt.ClearEvents()
+			// first call to TryNext should return false because first batch was empty so batch cursor returns false
+			// without doing a getMore
+			// next call to TryNext should attempt a getMore
+			for i := 0; i < 2; i++ {
+				assert.False(mt, cs.TryNext(mtest.Background), "TryNext returned true on iteration %v", i)
+			}
+			verifyOneGetmoreSent(mt, cs)
+		})
+		mt.RunOpts("getMore error", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
+			// If the getMore attempt errors with a non-resumable error, TryNext returns false
+
+			aggRes := mtest.CreateCursorResponse(50, "foo.bar", mtest.FirstBatch)
+			mt.AddMockResponses(aggRes)
+			cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
+			assert.Nil(mt, err, "Watch error: %v", err)
+			defer closeStream(cs)
+			tryNextGetmoreError(mt, cs)
 		})
 	})
 }

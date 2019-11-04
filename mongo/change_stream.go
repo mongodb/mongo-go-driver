@@ -457,20 +457,46 @@ func (cs *ChangeStream) ResumeToken() bson.Raw {
 }
 
 // Next gets the next result from this change stream. Returns true if there were no errors and the next
-// result is available for decoding.
+// result is available for decoding. Next blocks until an event is available for decoding or ctx expires.
+// If the given context expires during execution, the stream's error will be set and the change stream may be in an
+// invalid state and should be re-created. If Next returns false, it must not be called again.
 func (cs *ChangeStream) Next(ctx context.Context) bool {
+	return cs.next(ctx, false)
+}
+
+// TryNext attempts to get the next result from this change stream. It returns true if there were no errors and the next
+// result is available for decoding. It returns false if the change stream was closed by the server, there was an
+// error getting more results from the server, the server returned an empty batch of events, or the given context expires.
+// If an error occurred or the stream was closed (can be checked with cs.Err() != nil || cs.ID() == 0), TryNext must
+// not be called again. If the given context expires during execution, the stream's error will be set and the change
+// stream may be in an invalid state and should be re-created.
+// Added in version 1.2.0.
+func (cs *ChangeStream) TryNext(ctx context.Context) bool {
+	return cs.next(ctx, true)
+}
+
+func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
+	// return false right away if the change stream has already errored.
+	if cs.err != nil {
+		return false
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	if len(cs.batch) == 0 {
-		cs.loopNext(ctx)
-		if cs.err != nil || len(cs.batch) == 0 {
+		cs.loopNext(ctx, nonBlocking)
+		if cs.err != nil {
 			cs.err = replaceErrors(cs.err)
+			return false
+		}
+		if len(cs.batch) == 0 {
 			return false
 		}
 	}
 
+	// successfully got non-empty batch
 	cs.Current = bson.Raw(cs.batch[0])
 	cs.batch = cs.batch[1:]
 	if cs.err = cs.storeResumeToken(); cs.err != nil {
@@ -479,30 +505,28 @@ func (cs *ChangeStream) Next(ctx context.Context) bool {
 	return true
 }
 
-func (cs *ChangeStream) loopNext(ctx context.Context) {
+func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 	for {
 		if cs.cursor == nil {
 			return
 		}
 
 		if cs.cursor.Next(ctx) {
-			// If this is the first batch, the batch cursor will return true, but the batch could be empty.
-			if cs.batch, cs.err = cs.cursor.Batch().Documents(); cs.err != nil || len(cs.batch) > 0 {
-				return
-			}
-
-			// no error but empty batch
-			cs.updatePbrtFromCommand()
-			continue
+			// non-empty batch returned
+			cs.batch, cs.err = cs.cursor.Batch().Documents()
+			return
 		}
 
 		cs.err = replaceErrors(cs.cursor.Err())
 		if cs.err == nil {
-			// If a getMore was done but the batch was empty, the batch cursor will return false with no error
-			if len(cs.batch) == 0 {
-				continue
+			// If a getMore was done but the batch was empty, the batch cursor will return false with no error.
+			// Update the tracked resume token to catch the post batch resume token from the server response.
+			cs.updatePbrtFromCommand()
+			if nonBlocking {
+				// stop after a successful getMore, even though the batch was empty
+				return
 			}
-			return
+			continue // loop getMore until a non-empty batch is returned or an error occurs
 		}
 
 		switch t := cs.err.(type) {
