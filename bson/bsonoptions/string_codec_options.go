@@ -6,19 +6,22 @@
 
 package bsonoptions
 
+var defaultDecodeOIDAsHex = true
+
 // StringCodecOptions represents all possible options for time.Time encoding and decoding.
 type StringCodecOptions struct {
-	ObjectIDAsHex *bool // Specifies if we should decode ObjectID as the hex value. Defaults to true.
+	DecodeObjectIDAsHex *bool // Specifies if we should decode ObjectID as the hex value. Defaults to true.
 }
 
 // StringCodec creates a new *StringCodecOptions
 func StringCodec() *StringCodecOptions {
-	return &StringCodecOptions{}
+	return &StringCodecOptions{&defaultDecodeOIDAsHex}
 }
 
-// SetObjectIDAsHex specifies if we should decode ObjectID as the hex value. Defaults to true.
-func (t *StringCodecOptions) SetObjectIDAsHex(b bool) *StringCodecOptions {
-	t.ObjectIDAsHex = &b
+// SetDecodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation. If false, a string made
+// from the raw object ID bytes will be used. Defaults to true.
+func (t *StringCodecOptions) SetDecodeObjectIDAsHex(b bool) *StringCodecOptions {
+	t.DecodeObjectIDAsHex = &b
 	return t
 }
 
@@ -29,8 +32,8 @@ func MergeStringCodecOptions(opts ...*StringCodecOptions) *StringCodecOptions {
 		if opt == nil {
 			continue
 		}
-		if opt.ObjectIDAsHex != nil {
-			s.ObjectIDAsHex = opt.ObjectIDAsHex
+		if opt.DecodeObjectIDAsHex != nil {
+			s.DecodeObjectIDAsHex = opt.DecodeObjectIDAsHex
 		}
 	}
 

@@ -15,11 +15,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-var defaultStringCodec = &StringCodec{true}
+var defaultStringCodec = func() *StringCodec {
+	codec, _ := NewStringCodec()
+	return codec
+}()
 
 // StringCodec is the Codec used for struct values.
 type StringCodec struct {
-	ObjectIDAsHex bool
+	DecodeObjectIDAsHex bool
 }
 
 var _ ValueCodec = &StringCodec{}
@@ -29,8 +32,8 @@ func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) (*StringCodec, erro
 	stringOpt := bsonoptions.MergeStringCodecOptions(opts...)
 
 	codec := StringCodec{true}
-	if stringOpt.ObjectIDAsHex != nil {
-		codec.ObjectIDAsHex = *stringOpt.ObjectIDAsHex
+	if stringOpt.DecodeObjectIDAsHex != nil {
+		codec.DecodeObjectIDAsHex = *stringOpt.DecodeObjectIDAsHex
 	}
 
 	return &codec, nil
@@ -68,7 +71,7 @@ func (sc *StringCodec) DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, va
 		if err != nil {
 			return err
 		}
-		if sc.ObjectIDAsHex {
+		if sc.DecodeObjectIDAsHex {
 			str = oid.Hex()
 		} else {
 			byteArray := [12]byte(oid)

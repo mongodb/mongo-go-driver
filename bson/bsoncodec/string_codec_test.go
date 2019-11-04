@@ -27,8 +27,8 @@ func TestStringCodec(t *testing.T) {
 			hex  bool
 		}{
 			{"default", bsonoptions.StringCodec(), true},
-			{"true", bsonoptions.StringCodec().SetObjectIDAsHex(true), true},
-			{"false", bsonoptions.StringCodec().SetObjectIDAsHex(false), false},
+			{"true", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(true), true},
+			{"false", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false), false},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
