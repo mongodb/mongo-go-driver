@@ -94,12 +94,7 @@ func ExampleConnect_sRV() {
 	// The driver will resolve SRV records prefixed with "_mongodb_tcp" and use the returned host names to
 	// build its view of the deployment.
 	// See https://docs.mongodb.com/manual/reference/connection-string/ for more information about SRV.
-
-	// Versions 1.1.0 or later of the driver support SRV polling for mongos discovery. Prior to this version, using
-	// an SRV connection string for a sharded cluster was supported, but the hosts were only resolved during initial
-	// connection string parsing. Because individual mongos servers are not aware of each other, added/removed mongos
-	// nodes wouldn't be discovered without an application restart. SRV polling allows the driver to periodically
-	// perform DNS resolution in the background and update the its view of the cluster when nodes are added/removed.
+	// Full support for SRV records with sharded clusters requires driver version 1.1.0 or higher.
 
 	clientOpts := options.Client().ApplyURI("mongodb+srv://mongodb.example.com")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
