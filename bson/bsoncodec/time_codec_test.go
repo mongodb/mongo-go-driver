@@ -34,11 +34,10 @@ func TestTimeCodec(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				timeCodec, err := NewTimeCodec(tc.opts)
-				assert.Nil(t, err, "NewTimeCodec error: %v", err)
+				timeCodec := NewTimeCodec(tc.opts)
 
 				actual := reflect.New(reflect.TypeOf(now)).Elem()
-				err = timeCodec.DecodeValue(DecodeContext{}, reader, actual)
+				err := timeCodec.DecodeValue(DecodeContext{}, reader, actual)
 				assert.Nil(t, err, "TimeCodec.DecodeValue error: %v", err)
 
 				actualTime := actual.Interface().(time.Time)

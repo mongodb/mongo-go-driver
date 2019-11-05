@@ -32,11 +32,10 @@ func TestStringCodec(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				stringCodec, err := NewStringCodec(tc.opts)
-				assert.Nil(t, err, "NewStringCodec error: %v", err)
+				stringCodec := NewStringCodec(tc.opts)
 
 				actual := reflect.New(reflect.TypeOf("")).Elem()
-				err = stringCodec.DecodeValue(DecodeContext{}, reader, actual)
+				err := stringCodec.DecodeValue(DecodeContext{}, reader, actual)
 				assert.Nil(t, err, "TimeCodec.DecodeValue error: %v", err)
 
 				actualString := actual.Interface().(string)

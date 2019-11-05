@@ -20,7 +20,7 @@ const (
 	timeFormatString = "2006-01-02T15:04:05.999Z07:00"
 )
 
-var defaultTimeCodec = &TimeCodec{}
+var defaultTimeCodec = NewTimeCodec()
 
 // TimeCodec is the Codec used for struct values.
 type TimeCodec struct {
@@ -30,14 +30,14 @@ type TimeCodec struct {
 var _ ValueCodec = &TimeCodec{}
 
 // NewTimeCodec returns a TimeCodec with options opts.
-func NewTimeCodec(opts ...*bsonoptions.TimeCodecOptions) (*TimeCodec, error) {
+func NewTimeCodec(opts ...*bsonoptions.TimeCodecOptions) *TimeCodec {
 	timeOpt := bsonoptions.MergeTimeCodecOptions(opts...)
 
 	codec := TimeCodec{}
 	if timeOpt.UseLocalTimeZone != nil {
 		codec.UseLocalTimeZone = *timeOpt.UseLocalTimeZone
 	}
-	return &codec, nil
+	return &codec
 }
 
 // DecodeValue is the ValueDecoderFunc for time.Time.

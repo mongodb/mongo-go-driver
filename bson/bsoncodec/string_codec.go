@@ -15,10 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-var defaultStringCodec = func() *StringCodec {
-	codec, _ := NewStringCodec()
-	return codec
-}()
+var defaultStringCodec = NewStringCodec()
 
 // StringCodec is the Codec used for struct values.
 type StringCodec struct {
@@ -28,9 +25,9 @@ type StringCodec struct {
 var _ ValueCodec = &StringCodec{}
 
 // NewStringCodec returns a StringCodec with options opts.
-func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) (*StringCodec, error) {
+func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) *StringCodec {
 	stringOpt := bsonoptions.MergeStringCodecOptions(opts...)
-	return &StringCodec{*stringOpt.DecodeObjectIDAsHex}, nil
+	return &StringCodec{*stringOpt.DecodeObjectIDAsHex}
 }
 
 // EncodeValue is the ValueEncoder for string types.
