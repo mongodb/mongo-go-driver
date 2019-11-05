@@ -775,15 +775,15 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 	return fn(sessCtx)
 }
 
-// Watch returns a change stream for all changes on the connected deployment. See https://docs.mongodb.com/manual/changeStreams/
-// for more information about change streams.
+// Watch returns a change stream for all changes on the deployment. See
+// https://docs.mongodb.com/manual/changeStreams/ for more information about change streams.
 //
-// The client must be configured with read concern majority or no read concern for a change stream to be created
+// The database must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
-// The pipeline parameter should be an array of documents, each representing a pipeline stage. See
-// https://docs.mongodb.com/manual/changeStreams/ for a list of pipeline stages that can be used with change streams.
-// For a pipeline of bson.D documents, the mongo.Pipeline{} type can be used.
+// The pipeline parameter should be an array of documents, each representing a pipeline stage. The pipeline or any of
+// the stage documents cannot be nil. See https://docs.mongodb.com/manual/changeStreams/ for a list of pipeline stages
+// that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{} type can be used.
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
