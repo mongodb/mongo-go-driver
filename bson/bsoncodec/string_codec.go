@@ -51,7 +51,6 @@ func (sc *StringCodec) DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, va
 	var str string
 	var err error
 	switch vr.Type() {
-	// TODO(GODRIVER-577): Handle JavaScript and Symbol BSON types when allowed.
 	case bsontype.String:
 		str, err = vr.ReadString()
 		if err != nil {
