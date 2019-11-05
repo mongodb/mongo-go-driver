@@ -156,7 +156,7 @@ func ExampleConnect_x509() {
 	caFilePath := "path/to/cafile"
 	certificateKeyFilePath := "path/to/client-certificate"
 
-	// To configure auth via a URI instead of a Credential, append "&authMechanism=mongodb-x509" to the URI.
+	// To configure auth via a URI instead of a Credential, append "&authMechanism=MONGODB-X509" to the URI.
 	uri := "mongodb://host:port/?tlsCAFile=%s&tlsCertificateKeyFile=%s"
 	uri = fmt.Sprintf(uri, caFilePath, certificateKeyFilePath)
 	credential := options.Credential{
