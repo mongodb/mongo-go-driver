@@ -20,15 +20,17 @@ import (
 func TestStringCodec(t *testing.T) {
 	t.Run("ObjectIDAsHex", func(t *testing.T) {
 		oid := primitive.NewObjectID()
+		byteArray := [12]byte(oid)
 		reader := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.ObjectID, Return: oid}
 		testCases := []struct {
-			name string
-			opts *bsonoptions.StringCodecOptions
-			hex  bool
+			name   string
+			opts   *bsonoptions.StringCodecOptions
+			hex    bool
+			result string
 		}{
-			{"default", bsonoptions.StringCodec(), true},
-			{"true", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(true), true},
-			{"false", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false), false},
+			{"default", bsonoptions.StringCodec(), true, oid.Hex()},
+			{"true", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(true), true, oid.Hex()},
+			{"false", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false), false, string(byteArray[:])},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -36,17 +38,10 @@ func TestStringCodec(t *testing.T) {
 
 				actual := reflect.New(reflect.TypeOf("")).Elem()
 				err := stringCodec.DecodeValue(DecodeContext{}, reader, actual)
-				assert.Nil(t, err, "TimeCodec.DecodeValue error: %v", err)
+				assert.Nil(t, err, "StringCodec.DecodeValue error: %v", err)
 
 				actualString := actual.Interface().(string)
-				if tc.hex {
-					assert.Equal(t, oid.Hex(), actualString,
-						"Expected string %v, got %v", oid.Hex(), actualString)
-				} else {
-					byteArray := [12]byte(oid)
-					assert.Equal(t, string(byteArray[:]), actualString,
-						"Expected string %v, got %v", string(byteArray[:]), actualString)
-				}
+				assert.Equal(t, tc.result, actualString, "Expected string %v, got %v", tc.result, actualString)
 			})
 		}
 	})
