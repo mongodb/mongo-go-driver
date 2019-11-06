@@ -95,7 +95,7 @@ func (db *Database) Name() string {
 	return db.name
 }
 
-// Collection gets a handle for a Collection with the given name configured with the given CollectionOptions.
+// Collection gets a handle for a collection with the given name configured with the given CollectionOptions.
 func (db *Database) Collection(name string, opts ...*options.CollectionOptions) *Collection {
 	return newCollection(db, name, opts...)
 }
@@ -394,7 +394,7 @@ func (db *Database) ReadPreference() *readpref.ReadPref {
 	return db.readPreference
 }
 
-// WriteConcern returns the write concern used to configure the database object.
+// WriteConcern returns the write concern used to configure the Database object.
 func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 	return db.writeConcern
 }
