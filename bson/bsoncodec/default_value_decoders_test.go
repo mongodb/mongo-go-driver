@@ -1241,6 +1241,20 @@ func TestDefaultValueDecoders(t *testing.T) {
 			},
 		},
 		{
+			"StringDecodeValue",
+			defaultStringCodec,
+			[]subtest{
+				{
+					"symbol",
+					"var hello = 'world';",
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: "var hello = 'world';"},
+					bsonrwtest.ReadSymbol,
+					nil,
+				},
+			},
+		},
+		{
 			"ValueUnmarshalerDecodeValue",
 			ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue),
 			[]subtest{
