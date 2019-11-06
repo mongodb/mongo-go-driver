@@ -85,7 +85,7 @@ func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) 
 	return db
 }
 
-// Client returns the Client the database was created from.
+// Client returns the Client the Database was created from.
 func (db *Database) Client() *Client {
 	return db.client
 }
@@ -95,7 +95,7 @@ func (db *Database) Name() string {
 	return db.name
 }
 
-// Collection gets a handle for a collection with the given name configured with the given CollectionOptions.
+// Collection gets a handle for a Collection with the given name configured with the given CollectionOptions.
 func (db *Database) Collection(name string, opts ...*options.CollectionOptions) *Collection {
 	return newCollection(db, name, opts...)
 }
@@ -225,7 +225,7 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 	return cursor, replaceErrors(err)
 }
 
-// Drop drops this database on the server. This method ignores "namespace not found" errors so it is safe to drop
+// Drop drops the database on the server. This method ignores "namespace not found" errors so it is safe to drop
 // a database that does not exist on the server.
 func (db *Database) Drop(ctx context.Context) error {
 	if ctx == nil {
@@ -384,25 +384,25 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 	return names, nil
 }
 
-// ReadConcern returns the read concern the database was configured with.
+// ReadConcern returns the read concern used to configure the Database object.
 func (db *Database) ReadConcern() *readconcern.ReadConcern {
 	return db.readConcern
 }
 
-// ReadPreference returns the read preference the database was configured with.
+// ReadPreference returns the read preference used to configure the Database object.
 func (db *Database) ReadPreference() *readpref.ReadPref {
 	return db.readPreference
 }
 
-// WriteConcern returns the write concern the database was configured with.
+// WriteConcern returns the write concern used to configure the database object.
 func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 	return db.writeConcern
 }
 
-// Watch returns a change stream for all changes on the connected deployment. See
+// Watch returns a change stream for all changes to the corresponding database. See
 // https://docs.mongodb.com/manual/changeStreams/ for more information about change streams.
 //
-// The database must be configured with read concern majority or no read concern for a change stream to be created
+// The Database must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
 // The pipeline parameter should be an array of documents, each representing a pipeline stage. The pipeline or any of
