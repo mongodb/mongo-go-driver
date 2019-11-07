@@ -2203,11 +2203,39 @@ func TestDefaultValueDecoders(t *testing.T) {
 					Foo *struct {
 						A int64 `bson:",minsize"`
 					} `bson:",inline"`
+					Bar *struct {
+						B int64
+					} `bson:",inline"`
 				}{
 					Foo: &struct {
 						A int64 `bson:",minsize"`
 					}{
 						A: 12345,
+					},
+					Bar: nil,
+				},
+				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
+				nil,
+			},
+			{
+				"nested inline struct pointer",
+				struct {
+					Foo *struct {
+						Bar *struct {
+							A int64 `bson:",minsize"`
+						} `bson:",inline"`
+					} `bson:",inline"`
+				}{
+					Foo: &struct {
+						Bar *struct {
+							A int64 `bson:",minsize"`
+						} `bson:",inline"`
+					}{
+						Bar: &struct {
+							A int64 `bson:",minsize"`
+						}{
+							A: 12345,
+						},
 					},
 				},
 				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),

@@ -195,23 +195,9 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 		if fd.inline == nil {
 			field = val.Field(fd.idx)
 		} else {
-			field, err = fieldByIndexErr(val, fd.inline)
+			field, err = getInlineField(val, fd.inline)
 			if err != nil {
-				inlineParent := fd.inline[:len(fd.inline)-1]
-
-				// fix parent
-				var fParent reflect.Value
-				if fParent, err = fieldByIndexErr(val, inlineParent); err != nil {
-					return err
-				}
-
-				fParent.Set(getZeroField(val, inlineParent))
-
-				// retry now
-				field, err = fieldByIndexErr(val, fd.inline)
-				if err != nil {
-					return err
-				}
+				return err
 			}
 		}
 
@@ -445,8 +431,30 @@ func deepZero(st reflect.Type) reflect.Value {
 	return result
 }
 
+func getInlineField(val reflect.Value, index []int) (reflect.Value, error) {
+	field, err := fieldByIndexErr(val, index)
+	if err == nil {
+		return field, nil
+	}
+	fmt.Println(index)
+
+	// if parent of this element doesn't exist, fix its parent
+	inlineParent := index[:len(index)-1]
+	var fParent reflect.Value
+	if fParent, err = fieldByIndexErr(val, inlineParent); err != nil {
+		fParent, err = getInlineField(val, inlineParent)
+		if err != nil {
+			return fParent, err
+		}
+	}
+	fParent.Set(getZeroField(val, inlineParent))
+
+	return fieldByIndexErr(val, index)
+}
+
 // getZeroField returns recursive zero object
 func getZeroField(v reflect.Value, index []int) reflect.Value {
+	fmt.Println("hi")
 	for _, ind := range index {
 		if v.Kind() == reflect.Ptr && v.Elem().Kind() == reflect.Struct {
 			v = v.Elem()
@@ -455,6 +463,5 @@ func getZeroField(v reflect.Value, index []int) reflect.Value {
 		v = v.Field(ind)
 	}
 
-	dz := deepZero(v.Type().Elem())
-	return reflect.New(dz.Type())
+	return reflect.New(v.Type().Elem())
 }
