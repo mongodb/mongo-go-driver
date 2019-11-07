@@ -103,10 +103,12 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 // Aggregate performs an aggregate operation (https://docs.mongodb.com/manual/reference/command/aggregate/) against
 // the database. This requires MongoDB version >= 3.6 and driver version >= 1.1.0.
 //
-// The pipeline parameter should be an array of documents, each representing an aggregation stage. The pipeline
-// or any of the stage documents cannot be nil. For a pipeline of bson.D documents, the mongo.Pipeline type can be used.
-// See https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/#db-aggregate-stages for a list of valid
-// stages in database-level aggregations.
+// The pipeline parameter should be an slice of documents, each representing an aggregation stage. The pipeline
+// or any of the stage documents cannot be nil. It can be empty. For a pipeline of bson.D documents, the mongo.Pipeline
+// type can be used. See https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/#db-aggregate-stages
+// for a list of valid stages in database-level aggregations.
+//
+// The opts parameter can be used to specify options for this operation (see the options.AggregateOptions documentation).
 func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 	opts ...*options.AggregateOptions) (*Cursor, error) {
 	a := aggregateParams{
@@ -405,9 +407,10 @@ func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 // The Database must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
-// The pipeline parameter should be an array of documents, each representing a pipeline stage. The pipeline or any of
-// the stage documents cannot be nil. See https://docs.mongodb.com/manual/changeStreams/ for a list of pipeline stages
-// that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{} type can be used.
+// The pipeline parameter should be an slice of documents, each representing a pipeline stage. The pipeline or any of
+// the stage documents cannot be nil. It can be empty. See https://docs.mongodb.com/manual/changeStreams/ for a list of
+// pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{} type
+// can be used.
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
