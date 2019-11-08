@@ -328,3 +328,196 @@ func ExampleCollection_Find() {
 		fmt.Println(result)
 	}
 }
+
+func ExampleCollection_FindOne() {
+	var coll *mongo.Collection
+
+	// find the document in which the "name" field is "Bob"
+	// specify the MaxTime option to limit the amount of time the operation can run on the server
+	opts := options.FindOne().SetMaxTime(2 * time.Second)
+	var result bson.M
+	err := coll.FindOne(context.TODO(), bson.D{{"name", "Bob"}}, opts).Decode(&result)
+	if err != nil {
+		// ErrNoDocuments means that the filter did not match any documents in the collection
+		if err == mongo.ErrNoDocuments {
+			return
+		}
+		log.Fatal(err)
+	}
+	fmt.Printf("found document %v", result)
+}
+
+func ExampleCollection_FindOneAndDelete() {
+	var coll *mongo.Collection
+
+	// find and delete the document in which the "name" field is "Bob"
+	// specify the MaxTime option to limit the amount of time the operation can run on the server
+	opts := options.FindOneAndDelete().SetMaxTime(2 * time.Second)
+	var deletedDocument bson.M
+	err := coll.FindOneAndDelete(context.TODO(), bson.D{{"name", "Bob"}}, opts).Decode(&deletedDocument)
+	if err != nil {
+		// ErrNoDocuments means that the filter did not match any documents in the collection
+		if err == mongo.ErrNoDocuments {
+			return
+		}
+		log.Fatal(err)
+	}
+	fmt.Printf("deleted document %v", deletedDocument)
+}
+
+func ExampleCollection_FindOneAndReplace() {
+	var coll *mongo.Collection
+
+	// find and replace the document in which the "name" field is "Bob" with {name: "Alice"}
+	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	opts := options.FindOneAndReplace().SetUpsert(true)
+	filter := bson.D{{"name", "Bob"}}
+	replacement := bson.D{{"name", "Alice"}}
+	var replacedDocument bson.M
+	err := coll.FindOneAndReplace(context.TODO(), filter, replacement, opts).Decode(&replacedDocument)
+	if err != nil {
+		// ErrNoDocuments means that the filter did not match any documents in the collection
+		if err == mongo.ErrNoDocuments {
+			return
+		}
+		log.Fatal(err)
+	}
+	fmt.Printf("replaced document %v", replacedDocument)
+}
+
+func ExampleCollection_FindOneAndUpdate() {
+	var coll *mongo.Collection
+
+	// find the document in which the "name" field is "Bob" and set the name to "Alice"
+	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	opts := options.FindOneAndUpdate().SetUpsert(true)
+	filter := bson.D{{"name", "Bob"}}
+	update := bson.D{{"$set", bson.D{{"name", "Alice"}}}}
+	var updatedDocument bson.M
+	err := coll.FindOneAndUpdate(context.TODO(), filter, update, opts).Decode(&updatedDocument)
+	if err != nil {
+		// ErrNoDocuments means that the filter did not match any documents in the collection
+		if err == mongo.ErrNoDocuments {
+			return
+		}
+		log.Fatal(err)
+	}
+	fmt.Printf("updated document %v", updatedDocument)
+}
+
+func ExampleCollection_InsertMany() {
+	var coll *mongo.Collection
+
+	// insert documents {name: "Alice"} and {name: "Bob"}
+	// set the Ordered option to false to allow both operations to happen even if one of them errors
+	docs := []interface{}{
+		bson.D{{"name", "Alice"}},
+		bson.D{{"name", "Bob"}},
+	}
+	opts := options.InsertMany().SetOrdered(false)
+	res, err := coll.InsertMany(context.TODO(), docs, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("inserted documents with IDs %v\n", res.InsertedIDs)
+}
+
+func ExampleCollection_InsertOne() {
+	var coll *mongo.Collection
+
+	// insert the document {name: "Alice"}
+	// set the BypassDocumentValidation option to opt-out of document-level validation
+	opts := options.InsertOne().SetBypassDocumentValidation(true)
+	res, err := coll.InsertOne(context.TODO(), bson.D{{"name", "Alice"}}, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("inserted document with ID %v\n", res.InsertedID)
+}
+
+func ExampleCollection_ReplaceOne() {
+	var coll *mongo.Collection
+
+	// replace the document in which the "name" field is "Bob" with {name: "Alice"}
+	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	opts := options.Replace().SetUpsert(true)
+	filter := bson.D{{"name", "Bob"}}
+	replacement := bson.D{{"name", "Alice"}}
+	result, err := coll.ReplaceOne(context.TODO(), filter, replacement, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if result.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+		return
+	}
+	if result.UpsertedCount != 0 {
+		fmt.Printf("inserted a new document with ID %v\n", result.UpsertedID)
+	}
+}
+
+func ExampleCollection_UpdateMany() {
+	var coll *mongo.Collection
+
+	// find all documents in which the "name" field is "Bob" and set the name to "Alice"
+	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	opts := options.Update().SetUpsert(true)
+	filter := bson.D{{"name", "Bob"}}
+	update := bson.D{{"$set", bson.D{{"name", "Alice"}}}}
+
+	result, err := coll.UpdateOne(context.TODO(), filter, update, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if result.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+		return
+	}
+	if result.UpsertedCount != 0 {
+		fmt.Printf("inserted a new document with ID %v\n", result.UpsertedID)
+	}
+}
+
+func ExampleCollection_UpdateOne() {
+	var coll *mongo.Collection
+
+	// find the document in which the "name" field is "Bob" and set the name to "Alice"
+	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	opts := options.Update().SetUpsert(true)
+	filter := bson.D{{"name", "Bob"}}
+	update := bson.D{{"$set", bson.D{{"name", "Alice"}}}}
+
+	result, err := coll.UpdateOne(context.TODO(), filter, update, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if result.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+		return
+	}
+	if result.UpsertedCount != 0 {
+		fmt.Printf("inserted a new document with ID %v\n", result.UpsertedID)
+	}
+}
+
+func ExampleCollection_Watch() {
+	var collection *mongo.Collection
+
+	// specify a pipeline that will only match "insert" events
+	// specify the MaxAwaitTimeOption to have each attempt wait two seconds for new documents
+	matchStage := bson.D{{"$match", bson.D{{"operationType", "insert"}}}}
+	opts := options.ChangeStream().SetMaxAwaitTime(2 * time.Second)
+	changeStream, err := collection.Watch(context.TODO(), mongo.Pipeline{matchStage}, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// print out all change stream events in the order they're received
+	// see the mongo.ChangeStream documentation for more examples of using change streams
+	for changeStream.Next(context.TODO()) {
+		fmt.Println(changeStream.Current)
+	}
+}
