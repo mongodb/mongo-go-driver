@@ -325,9 +325,9 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // InsertMany performs an insert operation (https://docs.mongodb.com/manual/reference/command/insert/) to insert
 // multiple documents into the collection.
 //
-// The documents parameter should be a slice of documents to insert. The slice cannot be nil or empty and any of its
-// elements cannot be nil. If any of the documents do not have an _id field when transformed into BSON, one will be
-// added automatically to the marshalled document. The original document will not be modified.
+// The documents parameter should be a slice of documents to insert. The slice cannot be nil or empty. The elements must
+// all be non-nil. If any of the documents do not have an _id field when transformed into BSON, one will be added
+// automatically to the marshalled document. The original document will not be modified.
 //
 // The opts parameter can be used to specify options for the operation (see the options.InsertManyOptions documentation.)
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
@@ -800,7 +800,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 }
 
 // CountDocuments returns the number of documents in the collection. For a fast count of the documents in the
-// collection, see the  EstimatedDocumentCount method.
+// collection, see the EstimatedDocumentCount method.
 //
 // The filter parameter should be a document and can be used to select which documents contribute to the count. It
 // cannot be nil. An empty document (e.g. bson.D{}) should be used to count all documents in the collection. This will

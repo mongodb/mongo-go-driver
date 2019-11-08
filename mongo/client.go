@@ -781,9 +781,10 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 // The client must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
-// The pipeline parameter should be an array of documents, each representing a pipeline stage. The pipeline or any of
-// the stage documents cannot be nil. See https://docs.mongodb.com/manual/changeStreams/ for a list of pipeline stages
-// that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{} type can be used.
+// The pipeline parameter should be an array of documents, each representing a pipeline stage. The pipeline cannot be
+// nil or empty. The stage documents must all be non-nil. See https://docs.mongodb.com/manual/changeStreams/ for a list
+// of pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{}
+// type can be used.
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
