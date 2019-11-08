@@ -22,24 +22,22 @@ import (
 func ExampleClient_ListDatabases() {
 	var client *mongo.Client
 
-	// use a filter to only select the admin database
-	// specify the NameOnly option so the returned specificiations only have the name field populated
-	opts := options.ListDatabases().SetNameOnly(true)
-	result, err := client.ListDatabases(context.TODO(), bson.D{{"name", "admin"}}, opts)
+	// use a filter to select non-empty databases
+	result, err := client.ListDatabases(context.TODO(), bson.D{{"empty", false}})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for _, db := range result.Databases {
-		fmt.Println(db.Name)
+		fmt.Printf("db: %v, size: %v\n", db.Name, db.SizeOnDisk)
 	}
 }
 
 func ExampleClient_ListDatabaseNames() {
 	var client *mongo.Client
 
-	// use a filter to only select the admin database
-	result, err := client.ListDatabaseNames(context.TODO(), bson.D{{"name", "admin"}})
+	// use a filter to only select non-empty databases
+	result, err := client.ListDatabaseNames(context.TODO(), bson.D{{"empty", false}})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,8 +92,8 @@ func ExampleDatabase_Aggregate() {
 func ExampleDatabase_ListCollectionNames() {
 	var db *mongo.Database
 
-	// use a filter to only select the collection "foo"
-	result, err := db.ListCollectionNames(context.TODO(), bson.D{{"name", "foo"}})
+	// use a filter to only select capped collections
+	result, err := db.ListCollectionNames(context.TODO(), bson.D{{"options.capped", true}})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,10 +106,8 @@ func ExampleDatabase_ListCollectionNames() {
 func ExampleDatabase_ListCollections() {
 	var db *mongo.Database
 
-	// use a filter to only select the collection "foo"
-	// specify the NameOnly option so the returned specificiations only have the name field populated
-	opts := options.ListCollections().SetNameOnly(true)
-	cursor, err := db.ListCollections(context.TODO(), bson.D{{"name", "foo"}}, opts)
+	// use a filter to only select capped collections
+	cursor, err := db.ListCollections(context.TODO(), bson.D{{"options.capped", "true"}})
 	if err != nil {
 		log.Fatal(err)
 	}
