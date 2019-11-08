@@ -395,48 +395,11 @@ func fieldByIndexErr(v reflect.Value, index []int) (result reflect.Value, err er
 	return
 }
 
-// recursivePointerTo calls reflect.New(v.Type) but recursively for its fields inside
-func recursivePointerTo(v reflect.Value) reflect.Value {
-	v = reflect.Indirect(v)
-	result := reflect.New(v.Type())
-	if v.Kind() == reflect.Struct {
-		for i := 0; i < v.NumField(); i++ {
-			if f := v.Field(i); f.Kind() == reflect.Ptr {
-				if f.Elem().Kind() == reflect.Struct {
-					result.Elem().Field(i).Set(recursivePointerTo(f))
-				}
-			}
-		}
-	}
-
-	return result
-}
-
-// deepZero returns recursive zero object
-func deepZero(st reflect.Type) reflect.Value {
-	result := reflect.Indirect(reflect.New(st))
-
-	if result.Kind() == reflect.Struct {
-		for i := 0; i < result.NumField(); i++ {
-			if f := result.Field(i); f.Kind() == reflect.Ptr {
-				if f.CanInterface() {
-					if ft := reflect.TypeOf(f.Interface()); ft.Elem().Kind() == reflect.Struct {
-						result.Field(i).Set(recursivePointerTo(deepZero(ft.Elem())))
-					}
-				}
-			}
-		}
-	}
-
-	return result
-}
-
 func getInlineField(val reflect.Value, index []int) (reflect.Value, error) {
 	field, err := fieldByIndexErr(val, index)
 	if err == nil {
 		return field, nil
 	}
-	fmt.Println(index)
 
 	// if parent of this element doesn't exist, fix its parent
 	inlineParent := index[:len(index)-1]
@@ -447,21 +410,7 @@ func getInlineField(val reflect.Value, index []int) (reflect.Value, error) {
 			return fParent, err
 		}
 	}
-	fParent.Set(getZeroField(val, inlineParent))
+	fParent.Set(reflect.New(fParent.Type().Elem()))
 
 	return fieldByIndexErr(val, index)
-}
-
-// getZeroField returns recursive zero object
-func getZeroField(v reflect.Value, index []int) reflect.Value {
-	fmt.Println("hi")
-	for _, ind := range index {
-		if v.Kind() == reflect.Ptr && v.Elem().Kind() == reflect.Struct {
-			v = v.Elem()
-		}
-
-		v = v.Field(ind)
-	}
-
-	return reflect.New(v.Type().Elem())
 }
