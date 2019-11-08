@@ -778,7 +778,7 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 // Watch returns a change stream for all changes on the deployment. See
 // https://docs.mongodb.com/manual/changeStreams/ for more information about change streams.
 //
-// The database must be configured with read concern majority or no read concern for a change stream to be created
+// The client must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
 // The pipeline parameter should be an array of documents, each representing a pipeline stage. The pipeline or any of
