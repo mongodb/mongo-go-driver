@@ -323,7 +323,8 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 }
 
 // InsertMany performs an insert operation (https://docs.mongodb.com/manual/reference/command/insert/) to insert
-// multiple documents into the collection.
+// multiple documents into the collection. If write errors occur during the operation (e.g. duplicate key error),
+// this method returns a BulkWriteException error.
 //
 // The documents parameter should be a slice of documents to insert. The slice cannot be nil or empty. The elements must
 // all be non-nil. If any of the documents do not have an _id field when transformed into BSON, one will be added
