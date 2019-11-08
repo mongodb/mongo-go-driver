@@ -52,11 +52,11 @@ func ExampleClient_ListDatabaseNames() {
 func ExampleClient_Watch() {
 	var client *mongo.Client
 
-	// specify a pipeline that will add a field with the key "newField" to each event returned
+	// specify a pipeline that will only match "insert" events
 	// specify the MaxAwaitTimeOption to have each attempt wait two seconds for new documents
-	addFieldsStage := bson.D{{"$addFields", bson.D{{"newField", "this is a new field"}}}}
+	matchStage := bson.D{{"$match", bson.D{{"operationType", "insert"}}}}
 	opts := options.ChangeStream().SetMaxAwaitTime(2 * time.Second)
-	changeStream, err := client.Watch(context.TODO(), mongo.Pipeline{addFieldsStage}, opts)
+	changeStream, err := client.Watch(context.TODO(), mongo.Pipeline{matchStage}, opts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func ExampleDatabase_Aggregate() {
 
 	// get a list of all returned documents and print them out
 	// see the mongo.Cursor documentation for more examples of using cursors
-	var results []bson.Raw
+	var results []bson.M
 	if err = cursor.All(context.TODO(), &results); err != nil {
 		log.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func ExampleDatabase_ListCollections() {
 
 	// get a list of all returned specifications and print them out
 	// see the mongo.Cursor documentation for more examples of using cursors
-	var results []bson.Raw
+	var results []bson.M
 	if err = cursor.All(context.TODO(), &results); err != nil {
 		log.Fatal(err)
 	}
