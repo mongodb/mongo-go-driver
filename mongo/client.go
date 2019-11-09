@@ -647,7 +647,7 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 
 // ListDatabases performs a listDatabases operation and returns the result.
 //
-// The filter parameter should be a document containing query operatiors and can be used to select which
+// The filter parameter must be a document containing query operatiors and can be used to select which
 // databases are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include
 // all databases.
 //
@@ -708,7 +708,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // ListDatabaseNames performs a listDatabases operation and returns a slice containing the names of all of the databases
 // on the server.
 //
-// The filter parameter should be a document containing query operators and can be used to select which databases
+// The filter parameter must be a document containing query operators and can be used to select which databases
 // are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
 // databases.
 func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
@@ -781,7 +781,7 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 // The client must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
-// The pipeline parameter should be an array of documents, each representing a pipeline stage. The pipeline cannot be
+// The pipeline parameter must be an array of documents, each representing a pipeline stage. The pipeline cannot be
 // nil or empty. The stage documents must all be non-nil. See https://docs.mongodb.com/manual/changeStreams/ for a list
 // of pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{}
 // type can be used.

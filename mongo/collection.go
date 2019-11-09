@@ -166,7 +166,7 @@ func (coll *Collection) Database() *Database {
 
 // BulkWrite performs a bulk write operation (https://docs.mongodb.com/manual/core/bulk-write-operations/).
 //
-// The models parameter should be a slice of operations to be executed in this bulk write. It cannot be nil or empty.
+// The models parameter must be a slice of operations to be executed in this bulk write. It cannot be nil or empty.
 // All of the models must be non-nil. See the mongo.WriteModel documentation for a list of valid model types and
 // examples of how they should be used.
 //
@@ -297,7 +297,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 // InsertOne performs an insert operation (https://docs.mongodb.com/manual/reference/command/insert/) to insert a
 // single document into the collection.
 //
-// The document parameter should be the document to be inserted. It cannot be nil. If the document does not have an _id
+// The document parameter must be the document to be inserted. It cannot be nil. If the document does not have an _id
 // field when transformed into BSON, one will be added automatically to the marshalled document. The original document
 // will not be modified.
 //
@@ -326,7 +326,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // multiple documents into the collection. If write errors occur during the operation (e.g. duplicate key error),
 // this method returns a BulkWriteException error.
 //
-// The documents parameter should be a slice of documents to insert. The slice cannot be nil or empty. The elements must
+// The documents parameter must be a slice of documents to insert. The slice cannot be nil or empty. The elements must
 // all be non-nil. If any of the documents do not have an _id field when transformed into BSON, one will be added
 // automatically to the marshalled document. The original document will not be modified.
 //
@@ -439,7 +439,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 // DeleteOne performs a delete operation (https://docs.mongodb.com/manual/reference/command/delete/) to delete at most
 // one document from the collection.
 //
-// The filter parameter should be a document containing query parameters and can be used to select the document to be
+// The filter parameter must be a document containing query parameters and can be used to select the document to be
 // deleted. It cannot be nil. An empty document (e.g. bson.D{}) will select one of the documents in the collection. If
 // the filter does not match any documents, the operation will succeed and a DeleteResult with a DeletedCount of 0 will
 // be returned. If the filter matches multiple documents, one will be selected from the matched set.
@@ -454,7 +454,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 // DeleteMany performs a delete operation (https://docs.mongodb.com/manual/reference/command/delete/) to delete
 // documents from the collection.
 //
-// The filter parameter should be a document containing query parameters and can be used to select the documents to
+// The filter parameter must be a document containing query parameters and can be used to select the documents to
 // be deleted. It cannot be nil. An empty document (e.g. bson.D{}) should be used to delete all documents in the
 // collection. If the filter does not match any documents, the operation will succeed and a DeleteResult with a
 // DeletedCount of 0 will be returned.
@@ -567,12 +567,12 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 // UpdateOne executes an update operation (https://docs.mongodb.com/manual/reference/command/update/) to update at
 // most one document in the collection.
 //
-// The filter parameter should be a document containing query operators and can be used to select the document to be
+// The filter parameter must be a document containing query operators and can be used to select the document to be
 // updated. It cannot be nil. An empty document (e.g. bson.D{}) will select one of the documents in the collection. If
 // the filter does not match any documents, the operation will succeed and an UpdateResult with a MatchedCount of 0 will
 // be returned. If the filter matches multiple documents, one will be selected from the matched set.
 //
-// The update parameter should be a document containing update operators
+// The update parameter must be a document containing update operators
 // (https://docs.mongodb.com/manual/reference/operator/update/) and can be used to specify the modifications to be
 // made to the selected document. It cannot be nil or empty.
 //
@@ -595,11 +595,11 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 // UpdateMany executes an update operation (https://docs.mongodb.com/manual/reference/command/update/) to update
 // documents in the collection.
 //
-// The filter parameter should be a document containing query operators and can be used to select the documents to be
+// The filter parameter must be a document containing query operators and can be used to select the documents to be
 // updated. It cannot be nil. An empty document (e.g. bson.D{}) should be used to select all documents. If the filter does
 // not match any documents, the operation will succeed and an UpdateResult with a MatchedCount of 0 will be returned.
 //
-// The update parameter should be a document containing update operators
+// The update parameter must be a document containing update operators
 // (https://docs.mongodb.com/manual/reference/operator/update/) and can be used to specify the modifications to be made
 // to the selected documents. It cannot be nil or empty.
 //
@@ -622,12 +622,12 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 // ReplaceOne executes an update operation (https://docs.mongodb.com/manual/reference/command/update/) to replace at
 // most one document in the collection.
 //
-// The filter parameter should be a document containing query operators and can be used to select the document to be
+// The filter parameter must be a document containing query operators and can be used to select the document to be
 // replaced. It cannot be nil. An empty document (e.g. bson.D{}) will select one of the documents in the collection. If
 // the filter does not match any documents, the operation will succeed and an UpdateResult with a MatchedCount of 0 will
 // be returned. If the filter matches multiple documents, one will be selected from the matched set.
 //
-// The replacement parameter should be a document that will be used to replace the selected document. It cannot be nil
+// The replacement parameter must be a document that will be used to replace the selected document. It cannot be nil
 // and cannot contain any update operators (https://docs.mongodb.com/manual/reference/operator/update/).
 //
 // The opts parameter can be used to specify options for the operation (see the options.ReplaceOptions documentation).
@@ -667,7 +667,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 // Aggregate executes an aggregate operation (https://docs.mongodb.com/manual/reference/command/aggregate/) against
 // the collection.
 //
-// The pipeline parameter should be an array of documents, each representing an aggregation stage. The pipeline cannot
+// The pipeline parameter must be an array of documents, each representing an aggregation stage. The pipeline cannot
 // be nil but can be empty. The stage documents must all be non-nil. For a pipeline of bson.D documents, the
 // mongo.Pipeline type can be used. See
 // https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/#db-collection-aggregate-stages for a list of
@@ -803,7 +803,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 // CountDocuments returns the number of documents in the collection. For a fast count of the documents in the
 // collection, see the EstimatedDocumentCount method.
 //
-// The filter parameter should be a document and can be used to select which documents contribute to the count. It
+// The filter parameter must be a document and can be used to select which documents contribute to the count. It
 // cannot be nil. An empty document (e.g. bson.D{}) should be used to count all documents in the collection. This will
 // result in a full collection scan.
 //
@@ -944,7 +944,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 //
 // The fieldName parameter specifies the field name for which distinct values should be returned.
 //
-// The filter parameter should be a document containing query operators and can be used to select which documents are
+// The filter parameter must be a document containing query operators and can be used to select which documents are
 // considered. It cannot be nil. An empty document (e.g. bson.D{}) should be used to select all documents.
 //
 // The opts parameter can be used to specify options for the operation (see the options.DistinctOptions documentation).
@@ -1032,7 +1032,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // Find executes a find operation (https://docs.mongodb.com/manual/reference/command/find/) and returns a Cursor over
 // a subset of the documents in the collection.
 //
-// The filter parameter should be a document containing query operators and can be used to select which documents are
+// The filter parameter must be a document containing query operators and can be used to select which documents are
 // included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all documents.
 //
 // The opts parameter can be used to specify options for the operation (see the options.FindOptions documentation).
@@ -1198,7 +1198,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 // FindOne executes a find operation (https://docs.mongodb.com/manual/reference/command/find/) and returns a
 // SingleResult for one document in the collection.
 //
-// The filter parameter should be a document containing query operators and can be used to select the document to be
+// The filter parameter must be a document containing query operators and can be used to select the document to be
 // returned. It cannot be nil. An empty document (e.g. bson.D{}) will select one of the documents in the collection. If
 // the filter does not match any documents, a SingleResult with an error set to ErrNoDocuments will be returned. If the
 // filter matches multiple documents, one will be selected from the matched set.
@@ -1299,7 +1299,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 // (https://docs.mongodb.com/manual/reference/command/findAndModify/) to delete at most one document in the collection.
 // and returns the document as it appeared before deletion.
 //
-// The filter parameter should be a document containing query operators and can be used to select the document to be
+// The filter parameter must be a document containing query operators and can be used to select the document to be
 // deleted. It cannot be nil. An empty document (e.g. bson.D{}) will select one of the documents in the collection. If
 // the filter does not match any documents, a SingleResult with an error set to ErrNoDocuments wil be returned. If the
 // filter matches multiple documents, one will be selected from the matched set.
@@ -1343,12 +1343,12 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 // (https://docs.mongodb.com/manual/reference/command/findAndModify/) to replace at most one document in the collection
 // and returns the document as it appeared before replacement.
 //
-// The filter parameter should be a document containing query operators and can be used to select the document to be
+// The filter parameter must be a document containing query operators and can be used to select the document to be
 // replaced. It cannot be nil. An empty document (e.g. bson.D{}) will select one of the documents in the collection. If
 // the filter does not match any documents, a SingleResult with an error set to ErrNoDocuments wil be returned. If the
 // filter matches multiple documents, one will be selected from the matched set.
 //
-// The replacement parameter should be a document that will be used to replace the selected document. It cannot be nil
+// The replacement parameter must be a document that will be used to replace the selected document. It cannot be nil
 // and cannot contain any update operators (https://docs.mongodb.com/manual/reference/operator/update/).
 //
 // The opts parameter can be used to specify options for the operation (see the options.FindOneAndReplaceOptions
@@ -1407,12 +1407,12 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 // (https://docs.mongodb.com/manual/reference/command/findAndModify/) to update at most one document in the collection
 // and returns the document as it appeared before updating.
 //
-// The filter parameter should be a document containing query operators and can be used to select the document to be
+// The filter parameter must be a document containing query operators and can be used to select the document to be
 // updated. It cannot be nil. An empty document (e.g. bson.D{}) will select one of the documents in the collection. If
 // the filter does not match any documents, a SingleResult with an error set to ErrNoDocuments wil be returned. If the
 // filter matches multiple documents, one will be selected from the matched set.
 //
-// The update parameter should be a document containing update operators
+// The update parameter must be a document containing update operators
 // (https://docs.mongodb.com/manual/reference/operator/update/) and can be used to specify the modifications to be made
 // to the selected document. It cannot be nil or empty.
 //
@@ -1485,7 +1485,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 // The Collection must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
-// The pipeline parameter should be an array of documents, each representing a pipeline stage. The pipeline cannot be
+// The pipeline parameter must be an array of documents, each representing a pipeline stage. The pipeline cannot be
 // nil but can be empty. The stage documents must all be non-nil. See https://docs.mongodb.com/manual/changeStreams/ for
 // a list of pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the
 // mongo.Pipeline{} type can be used.
