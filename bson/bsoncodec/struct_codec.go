@@ -71,7 +71,10 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, val r
 		if desc.inline == nil {
 			rv = val.Field(desc.idx)
 		} else {
-			rv = val.FieldByIndex(desc.inline)
+			rv, err = fieldByIndexErr(val, desc.inline)
+			if err != nil {
+				continue
+			}
 		}
 
 		desc.encoder, rv, err = defaultValueEncoders.lookupElementEncoder(r, desc.encoder, rv)
@@ -194,7 +197,10 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 		if fd.inline == nil {
 			field = val.Field(fd.idx)
 		} else {
-			field = val.FieldByIndex(fd.inline)
+			field, err = getInlineField(val, fd.inline)
+			if err != nil {
+				return err
+			}
 		}
 
 		if !field.CanSet() { // Being settable is a super set of being addressable.
@@ -297,11 +303,12 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 			continue
 		}
 
-		encoder, err := r.LookupEncoder(sf.Type)
+		sfType := sf.Type
+		encoder, err := r.LookupEncoder(sfType)
 		if err != nil {
 			encoder = nil
 		}
-		decoder, err := r.LookupDecoder(sf.Type)
+		decoder, err := r.LookupDecoder(sfType)
 		if err != nil {
 			decoder = nil
 		}
@@ -321,17 +328,23 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 		description.truncate = stags.Truncate
 
 		if stags.Inline {
-			switch sf.Type.Kind() {
+			switch sfType.Kind() {
 			case reflect.Map:
 				if sd.inlineMap >= 0 {
 					return nil, errors.New("(struct " + t.String() + ") multiple inline maps")
 				}
-				if sf.Type.Key() != tString {
+				if sfType.Key() != tString {
 					return nil, errors.New("(struct " + t.String() + ") inline map must have a string keys")
 				}
 				sd.inlineMap = description.idx
+			case reflect.Ptr:
+				sfType = sfType.Elem()
+				if sfType.Kind() != reflect.Struct {
+					return nil, fmt.Errorf("(struct %s) inline fields must be a struct, a struct pointer, or a map", t.String())
+				}
+				fallthrough
 			case reflect.Struct:
-				inlinesf, err := sc.describeStruct(r, sf.Type)
+				inlinesf, err := sc.describeStruct(r, sfType)
 				if err != nil {
 					return nil, err
 				}
@@ -348,7 +361,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 					sd.fl = append(sd.fl, fd)
 				}
 			default:
-				return nil, fmt.Errorf("(struct %s) inline fields must be either a struct or a map", t.String())
+				return nil, fmt.Errorf("(struct %s) inline fields must be a struct, a struct pointer, or a map", t.String())
 			}
 			continue
 		}
@@ -366,4 +379,40 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 	sc.l.Unlock()
 
 	return sd, nil
+}
+
+func fieldByIndexErr(v reflect.Value, index []int) (result reflect.Value, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			switch r := recovered.(type) {
+			case string:
+				err = fmt.Errorf("%s", r)
+			case error:
+				err = r
+			}
+		}
+	}()
+
+	result = v.FieldByIndex(index)
+	return
+}
+
+func getInlineField(val reflect.Value, index []int) (reflect.Value, error) {
+	field, err := fieldByIndexErr(val, index)
+	if err == nil {
+		return field, nil
+	}
+
+	// if parent of this element doesn't exist, fix its parent
+	inlineParent := index[:len(index)-1]
+	var fParent reflect.Value
+	if fParent, err = fieldByIndexErr(val, inlineParent); err != nil {
+		fParent, err = getInlineField(val, inlineParent)
+		if err != nil {
+			return fParent, err
+		}
+	}
+	fParent.Set(reflect.New(fParent.Type().Elem()))
+
+	return fieldByIndexErr(val, index)
 }
