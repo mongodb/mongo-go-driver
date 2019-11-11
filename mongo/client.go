@@ -647,7 +647,7 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 
 // ListDatabases performs a listDatabases operation and returns the result.
 //
-// The filter parameter must be a document containing query operatiors and can be used to select which
+// The filter parameter must be a document containing query operators and can be used to select which
 // databases are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include
 // all databases.
 //
