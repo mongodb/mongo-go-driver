@@ -249,7 +249,7 @@ func ExampleCollection_DeleteMany() {
 	var coll *mongo.Collection
 
 	// delete all documents in which the "name" field is "Bob" or "bob"
-	// specify the SetCollation option to provide a collation that will ignore case for string comparisons
+	// specify the Collation option to provide a collation that will ignore case for string comparisons
 	opts := options.Delete().SetCollation(&options.Collation{
 		Locale:   "en_US",
 		Strength: 1,
@@ -264,7 +264,7 @@ func ExampleCollection_DeleteMany() {
 func ExampleCollection_DeleteOne() {
 	var coll *mongo.Collection
 
-	// delete at most one documents in which the "name" field is "Bob" or "bob"
+	// delete at most one document in which the "name" field is "Bob" or "bob"
 	// specify the SetCollation option to provide a collation that will ignore case for string comparisons
 	opts := options.Delete().SetCollation(&options.Collation{
 		Locale:   "en_US",
@@ -311,8 +311,8 @@ func ExampleCollection_Find() {
 	var coll *mongo.Collection
 
 	// find all documents in which the "name" field is "Bob"
-	// specify the MaxTime option to limit the amount of time the operation can run on the server
-	opts := options.Find().SetMaxTime(2 * time.Second)
+	// specify the Sort option to sort the returned documents by name in ascending order
+	opts := options.Find().SetSort(bson.D{{"name", 1}})
 	cursor, err := coll.Find(context.TODO(), bson.D{{"name", "Bob"}}, opts)
 	if err != nil {
 		log.Fatal(err)
@@ -332,9 +332,9 @@ func ExampleCollection_Find() {
 func ExampleCollection_FindOne() {
 	var coll *mongo.Collection
 
-	// find the document in which the "name" field is "Bob"
-	// specify the MaxTime option to limit the amount of time the operation can run on the server
-	opts := options.FindOne().SetMaxTime(2 * time.Second)
+	// find at most one document in which the "name" field is "Bob"
+	// specify the Sort option to sort the documents by age before selecting one
+	opts := options.FindOne().SetSort(bson.D{{"age", 1}})
 	var result bson.M
 	err := coll.FindOne(context.TODO(), bson.D{{"name", "Bob"}}, opts).Decode(&result)
 	if err != nil {
@@ -350,9 +350,9 @@ func ExampleCollection_FindOne() {
 func ExampleCollection_FindOneAndDelete() {
 	var coll *mongo.Collection
 
-	// find and delete the document in which the "name" field is "Bob"
-	// specify the MaxTime option to limit the amount of time the operation can run on the server
-	opts := options.FindOneAndDelete().SetMaxTime(2 * time.Second)
+	// find and delete at most one document in which the "name" field is "Bob"
+	// specify the Sort option to sort the documents by age before selecting one to delete
+	opts := options.FindOneAndDelete().SetSort(bson.D{{"age", 1}})
 	var deletedDocument bson.M
 	err := coll.FindOneAndDelete(context.TODO(), bson.D{{"name", "Bob"}}, opts).Decode(&deletedDocument)
 	if err != nil {
@@ -368,8 +368,8 @@ func ExampleCollection_FindOneAndDelete() {
 func ExampleCollection_FindOneAndReplace() {
 	var coll *mongo.Collection
 
-	// find and replace the document in which the "name" field is "Bob" with {name: "Alice"}
-	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	// find and replace at most one document in which the "name" field is "Bob" with {name: "Alice"}
+	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
 	opts := options.FindOneAndReplace().SetUpsert(true)
 	filter := bson.D{{"name", "Bob"}}
 	replacement := bson.D{{"name", "Alice"}}
@@ -388,8 +388,8 @@ func ExampleCollection_FindOneAndReplace() {
 func ExampleCollection_FindOneAndUpdate() {
 	var coll *mongo.Collection
 
-	// find the document in which the "name" field is "Bob" and set the name to "Alice"
-	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	// find at most one document in which the "name" field is "Bob" and set the name to "Alice"
+	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
 	opts := options.FindOneAndUpdate().SetUpsert(true)
 	filter := bson.D{{"name", "Bob"}}
 	update := bson.D{{"$set", bson.D{{"name", "Alice"}}}}
@@ -438,8 +438,8 @@ func ExampleCollection_InsertOne() {
 func ExampleCollection_ReplaceOne() {
 	var coll *mongo.Collection
 
-	// replace the document in which the "name" field is "Bob" with {name: "Alice"}
-	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	// replace at most one document in which the "name" field is "Bob" with {name: "Alice"}
+	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
 	opts := options.Replace().SetUpsert(true)
 	filter := bson.D{{"name", "Bob"}}
 	replacement := bson.D{{"name", "Alice"}}
@@ -461,12 +461,12 @@ func ExampleCollection_UpdateMany() {
 	var coll *mongo.Collection
 
 	// find all documents in which the "name" field is "Bob" and set the name to "Alice"
-	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
 	opts := options.Update().SetUpsert(true)
 	filter := bson.D{{"name", "Bob"}}
 	update := bson.D{{"$set", bson.D{{"name", "Alice"}}}}
 
-	result, err := coll.UpdateOne(context.TODO(), filter, update, opts)
+	result, err := coll.UpdateMany(context.TODO(), filter, update, opts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -483,8 +483,8 @@ func ExampleCollection_UpdateMany() {
 func ExampleCollection_UpdateOne() {
 	var coll *mongo.Collection
 
-	// find the document in which the "name" field is "Bob" and set the name to "Alice"
-	// specify the Upsert option to insert {name: "Alice"} if the {name: "Bob"} document isn't found
+	// find at most one document in which the "name" field is "Bob" and set the name to "Alice"
+	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
 	opts := options.Update().SetUpsert(true)
 	filter := bson.D{{"name", "Bob"}}
 	update := bson.D{{"$set", bson.D{{"name", "Alice"}}}}
