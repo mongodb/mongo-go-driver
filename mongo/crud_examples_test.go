@@ -333,7 +333,8 @@ func ExampleCollection_FindOne() {
 	var coll *mongo.Collection
 
 	// find at most one document in which the "name" field is "Bob"
-	// specify the Sort option to sort the documents by age before selecting one
+	// specify the Sort option to sort the documents by age
+	// the first document in the sorted order will be returned
 	opts := options.FindOne().SetSort(bson.D{{"age", 1}})
 	var result bson.M
 	err := coll.FindOne(context.TODO(), bson.D{{"name", "Bob"}}, opts).Decode(&result)
@@ -351,7 +352,8 @@ func ExampleCollection_FindOneAndDelete() {
 	var coll *mongo.Collection
 
 	// find and delete at most one document in which the "name" field is "Bob"
-	// specify the Sort option to sort the documents by age before selecting one to delete
+	// specify the Sort option to sort the documents by age
+	// the first document in the sorted order will be deleted
 	opts := options.FindOneAndDelete().SetSort(bson.D{{"age", 1}})
 	var deletedDocument bson.M
 	err := coll.FindOneAndDelete(context.TODO(), bson.D{{"name", "Bob"}}, opts).Decode(&deletedDocument)
