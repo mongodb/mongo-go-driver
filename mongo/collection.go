@@ -295,14 +295,15 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	return result, op.Execute(ctx)
 }
 
-// InsertOne performs an insert operation (https://docs.mongodb.com/manual/reference/command/insert/) to insert a
-// single document into the collection.
+// InsertOne executes an insert command to insert a single document into the collection.
 //
 // The document parameter must be the document to be inserted. It cannot be nil. If the document does not have an _id
 // field when transformed into BSON, one will be added automatically to the marshalled document. The original document
 // will not be modified. The _id can be retrieved from the InsertedID field of the returned InsertOneResult.
 //
 // The opts parameter can be used to specify options for the operation (see the options.InsertOneOptions documentation.)
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/insert/.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
 
@@ -323,9 +324,8 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	return &InsertOneResult{InsertedID: res[0]}, err
 }
 
-// InsertMany performs an insert operation (https://docs.mongodb.com/manual/reference/command/insert/) to insert
-// multiple documents into the collection. If write errors occur during the operation (e.g. duplicate key error),
-// this method returns a BulkWriteException error.
+// InsertMany executes an insert command to insert multiple documents into the collection. If write errors occur
+// during the operation (e.g. duplicate key error), this method returns a BulkWriteException error.
 //
 // The documents parameter must be a slice of documents to insert. The slice cannot be nil or empty. The elements must
 // all be non-nil. For any document that does not have an _id field when transformed into BSON, one will be added
@@ -333,6 +333,8 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // documents can be retrieved from the InsertedIDs field of the returnd InsertManyResult.
 //
 // The opts parameter can be used to specify options for the operation (see the options.InsertManyOptions documentation.)
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/insert/.
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	opts ...*options.InsertManyOptions) (*InsertManyResult, error) {
 
@@ -438,8 +440,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	return &DeleteResult{DeletedCount: int64(op.Result().N)}, err
 }
 
-// DeleteOne performs a delete operation (https://docs.mongodb.com/manual/reference/command/delete/) to delete at most
-// one document from the collection.
+// DeleteOne executes a delete command to delete at most one document from the collection.
 //
 // The filter parameter must be a document containing query parameters and can be used to select the document to be
 // deleted. It cannot be nil. If the filter does not match any documents, the operation will succeed and a DeleteResult
@@ -447,14 +448,15 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 // matched set.
 //
 // The opts parameter can be used to specify options for the operation (see the options.DeleteOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/delete/.
 func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	opts ...*options.DeleteOptions) (*DeleteResult, error) {
 
 	return coll.delete(ctx, filter, true, rrOne, opts...)
 }
 
-// DeleteMany performs a delete operation (https://docs.mongodb.com/manual/reference/command/delete/) to delete
-// documents from the collection.
+// DeleteMany executes a delete command to delete documents from the collection.
 //
 // The filter parameter must be a document containing query parameters and can be used to select the documents to
 // be deleted. It cannot be nil. An empty document (e.g. bson.D{}) should be used to delete all documents in the
@@ -462,6 +464,8 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 // DeletedCount of 0 will be returned.
 //
 // The opts parameter can be used to specify options for the operation (see the options.DeleteOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/delete/.
 func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	opts ...*options.DeleteOptions) (*DeleteResult, error) {
 
@@ -566,19 +570,20 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	return res, err
 }
 
-// UpdateOne executes an update operation (https://docs.mongodb.com/manual/reference/command/update/) to update at
-// most one document in the collection.
+// UpdateOne executes an update command to update at most one document in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select the document to be
 // updated. It cannot be nil. If the filter does not match any documents, the operation will succeed and an UpdateResult
 // with a MatchedCount of 0 will be returned. If the filter matches multiple documents, one will be selected from the
-// matched set.
+// matched set and MatchedCount will equal 1.
 //
 // The update parameter must be a document containing update operators
 // (https://docs.mongodb.com/manual/reference/operator/update/) and can be used to specify the modifications to be
 // made to the selected document. It cannot be nil or empty.
 //
 // The opts parameter can be used to specify options for the operation (see the options.UpdateOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/update/.
 func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
 	opts ...*options.UpdateOptions) (*UpdateResult, error) {
 
@@ -594,8 +599,7 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, opts...)
 }
 
-// UpdateMany executes an update operation (https://docs.mongodb.com/manual/reference/command/update/) to update
-// documents in the collection.
+// UpdateMany executes an update command to update documents in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select the documents to be
 // updated. It cannot be nil. An empty document (e.g. bson.D{}) should be used to select all documents. If the filter does
@@ -606,6 +610,8 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 // to the selected documents. It cannot be nil or empty.
 //
 // The opts parameter can be used to specify options for the operation (see the options.UpdateOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/update/.
 func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
 	opts ...*options.UpdateOptions) (*UpdateResult, error) {
 
@@ -621,18 +627,19 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 	return coll.updateOrReplace(ctx, f, update, true, rrMany, true, opts...)
 }
 
-// ReplaceOne executes an update operation (https://docs.mongodb.com/manual/reference/command/update/) to replace at
-// most one document in the collection.
+// ReplaceOne executes an update command to replace at most one document in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select the document to be
 // replaced. It cannot be nil. If the filter does not match any documents, the operation will succeed and an
 // UpdateResult with a MatchedCount of 0 will be returned. If the filter matches multiple documents, one will be
-// selected from the matched set.
+// selected from the matched set and MatchedCount will equal 1.
 //
 // The replacement parameter must be a document that will be used to replace the selected document. It cannot be nil
 // and cannot contain any update operators (https://docs.mongodb.com/manual/reference/operator/update/).
 //
 // The opts parameter can be used to specify options for the operation (see the options.ReplaceOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/update/.
 func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 	replacement interface{}, opts ...*options.ReplaceOptions) (*UpdateResult, error) {
 
@@ -666,8 +673,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, updateOptions...)
 }
 
-// Aggregate executes an aggregate operation (https://docs.mongodb.com/manual/reference/command/aggregate/) against
-// the collection and returns a cursor over the resulting documents.
+// Aggregate executes an aggregate command against the collection and returns a cursor over the resulting documents.
 //
 // The pipeline parameter must be an array of documents, each representing an aggregation stage. The pipeline cannot
 // be nil but can be empty. The stage documents must all be non-nil. For a pipeline of bson.D documents, the
@@ -676,6 +682,8 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 // valid stages in aggregations.
 //
 // The opts parameter can be used to specify options for the operation (see the options.AggregateOptions documentation.)
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/aggregate/.
 func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	opts ...*options.AggregateOptions) (*Cursor, error) {
 	a := aggregateParams{
@@ -887,11 +895,13 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	return val, nil
 }
 
-// EstimatedDocumentCount executes a count operation (https://docs.mongodb.com/manual/reference/command/count/) and
-// returns an estimate of the number of documents in the collection using collection metadata.
+// EstimatedDocumentCount executes a count command and returns an estimate of the number of documents in the collection
+// using collection metadata.
 //
 // The opts parameter can be used to specify options for the operation (see the options.EstimatedDocumentCountOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/count/.
 func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	opts ...*options.EstimatedDocumentCountOptions) (int64, error) {
 
@@ -941,8 +951,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	return op.Result().N, replaceErrors(err)
 }
 
-// Distinct executes a distinct operation (https://docs.mongodb.com/manual/reference/command/distinct/) to find the
-// unique values for a specified field in the collection.
+// Distinct executes a distinct command to find the unique values for a specified field in the collection.
 //
 // The fieldName parameter specifies the field name for which distinct values should be returned.
 //
@@ -950,6 +959,8 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 // considered. It cannot be nil. An empty document (e.g. bson.D{}) should be used to select all documents.
 //
 // The opts parameter can be used to specify options for the operation (see the options.DistinctOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/distinct/.
 func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
 	opts ...*options.DistinctOptions) ([]interface{}, error) {
 
@@ -1031,13 +1042,14 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	return retArray, replaceErrors(err)
 }
 
-// Find executes a find operation (https://docs.mongodb.com/manual/reference/command/find/) and returns a Cursor over
-// the matching documents in the collection.
+// Find executes a find command and returns a Cursor over the matching documents in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select which documents are
 // included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all documents.
 //
 // The opts parameter can be used to specify options for the operation (see the options.FindOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
 	opts ...*options.FindOptions) (*Cursor, error) {
 
@@ -1197,14 +1209,15 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	return newCursorWithSession(bc, coll.registry, sess)
 }
 
-// FindOne executes a find operation (https://docs.mongodb.com/manual/reference/command/find/) and returns a
-// SingleResult for one document in the collection.
+// FindOne executes a find command and returns a SingleResult for one document in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select the document to be
 // returned. It cannot be nil. If the filter does not match any documents, a SingleResult with an error set to
 // ErrNoDocuments will be returned. If the filter matches multiple documents, one will be selected from the matched set.
 //
 // The opts parameter can be used to specify options for this operation (see the options.FindOneOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/find/.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	opts ...*options.FindOneOptions) *SingleResult {
 
@@ -1296,9 +1309,8 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 	return &SingleResult{rdr: bson.Raw(op.Result().Value), reg: coll.registry}
 }
 
-// FindOneAndDelete executes a findAndModify operation
-// (https://docs.mongodb.com/manual/reference/command/findAndModify/) to delete at most one document in the collection.
-// and returns the document as it appeared before deletion.
+// FindOneAndDelete executes a findAndModify command to delete at most one document in the collection. and returns the
+// document as it appeared before deletion.
 //
 // The filter parameter must be a document containing query operators and can be used to select the document to be
 // deleted. It cannot be nil. If the filter does not match any documents, a SingleResult with an error set to
@@ -1306,6 +1318,8 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 //
 // The opts parameter can be used to specify options for the operation (see the options.FindOneAndDeleteOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
 	opts ...*options.FindOneAndDeleteOptions) *SingleResult {
 
@@ -1339,8 +1353,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	return coll.findAndModify(ctx, op)
 }
 
-// FindOneAndReplace executes a findAndModify operation
-// (https://docs.mongodb.com/manual/reference/command/findAndModify/) to replace at most one document in the collection
+// FindOneAndReplace executes a findAndModify command to replace at most one document in the collection
 // and returns the document as it appeared before replacement.
 //
 // The filter parameter must be a document containing query operators and can be used to select the document to be
@@ -1352,6 +1365,8 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 //
 // The opts parameter can be used to specify options for the operation (see the options.FindOneAndReplaceOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
 	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *SingleResult {
 
@@ -1402,9 +1417,8 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	return coll.findAndModify(ctx, op)
 }
 
-// FindOneAndUpdate executes a findAndModify operation
-// (https://docs.mongodb.com/manual/reference/command/findAndModify/) to update at most one document in the collection
-// and returns the document as it appeared before updating.
+// FindOneAndUpdate executes a findAndModify command to update at most one document in the collection and returns the
+// document as it appeared before updating.
 //
 // The filter parameter must be a document containing query operators and can be used to select the document to be
 // updated. It cannot be nil. If the filter does not match any documents, a SingleResult with an error set to
@@ -1416,6 +1430,8 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 //
 // The opts parameter can be used to specify options for the operation (see the options.FindOneAndUpdateOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
 	update interface{}, opts ...*options.FindOneAndUpdateOptions) *SingleResult {
 

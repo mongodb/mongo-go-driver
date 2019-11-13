@@ -100,8 +100,8 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 	return newCollection(db, name, opts...)
 }
 
-// Aggregate performs an aggregate operation (https://docs.mongodb.com/manual/reference/command/aggregate/) against
-// the database. This requires MongoDB version >= 3.6 and driver version >= 1.1.0.
+// Aggregate executes an aggregate command the database. This requires MongoDB version >= 3.6 and driver version >=
+// 1.1.0.
 //
 // The pipeline parameter must be a slice of documents, each representing an aggregation stage. The pipeline
 // cannot be nil but can be empty. The stage documents must all be non-nil. For a pipeline of bson.D documents, the
@@ -110,6 +110,8 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 // stages in database-level aggregations.
 //
 // The opts parameter can be used to specify options for this operation (see the options.AggregateOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/aggregate/.
 func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 	opts ...*options.AggregateOptions) (*Cursor, error) {
 	a := aggregateParams{
@@ -274,9 +276,7 @@ func (db *Database) Drop(ctx context.Context) error {
 	return nil
 }
 
-// ListCollections performs a listCollections operation
-// (https://docs.mongodb.com/manual/reference/command/listCollections/) and returns a cursor over the collections in
-// the database.
+// ListCollections executes a listCollections command and returns a cursor over the collections in the database.
 //
 // The filter parameter must be a document containing query operators and can be used to select which collections
 // are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
@@ -284,6 +284,8 @@ func (db *Database) Drop(ctx context.Context) error {
 //
 // The opts parameter can be used to specify options for the operation (see the options.ListCollectionsOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
 func (db *Database) ListCollections(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -343,7 +345,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	return cursor, replaceErrors(err)
 }
 
-// ListCollectionNames performs a listCollections operation and returns a slice containing the names of the collections
+// ListCollectionNames executes a listCollections command and returns a slice containing the names of the collections
 // in the database. This method requires driver version >= 1.1.0.
 //
 // The filter parameter must be a document containing query operators and can be used to select which collections
@@ -352,6 +354,8 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 //
 // The opts parameter can be used to specify options for the operation (see the options.ListCollectionsOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
 func (db *Database) ListCollectionNames(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
 

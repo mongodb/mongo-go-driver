@@ -645,13 +645,15 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 	return newDatabase(c, name, opts...)
 }
 
-// ListDatabases performs a listDatabases operation and returns the result.
+// ListDatabases executes a listDatabases command and returns the result.
 //
 // The filter parameter must be a document containing query operators and can be used to select which
 // databases are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include
 // all databases.
 //
 // The opts paramter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -705,12 +707,17 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	return newListDatabasesResultFromOperation(op.Result()), nil
 }
 
-// ListDatabaseNames performs a listDatabases operation and returns a slice containing the names of all of the databases
+// ListDatabaseNames executes a listDatabases command and returns a slice containing the names of all of the databases
 // on the server.
 //
 // The filter parameter must be a document containing query operators and can be used to select which databases
 // are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
 // databases.
+//
+// The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions
+// documentation.)
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
