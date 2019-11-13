@@ -100,16 +100,18 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 	return newCollection(db, name, opts...)
 }
 
-// Aggregate performs an aggregate operation (https://docs.mongodb.com/manual/reference/command/aggregate/) against
-// the database. This requires MongoDB version >= 3.6 and driver version >= 1.1.0.
+// Aggregate executes an aggregate command the database. This requires MongoDB version >= 3.6 and driver version >=
+// 1.1.0.
 //
-// The pipeline parameter should be a slice of documents, each representing an aggregation stage. The pipeline
+// The pipeline parameter must be a slice of documents, each representing an aggregation stage. The pipeline
 // cannot be nil but can be empty. The stage documents must all be non-nil. For a pipeline of bson.D documents, the
 // mongo.Pipeline type can be used. See
 // https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/#db-aggregate-stages for a list of valid
 // stages in database-level aggregations.
 //
 // The opts parameter can be used to specify options for this operation (see the options.AggregateOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/aggregate/.
 func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 	opts ...*options.AggregateOptions) (*Cursor, error) {
 	a := aggregateParams{
@@ -170,7 +172,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 
 // RunCommand executes the given command against the database.
 //
-// The runCommand parameter should be a document for the command to be executed. It cannot be nil.
+// The runCommand parameter must be a document for the command to be executed. It cannot be nil.
 // This must be an order-preserving type such as bson.D. Map types such as bson.M are not valid.
 // If the command document contains a session ID or any transaction-specific fields, the behavior is undefined.
 //
@@ -198,7 +200,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 // being executed does not return a cursor (e.g. insert), the command will be executed on the server and an error
 // will be returned because the server response cannot be parsed as a cursor.
 //
-// The runCommand parameter should be a document for the command to be executed. It cannot be nil.
+// The runCommand parameter must be a document for the command to be executed. It cannot be nil.
 // This must be an order-preserving type such as bson.D. Map types such as bson.M are not valid.
 // If the command document contains a session ID or any transaction-specific fields, the behavior is undefined.
 //
@@ -274,16 +276,16 @@ func (db *Database) Drop(ctx context.Context) error {
 	return nil
 }
 
-// ListCollections performs a listCollections operation
-// (https://docs.mongodb.com/manual/reference/command/listCollections/) and returns a cursor over the collections in
-// the database.
+// ListCollections executes a listCollections command and returns a cursor over the collections in the database.
 //
-// The filter parameter should be a document containing query operators and can be used to select which collections
+// The filter parameter must be a document containing query operators and can be used to select which collections
 // are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
 // collections.
 //
 // The opts parameter can be used to specify options for the operation (see the options.ListCollectionsOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
 func (db *Database) ListCollections(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -343,15 +345,17 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	return cursor, replaceErrors(err)
 }
 
-// ListCollectionNames performs a listCollections operation and returns a slice containing the names of the collections
+// ListCollectionNames executes a listCollections command and returns a slice containing the names of the collections
 // in the database. This method requires driver version >= 1.1.0.
 //
-// The filter parameter should be a document containing query operators and can be used to select which collections
+// The filter parameter must be a document containing query operators and can be used to select which collections
 // are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
 // collections.
 //
 // The opts parameter can be used to specify options for the operation (see the options.ListCollectionsOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
 func (db *Database) ListCollectionNames(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
 
@@ -408,7 +412,7 @@ func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 // The Database must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
-// The pipeline parameter should be a slice of documents, each representing a pipeline stage. The pipeline cannot be
+// The pipeline parameter must be a slice of documents, each representing a pipeline stage. The pipeline cannot be
 // nil but can be empty. The stage documents must all be non-nil. See https://docs.mongodb.com/manual/changeStreams/ for
 // a list of pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the
 // mongo.Pipeline{} type can be used.

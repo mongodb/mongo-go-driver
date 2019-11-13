@@ -645,13 +645,15 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 	return newDatabase(c, name, opts...)
 }
 
-// ListDatabases performs a listDatabases operation and returns the result.
+// ListDatabases executes a listDatabases command and returns the result.
 //
-// The filter parameter should be a document containing query operatiors and can be used to select which
+// The filter parameter must be a document containing query operators and can be used to select which
 // databases are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include
 // all databases.
 //
 // The opts paramter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -705,12 +707,17 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	return newListDatabasesResultFromOperation(op.Result()), nil
 }
 
-// ListDatabaseNames performs a listDatabases operation and returns a slice containing the names of all of the databases
+// ListDatabaseNames executes a listDatabases command and returns a slice containing the names of all of the databases
 // on the server.
 //
-// The filter parameter should be a document containing query operators and can be used to select which databases
+// The filter parameter must be a document containing query operators and can be used to select which databases
 // are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
 // databases.
+//
+// The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions
+// documentation.)
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
@@ -775,15 +782,16 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 	return fn(sessCtx)
 }
 
-// Watch returns a change stream for all changes on the connected deployment. See https://docs.mongodb.com/manual/changeStreams/
-// for more information about change streams.
+// Watch returns a change stream for all changes on the deployment. See
+// https://docs.mongodb.com/manual/changeStreams/ for more information about change streams.
 //
 // The client must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
-// The pipeline parameter should be an array of documents, each representing a pipeline stage. See
-// https://docs.mongodb.com/manual/changeStreams/ for a list of pipeline stages that can be used with change streams.
-// For a pipeline of bson.D documents, the mongo.Pipeline{} type can be used.
+// The pipeline parameter must be an array of documents, each representing a pipeline stage. The pipeline cannot be
+// nil or empty. The stage documents must all be non-nil. See https://docs.mongodb.com/manual/changeStreams/ for a list
+// of pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{}
+// type can be used.
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
