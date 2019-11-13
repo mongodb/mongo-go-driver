@@ -147,8 +147,8 @@ func ExampleCollection_BulkWrite() {
 	firstUpdate := bson.D{{"$set", bson.D{{"email", "firstEmail@example.com"}}}}
 	secondUpdate := bson.D{{"$set", bson.D{{"email", "secondEmail@example.com"}}}}
 	models := []mongo.WriteModel{
-		mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", firstID}}).SetUpdate(firstUpdate),
-		mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", secondID}}).SetUpdate(secondUpdate),
+		mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", firstID}}).SetUpdate(firstUpdate).SetUpsert(true),
+		mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", secondID}}).SetUpdate(secondUpdate).SetUpsert(true),
 	}
 	opts := options.BulkWrite().SetOrdered(false)
 	res, err := coll.BulkWrite(context.TODO(), models, opts)
