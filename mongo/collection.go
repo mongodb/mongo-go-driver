@@ -126,7 +126,8 @@ func (coll *Collection) copy() *Collection {
 }
 
 // Clone creates a copy of the Collection configured with the given CollectionOptions.
-// Any existing options on the Collection will be merged with opts in a last-one wins fashion.
+// The specified options are merged with the existing options on the collection, with the specified options taking
+// precedence.
 func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, error) {
 	copyColl := coll.copy()
 	optsColl := options.MergeCollectionOptions(opts...)
@@ -602,8 +603,8 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 // UpdateMany executes an update command to update documents in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select the documents to be
-// updated. It cannot be nil. An empty document (e.g. bson.D{}) should be used to select all documents. If the filter does
-// not match any documents, the operation will succeed and an UpdateResult with a MatchedCount of 0 will be returned.
+// updated. It cannot be nil. If the filter does not match any documents, the operation will succeed and an UpdateResult
+// with a MatchedCount of 0 will be returned.
 //
 // The update parameter must be a document containing update operators
 // (https://docs.mongodb.com/manual/reference/operator/update/) and can be used to specify the modifications to be made
