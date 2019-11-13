@@ -13,26 +13,13 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // Client examples
-
-func ExampleClient_ListDatabases() {
-	var client *mongo.Client
-
-	// use a filter to select non-empty databases
-	result, err := client.ListDatabases(context.TODO(), bson.D{{"empty", false}})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, db := range result.Databases {
-		fmt.Printf("db: %v, size: %v\n", db.Name, db.SizeOnDisk)
-	}
-}
 
 func ExampleClient_ListDatabaseNames() {
 	var client *mongo.Client
@@ -69,29 +56,6 @@ func ExampleClient_Watch() {
 
 // Database examples
 
-func ExampleDatabase_Aggregate() {
-	var db *mongo.Database
-
-	// specify a pipeline that will list all sessions on the target server
-	// specify the MaxTime option to limit the amount of time the operation can run on the server
-	localSessionsStage := bson.D{{"$listLocalSessions", bson.D{{"allUsers", true}}}}
-	opts := options.Aggregate().SetMaxTime(2 * time.Second)
-	cursor, err := db.Aggregate(context.TODO(), mongo.Pipeline{localSessionsStage}, opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// get a list of all returned documents and print them out
-	// see the mongo.Cursor documentation for more examples of using cursors
-	var results []bson.M
-	if err = cursor.All(context.TODO(), &results); err != nil {
-		log.Fatal(err)
-	}
-	for _, result := range results {
-		fmt.Println(result)
-	}
-}
-
 func ExampleDatabase_ListCollectionNames() {
 	var db *mongo.Database
 
@@ -103,26 +67,6 @@ func ExampleDatabase_ListCollectionNames() {
 
 	for _, coll := range result {
 		fmt.Println(coll)
-	}
-}
-
-func ExampleDatabase_ListCollections() {
-	var db *mongo.Database
-
-	// use a filter to only select capped collections
-	cursor, err := db.ListCollections(context.TODO(), bson.D{{"options.capped", "true"}})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// get a list of all returned specifications and print them out
-	// see the mongo.Cursor documentation for more examples of using cursors
-	var results []bson.M
-	if err = cursor.All(context.TODO(), &results); err != nil {
-		log.Fatal(err)
-	}
-	for _, result := range results {
-		fmt.Println(result)
 	}
 }
 
@@ -138,29 +82,6 @@ func ExampleDatabase_RunCommand() {
 		log.Fatal(err)
 	}
 	fmt.Println(result)
-}
-
-func ExampleDatabase_RunCommandCursor() {
-	var db *mongo.Database
-
-	// run a find command against collection "foo"
-	// specify the ReadPreference option to explicitly set the read preference to primary
-	command := bson.D{{"find", "foo"}}
-	opts := options.RunCmd().SetReadPreference(readpref.Primary())
-	cursor, err := db.RunCommandCursor(context.TODO(), command, opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// get a list of all returned documents and print them out
-	// see the mongo.Cursor documentation for more examples of using cursors
-	var results []bson.M
-	if err = cursor.All(context.TODO(), &results); err != nil {
-		log.Fatal(err)
-	}
-	for _, result := range results {
-		fmt.Println(result)
-	}
 }
 
 func ExampleDatabase_Watch() {
@@ -251,8 +172,9 @@ func ExampleCollection_DeleteMany() {
 	// delete all documents in which the "name" field is "Bob" or "bob"
 	// specify the Collation option to provide a collation that will ignore case for string comparisons
 	opts := options.Delete().SetCollation(&options.Collation{
-		Locale:   "en_US",
-		Strength: 1,
+		Locale:    "en_US",
+		Strength:  1,
+		CaseLevel: false,
 	})
 	res, err := coll.DeleteMany(context.TODO(), bson.D{{"name", "bob"}}, opts)
 	if err != nil {
@@ -267,8 +189,9 @@ func ExampleCollection_DeleteOne() {
 	// delete at most one document in which the "name" field is "Bob" or "bob"
 	// specify the SetCollation option to provide a collation that will ignore case for string comparisons
 	opts := options.Delete().SetCollation(&options.Collation{
-		Locale:   "en_US",
-		Strength: 1,
+		Locale:    "en_US",
+		Strength:  1,
+		CaseLevel: false,
 	})
 	res, err := coll.DeleteOne(context.TODO(), bson.D{{"name", "bob"}}, opts)
 	if err != nil {
@@ -311,8 +234,8 @@ func ExampleCollection_Find() {
 	var coll *mongo.Collection
 
 	// find all documents in which the "name" field is "Bob"
-	// specify the Sort option to sort the returned documents by name in ascending order
-	opts := options.Find().SetSort(bson.D{{"name", 1}})
+	// specify the Sort option to sort the returned documents by age in ascending order
+	opts := options.Find().SetSort(bson.D{{"age", 1}})
 	cursor, err := coll.Find(context.TODO(), bson.D{{"name", "Bob"}}, opts)
 	if err != nil {
 		log.Fatal(err)
@@ -331,13 +254,14 @@ func ExampleCollection_Find() {
 
 func ExampleCollection_FindOne() {
 	var coll *mongo.Collection
+	var id primitive.ObjectID
 
-	// find at most one document in which the "name" field is "Bob"
+	// find the document for which the _id field matches id
 	// specify the Sort option to sort the documents by age
 	// the first document in the sorted order will be returned
 	opts := options.FindOne().SetSort(bson.D{{"age", 1}})
 	var result bson.M
-	err := coll.FindOne(context.TODO(), bson.D{{"name", "Bob"}}, opts).Decode(&result)
+	err := coll.FindOne(context.TODO(), bson.D{{"_id", id}}, opts).Decode(&result)
 	if err != nil {
 		// ErrNoDocuments means that the filter did not match any documents in the collection
 		if err == mongo.ErrNoDocuments {
@@ -350,13 +274,13 @@ func ExampleCollection_FindOne() {
 
 func ExampleCollection_FindOneAndDelete() {
 	var coll *mongo.Collection
+	var id primitive.ObjectID
 
-	// find and delete at most one document in which the "name" field is "Bob"
-	// specify the Sort option to sort the documents by age
-	// the first document in the sorted order will be deleted
-	opts := options.FindOneAndDelete().SetSort(bson.D{{"age", 1}})
+	// find and delete the document for which the _id field matches id
+	// specify the Projection option to only include the name and age fields in the returned document
+	opts := options.FindOneAndDelete().SetProjection(bson.D{{"name", 1}, {"age", 1}})
 	var deletedDocument bson.M
-	err := coll.FindOneAndDelete(context.TODO(), bson.D{{"name", "Bob"}}, opts).Decode(&deletedDocument)
+	err := coll.FindOneAndDelete(context.TODO(), bson.D{{"_id", id}}, opts).Decode(&deletedDocument)
 	if err != nil {
 		// ErrNoDocuments means that the filter did not match any documents in the collection
 		if err == mongo.ErrNoDocuments {
@@ -369,12 +293,13 @@ func ExampleCollection_FindOneAndDelete() {
 
 func ExampleCollection_FindOneAndReplace() {
 	var coll *mongo.Collection
+	var id primitive.ObjectID
 
-	// find and replace at most one document in which the "name" field is "Bob" with {name: "Alice"}
-	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
+	// find the document for which the _id field matches id and add a field called "location"
+	// specify the Upsert option to insert a new document if a document matching the filter isn't found
 	opts := options.FindOneAndReplace().SetUpsert(true)
-	filter := bson.D{{"name", "Bob"}}
-	replacement := bson.D{{"name", "Alice"}}
+	filter := bson.D{{"_id", id}}
+	replacement := bson.D{{"location", "NYC"}}
 	var replacedDocument bson.M
 	err := coll.FindOneAndReplace(context.TODO(), filter, replacement, opts).Decode(&replacedDocument)
 	if err != nil {
@@ -389,12 +314,13 @@ func ExampleCollection_FindOneAndReplace() {
 
 func ExampleCollection_FindOneAndUpdate() {
 	var coll *mongo.Collection
+	var id primitive.ObjectID
 
-	// find at most one document in which the "name" field is "Bob" and set the name to "Alice"
-	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
+	// find the document for which the _id field matches id and set the email to "newemail@example.com"
+	// specify the Upsert option to insert a new document if a document matching the filter isn't found
 	opts := options.FindOneAndUpdate().SetUpsert(true)
-	filter := bson.D{{"name", "Bob"}}
-	update := bson.D{{"$set", bson.D{{"name", "Alice"}}}}
+	filter := bson.D{{"_id", id}}
+	update := bson.D{{"$set", bson.D{{"email", "newemail@example.com"}}}}
 	var updatedDocument bson.M
 	err := coll.FindOneAndUpdate(context.TODO(), filter, update, opts).Decode(&updatedDocument)
 	if err != nil {
@@ -428,9 +354,7 @@ func ExampleCollection_InsertOne() {
 	var coll *mongo.Collection
 
 	// insert the document {name: "Alice"}
-	// set the BypassDocumentValidation option to opt-out of document-level validation
-	opts := options.InsertOne().SetBypassDocumentValidation(true)
-	res, err := coll.InsertOne(context.TODO(), bson.D{{"name", "Alice"}}, opts)
+	res, err := coll.InsertOne(context.TODO(), bson.D{{"name", "Alice"}})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -439,12 +363,13 @@ func ExampleCollection_InsertOne() {
 
 func ExampleCollection_ReplaceOne() {
 	var coll *mongo.Collection
+	var id primitive.ObjectID
 
-	// replace at most one document in which the "name" field is "Bob" with {name: "Alice"}
-	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
+	// find the document for which the _id field matches id and add a field called "location"
+	// specify the Upsert option to insert a new document if a document matching the filter isn't found
 	opts := options.Replace().SetUpsert(true)
-	filter := bson.D{{"name", "Bob"}}
-	replacement := bson.D{{"name", "Alice"}}
+	filter := bson.D{{"_id", id}}
+	replacement := bson.D{{"location", "NYC"}}
 	result, err := coll.ReplaceOne(context.TODO(), filter, replacement, opts)
 	if err != nil {
 		log.Fatal(err)
@@ -462,13 +387,12 @@ func ExampleCollection_ReplaceOne() {
 func ExampleCollection_UpdateMany() {
 	var coll *mongo.Collection
 
-	// find all documents in which the "name" field is "Bob" and set the name to "Alice"
-	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
-	opts := options.Update().SetUpsert(true)
-	filter := bson.D{{"name", "Bob"}}
-	update := bson.D{{"$set", bson.D{{"name", "Alice"}}}}
+	// increment the age for all users whose birthday is today
+	today := time.Now().Format("01-01-1970")
+	filter := bson.D{{"birthday", today}}
+	update := bson.D{{"$inc", bson.D{{"age", 1}}}}
 
-	result, err := coll.UpdateMany(context.TODO(), filter, update, opts)
+	result, err := coll.UpdateMany(context.TODO(), filter, update)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -477,19 +401,17 @@ func ExampleCollection_UpdateMany() {
 		fmt.Println("matched and replaced an existing document")
 		return
 	}
-	if result.UpsertedCount != 0 {
-		fmt.Printf("inserted a new document with ID %v\n", result.UpsertedID)
-	}
 }
 
 func ExampleCollection_UpdateOne() {
 	var coll *mongo.Collection
+	var id primitive.ObjectID
 
-	// find at most one document in which the "name" field is "Bob" and set the name to "Alice"
-	// specify the Upsert option to insert {name: "Alice"} if a document matching the filter isn't found
+	// find the document for which the _id field matches id and set the email to "newemail@example.com"
+	// specify the Upsert option to insert a new document if a document matching the filter isn't found
 	opts := options.Update().SetUpsert(true)
-	filter := bson.D{{"name", "Bob"}}
-	update := bson.D{{"$set", bson.D{{"name", "Alice"}}}}
+	filter := bson.D{{"_id", id}}
+	update := bson.D{{"$set", bson.D{{"email", "newemail@example.com"}}}}
 
 	result, err := coll.UpdateOne(context.TODO(), filter, update, opts)
 	if err != nil {
