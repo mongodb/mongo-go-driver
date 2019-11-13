@@ -74,8 +74,8 @@ func TestServerSelection(t *testing.T) {
 		subCh := make(chan description.Topology, 1)
 		subCh <- desc
 
-		cfg := newServerSelectionConfig(selectFirst, nil)
-		srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, cfg)
+		state := newServerSelectionState(selectFirst, nil)
+		srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
 		noerr(t, err)
 		if len(srvs) != 1 {
 			t.Errorf("Incorrect number of descriptions returned. got %d; want %d", len(srvs), 1)
@@ -93,8 +93,8 @@ func TestServerSelection(t *testing.T) {
 
 		resp := make(chan []description.Server)
 		go func() {
-			cfg := newServerSelectionConfig(selectFirst, nil)
-			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, cfg)
+			state := newServerSelectionState(selectFirst, nil)
+			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
 			noerr(t, err)
 			resp <- srvs
 		}()
@@ -141,8 +141,8 @@ func TestServerSelection(t *testing.T) {
 		resp := make(chan error)
 		ctx, cancel := context.WithCancel(context.Background())
 		go func() {
-			cfg := newServerSelectionConfig(selectNone, nil)
-			_, err := topo.selectServerFromSubscription(ctx, subCh, cfg)
+			state := newServerSelectionState(selectNone, nil)
+			_, err := topo.selectServerFromSubscription(ctx, subCh, state)
 			resp <- err
 		}()
 
@@ -179,8 +179,8 @@ func TestServerSelection(t *testing.T) {
 		resp := make(chan error)
 		timeout := make(chan time.Time)
 		go func() {
-			cfg := newServerSelectionConfig(selectNone, timeout)
-			_, err := topo.selectServerFromSubscription(context.Background(), subCh, cfg)
+			state := newServerSelectionState(selectNone, timeout)
+			_, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
 			resp <- err
 		}()
 
@@ -215,8 +215,8 @@ func TestServerSelection(t *testing.T) {
 		resp := make(chan error)
 		timeout := make(chan time.Time)
 		go func() {
-			cfg := newServerSelectionConfig(selectError, timeout)
-			_, err := topo.selectServerFromSubscription(context.Background(), subCh, cfg)
+			state := newServerSelectionState(selectError, timeout)
+			_, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
 			resp <- err
 		}()
 
@@ -295,8 +295,8 @@ func TestServerSelection(t *testing.T) {
 
 		go func() {
 			// server selection should discover the new topology
-			cfg := newServerSelectionConfig(description.WriteSelector(), nil)
-			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, cfg)
+			state := newServerSelectionState(description.WriteSelector(), nil)
+			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
 			noerr(t, err)
 			resp <- srvs
 		}()
