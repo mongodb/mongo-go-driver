@@ -73,9 +73,10 @@ func ExampleDatabase_ListCollectionNames() {
 func ExampleDatabase_RunCommand() {
 	var db *mongo.Database
 
-	// create a capped collection named "capped-coll"
+	// run an explain command to see the query plan for when a "find" is executed on collection "bar"
 	// specify the ReadPreference option to explicitly set the read preference to primary
-	command := bson.D{{"create", "capped-coll"}, {"capped", true}, {"size", 4096}}
+	findCmd := bson.D{{"find", "bar"}}
+	command := bson.D{{"explain", findCmd}}
 	opts := options.RunCmd().SetReadPreference(readpref.Primary())
 	var result bson.M
 	if err := db.RunCommand(context.TODO(), command, opts).Decode(&result); err != nil {
@@ -137,12 +138,17 @@ func ExampleCollection_Aggregate() {
 
 func ExampleCollection_BulkWrite() {
 	var coll *mongo.Collection
+	var firstID, secondID primitive.ObjectID
 
-	// insert {name: "Alice"} and delete {name: "Bob"}
+	// update the "email" field for two users
+	// for each update, specify the Upsert option to insert a new document if a document matching the filter isn't
+	// found
 	// set the Ordered option to false to allow both operations to happen even if one of them errors
+	firstUpdate := bson.D{{"$set", bson.D{{"email", "firstEmail@example.com"}}}}
+	secondUpdate := bson.D{{"$set", bson.D{{"email", "secondEmail@example.com"}}}}
 	models := []mongo.WriteModel{
-		mongo.NewInsertOneModel().SetDocument(bson.D{{"name", "Alice"}}),
-		mongo.NewDeleteOneModel().SetFilter(bson.D{{"name", "Bob"}}),
+		mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", firstID}}).SetUpdate(firstUpdate),
+		mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", secondID}}).SetUpdate(secondUpdate),
 	}
 	opts := options.BulkWrite().SetOrdered(false)
 	res, err := coll.BulkWrite(context.TODO(), models, opts)
