@@ -237,6 +237,9 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 }
 
 // StartSession starts a new session configured with the given options.
+//
+// If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
+// concern, write concern, and read preference will be used, respectively.
 func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
@@ -734,38 +737,30 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 	return names, nil
 }
 
-// WithSession allows a user to start a session themselves and manage
-// its lifetime. The only way to provide a session to a CRUD method is
-// to invoke that CRUD method with the mongo.SessionContext within the
-// closure. The mongo.SessionContext can be used as a regular context,
-// so methods like context.WithDeadline and context.WithTimeout are
-// supported.
+// WithSession creates a new SessionContext from the ctx and sess parameters and uses it to call the fn callback. The
+// SessionContext must be used as the Context parameter for any operations in the fn callback that should be executed
+// under the session.
 //
-// If the context.Context already has a mongo.Session attached, that
-// mongo.Session will be replaced with the one provided.
+// If the ctx parameter already contains a Session, that Session will be replaced with the one provided.
 //
-// Errors returned from the closure are transparently returned from
-// this function.
+// Errors returned by the fn callback are returned without any modifications.
 func WithSession(ctx context.Context, sess Session, fn func(SessionContext) error) error {
 	return fn(contextWithSession(ctx, sess))
 }
 
-// UseSession creates a new session that is only valid for the
-// lifetime of the fn callback. No cleanup outside of closing the session
-// is done upon exiting the closure. This means that an outstanding
-// transaction will be aborted, even if the closure returns an error.
+// UseSession creates a new Session and uses it to create a new SessionContext, which is used to call the fn callback.
+// The SessionContext parameter must be used as the Context parameter for any operations in the fn callback that should
+// be executed under a session. After the callback returns, the created Session is ended, meaning that any in-progress
+// transactions started by fn will be aborted even if fn returns an error.
 //
-// If ctx already contains a mongo.Session, that mongo.Session will be
-// replaced with the newly created one.
+// If the ctx parameter already contains a Session, that Session will be replaced with the newly created one.
 //
-// Errors returned from the closure are transparently returned from
-// this method.
+// Error returned by the fn callback are returned without any modifications.
 func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) error {
 	return c.UseSessionWithOptions(ctx, options.Session(), fn)
 }
 
-// UseSessionWithOptions works like UseSession but allows the caller
-// to specify the options used to create the session.
+// UseSessionWithOptions operates like UseSession but uses the given SessionOptions to create the Session.
 func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
 	defaultSess, err := c.StartSession(opts)
 	if err != nil {
