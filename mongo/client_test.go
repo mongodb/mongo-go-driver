@@ -179,8 +179,8 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, rc, client.readConcern, "expected read concern %v, got %v", rc, client.readConcern)
 	})
 	t.Run("retry writes", func(t *testing.T) {
-		testURI := "mongodb://localhost:27017/?retryWrites=false"
-		testURIError := "mongodb://localhost:27017/?retryWrites=foobar"
+		retryWritesURI := "mongodb://localhost:27017/?retryWrites=false"
+		retryWritesErrorURI := "mongodb://localhost:27017/?retryWrites=foobar"
 
 		testCases := []struct {
 			name          string
@@ -190,8 +190,8 @@ func TestClient(t *testing.T) {
 		}{
 			{"default", options.Client(), false, true},
 			{"custom options", options.Client().SetRetryWrites(false), false, false},
-			{"custom URI", options.Client().ApplyURI(testURI), false, false},
-			{"custom URI error", options.Client().ApplyURI(testURIError), true, false},
+			{"custom URI", options.Client().ApplyURI(retryWritesURI), false, false},
+			{"custom URI error", options.Client().ApplyURI(retryWritesErrorURI), true, false},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -207,8 +207,8 @@ func TestClient(t *testing.T) {
 		}
 	})
 	t.Run("retry reads", func(t *testing.T) {
-		testURI := "mongodb://localhost:27017/?retryReads=false"
-		testURIError := "mongodb://localhost:27017/?retryReads=foobar"
+		retryReadsURI := "mongodb://localhost:27017/?retryReads=false"
+		retryReadsErrorURI := "mongodb://localhost:27017/?retryReads=foobar"
 
 		testCases := []struct {
 			name          string
@@ -218,8 +218,8 @@ func TestClient(t *testing.T) {
 		}{
 			{"default", options.Client(), false, true},
 			{"custom options", options.Client().SetRetryReads(false), false, false},
-			{"custom URI", options.Client().ApplyURI(testURI), false, false},
-			{"custom URI error", options.Client().ApplyURI(testURIError), true, false},
+			{"custom URI", options.Client().ApplyURI(retryReadsURI), false, false},
+			{"custom URI error", options.Client().ApplyURI(retryReadsErrorURI), true, false},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
