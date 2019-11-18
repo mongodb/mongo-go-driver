@@ -294,7 +294,7 @@ func TestServer(t *testing.T) {
 		name := "test"
 
 		s, err := NewServer(address.Address("localhost"),
-			WithServerAppName(func(app string) string { return name }))
+			WithServerAppName(func(string) string { return name }))
 		require.Nil(t, err, "error from NewServer: %v", err)
 		require.Equal(t, name, s.cfg.appname, "expected appname to be: %v, got: %v", name, s.cfg.appname)
 	})
