@@ -27,12 +27,12 @@ var (
 
 // mgoRegistry is the default bsoncodec.Registry. It contains the default codecs and the
 // primitive codecs.
-var mgoRegistry = NewRegistryBuilder().Build()
+var mgoRegistry = newRegistryBuilder().Build()
 
-// NewRegistryBuilder creates a new RegistryBuilder configured with the default encoders and
+// newRegistryBuilder creates a new RegistryBuilder configured with the default encoders and
 // deocders from the bsoncodec.DefaultValueEncoders and bsoncodec.DefaultValueDecoders types and the
 // PrimitiveCodecs type in this package.
-func NewRegistryBuilder() *bsoncodec.RegistryBuilder {
+func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 	rb := bsoncodec.NewRegistryBuilder()
 	bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(rb)
 	bsoncodec.DefaultValueDecoders{}.RegisterDefaultDecoders(rb)
