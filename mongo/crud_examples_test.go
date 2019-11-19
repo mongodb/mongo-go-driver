@@ -456,7 +456,7 @@ func ExampleCollection_Watch() {
 // Session examples
 
 func ExampleWithSession() {
-	var client *mongo.Client // assume client is configured with write concern majority and read prefernece primary
+	var client *mongo.Client // assume client is configured with write concern majority and read preference primary
 
 	// Specify the DefaultReadConcern option so any transactions started through the session will have read concern
 	// majority.
@@ -519,7 +519,7 @@ func ExampleClient_UseSessionWithOptions() {
 }
 
 func ExampleClient_StartSession_withTransaction() {
-	var client *mongo.Client // assume client is configured with write concern majority and read prefernece primary
+	var client *mongo.Client // assume client is configured with write concern majority and read preference primary
 
 	// Specify the DefaultReadConcern option so any transactions started through the session will have read concern
 	// majority.
