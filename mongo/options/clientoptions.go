@@ -42,7 +42,7 @@ type ContextDialer interface {
 //
 // AuthMechanism: the mechanism to use for authentication. Supported values include "SCRAM-SHA-256", "SCRAM-SHA-1",
 // "MONGODB-CR", "PLAIN", "GSSAPI", and "MONGODB-X509". This can also be set through the "authMechanism" URI option.
-// (e.g. "authMechansim=PLAIN"). For more information, see
+// (e.g. "authMechanism=PLAIN"). For more information, see
 // https://docs.mongodb.com/manual/core/authentication-mechanisms/.
 //
 // AuthMechanismProperties can be used to specify additional configuration options for certain mechanisms. They can also
