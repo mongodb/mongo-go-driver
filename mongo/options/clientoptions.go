@@ -439,9 +439,9 @@ func (c *ClientOptions) SetMaxPoolSize(u uint64) *ClientOptions {
 	return c
 }
 
-// SetMinPoolSize specifies the minimum number of connections allowed in each server's connection pool. If this is
-// non-zero, each server's pool will be maintained in the background to ensure that the size does not fall below the
-// minimum. This can also be set through the "minPoolSize" URI option (e.g. "minPoolSize=100"). The default is 0.
+// SetMinPoolSize specifies the minimum number of connections allowed in the driver's connection pool to each server. If
+// this is non-zero, each server's pool will be maintained in the background to ensure that the size does not fall below
+// the minimum. This can also be set through the "minPoolSize" URI option (e.g. "minPoolSize=100"). The default is 0.
 func (c *ClientOptions) SetMinPoolSize(u uint64) *ClientOptions {
 	c.MinPoolSize = &u
 	return c
