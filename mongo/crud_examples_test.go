@@ -663,7 +663,7 @@ func ExampleChangeStream_TryNext() {
 			log.Fatal(err)
 		}
 		if stream.ID() == 0 {
-			return
+			break
 		}
 	}
 }
