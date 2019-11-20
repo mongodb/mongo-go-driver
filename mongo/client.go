@@ -743,7 +743,7 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 //
 // If the ctx parameter already contains a Session, that Session will be replaced with the one provided.
 //
-// Errors returned by the fn callback are returned without any modifications.
+// Any error returned returned by the fn callback will be returned without any modifications.
 func WithSession(ctx context.Context, sess Session, fn func(SessionContext) error) error {
 	return fn(contextWithSession(ctx, sess))
 }
@@ -755,7 +755,7 @@ func WithSession(ctx context.Context, sess Session, fn func(SessionContext) erro
 //
 // If the ctx parameter already contains a Session, that Session will be replaced with the newly created one.
 //
-// Error returned by the fn callback are returned without any modifications.
+// Any error returned by the fn callback will be returned without any modifications.
 func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) error {
 	return c.UseSessionWithOptions(ctx, options.Session(), fn)
 }

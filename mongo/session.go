@@ -52,8 +52,8 @@ type sessionKey struct {
 // https://docs.mongodb.com/manual/core/read-isolation-consistency-recency/#causal-consistency, and
 // https://docs.mongodb.com/manual/core/transactions/.
 //
-// StartTransaction starts a new transaction configured with the given options on this session. This method will return
-// an error if there is already a transaction in-progress for this session.
+// StartTransaction starts a new transaction, configured with the given options, on this session. This method will
+// return an error if there is already a transaction in-progress for this session.
 //
 // CommitTransaction commits the active transaction for this session. This method will return an error if there is no
 // active transaction for this session or the transaction has been aborted.

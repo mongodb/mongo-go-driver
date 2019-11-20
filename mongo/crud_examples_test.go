@@ -467,6 +467,7 @@ func ExampleWithSession() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer sess.EndSession(context.TODO())
 
 	// Call WithSession to use the new Session to insert a document and find it.
 	err = mongo.WithSession(context.TODO(), sess, func(sessCtx mongo.SessionContext) error {
@@ -530,6 +531,7 @@ func ExampleClient_StartSession_withTransaction() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer sess.EndSession(context.TODO())
 
 	// Specify the ReadPreference option to set the read preference to primary preferred for this transaction.
 	txnOpts := options.Transaction().SetReadPreference(readpref.PrimaryPreferred())
