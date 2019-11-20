@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
@@ -450,4 +451,108 @@ func ExampleCollection_Watch() {
 	for changeStream.Next(context.TODO()) {
 		fmt.Println(changeStream.Current)
 	}
+}
+
+// Session examples
+
+func ExampleWithSession() {
+	var client *mongo.Client // assume client is configured with write concern majority and read preference primary
+
+	// Specify the DefaultReadConcern option so any transactions started through the session will have read concern
+	// majority.
+	// The DefaultReadPreference and DefaultWriteConcern options aren't specified so they will be inheritied from client
+	// and be set to primary and majority, respectively.
+	opts := options.Session().SetDefaultReadConcern(readconcern.Majority())
+	sess, err := client.StartSession(opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer sess.EndSession(context.TODO())
+
+	// Call WithSession to use the new Session to insert a document and find it.
+	err = mongo.WithSession(context.TODO(), sess, func(sessCtx mongo.SessionContext) error {
+		// Use sessCtx as the Context parameter for InsertOne and FindOne so both operations are run under the new
+		// Session.
+
+		coll := client.Database("db").Collection("coll")
+		res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+		if err != nil {
+			return err
+		}
+
+		var result bson.M
+		if err = coll.FindOne(sessCtx, bson.D{{"_id", res.InsertedID}}).Decode(result); err != nil {
+			return err
+		}
+		fmt.Println(result)
+		return nil
+	})
+}
+
+func ExampleClient_UseSessionWithOptions() {
+	var client *mongo.Client
+
+	// Specify the DefaultReadConcern option so any transactions started through the session will have read concern
+	// majority.
+	// The DefaultReadPreference and DefaultWriteConcern options aren't specified so they will be inheritied from client
+	// and be set to primary and majority, respectively.
+	opts := options.Session().SetDefaultReadConcern(readconcern.Majority())
+	err := client.UseSessionWithOptions(context.TODO(), opts, func(sessCtx mongo.SessionContext) error {
+		// Use sessCtx as the Context parameter for InsertOne and FindOne so both operations are run under the new
+		// Session.
+
+		coll := client.Database("db").Collection("coll")
+		res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+		if err != nil {
+			return err
+		}
+
+		var result bson.M
+		if err = coll.FindOne(sessCtx, bson.D{{"_id", res.InsertedID}}).Decode(result); err != nil {
+			return err
+		}
+		fmt.Println(result)
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func ExampleClient_StartSession_withTransaction() {
+	var client *mongo.Client // assume client is configured with write concern majority and read preference primary
+
+	// Specify the DefaultReadConcern option so any transactions started through the session will have read concern
+	// majority.
+	// The DefaultReadPreference and DefaultWriteConcern options aren't specified so they will be inheritied from client
+	// and be set to primary and majority, respectively.
+	opts := options.Session().SetDefaultReadConcern(readconcern.Majority())
+	sess, err := client.StartSession(opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer sess.EndSession(context.TODO())
+
+	// Specify the ReadPreference option to set the read preference to primary preferred for this transaction.
+	txnOpts := options.Transaction().SetReadPreference(readpref.PrimaryPreferred())
+	result, err := sess.WithTransaction(context.TODO(), func(sessCtx mongo.SessionContext) (interface{}, error) {
+		// Use sessCtx as the Context parameter for InsertOne and FindOne so both operations are run in a
+		// transaction.
+
+		coll := client.Database("db").Collection("coll")
+		res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+		if err != nil {
+			return nil, err
+		}
+
+		var result bson.M
+		if err = coll.FindOne(sessCtx, bson.D{{"_id", res.InsertedID}}).Decode(result); err != nil {
+			return nil, err
+		}
+		return result, err
+	}, txnOpts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("result: %v\n", result)
 }
