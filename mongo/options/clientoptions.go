@@ -62,14 +62,17 @@ type ContextDialer interface {
 // The SERVICE_HOST and CANONICALIZE_HOST_NAME properties must not be used at the same time on Linux and Darwin
 // systems.
 //
-// AuthSource: the name of the database to use for authentication. The defaults is "admin" for SCRAM and "$external" for
-// X509 authentication. This can also be set through the "authSource" URI option (e.g. "authSource=otherDb").
+// AuthSource: the name of the database to use for authentication. This defaults to "$external" for MONGODB-X509,
+// GSSAPI, and PLAIN and "admin" for all other mechanisms. This can also be set through the "authSource" URI option
+// (e.g. "authSource=otherDb").
 //
 // Username: the username for authentication. This can also be set through the URI as a username:password pair before
 // the first @ character. For example, a URI for user "user", password "pwd", and host "localhost:27017" would be
-// "mongodb://user:pwd@localhost:27017".
+// "mongodb://user:pwd@localhost:27017". This is optional for X509 authentication and will be extracted from the
+// client certificate if not specified.
 //
-// Password: the password for authentication.
+// Password: the password for authentication. This must not be specified for X509 and is optional for GSSAPI
+// authentication.
 //
 // PasswordSet specifies if the password is actually set, since an empty password is a valid password.
 type Credential struct {
@@ -82,7 +85,7 @@ type Credential struct {
 }
 
 // ClientOptions contains options to configure a Client instance. Each option can be set through setter functions. See
-// documentation for each setter function for explanations of the options.
+// documentation for each setter function for an explanation of the option.
 type ClientOptions struct {
 	AppName                *string
 	Auth                   *Credential
@@ -130,9 +133,12 @@ func (c *ClientOptions) Validate() error { return c.err }
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
 // an SRV record that will be resolved when the Client is created. When using an SRV record, TLS support is
-// implictly enabled. Specify the "tls=false" URI option to override this. If the connection string contains any options
-// that have previously been set, it will overwrite them. Options that correspond to multiple URI parameters such as
-// WriteConcern will be completely overwritten if any of the query parameters are specified.
+// implictly enabled. Specify the "tls=false" URI option to override this.
+//
+// If the connection string contains any options that have previously been set, it will overwrite them. Options that
+// correspond to multiple URI parameters, such as WriteConcern, will be completely overwritten if any of the query
+// parameters are specified. If an option is set on ClientOptions after this method is called, that option will override
+// any option applied via the connection string.
 //
 // If the URI format is incorrect or there are conflicing options specified in the URI an error will be recorded and
 // can be retrieved by calling Validate.
@@ -385,7 +391,7 @@ func (c *ClientOptions) SetDialer(d ContextDialer) *ClientOptions {
 //
 // 2. "connect=automatic" for automatic discovery.
 //
-// The default is false.
+// The default is false ("automatic" in the connection string).
 func (c *ClientOptions) SetDirect(b bool) *ClientOptions {
 	c.Direct = &b
 	return c
@@ -399,7 +405,7 @@ func (c *ClientOptions) SetHeartbeatInterval(d time.Duration) *ClientOptions {
 }
 
 // SetHosts specifies a list of host names or IP addresses for servers in a cluster. Both IPv4 and IPv6 addresses are
-// supported. IPv6 literals must be enclosed in '[]' following RFC2732 syntax.
+// supported. IPv6 literals must be enclosed in '[]' following RFC-2732 syntax.
 //
 // Hosts can also be specified as a comma-separated list in a URI. For example, to include "localhost:27017" and
 // "localhost:27018", a URI could be "mongodb://localhost:27017,localhost:27018". The default is ["localhost:27017"]
@@ -409,25 +415,25 @@ func (c *ClientOptions) SetHosts(s []string) *ClientOptions {
 }
 
 // SetLocalThreshold specifies the width of the 'latency window': when choosing between multiple suitable servers for an
-// operation, this is the acceptable non-negative delta between shortest and longest average round-trip times. Servers
-// within the latency. This can also be set through the "localThresholdMS" URI option (e.g. "localThresholdMS=15000").
-// The default is 15 milliseconds.
+// operation, this is the acceptable non-negative delta between shortest and longest average round-trip times. A server
+// within the latency window is selected randomly. This can also be set through the "localThresholdMS" URI option (e.g.
+// "localThresholdMS=15000"). The default is 15 milliseconds.
 func (c *ClientOptions) SetLocalThreshold(d time.Duration) *ClientOptions {
 	c.LocalThreshold = &d
 	return c
 }
 
-// SetMaxConnIdleTime specifies the maximum amount of time that a connection can remain in a connection pool without
-// being used before it is removed and closed. This can also be set through the "maxIdleTimeMS" URI option (e.g.
+// SetMaxConnIdleTime specifies the maximum amount of time that a connection will remain idle in a connection pool
+// before it is removed from the pool and closed. This can also be set through the "maxIdleTimeMS" URI option (e.g.
 // "maxIdleTimeMS=10000"). The default is 0, meaning a connection can remain unused indefinitely.
 func (c *ClientOptions) SetMaxConnIdleTime(d time.Duration) *ClientOptions {
 	c.MaxConnIdleTime = &d
 	return c
 }
 
-// SetMaxPoolSize specifies the maximum number of connections allowed in each server's connection pool. Requests to a
-// server will block if this maximum is reached. This can also be set through the "maxPoolSize" URI option (e.g.
-// "maxPoolSize=100"). The default is 100. If this is 0, it will be set to math.MaxInt64.
+// SetMaxPoolSize specifies that maximum number of connections allowed in the driver's connection pool to each server.
+// Requests to a server will block if this maximum is reached. This can also be set through the "maxPoolSize" URI option
+// (e.g. "maxPoolSize=100"). The default is 100. If this is 0, it will be set to math.MaxInt64.
 func (c *ClientOptions) SetMaxPoolSize(u uint64) *ClientOptions {
 	c.MaxPoolSize = &u
 	return c
@@ -455,16 +461,16 @@ func (c *ClientOptions) SetMonitor(m *event.CommandMonitor) *ClientOptions {
 	return c
 }
 
-// SetReadConcern specifies the read concern to use to configure the Client. A read concern level can also be set
-// through the "readConcernLevel" URI option (e.g. "readConcernLevel=majority"). The default is nil, meaning the server
-// will use its configured default.
+// SetReadConcern specifies the read concern to use for read operations. A read concern level can also be set through
+// the "readConcernLevel" URI option (e.g. "readConcernLevel=majority"). The default is nil, meaning the server will use
+// its configured default.
 func (c *ClientOptions) SetReadConcern(rc *readconcern.ReadConcern) *ClientOptions {
 	c.ReadConcern = rc
 
 	return c
 }
 
-// SetReadPreference specifies the read preference to use to configure the Client. This can also be set through the
+// SetReadPreference specifies the read preference to use for read operations. This can also be set through the
 // following URI options:
 //
 // 1. "readPreference" - Specifiy the read preference mode (e.g. "readPreference=primary").
@@ -483,14 +489,15 @@ func (c *ClientOptions) SetReadPreference(rp *readpref.ReadPref) *ClientOptions 
 	return c
 }
 
-// SetRegistry specifies the BSON registry to use to configure the Client. The default is bson.DefaultRegistry.
+// SetRegistry specifies the BSON registry to use for BSON marshalling/unmarshalling operations. The default is
+// bson.DefaultRegistry.
 func (c *ClientOptions) SetRegistry(registry *bsoncodec.Registry) *ClientOptions {
 	c.Registry = registry
 	return c
 }
 
 // SetReplicaSet specifies the replica set name for the cluster. If specified, the cluster will be treated as a replica
-// set and the driver will automatically discover all nodes in the set, starting with the nodes specified through
+// set and the driver will automatically discover all servers in the set, starting with the nodes specified through
 // ApplyURI or SetHosts. All nodes in the replica set must have the same replica set name, or they will not be
 // considered as part of the set by the Client. This can also be set through the "replicaSet" URI option (e.g.
 // "replicaSet=replset"). The default is empty.
@@ -499,16 +506,16 @@ func (c *ClientOptions) SetReplicaSet(s string) *ClientOptions {
 	return c
 }
 
-// SetRetryWrites specifies whether supported write operations should be retried once on certain errors such as network
+// SetRetryWrites specifies whether supported write operations should be retried once on certain errors, such as network
 // errors.
 //
 // Supported operations are InsertOne, UpdateOne, ReplaceOne, DeleteOne, FindOneAndDelete, FindOneAndReplace,
 // FindOneAndDelete, InsertMany, and BulkWrite. Note that BulkWrite requests must not include UpdateManyModel or
-// DeleteManyModel instances to be considered retryable. All unacknowledged writes will not be retried, even if this
-// option is set to true.
+// DeleteManyModel instances to be considered retryable. Unacknowledged writes will not be retried, even if this option
+// is set to true.
 //
 // This option requires server version >= 3.6 and a replica set or sharded cluster and will be ignored for any other
-// cluster types. This can also be set through the "retryWrites" URI option (e.g. "retryWrites=true"). The default is
+// cluster type. This can also be set through the "retryWrites" URI option (e.g. "retryWrites=true"). The default is
 // true.
 func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
 	c.RetryWrites = &b
@@ -516,7 +523,7 @@ func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
 	return c
 }
 
-// SetRetryReads specifies whether supported read operations should be retried once on certain errors such as network
+// SetRetryReads specifies whether supported read operations should be retried once on certain errors, such as network
 // errors.
 //
 // Supported operations are Find, FindOne, Aggregate without a $out stage, Distinct, CountDocuments,
@@ -537,10 +544,9 @@ func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOption
 	return c
 }
 
-// SetSocketTimeout specifies how long the driver will wait for a socket read or write to return before concluding that
-// a network error has occured. This can also be set through the "socketTimeoutMS" URI option (e.g.
-// "socketTimeoutMS=1000"). The default value is 0, meaning no timeout is used and socket operations can block
-// indefinitely.
+// SetSocketTimeout specifies how long the driver will wait for a socket read or write to return before returning a
+// network error. This can also be set through the "socketTimeoutMS" URI option (e.g. "socketTimeoutMS=1000"). The
+// default value is 0, meaning no timeout is used and socket operations can block indefinitely.
 func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 	c.SocketTimeout = &d
 	return c
@@ -572,7 +578,7 @@ func (c *ClientOptions) SetTLSConfig(cfg *tls.Config) *ClientOptions {
 	return c
 }
 
-// SetWriteConcern specifies the write concern to use to configure the Client. This can also be se through the following
+// SetWriteConcern specifies the write concern to use to for write operations. This can also be se through the following
 // URI options:
 //
 // 1. "w": Specify the number of nodes in the cluster that must acknowledge write operations before the operation
@@ -610,9 +616,9 @@ func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
 	return c
 }
 
-// SetAutoEncryptionOptions specifies an AutoEncryptionOptions instance to configure the Client to automatically
-// encrypt and decrypt collection commands and their results. See the options.AutoEncryptionOptions documentation
-// for more information about the possible options.
+// SetAutoEncryptionOptions specifies an AutoEncryptionOptions instance to automatically encrypt and decrypt commands
+// and their results. See the options.AutoEncryptionOptions documentation for more information about the supported
+// options.
 func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *ClientOptions {
 	c.AutoEncryptionOptions = opts
 	return c
