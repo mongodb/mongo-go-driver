@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -555,4 +556,151 @@ func ExampleClient_StartSession_withTransaction() {
 		log.Fatal(err)
 	}
 	fmt.Printf("result: %v\n", result)
+}
+
+// Cursor examples
+
+func ExampleCursor_All() {
+	var cursor *mongo.Cursor
+
+	var results []bson.M
+	if err := cursor.All(context.TODO(), &results); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(results)
+}
+
+func ExampleCursor_Next() {
+	var cursor *mongo.Cursor
+	defer cursor.Close(context.TODO())
+
+	// Iterate the cursor and print out each document until the cursor is exhausted or there is an error getting the
+	// next document.
+	for cursor.Next(context.TODO()) {
+		// A new result variable should be declared for each document.
+		var result bson.M
+		if err := cursor.Decode(&result); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(result)
+	}
+	if err := cursor.Err(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func ExampleCursor_TryNext() {
+	var cursor *mongo.Cursor
+	defer cursor.Close(context.TODO())
+
+	// Iterate the cursor and print out each document until the cursor is exhausted or there is an error getting the
+	// next document.
+	for {
+		if cursor.TryNext(context.TODO()) {
+			// A new result variable should be declared for each document.
+			var result bson.M
+			if err := cursor.Decode(&result); err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(result)
+			continue
+		}
+
+		// If TryNext returns false, the next document is not yet available, the cursor was exhausted and was closed, or
+		// an error occured. TryNext should only be called again for the empty batch case.
+		if err := cursor.Err(); err != nil {
+			log.Fatal(err)
+		}
+		if cursor.ID() == 0 {
+			break
+		}
+	}
+}
+
+// ChangeStream examples
+
+func ExampleChangeStream_Next() {
+	var stream *mongo.ChangeStream
+	defer stream.Close(context.TODO())
+
+	// Iterate the change stream and print out each event.
+	// Because the Next call blocks until an event is available, another way to iterate the change stream is to call
+	// Next in a goroutine and pass in a context that can be cancelled to abort the call.
+
+	for stream.Next(context.TODO()) {
+		// A new event variable should be declared for each event.
+		var event bson.M
+		if err := stream.Decode(&event); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(event)
+	}
+	if err := stream.Err(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func ExampleChangeStream_TryNext() {
+	var stream *mongo.ChangeStream
+	defer stream.Close(context.TODO())
+
+	// Iterate the change stream and print out each event until the change stream is closed by the server or there is an
+	// error getting the next event.
+	for {
+		if stream.TryNext(context.TODO()) {
+			// A new event variable should be declared for each event.
+			var event bson.M
+			if err := stream.Decode(&event); err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(event)
+			continue
+		}
+
+		// If TryNext returns false, the next change is not yet available, the change stream was closed by the server,
+		// or an error occurred. TryNext should only be called again for the empty batch case.
+		if err := stream.Err(); err != nil {
+			log.Fatal(err)
+		}
+		if stream.ID() == 0 {
+			break
+		}
+	}
+}
+
+func ExampleChangeStream_ResumeToken() {
+	var client *mongo.Client
+	var stream *mongo.ChangeStream // assume stream was created via client.Watch()
+
+	cancelCtx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Run a goroutine to process events.
+	go func() {
+		for stream.Next(cancelCtx) {
+			fmt.Println(stream.Current)
+		}
+		wg.Done()
+	}()
+
+	// Assume client needs to be disconnected. Cancel the context being used by the goroutine to abort any
+	// in-progres Next calls and wait for the goroutine to exit.
+	cancel()
+	wg.Wait()
+
+	// Before disconnecting the client, store the last seen resume token for the change stream.
+	resumeToken := stream.ResumeToken()
+	_ = client.Disconnect(context.TODO())
+
+	// Once a new client is created, the change stream can be re-created. Specify resumeToken as the ResumeAfter option
+	// so only events that occurred after resumeToken will be returned.
+	var newClient *mongo.Client
+	opts := options.ChangeStream().SetResumeAfter(resumeToken)
+	newStream, err := newClient.Watch(context.TODO(), mongo.Pipeline{}, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer newStream.Close(context.TODO())
 }
