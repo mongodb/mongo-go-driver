@@ -434,9 +434,8 @@ func (cs *ChangeStream) Err() error {
 	return replaceErrors(cs.cursor.Err())
 }
 
-// Close closes this change stream and the underlying cursor. Next and TryNext must not be called to get more events
-// from the change stream after Close has been called. Close is idempotent. After the first call, any subsequent calls
-// will not change the state.
+// Close closes this change stream and the underlying cursor. Next and TryNext must not be called after Close has been
+// called. Close is idempotent. After the first call, any subsequent calls will not change the state.
 func (cs *ChangeStream) Close(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -476,9 +475,9 @@ func (cs *ChangeStream) Next(ctx context.Context) bool {
 // TryNext returns false if the change stream is closed by the server, an error occurs when getting changes from the
 // server, the next change is not yet available, or ctx expires. If ctx expires, the error will be set to ctx.Err().
 //
-// If TryNext returns false and an eror occurred or the change stream was closed (i.e. cs.Err() != nil || cs.ID() == 0),
-// subsequent attempts will also return false. Otheriwse, it is safe to call TryNext again until a change is
-// available.
+// If TryNext returns false and an error occurred or the change stream was closed
+// (i.e. cs.Err() != nil || cs.ID() == 0), subsequent attempts will also return false. Otherwise, it is safe to call
+// TryNext again until a change is available.
 //
 // This method requires driver version >= 1.2.0.
 func (cs *ChangeStream) TryNext(ctx context.Context) bool {

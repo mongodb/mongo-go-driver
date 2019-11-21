@@ -158,11 +158,11 @@ func (c *Cursor) Decode(val interface{}) error {
 	return bson.UnmarshalWithRegistry(c.registry, c.Current, val)
 }
 
-// Err returns the last error seen by the Cursor, or nil if no errors has occurred.
+// Err returns the last error seen by the Cursor, or nil if no error has occurred.
 func (c *Cursor) Err() error { return c.err }
 
-// Close closes this cursor. Next and TryNext must not be called to get more documents from the cursor after Close
-// has been called. Close is idempotent. After the first call, any subsequent calls will not change the state.
+// Close closes this cursor. Next and TryNext must not be called after Close has been called. Close is idempotent. After
+// the first call, any subsequent calls will not change the state.
 func (c *Cursor) Close(ctx context.Context) error {
 	defer c.closeImplicitSession()
 	return c.bc.Close(ctx)
