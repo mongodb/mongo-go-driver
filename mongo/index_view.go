@@ -62,7 +62,7 @@ func isNamespaceNotFoundError(err error) bool {
 
 // List executes a listIndexes command and returns a cursor over the indexes in the collection.
 //
-// The opts paramter can be used to specify options for this operation (see the options.ListIndexesOptions
+// The opts parameter can be used to specify options for this operation (see the options.ListIndexesOptions
 // documentation).
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/listIndexes/.
@@ -143,7 +143,7 @@ func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*op
 	return names[0], nil
 }
 
-// CreateMany executes a createIndexes commands to create multiple indexes on the collection and returns the names of
+// CreateMany executes a createIndexes command to create multiple indexes on the collection and returns the names of
 // the new indexes.
 //
 // For each IndexModel in the models parameter, the index name can be specified via the Options field. If a name is not
