@@ -714,10 +714,10 @@ func ExampleIndexView_CreateMany() {
 	// For the first index, specify no options. The name will be generated as "name_1_email_1" by the driver.
 	// For the second index, specify the Name option to explicitly set the name to "nameAge".
 	models := []mongo.IndexModel{
-		mongo.IndexModel{
+		{
 			Keys: bson.D{{"name", 1}, {"email", 1}},
 		},
-		mongo.IndexModel{
+		{
 			Keys:    bson.D{{"name", 1}, {"age", 1}},
 			Options: options.Index().SetName("nameAge"),
 		},
