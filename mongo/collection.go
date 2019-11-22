@@ -443,7 +443,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 
 // DeleteOne executes a delete command to delete at most one document from the collection.
 //
-// The filter parameter must be a document containing query parameters and can be used to select the document to be
+// The filter parameter must be a document containing query operators and can be used to select the document to be
 // deleted. It cannot be nil. If the filter does not match any documents, the operation will succeed and a DeleteResult
 // with a DeletedCount of 0 will be returned. If the filter matches multiple documents, one will be selected from the
 // matched set.
@@ -459,7 +459,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 
 // DeleteMany executes a delete command to delete documents from the collection.
 //
-// The filter parameter must be a document containing query parameters and can be used to select the documents to
+// The filter parameter must be a document containing query operators and can be used to select the documents to
 // be deleted. It cannot be nil. An empty document (e.g. bson.D{}) should be used to delete all documents in the
 // collection. If the filter does not match any documents, the operation will succeed and a DeleteResult with a
 // DeletedCount of 0 will be returned.
