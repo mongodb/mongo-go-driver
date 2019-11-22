@@ -51,7 +51,8 @@ func NewDeleteOneModel() *DeleteOneModel {
 }
 
 // SetFilter specifies a filter to use to select the document to delete. The filter must be a document containing query
-// operators. It cannot be nil. If the filter matches multiple documents, one will be selected from the matched set.
+// operators. It cannot be nil. If the filter matches multiple documents, one will be selected from the matching
+// documents.
 func (dom *DeleteOneModel) SetFilter(filter interface{}) *DeleteOneModel {
 	dom.Filter = filter
 	return dom
@@ -107,7 +108,8 @@ func NewReplaceOneModel() *ReplaceOneModel {
 }
 
 // SetFilter specifies a filter to use to select the document to replace. The filter must be a document containing query
-// operators. It cannot be nil. If the filter matches multiple documents, one will be selected from the matched set.
+// operators. It cannot be nil. If the filter matches multiple documents, one will be selected from the matching
+// documents.
 func (rom *ReplaceOneModel) SetFilter(filter interface{}) *ReplaceOneModel {
 	rom.Filter = filter
 	return rom
@@ -152,7 +154,8 @@ func NewUpdateOneModel() *UpdateOneModel {
 }
 
 // SetFilter specifies a filter to use to select the document to update. The filter must be a document containing query
-// operators. It cannot be nil. If the filter matches multiple documents, one will be selected from the matched set.
+// operators. It cannot be nil. If the filter matches multiple documents, one will be selected from the matching
+// documents.
 func (uom *UpdateOneModel) SetFilter(filter interface{}) *UpdateOneModel {
 	uom.Filter = filter
 	return uom

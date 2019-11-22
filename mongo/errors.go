@@ -127,7 +127,6 @@ func (e CommandError) IsMaxTimeMSExpiredError() bool {
 // of a WriteException or BulkWriteException.
 type WriteError struct {
 	// The index of the write in the slice passed to an InsertMany or BulkWrite operation that caused this error.
-	// See the Collection.InsertMany documentation for an example of how this can be used.
 	Index int
 
 	Code    int
