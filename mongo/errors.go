@@ -166,7 +166,7 @@ type WriteConcernError struct {
 	Name    string
 	Code    int
 	Message string
-	Details bson.Raw // A document identifying the write concern setting related to the error.
+	Details bson.Raw
 }
 
 // Error implements the error interface.
