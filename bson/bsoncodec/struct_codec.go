@@ -39,6 +39,7 @@ type StructCodec struct {
 	DecodeZeroStruct        bool
 	DecodeDeepZeroInline    bool
 	EncodeOmitDefaultStruct bool
+	AllowUnexportedFields   bool
 }
 
 var _ ValueEncoder = &StructCodec{}
@@ -65,6 +66,9 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	}
 	if structOpt.EncodeOmitDefaultStruct != nil {
 		codec.EncodeOmitDefaultStruct = *structOpt.EncodeOmitDefaultStruct
+	}
+	if structOpt.AllowUnexportedFields != nil {
+		codec.AllowUnexportedFields = *structOpt.AllowUnexportedFields
 	}
 
 	return codec, nil
@@ -151,7 +155,7 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, val r
 			return exists
 		}
 
-		return defaultValueEncoders.mapEncodeValue(r, dw, rv, collisionFn)
+		return defaultMapCodec.mapEncodeValue(r, dw, rv, collisionFn)
 	}
 
 	return dw.WriteDocumentEnd()
@@ -187,9 +191,6 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 	var inlineMap reflect.Value
 	if sd.inlineMap >= 0 {
 		inlineMap = val.Field(sd.inlineMap)
-		if inlineMap.IsNil() {
-			inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
-		}
 		decoder, err = r.LookupDecoder(inlineMap.Type().Elem())
 		if err != nil {
 			return err
@@ -227,6 +228,10 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 					return err
 				}
 				continue
+			}
+
+			if inlineMap.IsNil() {
+				inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
 			}
 
 			elem := reflect.New(inlineMap.Type().Elem()).Elem()
@@ -361,8 +366,8 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 
 	for i := 0; i < numFields; i++ {
 		sf := t.Field(i)
-		if sf.PkgPath != "" {
-			// unexported, ignore
+		if sf.PkgPath != "" && (!sc.AllowUnexportedFields || !sf.Anonymous) {
+			// field is private or unexported fields aren't allowed, ignore
 			continue
 		}
 

@@ -15,7 +15,7 @@ type StringCodecOptions struct {
 
 // StringCodec creates a new *StringCodecOptions
 func StringCodec() *StringCodecOptions {
-	return &StringCodecOptions{&defaultDecodeOIDAsHex}
+	return &StringCodecOptions{}
 }
 
 // SetDecodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation. If false, a string made
@@ -27,7 +27,7 @@ func (t *StringCodecOptions) SetDecodeObjectIDAsHex(b bool) *StringCodecOptions 
 
 // MergeStringCodecOptions combines the given *StringCodecOptions into a single *StringCodecOptions in a last one wins fashion.
 func MergeStringCodecOptions(opts ...*StringCodecOptions) *StringCodecOptions {
-	s := StringCodec()
+	s := &StringCodecOptions{&defaultDecodeOIDAsHex}
 	for _, opt := range opts {
 		if opt == nil {
 			continue

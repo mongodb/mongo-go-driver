@@ -11,6 +11,7 @@ type StructCodecOptions struct {
 	DecodeZeroStruct        *bool // Specifies if structs should be zeroed before decoding into them. Defaults to false.
 	DecodeDeepZeroInline    *bool // Specifies if structs should be recursively zeroed when a inline value is decoded. Defaults to false.
 	EncodeOmitDefaultStruct *bool // Specifies if default structs should be considered empty by omitempty. Defaults to false.
+	AllowUnexportedFields   *bool // Specifies if unexported fields should be marshaled/unmarshaled. Defaults to false.
 }
 
 // StructCodec creates a new *StructCodecOptions
@@ -37,6 +38,12 @@ func (t *StructCodecOptions) SetEncodeOmitDefaultStruct(b bool) *StructCodecOpti
 	return t
 }
 
+// SetAllowUnexportedFields specifies if unexported fields should be marshaled/unmarshaled. Defaults to false.
+func (t *StructCodecOptions) SetAllowUnexportedFields(b bool) *StructCodecOptions {
+	t.AllowUnexportedFields = &b
+	return t
+}
+
 // MergeStructCodecOptions combines the given *StructCodecOptions into a single *StructCodecOptions in a last one wins fashion.
 func MergeStructCodecOptions(opts ...*StructCodecOptions) *StructCodecOptions {
 	s := StructCodec()
@@ -53,6 +60,9 @@ func MergeStructCodecOptions(opts ...*StructCodecOptions) *StructCodecOptions {
 		}
 		if opt.EncodeOmitDefaultStruct != nil {
 			s.EncodeOmitDefaultStruct = opt.EncodeOmitDefaultStruct
+		}
+		if opt.AllowUnexportedFields != nil {
+			s.AllowUnexportedFields = opt.AllowUnexportedFields
 		}
 	}
 
