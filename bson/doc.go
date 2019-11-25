@@ -123,5 +123,5 @@
 //     30. string encodes to a BSON string. Strings can be decoded from a BSON string, ObjectId, or symbol. See
 //     StringCodec in bsoncodec for more information.
 //
-//     31. Structs encode to BSON subdocuments. See StructCodec in bsoncodec for more information.
+//     31. Structs encode to a BSON document. See StructCodec in bsoncodec for more information.
 package bson
