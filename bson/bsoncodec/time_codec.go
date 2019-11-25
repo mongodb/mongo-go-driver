@@ -22,7 +22,7 @@ const (
 
 var defaultTimeCodec = NewTimeCodec()
 
-// TimeCodec is the Codec used for struct values.
+// TimeCodec is the Codec used for time.Time values.
 type TimeCodec struct {
 	UseLocalTimeZone bool
 }
