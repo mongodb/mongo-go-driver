@@ -7,12 +7,17 @@
 package topology
 
 import (
-	"github.com/stretchr/testify/require"
+	"reflect"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
+// rsrc is a mock resource used in resource pool tests.
+// This type should not be used other test files.
 type rsrc struct {
 	closed bool
 }
@@ -35,8 +40,9 @@ func neverExpired(_ interface{}) bool {
 
 // expiredCounter is used to implement an expiredFunc that will return true a fixed number of times.
 type expiredCounter struct {
-	total, expiredCalled, closeCalled int32
-	closeChan                         chan struct{}
+	expiredCalled, closeCalled int32 // must be loaded/stored using atomic.*Int32 functions
+	total                      int32
+	closeChan                  chan struct{}
 }
 
 func newExpiredCounter(total int32) expiredCounter {
@@ -48,17 +54,27 @@ func newExpiredCounter(total int32) expiredCounter {
 
 func (ec *expiredCounter) expired(_ interface{}) bool {
 	atomic.AddInt32(&ec.expiredCalled, 1)
-	return ec.expiredCalled <= ec.total
+	return ec.getExpiredCalled() <= ec.total
 }
 
 func (ec *expiredCounter) close(_ interface{}) {
 	atomic.AddInt32(&ec.closeCalled, 1)
-	if ec.closeCalled == ec.total {
+	if ec.getCloseCalled() == ec.total {
 		ec.closeChan <- struct{}{}
 	}
 }
 
+func (ec *expiredCounter) getExpiredCalled() int32 {
+	return atomic.LoadInt32(&ec.expiredCalled)
+}
+
+func (ec *expiredCounter) getCloseCalled() int32 {
+	return atomic.LoadInt32(&ec.closeCalled)
+}
+
 func initPool(t *testing.T, minSize uint64, expFn expiredFunc, closeFn closeFunc, initFn initFunc, pruneInterval time.Duration) *resourcePool {
+	t.Helper()
+
 	rpc := resourcePoolConfig{
 		MinSize:          minSize,
 		MaintainInterval: pruneInterval,
@@ -67,47 +83,43 @@ func initPool(t *testing.T, minSize uint64, expFn expiredFunc, closeFn closeFunc
 		InitFn:           initFn,
 	}
 	rp, err := newResourcePool(rpc)
-	require.NoError(t, err, "error creating new resource pool")
+	assert.Nil(t, err, "error creating new resource pool: %v", err)
 	rp.initialize()
 	rp.maintainTimer.Reset(rp.maintainInterval)
 	return rp
 }
 
 func TestResourcePool(t *testing.T) {
+	// register a cmp equality function for the rsrc type that will do a pointer comparison
+	assert.RegisterOpts(reflect.TypeOf(&rsrc{}), cmp.Comparer(func(r1, r2 *rsrc) bool {
+		return r1 == r2
+	}))
+
 	t.Run("get", func(t *testing.T) {
 		t.Run("remove stale resources", func(t *testing.T) {
 			ec := newExpiredCounter(5)
 			rp := initPool(t, 1, ec.expired, ec.close, initRsrc, time.Minute)
 			rp.maintainTimer.Stop()
 
-			if got := rp.Get(); got != nil {
-				t.Fatalf("resource mismatch; expected nil, got %v", got)
-			}
-			if rp.size != 0 {
-				t.Fatalf("length mismatch; expected 0, got %d", rp.size)
-			}
-			if ec.expiredCalled != 1 {
-				t.Fatalf("incorrect number of expire checks, expected 1, got %v", ec.expiredCalled)
-			}
-			if ec.closeCalled != 1 {
-				t.Fatalf("incorrect number of closes called, expected 1, got %v", ec.closeCalled)
-			}
+			got := rp.Get()
+			assert.Nil(t, got, "expected nil, got %v", got)
+			assert.Equal(t, uint64(0), rp.size, "expected size 0, got %d", rp.size)
+
+			expiredCalled := ec.getExpiredCalled()
+			assert.Equal(t, int32(1), expiredCalled, "expected expire to be called 1 time, got %v", expiredCalled)
+			closeCalled := ec.getCloseCalled()
+			assert.Equal(t, int32(1), closeCalled, "expected close to be called 1 time, got %v", closeCalled)
 		})
 		t.Run("recycle resources", func(t *testing.T) {
 			rp := initPool(t, 1, neverExpired, closeRsrc, initRsrc, time.Minute)
 			rp.maintainTimer.Stop()
 			for i := 0; i < 5; i++ {
 				got := rp.Get()
-				if got == nil {
-					t.Fatalf("resource mismatch; expected a resource but got nil")
-				}
-				if rp.size != 0 {
-					t.Fatalf("length mismatch; expected 0, got %d", rp.size)
-				}
+				assert.NotNil(t, got, "expected resource, got nil")
+				assert.Equal(t, uint64(0), rp.size, "expected size 0, got %v", rp.size)
+
 				rp.Put(got)
-				if rp.size != 1 {
-					t.Fatalf("length mismatch; expected 1, got %d", rp.size)
-				}
+				assert.Equal(t, uint64(1), rp.size, "expected size 1, got %v", rp.size)
 			}
 		})
 	})
@@ -115,22 +127,16 @@ func TestResourcePool(t *testing.T) {
 		t.Run("returned resources are returned to front of pool", func(t *testing.T) {
 			rp := initPool(t, 0, neverExpired, closeRsrc, initRsrc, time.Minute)
 			ret := &rsrc{}
-			if !rp.Put(ret) {
-				t.Fatal("return value mismatch; expected true, got false")
-			}
-			if rp.size != 1 {
-				t.Fatalf("length mismatch; expected 1, got %d", rp.size)
-			}
-			if headVal := rp.Get(); headVal != ret {
-				t.Fatalf("resource mismatch; expected %v at head of pool, got %v", ret, headVal)
-			}
+			assert.True(t, rp.Put(ret), "expected Put to return true, got false")
+			assert.Equal(t, uint64(1), rp.size, "expected size 1, got %v", rp.size)
+
+			headVal := rp.Get()
+			assert.Equal(t, ret, headVal, "expected resource %v at head of pool, got %v", ret, headVal)
 		})
 		t.Run("stale resource not returned", func(t *testing.T) {
 			rp := initPool(t, 1, alwaysExpired, closeRsrc, initRsrc, time.Minute)
 			ret := &rsrc{}
-			if rp.Put(ret) {
-				t.Fatal("return value mismatch; expected false, got true")
-			}
+			assert.False(t, rp.Put(ret), "expected Put to return false, got true")
 		})
 	})
 	t.Run("Prune", func(t *testing.T) {
@@ -141,16 +147,14 @@ func TestResourcePool(t *testing.T) {
 				ret := &rsrc{}
 				_ = rp.Put(ret)
 			}
+
 			rp.Maintain()
-			if rp.size != 2 {
-				t.Fatalf("length mismatch; expected 2, got %d", rp.size)
-			}
-			if ec.expiredCalled != 7 {
-				t.Fatalf("count mismatch; expected ec.stale to be called 7 times, got %v", ec.expiredCalled)
-			}
-			if ec.closeCalled != 3 {
-				t.Fatalf("count mismatch; expected ex.closeConnection to be called 3 times, got %v", ec.closeCalled)
-			}
+			assert.Equal(t, uint64(2), rp.size, "expected size 2, got %v", rp.size)
+
+			expiredCalled := ec.getExpiredCalled()
+			assert.Equal(t, int32(7), expiredCalled, "expected expire to be called 7 times, got %v", expiredCalled)
+			closeCalled := ec.getCloseCalled()
+			assert.Equal(t, int32(3), closeCalled, "expected close to be called 3 times, got %v", closeCalled)
 		})
 	})
 	t.Run("Background cleanup", func(t *testing.T) {
@@ -174,12 +178,10 @@ func TestResourcePool(t *testing.T) {
 				t.Fatalf("value was not read on closeChan after 5 seconds")
 			}
 
-			if atomic.LoadInt32(&ec.expiredCalled) != 5 {
-				t.Fatalf("count mismatch; expected ec.stale to be called 5 times, got %v", ec.expiredCalled)
-			}
-			if atomic.LoadInt32(&ec.closeCalled) != 3 {
-				t.Fatalf("count mismatch; expected ec.closeConnection to be called 5 times, got %v", ec.closeCalled)
-			}
+			expiredCalled := ec.getExpiredCalled()
+			assert.Equal(t, int32(5), expiredCalled, "expected expire to be called 5 times, got %v", expiredCalled)
+			closeCalled := ec.getCloseCalled()
+			assert.Equal(t, int32(3), closeCalled, "expected close to be called 3 times, got %v", closeCalled)
 		})
 	})
 }
