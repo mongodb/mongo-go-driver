@@ -704,3 +704,49 @@ func ExampleChangeStream_ResumeToken() {
 	}
 	defer newStream.Close(context.TODO())
 }
+
+// IndexView examples
+
+func ExampleIndexView_CreateMany() {
+	var indexView *mongo.IndexView
+
+	// Create two indexes: {name: 1, email: 1} and {name: 1, age: 1}
+	// For the first index, specify no options. The name will be generated as "name_1_email_1" by the driver.
+	// For the second index, specify the Name option to explicitly set the name to "nameAge".
+	models := []mongo.IndexModel{
+		{
+			Keys: bson.D{{"name", 1}, {"email", 1}},
+		},
+		{
+			Keys:    bson.D{{"name", 1}, {"age", 1}},
+			Options: options.Index().SetName("nameAge"),
+		},
+	}
+
+	// Specify the MaxTime option to limit the amount of time the operation can run on the server
+	opts := options.CreateIndexes().SetMaxTime(2 * time.Second)
+	names, err := indexView.CreateMany(context.TODO(), models, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("created indexes %v\n", names)
+}
+
+func ExampleIndexView_List() {
+	var indexView *mongo.IndexView
+
+	// Specify the MaxTime option to limit the amount of time the operation can run on the server
+	opts := options.ListIndexes().SetMaxTime(2 * time.Second)
+	cursor, err := indexView.List(context.TODO(), opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Get a slice of all indexes returned and print them out.
+	var results []bson.M
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(results)
+}
