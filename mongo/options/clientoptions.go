@@ -267,7 +267,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		tlsConfig := new(tls.Config)
 
 		if cs.SSLCaFileSet {
-			c.err = addCACertFromFile(tlsConfig, cs.SSLCaFile)
+			c.err = addCACertsFromFile(tlsConfig, cs.SSLCaFile)
 			if c.err != nil {
 				return c
 			}
@@ -735,20 +735,20 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 	return c
 }
 
-// addCACertFromFile adds a root CA certificate to the configuration given a path
+// addCACertsFromFile adds a root CA certificate to the configuration given a path
 // to the containing file.
-func addCACertFromFile(cfg *tls.Config, file string) error {
+func addCACertsFromFile(cfg *tls.Config, file string) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return err
 	}
 
-	certBytes, err := loadCert(data)
+	certsBytes, err := loadCerts(data)
 	if err != nil {
 		return err
 	}
 
-	cert, err := x509.ParseCertificate(certBytes)
+	certs, err := x509.ParseCertificates(certsBytes)
 	if err != nil {
 		return err
 	}
@@ -756,38 +756,39 @@ func addCACertFromFile(cfg *tls.Config, file string) error {
 	if cfg.RootCAs == nil {
 		cfg.RootCAs = x509.NewCertPool()
 	}
-
-	cfg.RootCAs.AddCert(cert)
+	for _, cert := range certs {
+		cfg.RootCAs.AddCert(cert)
+	}
 
 	return nil
 }
 
-func loadCert(data []byte) ([]byte, error) {
-	var certBlock *pem.Block
+func loadCerts(data []byte) ([]byte, error) {
+	var certs []byte
 
-	for certBlock == nil {
+	for {
 		if data == nil || len(data) == 0 {
-			return nil, errors.New(".pem file must have both a CERTIFICATE and an RSA PRIVATE KEY section")
+			if len(certs) == 0 {
+				return nil, errors.New(".pem file must have a CERTIFICATE section")
+			}
+			return certs, nil
 		}
 
 		block, rest := pem.Decode(data)
 		if block == nil {
-			return nil, errors.New("invalid .pem file")
+			if len(certs) == 0 {
+				return nil, errors.New("invalid .pem file")
+			}
+			return certs, nil
 		}
 
 		switch block.Type {
 		case "CERTIFICATE":
-			if certBlock != nil {
-				return nil, errors.New("multiple CERTIFICATE sections in .pem file")
-			}
-
-			certBlock = block
+			certs = append(certs, block.Bytes...)
 		}
 
 		data = rest
 	}
-
-	return certBlock.Bytes, nil
 }
 
 // addClientCertFromFile adds a client certificate to the configuration given a path to the
