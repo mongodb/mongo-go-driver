@@ -203,12 +203,17 @@ func verifyChangeStreamResults(mt *mtest.T, result changeStreamResult, err error
 			Name:    ce.Name,
 		})
 		assert.Nil(mt, marshalErr, "Marshal error: %v", marshalErr)
-		compareDocs(mt, result.Error, bson.Raw(actualErrDoc))
+
+		if comparisonErr := compareDocs(mt, result.Error, bson.Raw(actualErrDoc)); comparisonErr != nil {
+			mt.Fatalf("comparing change stream errors mismatch: %v", comparisonErr)
+		}
 		return
 	}
 
 	assert.Nil(mt, result.Error, "expected change stream error %v, got nil", result.Error)
 	for i, expectedEvent := range result.Success {
-		compareDocs(mt, expectedEvent, result.actualEvents[i])
+		if comparisonErr := compareDocs(mt, expectedEvent, result.actualEvents[i]); comparisonErr != nil {
+			mt.Fatalf("success event mismatch at index %d: %s", i, comparisonErr)
+		}
 	}
 }

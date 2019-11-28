@@ -168,7 +168,7 @@ func compareGridfsDocs(mt *mtest.T, expected, actual bson.Raw) {
 	eElems, err := expected.Elements()
 	assert.Nil(mt, err, "error getting expected elements: %v", err)
 
-	for _, e := range eElems {
+	for i, e := range eElems {
 		eKey := e.Key()
 		// skip deprecated fields
 		if eKey == "md5" || eKey == "contentType" {
@@ -184,7 +184,9 @@ func compareGridfsDocs(mt *mtest.T, expected, actual bson.Raw) {
 		}
 
 		eVal := e.Value()
-		compareValues(mt, eKey, eVal, aVal)
+		if err := compareValues(mt, eKey, eVal, aVal); err != nil {
+			mt.Fatalf("document mismatch at index %d: %s", i, err)
+		}
 	}
 }
 
