@@ -117,7 +117,7 @@ func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw
 	return err
 }
 
-// IntDecodeValue is the ValueDecoderFunc for bool types.
+// IntDecodeValue is the ValueDecoderFunc for int types.
 func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	var i64 int64
 	var err error
