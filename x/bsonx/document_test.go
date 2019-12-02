@@ -65,11 +65,25 @@ func TestDocument(t *testing.T) {
 		t.Parallel()
 		t.Run("UnmarshalingError", func(t *testing.T) {
 			t.Parallel()
-			invalid := []byte{0x01, 0x02}
-			want := bsoncore.NewInsufficientBytesError(nil, nil)
-			_, got := ReadDoc(invalid)
-			if !compareErrors(got, want) {
-				t.Errorf("Expected errors to match. got %v; want %v", got, want)
+			testCases := []struct {
+				name    string
+				invalid []byte
+			}{
+				{"base", []byte{0x01, 0x02}},
+				{"fuzzed1", []byte("0\x990\xc4")}, // fuzzed
+				{"fuzzed2", []byte("\x10\x00\x00\x00\x10\x000000\x0600\x00\x05\x00\xff\xff\xff\u007f")}, // fuzzed
+			}
+
+			for _, tc := range testCases {
+				tc := tc
+				t.Run(tc.name, func(t *testing.T) {
+					t.Parallel()
+					want := bsoncore.NewInsufficientBytesError(nil, nil)
+					_, got := ReadDoc(tc.invalid)
+					if !compareErrors(got, want) {
+						t.Errorf("Expected errors to match. got %v; want %v", got, want)
+					}
+				})
 			}
 		})
 		t.Run("success", func(t *testing.T) {
