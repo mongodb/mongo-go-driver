@@ -7,6 +7,10 @@
 package integration
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -17,6 +21,8 @@ import (
 // Helper functions to compare BSON values and command monitoring expectations.
 
 func numberFromValue(mt *mtest.T, val bson.RawValue) int64 {
+	mt.Helper()
+
 	switch val.Type {
 	case bson.TypeInt32:
 		return int64(val.Int32())
@@ -31,57 +37,70 @@ func numberFromValue(mt *mtest.T, val bson.RawValue) int64 {
 	return 0
 }
 
-func compareNumberValues(mt *mtest.T, key string, expected, actual bson.RawValue) {
+func compareNumberValues(mt *mtest.T, key string, expected, actual bson.RawValue) error {
 	eInt := numberFromValue(mt, expected)
 	if eInt == 42 {
-		assert.NotEqual(mt, bson.TypeNull, actual.Type, "expected non-null value for key %v, got null", key)
-		return
+		if actual.Type == bson.TypeNull {
+			return fmt.Errorf("expected non-null value for key %s, got null", key)
+		}
+		return nil
 	}
 
 	aInt := numberFromValue(mt, actual)
-	assert.Equal(mt, eInt, aInt, "value mismatch for key %s; expected %v, got %v", key, expected, actual)
+	if eInt != aInt {
+		return fmt.Errorf("value mismatch for key %s; expected %s, got %s", key, expected, actual)
+	}
+	return nil
 }
 
 // compare BSON values and fail if they are not equal. the key parameter is used for error strings.
 // if the expected value is a numeric type (int32, int64, or double) and the value is 42, the function only asserts that
 // the actual value is non-null.
-func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) {
+func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) error {
 	mt.Helper()
 
 	switch expected.Type {
 	case bson.TypeInt32, bson.TypeInt64, bson.TypeDouble:
-		compareNumberValues(mt, key, expected, actual)
+		if err := compareNumberValues(mt, key, expected, actual); err != nil {
+			return err
+		}
+		return nil
 	case bson.TypeString:
 		val := expected.StringValue()
 		if val == "42" {
-			assert.NotEqual(mt, bson.TypeNull, actual.Type, "expected non-null value for key %v, got null", key)
-			return
+			if actual.Type == bson.TypeNull {
+				return fmt.Errorf("expected non-null value for key %s, got null", key)
+			}
+			return nil
 		}
-		assert.Equal(mt, expected.Value, actual.Value,
-			"value mismatch for key %v; expected %v, got %v", key, expected.Value, actual.Value)
+		break // compare bytes for expected.Value and actual.Value outside of the switch
 	case bson.TypeEmbeddedDocument:
 		e := expected.Document()
 		if typeVal, err := e.LookupErr("$$type"); err == nil {
 			// $$type represents a type assertion
 			// for example {field: {$$type: "binData"}} should assert that "field" is an element with a binary value
-			assertType(mt, actual.Type, typeVal.StringValue())
-			return
+			return checkValueType(mt, key, actual.Type, typeVal.StringValue())
 		}
 
 		a := actual.Document()
-		compareDocs(mt, e, a)
+		return compareDocsHelper(mt, e, a, key)
 	case bson.TypeArray:
 		e := expected.Array()
 		a := actual.Array()
-		compareDocs(mt, e, a)
-	default:
-		assert.Equal(mt, expected.Value, actual.Value,
-			"value mismatch for key %v; expected %v, got %v", key, expected.Value, actual.Value)
+		return compareDocsHelper(mt, e, a, key)
 	}
+
+	if expected.Type != actual.Type {
+		return fmt.Errorf("type mismatch for key %s; expected %s, got %s", key, expected.Type, actual.Type)
+	}
+	if !bytes.Equal(expected.Value, actual.Value) {
+		return fmt.Errorf("value mismatch for key %s; expected %s, got %s", key, expected.Value, actual.Value)
+	}
+	return nil
 }
 
 // helper for $$type assertions
-func assertType(mt *mtest.T, actual bsontype.Type, typeStr string) {
+func checkValueType(mt *mtest.T, key string, actual bsontype.Type, typeStr string) error {
 	mt.Helper()
 
 	var expected bsontype.Type
@@ -132,11 +151,14 @@ func assertType(mt *mtest.T, actual bsontype.Type, typeStr string) {
 		mt.Fatalf("unrecognized type string: %v", typeStr)
 	}
 
-	assert.Equal(mt, expected, actual, "BSON type mismatch; expected %v, got %v", expected, actual)
+	if expected != actual {
+		return fmt.Errorf("BSON type mismatch for key %s; expected %s, got %s", key, expected, actual)
+	}
+	return nil
 }
 
 // compare expected and actual BSON documents. comparison succeeds if actual contains each element in expected.
-func compareDocs(mt *mtest.T, expected, actual bson.Raw) {
+func compareDocsHelper(mt *mtest.T, expected, actual bson.Raw, prefix string) error {
 	mt.Helper()
 
 	eElems, err := expected.Elements()
@@ -144,60 +166,66 @@ func compareDocs(mt *mtest.T, expected, actual bson.Raw) {
 
 	for _, e := range eElems {
 		eKey := e.Key()
+		fullKeyName := eKey
+		if prefix != "" {
+			fullKeyName = prefix + "." + eKey
+		}
+
 		aVal, err := actual.LookupErr(eKey)
 		assert.Nil(mt, err, "key %s not found in result", e.Key())
 
-		eVal := e.Value()
-		if doc, ok := eVal.DocumentOK(); ok {
-			// special $$type assertion
-			if typeVal, err := doc.LookupErr("$$type"); err == nil {
-				assertType(mt, aVal.Type, typeVal.StringValue())
-				continue
-			}
-
-			// nested doc
-			compareDocs(mt, doc, aVal.Document())
-			continue
+		if err := compareValues(mt, fullKeyName, e.Value(), aVal); err != nil {
+			return err
 		}
-
-		compareValues(mt, eKey, eVal, aVal)
 	}
+	return nil
+}
+
+func compareDocs(mt *mtest.T, expected, actual bson.Raw) error {
+	mt.Helper()
+	return compareDocsHelper(mt, expected, actual, "")
 }
 
 func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bsonx.Doc) {
 	mt.Helper()
 
-	for _, expectation := range expectations {
+	for idx, expectation := range expectations {
+		var err error
+
 		if expectation.CommandStartedEvent != nil {
-			compareStartedEvent(mt, expectation, id0, id1)
+			err = compareStartedEvent(mt, expectation, id0, id1)
 		}
 		if expectation.CommandSucceededEvent != nil {
-			compareSucceededEvent(mt, expectation)
+			err = compareSucceededEvent(mt, expectation)
 		}
 		if expectation.CommandFailedEvent != nil {
-			compareFailedEvent(mt, expectation)
+			err = compareFailedEvent(mt, expectation)
 		}
+
+		assert.Nil(mt, err, "expectation comparison error at index %v: %s", idx, err)
 	}
 }
 
-func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bsonx.Doc) {
+func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bsonx.Doc) error {
 	mt.Helper()
 
 	expected := expectation.CommandStartedEvent
 	evt := mt.GetStartedEvent()
-	assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
-
-	if expected.CommandName != "" {
-		assert.Equal(mt, expected.CommandName, evt.CommandName,
-			"cmd name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
+	if evt == nil {
+		return errors.New("expected CommandStartedEvent, got nil")
 	}
-	if expected.DatabaseName != "" {
-		assert.Equal(mt, expected.DatabaseName, evt.DatabaseName,
-			"db name mismatch; expected %s, got %s", expected.DatabaseName, evt.DatabaseName)
+
+	if expected.CommandName != "" && expected.CommandName != evt.CommandName {
+		return fmt.Errorf("command name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
+	}
+	if expected.DatabaseName != "" && expected.DatabaseName != evt.DatabaseName {
+		return fmt.Errorf("database name mismatch; expected %s, got %s", expected.DatabaseName, evt.DatabaseName)
 	}
 
 	eElems, err := expected.Command.Elements()
-	assert.Nil(mt, err, "error getting expected elements: %v", err)
+	if err != nil {
+		return fmt.Errorf("error getting expected command elements: %s", err)
+	}
 
 	for _, elem := range eElems {
 		key := elem.Key()
@@ -207,20 +235,23 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bsonx.D
 
 		// Keys that may be nil
 		if val.Type == bson.TypeNull {
-			assert.Equal(mt, bson.RawValue{}, actualVal, "expected value for key %s to be nil but got %v", key, actualVal)
+			if actualVal.Type != 0 || len(actualVal.Value) > 0 {
+				return fmt.Errorf("expected value for key %s to be nil but got %s", key, actualVal)
+			}
 			continue
 		}
 		if key == "ordered" || key == "cursor" || key == "batchSize" {
-			// TODO: some tests specify that "ordered" must be a key in the event but ordered isn't a valid option for some of these cases (e.g. insertOne)
+			// TODO: some tests specify that "ordered" must be a key in the event but ordered isn't a valid option for
+			// some of these cases (e.g. insertOne)
 			// TODO: some FLE tests specify "cursor" subdocument for listCollections
-			// TODO: find.json cmd monitoring tests expect different batch sizes for find/getMore commands based on an optional limit
+			// TODO: find.json cmd monitoring tests expect different batch sizes for find/getMore commands based on an
+			// optional limit
 			continue
 		}
 
-		// keys that should not be nil
-		assert.NotEqual(mt, bson.TypeNull, actualVal.Type, "expected value %v for key %s but got nil", val, key)
-		err = actualVal.Validate()
-		assert.Nil(mt, err, "error validating value for key %s: %v", key, err)
+		if err = actualVal.Validate(); err != nil {
+			return fmt.Errorf("error validatinmg value for key %s: %s", key, err)
+		}
 
 		switch key {
 		case "lsid":
@@ -234,19 +265,26 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bsonx.D
 			case "session1":
 				expectedID, err = id1.MarshalBSON()
 			default:
-				mt.Fatalf("unrecognized session identifier: %v", sessName)
+				return fmt.Errorf("unrecognized session identifier in command document: %s", sessName)
 			}
-			assert.Nil(mt, err, "error getting expected session ID bytes: %v", err)
 
-			assert.Equal(mt, expectedID, actualID,
-				"session ID mismatch for session %v; expected %v, got %v", sessName, expectedID, actualID)
+			if err != nil {
+				return fmt.Errorf("error getting expected session ID bytes for session name %s: %s", sessName, err)
+			}
+			if !bytes.Equal(expectedID, actualID) {
+				return fmt.Errorf("session ID mismatch for session %s; expected %s, got %s", sessName, expectedID,
+					actualID)
+			}
 		default:
-			compareValues(mt, key, val, actualVal)
+			if err := compareValues(mt, key, val, actualVal); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
-func compareWriteErrors(mt *mtest.T, expected, actual bson.Raw) {
+func compareWriteErrors(mt *mtest.T, expected, actual bson.Raw) error {
 	mt.Helper()
 
 	expectedErrors, _ := expected.Values()
@@ -258,38 +296,48 @@ func compareWriteErrors(mt *mtest.T, expected, actual bson.Raw) {
 
 		eIdx := expectedErr.Lookup("index").Int32()
 		aIdx := actualErr.Lookup("index").Int32()
-		assert.Equal(mt, eIdx, aIdx, "expected error index %v, got %v", eIdx, aIdx)
+		if eIdx != aIdx {
+			return fmt.Errorf("write error index mismatch at index %d; expected %d, got %d", i, eIdx, aIdx)
+		}
 
 		eCode := expectedErr.Lookup("code").Int32()
 		aCode := actualErr.Lookup("code").Int32()
-		if eCode != 42 {
-			assert.Equal(mt, eCode, aCode, "expected error code %v, got %v", eCode, aCode)
+		if eCode != 42 && eCode != aCode {
+			return fmt.Errorf("write error code mismatch at index %d; expected %d, got %d", i, eCode, aCode)
 		}
 
 		eMsg := expectedErr.Lookup("errmsg").StringValue()
 		aMsg := actualErr.Lookup("errmsg").StringValue()
 		if eMsg == "" {
-			assert.NotEqual(mt, aMsg, "", "expected non-empty error message, got empty")
-			return
+			if aMsg == "" {
+				return fmt.Errorf("write error message mismatch at index %d; expected non-empty message, got empty", i)
+			}
+			return nil
 		}
-		assert.Equal(mt, eMsg, aMsg, "expected error message %v, got %v", eMsg, aMsg)
+		if eMsg != aMsg {
+			return fmt.Errorf("write error message mismatch at index %d, expected %s, got %s", i, eMsg, aMsg)
+		}
 	}
+	return nil
 }
 
-func compareSucceededEvent(mt *mtest.T, expectation *expectation) {
+func compareSucceededEvent(mt *mtest.T, expectation *expectation) error {
 	mt.Helper()
 
 	expected := expectation.CommandSucceededEvent
 	evt := mt.GetSucceededEvent()
-	assert.NotNil(mt, evt, "expected CommandSucceededEvent, got nil")
+	if evt == nil {
+		return errors.New("expected CommandSucceededEvent, got nil")
+	}
 
-	if expected.CommandName != "" {
-		assert.Equal(mt, expected.CommandName, evt.CommandName,
-			"cmd name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
+	if expected.CommandName != "" && expected.CommandName != evt.CommandName {
+		return fmt.Errorf("command name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
 	}
 
 	eElems, err := expected.Reply.Elements()
-	assert.Nil(mt, err, "error getting expected elements: %v", err)
+	if err != nil {
+		return fmt.Errorf("error getting expected reply elements: %s", err)
+	}
 
 	for _, elem := range eElems {
 		key := elem.Key()
@@ -298,22 +346,29 @@ func compareSucceededEvent(mt *mtest.T, expectation *expectation) {
 
 		switch key {
 		case "writeErrors":
-			compareWriteErrors(mt, val.Array(), actualVal.Array())
+			if err = compareWriteErrors(mt, val.Array(), actualVal.Array()); err != nil {
+				return err
+			}
 		default:
-			compareValues(mt, key, val, actualVal)
+			if err := compareValues(mt, key, val, actualVal); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
-func compareFailedEvent(mt *mtest.T, expectation *expectation) {
+func compareFailedEvent(mt *mtest.T, expectation *expectation) error {
 	mt.Helper()
 
 	expected := expectation.CommandFailedEvent
 	evt := mt.GetFailedEvent()
-	assert.NotNil(mt, evt, "expected CommandFailedEvent, got nil")
-
-	if expected.CommandName != "" {
-		assert.Equal(mt, expected.CommandName, evt.CommandName,
-			"cmd name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
+	if evt == nil {
+		return errors.New("expected CommandFailedEvent, got nil")
 	}
+
+	if expected.CommandName != "" && expected.CommandName != evt.CommandName {
+		return fmt.Errorf("command name mismatch; expected %s, got %s", expected.CommandName, evt.CommandName)
+	}
+	return nil
 }

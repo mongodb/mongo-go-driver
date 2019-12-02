@@ -1358,9 +1358,11 @@ func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
 	}
 
 	assert.NotNil(mt, cur, "expected cursor to not be nil")
-	for _, expected := range result.(bson.A) {
+	for i, expected := range result.(bson.A) {
 		assert.True(mt, cur.Next(mtest.Background), "expected Next to return true but got false")
-		compareDocs(mt, expected.(bson.Raw), cur.Current)
+		if err := compareDocs(mt, expected.(bson.Raw), cur.Current); err != nil {
+			mt.Fatalf("cursor document mismatch at index %d: %s", i, err)
+		}
 	}
 
 	assert.False(mt, cur.Next(mtest.Background), "expected Next to return false but got true")
@@ -1377,5 +1379,7 @@ func verifySingleResult(mt *mtest.T, actualResult *mongo.SingleResult, expectedR
 
 	expected := expectedResult.(bson.Raw)
 	actual, _ := actualResult.DecodeBytes()
-	compareDocs(mt, expected, actual)
+	if err := compareDocs(mt, expected, actual); err != nil {
+		mt.Fatalf("SingleResult document mismatch: %s", err)
+	}
 }
