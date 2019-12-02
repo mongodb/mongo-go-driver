@@ -7,12 +7,14 @@
 package mtest
 
 import (
+	"context"
 	"errors"
-	"log"
+	"fmt"
 	"math"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -53,34 +55,32 @@ func Setup() error {
 	var err error
 	testContext.connString, err = getConnString()
 	if err != nil {
-		log.Printf("connstring error: %v", err)
-		return err
+		return fmt.Errorf("error getting connection string: %v", err)
 	}
 	testContext.topo, err = topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
 		return testContext.connString
 	}))
 	if err != nil {
-		log.Printf("topology.New error: %v", err)
-		return err
+		return fmt.Errorf("error creating topology: %v", err)
 	}
 	if err = testContext.topo.Connect(); err != nil {
-		log.Printf("topology.Connect error: %v", err)
-		return err
+		return fmt.Errorf("error connecting topology: %v", err)
 	}
 
 	testContext.client, err = setupClient(testContext.connString, options.Client())
 	if err != nil {
-		log.Printf("error setting up client: %v", err)
-		return err
+		return fmt.Errorf("error connecting test client: %v", err)
 	}
-	if err := testContext.client.Ping(Background, readpref.Primary()); err != nil {
-		log.Printf("error connecting to client: %v", err)
-		return err
+
+	pingCtx, cancel := context.WithTimeout(Background, 2*time.Second)
+	defer cancel()
+	if err := testContext.client.Ping(pingCtx, readpref.Primary()); err != nil {
+		return fmt.Errorf("ping error: %v; make sure the deployment is running on URI %v", err,
+			testContext.connString.Original)
 	}
 
 	if testContext.serverVersion, err = getServerVersion(); err != nil {
-		log.Printf("error getting server version: %v", err)
-		return err
+		return fmt.Errorf("error getting server version: %v", err)
 	}
 
 	switch testContext.topo.Kind() {
@@ -98,15 +98,14 @@ func Setup() error {
 			{"transactionLifetimeLimitSeconds", 3},
 		}).Err()
 		if err != nil {
-			return err
+			return fmt.Errorf("error setting transactionLifetimeLimitSeconds: %v", err)
 		}
 	}
 
 	testContext.authEnabled = len(os.Getenv("MONGO_GO_DRIVER_CA_FILE")) != 0
 	biRes, err := testContext.client.Database("admin").RunCommand(Background, bson.D{{"buildInfo", 1}}).DecodeBytes()
 	if err != nil {
-		log.Printf("error running buildInfo: %v", err)
-		return err
+		return fmt.Errorf("buildInfo error: %v", err)
 	}
 	modulesRaw, err := biRes.LookupErr("modules")
 	if err == nil {
@@ -126,16 +125,13 @@ func Setup() error {
 // This function must be called once after all tests have finished running.
 func Teardown() error {
 	if err := testContext.client.Database(TestDb).Drop(Background); err != nil {
-		log.Printf("Database.Drop error: %v", err)
-		return err
+		return fmt.Errorf("error dropping test database: %v", err)
 	}
 	if err := testContext.client.Disconnect(Background); err != nil {
-		log.Printf("Client.Disconnect error: %v", err)
-		return err
+		return fmt.Errorf("error disconnecting test client: %v", err)
 	}
 	if err := testContext.topo.Disconnect(Background); err != nil {
-		log.Printf("Topology.Disconnect error: %v", err)
-		return err
+		return fmt.Errorf("error disconnecting test topology: %v", err)
 	}
 	return nil
 }
