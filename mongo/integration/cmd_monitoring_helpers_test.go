@@ -79,7 +79,7 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) erro
 		if typeVal, err := e.LookupErr("$$type"); err == nil {
 			// $$type represents a type assertion
 			// for example {field: {$$type: "binData"}} should assert that "field" is an element with a binary value
-			return assertType(mt, key, actual.Type, typeVal.StringValue())
+			return checkValueType(mt, key, actual.Type, typeVal.StringValue())
 		}
 
 		a := actual.Document()
@@ -100,7 +100,7 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) erro
 }
 
 // helper for $$type assertions
-func assertType(mt *mtest.T, key string, actual bsontype.Type, typeStr string) error {
+func checkValueType(mt *mtest.T, key string, actual bsontype.Type, typeStr string) error {
 	mt.Helper()
 
 	var expected bsontype.Type
