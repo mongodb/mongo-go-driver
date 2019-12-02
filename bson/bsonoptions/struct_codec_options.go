@@ -8,9 +8,9 @@ package bsonoptions
 
 // StructCodecOptions represents all possible options for struct encoding and decoding.
 type StructCodecOptions struct {
-	DecodeZeroStruct     *bool // Specifies if structs should be zeroed before decoding into them. Defaults to false.
-	DecodeDeepZeroInline *bool // Specifies if structs should be recursively zeroed when a inline value is decoded. Defaults to false.
-	OmitDefaultStruct    *bool // Specifies if default structs should be considered empty by omitempty. Defaults to false.
+	DecodeZeroStruct        *bool // Specifies if structs should be zeroed before decoding into them. Defaults to false.
+	DecodeDeepZeroInline    *bool // Specifies if structs should be recursively zeroed when a inline value is decoded. Defaults to false.
+	EncodeOmitDefaultStruct *bool // Specifies if default structs should be considered empty by omitempty. Defaults to false.
 }
 
 // StructCodec creates a new *StructCodecOptions
@@ -30,9 +30,10 @@ func (t *StructCodecOptions) SetDecodeDeepZeroInline(b bool) *StructCodecOptions
 	return t
 }
 
-// SetOmitDefaultStruct specifies if default structs should be considered empty by omitempty. Defaults to false.
-func (t *StructCodecOptions) SetOmitDefaultStruct(b bool) *StructCodecOptions {
-	t.OmitDefaultStruct = &b
+// SetEncodeOmitDefaultStruct specifies if default structs should be considered empty by omitempty. A default struct has all
+// its values set to their default value. Defaults to false.
+func (t *StructCodecOptions) SetEncodeOmitDefaultStruct(b bool) *StructCodecOptions {
+	t.EncodeOmitDefaultStruct = &b
 	return t
 }
 
@@ -50,8 +51,8 @@ func MergeStructCodecOptions(opts ...*StructCodecOptions) *StructCodecOptions {
 		if opt.DecodeDeepZeroInline != nil {
 			s.DecodeDeepZeroInline = opt.DecodeDeepZeroInline
 		}
-		if opt.OmitDefaultStruct != nil {
-			s.OmitDefaultStruct = opt.OmitDefaultStruct
+		if opt.EncodeOmitDefaultStruct != nil {
+			s.EncodeOmitDefaultStruct = opt.EncodeOmitDefaultStruct
 		}
 	}
 

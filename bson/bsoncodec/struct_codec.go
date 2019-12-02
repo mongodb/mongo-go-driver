@@ -33,12 +33,12 @@ type Zeroer interface {
 
 // StructCodec is the Codec used for struct values.
 type StructCodec struct {
-	cache                map[reflect.Type]*structDescription
-	l                    sync.RWMutex
-	parser               StructTagParser
-	DecodeZeroStruct     bool
-	DecodeDeepZeroInline bool
-	OmitDefaultStruct    bool
+	cache                   map[reflect.Type]*structDescription
+	l                       sync.RWMutex
+	parser                  StructTagParser
+	DecodeZeroStruct        bool
+	DecodeDeepZeroInline    bool
+	EncodeOmitDefaultStruct bool
 }
 
 var _ ValueEncoder = &StructCodec{}
@@ -63,8 +63,8 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	if structOpt.DecodeDeepZeroInline != nil {
 		codec.DecodeDeepZeroInline = *structOpt.DecodeDeepZeroInline
 	}
-	if structOpt.OmitDefaultStruct != nil {
-		codec.OmitDefaultStruct = *structOpt.OmitDefaultStruct
+	if structOpt.EncodeOmitDefaultStruct != nil {
+		codec.EncodeOmitDefaultStruct = *structOpt.EncodeOmitDefaultStruct
 	}
 
 	return codec, nil
@@ -284,7 +284,7 @@ func (sc *StructCodec) isZero(i interface{}) bool {
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
 	case reflect.Struct:
-		if sc.OmitDefaultStruct {
+		if sc.EncodeOmitDefaultStruct {
 			vt := v.Type()
 			if vt == tTime {
 				return v.Interface().(time.Time).IsZero()
