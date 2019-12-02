@@ -204,16 +204,16 @@ func TestUnmarshalRawIncompatible(t *testing.T) {
 	assert.NotNil(t, err, "expected an error")
 }
 
-// func TestUnmarshalZeroesStruct(t *testing.T) {
-// 	data, err := bson.MarshalWithRegistry(mgoRegistry, bson.M{"b": 2})
-// 	assert.Nil(t, err, "expected nil error, got: %v", err)
-// 	type T struct{ A, B int }
-// 	v := T{A: 1}
-// 	err = bson.UnmarshalWithRegistry(mgoRegistry, data, &v)
-// 	assert.Nil(t, err, "expected nil error, got: %v", err)
-// 	assert.Equal(t, 0, v.A, "expected: 0, got: %v", v.A)
-// 	assert.Equal(t, 2, v.B, "expected: 2, got: %v", v.B)
-// }
+func TestUnmarshalZeroesStruct(t *testing.T) {
+	data, err := bson.MarshalWithRegistry(mgoRegistry, bson.M{"b": 2})
+	assert.Nil(t, err, "expected nil error, got: %v", err)
+	type T struct{ A, B int }
+	v := T{A: 1}
+	err = bson.UnmarshalWithRegistry(mgoRegistry, data, &v)
+	assert.Nil(t, err, "expected nil error, got: %v", err)
+	assert.Equal(t, 0, v.A, "expected: 0, got: %v", v.A)
+	assert.Equal(t, 2, v.B, "expected: 2, got: %v", v.B)
+}
 
 // func TestUnmarshalZeroesMap(t *testing.T) {
 // 	data, err := bson.MarshalWithRegistry(mgoRegistry, bson.M{"b": 2})
@@ -226,17 +226,17 @@ func TestUnmarshalRawIncompatible(t *testing.T) {
 // 	assert.True(t, reflect.DeepEqual(want, m), "expected: %v, got: %v", want, m)
 // }
 
-// func TestUnmarshalNonNilInterface(t *testing.T) {
-// 	data, err := bson.MarshalWithRegistry(mgoRegistry, bson.M{"b": 2})
-// 	assert.Nil(t, err, "expected nil error, got: %v", err)
-// 	m := bson.M{"a": 1}
-// 	var i interface{}
-// 	i = m
-// 	err = bson.UnmarshalWithRegistry(mgoRegistry, data, &i)
-// 	assert.Nil(t, err, "expected nil error, got: %v", err)
-// 	assert.True(t, reflect.DeepEqual(bson.M{"b": 2}, i), "expected: %v, got: %v", bson.M{"b": 2}, i)
-// 	assert.True(t, reflect.DeepEqual(bson.M{"a": 1}, i), "expected: %v, got: %v", bson.M{"a": 1}, i)
-// }
+func TestUnmarshalNonNilInterface(t *testing.T) {
+	data, err := bson.MarshalWithRegistry(mgoRegistry, bson.M{"b": 2})
+	assert.Nil(t, err, "expected nil error, got: %v", err)
+	m := bson.M{"a": 1}
+	var i interface{}
+	i = m
+	err = bson.UnmarshalWithRegistry(mgoRegistry, data, &i)
+	assert.Nil(t, err, "expected nil error, got: %v", err)
+	assert.True(t, reflect.DeepEqual(bson.M{"b": 2}, i), "expected: %v, got: %v", bson.M{"b": 2}, i)
+	assert.True(t, reflect.DeepEqual(bson.M{"a": 1}, m), "expected: %v, got: %v", bson.M{"a": 1}, m)
+}
 
 func TestPtrInline(t *testing.T) {
 	cases := []struct {
@@ -1354,12 +1354,12 @@ var twoWayCrossItems = []crossTypeItem{
 	// {&struct{ S string }{"ghi"}, &struct{ S primitive.Symbol }{"ghi"}},
 
 	// map <=> struct
-	// {&struct {
-	// 	A struct {
-	// 		B, C int
-	// 	}
-	// }{struct{ B, C int }{1, 2}},
-	// 	map[string]map[string]int{"a": {"b": 1, "c": 2}}},
+	{&struct {
+		A struct {
+			B, C int
+		}
+	}{struct{ B, C int }{1, 2}},
+		&map[string]map[string]int{"a": {"b": 1, "c": 2}}},
 
 	// {&struct{ A primitive.Symbol }{"abc"}, &map[string]string{"a": "abc"}},
 	// {&struct{ A primitive.Symbol }{"abc"}, &map[string][]byte{"a": []byte("abc")}},
@@ -1414,7 +1414,7 @@ var twoWayCrossItems = []crossTypeItem{
 	{&condTime{}, &map[string]string{}},
 
 	{&condStruct{struct{ A []int }{[]int{1}}}, &bson.M{"v": bson.M{"a": []interface{}{1}}}},
-	// {&condStruct{struct{ A []int }{}}, &bson.M{}},
+	{&condStruct{struct{ A []int }{}}, &bson.M{}},
 
 	// {&condRaw{bson.RawValue{Type: 0x0A, Value: []byte{}}},&bson.M{"v": nil}},
 	// {&condRaw{bson.RawValue{Type: 0x00}}, &bson.M{}},
@@ -1508,9 +1508,9 @@ var oneWayCrossItems = []crossTypeItem{
 	{&shortIface{int64(1) << 30}, &map[string]interface{}{"v": 1 << 30}},
 
 	// Ensure omitempty on struct with private fields works properly.
-	// {&struct {
-	// 	V struct{ v time.Time } `bson:",omitempty"`
-	// }{}, &map[string]interface{}{}},
+	{&struct {
+		V struct{ v time.Time } `bson:",omitempty"`
+	}{}, &map[string]interface{}{}},
 
 	// Attempt to marshal slice into RawD (issue #120).
 	// {bson.M{"x": []int{1, 2, 3}}, &struct{ X bson.Raw }{}},

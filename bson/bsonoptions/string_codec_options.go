@@ -8,7 +8,7 @@ package bsonoptions
 
 var defaultDecodeOIDAsHex = true
 
-// StringCodecOptions represents all possible options for time.Time encoding and decoding.
+// StringCodecOptions represents all possible options for string encoding and decoding.
 type StringCodecOptions struct {
 	DecodeObjectIDAsHex *bool // Specifies if we should decode ObjectID as the hex value. Defaults to true.
 }

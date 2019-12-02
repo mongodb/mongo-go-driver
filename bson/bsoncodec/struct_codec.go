@@ -12,7 +12,9 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
+	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
@@ -31,24 +33,41 @@ type Zeroer interface {
 
 // StructCodec is the Codec used for struct values.
 type StructCodec struct {
-	cache  map[reflect.Type]*structDescription
-	l      sync.RWMutex
-	parser StructTagParser
+	cache                   map[reflect.Type]*structDescription
+	l                       sync.RWMutex
+	parser                  StructTagParser
+	DecodeZeroStruct        bool
+	DecodeDeepZeroInline    bool
+	EncodeOmitDefaultStruct bool
 }
 
 var _ ValueEncoder = &StructCodec{}
 var _ ValueDecoder = &StructCodec{}
 
 // NewStructCodec returns a StructCodec that uses p for struct tag parsing.
-func NewStructCodec(p StructTagParser) (*StructCodec, error) {
+func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) (*StructCodec, error) {
 	if p == nil {
 		return nil, errors.New("a StructTagParser must be provided to NewStructCodec")
 	}
 
-	return &StructCodec{
+	structOpt := bsonoptions.MergeStructCodecOptions(opts...)
+
+	codec := &StructCodec{
 		cache:  make(map[reflect.Type]*structDescription),
 		parser: p,
-	}, nil
+	}
+
+	if structOpt.DecodeZeroStruct != nil {
+		codec.DecodeZeroStruct = *structOpt.DecodeZeroStruct
+	}
+	if structOpt.DecodeDeepZeroInline != nil {
+		codec.DecodeDeepZeroInline = *structOpt.DecodeDeepZeroInline
+	}
+	if structOpt.EncodeOmitDefaultStruct != nil {
+		codec.EncodeOmitDefaultStruct = *structOpt.EncodeOmitDefaultStruct
+	}
+
+	return codec, nil
 }
 
 // EncodeValue handles encoding generic struct types.
@@ -136,6 +155,13 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 	sd, err := sc.describeStruct(r.Registry, val.Type())
 	if err != nil {
 		return err
+	}
+
+	if sc.DecodeZeroStruct {
+		val.Set(reflect.Zero(val.Type()))
+	}
+	if sc.DecodeDeepZeroInline && sd.inline {
+		val.Set(deepZero(val.Type()))
 	}
 
 	var decoder ValueDecoder
@@ -257,6 +283,23 @@ func (sc *StructCodec) isZero(i interface{}) bool {
 		return v.Float() == 0
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
+	case reflect.Struct:
+		if sc.EncodeOmitDefaultStruct {
+			vt := v.Type()
+			if vt == tTime {
+				return v.Interface().(time.Time).IsZero()
+			}
+			for i := 0; i < v.NumField(); i++ {
+				if vt.Field(i).PkgPath != "" && !vt.Field(i).Anonymous {
+					continue // Private field
+				}
+				fld := v.Field(i)
+				if !sc.isZero(fld.Interface()) {
+					return false
+				}
+			}
+			return true
+		}
 	}
 
 	return false
@@ -266,6 +309,7 @@ type structDescription struct {
 	fm        map[string]fieldDescription
 	fl        []fieldDescription
 	inlineMap int
+	inline    bool
 }
 
 type fieldDescription struct {
@@ -328,6 +372,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 		description.truncate = stags.Truncate
 
 		if stags.Inline {
+			sd.inline = true
 			switch sfType.Kind() {
 			case reflect.Map:
 				if sd.inlineMap >= 0 {
@@ -415,4 +460,40 @@ func getInlineField(val reflect.Value, index []int) (reflect.Value, error) {
 	fParent.Set(reflect.New(fParent.Type().Elem()))
 
 	return fieldByIndexErr(val, index)
+}
+
+// DeepZero returns recursive zero object
+func deepZero(st reflect.Type) (result reflect.Value) {
+	result = reflect.Indirect(reflect.New(st))
+
+	if result.Kind() == reflect.Struct {
+		for i := 0; i < result.NumField(); i++ {
+			if f := result.Field(i); f.Kind() == reflect.Ptr {
+				if f.CanInterface() {
+					if ft := reflect.TypeOf(f.Interface()); ft.Elem().Kind() == reflect.Struct {
+						result.Field(i).Set(recursivePointerTo(deepZero(ft.Elem())))
+					}
+				}
+			}
+		}
+	}
+
+	return
+}
+
+// recursivePointerTo calls reflect.New(v.Type) but recursively for its fields inside
+func recursivePointerTo(v reflect.Value) reflect.Value {
+	v = reflect.Indirect(v)
+	result := reflect.New(v.Type())
+	if v.Kind() == reflect.Struct {
+		for i := 0; i < v.NumField(); i++ {
+			if f := v.Field(i); f.Kind() == reflect.Ptr {
+				if f.Elem().Kind() == reflect.Struct {
+					result.Elem().Field(i).Set(recursivePointerTo(f))
+				}
+			}
+		}
+	}
+
+	return result
 }
