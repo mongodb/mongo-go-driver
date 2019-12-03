@@ -1334,19 +1334,19 @@ var twoWayCrossItems = []crossTypeItem{
 	{&struct{ I int }{42}, &struct{ I float64 }{42}},
 
 	// int <=> bool
-	// {&struct{ I int }{1}, &struct{ I bool }{true}},
-	// {&struct{ I int }{0}, &struct{ I bool }{false}},
+	{&struct{ I int }{1}, &struct{ I bool }{true}},
+	{&struct{ I int }{0}, &struct{ I bool }{false}},
 
 	// uint <=> float64
 	{&struct{ I uint }{42}, &struct{ I float64 }{42}},
 
 	// uint <=> bool
-	// {&struct{ I uint }{1}, &struct{ I bool }{true}},
-	// {&struct{ I uint }{0}, &struct{ I bool }{false}},
+	{&struct{ I uint }{1}, &struct{ I bool }{true}},
+	{&struct{ I uint }{0}, &struct{ I bool }{false}},
 
 	// float64 <=> bool
-	// {&struct{ I float64 }{1}, &struct{ I bool }{true}},
-	// {&struct{ I float64 }{0}, &struct{ I bool }{false}},
+	{&struct{ I float64 }{1}, &struct{ I bool }{true}},
+	{&struct{ I float64 }{0}, &struct{ I bool }{false}},
 
 	// string <=> string and string <=> []byte
 	// {&struct{ S []byte }{[]byte("abc")}, &struct{ S string }{"abc"}},
@@ -1366,17 +1366,17 @@ var twoWayCrossItems = []crossTypeItem{
 	// {&struct{ A []byte }{[]byte("abc")}, map[string]string{"a": "abc"}},
 	{&struct{ A uint }{42}, map[string]int{"a": 42}},
 	{&struct{ A uint }{42}, map[string]float64{"a": 42}},
-	// {&struct{ A uint }{1}, map[string]bool{"a": true}},
+	{&struct{ A uint }{1}, map[string]bool{"a": true}},
 	{&struct{ A int }{42}, map[string]uint{"a": 42}},
 	{&struct{ A int }{42}, map[string]float64{"a": 42}},
-	// {&struct{ A int }{1}, map[string]bool{"a": true}},
+	{&struct{ A int }{1}, map[string]bool{"a": true}},
 	{&struct{ A float64 }{42}, map[string]float32{"a": 42}},
 	{&struct{ A float64 }{42}, map[string]int{"a": 42}},
 	{&struct{ A float64 }{42}, map[string]uint{"a": 42}},
-	// {&struct{ A float64 }{1}, map[string]bool{"a": true}},
-	// {&struct{ A bool }{true}, map[string]int{"a": 1}},
-	// {&struct{ A bool }{true}, map[string]uint{"a": 1}},
-	// {&struct{ A bool }{true}, map[string]float64{"a": 1}},
+	{&struct{ A float64 }{1}, map[string]bool{"a": true}},
+	{&struct{ A bool }{true}, map[string]int{"a": 1}},
+	{&struct{ A bool }{true}, map[string]uint{"a": 1}},
+	{&struct{ A bool }{true}, map[string]float64{"a": 1}},
 	{&struct{ A **byte }{&byteptr}, map[string]byte{"a": 8}},
 
 	// url.URL <=> string
@@ -1483,7 +1483,7 @@ var twoWayCrossItems = []crossTypeItem{
 	// json.Number <=> int64, float64
 	{&struct{ N json.Number }{"5"}, map[string]interface{}{"n": int64(5)}},
 	{&struct{ N json.Number }{"5.05"}, map[string]interface{}{"n": 5.05}},
-	// {&struct{ N json.Number }{"9223372036854776000"}, map[string]interface{}{"n": float64(1 << 63)}},
+	{&struct{ N json.Number }{"9223372036854776000"}, map[string]interface{}{"n": float64(1 << 63)}},
 
 	// bson.D <=> non-struct getter/setter
 	// {&bson.D{{"a", 1}}, &getterSetterD{{"a", 1}, {"suffix", true}}},
