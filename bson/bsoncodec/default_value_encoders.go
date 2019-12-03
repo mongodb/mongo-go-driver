@@ -26,6 +26,8 @@ var defaultValueEncoders DefaultValueEncoders
 
 var bvwPool = bsonrw.NewBSONValueWriterPool()
 
+var errInvalidValue = errors.New("cannot encode invalid element")
+
 var sliceWriterPool = sync.Pool{
 	New: func() interface{} {
 		sw := make(bsonrw.SliceWriter, 0, 0)
@@ -301,14 +303,22 @@ func (dve DefaultValueEncoders) mapEncodeValue(ec EncodeContext, dw bsonrw.Docum
 			return fmt.Errorf("Key %s of inlined map conflicts with a struct field name", key)
 		}
 
-		currEncoder, currVal, err := dve.lookupElementEncoder(ec, encoder, val.MapIndex(key))
-		if err != nil {
-			return err
+		currEncoder, currVal, lookupErr := dve.lookupElementEncoder(ec, encoder, val.MapIndex(key))
+		if lookupErr != nil && lookupErr != errInvalidValue {
+			return lookupErr
 		}
 
 		vw, err := dw.WriteDocumentElement(key.String())
 		if err != nil {
 			return err
+		}
+
+		if lookupErr == errInvalidValue {
+			err = vw.WriteNull()
+			if err != nil {
+				return err
+			}
+			continue
 		}
 
 		if enc, ok := currEncoder.(ValueEncoder); ok {
@@ -363,14 +373,22 @@ func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.Val
 	}
 
 	for idx := 0; idx < val.Len(); idx++ {
-		currEncoder, currVal, err := dve.lookupElementEncoder(ec, encoder, val.Index(idx))
-		if err != nil {
-			return err
+		currEncoder, currVal, lookupErr := dve.lookupElementEncoder(ec, encoder, val.Index(idx))
+		if lookupErr != nil && lookupErr != errInvalidValue {
+			return lookupErr
 		}
 
 		vw, err := aw.WriteArrayElement()
 		if err != nil {
 			return err
+		}
+
+		if lookupErr == errInvalidValue {
+			err = vw.WriteNull()
+			if err != nil {
+				return err
+			}
+			continue
 		}
 
 		err = currEncoder.EncodeValue(ec, vw, currVal)
@@ -422,14 +440,22 @@ func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.Val
 	}
 
 	for idx := 0; idx < val.Len(); idx++ {
-		currEncoder, currVal, err := dve.lookupElementEncoder(ec, encoder, val.Index(idx))
-		if err != nil {
-			return err
+		currEncoder, currVal, lookupErr := dve.lookupElementEncoder(ec, encoder, val.Index(idx))
+		if lookupErr != nil && lookupErr != errInvalidValue {
+			return lookupErr
 		}
 
 		vw, err := aw.WriteArrayElement()
 		if err != nil {
 			return err
+		}
+
+		if lookupErr == errInvalidValue {
+			err = vw.WriteNull()
+			if err != nil {
+				return err
+			}
+			continue
 		}
 
 		err = currEncoder.EncodeValue(ec, vw, currVal)
@@ -446,7 +472,7 @@ func (dve DefaultValueEncoders) lookupElementEncoder(ec EncodeContext, origEncod
 	}
 	currVal = currVal.Elem()
 	if !currVal.IsValid() {
-		return nil, currVal, fmt.Errorf("cannot encode invalid element")
+		return nil, currVal, errInvalidValue
 	}
 	currEncoder, err := ec.LookupEncoder(currVal.Type())
 
