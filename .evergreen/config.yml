@@ -73,6 +73,8 @@ functions:
            go version
            go env
 
+           BSON_INSTALL_PATH="$(pwd)/libbson-install"
+           LIBMONGOCRYPT_INSTALL_PATH="$(pwd)/libmongocrypt-install"
            if [ "Windows_NT" = "$OS" ]; then
               mkdir -p c:/libmongocrypt/include
               mkdir -p c:/libmongocrypt/bin
@@ -81,9 +83,35 @@ functions:
               cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
               cp ./include/mongocrypt/*.h c:/libmongocrypt/include
               export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-           else
-              git clone https://github.com/mongodb/libmongocrypt
-              ./libmongocrypt/.evergreen/compile.sh
+           elif uname -a | grep -q Ubuntu > /dev/null 2>&1; then # Ubuntu
+              sudo sh -c 'curl -s https://www.mongodb.org/static/pgp/libmongocrypt.asc | gpg --dearmor >/etc/apt/trusted.gpg.d/libmongocrypt.gpg'
+              echo "deb https://libmongocrypt.s3.amazonaws.com/apt/ubuntu xenial/libmongocrypt/1.0 universe" | sudo tee /etc/apt/sources.list.d/libmongocrypt.list
+              sudo apt-get update
+              sudo apt-get install -y libmongocrypt-dev
+           elif uname -a | grep -q Darwin; then
+              if [ -f "/Applications/cmake-3.2.2-Darwin-x86_64/CMake.app/Contents/bin/cmake" ]; then
+                 CMAKE="/Applications/cmake-3.2.2-Darwin-x86_64/CMake.app/Contents/bin/cmake"
+              elif [ -f "/Applications/Cmake.app/Contents/bin/cmake" ]; then
+                 CMAKE="/Applications/Cmake.app/Contents/bin/cmake"
+              fi
+
+              pushd .
+              mkdir libbson-install
+              git clone git@github.com:mongodb/mongo-c-driver.git
+              cd mongo-c-driver
+              mkdir cmake-build
+              cd cmake-build
+              $CMAKE -DENABLE_MONGOC=OFF -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_INSTALL_PREFIX=$BSON_INSTALL_PATH ../
+              make install
+              popd
+
+              pushd .
+              mkdir libmongocrypt-install
+              git clone https://github.com/mongodb/libmongocrypt.git
+              cd libmongocrypt
+              $CMAKE -DENABLE_SHARED_BSON=ON -DCMAKE_PREFIX_PATH=$BSON_INSTALL_PATH -DCMAKE_INSTALL_PREFIX=$LIBMONGOCRYPT_INSTALL_PATH .
+              $CMAKE --build . --target install
+              popd
            fi
 
            cat <<EOT > expansion.yml
@@ -107,7 +135,7 @@ functions:
               export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
               export PATH="$PATH"
               export PROJECT="$PROJECT"
-              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
+              export PKG_CONFIG_PATH=$BSON_INSTALL_PATH/lib/pkgconfig:$LIBMONGOCRYPT_INSTALL_PATH/lib/pkgconfig:$PKG_CONFIG_PATH
               export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
            EOT
            # See what we've done
