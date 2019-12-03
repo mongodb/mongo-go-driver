@@ -79,11 +79,15 @@
 //     4. A pointer field is marshalled as the underlying type if the pointer is non-nil. If the pointer is nil, it is
 //     marshalled as a BSON null value.
 //
+//     5. When unmarshalling, a field of type interface{} will follow the D/M type mappings listed above. BSON documents
+//     unmarshalled into an interface{} field will be unmarshalled as a D.
+//
 // The following struct tags can be used to configure behavior:
 //
 //     1. omitempty: If the omitempty struct tag is specified on a field, the field will not be marshalled if it is set to
-//     the zero value. By default, omitempty is not relevant for struct fields, which will be serialized as an embedded
-//     document.
+//     the zero value. By default, a struct field is only considered empty if the field's type implements the Zeroer
+//     interface and the IsZero method returns true. If the field's type does not implement Zeroer, the field will be
+//     marshalled as an embedded document.
 //
 //     2. minsize: If the minsize struct tag is specified on a field of type int64, uint, uint32, or uint64 and the value of
 //     the field can fit in a signed int32, the field will be serialized as a BSON int32 rather than a BSON int64. For other
@@ -98,8 +102,10 @@
 //     marshalling and "un-flattened" when unmarshalling. This means that all of the fields in that struct/map will be
 //     pulled up one level and will become top-level fields rather than being fields in a nested document. For example, if a
 //     map field named "Map" with value map[string]interface{}{"foo": "bar"} is inlined, the resulting document will be
-//     {"foo": "bar"} instead of {"map": {"foo": "bar"}}. This tag can be used with fields that are pointers to structs. If
-//     an inlined pointer field is nil, it will not be marshalled.
+//     {"foo": "bar"} instead of {"map": {"foo": "bar"}}. There can only be one inlined map field in a struct. If there are
+//     duplicated fields in the resulting document when an inlined field is marshalled, an error will be returned. This tag
+//     can be used with fields that are pointers to structs. If an inlined pointer field is nil, it will not be marshalled.
+//     For fields that are not maps or structs, this tag is ignored.
 //
 // Marshalling and Unmarshalling
 //
