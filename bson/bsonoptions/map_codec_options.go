@@ -8,7 +8,7 @@ package bsonoptions
 
 // MapCodecOptions represents all possible options for map encoding and decoding.
 type MapCodecOptions struct {
-	DecodeZerosMap *bool // Specifies if we should zero the map before decoding into it. Defaults to false.
+	DecodeZerosMap *bool // Specifies if the map should be zeroed before decoding into it. Defaults to false.
 }
 
 // MapCodec creates a new *MapCodecOptions
