@@ -4,7 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// Package bson is a library for reading, writing, and manipulating BSON.
+// Package bson is a library for reading, writing, and manipulating BSON. BSON is a binary serialization format used to
+// store documents and make remote procedure calls in MongoDB. The BSON specification is located at https://bsonspec.org.
 //
 // Raw BSON
 //
@@ -22,11 +23,13 @@
 //
 // Native Go Types
 //
-// This D and M types defined in this package can be used to build concise representations of BSON using native Go
-// types.
+// This D and M types defined in this package can be used to build concise of BSON using native Go types. D is a slice
+// and M is a map. For more information about the use cases for these types, see the documentation on the type
+// definitions.
 //
 // Example:
 // 		bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
+//		bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
 //
 // When decoding BSON to a D or M, the following type mappings apply when unmarshalling:
 //
@@ -86,14 +89,14 @@
 //
 //     1. omitempty: If the omitempty struct tag is specified on a field, the field will not be marshalled if it is set to
 //     the zero value. By default, a struct field is only considered empty if the field's type implements the Zeroer
-//     interface and the IsZero method returns true. If the field's type does not implement Zeroer, the field will be
-//     marshalled as an embedded document.
+//     interface and the IsZero method returns true. Struct fields of types that do not implement Zeroer will be
+//     marshalled as embedded documents.
 //
 //     2. minsize: If the minsize struct tag is specified on a field of type int64, uint, uint32, or uint64 and the value of
 //     the field can fit in a signed int32, the field will be serialized as a BSON int32 rather than a BSON int64. For other
 //     types, this tag is ignored.
 //
-//     3. truncate: If the truncate struct tag is specified on a field with a non-float64 numeric type, BSON doubles unmarshalled
+//     3. truncate: If the truncate struct tag is specified on a field with a non-float numeric type, BSON doubles unmarshalled
 //     into that field will be trucated at the decimal point. For example, if 3.14 is unmarshalled into a field of type int,
 //     it will be unmarshalled as 3. If this tag is not specified, the decoder will throw an error if the value cannot be
 //     decoded without losing precision. For float64 or non-numeric types, this tag is ignored.
@@ -109,7 +112,5 @@
 //
 // Marshalling and Unmarshalling
 //
-// Manually marshallhing and unmarshalling can be done with the Marshal and Unmarshal family of functions. To read or
-// write BSON from a non-slice source, an Encoder or Decoder with a bsonrw.ValueWriter or bsonrw.ValueReader must be
-// used.
+// Manually marshalling and unmarshalling can be done with the Marshal and Unmarshal family of functions.
 package bson
