@@ -98,6 +98,10 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, val r
 
 		desc.encoder, rv, err = defaultValueEncoders.lookupElementEncoder(r, desc.encoder, rv)
 
+		if err != nil && err != errInvalidValue {
+			return err
+		}
+
 		if err == errInvalidValue {
 			if desc.omitEmpty {
 				continue
