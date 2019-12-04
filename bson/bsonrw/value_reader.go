@@ -373,7 +373,7 @@ func (vr *valueReader) ReadBinary() (b []byte, btype byte, err error) {
 		return nil, 0, err
 	}
 
-	if btype == 0x02 {
+	if btype == 0x02 && length > 4 {
 		length, err = vr.readLength()
 		if err != nil {
 			return nil, 0, err

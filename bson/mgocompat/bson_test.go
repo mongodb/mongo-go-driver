@@ -119,8 +119,8 @@ var allItems = []testItemType{
 		"\x04_\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00"},
 	{bson.M{"_": []byte("yo")},
 		"\x05_\x00\x02\x00\x00\x00\x00yo"},
-	// {bson.M{"_": primitive.Binary{Subtype: 0x80, Data: []byte("udef")}},
-	// 	"\x05_\x00\x04\x00\x00\x00\x80udef"},
+	{bson.M{"_": primitive.Binary{Subtype: 0x80, Data: []byte("udef")}},
+		"\x05_\x00\x04\x00\x00\x00\x80udef"},
 	{bson.M{"_": primitive.Undefined{}}, // Obsolete, but still seen in the wild.
 		"\x06_\x00"},
 	{bson.M{"_": primitive.ObjectID{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B}},
@@ -326,8 +326,8 @@ var oneWayMarshalItems = []testItemType{
 		"\x10\x00\x08\x00\x00\x00"},
 
 	// There are no unsigned types in BSON.  Will unmarshal as int32 or int64.
-	// {bson.M{"": uint32(258)},
-	// 	"\x10\x00\x02\x01\x00\x00"},
+	//{bson.M{"": uint32(258)},
+	//	"\x10\x00\x02\x01\x00\x00"},
 	{bson.M{"": uint64(258)},
 		"\x12\x00\x02\x01\x00\x00\x00\x00\x00\x00"},
 	{bson.M{"": uint64(258 << 32)},
@@ -516,8 +516,8 @@ var structItems = []testItemType{
 		"\x10v\x00" + "\x00\x00\x00\x00"},
 
 	// Byte arrays.
-	// {&struct{ V [2]byte }{[2]byte{'y', 'o'}},
-	// 	"\x05v\x00\x02\x00\x00\x00\x00yo"},
+	{&struct{ V [2]byte }{[2]byte{'y', 'o'}},
+		"\x05v\x00\x02\x00\x00\x00\x00yo"},
 
 	// {&struct{ V prefixPtr }{prefixPtr("buzz")},
 	// 	"\x02v\x00\x09\x00\x00\x00foo-buzz\x00"},
@@ -661,12 +661,12 @@ var unmarshalItems = []testItemType{
 	// 	"\x10byte\x00\x08\x00\x00\x00"},
 
 	// Decode old binary.
-	// {bson.M{"_": []byte("old")},
-	// 	"\x05_\x00\x07\x00\x00\x00\x02\x03\x00\x00\x00old"},
+	{bson.M{"_": []byte("old")},
+		"\x05_\x00\x07\x00\x00\x00\x02\x03\x00\x00\x00old"},
 
 	// Decode old binary without length. According to the spec, this shouldn't happen.
-	// {bson.M{"_": []byte("old")},
-	// 	"\x05_\x00\x03\x00\x00\x00\x02old"},
+	{bson.M{"_": []byte("old")},
+		"\x05_\x00\x03\x00\x00\x00\x02old"},
 
 	// Decode a doc within a doc in to a slice within a doc; shouldn't error
 	// {&struct{ Foo []string }{},
@@ -850,29 +850,30 @@ var corruptedData = []string{
 	// Document end within string, but past acceptable.
 	wrapInDoc("\x03\x00\x08\x00\x00\x00\x0A\x00\x00"),
 
-	// String with corrupted end.
-	wrapInDoc("\x02\x00\x03\x00\x00\x00yo\xFF"),
+	// // String with corrupted end.
+	// wrapInDoc("\x02\x00\x03\x00\x00\x00yo\xFF"),
 
 	// String with negative length (issue #116).
 	"\x0c\x00\x00\x00\x02x\x00\xff\xff\xff\xff\x00",
 
-	// String with zero length (must include trailing '\x00')
-	"\x0c\x00\x00\x00\x02x\x00\x00\x00\x00\x00\x00",
+	// // String with zero length (must include trailing '\x00')
+	// "\x0c\x00\x00\x00\x02x\x00\x00\x00\x00\x00\x00",
 
 	// Binary with negative length.
 	"\r\x00\x00\x00\x05x\x00\xff\xff\xff\xff\x00\x00",
 }
 
-// func TestUnmarshalMapDocumentTooShort(t *testing.T) {
-// 	for _, data := range corruptedData {
-// 		err := bson.UnmarshalWithRegistry(mgoRegistry, []byte(data), bson.M{})
-// 		want := fmt.Errorf("Document is corrupted")
-// 		assert.Equal(t, want, err, "expected error: %v, got: %v", want, err)
+func TestUnmarshalMapDocumentTooShort(t *testing.T) {
+	for i, data := range corruptedData {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			err := bson.UnmarshalWithRegistry(mgoRegistry, []byte(data), bson.M{})
+			assert.NotNil(t, err, "expected error, got nil")
 
-// 		err = bson.UnmarshalWithRegistry(mgoRegistry, []byte(data), &struct{}{})
-// 		assert.Equal(t, want, err, "expected error: %v, got: %v", want, err)
-// 	}
-// }
+			err = bson.UnmarshalWithRegistry(mgoRegistry, []byte(data), &struct{}{})
+			assert.NotNil(t, err, "expected error, got nil")
+		})
+	}
+}
 
 // --------------------------------------------------------------------------
 // Setter test cases.
@@ -1349,9 +1350,12 @@ var twoWayCrossItems = []crossTypeItem{
 	{&struct{ I float64 }{0}, &struct{ I bool }{false}},
 
 	// string <=> string and string <=> []byte
-	// {&struct{ S []byte }{[]byte("abc")}, &struct{ S string }{"abc"}},
-	// {&struct{ S []byte }{[]byte("def")}, &struct{ S primitive.Symbol }{"def"}},
-	// {&struct{ S string }{"ghi"}, &struct{ S primitive.Symbol }{"ghi"}},
+	{&struct{ S []byte }{[]byte("abc")}, &struct{ S string }{"abc"}},
+	{&struct{ S []byte }{[]byte("def")}, &struct{ S primitive.Symbol }{"def"}},
+	{&struct{ S string }{"ghi"}, &struct{ S primitive.Symbol }{"ghi"}},
+
+	{&struct{ S string }{"0123456789ab"},
+		&struct{ S primitive.ObjectID }{primitive.ObjectID{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62}}},
 
 	// map <=> struct
 	{&struct {
@@ -1361,9 +1365,9 @@ var twoWayCrossItems = []crossTypeItem{
 	}{struct{ B, C int }{1, 2}},
 		map[string]map[string]int{"a": {"b": 1, "c": 2}}},
 
-	// {&struct{ A primitive.Symbol }{"abc"}, map[string]string{"a": "abc"}},
-	// {&struct{ A primitive.Symbol }{"abc"}, map[string][]byte{"a": []byte("abc")}},
-	// {&struct{ A []byte }{[]byte("abc")}, map[string]string{"a": "abc"}},
+	{&struct{ A primitive.Symbol }{"abc"}, map[string]string{"a": "abc"}},
+	{&struct{ A primitive.Symbol }{"abc"}, map[string][]byte{"a": []byte("abc")}},
+	{&struct{ A []byte }{[]byte("abc")}, map[string]string{"a": "abc"}},
 	{&struct{ A uint }{42}, map[string]int{"a": 42}},
 	{&struct{ A uint }{42}, map[string]float64{"a": 42}},
 	{&struct{ A uint }{1}, map[string]bool{"a": true}},
@@ -1439,17 +1443,17 @@ var twoWayCrossItems = []crossTypeItem{
 	{&inlineMap{A: 1, M: nil}, map[string]interface{}{"a": 1}},
 	{&inlineMapInt{A: 1, M: map[string]int{"b": 2}}, map[string]int{"a": 1, "b": 2}},
 	{&inlineMapInt{A: 1, M: nil}, map[string]int{"a": 1}},
-	// {&inlineMapMyM{A: 1, M: MyM{"b": MyM{"c": 3}}}, map[string]interface{}{"a": 1, "b": map[string]interface{}{"c": 3}}},
+	{&inlineMapMyM{A: 1, M: MyM{"b": MyM{"c": 3}}}, map[string]interface{}{"a": 1, "b": map[string]interface{}{"c": 3}}},
 	{&inlineUnexported{M: map[string]interface{}{"b": 1}, unexported: unexported{A: 2}}, map[string]interface{}{"b": 1, "a": 2}},
 
 	// []byte <=> Binary
 	{&struct{ B []byte }{[]byte("abc")}, map[string]primitive.Binary{"b": {Data: []byte("abc")}}},
 
 	// []byte <=> MyBytes
-	// {&struct{ B MyBytes }{[]byte("abc")}, &map[string]string{"b": "abc"}},
-	// {&struct{ B MyBytes }{[]byte{}}, &map[string]string{"b": ""}},
+	{&struct{ B MyBytes }{[]byte("abc")}, &map[string]string{"b": "abc"}},
+	{&struct{ B MyBytes }{[]byte{}}, &map[string]string{"b": ""}},
 	// {&struct{ B MyBytes }{}, &map[string]bool{}},
-	// {&struct{ B []byte }{[]byte("abc")}, &map[string]MyBytes{"b": []byte("abc")}},
+	{&struct{ B []byte }{[]byte("abc")}, &map[string]MyBytes{"b": []byte("abc")}},
 
 	// bool <=> MyBool
 	{&struct{ B MyBool }{true}, map[string]bool{"b": true}},
@@ -1615,25 +1619,18 @@ func TestObjectIdJSONMarshaling(t *testing.T) {
 	}
 }
 
-func TestMarshalRespectNil(t *testing.T) {
+func TestMarshalNotRespectNil(t *testing.T) {
 	type T struct {
-		Slice    []int
-		SlicePtr *[]int
-		Ptr      *int
-		Map      map[string]interface{}
-		MapPtr   *map[string]interface{}
+		Slice  []int
+		BSlice []byte
+		Map    map[string]interface{}
 	}
-
-	// bson.SetRespectNilValues(true)
-	// defer bson.SetRespectNilValues(false)
 
 	testStruct1 := T{}
 
 	assert.Nil(t, testStruct1.Slice, "expected nil slice, got: %v", testStruct1.Slice)
-	assert.Nil(t, testStruct1.SlicePtr, "expected nil slice ptr, got: %v", testStruct1.SlicePtr)
+	assert.Nil(t, testStruct1.BSlice, "expected nil byte slice, got: %v", testStruct1.BSlice)
 	assert.Nil(t, testStruct1.Map, "expected nil map, got: %v", testStruct1.Map)
-	assert.Nil(t, testStruct1.MapPtr, "expected nil map ptr, got: %v", testStruct1.MapPtr)
-	assert.Nil(t, testStruct1.Ptr, "expected nil ptr, got: %v", testStruct1.Ptr)
 
 	b, _ := bson.MarshalWithRegistry(mgoRegistry, testStruct1)
 
@@ -1641,32 +1638,63 @@ func TestMarshalRespectNil(t *testing.T) {
 
 	_ = bson.UnmarshalWithRegistry(mgoRegistry, b, &testStruct2)
 
-	assert.Nil(t, testStruct2.Slice, "expected nil slice, got: %v", testStruct2.Slice)
-	assert.Nil(t, testStruct2.SlicePtr, "expected nil slice ptr, got: %v", testStruct2.SlicePtr)
-	assert.Nil(t, testStruct2.Map, "expected nil map, got: %v", testStruct2.Map)
-	assert.Nil(t, testStruct2.MapPtr, "expected nil map ptr, got: %v", testStruct2.MapPtr)
-	assert.Nil(t, testStruct2.Ptr, "expected nil ptr, got: %v", testStruct2.Ptr)
-
-	testStruct1 = T{
-		Slice:    []int{},
-		SlicePtr: &[]int{},
-		Map:      map[string]interface{}{},
-		MapPtr:   &map[string]interface{}{},
-	}
-
-	assert.NotNil(t, testStruct1.Slice, "expected non-nil slice")
-	assert.NotNil(t, testStruct1.SlicePtr, "expected non-nil slice ptr")
-	assert.NotNil(t, testStruct1.Map, "expected non-nil map")
-	assert.NotNil(t, testStruct1.MapPtr, "expected non-nil map ptr")
-
-	b, _ = bson.MarshalWithRegistry(mgoRegistry, testStruct1)
-
-	testStruct2 = T{}
-
-	_ = bson.UnmarshalWithRegistry(mgoRegistry, b, &testStruct2)
-
 	assert.NotNil(t, testStruct2.Slice, "expected non-nil slice")
-	assert.NotNil(t, testStruct2.SlicePtr, "expected non-nil slice ptr")
+	assert.NotNil(t, testStruct2.BSlice, "expected non-nil byte slice")
 	assert.NotNil(t, testStruct2.Map, "expected non-nil map")
-	assert.NotNil(t, testStruct2.MapPtr, "expected non-nil map ptr")
 }
+
+// func TestMarshalRespectNil(t *testing.T) {
+// 	type T struct {
+// 		Slice    []int
+// 		SlicePtr *[]int
+// 		Ptr      *int
+// 		Map      map[string]interface{}
+// 		MapPtr   *map[string]interface{}
+// 	}
+
+// bson.SetRespectNilValues(true)
+// defer bson.SetRespectNilValues(false)
+
+// 	testStruct1 := T{}
+
+// 	assert.Nil(t, testStruct1.Slice, "expected nil slice, got: %v", testStruct1.Slice)
+// 	assert.Nil(t, testStruct1.SlicePtr, "expected nil slice ptr, got: %v", testStruct1.SlicePtr)
+// 	assert.Nil(t, testStruct1.Map, "expected nil map, got: %v", testStruct1.Map)
+// 	assert.Nil(t, testStruct1.MapPtr, "expected nil map ptr, got: %v", testStruct1.MapPtr)
+// 	assert.Nil(t, testStruct1.Ptr, "expected nil ptr, got: %v", testStruct1.Ptr)
+
+// 	b, _ := bson.MarshalWithRegistry(mgoRegistry, testStruct1)
+
+// 	testStruct2 := T{}
+
+// 	_ = bson.UnmarshalWithRegistry(mgoRegistry, b, &testStruct2)
+
+// 	assert.Nil(t, testStruct2.Slice, "expected nil slice, got: %v", testStruct2.Slice)
+// 	assert.Nil(t, testStruct2.SlicePtr, "expected nil slice ptr, got: %v", testStruct2.SlicePtr)
+// 	assert.Nil(t, testStruct2.Map, "expected nil map, got: %v", testStruct2.Map)
+// 	assert.Nil(t, testStruct2.MapPtr, "expected nil map ptr, got: %v", testStruct2.MapPtr)
+// 	assert.Nil(t, testStruct2.Ptr, "expected nil ptr, got: %v", testStruct2.Ptr)
+
+// 	testStruct1 = T{
+// 		Slice:    []int{},
+// 		SlicePtr: &[]int{},
+// 		Map:      map[string]interface{}{},
+// 		MapPtr:   &map[string]interface{}{},
+// 	}
+
+// 	assert.NotNil(t, testStruct1.Slice, "expected non-nil slice")
+// 	assert.NotNil(t, testStruct1.SlicePtr, "expected non-nil slice ptr")
+// 	assert.NotNil(t, testStruct1.Map, "expected non-nil map")
+// 	assert.NotNil(t, testStruct1.MapPtr, "expected non-nil map ptr")
+
+// 	b, _ = bson.MarshalWithRegistry(mgoRegistry, testStruct1)
+
+// 	testStruct2 = T{}
+
+// 	_ = bson.UnmarshalWithRegistry(mgoRegistry, b, &testStruct2)
+
+// 	assert.NotNil(t, testStruct2.Slice, "expected non-nil slice")
+// 	assert.NotNil(t, testStruct2.SlicePtr, "expected non-nil slice ptr")
+// 	assert.NotNil(t, testStruct2.Map, "expected non-nil map")
+// 	assert.NotNil(t, testStruct2.MapPtr, "expected non-nil map ptr")
+// }

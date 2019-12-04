@@ -23,6 +23,7 @@ var (
 	tM              = reflect.TypeOf(bson.M{})
 	tInterfaceSlice = reflect.TypeOf([]interface{}{})
 	tByteSlice      = reflect.TypeOf([]byte{})
+	tEmpty          = reflect.TypeOf((*interface{})(nil)).Elem()
 )
 
 // mgoRegistry is the default bsoncodec.Registry. It contains the default codecs and the
@@ -44,14 +45,25 @@ func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 			SetDecodeDeepZeroInline(true).
 			SetEncodeOmitDefaultStruct(true).
 			SetAllowUnexportedFields(true))
+	emptyInterCodec := bsoncodec.NewEmptyInterfaceCodec(
+		bsonoptions.EmptyInterfaceCodec().
+			SetDecodeDefaultType(tM).
+			SetDecodeUnpackBinary(true))
+	mapCodec := bsoncodec.NewMapCodec(
+		bsonoptions.MapCodec().
+			SetDecodeZerosMap(true).
+			SetEncodeNilAsEmpty(true))
 
-	rb.RegisterDefaultDecoder(reflect.String, bsoncodec.NewStringCodec(bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false))).
+	rb.RegisterDecoder(tEmpty, emptyInterCodec).
+		RegisterDefaultDecoder(reflect.String, bsoncodec.NewStringCodec(bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false))).
 		RegisterDefaultDecoder(reflect.Struct, structcodec).
-		RegisterDefaultDecoder(reflect.Map, bsoncodec.NewMapCodec(bsonoptions.MapCodec().SetDecodeZerosMap(true))).
+		RegisterDefaultDecoder(reflect.Map, mapCodec).
+		RegisterEncoder(tByteSlice, bsoncodec.NewByteSliceCodec(bsonoptions.ByteSliceCodec().SetEncodeNilAsEmpty(true))).
 		RegisterDefaultEncoder(reflect.Struct, structcodec).
+		RegisterDefaultEncoder(reflect.Slice, bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))).
+		RegisterDefaultEncoder(reflect.Map, mapCodec).
 		RegisterTypeMapEntry(bsontype.Int32, tInt).
 		RegisterTypeMapEntry(bsontype.Type(0), tM).
-		RegisterTypeMapEntry(bsontype.Binary, tByteSlice).
 		RegisterTypeMapEntry(bsontype.DateTime, tTime).
 		RegisterTypeMapEntry(bsontype.Array, tInterfaceSlice)
 

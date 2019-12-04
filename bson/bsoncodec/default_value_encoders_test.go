@@ -202,7 +202,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"TimeEncodeValue",
-			ValueEncoderFunc(dve.TimeEncodeValue),
+			defaultTimeCodec,
 			[]subtest{
 				{
 					"wrong type",
@@ -375,7 +375,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"SliceEncodeValue",
-			ValueEncoderFunc(dve.SliceEncodeValue),
+			defaultSliceCodec,
 			[]subtest{
 				{
 					"wrong kind",
@@ -539,7 +539,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ByteSliceEncodeValue",
-			ValueEncoderFunc(dve.ByteSliceEncodeValue),
+			defaultByteSliceCodec,
 			[]subtest{
 				{
 					"wrong type",
@@ -555,7 +555,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"EmptyInterfaceEncodeValue",
-			ValueEncoderFunc(dve.EmptyInterfaceEncodeValue),
+			defaultEmptyInterfaceCodec,
 			[]subtest{
 				{
 					"wrong type",
