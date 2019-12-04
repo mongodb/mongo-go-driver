@@ -249,11 +249,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"Lookup Error",
-					map[string]interface{}{"foo": nil},
+					map[string]int{"foo": 1},
 					&EncodeContext{Registry: NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteDocument,
-					fmt.Errorf("cannot encode invalid element"),
+					fmt.Errorf("no encoder found for int"),
 				},
 				{
 					"WriteDocumentElement Error",
@@ -287,6 +287,14 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.WriteDocumentEnd,
 					nil,
 				},
+				{
+					"with interface/nil/success",
+					map[string]myInterface{"foo": nil},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
 			},
 		},
 		{
@@ -311,11 +319,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"Lookup Error",
-					[1]interface{}{},
+					[1]int{1},
 					&EncodeContext{Registry: NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteArray,
-					fmt.Errorf("cannot encode invalid element"),
+					fmt.Errorf("no encoder found for int"),
 				},
 				{
 					"WriteArrayElement Error",
@@ -357,6 +365,14 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.WriteArrayEnd,
 					nil,
 				},
+				{
+					"[1]interface/nil/success",
+					[1]myInterface{nil},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteArrayEnd,
+					nil,
+				},
 			},
 		},
 		{
@@ -381,11 +397,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"Lookup Error",
-					[]interface{}{nil},
+					[]int{1},
 					&EncodeContext{Registry: NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteArray,
-					fmt.Errorf("cannot encode invalid element"),
+					fmt.Errorf("no encoder found for int"),
 				},
 				{
 					"WriteArrayElement Error",
@@ -430,6 +446,14 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"interface/success",
 					[]myInterface{myStruct{1}},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteArrayEnd,
+					nil,
+				},
+				{
+					"interface/success",
+					[]myInterface{nil},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					bsonrwtest.WriteArrayEnd,
@@ -930,6 +954,14 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"interface value",
 					struct{ Foo myInterface }{Foo: myStruct{1}},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
+				{
+					"nil interface value",
+					struct{ Foo myInterface }{Foo: nil},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					bsonrwtest.WriteDocumentEnd,
