@@ -16,7 +16,7 @@ func MapCodec() *MapCodecOptions {
 	return &MapCodecOptions{}
 }
 
-// SetDecodeZerosMap specifies if we should zero the map before decoding into it. Defaults to false.
+// SetDecodeZerosMap specifies if the map should be zeroed before decoding into it. Defaults to false.
 func (t *MapCodecOptions) SetDecodeZerosMap(b bool) *MapCodecOptions {
 	t.DecodeZerosMap = &b
 	return t
