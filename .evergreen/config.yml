@@ -84,10 +84,15 @@ functions:
               cp ./include/mongocrypt/*.h c:/libmongocrypt/include
               export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
            elif uname -a | grep -q Ubuntu > /dev/null 2>&1; then # Ubuntu
-              sudo sh -c 'curl -s https://www.mongodb.org/static/pgp/libmongocrypt.asc | gpg --dearmor >/etc/apt/trusted.gpg.d/libmongocrypt.gpg'
-              echo "deb https://libmongocrypt.s3.amazonaws.com/apt/ubuntu xenial/libmongocrypt/1.0 universe" | sudo tee /etc/apt/sources.list.d/libmongocrypt.list
-              sudo apt-get update
-              sudo apt-get install -y libmongocrypt-dev
+              if [ "$(lsb_release -r -s)" = "14.04" ]; then
+                  git clone https://github.com/mongodb/libmongocrypt
+                  ./libmongocrypt/.evergreen/compile.sh
+              else
+                  sudo sh -c 'curl -s https://www.mongodb.org/static/pgp/libmongocrypt.asc | gpg --dearmor >/etc/apt/trusted.gpg.d/libmongocrypt.gpg'
+                  echo "deb https://libmongocrypt.s3.amazonaws.com/apt/ubuntu xenial/libmongocrypt/1.0 universe" | sudo tee /etc/apt/sources.list.d/libmongocrypt.list
+                  sudo apt-get update
+                  sudo apt-get install -y libmongocrypt-dev
+              fi    
            elif uname -a | grep -q Darwin; then
               if [ -f "/Applications/cmake-3.2.2-Darwin-x86_64/CMake.app/Contents/bin/cmake" ]; then
                  CMAKE="/Applications/cmake-3.2.2-Darwin-x86_64/CMake.app/Contents/bin/cmake"
@@ -136,6 +141,7 @@ functions:
               export PATH="$PATH"
               export PROJECT="$PROJECT"
               export PKG_CONFIG_PATH=$BSON_INSTALL_PATH/lib/pkgconfig:$LIBMONGOCRYPT_INSTALL_PATH/lib/pkgconfig:$PKG_CONFIG_PATH
+              export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
               export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
            EOT
            # See what we've done
