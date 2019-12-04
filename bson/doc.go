@@ -23,8 +23,8 @@
 //
 // Native Go Types
 //
-// This D and M types defined in this package can be used to build concise of BSON using native Go types. D is a slice
-// and M is a map. For more information about the use cases for these types, see the documentation on the type
+// The D and M types defined in this package can be used to build representations of BSON using native Go types. D is a
+// slice and M is a map. For more information about the use cases for these types, see the documentation on the type
 // definitions.
 //
 // Example:
@@ -89,7 +89,7 @@
 //
 //     1. omitempty: If the omitempty struct tag is specified on a field, the field will not be marshalled if it is set to
 //     the zero value. By default, a struct field is only considered empty if the field's type implements the Zeroer
-//     interface and the IsZero method returns true. Struct fields of types that do not implement Zeroer will be
+//     interface and the IsZero method returns true. Struct fields of types that do not implement Zeroer are always
 //     marshalled as embedded documents.
 //
 //     2. minsize: If the minsize struct tag is specified on a field of type int64, uint, uint32, or uint64 and the value of
