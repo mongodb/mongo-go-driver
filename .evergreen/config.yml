@@ -140,9 +140,8 @@ functions:
               export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
               export PATH="$PATH"
               export PROJECT="$PROJECT"
-              export PKG_CONFIG_PATH=$BSON_INSTALL_PATH/lib/pkgconfig:$LIBMONGOCRYPT_INSTALL_PATH/lib/pkgconfig:$PKG_CONFIG_PATH
-              export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
-              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
+              export PKG_CONFIG_PATH=$BSON_INSTALL_PATH/lib/pkgconfig:$LIBMONGOCRYPT_INSTALL_PATH/lib/pkgconfig:$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
+              export LD_LIBRARY_PATH=$BSON_INSTALL_PATH/lib:$LIBMONGOCRYPT_INSTALL_PATH/lib:$(pwd)/install/libmongocrypt/lib
            EOT
            # See what we've done
            cat expansion.yml
