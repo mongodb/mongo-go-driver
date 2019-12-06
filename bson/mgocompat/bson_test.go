@@ -1404,7 +1404,7 @@ var twoWayCrossItems = []crossTypeItem{
 	{&condMap{map[string]int{"k": 1}}, bson.M{"v": bson.M{"k": 1}}},
 	{&condMap{}, map[string][]string{}},
 	{&condIface{"yo"}, map[string]string{"v": "yo"}},
-	// {&condIface{""}, map[string]string{"v": ""}},
+	{&condIface{""}, map[string]string{"v": ""}},
 	{&condIface{}, map[string]string{}},
 	{&condPtr{&truevar}, map[string]bool{"v": true}},
 	{&condPtr{&falsevar}, map[string]bool{"v": false}},
