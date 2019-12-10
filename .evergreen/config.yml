@@ -84,15 +84,8 @@ functions:
               cp ./include/mongocrypt/*.h c:/libmongocrypt/include
               export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
            elif uname -a | grep -q Ubuntu > /dev/null 2>&1; then # Ubuntu
-              if [ "$(lsb_release -r -s)" = "14.04" ]; then
-                  git clone https://github.com/mongodb/libmongocrypt
-                  ./libmongocrypt/.evergreen/compile.sh
-              else
-                  sudo sh -c 'curl -s https://www.mongodb.org/static/pgp/libmongocrypt.asc | gpg --dearmor >/etc/apt/trusted.gpg.d/libmongocrypt.gpg'
-                  echo "deb https://libmongocrypt.s3.amazonaws.com/apt/ubuntu xenial/libmongocrypt/1.0 universe" | sudo tee /etc/apt/sources.list.d/libmongocrypt.list
-                  sudo apt-get update
-                  sudo apt-get install -y libmongocrypt-dev
-              fi    
+              git clone https://github.com/mongodb/libmongocrypt
+              ./libmongocrypt/.evergreen/compile.sh
            elif uname -a | grep -q Darwin; then
               if [ -f "/Applications/cmake-3.2.2-Darwin-x86_64/CMake.app/Contents/bin/cmake" ]; then
                  CMAKE="/Applications/cmake-3.2.2-Darwin-x86_64/CMake.app/Contents/bin/cmake"
