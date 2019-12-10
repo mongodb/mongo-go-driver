@@ -127,12 +127,17 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, val r
 
 		encoder := desc.encoder
 
-		iszero := sc.isZero
-		if iz, ok := encoder.(CodecZeroer); ok {
-			iszero = iz.IsTypeZero
+		var isZero bool
+		rvInterface := rv.Interface()
+		if cz, ok := encoder.(CodecZeroer); ok {
+			isZero = cz.IsTypeZero(rvInterface)
+		} else if rv.Kind() == reflect.Interface {
+			// sc.isZero will not treat an interface rv as an interface, so we need to check for the zero interface separately.
+			isZero = rv.IsNil()
+		} else {
+			isZero = sc.isZero(rvInterface)
 		}
-
-		if desc.omitEmpty && iszero(rv.Interface()) {
+		if desc.omitEmpty && isZero {
 			continue
 		}
 
