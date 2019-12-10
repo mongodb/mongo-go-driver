@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"reflect"
 	"testing"
@@ -21,7 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"math"
 )
 
 type myInterface interface {
@@ -217,7 +217,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MapEncodeValue",
-			ValueEncoderFunc(dve.MapEncodeValue),
+			defaultMapCodec,
 			[]subtest{
 				{
 					"wrong kind",
@@ -226,18 +226,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					bsonrwtest.Nothing,
 					ValueEncoderError{Name: "MapEncodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: reflect.ValueOf(wrong)},
-				},
-				{
-					"wrong kind (non-string key)",
-					map[int]interface{}{},
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "MapEncodeValue",
-						Kinds:    []reflect.Kind{reflect.Map},
-						Received: reflect.ValueOf(map[int]interface{}{}),
-					},
 				},
 				{
 					"WriteDocument Error",
@@ -292,6 +280,16 @@ func TestDefaultValueEncoders(t *testing.T) {
 					map[string]myInterface{"foo": nil},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
+				{
+					"non-string key success",
+					map[int]interface{}{
+						1: "foobar",
+					},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteDocumentEnd,
 					nil,
 				},

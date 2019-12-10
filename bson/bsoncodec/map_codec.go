@@ -85,7 +85,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 			return lookupErr
 		}
 
-		vw, err := dw.WriteDocumentElement(key.String())
+		vw, err := dw.WriteDocumentElement(keyStr)
 		if err != nil {
 			return err
 		}
