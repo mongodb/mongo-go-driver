@@ -80,6 +80,10 @@ func (ekve EncryptionKeyVaultError) Error() string {
 	return fmt.Sprintf("key vault communication error: %v", ekve.Wrapped)
 }
 
+func (ekve EncryptionKeyVaultError) Unwrap() error {
+	return ekve.Wrapped
+}
+
 // MongocryptdError represents an error while communicating with mongocryptd during client-side encryption.
 type MongocryptdError struct {
 	Wrapped error
@@ -88,6 +92,10 @@ type MongocryptdError struct {
 // Error implements the error interface.
 func (e MongocryptdError) Error() string {
 	return fmt.Sprintf("mongocryptd communication error: %v", e.Wrapped)
+}
+
+func (e MongocryptdError) Unwrap() error {
+	return e.Wrapped
 }
 
 // CommandError represents a server error during execution of a command. This can be returned by any operation.

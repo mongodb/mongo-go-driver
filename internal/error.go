@@ -14,14 +14,14 @@ import (
 type WrappedError interface {
 	// Message gets the basic message of the error.
 	Message() string
-	// Inner gets the inner error if one exists.
-	Inner() error
+	// Unwrap gets the inner error if one exists.
+	Unwrap() error
 }
 
 // RolledUpErrorMessage gets a flattened error message.
 func RolledUpErrorMessage(err error) string {
 	if wrappedErr, ok := err.(WrappedError); ok {
-		inner := wrappedErr.Inner()
+		inner := wrappedErr.Unwrap()
 		if inner != nil {
 			return fmt.Sprintf("%s: %s", wrappedErr.Message(), RolledUpErrorMessage(inner))
 		}
@@ -37,7 +37,7 @@ func UnwrapError(err error) error {
 
 	switch tErr := err.(type) {
 	case WrappedError:
-		return UnwrapError(tErr.Inner())
+		return UnwrapError(tErr.Unwrap())
 	case *multiError:
 		return UnwrapError(tErr.errors[0])
 	}
@@ -114,6 +114,6 @@ func (e *wrappedError) Error() string {
 	return RolledUpErrorMessage(e)
 }
 
-func (e *wrappedError) Inner() error {
+func (e *wrappedError) Unwrap() error {
 	return e.inner
 }

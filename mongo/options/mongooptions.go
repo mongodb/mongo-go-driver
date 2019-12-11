@@ -158,4 +158,8 @@ func (me MarshalError) Error() string {
 	return fmt.Sprintf("cannot transform type %s to a bson.Raw", reflect.TypeOf(me.Value))
 }
 
+func (me MarshalError) Unwrap() error {
+	return me.Err
+}
+
 var defaultRegistry = bson.DefaultRegistry

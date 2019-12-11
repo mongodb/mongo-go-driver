@@ -142,8 +142,8 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s", e.message, e.inner)
 }
 
-// Inner returns the wrapped error.
-func (e *Error) Inner() error {
+// Unwrap returns the wrapped error.
+func (e *Error) Unwrap() error {
 	return e.inner
 }
 

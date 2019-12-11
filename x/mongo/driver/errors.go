@@ -64,6 +64,10 @@ func (e ResponseError) Error() string {
 	return fmt.Sprintf("%s", e.Message)
 }
 
+func (e ResponseError) Unwrap() error {
+	return e.Wrapped
+}
+
 // WriteCommandError is an error for a write command.
 type WriteCommandError struct {
 	WriteConcernError *WriteConcernError

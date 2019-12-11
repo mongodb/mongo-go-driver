@@ -60,6 +60,10 @@ func (me MarshalError) Error() string {
 	return fmt.Sprintf("cannot transform type %s to a BSON Document: %v", reflect.TypeOf(me.Value), me.Err)
 }
 
+func (me MarshalError) Unwrap() error {
+	return me.Err
+}
+
 // Pipeline is a type that makes creating aggregation pipelines easier. It is a
 // helper and is intended for serializing to BSON.
 //
