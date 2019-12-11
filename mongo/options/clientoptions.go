@@ -74,7 +74,9 @@ type ContextDialer interface {
 // Password: the password for authentication. This must not be specified for X509 and is optional for GSSAPI
 // authentication.
 //
-// PasswordSet specifies if the password is actually set, since an empty password is a valid password.
+// PasswordSet: For GSSAPI, this must be true if a password is specified, even if the password is the empty string, and
+// false if no password is specified, indicating that the password should be taken from the context of the running
+// process. For other mechanisms, this field is ignored.
 type Credential struct {
 	AuthMechanism           string
 	AuthMechanismProperties map[string]string
