@@ -243,7 +243,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 	conn, err := s.pool.get(ctx)
 	if err != nil {
 		s.sem.Release(1)
-		connErr, ok := err.(ConnectionError)
+		ok, wrappedConnErr := checkConnectionError(err)
 		if !ok {
 			return nil, err
 		}
@@ -252,7 +252,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		// error, we should set the description.Server appropriately.
 		desc := description.Server{
 			Kind:      description.Unknown,
-			LastError: connErr.Wrapped,
+			LastError: wrappedConnErr,
 		}
 		s.updateDescription(desc, false)
 
@@ -317,8 +317,10 @@ func (s *Server) RequestImmediateCheck() {
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
 func (s *Server) ProcessError(err error) {
-	// Invalidate server description if not master or node recovering error occurs
-	if cerr, ok := err.(driver.Error); ok && (cerr.NetworkError() || cerr.NodeIsRecovering() || cerr.NotMaster()) {
+	// Invalidate server description if not master or node recovering error occurs.
+	// These errors can be reported as a command error or a write concern error.
+	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotMaster()) {
+		fmt.Println("first ProcessError case")
 		desc := s.Description()
 		desc.Kind = description.Unknown
 		desc.LastError = err
@@ -345,15 +347,16 @@ func (s *Server) ProcessError(err error) {
 		return
 	}
 
-	ne, ok := err.(ConnectionError)
+	ok, wrappedConnErr := checkConnectionError(err)
 	if !ok {
 		return
 	}
 
-	if netErr, ok := ne.Wrapped.(net.Error); ok && netErr.Timeout() {
+	// Ignore transient timeout errors.
+	if netErr, ok := wrappedConnErr.(net.Error); ok && netErr.Timeout() {
 		return
 	}
-	if ne.Wrapped == context.Canceled || ne.Wrapped == context.DeadlineExceeded {
+	if wrappedConnErr == context.Canceled || wrappedConnErr == context.DeadlineExceeded {
 		return
 	}
 
@@ -362,6 +365,7 @@ func (s *Server) ProcessError(err error) {
 	desc.LastError = err
 	// updates description to unknown
 	s.updateDescription(desc, false)
+	s.pool.clear()
 }
 
 // update handles performing heartbeats and updating any subscribers of the
@@ -550,7 +554,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 				conn.nc.Close()
 			}
 			conn = nil
-			if _, ok := err.(ConnectionError); ok {
+			if ok, _ := checkConnectionError(err); ok {
 				s.pool.drain()
 				// If the server is not connected, give up and exit loop
 				if s.Description().Kind == description.Unknown {
@@ -635,4 +639,18 @@ func (ss *ServerSubscription) Unsubscribe() error {
 	delete(ss.s.subscribers, ss.id)
 
 	return nil
+}
+
+func checkConnectionError(err error) (bool, error) {
+	connErr, ok := err.(ConnectionError)
+	if ok {
+		return true, connErr.Wrapped
+	}
+
+	driverErr, ok := err.(driver.Error)
+	if ok && driverErr.NetworkError() {
+		return true, driverErr.Wrapped
+	}
+
+	return false, nil
 }
