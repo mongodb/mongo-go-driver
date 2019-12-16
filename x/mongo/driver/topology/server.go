@@ -243,8 +243,8 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 	conn, err := s.pool.get(ctx)
 	if err != nil {
 		s.sem.Release(1)
-		ok, wrappedConnErr := checkConnectionError(err)
-		if !ok {
+		wrappedConnErr := checkConnectionError(err)
+		if wrappedConnErr == nil {
 			return nil, err
 		}
 
@@ -346,8 +346,8 @@ func (s *Server) ProcessError(err error) {
 		return
 	}
 
-	ok, wrappedConnErr := checkConnectionError(err)
-	if !ok {
+	wrappedConnErr := checkConnectionError(err)
+	if wrappedConnErr == nil {
 		return
 	}
 
@@ -553,7 +553,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 				conn.nc.Close()
 			}
 			conn = nil
-			if ok, _ := checkConnectionError(err); ok {
+			if wrappedConnErr := checkConnectionError(err); wrappedConnErr != nil {
 				s.pool.drain()
 				// If the server is not connected, give up and exit loop
 				if s.Description().Kind == description.Unknown {
@@ -640,16 +640,16 @@ func (ss *ServerSubscription) Unsubscribe() error {
 	return nil
 }
 
-func checkConnectionError(err error) (bool, error) {
+func checkConnectionError(err error) error {
 	connErr, ok := err.(ConnectionError)
 	if ok {
-		return true, connErr.Wrapped
+		return connErr.Wrapped
 	}
 
 	driverErr, ok := err.(driver.Error)
 	if ok && driverErr.NetworkError() {
-		return true, driverErr.Wrapped
+		return driverErr.Wrapped
 	}
 
-	return false, nil
+	return nil
 }
