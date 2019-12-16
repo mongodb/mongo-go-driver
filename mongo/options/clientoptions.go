@@ -33,7 +33,9 @@ import (
 // ContextDialer is an interface that can be implemented by types that can create connections. It should be used to
 // provide a custom dialer when configuring a Client.
 //
-// DialContext should return a connection to the provided address on the given network.
+// DialContext should return a connection to the provided address on the given network. In error cases, this function
+// must return a nil net.Conn (i.e. conn == nil must be true). See https://golang.org/doc/faq#nil_error to ensure that
+// the connection is actually nil and not an interface with a set type but nil value.
 type ContextDialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
