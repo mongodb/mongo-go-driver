@@ -507,8 +507,14 @@ func (t *T) createTestClient() {
 	})
 	// only specify connection pool monitor if no deployment is given
 	if clientOpts.Deployment == nil {
+		previousPoolMonitor := clientOpts.PoolMonitor
+
 		clientOpts.SetPoolMonitor(&event.PoolMonitor{
 			Event: func(evt *event.PoolEvent) {
+				if previousPoolMonitor != nil {
+					previousPoolMonitor.Event(evt)
+				}
+
 				switch evt.Type {
 				case event.GetSucceeded:
 					t.connsCheckedOut++
