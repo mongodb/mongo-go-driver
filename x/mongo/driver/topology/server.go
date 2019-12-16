@@ -540,15 +540,16 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 			if err == nil {
 				tmpDesc := op.Result(s.address)
 				descPtr = &tmpDesc
+			} else {
+				if conn != nil && conn.nc != nil {
+					_ = conn.nc.Close()
+				}
 			}
 		}
 
 		// we do a retry if the server is connected, if succeed return new server desc (see below)
 		if err != nil {
 			saved = err
-			if conn != nil && conn.nc != nil {
-				conn.nc.Close()
-			}
 			conn = nil
 			if _, ok := err.(ConnectionError); ok {
 				s.pool.drain()
