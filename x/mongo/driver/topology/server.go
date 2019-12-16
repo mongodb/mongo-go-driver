@@ -320,7 +320,6 @@ func (s *Server) ProcessError(err error) {
 	// Invalidate server description if not master or node recovering error occurs.
 	// These errors can be reported as a command error or a write concern error.
 	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotMaster()) {
-		fmt.Println("first ProcessError case")
 		desc := s.Description()
 		desc.Kind = description.Unknown
 		desc.LastError = err
