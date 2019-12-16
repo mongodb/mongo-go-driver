@@ -541,6 +541,8 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 				tmpDesc := op.Result(s.address)
 				descPtr = &tmpDesc
 			} else {
+				// close the connection here rather than in the error check below to avoid calling Close on a net.Conn
+				// that wasn't successfully created
 				if conn != nil && conn.nc != nil {
 					_ = conn.nc.Close()
 				}
