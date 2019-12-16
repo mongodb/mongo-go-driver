@@ -124,7 +124,7 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 			})
 		}
 	})
-	mt.RunOpts("network errors", mtest.NewOptions().ClientOptions(clientOpts), func(mt *mtest.T) {
+	mt.RunOpts("network errors", mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.0"), func(mt *mtest.T) {
 		// expect that a server's connection pool will be cleared if a non-timeout network error occurs during an
 		// operation
 
