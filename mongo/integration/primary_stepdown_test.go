@@ -60,6 +60,7 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 		initCollection(mt, mt.Coll)
 		cur, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(2))
 		assert.Nil(mt, err, "Find error: %v", err)
+		defer cur.Close(mtest.Background)
 		assert.True(mt, cur.Next(mtest.Background), "expected Next true, got false")
 
 		err = mt.Client.Database("admin").RunCommand(mtest.Background, bson.D{
