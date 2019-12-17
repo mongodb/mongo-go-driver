@@ -14,6 +14,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
@@ -22,17 +23,18 @@ import (
 
 // CreateIndexes performs a createIndexes operation.
 type CreateIndexes struct {
-	indexes    bsoncore.Document
-	maxTimeMS  *int64
-	session    *session.Client
-	clock      *session.ClusterClock
-	collection string
-	monitor    *event.CommandMonitor
-	crypt      *driver.Crypt
-	database   string
-	deployment driver.Deployment
-	selector   description.ServerSelector
-	result     CreateIndexesResult
+	indexes      bsoncore.Document
+	maxTimeMS    *int64
+	session      *session.Client
+	clock        *session.ClusterClock
+	collection   string
+	monitor      *event.CommandMonitor
+	crypt        *driver.Crypt
+	database     string
+	deployment   driver.Deployment
+	selector     description.ServerSelector
+	writeConcern *writeconcern.WriteConcern
+	result       CreateIndexesResult
 }
 
 type CreateIndexesResult struct {
@@ -107,6 +109,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Database:          ci.database,
 		Deployment:        ci.deployment,
 		Selector:          ci.selector,
+		WriteConcern:      ci.writeConcern,
 	}.Execute(ctx, nil)
 
 }
@@ -219,5 +222,15 @@ func (ci *CreateIndexes) ServerSelector(selector description.ServerSelector) *Cr
 	}
 
 	ci.selector = selector
+	return ci
+}
+
+// WriteConcern sets the write concern for this operation.
+func (ci *CreateIndexes) WriteConcern(writeConcern *writeconcern.WriteConcern) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.writeConcern = writeConcern
 	return ci
 }

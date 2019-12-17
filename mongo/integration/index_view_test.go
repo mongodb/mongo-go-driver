@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 type index struct {
@@ -138,25 +139,55 @@ func TestIndexView(t *testing.T) {
 		})
 	})
 	mt.Run("create many", func(mt *mtest.T) {
-		iv := mt.Coll.Indexes()
-		indexNames, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
-			{
-				Keys: bson.D{{"foo", -1}},
-			},
-			{
-				Keys: bson.D{{"bar", 1}, {"baz", -1}},
-			},
-		})
-		assert.Nil(mt, err, "CreateMany error: %v", err)
-		assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
+		mt.Run("success", func(mt *mtest.T) {
+			iv := mt.Coll.Indexes()
+			indexNames, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+				{
+					Keys: bson.D{{"foo", -1}},
+				},
+				{
+					Keys: bson.D{{"bar", 1}, {"baz", -1}},
+				},
+			})
+			assert.Nil(mt, err, "CreateMany error: %v", err)
+			assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
 
-		verifyIndexExists(mt, iv, index{
-			Key:  map[string]int{"foo": -1},
-			Name: indexNames[0],
+			verifyIndexExists(mt, iv, index{
+				Key:  map[string]int{"foo": -1},
+				Name: indexNames[0],
+			})
+			verifyIndexExists(mt, iv, index{
+				Key:  map[string]int{"bar": 1, "baz": -1},
+				Name: indexNames[1],
+			})
 		})
-		verifyIndexExists(mt, iv, index{
-			Key:  map[string]int{"bar": 1, "baz": -1},
-			Name: indexNames[1],
+		mt.Run("uses writeconcern", func(mt *mtest.T) {
+			wc := writeconcern.New(writeconcern.W(1))
+			mt.CloneCollection(options.Collection().SetWriteConcern(wc))
+
+			iv := mt.Coll.Indexes()
+			_, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+				{
+					Keys: bson.D{{"foo", -1}},
+				},
+				{
+					Keys: bson.D{{"bar", 1}, {"baz", -1}},
+				},
+			})
+			assert.Nil(mt, err, "CreateMany error: %v", err)
+
+			evt := mt.GetStartedEvent()
+			assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
+
+			assert.Equal(mt, "createIndexes", evt.CommandName, "command name mismatch; expected createIndexes, got %s", evt.CommandName)
+
+			actual, err := evt.Command.LookupErr("writeConcern")
+			assert.Nil(mt, err, "error getting writeConcern element: %s", err)
+			wVal, err := actual.Document().LookupErr("w")
+			assert.Nil(mt, err, "error getting writeConcern.w: %s", err)
+
+			wcVal := numberFromValue(mt, wVal)
+			assert.True(mt, 1 == wcVal, "expected writeConcern to be 1, got: %v", wcVal)
 		})
 	})
 	mt.Run("drop one", func(mt *mtest.T) {
