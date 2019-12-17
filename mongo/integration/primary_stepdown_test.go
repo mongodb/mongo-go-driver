@@ -124,4 +124,24 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 			})
 		}
 	})
+	mt.RunOpts("network errors", mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.0"), func(mt *mtest.T) {
+		// expect that a server's connection pool will be cleared if a non-timeout network error occurs during an
+		// operation
+
+		clearPoolChan()
+		mt.SetFailPoint(mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: mtest.FailPointMode{
+				Times: 1,
+			},
+			Data: mtest.FailPointData{
+				FailCommands:    []string{"insert"},
+				CloseConnection: true,
+			},
+		})
+
+		_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"test", 1}})
+		assert.NotNil(mt, err, "expected InsertOne error, got nil")
+		assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
+	})
 }
