@@ -101,12 +101,19 @@ func (c *connection) connect(ctx context.Context) {
 
 	if c.config.tlsConfig != nil {
 		tlsConfig := c.config.tlsConfig.Clone()
-		c.nc, err = configureTLS(ctx, c.nc, c.addr, tlsConfig)
+
+		// store the result of configureTLS in a separate variable than c.nc to avoid overwriting c.nc with nil in
+		// error cases.
+		tlsNc, err := configureTLS(ctx, c.nc, c.addr, tlsConfig)
 		if err != nil {
+			if c.nc != nil {
+				_ = c.nc.Close()
+			}
 			atomic.StoreInt32(&c.connected, disconnected)
 			c.connectErr = ConnectionError{Wrapped: err, init: true}
 			return
 		}
+		c.nc = tlsNc
 	}
 
 	c.bumpIdleDeadline()
