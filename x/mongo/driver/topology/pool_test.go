@@ -204,6 +204,7 @@ func TestPool(t *testing.T) {
 					default:
 						_, _ = p.get(getCtx)
 						noerr(t, err)
+						time.Sleep(time.Microsecond)
 					}
 				}
 			}()
@@ -218,6 +219,7 @@ func TestPool(t *testing.T) {
 			}()
 			<-getDone
 			close(cleanup)
+			time.Sleep(time.Microsecond)
 		})
 	})
 	t.Run("connect", func(t *testing.T) {
