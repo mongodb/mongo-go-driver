@@ -25,16 +25,28 @@ var DefaultChunkSize int32 = 255 * 1024 // 255 KiB
 // DefaultRevision is the default revision number for a download by name operation.
 var DefaultRevision int32 = -1
 
-// BucketOptions represents all possible options to configure a GridFS bucket.
+// BucketOptions represents options that can be used to configure GridFS bucket.
 type BucketOptions struct {
-	Name           *string                    // The bucket name. Defaults to "fs".
-	ChunkSizeBytes *int32                     // The chunk size in bytes. Defaults to 255KB.
-	WriteConcern   *writeconcern.WriteConcern // The write concern for the bucket. Defaults to the write concern of the database.
-	ReadConcern    *readconcern.ReadConcern   // The read concern for the bucket. Defaults to the read concern of the database.
-	ReadPreference *readpref.ReadPref         // The read preference for the bucket. Defaults to the read preference of the database.
+	// The name of the bucket. The default value is "fs".
+	Name *string
+
+	// The number of bytes in each chunk in the bucket. The default value is DefaultChunkSize (255 KiB).
+	ChunkSizeBytes *int32
+
+	// The write concern for the bucket. The default value is the write concern of the database from which the bucket
+	// is created.
+	WriteConcern *writeconcern.WriteConcern
+
+	// The read concern for the bucket. The default value is the read concern of the database from which the bucket
+	// is created.
+	ReadConcern *readconcern.ReadConcern
+
+	// The read preference for the bucket. The default value is the read preference of the database from which the
+	// bucket is created.
+	ReadPreference *readpref.ReadPref
 }
 
-// GridFSBucket creates a new *BucketOptions
+// GridFSBucket creates a new BucketOptions instance.
 func GridFSBucket() *BucketOptions {
 	return &BucketOptions{
 		Name:           &DefaultName,
@@ -42,39 +54,37 @@ func GridFSBucket() *BucketOptions {
 	}
 }
 
-// SetName sets the name for the bucket. Defaults to "fs" if not set.
+// SetName sets the value for the Name field.
 func (b *BucketOptions) SetName(name string) *BucketOptions {
 	b.Name = &name
 	return b
 }
 
-// SetChunkSizeBytes sets the chunk size in bytes for the bucket. Defaults to 255KB if not set.
+// SetChunkSizeBytes sets the value for the ChunkSize field.
 func (b *BucketOptions) SetChunkSizeBytes(i int32) *BucketOptions {
 	b.ChunkSizeBytes = &i
 	return b
 }
 
-// SetWriteConcern sets the write concern for the bucket.
+// SetWriteConcern sets the value for the WriteConcern field.
 func (b *BucketOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *BucketOptions {
 	b.WriteConcern = wc
 	return b
 }
 
-// SetReadConcern sets the read concern for the bucket.
+// SetReadConcern sets the value for the ReadConcern field.
 func (b *BucketOptions) SetReadConcern(rc *readconcern.ReadConcern) *BucketOptions {
 	b.ReadConcern = rc
 	return b
 }
 
-// SetReadPreference sets the read preference for the bucket.
+// SetReadPreference sets the value for the ReadPreference field.
 func (b *BucketOptions) SetReadPreference(rp *readpref.ReadPref) *BucketOptions {
 	b.ReadPreference = rp
 	return b
 }
 
-// MergeBucketOptions combines the given *BucketOptions into a single *BucketOptions.
-// If the name or chunk size is not set in any of the given *BucketOptions, the resulting *BucketOptions will have
-// name "fs" and chunk size 255KB.
+// MergeBucketOptions combines the given BucketOptions instances into a single BucketOptions in a last one wins fashion.
 func MergeBucketOptions(opts ...*BucketOptions) *BucketOptions {
 	b := GridFSBucket()
 
@@ -102,34 +112,38 @@ func MergeBucketOptions(opts ...*BucketOptions) *BucketOptions {
 	return b
 }
 
-// UploadOptions represents all possible options for a GridFS upload operation.  If a registry is nil, bson.DefaultRegistry
-// will be used when converting the Metadata interface to BSON.
+// UploadOptions represents options that can be used to configure a GridFS upload operation.
 type UploadOptions struct {
-	ChunkSizeBytes *int32              // Chunk size in bytes. Defaults to the chunk size of the bucket.
-	Metadata       interface{}         // User data for the 'metadata' field of the files collection document.
-	Registry       *bsoncodec.Registry // The registry to use for converting filters. Defaults to bson.DefaultRegistry.
+	// The number of bytes in each chunk in the bucket. The default value is DefaultChunkSize (255 KiB).
+	ChunkSizeBytes *int32
+
+	// Additional application data that will be stored in the "metadata" field of the document in the files collection.
+	// The default value is nil, which means that the document in the files collection will not contain a "metadata"
+	// field.
+	Metadata interface{}
+
+	// The BSON registry to use for converting filters to BSON documents. The default value is bson.DefaultRegistry.
+	Registry *bsoncodec.Registry
 }
 
-// GridFSUpload creates a new *UploadOptions
+// GridFSUpload creates a new UploadOptions instance.
 func GridFSUpload() *UploadOptions {
 	return &UploadOptions{Registry: bson.DefaultRegistry}
 }
 
-// SetChunkSizeBytes sets the chunk size in bytes for the upload. Defaults to 255KB if not set.
+// SetChunkSizeBytes sets the value for the ChunkSize field.
 func (u *UploadOptions) SetChunkSizeBytes(i int32) *UploadOptions {
 	u.ChunkSizeBytes = &i
 	return u
 }
 
-// SetMetadata specfies the metadata for the upload.
+// SetMetadata sets the value for the Metadata field.
 func (u *UploadOptions) SetMetadata(doc interface{}) *UploadOptions {
 	u.Metadata = doc
 	return u
 }
 
-// MergeUploadOptions combines the given *UploadOptions into a single *UploadOptions.
-// If the chunk size is not set in any of the given *UploadOptions, the resulting *UploadOptions will have chunk size
-// 255KB.
+// MergeUploadOptions combines the given UploadOptions instances into a single UploadOptions in a last one wins fashion.
 func MergeUploadOptions(opts ...*UploadOptions) *UploadOptions {
 	u := GridFSUpload()
 
