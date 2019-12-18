@@ -17,7 +17,7 @@ import (
 
 var defaultByteSliceCodec = NewByteSliceCodec()
 
-// ByteSliceCodec is the Codec used for []slice values.
+// ByteSliceCodec is the Codec used for []byte values.
 type ByteSliceCodec struct {
 	EncodeNilAsEmpty bool
 }
@@ -52,7 +52,6 @@ func (bsc *ByteSliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, 
 	}
 
 	var data []byte
-	var subtype byte
 	var err error
 	switch vr.Type() {
 	case bsontype.String:
@@ -68,6 +67,7 @@ func (bsc *ByteSliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, 
 		}
 		data = []byte(sym)
 	case bsontype.Binary:
+		var subtype byte
 		data, subtype, err = vr.ReadBinary()
 		if err != nil {
 			return err

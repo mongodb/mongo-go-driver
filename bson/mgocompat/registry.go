@@ -47,8 +47,8 @@ func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 			SetAllowUnexportedFields(true))
 	emptyInterCodec := bsoncodec.NewEmptyInterfaceCodec(
 		bsonoptions.EmptyInterfaceCodec().
-			SetDecodeDefaultType(tM).
-			SetDecodeUnpackBinary(true))
+			SetDecodeAsMap(true).
+			SetDecodeBinaryAsSlice(true))
 	mapCodec := bsoncodec.NewMapCodec(
 		bsonoptions.MapCodec().
 			SetDecodeZerosMap(true).

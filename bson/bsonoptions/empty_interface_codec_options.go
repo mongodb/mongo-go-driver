@@ -6,18 +6,10 @@
 
 package bsonoptions
 
-import (
-	"reflect"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
-)
-
-var defaultDecodeType = reflect.TypeOf(primitive.D{})
-
 // EmptyInterfaceCodecOptions represents all possible options for interface{} encoding and decoding.
 type EmptyInterfaceCodecOptions struct {
-	DecodeDefaultType  *reflect.Type // Specifies if the default type for decoding. Defaults to bson.D.
-	DecodeUnpackBinary *bool         // Specifies if Old and Generic type binarys should default to []slice instead of primitive.Binary. Defaults to false.
+	DecodeAsMap         *bool // Specifies if the default type for decoding should be a bson.M instead of a bson.D. Defaults to false.
+	DecodeBinaryAsSlice *bool // Specifies if Old and Generic type binarys should default to []slice instead of primitive.Binary. Defaults to false.
 }
 
 // EmptyInterfaceCodec creates a new *EmptyInterfaceCodecOptions
@@ -25,32 +17,30 @@ func EmptyInterfaceCodec() *EmptyInterfaceCodecOptions {
 	return &EmptyInterfaceCodecOptions{}
 }
 
-// SetDecodeDefaultType specifies if the default type for decoding. Defaults to bson.D.
-func (e *EmptyInterfaceCodecOptions) SetDecodeDefaultType(t reflect.Type) *EmptyInterfaceCodecOptions {
-	e.DecodeDefaultType = &t
+// SetDecodeAsMap specifies if the default type for decoding should be a bson.M instead of a bson.D. Defaults to false.
+func (e *EmptyInterfaceCodecOptions) SetDecodeAsMap(t bool) *EmptyInterfaceCodecOptions {
+	e.DecodeAsMap = &t
 	return e
 }
 
-// SetDecodeUnpackBinary specifies if Old and Generic type binarys should default to []slice instead of primitive.Binary. Defaults to false.
-func (e *EmptyInterfaceCodecOptions) SetDecodeUnpackBinary(b bool) *EmptyInterfaceCodecOptions {
-	e.DecodeUnpackBinary = &b
+// SetDecodeBinaryAsSlice specifies if Old and Generic type binarys should default to []slice instead of primitive.Binary. Defaults to false.
+func (e *EmptyInterfaceCodecOptions) SetDecodeBinaryAsSlice(b bool) *EmptyInterfaceCodecOptions {
+	e.DecodeBinaryAsSlice = &b
 	return e
 }
 
 // MergeEmptyInterfaceCodecOptions combines the given *EmptyInterfaceCodecOptions into a single *EmptyInterfaceCodecOptions in a last one wins fashion.
 func MergeEmptyInterfaceCodecOptions(opts ...*EmptyInterfaceCodecOptions) *EmptyInterfaceCodecOptions {
-	e := &EmptyInterfaceCodecOptions{
-		DecodeDefaultType: &defaultDecodeType,
-	}
+	e := EmptyInterfaceCodec()
 	for _, opt := range opts {
 		if opt == nil {
 			continue
 		}
-		if opt.DecodeDefaultType != nil {
-			e.DecodeDefaultType = opt.DecodeDefaultType
+		if opt.DecodeAsMap != nil {
+			e.DecodeAsMap = opt.DecodeAsMap
 		}
-		if opt.DecodeUnpackBinary != nil {
-			e.DecodeUnpackBinary = opt.DecodeUnpackBinary
+		if opt.DecodeBinaryAsSlice != nil {
+			e.DecodeBinaryAsSlice = opt.DecodeBinaryAsSlice
 		}
 	}
 

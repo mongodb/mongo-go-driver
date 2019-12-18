@@ -77,11 +77,10 @@ func (sc *StringCodec) DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, va
 		if err != nil {
 			return err
 		}
-		if subtype == bsontype.BinaryGeneric || subtype == bsontype.BinaryBinaryOld {
-			str = string(data)
-			break
+		if subtype != bsontype.BinaryGeneric && subtype != bsontype.BinaryBinaryOld {
+			return fmt.Errorf("SliceDecodeValue can only be used to decode subtype 0x00 or 0x02 for %s, got %v", bsontype.Binary, subtype)
 		}
-		fallthrough
+		str = string(data)
 	default:
 		return fmt.Errorf("cannot decode %v into a string type", vr.Type())
 	}

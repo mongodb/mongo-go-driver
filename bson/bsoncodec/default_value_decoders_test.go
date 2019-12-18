@@ -2042,7 +2042,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		_, vr, err := dr.ReadElement()
 		noerr(t, err)
 		var val [1]string
-		want := fmt.Errorf("more elements returned in array than can fit inside %T", val)
+		want := fmt.Errorf("more elements returned in array than can fit inside %T, got 2 elements", val)
 
 		dc := DecodeContext{Registry: buildDefaultRegistry()}
 		got := dvd.ArrayDecodeValue(dc, vr, reflect.ValueOf(val))

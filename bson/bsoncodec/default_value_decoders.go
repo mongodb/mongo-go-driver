@@ -831,7 +831,7 @@ func (dvd DefaultValueDecoders) ArrayDecodeValue(dc DecodeContext, vr bsonrw.Val
 	}
 
 	if len(elems) > val.Len() {
-		return fmt.Errorf("more elements returned in array than can fit inside %s", val.Type())
+		return fmt.Errorf("more elements returned in array than can fit inside %s, got %v elements", val.Type(), len(elems))
 	}
 
 	for idx, elem := range elems {

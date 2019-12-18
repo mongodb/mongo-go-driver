@@ -19,8 +19,8 @@ var defaultEmptyInterfaceCodec = NewEmptyInterfaceCodec()
 
 // EmptyInterfaceCodec is the Codec used for interface{} values.
 type EmptyInterfaceCodec struct {
-	DecodeDefaultType  reflect.Type
-	DecodeUnpackBinary bool
+	DecodeAsMap         bool
+	DecodeBinaryAsSlice bool
 }
 
 var _ ValueCodec = &EmptyInterfaceCodec{}
@@ -29,11 +29,12 @@ var _ ValueCodec = &EmptyInterfaceCodec{}
 func NewEmptyInterfaceCodec(opts ...*bsonoptions.EmptyInterfaceCodecOptions) *EmptyInterfaceCodec {
 	interfaceOpt := bsonoptions.MergeEmptyInterfaceCodecOptions(opts...)
 
-	codec := EmptyInterfaceCodec{
-		DecodeDefaultType: *interfaceOpt.DecodeDefaultType,
+	codec := EmptyInterfaceCodec{}
+	if interfaceOpt.DecodeAsMap != nil {
+		codec.DecodeAsMap = *interfaceOpt.DecodeAsMap
 	}
-	if interfaceOpt.DecodeUnpackBinary != nil {
-		codec.DecodeUnpackBinary = *interfaceOpt.DecodeUnpackBinary
+	if interfaceOpt.DecodeBinaryAsSlice != nil {
+		codec.DecodeBinaryAsSlice = *interfaceOpt.DecodeBinaryAsSlice
 	}
 	return &codec
 }
@@ -69,7 +70,10 @@ func (eic EmptyInterfaceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueRead
 				rtype = dc.Ancestor
 				break
 			}
-			rtype = eic.DecodeDefaultType
+			rtype = tD
+			if eic.DecodeAsMap {
+				rtype = tM
+			}
 		case bsontype.Null:
 			val.Set(reflect.Zero(val.Type()))
 			return vr.ReadNull()
@@ -88,7 +92,7 @@ func (eic EmptyInterfaceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueRead
 	if err != nil {
 		return err
 	}
-	if eic.DecodeUnpackBinary && rtype == tBinary {
+	if eic.DecodeBinaryAsSlice && rtype == tBinary {
 		binElem := elem.Interface().(primitive.Binary)
 		if binElem.Subtype == bsontype.BinaryGeneric || binElem.Subtype == bsontype.BinaryBinaryOld {
 			elem = reflect.ValueOf(binElem.Data)
