@@ -338,7 +338,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"UintDecodeValue",
-			ValueDecoderFunc(dvd.UintDecodeValue),
+			defaultUIntCodec,
 			[]subtest{
 				{
 					"wrong type",

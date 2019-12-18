@@ -136,7 +136,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"UintEncodeValue",
-			ValueEncoderFunc(dve.UintEncodeValue),
+			defaultUIntCodec,
 			[]subtest{
 				{
 					"wrong type",
