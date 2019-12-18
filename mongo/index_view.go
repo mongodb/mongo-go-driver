@@ -218,12 +218,20 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		return nil, err
 	}
 
+	wc := iv.coll.writeConcern
+	if sess.TransactionRunning() {
+		wc = nil
+	}
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
+	}
+
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
 	option := options.MergeCreateIndexesOptions(opts...)
 
 	op := operation.NewCreateIndexes(indexes).
-		Session(sess).ClusterClock(iv.coll.client.clock).
+		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
 		Deployment(iv.coll.client.deployment).ServerSelector(selector)
 
