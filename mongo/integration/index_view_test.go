@@ -162,29 +162,31 @@ func TestIndexView(t *testing.T) {
 			})
 		})
 		wc := writeconcern.New(writeconcern.W(1))
-		mt.RunOpts("uses writeconcern", mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(wc)), func(mt *mtest.T) {
-			iv := mt.Coll.Indexes()
-			_, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
-				{
-					Keys: bson.D{{"foo", -1}},
-				},
-				{
-					Keys: bson.D{{"bar", 1}, {"baz", -1}},
-				},
+		mt.RunOpts("uses writeconcern",
+			mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(wc)),
+			func(mt *mtest.T) {
+				iv := mt.Coll.Indexes()
+				_, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+					{
+						Keys: bson.D{{"foo", -1}},
+					},
+					{
+						Keys: bson.D{{"bar", 1}, {"baz", -1}},
+					},
+				})
+				assert.Nil(mt, err, "CreateMany error: %v", err)
+
+				evt := mt.GetStartedEvent()
+				assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
+
+				assert.Equal(mt, "createIndexes", evt.CommandName, "command name mismatch; expected createIndexes, got %s", evt.CommandName)
+
+				actual, err := evt.Command.LookupErr("writeConcern", "w")
+				assert.Nil(mt, err, "error getting writeConcern.w: %s", err)
+
+				wcVal := numberFromValue(mt, actual)
+				assert.Equal(mt, int64(1), wcVal, "expected writeConcern to be 1, got: %v", wcVal)
 			})
-			assert.Nil(mt, err, "CreateMany error: %v", err)
-
-			evt := mt.GetStartedEvent()
-			assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
-
-			assert.Equal(mt, "createIndexes", evt.CommandName, "command name mismatch; expected createIndexes, got %s", evt.CommandName)
-
-			actual, err := evt.Command.LookupErr("writeConcern", "w")
-			assert.Nil(mt, err, "error getting writeConcern.w: %s", err)
-
-			wcVal := numberFromValue(mt, actual)
-			assert.Equal(mt, int64(1), wcVal, "expected writeConcern to be 1, got: %v", wcVal)
-		})
 	})
 	mt.Run("drop one", func(mt *mtest.T) {
 		iv := mt.Coll.Indexes()
