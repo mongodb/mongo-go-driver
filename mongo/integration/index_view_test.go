@@ -161,10 +161,8 @@ func TestIndexView(t *testing.T) {
 				Name: indexNames[1],
 			})
 		})
-		mt.Run("uses writeconcern", func(mt *mtest.T) {
-			wc := writeconcern.New(writeconcern.W(1))
-			mt.CloneCollection(options.Collection().SetWriteConcern(wc))
-
+		wc := writeconcern.New(writeconcern.W(1))
+		mt.RunOpts("uses writeconcern", mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(wc)), func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
 			_, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
 				{
@@ -181,13 +179,11 @@ func TestIndexView(t *testing.T) {
 
 			assert.Equal(mt, "createIndexes", evt.CommandName, "command name mismatch; expected createIndexes, got %s", evt.CommandName)
 
-			actual, err := evt.Command.LookupErr("writeConcern")
-			assert.Nil(mt, err, "error getting writeConcern element: %s", err)
-			wVal, err := actual.Document().LookupErr("w")
+			actual, err := evt.Command.LookupErr("writeConcern", "w")
 			assert.Nil(mt, err, "error getting writeConcern.w: %s", err)
 
-			wcVal := numberFromValue(mt, wVal)
-			assert.True(mt, 1 == wcVal, "expected writeConcern to be 1, got: %v", wcVal)
+			wcVal := numberFromValue(mt, actual)
+			assert.Equal(mt, int64(1), wcVal, "expected writeConcern to be 1, got: %v", wcVal)
 		})
 	})
 	mt.Run("drop one", func(mt *mtest.T) {
