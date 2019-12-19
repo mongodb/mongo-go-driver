@@ -10,27 +10,81 @@ import (
 	"time"
 )
 
-// FindOptions represent all possible options to the Find() function.
+// FindOptions represents options that can be used to configure a Find operation.
 type FindOptions struct {
-	AllowPartialResults *bool          // If true, allows partial results to be returned if some shards are down.
-	BatchSize           *int32         // Specifies the number of documents to return in every batch.
-	Collation           *Collation     // Specifies a collation to be used
-	Comment             *string        // Specifies a string to help trace the operation through the database.
-	CursorType          *CursorType    // Specifies the type of cursor to use
-	Hint                interface{}    // Specifies the index to use.
-	Limit               *int64         // Sets a limit on the number of results to return.
-	Max                 interface{}    // Sets an exclusive upper bound for a specific index
-	MaxAwaitTime        *time.Duration // Specifies the maximum amount of time for the server to wait on new documents.
-	MaxTime             *time.Duration // Specifies the maximum amount of time to allow the query to run.
-	Min                 interface{}    // Specifies the inclusive lower bound for a specific index.
-	NoCursorTimeout     *bool          // If true, prevents cursors from timing out after an inactivity period.
-	OplogReplay         *bool          // Adds an option for internal use only and should not be set.
-	Projection          interface{}    // Limits the fields returned for all documents.
-	ReturnKey           *bool          // If true, only returns index keys for all result documents.
-	ShowRecordID        *bool          // If true, a $recordId field with the record identifier will be added to the returned documents.
-	Skip                *int64         // Specifies the number of documents to skip before returning
-	Snapshot            *bool          // If true, prevents the cursor from returning a document more than once because of an intervening write operation.
-	Sort                interface{}    // Specifies the order in which to return results.
+	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
+	// returning an error. The default value is false.
+	AllowPartialResults *bool
+
+	// The maximum number of documents to be included in each batch returned by the server.
+	BatchSize *int32
+
+	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
+	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
+	// default value is nil, which means the default collation of the collection will be used.
+	Collation *Collation
+
+	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
+	// The default is the empty string, which means that no comment will be included in the logs.
+	Comment *string
+
+	// TODO
+	CursorType *CursorType // Specifies the type of cursor to use
+
+	// The index to use for the aggregation. This should either be the index name as a string or the index specification
+	// as a document. The default value is nil, which means that no hint will be sent.
+	Hint interface{}
+
+	// The maximum number of documents to return. The default value is 0, which means that all documents matching the
+	// filter will be returned. A negative limit specifies that the resulting documents should be returned in a single
+	// batch. The default value is 0.
+	Limit *int64
+
+	// A document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
+	// there is no maximum value.
+	Max interface{}
+
+	// The maximum amount of time that the server should wait for new documents to satisfy a tailalbe cursor query.
+	// This option is only valid for tailable await cursors (see the CursorType option for more information) and
+	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
+	MaxAwaitTime *time.Duration
+
+	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
+	// is no time limit for query execution.
+	MaxTime *time.Duration
+
+	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
+	// there is no minimum value.
+	Min interface{}
+
+	// If true, the cursor created by the operation will not timeout after a period of inactivity. The default value
+	// is false.
+	NoCursorTimeout *bool
+
+	// This option is for internal replication use only and should not be set.
+	OplogReplay *bool
+
+	// A document describing which fields will be included in the documents returned by the operation. The default value
+	// is nil, which means all fields will be included.
+	Projection interface{}
+
+	// If true, the documents returned by the operation will only contain fields corresponding to the index used. The
+	// default value is false.
+	ReturnKey *bool
+
+	// If true, a $recordId field with a record identifier will be included in the documents returned by the operation.
+	// The default value is false.
+	ShowRecordID *bool
+
+	// The number of documents to skip before adding documents to the result. The default value is 0.
+	Skip *int64
+
+	// If true, the cursor will not return a document more than once because of an intervening write operation. This
+	// option has been deprecated in MongoDB version 4.0. The default value is false.
+	Snapshot *bool
+
+	// A document specifying the order in which documents should be returned.
+	Sort interface{}
 }
 
 // Find creates a new FindOptions instance.
@@ -38,60 +92,55 @@ func Find() *FindOptions {
 	return &FindOptions{}
 }
 
-// SetAllowPartialResults sets whether partial results can be returned if some shards are down.
-// For server versions < 3.2, this defaults to false.
+// SetAllowPartialResults sets the value for the AllowPartialResults field.
 func (f *FindOptions) SetAllowPartialResults(b bool) *FindOptions {
 	f.AllowPartialResults = &b
 	return f
 }
 
-// SetBatchSize sets the number of documents to return in each batch.
+// SetBatchSize sets the value for the BatchSize field.
 func (f *FindOptions) SetBatchSize(i int32) *FindOptions {
 	f.BatchSize = &i
 	return f
 }
 
-// SetCollation specifies a Collation to use for the Find operation.
-// Valid for server versions >= 3.4
+// SetCollation sets the value for the Collation field.
 func (f *FindOptions) SetCollation(collation *Collation) *FindOptions {
 	f.Collation = collation
 	return f
 }
 
-// SetComment specifies a string to help trace the operation through the database.
+// SetComment sets the value for the Comment field.
 func (f *FindOptions) SetComment(comment string) *FindOptions {
 	f.Comment = &comment
 	return f
 }
 
-// SetCursorType specifes the type of cursor to use.
+// SetCursorType sets the value for the CursorType field.
 func (f *FindOptions) SetCursorType(ct CursorType) *FindOptions {
 	f.CursorType = &ct
 	return f
 }
 
-// SetHint specifies the index to use.
+// SetHint sets the value for the Hint field.
 func (f *FindOptions) SetHint(hint interface{}) *FindOptions {
 	f.Hint = hint
 	return f
 }
 
-// SetLimit specifies a limit on the number of results.
-// A negative limit implies that only 1 batch should be returned.
+// SetLimit sets the value for the Limit field.
 func (f *FindOptions) SetLimit(i int64) *FindOptions {
 	f.Limit = &i
 	return f
 }
 
-// SetMax specifies an exclusive upper bound for a specific index.
+// SetMax sets the value for the Max field.
 func (f *FindOptions) SetMax(max interface{}) *FindOptions {
 	f.Max = max
 	return f
 }
 
-// SetMaxAwaitTime specifies the max amount of time for the server to wait on new documents.
-// If the cursor type is not TailableAwait, this option is ignored.
-// For server versions < 3.2, this option is ignored.
+// SetMaxAwaitTime sets the value for the MaxAwaitTime field.
 func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
 	f.MaxAwaitTime = &d
 	return f
@@ -103,65 +152,61 @@ func (f *FindOptions) SetMaxTime(d time.Duration) *FindOptions {
 	return f
 }
 
-// SetMin specifies the inclusive lower bound for a specific index.
+// SetMin sets the value for the Min field.
 func (f *FindOptions) SetMin(min interface{}) *FindOptions {
 	f.Min = min
 	return f
 }
 
-// SetNoCursorTimeout specifies whether or not cursors should time out after a period of inactivity.
-// For server versions < 3.2, this defaults to false.
+// SetNoCursorTimeout sets the value for the NoCursorTimeout field.
 func (f *FindOptions) SetNoCursorTimeout(b bool) *FindOptions {
 	f.NoCursorTimeout = &b
 	return f
 }
 
-// SetOplogReplay adds an option for internal use only and should not be set.
-// For server versions < 3.2, this defaults to false.
+// SetOplogReplay sets the value for the OplogReplay field.
 func (f *FindOptions) SetOplogReplay(b bool) *FindOptions {
 	f.OplogReplay = &b
 	return f
 }
 
-// SetProjection adds an option to limit the fields returned for all documents.
+// SetProjection sets the value for the Projection field.
 func (f *FindOptions) SetProjection(projection interface{}) *FindOptions {
 	f.Projection = projection
 	return f
 }
 
-// SetReturnKey adds an option to only return index keys for all result documents.
+// SetReturnKey sets the value for the ReturnKey field.
 func (f *FindOptions) SetReturnKey(b bool) *FindOptions {
 	f.ReturnKey = &b
 	return f
 }
 
-// SetShowRecordID adds an option to determine whether to return the record identifier for each document.
-// If true, a $recordId field will be added to each returned document.
+// SetShowRecordID sets the value for the ShowRecordID field.
 func (f *FindOptions) SetShowRecordID(b bool) *FindOptions {
 	f.ShowRecordID = &b
 	return f
 }
 
-// SetSkip specifies the number of documents to skip before returning.
-// For server versions < 3.2, this defaults to 0.
+// SetSkip sets the value for the Skip field.
 func (f *FindOptions) SetSkip(i int64) *FindOptions {
 	f.Skip = &i
 	return f
 }
 
-// SetSnapshot prevents the cursor from returning a document more than once because of an intervening write operation.
+// SetSnapshot sets the value for the Snapshot field.
 func (f *FindOptions) SetSnapshot(b bool) *FindOptions {
 	f.Snapshot = &b
 	return f
 }
 
-// SetSort specifies the order in which to return documents.
+// SetSort sets the value for the Sort field.
 func (f *FindOptions) SetSort(sort interface{}) *FindOptions {
 	f.Sort = sort
 	return f
 }
 
-// MergeFindOptions combines the argued FindOptions into a single FindOptions in a last-one-wins fashion
+// MergeFindOptions combines the given FindOptions instances into a single FindOptions in a last-one-wins fashion.
 func MergeFindOptions(opts ...*FindOptions) *FindOptions {
 	fo := Find()
 	for _, opt := range opts {
@@ -230,26 +275,77 @@ func MergeFindOptions(opts ...*FindOptions) *FindOptions {
 	return fo
 }
 
-// FindOneOptions represent all possible options to the FindOne() function.
+// FindOneOptions represents options that can be used to configure a FindOne operation.
 type FindOneOptions struct {
-	AllowPartialResults *bool          // If true, allows partial results to be returned if some shards are down.
-	BatchSize           *int32         // Specifies the number of documents to return in every batch.
-	Collation           *Collation     // Specifies a collation to be used
-	Comment             *string        // Specifies a string to help trace the operation through the database.
-	CursorType          *CursorType    // Specifies the type of cursor to use
-	Hint                interface{}    // Specifies the index to use.
-	Max                 interface{}    // Sets an exclusive upper bound for a specific index
-	MaxAwaitTime        *time.Duration // Specifies the maximum amount of time for the server to wait on new documents.
-	MaxTime             *time.Duration // Specifies the maximum amount of time to allow the query to run.
-	Min                 interface{}    // Specifies the inclusive lower bound for a specific index.
-	NoCursorTimeout     *bool          // If true, prevents cursors from timing out after an inactivity period.
-	OplogReplay         *bool          // Adds an option for internal use only and should not be set.
-	Projection          interface{}    // Limits the fields returned for all documents.
-	ReturnKey           *bool          // If true, only returns index keys for all result documents.
-	ShowRecordID        *bool          // If true, a $recordId field with the record identifier will be added to the returned documents.
-	Skip                *int64         // Specifies the number of documents to skip before returning
-	Snapshot            *bool          // If true, prevents the cursor from returning a document more than once because of an intervening write operation.
-	Sort                interface{}    // Specifies the order in which to return results.
+	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
+	// returning an error. The default value is false.
+	AllowPartialResults *bool
+
+	// The maximum number of documents to be included in each batch returned by the server.
+	BatchSize *int32
+
+	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
+	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
+	// default value is nil, which means the default collation of the collection will be used.
+	Collation *Collation
+
+	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
+	// The default is the empty string, which means that no comment will be included in the logs.
+	Comment *string
+
+	// TODO
+	CursorType *CursorType
+
+	// The index to use for the aggregation. This should either be the index name as a string or the index specification
+	// as a document. The default value is nil, which means that no hint will be sent.
+	Hint interface{}
+
+	// A document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
+	// there is no maximum value.
+	Max interface{}
+
+	// The maximum amount of time that the server should wait for new documents to satisfy a tailalbe cursor query.
+	// This option is only valid for tailable await cursors (see the CursorType option for more information) and
+	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
+	MaxAwaitTime *time.Duration
+
+	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
+	// is no time limit for query execution.
+	MaxTime *time.Duration
+
+	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
+	// there is no minimum value.
+	Min interface{}
+
+	// If true, the cursor created by the operation will not timeout after a period of inactivity. The default value
+	// is false.
+	NoCursorTimeout *bool
+
+	// This option is for internal replication use only and should not be set.
+	OplogReplay *bool
+
+	// A document describing which fields will be included in the document returned by the operation. The default value
+	// is nil, which means all fields will be included.
+	Projection interface{}
+
+	// If true, the document returned by the operation will only contain fields corresponding to the index used. The
+	// default value is false.
+	ReturnKey *bool
+
+	// If true, a $recordId field with a record identifier will be included in the document returned by the operation.
+	// The default value is false.
+	ShowRecordID *bool
+
+	// The number of documents to skip before adding selecting the document to be returned. The default value is 0.
+	Skip *int64
+
+	// If true, the cursor will not return a document more than once because of an intervening write operation. This
+	// option has been deprecated in MongoDB version 4.0. The default value is false.
+	Snapshot *bool
+
+	// A document specifying the order in which documents should be should be sorted before a document to be returned
+	// is selected.
+	Sort interface{}
 }
 
 // FindOne creates a new FindOneOptions instance.
@@ -257,117 +353,116 @@ func FindOne() *FindOneOptions {
 	return &FindOneOptions{}
 }
 
-// SetAllowPartialResults sets whether partial results can be returned if some shards are down.
+// SetAllowPartialResults sets the value for the AllowPartialResults field.
 func (f *FindOneOptions) SetAllowPartialResults(b bool) *FindOneOptions {
 	f.AllowPartialResults = &b
 	return f
 }
 
-// SetBatchSize sets the number of documents to return in each batch.
+// SetBatchSize sets the value for the BatchSize field.
 func (f *FindOneOptions) SetBatchSize(i int32) *FindOneOptions {
 	f.BatchSize = &i
 	return f
 }
 
-// SetCollation specifies a Collation to use for the Find operation.
+// SetCollation sets the value for the Collation field.
 func (f *FindOneOptions) SetCollation(collation *Collation) *FindOneOptions {
 	f.Collation = collation
 	return f
 }
 
-// SetComment specifies a string to help trace the operation through the database.
+// SetComment sets the value for the Comment field.
 func (f *FindOneOptions) SetComment(comment string) *FindOneOptions {
 	f.Comment = &comment
 	return f
 }
 
-// SetCursorType specifes the type of cursor to use.
+// SetCursorType sets the value for the CursorType field.
 func (f *FindOneOptions) SetCursorType(ct CursorType) *FindOneOptions {
 	f.CursorType = &ct
 	return f
 }
 
-// SetHint specifies the index to use.
+// SetHint sets the value for the Hint field.
 func (f *FindOneOptions) SetHint(hint interface{}) *FindOneOptions {
 	f.Hint = hint
 	return f
 }
 
-// SetMax specifies an exclusive upper bound for a specific index.
+// SetMax sets the value for the Max field.
 func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
 	f.Max = max
 	return f
 }
 
-// SetMaxAwaitTime specifies the max amount of time for the server to wait on new documents.
-// For server versions < 3.2, this option is ignored.
+// SetMaxAwaitTime sets the value for the MaxAwaitTime field.
 func (f *FindOneOptions) SetMaxAwaitTime(d time.Duration) *FindOneOptions {
 	f.MaxAwaitTime = &d
 	return f
 }
 
-// SetMaxTime specifies the max time to allow the query to run.
+// SetMaxTime sets the value for the MaxTime field.
 func (f *FindOneOptions) SetMaxTime(d time.Duration) *FindOneOptions {
 	f.MaxTime = &d
 	return f
 }
 
-// SetMin specifies the inclusive lower bound for a specific index.
+// SetMin sets the value for the Min field.
 func (f *FindOneOptions) SetMin(min interface{}) *FindOneOptions {
 	f.Min = min
 	return f
 }
 
-// SetNoCursorTimeout specifies whether or not cursors should time out after a period of inactivity.
+// SetNoCursorTimeout sets the value for the NoCursorTimeout field.
 func (f *FindOneOptions) SetNoCursorTimeout(b bool) *FindOneOptions {
 	f.NoCursorTimeout = &b
 	return f
 }
 
-// SetOplogReplay adds an option for internal use only and should not be set.
+// SetOplogReplay sets the value for the OplogReplay field.
 func (f *FindOneOptions) SetOplogReplay(b bool) *FindOneOptions {
 	f.OplogReplay = &b
 	return f
 }
 
-// SetProjection adds an option to limit the fields returned for all documents.
+// SetProjection sets the value for the Projection field.
 func (f *FindOneOptions) SetProjection(projection interface{}) *FindOneOptions {
 	f.Projection = projection
 	return f
 }
 
-// SetReturnKey adds an option to only return index keys for all result documents.
+// SetReturnKey sets the value for the ReturnKey field.
 func (f *FindOneOptions) SetReturnKey(b bool) *FindOneOptions {
 	f.ReturnKey = &b
 	return f
 }
 
-// SetShowRecordID adds an option to determine whether to return the record identifier for each document.
-// If true, a $recordId field will be added to each returned document.
+// SetShowRecordID sets the value for the ShowRecordID field.
 func (f *FindOneOptions) SetShowRecordID(b bool) *FindOneOptions {
 	f.ShowRecordID = &b
 	return f
 }
 
-// SetSkip specifies the number of documents to skip before returning.
+// SetSkip sets the value for the Skip field.
 func (f *FindOneOptions) SetSkip(i int64) *FindOneOptions {
 	f.Skip = &i
 	return f
 }
 
-// SetSnapshot prevents the cursor from returning a document more than once because of an intervening write operation.
+// SetSnapshot sets the value for the Snapshot field.
 func (f *FindOneOptions) SetSnapshot(b bool) *FindOneOptions {
 	f.Snapshot = &b
 	return f
 }
 
-// SetSort specifies the order in which to return documents.
+// SetSort sets the value for the Sort field.
 func (f *FindOneOptions) SetSort(sort interface{}) *FindOneOptions {
 	f.Sort = sort
 	return f
 }
 
-// MergeFindOneOptions combines the argued FindOneOptions into a single FindOneOptions in a last-one-wins fashion
+// MergeFindOneOptions combines the given FindOneOptions instances into a single FindOneOptions in a last-one-wins
+// fashion.
 func MergeFindOneOptions(opts ...*FindOneOptions) *FindOneOptions {
 	fo := FindOne()
 	for _, opt := range opts {
