@@ -151,14 +151,9 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 	batchErr.WriteErrors = make([]BulkWriteError, 0, len(writeErrors))
 	convWriteErrors := writeErrorsFromDriverWriteErrors(writeErrors)
 	for _, we := range convWriteErrors {
-		model := batch.models[0]
-		if len(batch.models) > we.Index {
-			model = batch.models[we.Index]
-		}
-
 		batchErr.WriteErrors = append(batchErr.WriteErrors, BulkWriteError{
 			WriteError: we,
-			Request:    model,
+			Request:    batch.models[we.Index],
 		})
 	}
 	return batchRes, batchErr, nil
