@@ -433,15 +433,39 @@ func MergeFindOneOptions(opts ...*FindOneOptions) *FindOneOptions {
 	return fo
 }
 
-// FindOneAndReplaceOptions represent all possible options to the FindOneAndReplace() function.
+// FindOneAndReplaceOptions represents options that can be used to configure a FindOneAndReplace instance.
 type FindOneAndReplaceOptions struct {
-	BypassDocumentValidation *bool           // If true, allows the write to opt out of document-level validation.
-	Collation                *Collation      // Specifies a collation to be used
-	MaxTime                  *time.Duration  // Specifies the maximum amount of time to allow the query to run.
-	Projection               interface{}     // Limits the fields returned for all documents.
-	ReturnDocument           *ReturnDocument // Specifies whether the original or updated document should be returned.
-	Sort                     interface{}     // Specifies the order in which to return results.
-	Upsert                   *bool           // If true, creates a a new document if no document matches the query.
+	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
+	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
+	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// validation.
+	BypassDocumentValidation *bool
+
+	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
+	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
+	// default value is nil, which means the default collatioon of the collection will be used.
+	Collation *Collation
+
+	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
+	// is no time limit for query execution.
+	MaxTime *time.Duration
+
+	// A document describing which fields will be included in the document returned by the operation. The default value
+	// is nil, which means all fields will be included.
+	Projection interface{}
+
+	// Specifies whether the original or replaced document should be returned by the operation. The default value is
+	// Before, which means the original document will be returned from before the replacement is performed.
+	ReturnDocument *ReturnDocument
+
+	// A document specifying which document should be replaced if the filter used by the operation matches multiple
+	// documents in the collection. If set, the first document in the sorted order will be replaced.
+	// The default value is nil.
+	Sort interface{}
+
+	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
+	// default value is false.
+	Upsert *bool
 }
 
 // FindOneAndReplace creates a new FindOneAndReplaceOptions instance.
@@ -449,52 +473,50 @@ func FindOneAndReplace() *FindOneAndReplaceOptions {
 	return &FindOneAndReplaceOptions{}
 }
 
-// SetBypassDocumentValidation specifies whether or not the write should opt out of document-level validation.
-// Valid for server versions >= 3.2. For servers < 3.2, this option is ignored.
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (f *FindOneAndReplaceOptions) SetBypassDocumentValidation(b bool) *FindOneAndReplaceOptions {
 	f.BypassDocumentValidation = &b
 	return f
 }
 
-// SetCollation specifies a Collation to use for the Find operation.
+// SetCollation sets the value for the Collation field.
 func (f *FindOneAndReplaceOptions) SetCollation(collation *Collation) *FindOneAndReplaceOptions {
 	f.Collation = collation
 	return f
 }
 
-// SetMaxTime specifies the max time to allow the query to run.
+// SetMaxTime sets the value for the MaxTime field.
 func (f *FindOneAndReplaceOptions) SetMaxTime(d time.Duration) *FindOneAndReplaceOptions {
 	f.MaxTime = &d
 	return f
 }
 
-// SetProjection adds an option to limit the fields returned for all documents.
+// SetProjection sets the value for the Projection field.
 func (f *FindOneAndReplaceOptions) SetProjection(projection interface{}) *FindOneAndReplaceOptions {
 	f.Projection = projection
 	return f
 }
 
-// SetReturnDocument specifies whether the original or updated document should be returned.
-// If set to Before, the original document will be returned. If set to After, the updated document
-// will be returned.
+// SetReturnDocument sets the value for the ReturnDocument field.
 func (f *FindOneAndReplaceOptions) SetReturnDocument(rd ReturnDocument) *FindOneAndReplaceOptions {
 	f.ReturnDocument = &rd
 	return f
 }
 
-// SetSort specifies the order in which to return documents.
+// SetSort sets the value for the Sort field.
 func (f *FindOneAndReplaceOptions) SetSort(sort interface{}) *FindOneAndReplaceOptions {
 	f.Sort = sort
 	return f
 }
 
-// SetUpsert specifies if a new document should be created if no document matches the query.
+// SetUpsert sets the value for the Upsert field.
 func (f *FindOneAndReplaceOptions) SetUpsert(b bool) *FindOneAndReplaceOptions {
 	f.Upsert = &b
 	return f
 }
 
-// MergeFindOneAndReplaceOptions combines the argued FindOneAndReplaceOptions into a single FindOneAndReplaceOptions in a last-one-wins fashion
+// MergeFindOneAndReplaceOptions combines the given FindOneAndReplaceOptions instances into a single
+// FindOneAndReplaceOptions in a last-one-wins fashion.
 func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAndReplaceOptions {
 	fo := FindOneAndReplace()
 	for _, opt := range opts {
@@ -527,16 +549,44 @@ func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAn
 	return fo
 }
 
-// FindOneAndUpdateOptions represent all possible options to the FindOneAndUpdate() function.
+// FindOneAndUpdateOptions represents options that can be used to configure a FindOneAndUpdate options.
 type FindOneAndUpdateOptions struct {
-	ArrayFilters             *ArrayFilters   // A set of filters specifying to which array elements an update should apply.
-	BypassDocumentValidation *bool           // If true, allows the write to opt out of document-level validation.
-	Collation                *Collation      // Specifies a collation to be used
-	MaxTime                  *time.Duration  // Specifies the maximum amount of time to allow the query to run.
-	Projection               interface{}     // Limits the fields returned for all documents.
-	ReturnDocument           *ReturnDocument // Specifies whether the original or updated document should be returned.
-	Sort                     interface{}     // Specifies the order in which to return results.
-	Upsert                   *bool           // If true, creates a a new document if no document matches the query.
+	// A set of filters specifying to which array elements an update should apply. This option is only valid for MongoDB
+	// versions >= 3.6. For previous server versions, the driver will return an error if this option is used. The
+	// default value is nil, which means the update will apply to all array elements.
+	ArrayFilters *ArrayFilters
+
+	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
+	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
+	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// validation.
+	BypassDocumentValidation *bool
+
+	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
+	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
+	// default value is nil, which means the default collatioon of the collection will be used.
+	Collation *Collation
+
+	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
+	// is no time limit for query execution.
+	MaxTime *time.Duration
+
+	// A document describing which fields will be included in the document returned by the operation. The default value
+	// is nil, which means all fields will be included.
+	Projection interface{}
+
+	// Specifies whether the original or replaced document should be returned by the operation. The default value is
+	// Before, which means the original document will be returned before the replacement is performed.
+	ReturnDocument *ReturnDocument
+
+	// A document specifying which document should be updated if the filter used by the operation matches multiple
+	// documents in the collection. If set, the first document in the sorted order will be updated.
+	// The default value is nil.
+	Sort interface{}
+
+	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
+	// default value is false.
+	Upsert *bool
 }
 
 // FindOneAndUpdate creates a new FindOneAndUpdateOptions instance.
@@ -544,57 +594,56 @@ func FindOneAndUpdate() *FindOneAndUpdateOptions {
 	return &FindOneAndUpdateOptions{}
 }
 
-// SetBypassDocumentValidation sets filters that specify to which array elements an update should apply.
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (f *FindOneAndUpdateOptions) SetBypassDocumentValidation(b bool) *FindOneAndUpdateOptions {
 	f.BypassDocumentValidation = &b
 	return f
 }
 
-// SetArrayFilters specifies a set of filters, which
+// SetArrayFilters sets the value for the ArrayFilters field.
 func (f *FindOneAndUpdateOptions) SetArrayFilters(filters ArrayFilters) *FindOneAndUpdateOptions {
 	f.ArrayFilters = &filters
 	return f
 }
 
-// SetCollation specifies a Collation to use for the Find operation.
+// SetCollation sets the value for the Collation field.
 func (f *FindOneAndUpdateOptions) SetCollation(collation *Collation) *FindOneAndUpdateOptions {
 	f.Collation = collation
 	return f
 }
 
-// SetMaxTime specifies the max time to allow the query to run.
+// SetMaxTime sets the value for the MaxTime field.
 func (f *FindOneAndUpdateOptions) SetMaxTime(d time.Duration) *FindOneAndUpdateOptions {
 	f.MaxTime = &d
 	return f
 }
 
-// SetProjection adds an option to limit the fields returned for all documents.
+// SetProjection sets the value for the Projection field.
 func (f *FindOneAndUpdateOptions) SetProjection(projection interface{}) *FindOneAndUpdateOptions {
 	f.Projection = projection
 	return f
 }
 
-// SetReturnDocument specifies whether the original or updated document should be returned.
-// If set to Before, the original document will be returned. If set to After, the updated document
-// will be returned.
+// SetReturnDocument sets the value for the ReturnDocument field.
 func (f *FindOneAndUpdateOptions) SetReturnDocument(rd ReturnDocument) *FindOneAndUpdateOptions {
 	f.ReturnDocument = &rd
 	return f
 }
 
-// SetSort specifies the order in which to return documents.
+// SetSort sets the value for the Sort field.
 func (f *FindOneAndUpdateOptions) SetSort(sort interface{}) *FindOneAndUpdateOptions {
 	f.Sort = sort
 	return f
 }
 
-// SetUpsert specifies if a new document should be created if no document matches the query.
+// SetUpsert sets the value for the Upsert field.
 func (f *FindOneAndUpdateOptions) SetUpsert(b bool) *FindOneAndUpdateOptions {
 	f.Upsert = &b
 	return f
 }
 
-// MergeFindOneAndUpdateOptions combines the argued FindOneAndUpdateOptions into a single FindOneAndUpdateOptions in a last-one-wins fashion
+// MergeFindOneAndUpdateOptions combines the given FindOneAndUpdateOptions instances into a single
+// FindOneAndUpdateOptions in a last-one-wins fashion.
 func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndUpdateOptions {
 	fo := FindOneAndUpdate()
 	for _, opt := range opts {
@@ -630,12 +679,25 @@ func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndU
 	return fo
 }
 
-// FindOneAndDeleteOptions represent all possible options to the FindOneAndDelete() function.
+// FindOneAndDeleteOptions represents options that can be used to configure a FindOneAndDelete operation.
 type FindOneAndDeleteOptions struct {
-	Collation  *Collation     // Specifies a collation to be used
-	MaxTime    *time.Duration // Specifies the maximum amount of time to allow the query to run.
-	Projection interface{}    // Limits the fields returned for all documents.
-	Sort       interface{}    // Specifies the order in which to return results.
+	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
+	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
+	// default value is nil, which means the default collatioon of the collection will be used.
+	Collation *Collation
+
+	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
+	// is no time limit for query execution.
+	MaxTime *time.Duration
+
+	// A document describing which fields will be included in the document returned by the operation. The default value
+	// is nil, which means all fields will be included.
+	Projection interface{}
+
+	// A document specifying which document should be replaced if the filter used by the operation matches multiple
+	// documents in the collection. If set, the first document in the sorted order will be selected for replacement.
+	// The default value is nil.
+	Sort interface{}
 }
 
 // FindOneAndDelete creates a new FindOneAndDeleteOptions instance.
@@ -643,32 +705,32 @@ func FindOneAndDelete() *FindOneAndDeleteOptions {
 	return &FindOneAndDeleteOptions{}
 }
 
-// SetCollation specifies a Collation to use for the Find operation.
-// Valid for server versions >= 3.4
+// SetCollation sets the value for the Collation field.
 func (f *FindOneAndDeleteOptions) SetCollation(collation *Collation) *FindOneAndDeleteOptions {
 	f.Collation = collation
 	return f
 }
 
-// SetMaxTime specifies the max time to allow the query to run.
+// SetMaxTime sets the value for the MaxTime field.
 func (f *FindOneAndDeleteOptions) SetMaxTime(d time.Duration) *FindOneAndDeleteOptions {
 	f.MaxTime = &d
 	return f
 }
 
-// SetProjection adds an option to limit the fields returned for all documents.
+// SetProjection sets the value for the Projection field.
 func (f *FindOneAndDeleteOptions) SetProjection(projection interface{}) *FindOneAndDeleteOptions {
 	f.Projection = projection
 	return f
 }
 
-// SetSort specifies the order in which to return documents.
+// SetSort sets the value for the Sort field.
 func (f *FindOneAndDeleteOptions) SetSort(sort interface{}) *FindOneAndDeleteOptions {
 	f.Sort = sort
 	return f
 }
 
-// MergeFindOneAndDeleteOptions combines the argued FindOneAndDeleteOptions into a single FindOneAndDeleteOptions in a last-one-wins fashion
+// MergeFindOneAndDeleteOptions combines the given FindOneAndDeleteOptions instances into a single
+// FindOneAndDeleteOptions in a last-one-wins fashion.
 func MergeFindOneAndDeleteOptions(opts ...*FindOneAndDeleteOptions) *FindOneAndDeleteOptions {
 	fo := FindOneAndDelete()
 	for _, opt := range opts {
