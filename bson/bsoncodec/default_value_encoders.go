@@ -67,9 +67,9 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		panic(errors.New("argument to RegisterDefaultEncoders must not be nil"))
 	}
 	rb.
-		RegisterEncoder(tByteSlice, ValueEncoderFunc(dve.ByteSliceEncodeValue)).
+		RegisterEncoder(tByteSlice, defaultByteSliceCodec).
 		RegisterEncoder(tTime, defaultTimeCodec).
-		RegisterEncoder(tEmpty, ValueEncoderFunc(dve.EmptyInterfaceEncodeValue)).
+		RegisterEncoder(tEmpty, defaultEmptyInterfaceCodec).
 		RegisterEncoder(tOID, ValueEncoderFunc(dve.ObjectIDEncodeValue)).
 		RegisterEncoder(tDecimal, ValueEncoderFunc(dve.Decimal128EncodeValue)).
 		RegisterEncoder(tJSONNumber, ValueEncoderFunc(dve.JSONNumberEncodeValue)).
@@ -105,7 +105,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterDefaultEncoder(reflect.Float64, ValueEncoderFunc(dve.FloatEncodeValue)).
 		RegisterDefaultEncoder(reflect.Array, ValueEncoderFunc(dve.ArrayEncodeValue)).
 		RegisterDefaultEncoder(reflect.Map, defaultMapCodec).
-		RegisterDefaultEncoder(reflect.Slice, ValueEncoderFunc(dve.SliceEncodeValue)).
+		RegisterDefaultEncoder(reflect.Slice, defaultSliceCodec).
 		RegisterDefaultEncoder(reflect.String, defaultStringCodec).
 		RegisterDefaultEncoder(reflect.Struct, defaultStructCodec).
 		RegisterDefaultEncoder(reflect.Ptr, NewPointerCodec())
@@ -359,6 +359,15 @@ func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.Val
 		}
 
 		return dw.WriteDocumentEnd()
+	}
+
+	// If we have a []byte we want to treat it as a binary instead of as an array.
+	if val.Type().Elem() == tByte {
+		var byteSlice []byte
+		for idx := 0; idx < val.Len(); idx++ {
+			byteSlice = append(byteSlice, val.Index(idx).Interface().(byte))
+		}
+		return vw.WriteBinary(byteSlice)
 	}
 
 	aw, err := vw.WriteArray()

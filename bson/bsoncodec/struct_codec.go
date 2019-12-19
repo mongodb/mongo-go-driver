@@ -240,6 +240,7 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 			}
 
 			elem := reflect.New(inlineMap.Type().Elem()).Elem()
+			r.Ancestor = inlineMap.Type()
 			err = decoder.DecodeValue(r, vr, elem)
 			if err != nil {
 				return err

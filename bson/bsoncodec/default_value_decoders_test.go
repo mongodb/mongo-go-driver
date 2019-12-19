@@ -703,14 +703,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"TimeDecodeValue",
-			ValueDecoderFunc(dvd.TimeDecodeValue),
+			defaultTimeCodec,
 			[]subtest{
 				{
 					"wrong type",
 					wrong,
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(0)},
-					bsonrwtest.ReadDateTime,
+					bsonrwtest.Nothing,
 					ValueDecoderError{Name: "TimeDecodeValue", Types: []reflect.Type{tTime}, Received: reflect.ValueOf(wrong)},
 				},
 				{
@@ -741,7 +741,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"MapDecodeValue",
-			ValueDecoderFunc(dvd.MapDecodeValue),
+			defaultMapCodec,
 			[]subtest{
 				{
 					"wrong kind",
@@ -753,15 +753,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"wrong kind (non-string key)",
-					map[int]interface{}{},
-					nil,
+					map[bool]interface{}{},
+					&DecodeContext{Registry: buildDefaultRegistry()},
 					&bsonrwtest.ValueReaderWriter{},
-					bsonrwtest.Nothing,
-					ValueDecoderError{
-						Name:     "MapDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Map},
-						Received: reflect.ValueOf(map[int]interface{}{}),
-					},
+					bsonrwtest.ReadElement,
+					fmt.Errorf("BSON map must have string or decimal keys. Got:%v", reflect.ValueOf(map[bool]interface{}{}).Type()),
 				},
 				{
 					"ReadDocument Error",
@@ -885,7 +881,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"SliceDecodeValue",
-			ValueDecoderFunc(dvd.SliceDecodeValue),
+			defaultSliceCodec,
 			[]subtest{
 				{
 					"wrong kind",
@@ -907,9 +903,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"Not Type Array",
 					[]interface{}{},
 					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32},
 					bsonrwtest.Nothing,
-					errors.New("cannot decode string into a slice"),
+					errors.New("cannot decode 32-bit integer into a slice"),
 				},
 				{
 					"ReadArray Error",
@@ -977,9 +973,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"type not objectID",
 					primitive.ObjectID{},
 					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32},
 					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into an ObjectID", bsontype.String),
+					fmt.Errorf("cannot decode %v into an ObjectID", bsontype.Int32),
 				},
 				{
 					"ReadObjectID Error",
@@ -1006,6 +1002,17 @@ func TestDefaultValueDecoders(t *testing.T) {
 						Return:   primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					},
 					bsonrwtest.ReadObjectID,
+					nil,
+				},
+				{
+					"success/string",
+					primitive.ObjectID{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62},
+					nil,
+					&bsonrwtest.ValueReaderWriter{
+						BSONType: bsontype.String,
+						Return:   "0123456789ab",
+					},
+					bsonrwtest.ReadString,
 					nil,
 				},
 			},
@@ -1190,11 +1197,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"ByteSliceDecodeValue",
-			ValueDecoderFunc(dvd.ByteSliceDecodeValue),
+			defaultByteSliceCodec,
 			[]subtest{
 				{
 					"wrong type",
-					wrong,
+					[]byte{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32},
 					bsonrwtest.Nothing,
@@ -1228,7 +1235,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						},
 					},
 					bsonrwtest.ReadBinary,
-					fmt.Errorf("ByteSliceDecodeValue can only be used to decode subtype 0x00 for %s, got %v", bsontype.Binary, byte(0xFF)),
+					fmt.Errorf("ByteSliceDecodeValue can only be used to decode subtype 0x00 or 0x02 for %s, got %v", bsontype.Binary, byte(0xFF)),
 				},
 				{
 					"can set false",
@@ -1761,9 +1768,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"type not Symbol",
 					primitive.Symbol(""),
 					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32},
 					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a primitive.Symbol", bsontype.String),
+					fmt.Errorf("cannot decode %v into a primitive.Symbol", bsontype.Int32),
 				},
 				{
 					"ReadSymbol Error",
@@ -2035,7 +2042,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		_, vr, err := dr.ReadElement()
 		noerr(t, err)
 		var val [1]string
-		want := fmt.Errorf("more elements returned in array than can fit inside %T", val)
+		want := fmt.Errorf("more elements returned in array than can fit inside %T, got 2 elements", val)
 
 		dc := DecodeContext{Registry: buildDefaultRegistry()}
 		got := dvd.ArrayDecodeValue(dc, vr, reflect.ValueOf(val))

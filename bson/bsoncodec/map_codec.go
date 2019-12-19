@@ -20,7 +20,8 @@ var defaultMapCodec = NewMapCodec()
 
 // MapCodec is the Codec used for map values.
 type MapCodec struct {
-	DecodeZerosMap bool
+	DecodeZerosMap   bool
+	EncodeNilAsEmpty bool
 }
 
 var _ ValueCodec = &MapCodec{}
@@ -33,6 +34,9 @@ func NewMapCodec(opts ...*bsonoptions.MapCodecOptions) *MapCodec {
 	if mapOpt.DecodeZerosMap != nil {
 		codec.DecodeZerosMap = *mapOpt.DecodeZerosMap
 	}
+	if mapOpt.EncodeNilAsEmpty != nil {
+		codec.EncodeNilAsEmpty = *mapOpt.EncodeNilAsEmpty
+	}
 	return &codec
 }
 
@@ -42,7 +46,7 @@ func (mc *MapCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val ref
 		return ValueEncoderError{Name: "MapEncodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
 
-	if val.IsNil() {
+	if val.IsNil() && !mc.EncodeNilAsEmpty {
 		// If we have a nil map but we can't WriteNull, that means we're probably trying to encode
 		// to a TopLevel document. We can't currently tell if this is what actually happened, but if
 		// there's a deeper underlying problem, the error will also be returned from WriteDocument,
@@ -116,7 +120,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 
 // DecodeValue is the ValueDecoder for map[string/decimal]* types.
 func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
-	if (!val.CanSet() && val.IsNil()) || val.Kind() != reflect.Map {
+	if val.Kind() != reflect.Map || (!val.CanSet() && val.IsNil()) {
 		return ValueDecoderError{Name: "MapDecodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
 
@@ -164,13 +168,6 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 			return err
 		}
 
-		elem := reflect.New(eType).Elem()
-
-		err = decoder.DecodeValue(dc, vr, elem)
-		if err != nil {
-			return err
-		}
-
 		k := reflect.ValueOf(key)
 		if keyType != tString {
 			switch keyKind {
@@ -184,10 +181,16 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 				k = reflect.ValueOf(parsed)
 			case reflect.String: // if keyType wraps string
 			default:
-				return fmt.Errorf("BSON map must have string or decimal keys. Got:%v", val)
+				return fmt.Errorf("BSON map must have string or decimal keys. Got:%v", val.Type())
 			}
 
 			k = k.Convert(keyType)
+		}
+
+		elem := reflect.New(eType).Elem()
+		err = decoder.DecodeValue(dc, vr, elem)
+		if err != nil {
+			return err
 		}
 
 		val.SetMapIndex(k, elem)
