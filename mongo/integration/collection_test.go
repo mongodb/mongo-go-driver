@@ -964,6 +964,35 @@ func TestCollection(t *testing.T) {
 				})
 			}
 		})
+		mt.Run("correct model in errors", func(mt *mtest.T) {
+			models := []mongo.WriteModel{
+				mongo.NewUpdateOneModel().SetFilter(bson.M{}).SetUpdate(bson.M{}),
+				mongo.NewInsertOneModel().SetDocument(bson.M{
+					"_id": "notduplicate",
+				}),
+				mongo.NewInsertOneModel().SetDocument(bson.M{
+					"_id": "duplicate1",
+				}),
+				mongo.NewInsertOneModel().SetDocument(bson.M{
+					"_id": "duplicate1",
+				}),
+				mongo.NewInsertOneModel().SetDocument(bson.M{
+					"_id": "duplicate2",
+				}),
+				mongo.NewInsertOneModel().SetDocument(bson.M{
+					"_id": "duplicate2",
+				}),
+			}
+
+			_, err := mt.Coll.BulkWrite(mtest.Background, models)
+			bwException, ok := err.(mongo.BulkWriteException)
+			assert.True(mt, ok, "expected error of type %T, got %T", mongo.BulkWriteException{}, err)
+
+			expectedModel := models[3]
+			actualModel := bwException.WriteErrors[0].Request
+			assert.Equal(mt, expectedModel, actualModel, "expected model %v in BulkWriteException, got %v",
+				expectedModel, actualModel)
+		})
 	})
 }
 

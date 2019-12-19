@@ -153,7 +153,7 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 	for _, we := range convWriteErrors {
 		batchErr.WriteErrors = append(batchErr.WriteErrors, BulkWriteError{
 			WriteError: we,
-			Request:    batch.models[0],
+			Request:    batch.models[we.Index],
 		})
 	}
 	return batchRes, batchErr, nil
