@@ -443,7 +443,7 @@ type FindOneAndReplaceOptions struct {
 
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collatioon of the collection will be used.
+	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
@@ -564,7 +564,7 @@ type FindOneAndUpdateOptions struct {
 
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collatioon of the collection will be used.
+	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
@@ -683,7 +683,7 @@ func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndU
 type FindOneAndDeleteOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collatioon of the collection will be used.
+	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there

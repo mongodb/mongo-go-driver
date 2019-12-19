@@ -21,7 +21,7 @@ type UpdateOptions struct {
 
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collatioon of the collection will be used.
+	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
