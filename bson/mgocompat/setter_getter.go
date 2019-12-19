@@ -9,18 +9,10 @@ package mgocompat
 import (
 	"reflect"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
-
-// The Raw type represents raw unprocessed BSON documents and elements.
-// Kind is the kind of element as defined per the BSON specification, and
-// Data is the raw unprocessed data for the respective element. This is
-// identical to mgobson's Raw.
-type Raw struct {
-	Kind byte
-	Data []byte
-}
 
 // Setter interface: a value implementing the bson.Setter interface will receive the BSON
 // value via the SetBSON method during unmarshaling, and the object
@@ -50,7 +42,7 @@ type Raw struct {
 //     }
 //
 type Setter interface {
-	SetBSON(raw Raw) error
+	SetBSON(raw bson.RawValue) error
 }
 
 // Getter interface: a value implementing the bson.Getter interface will have its GetBSON
@@ -93,7 +85,7 @@ func SetterDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val re
 
 	fn := val.Convert(tSetter).MethodByName("SetBSON")
 
-	errVal := fn.Call([]reflect.Value{reflect.ValueOf(Raw{byte(t), src})})[0]
+	errVal := fn.Call([]reflect.Value{reflect.ValueOf(bson.RawValue{Type: t, Value: src})})[0]
 	if !errVal.IsNil() {
 		err = errVal.Interface().(error)
 		if err == ErrSetZero {

@@ -446,9 +446,9 @@ func (t *prefixPtr) GetBSON() (interface{}, error) {
 	return "foo-" + string(*t), nil
 }
 
-func (t *prefixPtr) SetBSON(raw Raw) error {
+func (t *prefixPtr) SetBSON(raw bson.RawValue) error {
 	var s string
-	if raw.Kind == 0x0A {
+	if raw.Type == 0x0A {
 		return ErrSetZero
 	}
 	rval := reflect.ValueOf(&s).Elem()
@@ -456,7 +456,7 @@ func (t *prefixPtr) SetBSON(raw Raw) error {
 	if err != nil {
 		return err
 	}
-	vr := bsonrw.NewBSONValueReader(bsontype.Type(raw.Kind), raw.Data)
+	vr := bsonrw.NewBSONValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: mgoRegistry}, vr, rval)
 	if err != nil {
 		return err
@@ -473,9 +473,9 @@ func (t prefixVal) GetBSON() (interface{}, error) {
 	return "foo-" + string(t), nil
 }
 
-func (t *prefixVal) SetBSON(raw Raw) error {
+func (t *prefixVal) SetBSON(raw bson.RawValue) error {
 	var s string
-	if raw.Kind == 0x0A {
+	if raw.Type == 0x0A {
 		return ErrSetZero
 	}
 	rval := reflect.ValueOf(&s).Elem()
@@ -483,7 +483,7 @@ func (t *prefixVal) SetBSON(raw Raw) error {
 	if err != nil {
 		return err
 	}
-	vr := bsonrw.NewBSONValueReader(bsontype.Type(raw.Kind), raw.Data)
+	vr := bsonrw.NewBSONValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: mgoRegistry}, vr, rval)
 	if err != nil {
 		return err
@@ -902,13 +902,13 @@ type setterType struct {
 	Received interface{}
 }
 
-func (o *setterType) SetBSON(raw Raw) error {
+func (o *setterType) SetBSON(raw bson.RawValue) error {
 	rval := reflect.ValueOf(o).Elem().Field(0)
 	decoder, err := mgoRegistry.LookupDecoder(rval.Type())
 	if err != nil {
 		return err
 	}
-	vr := bsonrw.NewBSONValueReader(bsontype.Type(raw.Kind), raw.Data)
+	vr := bsonrw.NewBSONValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: mgoRegistry}, vr, rval)
 	if err != nil {
 		return err
@@ -1253,14 +1253,14 @@ func (s getterSetterD) GetBSON() (interface{}, error) {
 	return bson.D(s[:len(s)-1]), nil
 }
 
-func (s *getterSetterD) SetBSON(raw Raw) error {
+func (s *getterSetterD) SetBSON(raw bson.RawValue) error {
 	var doc bson.D
 	rval := reflect.ValueOf(&doc).Elem()
 	decoder, err := mgoRegistry.LookupDecoder(rval.Type())
 	if err != nil {
 		return err
 	}
-	vr := bsonrw.NewBSONValueReader(bsontype.Type(raw.Kind), raw.Data)
+	vr := bsonrw.NewBSONValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: mgoRegistry}, vr, rval)
 	if err != nil {
 		return err
@@ -1276,14 +1276,14 @@ func (i getterSetterInt) GetBSON() (interface{}, error) {
 	return bson.D{{"a", int(i)}}, nil
 }
 
-func (i *getterSetterInt) SetBSON(raw Raw) error {
+func (i *getterSetterInt) SetBSON(raw bson.RawValue) error {
 	var doc struct{ A int }
 	rval := reflect.ValueOf(&doc).Elem()
 	decoder, err := mgoRegistry.LookupDecoder(rval.Type())
 	if err != nil {
 		return err
 	}
-	vr := bsonrw.NewBSONValueReader(bsontype.Type(raw.Kind), raw.Data)
+	vr := bsonrw.NewBSONValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: mgoRegistry}, vr, rval)
 	if err != nil {
 		return err
@@ -1298,14 +1298,14 @@ type ifaceType interface {
 
 type ifaceSlice []ifaceType
 
-func (s *ifaceSlice) SetBSON(raw Raw) error {
+func (s *ifaceSlice) SetBSON(raw bson.RawValue) error {
 	var ns []int
 	rval := reflect.ValueOf(&ns).Elem()
 	decoder, err := mgoRegistry.LookupDecoder(rval.Type())
 	if err != nil {
 		return err
 	}
-	vr := bsonrw.NewBSONValueReader(bsontype.Type(raw.Kind), raw.Data)
+	vr := bsonrw.NewBSONValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: mgoRegistry}, vr, rval)
 	if err != nil {
 		return err
