@@ -10,7 +10,8 @@ package options
 type ReplaceOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false.
+	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// validation.
 	BypassDocumentValidation *bool
 
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
@@ -46,7 +47,7 @@ func (ro *ReplaceOptions) SetUpsert(b bool) *ReplaceOptions {
 	return ro
 }
 
-// MergeReplaceOptions combines the given ReplaceOptions instances into a single ReplaceOptions in a last one wins
+// MergeReplaceOptions combines the given ReplaceOptions instances into a single ReplaceOptions in a last-one-wins
 // fashion.
 func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
 	rOpts := Replace()

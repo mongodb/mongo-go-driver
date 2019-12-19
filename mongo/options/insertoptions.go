@@ -10,7 +10,8 @@ package options
 type InsertOneOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false.
+	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// validation.
 	BypassDocumentValidation *bool
 }
 
@@ -25,7 +26,7 @@ func (ioo *InsertOneOptions) SetBypassDocumentValidation(b bool) *InsertOneOptio
 	return ioo
 }
 
-// MergeInsertOneOptions combines the given InsertOneOptions instances into a single InsertOneOptions in a last one wins
+// MergeInsertOneOptions combines the given InsertOneOptions instances into a single InsertOneOptions in a last-one-wins
 // fashion.
 func MergeInsertOneOptions(opts ...*InsertOneOptions) *InsertOneOptions {
 	ioOpts := InsertOne()
@@ -45,7 +46,8 @@ func MergeInsertOneOptions(opts ...*InsertOneOptions) *InsertOneOptions {
 type InsertManyOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false.
+	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// validation.
 	BypassDocumentValidation *bool
 
 	// If true, no writes will be executed after one fails. The default value is true.

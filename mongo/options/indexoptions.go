@@ -64,7 +64,7 @@ func (d *DropIndexesOptions) SetMaxTime(duration time.Duration) *DropIndexesOpti
 	return d
 }
 
-// MergeDropIndexesOptions combines the given DropIndexesOptions into a single DropIndexesOptions in a last one wins
+// MergeDropIndexesOptions combines the given DropIndexesOptions into a single DropIndexesOptions in a last-one-wins
 // fashion.
 func MergeDropIndexesOptions(opts ...*DropIndexesOptions) *DropIndexesOptions {
 	c := DropIndexes()
@@ -151,7 +151,7 @@ type IndexOptions struct {
 	// existing value in the index. The default is false.
 	Unique *bool
 
-	// TODO: not sure what this does
+	// The index version number, either 0 or 1.
 	Version *int32
 
 	// The language that determines the list of stop words and the rules for the stemmer and tokenizer. This option
@@ -163,7 +163,8 @@ type IndexOptions struct {
 	// of the DefaultLanguage option.
 	LanguageOverride *string
 
-	// TODO: not sure what this does.
+	// The index version number for a text index. See https://docs.mongodb.com/manual/core/index-text/#text-versions for
+	// information about different version numbers.
 	TextVersion *int32
 
 	// A document that contains field and weight pairs. The weight is an integer ranging from 1 to 99,999, inclusive,
@@ -172,7 +173,8 @@ type IndexOptions struct {
 	// that every field will have a weight of 1.
 	Weights interface{}
 
-	// TODO: not sure what this does.
+	// The index version number for a 2D sphere index. See https://docs.mongodb.com/manual/core/2dsphere/#dsphere-v2 for
+	// information about different version numbers.
 	SphereVersion *int32
 
 	// The precision of the stored geohash value of the location data. This option only applies to 2D indexes and is
@@ -323,7 +325,7 @@ func (i *IndexOptions) SetWildcardProjection(wildcardProjection interface{}) *In
 	return i
 }
 
-// MergeIndexOptions combines the given IndexOptions into a single IndexOptions in a last one wins fashion.
+// MergeIndexOptions combines the given IndexOptions into a single IndexOptions in a last-one-wins fashion.
 func MergeIndexOptions(opts ...*IndexOptions) *IndexOptions {
 	i := Index()
 

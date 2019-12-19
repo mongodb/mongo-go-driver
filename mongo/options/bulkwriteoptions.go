@@ -13,7 +13,8 @@ var DefaultOrdered = true
 type BulkWriteOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false.
+	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// validation.
 	BypassDocumentValidation *bool
 
 	// If true, no writes will be executed after one fails. The default value is true.
@@ -39,7 +40,7 @@ func (b *BulkWriteOptions) SetBypassDocumentValidation(bypass bool) *BulkWriteOp
 	return b
 }
 
-// MergeBulkWriteOptions combines the given BulkWriteOptions instances into a single BulkWriteOptions in a last one wins
+// MergeBulkWriteOptions combines the given BulkWriteOptions instances into a single BulkWriteOptions in a last-one-wins
 // fashion.
 func MergeBulkWriteOptions(opts ...*BulkWriteOptions) *BulkWriteOptions {
 	b := BulkWrite()

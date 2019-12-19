@@ -437,7 +437,8 @@ func MergeFindOneOptions(opts ...*FindOneOptions) *FindOneOptions {
 type FindOneAndReplaceOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false.
+	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// validation.
 	BypassDocumentValidation *bool
 
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
@@ -454,7 +455,7 @@ type FindOneAndReplaceOptions struct {
 	Projection interface{}
 
 	// Specifies whether the original or replaced document should be returned by the operation. The default value is
-	// Before, which means the original document will be returned before the replacement is performed.
+	// Before, which means the original document will be returned from before the replacement is performed.
 	ReturnDocument *ReturnDocument
 
 	// A document specifying which document should be replaced if the filter used by the operation matches multiple
@@ -515,7 +516,7 @@ func (f *FindOneAndReplaceOptions) SetUpsert(b bool) *FindOneAndReplaceOptions {
 }
 
 // MergeFindOneAndReplaceOptions combines the given FindOneAndReplaceOptions instances into a single
-// FindOneAndReplaceOptions in a last one wins fashion.
+// FindOneAndReplaceOptions in a last-one-wins fashion.
 func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAndReplaceOptions {
 	fo := FindOneAndReplace()
 	for _, opt := range opts {
@@ -557,7 +558,8 @@ type FindOneAndUpdateOptions struct {
 
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false.
+	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// validation.
 	BypassDocumentValidation *bool
 
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
@@ -641,7 +643,7 @@ func (f *FindOneAndUpdateOptions) SetUpsert(b bool) *FindOneAndUpdateOptions {
 }
 
 // MergeFindOneAndUpdateOptions combines the given FindOneAndUpdateOptions instances into a single
-// FindOneAndUpdateOptions in a last one wins fashion.
+// FindOneAndUpdateOptions in a last-one-wins fashion.
 func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndUpdateOptions {
 	fo := FindOneAndUpdate()
 	for _, opt := range opts {
@@ -728,7 +730,7 @@ func (f *FindOneAndDeleteOptions) SetSort(sort interface{}) *FindOneAndDeleteOpt
 }
 
 // MergeFindOneAndDeleteOptions combines the given FindOneAndDeleteOptions instances into a single
-// FindOneAndDeleteOptions in a last one wins fashion.
+// FindOneAndDeleteOptions in a last-one-wins fashion.
 func MergeFindOneAndDeleteOptions(opts ...*FindOneAndDeleteOptions) *FindOneAndDeleteOptions {
 	fo := FindOneAndDelete()
 	for _, opt := range opts {

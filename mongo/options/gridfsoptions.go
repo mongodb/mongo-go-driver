@@ -19,8 +19,8 @@ import (
 // DefaultName is the default name for a GridFS bucket.
 var DefaultName = "fs"
 
-// DefaultChunkSize is the default size of each file chunk in bytes.
-var DefaultChunkSize int32 = 255 * 1024 // 255 KiB
+// DefaultChunkSize is the default size of each file chunk in bytes (255 KiB).
+var DefaultChunkSize int32 = 255 * 1024
 
 // DefaultRevision is the default revision number for a download by name operation.
 var DefaultRevision int32 = -1
@@ -30,7 +30,7 @@ type BucketOptions struct {
 	// The name of the bucket. The default value is "fs".
 	Name *string
 
-	// The number of bytes in each chunk in the bucket. The default value is DefaultChunkSize (255 KiB).
+	// The number of bytes in each chunk in the bucket. The default value is 255 KiB.
 	ChunkSizeBytes *int32
 
 	// The write concern for the bucket. The default value is the write concern of the database from which the bucket
@@ -84,7 +84,7 @@ func (b *BucketOptions) SetReadPreference(rp *readpref.ReadPref) *BucketOptions 
 	return b
 }
 
-// MergeBucketOptions combines the given BucketOptions instances into a single BucketOptions in a last one wins fashion.
+// MergeBucketOptions combines the given BucketOptions instances into a single BucketOptions in a last-one-wins fashion.
 func MergeBucketOptions(opts ...*BucketOptions) *BucketOptions {
 	b := GridFSBucket()
 
@@ -143,7 +143,7 @@ func (u *UploadOptions) SetMetadata(doc interface{}) *UploadOptions {
 	return u
 }
 
-// MergeUploadOptions combines the given UploadOptions instances into a single UploadOptions in a last one wins fashion.
+// MergeUploadOptions combines the given UploadOptions instances into a single UploadOptions in a last-one-wins fashion.
 func MergeUploadOptions(opts ...*UploadOptions) *UploadOptions {
 	u := GridFSUpload()
 

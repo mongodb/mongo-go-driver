@@ -6,11 +6,11 @@
 
 package options
 
-// DeleteOptions represents options that can be used to configure a DeleteOne and DeleteMany operation.
+// DeleteOptions represents options that can be used to configure DeleteOne and DeleteMany operations.
 type DeleteOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collatioon of the collection will be used.
+	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 }
 
@@ -25,7 +25,7 @@ func (do *DeleteOptions) SetCollation(c *Collation) *DeleteOptions {
 	return do
 }
 
-// MergeDeleteOptions combines the given DeleteOptions instances into a single DeleteOptions in a last one wins fashion.
+// MergeDeleteOptions combines the given DeleteOptions instances into a single DeleteOptions in a last-one-wins fashion.
 func MergeDeleteOptions(opts ...*DeleteOptions) *DeleteOptions {
 	dOpts := Delete()
 	for _, do := range opts {
