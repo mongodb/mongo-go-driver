@@ -27,11 +27,11 @@ type ChangeStreamOptions struct {
 	// the updated document will not be included in the change notification.
 	FullDocument *FullDocument
 
-	// The maximum amount of time that the server should wait for new documents to satisfy a tailalbe cursor query.
+	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
 	MaxAwaitTime *time.Duration
 
-	// A document specifying the logical starting point for the change stream. Only change starting with a log entry
-	// immediately after the resume token will be returned.
+	// A document specifying the logical starting point for the change stream. Only changes corresponding to an oplog
+	// entry immediately after the resume token will be returned.
 	ResumeAfter interface{}
 
 	// If specified, the change stream will only return changes that occurred at or after the given timestamp. This
@@ -40,8 +40,9 @@ type ChangeStreamOptions struct {
 
 	// A document specifying the logical starting point for the change stream. This is similar to the ResumeAfter
 	// option, but allows a resume token from an "invalidate" notification to be used. This allows a change stream on a
-	// collection to be resumed after the collection has been dropped and recreated or renamed. This option is only
-	// valid for MongoDB versions >= 4.1.1.
+	// collection to be resumed after the collection has been dropped and recreated or renamed. Only changes
+	// corresponding to an oplog entry immediately after the specified token will be returned. This option is only valid
+	// for MongoDB versions >= 4.1.1.
 	StartAfter interface{}
 }
 

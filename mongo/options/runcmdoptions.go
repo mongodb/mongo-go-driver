@@ -10,8 +10,8 @@ import "go.mongodb.org/mongo-driver/mongo/readpref"
 
 // RunCmdOptions represents options that can be used to configure a RunCommand operation.
 type RunCmdOptions struct {
-	// The read preference to use for the operation. The default value is nil, which means that the read preference
-	// of the database for which the operation is executed will be used.
+	// The read preference to use for the operation. The default value is nil, which means that the primary read
+	// preference will be used.
 	ReadPreference *readpref.ReadPref
 }
 

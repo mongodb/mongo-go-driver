@@ -32,7 +32,7 @@ type AggregateOptions struct {
 	// is no time limit for query execution.
 	MaxTime *time.Duration
 
-	// The maximum amount of time that the server should wait for new documents to satisfy a tailalbe cursor query.
+	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
 	// This option is only valid for MongoDB versions >= 3.2 and is ignored for previous server versions.
 	MaxAwaitTime *time.Duration
 

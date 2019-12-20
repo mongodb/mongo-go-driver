@@ -28,8 +28,9 @@ type FindOptions struct {
 	// The default is the empty string, which means that no comment will be included in the logs.
 	Comment *string
 
-	// TODO
-	CursorType *CursorType // Specifies the type of cursor to use
+	// Specifies the type of cursor that should be created for the operation. The default is NonTailable, which means
+	// that the cursor will be closed by the server when the last batch of documents is retrieved.
+	CursorType *CursorType
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
 	// as a document. The default value is nil, which means that no hint will be sent.
@@ -293,7 +294,8 @@ type FindOneOptions struct {
 	// The default is the empty string, which means that no comment will be included in the logs.
 	Comment *string
 
-	// TODO
+	// Specifies the type of cursor that should be created for the operation. The default is NonTailable, which means
+	// that the cursor will be closed by the server when the last batch of documents is retrieved.
 	CursorType *CursorType
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
@@ -336,15 +338,15 @@ type FindOneOptions struct {
 	// The default value is false.
 	ShowRecordID *bool
 
-	// The number of documents to skip before adding selecting the document to be returned. The default value is 0.
+	// The number of documents to skip before selecting the document to be returned. The default value is 0.
 	Skip *int64
 
 	// If true, the cursor will not return a document more than once because of an intervening write operation. This
 	// option has been deprecated in MongoDB version 4.0. The default value is false.
 	Snapshot *bool
 
-	// A document specifying the order in which documents should be should be sorted before a document to be returned
-	// is selected.
+	// A document specifying the sort order to apply to the query. The first document in the sorted order will be
+	// returned.
 	Sort interface{}
 }
 

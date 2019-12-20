@@ -15,20 +15,20 @@ import (
 
 // DatabaseOptions represents options that can be used to configure a Database.
 type DatabaseOptions struct {
-	// The read concern to use for operations executed on the database. The default value is nil, which means that
-	// the read concern of the client used to create the database will be used.
+	// The read concern to use for operations executed on the Database. The default value is nil, which means that
+	// the read concern of the client used to configure the Database will be used.
 	ReadConcern *readconcern.ReadConcern
 
-	// The write concern to use for operations executed on the database. The default value is nil, which means that the
-	// write concern of the client used to create the database will be used.
+	// The write concern to use for operations executed on the Database. The default value is nil, which means that the
+	// write concern of the client used to configure the Database will be used.
 	WriteConcern *writeconcern.WriteConcern
 
-	// The read preference to use for operations executed on the database. The default value is nil, which means that
-	// the read preference of the client used to create the database will be used.
+	// The read preference to use for operations executed on the Database. The default value is nil, which means that
+	// the read preference of the client used to configure the Database will be used.
 	ReadPreference *readpref.ReadPref
 
-	// The BSON registry to marshal and unmarshal documents for operations executed on the database. The default value
-	// is nil, which means that the registry of the client used to create the database will be used.
+	// The BSON registry to marshal and unmarshal documents for operations executed on the Database. The default value
+	// is nil, which means that the registry of the client used to configure the Database will be used.
 	Registry *bsoncodec.Registry
 }
 
