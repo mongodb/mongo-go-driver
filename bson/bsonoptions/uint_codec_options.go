@@ -8,7 +8,7 @@ package bsonoptions
 
 // UIntCodecOptions represents all possible options for uint encoding and decoding.
 type UIntCodecOptions struct {
-	EncodeToMinSize *bool // Specifies if uints should be decoded to minimum size bsontype. Defaults to false.
+	EncodeToMinSize *bool // Specifies if all uints except uint64 should be decoded to minimum size bsontype. Defaults to false.
 }
 
 // UIntCodec creates a new *UIntCodecOptions
@@ -16,7 +16,7 @@ func UIntCodec() *UIntCodecOptions {
 	return &UIntCodecOptions{}
 }
 
-// SetEncodeToMinSize specifies if uints should be decoded to minimum size bsontype. Defaults to false.
+// SetEncodeToMinSize specifies if all uints except uint64 should be decoded to minimum size bsontype. Defaults to false.
 func (u *UIntCodecOptions) SetEncodeToMinSize(b bool) *UIntCodecOptions {
 	u.EncodeToMinSize = &b
 	return u

@@ -44,7 +44,11 @@ func (uic *UIntCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val r
 		return vw.WriteInt32(int32(val.Uint()))
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		u64 := val.Uint()
-		if u64 <= math.MaxInt32 && (ec.MinSize || (uic.EncodeToMinSize && val.Kind() != reflect.Uint64)) {
+
+		// If ec.MinSize or if encodeToMinSize is true for a non-uint64 value we should write val as an int32
+		useMinSize := ec.MinSize || (uic.EncodeToMinSize && val.Kind() != reflect.Uint64)
+
+		if u64 <= math.MaxInt32 && useMinSize {
 			return vw.WriteInt32(int32(u64))
 		}
 		if u64 > math.MaxInt64 {
