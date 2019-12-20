@@ -31,18 +31,20 @@ type ChangeStreamOptions struct {
 	MaxAwaitTime *time.Duration
 
 	// A document specifying the logical starting point for the change stream. Only changes corresponding to an oplog
-	// entry immediately after the resume token will be returned.
+	// entry immediately after the resume token will be returned. If this is specified, StartAtOperationTime and
+	// StartAfter must not be set.
 	ResumeAfter interface{}
 
 	// If specified, the change stream will only return changes that occurred at or after the given timestamp. This
-	// option is only valid for MongoDB versions >= 4.0.
+	// option is only valid for MongoDB versions >= 4.0. If this is specified, ResumeAfter and StartAfter must not be
+	// set.
 	StartAtOperationTime *primitive.Timestamp
 
 	// A document specifying the logical starting point for the change stream. This is similar to the ResumeAfter
 	// option, but allows a resume token from an "invalidate" notification to be used. This allows a change stream on a
 	// collection to be resumed after the collection has been dropped and recreated or renamed. Only changes
-	// corresponding to an oplog entry immediately after the specified token will be returned. This option is only valid
-	// for MongoDB versions >= 4.1.1.
+	// corresponding to an oplog entry immediately after the specified token will be returned. If this is specified,
+	// ResumeAfter and StartAtOperationTime must not be set. This option is only valid for MongoDB versions >= 4.1.1.
 	StartAfter interface{}
 }
 
