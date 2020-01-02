@@ -45,7 +45,7 @@ type FindOptions struct {
 	// there is no maximum value.
 	Max interface{}
 
-	// The maximum amount of time that the server should wait for new documents to satisfy a tailalbe cursor query.
+	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
 	// This option is only valid for tailable await cursors (see the CursorType option for more information) and
 	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
 	MaxAwaitTime *time.Duration
@@ -306,7 +306,7 @@ type FindOneOptions struct {
 	// there is no maximum value.
 	Max interface{}
 
-	// The maximum amount of time that the server should wait for new documents to satisfy a tailalbe cursor query.
+	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
 	// This option is only valid for tailable await cursors (see the CursorType option for more information) and
 	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
 	MaxAwaitTime *time.Duration
