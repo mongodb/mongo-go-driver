@@ -59,6 +59,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 	pjsnum := new(json.Number)
 	*pjsnum = json.Number("3.14159")
 	d128 := primitive.NewDecimal128(12345, 67890)
+	var nilValueMarshaler *testValueMarshaler
+	var nilMarshaler *testMarshaler
+	var nilProxy *testProxy
+
+	vmStruct := struct{ V testValueMarshalPtr }{testValueMarshalPtr{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}}}
+	mStruct := struct{ V testMarshalPtr }{testMarshalPtr{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))}}
+	pStruct := struct{ V testProxyPtr }{testProxyPtr{ret: int64(1234567890)}}
 
 	type subtest struct {
 		name   string
@@ -600,8 +607,32 @@ func TestDefaultValueEncoders(t *testing.T) {
 					fmt.Errorf("Cannot copy unknown BSON type %s", bsontype.Type(0)),
 				},
 				{
-					"success",
+					"success struct",
 					testValueMarshaler{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
+					nil,
+					nil,
+					bsonrwtest.WriteString,
+					nil,
+				},
+				{
+					"success ptr to struct",
+					&testValueMarshaler{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
+					nil,
+					nil,
+					bsonrwtest.WriteString,
+					nil,
+				},
+				{
+					"success nil ptr to struct",
+					nilValueMarshaler,
+					nil,
+					nil,
+					bsonrwtest.WriteNull,
+					nil,
+				},
+				{
+					"success ptr to ptr",
+					&testValueMarshalPtr{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
 					nil,
 					nil,
 					bsonrwtest.WriteString,
@@ -630,8 +661,32 @@ func TestDefaultValueEncoders(t *testing.T) {
 					errors.New("mbson error"),
 				},
 				{
-					"success",
+					"success struct",
 					testMarshaler{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))},
+					nil,
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
+				{
+					"success ptr to struct",
+					&testMarshaler{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))},
+					nil,
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
+				{
+					"success nil ptr to struct",
+					nilMarshaler,
+					nil,
+					nil,
+					bsonrwtest.WriteNull,
+					nil,
+				},
+				{
+					"success ptr to ptr",
+					&testMarshalPtr{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))},
 					nil,
 					nil,
 					bsonrwtest.WriteDocumentEnd,
@@ -668,8 +723,32 @@ func TestDefaultValueEncoders(t *testing.T) {
 					ErrNoEncoder{Type: nil},
 				},
 				{
-					"success",
+					"success struct",
 					testProxy{ret: int64(1234567890)},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteInt64,
+					nil,
+				},
+				{
+					"success ptr to struct",
+					&testProxy{ret: int64(1234567890)},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteInt64,
+					nil,
+				},
+				{
+					"success nil ptr to struct",
+					nilProxy,
+					nil,
+					nil,
+					bsonrwtest.WriteNull,
+					nil,
+				},
+				{
+					"success ptr to ptr",
+					&testProxyPtr{ret: int64(1234567890)},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					bsonrwtest.WriteInt64,
@@ -712,6 +791,36 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					bsonrwtest.Nothing,
 					ErrNoEncoder{Type: reflect.TypeOf(wrong)},
+				},
+			},
+		},
+		{
+			"addressable interface",
+			NewPointerCodec(),
+			[]subtest{
+				{
+					"ValueMarshaler",
+					&vmStruct,
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
+				{
+					"Marshaler",
+					&mStruct,
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
+				{
+					"Proxy",
+					&pStruct,
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
 				},
 			},
 		},
@@ -1571,6 +1680,16 @@ func (tvm testValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, error) 
 	return tvm.t, tvm.buf, tvm.err
 }
 
+type testValueMarshalPtr struct {
+	t   bsontype.Type
+	buf []byte
+	err error
+}
+
+func (tvm *testValueMarshalPtr) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return tvm.t, tvm.buf, tvm.err
+}
+
 type testMarshaler struct {
 	buf []byte
 	err error
@@ -1580,9 +1699,25 @@ func (tvm testMarshaler) MarshalBSON() ([]byte, error) {
 	return tvm.buf, tvm.err
 }
 
+type testMarshalPtr struct {
+	buf []byte
+	err error
+}
+
+func (tvm *testMarshalPtr) MarshalBSON() ([]byte, error) {
+	return tvm.buf, tvm.err
+}
+
 type testProxy struct {
 	ret interface{}
 	err error
 }
 
 func (tp testProxy) ProxyBSON() (interface{}, error) { return tp.ret, tp.err }
+
+type testProxyPtr struct {
+	ret interface{}
+	err error
+}
+
+func (tp *testProxyPtr) ProxyBSON() (interface{}, error) { return tp.ret, tp.err }

@@ -908,6 +908,9 @@ func (o *setterType) SetBSON(raw bson.RawValue) error {
 	if err != nil {
 		return err
 	}
+	if raw.Type == 0x00 {
+		raw.Type = bsontype.EmbeddedDocument
+	}
 	vr := bsonrw.NewBSONValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: mgoRegistry}, vr, rval)
 	if err != nil {
@@ -1260,6 +1263,9 @@ func (s *getterSetterD) SetBSON(raw bson.RawValue) error {
 	if err != nil {
 		return err
 	}
+	if raw.Type == 0x00 {
+		raw.Type = bsontype.EmbeddedDocument
+	}
 	vr := bsonrw.NewBSONValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: mgoRegistry}, vr, rval)
 	if err != nil {
@@ -1282,6 +1288,9 @@ func (i *getterSetterInt) SetBSON(raw bson.RawValue) error {
 	decoder, err := mgoRegistry.LookupDecoder(rval.Type())
 	if err != nil {
 		return err
+	}
+	if raw.Type == 0x00 {
+		raw.Type = bsontype.EmbeddedDocument
 	}
 	vr := bsonrw.NewBSONValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: mgoRegistry}, vr, rval)

@@ -19,25 +19,19 @@ import (
 // itself will not be changed as usual.
 //
 // If setting the value works, the method should return nil or alternatively
-// bson.ErrSetZero to set the respective field to its zero value (nil for
-// pointer types). If SetBSON returns a value of type bson.TypeError, the
-// BSON value will be omitted from a map or slice being decoded and the
-// unmarshalling will continue. If it returns any other non-nil error, the
-// unmarshalling procedure will stop and error out with the provided value.
+// mgocompat.ErrSetZero to set the respective field to its zero value (nil for
+// pointer types). If SetBSON returns a non-nil error, the unmarshalling
+// procedure will stop and error out with the provided value.
 //
 // This interface is generally useful in pointer receivers, since the method
 // will want to change the receiver. A type field that implements the Setter
 // interface doesn't have to be a pointer, though.
 //
-// Unlike the usual behavior, unmarshalling onto a value that implements a
-// Setter interface will NOT reset the value to its zero state. This allows
-// the value to decide by itself how to be unmarshalled.
-//
 // For example:
 //
 //     type MyString string
 //
-//     func (s *MyString) SetBSON(raw bson.Raw) error {
+//     func (s *MyString) SetBSON(raw bson.RawValue) error {
 //         return raw.Unmarshal(s)
 //     }
 //
@@ -79,9 +73,6 @@ func SetterDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val re
 	if err != nil {
 		return err
 	}
-	if t == 0x00 {
-		t = 0x03
-	}
 
 	fn := val.Convert(tSetter).MethodByName("SetBSON")
 
@@ -99,20 +90,21 @@ func SetterDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val re
 
 // GetterEncodeValue is the ValueEncoderFunc for Getter types.
 func GetterEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || (!val.Type().Implements(tGetter) && !reflect.PtrTo(val.Type()).Implements(tGetter)) {
+	// Either val or a pointer to val must implement Getter
+	switch {
+	case !val.IsValid():
 		return bsoncodec.ValueEncoderError{Name: "GetterEncodeValue", Types: []reflect.Type{tGetter}, Received: val}
-	}
-	if val.Type().Implements(tGetter) {
-		vt := val.Type()
-		for vt.Kind() == reflect.Ptr {
-			vt = vt.Elem()
-		}
-		if vt.Implements(tGetter) && val.Kind() == reflect.Ptr && val.IsNil() {
+	case val.Type().Implements(tGetter):
+		// If Getter is implemented on a concrete type, make sure that val isn't a nil pointer
+		if bsoncodec.IsImplementationNil(val, tGetter) {
 			return vw.WriteNull()
 		}
-	} else {
+	case reflect.PtrTo(val.Type()).Implements(tGetter) && val.CanAddr():
 		val = val.Addr()
+	default:
+		return bsoncodec.ValueEncoderError{Name: "GetterEncodeValue", Types: []reflect.Type{tGetter}, Received: val}
 	}
+
 	fn := val.Convert(tGetter).MethodByName("GetBSON")
 	returns := fn.Call(nil)
 	if !returns[1].IsNil() {
