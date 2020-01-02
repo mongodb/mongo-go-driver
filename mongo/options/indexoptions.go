@@ -80,10 +80,14 @@ func MergeDropIndexesOptions(opts ...*DropIndexesOptions) *DropIndexesOptions {
 	return c
 }
 
-// ListIndexesOptions represents all possible options for the ListIndexes() function.
+// ListIndexesOptions represents options that can be used to configure an IndexView.List operation.
 type ListIndexesOptions struct {
+	// The maximum number of documents to be included in each batch returned by the server.
 	BatchSize *int32
-	MaxTime   *time.Duration
+
+	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
+	// is no time limit for query execution.
+	MaxTime *time.Duration
 }
 
 // ListIndexes creates a new ListIndexesOptions instance.
@@ -91,20 +95,20 @@ func ListIndexes() *ListIndexesOptions {
 	return &ListIndexesOptions{}
 }
 
-// SetBatchSize specifies the number of documents to return in every batch.
+// SetBatchSize sets the value for the BatchSize field.
 func (l *ListIndexesOptions) SetBatchSize(i int32) *ListIndexesOptions {
 	l.BatchSize = &i
 	return l
 }
 
-// SetMaxTime specifies the maximum amount of time to allow the query to run.
+// SetMaxTime sets the value for the MaxTime field.
 func (l *ListIndexesOptions) SetMaxTime(d time.Duration) *ListIndexesOptions {
 	l.MaxTime = &d
 	return l
 }
 
-// MergeListIndexesOptions combines the given *ListIndexesOptions into a single *ListIndexesOptions in a last one
-// wins fashion.
+// MergeListIndexesOptions combines the given ListIndexesOptions instances into a single *ListIndexesOptions in a
+// last-one-wins fashion.
 func MergeListIndexesOptions(opts ...*ListIndexesOptions) *ListIndexesOptions {
 	c := ListIndexes()
 	for _, opt := range opts {
