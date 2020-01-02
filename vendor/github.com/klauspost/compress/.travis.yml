@@ -1,0 +1,56 @@
+language: go
+
+sudo: false
+
+os:
+  - linux
+  - osx
+
+go:
+  - 1.11.x
+  - 1.12.x
+  - 1.13.x
+  - master
+
+install:
+ - go get -t ./...
+ - go get github.com/klauspost/compress-fuzz
+
+script:
+ - diff <(gofmt -d .) <(printf "")
+ - go test -cpu=2 ./...
+ - go test -cpu=2 -tags=noasm ./...
+ - go test -cpu=1,4 -short -race ./...
+ - go build github.com/klauspost/compress/s2/cmd/s2c && go build github.com/klauspost/compress/s2/cmd/s2d && s2c s2c && s2d s2c.s2 && rm s2c && rm s2d && rm s2c.s2
+
+matrix:
+  allow_failures:
+    - go: 'master'
+  fast_finish: true 
+
+jobs:
+  include:
+    - stage: Build, Unit-Tests & Fuzz-Tests
+      go: 1.13.x
+      script:
+        - ./fuzzit.sh local-regression
+
+    - stage: Fuzzit (Fuzzing)
+      if: branch = master AND type IN (push)
+      go: 1.13.x
+      script:
+        - ./fuzzit.sh fuzzing
+
+    - stage: 386 linux test
+      go: 1.13.x
+      script:
+        - GOOS=linux GOARCH=386 go test -short ./...
+
+deploy:
+- provider: script
+  skip_cleanup: true
+  script: curl -sL https://git.io/goreleaser | bash
+  on:
+    tags: true
+    condition: $TRAVIS_OS_NAME = linux
+    go: 1.13.x

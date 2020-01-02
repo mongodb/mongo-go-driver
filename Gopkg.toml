@@ -52,7 +52,6 @@
 [prune]
   go-tests = true
   unused-packages = true
-
 [[constraint]]
-  name = "github.com/DataDog/zstd"
-  version = "~1.4.0"
+  name = "github.com/klauspost/compress"
+  version = "1.9.5"
