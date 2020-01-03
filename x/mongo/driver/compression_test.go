@@ -31,7 +31,7 @@ func TestCompression(t *testing.T) {
 				ZstdLevel:        wiremessage.DefaultZstdLevel,
 				UncompressedSize: int32(len(payload)),
 			}
-			compressed, err := CompressPlayoad(payload, opts)
+			compressed, err := CompressPayload(payload, opts)
 			assert.NoError(t, err)
 			assert.NotEqual(t, 0, len(compressed))
 			decompressed, err := DecompressPayload(compressed, opts)

@@ -25,8 +25,8 @@ type CompressionOpts struct {
 	UncompressedSize int32
 }
 
-// CompressPlayoad takes a byte slice and compresses it according to the options passed
-func CompressPlayoad(in []byte, opts CompressionOpts) ([]byte, error) {
+// CompressPayload takes a byte slice and compresses it according to the options passed
+func CompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 	switch opts.Compressor {
 	case wiremessage.CompressorNoOp:
 		return in, nil
