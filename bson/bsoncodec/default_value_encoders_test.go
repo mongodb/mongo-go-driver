@@ -607,7 +607,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					fmt.Errorf("Cannot copy unknown BSON type %s", bsontype.Type(0)),
 				},
 				{
-					"success struct",
+					"success struct implementation",
 					testValueMarshaler{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
 					nil,
 					nil,
@@ -615,7 +615,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 				},
 				{
-					"success ptr to struct",
+					"success ptr to struct implementation",
 					&testValueMarshaler{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
 					nil,
 					nil,
@@ -623,7 +623,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 				},
 				{
-					"success nil ptr to struct",
+					"success nil ptr to struct implementation",
 					nilValueMarshaler,
 					nil,
 					nil,
@@ -631,12 +631,24 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 				},
 				{
-					"success ptr to ptr",
+					"success ptr to ptr implementation",
 					&testValueMarshalPtr{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
 					nil,
 					nil,
 					bsonrwtest.WriteString,
 					nil,
+				},
+				{
+					"unaddressable ptr implementation",
+					testValueMarshalPtr{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{
+						Name:     "ValueMarshalerEncodeValue",
+						Types:    []reflect.Type{tValueMarshaler},
+						Received: reflect.ValueOf(testValueMarshalPtr{}),
+					},
 				},
 			},
 		},
@@ -661,7 +673,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					errors.New("mbson error"),
 				},
 				{
-					"success struct",
+					"success struct implementation",
 					testMarshaler{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))},
 					nil,
 					nil,
@@ -669,7 +681,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 				},
 				{
-					"success ptr to struct",
+					"success ptr to struct implementation",
 					&testMarshaler{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))},
 					nil,
 					nil,
@@ -677,7 +689,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 				},
 				{
-					"success nil ptr to struct",
+					"success nil ptr to struct implementation",
 					nilMarshaler,
 					nil,
 					nil,
@@ -685,12 +697,20 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 				},
 				{
-					"success ptr to ptr",
+					"success ptr to ptr implementation",
 					&testMarshalPtr{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))},
 					nil,
 					nil,
 					bsonrwtest.WriteDocumentEnd,
 					nil,
+				},
+				{
+					"unaddressable ptr implementation",
+					testMarshalPtr{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))},
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "MarshalerEncodeValue", Types: []reflect.Type{tMarshaler}, Received: reflect.ValueOf(testMarshalPtr{})},
 				},
 			},
 		},
@@ -723,7 +743,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					ErrNoEncoder{Type: nil},
 				},
 				{
-					"success struct",
+					"success struct implementation",
 					testProxy{ret: int64(1234567890)},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
@@ -731,7 +751,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 				},
 				{
-					"success ptr to struct",
+					"success ptr to struct implementation",
 					&testProxy{ret: int64(1234567890)},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
@@ -739,7 +759,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 				},
 				{
-					"success nil ptr to struct",
+					"success nil ptr to struct implementation",
 					nilProxy,
 					nil,
 					nil,
@@ -747,12 +767,20 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 				},
 				{
-					"success ptr to ptr",
+					"success ptr to ptr implementation",
 					&testProxyPtr{ret: int64(1234567890)},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					bsonrwtest.WriteInt64,
 					nil,
+				},
+				{
+					"unaddressable ptr implementation",
+					testProxyPtr{ret: int64(1234567890)},
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: reflect.ValueOf(testProxyPtr{})},
 				},
 			},
 		},
@@ -795,7 +823,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
-			"addressable interface",
+			"pointer implementation addressable interface",
 			NewPointerCodec(),
 			[]subtest{
 				{
