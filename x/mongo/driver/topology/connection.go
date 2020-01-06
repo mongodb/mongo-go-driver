@@ -399,7 +399,7 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 		ZlibLevel:  c.connection.zliblevel,
 		ZstdLevel:  c.connection.zstdLevel,
 	}
-	compressed, err := driver.CompressPlayoad(rem, opts)
+	compressed, err := driver.CompressPayload(rem, opts)
 	if err != nil {
 		return nil, err
 	}

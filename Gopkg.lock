@@ -2,14 +2,6 @@
 
 
 [[projects]]
-  digest = "1:6d8a3b164679872fa5a4c44559235f7fb109c7b5cd0f456a2159d579b76cc9ba"
-  name = "github.com/DataDog/zstd"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "809b919c325d7887bff7bd876162af73db53e878"
-  version = "v1.4.0"
-
-[[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -109,11 +101,10 @@
   revision = "2a8bb927dd31d8daada140a5d09578521ce5c36a"
 
 [[projects]]
-  digest = "1:d2754cafcab0d22c13541618a8029a70a8959eb3525ff201fe971637e2274cd0"
+  digest = "1:2e3c336fc7fde5c984d2841455a658a6d626450b1754a854b3b32e7a8f49a07a"
   name = "github.com/google/go-cmp"
   packages = [
     "cmp",
-    "cmp/cmpopts",
     "cmp/internal/diff",
     "cmp/internal/function",
     "cmp/internal/value",
@@ -137,6 +128,14 @@
   pruneopts = "UT"
   revision = "5e617d9cfec6f870e63b168e9a2fb7c490a1c108"
   version = "v1.10.3"
+
+[[projects]]
+  digest = "1:cce0dd9b0976e550c4616a87f6703650b56b72bb54c74baa71c3459415b5b5a9"
+  name = "github.com/klauspost/compress"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "17b3d80415252d99aa09c6717fea5f1f60a01ea5"
+  version = "v1.9.5"
 
 [[projects]]
   digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
@@ -278,14 +277,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:76ee51c3f468493aff39dbacc401e8831fbb765104cbf613b89bef01cf4bad70"
-  name = "golang.org/x/net"
-  packages = ["context"]
-  pruneopts = "UT"
-  revision = "f3200d17e092c607f615320ecaad13d87ad9a2b3"
-
-[[projects]]
-  branch = "master"
   digest = "1:382bb5a7fb4034db3b6a2d19e5a4a6bcf52f4750530603c01ca18a172fa3089b"
   name = "golang.org/x/sync"
   packages = ["semaphore"]
@@ -343,12 +334,11 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/DataDog/zstd",
     "github.com/go-stack/stack",
     "github.com/gobuffalo/packr/v2",
     "github.com/golang/snappy",
     "github.com/google/go-cmp/cmp",
-    "github.com/google/go-cmp/cmp/cmpopts",
+    "github.com/klauspost/compress",
     "github.com/kr/pretty",
     "github.com/montanaflynn/stats",
     "github.com/pelletier/go-toml",
@@ -358,7 +348,6 @@
     "github.com/tidwall/pretty",
     "github.com/xdg/scram",
     "github.com/xdg/stringprep",
-    "golang.org/x/net/context",
     "golang.org/x/sync/semaphore",
     "golang.org/x/tools/go/packages",
     "golang.org/x/tools/imports",
