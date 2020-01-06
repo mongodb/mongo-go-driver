@@ -1710,58 +1710,55 @@ func TestMarshalNotRespectNil(t *testing.T) {
 	assert.NotNil(t, testStruct2.Map, "expected non-nil map")
 }
 
-// func TestMarshalRespectNil(t *testing.T) {
-// 	type T struct {
-// 		Slice    []int
-// 		SlicePtr *[]int
-// 		Ptr      *int
-// 		Map      map[string]interface{}
-// 		MapPtr   *map[string]interface{}
-// 	}
+func TestMarshalRespectNil(t *testing.T) {
+	type T struct {
+		Slice    []int
+		SlicePtr *[]int
+		Ptr      *int
+		Map      map[string]interface{}
+		MapPtr   *map[string]interface{}
+	}
 
-// bson.SetRespectNilValues(true)
-// defer bson.SetRespectNilValues(false)
+	testStruct1 := T{}
 
-// 	testStruct1 := T{}
+	assert.Nil(t, testStruct1.Slice, "expected nil slice, got: %v", testStruct1.Slice)
+	assert.Nil(t, testStruct1.SlicePtr, "expected nil slice ptr, got: %v", testStruct1.SlicePtr)
+	assert.Nil(t, testStruct1.Map, "expected nil map, got: %v", testStruct1.Map)
+	assert.Nil(t, testStruct1.MapPtr, "expected nil map ptr, got: %v", testStruct1.MapPtr)
+	assert.Nil(t, testStruct1.Ptr, "expected nil ptr, got: %v", testStruct1.Ptr)
 
-// 	assert.Nil(t, testStruct1.Slice, "expected nil slice, got: %v", testStruct1.Slice)
-// 	assert.Nil(t, testStruct1.SlicePtr, "expected nil slice ptr, got: %v", testStruct1.SlicePtr)
-// 	assert.Nil(t, testStruct1.Map, "expected nil map, got: %v", testStruct1.Map)
-// 	assert.Nil(t, testStruct1.MapPtr, "expected nil map ptr, got: %v", testStruct1.MapPtr)
-// 	assert.Nil(t, testStruct1.Ptr, "expected nil ptr, got: %v", testStruct1.Ptr)
+	b, _ := bson.MarshalWithRegistry(mgoRegistryRespectNilValues, testStruct1)
 
-// 	b, _ := bson.MarshalWithRegistry(mgoRegistry, testStruct1)
+	testStruct2 := T{}
 
-// 	testStruct2 := T{}
+	_ = bson.UnmarshalWithRegistry(mgoRegistryRespectNilValues, b, &testStruct2)
 
-// 	_ = bson.UnmarshalWithRegistry(mgoRegistry, b, &testStruct2)
+	assert.Nil(t, testStruct2.Slice, "expected nil slice, got: %v", testStruct2.Slice)
+	assert.Nil(t, testStruct2.SlicePtr, "expected nil slice ptr, got: %v", testStruct2.SlicePtr)
+	assert.Nil(t, testStruct2.Map, "expected nil map, got: %v", testStruct2.Map)
+	assert.Nil(t, testStruct2.MapPtr, "expected nil map ptr, got: %v", testStruct2.MapPtr)
+	assert.Nil(t, testStruct2.Ptr, "expected nil ptr, got: %v", testStruct2.Ptr)
 
-// 	assert.Nil(t, testStruct2.Slice, "expected nil slice, got: %v", testStruct2.Slice)
-// 	assert.Nil(t, testStruct2.SlicePtr, "expected nil slice ptr, got: %v", testStruct2.SlicePtr)
-// 	assert.Nil(t, testStruct2.Map, "expected nil map, got: %v", testStruct2.Map)
-// 	assert.Nil(t, testStruct2.MapPtr, "expected nil map ptr, got: %v", testStruct2.MapPtr)
-// 	assert.Nil(t, testStruct2.Ptr, "expected nil ptr, got: %v", testStruct2.Ptr)
+	testStruct1 = T{
+		Slice:    []int{},
+		SlicePtr: &[]int{},
+		Map:      map[string]interface{}{},
+		MapPtr:   &map[string]interface{}{},
+	}
 
-// 	testStruct1 = T{
-// 		Slice:    []int{},
-// 		SlicePtr: &[]int{},
-// 		Map:      map[string]interface{}{},
-// 		MapPtr:   &map[string]interface{}{},
-// 	}
+	assert.NotNil(t, testStruct1.Slice, "expected non-nil slice")
+	assert.NotNil(t, testStruct1.SlicePtr, "expected non-nil slice ptr")
+	assert.NotNil(t, testStruct1.Map, "expected non-nil map")
+	assert.NotNil(t, testStruct1.MapPtr, "expected non-nil map ptr")
 
-// 	assert.NotNil(t, testStruct1.Slice, "expected non-nil slice")
-// 	assert.NotNil(t, testStruct1.SlicePtr, "expected non-nil slice ptr")
-// 	assert.NotNil(t, testStruct1.Map, "expected non-nil map")
-// 	assert.NotNil(t, testStruct1.MapPtr, "expected non-nil map ptr")
+	b, _ = bson.MarshalWithRegistry(mgoRegistryRespectNilValues, testStruct1)
 
-// 	b, _ = bson.MarshalWithRegistry(mgoRegistry, testStruct1)
+	testStruct2 = T{}
 
-// 	testStruct2 = T{}
+	_ = bson.UnmarshalWithRegistry(mgoRegistryRespectNilValues, b, &testStruct2)
 
-// 	_ = bson.UnmarshalWithRegistry(mgoRegistry, b, &testStruct2)
-
-// 	assert.NotNil(t, testStruct2.Slice, "expected non-nil slice")
-// 	assert.NotNil(t, testStruct2.SlicePtr, "expected non-nil slice ptr")
-// 	assert.NotNil(t, testStruct2.Map, "expected non-nil map")
-// 	assert.NotNil(t, testStruct2.MapPtr, "expected non-nil map ptr")
-// }
+	assert.NotNil(t, testStruct2.Slice, "expected non-nil slice")
+	assert.NotNil(t, testStruct2.SlicePtr, "expected non-nil slice ptr")
+	assert.NotNil(t, testStruct2.Map, "expected non-nil map")
+	assert.NotNil(t, testStruct2.MapPtr, "expected non-nil map ptr")
+}
