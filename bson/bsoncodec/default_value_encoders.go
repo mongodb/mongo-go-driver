@@ -513,7 +513,7 @@ func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(ec EncodeContext, vw b
 		return ValueEncoderError{Name: "ValueMarshalerEncodeValue", Types: []reflect.Type{tValueMarshaler}, Received: val}
 	case val.Type().Implements(tValueMarshaler):
 		// If ValueMarshaler is implemented on a concrete type, make sure that val isn't a nil pointer
-		if IsImplementationNil(val, tValueMarshaler) {
+		if isImplementationNil(val, tValueMarshaler) {
 			return vw.WriteNull()
 		}
 	case reflect.PtrTo(val.Type()).Implements(tValueMarshaler) && val.CanAddr():
@@ -539,7 +539,7 @@ func (dve DefaultValueEncoders) MarshalerEncodeValue(ec EncodeContext, vw bsonrw
 		return ValueEncoderError{Name: "MarshalerEncodeValue", Types: []reflect.Type{tMarshaler}, Received: val}
 	case val.Type().Implements(tMarshaler):
 		// If Marshaler is implemented on a concrete type, make sure that val isn't a nil pointer
-		if IsImplementationNil(val, tMarshaler) {
+		if isImplementationNil(val, tMarshaler) {
 			return vw.WriteNull()
 		}
 	case reflect.PtrTo(val.Type()).Implements(tMarshaler) && val.CanAddr():
@@ -565,7 +565,7 @@ func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw bsonrw.Val
 		return ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: val}
 	case val.Type().Implements(tProxy):
 		// If Proxy is implemented on a concrete type, make sure that val isn't a nil pointer
-		if IsImplementationNil(val, tProxy) {
+		if isImplementationNil(val, tProxy) {
 			return vw.WriteNull()
 		}
 	case reflect.PtrTo(val.Type()).Implements(tProxy) && val.CanAddr():
@@ -747,8 +747,8 @@ func (dve DefaultValueEncoders) CodeWithScopeEncodeValue(ec EncodeContext, vw bs
 	return dw.WriteDocumentEnd()
 }
 
-// IsImplementationNil returns if val is a nil pointer and inter is implemented on a concrete type
-func IsImplementationNil(val reflect.Value, inter reflect.Type) bool {
+// isImplementationNil returns if val is a nil pointer and inter is implemented on a concrete type
+func isImplementationNil(val reflect.Value, inter reflect.Type) bool {
 	vt := val.Type()
 	for vt.Kind() == reflect.Ptr {
 		vt = vt.Elem()

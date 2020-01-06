@@ -96,7 +96,7 @@ func GetterEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val re
 		return bsoncodec.ValueEncoderError{Name: "GetterEncodeValue", Types: []reflect.Type{tGetter}, Received: val}
 	case val.Type().Implements(tGetter):
 		// If Getter is implemented on a concrete type, make sure that val isn't a nil pointer
-		if bsoncodec.IsImplementationNil(val, tGetter) {
+		if isImplementationNil(val, tGetter) {
 			return vw.WriteNull()
 		}
 	case reflect.PtrTo(val.Type()).Implements(tGetter) && val.CanAddr():
@@ -116,4 +116,13 @@ func GetterEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val re
 		return err
 	}
 	return encoder.EncodeValue(ec, vw, intermediate)
+}
+
+// isImplementationNil returns if val is a nil pointer and inter is implemented on a concrete type
+func isImplementationNil(val reflect.Value, inter reflect.Type) bool {
+	vt := val.Type()
+	for vt.Kind() == reflect.Ptr {
+		vt = vt.Elem()
+	}
+	return vt.Implements(inter) && val.Kind() == reflect.Ptr && val.IsNil()
 }
