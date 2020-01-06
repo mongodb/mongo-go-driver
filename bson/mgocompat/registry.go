@@ -60,20 +60,20 @@ func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 			SetDecodeZerosMap(true).
 			SetEncodeNilAsEmpty(true))
 
-	rb.RegisterDecoder(tEmpty, emptyInterCodec).
-		RegisterDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue)).
+	rb.RegisterTypeDecoder(tEmpty, emptyInterCodec).
 		RegisterDefaultDecoder(reflect.String, bsoncodec.NewStringCodec(bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false))).
 		RegisterDefaultDecoder(reflect.Struct, structcodec).
 		RegisterDefaultDecoder(reflect.Map, mapCodec).
-		RegisterEncoder(tByteSlice, bsoncodec.NewByteSliceCodec(bsonoptions.ByteSliceCodec().SetEncodeNilAsEmpty(true))).
-		RegisterEncoder(tGetter, bsoncodec.ValueEncoderFunc(GetterEncodeValue)).
+		RegisterTypeEncoder(tByteSlice, bsoncodec.NewByteSliceCodec(bsonoptions.ByteSliceCodec().SetEncodeNilAsEmpty(true))).
 		RegisterDefaultEncoder(reflect.Struct, structcodec).
 		RegisterDefaultEncoder(reflect.Slice, bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))).
 		RegisterDefaultEncoder(reflect.Map, mapCodec).
 		RegisterTypeMapEntry(bsontype.Int32, tInt).
 		RegisterTypeMapEntry(bsontype.Type(0), tM).
 		RegisterTypeMapEntry(bsontype.DateTime, tTime).
-		RegisterTypeMapEntry(bsontype.Array, tInterfaceSlice)
+		RegisterTypeMapEntry(bsontype.Array, tInterfaceSlice).
+		RegisterHookEncoder(tGetter, bsoncodec.ValueEncoderFunc(GetterEncodeValue)).
+		RegisterHookDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue))
 
 	return rb
 }

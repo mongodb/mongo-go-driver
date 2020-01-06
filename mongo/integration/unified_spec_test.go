@@ -149,7 +149,7 @@ var directories = []string{
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
 var specTestRegistry = bson.NewRegistryBuilder().
 	RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{})).
-	RegisterDecoder(reflect.TypeOf(testData{}), bsoncodec.ValueDecoderFunc(decodeTestData)).Build()
+	RegisterTypeDecoder(reflect.TypeOf(testData{}), bsoncodec.ValueDecoderFunc(decodeTestData)).Build()
 
 func TestUnifiedSpecs(t *testing.T) {
 	for _, specDir := range directories {
