@@ -8,6 +8,7 @@ package bsoncodec
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 
@@ -134,10 +135,12 @@ func (rb *RegistryBuilder) RegisterTypeEncoder(t reflect.Type, enc ValueEncoder)
 
 // RegisterHookEncoder will register an encoder for the provided interface type t. This encoder will be called when
 // marshalling a type if the type implements t or a pointer to the type implements t. If the provided type is not
-// an interface (i.e. t.Kind() != reflect.Interface), it is ignored and the RegistryBuilder is not modified.
+// an interface (i.e. t.Kind() != reflect.Interface), this method will panic.
 func (rb *RegistryBuilder) RegisterHookEncoder(t reflect.Type, enc ValueEncoder) *RegistryBuilder {
 	if t.Kind() != reflect.Interface {
-		return rb
+		panicStr := fmt.Sprintf("RegisterHookEncoder expects a type with kind reflect.Interface, "+
+			"got type %s with kind %s", t, t.Kind())
+		panic(panicStr)
 	}
 
 	for idx, encoder := range rb.interfaceEncoders {
@@ -165,10 +168,12 @@ func (rb *RegistryBuilder) RegisterTypeDecoder(t reflect.Type, dec ValueDecoder)
 
 // RegisterHookDecoder will register an decoder for the provided interface type t. This decoder will be called when
 // unmarshalling into a type if the type implements t or a pointer to the type implements t. If the provided type is not
-// an interface (i.e. t.Kind() != reflect.Interface), it is ignored and the RegistryBuilder is not modified.
+// an interface (i.e. t.Kind() != reflect.Interface), this method will panic.
 func (rb *RegistryBuilder) RegisterHookDecoder(t reflect.Type, dec ValueDecoder) *RegistryBuilder {
 	if t.Kind() != reflect.Interface {
-		return rb
+		panicStr := fmt.Sprintf("RegisterHookDecoder expects a type with kind reflect.Interface, "+
+			"got type %s with kind %s", t, t.Kind())
+		panic(panicStr)
 	}
 
 	for idx, decoder := range rb.interfaceDecoders {
