@@ -111,3 +111,17 @@ func TestD(t *testing.T) {
 		}
 	})
 }
+
+func TestExtJSONEscapeKey(t *testing.T) {
+	doc := D{{Key: "\"", Value: 1}}
+	b, err := MarshalExtJSON(&doc, false, false)
+	noerr(t, err)
+
+	want := "{\"\\\"\":1}"
+	if diff := cmp.Diff(want, string(b)); diff != "" {
+		t.Errorf("Marshaled documents do not match. got %v, want %v", string(b), want)
+	}
+
+	err = UnmarshalExtJSON(b, false, &doc)
+	noerr(t, err)
+}
