@@ -80,6 +80,10 @@ type ConnString struct {
 	SSLClientCertificateKeyFileSet     bool
 	SSLClientCertificateKeyPassword    func() string
 	SSLClientCertificateKeyPasswordSet bool
+	SSLCertificateFile                 string
+	SSLCertificateFileSet              bool
+	SSLPrivateKeyFile                  string
+	SSLPrivateKeyFileSet               bool
 	SSLInsecure                        bool
 	SSLInsecureSet                     bool
 	SSLCaFile                          string
@@ -252,6 +256,10 @@ func (p *parser) parse(original string) error {
 		return err
 	}
 
+	if err = p.validateSSL(); err != nil {
+		return err
+	}
+
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if p.WNumberSet && p.WNumber == 0 && p.JSet && p.J {
 		return writeconcern.ErrInconsistent
@@ -377,6 +385,27 @@ func (p *parser) validateAuth() error {
 		}
 	default:
 		return fmt.Errorf("invalid auth mechanism")
+	}
+	return nil
+}
+
+func (p *parser) validateSSL() error {
+	if !p.SSL {
+		return nil
+	}
+
+	if p.SSLClientCertificateKeyFileSet {
+		if p.SSLCertificateFileSet || p.SSLPrivateKeyFileSet {
+			return errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided " +
+				"along with tlsCertificateFile or tlsPrivateKeyFile")
+		}
+		return nil
+	}
+	if p.SSLCertificateFileSet && !p.SSLPrivateKeyFileSet {
+		return errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified")
+	}
+	if p.SSLPrivateKeyFileSet && !p.SSLCertificateFileSet {
+		return errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified")
 	}
 	return nil
 }
@@ -605,6 +634,16 @@ func (p *parser) addOption(pair string) error {
 	case "sslclientcertificatekeypassword", "tlscertificatekeyfilepassword":
 		p.SSLClientCertificateKeyPassword = func() string { return value }
 		p.SSLClientCertificateKeyPasswordSet = true
+	case "tlscertificatefile":
+		p.SSL = true
+		p.SSLSet = true
+		p.SSLCertificateFile = value
+		p.SSLCertificateFileSet = true
+	case "tlsprivatekeyfile":
+		p.SSL = true
+		p.SSLSet = true
+		p.SSLPrivateKeyFile = value
+		p.SSLPrivateKeyFileSet = true
 	case "sslinsecure", "tlsinsecure":
 		switch value {
 		case "true":

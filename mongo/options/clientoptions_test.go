@@ -404,6 +404,36 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?zlibCompressionLevel=4",
 				baseClient().SetZlibLevel(4),
 			},
+			{
+				"TLS tlsCertificateFile and tlsPrivateKeyFile",
+				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem",
+				baseClient().SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
+			},
+			{
+				"TLS only tlsCertificateFile",
+				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem",
+				&ClientOptions{err: internal.WrapErrorf(
+					errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified"),
+					"error parsing uri",
+				)},
+			},
+			{
+				"TLS only tlsPrivateKeyFile",
+				"mongodb://localhost/?tlsPrivateKeyFile=testdata/nopass/key.pem",
+				&ClientOptions{err: internal.WrapErrorf(
+					errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified"),
+					"error parsing uri",
+				)},
+			},
+			{
+				"TLS tlsCertificateFile and tlsPrivateKeyFile and tlsCertificateKeyFile",
+				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem&tlsCertificateKeyFile=testdata/nopass/certificate.pem",
+				&ClientOptions{err: internal.WrapErrorf(
+					errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
+						"along with tlsCertificateFile or tlsPrivateKeyFile"),
+					"error parsing uri",
+				)},
+			},
 		}
 
 		for _, tc := range testCases {
