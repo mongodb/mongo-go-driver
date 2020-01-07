@@ -507,7 +507,18 @@ func (dve DefaultValueEncoders) EmptyInterfaceEncodeValue(ec EncodeContext, vw b
 
 // ValueMarshalerEncodeValue is the ValueEncoderFunc for ValueMarshaler implementations.
 func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || !val.Type().Implements(tValueMarshaler) {
+	// Either val or a pointer to val must implement ValueMarshaler
+	switch {
+	case !val.IsValid():
+		return ValueEncoderError{Name: "ValueMarshalerEncodeValue", Types: []reflect.Type{tValueMarshaler}, Received: val}
+	case val.Type().Implements(tValueMarshaler):
+		// If ValueMarshaler is implemented on a concrete type, make sure that val isn't a nil pointer
+		if isImplementationNil(val, tValueMarshaler) {
+			return vw.WriteNull()
+		}
+	case reflect.PtrTo(val.Type()).Implements(tValueMarshaler) && val.CanAddr():
+		val = val.Addr()
+	default:
 		return ValueEncoderError{Name: "ValueMarshalerEncodeValue", Types: []reflect.Type{tValueMarshaler}, Received: val}
 	}
 
@@ -522,7 +533,18 @@ func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(ec EncodeContext, vw b
 
 // MarshalerEncodeValue is the ValueEncoderFunc for Marshaler implementations.
 func (dve DefaultValueEncoders) MarshalerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || !val.Type().Implements(tMarshaler) {
+	// Either val or a pointer to val must implement Marshaler
+	switch {
+	case !val.IsValid():
+		return ValueEncoderError{Name: "MarshalerEncodeValue", Types: []reflect.Type{tMarshaler}, Received: val}
+	case val.Type().Implements(tMarshaler):
+		// If Marshaler is implemented on a concrete type, make sure that val isn't a nil pointer
+		if isImplementationNil(val, tMarshaler) {
+			return vw.WriteNull()
+		}
+	case reflect.PtrTo(val.Type()).Implements(tMarshaler) && val.CanAddr():
+		val = val.Addr()
+	default:
 		return ValueEncoderError{Name: "MarshalerEncodeValue", Types: []reflect.Type{tMarshaler}, Received: val}
 	}
 
@@ -537,7 +559,18 @@ func (dve DefaultValueEncoders) MarshalerEncodeValue(ec EncodeContext, vw bsonrw
 
 // ProxyEncodeValue is the ValueEncoderFunc for Proxy implementations.
 func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || !val.Type().Implements(tProxy) {
+	// Either val or a pointer to val must implement Proxy
+	switch {
+	case !val.IsValid():
+		return ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: val}
+	case val.Type().Implements(tProxy):
+		// If Proxy is implemented on a concrete type, make sure that val isn't a nil pointer
+		if isImplementationNil(val, tProxy) {
+			return vw.WriteNull()
+		}
+	case reflect.PtrTo(val.Type()).Implements(tProxy) && val.CanAddr():
+		val = val.Addr()
+	default:
 		return ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: val}
 	}
 
@@ -712,4 +745,13 @@ func (dve DefaultValueEncoders) CodeWithScopeEncodeValue(ec EncodeContext, vw bs
 		return err
 	}
 	return dw.WriteDocumentEnd()
+}
+
+// isImplementationNil returns if val is a nil pointer and inter is implemented on a concrete type
+func isImplementationNil(val reflect.Value, inter reflect.Type) bool {
+	vt := val.Type()
+	for vt.Kind() == reflect.Ptr {
+		vt = vt.Elem()
+	}
+	return vt.Implements(inter) && val.Kind() == reflect.Ptr && val.IsNil()
 }

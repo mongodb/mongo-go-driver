@@ -7,6 +7,7 @@
 package mgocompat
 
 import (
+	"errors"
 	"reflect"
 	"time"
 
@@ -17,6 +18,9 @@ import (
 )
 
 var (
+	// ErrSetZero may be returned from a SetBSON method to have the value set to its respective zero value.
+	ErrSetZero = errors.New("set to zero")
+
 	tInt            = reflect.TypeOf(int(0))
 	tUint           = reflect.TypeOf(uint(0))
 	tTime           = reflect.TypeOf(time.Time{})
@@ -24,6 +28,8 @@ var (
 	tInterfaceSlice = reflect.TypeOf([]interface{}{})
 	tByteSlice      = reflect.TypeOf([]byte{})
 	tEmpty          = reflect.TypeOf((*interface{})(nil)).Elem()
+	tGetter         = reflect.TypeOf((*Getter)(nil)).Elem()
+	tSetter         = reflect.TypeOf((*Setter)(nil)).Elem()
 )
 
 // mgoRegistry is the default bsoncodec.Registry. It contains the default codecs and the
@@ -55,10 +61,12 @@ func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 			SetEncodeNilAsEmpty(true))
 
 	rb.RegisterDecoder(tEmpty, emptyInterCodec).
+		RegisterDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue)).
 		RegisterDefaultDecoder(reflect.String, bsoncodec.NewStringCodec(bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false))).
 		RegisterDefaultDecoder(reflect.Struct, structcodec).
 		RegisterDefaultDecoder(reflect.Map, mapCodec).
 		RegisterEncoder(tByteSlice, bsoncodec.NewByteSliceCodec(bsonoptions.ByteSliceCodec().SetEncodeNilAsEmpty(true))).
+		RegisterEncoder(tGetter, bsoncodec.ValueEncoderFunc(GetterEncodeValue)).
 		RegisterDefaultEncoder(reflect.Struct, structcodec).
 		RegisterDefaultEncoder(reflect.Slice, bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))).
 		RegisterDefaultEncoder(reflect.Map, mapCodec).

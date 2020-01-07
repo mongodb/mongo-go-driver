@@ -296,11 +296,9 @@ func (r *Registry) lookupInterfaceEncoder(t reflect.Type) (ValueEncoder, bool) {
 		return nil, false
 	}
 	for _, ienc := range r.interfaceEncoders {
-		if !t.Implements(ienc.i) {
-			continue
+		if t.Implements(ienc.i) || reflect.PtrTo(t).Implements(ienc.i) {
+			return ienc.ve, true
 		}
-
-		return ienc.ve, true
 	}
 	return nil, false
 }
