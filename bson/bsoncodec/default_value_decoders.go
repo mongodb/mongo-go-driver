@@ -40,28 +40,26 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 	}
 
 	rb.
-		RegisterDecoder(tBinary, ValueDecoderFunc(dvd.BinaryDecodeValue)).
-		RegisterDecoder(tUndefined, ValueDecoderFunc(dvd.UndefinedDecodeValue)).
-		RegisterDecoder(tDateTime, ValueDecoderFunc(dvd.DateTimeDecodeValue)).
-		RegisterDecoder(tNull, ValueDecoderFunc(dvd.NullDecodeValue)).
-		RegisterDecoder(tRegex, ValueDecoderFunc(dvd.RegexDecodeValue)).
-		RegisterDecoder(tDBPointer, ValueDecoderFunc(dvd.DBPointerDecodeValue)).
-		RegisterDecoder(tTimestamp, ValueDecoderFunc(dvd.TimestampDecodeValue)).
-		RegisterDecoder(tMinKey, ValueDecoderFunc(dvd.MinKeyDecodeValue)).
-		RegisterDecoder(tMaxKey, ValueDecoderFunc(dvd.MaxKeyDecodeValue)).
-		RegisterDecoder(tJavaScript, ValueDecoderFunc(dvd.JavaScriptDecodeValue)).
-		RegisterDecoder(tSymbol, ValueDecoderFunc(dvd.SymbolDecodeValue)).
-		RegisterDecoder(tByteSlice, defaultByteSliceCodec).
-		RegisterDecoder(tTime, defaultTimeCodec).
-		RegisterDecoder(tEmpty, defaultEmptyInterfaceCodec).
-		RegisterDecoder(tOID, ValueDecoderFunc(dvd.ObjectIDDecodeValue)).
-		RegisterDecoder(tDecimal, ValueDecoderFunc(dvd.Decimal128DecodeValue)).
-		RegisterDecoder(tJSONNumber, ValueDecoderFunc(dvd.JSONNumberDecodeValue)).
-		RegisterDecoder(tURL, ValueDecoderFunc(dvd.URLDecodeValue)).
-		RegisterDecoder(tValueUnmarshaler, ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue)).
-		RegisterDecoder(tUnmarshaler, ValueDecoderFunc(dvd.UnmarshalerDecodeValue)).
-		RegisterDecoder(tCoreDocument, ValueDecoderFunc(dvd.CoreDocumentDecodeValue)).
-		RegisterDecoder(tCodeWithScope, ValueDecoderFunc(dvd.CodeWithScopeDecodeValue)).
+		RegisterTypeDecoder(tBinary, ValueDecoderFunc(dvd.BinaryDecodeValue)).
+		RegisterTypeDecoder(tUndefined, ValueDecoderFunc(dvd.UndefinedDecodeValue)).
+		RegisterTypeDecoder(tDateTime, ValueDecoderFunc(dvd.DateTimeDecodeValue)).
+		RegisterTypeDecoder(tNull, ValueDecoderFunc(dvd.NullDecodeValue)).
+		RegisterTypeDecoder(tRegex, ValueDecoderFunc(dvd.RegexDecodeValue)).
+		RegisterTypeDecoder(tDBPointer, ValueDecoderFunc(dvd.DBPointerDecodeValue)).
+		RegisterTypeDecoder(tTimestamp, ValueDecoderFunc(dvd.TimestampDecodeValue)).
+		RegisterTypeDecoder(tMinKey, ValueDecoderFunc(dvd.MinKeyDecodeValue)).
+		RegisterTypeDecoder(tMaxKey, ValueDecoderFunc(dvd.MaxKeyDecodeValue)).
+		RegisterTypeDecoder(tJavaScript, ValueDecoderFunc(dvd.JavaScriptDecodeValue)).
+		RegisterTypeDecoder(tSymbol, ValueDecoderFunc(dvd.SymbolDecodeValue)).
+		RegisterTypeDecoder(tByteSlice, defaultByteSliceCodec).
+		RegisterTypeDecoder(tTime, defaultTimeCodec).
+		RegisterTypeDecoder(tEmpty, defaultEmptyInterfaceCodec).
+		RegisterTypeDecoder(tOID, ValueDecoderFunc(dvd.ObjectIDDecodeValue)).
+		RegisterTypeDecoder(tDecimal, ValueDecoderFunc(dvd.Decimal128DecodeValue)).
+		RegisterTypeDecoder(tJSONNumber, ValueDecoderFunc(dvd.JSONNumberDecodeValue)).
+		RegisterTypeDecoder(tURL, ValueDecoderFunc(dvd.URLDecodeValue)).
+		RegisterTypeDecoder(tCoreDocument, ValueDecoderFunc(dvd.CoreDocumentDecodeValue)).
+		RegisterTypeDecoder(tCodeWithScope, ValueDecoderFunc(dvd.CodeWithScopeDecodeValue)).
 		RegisterDefaultDecoder(reflect.Bool, ValueDecoderFunc(dvd.BooleanDecodeValue)).
 		RegisterDefaultDecoder(reflect.Int, ValueDecoderFunc(dvd.IntDecodeValue)).
 		RegisterDefaultDecoder(reflect.Int8, ValueDecoderFunc(dvd.IntDecodeValue)).
@@ -100,7 +98,9 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeMapEntry(bsontype.Decimal128, tDecimal).
 		RegisterTypeMapEntry(bsontype.MinKey, tMinKey).
 		RegisterTypeMapEntry(bsontype.MaxKey, tMaxKey).
-		RegisterTypeMapEntry(bsontype.Type(0), tD)
+		RegisterTypeMapEntry(bsontype.Type(0), tD).
+		RegisterHookDecoder(tValueUnmarshaler, ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue)).
+		RegisterHookDecoder(tUnmarshaler, ValueDecoderFunc(dvd.UnmarshalerDecodeValue))
 }
 
 // BooleanDecodeValue is the ValueDecoderFunc for bool types.

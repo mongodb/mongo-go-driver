@@ -35,7 +35,7 @@ func TestRegistry(t *testing.T) {
 			}
 			rb := NewRegistryBuilder()
 			for _, ip := range ips {
-				rb.RegisterEncoder(ip.i, ip.ve)
+				rb.RegisterHookEncoder(ip.i, ip.ve)
 			}
 			got := rb.interfaceEncoders
 			if !cmp.Equal(got, want, cmp.AllowUnexported(interfaceValueEncoder{}, fakeCodec{}), cmp.Comparer(typeComparer)) {
@@ -45,10 +45,10 @@ func TestRegistry(t *testing.T) {
 		t.Run("type", func(t *testing.T) {
 			ft1, ft2, ft4 := fakeType1{}, fakeType2{}, fakeType4{}
 			rb := NewRegistryBuilder().
-				RegisterEncoder(reflect.TypeOf(ft1), fc1).
-				RegisterEncoder(reflect.TypeOf(ft2), fc2).
-				RegisterEncoder(reflect.TypeOf(ft1), fc3).
-				RegisterEncoder(reflect.TypeOf(ft4), fc4)
+				RegisterTypeEncoder(reflect.TypeOf(ft1), fc1).
+				RegisterTypeEncoder(reflect.TypeOf(ft2), fc2).
+				RegisterTypeEncoder(reflect.TypeOf(ft1), fc3).
+				RegisterTypeEncoder(reflect.TypeOf(ft4), fc4)
 			want := []struct {
 				t reflect.Type
 				c ValueEncoder
@@ -164,27 +164,38 @@ func TestRegistry(t *testing.T) {
 			ft1 := reflect.PtrTo(reflect.TypeOf(fakeType1{}))
 			ft2 := reflect.TypeOf(fakeType2{})
 			ft3 := reflect.TypeOf(fakeType5(func(string, string) string { return "fakeType5" }))
+			ti1 := reflect.TypeOf((*testInterface1)(nil)).Elem()
 			ti2 := reflect.TypeOf((*testInterface2)(nil)).Elem()
-			fc1, fc2, fc4 := fakeCodec{num: 1}, fakeCodec{num: 2}, fakeCodec{num: 4}
+			ti1Impl := reflect.TypeOf(testInterface1Impl{})
+			ti2Impl := reflect.TypeOf(testInterface2Impl{})
+			ti3 := reflect.TypeOf((*testInterface3)(nil)).Elem()
+			ti3Impl := reflect.TypeOf(testInterface3Impl{})
+			ti3ImplPtr := reflect.TypeOf((*testInterface3Impl)(nil))
+			fc1, fc2 := fakeCodec{num: 1}, fakeCodec{num: 2}
 			fsc, fslcc, fmc := new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
 			pc := NewPointerCodec()
+
 			reg := NewRegistryBuilder().
-				RegisterEncoder(ft1, fc1).
-				RegisterEncoder(ft2, fc2).
-				RegisterEncoder(ti2, fc4).
+				RegisterTypeEncoder(ft1, fc1).
+				RegisterTypeEncoder(ft2, fc2).
+				RegisterTypeEncoder(ti1, fc1).
 				RegisterDefaultEncoder(reflect.Struct, fsc).
 				RegisterDefaultEncoder(reflect.Slice, fslcc).
 				RegisterDefaultEncoder(reflect.Array, fslcc).
 				RegisterDefaultEncoder(reflect.Map, fmc).
 				RegisterDefaultEncoder(reflect.Ptr, pc).
-				RegisterDecoder(ft1, fc1).
-				RegisterDecoder(ft2, fc2).
-				RegisterDecoder(ti2, fc4).
+				RegisterTypeDecoder(ft1, fc1).
+				RegisterTypeDecoder(ft2, fc2).
+				RegisterTypeDecoder(ti1, fc1). // values whose exact type is testInterface1 will use fc1 encoder
 				RegisterDefaultDecoder(reflect.Struct, fsc).
 				RegisterDefaultDecoder(reflect.Slice, fslcc).
 				RegisterDefaultDecoder(reflect.Array, fslcc).
 				RegisterDefaultDecoder(reflect.Map, fmc).
 				RegisterDefaultDecoder(reflect.Ptr, pc).
+				RegisterHookEncoder(ti2, fc2).
+				RegisterHookDecoder(ti2, fc2).
+				RegisterHookEncoder(ti3, fc3).
+				RegisterHookDecoder(ti3, fc3).
 				Build()
 
 			testCases := []struct {
@@ -209,11 +220,54 @@ func TestRegistry(t *testing.T) {
 					false,
 				},
 				{
-					"interface registry",
-					ti2,
-					fc4,
+					// lookup an interface type and expect that the registered encoder is returned
+					"interface with type encoder",
+					ti1,
+					fc1,
 					nil,
 					true,
+				},
+				{
+					// lookup a type that implements an interface and expect that the default struct codec is returned
+					"interface implementation with type encoder",
+					ti1Impl,
+					fsc,
+					nil,
+					false,
+				},
+				{
+					// lookup an interface type and expect that the registered hook is returned
+					"interface with hook",
+					ti2,
+					fc2,
+					nil,
+					false,
+				},
+				{
+					// lookup a type that implements an interface and expect that the registered hook is returned
+					"interface implementation with hook",
+					ti2Impl,
+					fc2,
+					nil,
+					false,
+				},
+				{
+					// lookup a type whose pointer implements an interface and expect that the registered hook is
+					// returned
+					"interface implementation with hook (pointer)",
+					ti3Impl,
+					fc3,
+					nil,
+					false,
+				},
+				{
+					// lookup a pointer to a type where the pointer implements an interface and expect that the
+					// registered hook is returned
+					"interface pointer to implementation with hook (pointer)",
+					ti3ImplPtr,
+					fc3,
+					nil,
+					false,
 				},
 				{
 					"default struct codec (pointer)",
@@ -355,5 +409,23 @@ type testInterface1 interface{ test1() }
 type testInterface2 interface{ test2() }
 type testInterface3 interface{ test3() }
 type testInterface4 interface{ test4() }
+
+type testInterface1Impl struct{}
+
+var _ testInterface1 = testInterface1Impl{}
+
+func (testInterface1Impl) test1() {}
+
+type testInterface2Impl struct{}
+
+var _ testInterface2 = testInterface2Impl{}
+
+func (testInterface2Impl) test2() {}
+
+type testInterface3Impl struct{}
+
+var _ testInterface3 = (*testInterface3Impl)(nil)
+
+func (*testInterface3Impl) test3() {}
 
 func typeComparer(i1, i2 reflect.Type) bool { return i1 == i2 }

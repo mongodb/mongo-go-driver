@@ -67,29 +67,26 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		panic(errors.New("argument to RegisterDefaultEncoders must not be nil"))
 	}
 	rb.
-		RegisterEncoder(tByteSlice, defaultByteSliceCodec).
-		RegisterEncoder(tTime, defaultTimeCodec).
-		RegisterEncoder(tEmpty, defaultEmptyInterfaceCodec).
-		RegisterEncoder(tOID, ValueEncoderFunc(dve.ObjectIDEncodeValue)).
-		RegisterEncoder(tDecimal, ValueEncoderFunc(dve.Decimal128EncodeValue)).
-		RegisterEncoder(tJSONNumber, ValueEncoderFunc(dve.JSONNumberEncodeValue)).
-		RegisterEncoder(tURL, ValueEncoderFunc(dve.URLEncodeValue)).
-		RegisterEncoder(tValueMarshaler, ValueEncoderFunc(dve.ValueMarshalerEncodeValue)).
-		RegisterEncoder(tMarshaler, ValueEncoderFunc(dve.MarshalerEncodeValue)).
-		RegisterEncoder(tProxy, ValueEncoderFunc(dve.ProxyEncodeValue)).
-		RegisterEncoder(tJavaScript, ValueEncoderFunc(dve.JavaScriptEncodeValue)).
-		RegisterEncoder(tSymbol, ValueEncoderFunc(dve.SymbolEncodeValue)).
-		RegisterEncoder(tBinary, ValueEncoderFunc(dve.BinaryEncodeValue)).
-		RegisterEncoder(tUndefined, ValueEncoderFunc(dve.UndefinedEncodeValue)).
-		RegisterEncoder(tDateTime, ValueEncoderFunc(dve.DateTimeEncodeValue)).
-		RegisterEncoder(tNull, ValueEncoderFunc(dve.NullEncodeValue)).
-		RegisterEncoder(tRegex, ValueEncoderFunc(dve.RegexEncodeValue)).
-		RegisterEncoder(tDBPointer, ValueEncoderFunc(dve.DBPointerEncodeValue)).
-		RegisterEncoder(tTimestamp, ValueEncoderFunc(dve.TimestampEncodeValue)).
-		RegisterEncoder(tMinKey, ValueEncoderFunc(dve.MinKeyEncodeValue)).
-		RegisterEncoder(tMaxKey, ValueEncoderFunc(dve.MaxKeyEncodeValue)).
-		RegisterEncoder(tCoreDocument, ValueEncoderFunc(dve.CoreDocumentEncodeValue)).
-		RegisterEncoder(tCodeWithScope, ValueEncoderFunc(dve.CodeWithScopeEncodeValue)).
+		RegisterTypeEncoder(tByteSlice, defaultByteSliceCodec).
+		RegisterTypeEncoder(tTime, defaultTimeCodec).
+		RegisterTypeEncoder(tEmpty, defaultEmptyInterfaceCodec).
+		RegisterTypeEncoder(tOID, ValueEncoderFunc(dve.ObjectIDEncodeValue)).
+		RegisterTypeEncoder(tDecimal, ValueEncoderFunc(dve.Decimal128EncodeValue)).
+		RegisterTypeEncoder(tJSONNumber, ValueEncoderFunc(dve.JSONNumberEncodeValue)).
+		RegisterTypeEncoder(tURL, ValueEncoderFunc(dve.URLEncodeValue)).
+		RegisterTypeEncoder(tJavaScript, ValueEncoderFunc(dve.JavaScriptEncodeValue)).
+		RegisterTypeEncoder(tSymbol, ValueEncoderFunc(dve.SymbolEncodeValue)).
+		RegisterTypeEncoder(tBinary, ValueEncoderFunc(dve.BinaryEncodeValue)).
+		RegisterTypeEncoder(tUndefined, ValueEncoderFunc(dve.UndefinedEncodeValue)).
+		RegisterTypeEncoder(tDateTime, ValueEncoderFunc(dve.DateTimeEncodeValue)).
+		RegisterTypeEncoder(tNull, ValueEncoderFunc(dve.NullEncodeValue)).
+		RegisterTypeEncoder(tRegex, ValueEncoderFunc(dve.RegexEncodeValue)).
+		RegisterTypeEncoder(tDBPointer, ValueEncoderFunc(dve.DBPointerEncodeValue)).
+		RegisterTypeEncoder(tTimestamp, ValueEncoderFunc(dve.TimestampEncodeValue)).
+		RegisterTypeEncoder(tMinKey, ValueEncoderFunc(dve.MinKeyEncodeValue)).
+		RegisterTypeEncoder(tMaxKey, ValueEncoderFunc(dve.MaxKeyEncodeValue)).
+		RegisterTypeEncoder(tCoreDocument, ValueEncoderFunc(dve.CoreDocumentEncodeValue)).
+		RegisterTypeEncoder(tCodeWithScope, ValueEncoderFunc(dve.CodeWithScopeEncodeValue)).
 		RegisterDefaultEncoder(reflect.Bool, ValueEncoderFunc(dve.BooleanEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int, ValueEncoderFunc(dve.IntEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int8, ValueEncoderFunc(dve.IntEncodeValue)).
@@ -108,7 +105,10 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterDefaultEncoder(reflect.Slice, defaultSliceCodec).
 		RegisterDefaultEncoder(reflect.String, defaultStringCodec).
 		RegisterDefaultEncoder(reflect.Struct, defaultStructCodec).
-		RegisterDefaultEncoder(reflect.Ptr, NewPointerCodec())
+		RegisterDefaultEncoder(reflect.Ptr, NewPointerCodec()).
+		RegisterHookEncoder(tValueMarshaler, ValueEncoderFunc(dve.ValueMarshalerEncodeValue)).
+		RegisterHookEncoder(tMarshaler, ValueEncoderFunc(dve.MarshalerEncodeValue)).
+		RegisterHookEncoder(tProxy, ValueEncoderFunc(dve.ProxyEncodeValue))
 }
 
 // BooleanEncodeValue is the ValueEncoderFunc for bool types.
