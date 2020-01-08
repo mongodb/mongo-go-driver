@@ -198,7 +198,6 @@ func TestRegistry(t *testing.T) {
 				RegisterHookDecoder(ti3, fc3).
 				Build()
 
-			// TODO add test for hook encoder/decoder
 			testCases := []struct {
 				name      string
 				t         reflect.Type
