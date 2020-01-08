@@ -96,11 +96,11 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterDefaultEncoder(reflect.Int16, ValueEncoderFunc(dve.IntEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int32, ValueEncoderFunc(dve.IntEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int64, ValueEncoderFunc(dve.IntEncodeValue)).
-		RegisterDefaultEncoder(reflect.Uint, ValueEncoderFunc(dve.UintEncodeValue)).
-		RegisterDefaultEncoder(reflect.Uint8, ValueEncoderFunc(dve.UintEncodeValue)).
-		RegisterDefaultEncoder(reflect.Uint16, ValueEncoderFunc(dve.UintEncodeValue)).
-		RegisterDefaultEncoder(reflect.Uint32, ValueEncoderFunc(dve.UintEncodeValue)).
-		RegisterDefaultEncoder(reflect.Uint64, ValueEncoderFunc(dve.UintEncodeValue)).
+		RegisterDefaultEncoder(reflect.Uint, defaultUIntCodec).
+		RegisterDefaultEncoder(reflect.Uint8, defaultUIntCodec).
+		RegisterDefaultEncoder(reflect.Uint16, defaultUIntCodec).
+		RegisterDefaultEncoder(reflect.Uint32, defaultUIntCodec).
+		RegisterDefaultEncoder(reflect.Uint64, defaultUIntCodec).
 		RegisterDefaultEncoder(reflect.Float32, ValueEncoderFunc(dve.FloatEncodeValue)).
 		RegisterDefaultEncoder(reflect.Float64, ValueEncoderFunc(dve.FloatEncodeValue)).
 		RegisterDefaultEncoder(reflect.Array, ValueEncoderFunc(dve.ArrayEncodeValue)).

@@ -22,7 +22,6 @@ var (
 	ErrSetZero = errors.New("set to zero")
 
 	tInt            = reflect.TypeOf(int(0))
-	tUint           = reflect.TypeOf(uint(0))
 	tTime           = reflect.TypeOf(time.Time{})
 	tM              = reflect.TypeOf(bson.M{})
 	tInterfaceSlice = reflect.TypeOf([]interface{}{})
@@ -59,6 +58,7 @@ func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 		bsonoptions.MapCodec().
 			SetDecodeZerosMap(true).
 			SetEncodeNilAsEmpty(true))
+	uintcodec := bsoncodec.NewUIntCodec(bsonoptions.UIntCodec().SetEncodeToMinSize(true))
 
 	rb.RegisterDecoder(tEmpty, emptyInterCodec).
 		RegisterDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue)).
@@ -70,6 +70,11 @@ func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 		RegisterDefaultEncoder(reflect.Struct, structcodec).
 		RegisterDefaultEncoder(reflect.Slice, bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))).
 		RegisterDefaultEncoder(reflect.Map, mapCodec).
+		RegisterDefaultEncoder(reflect.Uint, uintcodec).
+		RegisterDefaultEncoder(reflect.Uint8, uintcodec).
+		RegisterDefaultEncoder(reflect.Uint16, uintcodec).
+		RegisterDefaultEncoder(reflect.Uint32, uintcodec).
+		RegisterDefaultEncoder(reflect.Uint64, uintcodec).
 		RegisterTypeMapEntry(bsontype.Int32, tInt).
 		RegisterTypeMapEntry(bsontype.Type(0), tM).
 		RegisterTypeMapEntry(bsontype.DateTime, tTime).

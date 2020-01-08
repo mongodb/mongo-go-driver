@@ -328,8 +328,8 @@ var oneWayMarshalItems = []testItemType{
 		"\x10\x00\x08\x00\x00\x00"},
 
 	// There are no unsigned types in BSON.  Will unmarshal as int32 or int64.
-	//{bson.M{"": uint32(258)},
-	//	"\x10\x00\x02\x01\x00\x00"},
+	{bson.M{"": uint32(258)},
+		"\x10\x00\x02\x01\x00\x00"},
 	{bson.M{"": uint64(258)},
 		"\x12\x00\x02\x01\x00\x00\x00\x00\x00\x00"},
 	{bson.M{"": uint64(258 << 32)},
@@ -353,7 +353,7 @@ func TestOneWayMarshalItems(t *testing.T) {
 			data, err := bson.MarshalWithRegistry(mgoRegistry, item.obj)
 			assert.Nil(t, err, "expected nil error, got: %v", err)
 
-			assert.Equal(t, wrapInDoc(item.data), string(data), "expected: %v, got: %v", wrapInDoc(item.data), string(data))
+			assert.Equal(t, wrapInDoc(item.data), string(data), "expected: %v, got: %v", bson.Raw(wrapInDoc(item.data)), bson.Raw(data))
 		})
 	}
 }
