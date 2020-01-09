@@ -6,6 +6,8 @@
 
 // Package bson is a library for reading, writing, and manipulating BSON. BSON is a binary serialization format used to
 // store documents and make remote procedure calls in MongoDB. The BSON specification is located at https://bsonspec.org.
+// The BSON library handles marshalling and unmarshalling of values through a configurable codec system. For a description
+// of the codec system and examples of registering custom codecs, see the bsoncodec package.
 //
 // Raw BSON
 //
@@ -90,7 +92,7 @@
 //     1. omitempty: If the omitempty struct tag is specified on a field, the field will not be marshalled if it is set to
 //     the zero value. By default, a struct field is only considered empty if the field's type implements the Zeroer
 //     interface and the IsZero method returns true. Struct fields of types that do not implement Zeroer are always
-//     marshalled as embedded documents.
+//     marshalled as embedded documents. This tag should be used for all slice and map values.
 //
 //     2. minsize: If the minsize struct tag is specified on a field of type int64, uint, uint32, or uint64 and the value of
 //     the field can fit in a signed int32, the field will be serialized as a BSON int32 rather than a BSON int64. For other
