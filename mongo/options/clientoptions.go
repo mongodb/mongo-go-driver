@@ -295,16 +295,12 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 			return c
 		}
 
-		// If a username wasn't specified and a certificate was provided, add one from the certificate.
-		if x509Subject != "" && c.Auth != nil && strings.ToLower(c.Auth.AuthMechanism) == "mongodb-x509" &&
+		// If a username wasn't specified fork x509, add one from the certificate.
+		if c.Auth != nil && strings.ToLower(c.Auth.AuthMechanism) == "mongodb-x509" &&
 			c.Auth.Username == "" {
 
 			// The Go x509 package gives the subject with the pairs in reverse order that we want.
-			pairs := strings.Split(x509Subject, ",")
-			for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
-				pairs[left], pairs[right] = pairs[right], pairs[left]
-			}
-			c.Auth.Username = strings.Join(pairs, ",")
+			c.Auth.Username = extractX509UsernameFromSubject(x509Subject)
 		}
 
 		c.TLSConfig = tlsConfig
@@ -891,4 +887,13 @@ func stringSliceContains(source []string, target string) bool {
 		}
 	}
 	return false
+}
+
+func extractX509UsernameFromSubject(subject string) string {
+	pairs := strings.Split(subject, ",")
+	for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
+		pairs[left], pairs[right] = pairs[right], pairs[left]
+	}
+
+	return strings.Join(pairs, ",")
 }
