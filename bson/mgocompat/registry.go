@@ -33,15 +33,15 @@ var (
 
 // mgoRegistry is the mgo compatible bsoncodec.Registry. It contains the default and
 // primitive codecs with mgo compatible options.
-var mgoRegistry = buildMgoRegistry().Build()
+var mgoRegistry = newMgoRegistryBuilder().Build()
 
 // mgoRegistryRespectNilValues is the bsoncodec.Registry compatible with mgo withSetRespectNilValues set to true.
-var mgoRegistryRespectNilValues = buildMgoRNVRegistry().Build()
+var mgoRegistryRespectNilValues = newMgoRespectNilValuesRegistryBuilder().Build()
 
-// buildMgoRegistry creates a new bsoncodec.RegistryBuilder configured with the default encoders and
+// newMgoRegistryBuilder creates a new bsoncodec.RegistryBuilder configured with the default encoders and
 // deocders from the bsoncodec.DefaultValueEncoders and bsoncodec.DefaultValueDecoders types and the
 // PrimitiveCodecs type in this package.
-func buildMgoRegistry() *bsoncodec.RegistryBuilder {
+func newMgoRegistryBuilder() *bsoncodec.RegistryBuilder {
 	rb := bsoncodec.NewRegistryBuilder()
 	bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(rb)
 	bsoncodec.DefaultValueDecoders{}.RegisterDefaultDecoders(rb)
@@ -87,8 +87,8 @@ func buildMgoRegistry() *bsoncodec.RegistryBuilder {
 }
 
 // buildMgoRNVRegistry creates a new bsoncodec.RegistryBuilder configured to behave like mgo/bson with RespectNilValues set to true.
-func buildMgoRNVRegistry() *bsoncodec.RegistryBuilder {
-	rb := buildMgoRegistry()
+func newMgoRespectNilValuesRegistryBuilder() *bsoncodec.RegistryBuilder {
+	rb := newMgoRegistryBuilder()
 
 	structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.DefaultStructTagParser,
 		bsonoptions.StructCodec().
