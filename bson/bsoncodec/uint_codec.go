@@ -66,9 +66,17 @@ func (uic *UIntCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val r
 
 // DecodeValue is the ValueDecoder for uint types.
 func (uic *UIntCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.CanSet() {
+		return ValueDecoderError{
+			Name:     "UintDecodeValue",
+			Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+			Received: val,
+		}
+	}
+
 	var i64 int64
 	var err error
-	switch vr.Type() {
+	switch vrType := vr.Type(); vrType {
 	case bsontype.Int32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
@@ -100,16 +108,12 @@ func (uic *UIntCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val r
 		if b {
 			i64 = 1
 		}
-	default:
-		return fmt.Errorf("cannot decode %v into an integer type", vr.Type())
-	}
-
-	if !val.CanSet() {
-		return ValueDecoderError{
-			Name:     "UintDecodeValue",
-			Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
-			Received: val,
+	case bsontype.Null:
+		if err = vr.ReadNull(); err != nil {
+			return err
 		}
+	default:
+		return fmt.Errorf("cannot decode %v into an integer type", vrType)
 	}
 
 	switch val.Kind() {
