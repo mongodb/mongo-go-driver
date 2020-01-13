@@ -851,7 +851,7 @@ axes:
       - id: "windows-64-go-1-12"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-64-vs2015-test
+          - windows-64-vs2017-test
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.12"
