@@ -57,7 +57,7 @@ func newUploadStream(upload *Upload, fileID interface{}, filename string, chunks
 	}
 }
 
-// Close writes file metdata to the files collection and cleans up any resources associated with the UploadStream.
+// Close writes file metadata to the files collection and cleans up any resources associated with the UploadStream.
 func (us *UploadStream) Close() error {
 	if us.closed {
 		return ErrStreamClosed

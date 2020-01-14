@@ -30,6 +30,6 @@
 //	implements the io.Reader interface. A file can be read either using the Read() method or any standard library
 //	methods that reads from an io.Reader such as io.Copy.
 //
-//	2. DownloadToSTream/DownloadToStreamByName - These methods take an io.Writer, which represents the download
+//	2. DownloadToStream/DownloadToStreamByName - These methods take an io.Writer, which represents the download
 // 	destination. They internally create a new DownloadStream and close it once the operation is complete.
 package gridfs

@@ -123,7 +123,7 @@ func ExampleBucket_Delete() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	// Use SetWriteDeadline to force a timeout if the upload does not succeed in 2 seconds.
+	// Use SetWriteDeadline to force a timeout if the delete does not succeed in 2 seconds.
 	if err := bucket.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
 		log.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func ExampleBucket_Find() {
 	filter := bson.D{
 		{"length", bson.D{{"$gt", 1000}}},
 	}
-	// Use SetReadDeadline to force a timeout if the upload does not succeed in 2 seconds.
+	// Use SetReadDeadline to force a timeout if the find does not succeed in 2 seconds.
 	if err := bucket.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
 		log.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func ExampleBucket_Rename() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	// Use SetWriteDeadline to force a timeout if the upload does not succeed in 2 seconds.
+	// Use SetWriteDeadline to force a timeout if the rename does not succeed in 2 seconds.
 	if err := bucket.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
 		log.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func ExampleBucket_Rename() {
 func ExampleBucket_Drop() {
 	var bucket *gridfs.Bucket
 
-	// Use SetWriteDeadline to force a timeout if the upload does not succeed in 2 seconds.
+	// Use SetWriteDeadline to force a timeout if the drop does not succeed in 2 seconds.
 	if err := bucket.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
 		log.Fatal(err)
 	}
