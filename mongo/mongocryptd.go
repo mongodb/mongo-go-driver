@@ -35,15 +35,19 @@ type mcryptClient struct {
 	spawnArgs   []string
 }
 
-func newMcryptClient(opts map[string]interface{}) (*mcryptClient, error) {
+func newMcryptClient(opts *options.AutoEncryptionOptions) (*mcryptClient, error) {
 	// create mcryptClient instance and spawn process if necessary
-	mc := &mcryptClient{}
-	if bypass, ok := opts["mongocryptdBypassSpawn"]; ok {
+	mc := &mcryptClient{
+		// if BypassAutoEncryption is specified, mongocryptd is not needed because it is only used for marking commands
+		// during encryption and is not used during decryption
+		bypassSpawn: opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption,
+	}
+	if bypass, ok := opts.ExtraOptions["mongocryptdBypassSpawn"]; ok {
 		mc.bypassSpawn = bypass.(bool)
 	}
 
 	if !mc.bypassSpawn {
-		mc.path, mc.spawnArgs = createSpawnArgs(opts)
+		mc.path, mc.spawnArgs = createSpawnArgs(opts.ExtraOptions)
 		if err := mc.spawnProcess(); err != nil {
 			return nil, err
 		}
@@ -51,7 +55,7 @@ func newMcryptClient(opts map[string]interface{}) (*mcryptClient, error) {
 
 	// get connection string
 	uri := defaultURI
-	if u, ok := opts["mongocryptdURI"]; ok {
+	if u, ok := opts.ExtraOptions["mongocryptdURI"]; ok {
 		uri = u.(string)
 	}
 

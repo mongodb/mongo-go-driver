@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -629,6 +630,64 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.Equal(mt, testVal, decrypted, "expected value %s, got %s", testVal, decrypted)
 			})
 		}
+	})
+	mt.Run("mongocryptdBypassSpawn", func(mt *mtest.T) {
+		kmsProviders := map[string]map[string]interface{}{
+			"local": {
+				"key": localMasterKey,
+			},
+		}
+		schemaMap := map[string]interface{}{
+			"db.coll": readJSONFile(mt, "external-schema.json"),
+		}
+		mongocryptdOpts := map[string]interface{}{
+			"mongocryptdBypassSpawn": true,
+			"mongocryptdURI":         "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
+			"mongocryptdSpawnArgs":   []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		}
+		aeo := options.AutoEncryption().
+			SetKmsProviders(kmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetSchemaMap(schemaMap).
+			SetExtraOptions(mongocryptdOpts)
+		cpt := setup(mt, aeo, nil, nil)
+		defer cpt.teardown(mt)
+
+		_, err := cpt.cseColl.InsertOne(mtest.Background, bson.D{{"encrypted", "test"}})
+		assert.NotNil(mt, err, "expected InsertOne error, got nil")
+		mcryptErr, ok := err.(mongo.MongocryptdError)
+		assert.True(mt, ok, "expected error of type %T, got %v of type %T", mongo.MongocryptdError{}, err, err)
+		assert.True(mt, strings.Contains(mcryptErr.Wrapped.Error(), "server selection error"),
+			"expected mongocryptd server selection error, got %v", err)
+	})
+	mt.Run("bypassAutoEncryption", func(mt *mtest.T) {
+		kmsProviders := map[string]map[string]interface{}{
+			"local": {
+				"key": localMasterKey,
+			},
+		}
+		mongocryptdOpts := map[string]interface{}{
+			"mongocryptdSpawnArgs": []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		}
+		aeo := options.AutoEncryption().
+			SetKmsProviders(kmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetBypassAutoEncryption(true).
+			SetExtraOptions(mongocryptdOpts)
+		cpt := setup(mt, aeo, nil, nil)
+		defer cpt.teardown(mt)
+
+		_, err := cpt.cseColl.InsertOne(mtest.Background, bson.D{{"unencrypted", "test"}})
+		assert.Nil(mt, err, "InsertOne error: %v", err)
+
+		mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").SetServerSelectionTimeout(1 * time.Second)
+		mcryptClient, err := mongo.Connect(mtest.Background, mcryptOpts)
+		assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
+
+		err = mcryptClient.Database("admin").RunCommand(mtest.Background, bson.D{{"ismaster", 1}}).Err()
+		assert.NotNil(mt, err, "expected mongocryptd ismaster error, got nil")
+		assert.True(mt, strings.Contains(err.Error(), "server selection error"),
+			"expected mongocryptd server selection error, got %v", err)
 	})
 }
 

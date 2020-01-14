@@ -599,7 +599,7 @@ func (c *Client) configureKeyVault(opts *options.AutoEncryptionOptions) error {
 
 func (c *Client) configureMongocryptd(opts *options.AutoEncryptionOptions) error {
 	var err error
-	c.mongocryptd, err = newMcryptClient(opts.ExtraOptions)
+	c.mongocryptd, err = newMcryptClient(opts)
 	return err
 }
 
