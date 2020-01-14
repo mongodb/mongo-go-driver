@@ -889,7 +889,9 @@ func stringSliceContains(source []string, target string) bool {
 	return false
 }
 
+// create a username for x509 authentication from an x509 certificate subject.
 func extractX509UsernameFromSubject(subject string) string {
+	// the Go x509 package gives the subject with the pairs in the reverse order from what we want.
 	pairs := strings.Split(subject, ",")
 	for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
 		pairs[left], pairs[right] = pairs[right], pairs[left]
