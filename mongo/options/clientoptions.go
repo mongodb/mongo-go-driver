@@ -279,26 +279,28 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 			tlsConfig.InsecureSkipVerify = true
 		}
 
+		var x509Subject string
+		var keyPasswd string
+		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
+			keyPasswd = cs.SSLClientCertificateKeyPassword()
+		}
 		if cs.SSLClientCertificateKeyFileSet {
-			var keyPasswd string
-			if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
-				keyPasswd = cs.SSLClientCertificateKeyPassword()
-			}
-			s, err := addClientCertFromFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
-			if err != nil {
-				c.err = err
-				return c
-			}
+			x509Subject, err = addClientCertFromConcatenatedFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
+		} else if cs.SSLCertificateFileSet || cs.SSLPrivateKeyFileSet {
+			x509Subject, err = addClientCertFromSeparateFiles(tlsConfig, cs.SSLCertificateFile,
+				cs.SSLPrivateKeyFile, keyPasswd)
+		}
+		if err != nil {
+			c.err = err
+			return c
+		}
 
-			// If a username wasn't specified, add one from the certificate.
-			if c.Auth != nil && strings.ToLower(c.Auth.AuthMechanism) == "mongodb-x509" && c.Auth.Username == "" {
-				// The Go x509 package gives the subject with the pairs in reverse order that we want.
-				pairs := strings.Split(s, ",")
-				for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
-					pairs[left], pairs[right] = pairs[right], pairs[left]
-				}
-				c.Auth.Username = strings.Join(pairs, ",")
-			}
+		// If a username wasn't specified fork x509, add one from the certificate.
+		if c.Auth != nil && strings.ToLower(c.Auth.AuthMechanism) == "mongodb-x509" &&
+			c.Auth.Username == "" {
+
+			// The Go x509 package gives the subject with the pairs in reverse order that we want.
+			c.Auth.Username = extractX509UsernameFromSubject(x509Subject)
 		}
 
 		c.TLSConfig = tlsConfig
@@ -564,9 +566,11 @@ func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 //
 // 1. "tls" (or "ssl"): Specify if TLS should be used (e.g. "tls=true").
 //
-// 2. "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile"): Specify the path to the client certificate key file or
-// the client private key file. If they are both needed, the files should be concatentated into one file. For example,
-// "tlsCertificateKeyFile=/path/to/ca.pem".
+// 2. Either "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile") or a combination of "tlsCertificateFile" and
+// "tlsPrivateKeyFile". The "tlsCertificateKeyFile" option specifies a path to the client certificate and private key,
+// which must be concatenated into one file. The "tlsCertificateFile" and "tlsPrivateKey" combination specifies separate
+// paths to the client certificate and private key, respectively. Note that if "tlsCertificateKeyFile" is used, the
+// other two options must not be specified.
 //
 // 3. "tlsCertificateKeyFilePassword" (or "sslClientCertificateKeyPassword"): Specify the password to decrypt the client
 // private key file (e.g. "tlsCertificateKeyFilePassword=password").
@@ -793,14 +797,33 @@ func loadCert(data []byte) ([]byte, error) {
 	return certBlock.Bytes, nil
 }
 
-// addClientCertFromFile adds a client certificate to the configuration given a path to the
-// containing file and returns the certificate's subject name.
-func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (string, error) {
-	data, err := ioutil.ReadFile(clientFile)
+func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassword string) (string, error) {
+	keyData, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return "", err
+	}
+	certData, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		return "", err
 	}
 
+	data := append(keyData, '\n')
+	data = append(data, certData...)
+	return addClientCertFromBytes(cfg, data, keyPassword)
+}
+
+func addClientCertFromConcatenatedFile(cfg *tls.Config, certKeyFile, keyPassword string) (string, error) {
+	data, err := ioutil.ReadFile(certKeyFile)
+	if err != nil {
+		return "", err
+	}
+
+	return addClientCertFromBytes(cfg, data, keyPassword)
+}
+
+// addClientCertFromBytes adds a client certificate to the configuration given a path to the
+// containing file and returns the certificate's subject name.
+func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (string, error) {
 	var currentBlock *pem.Block
 	var certBlock, certDecodedBlock, keyBlock []byte
 
@@ -864,4 +887,15 @@ func stringSliceContains(source []string, target string) bool {
 		}
 	}
 	return false
+}
+
+// create a username for x509 authentication from an x509 certificate subject.
+func extractX509UsernameFromSubject(subject string) string {
+	// the Go x509 package gives the subject with the pairs in the reverse order from what we want.
+	pairs := strings.Split(subject, ",")
+	for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
+		pairs[left], pairs[right] = pairs[right], pairs[left]
+	}
+
+	return strings.Join(pairs, ",")
 }
