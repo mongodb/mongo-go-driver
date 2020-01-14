@@ -61,7 +61,11 @@
 //
 // 1. A type encoder registered for the exact type of the value.
 //
-// 2. A hook encoder registered for an interface that is implemented by the value or by a pointer to the value.
+// 2. A hook encoder registered for an interface that is implemented by the value or by a pointer to the value. If the
+// value matches multiple hooks (e.g. the type implements bsoncodec.Marshaler and bsoncodec.ValueMarshaler), the first
+// one registered will be selected. Note that registries constructed using bson.NewRegistryBuilder driver-defined
+// hooks registered for the bsoncodec.Marshaler, bsoncodec.ValueMarshaler, and bsoncodec.Proxy interfaces, so those
+// will take precedence over any new hooks.
 //
 // 3. A kind encoder registered for the value's kind.
 //
