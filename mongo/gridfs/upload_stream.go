@@ -26,7 +26,9 @@ const UploadBufferSize = 16 * 1024 * 1024 // 16 MiB
 // ErrStreamClosed is an error returned if an operation is attempted on a closed/aborted stream.
 var ErrStreamClosed = errors.New("stream is closed or aborted")
 
-// UploadStream is used to upload files in chunks.
+// UploadStream is used to upload a file in chunks. This type implements the io.Writer interface and a file can be
+// uploaded using the Write method. After an upload is complete, the Close method must be called to write file
+// metadata.
 type UploadStream struct {
 	*Upload // chunk size and metadata
 	FileID  interface{}
@@ -55,7 +57,7 @@ func newUploadStream(upload *Upload, fileID interface{}, filename string, chunks
 	}
 }
 
-// Close closes this upload stream.
+// Close writes file metadata to the files collection and cleans up any resources associated with the UploadStream.
 func (us *UploadStream) Close() error {
 	if us.closed {
 		return ErrStreamClosed
