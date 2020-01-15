@@ -38,16 +38,15 @@
 //
 // 10) The driver's primitive.JavaScript is equivalent to mgo's bson.JavaScript with no
 //     scope and primitive.CodeWithScope is equivalent to mgo's bson.JavaScript with scope.
-// 
+//
 // 11) The driver's primitive.DBPointer is equivalent to bson.DBPointer, with variables
 //     named DB and Pointer instead of Namespace and Id.
 //
 // 12) When implementing the setter interface, mgocompat.ErrSetZero is equivalent to mgo's
 //     bson.ErrSetZero.
 //
-// Things to be aware of:
+// Note that if a value matches the hook for bsoncodec.Marshaler, bsoncodec.ValueMarshaler, or
+// bsoncodec.Proxy, that hook will take priority over the Getter hook. The same is true for the
+// hooks for bsoncodec.Unmarshaler and bsoncodec.ValueUnmarshaler and the Setter hook.
 //
-// 1) If a value matches the hook for bsoncodec.Marshaler, bsoncodec.ValueMarshaler, or
-//    bsoncodec.Proxy, that hook will take priority over the Getter hook. The same is true for the
-//    hooks for bsoncodec.Unmarshaler and bsoncodec.ValueUnmarshaler and the Setter hook.
-// 
+package mgocompat
