@@ -50,18 +50,6 @@ func ExampleBucket_UploadFromStream() {
 	var fileContent []byte
 	var bucket *gridfs.Bucket
 
-	// Use SetWriteDeadline to force a timeout if the upload does not succeed in 2 seconds.
-	if err := bucket.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
-		log.Fatal(err)
-	}
-	// To make sure the deadline only applies to this upload, set the deadline to an empty time.Time{} after the
-	// operation is done.
-	defer func() {
-		if err := bucket.SetWriteDeadline(time.Time{}); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
 	// Specify the Metadata option to include a "metadata" field in the files collection document.
 	uploadOpts := options.GridFSUpload().SetMetadata(bson.D{{"metadata tag", "tag"}})
 	fileID, err := bucket.UploadFromStream("filename", bytes.NewBuffer(fileContent), uploadOpts)
@@ -101,18 +89,6 @@ func ExampleBucket_DownloadToStream() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	// Use SetReadDeadline to force a timeout if the download does not succeed in 2 seconds.
-	if err := bucket.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
-		log.Fatal(err)
-	}
-	// To make sure the deadline only applies to this download, set the deadline to an empty time.Time{} after the
-	// operation is done.
-	defer func() {
-		if err := bucket.SetReadDeadline(time.Time{}); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
 	fileBuffer := bytes.NewBuffer(nil)
 	if _, err := bucket.DownloadToStream(fileID, fileBuffer); err != nil {
 		log.Fatal(err)
@@ -122,18 +98,6 @@ func ExampleBucket_DownloadToStream() {
 func ExampleBucket_Delete() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
-
-	// Use SetWriteDeadline to force a timeout if the delete does not succeed in 2 seconds.
-	if err := bucket.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
-		log.Fatal(err)
-	}
-	// To make sure the deadline only applies to this operation, set the deadline to an empty time.Time{} after the
-	// operation is done.
-	defer func() {
-		if err := bucket.SetWriteDeadline(time.Time{}); err != nil {
-			log.Fatal(err)
-		}
-	}()
 
 	if err := bucket.Delete(fileID); err != nil {
 		log.Fatal(err)
@@ -147,18 +111,6 @@ func ExampleBucket_Find() {
 	filter := bson.D{
 		{"length", bson.D{{"$gt", 1000}}},
 	}
-	// Use SetReadDeadline to force a timeout if the find does not succeed in 2 seconds.
-	if err := bucket.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
-		log.Fatal(err)
-	}
-	// To make sure the deadline only applies to this operation, set the deadline to an empty time.Time{} after the
-	// operation is done.
-	defer func() {
-		if err := bucket.SetReadDeadline(time.Time{}); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
 	cursor, err := bucket.Find(filter)
 	if err != nil {
 		log.Fatal(err)
@@ -187,18 +139,6 @@ func ExampleBucket_Rename() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	// Use SetWriteDeadline to force a timeout if the rename does not succeed in 2 seconds.
-	if err := bucket.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
-		log.Fatal(err)
-	}
-	// To make sure the deadline only applies to this operation, set the deadline to an empty time.Time{} after the
-	// operation is done.
-	defer func() {
-		if err := bucket.SetWriteDeadline(time.Time{}); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
 	if err := bucket.Rename(fileID, "new file name"); err != nil {
 		log.Fatal(err)
 	}
@@ -206,18 +146,6 @@ func ExampleBucket_Rename() {
 
 func ExampleBucket_Drop() {
 	var bucket *gridfs.Bucket
-
-	// Use SetWriteDeadline to force a timeout if the drop does not succeed in 2 seconds.
-	if err := bucket.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
-		log.Fatal(err)
-	}
-	// To make sure the deadline only applies to this operation, set the deadline to an empty time.Time{} after the
-	// operation is done.
-	defer func() {
-		if err := bucket.SetWriteDeadline(time.Time{}); err != nil {
-			log.Fatal(err)
-		}
-	}()
 
 	if err := bucket.Drop(); err != nil {
 		log.Fatal(err)
