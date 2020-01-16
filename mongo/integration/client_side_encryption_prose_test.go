@@ -631,7 +631,57 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
+	mt.RunOpts("bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
+		kmsProviders := map[string]map[string]interface{}{
+			"local": {
+				"key": localMasterKey,
+			},
+		}
+		schemaMap := map[string]interface{}{
+			"db.coll": readJSONFile(mt, "external-schema.json"),
+		}
+
+		bypassSpawnMongocryptdOpts := map[string]interface{}{
+			"mongocryptdBypassSpawn": true,
+			"mongocryptdURI":         "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
+			"mongocryptdSpawnArgs":   []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		}
+		bypasAutoEncryptionMongocryptdOpts := map[string]interface{}{
+			"mongocryptdSpawnArgs": []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		}
+
+		testCases := []struct {
+			name                 string
+			mongocryptdOpts      map[string]interface{}
+			bypassAutoEncryption bool
+		}{
+			{"mongocryptdBypassSpawn", bypassSpawnMongocryptdOpts, false},
+		}
+		for _, tc := range testCases {
+			aeo := options.AutoEncryption().
+				SetKmsProviders(kmsProviders).
+				SetKeyVaultNamespace(kvNamespace).
+				SetSchemaMap(schemaMap).
+				SetExtraOptions(tc.mongocryptdOpts).
+				SetBypassAutoEncryption(tc.bypassAutoEncryption)
+			cpt := setup(mt, aeo, nil, nil)
+			defer cpt.teardown(mt)
+
+			_, err := cpt.cseColl.InsertOne(mtest.Background, bson.D{{"unencrypted", "test"}})
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+
+			mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").SetServerSelectionTimeout(1 * time.Second)
+			mcryptClient, err := mongo.Connect(mtest.Background, mcryptOpts)
+			assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
+
+			err = mcryptClient.Database("admin").RunCommand(mtest.Background, bson.D{{"ismaster", 1}}).Err()
+			assert.NotNil(mt, err, "expected mongocryptd ismaster error, got nil")
+			assert.True(mt, strings.Contains(err.Error(), "server selection error"),
+				"expected mongocryptd server selection error, got %v", err)
+		}
+	})
 	mt.Run("mongocryptdBypassSpawn", func(mt *mtest.T) {
+		// TODO: consolidate as a table test
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -661,6 +711,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"expected mongocryptd server selection error, got %v", err)
 	})
 	mt.Run("bypassAutoEncryption", func(mt *mtest.T) {
+		// TODO: consolidate as a table test
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
