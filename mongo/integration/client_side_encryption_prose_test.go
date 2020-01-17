@@ -643,6 +643,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		mongocryptdBypassSpawnTrue := map[string]interface{}{
 			"mongocryptdBypassSpawn": true,
+			"mongocryptdURI":         "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
 			"mongocryptdSpawnArgs":   []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
 		}
 		mongocryptdBypassSpawnFalse := map[string]interface{}{
