@@ -23,8 +23,7 @@
 // 3) The driver uses primitive.ObjectID, which is a [12]byte instead of mgo's
 //    bson.ObjectId, a string. Due to this, the zero value marshals and unmarshals differently
 //    for Extended JSON, with the driver marshaling as `{"ID":"000000000000000000000000"}` and
-//    mgo as `{"Id":""}`. The driver will not unmarshal {"ID":""} or `{"Id":null}` to a
-//    primitive.ObjectID.
+//    mgo as `{"Id":""}`. The driver will not unmarshal {"ID":""} to a primitive.ObjectID.
 //
 // 4) The driver's primitive.Symbol is equivalent to mgo's bson.Symbol.
 //
