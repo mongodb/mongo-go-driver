@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
@@ -519,6 +520,14 @@ func configureTLS(ctx context.Context, nc net.Conn, addr address.Address, config
 	case err := <-errChan:
 		if err != nil {
 			return nil, err
+		}
+
+		// Only do OCSP verification if TLS verification is requested.
+		if config.InsecureSkipVerify {
+			break
+		}
+		if ocspErr := ocsp.Verify(ctx, client.ConnectionState()); ocspErr != nil {
+			return nil, ocspErr
 		}
 	case <-ctx.Done():
 		return nil, errors.New("server connection cancelled/timeout during TLS handshake")
