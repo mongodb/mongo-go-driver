@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var (
@@ -52,7 +53,6 @@ func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 			SetAllowUnexportedFields(true))
 	emptyInterCodec := bsoncodec.NewEmptyInterfaceCodec(
 		bsonoptions.EmptyInterfaceCodec().
-			SetDecodeAsMap(true).
 			SetDecodeBinaryAsSlice(true))
 	mapCodec := bsoncodec.NewMapCodec(
 		bsonoptions.MapCodec().
@@ -78,7 +78,8 @@ func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 		RegisterTypeMapEntry(bsontype.DateTime, tTime).
 		RegisterTypeMapEntry(bsontype.Array, tInterfaceSlice).
 		RegisterHookEncoder(tGetter, bsoncodec.ValueEncoderFunc(GetterEncodeValue)).
-		RegisterHookDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue))
+		RegisterHookDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue)).
+		RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(primitive.M{}))
 
 	return rb
 }

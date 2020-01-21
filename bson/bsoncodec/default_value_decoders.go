@@ -98,7 +98,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeMapEntry(bsontype.Decimal128, tDecimal).
 		RegisterTypeMapEntry(bsontype.MinKey, tMinKey).
 		RegisterTypeMapEntry(bsontype.MaxKey, tMaxKey).
-		RegisterTypeMapEntry(bsontype.Type(0), tD).
+		RegisterTypeMapEntry(bsontype.EmbeddedDocument, tD).
 		RegisterHookDecoder(tValueUnmarshaler, ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue)).
 		RegisterHookDecoder(tUnmarshaler, ValueDecoderFunc(dvd.UnmarshalerDecodeValue))
 }

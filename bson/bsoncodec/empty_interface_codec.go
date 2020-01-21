@@ -19,7 +19,6 @@ var defaultEmptyInterfaceCodec = NewEmptyInterfaceCodec()
 
 // EmptyInterfaceCodec is the Codec used for interface{} values.
 type EmptyInterfaceCodec struct {
-	DecodeAsMap         bool
 	DecodeBinaryAsSlice bool
 }
 
@@ -30,9 +29,6 @@ func NewEmptyInterfaceCodec(opts ...*bsonoptions.EmptyInterfaceCodecOptions) *Em
 	interfaceOpt := bsonoptions.MergeEmptyInterfaceCodecOptions(opts...)
 
 	codec := EmptyInterfaceCodec{}
-	if interfaceOpt.DecodeAsMap != nil {
-		codec.DecodeAsMap = *interfaceOpt.DecodeAsMap
-	}
 	if interfaceOpt.DecodeBinaryAsSlice != nil {
 		codec.DecodeBinaryAsSlice = *interfaceOpt.DecodeBinaryAsSlice
 	}
@@ -56,24 +52,42 @@ func (eic EmptyInterfaceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWrit
 	return encoder.EncodeValue(ec, vw, val.Elem())
 }
 
+func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, valueType bsontype.Type) (reflect.Type, error) {
+	isDocument := valueType == bsontype.Type(0) || valueType == bsontype.EmbeddedDocument
+	if isDocument && dc.Ancestor != nil {
+		// Using ancestor information rather than looking up the type map entry forces consistent decoding.
+		// If we're decoding into a bson.D, subdocuments should also be decoded as bson.D, even if a type map entry
+		// has been registered.
+		return dc.Ancestor, nil
+	}
+
+	lookupType := valueType
+	if isDocument {
+		// Use bsontype.EmbeddedDocument even if the actual type is bsontype.Type(0) (top-level document) because
+		// a type map entry would be registered using EmbeddedDocument.
+		lookupType = bsontype.EmbeddedDocument
+	}
+
+	rtype, err := dc.LookupTypeMapEntry(lookupType)
+	if err == nil {
+		return rtype, nil
+	}
+
+	if isDocument {
+		return tD, nil
+	}
+	return nil, err
+}
+
 // DecodeValue is the ValueDecoderFunc for interface{}.
 func (eic EmptyInterfaceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tEmpty {
 		return ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: val}
 	}
 
-	rtype, err := dc.LookupTypeMapEntry(vr.Type())
+	rtype, err := eic.getEmptyInterfaceDecodeType(dc, vr.Type())
 	if err != nil {
 		switch vr.Type() {
-		case bsontype.EmbeddedDocument:
-			if dc.Ancestor != nil {
-				rtype = dc.Ancestor
-				break
-			}
-			rtype = tD
-			if eic.DecodeAsMap {
-				rtype = tM
-			}
 		case bsontype.Null:
 			val.Set(reflect.Zero(val.Type()))
 			return vr.ReadNull()
