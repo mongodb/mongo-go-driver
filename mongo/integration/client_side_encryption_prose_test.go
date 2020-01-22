@@ -641,6 +641,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"db.coll": readJSONFile(mt, "external-schema.json"),
 		}
 
+		// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference with mongocryptd
+		// instances spawned by previous tests.
 		mongocryptdBypassSpawnTrue := map[string]interface{}{
 			"mongocryptdBypassSpawn": true,
 			"mongocryptdURI":         "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
