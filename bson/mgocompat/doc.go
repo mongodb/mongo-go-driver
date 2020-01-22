@@ -1,14 +1,14 @@
 // Package mgocompat provides MgoRegistry, a BSON registry compatible with globalsign/mgo's BSON,
 // with some remaining differences. It also provides MgoRegistryRespectNilValues for compatibility
-// with mgo's BSON with RespectNilValues set to true. See the bsoncodec docs for more details on
-// registries.
+// with mgo's BSON with RespectNilValues set to true. A registry can be configured on a
+// mongo.Client with the SetRegistry option. See the bsoncodec docs for more details on registries.
 //
 // MgoRegistry supports Getter and Setter equivalents by registering hooks. Note that if a value
 // matches the hook for bsoncodec.Marshaler, bsoncodec.ValueMarshaler, or bsoncodec.Proxy, that
 // hook will take priority over the Getter hook. The same is true for the hooks for
 // bsoncodec.Unmarshaler and bsoncodec.ValueUnmarshaler and the Setter hook.
 //
-// The differences between MgoRegistry and globalsign/mgo's BSON library are:
+// The functional differences between MgoRegistry and globalsign/mgo's BSON library are:
 //
 // 1) MgoRegistry errors instead of silently skipping mismatched types when decoding.
 //
