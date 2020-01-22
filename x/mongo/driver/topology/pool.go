@@ -413,6 +413,8 @@ func (p *pool) closeConnection(c *connection) error {
 	p.Unlock()
 
 	if atomic.LoadInt32(&c.connected) == connected {
+		c.waitForContext()
+		c.cancelConnect()
 		_ = c.wait() // Make sure that the connection has finished connecting
 	}
 

@@ -46,6 +46,8 @@ type connection struct {
 	connectDone      chan struct{}
 	connectErr       error
 	config           *connectionConfig
+	cancelConnect    context.CancelFunc
+	contextMade      chan struct{}
 
 	// pool related fields
 	pool       *pool
@@ -76,6 +78,7 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 		writeTimeout:     cfg.writeTimeout,
 		connectDone:      make(chan struct{}),
 		config:           cfg,
+		contextMade:      make(chan struct{}),
 	}
 	atomic.StoreInt32(&c.connected, initialized)
 
@@ -85,11 +88,13 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform
 // initialization handshakes.
 func (c *connection) connect(ctx context.Context) {
-
 	if !atomic.CompareAndSwapInt32(&c.connected, initialized, connected) {
 		return
 	}
 	defer close(c.connectDone)
+
+	ctx, c.cancelConnect = context.WithCancel(ctx)
+	close(c.contextMade)
 
 	var err error
 	c.nc, err = c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
@@ -169,6 +174,12 @@ func (c *connection) wait() error {
 		<-c.connectDone
 	}
 	return c.connectErr
+}
+
+func (c *connection) waitForContext() {
+	if c.contextMade != nil {
+		<-c.contextMade
+	}
 }
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
