@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -627,6 +628,83 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				decrypted, err := cpt.clientEnc.Decrypt(mtest.Background, encrypted)
 				assert.Nil(mt, err, "Decrypt error: %v", err)
 				assert.Equal(mt, testVal, decrypted, "expected value %s, got %s", testVal, decrypted)
+			})
+		}
+	})
+	mt.RunOpts("bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
+		kmsProviders := map[string]map[string]interface{}{
+			"local": {
+				"key": localMasterKey,
+			},
+		}
+		schemaMap := map[string]interface{}{
+			"db.coll": readJSONFile(mt, "external-schema.json"),
+		}
+
+		// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference with mongocryptd
+		// instances spawned by previous tests.
+		mongocryptdBypassSpawnTrue := map[string]interface{}{
+			"mongocryptdBypassSpawn": true,
+			"mongocryptdURI":         "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
+			"mongocryptdSpawnArgs":   []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		}
+		mongocryptdBypassSpawnFalse := map[string]interface{}{
+			"mongocryptdBypassSpawn": false,
+			"mongocryptdSpawnArgs":   []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		}
+		mongocryptdBypassSpawnNotSet := map[string]interface{}{
+			"mongocryptdSpawnArgs": []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		}
+
+		testCases := []struct {
+			name                    string
+			mongocryptdOpts         map[string]interface{}
+			setBypassAutoEncryption bool
+			bypassAutoEncryption    bool
+		}{
+			{"mongocryptdBypassSpawn only", mongocryptdBypassSpawnTrue, false, false},
+			{"bypassAutoEncryption only", mongocryptdBypassSpawnNotSet, true, true},
+			{"mongocryptdBypassSpawn false, bypassAutoEncryption true", mongocryptdBypassSpawnFalse, true, true},
+			{"mongocryptdBypassSpawn true, bypassAutoEncryption false", mongocryptdBypassSpawnTrue, true, false},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				aeo := options.AutoEncryption().
+					SetKmsProviders(kmsProviders).
+					SetKeyVaultNamespace(kvNamespace).
+					SetSchemaMap(schemaMap).
+					SetExtraOptions(tc.mongocryptdOpts)
+				if tc.setBypassAutoEncryption {
+					aeo.SetBypassAutoEncryption(tc.bypassAutoEncryption)
+				}
+				cpt := setup(mt, aeo, nil, nil)
+				defer cpt.teardown(mt)
+
+				_, err := cpt.cseColl.InsertOne(mtest.Background, bson.D{{"unencrypted", "test"}})
+
+				// Check for mongocryptd server selection error if auto encryption was not bypassed.
+				if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) {
+					assert.NotNil(mt, err, "expected InsertOne error, got nil")
+					mcryptErr, ok := err.(mongo.MongocryptdError)
+					assert.True(mt, ok, "expected error type %T, got %v of type %T", mongo.MongocryptdError{}, err, err)
+					assert.True(mt, strings.Contains(mcryptErr.Error(), "server selection error"),
+						"expected mongocryptd server selection error, got %v", err)
+					return
+				}
+
+				// If auto encryption is bypassed, the command should succeed. Create a new client to connect to
+				// mongocryptd and verify it is not running.
+				assert.Nil(mt, err, "InsertOne error: %v", err)
+
+				mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").
+					SetServerSelectionTimeout(1 * time.Second)
+				mcryptClient, err := mongo.Connect(mtest.Background, mcryptOpts)
+				assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
+
+				err = mcryptClient.Database("admin").RunCommand(mtest.Background, bson.D{{"ismaster", 1}}).Err()
+				assert.NotNil(mt, err, "expected mongocryptd ismaster error, got nil")
+				assert.True(mt, strings.Contains(err.Error(), "server selection error"),
+					"expected mongocryptd server selection error, got %v", err)
 			})
 		}
 	})
