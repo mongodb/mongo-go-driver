@@ -589,7 +589,7 @@ func (c *ClientOptions) SetTLSConfig(cfg *tls.Config) *ClientOptions {
 	return c
 }
 
-// SetWriteConcern specifies the write concern to use to for write operations. This can also be se through the following
+// SetWriteConcern specifies the write concern to use to for write operations. This can also be set through the following
 // URI options:
 //
 // 1. "w": Specify the number of nodes in the cluster that must acknowledge write operations before the operation
