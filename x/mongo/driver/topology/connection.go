@@ -176,10 +176,9 @@ func (c *connection) wait() error {
 	return c.connectErr
 }
 
-func (c *connection) waitForContext() {
-	if c.contextMade != nil {
-		<-c.contextMade
-	}
+func (c *connection) closeConnectContext() {
+	<-c.contextMade
+	c.cancelConnect()
 }
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {

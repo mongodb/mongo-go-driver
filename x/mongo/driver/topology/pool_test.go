@@ -219,7 +219,6 @@ func TestPool(t *testing.T) {
 			}()
 			<-getDone
 			close(cleanup)
-			time.Sleep(time.Microsecond)
 		})
 	})
 	t.Run("connect", func(t *testing.T) {
