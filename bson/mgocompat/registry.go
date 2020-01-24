@@ -75,9 +75,9 @@ func newRegistryBuilder() *bsoncodec.RegistryBuilder {
 		RegisterTypeMapEntry(bsontype.Int32, tInt).
 		RegisterTypeMapEntry(bsontype.DateTime, tTime).
 		RegisterTypeMapEntry(bsontype.Array, tInterfaceSlice).
+		RegisterTypeMapEntry(bsontype.EmbeddedDocument, tM).
 		RegisterHookEncoder(tGetter, bsoncodec.ValueEncoderFunc(GetterEncodeValue)).
-		RegisterHookDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue)).
-		RegisterTypeMapEntry(bsontype.EmbeddedDocument, tM)
+		RegisterHookDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue))
 
 	return rb
 }
