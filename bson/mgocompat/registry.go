@@ -31,17 +31,17 @@ var (
 	tSetter         = reflect.TypeOf((*Setter)(nil)).Elem()
 )
 
-// MgoRegistry is the mgo compatible bsoncodec.Registry. It contains the default and
+// Registry is the mgo compatible bsoncodec.Registry. It contains the default and
 // primitive codecs with mgo compatible options.
-var MgoRegistry = NewMgoRegistryBuilder().Build()
+var Registry = NewRegistryBuilder().Build()
 
-// MgoRegistryRespectNilValues is the bsoncodec.Registry compatible with mgo withSetRespectNilValues set to true.
-var MgoRegistryRespectNilValues = NewMgoRespectNilValuesRegistryBuilder().Build()
+// RegistryRespectNilValues is the bsoncodec.Registry compatible with mgo withSetRespectNilValues set to true.
+var RegistryRespectNilValues = NewRespectNilValuesRegistryBuilder().Build()
 
-// NewMgoRegistryBuilder creates a new bsoncodec.RegistryBuilder configured with the default encoders and
+// NewRegistryBuilder creates a new bsoncodec.RegistryBuilder configured with the default encoders and
 // deocders from the bsoncodec.DefaultValueEncoders and bsoncodec.DefaultValueDecoders types and the
 // PrimitiveCodecs type in this package.
-func NewMgoRegistryBuilder() *bsoncodec.RegistryBuilder {
+func NewRegistryBuilder() *bsoncodec.RegistryBuilder {
 	rb := bsoncodec.NewRegistryBuilder()
 	bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(rb)
 	bsoncodec.DefaultValueDecoders{}.RegisterDefaultDecoders(rb)
@@ -86,10 +86,10 @@ func NewMgoRegistryBuilder() *bsoncodec.RegistryBuilder {
 	return rb
 }
 
-// NewMgoRespectNilValuesRegistryBuilder creates a new bsoncodec.RegistryBuilder configured to behave like mgo/bson
+// NewRespectNilValuesRegistryBuilder creates a new bsoncodec.RegistryBuilder configured to behave like mgo/bson
 // with RespectNilValues set to true.
-func NewMgoRespectNilValuesRegistryBuilder() *bsoncodec.RegistryBuilder {
-	rb := NewMgoRegistryBuilder()
+func NewRespectNilValuesRegistryBuilder() *bsoncodec.RegistryBuilder {
+	rb := NewRegistryBuilder()
 
 	structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.DefaultStructTagParser,
 		bsonoptions.StructCodec().
