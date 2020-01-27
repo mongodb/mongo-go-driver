@@ -61,21 +61,28 @@ func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, val
 		return dc.Ancestor, nil
 	}
 
-	lookupType := valueType
-	if isDocument {
-		// Use bsontype.EmbeddedDocument even if the actual type is bsontype.Type(0) (top-level document) because
-		// a type map entry would be registered using EmbeddedDocument.
-		lookupType = bsontype.EmbeddedDocument
-	}
-
-	rtype, err := dc.LookupTypeMapEntry(lookupType)
+	rtype, err := dc.LookupTypeMapEntry(valueType)
 	if err == nil {
 		return rtype, nil
 	}
 
 	if isDocument {
-		return tD, nil
+		// For documents, fallback to looking up a type map entry for bsontype.Type(0) or bsontype.EmbeddedDocument,
+		// depending on the original valueType.
+		var lookupType bsontype.Type
+		switch valueType {
+		case bsontype.Type(0):
+			lookupType = bsontype.EmbeddedDocument
+		case bsontype.EmbeddedDocument:
+			lookupType = bsontype.Type(0)
+		}
+
+		rtype, err = dc.LookupTypeMapEntry(lookupType)
+		if err == nil {
+			return rtype, nil
+		}
 	}
+
 	return nil, err
 }
 
