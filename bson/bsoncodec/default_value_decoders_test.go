@@ -2878,14 +2878,18 @@ func TestDefaultValueDecoders(t *testing.T) {
 			}
 		})
 		t.Run("custom type map entry", func(t *testing.T) {
-			// registering a custom type map entry for bsontype.EmbeddedDocument should cause top-level document
-			// to decode to registered type when unmarshalling to interface{}
+			// registering a custom type map entry for both bsontype.Type(0) anad bsontype.EmbeddedDocument should cause
+			// both top-level and embedded documents to decode to registered type when unmarshalling to interface{}
 
-			rb := NewRegistryBuilder()
-			defaultValueEncoders.RegisterDefaultEncoders(rb)
-			defaultValueDecoders.RegisterDefaultDecoders(rb)
-			rb.RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(primitive.M{}))
-			reg := rb.Build()
+			topLevelRb := NewRegistryBuilder()
+			defaultValueEncoders.RegisterDefaultEncoders(topLevelRb)
+			defaultValueDecoders.RegisterDefaultDecoders(topLevelRb)
+			topLevelRb.RegisterTypeMapEntry(bsontype.Type(0), reflect.TypeOf(primitive.M{}))
+
+			embeddedRb := NewRegistryBuilder()
+			defaultValueEncoders.RegisterDefaultEncoders(embeddedRb)
+			defaultValueDecoders.RegisterDefaultDecoders(embeddedRb)
+			embeddedRb.RegisterTypeMapEntry(bsontype.Type(0), reflect.TypeOf(primitive.M{}))
 
 			// create doc {"nested": {"foo": 1}}
 			innerDoc := bsoncore.BuildDocument(
@@ -2896,22 +2900,32 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 				bsoncore.AppendDocumentElement(nil, "nested", innerDoc),
 			)
-
 			want := primitive.M{
 				"nested": primitive.M{
 					"foo": int32(1),
 				},
 			}
-			var got interface{}
-			vr := bsonrw.NewBSONDocumentReader(doc)
-			val := reflect.ValueOf(&got).Elem()
-			err := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: reg}, vr, val)
-			noerr(t, err)
-			if !cmp.Equal(got, want) {
-				t.Fatalf("got %v, want %v", got, want)
+
+			testCases := []struct {
+				name     string
+				registry *Registry
+			}{
+				{"top level", topLevelRb.Build()},
+				{"embedded", embeddedRb.Build()},
+			}
+			for _, tc := range testCases {
+				var got interface{}
+				vr := bsonrw.NewBSONDocumentReader(doc)
+				val := reflect.ValueOf(&got).Elem()
+
+				err := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: tc.registry}, vr, val)
+				noerr(t, err)
+				if !cmp.Equal(got, want) {
+					t.Fatalf("got %v, want %v", got, want)
+				}
 			}
 		})
-		t.Run("top level document with type map entry", func(t *testing.T) {
+		t.Run("ancestor info is used over custom type map entry", func(t *testing.T) {
 			// If a type map entry is registered for bsontype.EmbeddedDocument, the decoder should use ancestor
 			// information if available instead of the registered entry.
 
