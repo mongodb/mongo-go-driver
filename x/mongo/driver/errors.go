@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 var (
@@ -24,6 +25,8 @@ var (
 	TransientTransactionError = "TransientTransactionError"
 	// NetworkError is an error label for network errors.
 	NetworkError = "NetworkError"
+	// RetryableWriteError is an error lable for retryable write errors.
+	RetryableWriteError = "RetryableWriteError"
 	// ErrCursorNotFound is the cursor not found error for legacy find operations.
 	ErrCursorNotFound = errors.New("cursor not found")
 	// ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
@@ -120,9 +123,6 @@ func (wce WriteConcernError) Retryable() bool {
 		if wce.Code == int64(code) {
 			return true
 		}
-	}
-	if strings.Contains(wce.Message, "not master") || strings.Contains(wce.Message, "node is recovering") {
-		return true
 	}
 
 	return false
@@ -231,8 +231,27 @@ func (e Error) Retryable() bool {
 			return true
 		}
 	}
-	if strings.Contains(e.Message, "not master") || strings.Contains(e.Message, "node is recovering") {
-		return true
+
+	return false
+}
+
+// RetryableWrite returns true if the error is retryable for a write operation
+func (e Error) RetryableWrite(wireVersion *description.VersionRange) bool {
+	for _, label := range e.Labels {
+		if label == NetworkError {
+			return true
+		}
+		if label == RetryableWriteError {
+			return true
+		}
+	}
+	if wireVersion != nil && wireVersion.Max >= 9 {
+		return false
+	}
+	for _, code := range retryableCodes {
+		if e.Code == code {
+			return true
+		}
 	}
 
 	return false
