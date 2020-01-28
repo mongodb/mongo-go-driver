@@ -130,9 +130,15 @@
   version = "v1.10.3"
 
 [[projects]]
-  digest = "1:cce0dd9b0976e550c4616a87f6703650b56b72bb54c74baa71c3459415b5b5a9"
+  digest = "1:d959ca10a137b9a8c9d58a61aee2147a4554c56cd765a79c69cfc9a13b9b6e3d"
   name = "github.com/klauspost/compress"
-  packages = ["."]
+  packages = [
+    "fse",
+    "huff0",
+    "snappy",
+    "zstd",
+    "zstd/internal/xxhash",
+  ]
   pruneopts = "UT"
   revision = "17b3d80415252d99aa09c6717fea5f1f60a01ea5"
   version = "v1.9.5"
@@ -338,7 +344,7 @@
     "github.com/gobuffalo/packr/v2",
     "github.com/golang/snappy",
     "github.com/google/go-cmp/cmp",
-    "github.com/klauspost/compress",
+    "github.com/klauspost/compress/zstd",
     "github.com/kr/pretty",
     "github.com/montanaflynn/stats",
     "github.com/pelletier/go-toml",
