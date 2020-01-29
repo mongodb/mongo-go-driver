@@ -2660,7 +2660,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		})
 	})
 
-	t.Run("EmptyInterfaceDecodeValue", func(t *testing.T) {
+	t.Run("defaultEmptyInterfaceCodec", func(t *testing.T) {
 		t.Run("DecodeValue", func(t *testing.T) {
 			testCases := []struct {
 				name     string
@@ -2777,7 +2777,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						val := reflect.New(tEmpty).Elem()
 						dc := DecodeContext{Registry: NewRegistryBuilder().Build()}
 						want := ErrNoTypeMapEntry{Type: tc.bsontype}
-						got := dvd.EmptyInterfaceDecodeValue(dc, llvr, val)
+						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, val)
 						if !compareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
 						}
@@ -2794,7 +2794,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 								Build(),
 						}
 						want := ErrNoDecoder{Type: reflect.TypeOf(tc.val)}
-						got := dvd.EmptyInterfaceDecodeValue(dc, llvr, val)
+						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, val)
 						if !compareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
 						}
@@ -2812,7 +2812,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 								RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
 								Build(),
 						}
-						got := dvd.EmptyInterfaceDecodeValue(dc, llvr, reflect.New(tEmpty).Elem())
+						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, reflect.New(tEmpty).Elem())
 						if !compareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
 						}
@@ -2828,7 +2828,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 								Build(),
 						}
 						got := reflect.New(tEmpty).Elem()
-						err := dvd.EmptyInterfaceDecodeValue(dc, llvr, got)
+						err := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, got)
 						noerr(t, err)
 						if !cmp.Equal(got.Interface(), want, cmp.Comparer(compareDecimal128)) {
 							t.Errorf("Did not receive expected value. got %v; want %v", got.Interface(), want)
@@ -2841,7 +2841,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("non-interface{}", func(t *testing.T) {
 			val := uint64(1234567890)
 			want := ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(val)}
-			got := dvd.EmptyInterfaceDecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
+			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
 			if !compareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
@@ -2850,7 +2850,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("nil *interface{}", func(t *testing.T) {
 			var val interface{}
 			want := ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(val)}
-			got := dvd.EmptyInterfaceDecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
+			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
 			if !compareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
@@ -2860,7 +2860,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			llvr := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double}
 			want := ErrNoTypeMapEntry{Type: bsontype.Double}
 			val := reflect.New(tEmpty).Elem()
-			got := dvd.EmptyInterfaceDecodeValue(DecodeContext{Registry: NewRegistryBuilder().Build()}, llvr, val)
+			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: NewRegistryBuilder().Build()}, llvr, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
@@ -2871,10 +2871,92 @@ func TestDefaultValueDecoders(t *testing.T) {
 			want := primitive.D{{"pi", 3.14159}}
 			var got interface{}
 			val := reflect.ValueOf(&got).Elem()
-			err := dvd.EmptyInterfaceDecodeValue(DecodeContext{Registry: buildDefaultRegistry()}, vr, val)
+			err := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: buildDefaultRegistry()}, vr, val)
 			noerr(t, err)
 			if !cmp.Equal(got, want) {
 				t.Errorf("Did not get correct result. got %v; want %v", got, want)
+			}
+		})
+		t.Run("custom type map entry", func(t *testing.T) {
+			// registering a custom type map entry for both bsontype.Type(0) anad bsontype.EmbeddedDocument should cause
+			// both top-level and embedded documents to decode to registered type when unmarshalling to interface{}
+
+			topLevelRb := NewRegistryBuilder()
+			defaultValueEncoders.RegisterDefaultEncoders(topLevelRb)
+			defaultValueDecoders.RegisterDefaultDecoders(topLevelRb)
+			topLevelRb.RegisterTypeMapEntry(bsontype.Type(0), reflect.TypeOf(primitive.M{}))
+
+			embeddedRb := NewRegistryBuilder()
+			defaultValueEncoders.RegisterDefaultEncoders(embeddedRb)
+			defaultValueDecoders.RegisterDefaultDecoders(embeddedRb)
+			embeddedRb.RegisterTypeMapEntry(bsontype.Type(0), reflect.TypeOf(primitive.M{}))
+
+			// create doc {"nested": {"foo": 1}}
+			innerDoc := bsoncore.BuildDocument(
+				nil,
+				bsoncore.AppendInt32Element(nil, "foo", 1),
+			)
+			doc := bsoncore.BuildDocument(
+				nil,
+				bsoncore.AppendDocumentElement(nil, "nested", innerDoc),
+			)
+			want := primitive.M{
+				"nested": primitive.M{
+					"foo": int32(1),
+				},
+			}
+
+			testCases := []struct {
+				name     string
+				registry *Registry
+			}{
+				{"top level", topLevelRb.Build()},
+				{"embedded", embeddedRb.Build()},
+			}
+			for _, tc := range testCases {
+				var got interface{}
+				vr := bsonrw.NewBSONDocumentReader(doc)
+				val := reflect.ValueOf(&got).Elem()
+
+				err := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: tc.registry}, vr, val)
+				noerr(t, err)
+				if !cmp.Equal(got, want) {
+					t.Fatalf("got %v, want %v", got, want)
+				}
+			}
+		})
+		t.Run("ancestor info is used over custom type map entry", func(t *testing.T) {
+			// If a type map entry is registered for bsontype.EmbeddedDocument, the decoder should use ancestor
+			// information if available instead of the registered entry.
+
+			rb := NewRegistryBuilder()
+			defaultValueEncoders.RegisterDefaultEncoders(rb)
+			defaultValueDecoders.RegisterDefaultDecoders(rb)
+			rb.RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(primitive.M{}))
+			reg := rb.Build()
+
+			// build document {"nested": {"foo": 10}}
+			inner := bsoncore.BuildDocument(
+				nil,
+				bsoncore.AppendInt32Element(nil, "foo", 10),
+			)
+			doc := bsoncore.BuildDocument(
+				nil,
+				bsoncore.AppendDocumentElement(nil, "nested", inner),
+			)
+			want := primitive.D{
+				{"nested", primitive.D{
+					{"foo", int32(10)},
+				}},
+			}
+
+			var got primitive.D
+			vr := bsonrw.NewBSONDocumentReader(doc)
+			val := reflect.ValueOf(&got).Elem()
+			err := defaultSliceCodec.DecodeValue(DecodeContext{Registry: reg}, vr, val)
+			noerr(t, err)
+			if !cmp.Equal(got, want) {
+				t.Fatalf("got %v, want %v", got, want)
 			}
 		})
 	})

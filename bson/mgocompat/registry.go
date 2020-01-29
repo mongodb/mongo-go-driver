@@ -55,7 +55,6 @@ func newMgoRegistryBuilder() *bsoncodec.RegistryBuilder {
 			SetAllowUnexportedFields(true))
 	emptyInterCodec := bsoncodec.NewEmptyInterfaceCodec(
 		bsonoptions.EmptyInterfaceCodec().
-			SetDecodeAsMap(true).
 			SetDecodeBinaryAsSlice(true))
 	mapCodec := bsoncodec.NewMapCodec(
 		bsonoptions.MapCodec().
@@ -77,9 +76,10 @@ func newMgoRegistryBuilder() *bsoncodec.RegistryBuilder {
 		RegisterDefaultEncoder(reflect.Uint32, uintcodec).
 		RegisterDefaultEncoder(reflect.Uint64, uintcodec).
 		RegisterTypeMapEntry(bsontype.Int32, tInt).
-		RegisterTypeMapEntry(bsontype.Type(0), tM).
 		RegisterTypeMapEntry(bsontype.DateTime, tTime).
 		RegisterTypeMapEntry(bsontype.Array, tInterfaceSlice).
+		RegisterTypeMapEntry(bsontype.Type(0), tM).
+		RegisterTypeMapEntry(bsontype.EmbeddedDocument, tM).
 		RegisterHookEncoder(tGetter, bsoncodec.ValueEncoderFunc(GetterEncodeValue)).
 		RegisterHookDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue))
 

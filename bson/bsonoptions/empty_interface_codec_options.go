@@ -8,19 +8,12 @@ package bsonoptions
 
 // EmptyInterfaceCodecOptions represents all possible options for interface{} encoding and decoding.
 type EmptyInterfaceCodecOptions struct {
-	DecodeAsMap         *bool // Specifies if the default type for decoding should be a bson.M instead of a bson.D. Defaults to false.
 	DecodeBinaryAsSlice *bool // Specifies if Old and Generic type binarys should default to []slice instead of primitive.Binary. Defaults to false.
 }
 
 // EmptyInterfaceCodec creates a new *EmptyInterfaceCodecOptions
 func EmptyInterfaceCodec() *EmptyInterfaceCodecOptions {
 	return &EmptyInterfaceCodecOptions{}
-}
-
-// SetDecodeAsMap specifies if the default type for decoding should be a bson.M instead of a bson.D. Defaults to false.
-func (e *EmptyInterfaceCodecOptions) SetDecodeAsMap(t bool) *EmptyInterfaceCodecOptions {
-	e.DecodeAsMap = &t
-	return e
 }
 
 // SetDecodeBinaryAsSlice specifies if Old and Generic type binarys should default to []slice instead of primitive.Binary. Defaults to false.
@@ -35,9 +28,6 @@ func MergeEmptyInterfaceCodecOptions(opts ...*EmptyInterfaceCodecOptions) *Empty
 	for _, opt := range opts {
 		if opt == nil {
 			continue
-		}
-		if opt.DecodeAsMap != nil {
-			e.DecodeAsMap = opt.DecodeAsMap
 		}
 		if opt.DecodeBinaryAsSlice != nil {
 			e.DecodeBinaryAsSlice = opt.DecodeBinaryAsSlice
