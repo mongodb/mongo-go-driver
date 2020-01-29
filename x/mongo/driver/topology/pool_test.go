@@ -175,6 +175,51 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have set the connection state on return. got %d; want %d", state, disconnected)
 			}
 		})
+		t.Run("no race if connections are also connecting", func(t *testing.T) {
+			cleanup := make(chan struct{})
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+			d := newdialer(&net.Dialer{})
+			pc := poolConfig{
+				Address: address.Address(addr.String()),
+			}
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.connect()
+			noerr(t, err)
+			getDone := make(chan struct{})
+			disconnectDone := make(chan struct{})
+			_, err = p.get(context.Background())
+			noerr(t, err)
+			getCtx, getCancel := context.WithCancel(context.Background())
+			defer getCancel()
+			go func() {
+				defer close(getDone)
+				for {
+					select {
+					case <-disconnectDone:
+						return
+					default:
+						_, _ = p.get(getCtx)
+						noerr(t, err)
+						time.Sleep(time.Microsecond)
+					}
+				}
+			}()
+			go func() {
+				_, err := p.get(getCtx)
+				noerr(t, err)
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Microsecond)
+				defer cancel()
+				err = p.disconnect(ctx)
+				noerr(t, err)
+				close(disconnectDone)
+			}()
+			<-getDone
+			close(cleanup)
+		})
 	})
 	t.Run("connect", func(t *testing.T) {
 		t.Run("can reconnect a disconnected pool", func(t *testing.T) {
