@@ -53,7 +53,7 @@ func (bsc *ByteSliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, 
 
 	var data []byte
 	var err error
-	switch vr.Type() {
+	switch vrType := vr.Type(); vrType {
 	case bsontype.String:
 		str, err := vr.ReadString()
 		if err != nil {
@@ -79,7 +79,7 @@ func (bsc *ByteSliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, 
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
 	default:
-		return fmt.Errorf("cannot decode %v into a []byte", vr.Type())
+		return fmt.Errorf("cannot decode %v into a []byte", vrType)
 	}
 
 	val.Set(reflect.ValueOf(data))

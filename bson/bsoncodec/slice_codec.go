@@ -118,7 +118,7 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val r
 		return ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
 
-	switch vr.Type() {
+	switch vrType := vr.Type(); vrType {
 	case bsontype.Array:
 	case bsontype.Null:
 		val.Set(reflect.Zero(val.Type()))
@@ -129,7 +129,7 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val r
 		}
 	case bsontype.Binary:
 		if val.Type().Elem() != tByte {
-			return fmt.Errorf("SliceDecodeValue can only decode a binary into a byte array, got %v", vr.Type())
+			return fmt.Errorf("SliceDecodeValue can only decode a binary into a byte array, got %v", vrType)
 		}
 		data, subtype, err := vr.ReadBinary()
 		if err != nil {
@@ -150,7 +150,7 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val r
 		return nil
 	case bsontype.String:
 		if val.Type().Elem() != tByte {
-			return fmt.Errorf("SliceDecodeValue can only decode a string into a byte array, got %v", vr.Type())
+			return fmt.Errorf("SliceDecodeValue can only decode a string into a byte array, got %v", vrType)
 		}
 		str, err := vr.ReadString()
 		if err != nil {
@@ -168,7 +168,7 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val r
 		}
 		return nil
 	default:
-		return fmt.Errorf("cannot decode %v into a slice", vr.Type())
+		return fmt.Errorf("cannot decode %v into a slice", vrType)
 	}
 
 	var elemsFunc func(DecodeContext, bsonrw.ValueReader, reflect.Value) ([]reflect.Value, error)

@@ -47,8 +47,7 @@ func (tc *TimeCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val re
 	}
 
 	var timeVal time.Time
-	valueType := vr.Type()
-	switch valueType {
+	switch vrType := vr.Type(); vrType {
 	case bsontype.DateTime:
 		dt, err := vr.ReadDateTime()
 		if err != nil {
@@ -77,8 +76,12 @@ func (tc *TimeCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val re
 			return err
 		}
 		timeVal = time.Unix(int64(t), 0)
+	case bsontype.Null:
+		if err := vr.ReadNull(); err != nil {
+			return err
+		}
 	default:
-		return fmt.Errorf("cannot decode %v into a time.Time", valueType)
+		return fmt.Errorf("cannot decode %v into a time.Time", vrType)
 	}
 
 	if !tc.UseLocalTimeZone {

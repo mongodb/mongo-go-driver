@@ -124,13 +124,13 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 		return ValueDecoderError{Name: "MapDecodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
 
-	switch vr.Type() {
+	switch vrType := vr.Type(); vrType {
 	case bsontype.Type(0), bsontype.EmbeddedDocument:
 	case bsontype.Null:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
 	default:
-		return fmt.Errorf("cannot decode %v into a %s", vr.Type(), val.Type())
+		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
 	}
 
 	dr, err := vr.ReadDocument()
