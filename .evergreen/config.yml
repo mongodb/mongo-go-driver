@@ -273,6 +273,7 @@ functions:
               fi
           fi
 
+          export GOFLAGS=-mod=vendor
           set +o xtrace
           AUTH=${AUTH} \
           SSL=${SSL} \
