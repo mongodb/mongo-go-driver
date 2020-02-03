@@ -282,6 +282,9 @@ func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*
 
 	gfsOpts := options.MergeGridFSFindOptions(opts...)
 	find := options.Find()
+	if gfsOpts.AllowDiskUse != nil {
+		find.SetAllowDiskUse(*gfsOpts.AllowDiskUse)
+	}
 	if gfsOpts.BatchSize != nil {
 		find.SetBatchSize(*gfsOpts.BatchSize)
 	}

@@ -304,6 +304,8 @@ func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor,
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
 		case "modifiers":
 			setFindModifiers(mt, val.Document(), opts)
+		case "allowDiskUse":
+			opts = opts.SetAllowDiskUse(val.Boolean())
 		case "session":
 		default:
 			mt.Fatalf("unrecognized find option: %v", key)

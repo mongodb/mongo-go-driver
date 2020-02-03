@@ -250,7 +250,7 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bsonx.D
 		}
 
 		if err = actualVal.Validate(); err != nil {
-			return fmt.Errorf("error validatinmg value for key %s: %s", key, err)
+			return fmt.Errorf("error validating value for key %s: %s", key, err)
 		}
 
 		switch key {
