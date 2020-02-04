@@ -889,8 +889,8 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
 		return dst, nil
 	}
-	if client.Terminated {
-		return dst, session.ErrSessionEnded
+	if err := client.UpdateUseTime(); err != nil {
+		return dst, err
 	}
 	lsid, _ := client.SessionID.MarshalBSON()
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)

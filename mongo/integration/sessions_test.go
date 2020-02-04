@@ -50,6 +50,21 @@ func TestSessionPool(t *testing.T) {
 		got = getSessionID(mt, secondSess)
 		assert.True(mt, sessionIDsEqual(mt, want, got), "expected session ID %v, got %v", want, got)
 	})
+	mt.Run("last use time updated", func(mt *mtest.T) {
+		sess, err := mt.Client.StartSession()
+		assert.Nil(mt, err, "StartSession error: %v", err)
+		defer sess.EndSession(mtest.Background)
+		initialLastUsedTime := getSessionLastUsedTime(mt, sess)
+
+		err = mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+			return mt.Client.Ping(sc, readpref.Primary())
+		})
+		assert.Nil(mt, err, "WithSession error: %v", err)
+
+		newLastUsedTime := getSessionLastUsedTime(mt, sess)
+		assert.True(mt, newLastUsedTime.After(initialLastUsedTime),
+			"last used time %s is not after the initial last used time %s", newLastUsedTime, initialLastUsedTime)
+	})
 }
 
 func TestSessions(t *testing.T) {
@@ -362,4 +377,10 @@ func extractSentSessionID(mt *mtest.T) []byte {
 
 	_, data := lsid.Document().Lookup("id").Binary()
 	return data
+}
+
+func getSessionLastUsedTime(mt *mtest.T, sess mongo.Session) time.Time {
+	xsess, ok := sess.(mongo.XSession)
+	assert.True(mt, ok, "expected session to implement mongo.XSession, but got %T", sess)
+	return xsess.ClientSession().LastUsed
 }
