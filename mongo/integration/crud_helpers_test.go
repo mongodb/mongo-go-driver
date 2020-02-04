@@ -833,6 +833,17 @@ func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Up
 			opts = opts.SetUpsert(val.Boolean())
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
+		case "hint":
+			var hint interface{}
+			switch val.Type {
+			case bsontype.String:
+				hint = val.StringValue()
+			case bsontype.EmbeddedDocument:
+				hint = val.Document()
+			default:
+				mt.Fatalf("unrecognized hint value type: %s\n", val.Type)
+			}
+			opts = opts.SetHint(hint)
 		case "session":
 		default:
 			mt.Fatalf("unrecognized updateOne option: %v", key)
@@ -879,6 +890,17 @@ func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			opts = opts.SetUpsert(val.Boolean())
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
+		case "hint":
+			var hint interface{}
+			switch val.Type {
+			case bsontype.String:
+				hint = val.StringValue()
+			case bsontype.EmbeddedDocument:
+				hint = val.Document()
+			default:
+				mt.Fatalf("unrecognized hint value type: %s\n", val.Type)
+			}
+			opts = opts.SetHint(hint)
 		case "session":
 		default:
 			mt.Fatalf("unrecognized updateMany option: %v", key)
@@ -921,6 +943,17 @@ func executeReplaceOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			opts = opts.SetUpsert(val.Boolean())
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
+		case "hint":
+			var hint interface{}
+			switch val.Type {
+			case bsontype.String:
+				hint = val.StringValue()
+			case bsontype.EmbeddedDocument:
+				hint = val.Document()
+			default:
+				mt.Fatalf("unrecognized hint value type: %s\n", val.Type)
+			}
+			opts = opts.SetHint(hint)
 		case "session":
 		default:
 			mt.Fatalf("unrecognized replaceOne option: %v", key)
@@ -1058,6 +1091,18 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 				Filters: rawArrayToInterfaceSlice(arrayFilters.Array()),
 			})
 		}
+		if hintVal, err := args.LookupErr("hint"); err == nil {
+			var hint interface{}
+			switch hintVal.Type {
+			case bsontype.String:
+				hint = hintVal.StringValue()
+			case bsontype.EmbeddedDocument:
+				hint = hintVal.Document()
+			default:
+				mt.Fatalf("unrecognized hint value type: %s\n", hintVal.Type)
+			}
+			uom.SetHint(hint)
+		}
 		if uom.Upsert == nil {
 			uom.SetUpsert(false)
 		}
@@ -1077,6 +1122,18 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 			umm.SetArrayFilters(options.ArrayFilters{
 				Filters: rawArrayToInterfaceSlice(arrayFilters.Array()),
 			})
+		}
+		if hintVal, err := args.LookupErr("hint"); err == nil {
+			var hint interface{}
+			switch hintVal.Type {
+			case bsontype.String:
+				hint = hintVal.StringValue()
+			case bsontype.EmbeddedDocument:
+				hint = hintVal.Document()
+			default:
+				mt.Fatalf("unrecognized hint value type: %s\n", hintVal.Type)
+			}
+			umm.SetHint(hint)
 		}
 		if umm.Upsert == nil {
 			umm.SetUpsert(false)
@@ -1108,6 +1165,18 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		}
 		if collation, err := args.LookupErr("collation"); err == nil {
 			rom.SetCollation(createCollation(mt, collation.Document()))
+		}
+		if hintVal, err := args.LookupErr("hint"); err == nil {
+			var hint interface{}
+			switch hintVal.Type {
+			case bsontype.String:
+				hint = hintVal.StringValue()
+			case bsontype.EmbeddedDocument:
+				hint = hintVal.Document()
+			default:
+				mt.Fatalf("unrecognized hint value type: %s\n", hintVal.Type)
+			}
+			rom.SetHint(hint)
 		}
 		if rom.Upsert == nil {
 			rom.SetUpsert(false)

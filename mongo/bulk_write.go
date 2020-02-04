@@ -271,13 +271,13 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 
 		switch converted := model.(type) {
 		case *ReplaceOneModel:
-			doc, err = createUpdateDoc(converted.Filter, converted.Replacement, nil, converted.Collation, converted.Upsert, false,
+			doc, err = createUpdateDoc(converted.Filter, converted.Replacement, converted.Hint, nil, converted.Collation, converted.Upsert, false,
 				bw.collection.registry)
 		case *UpdateOneModel:
-			doc, err = createUpdateDoc(converted.Filter, converted.Update, converted.ArrayFilters, converted.Collation, converted.Upsert, false,
+			doc, err = createUpdateDoc(converted.Filter, converted.Update, converted.Hint, converted.ArrayFilters, converted.Collation, converted.Upsert, false,
 				bw.collection.registry)
 		case *UpdateManyModel:
-			doc, err = createUpdateDoc(converted.Filter, converted.Update, converted.ArrayFilters, converted.Collation, converted.Upsert, true,
+			doc, err = createUpdateDoc(converted.Filter, converted.Update, converted.Hint, converted.ArrayFilters, converted.Collation, converted.Upsert, true,
 				bw.collection.registry)
 		}
 		if err != nil {
@@ -311,6 +311,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 func createUpdateDoc(
 	filter interface{},
 	update interface{},
+	hint interface{},
 	arrayFilters *options.ArrayFilters,
 	collation *options.Collation,
 	upsert *bool,
@@ -348,6 +349,15 @@ func createUpdateDoc(
 	if upsert != nil {
 		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "upsert", *upsert)
 	}
+
+	if hint != nil {
+		hintVal, err := transformValue(registry, hint)
+		if err != nil {
+			return nil, err
+		}
+		updateDoc = bsoncore.AppendValueElement(updateDoc, "hint", hintVal)
+	}
+
 	updateDoc, _ = bsoncore.AppendDocumentEnd(updateDoc, uidx)
 
 	return updateDoc, nil

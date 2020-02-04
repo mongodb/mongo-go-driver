@@ -494,7 +494,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
 	}
 
-	// collation, arrayFilters, and upsert are included on the individual update documents rather than as part of the
+	// collation, arrayFilters, upsert, and hint are included on the individual update documents rather than as part of the
 	// command
 	if uo.Collation != nil {
 		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "collation", bsoncore.Document(uo.Collation.ToDocument()))
@@ -508,6 +508,13 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	}
 	if uo.Upsert != nil {
 		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "upsert", *uo.Upsert)
+	}
+	if uo.Hint != nil {
+		hintVal, err := transformValue(coll.registry, uo.Hint)
+		if err != nil {
+			return nil, err
+		}
+		updateDoc = bsoncore.AppendValueElement(updateDoc, "hint", hintVal)
 	}
 	updateDoc, _ = bsoncore.AppendDocumentEnd(updateDoc, uidx)
 
@@ -669,6 +676,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		uOpts.BypassDocumentValidation = opt.BypassDocumentValidation
 		uOpts.Collation = opt.Collation
 		uOpts.Upsert = opt.Upsert
+		uOpts.Hint = opt.Hint
 		updateOptions = append(updateOptions, uOpts)
 	}
 

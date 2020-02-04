@@ -19,6 +19,12 @@ type ReplaceOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
+	// The index to use for the operation. This should either be the index name as a string or the index specification
+	// as a document. The default value is nil, which means that no hint will be sent. This option is only supported by
+	// servers >= 4.2. Older servers >= 3.4 will report an error for using this option. For servers < 3.4, the driver
+	// will return an error if this option is used.
+	Hint interface{}
+
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
 	// default value is false.
 	Upsert *bool
@@ -41,6 +47,12 @@ func (ro *ReplaceOptions) SetCollation(c *Collation) *ReplaceOptions {
 	return ro
 }
 
+// SetHint sets the value for the Hint field.
+func (ro *ReplaceOptions) SetHint(h interface{}) *ReplaceOptions {
+	ro.Hint = h
+	return ro
+}
+
 // SetUpsert sets the value for the Upsert field.
 func (ro *ReplaceOptions) SetUpsert(b bool) *ReplaceOptions {
 	ro.Upsert = &b
@@ -60,6 +72,9 @@ func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
 		}
 		if ro.Collation != nil {
 			rOpts.Collation = ro.Collation
+		}
+		if ro.Hint != nil {
+			rOpts.Hint = ro.Hint
 		}
 		if ro.Upsert != nil {
 			rOpts.Upsert = ro.Upsert
