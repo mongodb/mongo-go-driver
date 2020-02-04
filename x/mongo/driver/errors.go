@@ -238,10 +238,7 @@ func (e Error) Retryable() bool {
 // RetryableWrite returns true if the error is retryable for a write operation
 func (e Error) RetryableWrite(wireVersion *description.VersionRange) bool {
 	for _, label := range e.Labels {
-		if label == NetworkError {
-			return true
-		}
-		if label == RetryableWriteError {
+		if label == NetworkError || label == RetryableWriteError {
 			return true
 		}
 	}

@@ -108,7 +108,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected Aggregate error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "Aggregate error: %v", err)
 		// only verify cursor contents for pipelines without $out
@@ -120,7 +120,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected BulkWrite error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "BulkWrite error: %v", err)
 		verifyBulkWriteResult(mt, res, outcome.Result)
@@ -129,7 +129,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected CountDocuments error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "CountDocuments error: %v", err)
 		verifyCountResult(mt, res, outcome.Result)
@@ -138,7 +138,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected Distinct error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "Distinct error: %v", err)
 		verifyDistinctResult(mt, res, outcome.Result)
@@ -147,7 +147,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected Find error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "Find error: %v", err)
 		verifyCursorResult(mt, cursor, outcome.Result)
@@ -156,7 +156,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected DeleteOne error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "DeleteOne error: %v", err)
 		verifyDeleteResult(mt, res, outcome.Result)
@@ -165,7 +165,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected DeleteMany error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "DeleteMany error: %v", err)
 		verifyDeleteResult(mt, res, outcome.Result)
@@ -175,7 +175,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected FindOneAndDelete error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		if outcome.Result == nil {
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
@@ -189,7 +189,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected FindOneAndReplace error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		if outcome.Result == nil {
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
@@ -203,7 +203,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected FindOneAndUpdate error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		if outcome.Result == nil {
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
@@ -216,7 +216,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected InsertOne error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 		verifyInsertOneResult(mt, res, outcome.Result)
@@ -225,7 +225,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected InsertMany error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "InsertMany error: %v", err)
 		verifyInsertManyResult(mt, res, outcome.Result)
@@ -234,7 +234,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected ReplaceOne error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "ReplaceOne error: %v", err)
 		verifyUpdateResult(mt, res, outcome.Result)
@@ -243,7 +243,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected UpdateOne error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "UpdateOne error: %v", err)
 		verifyUpdateResult(mt, res, outcome.Result)
@@ -252,7 +252,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected UpdateMany error, got nil")
 			verifyCrudError(mt, outcome, err)
-			return
+			break
 		}
 		assert.Nil(mt, err, "UpdateMany error: %v", err)
 		verifyUpdateResult(mt, res, outcome.Result)
