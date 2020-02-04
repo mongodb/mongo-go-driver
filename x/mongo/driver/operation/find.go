@@ -105,7 +105,7 @@ func (f *Find) Execute(ctx context.Context) error {
 
 func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "find", f.collection)
-	if f.allowDiskUse != nil && (desc.WireVersion != nil && desc.WireVersion.Includes(4)) {
+	if f.allowDiskUse != nil && (desc.WireVersion != nil && desc.WireVersion.Includes(9)) {
 		dst = bsoncore.AppendBooleanElement(dst, "allowDiskUse", *f.allowDiskUse)
 	}
 	if f.allowPartialResults != nil {
@@ -178,7 +178,7 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 }
 
 // AllowDiskUse when true allows temporary data to be written to disk during the find command.
-// Valid for server versions >= 3.2. For servers < 3.2, this setting is ignored.
+// Valid for server versions >= 4.4. For servers < 4.4, this setting is ignored.
 func (f *Find) AllowDiskUse(allowDiskUse bool) *Find {
 	if f == nil {
 		f = new(Find)
