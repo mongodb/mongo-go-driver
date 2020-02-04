@@ -92,8 +92,8 @@ documentation = "AllowPartialResults when true allows partial results to be retu
 
 [request.allowDiskUse]
 type = "boolean"
-minWireVersion = 9
-documentation = "AllowDiskUse when true allows temporary data to be written to disk during the find command. Valid for server versions >= 4.4. For servers < 4.4, this setting is ignored."
+minWireVersion = 4
+documentation = "AllowDiskUse when true allows temporary data to be written to disk during the find command. Valid for server versions >= 4.4. Older servers >= 3.2 will report an error for using this option. For servers < 3.2, this setting is ignored."
 
 [request.collation]
 type = "document"
