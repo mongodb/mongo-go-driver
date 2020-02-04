@@ -211,7 +211,8 @@ func MergeNameOptions(opts ...*NameOptions) *NameOptions {
 // GridFSFindOptions represents options that can be used to configure a GridFS Find operation.
 type GridFSFindOptions struct {
 	// If true, the server can write temporary data to disk while executing the find operation. The default value
-	// is false.
+	// is false. This option is only valid for MongoDB versions >= 4.4. For previous server versions, the server will
+	// return an error if this option is used.
 	AllowDiskUse *bool
 
 	// The maximum number of documents to be included in each batch returned by the server.
