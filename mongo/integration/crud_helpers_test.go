@@ -31,8 +31,8 @@ var (
 	emptyDoc                        = []byte{5, 0, 0, 0, 0}
 	errorCommandNotFound      int32 = 59
 	killAllSessionsErrorCodes       = map[int32]struct{}{
-		errorInterrupted:     struct{}{},
-		errorCommandNotFound: struct{}{}, // the killAllSessions command does not exist on server versions < 3.6
+		errorInterrupted:     {},
+		errorCommandNotFound: {}, // the killAllSessions command does not exist on server versions < 3.6
 	}
 )
 
