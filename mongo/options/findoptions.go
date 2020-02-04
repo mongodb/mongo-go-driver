@@ -32,7 +32,7 @@ type FindOptions struct {
 	// that the cursor will be closed by the server when the last batch of documents is retrieved.
 	CursorType *CursorType
 
-	// The index to use for the aggregation. This should either be the index name as a string or the index specification
+	// The index to use for the operation. This should either be the index name as a string or the index specification
 	// as a document. The default value is nil, which means that no hint will be sent.
 	Hint interface{}
 
@@ -563,6 +563,12 @@ type FindOneAndReplaceOptions struct {
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
 	// default value is false.
 	Upsert *bool
+
+	// The index to use for the operation. This should either be the index name as a string or the index specification
+	// as a document. The default value is nil, which means that no hint will be sent. This option is only valid for
+	// MongoDB versions >= 4.4. MongoDB versions >= 4.2 will report an error if this option is set. For MongoDB versions
+	// < 4.2, the driver will return an error if this option is set.
+	Hint interface{}
 }
 
 // FindOneAndReplace creates a new FindOneAndReplaceOptions instance.
@@ -612,6 +618,12 @@ func (f *FindOneAndReplaceOptions) SetUpsert(b bool) *FindOneAndReplaceOptions {
 	return f
 }
 
+// SetHint sets the value for the Hint field.
+func (f *FindOneAndReplaceOptions) SetHint(hint interface{}) *FindOneAndReplaceOptions {
+	f.Hint = hint
+	return f
+}
+
 // MergeFindOneAndReplaceOptions combines the given FindOneAndReplaceOptions instances into a single
 // FindOneAndReplaceOptions in a last-one-wins fashion.
 func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAndReplaceOptions {
@@ -640,6 +652,9 @@ func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAn
 		}
 		if opt.Upsert != nil {
 			fo.Upsert = opt.Upsert
+		}
+		if opt.Hint != nil {
+			fo.Hint = opt.Hint
 		}
 	}
 
@@ -684,6 +699,12 @@ type FindOneAndUpdateOptions struct {
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
 	// default value is false.
 	Upsert *bool
+
+	// The index to use for the operation. This should either be the index name as a string or the index specification
+	// as a document. The default value is nil, which means that no hint will be sent. This option is only valid for
+	// MongoDB versions >= 4.4. MongoDB versions >= 4.2 will report an error if this option is set. For MongoDB versions
+	// < 4.2, the driver will return an error if this option is set.
+	Hint interface{}
 }
 
 // FindOneAndUpdate creates a new FindOneAndUpdateOptions instance.
@@ -739,6 +760,12 @@ func (f *FindOneAndUpdateOptions) SetUpsert(b bool) *FindOneAndUpdateOptions {
 	return f
 }
 
+// SetHint sets the value for the Hint field.
+func (f *FindOneAndUpdateOptions) SetHint(hint interface{}) *FindOneAndUpdateOptions {
+	f.Hint = hint
+	return f
+}
+
 // MergeFindOneAndUpdateOptions combines the given FindOneAndUpdateOptions instances into a single
 // FindOneAndUpdateOptions in a last-one-wins fashion.
 func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndUpdateOptions {
@@ -770,6 +797,9 @@ func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndU
 		}
 		if opt.Upsert != nil {
 			fo.Upsert = opt.Upsert
+		}
+		if opt.Hint != nil {
+			fo.Hint = opt.Hint
 		}
 	}
 

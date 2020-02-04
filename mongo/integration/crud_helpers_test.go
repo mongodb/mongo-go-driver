@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -628,6 +629,17 @@ func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 			}
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
+		case "hint":
+			var hint interface{}
+			switch val.Type {
+			case bsontype.String:
+				hint = val.StringValue()
+			case bsontype.EmbeddedDocument:
+				hint = val.Document()
+			default:
+				mt.Fatalf("unrecognized hint value type: %s\n", val.Type)
+			}
+			opts = opts.SetHint(hint)
 		case "session":
 		default:
 			mt.Fatalf("unrecognized findOneAndUpdate option: %v", key)
@@ -679,6 +691,17 @@ func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *m
 			}
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
+		case "hint":
+			var hint interface{}
+			switch val.Type {
+			case bsontype.String:
+				hint = val.StringValue()
+			case bsontype.EmbeddedDocument:
+				hint = val.Document()
+			default:
+				mt.Fatalf("unrecognized hint value type: %s\n", val.Type)
+			}
+			opts = opts.SetHint(hint)
 		case "session":
 		default:
 			mt.Fatalf("unrecognized findOneAndReplace option: %v", key)

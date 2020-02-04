@@ -405,17 +405,19 @@ func errorFromResult(t testing.TB, result interface{}) *operationError {
 func verifyError(t testing.TB, expected *operationError, actual error) {
 	t.Helper()
 
-	expectErr := expected != nil
-	gotErr := actual != nil
-
 	// spec test format doesn't treat ErrNoDocuments as an error. checking that no documents were returned is handled
 	// in the result checking section.
-	if !expectErr && actual == mongo.ErrNoDocuments {
+	if expected == nil && actual == mongo.ErrNoDocuments {
 		return
 	}
 
-	assert.Equal(t, expectErr, gotErr, "expected error: %v, got err: %v", expectErr, gotErr)
-	if !expectErr {
+	if expected == nil && actual != nil {
+		t.Fatalf("did not expect error but got %v", actual)
+	}
+	if expected != nil && actual == nil {
+		t.Fatalf("expected error but got nil")
+	}
+	if expected == nil {
 		return
 	}
 

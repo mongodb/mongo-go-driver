@@ -1414,6 +1414,13 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	if fo.Upsert != nil {
 		op = op.Upsert(*fo.Upsert)
 	}
+	if fo.Hint != nil {
+		hint, err := transformValue(coll.registry, fo.Hint)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Hint(hint)
+	}
 
 	return coll.findAndModify(ctx, op)
 }
@@ -1489,6 +1496,13 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 	if fo.Upsert != nil {
 		op = op.Upsert(*fo.Upsert)
+	}
+	if fo.Hint != nil {
+		hint, err := transformValue(coll.registry, fo.Hint)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Hint(hint)
 	}
 
 	return coll.findAndModify(ctx, op)
