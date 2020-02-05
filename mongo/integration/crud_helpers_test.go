@@ -26,7 +26,14 @@ import (
 
 // Helper functions to execute and verify results from CRUD methods.
 
-var emptyDoc = []byte{5, 0, 0, 0, 0}
+var (
+	emptyDoc                        = []byte{5, 0, 0, 0, 0}
+	errorCommandNotFound      int32 = 59
+	killAllSessionsErrorCodes       = map[int32]struct{}{
+		errorInterrupted:     {},
+		errorCommandNotFound: {}, // the killAllSessions command does not exist on server versions < 3.6
+	}
+)
 
 // create an update document or pipeline from a bson.RawValue
 func createUpdate(mt *mtest.T, updateVal bson.RawValue) interface{} {
@@ -48,6 +55,17 @@ func createUpdate(mt *mtest.T, updateVal bson.RawValue) interface{} {
 	return nil
 }
 
+// returns true if err is a mongo.CommandError containing a code that is expected from a killAllSessions command.
+func isExepctedKillAllSessionsError(err error) bool {
+	cmdErr, ok := err.(mongo.CommandError)
+	if !ok {
+		return false
+	}
+
+	_, ok = killAllSessionsErrorCodes[cmdErr.Code]
+	return ok
+}
+
 // kill all open sessions on the server. This function uses mt.GlobalClient() because killAllSessions is not allowed
 // for clients configured with specific options (e.g. client side encryption).
 func killSessions(mt *mtest.T) {
@@ -59,8 +77,9 @@ func killSessions(mt *mtest.T) {
 	if err == nil {
 		return
 	}
-	if cmdErr, ok := err.(mongo.CommandError); !ok || cmdErr.Code != errorInterrupted {
-		mt.Fatalf("unable to killAllSessions: %v", err)
+
+	if !isExepctedKillAllSessionsError(err) {
+		mt.Fatalf("killAllSessions error: %v", err)
 	}
 }
 
