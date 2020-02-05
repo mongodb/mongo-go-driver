@@ -57,7 +57,7 @@ func createUpdate(mt *mtest.T, updateVal bson.RawValue) interface{} {
 }
 
 // returns true if err is a mongo.CommandError containing a code that is expected from a killAllSessions command.
-func isExepctedKillAllSessionsError(err error) bool {
+func isExpectedKillAllSessionsError(err error) bool {
 	cmdErr, ok := err.(mongo.CommandError)
 	if !ok {
 		return false
