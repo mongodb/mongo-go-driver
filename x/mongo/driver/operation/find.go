@@ -105,7 +105,7 @@ func (f *Find) Execute(ctx context.Context) error {
 
 func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "find", f.collection)
-	if f.allowDiskUse != nil && (desc.WireVersion != nil && desc.WireVersion.Includes(4)) {
+	if f.allowDiskUse != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "allowDiskUse", *f.allowDiskUse)
 	}
 	if f.allowPartialResults != nil {

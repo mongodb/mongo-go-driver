@@ -13,8 +13,8 @@ import (
 // FindOptions represents options that can be used to configure a Find operation.
 type FindOptions struct {
 	// If true, the server can write temporary data to disk while executing the find operation. The default value
-	// is false. This option is only valid for MongoDB versions >= 4.4. For previous server versions, the server will
-	// return an error if this option is used.
+	// is false. This option is only valid for MongoDB versions >= 4.4. Older servers >= 3.2 will report an error for
+	// using this option. For servers < 3.2, this setting is ignored.
 	AllowDiskUse *bool
 
 	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
