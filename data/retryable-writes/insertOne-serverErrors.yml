@@ -39,6 +39,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 10107
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -60,6 +61,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 13436
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -81,6 +83,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 13435
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -102,6 +105,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 11602
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -123,6 +127,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 11600
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -144,6 +149,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 189
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -165,6 +171,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 91
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -186,6 +193,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 7
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -207,6 +215,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 6
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -228,6 +237,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 9001
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -249,6 +259,29 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 89
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
+                closeConnection: false
+        operation:
+            name: "insertOne"
+            arguments:
+                document: { _id: 3, x: 33 }
+        outcome:
+            result:
+                insertedId: 3
+            collection:
+                data:
+                    - { _id: 1, x: 11 }
+                    - { _id: 2, x: 22 }
+                    - { _id: 3, x: 33 }
+    -
+        description: "InsertOne succeeds after ExceededTimeLimit"
+        failPoint:
+            configureFailPoint: failCommand
+            mode: { times: 1 }
+            data:
+                failCommands: ["insert"]
+                errorCode: 262
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
                 closeConnection: false
         operation:
             name: "insertOne"
@@ -293,6 +326,7 @@ tests:
                 writeConcernError:
                     code: 11600
                     errmsg: Replication is being shut down
+                    errorLabels: ["RetryableWriteError"] # SPEC-1565
         operation:
             name: "insertOne"
             arguments:
@@ -315,6 +349,7 @@ tests:
                 writeConcernError:
                     code: 11602
                     errmsg: Replication is being shut down
+                    errorLabels: ["RetryableWriteError"] # SPEC-1565
         operation:
             name: "insertOne"
             arguments:
@@ -337,6 +372,7 @@ tests:
                 writeConcernError:
                     code: 189
                     errmsg: Replication is being shut down
+                    errorLabels: ["RetryableWriteError"] # SPEC-1565
         operation:
             name: "insertOne"
             arguments:
@@ -359,6 +395,7 @@ tests:
                 writeConcernError:
                     code: 91
                     errmsg: Replication is being shut down
+                    errorLabels: ["RetryableWriteError"] # SPEC-1565
         operation:
             name: "insertOne"
             arguments:
@@ -454,10 +491,12 @@ tests:
         operation:
             name: "insertOne"
             arguments:
-                document: { _id: 1, x: 11 }
+                document: { _id: 3, x: 33 }
         outcome:
             error: true
             result:
                 errorLabelsContain: ["RetryableWriteError"]
             collection:
-                data: []
+                data:
+                    - { _id: 1, x: 11 }
+                    - { _id: 2, x: 22 }
