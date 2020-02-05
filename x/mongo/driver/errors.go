@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001}
+	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001, 262}
 	nodeIsRecoveringCodes   = []int32{11600, 11602, 13436, 189, 91}
 	notMasterCodes          = []int32{10107, 13435}
 	nodeIsShuttingDownCodes = []int32{11600, 91}

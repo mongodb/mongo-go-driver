@@ -456,7 +456,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			var retryableErr bool
 			if op.Type == Write {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
-				// Add a RetryableWriteError label for retryable errors from pre-4.4 servers
+				// Add a RetryableWriteError label for network errors and retryable errors from pre-4.4 servers
 				if tt.HasErrorLabel(NetworkError) || (retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9) {
 					tt.Labels = append(tt.Labels, RetryableWriteError)
 				}
