@@ -79,7 +79,7 @@ func killSessions(mt *mtest.T) {
 		return
 	}
 
-	if !isExepctedKillAllSessionsError(err) {
+	if !isExpectedKillAllSessionsError(err) {
 		mt.Fatalf("killAllSessions error: %v", err)
 	}
 }
