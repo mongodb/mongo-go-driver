@@ -1170,6 +1170,64 @@ func executeRenameCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) (*m
 	return admin.RunCommand(mtest.Background, renameCmd), toName
 }
 
+func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string, error) {
+	mt.Helper()
+
+	var model mongo.IndexModel
+	elems, _ := args.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "keys":
+			model.Keys = val.Document()
+		default:
+			mt.Fatalf("unrecognized createIndex option %v", key)
+		}
+	}
+
+	if sess != nil {
+		var indexName string
+		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+			var indexErr error
+			indexName, indexErr = mt.Coll.Indexes().CreateOne(sc, model)
+			return indexErr
+		})
+		return indexName, err
+	}
+	return mt.Coll.Indexes().CreateOne(mtest.Background, model)
+}
+
+func executeDropIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.Raw, error) {
+	mt.Helper()
+
+	var name string
+	elems, _ := args.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "name":
+			name = val.StringValue()
+		default:
+			mt.Fatalf("unrecognized dropIndex option %v", key)
+		}
+	}
+
+	if sess != nil {
+		var res bson.Raw
+		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+			var indexErr error
+			res, indexErr = mt.Coll.Indexes().DropOne(sc, name)
+			return indexErr
+		})
+		return res, err
+	}
+	return mt.Coll.Indexes().DropOne(mtest.Background, name)
+}
+
 // verification function to use for all count operations
 func verifyCountResult(mt *mtest.T, actualResult int64, expectedResult interface{}) {
 	mt.Helper()

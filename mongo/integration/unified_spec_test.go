@@ -35,14 +35,15 @@ const (
 )
 
 type testFile struct {
-	RunOn          []mtest.RunOnBlock `bson:"runOn"`
-	DatabaseName   string             `bson:"database_name"`
-	CollectionName string             `bson:"collection_name"`
-	BucketName     string             `bson:"bucket_name"`
-	Data           testData           `bson:"data"`
-	JSONSchema     bson.Raw           `bson:"json_schema"`
-	KeyVaultData   []bson.Raw         `bson:"key_vault_data"`
-	Tests          []*testCase        `bson:"tests"`
+	RunOn               []mtest.RunOnBlock `bson:"runOn"`
+	DatabaseName        string             `bson:"database_name"`
+	CollectionName      string             `bson:"collection_name"`
+	OtherCollectionName string             `bson:"other_collection_name"` // Specified in read/write concern tests
+	BucketName          string             `bson:"bucket_name"`
+	Data                testData           `bson:"data"`
+	JSONSchema          bson.Raw           `bson:"json_schema"`
+	KeyVaultData        []bson.Raw         `bson:"key_vault_data"`
+	Tests               []*testCase        `bson:"tests"`
 }
 
 type testData struct {
@@ -144,6 +145,7 @@ var directories = []string{
 	"crud/v2",
 	"retryable-reads",
 	"sessions",
+	"read-write-concern/operation",
 }
 
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
@@ -575,6 +577,21 @@ func executeCollectionOperation(mt *mtest.T, op *operation, sess mongo.Session) 
 		if op.opError == nil && err == nil {
 			assert.Nil(mt, op.Result, "unexpected result for watch: %v", op.Result)
 			_ = stream.Close(mtest.Background)
+		}
+		return err
+	case "createIndex":
+		indexName, err := executeCreateIndex(mt, sess, op.Arguments)
+		if op.opError == nil && err == nil {
+			assert.Nil(mt, op.Result, "unexpected result for createIndex: %v", op.Result)
+			assert.True(mt, len(indexName) > 0, "expected valid index name, got empty string")
+			assert.True(mt, len(indexName) > 0, "created index has empty name")
+		}
+		return err
+	case "dropIndex":
+		res, err := executeDropIndex(mt, sess, op.Arguments)
+		if op.opError == nil && err == nil {
+			assert.Nil(mt, op.Result, "unexpected result for dropIndex: %v", op.Result)
+			assert.NotNil(mt, res, "expected result from dropIndex operation, got nil")
 		}
 		return err
 	case "listIndexNames", "mapReduce":

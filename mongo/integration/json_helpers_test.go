@@ -227,6 +227,8 @@ func createDatabaseOptions(t testing.TB, opts bson.Raw) *options.DatabaseOptions
 		switch name {
 		case "readConcern":
 			do.SetReadConcern(createReadConcern(opt))
+		case "writeConcern":
+			do.SetWriteConcern(createWriteConcern(t, opt))
 		default:
 			t.Fatalf("unrecognized database option: %v", name)
 		}
