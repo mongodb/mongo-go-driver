@@ -81,6 +81,8 @@ type scramSaslAdapter struct {
 	conversation *scram.ClientConversation
 }
 
+var _ SaslClient = (*scramSaslAdapter)(nil)
+
 func (a *scramSaslAdapter) Start() (string, []byte, error) {
 	step, err := a.conversation.Step("")
 	if err != nil {
@@ -99,4 +101,8 @@ func (a *scramSaslAdapter) Next(challenge []byte) ([]byte, error) {
 
 func (a *scramSaslAdapter) Completed() bool {
 	return a.conversation.Done()
+}
+
+func (*scramSaslAdapter) ShorterConversationSupported() bool {
+	return true
 }

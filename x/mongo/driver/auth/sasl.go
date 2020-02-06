@@ -20,6 +20,7 @@ type SaslClient interface {
 	Start() (string, []byte, error)
 	Next(challenge []byte) ([]byte, error)
 	Completed() bool
+	ShorterConversationSupported() bool
 }
 
 // SaslClientCloser is a SaslClient that has resources to clean up.
@@ -44,11 +45,19 @@ func ConductSaslConversation(ctx context.Context, conn driver.Connection, db str
 		return newError(err, mech)
 	}
 
-	doc := bsoncore.BuildDocumentFromElements(nil,
+	saslCmdElements := [][]byte{
 		bsoncore.AppendInt32Element(nil, "saslStart", 1),
 		bsoncore.AppendStringElement(nil, "mechanism", mech),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
-	)
+	}
+	if client.ShorterConversationSupported() {
+		// For clients that support a shorter SASL conversation, add "options: {skipEmptyExchange: true}".
+		optionsDoc := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendBooleanElement(nil, "skipEmptyExchange", true),
+		)
+		saslCmdElements = append(saslCmdElements, bsoncore.AppendDocumentElement(nil, "options", optionsDoc))
+	}
+	doc := bsoncore.BuildDocumentFromElements(nil, saslCmdElements...)
 	saslStartCmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 
 	type saslResponse struct {
