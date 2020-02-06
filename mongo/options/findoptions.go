@@ -62,7 +62,8 @@ type FindOptions struct {
 	// is false.
 	NoCursorTimeout *bool
 
-	// This option is for internal replication use only and should not be set.
+	// This option is for internal replication use only and should not be set. This option has been deprecated in
+	// MongoDB version 4.4 and will be ignored by the server if it is set.
 	OplogReplay *bool
 
 	// A document describing which fields will be included in the documents returned by the operation. The default value
