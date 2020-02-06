@@ -44,10 +44,14 @@ func ConductSaslConversation(ctx context.Context, conn driver.Connection, db str
 		return newError(err, mech)
 	}
 
+	optionsDoc := bsoncore.BuildDocumentFromElements(nil,
+		bsoncore.AppendBooleanElement(nil, "skipEmptyExchange", true),
+	)
 	doc := bsoncore.BuildDocumentFromElements(nil,
 		bsoncore.AppendInt32Element(nil, "saslStart", 1),
 		bsoncore.AppendStringElement(nil, "mechanism", mech),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
+		bsoncore.AppendDocumentElement(nil, "options", optionsDoc),
 	)
 	saslStartCmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 
