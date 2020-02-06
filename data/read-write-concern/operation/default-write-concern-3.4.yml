@@ -8,7 +8,6 @@ data:
   - {_id: 2, x: 22}
 collection_name: &collection_name default_write_concern_coll
 database_name: &database_name default_write_concern_db
-other_collection_name: &other_collection_name other_collection_name
 
 runOn:
     - minServerVersion: "3.4"
@@ -22,7 +21,7 @@ tests:
         arguments:
           pipeline: &out_pipeline
             - $match: {_id: {$gt: 1}}
-            - $out: *other_collection_name
+            - $out: &other_collection_name "other_collection_name"
     outcome:
       collection:
         name: *other_collection_name
