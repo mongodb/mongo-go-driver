@@ -35,15 +35,14 @@ const (
 )
 
 type testFile struct {
-	RunOn               []mtest.RunOnBlock `bson:"runOn"`
-	DatabaseName        string             `bson:"database_name"`
-	CollectionName      string             `bson:"collection_name"`
-	OtherCollectionName string             `bson:"other_collection_name"` // Specified in read/write concern tests
-	BucketName          string             `bson:"bucket_name"`
-	Data                testData           `bson:"data"`
-	JSONSchema          bson.Raw           `bson:"json_schema"`
-	KeyVaultData        []bson.Raw         `bson:"key_vault_data"`
-	Tests               []*testCase        `bson:"tests"`
+	RunOn          []mtest.RunOnBlock `bson:"runOn"`
+	DatabaseName   string             `bson:"database_name"`
+	CollectionName string             `bson:"collection_name"`
+	BucketName     string             `bson:"bucket_name"`
+	Data           testData           `bson:"data"`
+	JSONSchema     bson.Raw           `bson:"json_schema"`
+	KeyVaultData   []bson.Raw         `bson:"key_vault_data"`
+	Tests          []*testCase        `bson:"tests"`
 }
 
 type testData struct {
