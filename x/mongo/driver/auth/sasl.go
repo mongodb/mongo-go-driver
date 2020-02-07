@@ -28,7 +28,7 @@ type SaslClientCloser interface {
 	Close()
 }
 
-// ExtraOptionsSaslClient is a SaslClient that appens options to the saslStart command.
+// ExtraOptionsSaslClient is a SaslClient that appends options to the saslStart command.
 type ExtraOptionsSaslClient interface {
 	StartCommandOptions() bsoncore.Document
 }

@@ -54,7 +54,7 @@ func TestSCRAM(t *testing.T) {
 					Password: "pencil",
 					Source:   "admin",
 				})
-				assert.Nil(t, err, "newScramSHA1Authenticator error: %v", err)
+				assert.Nil(t, err, "error creating authenticator: %v", err)
 				sa, _ := authenticator.(*ScramAuthenticator)
 				sa.client = sa.client.WithNonceGenerator(func() string {
 					return tc.nonce
