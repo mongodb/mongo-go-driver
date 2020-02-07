@@ -28,6 +28,11 @@ type SaslClientCloser interface {
 	Close()
 }
 
+// ExtraOptionsSaslClient is a SaslClient that appends options to the saslStart command.
+type ExtraOptionsSaslClient interface {
+	StartCommandOptions() bsoncore.Document
+}
+
 // ConductSaslConversation handles running a sasl conversation with MongoDB.
 func ConductSaslConversation(ctx context.Context, conn driver.Connection, db string, client SaslClient) error {
 
@@ -44,11 +49,16 @@ func ConductSaslConversation(ctx context.Context, conn driver.Connection, db str
 		return newError(err, mech)
 	}
 
-	doc := bsoncore.BuildDocumentFromElements(nil,
+	saslCmdElements := [][]byte{
 		bsoncore.AppendInt32Element(nil, "saslStart", 1),
 		bsoncore.AppendStringElement(nil, "mechanism", mech),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
-	)
+	}
+	if extraOptionsClient, ok := client.(ExtraOptionsSaslClient); ok {
+		optionsDoc := extraOptionsClient.StartCommandOptions()
+		saslCmdElements = append(saslCmdElements, bsoncore.AppendDocumentElement(nil, "options", optionsDoc))
+	}
+	doc := bsoncore.BuildDocumentFromElements(nil, saslCmdElements...)
 	saslStartCmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 
 	type saslResponse struct {
