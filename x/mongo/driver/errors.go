@@ -92,11 +92,6 @@ func (wce WriteCommandError) Error() string {
 
 // Retryable returns true if the error is retryable
 func (wce WriteCommandError) Retryable() bool {
-	for _, label := range wce.Labels {
-		if label == NetworkError {
-			return true
-		}
-	}
 	if wce.WriteConcernError == nil {
 		return false
 	}
