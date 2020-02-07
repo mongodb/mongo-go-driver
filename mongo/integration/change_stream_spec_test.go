@@ -95,6 +95,11 @@ func runChangeStreamTestFile(mt *mtest.T, file string) {
 func runChangeStreamTest(mt *mtest.T, test changeStreamTest, testFile changeStreamTestFile) {
 	mtOpts := mtest.NewOptions().MinServerVersion(test.MinServerVersion).MaxServerVersion(test.MaxServerVersion).
 		Topologies(test.Topology...).DatabaseName(testFile.DatabaseName).CollectionName(testFile.CollectionName)
+	if test.Description == "Change Stream should error when _id is projected out" {
+		// Skip on latest server variant until SPEC-1505 is done
+		mtOpts.MaxServerVersion("4.2")
+	}
+
 	mt.RunOpts(test.Description, mtOpts, func(mt *mtest.T) {
 		test.nsMap = make(map[string]struct{})
 
