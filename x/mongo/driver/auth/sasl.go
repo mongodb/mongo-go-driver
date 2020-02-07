@@ -20,13 +20,17 @@ type SaslClient interface {
 	Start() (string, []byte, error)
 	Next(challenge []byte) ([]byte, error)
 	Completed() bool
-	ShorterConversationSupported() bool
 }
 
 // SaslClientCloser is a SaslClient that has resources to clean up.
 type SaslClientCloser interface {
 	SaslClient
 	Close()
+}
+
+// ExtraOptionsSaslClient is a SaslClient that appens options to the saslStart command.
+type ExtraOptionsSaslClient interface {
+	StartCommandOptions() bsoncore.Document
 }
 
 // ConductSaslConversation handles running a sasl conversation with MongoDB.
@@ -50,11 +54,8 @@ func ConductSaslConversation(ctx context.Context, conn driver.Connection, db str
 		bsoncore.AppendStringElement(nil, "mechanism", mech),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 	}
-	if client.ShorterConversationSupported() {
-		// For clients that support a shorter SASL conversation, add "options: {skipEmptyExchange: true}".
-		optionsDoc := bsoncore.BuildDocumentFromElements(nil,
-			bsoncore.AppendBooleanElement(nil, "skipEmptyExchange", true),
-		)
+	if extraOptionsClient, ok := client.(ExtraOptionsSaslClient); ok {
+		optionsDoc := extraOptionsClient.StartCommandOptions()
 		saslCmdElements = append(saslCmdElements, bsoncore.AppendDocumentElement(nil, "options", optionsDoc))
 	}
 	doc := bsoncore.BuildDocumentFromElements(nil, saslCmdElements...)

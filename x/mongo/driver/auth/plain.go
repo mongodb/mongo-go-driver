@@ -56,7 +56,3 @@ func (c *plainSaslClient) Next(challenge []byte) ([]byte, error) {
 func (c *plainSaslClient) Completed() bool {
 	return true
 }
-
-func (*plainSaslClient) ShorterConversationSupported() bool {
-	return false
-}
