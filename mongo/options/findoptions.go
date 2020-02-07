@@ -12,6 +12,11 @@ import (
 
 // FindOptions represents options that can be used to configure a Find operation.
 type FindOptions struct {
+	// If true, the server can write temporary data to disk while executing the find operation. The default value
+	// is false. This option is only valid for MongoDB versions >= 4.4. Older servers >= 3.2 will report an error for
+	// using this option. For servers < 3.2, this setting is ignored.
+	AllowDiskUse *bool
+
 	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
 	// returning an error. The default value is false.
 	AllowPartialResults *bool
@@ -91,6 +96,12 @@ type FindOptions struct {
 // Find creates a new FindOptions instance.
 func Find() *FindOptions {
 	return &FindOptions{}
+}
+
+// SetAllowDiskUse sets the value for the AllowDiskUse field.
+func (f *FindOptions) SetAllowDiskUse(b bool) *FindOptions {
+	f.AllowDiskUse = &b
+	return f
 }
 
 // SetAllowPartialResults sets the value for the AllowPartialResults field.
@@ -213,6 +224,9 @@ func MergeFindOptions(opts ...*FindOptions) *FindOptions {
 	for _, opt := range opts {
 		if opt == nil {
 			continue
+		}
+		if opt.AllowDiskUse != nil {
+			fo.AllowDiskUse = opt.AllowDiskUse
 		}
 		if opt.AllowPartialResults != nil {
 			fo.AllowPartialResults = opt.AllowPartialResults

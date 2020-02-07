@@ -1096,6 +1096,9 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Crypt:          coll.client.crypt,
 	}
 
+	if fo.AllowDiskUse != nil {
+		op.AllowDiskUse(*fo.AllowDiskUse)
+	}
 	if fo.AllowPartialResults != nil {
 		op.AllowPartialResults(*fo.AllowPartialResults)
 	}

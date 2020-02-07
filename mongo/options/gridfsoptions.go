@@ -210,6 +210,11 @@ func MergeNameOptions(opts ...*NameOptions) *NameOptions {
 
 // GridFSFindOptions represents options that can be used to configure a GridFS Find operation.
 type GridFSFindOptions struct {
+	// If true, the server can write temporary data to disk while executing the find operation. The default value
+	// is false. This option is only valid for MongoDB versions >= 4.4. For previous server versions, the server will
+	// return an error if this option is used.
+	AllowDiskUse *bool
+
 	// The maximum number of documents to be included in each batch returned by the server.
 	BatchSize *int32
 
@@ -236,6 +241,12 @@ type GridFSFindOptions struct {
 // GridFSFind creates a new GridFSFindOptions instance.
 func GridFSFind() *GridFSFindOptions {
 	return &GridFSFindOptions{}
+}
+
+// SetAllowDiskUse sets the value for the AllowDiskUse field.
+func (f *GridFSFindOptions) SetAllowDiskUse(b bool) *GridFSFindOptions {
+	f.AllowDiskUse = &b
+	return f
 }
 
 // SetBatchSize sets the value for the BatchSize field.
@@ -281,6 +292,9 @@ func MergeGridFSFindOptions(opts ...*GridFSFindOptions) *GridFSFindOptions {
 	for _, opt := range opts {
 		if opt == nil {
 			continue
+		}
+		if opt.AllowDiskUse != nil {
+			fo.AllowDiskUse = opt.AllowDiskUse
 		}
 		if opt.BatchSize != nil {
 			fo.BatchSize = opt.BatchSize
