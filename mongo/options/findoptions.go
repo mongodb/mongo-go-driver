@@ -566,8 +566,8 @@ type FindOneAndReplaceOptions struct {
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification
 	// as a document. The default value is nil, which means that no hint will be sent. This option is only valid for
-	// MongoDB versions >= 4.4. MongoDB versions >= 4.2 will report an error if this option is set. For MongoDB versions
-	// < 4.2, the driver will return an error if this option is set.
+	// MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if this option is set. For MongoDB versions <
+	// 4.2, the driver will return an error if this option is set.
 	Hint interface{}
 }
 
@@ -702,8 +702,8 @@ type FindOneAndUpdateOptions struct {
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification
 	// as a document. The default value is nil, which means that no hint will be sent. This option is only valid for
-	// MongoDB versions >= 4.4. MongoDB versions >= 4.2 will report an error if this option is set. For MongoDB versions
-	// < 4.2, the driver will return an error if this option is set.
+	// MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if this option is set. For MongoDB versions <
+	// 4.2, the driver will return an error if this option is set.
 	Hint interface{}
 }
 

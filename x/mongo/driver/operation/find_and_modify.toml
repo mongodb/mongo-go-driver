@@ -63,7 +63,7 @@ documentation = "ArrayFilters specifies an array of filter documents that determ
 [request.hint]
 type = "value"
 minWireVersionRequired = 8
-documentation = "Hint specifies the index to use. This option is only valid for server versions >= 4.4. Server versions between 4.2 and 4.3, inclusive, will error if this option is set. For server versions < 4.2, the driver will error if this option is set."
+documentation = "Hint specifies the index to use. This option is only valid for server versions >= 4.4. Server version 4.will error if this option is set. For server versions < 4.2, the driver will error if this option is set."
 
 [response]
 name = "FindAndModifyResult"
