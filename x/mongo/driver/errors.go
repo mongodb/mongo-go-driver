@@ -68,6 +68,7 @@ func (e ResponseError) Error() string {
 type WriteCommandError struct {
 	WriteConcernError *WriteConcernError
 	WriteErrors       WriteErrors
+	Labels            []string
 }
 
 // UnsupportedStorageEngine returns whether or not the WriteCommandError comes from a retryable write being attempted
@@ -91,6 +92,11 @@ func (wce WriteCommandError) Error() string {
 
 // Retryable returns true if the error is retryable
 func (wce WriteCommandError) Retryable() bool {
+	for _, label := range wce.Labels {
+		if label == NetworkError {
+			return true
+		}
+	}
 	if wce.WriteConcernError == nil {
 		return false
 	}
@@ -399,6 +405,7 @@ func extractError(rdr bsoncore.Document) error {
 	}
 
 	if len(wcError.WriteErrors) > 0 || wcError.WriteConcernError != nil {
+		wcError.Labels = labels
 		return wcError
 	}
 
