@@ -69,6 +69,7 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 		bw.mergeResults(batchRes, opIndex)
 
 		bwErr.WriteConcernError = batchErr.WriteConcernError
+		bwErr.Labels = append(bwErr.Labels, batchErr.Labels...)
 		for i := range batchErr.WriteErrors {
 			batchErr.WriteErrors[i].Index = batchErr.WriteErrors[i].Index + int(opIndex)
 		}
@@ -116,6 +117,7 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 				return BulkWriteResult{}, batchErr, err
 			}
 			writeErrors = writeErr.WriteErrors
+			batchErr.Labels = writeErr.Labels
 			batchErr.WriteConcernError = convertDriverWriteConcernError(writeErr.WriteConcernError)
 		}
 		batchRes.InsertedCount = int64(res.N)
@@ -127,6 +129,7 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 				return BulkWriteResult{}, batchErr, err
 			}
 			writeErrors = writeErr.WriteErrors
+			batchErr.Labels = writeErr.Labels
 			batchErr.WriteConcernError = convertDriverWriteConcernError(writeErr.WriteConcernError)
 		}
 		batchRes.DeletedCount = int64(res.N)
@@ -138,6 +141,7 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 				return BulkWriteResult{}, batchErr, err
 			}
 			writeErrors = writeErr.WriteErrors
+			batchErr.Labels = writeErr.Labels
 			batchErr.WriteConcernError = convertDriverWriteConcernError(writeErr.WriteConcernError)
 		}
 		batchRes.MatchedCount = int64(res.N)

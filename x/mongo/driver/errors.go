@@ -68,6 +68,7 @@ func (e ResponseError) Error() string {
 type WriteCommandError struct {
 	WriteConcernError *WriteConcernError
 	WriteErrors       WriteErrors
+	Labels            []string
 }
 
 // UnsupportedStorageEngine returns whether or not the WriteCommandError comes from a retryable write being attempted
@@ -382,6 +383,17 @@ func extractError(rdr bsoncore.Document) error {
 				wcError.WriteConcernError.Details = make([]byte, len(info))
 				copy(wcError.WriteConcernError.Details, info)
 			}
+			if errLabels, exists := doc.Lookup("errorLabels").ArrayOK(); exists {
+				elems, err := errLabels.Elements()
+				if err != nil {
+					continue
+				}
+				for _, elem := range elems {
+					if str, ok := elem.Value().StringValueOK(); ok {
+						labels = append(labels, str)
+					}
+				}
+			}
 		}
 	}
 
@@ -399,6 +411,7 @@ func extractError(rdr bsoncore.Document) error {
 	}
 
 	if len(wcError.WriteErrors) > 0 || wcError.WriteConcernError != nil {
+		wcError.Labels = labels
 		return wcError
 	}
 
