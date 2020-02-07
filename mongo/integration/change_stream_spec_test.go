@@ -88,6 +88,9 @@ func runChangeStreamTestFile(mt *mtest.T, file string) {
 	assert.Nil(mt, err, "UnmarshalExtJSONWithRegistry error: %v", err)
 
 	for _, test := range testFile.Tests {
+		if test.Description == "Change Stream should error when _id is projected out" {
+			mt.Skip("skipping until SPEC-1505")
+		}
 		runChangeStreamTest(mt, test, testFile)
 	}
 }
