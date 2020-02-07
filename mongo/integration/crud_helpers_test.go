@@ -26,7 +26,14 @@ import (
 
 // Helper functions to execute and verify results from CRUD methods.
 
-var emptyDoc = []byte{5, 0, 0, 0, 0}
+var (
+	emptyDoc                        = []byte{5, 0, 0, 0, 0}
+	errorCommandNotFound      int32 = 59
+	killAllSessionsErrorCodes       = map[int32]struct{}{
+		errorInterrupted:     {},
+		errorCommandNotFound: {}, // the killAllSessions command does not exist on server versions < 3.6
+	}
+)
 
 // create an update document or pipeline from a bson.RawValue
 func createUpdate(mt *mtest.T, updateVal bson.RawValue) interface{} {
@@ -48,6 +55,17 @@ func createUpdate(mt *mtest.T, updateVal bson.RawValue) interface{} {
 	return nil
 }
 
+// returns true if err is a mongo.CommandError containing a code that is expected from a killAllSessions command.
+func isExpectedKillAllSessionsError(err error) bool {
+	cmdErr, ok := err.(mongo.CommandError)
+	if !ok {
+		return false
+	}
+
+	_, ok = killAllSessionsErrorCodes[cmdErr.Code]
+	return ok
+}
+
 // kill all open sessions on the server. This function uses mt.GlobalClient() because killAllSessions is not allowed
 // for clients configured with specific options (e.g. client side encryption).
 func killSessions(mt *mtest.T) {
@@ -59,8 +77,9 @@ func killSessions(mt *mtest.T) {
 	if err == nil {
 		return
 	}
-	if cmdErr, ok := err.(mongo.CommandError); !ok || cmdErr.Code != errorInterrupted {
-		mt.Fatalf("unable to killAllSessions: %v", err)
+
+	if !isExpectedKillAllSessionsError(err) {
+		mt.Fatalf("killAllSessions error: %v", err)
 	}
 }
 
@@ -1170,6 +1189,64 @@ func executeRenameCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) (*m
 		return res, toName
 	}
 	return admin.RunCommand(mtest.Background, renameCmd), toName
+}
+
+func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string, error) {
+	mt.Helper()
+
+	var model mongo.IndexModel
+	elems, _ := args.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "keys":
+			model.Keys = val.Document()
+		default:
+			mt.Fatalf("unrecognized createIndex option %v", key)
+		}
+	}
+
+	if sess != nil {
+		var indexName string
+		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+			var indexErr error
+			indexName, indexErr = mt.Coll.Indexes().CreateOne(sc, model)
+			return indexErr
+		})
+		return indexName, err
+	}
+	return mt.Coll.Indexes().CreateOne(mtest.Background, model)
+}
+
+func executeDropIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.Raw, error) {
+	mt.Helper()
+
+	var name string
+	elems, _ := args.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "name":
+			name = val.StringValue()
+		default:
+			mt.Fatalf("unrecognized dropIndex option %v", key)
+		}
+	}
+
+	if sess != nil {
+		var res bson.Raw
+		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+			var indexErr error
+			res, indexErr = mt.Coll.Indexes().DropOne(sc, name)
+			return indexErr
+		})
+		return res, err
+	}
+	return mt.Coll.Indexes().DropOne(mtest.Background, name)
 }
 
 // verification function to use for all count operations
