@@ -33,7 +33,7 @@ const (
 
 var (
 	// Additional options for the saslStart command to enable a shorter SCRAM conversation
-	scramStartOptions = bsoncore.BuildDocumentFromElements(nil,
+	scramStartOptions bsoncore.Document = bsoncore.BuildDocumentFromElements(nil,
 		bsoncore.AppendBooleanElement(nil, "skipEmptyExchange", true),
 	)
 )

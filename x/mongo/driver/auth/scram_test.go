@@ -65,17 +65,30 @@ func TestSCRAM(t *testing.T) {
 
 				desc := description.Server{
 					WireVersion: &description.VersionRange{
-						Max: 9,
+						Max: 4,
 					},
 				}
-				c := &drivertest.ChannelConn{
+				conn := &drivertest.ChannelConn{
 					Written:  make(chan []byte, len(tc.payloads)),
 					ReadResp: responses,
 					Desc:     desc,
 				}
 
-				err = authenticator.Auth(context.Background(), desc, c)
+				err = authenticator.Auth(context.Background(), desc, conn)
 				assert.Nil(t, err, "Auth error: %v\n", err)
+
+				// Verify that the first command sent is saslStart.
+				assert.True(t, len(conn.Written) > 1, "wire messages were written to the connection")
+				startCmd, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				assert.Nil(t, err, "error parsing wire message: %v", err)
+				cmdName := startCmd.Index(0).Key()
+				assert.Equal(t, cmdName, "saslStart", "cmd name mismatch; expected 'saslStart', got %v", cmdName)
+
+				// Verify that the saslStart command always has {options: {skipEmptyExchange: true}}
+				optionsVal, err := startCmd.LookupErr("options")
+				assert.Nil(t, err, "no options found in saslStart command")
+				optionsDoc := optionsVal.Document()
+				assert.Equal(t, optionsDoc, scramStartOptions, "expected options %v, got %v", scramStartOptions, optionsDoc)
 			})
 		}
 	})
