@@ -7,14 +7,16 @@
 package ocsp
 
 import (
+	"bytes"
 	"crypto/x509"
 	"errors"
 )
 
 func getIssuer(peerCert *x509.Certificate, chain []*x509.Certificate) *x509.Certificate {
-	issuerName := peerCert.Issuer.String()
 	for _, cert := range chain {
-		if cert.Subject.String() == issuerName {
+		// Use RawSubject and RawIssuer rather than cert.Subject.String() and peerCert.Issuer.String because the
+		// pkix.Name.String method is not available in Go 1.9.
+		if bytes.Equal(cert.RawSubject, peerCert.RawIssuer) {
 			return cert
 		}
 	}
