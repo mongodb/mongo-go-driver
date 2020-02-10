@@ -482,41 +482,14 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	}
 
 	uo := options.MergeUpdateOptions(opts...)
-	uidx, updateDoc := bsoncore.AppendDocumentStart(nil)
-	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "q", filter)
-
-	u, err := transformUpdateValue(coll.registry, update, checkDollarKey)
-	if err != nil {
-		return nil, err
-	}
-	updateDoc = bsoncore.AppendValueElement(updateDoc, "u", u)
-	if multi {
-		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
-	}
 
 	// collation, arrayFilters, upsert, and hint are included on the individual update documents rather than as part of the
 	// command
-	if uo.Collation != nil {
-		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "collation", bsoncore.Document(uo.Collation.ToDocument()))
+	updateDoc, err := createUpdateDoc(filter, update, uo.Hint, uo.ArrayFilters, uo.Collation, uo.Upsert, multi,
+		checkDollarKey, coll.registry)
+	if err != nil {
+		return nil, err
 	}
-	if uo.ArrayFilters != nil {
-		arr, err := uo.ArrayFilters.ToArrayDocument()
-		if err != nil {
-			return nil, err
-		}
-		updateDoc = bsoncore.AppendArrayElement(updateDoc, "arrayFilters", arr)
-	}
-	if uo.Upsert != nil {
-		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "upsert", *uo.Upsert)
-	}
-	if uo.Hint != nil {
-		hintVal, err := transformValue(coll.registry, uo.Hint)
-		if err != nil {
-			return nil, err
-		}
-		updateDoc = bsoncore.AppendValueElement(updateDoc, "hint", hintVal)
-	}
-	updateDoc, _ = bsoncore.AppendDocumentEnd(updateDoc, uidx)
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
@@ -547,7 +520,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Hint(uo.Hint != nil)
 
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
