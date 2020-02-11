@@ -370,6 +370,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	return imResult, BulkWriteException{
 		WriteErrors:       bwErrors,
 		WriteConcernError: writeException.WriteConcernError,
+		Labels: 		   writeException.Labels,
 	}
 }
 

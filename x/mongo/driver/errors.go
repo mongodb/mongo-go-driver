@@ -383,6 +383,17 @@ func extractError(rdr bsoncore.Document) error {
 				wcError.WriteConcernError.Details = make([]byte, len(info))
 				copy(wcError.WriteConcernError.Details, info)
 			}
+			if errLabels, exists := doc.Lookup("errorLabels").ArrayOK(); exists {
+				elems, err := errLabels.Elements()
+				if err != nil {
+					continue
+				}
+				for _, elem := range elems {
+					if str, ok := elem.Value().StringValueOK(); ok {
+						labels = append(labels, str)
+					}
+				}
+			}
 		}
 	}
 
