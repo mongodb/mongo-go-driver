@@ -19,13 +19,13 @@ import (
 func TestCrudProse(t *testing.T) {
 	clientOpts := options.Client().SetRetryWrites(false).SetWriteConcern(mtest.MajorityWc).
 		SetReadConcern(mtest.MajorityRc)
-	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("3.6").Topologies(mtest.ReplicaSet, mtest.Sharded).
+	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.0").Topologies(mtest.ReplicaSet).
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	mt.Run("BulkWriteException with RetryableWriteError label", func(mt *mtest.T) {
-		label := "RetryableWriteError"
+	label := "ExampleError"
+	mt.Run("InsertMany errors with RetryableWriteError label", func(mt *mtest.T) {
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: mtest.FailPointMode{
@@ -34,7 +34,7 @@ func TestCrudProse(t *testing.T) {
 			Data: mtest.FailPointData{
 				FailCommands: []string{"insert"},
 				WriteConcernError: &mtest.WriteConcernErrorData{
-					Code:        11600,
+					Code:        100,
 					ErrorLabels: &[]string{label},
 				},
 			},
@@ -49,6 +49,56 @@ func TestCrudProse(t *testing.T) {
 					{"a", 2},
 				},
 			})
+		assert.NotNil(mt, err, "expected non-nil error, got nil")
+
+		we, ok := err.(mongo.BulkWriteException)
+		assert.True(mt, ok, "expected mongo.BulkWriteException, got %T", err)
+		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
+	})
+
+	mt.Run("WriteException with RetryableWriteError label", func(mt *mtest.T) {
+		mt.SetFailPoint(mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: mtest.FailPointMode{
+				Times: 1,
+			},
+			Data: mtest.FailPointData{
+				FailCommands: []string{"delete"},
+				WriteConcernError: &mtest.WriteConcernErrorData{
+					Code:        100,
+					ErrorLabels: &[]string{label},
+				},
+			},
+		})
+
+		_, err := mt.Coll.DeleteMany(mtest.Background, bson.D{{"a", 1}})
+		assert.NotNil(mt, err, "expected non-nil error, got nil")
+
+		we, ok := err.(mongo.WriteException)
+		assert.True(mt, ok, "expected mongo.WriteException, got %T", err)
+		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
+	})
+
+	mt.Run("BulkWriteException with RetryableWriteError label", func(mt *mtest.T) {
+		mt.SetFailPoint(mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: mtest.FailPointMode{
+				Times: 1,
+			},
+			Data: mtest.FailPointData{
+				FailCommands: []string{"delete"},
+				WriteConcernError: &mtest.WriteConcernErrorData{
+					Code:        100,
+					ErrorLabels: &[]string{label},
+				},
+			},
+		})
+
+		models := []mongo.WriteModel{
+			&mongo.InsertOneModel{bson.D{{"a", 2}}},
+			&mongo.DeleteOneModel{bson.D{{"a", 2}}, nil},
+		}
+		_, err := mt.Coll.BulkWrite(mtest.Background, models)
 		assert.NotNil(mt, err, "expected non-nil error, got nil")
 
 		we, ok := err.(mongo.BulkWriteException)
