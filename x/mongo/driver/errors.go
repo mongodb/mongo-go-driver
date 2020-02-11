@@ -101,6 +101,20 @@ func (wce WriteCommandError) Retryable() bool {
 	return (*wce.WriteConcernError).Retryable()
 }
 
+// RetryableWrite returns true if the error is retryable for a write operation
+func (wce WriteCommandError) RetryableWrite(wireVersion *description.VersionRange) bool {
+	for _, label := range wce.Labels {
+		if label == RetryableWriteError {
+			return true
+		}
+	}
+	if wireVersion != nil && wireVersion.Max >= 9 {
+		return false
+	}
+
+	return wce.Retryable()
+}
+
 // WriteConcernError is a write concern failure that occurred as a result of a
 // write operation.
 type WriteConcernError struct {
@@ -108,6 +122,7 @@ type WriteConcernError struct {
 	Code    int64
 	Message string
 	Details bsoncore.Document
+	Labels  []string
 }
 
 func (wce WriteConcernError) Error() string {

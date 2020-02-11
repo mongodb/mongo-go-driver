@@ -397,7 +397,19 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if e := err.(WriteCommandError); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
-			if retryable && tt.Retryable() && retries != 0 {
+			
+			connDesc := conn.Description()
+			var retryableErr bool
+			if op.Type == Write {
+				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
+				// Add a RetryableWriteError label for retryable errors from pre-4.4 servers
+				if retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9 {
+					tt.Labels = append(tt.Labels, RetryableWriteError)
+				}
+			} else {
+				retryableErr = tt.Retryable()
+			}
+			if retryable && retryableErr && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -433,10 +445,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					Message: tt.WriteConcernError.Message,
 					Labels:  tt.Labels,
 				}
-				if err.Code == 64 || err.Code == 50 || tt.WriteConcernError.Retryable() {
+				if err.Code == 64 || err.Code == 50 || retryableErr {
 					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
 				}
-				if tt.WriteConcernError.Retryable() {
+				if retryableErr {
 					err.Labels = append(err.Labels, RetryableWriteError)
 				}
 				return err
