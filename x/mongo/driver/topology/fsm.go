@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
-var supportedWireVersions = description.NewVersionRange(2, 8)
+var supportedWireVersions = description.NewVersionRange(2, 9)
 var minSupportedMongoDBVersion = "2.6"
 
 type fsm struct {
