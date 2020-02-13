@@ -25,7 +25,7 @@ func TestCrudProse(t *testing.T) {
 	defer mt.Close()
 
 	label := "ExampleError"
-	mt.Run("InsertMany errors with RetryableWriteError label", func(mt *mtest.T) {
+	mt.Run("InsertMany errors with label", func(mt *mtest.T) {
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: mtest.FailPointMode{
@@ -56,7 +56,7 @@ func TestCrudProse(t *testing.T) {
 		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
 	})
 
-	mt.Run("WriteException with RetryableWriteError label", func(mt *mtest.T) {
+	mt.Run("WriteException with label", func(mt *mtest.T) {
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: mtest.FailPointMode{
@@ -79,7 +79,7 @@ func TestCrudProse(t *testing.T) {
 		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
 	})
 
-	mt.Run("BulkWriteException with RetryableWriteError label", func(mt *mtest.T) {
+	mt.Run("BulkWriteException with label", func(mt *mtest.T) {
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: mtest.FailPointMode{

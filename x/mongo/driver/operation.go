@@ -399,16 +399,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 
 			connDesc := conn.Description()
-			var retryableErr bool
-			if op.Type == Write {
-				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
-				// Add a RetryableWriteError label for retryable errors from pre-4.4 servers
-				if retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9 {
-					tt.Labels = append(tt.Labels, RetryableWriteError)
-				}
-			} else {
-				retryableErr = tt.Retryable()
+			retryableErr := tt.Retryable(connDesc.WireVersion)
+			// Add a RetryableWriteError label for retryable errors from pre-4.4 servers
+			if retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9 {
+				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
+
 			if retryable && retryableErr && retries != 0 {
 				retries--
 				original, err = err, nil
@@ -473,7 +469,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					tt.Labels = append(tt.Labels, RetryableWriteError)
 				}
 			} else {
-				retryableErr = tt.Retryable()
+				retryableErr = tt.RetryableRead()
 			}
 
 			if retryable && retryableErr && retries != 0 {

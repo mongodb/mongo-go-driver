@@ -204,7 +204,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.err = original
 		switch tt := original.(type) {
 		case driver.Error:
-			if !tt.Retryable() {
+			if !tt.RetryableRead() {
 				break
 			}
 

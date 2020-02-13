@@ -94,15 +94,7 @@ func (wce WriteCommandError) Error() string {
 }
 
 // Retryable returns true if the error is retryable
-func (wce WriteCommandError) Retryable() bool {
-	if wce.WriteConcernError == nil {
-		return false
-	}
-	return (*wce.WriteConcernError).Retryable()
-}
-
-// RetryableWrite returns true if the error is retryable for a write operation
-func (wce WriteCommandError) RetryableWrite(wireVersion *description.VersionRange) bool {
+func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bool {
 	for _, label := range wce.Labels {
 		if label == RetryableWriteError {
 			return true
@@ -112,7 +104,10 @@ func (wce WriteCommandError) RetryableWrite(wireVersion *description.VersionRang
 		return false
 	}
 
-	return wce.Retryable()
+	if wce.WriteConcernError == nil {
+		return false
+	}
+	return (*wce.WriteConcernError).Retryable()
 }
 
 // WriteConcernError is a write concern failure that occurred as a result of a
@@ -234,8 +229,8 @@ func (e Error) HasErrorLabel(label string) bool {
 	return false
 }
 
-// Retryable returns true if the error is retryable
-func (e Error) Retryable() bool {
+// RetryableRead returns true if the error is retryable for a read operation
+func (e Error) RetryableRead() bool {
 	for _, label := range e.Labels {
 		if label == NetworkError {
 			return true
