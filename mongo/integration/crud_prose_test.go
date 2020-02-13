@@ -116,7 +116,7 @@ func TestHintErrors(t *testing.T) {
 	expected := errors.New("the 'hint' command parameter requires a minimum server wire version of 5")
 	mt.Run("UpdateMany", func(mt *mtest.T) {
 
-		_, got := mt.Coll.UpdateMany(mtest.Background, bson.D{{"a", 1}}, bson.D{{"$inc", "a"}},
+		_, got := mt.Coll.UpdateMany(mtest.Background, bson.D{{"a", 1}}, bson.D{{"$inc", bson.D{{"a", 1}}}},
 			options.Update().SetHint("_id_"))
 		assert.NotNil(mt, got, "expected non-nil error, got nil")
 		assert.Equal(mt, got, expected, "expected: %v got: %v", expected, got)
