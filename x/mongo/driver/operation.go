@@ -397,7 +397,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if e := err.(WriteCommandError); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
-			
+
 			connDesc := conn.Description()
 			var retryableErr bool
 			if op.Type == Write {

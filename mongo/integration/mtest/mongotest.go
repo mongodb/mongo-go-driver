@@ -61,7 +61,7 @@ type FailPointData struct {
 	CloseConnection               bool                   `bson:"closeConnection,omitempty"`
 	ErrorCode                     int32                  `bson:"errorCode,omitempty"`
 	FailBeforeCommitExceptionCode int32                  `bson:"failBeforeCommitExceptionCode,omitempty"`
-	ErrorLabels 				  *[]string 			 `bson:"errorLabels,omitempty"`
+	ErrorLabels                   *[]string              `bson:"errorLabels,omitempty"`
 	WriteConcernError             *WriteConcernErrorData `bson:"writeConcernError,omitempty"`
 }
 
