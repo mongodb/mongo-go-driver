@@ -89,33 +89,34 @@ type Credential struct {
 // ClientOptions contains options to configure a Client instance. Each option can be set through setter functions. See
 // documentation for each setter function for an explanation of the option.
 type ClientOptions struct {
-	AppName                *string
-	Auth                   *Credential
-	ConnectTimeout         *time.Duration
-	Compressors            []string
-	Dialer                 ContextDialer
-	HeartbeatInterval      *time.Duration
-	Hosts                  []string
-	LocalThreshold         *time.Duration
-	MaxConnIdleTime        *time.Duration
-	MaxPoolSize            *uint64
-	MinPoolSize            *uint64
-	PoolMonitor            *event.PoolMonitor
-	Monitor                *event.CommandMonitor
-	ReadConcern            *readconcern.ReadConcern
-	ReadPreference         *readpref.ReadPref
-	Registry               *bsoncodec.Registry
-	ReplicaSet             *string
-	RetryWrites            *bool
-	RetryReads             *bool
-	ServerSelectionTimeout *time.Duration
-	Direct                 *bool
-	SocketTimeout          *time.Duration
-	TLSConfig              *tls.Config
-	WriteConcern           *writeconcern.WriteConcern
-	ZlibLevel              *int
-	ZstdLevel              *int
-	AutoEncryptionOptions  *AutoEncryptionOptions
+	AppName                  *string
+	Auth                     *Credential
+	ConnectTimeout           *time.Duration
+	Compressors              []string
+	Dialer                   ContextDialer
+	HeartbeatInterval        *time.Duration
+	Hosts                    []string
+	LocalThreshold           *time.Duration
+	MaxConnIdleTime          *time.Duration
+	MaxPoolSize              *uint64
+	MinPoolSize              *uint64
+	PoolMonitor              *event.PoolMonitor
+	Monitor                  *event.CommandMonitor
+	ReadConcern              *readconcern.ReadConcern
+	ReadPreference           *readpref.ReadPref
+	Registry                 *bsoncodec.Registry
+	ReplicaSet               *string
+	RetryWrites              *bool
+	RetryReads               *bool
+	ServerSelectionTimeout   *time.Duration
+	Direct                   *bool
+	SocketTimeout            *time.Duration
+	TLSConfig                *tls.Config
+	WriteConcern             *writeconcern.WriteConcern
+	ZlibLevel                *int
+	ZstdLevel                *int
+	AutoEncryptionOptions    *AutoEncryptionOptions
+	DisableOCSPEndpointCheck *bool
 
 	err error
 
@@ -635,6 +636,20 @@ func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *C
 	return c
 }
 
+// SetDisableOCSPEndpointCheck specifies whether or not the driver should reach out to OCSP responders to verify the
+// certificate status for certificates presented by the server that contain a list of OCSP responders.
+//
+// If set to true, the driver will verify the status of the certificate using a response stapled by the server, if there
+// is one, but will not send an HTTP request to any responders if there is no staple. In this case, the driver will
+// continue the connection even though the certificate status is not known.
+//
+// This can also be set through the tlsDisableOCSPEndpointCheck URI option. Both this URI option and tlsInsecure must
+// not be set at the same time and will error if they are. The default value is false.
+func (c *ClientOptions) SetDisableOCSPEndpointCheck(disableCheck bool) *ClientOptions {
+	c.DisableOCSPEndpointCheck = &disableCheck
+	return c
+}
+
 // MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
@@ -732,6 +747,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Deployment != nil {
 			c.Deployment = opt.Deployment
+		}
+		if opt.DisableOCSPEndpointCheck != nil {
+			c.DisableOCSPEndpointCheck = opt.DisableOCSPEndpointCheck
 		}
 		if opt.err != nil {
 			c.err = opt.err

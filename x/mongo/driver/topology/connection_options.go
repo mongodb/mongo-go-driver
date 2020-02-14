@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 )
 
 // Dialer is used to make network connections.
@@ -36,20 +37,22 @@ var DefaultDialer Dialer = &net.Dialer{}
 type Handshaker = driver.Handshaker
 
 type connectionConfig struct {
-	appName        string
-	connectTimeout time.Duration
-	dialer         Dialer
-	handshaker     Handshaker
-	idleTimeout    time.Duration
-	lifeTimeout    time.Duration
-	cmdMonitor     *event.CommandMonitor
-	readTimeout    time.Duration
-	writeTimeout   time.Duration
-	tlsConfig      *tls.Config
-	compressors    []string
-	zlibLevel      *int
-	zstdLevel      *int
-	descCallback   func(description.Server)
+	appName                  string
+	connectTimeout           time.Duration
+	dialer                   Dialer
+	handshaker               Handshaker
+	idleTimeout              time.Duration
+	lifeTimeout              time.Duration
+	cmdMonitor               *event.CommandMonitor
+	readTimeout              time.Duration
+	writeTimeout             time.Duration
+	tlsConfig                *tls.Config
+	compressors              []string
+	zlibLevel                *int
+	zstdLevel                *int
+	descCallback             func(description.Server)
+	ocspCache                ocsp.Cache
+	disableOCSPEndpointCheck bool
 }
 
 func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
@@ -187,6 +190,24 @@ func WithZlibLevel(fn func(*int) *int) ConnectionOption {
 func WithZstdLevel(fn func(*int) *int) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.zstdLevel = fn(c.zstdLevel)
+		return nil
+	}
+}
+
+// WithOCSPCache specifies a cache to use for OCSP verification.
+func WithOCSPCache(fn func(ocsp.Cache) ocsp.Cache) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.ocspCache = fn(c.ocspCache)
+		return nil
+	}
+}
+
+// WithDisableOCSPEndpointCheck specifies whether or the driver should perform non-stapled OCSP verification. If set
+// to true, the driver will only check stapled responses and will continue the connection without reaching out to
+// OCSP responders.
+func WithDisableOCSPEndpointCheck(fn func(bool) bool) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.disableOCSPEndpointCheck = fn(c.disableOCSPEndpointCheck)
 		return nil
 	}
 }
