@@ -441,7 +441,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					Message: tt.WriteConcernError.Message,
 					Labels:  tt.Labels,
 				}
-				if err.Code == 64 || err.Code == 50 || retryableErr {
+				if err.Code != 79 && err.Code != 100 {
 					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
 				}
 				if retryableErr {
