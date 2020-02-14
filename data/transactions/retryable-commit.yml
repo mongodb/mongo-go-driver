@@ -252,7 +252,7 @@ tests:
       collection:
         data: []
 
-  - description: commitTransaction fails after WriteConcernError Interrupted
+  - description: commitTransaction is not retried after UnsatisfiableWriteConcern error
 
     failPoint:
       configureFailPoint: failCommand
@@ -260,8 +260,8 @@ tests:
       data:
           failCommands: ["commitTransaction"]
           writeConcernError:
-            code: 11601
-            errmsg: operation was interrupted
+            code: 100
+            errmsg: Not enough data-bearing nodes
 
     operations:
       - name: startTransaction
