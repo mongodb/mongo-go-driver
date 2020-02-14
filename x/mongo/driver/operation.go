@@ -397,7 +397,15 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if e := err.(WriteCommandError); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
-			if retryable && tt.Retryable() && retries != 0 {
+
+			connDesc := conn.Description()
+			retryableErr := tt.Retryable(connDesc.WireVersion)
+			// Add a RetryableWriteError label for retryable errors from pre-4.4 servers
+			if retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9 {
+				tt.Labels = append(tt.Labels, RetryableWriteError)
+			}
+
+			if retryable && retryableErr && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -431,14 +439,19 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					Name:    tt.WriteConcernError.Name,
 					Code:    int32(tt.WriteConcernError.Code),
 					Message: tt.WriteConcernError.Message,
+					Labels:  tt.Labels,
 				}
-				if err.Code == 64 || err.Code == 50 || tt.WriteConcernError.Retryable() {
-					err.Labels = []string{UnknownTransactionCommitResult}
+				if err.Code == 64 || err.Code == 50 || retryableErr {
+					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
+				}
+				if retryableErr {
+					err.Labels = append(err.Labels, RetryableWriteError)
 				}
 				return err
 			}
 			operationErr.WriteConcernError = tt.WriteConcernError
 			operationErr.WriteErrors = append(operationErr.WriteErrors, tt.WriteErrors...)
+			operationErr.Labels = tt.Labels
 		case Error:
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				op.Client.ClearPinnedServer()
@@ -446,7 +459,20 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if e := err.(Error); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
-			if retryable && tt.Retryable() && retries != 0 {
+
+			connDesc := conn.Description()
+			var retryableErr bool
+			if op.Type == Write {
+				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
+				// Add a RetryableWriteError label for network errors and retryable errors from pre-4.4 servers
+				if tt.HasErrorLabel(NetworkError) || (retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9) {
+					tt.Labels = append(tt.Labels, RetryableWriteError)
+				}
+			} else {
+				retryableErr = tt.RetryableRead()
+			}
+
+			if retryable && retryableErr && retries != 0 {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
@@ -469,7 +495,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				continue
 			}
-			if op.Client != nil && op.Client.Committing && (tt.Retryable() || tt.Code == 50) {
+
+			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
 				// If we got a retryable error or MaxTimeMSExpired error, we add UnknownTransactionCommitResult.
 				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
 			}

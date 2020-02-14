@@ -1,4 +1,18 @@
 {
+  "runOn": [
+    {
+      "minServerVersion": "4.0",
+      "topology": [
+        "replicaset"
+      ]
+    },
+    {
+      "minServerVersion": "4.1.7",
+      "topology": [
+        "sharded"
+      ]
+    }
+  ],
   "data": [
     {
       "_id": 1,
@@ -9,7 +23,6 @@
       "x": 22
     }
   ],
-  "minServerVersion": "3.99",
   "tests": [
     {
       "description": "DeleteOne succeeds after PrimarySteppedDown",
@@ -22,7 +35,10 @@
           "failCommands": [
             "delete"
           ],
-          "errorCode": 189
+          "errorCode": 189,
+          "errorLabels": [
+            "RetryableWriteError"
+          ]
         }
       },
       "operation": {
@@ -60,7 +76,10 @@
           ],
           "writeConcernError": {
             "code": 91,
-            "errmsg": "Replication is being shut down"
+            "errmsg": "Replication is being shut down",
+            "errorLabels": [
+              "RetryableWriteError"
+            ]
           }
         }
       },
@@ -78,6 +97,49 @@
         },
         "collection": {
           "data": [
+            {
+              "_id": 2,
+              "x": 22
+            }
+          ]
+        }
+      }
+    },
+    {
+      "description": "DeleteOne fails with RetryableWriteError label after two connection failures",
+      "failPoint": {
+        "configureFailPoint": "failCommand",
+        "mode": {
+          "times": 2
+        },
+        "data": {
+          "failCommands": [
+            "delete"
+          ],
+          "closeConnection": true
+        }
+      },
+      "operation": {
+        "name": "deleteOne",
+        "arguments": {
+          "filter": {
+            "_id": 1
+          }
+        }
+      },
+      "outcome": {
+        "error": true,
+        "result": {
+          "errorLabelsContain": [
+            "RetryableWriteError"
+          ]
+        },
+        "collection": {
+          "data": [
+            {
+              "_id": 1,
+              "x": 11
+            },
             {
               "_id": 2,
               "x": 22

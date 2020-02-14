@@ -1,8 +1,13 @@
+runOn:
+    -
+        minServerVersion: "4.0"
+        topology: ["replicaset"]
+    -
+        minServerVersion: "4.1.7"
+        topology: ["sharded"]
+
 data:
     - { _id: 1, x: 11 }
-
-# TODO: this should change to 4.0 once 4.0.0 is released.
-minServerVersion: '3.99'
 
 tests:
     -
@@ -13,6 +18,7 @@ tests:
             data:
                 failCommands: ["insert"]
                 errorCode: 189
+                errorLabels: ["RetryableWriteError"] # SPEC-1565
         operation:
             name: "insertMany"
             arguments:
@@ -38,6 +44,7 @@ tests:
                 writeConcernError:
                     code: 91
                     errmsg: Replication is being shut down
+                    errorLabels: ["RetryableWriteError"] # SPEC-1565
         operation:
             name: "insertMany"
             arguments:
@@ -53,3 +60,25 @@ tests:
                     - { _id: 1, x: 11 }
                     - { _id: 2, x: 22 }
                     - { _id: 3, x: 33 }
+    -
+        description: "InsertMany fails with a RetryableWriteError label after two connection failures"
+        failPoint:
+            configureFailPoint: failCommand
+            mode: { times: 2 }
+            data:
+                failCommands: ["insert"]
+                closeConnection: true
+        operation:
+            name: "insertMany"
+            arguments:
+                documents:
+                    - { _id: 2, x: 22 }
+                    - { _id: 3, x: 33 }
+                options: { ordered: true }
+        outcome:
+            error: true
+            result:
+                errorLabelsContain: ["RetryableWriteError"]
+            collection:
+                data:
+                    - { _id: 1, x: 11 }

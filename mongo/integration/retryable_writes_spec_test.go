@@ -19,10 +19,9 @@ import (
 const retryableWritesTestDir = "../../data/retryable-writes"
 
 type retryableWritesTestFile struct {
-	Data             []bson.Raw            `bson:"data"`
-	MinServerVersion string                `bson:"minServerVersion"`
-	MaxServerVersion string                `bson:"maxServerVersion"`
-	Tests            []retryableWritesTest `bson:"tests"`
+	RunOn []mtest.RunOnBlock    `bson:"runOn"`
+	Data  []bson.Raw            `bson:"data"`
+	Tests []retryableWritesTest `bson:"tests"`
 }
 
 type retryableWritesTest struct {
@@ -50,9 +49,7 @@ func runRetryableWritesFile(t *testing.T, filePath string) {
 	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
 	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
 
-	mtOpts := mtest.NewOptions().MinServerVersion(testFile.MinServerVersion).MaxServerVersion(testFile.MaxServerVersion).
-		Topologies(mtest.ReplicaSet).CreateClient(false)
-	mt := mtest.New(t, mtOpts)
+	mt := mtest.New(t, mtest.NewOptions().RunOn(testFile.RunOn...).CreateClient(false))
 	defer mt.Close()
 
 	for _, test := range testFile.Tests {
