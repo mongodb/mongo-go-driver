@@ -58,6 +58,8 @@ func createUpdate(mt *mtest.T, updateVal bson.RawValue) interface{} {
 
 // create a hint string or document from a bson.RawValue
 func createHint(mt *mtest.T, val bson.RawValue) interface{} {
+	mt.Helper()
+
 	var hint interface{}
 	switch val.Type {
 	case bsontype.String:
