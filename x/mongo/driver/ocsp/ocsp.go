@@ -24,7 +24,6 @@ import (
 
 var (
 	mustStapleExtensionOID = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 24}
-	ocspSigningExtensionID = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 9}
 
 	defaultRequestTimeout = 5 * time.Second
 	errGotOCSPResponse    = errors.New("done")
