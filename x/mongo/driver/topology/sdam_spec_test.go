@@ -63,15 +63,22 @@ type lastWriteDate struct {
 }
 
 type server struct {
-	Type    string
-	SetName string
+	Type           string
+	SetName        string
+	SetVersion     uint32
+	ElectionID     *primitive.ObjectID `bson:"electionId"`
+	MinWireVersion *int32
+	MaxWireVersion *int32
 }
 
 type outcome struct {
-	Servers      map[string]server
-	TopologyType string
-	SetName      string
-	Compatible   *bool
+	Servers                      map[string]server
+	TopologyType                 string
+	SetName                      string
+	LogicalSessionTimeoutMinutes uint32
+	MaxSetVersion                uint32
+	MaxElectionID                primitive.ObjectID `bson:"maxElectionId"`
+	Compatible                   *bool
 }
 
 type phase struct {
@@ -163,6 +170,9 @@ func runTest(t *testing.T, directory string, filename string) {
 			require.Equal(t, phase.Outcome.TopologyType, f.Kind.String())
 			require.Equal(t, phase.Outcome.SetName, f.SetName)
 			require.Equal(t, len(phase.Outcome.Servers), len(f.Servers))
+			require.Equal(t, phase.Outcome.LogicalSessionTimeoutMinutes, f.SessionTimeoutMinutes)
+			require.Equal(t, phase.Outcome.MaxSetVersion, f.maxSetVersion)
+			require.Equal(t, phase.Outcome.MaxElectionID, f.maxElectionID)
 
 			for addr, server := range phase.Outcome.Servers {
 				fsmServer, ok := f.Server(address.Address(addr))
@@ -170,6 +180,10 @@ func runTest(t *testing.T, directory string, filename string) {
 
 				require.Equal(t, address.Address(addr), fsmServer.Addr)
 				require.Equal(t, server.SetName, fsmServer.SetName)
+				require.Equal(t, server.SetVersion, fsmServer.SetVersion)
+				if server.ElectionID != nil {
+					require.Equal(t, *server.ElectionID, fsmServer.ElectionID)
+				}
 
 				// PossiblePrimary is only relevant to single-threaded drivers.
 				if server.Type == "PossiblePrimary" {
