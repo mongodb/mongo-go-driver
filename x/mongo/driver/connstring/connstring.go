@@ -26,6 +26,19 @@ func Parse(s string) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	err := p.parse(s)
 	if err != nil {
+		return p.ConnString, internal.WrapErrorf(err, "error parsing uri")
+	}
+	err = p.ConnString.Validate()
+	return p.ConnString, err
+}
+
+// ParseWithoutValidating parses the provided uri and returns a URI object
+// but does not check that all values are valid. Use `ConnString.Validate()`
+// to run the validation checks separately.
+func ParseWithoutValidating(s string) (ConnString, error) {
+	p := parser{dnsResolver: dns.DefaultResolver}
+	err := p.parse(s)
+	if err != nil {
 		err = internal.WrapErrorf(err, "error parsing uri")
 	}
 	return p.ConnString, err
@@ -107,6 +120,19 @@ type ConnString struct {
 
 func (u *ConnString) String() string {
 	return u.Original
+}
+
+// Validate checks that the Auth and SSL parameters are valid values.
+func (u *ConnString) Validate() error {
+	p := parser{
+		dnsResolver: dns.DefaultResolver,
+		ConnString:  *u,
+	}
+	err := p.validate()
+	if err != nil {
+		err = internal.WrapErrorf(err, "error validating connection string")
+	}
+	return err
 }
 
 // ConnectMode informs the driver on how to connect
@@ -251,6 +277,17 @@ func (p *parser) parse(original string) error {
 		return err
 	}
 
+	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.
+	if p.WTimeoutSetFromOption {
+		p.WTimeoutSet = true
+	}
+
+	return nil
+}
+
+func (p *parser) validate() error {
+	var err error
+
 	err = p.validateAuth()
 	if err != nil {
 		return err
@@ -263,11 +300,6 @@ func (p *parser) parse(original string) error {
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if p.WNumberSet && p.WNumber == 0 && p.JSet && p.J {
 		return writeconcern.ErrInconsistent
-	}
-
-	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.
-	if p.WTimeoutSetFromOption {
-		p.WTimeoutSet = true
 	}
 
 	return nil
