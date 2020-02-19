@@ -26,13 +26,13 @@ func Parse(s string) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	err := p.parse(s)
 	if err != nil {
-		err = internal.WrapErrorf(err, "error parsing uri")
+		return p.ConnString, internal.WrapErrorf(err, "error parsing uri")
 	}
 	err = p.ConnString.Validate()
 	if err != nil {
-		err = internal.WrapErrorf(err, "error parsing uri")
+		return p.ConnString, internal.WrapErrorf(err, "error parsing uri")
 	}
-	return p.ConnString, err
+	return p.ConnString, nil
 }
 
 // ParseWithoutValidating parses the provided uri and returns a URI object
