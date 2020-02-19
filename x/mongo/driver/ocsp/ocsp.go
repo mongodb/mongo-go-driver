@@ -39,6 +39,11 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("OCSP verification failed: %v", e.wrapped)
 }
 
+// Unwrap returns the underlying error.
+func (e *Error) Unwrap() error {
+	return e.wrapped
+}
+
 func newOCSPError(wrapped error) error {
 	return &Error{wrapped: wrapped}
 }
@@ -76,8 +81,8 @@ func Verify(ctx context.Context, connState tls.ConnectionState) error {
 		return nil
 	}
 
-	if err = verifyResponse(ocspCfg, res); err != nil {
-		return newOCSPError(err)
+	if res.Status == ocsp.Revoked {
+		return newOCSPError(errors.New("certificate is revoked"))
 	}
 	return nil
 }
@@ -115,6 +120,10 @@ func parseStaple(cfg config, staple []byte) (*ocsp.Response, error) {
 		// status.
 		return nil, fmt.Errorf("error parsing stapled response: %v", err)
 	}
+	if err = verifyResponse(cfg, parsedResponse); err != nil {
+		return nil, fmt.Errorf("error validating stapled response: %v", err)
+	}
+
 	return parsedResponse, nil
 }
 
@@ -186,7 +195,7 @@ func contactResponders(ctx context.Context, cfg config) (*ocsp.Response, error) 
 				cancelled := urlErr.Err == context.Canceled // Timeout() does not return true for context.Cancelled.
 				if userContextUsed && (timeout || cancelled) {
 					// Handle the original context expiring or being cancelled.
-					return newOCSPError(err)
+					return err
 				}
 				return nil // Ignore all other errors.
 			}
@@ -203,9 +212,9 @@ func contactResponders(ctx context.Context, cfg config) (*ocsp.Response, error) 
 			}
 
 			ocspResponse, err := ocsp.ParseResponseForCert(httpBytes, cfg.serverCert, cfg.issuer)
-			if err != nil || ocspResponse.Status == ocsp.Unknown {
-				// If there was an error parsing the response or the response was inconclusive, suppress the error
-				// because we want to ignore this responder.
+			if err != nil || verifyResponse(cfg, ocspResponse) != nil || ocspResponse.Status == ocsp.Unknown {
+				// If there was an error parsing/validating the response or the response was inconclusive, suppress
+				// the error because we want to ignore this responder.
 				return nil
 			}
 
@@ -235,9 +244,6 @@ func verifyResponse(cfg config, res *ocsp.Response) error {
 	}
 	if !res.NextUpdate.IsZero() && res.NextUpdate.Before(currTime) {
 		return fmt.Errorf("reported nextUpdate time %s is before current time %s", res.NextUpdate, currTime)
-	}
-	if res.Status == ocsp.Revoked {
-		return errors.New("certificate is revoked")
 	}
 	return nil
 }
