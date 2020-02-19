@@ -53,7 +53,9 @@ type ConnString struct {
 	AppName                            string
 	AuthMechanism                      string
 	AuthMechanismProperties            map[string]string
+	AuthMechanismPropertiesSet         bool
 	AuthSource                         string
+	AuthSourceSet                      bool
 	Compressors                        []string
 	Connect                            ConnectMode
 	ConnectSet                         bool
@@ -504,8 +506,10 @@ func (p *parser) addOption(pair string) error {
 			}
 			p.AuthMechanismProperties[kv[0]] = kv[1]
 		}
+		p.AuthMechanismPropertiesSet = true
 	case "authsource":
 		p.AuthSource = value
+		p.AuthSourceSet = true
 	case "compressors":
 		compressors := strings.Split(value, ",")
 		if len(compressors) < 1 {
