@@ -26,9 +26,12 @@ func Parse(s string) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	err := p.parse(s)
 	if err != nil {
-		return p.ConnString, internal.WrapErrorf(err, "error parsing uri")
+		err = internal.WrapErrorf(err, "error parsing uri")
 	}
 	err = p.ConnString.Validate()
+	if err != nil {
+		err = internal.WrapErrorf(err, "error parsing uri")
+	}
 	return p.ConnString, err
 }
 
@@ -128,11 +131,7 @@ func (u *ConnString) Validate() error {
 		dnsResolver: dns.DefaultResolver,
 		ConnString:  *u,
 	}
-	err := p.validate()
-	if err != nil {
-		err = internal.WrapErrorf(err, "error validating connection string")
-	}
-	return err
+	return p.validate()
 }
 
 // ConnectMode informs the driver on how to connect
