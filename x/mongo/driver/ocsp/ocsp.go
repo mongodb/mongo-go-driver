@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/asn1"
 	"errors"
 	"fmt"
@@ -238,6 +239,23 @@ func contactResponders(ctx context.Context, cfg config) (*ocsp.Response, error) 
 // verifyResponse checks that the provided OCSP response is valid. An error is returned if the response is invalid or
 // reports that the certificate being checked has been revoked.
 func verifyResponse(cfg config, res *ocsp.Response) error {
+	if res.Certificate != nil {
+		// ParseResponseForCert does not check if the delegate certificate used to sign the OCSP response has the
+		// OCSP signing extended key usage as required by point 4 of RFC 6960, section 3.2, so we manually perform
+		// the check here.
+		var foundExtendedUsage bool
+		for _, extKeyUsage := range res.Certificate.ExtKeyUsage {
+			if extKeyUsage == x509.ExtKeyUsageOCSPSigning {
+				foundExtendedUsage = true
+				break
+			}
+		}
+
+		if !foundExtendedUsage {
+			return errors.New("delegate responder certificate is missing the OCSP signing extended key usage")
+		}
+	}
+
 	currTime := time.Now().UTC()
 	if res.ThisUpdate.After(currTime) {
 		return fmt.Errorf("reported thisUpdate time %s is after current time %s", res.ThisUpdate, currTime)
