@@ -450,6 +450,9 @@ func (vr *valueReader) ReadCodeWithScope() (code string, dr DocumentReader, err 
 	if err != nil {
 		return "", nil, err
 	}
+	if strLength <= 0 {
+		return "", nil, fmt.Errorf("invalid string length: %d", strLength)
+	}
 	strBytes, err := vr.readBytes(strLength)
 	if err != nil {
 		return "", nil, err
