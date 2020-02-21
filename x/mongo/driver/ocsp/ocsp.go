@@ -240,6 +240,11 @@ func contactResponders(ctx context.Context, cfg config) (*ocsp.Response, error) 
 // reports that the certificate being checked has been revoked.
 func verifyResponse(cfg config, res *ocsp.Response) error {
 	if res.Certificate != nil {
+		// TODO: we should only check for the OCSP signing extended key usage if res.Certificate is not the same as
+		// cfg.issuer. This will be done in the PR for OCSP caching because some of the information needed to check
+		// this is in the OCSP request, which we don't have access to here, but will once the caching refactor is
+		// done.
+
 		// ParseResponseForCert does not check if the delegate certificate used to sign the OCSP response has the
 		// OCSP signing extended key usage as required by point 4 of RFC 6960, section 3.2, so we manually perform
 		// the check here.
