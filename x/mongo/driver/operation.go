@@ -432,8 +432,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					Code:    int32(tt.WriteConcernError.Code),
 					Message: tt.WriteConcernError.Message,
 				}
-				if err.Code == 64 || err.Code == 50 || tt.WriteConcernError.Retryable() {
-					err.Labels = []string{UnknownTransactionCommitResult}
+				// The UnknownTransactionCommitResult label is added to all writeConcernErrors besides unknownReplWriteConcernCode
+				// and unsatisfiableWriteConcernCode
+				if err.Code != unknownReplWriteConcernCode && err.Code != unsatisfiableWriteConcernCode {
+					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
 				}
 				return err
 			}
