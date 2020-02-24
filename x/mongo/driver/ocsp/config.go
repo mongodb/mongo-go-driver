@@ -10,6 +10,9 @@ import (
 	"bytes"
 	"crypto/x509"
 	"errors"
+	"fmt"
+
+	"golang.org/x/crypto/ocsp"
 )
 
 func getIssuer(peerCert *x509.Certificate, chain []*x509.Certificate) *x509.Certificate {
@@ -25,6 +28,8 @@ func getIssuer(peerCert *x509.Certificate, chain []*x509.Certificate) *x509.Cert
 
 type config struct {
 	serverCert, issuer *x509.Certificate
+	ocspRequestBytes   []byte
+	ocspRequest        *ocsp.Request
 }
 
 func newConfig(certChain []*x509.Certificate) (config, error) {
@@ -45,5 +50,16 @@ func newConfig(certChain []*x509.Certificate) (config, error) {
 	if cfg.issuer == nil {
 		return cfg, errors.New("no issuer found for the leaf certificate")
 	}
+
+	var err error
+	cfg.ocspRequestBytes, err = ocsp.CreateRequest(cfg.serverCert, cfg.issuer, nil)
+	if err != nil {
+		return cfg, fmt.Errorf("error creating OCSP request: %w", err)
+	}
+	cfg.ocspRequest, err = ocsp.ParseRequest(cfg.ocspRequestBytes)
+	if err != nil {
+		return cfg, fmt.Errorf("error parsing OCSP request bytes: %w", err)
+	}
+
 	return cfg, nil
 }

@@ -136,11 +136,6 @@ func contactResponders(ctx context.Context, cfg config) (*ocsp.Response, error) 
 		return nil, nil
 	}
 
-	requestBytes, err := ocsp.CreateRequest(cfg.serverCert, cfg.issuer, nil)
-	if err != nil {
-		return nil, nil
-	}
-
 	requestCtx := ctx // Either ctx or a new context derived from ctx with a five second timeout.
 	userContextUsed := true
 	var cancelFn context.CancelFunc
@@ -169,9 +164,9 @@ func contactResponders(ctx context.Context, cfg config) (*ocsp.Response, error) 
 		endpoint := endpoint
 		group.Go(func() error {
 			// Use bytes.NewReader instead of bytes.NewBuffer because a bytes.Buffer is an owning representation and the
-			// docs recommend not using the underlying []byte after creating the buffer, so a new copy of requestBytes
-			// would be needed for each request.
-			request, err := http.NewRequest("POST", endpoint, bytes.NewReader(requestBytes))
+			// docs recommend not using the underlying []byte after creating the buffer, so a new copy of the request
+			// bytes would be needed for each request.
+			request, err := http.NewRequest("POST", endpoint, bytes.NewReader(cfg.ocspRequestBytes))
 			if err != nil {
 				return nil
 			}
@@ -239,26 +234,8 @@ func contactResponders(ctx context.Context, cfg config) (*ocsp.Response, error) 
 // verifyResponse checks that the provided OCSP response is valid. An error is returned if the response is invalid or
 // reports that the certificate being checked has been revoked.
 func verifyResponse(cfg config, res *ocsp.Response) error {
-	if res.Certificate != nil {
-		// TODO: we should only check for the OCSP signing extended key usage if res.Certificate is not the same as
-		// cfg.issuer. This will be done in the PR for OCSP caching because some of the information needed to check
-		// this is in the OCSP request, which we don't have access to here, but will once the caching refactor is
-		// done.
-
-		// ParseResponseForCert does not check if the delegate certificate used to sign the OCSP response has the
-		// OCSP signing extended key usage as required by point 4 of RFC 6960, section 3.2, so we manually perform
-		// the check here.
-		var foundExtendedUsage bool
-		for _, extKeyUsage := range res.Certificate.ExtKeyUsage {
-			if extKeyUsage == x509.ExtKeyUsageOCSPSigning {
-				foundExtendedUsage = true
-				break
-			}
-		}
-
-		if !foundExtendedUsage {
-			return errors.New("delegate responder certificate is missing the OCSP signing extended key usage")
-		}
+	if err := verifyExtendedKeyUsage(cfg, res); err != nil {
+		return err
 	}
 
 	currTime := time.Now().UTC()
@@ -267,6 +244,33 @@ func verifyResponse(cfg config, res *ocsp.Response) error {
 	}
 	if !res.NextUpdate.IsZero() && res.NextUpdate.Before(currTime) {
 		return fmt.Errorf("reported nextUpdate time %s is before current time %s", res.NextUpdate, currTime)
+	}
+	return nil
+}
+
+func verifyExtendedKeyUsage(cfg config, res *ocsp.Response) error {
+	if res.Certificate == nil {
+		return nil
+	}
+
+	namesMatch := res.RawResponderName != nil && bytes.Equal(res.RawResponderName, cfg.issuer.RawSubject)
+	keyHashesMatch := res.ResponderKeyHash != nil && bytes.Equal(res.ResponderKeyHash, cfg.ocspRequest.IssuerKeyHash)
+	if namesMatch || keyHashesMatch {
+		// The responder certificate is the same as the issuer certificate.
+		return nil
+	}
+
+	// There is a delegate.
+	var foundExtendedUsage bool
+	for _, extKeyUsage := range res.Certificate.ExtKeyUsage {
+		if extKeyUsage == x509.ExtKeyUsageOCSPSigning {
+			foundExtendedUsage = true
+			break
+		}
+	}
+
+	if !foundExtendedUsage {
+		return errors.New("delegate responder certificate is missing the OCSP signing extended key usage")
 	}
 	return nil
 }
