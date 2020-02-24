@@ -172,6 +172,8 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
 			return nil, errors.New("the 'hint' command parameter requires a minimum server wire version of 5")
+		} else if !desc.WireVersion.Includes(8) && !u.writeConcern.Acknowledged() {
+			return nil, errors.New("the 'hint' command parameter with unacknowledged WriteConcern requires a minimum server wire version of 9")
 		}
 	}
 
