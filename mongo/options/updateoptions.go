@@ -24,6 +24,12 @@ type UpdateOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
+	// The index to use for the operation. This should either be the index name as a string or the index specification
+	// as a document. The default value is nil, which means that no hint will be sent. This option is only supported by
+	// servers >= 4.2. Older servers >= 3.4 will report an error for using this option. For servers < 3.4, the driver
+	// will return an error if this option is used.
+	Hint interface{}
+
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
 	// default value is false.
 	Upsert *bool
@@ -52,6 +58,12 @@ func (uo *UpdateOptions) SetCollation(c *Collation) *UpdateOptions {
 	return uo
 }
 
+// SetHint sets the value for the Hint field.
+func (uo *UpdateOptions) SetHint(h interface{}) *UpdateOptions {
+	uo.Hint = h
+	return uo
+}
+
 // SetUpsert sets the value for the Upsert field.
 func (uo *UpdateOptions) SetUpsert(b bool) *UpdateOptions {
 	uo.Upsert = &b
@@ -73,6 +85,9 @@ func MergeUpdateOptions(opts ...*UpdateOptions) *UpdateOptions {
 		}
 		if uo.Collation != nil {
 			uOpts.Collation = uo.Collation
+		}
+		if uo.Hint != nil {
+			uOpts.Hint = uo.Hint
 		}
 		if uo.Upsert != nil {
 			uOpts.Upsert = uo.Upsert
