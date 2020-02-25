@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -95,12 +96,18 @@ func runChangeStreamTestFile(mt *mtest.T, file string) {
 func runChangeStreamTest(mt *mtest.T, test changeStreamTest, testFile changeStreamTestFile) {
 	mtOpts := mtest.NewOptions().MinServerVersion(test.MinServerVersion).MaxServerVersion(test.MaxServerVersion).
 		Topologies(test.Topology...).DatabaseName(testFile.DatabaseName).CollectionName(testFile.CollectionName)
-	if test.Description == "Change Stream should error when _id is projected out" {
-		// Skip on latest server variant until SPEC-1505 is done
-		mtOpts.MaxServerVersion("4.2")
+
+	// Pin to a single mongos because some tests set fail points and in a sharded cluster, the failpoint and command
+	// that fail must be sent to the same mongos.
+	if mt.TopologyKind() == mtest.Sharded {
+		mtOpts = mtOpts.ClientType(mtest.Pinned)
 	}
 
 	mt.RunOpts(test.Description, mtOpts, func(mt *mtest.T) {
+		if test.FailPoint != nil {
+			mt.SetFailPoint(*test.FailPoint)
+		}
+
 		test.nsMap = make(map[string]struct{})
 
 		mt.ClearEvents()
@@ -146,6 +153,16 @@ func runChangeStreamTest(mt *mtest.T, test changeStreamTest, testFile changeStre
 		}
 
 		verifyChangeStreamResults(mt, test.Result, err)
+
+		mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+			return evt.CommandName != "killCursors"
+		})
+		mt.FilterSucceededEvents(func(evt *event.CommandSucceededEvent) bool {
+			return evt.CommandName != "killCursors"
+		})
+		mt.FilterFailedEvents(func(evt *event.CommandFailedEvent) bool {
+			return evt.CommandName != "killCursors"
+		})
 		checkExpectations(mt, test.Expectations, nil, nil)
 	})
 }
@@ -160,9 +177,10 @@ func runChangeStreamOperations(mt *mtest.T, test changeStreamTest) error {
 			mt.CreateCollection(mtest.Collection{
 				Name: op.Collection,
 				DB:   op.Database,
-			}, true)
+			}, false)
 		}
-		mt.DB = mt.Client.Database(op.Database)
+		// Use the global client to run the operations so they don't show up in the expectations
+		mt.DB = mt.GlobalClient().Database(op.Database)
 		mt.Coll = mt.DB.Collection(op.Collection)
 
 		var err error

@@ -27,15 +27,38 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-const errorInterrupted int32 = 11601
-const errorCappedPositionLost int32 = 136
-const errorCursorKilled int32 = 237
+var (
+	// ErrMissingResumeToken indicates that a change stream notification from the server did not contain a resume token.
+	ErrMissingResumeToken = errors.New("cannot provide resume functionality when the resume token is missing")
+	// ErrNilCursor indicates that the underlying cursor for the change stream is nil.
+	ErrNilCursor = errors.New("cursor is nil")
 
-// ErrMissingResumeToken indicates that a change stream notification from the server did not contain a resume token.
-var ErrMissingResumeToken = errors.New("cannot provide resume functionality when the resume token is missing")
+	minResumableLabelWireVersion int32 = 9 // Wire version at which the server includes the resumable error label
+	networkErrorLabel                  = "NetworkError"
+	resumableErrorLabel                = "ResumableChangeStreamError"
 
-// ErrNilCursor indicates that the underlying cursor for the change stream is nil.
-var ErrNilCursor = errors.New("cursor is nil")
+	// Whitelist of error codes that are considered resumable.
+	resumableChangeStreamErrors = map[int32]struct{}{
+		6:     {}, // HostUnreachable
+		7:     {}, // HostNotFound
+		89:    {}, // NetworkTimeout
+		91:    {}, // ShutdownInProgress
+		189:   {}, // PrimarySteppedDown
+		262:   {}, // ExceededTimeLimit
+		9001:  {}, // SocketException
+		10107: {}, // NotMaster
+		11600: {}, // InterruptedAtShutdown
+		11602: {}, // InterruptedDueToReplStateChange
+		13435: {}, // NotMasterNoSlaveOk
+		13436: {}, // NotMasterOrSecondary
+		63:    {}, // StaleShardVersion
+		150:   {}, // StaleEpoch
+		13388: {}, // StaleConfig
+		234:   {}, // RetryChangeStream
+		133:   {}, // FailedToSatisfyReadPreference
+		216:   {}, // ElectionInProgress
+	}
+)
 
 // ChangeStream is used to iterate over a stream of events. Each event can be decoded into a Go type via the Decode
 // method or accessed as raw BSON via the Current field. For more information about change streams, see
@@ -59,6 +82,7 @@ type ChangeStream struct {
 	options       *options.ChangeStreamOptions
 	selector      description.ServerSelector
 	operationTime *primitive.Timestamp
+	wireVersion   *description.VersionRange
 }
 
 type changeStreamConfig struct {
@@ -168,15 +192,15 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	if conn, cs.err = server.Connection(ctx); cs.err != nil {
 		return cs.Err()
 	}
-
 	defer conn.Close()
+	cs.wireVersion = conn.Description().WireVersion
 
 	cs.aggregate.Deployment(driver.SingleConnectionDeployment{
 		C: conn,
 	})
 
 	if resuming {
-		cs.replaceOptions(ctx, conn.Description().WireVersion) // pass wire version
+		cs.replaceOptions(ctx, cs.wireVersion)
 
 		csOptDoc := cs.createPipelineOptionsDoc()
 		pipIdx, pipDoc := bsoncore.AppendDocumentStart(nil)
@@ -194,8 +218,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	}
 
 	if original := cs.aggregate.Execute(ctx); original != nil {
-		wireVersion := conn.Description().WireVersion
-		retryableRead := cs.client.retryReads && wireVersion != nil && wireVersion.Max >= 6
+		retryableRead := cs.client.retryReads && cs.wireVersion != nil && cs.wireVersion.Max >= 6
 		if !retryableRead {
 			cs.err = replaceErrors(original)
 			return cs.err
@@ -219,9 +242,9 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 				break
 			}
 			defer conn.Close()
+			cs.wireVersion = conn.Description().WireVersion
 
-			wireVersion := conn.Description().WireVersion
-			if wireVersion == nil || wireVersion.Max < 6 {
+			if cs.wireVersion == nil || cs.wireVersion.Max < 6 {
 				break
 			}
 
@@ -249,7 +272,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 
 	cs.updatePbrtFromCommand()
 	if cs.options.StartAtOperationTime == nil && cs.options.ResumeAfter == nil &&
-		cs.options.StartAfter == nil && conn.Description().WireVersion.Max >= 7 &&
+		cs.options.StartAfter == nil && cs.wireVersion.Max >= 7 &&
 		cs.emptyBatch() && cs.resumeToken == nil {
 		cs.operationTime = cs.sess.OperationTime
 	}
@@ -538,11 +561,8 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 			continue // loop getMore until a non-empty batch is returned or an error occurs
 		}
 
-		switch t := cs.err.(type) {
-		case CommandError:
-			if t.Code == errorInterrupted || t.Code == errorCappedPositionLost || t.Code == errorCursorKilled || t.HasErrorLabel("NonResumableChangeStreamError") {
-				return
-			}
+		if !cs.isResumableError() {
+			return
 		}
 
 		// ignore error from cursor close because if the cursor is deleted or errors we tried to close it and will remake and try to get next batch
@@ -551,6 +571,23 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 			return
 		}
 	}
+}
+
+func (cs *ChangeStream) isResumableError() bool {
+	commandErr, ok := cs.err.(CommandError)
+	if !ok || commandErr.HasErrorLabel(networkErrorLabel) {
+		// All non-server errors or network errors are resumable.
+		return true
+	}
+
+	// For wire versions 9 and above, a server error is resumable if it has the ResumableChangeStreamError label.
+	if cs.wireVersion != nil && cs.wireVersion.Includes(minResumableLabelWireVersion) {
+		return commandErr.HasErrorLabel(resumableErrorLabel)
+	}
+
+	// For wire versions below 9, a server error is resumable if its code is on the whitelist.
+	_, resumable := resumableChangeStreamErrors[commandErr.Code]
+	return resumable
 }
 
 // Returns true if the underlying cursor's batch is empty
