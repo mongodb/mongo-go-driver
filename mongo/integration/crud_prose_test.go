@@ -143,7 +143,7 @@ func TestHintErrors(t *testing.T) {
 }
 
 func TestHintWithUnacknowledgedWriteErrors(t *testing.T) {
-	mtOpts := mtest.NewOptions().MinServerVersion("3.4").MaxServerVersion("4.0").CreateClient(false).
+	mtOpts := mtest.NewOptions().MinServerVersion("3.6").MaxServerVersion("4.0").CreateClient(false).
 		CollectionOptions(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(0))))
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
