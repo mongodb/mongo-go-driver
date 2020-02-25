@@ -148,7 +148,7 @@ func TestHintWithUnacknowledgedWriteErrors(t *testing.T) {
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	expected := errors.New("the 'hint' command parameter with unacknowledged WriteConcern requires a minimum server wire version of 9")
+	expected := errors.New("the 'hint' command parameter with unacknowledged WriteConcern requires a minimum server wire version of 8")
 	mt.Run("UpdateMany", func(mt *mtest.T) {
 
 		_, got := mt.Coll.UpdateMany(mtest.Background, bson.D{{"a", 1}}, bson.D{{"$inc", bson.D{{"a", 1}}}},
