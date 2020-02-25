@@ -327,6 +327,8 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 			p.AuthMechanismProperties["SERVICE_NAME"] = "mongodb"
 		}
 		fallthrough
+	case "mongodb-aws":
+		fallthrough
 	case "mongodb-x509":
 		if p.AuthSource == "" {
 			p.AuthSource = "$external"
@@ -375,6 +377,23 @@ func (p *parser) validateAuth() error {
 		}
 		if p.AuthMechanismProperties != nil {
 			return fmt.Errorf("MONGO-X509 cannot have mechanism properties")
+		}
+	case "mongodb-aws":
+		if p.Username != "" && p.Password == "" {
+			return fmt.Errorf("username without password is invalid for MONGODB-AWS")
+		}
+		if p.Username == "" && p.Password != "" {
+			return fmt.Errorf("password without username is invalid for MONGODB-AWS")
+		}
+		var token bool
+		for k := range p.AuthMechanismProperties {
+			if k != "AWS_SESSION_TOKEN" {
+				return fmt.Errorf("invalid auth property for MONGODB-AWS")
+			}
+			token = true
+		}
+		if token && p.Username == "" && p.Password == "" {
+			return fmt.Errorf("token without username and password is invalid for MONGODB-AWS")
 		}
 	case "gssapi":
 		if p.Username == "" {

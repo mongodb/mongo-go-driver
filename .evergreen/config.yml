@@ -520,6 +520,214 @@ functions:
           -v \
           --fault revoked
 
+  add-aws-auth-variables-to-file:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          cat <<EOF > ${DRIVERS_TOOLS}/.evergreen/auth_aws/aws_e2e_setup.json
+          {
+              "iam_auth_ecs_account" : "${iam_auth_ecs_account}",
+              "iam_auth_ecs_secret_access_key" : "${iam_auth_ecs_secret_access_key}",
+              "iam_auth_ecs_account_arn": "arn:aws:iam::557821124784:user/authtest_fargate_user",
+              "iam_auth_ecs_cluster": "${iam_auth_ecs_cluster}",
+              "iam_auth_ecs_task_definition": "${iam_auth_ecs_task_definition}",
+              "iam_auth_ecs_subnet_a": "${iam_auth_ecs_subnet_a}",
+              "iam_auth_ecs_subnet_b": "${iam_auth_ecs_subnet_b}",
+              "iam_auth_ecs_security_group": "${iam_auth_ecs_security_group}",
+              "iam_auth_assume_aws_account" : "${iam_auth_assume_aws_account}",
+              "iam_auth_assume_aws_secret_access_key" : "${iam_auth_assume_aws_secret_access_key}",
+              "iam_auth_assume_role_name" : "${iam_auth_assume_role_name}",
+              "iam_auth_ec2_instance_account" : "${iam_auth_ec2_instance_account}",
+              "iam_auth_ec2_instance_secret_access_key" : "${iam_auth_ec2_instance_secret_access_key}",
+              "iam_auth_ec2_instance_profile" : "${iam_auth_ec2_instance_profile}"
+          }
+          EOF
+
+  run-aws-auth-test-with-regular-aws-credentials:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          mongo aws_e2e_regular_aws.js
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
+            USER=$(urlencode ${iam_auth_ecs_account})
+            PASS=$(urlencode ${iam_auth_ecs_secret_access_key})
+            MONGODB_URI="mongodb://$USER:$PASS@localhost"
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+
+  run-aws-auth-test-with-assume-role-credentials:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          # The aws_e2e_assume_role script requires python3 with boto3.
+          virtualenv -p ${PYTHON3} mongovenv
+          if [ "Windows_NT" = "$OS" ]; then
+            . mongovenv/Scripts/activate
+          else
+            . mongovenv/bin/activate
+          fi
+          pip install boto3
+          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          mongo aws_e2e_assume_role.js
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
+            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
+            USER=$(jsonkey AccessKeyId)
+            USER=$(urlencode $USER)
+            PASS=$(jsonkey SecretAccessKey)
+            PASS=$(urlencode $PASS)
+            SESSION_TOKEN=$(jsonkey SessionToken)
+            SESSION_TOKEN=$(urlencode $SESSION_TOKEN)
+            MONGODB_URI="mongodb://$USER:$PASS@localhost"
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+
+  run-aws-auth-test-with-aws-EC2-credentials:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          if [ "${SKIP_EC2_AUTH_TEST}" == "true" ]; then
+            echo "This platform does not support the EC2 auth test, skipping..."
+            exit 0
+          fi
+          # The mongovenv was created earlier in run-aws-auth-test-with-assume-role-credentials.
+          if [ "Windows_NT" = "$OS" ]; then
+            . mongovenv/Scripts/activate
+          else
+            . mongovenv/bin/activate
+          fi
+          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          mongo aws_e2e_ec2.js
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          if [ "${SKIP_EC2_AUTH_TEST}" == "true" ]; then
+            exit 0
+          fi
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+
+  run-aws-auth-test-with-aws-credentials-as-environment-variables:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            export AWS_ACCESS_KEY_ID=${iam_auth_ecs_account}
+            export AWS_SECRET_ACCESS_KEY=${iam_auth_ecs_secret_access_key}
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          PROJECT_DIRECTORY=${PROJECT_DIRECTORY} ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+
+  run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
+            export AWS_ACCESS_KEY_ID=$(jsonkey AccessKeyId)
+            export AWS_SECRET_ACCESS_KEY=$(jsonkey SecretAccessKey)
+            export AWS_SESSION_TOKEN=$(jsonkey SessionToken)
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+
+  run-aws-ECS-auth-test:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          if [ "${SKIP_ECS_AUTH_TEST}" == "true" ]; then
+            echo "This platform does not support the ECS auth test, skipping..."
+            exit 0
+          fi
+          make build-aws-ecs-test
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          if [ "${SKIP_ECS_AUTH_TEST}" == "true" ]; then
+            exit 0
+          fi
+          AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
+          ECS_SRC_DIR=$AUTH_AWS_DIR/src
+          # fix issue with `TestData` in SERVER-46340
+          sed -i '1s+^+TestData = {};\n+' $AUTH_AWS_DIR/lib/ecs_hosted_test.js
+          # pack up project directory to ssh it to the container
+          mkdir -p $ECS_SRC_DIR/.evergreen
+          cp ${PROJECT_DIRECTORY}/main $ECS_SRC_DIR
+          cp ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-ecs-test.sh $ECS_SRC_DIR/.evergreen
+          tar -czf $ECS_SRC_DIR/src.tgz -C $PROJECT_DIRECTORY .
+          cd $AUTH_AWS_DIR
+          cat <<EOF > setup.js
+            const mongo_binaries = "$MONGODB_BINARIES";
+            const project_dir = "$ECS_SRC_DIR";
+          EOF
+          cat setup.js
+          mongo --nodb setup.js aws_e2e_ecs.js
+
 pre:
   - func: fetch-source
   - func: prepare-resources
@@ -1236,6 +1444,22 @@ tasks:
     commands:
       - func: "run-atlas-test"
 
+  - name: "aws-auth-test"
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          AUTH: "auth"
+          # TODO: SSL??
+          ORCHESTRATION_FILE: "auth-aws.json"
+          TOPOLOGY: "server"
+      - func: add-aws-auth-variables-to-file
+      - func: run-aws-auth-test-with-regular-aws-credentials
+      - func: run-aws-auth-test-with-assume-role-credentials
+      - func: run-aws-auth-test-with-aws-credentials-as-environment-variables
+      - func: run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables
+      - func: run-aws-auth-test-with-aws-EC2-credentials
+      - func: run-aws-ECS-auth-test
+
   - name: go1.10-build-cse
     tags: ["compile-check"]
     commands:
@@ -1312,6 +1536,33 @@ axes:
         run_on: macos-1014
         variables:
           GO_DIST: "/opt/golang/go1.12"
+
+  - id: os-aws-auth
+    display_name: OS
+    values:
+      - id: "windows-64-vsMulti-small-go-1-12"
+        display_name: "Windows 64-bit"
+        run_on:
+          - windows-64-vsMulti-small
+        variables:
+          GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
+          GO_DIST: "C:\\golang\\go1.12"
+          SKIP_ECS_AUTH_TEST: true
+          PYTHON3: "C:/python/Python38/python.exe"
+      - id: "ubuntu1804-64-go-1-12"
+        display_name: "Ubuntu 18.04"
+        run_on: ubuntu1804-test
+        variables:
+          GO_DIST: "/opt/golang/go1.12"
+          PYTHON3: python3
+      - id: "osx-go-1-12"
+        display_name: "MacOS 10.14"
+        run_on: macos-1014
+        variables:
+          GO_DIST: "/opt/golang/go1.12"
+          SKIP_ECS_AUTH_TEST: true
+          SKIP_EC2_AUTH_TEST: true
+          PYTHON3: python3
 
 buildvariants:
   - name: static-analysis
@@ -1401,3 +1652,9 @@ buildvariants:
     display_name: "Enterprise Auth - ${os-ssl-32}"
     tasks:
       - name: ".test .enterprise-auth"
+
+  - matrix_name: "aws-auth-test"
+    matrix_spec: { os-aws-auth: "*" }
+    display_name: "MONGODB-AWS Auth ${os-aws-auth}"
+    tasks:
+      - name: "aws-auth-test"
