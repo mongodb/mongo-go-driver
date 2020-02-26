@@ -261,16 +261,11 @@ func verifyExtendedKeyUsage(cfg config, res *ocsp.Response) error {
 	}
 
 	// There is a delegate.
-	var foundExtendedUsage bool
 	for _, extKeyUsage := range res.Certificate.ExtKeyUsage {
 		if extKeyUsage == x509.ExtKeyUsageOCSPSigning {
-			foundExtendedUsage = true
-			break
+			return nil
 		}
 	}
 
-	if !foundExtendedUsage {
-		return errors.New("delegate responder certificate is missing the OCSP signing extended key usage")
-	}
-	return nil
+	return errors.New("delegate responder certificate is missing the OCSP signing extended key usage")
 }
