@@ -11,10 +11,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/url"
 	"time"
@@ -24,7 +26,8 @@ import (
 )
 
 var (
-	mustStapleExtensionOID = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 24}
+	tlsFeatureExtensionOID = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 24}
+	mustStapleFeatureValue = big.NewInt(5)
 
 	defaultRequestTimeout = 5 * time.Second
 	errGotOCSPResponse    = errors.New("done")
@@ -96,12 +99,9 @@ func Verify(ctx context.Context, connState tls.ConnectionState) error {
 // 3. The staple does not cover cfg.serverCert.
 // 4. The OCSP response has an error status.
 func parseStaple(cfg config, staple []byte) (*ocsp.Response, error) {
-	var mustStaple bool
-	for _, extension := range cfg.serverCert.Extensions {
-		if extension.Id.Equal(mustStapleExtensionOID) {
-			mustStaple = true
-			break
-		}
+	mustStaple, err := isMustStapleCertificate(cfg.serverCert)
+	if err != nil {
+		return nil, err
 	}
 
 	// If the server has a Must-Staple certificate and the server does not present a stapled OCSP response, error.
@@ -126,6 +126,39 @@ func parseStaple(cfg config, staple []byte) (*ocsp.Response, error) {
 	}
 
 	return parsedResponse, nil
+}
+
+// isMustStapleCertificate determines whether or not an X509 certificate is a must-staple certificate.
+func isMustStapleCertificate(cert *x509.Certificate) (bool, error) {
+	var featureExtension pkix.Extension
+	var foundExtension bool
+	for _, ext := range cert.Extensions {
+		if ext.Id.Equal(tlsFeatureExtensionOID) {
+			featureExtension = ext
+			foundExtension = true
+			break
+		}
+	}
+	if !foundExtension {
+		return false, nil
+	}
+
+	// The value for the TLS feature extension is a sequence of integers. Per the asn1.Unmarshal documentation, an
+	// integer can be unmarshalled into an int, int32, int64, or *big.Int and unmarshalling will error if the integer
+	// cannot be encoded into the target type.
+	//
+	// Use []*big.Int to ensure that all values in the sequence can be successfully unmarshalled.
+	var featureValues []*big.Int
+	if _, err := asn1.Unmarshal(featureExtension.Value, &featureValues); err != nil {
+		return false, fmt.Errorf("error unmarshalling TLS feature extension values: %v", err)
+	}
+
+	for _, value := range featureValues {
+		if value.Cmp(mustStapleFeatureValue) == 0 {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // contactResponders will send a request to the OCSP responders reported by cfg.serverCert. The first response that
