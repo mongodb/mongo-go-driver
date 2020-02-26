@@ -7,24 +7,12 @@
 package ocsp
 
 import (
-	"bytes"
 	"crypto/x509"
 	"errors"
 	"fmt"
 
 	"golang.org/x/crypto/ocsp"
 )
-
-func getIssuer(peerCert *x509.Certificate, chain []*x509.Certificate) *x509.Certificate {
-	for _, cert := range chain {
-		// Use RawSubject and RawIssuer rather than cert.Subject.String() and peerCert.Issuer.String because the
-		// pkix.Name.String method is not available in Go 1.9.
-		if bytes.Equal(cert.RawSubject, peerCert.RawIssuer) {
-			return cert
-		}
-	}
-	return nil
-}
 
 type config struct {
 	serverCert, issuer *x509.Certificate
@@ -39,16 +27,18 @@ func newConfig(certChain []*x509.Certificate) (config, error) {
 		return cfg, errors.New("verified certificate chain contained no certificates")
 	}
 
+	// In the case where the leaf certificate and CA are the same, the chain may only contain one certificate.
 	cfg.serverCert = certChain[0]
-	if len(certChain) == 1 {
-		// In the case where the leaf certificate and CA are the same, the chain may only contain one certificate.
-		cfg.issuer = certChain[0]
-		return cfg, nil
-	}
+	cfg.issuer = certChain[0]
+	if len(certChain) > 1 {
+		// If the chain has multiple certificates, the one directly after the leaf should be the issuer. Use
+		// CheckSignatureFrom to verify that it is the issuer.
+		cfg.issuer = certChain[1]
 
-	cfg.issuer = getIssuer(cfg.serverCert, certChain[1:])
-	if cfg.issuer == nil {
-		return cfg, errors.New("no issuer found for the leaf certificate")
+		if err := cfg.serverCert.CheckSignatureFrom(cfg.issuer); err != nil {
+			errString := "error checking if server certificate is signed by the issuer in the verified chain: %v"
+			return cfg, fmt.Errorf(errString, err)
+		}
 	}
 
 	var err error
