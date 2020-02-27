@@ -259,6 +259,11 @@ func TestValueReader(t *testing.T) {
 			0x0A, 0x00, // null element, empty key
 			0x00, // document end
 		}
+		invalidCodeWithScope := []byte{
+			0x7, 0x00, 0x00, 0x00, // total length
+			0x0, 0x00, 0x00, 0x00, // string length = 0
+			0x05, 0x00, 0x00, 0x00, 0x00, // document
+		}
 		testCases := []struct {
 			name   string
 			data   []byte
@@ -306,6 +311,13 @@ func TestValueReader(t *testing.T) {
 				mismatchCodeWithScope,
 				0,
 				fmt.Errorf("length of CodeWithScope does not match lengths of components; total: %d; components: %d", 17, 19),
+				bsontype.CodeWithScope,
+			},
+			{
+				"invalid strLength",
+				invalidCodeWithScope,
+				0,
+				fmt.Errorf("invalid string length: %d", 0),
 				bsontype.CodeWithScope,
 			},
 		}

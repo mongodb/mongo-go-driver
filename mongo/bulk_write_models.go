@@ -100,11 +100,21 @@ type ReplaceOneModel struct {
 	Upsert      *bool
 	Filter      interface{}
 	Replacement interface{}
+	Hint        interface{}
 }
 
 // NewReplaceOneModel creates a new ReplaceOneModel.
 func NewReplaceOneModel() *ReplaceOneModel {
 	return &ReplaceOneModel{}
+}
+
+// SetHint specifies the index to use for the operation. This should either be the index name as a string or the
+// index specification as a document. The default value is nil, which means that no hint will be sent. This option is
+// only supported by servers >= 4.2. Older servers >= 3.4 will report an error for using this option. For servers <
+// 3.4, the driver will return an error if this option is used.
+func (rom *ReplaceOneModel) SetHint(hint interface{}) *ReplaceOneModel {
+	rom.Hint = hint
+	return rom
 }
 
 // SetFilter specifies a filter to use to select the document to replace. The filter must be a document containing query
@@ -146,11 +156,21 @@ type UpdateOneModel struct {
 	Filter       interface{}
 	Update       interface{}
 	ArrayFilters *options.ArrayFilters
+	Hint         interface{}
 }
 
 // NewUpdateOneModel creates a new UpdateOneModel.
 func NewUpdateOneModel() *UpdateOneModel {
 	return &UpdateOneModel{}
+}
+
+// SetHint specifies the index to use for the operation. This should either be the index name as a string or the
+// index specification as a document. The default value is nil, which means that no hint will be sent. This option is
+// only supported by servers >= 4.2. Older servers >= 3.4 will report an error for using this option. For servers <
+// 3.4, the driver will return an error if this option is used.
+func (uom *UpdateOneModel) SetHint(hint interface{}) *UpdateOneModel {
+	uom.Hint = hint
+	return uom
 }
 
 // SetFilter specifies a filter to use to select the document to update. The filter must be a document containing query
@@ -199,11 +219,21 @@ type UpdateManyModel struct {
 	Filter       interface{}
 	Update       interface{}
 	ArrayFilters *options.ArrayFilters
+	Hint         interface{}
 }
 
 // NewUpdateManyModel creates a new UpdateManyModel.
 func NewUpdateManyModel() *UpdateManyModel {
 	return &UpdateManyModel{}
+}
+
+// SetHint specifies the index to use for the operation. This should either be the index name as a string or the
+// index specification as a document. The default value is nil, which means that no hint will be sent. This option is
+// only supported by servers >= 4.2. Older servers >= 3.4 will report an error for using this option. For servers <
+// 3.4, the driver will return an error if this option is used.
+func (umm *UpdateManyModel) SetHint(hint interface{}) *UpdateManyModel {
+	umm.Hint = hint
+	return umm
 }
 
 // SetFilter specifies a filter to use to select documents to update. The filter must be a document containing query

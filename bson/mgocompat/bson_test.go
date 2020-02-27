@@ -1685,3 +1685,31 @@ func TestMarshalRespectNil(t *testing.T) {
 	assert.NotNil(t, testStruct2.Map, "expected non-nil map")
 	assert.NotNil(t, testStruct2.MapPtr, "expected non-nil map ptr")
 }
+
+// Our mgocompat.Registry tests
+type Inner struct {
+	ID string
+}
+
+type InlineLoop struct {
+	Inner `bson:",inline"`
+	Value string
+	Draft *InlineLoop `bson:",omitempty"`
+}
+
+func TestInlineWithPointerToSelf(t *testing.T) {
+	x1 := InlineLoop{
+		Inner: Inner{
+			ID: "1",
+		},
+		Value: "",
+	}
+
+	bytes, err := bson.MarshalWithRegistry(Registry, x1)
+	assert.Nil(t, err, "expected nil error, got: %v", err)
+
+	var x2 InlineLoop
+	err = bson.UnmarshalWithRegistry(Registry, bytes, &x2)
+	assert.Nil(t, err, "expected nil error, got: %v", err)
+	assert.Equal(t, x1, x2, "Expected %v, got %v", x1, x2)
+}

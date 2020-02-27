@@ -50,7 +50,6 @@ func NewRegistryBuilder() *bsoncodec.RegistryBuilder {
 	structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.DefaultStructTagParser,
 		bsonoptions.StructCodec().
 			SetDecodeZeroStruct(true).
-			SetDecodeDeepZeroInline(true).
 			SetEncodeOmitDefaultStruct(true).
 			SetAllowUnexportedFields(true))
 	emptyInterCodec := bsoncodec.NewEmptyInterfaceCodec(
@@ -94,7 +93,6 @@ func NewRespectNilValuesRegistryBuilder() *bsoncodec.RegistryBuilder {
 	structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.DefaultStructTagParser,
 		bsonoptions.StructCodec().
 			SetDecodeZeroStruct(true).
-			SetDecodeDeepZeroInline(false).
 			SetEncodeOmitDefaultStruct(true).
 			SetAllowUnexportedFields(true))
 	mapCodec := bsoncodec.NewMapCodec(
