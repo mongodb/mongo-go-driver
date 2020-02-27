@@ -102,7 +102,6 @@ func (r *response) UnmarshalJSON(buf []byte) error {
 
 func setUpFSM(t *testing.T, uri string) *fsm {
 	fsm := newFSM()
-
 	cs, err := connstring.ParseAndValidate(uri)
 	require.NoError(t, err)
 
