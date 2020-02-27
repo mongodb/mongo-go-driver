@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -94,6 +95,9 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 						topology.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
 							return monitor
 						}),
+						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
+							return ocsp.NewCache()
+						}),
 					)
 				}),
 			)
@@ -128,6 +132,9 @@ func GlobalMonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topol
 						opts,
 						topology.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
 							return monitor
+						}),
+						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
+							return ocsp.NewCache()
 						}),
 					)
 				}),
@@ -170,9 +177,26 @@ func GlobalMonitoredSessionPool() *session.Pool {
 // Topology gets the globally configured topology.
 func Topology(t *testing.T) *topology.Topology {
 	cs := ConnString(t)
+	opts := []topology.Option{
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(
+				opts,
+				topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+					return append(
+						opts,
+						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
+							return ocsp.NewCache()
+						}),
+					)
+				}),
+			)
+		}),
+	}
+
 	liveTopologyOnce.Do(func() {
 		var err error
-		liveTopology, err = topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+		liveTopology, err = topology.New(opts...)
 		if err != nil {
 			liveTopologyErr = err
 		} else {
@@ -203,7 +227,24 @@ func SessionPool() *session.Pool {
 // TopologyWithConnString takes a connection string and returns a connected
 // topology, or else bails out of testing
 func TopologyWithConnString(t *testing.T, cs connstring.ConnString) *topology.Topology {
-	topology, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+	opts := []topology.Option{
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(
+				opts,
+				topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+					return append(
+						opts,
+						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
+							return ocsp.NewCache()
+						}),
+					)
+				}),
+			)
+		}),
+	}
+
+	topology, err := topology.New(opts...)
 	if err != nil {
 		t.Fatal("Could not construct topology")
 	}
