@@ -36,7 +36,8 @@
         },
         "topologyType": "ReplicaSetWithPrimary",
         "logicalSessionTimeoutMinutes": null,
-        "setName": "rs"
+        "setName": "rs",
+        "maxSetVersion": 2
       }
     },
     {
@@ -73,7 +74,8 @@
         },
         "topologyType": "ReplicaSetWithPrimary",
         "logicalSessionTimeoutMinutes": null,
-        "setName": "rs"
+        "setName": "rs",
+        "maxSetVersion": 2
       }
     }
   ]

@@ -134,6 +134,10 @@ evg-test-auth:
 evg-test-atlas:
 	go run ./mongo/testatlas/main.go $(ATLAS_URIS)
 
+.PHONY: evg-test-ocsp
+evg-test-ocsp:
+	go test -v ./mongo -run TestOCSP $(OCSP_TLS_SHOULD_SUCCEED) >> test.suite
+
 # benchmark specific targets and support
 perf:driver-test-data.tar.gz
 	tar -zxf $< $(if $(eq $(UNAME_S),Darwin),-s , --transform=s)/data/perf/

@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
@@ -63,15 +63,22 @@ type lastWriteDate struct {
 }
 
 type server struct {
-	Type    string
-	SetName string
+	Type           string
+	SetName        string
+	SetVersion     uint32
+	ElectionID     *primitive.ObjectID `bson:"electionId"`
+	MinWireVersion *int32
+	MaxWireVersion *int32
 }
 
 type outcome struct {
-	Servers      map[string]server
-	TopologyType string
-	SetName      string
-	Compatible   *bool
+	Servers                      map[string]server
+	TopologyType                 string
+	SetName                      string
+	LogicalSessionTimeoutMinutes uint32
+	MaxSetVersion                uint32
+	MaxElectionID                primitive.ObjectID `bson:"maxElectionId"`
+	Compatible                   *bool
 }
 
 type phase struct {
@@ -103,8 +110,9 @@ func (r *response) UnmarshalJSON(buf []byte) error {
 func setUpFSM(t *testing.T, uri string) *fsm {
 	fsm := newFSM()
 
+
 	cs, err := connstring.ParseAndValidate(uri)
-	require.NoError(t, err)
+	assert.Nil(t, err, "Parse error: %v", err)
 
 	fsm.SetName = cs.ReplicaSet
 	if fsm.SetName != "" {
@@ -140,7 +148,7 @@ func applyResponses(f *fsm, responses []response) error {
 func runTest(t *testing.T, directory string, filename string) {
 	filepath := path.Join(testsDir, directory, filename)
 	content, err := ioutil.ReadFile(filepath)
-	require.NoError(t, err)
+	assert.Nil(t, err, "ReadFile error: %v", err)
 
 	// Remove ".json" from filename.
 	filename = filename[:len(filename)-5]
@@ -148,35 +156,54 @@ func runTest(t *testing.T, directory string, filename string) {
 
 	t.Run(testName, func(t *testing.T) {
 		var test testCase
-		require.NoError(t, json.Unmarshal(content, &test))
+		err = json.Unmarshal(content, &test)
+		assert.Nil(t, err, "Unmarshal error: %v", err)
 		f := setUpFSM(t, test.URI)
 
 		for _, phase := range test.Phases {
 			err = applyResponses(f, phase.Responses)
 			if phase.Outcome.Compatible == nil || *phase.Outcome.Compatible {
-				require.NoError(t, err)
+				assert.Nil(t, err, "error: %v", err)
 			} else {
-				require.Error(t, err)
+				assert.NotNil(t, err, "Expected error")
 				continue
 			}
 
-			require.Equal(t, phase.Outcome.TopologyType, f.Kind.String())
-			require.Equal(t, phase.Outcome.SetName, f.SetName)
-			require.Equal(t, len(phase.Outcome.Servers), len(f.Servers))
+			assert.Equal(t, phase.Outcome.TopologyType, f.Kind.String(),
+				"expected TopologyType to be %v, got %v", phase.Outcome.TopologyType, f.Kind.String())
+			assert.Equal(t, phase.Outcome.SetName, f.SetName,
+				"expected SetName to be %v, got %v", phase.Outcome.SetName, f.SetName)
+			assert.Equal(t, len(phase.Outcome.Servers), len(f.Servers),
+				"expected %v servers, got %v", len(phase.Outcome.Servers), len(f.Servers))
+			assert.Equal(t, phase.Outcome.LogicalSessionTimeoutMinutes, f.SessionTimeoutMinutes,
+				"expected SessionTimeoutMinutes to be %v, got %v", phase.Outcome.LogicalSessionTimeoutMinutes, f.SessionTimeoutMinutes)
+			assert.Equal(t, phase.Outcome.MaxSetVersion, f.maxSetVersion,
+				"expected maxSetVersion to be %v, got %v", phase.Outcome.MaxSetVersion, f.maxSetVersion)
+			assert.Equal(t, phase.Outcome.MaxElectionID, f.maxElectionID,
+				"expected maxElectionID to be %v, got %v", phase.Outcome.MaxElectionID, f.maxElectionID)
 
 			for addr, server := range phase.Outcome.Servers {
 				fsmServer, ok := f.Server(address.Address(addr))
-				require.True(t, ok)
+				assert.True(t, ok, "Couldn't find server %v", addr)
 
-				require.Equal(t, address.Address(addr), fsmServer.Addr)
-				require.Equal(t, server.SetName, fsmServer.SetName)
+				assert.Equal(t, address.Address(addr), fsmServer.Addr,
+					"expected server address to be %v, got %v", address.Address(addr), fsmServer.Addr)
+				assert.Equal(t, server.SetName, fsmServer.SetName,
+					"expected server SetName to be %v, got %v", server.SetName, fsmServer.SetName)
+				assert.Equal(t, server.SetVersion, fsmServer.SetVersion,
+					"expected server SetVersion to be %v, got %v", server.SetVersion, fsmServer.SetVersion)
+				if server.ElectionID != nil {
+					assert.Equal(t, *server.ElectionID, fsmServer.ElectionID,
+						"expected server ElectionID to be %v, got %v", *server.ElectionID, fsmServer.ElectionID)
+				}
 
 				// PossiblePrimary is only relevant to single-threaded drivers.
 				if server.Type == "PossiblePrimary" {
 					server.Type = "Unknown"
 				}
 
-				require.Equal(t, server.Type, fsmServer.Kind.String())
+				assert.Equal(t, server.Type, fsmServer.Kind.String(),
+					"expected server Type to be %v, got %v", server.Type, fsmServer.Kind.String())
 			}
 		}
 	})
