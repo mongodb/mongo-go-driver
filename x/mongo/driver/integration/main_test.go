@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 	mongodbURI = addCompressorToURI(mongodbURI)
 
 	var err error
-	connectionString, err = connstring.Parse(mongodbURI)
+	connectionString, err = connstring.ParseAndValidate(mongodbURI)
 	if err != nil {
 		fmt.Printf("Could not parse connection string: %v\n", err)
 		os.Exit(1)

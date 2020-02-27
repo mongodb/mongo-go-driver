@@ -21,8 +21,9 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
-// Parse parses the provided uri and returns a URI object.
-func Parse(s string) (ConnString, error) {
+// ParseAndValidate parses the provided uri and returns a URI object.
+// It check that all values are valid.
+func ParseAndValidate(s string) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	err := p.parse(s)
 	if err != nil {
@@ -35,10 +36,10 @@ func Parse(s string) (ConnString, error) {
 	return p.ConnString, nil
 }
 
-// ParseWithoutValidating parses the provided uri and returns a URI object
-// but does not check that all values are valid. Use `ConnString.Validate()`
+// Parse parses the provided uri and returns a URI object
+// but does not check that all values are valid. Use `ConnString.ParseAndValidate()`
 // to run the validation checks separately.
-func ParseWithoutValidating(s string) (ConnString, error) {
+func Parse(s string) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	err := p.parse(s)
 	if err != nil {

@@ -117,7 +117,7 @@ func runTest(t *testing.T, filename string, test *testCase, warningsError bool) 
 		if _, skip := skipTest[test.Description]; skip {
 			t.Skip()
 		}
-		cs, err := connstring.Parse(test.URI)
+		cs, err := connstring.ParseAndValidate(test.URI)
 		// Since we don't have warnings in Go, we return warnings as errors.
 		//
 		// This is a bit unfortuante, but since we do raise warnings as errors with the newer

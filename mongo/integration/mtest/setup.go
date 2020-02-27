@@ -203,7 +203,7 @@ func getConnString() (connstring.ConnString, error) {
 	}
 	uri = addTLSConfig(uri)
 	uri = addCompressors(uri)
-	return connstring.Parse(uri)
+	return connstring.ParseAndValidate(uri)
 }
 
 // compareVersions compares two version number strings (i.e. positive integers separated by
