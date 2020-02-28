@@ -32,6 +32,5 @@ e.g. GODRIVER-123. For the patch commit message itself, please follow the [How t
 
 ## Talk To Us
 
-If you want to work on the driver, write documentation, or have questions/complaints, please reach out to use either via
-the [mongo-go-driver Google Group](https://groups.google.com/forum/#!forum/mongodb-go-driver) or by creating a Question
+If you want to work on the driver, write documentation, or have questions/complaints, please reach out to use either via [MongoDB Community Forums](https://community.mongodb.com/tags/c/drivers-odms-connectors/7/go-driver) or by creating a Question
 issue at (https://jira.mongodb.org/secure/CreateIssue!default.jspa).
