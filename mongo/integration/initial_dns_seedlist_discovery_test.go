@@ -62,15 +62,12 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		mt.Skip("skipping to avoid go1.11 problem with multiple strings in one TXT record")
 	}
 
-	cs, err := connstring.ParseAndValidate(test.URI)
+	cs, err := connstring.Parse(test.URI)
 	if test.Error {
 		assert.NotNil(mt, err, "expected URI parsing error, got nil")
 		return
 	}
-	// the resolved connstring may not have valid credentials
-	if err != nil && err.Error() == "error validating uri: authsource without username is invalid" {
-		err = nil
-	}
+
 	assert.Nil(mt, err, "Connect error: %v", err)
 	assert.Equal(mt, connstring.SchemeMongoDBSRV, cs.Scheme,
 		"expected scheme %v, got %v", connstring.SchemeMongoDBSRV, cs.Scheme)
