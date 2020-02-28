@@ -30,7 +30,7 @@ func TestAppName(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -56,7 +56,7 @@ func TestAuthMechanism(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://user:pass@localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -81,7 +81,7 @@ func TestAuthSource(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://user:pass@localhost/%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -107,7 +107,7 @@ func TestConnect(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -133,7 +133,7 @@ func TestConnectTimeout(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -160,7 +160,7 @@ func TestHeartbeatInterval(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -187,7 +187,7 @@ func TestLocalThreshold(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -213,7 +213,7 @@ func TestMaxConnIdleTime(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -239,7 +239,7 @@ func TestMaxPoolSize(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -266,7 +266,7 @@ func TestMinPoolSize(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -292,7 +292,7 @@ func TestReadPreference(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -321,7 +321,7 @@ func TestReadPreferenceTags(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -346,7 +346,7 @@ func TestMaxStaleness(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -370,7 +370,7 @@ func TestReplicaSet(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -395,7 +395,7 @@ func TestRetryWrites(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 				return
@@ -421,7 +421,7 @@ func TestRetryReads(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 				return
@@ -436,7 +436,7 @@ func TestRetryReads(t *testing.T) {
 func TestScheme(t *testing.T) {
 	// Can't unit test 'mongodb+srv' because that requires networking.  Tested
 	// in x/mongo/driver/topology/initial_dns_seedlist_discovery_test.go
-	cs, err := connstring.Parse("mongodb://localhost/")
+	cs, err := connstring.ParseAndValidate("mongodb://localhost/")
 	require.NoError(t, err)
 	require.Equal(t, cs.Scheme, "mongodb")
 	require.Equal(t, cs.Scheme, connstring.SchemeMongoDB)
@@ -457,7 +457,7 @@ func TestServerSelectionTimeout(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -484,7 +484,7 @@ func TestSocketTimeout(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -511,7 +511,7 @@ func TestWTimeout(t *testing.T) {
 	for _, test := range tests {
 		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
+			cs, err := connstring.ParseAndValidate(s)
 			if test.err {
 				require.Error(t, err)
 			} else {
@@ -545,7 +545,7 @@ func TestCompressionOptions(t *testing.T) {
 	for _, tc := range tests {
 		uri := fmt.Sprintf("mongodb://localhost/?%s", tc.uriOptions)
 		t.Run(tc.name, func(t *testing.T) {
-			cs, err := connstring.Parse(uri)
+			cs, err := connstring.ParseAndValidate(uri)
 			if tc.err {
 				assert.Error(t, err)
 			} else {

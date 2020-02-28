@@ -240,7 +240,7 @@ func TestClientOptions(t *testing.T) {
 				"AuthSourceNoUsername",
 				"mongodb://localhost/?authSource=random-database-example",
 				&ClientOptions{err: internal.WrapErrorf(
-					errors.New("authsource without username is invalid"), "error parsing uri",
+					errors.New("authsource without username is invalid"), "error validating uri",
 				)},
 			},
 			{
@@ -414,7 +414,7 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem",
 				&ClientOptions{err: internal.WrapErrorf(
 					errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified"),
-					"error parsing uri",
+					"error validating uri",
 				)},
 			},
 			{
@@ -422,7 +422,7 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsPrivateKeyFile=testdata/nopass/key.pem",
 				&ClientOptions{err: internal.WrapErrorf(
 					errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified"),
-					"error parsing uri",
+					"error validating uri",
 				)},
 			},
 			{
@@ -431,7 +431,7 @@ func TestClientOptions(t *testing.T) {
 				&ClientOptions{err: internal.WrapErrorf(
 					errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
 						"along with tlsCertificateFile or tlsPrivateKeyFile"),
-					"error parsing uri",
+					"error validating uri",
 				)},
 			},
 		}

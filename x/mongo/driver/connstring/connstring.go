@@ -21,7 +21,24 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
-// Parse parses the provided uri and returns a URI object.
+// ParseAndValidate parses the provided URI into a ConnString object.
+// It check that all values are valid.
+func ParseAndValidate(s string) (ConnString, error) {
+	p := parser{dnsResolver: dns.DefaultResolver}
+	err := p.parse(s)
+	if err != nil {
+		return p.ConnString, internal.WrapErrorf(err, "error parsing uri")
+	}
+	err = p.ConnString.Validate()
+	if err != nil {
+		return p.ConnString, internal.WrapErrorf(err, "error validating uri")
+	}
+	return p.ConnString, nil
+}
+
+// Parse parses the provided URI into a ConnString object
+// but does not check that all values are valid. Use `ConnString.Validate()`
+// to run the validation checks separately.
 func Parse(s string) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	err := p.parse(s)
@@ -37,7 +54,9 @@ type ConnString struct {
 	AppName                            string
 	AuthMechanism                      string
 	AuthMechanismProperties            map[string]string
+	AuthMechanismPropertiesSet         bool
 	AuthSource                         string
+	AuthSourceSet                      bool
 	Compressors                        []string
 	Connect                            ConnectMode
 	ConnectSet                         bool
@@ -107,6 +126,15 @@ type ConnString struct {
 
 func (u *ConnString) String() string {
 	return u.Original
+}
+
+// Validate checks that the Auth and SSL parameters are valid values.
+func (u *ConnString) Validate() error {
+	p := parser{
+		dnsResolver: dns.DefaultResolver,
+		ConnString:  *u,
+	}
+	return p.validate()
 }
 
 // ConnectMode informs the driver on how to connect
@@ -251,6 +279,17 @@ func (p *parser) parse(original string) error {
 		return err
 	}
 
+	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.
+	if p.WTimeoutSetFromOption {
+		p.WTimeoutSet = true
+	}
+
+	return nil
+}
+
+func (p *parser) validate() error {
+	var err error
+
 	err = p.validateAuth()
 	if err != nil {
 		return err
@@ -263,11 +302,6 @@ func (p *parser) parse(original string) error {
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if p.WNumberSet && p.WNumber == 0 && p.JSet && p.J {
 		return writeconcern.ErrInconsistent
-	}
-
-	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.
-	if p.WTimeoutSetFromOption {
-		p.WTimeoutSet = true
 	}
 
 	return nil
@@ -473,8 +507,10 @@ func (p *parser) addOption(pair string) error {
 			}
 			p.AuthMechanismProperties[kv[0]] = kv[1]
 		}
+		p.AuthMechanismPropertiesSet = true
 	case "authsource":
 		p.AuthSource = value
+		p.AuthSourceSet = true
 	case "compressors":
 		compressors := strings.Split(value, ",")
 		if len(compressors) < 1 {

@@ -67,10 +67,7 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		assert.NotNil(mt, err, "expected URI parsing error, got nil")
 		return
 	}
-	// the resolved connstring may not have valid credentials
-	if err != nil && err.Error() == "error parsing uri: authsource without username is invalid" {
-		err = nil
-	}
+
 	assert.Nil(mt, err, "Connect error: %v", err)
 	assert.Equal(mt, connstring.SchemeMongoDBSRV, cs.Scheme,
 		"expected scheme %v, got %v", connstring.SchemeMongoDBSRV, cs.Scheme)

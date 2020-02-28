@@ -109,8 +109,7 @@ func (r *response) UnmarshalJSON(buf []byte) error {
 
 func setUpFSM(t *testing.T, uri string) *fsm {
 	fsm := newFSM()
-
-	cs, err := connstring.Parse(uri)
+	cs, err := connstring.ParseAndValidate(uri)
 	assert.Nil(t, err, "Parse error: %v", err)
 
 	fsm.SetName = cs.ReplicaSet

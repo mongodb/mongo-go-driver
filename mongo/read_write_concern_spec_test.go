@@ -95,7 +95,7 @@ func runConnectionStringTestFile(t *testing.T, filePath string) {
 }
 
 func runConnectionStringTest(t *testing.T, test connectionStringTest) {
-	cs, err := connstring.Parse(test.URI)
+	cs, err := connstring.ParseAndValidate(test.URI)
 	if !test.Valid {
 		assert.NotNil(t, err, "expected Parse error, got nil")
 		return

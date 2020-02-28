@@ -40,7 +40,7 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 
-	cs, err := connstring.Parse("mongodb://localhost:27017/")
+	cs, err := connstring.ParseAndValidate("mongodb://localhost:27017/")
 	if err != nil {
 		log.Fatalf("unable to parse connection string: %v", err)
 	}

@@ -152,7 +152,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		return c
 	}
 
-	cs, err := connstring.Parse(uri)
+	cs, err := connstring.ParseAndValidate(uri)
 	if err != nil {
 		c.err = err
 		return c
