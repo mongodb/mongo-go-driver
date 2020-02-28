@@ -91,9 +91,12 @@ type Credential struct {
 type ClientOptions struct {
 	AppName                  *string
 	Auth                     *Credential
+	AutoEncryptionOptions    *AutoEncryptionOptions
 	ConnectTimeout           *time.Duration
 	Compressors              []string
 	Dialer                   ContextDialer
+	Direct                   *bool
+	DisableOCSPEndpointCheck *bool
 	HeartbeatInterval        *time.Duration
 	Hosts                    []string
 	LocalThreshold           *time.Duration
@@ -106,17 +109,14 @@ type ClientOptions struct {
 	ReadPreference           *readpref.ReadPref
 	Registry                 *bsoncodec.Registry
 	ReplicaSet               *string
-	RetryWrites              *bool
 	RetryReads               *bool
+	RetryWrites              *bool
 	ServerSelectionTimeout   *time.Duration
-	Direct                   *bool
 	SocketTimeout            *time.Duration
 	TLSConfig                *tls.Config
 	WriteConcern             *writeconcern.WriteConcern
 	ZlibLevel                *int
 	ZstdLevel                *int
-	AutoEncryptionOptions    *AutoEncryptionOptions
-	DisableOCSPEndpointCheck *bool
 
 	err error
 

@@ -49,25 +49,25 @@ func TestCache(t *testing.T) {
 	})
 	t.Run("put", func(t *testing.T) {
 		t.Run("empty cache", func(t *testing.T) {
-			good := &Response{
+			good := &ResponseDetails{
 				Status:     ocsp.Good,
 				NextUpdate: futureTime(10),
 			}
-			revoked := &Response{
+			revoked := &ResponseDetails{
 				Status:     ocsp.Revoked,
 				NextUpdate: futureTime(10),
 			}
-			unknown := &Response{
+			unknown := &ResponseDetails{
 				Status:     ocsp.Unknown,
 				NextUpdate: futureTime(10),
 			}
-			goodNoUpdate := &Response{Status: ocsp.Good}
-			revokedNoUpdate := &Response{Status: ocsp.Revoked}
-			unknownNoUpdate := &Response{Status: ocsp.Unknown}
+			goodNoUpdate := &ResponseDetails{Status: ocsp.Good}
+			revokedNoUpdate := &ResponseDetails{Status: ocsp.Revoked}
+			unknownNoUpdate := &ResponseDetails{Status: ocsp.Unknown}
 
 			testCases := []struct {
 				name     string
-				response *Response
+				response *ResponseDetails
 				cached   bool
 			}{
 				{"good response is cached", good, true},
@@ -80,7 +80,7 @@ func TestCache(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					cache := NewCache()
-					putRes := cache.Put(testRequest, tc.response)
+					putRes := cache.Update(testRequest, tc.response)
 					// Put should always return tc.response even if it wasn't added to the cache because it is the most
 					// up-to-date response.
 					assert.Equal(t, tc.response, putRes, "expected Put to return %v, got %v", tc.response, putRes)
@@ -98,39 +98,39 @@ func TestCache(t *testing.T) {
 		})
 		t.Run("non-empty cache", func(t *testing.T) {
 			cachedUpdateMinutes := 10
-			originalCached := &Response{
+			originalCached := &ResponseDetails{
 				Status:     ocsp.Good,
 				NextUpdate: futureTime(cachedUpdateMinutes),
 			}
 
-			unknownUpdate := &Response{
+			unknownUpdate := &ResponseDetails{
 				Status:     ocsp.Unknown,
 				NextUpdate: futureTime(cachedUpdateMinutes + 5),
 			}
-			goodNoUpdate := &Response{Status: ocsp.Good}
-			revokedNoUpdate := &Response{Status: ocsp.Revoked}
-			goodEarlierUpdate := &Response{
+			goodNoUpdate := &ResponseDetails{Status: ocsp.Good}
+			revokedNoUpdate := &ResponseDetails{Status: ocsp.Revoked}
+			goodEarlierUpdate := &ResponseDetails{
 				Status:     ocsp.Good,
 				NextUpdate: futureTime(cachedUpdateMinutes - 5),
 			}
-			revokedEarlierUpdate := &Response{
+			revokedEarlierUpdate := &ResponseDetails{
 				Status:     ocsp.Revoked,
 				NextUpdate: futureTime(cachedUpdateMinutes - 5),
 			}
-			goodLaterUpdate := &Response{
+			goodLaterUpdate := &ResponseDetails{
 				Status:     ocsp.Good,
 				NextUpdate: futureTime(cachedUpdateMinutes + 5),
 			}
-			revokedLaterUpdate := &Response{
+			revokedLaterUpdate := &ResponseDetails{
 				Status:     ocsp.Revoked,
 				NextUpdate: futureTime(cachedUpdateMinutes + 5),
 			}
 
 			testCases := []struct {
 				name      string
-				response  *Response
-				putReturn *Response
-				cached    *Response
+				response  *ResponseDetails
+				putReturn *ResponseDetails
+				cached    *ResponseDetails
 			}{
 				{"unknown with later nextUpdate is not cached", unknownUpdate, originalCached, originalCached},
 				{"good with no nextUpdate clears cache", goodNoUpdate, goodNoUpdate, nil},
@@ -143,9 +143,9 @@ func TestCache(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					cache := NewCache()
-					_ = cache.Put(testRequest, originalCached)
+					_ = cache.Update(testRequest, originalCached)
 
-					putReturn := cache.Put(testRequest, tc.response)
+					putReturn := cache.Update(testRequest, tc.response)
 					assert.Equal(t, tc.putReturn, putReturn, "expected Put to return %v, got %v", tc.putReturn, putReturn)
 
 					current, ok := cache.cache[testRequestKey]
@@ -168,7 +168,7 @@ func TestCache(t *testing.T) {
 		})
 		t.Run("valid entry returned", func(t *testing.T) {
 			cache := NewCache()
-			originalResponse := &Response{
+			originalResponse := &ResponseDetails{
 				Status:     ocsp.Good,
 				NextUpdate: futureTime(10),
 			}
@@ -179,7 +179,7 @@ func TestCache(t *testing.T) {
 		})
 		t.Run("expired entry is deleted", func(t *testing.T) {
 			cache := NewCache()
-			originalResponse := &Response{
+			originalResponse := &ResponseDetails{
 				Status:     ocsp.Good,
 				NextUpdate: futureTime(-10),
 			}

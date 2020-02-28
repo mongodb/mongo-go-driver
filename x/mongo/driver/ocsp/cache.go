@@ -23,26 +23,32 @@ type cacheKey struct {
 
 // Cache represents an OCSP cache.
 type Cache interface {
-	Put(*ocsp.Request, *Response) *Response
-	Get(request *ocsp.Request) *Response
+	Update(*ocsp.Request, *ResponseDetails) *ResponseDetails
+	Get(request *ocsp.Request) *ResponseDetails
 }
 
 // ConcurrentCache is an implementation of ocsp.Cache that's safe for concurrent use.
 type ConcurrentCache struct {
-	cache map[cacheKey]*Response
+	cache map[cacheKey]*ResponseDetails
 	sync.Mutex
 }
+
+var _ Cache = (*ConcurrentCache)(nil)
 
 // NewCache creates an empty OCSP cache.
 func NewCache() *ConcurrentCache {
 	return &ConcurrentCache{
-		cache: make(map[cacheKey]*Response),
+		cache: make(map[cacheKey]*ResponseDetails),
 	}
 }
 
-// Put stores the given request into the cache. If the request is already in the cache, the existing entry will be
-// replaced.
-func (c *ConcurrentCache) Put(request *ocsp.Request, response *Response) *Response {
+// Update updates the cache entry for the provided request. The provided response will only be cached if it has a
+// status that is not ocsp.Unknown and has a non-zero NextUpdate time. If there is an existing cache entry for request,
+// it will be overwritten by response if response.NextUpdate is further ahead in the future than the existing entry's
+// NextUpdate.
+//
+// This function returns the most up-to-date response corresponding to the request.
+func (c *ConcurrentCache) Update(request *ocsp.Request, response *ResponseDetails) *ResponseDetails {
 	unknown := response.Status == ocsp.Unknown
 	hasUpdateTime := !response.NextUpdate.IsZero()
 	canBeCached := !unknown && hasUpdateTime
@@ -87,7 +93,7 @@ func (c *ConcurrentCache) Put(request *ocsp.Request, response *Response) *Respon
 
 // Get returns the cached response for the request, or nil if there is no cached response. If the cached response has
 // expired, it will be removed from the cache and nil will be returned.
-func (c *ConcurrentCache) Get(request *ocsp.Request) *Response {
+func (c *ConcurrentCache) Get(request *ocsp.Request) *ResponseDetails {
 	c.Lock()
 	defer c.Unlock()
 
@@ -107,7 +113,7 @@ func (c *ConcurrentCache) Get(request *ocsp.Request) *Response {
 func createCacheKey(request *ocsp.Request) cacheKey {
 	return cacheKey{
 		HashAlgorithm:  request.HashAlgorithm,
-		IssuerNameHash: string(request.IssuerNameHash), // TODO: is simple stringification ok here?
+		IssuerNameHash: string(request.IssuerNameHash),
 		IssuerKeyHash:  string(request.IssuerKeyHash),
 		SerialNumber:   request.SerialNumber.String(),
 	}
