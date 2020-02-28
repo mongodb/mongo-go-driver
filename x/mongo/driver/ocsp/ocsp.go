@@ -136,7 +136,7 @@ func getParsedResponse(ctx context.Context, cfg config, connState tls.Connection
 	}
 
 	// Similar to the stapled response case above, unconditionally call Update and it will either cache the response
-	// or resolve conflicts if a different connection has cached a response since the previous clal to Get.
+	// or resolve conflicts if a different connection has cached a response since the previous call to Get.
 	return cfg.cache.Update(cfg.ocspRequest, externalResponse), nil
 }
 
