@@ -68,7 +68,7 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		return
 	}
 	// the resolved connstring may not have valid credentials
-	if err != nil && err.Error() == "error parsing uri: authsource without username is invalid" {
+	if err != nil && err.Error() == "error validating uri: authsource without username is invalid" {
 		err = nil
 	}
 	assert.Nil(mt, err, "Connect error: %v", err)

@@ -31,7 +31,7 @@ func ParseAndValidate(s string) (ConnString, error) {
 	}
 	err = p.ConnString.Validate()
 	if err != nil {
-		return p.ConnString, internal.WrapErrorf(err, "error parsing uri")
+		return p.ConnString, internal.WrapErrorf(err, "error validating uri")
 	}
 	return p.ConnString, nil
 }
