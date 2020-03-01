@@ -239,4 +239,22 @@ func TestClient(t *testing.T) {
 		client := setupClient(options.Client().SetWriteConcern(wc))
 		assert.Equal(t, wc, client.writeConcern, "mismatch; expected write concern %v, got %v", wc, client.writeConcern)
 	})
+	t.Run("GetURI", func(t *testing.T) {
+		t.Run("ApplyURI not callled", func(t *testing.T) {
+			opts := options.Client().SetHosts([]string{"localhost:27017"})
+			uri := opts.GetURI()
+			assert.Equal(t, "", uri, "expected GetURI to return empty string, got %v", uri)
+		})
+		t.Run("ApplyURI callled with empty string", func(t *testing.T) {
+			opts := options.Client().ApplyURI("")
+			uri := opts.GetURI()
+			assert.Equal(t, "", uri, "expected GetURI to return empty string, got %v", uri)
+		})
+		t.Run("ApplyURI callled with non-empty string", func(t *testing.T) {
+			uri := "mongodb://localhost:27017/foobar"
+			opts := options.Client().ApplyURI(uri)
+			got := opts.GetURI()
+			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)
+		})
+	})
 }

@@ -514,3 +514,28 @@ func TestTopology_String_Race(t *testing.T) {
 	<-ch
 	<-ch
 }
+
+func TestTopologyConstruction(t *testing.T) {
+	t.Run("construct with URI", func(t *testing.T) {
+		testCases := []struct {
+			name            string
+			uri             string
+			pollingRequired bool
+		}{
+			{"normal", "mongodb://localhost:27017", false},
+			{"srv", "mongodb+srv://localhost:27017", true},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				topo, err := New(
+					WithURI(func(string) string { return tc.uri }),
+				)
+				assert.Nil(t, err, "topology.New error: %v", err)
+
+				assert.Equal(t, tc.uri, topo.cfg.uri, "expected topology URI to be %v, got %v", tc.uri, topo.cfg.uri)
+				assert.Equal(t, tc.pollingRequired, topo.pollingRequired,
+					"expected topo.pollingRequired to be %v, got %v", tc.pollingRequired, topo.pollingRequired)
+			})
+		}
+	})
+}
