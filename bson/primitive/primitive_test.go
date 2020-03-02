@@ -58,3 +58,23 @@ func TestPrimitiveIsZero(t *testing.T) {
 		})
 	}
 }
+
+func TestRegexCompare(t *testing.T) {
+	testcases := []struct {
+		name string
+		r1   Regex
+		r2   Regex
+		eq   bool
+	}{
+		{"equal", Regex{Pattern: "foo1", Options: "bar1"}, Regex{Pattern: "foo1", Options: "bar1"}, true},
+		{"not equal", Regex{Pattern: "foo1", Options: "bar1"}, Regex{Pattern: "foo2", Options: "bar2"}, false},
+		{"not equal", Regex{Pattern: "foo1", Options: "bar1"}, Regex{Pattern: "foo1", Options: "bar2"}, false},
+		{"not equal", Regex{Pattern: "foo1", Options: "bar1"}, Regex{Pattern: "foo2", Options: "bar1"}, false},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.True(t, tc.r1.Equal(tc.r2) == tc.eq)
+		})
+	}
+}
