@@ -94,10 +94,11 @@ func (c *ConcurrentCache) Update(request *ocsp.Request, response *ResponseDetail
 // Get returns the cached response for the request, or nil if there is no cached response. If the cached response has
 // expired, it will be removed from the cache and nil will be returned.
 func (c *ConcurrentCache) Get(request *ocsp.Request) *ResponseDetails {
+	key := createCacheKey(request)
+
 	c.Lock()
 	defer c.Unlock()
 
-	key := createCacheKey(request)
 	response, ok := c.cache[key]
 	if !ok {
 		return nil
