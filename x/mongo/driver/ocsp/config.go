@@ -15,13 +15,18 @@ import (
 )
 
 type config struct {
-	serverCert, issuer *x509.Certificate
-	ocspRequestBytes   []byte
-	ocspRequest        *ocsp.Request
+	serverCert, issuer      *x509.Certificate
+	cache                   Cache
+	disableEndpointChecking bool
+	ocspRequest             *ocsp.Request
+	ocspRequestBytes        []byte
 }
 
-func newConfig(certChain []*x509.Certificate) (config, error) {
-	var cfg config
+func newConfig(certChain []*x509.Certificate, opts *VerifyOptions) (config, error) {
+	cfg := config{
+		cache:                   opts.Cache,
+		disableEndpointChecking: opts.DisableEndpointChecking,
+	}
 
 	if len(certChain) == 0 {
 		return cfg, errors.New("verified certificate chain contained no certificates")

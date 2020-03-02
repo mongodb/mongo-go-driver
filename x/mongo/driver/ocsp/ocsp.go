@@ -52,8 +52,28 @@ func newOCSPError(wrapped error) error {
 	return &Error{wrapped: wrapped}
 }
 
+// ResponseDetails contains a subset of the details needed from an OCSP response after the original response has been
+// validated.
+type ResponseDetails struct {
+	Status     int
+	NextUpdate time.Time
+}
+
+func extractResponseDetails(res *ocsp.Response) *ResponseDetails {
+	return &ResponseDetails{
+		Status:     res.Status,
+		NextUpdate: res.NextUpdate,
+	}
+}
+
 // Verify performs OCSP verification for the provided ConnectionState instance.
-func Verify(ctx context.Context, connState tls.ConnectionState) error {
+func Verify(ctx context.Context, connState tls.ConnectionState, opts *VerifyOptions) error {
+	if opts.Cache == nil {
+		// There should always be an OCSP cache. Even if the user has specified the URI option to disable communication
+		// with OCSP responders, the driver will cache any stapled responses. Requiring that the cache is non-nil
+		// allows us to confirm that the cache is correctly being passed down from a higher level.
+		return newOCSPError(errors.New("no OCSP cache provided"))
+	}
 	if len(connState.VerifiedChains) == 0 {
 		return newOCSPError(errors.New("no verified certificate chains reported after TLS handshake"))
 	}
@@ -63,21 +83,14 @@ func Verify(ctx context.Context, connState tls.ConnectionState) error {
 		return newOCSPError(errors.New("verified chain contained no certificates"))
 	}
 
-	ocspCfg, err := newConfig(certChain)
+	ocspCfg, err := newConfig(certChain, opts)
 	if err != nil {
 		return newOCSPError(err)
 	}
 
-	res, err := parseStaple(ocspCfg, connState.OCSPResponse)
+	res, err := getParsedResponse(ctx, ocspCfg, connState)
 	if err != nil {
-		return newOCSPError(err)
-	}
-	if res == nil {
-		// If there was no staple, contact responders.
-		res, err = contactResponders(ctx, ocspCfg)
-		if err != nil {
-			return newOCSPError(err)
-		}
+		return err
 	}
 	if res == nil {
 		// If no response was parsed from the staple and responders, the status of the certificate is unknown, so don't
@@ -91,14 +104,50 @@ func Verify(ctx context.Context, connState tls.ConnectionState) error {
 	return nil
 }
 
-// parseStaple returns the OCSP response from the provided staple. An error will be returned if any of the following are
-// true:
+// getParsedResponse attempts to parse a response from the stapled OCSP data or by contacting OCSP responders if no
+// staple is present.
+func getParsedResponse(ctx context.Context, cfg config, connState tls.ConnectionState) (*ResponseDetails, error) {
+	stapledResponse, err := processStaple(cfg, connState.OCSPResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	if stapledResponse != nil {
+		// If there is a staple, attempt to cache it. The cache.Update call will resolve conflicts with an existing
+		// cache enry if necessary.
+		return cfg.cache.Update(cfg.ocspRequest, stapledResponse), nil
+	}
+	if cachedResponse := cfg.cache.Get(cfg.ocspRequest); cachedResponse != nil {
+		return cachedResponse, nil
+	}
+
+	// If there is no stapled or cached response, fall back to querying the responders if that functionality has not
+	// been disabled.
+	if cfg.disableEndpointChecking {
+		return nil, nil
+	}
+	externalResponse, err := contactResponders(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+	if externalResponse == nil {
+		// None of the responders were available.
+		return nil, nil
+	}
+
+	// Similar to the stapled response case above, unconditionally call Update and it will either cache the response
+	// or resolve conflicts if a different connection has cached a response since the previous call to Get.
+	return cfg.cache.Update(cfg.ocspRequest, externalResponse), nil
+}
+
+// processStaple returns the OCSP response from the provided staple. An error will be returned if any of the following
+// are true:
 //
 // 1. cfg.serverCert has the Must-Staple extension but the staple is empty.
 // 2. The staple is malformed.
 // 3. The staple does not cover cfg.serverCert.
 // 4. The OCSP response has an error status.
-func parseStaple(cfg config, staple []byte) (*ocsp.Response, error) {
+func processStaple(cfg config, staple []byte) (*ResponseDetails, error) {
 	mustStaple, err := isMustStapleCertificate(cfg.serverCert)
 	if err != nil {
 		return nil, err
@@ -125,7 +174,7 @@ func parseStaple(cfg config, staple []byte) (*ocsp.Response, error) {
 		return nil, fmt.Errorf("error validating stapled response: %v", err)
 	}
 
-	return parsedResponse, nil
+	return extractResponseDetails(parsedResponse), nil
 }
 
 // isMustStapleCertificate determines whether or not an X509 certificate is a must-staple certificate.
@@ -164,7 +213,7 @@ func isMustStapleCertificate(cert *x509.Certificate) (bool, error) {
 // contactResponders will send a request to the OCSP responders reported by cfg.serverCert. The first response that
 // conclusively identifies cfg.serverCert as good or revoked will be returned. If all responders are unavailable or no
 // responder returns a conclusive status, (nil, nil) will be returned.
-func contactResponders(ctx context.Context, cfg config) (*ocsp.Response, error) {
+func contactResponders(ctx context.Context, cfg config) (*ResponseDetails, error) {
 	if len(cfg.serverCert.OCSPServer) == 0 {
 		return nil, nil
 	}
@@ -261,11 +310,10 @@ func contactResponders(ctx context.Context, cfg config) (*ocsp.Response, error) 
 		// None of the responders gave a conclusive response.
 		return nil, nil
 	}
-	return <-ocspResponses, nil
+	return extractResponseDetails(<-ocspResponses), nil
 }
 
-// verifyResponse checks that the provided OCSP response is valid. An error is returned if the response is invalid or
-// reports that the certificate being checked has been revoked.
+// verifyResponse checks that the provided OCSP response is valid.
 func verifyResponse(cfg config, res *ocsp.Response) error {
 	if err := verifyExtendedKeyUsage(cfg, res); err != nil {
 		return err

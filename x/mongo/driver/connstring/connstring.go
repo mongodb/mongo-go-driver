@@ -107,6 +107,8 @@ type ConnString struct {
 	SSLInsecureSet                     bool
 	SSLCaFile                          string
 	SSLCaFileSet                       bool
+	SSLDisableEndpointChecking         bool
+	SSLDisableEndpointCheckingSet      bool
 	WString                            string
 	WNumber                            int
 	WNumberSet                         bool
@@ -441,6 +443,11 @@ func (p *parser) validateSSL() error {
 	if p.SSLPrivateKeyFileSet && !p.SSLCertificateFileSet {
 		return errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified")
 	}
+
+	if p.SSLInsecureSet && p.SSLDisableEndpointCheckingSet {
+		return errors.New("the sslInsecure/tlsInsecure URI option cannot be provided along with " +
+			"tlsDisableOCSPEndpointCheck ")
+	}
 	return nil
 }
 
@@ -696,6 +703,19 @@ func (p *parser) addOption(pair string) error {
 		p.SSLSet = true
 		p.SSLCaFile = value
 		p.SSLCaFileSet = true
+	case "tlsdisableocspendpointcheck":
+		p.SSL = true
+		p.SSLSet = true
+
+		switch value {
+		case "true":
+			p.SSLDisableEndpointChecking = true
+		case "false":
+			p.SSLDisableEndpointChecking = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.SSLDisableEndpointCheckingSet = true
 	case "w":
 		if w, err := strconv.Atoi(value); err == nil {
 			if w < 0 {
