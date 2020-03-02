@@ -76,6 +76,7 @@ func TestClientOptions(t *testing.T) {
 			{"TLSConfig", (*ClientOptions).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
 			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.New(writeconcern.WMajority()), "WriteConcern", false},
 			{"ZlibLevel", (*ClientOptions).SetZlibLevel, 6, "ZlibLevel", true},
+			{"DisableOCSPEndpointCheck", (*ClientOptions).SetDisableOCSPEndpointCheck, true, "DisableOCSPEndpointCheck", true},
 		}
 
 		opt1, opt2, optResult := Client(), Client(), Client()
@@ -433,6 +434,11 @@ func TestClientOptions(t *testing.T) {
 						"along with tlsCertificateFile or tlsPrivateKeyFile"),
 					"error validating uri",
 				)},
+			},
+			{
+				"disable OCSP endpoint check",
+				"mongodb://localhost/?tlsDisableOCSPEndpointCheck=true",
+				baseClient().SetDisableOCSPEndpointCheck(true),
 			},
 		}
 
