@@ -342,6 +342,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.ZstdLevel = &cs.ZstdLevel
 	}
 
+	if cs.SSLDisableOCSPEndpointCheckSet {
+		c.DisableOCSPEndpointCheck = &cs.SSLDisableOCSPEndpointCheck
+	}
+
 	return c
 }
 
