@@ -118,6 +118,7 @@ type ClientOptions struct {
 	AutoEncryptionOptions  *AutoEncryptionOptions
 
 	err error
+	uri string
 
 	// These options are for internal use only and should not be set. They are deprecated and are
 	// not part of the stability guarantee. They may be removed in the future.
@@ -132,6 +133,12 @@ func Client() *ClientOptions {
 
 // Validate validates the client options. This method will return the first error found.
 func (c *ClientOptions) Validate() error { return c.err }
+
+// GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
+// construction, this returns "".
+func (c *ClientOptions) GetURI() string {
+	return c.uri
+}
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
 // an SRV record that will be resolved when the Client is created. When using an SRV record, TLS support is
@@ -152,6 +159,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		return c
 	}
 
+	c.uri = uri
 	cs, err := connstring.Parse(uri)
 	if err != nil {
 		c.err = err

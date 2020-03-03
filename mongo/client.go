@@ -325,6 +325,11 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
 
+	// Pass down URI so topology can determine whether or not SRV polling is required
+	topologyOpts = append(topologyOpts, topology.WithURI(func(uri string) string {
+		return opts.GetURI()
+	}))
+
 	// AppName
 	var appName string
 	if opts.AppName != nil {
@@ -559,7 +564,9 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 	// Deployment
 	if opts.Deployment != nil {
-		if len(serverOpts) > 2 || len(topologyOpts) > 1 {
+		// topology options: WithSeedlist and WithURI
+		// server options: WithClock and WithConnectionOptions
+		if len(serverOpts) > 2 || len(topologyOpts) > 2 {
 			return errors.New("cannot specify topology or server options with a deployment")
 		}
 		c.deployment = opts.Deployment

@@ -439,6 +439,7 @@ func TestClientOptions(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				result := Client().ApplyURI(tc.uri)
+				tc.result.uri = tc.uri // manually add URI to avoid writing it in each test
 				if diff := cmp.Diff(
 					tc.result, result,
 					cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
