@@ -64,6 +64,7 @@ type Topology struct {
 
 	done chan struct{}
 
+	pollingRequired   bool
 	pollingDone       chan struct{}
 	pollingwg         sync.WaitGroup
 	rescanSRVInterval time.Duration
@@ -131,6 +132,10 @@ func New(opts ...Option) (*Topology, error) {
 		t.fsm.Kind = description.Single
 	}
 
+	if t.cfg.uri != "" {
+		t.pollingRequired = strings.HasPrefix(t.cfg.uri, "mongodb+srv://")
+	}
+
 	return t, nil
 }
 
@@ -154,7 +159,7 @@ func (t *Topology) Connect() error {
 	}
 	t.serversLock.Unlock()
 
-	if srvPollingRequired(t.cfg.cs.Original) {
+	if t.pollingRequired {
 		go t.pollSRVRecords()
 		t.pollingwg.Add(1)
 	}
@@ -192,7 +197,7 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 	t.subscriptionsClosed = true
 	t.subLock.Unlock()
 
-	if srvPollingRequired(t.cfg.cs.Original) {
+	if t.pollingRequired {
 		t.pollingDone <- struct{}{}
 		t.pollingwg.Wait()
 	}
@@ -201,10 +206,6 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 
 	atomic.StoreInt32(&t.connectionstate, disconnected)
 	return nil
-}
-
-func srvPollingRequired(connstr string) bool {
-	return strings.HasPrefix(connstr, "mongodb+srv://")
 }
 
 // Description returns a description of the topology.
@@ -498,7 +499,7 @@ func (t *Topology) pollSRVRecords() {
 	}()
 
 	// remove the scheme
-	uri := t.cfg.cs.Original[14:]
+	uri := t.cfg.uri[14:]
 	hosts := uri
 	if idx := strings.IndexAny(uri, "/?@"); idx != -1 {
 		hosts = uri[:idx]
