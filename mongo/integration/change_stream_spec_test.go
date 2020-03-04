@@ -154,6 +154,8 @@ func runChangeStreamTest(mt *mtest.T, test changeStreamTest, testFile changeStre
 
 		verifyChangeStreamResults(mt, test.Result, err)
 
+		// Filter out killCursors events. The driver sends killCursors before a resume attempt, but the spec does not
+		// mandate that all drivers do this, so the command monitoring expectations leave them out.
 		mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 			return evt.CommandName != "killCursors"
 		})
