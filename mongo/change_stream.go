@@ -485,9 +485,13 @@ func (cs *ChangeStream) TryNext(ctx context.Context) bool {
 }
 
 func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
-	// return false right away if the change stream has already errored.
 	if cs.err != nil {
-		return false
+		if errors.Is(cs.err, context.DeadlineExceeded) {
+			cs.err = nil
+		} else {
+			// return false right away if the change stream has already errored.
+			return false
+		}
 	}
 
 	if ctx == nil {
