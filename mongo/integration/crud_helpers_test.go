@@ -1331,7 +1331,7 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 			collName = val.StringValue()
 		case "session":
 		default:
-			mt.Fatalf("unrecognized dropCollection option %v", key)
+			mt.Fatalf("unrecognized createCollection option %v", key)
 		}
 	}
 
