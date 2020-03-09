@@ -76,14 +76,27 @@ type ScramAuthenticator struct {
 	client    *scram.Client
 }
 
-// Auth authenticates the connection.
+var _ SpeculativeAuthenticator = (*ScramAuthenticator)(nil)
+
+// Auth authenticates the provided connection by conducting a full SASL conversation.
 func (a *ScramAuthenticator) Auth(ctx context.Context, _ description.Server, conn driver.Connection) error {
-	adapter := &scramSaslAdapter{conversation: a.client.NewConversation(), mechanism: a.mechanism}
-	err := ConductSaslConversation(ctx, conn, a.source, adapter)
+	err := ConductSaslConversation(ctx, conn, a.source, a.createSaslClient())
 	if err != nil {
 		return newAuthError("sasl conversation error", err)
 	}
 	return nil
+}
+
+// CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.
+func (a *ScramAuthenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
+	return newSaslConversation(a.createSaslClient(), a.source), nil
+}
+
+func (a *ScramAuthenticator) createSaslClient() SaslClient {
+	return &scramSaslAdapter{
+		conversation: a.client.NewConversation(),
+		mechanism:    a.mechanism,
+	}
 }
 
 type scramSaslAdapter struct {

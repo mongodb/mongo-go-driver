@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -1261,9 +1262,19 @@ func (op Operation) getCommandName(doc []byte) string {
 	return string(doc[5 : idx+5])
 }
 
-func (op *Operation) canMonitor(cmd string) bool {
-	return !(cmd == "authenticate" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "createUser" ||
-		cmd == "updateUser" || cmd == "copydbgetnonce" || cmd == "copydbsaslstart" || cmd == "copydb")
+func (op *Operation) canMonitor(cmd string, doc bsoncore.Document) bool {
+	if cmd == "authenticate" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "createUser" ||
+		cmd == "updateUser" || cmd == "copydbgetnonce" || cmd == "copydbsaslstart" || cmd == "copydb" {
+
+		return false
+	}
+	if strings.ToLower(cmd) != "ismaster" {
+		return true
+	}
+
+	// An isMaster without speculative authentication can be monitored.
+	_, err := doc.LookupErr("speculativeAuthenticate")
+	return err != nil
 }
 
 // publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
@@ -1277,7 +1288,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	// Make a copy of the command. Redact if the command is security sensitive and cannot be monitored.
 	// If there was a type 1 payload for the current batch, convert it to a BSON array.
 	var cmdCopy []byte
-	if op.canMonitor(info.cmdName) {
+	if op.canMonitor(info.cmdName, info.cmd) {
 		cmdCopy = make([]byte, len(info.cmd))
 		copy(cmdCopy, info.cmd)
 		if info.documentSequenceIncluded {
@@ -1324,7 +1335,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if success {
 		res := bson.Raw{}
 		// Only copy the reply for commands that are not security sensitive
-		if op.canMonitor(info.cmdName) {
+		if op.canMonitor(info.cmdName, info.response) {
 			res = make([]byte, len(info.response))
 			copy(res, info.response)
 		}

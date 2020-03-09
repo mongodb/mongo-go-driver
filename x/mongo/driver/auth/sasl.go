@@ -8,6 +8,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -33,71 +34,106 @@ type ExtraOptionsSaslClient interface {
 	StartCommandOptions() bsoncore.Document
 }
 
-// ConductSaslConversation handles running a sasl conversation with MongoDB.
-func ConductSaslConversation(ctx context.Context, conn driver.Connection, db string, client SaslClient) error {
+// saslConversation represents a SASL conversation. This type implements the SpeculativeConversation interface so the
+// conversation can be executed in multi-step speculative fashion.
+type saslConversation struct {
+	client    SaslClient
+	source    string
+	mechanism string
+}
 
-	if db == "" {
-		db = defaultAuthDB
+var _ SpeculativeConversation = (*saslConversation)(nil)
+
+func newSaslConversation(client SaslClient, source string) *saslConversation {
+	authSource := source
+	if authSource == "" {
+		authSource = defaultAuthDB
 	}
-
-	if closer, ok := client.(SaslClientCloser); ok {
-		defer closer.Close()
+	return &saslConversation{
+		client: client,
+		source: authSource,
 	}
+}
 
-	mech, payload, err := client.Start()
+// FirstMessage returns the firt message to be sent to the server. This message contains a "db" field so it can be used
+// for speculative authentication.
+func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
+	firstMsg, err := sc.createFirstMessage(true)
 	if err != nil {
-		return newError(err, mech)
+		return nil, newError(err, sc.mechanism)
+	}
+
+	return firstMsg, nil
+}
+
+// createFirstMessage creates the first message in the conversation. If speculative is true, the message will contain
+// an additional "db" field.
+func (sc *saslConversation) createFirstMessage(speculative bool) (bsoncore.Document, error) {
+	var payload []byte
+	var err error
+	sc.mechanism, payload, err = sc.client.Start()
+	if err != nil {
+		return nil, err
 	}
 
 	saslCmdElements := [][]byte{
 		bsoncore.AppendInt32Element(nil, "saslStart", 1),
-		bsoncore.AppendStringElement(nil, "mechanism", mech),
+		bsoncore.AppendStringElement(nil, "mechanism", sc.mechanism),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 	}
-	if extraOptionsClient, ok := client.(ExtraOptionsSaslClient); ok {
+	if speculative {
+		// The "db" field is only appended for speculative auth because the isMaster command is executed against admin
+		// so this is needed to tell the server the user's auth source. For a non-speculative attempt, the SASL commands
+		// will be executed against the auth source.
+		saslCmdElements = append(saslCmdElements, bsoncore.AppendStringElement(nil, "db", sc.source))
+	}
+	if extraOptionsClient, ok := sc.client.(ExtraOptionsSaslClient); ok {
 		optionsDoc := extraOptionsClient.StartCommandOptions()
 		saslCmdElements = append(saslCmdElements, bsoncore.AppendDocumentElement(nil, "options", optionsDoc))
 	}
 	doc := bsoncore.BuildDocumentFromElements(nil, saslCmdElements...)
-	saslStartCmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 
-	type saslResponse struct {
-		ConversationID int    `bson:"conversationId"`
-		Code           int    `bson:"code"`
-		Done           bool   `bson:"done"`
-		Payload        []byte `bson:"payload"`
+	return doc, nil
+}
+
+type saslResponse struct {
+	ConversationID int    `bson:"conversationId"`
+	Code           int    `bson:"code"`
+	Done           bool   `bson:"done"`
+	Payload        []byte `bson:"payload"`
+}
+
+// Finish completes the conversation based on the first server response to authenticate the given connection.
+func (sc *saslConversation) Finish(ctx context.Context, firstResponse bsoncore.Document, conn driver.Connection) error {
+	if closer, ok := sc.client.(SaslClientCloser); ok {
+		defer closer.Close()
 	}
 
 	var saslResp saslResponse
-
-	err = saslStartCmd.Execute(ctx)
+	err := bson.Unmarshal(firstResponse, &saslResp)
 	if err != nil {
-		return newError(err, mech)
-	}
-	rdr := saslStartCmd.Result()
-
-	err = bson.Unmarshal(rdr, &saslResp)
-	if err != nil {
-		return newAuthError("unmarshall error", err)
+		fullErr := fmt.Errorf("unmarshal error: %v", err)
+		return newError(fullErr, sc.mechanism)
 	}
 
 	cid := saslResp.ConversationID
-
+	var payload []byte
+	var rdr bsoncore.Document
 	for {
 		if saslResp.Code != 0 {
-			return newError(err, mech)
+			return newError(err, sc.mechanism)
 		}
 
-		if saslResp.Done && client.Completed() {
+		if saslResp.Done && sc.client.Completed() {
 			return nil
 		}
 
-		payload, err = client.Next(saslResp.Payload)
+		payload, err = sc.client.Next(saslResp.Payload)
 		if err != nil {
-			return newError(err, mech)
+			return newError(err, sc.mechanism)
 		}
 
-		if saslResp.Done && client.Completed() {
+		if saslResp.Done && sc.client.Completed() {
 			return nil
 		}
 
@@ -106,17 +142,36 @@ func ConductSaslConversation(ctx context.Context, conn driver.Connection, db str
 			bsoncore.AppendInt32Element(nil, "conversationId", int32(cid)),
 			bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 		)
-		saslContinueCmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
+		saslContinueCmd := operation.NewCommand(doc).Database(sc.source).Deployment(driver.SingleConnectionDeployment{conn})
 
 		err = saslContinueCmd.Execute(ctx)
 		if err != nil {
-			return newError(err, mech)
+			return newError(err, sc.mechanism)
 		}
 		rdr = saslContinueCmd.Result()
 
 		err = bson.Unmarshal(rdr, &saslResp)
 		if err != nil {
-			return newAuthError("unmarshal error", err)
+			fullErr := fmt.Errorf("unmarshal error: %v", err)
+			return newError(fullErr, sc.mechanism)
 		}
 	}
+}
+
+// ConductSaslConversation runs a full SASL conversation to authenticate the given connection.
+func ConductSaslConversation(ctx context.Context, conn driver.Connection, authSource string, client SaslClient) error {
+	conversation := newSaslConversation(client, authSource)
+
+	// Manually create the first message instead of calling conversation.FirstMessage because we don't want the message
+	// to contain fields that are only required for speculative authentication (e.g. "db").
+	saslStartDoc, err := conversation.createFirstMessage(false)
+	if err != nil {
+		return newError(err, conversation.mechanism)
+	}
+	saslStartCmd := operation.NewCommand(saslStartDoc).Database(authSource).Deployment(driver.SingleConnectionDeployment{conn})
+	if err := saslStartCmd.Execute(ctx); err != nil {
+		return newError(err, conversation.mechanism)
+	}
+
+	return conversation.Finish(ctx, saslStartCmd.Result(), conn)
 }
