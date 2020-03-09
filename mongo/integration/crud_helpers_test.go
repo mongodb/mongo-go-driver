@@ -1230,7 +1230,9 @@ func executeRenameCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) (*m
 func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string, error) {
 	mt.Helper()
 
-	var model mongo.IndexModel
+	model := mongo.IndexModel{
+		Options: options.Index(),
+	}
 	elems, _ := args.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -1239,6 +1241,9 @@ func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string,
 		switch key {
 		case "keys":
 			model.Keys = val.Document()
+		case "name":
+			model.Options.SetName(val.StringValue())
+		case "session":
 		default:
 			mt.Fatalf("unrecognized createIndex option %v", key)
 		}
@@ -1283,6 +1288,63 @@ func executeDropIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.Raw,
 		return res, err
 	}
 	return mt.Coll.Indexes().DropOne(mtest.Background, name)
+}
+
+func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
+	mt.Helper()
+
+	var collName string
+	elems, _ := args.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "collection":
+			collName = val.StringValue()
+		default:
+			mt.Fatalf("unrecognized dropCollection option %v", key)
+		}
+	}
+
+	coll := mt.DB.Collection(collName)
+	if sess != nil {
+		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+			return coll.Drop(sc)
+		})
+		return err
+	}
+	return coll.Drop(mtest.Background)
+}
+
+func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
+	mt.Helper()
+
+	var collName string
+	elems, _ := args.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "collection":
+			collName = val.StringValue()
+		case "session":
+		default:
+			mt.Fatalf("unrecognized createCollection option %v", key)
+		}
+	}
+
+	createCmd := bson.D{
+		{"create", collName},
+	}
+	if sess != nil {
+		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+			return mt.DB.RunCommand(sc, createCmd).Err()
+		})
+		return err
+	}
+	return mt.DB.RunCommand(mtest.Background, createCmd).Err()
 }
 
 // verification function to use for all count operations

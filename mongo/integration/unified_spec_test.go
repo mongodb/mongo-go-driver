@@ -420,9 +420,64 @@ func executeTestRunnerOperation(mt *mtest.T, op *operation, sess mongo.Session) 
 	case "assertDifferentLsidOnLastTwoCommands":
 		first, second := lastTwoIDs(mt)
 		assert.NotEqual(mt, first, second, "expected last two lsids to be not equal but got %v and %v", first, second)
+	case "assertCollectionExists":
+		assertCollectionState(mt, op, true)
+	case "assertCollectionNotExists":
+		assertCollectionState(mt, op, false)
+	case "assertIndexExists":
+		assertIndexState(mt, op, true)
+	case "assertIndexNotExists":
+		assertIndexState(mt, op, false)
 	default:
 		mt.Fatalf("unrecognized testRunner operation %v", op.Name)
 	}
+}
+
+func assertIndexState(mt *mtest.T, op *operation, shouldExist bool) {
+	db := op.Arguments.Lookup("database").StringValue()
+	coll := op.Arguments.Lookup("collection").StringValue()
+	index := op.Arguments.Lookup("index").StringValue()
+	exists := indexExists(mt, db, coll, index)
+
+	assert.Equal(mt, shouldExist, exists,
+		"index state mismatch for index %s in namespace %s.%s; should exist: %v, exists: %v", index, db, coll,
+		shouldExist, exists)
+}
+
+func indexExists(mt *mtest.T, dbName, collName, indexName string) bool {
+	// Use global client because listIndexes cannot be executed inside a transaction.
+	iv := mt.GlobalClient().Database(dbName).Collection(collName).Indexes()
+	cursor, err := iv.List(mtest.Background)
+	assert.Nil(mt, err, "IndexView.List error: %v", err)
+	defer cursor.Close(mtest.Background)
+
+	for cursor.Next(mtest.Background) {
+		if cursor.Current.Lookup("name").StringValue() == indexName {
+			return true
+		}
+	}
+	assert.Nil(mt, cursor.Err(), "unexpected cursor iteration error: %v", cursor.Err())
+	return false
+}
+
+func assertCollectionState(mt *mtest.T, op *operation, shouldExist bool) {
+	db := op.Arguments.Lookup("database").StringValue()
+	coll := op.Arguments.Lookup("collection").StringValue()
+	exists := collectionExists(mt, db, coll)
+	assert.Equal(mt, shouldExist, exists, "collection state mismatch for %s:%s; should exist: %v, exists: %v",
+		db, coll, shouldExist, coll)
+}
+
+func collectionExists(mt *mtest.T, dbName, collName string) bool {
+	filter := bson.D{
+		{"name", collName},
+	}
+
+	// Use global client because listCollections cannot be executed inside a transaction.
+	collections, err := mt.GlobalClient().Database(dbName).ListCollectionNames(mtest.Background, filter)
+	assert.Nil(mt, err, "ListCollectionNames error: %v", err)
+
+	return len(collections) > 0
 }
 
 func lastTwoIDs(mt *mtest.T) (bson.RawValue, bson.RawValue) {
@@ -634,6 +689,18 @@ func executeDatabaseOperation(mt *mtest.T, op *operation, sess mongo.Session) er
 		if op.opError == nil && err == nil {
 			assert.Nil(mt, op.Result, "unexpected result for watch: %v", op.Result)
 			_ = stream.Close(mtest.Background)
+		}
+		return err
+	case "dropCollection":
+		err := executeDropCollection(mt, sess, op.Arguments)
+		if op.opError == nil && err == nil {
+			assert.Nil(mt, op.Result, "unexpected result for dropCollection: %v", op.Result)
+		}
+		return err
+	case "createCollection":
+		err := executeCreateCollection(mt, sess, op.Arguments)
+		if op.opError == nil && err == nil {
+			assert.Nil(mt, op.Result, "unexpected result for createCollection: %v", op.Result)
 		}
 		return err
 	case "listCollectionObjects":
