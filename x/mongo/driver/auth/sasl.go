@@ -37,38 +37,29 @@ type ExtraOptionsSaslClient interface {
 // saslConversation represents a SASL conversation. This type implements the SpeculativeConversation interface so the
 // conversation can be executed in multi-step speculative fashion.
 type saslConversation struct {
-	client    SaslClient
-	source    string
-	mechanism string
+	client      SaslClient
+	source      string
+	mechanism   string
+	speculative bool
 }
 
 var _ SpeculativeConversation = (*saslConversation)(nil)
 
-func newSaslConversation(client SaslClient, source string) *saslConversation {
+func newSaslConversation(client SaslClient, source string, speculative bool) *saslConversation {
 	authSource := source
 	if authSource == "" {
 		authSource = defaultAuthDB
 	}
 	return &saslConversation{
-		client: client,
-		source: authSource,
+		client:      client,
+		source:      authSource,
+		speculative: speculative,
 	}
 }
 
 // FirstMessage returns the firt message to be sent to the server. This message contains a "db" field so it can be used
 // for speculative authentication.
 func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
-	firstMsg, err := sc.createFirstMessage(true)
-	if err != nil {
-		return nil, newError(err, sc.mechanism)
-	}
-
-	return firstMsg, nil
-}
-
-// createFirstMessage creates the first message in the conversation. If speculative is true, the message will contain
-// an additional "db" field.
-func (sc *saslConversation) createFirstMessage(speculative bool) (bsoncore.Document, error) {
 	var payload []byte
 	var err error
 	sc.mechanism, payload, err = sc.client.Start()
@@ -81,7 +72,7 @@ func (sc *saslConversation) createFirstMessage(speculative bool) (bsoncore.Docum
 		bsoncore.AppendStringElement(nil, "mechanism", sc.mechanism),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 	}
-	if speculative {
+	if sc.speculative {
 		// The "db" field is only appended for speculative auth because the isMaster command is executed against admin
 		// so this is needed to tell the server the user's auth source. For a non-speculative attempt, the SASL commands
 		// will be executed against the auth source.
@@ -91,9 +82,8 @@ func (sc *saslConversation) createFirstMessage(speculative bool) (bsoncore.Docum
 		optionsDoc := extraOptionsClient.StartCommandOptions()
 		saslCmdElements = append(saslCmdElements, bsoncore.AppendDocumentElement(nil, "options", optionsDoc))
 	}
-	doc := bsoncore.BuildDocumentFromElements(nil, saslCmdElements...)
 
-	return doc, nil
+	return bsoncore.BuildDocumentFromElements(nil, saslCmdElements...), nil
 }
 
 type saslResponse struct {
@@ -160,11 +150,10 @@ func (sc *saslConversation) Finish(ctx context.Context, firstResponse bsoncore.D
 
 // ConductSaslConversation runs a full SASL conversation to authenticate the given connection.
 func ConductSaslConversation(ctx context.Context, conn driver.Connection, authSource string, client SaslClient) error {
-	conversation := newSaslConversation(client, authSource)
+	// Create a non-speculative SASL conversation.
+	conversation := newSaslConversation(client, authSource, false)
 
-	// Manually create the first message instead of calling conversation.FirstMessage because we don't want the message
-	// to contain fields that are only required for speculative authentication (e.g. "db").
-	saslStartDoc, err := conversation.createFirstMessage(false)
+	saslStartDoc, err := conversation.FirstMessage()
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}

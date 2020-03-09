@@ -89,7 +89,7 @@ func (a *ScramAuthenticator) Auth(ctx context.Context, _ description.Server, con
 
 // CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.
 func (a *ScramAuthenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
-	return newSaslConversation(a.createSaslClient(), a.source), nil
+	return newSaslConversation(a.createSaslClient(), a.source, true), nil
 }
 
 func (a *ScramAuthenticator) createSaslClient() SaslClient {
