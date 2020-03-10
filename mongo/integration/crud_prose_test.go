@@ -184,7 +184,7 @@ func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
 	secondaryPrefClientOpts := options.Client().
 		SetWriteConcern(mtest.MajorityWc).
 		SetReadPreference(readpref.SecondaryPreferred())
-	mt := mtest.New(t, mtest.NewOptions().ClientOptions(secondaryPrefClientOpts)
+	mt := mtest.New(t, mtest.NewOptions().ClientOptions(secondaryPrefClientOpts))
 	mt.Run("aggregate $out with read preference secondary", func(mt *mtest.T) {
 		doc, err := bson.Marshal(bson.D{
 			{"_id", 1},
