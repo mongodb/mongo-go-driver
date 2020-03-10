@@ -178,12 +178,15 @@ func TestHintWithUnacknowledgedWriteErrors(t *testing.T) {
 	})
 }
 
-func TestAggregateSecondaryReadPreference(t *testing.T) {
-	secondaryClientOpts := options.Client().
+func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
+	// Use secondaryPreferred instead of secondary because sharded clusters started up by mongo-orchestration have
+	// one-node shards, so a secondary read preference is not satisfiable.
+	secondaryPrefClientOpts := options.Client().
 		SetWriteConcern(mtest.MajorityWc).
-		SetReadPreference(readpref.Secondary()).
+		SetReadPreference(readpref.SecondaryPreferred()).
 		SetReadConcern(mtest.MajorityRc)
-	mt := mtest.New(t, mtest.NewOptions().ClientOptions(secondaryClientOpts))
+	// Use min server version 3.2 because read concern is not supported on lower versions.
+	mt := mtest.New(t, mtest.NewOptions().ClientOptions(secondaryPrefClientOpts).MinServerVersion("3.2"))
 	mt.Run("aggregate $out with read preference secondary", func(mt *mtest.T) {
 		doc, err := bson.Marshal(bson.D{
 			{"_id", 1},
@@ -193,6 +196,7 @@ func TestAggregateSecondaryReadPreference(t *testing.T) {
 		_, err = mt.Coll.InsertOne(mtest.Background, doc)
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 
+		mt.ClearEvents()
 		outputCollName := "aggregate-read-pref-secondary-output"
 		outStage := bson.D{
 			{"$out", outputCollName},
@@ -201,6 +205,7 @@ func TestAggregateSecondaryReadPreference(t *testing.T) {
 		assert.Nil(mt, err, "Aggregate error: %v", err)
 		_ = cursor.Close(mtest.Background)
 
+		// Assert that the output collection contains the document we expect.
 		outputColl := mt.CreateCollection(mtest.Collection{Name: outputCollName}, false)
 		cursor, err = outputColl.Find(mtest.Background, bson.D{})
 		assert.Nil(mt, err, "Find error: %v", err)
@@ -209,5 +214,11 @@ func TestAggregateSecondaryReadPreference(t *testing.T) {
 		assert.True(mt, cursor.Next(mtest.Background), "expected Next to return true, got false")
 		assert.True(mt, bytes.Equal(doc, cursor.Current), "expected document %s, got %s", bson.Raw(doc), cursor.Current)
 		assert.False(mt, cursor.Next(mtest.Background), "unexpected document returned by Find: %s", cursor.Current)
+
+		// Assert that no read preference was sent to the server.
+		evt := mt.GetStartedEvent()
+		assert.Equal(mt, "aggregate", evt.CommandName, "expected command 'aggregate', got '%s'", evt.CommandName)
+		_, err = evt.Command.LookupErr("$readPreference")
+		assert.NotNil(mt, err, "expected command %s to not contain $readPreference", evt.Command)
 	})
 }
