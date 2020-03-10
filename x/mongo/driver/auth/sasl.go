@@ -57,7 +57,7 @@ func newSaslConversation(client SaslClient, source string, speculative bool) *sa
 	}
 }
 
-// FirstMessage returns the firt message to be sent to the server. This message contains a "db" field so it can be used
+// FirstMessage returns the first message to be sent to the server. This message contains a "db" field so it can be used
 // for speculative authentication.
 func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
 	var payload []byte

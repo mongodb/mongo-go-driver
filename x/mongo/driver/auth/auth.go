@@ -8,6 +8,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -124,7 +125,11 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 func (ah *authHandshaker) authenticate(ctx context.Context, desc description.Server, conn driver.Connection) error {
 	// If the initial isMaster reply included a response to the speculative authentication attempt, we only need to
 	// conduct the remainder of the conversation.
-	if desc.SpeculativeAuthenticate != nil && ah.conversation != nil {
+	if desc.SpeculativeAuthenticate != nil {
+		// Defensively ensure that the server did not include a response if speculative auth was not attempted.
+		if ah.conversation == nil {
+			return errors.New("speculative auth was not attempted but the server included a response")
+		}
 		return ah.conversation.Finish(ctx, desc.SpeculativeAuthenticate, conn)
 	}
 
