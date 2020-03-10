@@ -14,7 +14,7 @@ import (
 )
 
 func TestCommandMonitoring(t *testing.T) {
-	t.Run("canMonitor", func(t *testing.T) {
+	t.Run("redactCommand", func(t *testing.T) {
 		emptyDoc := bsoncore.BuildDocumentFromElements(nil)
 		isMaster := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendInt32Element(nil, "isMaster", 1),
@@ -35,17 +35,17 @@ func TestCommandMonitoring(t *testing.T) {
 			name        string
 			commandName string
 			command     bsoncore.Document
-			canMonitor  bool
+			redacted    bool
 		}{
-			{"isMaster", "isMaster", isMaster, true},
-			{"isMaster lowercase", "ismaster", isMasterLowercase, true},
-			{"isMaster speculative auth", "isMaster", isMasterSpeculative, false},
-			{"isMaster speculative auth lowercase", "isMaster", isMasterSpeculativeLowercase, false},
+			{"isMaster", "isMaster", isMaster, false},
+			{"isMaster lowercase", "ismaster", isMasterLowercase, false},
+			{"isMaster speculative auth", "isMaster", isMasterSpeculative, true},
+			{"isMaster speculative auth lowercase", "isMaster", isMasterSpeculativeLowercase, true},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				canMonitor := (&Operation{}).canMonitor(tc.commandName, tc.command)
-				assert.Equal(t, tc.canMonitor, canMonitor, "expected canMonitor %v, got %v", tc.canMonitor, canMonitor)
+				canMonitor := (&Operation{}).redactCommand(tc.commandName, tc.command)
+				assert.Equal(t, tc.redacted, canMonitor, "expected redacted %v, got %v", tc.redacted, canMonitor)
 			})
 		}
 	})
