@@ -753,8 +753,24 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		Crypt:          a.client.crypt,
 	}
 
-	op := operation.NewAggregate(pipelineArr).Session(sess).WriteConcern(wc).ReadConcern(rc).ReadPreference(a.readPreference).CommandMonitor(a.client.monitor).
-		ServerSelector(selector).ClusterClock(a.client.clock).Database(a.db).Collection(a.col).Deployment(a.client.deployment).Crypt(a.client.crypt)
+	op := operation.NewAggregate(pipelineArr).
+		Session(sess).
+		WriteConcern(wc).
+		ReadConcern(rc).
+		CommandMonitor(a.client.monitor).
+		ServerSelector(selector).
+		ClusterClock(a.client.clock).
+		Database(a.db).
+		Collection(a.col).
+		Deployment(a.client.deployment).
+		Crypt(a.client.crypt)
+	if !hasOutputStage {
+		// Only pass the user-specified read preference if the aggregation doesn't have a $out or $merge stage.
+		// Otherwise, the read preference could be forwarded to a mongos, which would error if the aggregation were
+		// executed against a non-primary node.
+		op.ReadPreference(a.readPreference)
+	}
+
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
 	}
