@@ -70,16 +70,18 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
+	canMonitor               bool
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
 type finishedInformation struct {
-	cmdName   string
-	requestID int32
-	response  bsoncore.Document
-	cmdErr    error
-	connID    string
-	startTime time.Time
+	cmdName    string
+	requestID  int32
+	response   bsoncore.Document
+	cmdErr     error
+	connID     string
+	startTime  time.Time
+	canMonitor bool
 }
 
 // Operation is used to execute an operation. It contains all of the common code required to
@@ -339,6 +341,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
+		startedInfo.canMonitor = op.canMonitor(startedInfo.cmdName, startedInfo.cmd)
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
@@ -353,10 +356,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		finishedInfo := finishedInformation{
-			cmdName:   startedInfo.cmdName,
-			requestID: startedInfo.requestID,
-			startTime: time.Now(),
-			connID:    startedInfo.connID,
+			cmdName:    startedInfo.cmdName,
+			requestID:  startedInfo.requestID,
+			startTime:  time.Now(),
+			connID:     startedInfo.connID,
+			canMonitor: startedInfo.canMonitor,
 		}
 
 		// roundtrip using either the full roundTripper or a special one for when the moreToCome
@@ -1287,8 +1291,8 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 	// Make a copy of the command. Redact if the command is security sensitive and cannot be monitored.
 	// If there was a type 1 payload for the current batch, convert it to a BSON array.
-	var cmdCopy []byte
-	if op.canMonitor(info.cmdName, info.cmd) {
+	cmdCopy := bson.Raw{}
+	if info.canMonitor {
 		cmdCopy = make([]byte, len(info.cmd))
 		copy(cmdCopy, info.cmd)
 		if info.documentSequenceIncluded {
@@ -1335,7 +1339,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if success {
 		res := bson.Raw{}
 		// Only copy the reply for commands that are not security sensitive
-		if op.canMonitor(info.cmdName, info.response) {
+		if info.canMonitor {
 			res = make([]byte, len(info.response))
 			copy(res, info.response)
 		}
