@@ -185,9 +185,9 @@ func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
 		SetWriteConcern(mtest.MajorityWc).
 		SetReadPreference(readpref.SecondaryPreferred()).
 		SetReadConcern(mtest.MajorityRc)
-    mtOpts := mtest.NewOptions().
-        ClientOptions(secondaryPrefClientOpts).
-        MinServerVersion(4.1.0) // Consistent with tests in aggregate-out-readConcern.json
+	mtOpts := mtest.NewOptions().
+		ClientOptions(secondaryPrefClientOpts).
+		MinServerVersion("4.1.0") // Consistent with tests in aggregate-out-readConcern.json
 
 	mt := mtest.New(t, mtOpts)
 	mt.Run("aggregate $out with read preference secondary", func(mt *mtest.T) {
