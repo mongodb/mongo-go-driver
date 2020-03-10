@@ -183,8 +183,13 @@ func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
 	// one-node shards, so a secondary read preference is not satisfiable.
 	secondaryPrefClientOpts := options.Client().
 		SetWriteConcern(mtest.MajorityWc).
-		SetReadPreference(readpref.SecondaryPreferred())
-	mt := mtest.New(t, mtest.NewOptions().ClientOptions(secondaryPrefClientOpts))
+		SetReadPreference(readpref.SecondaryPreferred()).
+		SetReadConcern(mtest.MajorityRc)
+    mtOpts := mtest.NewOptions().
+        ClientOptions(secondaryPrefClientOpts).
+        MinServerVersion(4.1.0) // Consistent with tests in aggregate-out-readConcern.json
+
+	mt := mtest.New(t, mtOpts)
 	mt.Run("aggregate $out with read preference secondary", func(mt *mtest.T) {
 		doc, err := bson.Marshal(bson.D{
 			{"_id", 1},
