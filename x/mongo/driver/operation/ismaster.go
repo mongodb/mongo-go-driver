@@ -24,6 +24,7 @@ type IsMaster struct {
 	saslSupportedMechs string
 	d                  driver.Deployment
 	clock              *session.ClusterClock
+	speculativeAuth    bsoncore.Document
 
 	res bsoncore.Document
 }
@@ -65,6 +66,12 @@ func (im *IsMaster) SASLSupportedMechs(username string) *IsMaster {
 // Deployment sets the Deployment for this operation.
 func (im *IsMaster) Deployment(d driver.Deployment) *IsMaster {
 	im.d = d
+	return im
+}
+
+// SpeculativeAuthenticate sets the document to be used for speculative authentication.
+func (im *IsMaster) SpeculativeAuthenticate(doc bsoncore.Document) *IsMaster {
+	im.speculativeAuth = doc
 	return im
 }
 
@@ -251,6 +258,13 @@ func (im *IsMaster) Result(addr address.Address) description.Server {
 				return desc
 			}
 			desc.SetVersion = uint32(i64)
+		case "speculativeAuthenticate":
+			desc.SpeculativeAuthenticate, ok = element.Value().DocumentOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'speculativeAuthenticate' to be a document but it's a BSON %s",
+					element.Value().Type)
+				return desc
+			}
 		case "tags":
 			m, err := im.decodeStringMap(element, "tags")
 			if err != nil {
@@ -348,6 +362,9 @@ func (im *IsMaster) handshakeCommand(dst []byte, desc description.SelectedServer
 
 	if im.saslSupportedMechs != "" {
 		dst = bsoncore.AppendStringElement(dst, "saslSupportedMechs", im.saslSupportedMechs)
+	}
+	if im.speculativeAuth != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "speculativeAuthenticate", im.speculativeAuth)
 	}
 	var idx int32
 	idx, dst = bsoncore.AppendArrayElementStart(dst, "compression")

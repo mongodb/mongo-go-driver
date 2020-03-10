@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -69,6 +70,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
+	redacted                 bool
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
@@ -79,6 +81,7 @@ type finishedInformation struct {
 	cmdErr    error
 	connID    string
 	startTime time.Time
+	redacted  bool
 }
 
 // Operation is used to execute an operation. It contains all of the common code required to
@@ -338,6 +341,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
+		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
@@ -356,6 +360,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			requestID: startedInfo.requestID,
 			startTime: time.Now(),
 			connID:    startedInfo.connID,
+			redacted:  startedInfo.redacted,
 		}
 
 		// roundtrip using either the full roundTripper or a special one for when the moreToCome
@@ -1261,9 +1266,19 @@ func (op Operation) getCommandName(doc []byte) string {
 	return string(doc[5 : idx+5])
 }
 
-func (op *Operation) canMonitor(cmd string) bool {
-	return !(cmd == "authenticate" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "createUser" ||
-		cmd == "updateUser" || cmd == "copydbgetnonce" || cmd == "copydbsaslstart" || cmd == "copydb")
+func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
+	if cmd == "authenticate" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "createUser" ||
+		cmd == "updateUser" || cmd == "copydbgetnonce" || cmd == "copydbsaslstart" || cmd == "copydb" {
+
+		return true
+	}
+	if strings.ToLower(cmd) != "ismaster" {
+		return false
+	}
+
+	// An isMaster without speculative authentication can be monitored.
+	_, err := doc.LookupErr("speculativeAuthenticate")
+	return err == nil
 }
 
 // publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
@@ -1276,8 +1291,8 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 	// Make a copy of the command. Redact if the command is security sensitive and cannot be monitored.
 	// If there was a type 1 payload for the current batch, convert it to a BSON array.
-	var cmdCopy []byte
-	if op.canMonitor(info.cmdName) {
+	cmdCopy := bson.Raw{}
+	if !info.redacted {
 		cmdCopy = make([]byte, len(info.cmd))
 		copy(cmdCopy, info.cmd)
 		if info.documentSequenceIncluded {
@@ -1324,7 +1339,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if success {
 		res := bson.Raw{}
 		// Only copy the reply for commands that are not security sensitive
-		if op.canMonitor(info.cmdName) {
+		if !info.redacted {
 			res = make([]byte, len(info.response))
 			copy(res, info.response)
 		}
