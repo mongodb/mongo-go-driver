@@ -7,6 +7,7 @@
 package bsonrw
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -93,6 +94,13 @@ func TestExtJSONParserPeekType(t *testing.T) {
 			errFs: []expectedErrorFunc{expectNoError},
 		}
 	}
+	makeInvalidTestCase := func(desc, input string, lastEF expectedErrorFunc) peekTypeTestCase {
+		return peekTypeTestCase{
+			desc: desc, input: input,
+			typs:  []bsontype.Type{bsontype.Type(0)},
+			errFs: []expectedErrorFunc{lastEF},
+		}
+	}
 
 	makeInvalidPeekTypeTestCase := func(desc, input string, lastEF expectedErrorFunc) peekTypeTestCase {
 		return peekTypeTestCase{
@@ -140,18 +148,22 @@ func TestExtJSONParserPeekType(t *testing.T) {
 			typs:  []bsontype.Type{bsontype.Array, bsontype.Type(0)},
 			errFs: []expectedErrorFunc{expectNoError, expectError},
 		},
+		makeInvalidTestCase("lone $scope", `{"$scope": {}}`, expectError),
 	}
 
 	for _, tc := range cases {
-		ejp := newExtJSONParser(strings.NewReader(tc.input), true)
+		t.Run(tc.desc, func(t *testing.T) {
+			ejp := newExtJSONParser(strings.NewReader(tc.input), true)
 
-		for i, eTyp := range tc.typs {
-			errF := tc.errFs[i]
+			for i, eTyp := range tc.typs {
+				errF := tc.errFs[i]
 
-			typ, err := ejp.peekType()
-			typDiff(t, eTyp, typ, tc.desc)
-			errF(t, err, tc.desc)
-		}
+				typ, err := ejp.peekType()
+				fmt.Printf("err: %v\n", err)
+				typDiff(t, eTyp, typ, tc.desc)
+				errF(t, err, tc.desc)
+			}
+		})
 	}
 }
 
@@ -295,24 +307,45 @@ func TestExtJSONParserReadKeyReadValue(t *testing.T) {
 		secondKeyError("invalid input: missing comma", `{"a": 1 "b"`, "a", bsontype.Int32, &extJSONValue{t: bsontype.Int32, v: int32(1)}),
 		secondKeyError("invalid input: extra comma", `{"a": 1,, "b"`, "a", bsontype.Int32, &extJSONValue{t: bsontype.Int32, v: int32(1)}),
 		secondKeyError("invalid input: trailing comma in object", `{"a": 1,}`, "a", bsontype.Int32, &extJSONValue{t: bsontype.Int32, v: int32(1)}),
+		{
+			desc:   "invalid input: lone scope after a complete value",
+			input:  `{"a": "", "b": {"$scope: ""}}`,
+			keys:   []string{"a"},
+			typs:   []bsontype.Type{bsontype.String},
+			vals:   []*extJSONValue{{bsontype.String, ""}},
+			keyEFs: []expectedErrorFunc{expectNoError, expectNoError},
+			valEFs: []expectedErrorFunc{expectNoError, expectError},
+		},
+		{
+			desc:   "invalid input: lone scope nested",
+			input:  `{"a":{"b":{"$scope":{`,
+			keys:   []string{},
+			typs:   []bsontype.Type{},
+			vals:   []*extJSONValue{nil},
+			keyEFs: []expectedErrorFunc{expectNoError},
+			valEFs: []expectedErrorFunc{expectError},
+		},
 	}
 
 	for _, tc := range cases {
-		ejp := newExtJSONParser(strings.NewReader(tc.input), true)
+		t.Run(tc.desc, func(t *testing.T) {
+			ejp := newExtJSONParser(strings.NewReader(tc.input), true)
 
-		for i, eKey := range tc.keys {
-			eTyp := tc.typs[i]
-			eVal := tc.vals[i]
+			for i, eKey := range tc.keys {
+				eTyp := tc.typs[i]
+				eVal := tc.vals[i]
 
-			keyErrF := tc.keyEFs[i]
-			valErrF := tc.valEFs[i]
+				keyErrF := tc.keyEFs[i]
+				valErrF := tc.valEFs[i]
 
-			k, typ, err := ejp.readKey()
-			readKeyDiff(t, eKey, k, eTyp, typ, err, keyErrF, tc.desc)
+				k, typ, err := ejp.readKey()
+				readKeyDiff(t, eKey, k, eTyp, typ, err, keyErrF, tc.desc)
+				fmt.Printf("key: %s, err: %v\n", k, err)
 
-			v, err := ejp.readValue(typ)
-			readValueDiff(t, eVal, v, err, valErrF, tc.desc)
-		}
+				v, err := ejp.readValue(typ)
+				readValueDiff(t, eVal, v, err, valErrF, tc.desc)
+			}
+		})
 	}
 }
 
