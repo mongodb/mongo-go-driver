@@ -160,8 +160,13 @@ func TestExtJSONParserPeekType(t *testing.T) {
 
 				typ, err := ejp.peekType()
 				fmt.Printf("err: %v\n", err)
-				typDiff(t, eTyp, typ, tc.desc)
 				errF(t, err, tc.desc)
+				if err != nil {
+					// Don't inspect the type if there was an error
+					return
+				}
+
+				typDiff(t, eTyp, typ, tc.desc)
 			}
 		})
 	}
