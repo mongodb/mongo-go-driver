@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -95,28 +96,28 @@ func runTestsInFile(t *testing.T, dirname string, filename string, warningsError
 	}
 }
 
-var skipTest = map[string]struct{}{
-	"tlsAllowInvalidHostnames and tlsInsecure both present (and false) raises an error":    {},
-	"tlsAllowInvalidHostnames and tlsInsecure both present (and true) raises an error":     {},
-	"tlsInsecure and tlsAllowInvalidHostnames both present (and false) raises an error":    {},
-	"tlsInsecure and tlsAllowInvalidHostnames both present (and true) raises an error":     {},
-	"tlsAllowInvalidCertificates and tlsInsecure both present (and false) raises an error": {},
-	"tlsAllowInvalidCertificates and tlsInsecure both present (and true) raises an error":  {},
-	"tlsInsecure and tlsAllowInvalidCertificates both present (and false) raises an error": {},
-	"tlsInsecure and tlsAllowInvalidCertificates both present (and true) raises an error":  {},
-	"Invalid tlsAllowInvalidHostnames causes a warning":                                    {},
-	"tlsAllowInvalidHostnames is parsed correctly":                                         {},
-	"Invalid tlsAllowInvalidCertificates causes a warning":                                 {},
-	"tlsAllowInvalidCertificates is parsed correctly":                                      {},
-	"Invalid serverSelectionTryOnce causes a warning":                                      {},
-	"Valid options specific to single-threaded drivers are parsed correctly":               {},
+var skipDescriptions = map[string]struct{}{
+	"Valid options specific to single-threaded drivers are parsed correctly": {},
+}
+
+var skipKeywords = []string{
+	"tlsAllowInvalidHostnames",
+	"tlsAllowInvalidCertificates",
+	"tlsDisableCertificateRevocationCheck",
+	"serverSelectionTryOnce",
 }
 
 func runTest(t *testing.T, filename string, test *testCase, warningsError bool) {
 	t.Run(test.Description, func(t *testing.T) {
-		if _, skip := skipTest[test.Description]; skip {
+		if _, skip := skipDescriptions[test.Description]; skip {
 			t.Skip()
 		}
+		for _, keyword := range skipKeywords {
+			if strings.Contains(test.Description, keyword) {
+				t.Skipf("skipping because keyword %s", keyword)
+			}
+		}
+
 		cs, err := connstring.ParseAndValidate(test.URI)
 		// Since we don't have warnings in Go, we return warnings as errors.
 		//
