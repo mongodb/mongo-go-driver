@@ -118,9 +118,8 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 			switch t {
 			case bsontype.JavaScript:
 				// just saw $code, need to check for $scope at same level
-				_, err := ejp.readValue(bsontype.JavaScript)
-
-				if err != nil {
+				_, tempErr := ejp.readValue(bsontype.JavaScript)
+				if tempErr != nil {
 					break
 				}
 
@@ -128,6 +127,7 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 				case jpsSawEndObject: // type is TypeJavaScript
 				case jpsSawComma:
 					ejp.advanceState()
+
 					if ejp.s == jpsSawKey && ejp.k == "$scope" {
 						t = bsontype.CodeWithScope
 					} else {
