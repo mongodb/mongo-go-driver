@@ -7,7 +7,6 @@
 package bsonrw
 
 import (
-	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -159,7 +158,6 @@ func TestExtJSONParserPeekType(t *testing.T) {
 				errF := tc.errFs[i]
 
 				typ, err := ejp.peekType()
-				fmt.Printf("err: %v\n", err)
 				errF(t, err, tc.desc)
 				if err != nil {
 					// Don't inspect the type if there was an error
@@ -345,7 +343,6 @@ func TestExtJSONParserReadKeyReadValue(t *testing.T) {
 
 				k, typ, err := ejp.readKey()
 				readKeyDiff(t, eKey, k, eTyp, typ, err, keyErrF, tc.desc)
-				fmt.Printf("key: %s, err: %v\n", k, err)
 
 				v, err := ejp.readValue(typ)
 				readValueDiff(t, eVal, v, err, valErrF, tc.desc)
