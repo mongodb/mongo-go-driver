@@ -118,8 +118,8 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 			switch t {
 			case bsontype.JavaScript:
 				// just saw $code, need to check for $scope at same level
-				_, tempErr := ejp.readValue(bsontype.JavaScript)
-				if tempErr != nil {
+				_, err = ejp.readValue(bsontype.JavaScript)
+				if err != nil {
 					break
 				}
 
