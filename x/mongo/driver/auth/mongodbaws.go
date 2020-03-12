@@ -18,7 +18,7 @@ const MongoDBAWS = "MONGODB-AWS"
 
 func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
 	if cred.Source != "" && cred.Source != "$external" {
-		return nil, newAuthError("GSSAPI source must be empty or $external", nil)
+		return nil, newAuthError("MONGODB-AWS source must be empty or $external", nil)
 	}
 	return &MongoDBAWSAuthenticator{
 		source:       cred.Source,
