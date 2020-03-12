@@ -115,7 +115,8 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 		case jpsSawKey:
 			t = wrapperKeyBSONType(ejp.k)
 
-			if t == bsontype.JavaScript {
+			switch t {
+			case bsontype.JavaScript:
 				// just saw $code, need to check for $scope at same level
 				_, err := ejp.readValue(bsontype.JavaScript)
 
@@ -137,6 +138,8 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 				default:
 					err = ErrInvalidJSON
 				}
+			case bsontype.CodeWithScope:
+				err = errors.New("invalid extended JSON: code with $scope must contain $code before $scope")
 			}
 		}
 	}
