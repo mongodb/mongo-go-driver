@@ -28,7 +28,8 @@ import (
 )
 
 var (
-	connsCheckedOut int
+	connsCheckedOut  int
+	errorInterrupted int32 = 11601
 )
 
 func TestConvenientTransactions(t *testing.T) {

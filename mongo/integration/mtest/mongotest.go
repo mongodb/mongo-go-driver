@@ -299,6 +299,45 @@ func (t *T) GetAllFailedEvents() []*event.CommandFailedEvent {
 	return t.failed
 }
 
+// FilterStartedEvents filters the existing CommandStartedEvent instances for this test using the provided filter
+// callback. An event will be retained if the filter returns true. The list of filtered events will be used to overwrite
+// the list of events for this test and will therefore change the output of t.GetAllStartedEvents().
+func (t *T) FilterStartedEvents(filter func(*event.CommandStartedEvent) bool) {
+	var newEvents []*event.CommandStartedEvent
+	for _, evt := range t.started {
+		if filter(evt) {
+			newEvents = append(newEvents, evt)
+		}
+	}
+	t.started = newEvents
+}
+
+// FilterSucceededEvents filters the existing CommandSucceededEvent instances for this test using the provided filter
+// callback. An event will be retained if the filter returns true. The list of filtered events will be used to overwrite
+// the list of events for this test and will therefore change the output of t.GetAllSucceededEvents().
+func (t *T) FilterSucceededEvents(filter func(*event.CommandSucceededEvent) bool) {
+	var newEvents []*event.CommandSucceededEvent
+	for _, evt := range t.succeeded {
+		if filter(evt) {
+			newEvents = append(newEvents, evt)
+		}
+	}
+	t.succeeded = newEvents
+}
+
+// FilterFailedEvents filters the existing CommandFailedEVent instances for this test using the provided filter
+// callback. An event will be retained if the filter returns true. The list of filtered events will be used to overwrite
+// the list of events for this test and will therefore change the output of t.GetAllFailedEvents().
+func (t *T) FilterFailedEvents(filter func(*event.CommandFailedEvent) bool) {
+	var newEvents []*event.CommandFailedEvent
+	for _, evt := range t.failed {
+		if filter(evt) {
+			newEvents = append(newEvents, evt)
+		}
+	}
+	t.failed = newEvents
+}
+
 // ClearEvents clears the existing command monitoring events.
 func (t *T) ClearEvents() {
 	t.started = t.started[:0]
