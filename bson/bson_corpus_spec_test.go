@@ -325,7 +325,8 @@ func runTest(t *testing.T, file string) {
 					err = Unmarshal(b, &doc)
 
 					// The driver unmarshals invalid UTF-8 strings without error. Loop over the unmarshalled elements
-					// and skip the test if any of the string or DBPointer values contain invalid UTF-8 characters.
+					// and assert that there was no error if any of the string or DBPointer values contain invalid UTF-8
+					// characters.
 					for _, elem := range doc {
 						str, ok := elem.Value.(string)
 						invalidString := ok && !utf8.ValidString(str)
@@ -333,7 +334,8 @@ func runTest(t *testing.T, file string) {
 						invalidDBPtr := ok && !utf8.ValidString(dbPtr.DB)
 
 						if invalidString || invalidDBPtr {
-							t.Skip("skipping tests for invalid UTF-8 strings")
+							expectNoError(t, err, d.Description)
+							return
 						}
 					}
 
