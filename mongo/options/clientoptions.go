@@ -780,9 +780,9 @@ func addCACertFromFile(cfg *tls.Config, file string) error {
 		return err
 	}
 
-	certBytes, err := loadCert(data)
+	certBytes, err := loadCACert(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("error loading CA cert: %v", err)
 	}
 
 	cert, err := x509.ParseCertificate(certBytes)
@@ -799,12 +799,12 @@ func addCACertFromFile(cfg *tls.Config, file string) error {
 	return nil
 }
 
-func loadCert(data []byte) ([]byte, error) {
+func loadCACert(data []byte) ([]byte, error) {
 	var certBlock *pem.Block
 
 	for certBlock == nil {
 		if data == nil || len(data) == 0 {
-			return nil, errors.New(".pem file must have both a CERTIFICATE and an RSA PRIVATE KEY section")
+			return nil, errors.New("no CERTIFICATE section found")
 		}
 
 		block, rest := pem.Decode(data)
@@ -814,10 +814,6 @@ func loadCert(data []byte) ([]byte, error) {
 
 		switch block.Type {
 		case "CERTIFICATE":
-			if certBlock != nil {
-				return nil, errors.New("multiple CERTIFICATE sections in .pem file")
-			}
-
 			certBlock = block
 		}
 

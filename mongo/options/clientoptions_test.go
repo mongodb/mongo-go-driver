@@ -6,9 +6,11 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -459,6 +462,42 @@ func TestClientOptions(t *testing.T) {
 			})
 		}
 	})
+	t.Run("loadCACert", func(t *testing.T) {
+		caData := readFile(t, "testdata/ca.pem")
+		keyData := readFile(t, "testdata/ca-key.pem")
+		noCertErr := errors.New("no CERTIFICATE section found")
+		malformedErr := errors.New("invalid .pem file")
+
+		testCases := []struct {
+			name string
+			data []byte
+			err  error
+		}{
+			{"file with certificate succeeds", caData, nil},
+			{"empty file errors", []byte{}, noCertErr},
+			{"file with no certificate errors", keyData, noCertErr},
+			{"file with malformed data errors", []byte{1, 2, 3}, malformedErr},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := loadCACert(tc.data)
+				if tc.err == nil {
+					assert.Nil(t, err, "loadCACert error: %v", err)
+					return
+				}
+
+				assert.NotNil(t, err, "expected error %v, got nil", tc.err)
+				containsMsg := strings.Contains(err.Error(), tc.err.Error())
+				assert.True(t, containsMsg, "expected error %v, got %v", tc.err, err)
+			})
+		}
+	})
+}
+
+func readFile(t *testing.T, path string) []byte {
+	data, err := ioutil.ReadFile(path)
+	assert.Nil(t, err, "ReadFile error for %s: %v", path, err)
+	return data
 }
 
 type testDialer struct {
