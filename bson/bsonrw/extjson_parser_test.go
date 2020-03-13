@@ -148,6 +148,8 @@ func TestExtJSONParserPeekType(t *testing.T) {
 			errFs: []expectedErrorFunc{expectNoError, expectError},
 		},
 		makeInvalidTestCase("lone $scope", `{"$scope": {}}`, expectError),
+		makeInvalidTestCase("empty code with unknown extra key", `{"$code":"", "0":""}`, expectError),
+		makeInvalidTestCase("non-empty code with unknown extra key", `{"$code":"foobar", "0":""}`, expectError),
 	}
 
 	for _, tc := range cases {
