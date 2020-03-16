@@ -9,11 +9,8 @@ package gridfs // import "go.mongodb.org/mongo-driver/mongo/gridfs"
 import (
 	"bytes"
 	"context"
-
-	"io"
-
 	"errors"
-
+	"io"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -472,13 +469,56 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 			return err
 		}
 
-		keyElemDoc := keyElem.Document()
-		modelKeysDoc, err := bson.Marshal(model.Keys)
+		keyElemDoc := bsoncore.Value{Type: keyElem.Type, Data: keyElem.Value}.Document()
+
+		modelKeysBytes, err := bson.Marshal(model.Keys)
+		if err != nil {
+			return err
+		}
+		modelKeysDoc := bsoncore.Document(modelKeysBytes)
+
+		if bytes.Equal(modelKeysDoc, keyElemDoc) {
+			found = true
+			break
+		}
+
+		keyElemElems, err := keyElemDoc.Elements()
+		if err != nil {
+			return err
+		}
+		modelKeysElems, err := modelKeysDoc.Elements()
 		if err != nil {
 			return err
 		}
 
-		if bytes.Equal(modelKeysDoc, keyElemDoc) {
+		if len(keyElemElems) != len(modelKeysElems) {
+			continue
+		}
+
+		docsEqual := true
+		for _, elem := range keyElemElems {
+			key := elem.Key()
+			modelVal, err := modelKeysDoc.LookupErr(key)
+			if err != nil {
+				docsEqual = false
+				break
+			}
+
+			val := elem.Value()
+			if !val.IsNumber() || !modelVal.IsNumber() {
+				if val.Equal(modelVal) {
+					continue
+				}
+				docsEqual = false
+				break
+			}
+
+			if val.AsInt64() != modelVal.AsInt64() {
+				docsEqual = false
+				break
+			}
+		}
+		if docsEqual {
 			found = true
 			break
 		}
