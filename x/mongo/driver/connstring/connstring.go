@@ -327,9 +327,7 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 			p.AuthMechanismProperties["SERVICE_NAME"] = "mongodb"
 		}
 		fallthrough
-	case "mongodb-aws":
-		fallthrough
-	case "mongodb-x509":
+	case "mongodb-aws", "mongodb-x509":
 		if p.AuthSource == "" {
 			p.AuthSource = "$external"
 		} else if p.AuthSource != "$external" {

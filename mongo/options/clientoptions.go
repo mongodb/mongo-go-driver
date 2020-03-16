@@ -41,8 +41,8 @@ type ContextDialer interface {
 // Credential can be used to provide authentication options when configuring a Client.
 //
 // AuthMechanism: the mechanism to use for authentication. Supported values include "SCRAM-SHA-256", "SCRAM-SHA-1",
-// "MONGODB-CR", "PLAIN", "GSSAPI", and "MONGODB-X509". This can also be set through the "authMechanism" URI option.
-// (e.g. "authMechanism=PLAIN"). For more information, see
+// "MONGODB-CR", "PLAIN", "GSSAPI", "MONGODB-X509", and "MONGODB-AWS". This can also be set through the "authMechanism"
+// URI option. (e.g. "authMechanism=PLAIN"). For more information, see
 // https://docs.mongodb.com/manual/core/authentication-mechanisms/.
 //
 // AuthMechanismProperties can be used to specify additional configuration options for certain mechanisms. They can also
@@ -58,6 +58,9 @@ type ContextDialer interface {
 //
 // 4. SERVICE_HOST: The host name to use for GSSAPI authentication. This should be specified if the host name to use for
 // authentication is different than the one given for Client construction.
+//
+// 4. AWS_SESSION_TOKEN: The AWS token for MONGODB-AWS authentication. This is optional and used for authentication with
+// temporary credentials.
 //
 // The SERVICE_HOST and CANONICALIZE_HOST_NAME properties must not be used at the same time on Linux and Darwin
 // systems.

@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -38,7 +39,7 @@ const (
 type awsConversation struct {
 	state    clientState
 	valid    bool
-	nonce    primitive.Binary
+	nonce    []byte
 	username string
 	password string
 	token    string
@@ -55,11 +56,17 @@ type ecsResponse struct {
 	Token           string `json:"Token"`
 }
 
-const amzDateFormat = "20060102T150405Z"
-
-const awsRelativeURI = "http://169.254.170.2/"
-const awsEC2URI = "http://169.254.169.254"
-const awsEC2Path = "/latest/meta-data/iam/security-credentials/"
+const (
+	amzDateFormat       = "20060102T150405Z"
+	awsRelativeURI      = "http://169.254.170.2/"
+	awsEC2URI           = "http://169.254.169.254/"
+	awsEC2Path          = "latest/meta-data/iam/security-credentials/"
+	awsEC2Token         = "latest/api/token"
+	defaultRegion       = "us-east-1"
+	maxHostLength       = 255
+	defaultHTTPTimeout  = 10 * time.Second
+	responceNonceLength = 64
+)
 
 // Step takes a string provided from a server (or just an empty string for the
 // very first conversation step) and attempts to move the authentication
@@ -96,14 +103,15 @@ func (ac *awsConversation) Valid() bool {
 }
 
 func getRegion(host string) (string, error) {
-	region := "us-east-1"
+	region := defaultRegion
 
 	if len(host) == 0 {
 		return "", errors.New("invalid STS host: empty")
 	}
-	if len(host) > 255 {
+	if len(host) > maxHostLength {
 		return "", errors.New("invalid STS host: too large")
 	}
+	// The implicit region for sts.amazonaws.com is us-east-1
 	if host == "sts.amazonaws.com" {
 		return region, nil
 	}
@@ -111,6 +119,7 @@ func getRegion(host string) (string, error) {
 		return "", errors.New("invalid STS host: empty part")
 	}
 
+	// If the host has multiple parts, the second part is the region
 	parts := strings.Split(host, ".")
 	if len(parts) >= 2 {
 		region = parts[1]
@@ -135,14 +144,8 @@ func (ac *awsConversation) validateAndMakeCredentials() (*credentials.Credential
 	return nil, nil
 }
 
-func (ac *awsConversation) getEC2Credentials() (*credentials.Credentials, error) {
-	//get token
-	req, err := http.NewRequest("PUT", awsEC2URI+"/latest/api/token", nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", "30")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func executeAWSHTTPRequest(req *http.Request) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultHTTPTimeout)
 	defer cancel()
 	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -150,29 +153,34 @@ func (ac *awsConversation) getEC2Credentials() (*credentials.Credentials, error)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	token, err := ioutil.ReadAll(resp.Body)
+	return ioutil.ReadAll(resp.Body)
+}
+
+func (ac *awsConversation) getEC2Credentials() (*credentials.Credentials, error) {
+	// get token
+	req, err := http.NewRequest("PUT", awsEC2URI+awsEC2Token, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", "30")
+
+	token, err := executeAWSHTTPRequest(req)
 	if err != nil {
 		return nil, err
 	}
 	if len(token) == 0 {
 		return nil, errors.New("unable to retrieve token from EC2 metadata")
 	}
+	tokenStr := string(token)
 
 	// get role name
 	req, err = http.NewRequest("GET", awsEC2URI+awsEC2Path, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-aws-ec2-metadata-token", string(token))
-	ctx, roleCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer roleCancel()
-	roleResp, err := http.DefaultClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = roleResp.Body.Close() }()
+	req.Header.Set("X-aws-ec2-metadata-token", tokenStr)
 
-	role, err := ioutil.ReadAll(roleResp.Body)
+	role, err := executeAWSHTTPRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -186,15 +194,8 @@ func (ac *awsConversation) getEC2Credentials() (*credentials.Credentials, error)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-aws-ec2-metadata-token", string(token))
-	ctx, credsCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer credsCancel()
-	credsResp, err := http.DefaultClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = credsResp.Body.Close() }()
-	creds, err := ioutil.ReadAll(credsResp.Body)
+	req.Header.Set("X-aws-ec2-metadata-token", tokenStr)
+	creds, err := executeAWSHTTPRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -238,15 +239,7 @@ func (ac *awsConversation) getCredentials() (*credentials.Credentials, error) {
 			return nil, err
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		resp, err := http.DefaultClient.Do(req.WithContext(ctx))
-		if err != nil {
-			return nil, err
-		}
-		defer func() { _ = resp.Body.Close() }()
-
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := executeAWSHTTPRequest(req)
 		if err != nil {
 			return nil, err
 		}
@@ -276,13 +269,13 @@ func (ac *awsConversation) getCredentials() (*credentials.Credentials, error) {
 
 func (ac *awsConversation) firstMsg() ([]byte, error) {
 	// Values are cached for use in final message parameters
-	ac.nonce.Data = make([]byte, 32)
-	_, _ = rand.Read(ac.nonce.Data)
+	ac.nonce = make([]byte, 32)
+	_, _ = rand.Read(ac.nonce)
 
-	msg := bsoncore.BuildDocumentFromElements(nil,
-		bsoncore.AppendInt32Element(nil, "p", 110),
-		bsoncore.AppendBinaryElement(nil, "r", 0x00, ac.nonce.Data),
-	)
+	idx, msg := bsoncore.AppendDocumentStart(nil)
+	msg = bsoncore.AppendInt32Element(msg, "p", 110)
+	msg = bsoncore.AppendBinaryElement(msg, "r", 0x00, ac.nonce)
+	msg, _ = bsoncore.AppendDocumentEnd(msg, idx)
 	return msg, nil
 }
 
@@ -297,10 +290,10 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	if sm.Nonce.Subtype != 0x00 {
 		return nil, errors.New("server reply contained unexpected binary subtype")
 	}
-	if len(sm.Nonce.Data) != 64 {
-		return nil, errors.New("server reply nonce was not 64 bytes")
+	if len(sm.Nonce.Data) != responceNonceLength {
+		return nil, fmt.Errorf("server reply nonce was not %v bytes", responceNonceLength)
 	}
-	if !bytes.HasPrefix(sm.Nonce.Data, ac.nonce.Data) {
+	if !bytes.HasPrefix(sm.Nonce.Data, ac.nonce) {
 		return nil, errors.New("server nonce did not extend client nonce")
 	}
 
@@ -314,7 +307,7 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	tme := time.Now()
+	currentTime := time.Now().UTC()
 	body := "Action=GetCallerIdentity&Version=2011-06-15"
 
 	// Create http.Request
@@ -322,7 +315,7 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", "43")
 	req.Host = sm.Host
-	req.Header.Set("X-Amz-Date", tme.Format(amzDateFormat))
+	req.Header.Set("X-Amz-Date", currentTime.Format(amzDateFormat))
 	if len(ac.token) > 0 {
 		req.Header.Set("X-Amz-Security-Token", ac.token)
 	}
@@ -335,7 +328,7 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	}
 
 	// Get signed header
-	_, err = signer.Sign(req, strings.NewReader(body), "sts", region, tme)
+	_, err = signer.Sign(req, strings.NewReader(body), "sts", region, currentTime)
 	if err != nil {
 		return nil, err
 	}

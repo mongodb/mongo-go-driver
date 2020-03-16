@@ -43,7 +43,8 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, _ description.Server
 			username: a.username,
 			password: a.password,
 			token:    a.sessionToken,
-		}}
+		},
+	}
 	err := ConductSaslConversation(ctx, conn, a.source, adapter)
 	if err != nil {
 		return newAuthError("sasl conversation error", err)
