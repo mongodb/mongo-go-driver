@@ -713,8 +713,6 @@ functions:
           fi
           AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
           ECS_SRC_DIR=$AUTH_AWS_DIR/src
-          # fix issue with `TestData` in SERVER-46340
-          sed -i '1s+^+TestData = {};\n+' $AUTH_AWS_DIR/lib/ecs_hosted_test.js
           # pack up project directory to ssh it to the container
           mkdir -p $ECS_SRC_DIR/.evergreen
           cp ${PROJECT_DIRECTORY}/main $ECS_SRC_DIR
@@ -1449,7 +1447,6 @@ tasks:
       - func: bootstrap-mongo-orchestration
         vars:
           AUTH: "auth"
-          # TODO: SSL??
           ORCHESTRATION_FILE: "auth-aws.json"
           TOPOLOGY: "server"
       - func: add-aws-auth-variables-to-file
