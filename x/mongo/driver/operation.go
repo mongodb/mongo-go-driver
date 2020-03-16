@@ -310,7 +310,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 	batching := op.Batches.Valid()
-	retryWritesEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
+	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
 	for {
 		if batching {
 			targetBatchSize := desc.MaxDocumentSize
@@ -408,8 +408,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			retryableErr := tt.Retryable(connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 
-			// If retryWrites is enabled, add a RetryableWriteError label for retryable errors from pre-4.4 servers
-			if retryableErr && preRetryWriteLabelVersion && retryWritesEnabled {
+			// If retry is enabled, add a RetryableWriteError label for retryable errors from pre-4.4 servers
+			if retryableErr && preRetryWriteLabelVersion && retryEnabled {
 				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
 
@@ -454,7 +454,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				if err.Code != unknownReplWriteConcernCode && err.Code != unsatisfiableWriteConcernCode {
 					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
 				}
-				if retryableErr && retryWritesEnabled {
+				if retryableErr && retryEnabled {
 					err.Labels = append(err.Labels, RetryableWriteError)
 				}
 				return err
@@ -476,7 +476,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
 				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 				// If retryWrites is enabled, add a RetryableWriteError label for network errors and retryable errors from pre-4.4 servers
-				if retryWritesEnabled && (tt.HasErrorLabel(NetworkError) || (retryableErr && preRetryWriteLabelVersion)) {
+				if retryEnabled && (tt.HasErrorLabel(NetworkError) || (retryableErr && preRetryWriteLabelVersion)) {
 					tt.Labels = append(tt.Labels, RetryableWriteError)
 				}
 			} else {
