@@ -611,6 +611,8 @@ func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 			opts = opts.SetProjection(val.Document())
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
+		case "hint":
+			opts = opts.SetHint(createHint(mt, val))
 		case "session":
 		default:
 			mt.Fatalf("unrecognized findOneAndDelete option: %v", key)
@@ -754,6 +756,8 @@ func executeDeleteOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.De
 			filter = val.Document()
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
+		case "hint":
+			opts = opts.SetHint(createHint(mt, val))
 		case "session":
 		default:
 			mt.Fatalf("unrecognized deleteOne option: %v", key)
@@ -788,6 +792,8 @@ func executeDeleteMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.D
 			filter = val.Document()
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
+		case "hint":
+			opts = opts.SetHint(createHint(mt, val))
 		case "session":
 		default:
 			mt.Fatalf("unrecognized deleteMany option: %v", key)
@@ -1099,6 +1105,9 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		if collation, err := args.LookupErr("collation"); err == nil {
 			dom.SetCollation(createCollation(mt, collation.Document()))
 		}
+		if hint, err := args.LookupErr("hint"); err == nil {
+			dom.SetHint(createHint(mt, hint))
+		}
 
 		return dom
 	case "deleteMany":
@@ -1106,6 +1115,9 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		dmm.SetFilter(args.Lookup("filter").Document())
 		if collation, err := args.LookupErr("collation"); err == nil {
 			dmm.SetCollation(createCollation(mt, collation.Document()))
+		}
+		if hint, err := args.LookupErr("hint"); err == nil {
+			dmm.SetHint(createHint(mt, hint))
 		}
 
 		return dmm

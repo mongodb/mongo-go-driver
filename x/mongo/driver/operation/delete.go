@@ -35,6 +35,7 @@ type Delete struct {
 	selector     description.ServerSelector
 	writeConcern *writeconcern.WriteConcern
 	retry        *driver.RetryMode
+	hint         *bool
 	result       DeleteResult
 }
 
@@ -111,6 +112,11 @@ func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	dst = bsoncore.AppendStringElement(dst, "delete", d.collection)
 	if d.ordered != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *d.ordered)
+	}
+	if d.hint != nil && *d.hint {
+		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
+			return nil, errors.New("the 'hint' command parameter requires a minimum server wire version of 5")
+		}
 	}
 	return dst, nil
 }
@@ -236,5 +242,17 @@ func (d *Delete) Retry(retry driver.RetryMode) *Delete {
 	}
 
 	d.retry = &retry
+	return d
+}
+
+// Hint is a flag to indicate that the update document contains a hint. Hint is only supported by
+// servers >= 4.4. Older servers >= 3.4 will report an error for using the hint option. For servers <
+// 3.4, the driver will return an error if the hint option is used.
+func (d *Delete) Hint(hint bool) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.hint = &hint
 	return d
 }

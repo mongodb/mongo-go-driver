@@ -421,6 +421,14 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	if do.Collation != nil {
 		doc = bsoncore.AppendDocumentElement(doc, "collation", do.Collation.ToDocument())
 	}
+	if do.Hint != nil {
+		hint, err := transformValue(coll.registry, do.Hint)
+		if err != nil {
+			return nil, err
+		}
+
+		doc = bsoncore.AppendValueElement(doc, "hint", hint)
+	}
 	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
 
 	op := operation.NewDelete(doc).
@@ -428,6 +436,9 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+	if do.Hint != nil {
+		op = op.Hint(true)
+	}
 
 	// deleteMany cannot be retried
 	retryMode := driver.RetryNone
@@ -1350,6 +1361,13 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 			return &SingleResult{err: err}
 		}
 		op = op.Sort(sort)
+	}
+	if fod.Hint != nil {
+		hint, err := transformValue(coll.registry, fod.Hint)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Hint(hint)
 	}
 
 	return coll.findAndModify(ctx, op)

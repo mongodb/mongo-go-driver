@@ -100,7 +100,7 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 
 		models := []mongo.WriteModel{
 			&mongo.InsertOneModel{bson.D{{"a", 2}}},
-			&mongo.DeleteOneModel{bson.D{{"a", 2}}, nil},
+			&mongo.DeleteOneModel{bson.D{{"a", 2}}, nil, nil},
 		}
 		_, err := mt.Coll.BulkWrite(mtest.Background, models)
 		assert.NotNil(mt, err, "expected non-nil error, got nil")
