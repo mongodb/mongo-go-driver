@@ -60,8 +60,8 @@ const (
 	amzDateFormat       = "20060102T150405Z"
 	awsRelativeURI      = "http://169.254.170.2/"
 	awsEC2URI           = "http://169.254.169.254/"
-	awsEC2Path          = "latest/meta-data/iam/security-credentials/"
-	awsEC2Token         = "latest/api/token"
+	awsEC2RolePath      = "latest/meta-data/iam/security-credentials/"
+	awsEC2TokenPath     = "latest/api/token"
 	defaultRegion       = "us-east-1"
 	maxHostLength       = 255
 	defaultHTTPTimeout  = 10 * time.Second
@@ -158,7 +158,7 @@ func executeAWSHTTPRequest(req *http.Request) ([]byte, error) {
 
 func (ac *awsConversation) getEC2Credentials() (*credentials.Credentials, error) {
 	// get token
-	req, err := http.NewRequest("PUT", awsEC2URI+awsEC2Token, nil)
+	req, err := http.NewRequest("PUT", awsEC2URI+awsEC2TokenPath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (ac *awsConversation) getEC2Credentials() (*credentials.Credentials, error)
 	tokenStr := string(token)
 
 	// get role name
-	req, err = http.NewRequest("GET", awsEC2URI+awsEC2Path, nil)
+	req, err = http.NewRequest("GET", awsEC2URI+awsEC2RolePath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (ac *awsConversation) getEC2Credentials() (*credentials.Credentials, error)
 	}
 
 	// get credentials
-	pathWithRole := awsEC2URI + awsEC2Path + string(role)
+	pathWithRole := awsEC2URI + awsEC2RolePath + string(role)
 	req, err = http.NewRequest("GET", pathWithRole, nil)
 	if err != nil {
 		return nil, err
