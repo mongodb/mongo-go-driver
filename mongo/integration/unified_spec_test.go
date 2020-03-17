@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -184,13 +183,6 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 	}
 }
 
-func getSessionID(mt *mtest.T, sess mongo.Session) bsonx.Doc {
-	mt.Helper()
-	xsess, ok := sess.(mongo.XSession)
-	assert.True(mt, ok, "expected %T to implement mongo.XSession", sess)
-	return xsess.ID()
-}
-
 func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 	testClientOpts := createClientOptions(mt, test.ClientOptions)
 	testClientOpts.SetHeartbeatInterval(50 * time.Millisecond)
@@ -271,7 +263,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		sess1.EndSession(mtest.Background)
 		mt.ClearFailPoints()
 
-		checkExpectations(mt, test.Expectations, getSessionID(mt, sess0), getSessionID(mt, sess1))
+		checkExpectations(mt, test.Expectations, sess0.ID(), sess1.ID())
 
 		if test.Outcome != nil {
 			verifyTestOutcome(mt, test.Outcome.Collection)

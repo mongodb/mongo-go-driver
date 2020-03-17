@@ -34,7 +34,7 @@ import (
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
-const batchSize = 10000
+const endSessionsBatchSize = 10000
 
 // keyVaultCollOpts specifies options used to communicate with the key vault collection
 var keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
@@ -288,31 +288,27 @@ func (c *Client) endSessions(ctx context.Context) {
 		return
 	}
 
-	ids := c.sessionPool.IDSlice()
-	idx, idArray := bsoncore.AppendArrayStart(nil)
-	for i, id := range ids {
-		idDoc, _ := id.MarshalBSON()
-		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), idDoc)
-	}
-	idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
-
-	op := operation.NewEndSessions(idArray).ClusterClock(c.clock).Deployment(c.deployment).
+	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
 		Database("admin").Crypt(c.crypt)
 
-	idx, idArray = bsoncore.AppendArrayStart(nil)
+	ids := c.sessionPool.IDSlice()
+	idx, idArray := bsoncore.AppendArrayStart(nil)
 	totalNumIDs := len(ids)
+
 	for i := 0; i < totalNumIDs; i++ {
-		idDoc, _ := ids[i].MarshalBSON()
-		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), idDoc)
-		if ((i+1)%batchSize) == 0 || i == totalNumIDs-1 {
+		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), ids[i])
+
+		if ((i+1)%endSessionsBatchSize) == 0 || i == totalNumIDs-1 {
+			// Close the array and execute this operation.
 			idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
 			_ = op.SessionIDs(idArray).Execute(ctx)
+
+			// Reset the array.
 			idArray = idArray[:0]
-			idx = 0
+			idx, idArray = bsoncore.AppendDocumentStart(idArray)
 		}
 	}
-
 }
 
 func (c *Client) configure(opts *options.ClientOptions) error {

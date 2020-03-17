@@ -926,8 +926,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	if err := client.UpdateUseTime(); err != nil {
 		return dst, err
 	}
-	lsid, _ := client.SessionID.MarshalBSON()
-	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)
+	dst = bsoncore.AppendDocumentElement(dst, "lsid", client.SessionID)
 
 	var addedTxnNumber bool
 	if op.Type == Write && client.RetryWrite {

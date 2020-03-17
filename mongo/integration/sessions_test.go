@@ -18,7 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -39,15 +38,15 @@ func TestSessionPool(t *testing.T) {
 		firstSess, err := mt.Client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer firstSess.EndSession(mtest.Background)
-		want := getSessionID(mt, bSess)
-		got := getSessionID(mt, firstSess)
+		want := bSess.ID()
+		got := firstSess.ID()
 		assert.True(mt, sessionIDsEqual(mt, want, got), "expected session ID %v, got %v", want, got)
 
 		secondSess, err := mt.Client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer secondSess.EndSession(mtest.Background)
-		want = getSessionID(mt, aSess)
-		got = getSessionID(mt, secondSess)
+		want = aSess.ID()
+		got = secondSess.ID()
 		assert.True(mt, sessionIDsEqual(mt, want, got), "expected session ID %v, got %v", want, got)
 	})
 	mt.Run("last use time updated", func(mt *mtest.T) {
@@ -127,7 +126,7 @@ func TestSessions(t *testing.T) {
 				mt.ClearEvents()
 
 				_ = sf.execute(mt, sess) // don't check error because we only care about lsid
-				_, wantID := getSessionID(mt, sess).Lookup("id").Binary()
+				_, wantID := sess.ID().Lookup("id").Binary()
 				gotID := extractSentSessionID(mt)
 				assert.True(mt, bytes.Equal(wantID, gotID), "expected session ID %v, got %v", wantID, gotID)
 
@@ -338,7 +337,7 @@ func createFunctionsSlice() []sessionFunction {
 	}
 }
 
-func sessionIDsEqual(mt *mtest.T, id1, id2 bsonx.Doc) bool {
+func sessionIDsEqual(mt *mtest.T, id1, id2 bson.Raw) bool {
 	first, err := id1.LookupErr("id")
 	assert.Nil(mt, err, "id not found in document %v", id1)
 	second, err := id2.LookupErr("id")
