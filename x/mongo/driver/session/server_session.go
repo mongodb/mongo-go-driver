@@ -11,7 +11,6 @@ import (
 
 	"crypto/rand"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
@@ -20,7 +19,7 @@ var rander = rand.Reader
 
 // Server is an open session with the server.
 type Server struct {
-	SessionID bson.Raw
+	SessionID bsoncore.Document
 	TxnNumber int64
 	LastUsed  time.Time
 	Dirty     bool

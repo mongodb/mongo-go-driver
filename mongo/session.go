@@ -121,7 +121,7 @@ func (s *sessionImpl) ClientSession() *session.Client {
 
 // ID implements the Session interface.
 func (s *sessionImpl) ID() bson.Raw {
-	return s.clientSession.SessionID
+	return bson.Raw(s.clientSession.SessionID)
 }
 
 // EndSession implements the Session interface.
