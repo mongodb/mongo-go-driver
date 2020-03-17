@@ -310,6 +310,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 	batching := op.Batches.Valid()
+	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
 	for {
 		if batching {
 			targetBatchSize := desc.MaxDocumentSize
@@ -405,8 +406,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.WireVersion)
-			// Add a RetryableWriteError label for retryable errors from pre-4.4 servers
-			if retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9 {
+			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
+
+			// If retry is enabled, add a RetryableWriteError label for retryable errors from pre-4.4 servers
+			if retryableErr && preRetryWriteLabelVersion && retryEnabled {
 				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
 
@@ -451,7 +454,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				if err.Code != unknownReplWriteConcernCode && err.Code != unsatisfiableWriteConcernCode {
 					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
 				}
-				if retryableErr {
+				if retryableErr && retryEnabled {
 					err.Labels = append(err.Labels, RetryableWriteError)
 				}
 				return err
@@ -471,8 +474,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			var retryableErr bool
 			if op.Type == Write {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
-				// Add a RetryableWriteError label for network errors and retryable errors from pre-4.4 servers
-				if tt.HasErrorLabel(NetworkError) || (retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9) {
+				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
+				// If retryWrites is enabled, add a RetryableWriteError label for network errors and retryable errors from pre-4.4 servers
+				if retryEnabled && (tt.HasErrorLabel(NetworkError) || (retryableErr && preRetryWriteLabelVersion)) {
 					tt.Labels = append(tt.Labels, RetryableWriteError)
 				}
 			} else {

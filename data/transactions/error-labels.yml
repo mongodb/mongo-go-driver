@@ -500,7 +500,7 @@ tests:
       data:
           failCommands: ["commitTransaction"]
           errorCode: 11602  # InterruptedDueToReplStateChange
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
+          errorLabels: ["RetryableWriteError"]
 
     operations:
       - name: startTransaction
