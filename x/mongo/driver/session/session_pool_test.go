@@ -7,9 +7,10 @@
 package session
 
 import (
+	"bytes"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
@@ -20,28 +21,25 @@ func TestSessionPool(t *testing.T) {
 		p.timeout = 30 // Set to some arbitrarily high number greater than 1 minute.
 
 		first, err := p.GetSession()
-		testhelpers.RequireNil(t, err, "error getting session %s", err)
+		assert.Nil(t, err, "GetSession error: %v", err)
 		firstID := first.SessionID
 
 		second, err := p.GetSession()
-		testhelpers.RequireNil(t, err, "error getting session %s", err)
+		assert.Nil(t, err, "GetSession error: %v", err)
 		secondID := second.SessionID
 
 		p.ReturnSession(first)
 		p.ReturnSession(second)
 
 		sess, err := p.GetSession()
-		testhelpers.RequireNil(t, err, "error getting session %s", err)
+		assert.Nil(t, err, "GetSession error: %v", err)
 		nextSess, err := p.GetSession()
-		testhelpers.RequireNil(t, err, "error getting session %s", err)
+		assert.Nil(t, err, "GetSession error: %v", err)
 
-		if !sess.SessionID.Equal(secondID) {
-			t.Errorf("first sesssion ID mismatch. got %s expected %s", sess.SessionID, secondID)
-		}
-
-		if !nextSess.SessionID.Equal(firstID) {
-			t.Errorf("second sesssion ID mismatch. got %s expected %s", nextSess.SessionID, firstID)
-		}
+		assert.True(t, bytes.Equal(sess.SessionID, secondID),
+			"first session ID mismatch; expected %s, got %s", secondID, sess.SessionID)
+		assert.True(t, bytes.Equal(nextSess.SessionID, firstID),
+			"second session ID mismatch; expected %s, got %s", firstID, nextSess.SessionID)
 	})
 
 	t.Run("TestExpiredRemoved", func(t *testing.T) {
@@ -51,21 +49,20 @@ func TestSessionPool(t *testing.T) {
 		p.timeout = 0
 
 		first, err := p.GetSession()
-		testhelpers.RequireNil(t, err, "error getting session %s", err)
+		assert.Nil(t, err, "GetSession error: %v", err)
 		firstID := first.SessionID
 
 		second, err := p.GetSession()
-		testhelpers.RequireNil(t, err, "error getting session %s", err)
+		assert.Nil(t, err, "GetSession error: %v", err)
 		secondID := second.SessionID
 
 		p.ReturnSession(first)
 		p.ReturnSession(second)
 
 		sess, err := p.GetSession()
-		testhelpers.RequireNil(t, err, "error getting session %s", err)
+		assert.Nil(t, err, "GetSession error: %v", err)
 
-		if sess.SessionID.Equal(firstID) || sess.SessionID.Equal(secondID) {
-			t.Errorf("Expired sessions not removed!")
-		}
+		assert.False(t, bytes.Equal(sess.SessionID, firstID), "first expired session was not removed")
+		assert.False(t, bytes.Equal(sess.SessionID, secondID), "second expired session was not removed")
 	})
 }

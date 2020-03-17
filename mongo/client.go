@@ -291,8 +291,7 @@ func (c *Client) endSessions(ctx context.Context) {
 	ids := c.sessionPool.IDSlice()
 	idx, idArray := bsoncore.AppendArrayStart(nil)
 	for i, id := range ids {
-		idDoc, _ := id.MarshalBSON()
-		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), idDoc)
+		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), id)
 	}
 	idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
 
@@ -303,8 +302,7 @@ func (c *Client) endSessions(ctx context.Context) {
 	idx, idArray = bsoncore.AppendArrayStart(nil)
 	totalNumIDs := len(ids)
 	for i := 0; i < totalNumIDs; i++ {
-		idDoc, _ := ids[i].MarshalBSON()
-		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), idDoc)
+		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), ids[i])
 		if ((i+1)%batchSize) == 0 || i == totalNumIDs-1 {
 			idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
 			_ = op.SessionIDs(idArray).Execute(ctx)

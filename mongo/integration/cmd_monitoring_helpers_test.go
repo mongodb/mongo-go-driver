@@ -15,7 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 // Helper functions to compare BSON values and command monitoring expectations.
@@ -186,7 +185,7 @@ func compareDocs(mt *mtest.T, expected, actual bson.Raw) error {
 	return compareDocsHelper(mt, expected, actual, "")
 }
 
-func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bsonx.Doc) {
+func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bson.Raw) {
 	mt.Helper()
 
 	for idx, expectation := range expectations {
@@ -206,7 +205,7 @@ func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bsonx.
 	}
 }
 
-func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bsonx.Doc) error {
+func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bson.Raw) error {
 	mt.Helper()
 
 	expected := expectation.CommandStartedEvent
@@ -261,16 +260,13 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bsonx.D
 
 			switch sessName {
 			case "session0":
-				expectedID, err = id0.MarshalBSON()
+				expectedID = id0
 			case "session1":
-				expectedID, err = id1.MarshalBSON()
+				expectedID = id1
 			default:
 				return fmt.Errorf("unrecognized session identifier in command document: %s", sessName)
 			}
 
-			if err != nil {
-				return fmt.Errorf("error getting expected session ID bytes for session name %s: %s", sessName, err)
-			}
 			if !bytes.Equal(expectedID, actualID) {
 				return fmt.Errorf("session ID mismatch for session %s; expected %s, got %s", sessName, expectedID,
 					actualID)
