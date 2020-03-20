@@ -86,6 +86,7 @@ func newExtJSONParser(r io.Reader, canonical bool) *extJSONParser {
 func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 	var t bsontype.Type
 	var err error
+	initialState := ejp.s
 
 	ejp.advanceState()
 	switch ejp.s {
@@ -113,6 +114,9 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 		case jpsInvalidState:
 			err = ejp.err
 		case jpsSawKey:
+			if initialState == jpsStartState {
+				return bsontype.EmbeddedDocument, nil
+			}
 			t = wrapperKeyBSONType(ejp.k)
 
 			switch t {
