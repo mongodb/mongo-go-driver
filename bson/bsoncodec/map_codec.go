@@ -7,6 +7,8 @@
 package bsoncodec
 
 import (
+	"encoding"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -20,8 +22,9 @@ var defaultMapCodec = NewMapCodec()
 
 // MapCodec is the Codec used for map values.
 type MapCodec struct {
-	DecodeZerosMap   bool
-	EncodeNilAsEmpty bool
+	DecodeZerosMap         bool
+	EncodeNilAsEmpty       bool
+	EncodeKeysWithStringer bool
 }
 
 var _ ValueCodec = &MapCodec{}
@@ -36,6 +39,9 @@ func NewMapCodec(opts ...*bsonoptions.MapCodecOptions) *MapCodec {
 	}
 	if mapOpt.EncodeNilAsEmpty != nil {
 		codec.EncodeNilAsEmpty = *mapOpt.EncodeNilAsEmpty
+	}
+	if mapOpt.EncodeKeysWithStringer != nil {
+		codec.EncodeKeysWithStringer = *mapOpt.EncodeKeysWithStringer
 	}
 	return &codec
 }
@@ -79,7 +85,17 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 
 	keys := val.MapKeys()
 	for _, key := range keys {
-		keyStr := fmt.Sprint(key)
+		var keyStr string
+		var err error
+		if mc.EncodeKeysWithStringer {
+			keyStr = fmt.Sprint(key)
+		} else {
+			keyStr, err = keyToString(key)
+			if err != nil {
+				return err
+			}
+		}
+
 		if collisionFn != nil && collisionFn(keyStr) {
 			return fmt.Errorf("Key %s of inlined map conflicts with a struct field name", key)
 		}
@@ -203,4 +219,30 @@ func clearMap(m reflect.Value) {
 	for _, k := range m.MapKeys() {
 		m.SetMapIndex(k, none)
 	}
+}
+
+func keyToString(val reflect.Value) (string, error) {
+	// keys of any string type are used directly
+	if val.Kind() == reflect.String {
+		return val.String(), nil
+	}
+	// encoding.TextMarshalers are marshaled
+	if tm, ok := val.Interface().(encoding.TextMarshaler); ok {
+		if val.Kind() == reflect.Ptr && val.IsNil() {
+			return "", nil
+		}
+		buf, err := tm.MarshalText()
+		if err == nil {
+			return string(buf), nil
+		}
+		return "", err
+	}
+
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(val.Int(), 10), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return strconv.FormatUint(val.Uint(), 10), nil
+	}
+	return "", errors.New("unexpected map key type")
 }

@@ -8,11 +8,16 @@ package bson
 
 import (
 	"bytes"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -108,6 +113,37 @@ func TestD(t *testing.T) {
 		noerr(t, err)
 		if !cmp.Equal(got, want) {
 			t.Errorf("Unmarshaled documents do not match. got %v; want %v", got, want)
+		}
+	})
+}
+
+type stringerString string
+
+func (ss stringerString) String() string {
+	return "bar"
+}
+
+func TestMapCodec(t *testing.T) {
+	t.Run("EncodeKeysWithStringer", func(t *testing.T) {
+		strstr := stringerString("foo")
+		mapObj := map[stringerString]int{strstr: 1}
+		testCases := []struct {
+			name string
+			opts *bsonoptions.MapCodecOptions
+			key  string
+		}{
+			{"default", bsonoptions.MapCodec(), "bar"},
+			{"true", bsonoptions.MapCodec().SetEncodeKeysWithStringer(true), "bar"},
+			{"false", bsonoptions.MapCodec().SetEncodeKeysWithStringer(false), "foo"},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				mapCodec := bsoncodec.NewMapCodec(tc.opts)
+				mapRegistry := NewRegistryBuilder().RegisterDefaultEncoder(reflect.Map, mapCodec).Build()
+				val, err := MarshalWithRegistry(mapRegistry, mapObj)
+				assert.Nil(t, err, "Marshal error: %v", err)
+				assert.True(t, strings.Contains(string(val), tc.key), "expected result to contain %v, got: %v", tc.key, string(val))
+			})
 		}
 	})
 }

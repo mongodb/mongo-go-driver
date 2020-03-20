@@ -6,10 +6,13 @@
 
 package bsonoptions
 
+var defaultEncodeKeysWithStringer = true
+
 // MapCodecOptions represents all possible options for map encoding and decoding.
 type MapCodecOptions struct {
-	DecodeZerosMap   *bool // Specifies if the map should be zeroed before decoding into it. Defaults to false.
-	EncodeNilAsEmpty *bool // Specifies if a nil map should encode as an empty document instead of null. Defaults to false.
+	DecodeZerosMap         *bool // Specifies if the map should be zeroed before decoding into it. Defaults to false.
+	EncodeNilAsEmpty       *bool // Specifies if a nil map should encode as an empty document instead of null. Defaults to false.
+	EncodeKeysWithStringer *bool // Specifies if keys should be created with Stringer. Defaults to true.
 }
 
 // MapCodec creates a new *MapCodecOptions
@@ -29,9 +32,15 @@ func (t *MapCodecOptions) SetEncodeNilAsEmpty(b bool) *MapCodecOptions {
 	return t
 }
 
+// SetEncodeKeysWithStringer specifies if keys should be created with Stringer. Defaults to true.
+func (t *MapCodecOptions) SetEncodeKeysWithStringer(b bool) *MapCodecOptions {
+	t.EncodeKeysWithStringer = &b
+	return t
+}
+
 // MergeMapCodecOptions combines the given *MapCodecOptions into a single *MapCodecOptions in a last one wins fashion.
 func MergeMapCodecOptions(opts ...*MapCodecOptions) *MapCodecOptions {
-	s := MapCodec()
+	s := MapCodecOptions{EncodeKeysWithStringer: &defaultEncodeKeysWithStringer}
 	for _, opt := range opts {
 		if opt == nil {
 			continue
@@ -42,7 +51,10 @@ func MergeMapCodecOptions(opts ...*MapCodecOptions) *MapCodecOptions {
 		if opt.EncodeNilAsEmpty != nil {
 			s.EncodeNilAsEmpty = opt.EncodeNilAsEmpty
 		}
+		if opt.EncodeKeysWithStringer != nil {
+			s.EncodeKeysWithStringer = opt.EncodeKeysWithStringer
+		}
 	}
 
-	return s
+	return &s
 }
