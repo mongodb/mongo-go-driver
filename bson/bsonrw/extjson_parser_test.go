@@ -155,6 +155,10 @@ func TestExtJSONParserPeekType(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
 			ejp := newExtJSONParser(strings.NewReader(tc.input), true)
+			// Manually set the parser's starting state to jpsSawColon so peekType will read ahead to find the extjson
+			// type of the value. If not set, the parser will be in jpsStartState and advance to jpsSawKey, which will
+			// cause it to return without peeking the extjson type.
+			ejp.s = jpsSawColon
 
 			for i, eTyp := range tc.typs {
 				errF := tc.errFs[i]
