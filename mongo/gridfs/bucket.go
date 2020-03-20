@@ -452,6 +452,47 @@ func (b *Bucket) findChunks(ctx context.Context, fileID interface{}) (*mongo.Cur
 	return chunksCursor, nil
 }
 
+// returns true if the 2 index documents are equal
+func indexDocsEqual(expected, actual bsoncore.Document) (bool, error) {
+	if bytes.Equal(expected, actual) {
+		return true, nil
+	}
+
+	keyElemElems, err := actual.Elements()
+	if err != nil {
+		return false, err
+	}
+	modelKeysElems, err := expected.Elements()
+	if err != nil {
+		return false, err
+	}
+
+	if len(keyElemElems) != len(modelKeysElems) {
+		return false, nil
+	}
+
+	for _, elem := range keyElemElems {
+		key := elem.Key()
+		modelVal, err := expected.LookupErr(key)
+		if err != nil {
+			return false, nil
+		}
+
+		val := elem.Value()
+		if !val.IsNumber() || !modelVal.IsNumber() {
+			if val.Equal(modelVal) {
+				continue
+			}
+			return false, nil
+		}
+
+		if val.AsInt64() != modelVal.AsInt64() {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // Create an index if it doesn't already exist
 func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo.IndexModel) error {
 	c, err := iv.List(ctx)
@@ -462,8 +503,14 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 		_ = c.Close(ctx)
 	}()
 
+	modelKeysBytes, err := bson.Marshal(model.Keys)
+	if err != nil {
+		return err
+	}
+	modelKeysDoc := bsoncore.Document(modelKeysBytes)
+
 	var found bool
-	for c.Next(ctx) {
+	for c.Next(ctx) && !found {
 		keyElem, err := c.Current.LookupErr("key")
 		if err != nil {
 			return err
@@ -471,56 +518,9 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 
 		keyElemDoc := bsoncore.Value{Type: keyElem.Type, Data: keyElem.Value}.Document()
 
-		modelKeysBytes, err := bson.Marshal(model.Keys)
+		found, err = indexDocsEqual(modelKeysDoc, keyElemDoc)
 		if err != nil {
 			return err
-		}
-		modelKeysDoc := bsoncore.Document(modelKeysBytes)
-
-		if bytes.Equal(modelKeysDoc, keyElemDoc) {
-			found = true
-			break
-		}
-
-		keyElemElems, err := keyElemDoc.Elements()
-		if err != nil {
-			return err
-		}
-		modelKeysElems, err := modelKeysDoc.Elements()
-		if err != nil {
-			return err
-		}
-
-		if len(keyElemElems) != len(modelKeysElems) {
-			continue
-		}
-
-		docsEqual := true
-		for _, elem := range keyElemElems {
-			key := elem.Key()
-			modelVal, err := modelKeysDoc.LookupErr(key)
-			if err != nil {
-				docsEqual = false
-				break
-			}
-
-			val := elem.Value()
-			if !val.IsNumber() || !modelVal.IsNumber() {
-				if val.Equal(modelVal) {
-					continue
-				}
-				docsEqual = false
-				break
-			}
-
-			if val.AsInt64() != modelVal.AsInt64() {
-				docsEqual = false
-				break
-			}
-		}
-		if docsEqual {
-			found = true
-			break
 		}
 	}
 
