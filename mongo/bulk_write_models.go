@@ -43,6 +43,7 @@ func (*InsertOneModel) writeModel() {}
 type DeleteOneModel struct {
 	Filter    interface{}
 	Collation *options.Collation
+	Hint      interface{}
 }
 
 // NewDeleteOneModel creates a new DeleteOneModel.
@@ -65,12 +66,22 @@ func (dom *DeleteOneModel) SetCollation(collation *options.Collation) *DeleteOne
 	return dom
 }
 
+// SetHint specifies the index to use for the operation. This should either be the index name as a string or the
+// index specification as a document. The default value is nil, which means that no hint will be sent. This option is
+// only supported by servers >= 4.4. Older servers >= 3.4 will report an error for using this option. For servers <
+// 3.4, the driver will return an error if this option is used.
+func (dom *DeleteOneModel) SetHint(hint interface{}) *DeleteOneModel {
+	dom.Hint = hint
+	return dom
+}
+
 func (*DeleteOneModel) writeModel() {}
 
 // DeleteManyModel is used to delete multiple documents in a BulkWrite operation.
 type DeleteManyModel struct {
 	Filter    interface{}
 	Collation *options.Collation
+	Hint      interface{}
 }
 
 // NewDeleteManyModel creates a new DeleteManyModel.
@@ -89,6 +100,15 @@ func (dmm *DeleteManyModel) SetFilter(filter interface{}) *DeleteManyModel {
 // used.
 func (dmm *DeleteManyModel) SetCollation(collation *options.Collation) *DeleteManyModel {
 	dmm.Collation = collation
+	return dmm
+}
+
+// SetHint specifies the index to use for the operation. This should either be the index name as a string or the
+// index specification as a document. The default value is nil, which means that no hint will be sent. This option is
+// only supported by servers >= 4.4. Older servers >= 3.4 will report an error for using this option. For servers <
+// 3.4, the driver will return an error if this option is used.
+func (dmm *DeleteManyModel) SetHint(hint interface{}) *DeleteManyModel {
+	dmm.Hint = hint
 	return dmm
 }
 

@@ -840,6 +840,12 @@ type FindOneAndDeleteOptions struct {
 	// documents in the collection. If set, the first document in the sorted order will be selected for replacement.
 	// The default value is nil.
 	Sort interface{}
+
+	// The index to use for the operation. This should either be the index name as a string or the index specification
+	// as a document. The default value is nil, which means that no hint will be sent. This option is only valid for
+	// MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if this option is set. For MongoDB versions <
+	// 4.2, the driver will return an error if this option is set.
+	Hint interface{}
 }
 
 // FindOneAndDelete creates a new FindOneAndDeleteOptions instance.
@@ -871,6 +877,12 @@ func (f *FindOneAndDeleteOptions) SetSort(sort interface{}) *FindOneAndDeleteOpt
 	return f
 }
 
+// SetHint sets the value for the Hint field.
+func (f *FindOneAndDeleteOptions) SetHint(hint interface{}) *FindOneAndDeleteOptions {
+	f.Hint = hint
+	return f
+}
+
 // MergeFindOneAndDeleteOptions combines the given FindOneAndDeleteOptions instances into a single
 // FindOneAndDeleteOptions in a last-one-wins fashion.
 func MergeFindOneAndDeleteOptions(opts ...*FindOneAndDeleteOptions) *FindOneAndDeleteOptions {
@@ -890,6 +902,9 @@ func MergeFindOneAndDeleteOptions(opts ...*FindOneAndDeleteOptions) *FindOneAndD
 		}
 		if opt.Sort != nil {
 			fo.Sort = opt.Sort
+		}
+		if opt.Hint != nil {
+			fo.Hint = opt.Hint
 		}
 	}
 
