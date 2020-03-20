@@ -458,35 +458,38 @@ func indexDocsEqual(expected, actual bsoncore.Document) (bool, error) {
 		return true, nil
 	}
 
-	keyElemElems, err := actual.Elements()
+	actualElems, err := actual.Elements()
 	if err != nil {
 		return false, err
 	}
-	modelKeysElems, err := expected.Elements()
+	expectedElems, err := expected.Elements()
 	if err != nil {
 		return false, err
 	}
 
-	if len(keyElemElems) != len(modelKeysElems) {
+	if len(actualElems) != len(expectedElems) {
 		return false, nil
 	}
 
-	for _, elem := range keyElemElems {
-		key := elem.Key()
-		modelVal, err := expected.LookupErr(key)
-		if err != nil {
+	for idx, expectedElem := range expectedElems {
+		actualElem := actualElems[idx]
+		if actualElem.Key() != expectedElem.Key() {
 			return false, nil
 		}
 
-		val := elem.Value()
-		if !val.IsNumber() || !modelVal.IsNumber() {
-			if val.Equal(modelVal) {
+		actualVal := actualElem.Value()
+		expectedVal := expectedElem.Value()
+		actualInt, actualOK := actualVal.AsInt64OK()
+		expectedInt, expectedOK := expectedVal.AsInt64OK()
+
+		if !actualOK || !expectedOK {
+			if actualVal.Equal(expectedVal) {
 				continue
 			}
 			return false, nil
 		}
 
-		if val.AsInt64() != modelVal.AsInt64() {
+		if actualInt != expectedInt {
 			return false, nil
 		}
 	}
@@ -509,8 +512,7 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 	}
 	modelKeysDoc := bsoncore.Document(modelKeysBytes)
 
-	var found bool
-	for c.Next(ctx) && !found {
+	for c.Next(ctx) {
 		keyElem, err := c.Current.LookupErr("key")
 		if err != nil {
 			return err
@@ -518,20 +520,17 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 
 		keyElemDoc := bsoncore.Value{Type: keyElem.Type, Data: keyElem.Value}.Document()
 
-		found, err = indexDocsEqual(modelKeysDoc, keyElemDoc)
+		found, err := indexDocsEqual(modelKeysDoc, keyElemDoc)
 		if err != nil {
 			return err
 		}
-	}
-
-	if !found {
-		_, err = iv.CreateOne(ctx, model)
-		if err != nil {
-			return err
+		if found {
+			return nil
 		}
 	}
 
-	return nil
+	_, err = iv.CreateOne(ctx, model)
+	return err
 }
 
 // create indexes on the files and chunks collection if needed

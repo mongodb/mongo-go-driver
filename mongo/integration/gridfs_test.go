@@ -48,7 +48,7 @@ func TestGridFS(x *testing.T) {
 	})
 	// should not create a new index if index is numerically the same
 	mt.Run("numericallyEqualIndexes", func(mt *mtest.T) {
-		//add indexes with floats to collections manually
+		// add indexes with floats to collections manually
 		res := mt.DB.RunCommand(context.Background(),
 			bson.D{
 				{"createIndexes", "fs.files"},
@@ -88,7 +88,9 @@ func TestGridFS(x *testing.T) {
 				return evt.CommandName == "createIndexes"
 			})
 			evt := mt.GetStartedEvent()
-			assert.Nil(mt, evt, "Expected that createIndexes wasn't called: %v", evt)
+			if evt != nil {
+				mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
+			}
 		})
 		mt.Run("UploadFromStream", func(mt *mtest.T) {
 			var fileContent []byte
@@ -102,7 +104,9 @@ func TestGridFS(x *testing.T) {
 				return evt.CommandName == "createIndexes"
 			})
 			evt := mt.GetStartedEvent()
-			assert.Nil(mt, evt, "Expected that createIndexes wasn't called: %v", evt)
+			if evt != nil {
+				mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
+			}
 		})
 	})
 
@@ -189,18 +193,6 @@ func findIndex(ctx context.Context, mt *mtest.T, coll *mongo.Collection, unique 
 		}
 	}
 	assert.True(mt, foundIndex, "index %v not found", keys)
-}
-
-func countIndexes(ctx context.Context, mt *mtest.T, coll *mongo.Collection) int {
-	mt.Helper()
-	cur, err := coll.Indexes().List(ctx)
-	assert.Nil(mt, err, "Indexes List error: %v", err)
-
-	var count int
-	for cur.Next(ctx) {
-		count++
-	}
-	return count
 }
 
 func skipRoundTripTest(mt *mtest.T) {
