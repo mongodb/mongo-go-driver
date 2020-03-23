@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -256,5 +258,65 @@ func TestClient(t *testing.T) {
 			got := opts.GetURI()
 			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)
 		})
+	})
+	t.Run("endSessions", func(t *testing.T) {
+		cs := testutil.ConnString(t)
+
+		var started []*event.CommandStartedEvent
+		var failureReasons []string
+		cmdMonitor := &event.CommandMonitor{
+			Started: func(_ context.Context, evt *event.CommandStartedEvent) {
+				if evt.CommandName == "endSessions" {
+					started = append(started, evt)
+				}
+			},
+			Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
+				if evt.CommandName == "endSessions" {
+					failureReasons = append(failureReasons, evt.Failure)
+				}
+			},
+		}
+		clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
+			SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetMonitor(cmdMonitor)
+		client, err := Connect(bgCtx, clientOpts)
+		assert.Nil(t, err, "Connect error: %v", err)
+		coll := client.Database("foo").Collection("bar")
+
+		// Lower the batch size to force multiple batches.
+		originalBatchSize := endSessionsBatchSize
+		endSessionsBatchSize = 2
+		defer func() {
+			endSessionsBatchSize = originalBatchSize
+			_ = coll.Drop(bgCtx)
+			_ = client.Disconnect(bgCtx)
+		}()
+
+		// Do an application operation and create four sessions so endSessions will execute in two batches.
+		_, err = coll.CountDocuments(bgCtx, bson.D{})
+		assert.Nil(t, err, "CountDocuments error: %v", err)
+		numSessions := 4
+		var sessions []Session
+		for i := 0; i < numSessions; i++ {
+			sess, err := client.StartSession()
+			assert.Nil(t, err, "StartSession error at index %d: %v", i, err)
+			sessions = append(sessions, sess)
+		}
+		for _, sess := range sessions {
+			sess.EndSession(bgCtx)
+		}
+
+		client.endSessions(bgCtx)
+		numEventsExpected := numSessions / endSessionsBatchSize
+		assert.Equal(t, len(started), numEventsExpected, "expected %d started events, got %d", numEventsExpected,
+			len(started))
+		assert.Equal(t, len(failureReasons), 0, "endSessions errors: %v", failureReasons)
+
+		for i := 0; i < numEventsExpected; i++ {
+			sentArray := started[i].Command.Lookup("endSessions").Array()
+			values, _ := sentArray.Values()
+			assert.Equal(t, len(values), endSessionsBatchSize,
+				"batch size mismatch at index %d; expected %d sessions in batch, got %d", i, endSessionsBatchSize,
+				len(values))
+		}
 	})
 }
