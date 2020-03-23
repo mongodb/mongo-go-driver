@@ -280,15 +280,23 @@ func TestClient(t *testing.T) {
 			SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetMonitor(cmdMonitor)
 		client, err := Connect(bgCtx, clientOpts)
 		assert.Nil(t, err, "Connect error: %v", err)
-		coll := client.Database("foo").Collection("bar")
+		defer func() {
+			_ = client.Disconnect(bgCtx)
+		}()
 
+		serverVersion, err := getServerVersion(client.Database("admin"))
+		assert.Nil(t, err, "getServerVersion error: %v", err)
+		if compareVersions(t, serverVersion, "3.6.0") < 1 {
+			t.Skip("skipping server version < 3.6")
+		}
+
+		coll := client.Database("foo").Collection("bar")
 		// Lower the batch size to force multiple batches.
 		originalBatchSize := endSessionsBatchSize
 		endSessionsBatchSize = 2
 		defer func() {
 			endSessionsBatchSize = originalBatchSize
 			_ = coll.Drop(bgCtx)
-			_ = client.Disconnect(bgCtx)
 		}()
 
 		// Do an application operation and create four sessions so endSessions will execute in two batches.
