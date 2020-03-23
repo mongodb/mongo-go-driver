@@ -518,9 +518,9 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 			return err
 		}
 
-		keyElemDoc := bsoncore.Value{Type: keyElem.Type, Data: keyElem.Value}.Document()
+		keyElemDoc := keyElem.Document()
 
-		found, err := indexDocsEqual(modelKeysDoc, keyElemDoc)
+		found, err := indexDocsEqual(modelKeysDoc, bsoncore.Document(keyElemDoc))
 		if err != nil {
 			return err
 		}
