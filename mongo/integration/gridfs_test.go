@@ -47,7 +47,7 @@ func TestGridFS(x *testing.T) {
 		findIndex(findCtx, mt, mt.DB.Collection("fs.chunks"), true, "key", "files_id")
 	})
 	// should not create a new index if index is numerically the same
-	mt.Run("numericallyEqualIndexes", func(mt *mtest.T) {
+	mt.Run("indexes not created if equivalent indexes exist", func(mt *mtest.T) {
 		// add indexes with floats to collections manually
 		res := mt.DB.RunCommand(context.Background(),
 			bson.D{
