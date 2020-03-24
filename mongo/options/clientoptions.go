@@ -123,6 +123,7 @@ type ClientOptions struct {
 
 	err error
 	uri string
+	cs  *connstring.ConnString
 
 	// These options are for internal use only and should not be set. They are deprecated and are
 	// not part of the stability guarantee. They may be removed in the future.
@@ -136,7 +137,28 @@ func Client() *ClientOptions {
 }
 
 // Validate validates the client options. This method will return the first error found.
-func (c *ClientOptions) Validate() error { return c.err }
+func (c *ClientOptions) Validate() error {
+	c.validateAndSetError()
+	return c.err
+}
+
+func (c *ClientOptions) validateAndSetError() {
+	if c.err != nil {
+		return
+	}
+
+	// Direct connections cannot be made if multiple hosts are specified or an SRV URI is used.
+	if c.Direct != nil && *c.Direct {
+		if len(c.Hosts) > 1 {
+			c.err = errors.New("a direct connection cannot be made if multiple hosts are specified")
+			return
+		}
+		if c.cs != nil && c.cs.Scheme == connstring.SchemeMongoDBSRV {
+			c.err = errors.New("a direct connection cannot be made if an SRV URI is used")
+			return
+		}
+	}
+}
 
 // GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
 // construction, this returns "".
@@ -169,6 +191,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.err = err
 		return c
 	}
+	c.cs = &cs
 
 	if cs.AppName != "" {
 		c.AppName = &cs.AppName
@@ -189,6 +212,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	if cs.ConnectSet {
 		direct := cs.Connect == connstring.SingleConnect
 		c.Direct = &direct
+	}
+
+	if cs.DirectConnectionSet {
+		c.Direct = &cs.DirectConnection
 	}
 
 	if cs.ConnectTimeoutSet {
@@ -406,16 +433,21 @@ func (c *ClientOptions) SetDialer(d ContextDialer) *ClientOptions {
 	return c
 }
 
-// SetDirect specifies whether or not a direct connect should be made. To use this option, a URI with a single host must
-// be specified through ApplyURI. If set to true, the driver will only connect to the host provided in the URI and will
-// not discover other hosts in the cluster. This can also be set through the "connect" URI option with the following
-// values:
+// SetDirect specifies whether or not a direct connect should be made. If set to true, the driver will only connect to
+// the host provided in the URI and will not discover other hosts in the cluster. This can also be set through the
+// "directConnection" URI option. This option cannot be set to true if multiple hosts are specified, either through
+// ApplyURI or SetHosts, or an SRV URI is used.
 //
-// 1. "connect=direct" for direct connections
+// As of driver version 1.4, the "connect" URI option has been deprecated and replaced with "directConnection". The
+// "connect" URI option has two values:
 //
-// 2. "connect=automatic" for automatic discovery.
+// 1. "connect=direct" for direct connections. This corresponds to "directConnection=true".
 //
-// The default is false ("automatic" in the connection string).
+// 2. "connect=automatic" for automatic discovery. This corresponds to "directConnection=false"
+//
+// If the "connect" and "directConnection" URI options are both specified in the connection string, their values must
+// not conflict. Direct connections are not valid if multiple hosts are specified or an SRV URI is used. The default
+// value for this option is false.
 func (c *ClientOptions) SetDirect(b bool) *ClientOptions {
 	c.Direct = &b
 	return c

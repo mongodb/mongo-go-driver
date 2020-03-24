@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 var (
@@ -517,6 +518,11 @@ func (t *T) CloneCollection(opts *options.CollectionOptions) {
 // primary. The returned client is not tied to the receiver and is valid outside the lifetime of the receiver.
 func (T) GlobalClient() *mongo.Client {
 	return testContext.client
+}
+
+// GlobalTopology returns the Topology backing the global Client.
+func (T) GlobalTopology() *topology.Topology {
+	return testContext.topo
 }
 
 func sanitizeCollectionName(db string, coll string) string {

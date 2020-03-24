@@ -414,6 +414,30 @@ func TestClient(t *testing.T) {
 			assert.Equal(mt, testAppName, appName, "expected app name %v at index %d, got %v", testAppName, idx, appName)
 		}
 	})
+	// Test that direct connections work as expected.
+	globalTopo := mt.GlobalTopology()
+	firstServerAddr := globalTopo.Description().Servers[0].Addr
+	directConnectionOpts := options.Client().
+		ApplyURI(fmt.Sprintf("mongodb://%s", firstServerAddr)).
+		SetReadPreference(readpref.Primary()).
+		SetDirect(true)
+	mtOpts := mtest.NewOptions().
+		ClientOptions(directConnectionOpts).
+		MinServerVersion("3.6"). // Minimum server version 3.6 to force OP_MSG
+		Topologies(mtest.ReplicaSet)
+	mt.RunOpts("direct connection made", mtOpts, func(mt *mtest.T) {
+		_, err := mt.Coll.Find(mtest.Background, bson.D{})
+		assert.Nil(mt, err, "Find error: %v", err)
+
+		// When connected directly, the primary read preference should be overwritten to primaryPreferred.
+		evt := mt.GetStartedEvent()
+		assert.Equal(mt, "find", evt.CommandName, "expected 'find' event, got '%s'", evt.CommandName)
+		modeVal, err := evt.Command.LookupErr("$readPreference", "mode")
+		assert.Nil(mt, err, "expected command %s to include $readPreference", evt.Command)
+
+		mode := modeVal.StringValue()
+		assert.Equal(mt, mode, "primaryPreferred", "expected read preference mode primaryPreferred, got %v", mode)
+	})
 }
 
 // proxyDialer is a ContextDialer implementation that wraps a net.Dialer and records the messages sent and received

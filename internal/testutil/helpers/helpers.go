@@ -103,6 +103,9 @@ func VerifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map
 			require.Equal(t, convertToStringSlice(value), cs.Compressors)
 		case "connecttimeoutms":
 			require.Equal(t, value, float64(cs.ConnectTimeout/time.Millisecond))
+		case "directconnection":
+			require.True(t, cs.DirectConnectionSet)
+			require.Equal(t, value, cs.DirectConnection)
 		case "heartbeatfrequencyms":
 			require.Equal(t, value, float64(cs.HeartbeatInterval/time.Millisecond))
 		case "journal":
