@@ -295,16 +295,20 @@ func (c *connection) close() error {
 	if atomic.LoadInt32(&c.connected) != connected {
 		return nil
 	}
-	if c.pool == nil {
-		var err error
 
-		if c.nc != nil {
-			err = c.nc.Close()
+	if c.pool != nil {
+		err := c.pool.removeConnection(c)
+		if err != nil {
+			return err
 		}
-		atomic.StoreInt32(&c.connected, disconnected)
-		return err
 	}
-	return c.pool.closeConnection(c)
+
+	var err error
+	if c.nc != nil {
+		err = c.nc.Close()
+	}
+	atomic.StoreInt32(&c.connected, disconnected)
+	return err
 }
 
 func (c *connection) expired() bool {

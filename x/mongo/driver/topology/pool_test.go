@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
 func TestPool(t *testing.T) {
@@ -517,6 +519,34 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have closed 3 connections, but didn't. got %d; want %d", d.lenclosed(), 3)
 			}
 			close(cleanup)
+		})
+		t.Run("handshaker i/o fails", func(t *testing.T) {
+			want := "unable to write wire message to network: Write error"
+
+			pc := poolConfig{
+				Address: address.Address(""),
+			}
+			p, err := newPool(pc, WithHandshaker(func(Handshaker) Handshaker {
+				return operation.NewIsMaster()
+			}),
+				WithDialer(func(Dialer) Dialer {
+					return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+						return &writeFailConn{&net.TCPConn{}}, nil
+					})
+				}),
+			)
+			noerr(t, err)
+			err = p.connect()
+			noerr(t, err)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+
+			_, err = p.get(ctx)
+			connErr := err.(ConnectionError)
+			if !strings.Contains(connErr.Error(), want) {
+				t.Errorf("Incorrect error. got %v; error should contain %v", connErr.Wrapped, want)
+			}
 		})
 	})
 	t.Run("Connection", func(t *testing.T) {
