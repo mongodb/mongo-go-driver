@@ -56,7 +56,6 @@ var (
 		13388: {}, // StaleConfig
 		234:   {}, // RetryChangeStream
 		133:   {}, // FailedToSatisfyReadPreference
-		216:   {}, // ElectionInProgress
 	}
 )
 
