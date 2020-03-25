@@ -1602,16 +1602,6 @@ buildvariants:
     tasks:
       - name: "atlas-test"
 
-  - name: ocsp-test
-    display_name: "OCSP Tests"
-    run_on:
-      - ubuntu1604-build
-    expansions:
-      GO_DIST: "/opt/golang/go1.12"
-    tasks:
-      - name: ".ocsp"
-    cron: "@every 336h"
-
   - matrix_name: "tests-legacy-auth-ssl"
     matrix_spec: { version: ["2.6", "3.0"], os-ssl-legacy: "*" }
     display_name: "${version} ${os-ssl-legacy}"
@@ -1659,3 +1649,10 @@ buildvariants:
     display_name: "MONGODB-AWS Auth ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
+
+  - matrix_name: "ocsp-test"
+    matrix_spec: { version: ["latest"], os-ssl-32: ["ubuntu1604-64-go-1-12"] }
+    display_name: "OCSP - ${os-ssl-32}"
+    batchtime: 20160 # 14 days
+    tasks:
+      - name: ".ocsp"
