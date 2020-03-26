@@ -10,7 +10,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,11 +33,14 @@ import (
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
-const batchSize = 10000
 
-// keyVaultCollOpts specifies options used to communicate with the key vault collection
-var keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
-	SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+var (
+	// keyVaultCollOpts specifies options used to communicate with the key vault collection
+	keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
+				SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+
+	endSessionsBatchSize = 10000
+)
 
 // Client is a handle representing a pool of connections to a MongoDB deployment. It is safe for concurrent use by
 // multiple goroutines.
@@ -288,29 +290,27 @@ func (c *Client) endSessions(ctx context.Context) {
 		return
 	}
 
-	ids := c.sessionPool.IDSlice()
-	idx, idArray := bsoncore.AppendArrayStart(nil)
-	for i, id := range ids {
-		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), id)
-	}
-	idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
-
-	op := operation.NewEndSessions(idArray).ClusterClock(c.clock).Deployment(c.deployment).
+	sessionIDs := c.sessionPool.IDSlice()
+	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
 		Database("admin").Crypt(c.crypt)
 
-	idx, idArray = bsoncore.AppendArrayStart(nil)
-	totalNumIDs := len(ids)
+	totalNumIDs := len(sessionIDs)
+	var currentBatch []bsoncore.Document
 	for i := 0; i < totalNumIDs; i++ {
-		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), ids[i])
-		if ((i+1)%batchSize) == 0 || i == totalNumIDs-1 {
-			idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
-			_ = op.SessionIDs(idArray).Execute(ctx)
-			idArray = idArray[:0]
-			idx = 0
+		currentBatch = append(currentBatch, sessionIDs[i])
+
+		// If we are at the end of a batch or the end of the overall IDs array, execute the operation.
+		if ((i+1)%endSessionsBatchSize) == 0 || i == totalNumIDs-1 {
+			// Ignore all errors when ending sessions.
+			_, marshalVal, err := bson.MarshalValue(currentBatch)
+			if err == nil {
+				_ = op.SessionIDs(marshalVal).Execute(ctx)
+			}
+
+			currentBatch = currentBatch[:0]
 		}
 	}
-
 }
 
 func (c *Client) configure(opts *options.ClientOptions) error {
