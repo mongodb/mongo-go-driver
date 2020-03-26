@@ -453,7 +453,7 @@ func (b *Bucket) findChunks(ctx context.Context, fileID interface{}) (*mongo.Cur
 }
 
 // returns true if the 2 index documents are equal
-func indexDocsEqual(expected, actual bsoncore.Document) (bool, error) {
+func numericalIndexDocsEqual(expected, actual bsoncore.Document) (bool, error) {
 	if bytes.Equal(expected, actual) {
 		return true, nil
 	}
@@ -482,10 +482,8 @@ func indexDocsEqual(expected, actual bsoncore.Document) (bool, error) {
 		actualInt, actualOK := actualVal.AsInt64OK()
 		expectedInt, expectedOK := expectedVal.AsInt64OK()
 
+		//GridFS indexes always have numeric values
 		if !actualOK || !expectedOK {
-			if actualVal.Equal(expectedVal) {
-				continue
-			}
 			return false, nil
 		}
 
@@ -497,7 +495,7 @@ func indexDocsEqual(expected, actual bsoncore.Document) (bool, error) {
 }
 
 // Create an index if it doesn't already exist
-func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo.IndexModel) error {
+func createNumericalIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo.IndexModel) error {
 	c, err := iv.List(ctx)
 	if err != nil {
 		return err
@@ -520,7 +518,7 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 
 		keyElemDoc := keyElem.Document()
 
-		found, err := indexDocsEqual(modelKeysDoc, bsoncore.Document(keyElemDoc))
+		found, err := numericalIndexDocsEqual(modelKeysDoc, bsoncore.Document(keyElemDoc))
 		if err != nil {
 			return err
 		}
@@ -567,10 +565,10 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 		Options: options.Index().SetUnique(true),
 	}
 
-	if err = createIndexIfNotExists(ctx, filesIv, filesModel); err != nil {
+	if err = createNumericalIndexIfNotExists(ctx, filesIv, filesModel); err != nil {
 		return err
 	}
-	if err = createIndexIfNotExists(ctx, chunksIv, chunksModel); err != nil {
+	if err = createNumericalIndexIfNotExists(ctx, chunksIv, chunksModel); err != nil {
 		return err
 	}
 

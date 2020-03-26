@@ -47,67 +47,138 @@ func TestGridFS(x *testing.T) {
 		findIndex(findCtx, mt, mt.DB.Collection("fs.chunks"), true, "key", "files_id")
 	})
 	// should not create a new index if index is numerically the same
-	mt.Run("indexes not created if equivalent indexes exist", func(mt *mtest.T) {
-		// add indexes with floats to collections manually
-		res := mt.DB.RunCommand(context.Background(),
-			bson.D{
-				{"createIndexes", "fs.files"},
-				{"indexes", bson.A{
-					bson.D{
-						{"key", bson.D{{"filename", float64(1.0)}, {"uploadDate", float64(1.0)}}},
-						{"name", "filename_1_uploadDate_1"},
-					},
-				}},
+	mt.Run("equivalent indexes", func(mt *mtest.T) {
+		tests := []struct {
+			name      	string
+			filesIndex 	bson.D
+			chunksIndex bson.D
+			newIndexes  bool
+		}{
+			{
+				"numerically equal", 
+				bson.D{
+					{"key", bson.D{{"filename", float64(1.0)}, {"uploadDate", float64(1.0)}}},
+					{"name", "filename_1_uploadDate_1"},
+				},
+				bson.D{
+					{"key", bson.D{{"files_id", float64(1.0)}, {"n", float64(1.0)}}},
+					{"name", "files_id_1_n_1"},
+					{"unique", true},
+				},
+				false,
 			},
-		)
-		assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
-
-		res = mt.DB.RunCommand(context.Background(),
-			bson.D{
-				{"createIndexes", "fs.chunks"},
-				{"indexes", bson.A{
-					bson.D{
-						{"key", bson.D{{"files_id", float64(1.0)}, {"n", float64(1.0)}}},
-						{"name", "files_id_1_n_1"},
-						{"unique", true},
-					},
-				}},
+			{
+				"numerically inequal", 
+				bson.D{
+					{"key", bson.D{{"filename", float64(-1.0)}, {"uploadDate", float64(1.0)}}},
+					{"name", "filename_-1_uploadDate_1"},
+				},
+				bson.D{
+					{"key", bson.D{{"files_id", float64(1.0)}, {"n", float64(-1.0)}}},
+					{"name", "files_id_1_n_-1"},
+					{"unique", true},
+				},
+				true,
 			},
-		)
-		assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+		}
+		for _, test := range tests {
+			mt.Run(test.name, func(mt *mtest.T) {
+				mt.Run("OpenUploadStream", func(mt *mtest.T) {
+					// add indexes with floats to collections manually
+					res := mt.DB.RunCommand(context.Background(),
+						bson.D{
+							{"createIndexes", "fs.files"},
+							{"indexes", bson.A{
+								test.filesIndex,
+							}},
+						},
+					)
+					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
 
-		mt.ClearEvents()
-		mt.Run("OpenUploadStream", func(mt *mtest.T) {
-			bucket, err := gridfs.NewBucket(mt.DB)
-			assert.Nil(mt, err, "NewBucket error: %v", err)
+					res = mt.DB.RunCommand(context.Background(),
+						bson.D{
+							{"createIndexes", "fs.chunks"},
+							{"indexes", bson.A{
+								test.chunksIndex,
+							}},
+						},
+					)
+					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
 
-			_, err = bucket.OpenUploadStream("filename")
-			assert.Nil(mt, err, "OpenUploadStream error: %v", err)
+					mt.ClearEvents()
 
-			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
-				return evt.CommandName == "createIndexes"
+					bucket, err := gridfs.NewBucket(mt.DB)
+					assert.Nil(mt, err, "NewBucket error: %v", err)
+					defer func() {
+						bucket.Drop()
+					} ()
+
+					_, err = bucket.OpenUploadStream("filename")
+					assert.Nil(mt, err, "OpenUploadStream error: %v", err)
+
+					mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+						return evt.CommandName == "createIndexes"
+					})
+					evt := mt.GetStartedEvent()
+					if test.newIndexes {
+						if evt == nil {
+							mt.Fatalf("expected createIndexes events but got none")
+						}
+					} else {
+						if  evt != nil {
+							mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
+						}
+					}
+				})
+				mt.Run("UploadFromStream", func(mt *mtest.T) {
+					// add indexes with floats to collections manually
+					res := mt.DB.RunCommand(context.Background(),
+						bson.D{
+							{"createIndexes", "fs.files"},
+							{"indexes", bson.A{
+								test.filesIndex,
+							}},
+						},
+					)
+					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+
+					res = mt.DB.RunCommand(context.Background(),
+						bson.D{
+							{"createIndexes", "fs.chunks"},
+							{"indexes", bson.A{
+								test.chunksIndex,
+							}},
+						},
+					)
+					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+
+					mt.ClearEvents()
+					var fileContent []byte
+					bucket, err := gridfs.NewBucket(mt.DB)
+					assert.Nil(mt, err, "NewBucket error: %v", err)
+					defer func() {
+						bucket.Drop()
+					} ()
+
+					_, err = bucket.UploadFromStream("filename", bytes.NewBuffer(fileContent))
+					assert.Nil(mt, err, "UploadFromStream error: %v", err)
+
+					mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+						return evt.CommandName == "createIndexes"
+					})
+					evt := mt.GetStartedEvent()
+					if test.newIndexes {
+						if evt == nil {
+							mt.Fatalf("expected createIndexes events but got none")
+						}
+					} else {
+						if  evt != nil {
+							mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
+						}
+					}
+				})
 			})
-			evt := mt.GetStartedEvent()
-			if evt != nil {
-				mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
-			}
-		})
-		mt.Run("UploadFromStream", func(mt *mtest.T) {
-			var fileContent []byte
-			bucket, err := gridfs.NewBucket(mt.DB)
-			assert.Nil(mt, err, "NewBucket error: %v", err)
-
-			_, err = bucket.UploadFromStream("filename", bytes.NewBuffer(fileContent))
-			assert.Nil(mt, err, "UploadFromStream error: %v", err)
-
-			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
-				return evt.CommandName == "createIndexes"
-			})
-			evt := mt.GetStartedEvent()
-			if evt != nil {
-				mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
-			}
-		})
+		}
 	})
 
 	mt.RunOpts("round trip", mtest.NewOptions().MaxServerVersion("3.6"), func(mt *mtest.T) {
