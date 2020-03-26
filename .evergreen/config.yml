@@ -446,7 +446,7 @@ functions:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           /opt/mongodbtoolchain/v3/bin/python3 -m venv ./venv
-          ./venv/bin/pip3 install -r ${PROJECT_DIRECTORY}/.evergreen/ocsp-requirements.txt
+          ./venv/bin/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
         background: true
@@ -465,7 +465,7 @@ functions:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           /opt/mongodbtoolchain/v3/bin/python3 -m venv ./venv
-          ./venv/bin/pip3 install -r ${PROJECT_DIRECTORY}/.evergreen/ocsp-requirements.txt
+          ./venv/bin/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
         background: true
@@ -486,7 +486,7 @@ functions:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           /opt/mongodbtoolchain/v3/bin/python3 -m venv ./venv
-          ./venv/bin/pip3 install -r ${PROJECT_DIRECTORY}/.evergreen/ocsp-requirements.txt
+          ./venv/bin/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
         background: true
@@ -505,7 +505,7 @@ functions:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           /opt/mongodbtoolchain/v3/bin/python3 -m venv ./venv
-          ./venv/bin/pip3 install -r ${PROJECT_DIRECTORY}/.evergreen/ocsp-requirements.txt
+          ./venv/bin/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
         background: true
