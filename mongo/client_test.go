@@ -312,7 +312,7 @@ func TestClient(t *testing.T) {
 					_ = coll.Drop(bgCtx)
 				}()
 
-				// Do an application operation and create four sessions so endSessions will execute in two batches.
+				// Do an application operation and create the number of sessions specified by the test.
 				_, err = coll.CountDocuments(bgCtx, bson.D{})
 				assert.Nil(t, err, "CountDocuments error: %v", err)
 				var sessions []Session
