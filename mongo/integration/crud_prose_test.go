@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestWriteErrorsWithLabels(t *testing.T) {
@@ -223,5 +224,47 @@ func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
 		assert.Equal(mt, "aggregate", evt.CommandName, "expected command 'aggregate', got '%s'", evt.CommandName)
 		_, err = evt.Command.LookupErr("$readPreference")
 		assert.NotNil(mt, err, "expected command %s to not contain $readPreference", evt.Command)
+	})
+}
+
+func TestWriteConcernError(t *testing.T) {
+	mt := mtest.New(t, noClientOpts)
+	defer mt.Close()
+
+	errInfoOpts := mtest.NewOptions().MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
+	mt.RunOpts("errInfo is propagated", errInfoOpts, func(mt *mtest.T) {
+		wcDoc := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendInt32Element(nil, "w", 2),
+			bsoncore.AppendInt32Element(nil, "wtimeout", 0),
+			bsoncore.AppendStringElement(nil, "provenance", "clientSupplied"),
+		)
+		errInfoDoc := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendDocumentElement(nil, "writeConcern", wcDoc),
+		)
+		fp := mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: mtest.FailPointMode{
+				Times: 1,
+			},
+			Data: mtest.FailPointData{
+				FailCommands: []string{"insert"},
+				WriteConcernError: &mtest.WriteConcernErrorData{
+					Code:    100,
+					Name:    "UnsatisfiableWriteConcern",
+					Errmsg:  "Not enough data-bearing nodes",
+					ErrInfo: errInfoDoc,
+				},
+			},
+		}
+		mt.SetFailPoint(fp)
+
+		_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+		assert.NotNil(mt, err, "expected InsertOne error, got nil")
+		writeException, ok := err.(mongo.WriteException)
+		assert.True(mt, ok, "expected WriteException, got error %v of type %T", err, err)
+		wcError := writeException.WriteConcernError
+		assert.NotNil(mt, wcError, "expected write-concern error, got %v", err)
+		assert.True(mt, bytes.Equal(wcError.Details, errInfoDoc), "expected errInfo document %v, got %v",
+			bson.Raw(errInfoDoc), wcError.Details)
 	})
 }

@@ -71,6 +71,7 @@ type WriteConcernErrorData struct {
 	Name        string    `bson:"codeName"`
 	Errmsg      string    `bson:"errmsg"`
 	ErrorLabels *[]string `bson:"errorLabels,omitempty"`
+	ErrInfo     bson.Raw  `bson:"errInfo,omitempty"`
 }
 
 // T is a wrapper around testing.T.
