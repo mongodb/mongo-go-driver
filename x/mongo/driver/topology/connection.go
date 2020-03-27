@@ -296,18 +296,15 @@ func (c *connection) close() error {
 		return nil
 	}
 
-	if c.pool != nil {
-		err := c.pool.removeConnection(c)
-		if err != nil {
-			return err
-		}
-	}
-
 	var err error
 	if c.nc != nil {
 		err = c.nc.Close()
 	}
 	atomic.StoreInt32(&c.connected, disconnected)
+
+	if c.pool != nil {
+		_ = c.pool.removeConnection(c)
+	}
 	return err
 }
 
