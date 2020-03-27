@@ -49,13 +49,13 @@ func TestGridFS(x *testing.T) {
 	// should not create a new index if index is numerically the same
 	mt.Run("equivalent indexes", func(mt *mtest.T) {
 		tests := []struct {
-			name      	string
-			filesIndex 	bson.D
+			name        string
+			filesIndex  bson.D
 			chunksIndex bson.D
 			newIndexes  bool
 		}{
 			{
-				"numerically equal", 
+				"numerically equal",
 				bson.D{
 					{"key", bson.D{{"filename", float64(1.0)}, {"uploadDate", float64(1.0)}}},
 					{"name", "filename_1_uploadDate_1"},
@@ -68,7 +68,7 @@ func TestGridFS(x *testing.T) {
 				false,
 			},
 			{
-				"numerically inequal", 
+				"numerically inequal",
 				bson.D{
 					{"key", bson.D{{"filename", float64(-1.0)}, {"uploadDate", float64(1.0)}}},
 					{"name", "filename_-1_uploadDate_1"},
@@ -110,8 +110,8 @@ func TestGridFS(x *testing.T) {
 					bucket, err := gridfs.NewBucket(mt.DB)
 					assert.Nil(mt, err, "NewBucket error: %v", err)
 					defer func() {
-						bucket.Drop()
-					} ()
+						_ = bucket.Drop()
+					}()
 
 					_, err = bucket.OpenUploadStream("filename")
 					assert.Nil(mt, err, "OpenUploadStream error: %v", err)
@@ -125,7 +125,7 @@ func TestGridFS(x *testing.T) {
 							mt.Fatalf("expected createIndexes events but got none")
 						}
 					} else {
-						if  evt != nil {
+						if evt != nil {
 							mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
 						}
 					}
@@ -157,8 +157,8 @@ func TestGridFS(x *testing.T) {
 					bucket, err := gridfs.NewBucket(mt.DB)
 					assert.Nil(mt, err, "NewBucket error: %v", err)
 					defer func() {
-						bucket.Drop()
-					} ()
+						_ = bucket.Drop()
+					}()
 
 					_, err = bucket.UploadFromStream("filename", bytes.NewBuffer(fileContent))
 					assert.Nil(mt, err, "UploadFromStream error: %v", err)
@@ -172,7 +172,7 @@ func TestGridFS(x *testing.T) {
 							mt.Fatalf("expected createIndexes events but got none")
 						}
 					} else {
-						if  evt != nil {
+						if evt != nil {
 							mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
 						}
 					}
