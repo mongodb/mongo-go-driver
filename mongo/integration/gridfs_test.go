@@ -14,13 +14,14 @@ import (
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/internal/testutil/israce"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 func TestGridFS(x *testing.T) {
@@ -45,6 +46,141 @@ func TestGridFS(x *testing.T) {
 		findIndex(findCtx, mt, mt.DB.Collection("fs.files"), false, "key", "filename")
 		findIndex(findCtx, mt, mt.DB.Collection("fs.chunks"), true, "key", "files_id")
 	})
+	// should not create a new index if index is numerically the same
+	mt.Run("equivalent indexes", func(mt *mtest.T) {
+		tests := []struct {
+			name        string
+			filesIndex  bson.D
+			chunksIndex bson.D
+			newIndexes  bool
+		}{
+			{
+				"numerically equal",
+				bson.D{
+					{"key", bson.D{{"filename", float64(1.0)}, {"uploadDate", float64(1.0)}}},
+					{"name", "filename_1_uploadDate_1"},
+				},
+				bson.D{
+					{"key", bson.D{{"files_id", float64(1.0)}, {"n", float64(1.0)}}},
+					{"name", "files_id_1_n_1"},
+					{"unique", true},
+				},
+				false,
+			},
+			{
+				"numerically inequal",
+				bson.D{
+					{"key", bson.D{{"filename", float64(-1.0)}, {"uploadDate", float64(1.0)}}},
+					{"name", "filename_-1_uploadDate_1"},
+				},
+				bson.D{
+					{"key", bson.D{{"files_id", float64(1.0)}, {"n", float64(-1.0)}}},
+					{"name", "files_id_1_n_-1"},
+					{"unique", true},
+				},
+				true,
+			},
+		}
+		for _, test := range tests {
+			mt.Run(test.name, func(mt *mtest.T) {
+				mt.Run("OpenUploadStream", func(mt *mtest.T) {
+					// add indexes with floats to collections manually
+					res := mt.DB.RunCommand(context.Background(),
+						bson.D{
+							{"createIndexes", "fs.files"},
+							{"indexes", bson.A{
+								test.filesIndex,
+							}},
+						},
+					)
+					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+
+					res = mt.DB.RunCommand(context.Background(),
+						bson.D{
+							{"createIndexes", "fs.chunks"},
+							{"indexes", bson.A{
+								test.chunksIndex,
+							}},
+						},
+					)
+					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+
+					mt.ClearEvents()
+
+					bucket, err := gridfs.NewBucket(mt.DB)
+					assert.Nil(mt, err, "NewBucket error: %v", err)
+					defer func() {
+						_ = bucket.Drop()
+					}()
+
+					_, err = bucket.OpenUploadStream("filename")
+					assert.Nil(mt, err, "OpenUploadStream error: %v", err)
+
+					mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+						return evt.CommandName == "createIndexes"
+					})
+					evt := mt.GetStartedEvent()
+					if test.newIndexes {
+						if evt == nil {
+							mt.Fatalf("expected createIndexes events but got none")
+						}
+					} else {
+						if evt != nil {
+							mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
+						}
+					}
+				})
+				mt.Run("UploadFromStream", func(mt *mtest.T) {
+					// add indexes with floats to collections manually
+					res := mt.DB.RunCommand(context.Background(),
+						bson.D{
+							{"createIndexes", "fs.files"},
+							{"indexes", bson.A{
+								test.filesIndex,
+							}},
+						},
+					)
+					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+
+					res = mt.DB.RunCommand(context.Background(),
+						bson.D{
+							{"createIndexes", "fs.chunks"},
+							{"indexes", bson.A{
+								test.chunksIndex,
+							}},
+						},
+					)
+					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+
+					mt.ClearEvents()
+					var fileContent []byte
+					bucket, err := gridfs.NewBucket(mt.DB)
+					assert.Nil(mt, err, "NewBucket error: %v", err)
+					defer func() {
+						_ = bucket.Drop()
+					}()
+
+					_, err = bucket.UploadFromStream("filename", bytes.NewBuffer(fileContent))
+					assert.Nil(mt, err, "UploadFromStream error: %v", err)
+
+					mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+						return evt.CommandName == "createIndexes"
+					})
+					evt := mt.GetStartedEvent()
+					if test.newIndexes {
+						if evt == nil {
+							mt.Fatalf("expected createIndexes events but got none")
+						}
+					} else {
+						if evt != nil {
+							mt.Fatalf("expected no createIndexes events but got %v", evt.Command)
+						}
+					}
+				})
+			})
+		}
+	})
+
 	mt.RunOpts("round trip", mtest.NewOptions().MaxServerVersion("3.6"), func(mt *mtest.T) {
 		skipRoundTripTest(mt)
 		oneK := 1024
@@ -135,10 +271,10 @@ func skipRoundTripTest(mt *mtest.T) {
 		return
 	}
 
-	var serverStatus bsonx.Doc
+	var serverStatus bson.Raw
 	err := mt.DB.RunCommand(
 		context.Background(),
-		bsonx.Doc{{"serverStatus", bsonx.Int32(1)}},
+		bson.D{{"serverStatus", 1}},
 	).Decode(&serverStatus)
 	assert.Nil(mt, err, "serverStatus error %v", err)
 
