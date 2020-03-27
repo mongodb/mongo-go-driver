@@ -492,6 +492,18 @@ func (nc *netconn) Close() error {
 	return nc.Conn.Close()
 }
 
+type writeFailConn struct {
+	net.Conn
+}
+
+func (wfc *writeFailConn) Write([]byte) (int, error) {
+	return 0, errors.New("Write error")
+}
+
+func (wfc *writeFailConn) SetWriteDeadline(t time.Time) error {
+	return nil
+}
+
 type dialer struct {
 	Dialer
 	opened        map[*netconn]struct{}
