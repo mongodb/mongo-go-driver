@@ -431,6 +431,18 @@ func (p *pool) closeConnection(c *connection) error {
 	return nil
 }
 
+// removeConnection removes a connection from the pool.
+func (p *pool) removeConnection(c *connection) error {
+	if c.pool != p {
+		return ErrWrongPool
+	}
+	p.Lock()
+	delete(p.opened, c.poolID)
+	p.Unlock()
+
+	return nil
+}
+
 // put returns a connection to this pool. If the pool is connected, the connection is not
 // stale, and there is space in the cache, the connection is returned to the cache.
 func (p *pool) put(c *connection) error {
