@@ -58,7 +58,8 @@ func NewRegistryBuilder() *bsoncodec.RegistryBuilder {
 	mapCodec := bsoncodec.NewMapCodec(
 		bsonoptions.MapCodec().
 			SetDecodeZerosMap(true).
-			SetEncodeNilAsEmpty(true))
+			SetEncodeNilAsEmpty(true).
+			SetMgoKeyHandling(true))
 	uintcodec := bsoncodec.NewUIntCodec(bsonoptions.UIntCodec().SetEncodeToMinSize(true))
 
 	rb.RegisterTypeDecoder(tEmpty, emptyInterCodec).

@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -123,8 +124,27 @@ func (ss stringerString) String() string {
 	return "bar"
 }
 
+type textBool bool
+
+func (tb textBool) MarshalText() (text []byte, err error) {
+	return []byte(fmt.Sprintf("%v", tb)), nil
+}
+
+func (tb textBool) UnmarshalText(text []byte) error {
+	str := string(text)
+	switch str {
+	case "true":
+		tb = true
+	case "false":
+		tb = false
+	default:
+		return fmt.Errorf("invalid bool value %v", str)
+	}
+	return nil
+}
+
 func TestMapCodec(t *testing.T) {
-	t.Run("EncodeKeysWithStringer", func(t *testing.T) {
+	t.Run("MgoKeyHandling", func(t *testing.T) {
 		strstr := stringerString("foo")
 		mapObj := map[stringerString]int{strstr: 1}
 		testCases := []struct {
@@ -132,9 +152,9 @@ func TestMapCodec(t *testing.T) {
 			opts *bsonoptions.MapCodecOptions
 			key  string
 		}{
-			{"default", bsonoptions.MapCodec(), "bar"},
-			{"true", bsonoptions.MapCodec().SetEncodeKeysWithStringer(true), "bar"},
-			{"false", bsonoptions.MapCodec().SetEncodeKeysWithStringer(false), "foo"},
+			{"default", bsonoptions.MapCodec(), "foo"},
+			{"true", bsonoptions.MapCodec().SetMgoKeyHandling(true), "bar"},
+			{"false", bsonoptions.MapCodec().SetMgoKeyHandling(false), "foo"},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -145,6 +165,22 @@ func TestMapCodec(t *testing.T) {
 				assert.True(t, strings.Contains(string(val), tc.key), "expected result to contain %v, got: %v", tc.key, string(val))
 			})
 		}
+	})
+	t.Run("keys implements textMarshaler and textUnmarshaler", func(t *testing.T) {
+		mapObj := map[textBool]int{textBool(false): 1}
+
+		doc, err := Marshal(mapObj)
+		assert.Nil(t, err, "Marshal error: %v", err)
+		idx, want := bsoncore.AppendDocumentStart(nil)
+		want = bsoncore.AppendInt32Element(want, "false", 1)
+		want, _ = bsoncore.AppendDocumentEnd(want, idx)
+		assert.Equal(t, want, doc, "expected result %v, got %v", string(want), string(doc))
+
+		var got map[textBool]int
+		err = Unmarshal(doc, &got)
+		assert.Nil(t, err, "Unmarshal error: %v", err)
+		assert.Equal(t, mapObj, got, "expected result %v, got %v", mapObj, got)
+
 	})
 }
 

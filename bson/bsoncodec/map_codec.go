@@ -22,9 +22,9 @@ var defaultMapCodec = NewMapCodec()
 
 // MapCodec is the Codec used for map values.
 type MapCodec struct {
-	DecodeZerosMap         bool
-	EncodeNilAsEmpty       bool
-	EncodeKeysWithStringer bool
+	DecodeZerosMap   bool
+	EncodeNilAsEmpty bool
+	MgoKeyHandling   bool
 }
 
 var _ ValueCodec = &MapCodec{}
@@ -40,8 +40,8 @@ func NewMapCodec(opts ...*bsonoptions.MapCodecOptions) *MapCodec {
 	if mapOpt.EncodeNilAsEmpty != nil {
 		codec.EncodeNilAsEmpty = *mapOpt.EncodeNilAsEmpty
 	}
-	if mapOpt.EncodeKeysWithStringer != nil {
-		codec.EncodeKeysWithStringer = *mapOpt.EncodeKeysWithStringer
+	if mapOpt.MgoKeyHandling != nil {
+		codec.MgoKeyHandling = *mapOpt.MgoKeyHandling
 	}
 	return &codec
 }
@@ -86,14 +86,13 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 	keys := val.MapKeys()
 	for _, key := range keys {
 		var keyStr string
-		var err error
-		if mc.EncodeKeysWithStringer {
-			keyStr = fmt.Sprint(key)
+		if mc.MgoKeyHandling {
+			keyStr, err = mgoKeyEncode(key)
 		} else {
-			keyStr, err = keyToString(key)
-			if err != nil {
-				return err
-			}
+			keyStr, err = defaultKeyEncode(key)
+		}
+		if err != nil {
+			return err
 		}
 
 		if collisionFn != nil && collisionFn(keyStr) {
@@ -173,7 +172,6 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 	}
 
 	keyType := val.Type().Key()
-	keyKind := keyType.Kind()
 
 	for {
 		key, vr, err := dr.ReadElement()
@@ -184,23 +182,14 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 			return err
 		}
 
-		k := reflect.ValueOf(key)
-		if keyType != tString {
-			switch keyKind {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-				reflect.Float32, reflect.Float64:
-				parsed, err := strconv.ParseFloat(k.String(), 64)
-				if err != nil {
-					return fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %v", keyKind, err)
-				}
-				k = reflect.ValueOf(parsed)
-			case reflect.String: // if keyType wraps string
-			default:
-				return fmt.Errorf("BSON map must have string or decimal keys. Got:%v", val.Type())
-			}
-
-			k = k.Convert(keyType)
+		var k reflect.Value
+		if mc.MgoKeyHandling {
+			k, err = mgoKeyDecode(key, keyType)
+		} else {
+			k, err = defaultKeyDecode(key, keyType)
+		}
+		if err != nil {
+			return err
 		}
 
 		elem := reflect.New(eType).Elem()
@@ -221,7 +210,7 @@ func clearMap(m reflect.Value) {
 	}
 }
 
-func keyToString(val reflect.Value) (string, error) {
+func defaultKeyEncode(val reflect.Value) (string, error) {
 	// keys of any string type are used directly
 	if val.Kind() == reflect.String {
 		return val.String(), nil
@@ -245,4 +234,70 @@ func keyToString(val reflect.Value) (string, error) {
 		return strconv.FormatUint(val.Uint(), 10), nil
 	}
 	return "", errors.New("unexpected map key type")
+}
+
+var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+
+func defaultKeyDecode(key string, keyType reflect.Type) (reflect.Value, error) {
+	keyVal := reflect.ValueOf(key)
+	var err error
+	switch {
+	case reflect.PtrTo(keyType).Implements(textUnmarshalerType):
+		keyVal = reflect.New(keyType)
+		v := keyVal.Interface().(encoding.TextUnmarshaler)
+		err = v.UnmarshalText([]byte(key))
+		keyVal = keyVal.Elem()
+	default:
+		switch keyType.Kind() {
+		case reflect.String:
+			keyVal = reflect.ValueOf(key).Convert(keyType)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			s := string(key)
+			n, parseErr := strconv.ParseInt(s, 10, 64)
+			if parseErr != nil || reflect.Zero(keyType).OverflowInt(n) {
+				err = fmt.Errorf("failed to unmarshal number key %v", s)
+			}
+			keyVal = reflect.ValueOf(n).Convert(keyType)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			s := string(key)
+			n, parseErr := strconv.ParseUint(s, 10, 64)
+			if parseErr != nil || reflect.Zero(keyType).OverflowUint(n) {
+				err = fmt.Errorf("failed to unmarshal number key %v", s)
+				break
+			}
+			keyVal = reflect.ValueOf(n).Convert(keyType)
+		default:
+			return keyVal, errors.New("Unexpected key type")
+		}
+	}
+	return keyVal, err
+}
+
+type mgoKeyCodec struct{}
+
+func mgoKeyEncode(val reflect.Value) (string, error) {
+	return fmt.Sprint(val), nil
+}
+
+func mgoKeyDecode(key string, keyType reflect.Type) (reflect.Value, error) {
+	keyVal := reflect.ValueOf(key)
+	keyKind := keyType.Kind()
+	if keyType != tString {
+		switch keyKind {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+			reflect.Float32, reflect.Float64:
+			parsed, err := strconv.ParseFloat(key, 64)
+			if err != nil {
+				return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %v", keyKind, err)
+			}
+			keyVal = reflect.ValueOf(parsed)
+		case reflect.String: // if keyType wraps string
+		default:
+			return keyVal, fmt.Errorf("map must have string or decimal keys. Got:%v", keyType)
+		}
+
+		keyVal = keyVal.Convert(keyType)
+	}
+	return keyVal, nil
 }

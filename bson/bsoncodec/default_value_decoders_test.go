@@ -782,7 +782,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: buildDefaultRegistry()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.ReadElement,
-					fmt.Errorf("BSON map must have string or decimal keys. Got:%v", reflect.ValueOf(map[bool]interface{}{}).Type()),
+					errors.New("Unexpected key type"),
 				},
 				{
 					"ReadDocument Error",
