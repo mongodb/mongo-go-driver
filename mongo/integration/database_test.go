@@ -127,7 +127,7 @@ func TestDatabase(t *testing.T) {
 				mt.CreateCollection(mtest.Collection{Name: listCollUncapped}, true)
 				mt.CreateCollection(mtest.Collection{
 					Name:       listCollCapped,
-					CreateOpts: options.CreateCollection().SetCapped(true).SetSizeInBytes(64 * 1024),
+					CreateOpts: bson.D{{"capped", true}, {"size", 64 * 1024}},
 				}, true)
 
 				filter := bson.D{}

@@ -196,9 +196,9 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		validator := bson.D{
 			{"$jsonSchema", testFile.JSONSchema},
 		}
-		opts.CollectionCreateOptions(options.CreateCollection().SetValidator(bson.D{
+		opts.CollectionCreateOptions(bson.D{
 			{"validator", validator},
-		}))
+		})
 	}
 	if test.Description != cseMaxVersionTest {
 		// don't specify client options for the maxWireVersion CSE test because the client cannot

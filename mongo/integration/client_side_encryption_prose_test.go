@@ -334,11 +334,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		defer cpt.teardown(mt)
 
 		// create view on db.coll
-		mt.CreateView(mtest.View{
-			Name:     "view",
-			Source:   "coll",
-			Pipeline: mongo.Pipeline{},
-			DB:       cpt.cseColl.Database().Name(),
+		mt.CreateCollection(mtest.Collection{
+			Name:       "view",
+			DB:         cpt.cseColl.Database().Name(),
+			CreateOpts: bson.D{{"viewOn", "coll"}},
 		}, true)
 
 		view := cpt.cseColl.Database().Collection("view")
