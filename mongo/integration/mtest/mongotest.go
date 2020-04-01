@@ -381,19 +381,30 @@ type Collection struct {
 	CreateOpts *options.CreateCollectionOptions
 }
 
+// View is used to configure a new view created during a test.
+type View struct {
+	Name       string
+	Source     string
+	Pipeline   interface{}
+	DB         string        // defaults to mt.DB.Name() if not specified
+	Client     *mongo.Client // defaults to mt.Client if not specified
+	Opts       *options.CollectionOptions
+	CreateOpts *options.CreateViewOptions
+}
+
 // returns database to use for creating a new collection
-func (t *T) extractDatabase(coll Collection) *mongo.Database {
+func (t *T) extractDatabase(client *mongo.Client, db string) *mongo.Database {
 	// default to t.DB unless coll overrides it
 	var createNewDb bool
 	dbName := t.DB.Name()
-	if coll.DB != "" {
+	if db != "" {
 		createNewDb = true
-		dbName = coll.DB
+		dbName = db
 	}
 
 	// if a client is specified, a new database must be created
-	if coll.Client != nil {
-		return coll.Client.Database(dbName)
+	if client != nil {
+		return client.Database(dbName)
 	}
 	// if dbName is the same as t.DB.Name(), t.DB can be used
 	if !createNewDb {
@@ -407,7 +418,7 @@ func (t *T) extractDatabase(coll Collection) *mongo.Database {
 // finishes running. If createOnServer is true, the function ensures that the collection has been created server-side
 // by running the create command. The create command will appear in command monitoring channels.
 func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collection {
-	db := t.extractDatabase(coll)
+	db := t.extractDatabase(coll.Client, coll.DB)
 	if createOnServer && t.clientType != Mock {
 		if err := db.CreateCollection(Background, coll.Name, coll.CreateOpts); err != nil {
 			// ignore NamespaceExists errors for idempotency
@@ -420,6 +431,27 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 	}
 
 	created := db.Collection(coll.Name, coll.Opts)
+	t.createdColls = append(t.createdColls, created)
+	return created
+}
+
+// CreateView creates a new view with the given configuration. The view will be dropped after the test
+// finishes running. If createOnServer is true, the function ensures that the view has been created server-side
+// by running the create command. The create command will appear in command monitoring channels.
+func (t *T) CreateView(view View, createOnServer bool) *mongo.Collection {
+	db := t.extractDatabase(view.Client, view.DB)
+	if createOnServer && t.clientType != Mock {
+		if err := db.CreateView(Background, view.Name, view.Source, view.CreateOpts); err != nil {
+			// ignore NamespaceExists errors for idempotency
+
+			cmdErr, ok := err.(mongo.CommandError)
+			if !ok || cmdErr.Code != namespaceExistsErrCode {
+				t.Fatalf("error creating view %v on server: %v", view.Name, err)
+			}
+		}
+	}
+
+	created := db.Collection(view.Name, view.Opts)
 	t.createdColls = append(t.createdColls, created)
 	return created
 }
