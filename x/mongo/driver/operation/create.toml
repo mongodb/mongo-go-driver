@@ -16,10 +16,6 @@ documentation = "Specifies the name of the collection to create."
 skip = true
 constructor = true
 
-[request.autoIndexId]
-type = "boolean"
-documentation = "Specifies whether or not an index should automatically be created on the _id field."
-
 [request.capped]
 type = "boolean"
 documentation = "Specifies if the collection is capped."

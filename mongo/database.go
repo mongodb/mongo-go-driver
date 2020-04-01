@@ -443,9 +443,6 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 	cco := options.MergeCreateCollectionOptions(opts...)
 	op := operation.NewCreate(name)
 
-	if cco.AutoIndexID != nil {
-		op.AutoIndexId(*cco.AutoIndexID)
-	}
 	if cco.Capped != nil {
 		op.Capped(*cco.Capped)
 	}

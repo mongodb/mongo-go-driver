@@ -28,13 +28,6 @@ func (d *DefaultIndexOptions) SetStorageEngine(storageEngine interface{}) *Defau
 
 // CreateCollectionOptions represents options that can be used to configure a CreateCollection operation.
 type CreateCollectionOptions struct {
-	// Specifies whether or not an index should automatically be created on the _id field. This option has been
-	// deprecated in MongoDB version 3.2 and removed in MongoDB version 4.0. The default value is true.
-	//
-	// TODO: in 4.0, the option was not fully removed, but can only be used when creating a collection in the "local"
-	// database. Should this be mentioned in the docs above?
-	AutoIndexID *bool
-
 	// Specifies if the collection is capped (see https://docs.mongodb.com/manual/core/capped-collections/). If true,
 	// the SizeInBytes option must also be specified. The default value is false.
 	Capped *bool
@@ -82,12 +75,6 @@ type CreateCollectionOptions struct {
 // CreateCollection creates a new CreateCollectionOptions instance.
 func CreateCollection() *CreateCollectionOptions {
 	return &CreateCollectionOptions{}
-}
-
-// SetAutoIndexID sets the value for the AutoIndexID field.
-func (c *CreateCollectionOptions) SetAutoIndexID(autoIndex bool) *CreateCollectionOptions {
-	c.AutoIndexID = &autoIndex
-	return c
 }
 
 // SetCapped sets the value for the Capped field.
@@ -154,9 +141,6 @@ func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateColle
 			continue
 		}
 
-		if opt.AutoIndexID != nil {
-			cc.AutoIndexID = opt.AutoIndexID
-		}
 		if opt.Capped != nil {
 			cc.Capped = opt.Capped
 		}

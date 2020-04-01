@@ -22,7 +22,6 @@ import (
 
 // Create a create operation
 type Create struct {
-	autoIndexId         *bool
 	capped              *bool
 	collation           bsoncore.Document
 	collectionName      *string
@@ -82,9 +81,6 @@ func (c *Create) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	if c.collectionName != nil {
 		dst = bsoncore.AppendStringElement(dst, "create", *c.collectionName)
 	}
-	if c.autoIndexId != nil {
-		dst = bsoncore.AppendBooleanElement(dst, "autoIndexId", *c.autoIndexId)
-	}
 	if c.capped != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "capped", *c.capped)
 	}
@@ -122,16 +118,6 @@ func (c *Create) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		dst = bsoncore.AppendStringElement(dst, "viewOn", *c.viewOn)
 	}
 	return dst, nil
-}
-
-// Specifies whether or not an index should automatically be created on the _id field.
-func (c *Create) AutoIndexId(autoIndexId bool) *Create {
-	if c == nil {
-		c = new(Create)
-	}
-
-	c.autoIndexId = &autoIndexId
-	return c
 }
 
 // Specifies if the collection is capped.

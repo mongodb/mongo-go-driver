@@ -213,13 +213,9 @@ func TestDatabase(t *testing.T) {
 			// Tests for various options combinations. The test creates a collection with some options and then verifies
 			// the result using the options document reported by listCollections.
 
-			// Options to create a collection with autoIndexId=false.
-			autoIndexOpts := options.CreateCollection().SetAutoIndexID(false)
-			autoIndexExpected := bson.M{"autoIndexId": false}
-
-			// All possible options except autoIndexId and collation. The collation is omitted here and tested below
-			// because the collation document reported by listCollections fills in extra fields and includes a "version"
-			// field that's not described in https://docs.mongodb.com/manual/reference/collation/.
+			// All possible options except collation. The collation is omitted here and tested below because the
+			// collation document reported by listCollections fills in extra fields and includes a "version" field
+			// that's not described in https://docs.mongodb.com/manual/reference/collation/.
 			storageEngine := bson.M{
 				"wiredTiger": bson.M{
 					"configString": "block_compressor=zlib",
@@ -265,7 +261,6 @@ func TestDatabase(t *testing.T) {
 				createOpts       *options.CreateCollectionOptions
 				expectedOpts     bson.M
 			}{
-				{"auto index id", "3.0", "3.0", autoIndexOpts, autoIndexExpected},
 				{"all options except collation", "3.2", "", nonCollationOpts, nonCollationExpected},
 			}
 
