@@ -91,7 +91,7 @@ type T struct {
 	validTopologies  []TopologyKind
 	auth             *bool
 	enterprise       *bool
-	collCreateOpts   bson.D
+	collCreateOpts   *options.CreateCollectionOptions
 	connsCheckedOut  int // net number of connections checked out during test execution
 
 	// options copied to sub-tests
@@ -378,7 +378,7 @@ type Collection struct {
 	DB         string        // defaults to mt.DB.Name() if not specified
 	Client     *mongo.Client // defaults to mt.Client if not specified
 	Opts       *options.CollectionOptions
-	CreateOpts bson.D
+	CreateOpts *options.CreateCollectionOptions
 }
 
 // returns database to use for creating a new collection
@@ -409,10 +409,7 @@ func (t *T) extractDatabase(coll Collection) *mongo.Database {
 func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collection {
 	db := t.extractDatabase(coll)
 	if createOnServer && t.clientType != Mock {
-		cmd := bson.D{{"create", coll.Name}}
-		cmd = append(cmd, coll.CreateOpts...)
-
-		if err := db.RunCommand(Background, cmd).Err(); err != nil {
+		if err := db.CreateCollection(Background, coll.Name, coll.CreateOpts); err != nil {
 			// ignore NamespaceExists errors for idempotency
 
 			cmdErr, ok := err.(mongo.CommandError)

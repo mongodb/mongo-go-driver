@@ -53,7 +53,7 @@ func TestCursor(t *testing.T) {
 			defer cursor.Close(mtest.Background)
 			tryNextExistingBatchTest(mt, cursor)
 		})
-		cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
+		cappedOpts := options.CreateCollection().SetCapped(true).SetSizeInBytes(64 * 1024)
 		mt.RunOpts("one getMore sent", mtest.NewOptions().CollectionCreateOptions(cappedOpts), func(mt *mtest.T) {
 			// If the current batch is empty, TryNext should send one getMore and return.
 

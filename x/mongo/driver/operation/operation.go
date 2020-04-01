@@ -12,3 +12,4 @@ package operation
 //go:generate operationgen abort_transaction.toml operation abort_transaction.go
 //go:generate operationgen count.toml operation count.go
 //go:generate operationgen end_sessions.toml operation end_sessions.go
+//go:generate operationgen create.toml operation create.go
