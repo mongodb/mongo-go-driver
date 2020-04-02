@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
@@ -504,6 +505,43 @@ func TestSelector_Secondary_with_tags(t *testing.T) {
 	require.NoError(err)
 	require.Len(result, 1)
 	require.Equal([]Server{readPrefTestSecondary2}, result)
+}
+
+func TestSelector_Secondary_with_empty_tag_set(t *testing.T) {
+	t.Parallel()
+
+	primaryNoTags := Server{
+		Addr:        address.Address("localhost:27017"),
+		Kind:        RSPrimary,
+		WireVersion: &VersionRange{Min: 0, Max: 5},
+	}
+	firstSecondaryNoTags := Server{
+		Addr:        address.Address("localhost:27018"),
+		Kind:        RSSecondary,
+		WireVersion: &VersionRange{Min: 0, Max: 5},
+	}
+	secondSecondaryNoTags := Server{
+		Addr:        address.Address("localhost:27019"),
+		Kind:        RSSecondary,
+		WireVersion: &VersionRange{Min: 0, Max: 5},
+	}
+	topologyNoTags := Topology{
+		Kind:    ReplicaSetWithPrimary,
+		Servers: []Server{primaryNoTags, firstSecondaryNoTags, secondSecondaryNoTags},
+	}
+
+	nonMatchingSet := tag.Set{
+		{Name: "foo", Value: "bar"},
+	}
+	emptyTagSet := tag.Set{}
+	rp := readpref.Secondary(
+		readpref.WithTagSets(nonMatchingSet, emptyTagSet),
+	)
+
+	result, err := ReadPrefSelector(rp).SelectServer(topologyNoTags, topologyNoTags.Servers)
+	assert.Nil(t, err, "SelectServer error: %v", err)
+	expectedResult := []Server{firstSecondaryNoTags, secondSecondaryNoTags}
+	assert.Equal(t, expectedResult, result, "expected result %v, got %v", expectedResult, result)
 }
 
 func TestSelector_Secondary_with_tags_that_do_not_match(t *testing.T) {
