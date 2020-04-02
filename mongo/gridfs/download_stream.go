@@ -37,7 +37,12 @@ type DownloadStream struct {
 	bufferEnd     int
 	expectedChunk int32 // index of next expected chunk
 	readDeadline  time.Time
-	file          File
+	fileLen       int64
+
+	// The pointer returned by GetFile. This should not be used in the actual DownloadStream code outside of the
+	// newDownloadStream constructor because the values can be mutated by the user after calling GetFile. Instead,
+	// any values needed in the code should be stored separately and copied over in the constructor.
+	file *File
 }
 
 // File represents a file stored in GridFS. This type can be used to access file information when downloading using the
@@ -93,7 +98,7 @@ func (f *File) UnmarshalBSON(data []byte) error {
 	return nil
 }
 
-func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file File) *DownloadStream {
+func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {
 	numChunks := int32(math.Ceil(float64(file.Length) / float64(chunkSize)))
 
 	return &DownloadStream{
@@ -102,6 +107,7 @@ func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file File) *Downlo
 		cursor:    cursor,
 		buffer:    make([]byte, chunkSize),
 		done:      cursor == nil,
+		fileLen:   file.Length,
 		file:      file,
 	}
 }
@@ -216,7 +222,7 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 }
 
 // GetFile returns a File object representing the file being downloaded.
-func (ds *DownloadStream) GetFile() File {
+func (ds *DownloadStream) GetFile() *File {
 	return ds.file
 }
 
@@ -248,7 +254,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	if ds.expectedChunk == ds.numChunks {
 		// final chunk can be fewer than ds.chunkSize bytes
 		bytesDownloaded := int64(ds.chunkSize) * (int64(ds.expectedChunk) - int64(1))
-		bytesRemaining := ds.file.Length - int64(bytesDownloaded)
+		bytesRemaining := ds.fileLen - int64(bytesDownloaded)
 
 		if int64(bytesLen) != bytesRemaining {
 			return ErrWrongSize

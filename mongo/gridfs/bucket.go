@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -366,18 +367,18 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
 	var foundFile File
 	if err = cursor.Decode(&foundFile); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error decoding files collection document: %v", err)
 	}
 
 	if foundFile.Length == 0 {
-		return newDownloadStream(nil, b.chunkSize, foundFile), nil
+		return newDownloadStream(nil, b.chunkSize, &foundFile), nil
 	}
 
 	chunksCursor, err := b.findChunks(ctx, foundFile.ID)
 	if err != nil {
 		return nil, err
 	}
-	return newDownloadStream(chunksCursor, b.chunkSize, foundFile), nil
+	return newDownloadStream(chunksCursor, b.chunkSize, &foundFile), nil
 }
 
 func deadlineContext(deadline time.Time) (context.Context, context.CancelFunc) {

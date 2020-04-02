@@ -223,7 +223,7 @@ func TestGridFS(x *testing.T) {
 					assert.Nil(mt, err, "FindOne error: %v", err)
 					uploadTime := uploadedFileDoc.Lookup("uploadDate").Time().UTC()
 
-					expectedFile := gridfs.File{
+					expectedFile := &gridfs.File{
 						ID:         uploadedFileID,
 						Length:     int64(len(fileData)),
 						ChunkSize:  gridfs.DefaultChunkSize,
