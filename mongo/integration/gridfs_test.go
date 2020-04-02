@@ -181,6 +181,75 @@ func TestGridFS(x *testing.T) {
 		}
 	})
 
+	mt.RunOpts("download", noClientOpts, func(mt *mtest.T) {
+		mt.RunOpts("get file data", noClientOpts, func(mt *mtest.T) {
+			// Tests for the DownloadStream.GetFile method.
+
+			fileName := "get-file-data-test"
+			fileData := []byte{1, 2, 3, 4}
+			fileMetadata := bson.D{{"k1", "v1"}, {"k2", "v2"}}
+			rawMetadata, err := bson.Marshal(fileMetadata)
+			assert.Nil(mt, err, "Marshal error: %v", err)
+			uploadOpts := options.GridFSUpload().SetMetadata(fileMetadata)
+
+			testCases := []struct {
+				name   string
+				fileID interface{}
+			}{
+				{"default ID", nil},
+				{"custom ID type", "customID"},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					// Create a new GridFS bucket.
+					bucket, err := gridfs.NewBucket(mt.DB)
+					assert.Nil(mt, err, "NewBucket error: %v", err)
+					defer func() { _ = bucket.Drop() }()
+
+					// Upload the file and store the uploaded file ID.
+					uploadedFileID := tc.fileID
+					dataReader := bytes.NewReader(fileData)
+					if uploadedFileID == nil {
+						uploadedFileID, err = bucket.UploadFromStream(fileName, dataReader, uploadOpts)
+					} else {
+						err = bucket.UploadFromStreamWithID(tc.fileID, fileName, dataReader, uploadOpts)
+					}
+					assert.Nil(mt, err, "error uploading file: %v", err)
+
+					// The uploadDate field is calculated when the upload is complete. Manually fetch it from the
+					// fs.files collection to use in assertions.
+					filesColl := mt.DB.Collection("fs.files")
+					uploadedFileDoc, err := filesColl.FindOne(mtest.Background, bson.D{}).DecodeBytes()
+					assert.Nil(mt, err, "FindOne error: %v", err)
+					uploadTime := uploadedFileDoc.Lookup("uploadDate").Time().UTC()
+
+					expectedFile := &gridfs.File{
+						ID:         uploadedFileID,
+						Length:     int64(len(fileData)),
+						ChunkSize:  gridfs.DefaultChunkSize,
+						UploadDate: uploadTime,
+						Name:       fileName,
+						Metadata:   rawMetadata,
+					}
+					// For both methods that create a DownloadStream, open a stream and compare the file given by the
+					// stream to the expected File object.
+					mt.RunOpts("OpenDownloadStream", noClientOpts, func(mt *mtest.T) {
+						downloadStream, err := bucket.OpenDownloadStream(uploadedFileID)
+						assert.Nil(mt, err, "OpenDownloadStream error: %v", err)
+						actualFile := downloadStream.GetFile()
+						assert.Equal(mt, expectedFile, actualFile, "expected file %v, got %v", expectedFile, actualFile)
+					})
+					mt.RunOpts("OpenDownloadStreamByName", noClientOpts, func(mt *mtest.T) {
+						downloadStream, err := bucket.OpenDownloadStreamByName(fileName)
+						assert.Nil(mt, err, "OpenDownloadStream error: %v", err)
+						actualFile := downloadStream.GetFile()
+						assert.Equal(mt, expectedFile, actualFile, "expected file %v, got %v", expectedFile, actualFile)
+					})
+				})
+			}
+		})
+	})
+
 	mt.RunOpts("round trip", mtest.NewOptions().MaxServerVersion("3.6"), func(mt *mtest.T) {
 		skipRoundTripTest(mt)
 		oneK := 1024

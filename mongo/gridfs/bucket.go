@@ -10,11 +10,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -362,32 +362,23 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 		return nil, err
 	}
 
-	fileLenElem, err := cursor.Current.LookupErr("length")
+	// Unmarshal the data into a File instance, which can be passed to newDownloadStream. The _id value has to be
+	// parsed out separately because "_id" will not match the File.ID field and we want to avoid exposing BSON tags
+	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
+	var foundFile File
+	if err = cursor.Decode(&foundFile); err != nil {
+		return nil, fmt.Errorf("error decoding files collection document: %v", err)
+	}
+
+	if foundFile.Length == 0 {
+		return newDownloadStream(nil, b.chunkSize, &foundFile), nil
+	}
+
+	chunksCursor, err := b.findChunks(ctx, foundFile.ID)
 	if err != nil {
 		return nil, err
 	}
-	fileIDElem, err := cursor.Current.LookupErr("_id")
-	if err != nil {
-		return nil, err
-	}
-
-	var fileLen int64
-	switch fileLenElem.Type {
-	case bsontype.Int32:
-		fileLen = int64(fileLenElem.Int32())
-	default:
-		fileLen = fileLenElem.Int64()
-	}
-
-	if fileLen == 0 {
-		return newDownloadStream(nil, b.chunkSize, 0), nil
-	}
-
-	chunksCursor, err := b.findChunks(ctx, fileIDElem)
-	if err != nil {
-		return nil, err
-	}
-	return newDownloadStream(chunksCursor, b.chunkSize, int64(fileLen)), nil
+	return newDownloadStream(chunksCursor, b.chunkSize, &foundFile), nil
 }
 
 func deadlineContext(deadline time.Time) (context.Context, context.CancelFunc) {
