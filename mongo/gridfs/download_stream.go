@@ -13,6 +13,7 @@ import (
 	"math"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -36,11 +37,64 @@ type DownloadStream struct {
 	bufferEnd     int
 	expectedChunk int32 // index of next expected chunk
 	readDeadline  time.Time
-	fileLen       int64
+	file          File
 }
 
-func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, fileLen int64) *DownloadStream {
-	numChunks := int32(math.Ceil(float64(fileLen) / float64(chunkSize)))
+// File represents a file stored in GridFS. This type can be used to access file information when downloading using the
+// DownloadStream.GetFile method.
+type File struct {
+	// ID is the file's ID. This will match the file ID specified when uploading the file. If an upload helper that
+	// does not require a file ID was used, this field will be a primitive.ObjectID.
+	ID interface{}
+
+	// Length is the length of this file in bytes.
+	Length int64
+
+	// ChunkSize is the maximum number of bytes for each chunk in this file.
+	ChunkSize int32
+
+	// UploadDate is the time this file was added to GridFS in UTC.
+	UploadDate time.Time
+
+	// Name is the name of this file.
+	Name string
+
+	// Metadata is additional data that was specified when creating this file. This field can be unmarshalled into a
+	// custom type using the bson.Unmarshal family of functions.
+	Metadata bson.Raw
+}
+
+var _ bson.Unmarshaler = (*File)(nil)
+
+// unmarshalFile is a temporary type used to unmarshal documents from the files collection and can be transformed into
+// a File instance. This type exists to avoid adding BSON struct tags to the exported File type.
+type unmarshalFile struct {
+	ID         interface{} `bson:"_id"`
+	Length     int64       `bson:"length"`
+	ChunkSize  int32       `bson:"chunkSize"`
+	UploadDate time.Time   `bson:"uploadDate"`
+	Name       string      `bson:"filename"`
+	Metadata   bson.Raw    `bson:"metadata"`
+}
+
+// UnmarshalBSON implements the bson.Unmarshaler interface.
+func (f *File) UnmarshalBSON(data []byte) error {
+	var temp unmarshalFile
+	if err := bson.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	f.ID = temp.ID
+	f.Length = temp.Length
+	f.ChunkSize = temp.ChunkSize
+	f.UploadDate = temp.UploadDate
+	f.Name = temp.Name
+	f.Metadata = temp.Metadata
+	return nil
+}
+
+func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file File) *DownloadStream {
+	numChunks := int32(math.Ceil(float64(file.Length) / float64(chunkSize)))
 
 	return &DownloadStream{
 		numChunks: numChunks,
@@ -48,7 +102,7 @@ func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, fileLen int64) *Do
 		cursor:    cursor,
 		buffer:    make([]byte, chunkSize),
 		done:      cursor == nil,
-		fileLen:   fileLen,
+		file:      file,
 	}
 }
 
@@ -161,6 +215,11 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 	return skip, nil
 }
 
+// GetFile returns a File object representing the file being downloaded.
+func (ds *DownloadStream) GetFile() File {
+	return ds.file
+}
+
 func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	if !ds.cursor.Next(ctx) {
 		ds.done = true
@@ -189,7 +248,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	if ds.expectedChunk == ds.numChunks {
 		// final chunk can be fewer than ds.chunkSize bytes
 		bytesDownloaded := int64(ds.chunkSize) * (int64(ds.expectedChunk) - int64(1))
-		bytesRemaining := ds.fileLen - int64(bytesDownloaded)
+		bytesRemaining := ds.file.Length - int64(bytesDownloaded)
 
 		if int64(bytesLen) != bytesRemaining {
 			return ErrWrongSize
