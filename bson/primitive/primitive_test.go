@@ -82,15 +82,24 @@ func TestRegexCompare(t *testing.T) {
 }
 
 func TestDateTime(t *testing.T) {
-	t.Run("json round trip", func(t *testing.T) {
-		original := DateTime(1000)
-		jsonBytes, err := json.Marshal(original)
-		assert.Nil(t, err, "Marshal error: %v", err)
+	t.Run("json", func(t *testing.T) {
+		t.Run("round trip", func(t *testing.T) {
+			original := DateTime(1000)
+			jsonBytes, err := json.Marshal(original)
+			assert.Nil(t, err, "Marshal error: %v", err)
 
-		var unmarshalled DateTime
-		err = json.Unmarshal(jsonBytes, &unmarshalled)
-		assert.Nil(t, err, "Unmarshal error: %v", err)
+			var unmarshalled DateTime
+			err = json.Unmarshal(jsonBytes, &unmarshalled)
+			assert.Nil(t, err, "Unmarshal error: %v", err)
 
-		assert.Equal(t, original, unmarshalled, "expected DateTime %v, got %v", original, unmarshalled)
+			assert.Equal(t, original, unmarshalled, "expected DateTime %v, got %v", original, unmarshalled)
+		})
+		t.Run("decode null", func(t *testing.T) {
+			jsonBytes := []byte("null")
+			var dt DateTime
+			err := json.Unmarshal(jsonBytes, &dt)
+			assert.Nil(t, err, "Unmarshal error: %v", err)
+			assert.Equal(t, DateTime(0), dt, "expected DateTime value to be 0, got %v", dt)
+		})
 	})
 }

@@ -50,14 +50,18 @@ func (d DateTime) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON creates a primitive.DateTime from a JSON string.
 func (d *DateTime) UnmarshalJSON(data []byte) error {
+	// Ignore "null" to keep parity with the time.Time type and the standard library. Decoding "null" into a non-pointer
+	// DateTime field will leave the field unchanged. For pointer values, the encoding/json will set the pointer to nil
+	// and will not defer to the UnmarshalJSON hook.
+	if string(data) == "null" {
+		return nil
+	}
+
 	var tempTime time.Time
 	if err := json.Unmarshal(data, &tempTime); err != nil {
 		return err
 	}
 
-	if d == nil {
-		d = new(DateTime)
-	}
 	*d = NewDateTimeFromTime(tempTime)
 	return nil
 }
