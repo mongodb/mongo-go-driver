@@ -351,6 +351,16 @@ func (b *Bucket) Drop() error {
 	return b.chunksColl.Drop(ctx)
 }
 
+// GetFilesCollection returns a handle to the collection that stores the file documents for this bucket.
+func (b *Bucket) GetFilesCollection() *mongo.Collection {
+	return b.filesColl
+}
+
+// GetChunksCollection returns a handle to the collection that stores the file chunks for this bucket.
+func (b *Bucket) GetChunksCollection() *mongo.Collection {
+	return b.chunksColl
+}
+
 func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOptions) (*DownloadStream, error) {
 	ctx, cancel := deadlineContext(b.readDeadline)
 	if cancel != nil {

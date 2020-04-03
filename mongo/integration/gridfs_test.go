@@ -250,6 +250,42 @@ func TestGridFS(x *testing.T) {
 		})
 	})
 
+	mt.RunOpts("bucket collection accessors", noClientOpts, func(mt *mtest.T) {
+		// Tests for the GetFilesCollection and GetChunksCollection accessors.
+
+		fileData := []byte{1, 2, 3, 4}
+		var chunkSize int32 = 2
+
+		testCases := []struct {
+			name       string
+			bucketName string // defaults to "fs"
+		}{
+			{"default bucket name", ""},
+			{"custom bucket name", "bucket"},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				bucketOpts := options.GridFSBucket().SetChunkSizeBytes(chunkSize)
+				if tc.bucketName != "" {
+					bucketOpts.SetName(tc.bucketName)
+				}
+				bucket, err := gridfs.NewBucket(mt.DB, bucketOpts)
+				assert.Nil(mt, err, "NewBucket error: %v", err)
+				defer func() { _ = bucket.Drop() }()
+
+				_, err = bucket.UploadFromStream("accessors-test-file", bytes.NewReader(fileData))
+				assert.Nil(mt, err, "UploadFromStream error: %v", err)
+
+				bucketName := tc.bucketName
+				if bucketName == "" {
+					bucketName = "fs"
+				}
+				assertGridFSCollectionState(mt, bucket.GetFilesCollection(), bucketName+".files", 1)
+				assertGridFSCollectionState(mt, bucket.GetChunksCollection(), bucketName+".chunks", 2)
+			})
+		}
+	})
+
 	mt.RunOpts("round trip", mtest.NewOptions().MaxServerVersion("3.6"), func(mt *mtest.T) {
 		skipRoundTripTest(mt)
 		oneK := 1024
@@ -315,6 +351,16 @@ func TestGridFS(x *testing.T) {
 			})
 		}
 	})
+}
+
+func assertGridFSCollectionState(mt *mtest.T, coll *mongo.Collection, expectedName string, expectedNumDocuments int64) {
+	mt.Helper()
+
+	assert.Equal(mt, expectedName, coll.Name(), "expected collection name %v, got %v", expectedName, coll.Name())
+	count, err := coll.CountDocuments(mtest.Background, bson.D{})
+	assert.Nil(mt, err, "CountDocuments error: %v", err)
+	assert.Equal(mt, expectedNumDocuments, count, "expected %d documents in collection, got %d", expectedNumDocuments,
+		count)
 }
 
 func findIndex(ctx context.Context, mt *mtest.T, coll *mongo.Collection, unique bool, keys ...string) {
