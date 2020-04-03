@@ -459,13 +459,8 @@ func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptio
 func (t *Topology) selectServerFromDescription(ctx context.Context, desc description.Topology,
 	selectionState serverSelectionState) ([]description.Server, error) {
 
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-selectionState.timeoutChan:
-		return nil, wrapServerSelectionError(ErrServerSelectionTimeout, t)
-	default:
-	}
+	// Unlike selectServerFromSubscription, this code path does not check ctx.Done or selectionState.timeoutChan because
+	// selecting a server from a description is not a blocking operation.
 
 	var allowed []description.Server
 	for _, s := range desc.Servers {

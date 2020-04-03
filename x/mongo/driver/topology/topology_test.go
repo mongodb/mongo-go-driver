@@ -315,8 +315,8 @@ func TestServerSelection(t *testing.T) {
 			t.Errorf("Incorrect sever selected. got %s; want %s", srvs[0].Addr, desc.Servers[1].Addr)
 		}
 	})
-	t.Run("no subscription in fast path", func(t *testing.T) {
-		// assert that a subscription is not created if there is a server available
+	t.Run("fast path does not subscribe or check timeouts", func(t *testing.T) {
+		// Assert that the server selection fast path does not create a Subscription or check for timeout errors.
 		topo, err := New()
 		noerr(t, err)
 		topo.cfg.cs.HeartbeatInterval = time.Minute
@@ -335,9 +335,12 @@ func TestServerSelection(t *testing.T) {
 			topo.servers[srv.Addr] = s
 		}
 
-		// manually close subscriptions so calls to Subscribe will error
+		// Manually close subscriptions so calls to Subscribe will error and pass in a cancelled context to ensure the
+		// fast path ignores timeout errors.
 		topo.subscriptionsClosed = true
-		selectedServer, err := topo.SelectServer(context.Background(), description.WriteSelector())
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		selectedServer, err := topo.SelectServer(ctx, description.WriteSelector())
 		noerr(t, err)
 		selectedAddr := selectedServer.(*SelectedServer).address
 		assert.Equal(t, primaryAddr, selectedAddr, "expected address %v, got %v", primaryAddr, selectedAddr)

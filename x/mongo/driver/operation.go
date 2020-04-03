@@ -195,12 +195,6 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 		return nil, err
 	}
 
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	default:
-	}
-
 	selector := op.Selector
 	if selector == nil {
 		rp := op.ReadPreference
