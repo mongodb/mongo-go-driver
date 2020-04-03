@@ -345,6 +345,21 @@ func TestServerSelection(t *testing.T) {
 		selectedAddr := selectedServer.(*SelectedServer).address
 		assert.Equal(t, primaryAddr, selectedAddr, "expected address %v, got %v", primaryAddr, selectedAddr)
 	})
+	t.Run("default to selecting from subscription if fast path fails", func(t *testing.T) {
+		topo, err := New()
+		noerr(t, err)
+
+		topo.cfg.cs.HeartbeatInterval = time.Minute
+		atomic.StoreInt32(&topo.connectionstate, connected)
+		desc := description.Topology{
+			Servers: []description.Server{},
+		}
+		topo.desc.Store(desc)
+
+		topo.subscriptionsClosed = true
+		_, err = topo.SelectServer(context.Background(), description.WriteSelector())
+		assert.Equal(t, ErrSubscribeAfterClosed, err, "expected error %v, got %v", ErrSubscribeAfterClosed, err)
+	})
 }
 
 func TestSessionTimeout(t *testing.T) {
