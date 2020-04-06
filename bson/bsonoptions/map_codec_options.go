@@ -10,7 +10,11 @@ package bsonoptions
 type MapCodecOptions struct {
 	DecodeZerosMap   *bool // Specifies if the map should be zeroed before decoding into it. Defaults to false.
 	EncodeNilAsEmpty *bool // Specifies if a nil map should encode as an empty document instead of null. Defaults to false.
-	MgoKeyHandling   *bool // Specifies if keys should be encoded and decoded with mgo's handling. Defaults to false.
+	// Specifies how keys should be handled. If false, the behavior matches encoding/json, where the encoding key type must
+	// either be a string, an integer type, or implement encoding.TextMarshaler and the decoding key type must either be a
+	// string, an integer type, or implement encoding.TextMarshaler. If true, keys are encoded with fmt.Sprint() and the
+	// encoding key type must be a string, an integer type, or a float. Defaults to false.
+	MgoKeyHandling *bool
 }
 
 // MapCodec creates a new *MapCodecOptions
@@ -24,13 +28,16 @@ func (t *MapCodecOptions) SetDecodeZerosMap(b bool) *MapCodecOptions {
 	return t
 }
 
-// SetEncodeNilAsEmpty specifies  if a nil map should encode as an empty document instead of null. Defaults to false.
+// SetEncodeNilAsEmpty specifies if a nil map should encode as an empty document instead of null. Defaults to false.
 func (t *MapCodecOptions) SetEncodeNilAsEmpty(b bool) *MapCodecOptions {
 	t.EncodeNilAsEmpty = &b
 	return t
 }
 
-// SetMgoKeyHandling specifies if keys should be encoded and decoded with mgo's handling. Defaults to false.
+// SetMgoKeyHandling specifies how keys should be handled. If false, the behavior matches encoding/json, where the
+// encoding key type must either be a string, an integer type, or implement encoding.TextMarshaler and the decoding key
+// type must either be a string, an integer type, or implement encoding.TextMarshaler. If true, keys are encoded with
+// fmt.Sprint() and the encoding key type must be a string, an integer type, or a float. Defaults to false.
 func (t *MapCodecOptions) SetMgoKeyHandling(b bool) *MapCodecOptions {
 	t.MgoKeyHandling = &b
 	return t
@@ -38,7 +45,7 @@ func (t *MapCodecOptions) SetMgoKeyHandling(b bool) *MapCodecOptions {
 
 // MergeMapCodecOptions combines the given *MapCodecOptions into a single *MapCodecOptions in a last one wins fashion.
 func MergeMapCodecOptions(opts ...*MapCodecOptions) *MapCodecOptions {
-	var s MapCodecOptions
+	s := MapCodec()
 	for _, opt := range opts {
 		if opt == nil {
 			continue
@@ -54,5 +61,5 @@ func MergeMapCodecOptions(opts ...*MapCodecOptions) *MapCodecOptions {
 		}
 	}
 
-	return &s
+	return s
 }
