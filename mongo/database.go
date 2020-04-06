@@ -435,7 +435,8 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 }
 
 // CreateCollection executes a create command to explicitly create a new collection with the specified name on the
-// server. This method requires driver version 1.4.0 or higher.
+// server. If the collection being created already exists, this method will return a mongo.CommandError. This method
+// requires driver version 1.4.0 or higher.
 //
 // The opts parameter can be used to specify options for the operation (see the options.CreateCollectionOptions
 // documentation).
