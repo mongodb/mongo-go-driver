@@ -82,33 +82,9 @@ functions:
              cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
              cp ./include/mongocrypt/*.h c:/libmongocrypt/include
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-          elif uname -a | grep -q Ubuntu > /dev/null 2>&1; then # Ubuntu
-             git clone https://github.com/mongodb/libmongocrypt
-             ./libmongocrypt/.evergreen/compile.sh
-          elif uname -a | grep -q Darwin; then
-             if [ -f "/Applications/cmake-3.2.2-Darwin-x86_64/CMake.app/Contents/bin/cmake" ]; then
-                CMAKE="/Applications/cmake-3.2.2-Darwin-x86_64/CMake.app/Contents/bin/cmake"
-             elif [ -f "/Applications/Cmake.app/Contents/bin/cmake" ]; then
-                CMAKE="/Applications/Cmake.app/Contents/bin/cmake"
-             fi
-
-             pushd .
-             mkdir libbson-install
-             git clone git@github.com:mongodb/mongo-c-driver.git
-             cd mongo-c-driver
-             mkdir cmake-build
-             cd cmake-build
-             $CMAKE -DENABLE_MONGOC=OFF -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_INSTALL_PREFIX=$BSON_INSTALL_PATH ../
-             make install
-             popd
-
-             pushd .
-             mkdir libmongocrypt-install
-             git clone https://github.com/mongodb/libmongocrypt.git
-             cd libmongocrypt
-             $CMAKE -DENABLE_SHARED_BSON=ON -DCMAKE_PREFIX_PATH=$BSON_INSTALL_PATH -DCMAKE_INSTALL_PREFIX=$LIBMONGOCRYPT_INSTALL_PATH .
-             $CMAKE --build . --target install
-             popd
+          else
+            git clone https://github.com/mongodb/libmongocrypt
+            ./libmongocrypt/.evergreen/compile.sh
           fi
 
           cat <<EOT > expansion.yml
@@ -132,8 +108,8 @@ functions:
              export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
              export PATH="$PATH"
              export PROJECT="$PROJECT"
-             export PKG_CONFIG_PATH=$BSON_INSTALL_PATH/lib/pkgconfig:$LIBMONGOCRYPT_INSTALL_PATH/lib/pkgconfig:$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
-             export LD_LIBRARY_PATH=$BSON_INSTALL_PATH/lib:$LIBMONGOCRYPT_INSTALL_PATH/lib:$(pwd)/install/libmongocrypt/lib
+             export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
+             export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
           EOT
           # See what we've done
           cat expansion.yml
