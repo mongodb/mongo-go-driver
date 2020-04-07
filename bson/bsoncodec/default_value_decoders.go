@@ -1146,6 +1146,7 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr bsonrw.ValueR
 		return nil, err
 	}
 
+	idx := 0
 	for {
 		vr, err := ar.ReadValue()
 		if err == bsonrw.ErrEOA {
@@ -1159,9 +1160,10 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr bsonrw.ValueR
 
 		err = decoder.DecodeValue(dc, vr, elem)
 		if err != nil {
-			return nil, err
+			return nil, newDecodeError(strconv.Itoa(idx), err)
 		}
 		elems = append(elems, elem)
+		idx++
 	}
 
 	return elems, nil
@@ -1239,7 +1241,7 @@ func (DefaultValueDecoders) decodeElemsFromDocumentReader(dc DecodeContext, dr b
 		val := reflect.New(tEmpty).Elem()
 		err = decoder.DecodeValue(dc, vr, val)
 		if err != nil {
-			return nil, err
+			return nil, newDecodeError(key, err)
 		}
 
 		elems = append(elems, reflect.ValueOf(primitive.E{Key: key, Value: val.Interface()}))

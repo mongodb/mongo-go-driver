@@ -14,6 +14,7 @@ import (
 	"math"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -892,7 +894,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: buildDefaultRegistry()},
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Array},
 					bsonrwtest.ReadValue,
-					errors.New("cannot decode array into a string type"),
+					&DecodeError{keys: []string{"0"}, wrapped: errors.New("cannot decode array into a string type")},
 				},
 				{
 					"Document but not D",
@@ -978,7 +980,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: buildDefaultRegistry()},
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Array},
 					bsonrwtest.ReadValue,
-					errors.New("cannot decode array into a string type"),
+					&DecodeError{keys: []string{"0"}, wrapped: errors.New("cannot decode array into a string type")},
 				},
 				{
 					"Document but not D",
@@ -3159,6 +3161,202 @@ func TestDefaultValueDecoders(t *testing.T) {
 			if !cmp.Equal(got, want) {
 				t.Fatalf("got %v, want %v", got, want)
 			}
+		})
+	})
+
+	t.Run("decode errors contain key information", func(t *testing.T) {
+		decodeValueError := errors.New("decode value error")
+		emptyInterfaceErrorDecode := func(DecodeContext, bsonrw.ValueReader, reflect.Value) error {
+			return decodeValueError
+		}
+		emptyInterfaceErrorRegistry := NewRegistryBuilder().
+			RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode)).Build()
+
+		// Set up a document {foo: 10} and an error that would happen if the value were decoded into interface{}
+		// using the registry defined above.
+		docBytes := bsoncore.BuildDocumentFromElements(
+			nil,
+			bsoncore.AppendInt32Element(nil, "foo", 10),
+		)
+		docEmptyInterfaceErr := &DecodeError{
+			keys:    []string{"foo"},
+			wrapped: decodeValueError,
+		}
+
+		// Set up struct definitions where Foo maps to interface{} and string. When decoded using the registry defined
+		// above, the interface{} struct will get an error when calling DecodeValue and the string struct will get an
+		// error when looking up a decoder.
+		type emptyInterfaceStruct struct {
+			Foo interface{}
+		}
+		type stringStruct struct {
+			Foo string
+		}
+		emptyInterfaceStructErr := &DecodeError{
+			keys:    []string{"foo(field Foo)"},
+			wrapped: decodeValueError,
+		}
+		stringStructErr := &DecodeError{
+			keys:    []string{"foo(field Foo)"},
+			wrapped: ErrNoDecoder{reflect.TypeOf("")},
+		}
+
+		// Test a deeply nested struct mixed with maps and slices.
+		// Build document {"first": {"second": {"randomKey": {"third": [{}, {"fourth": "value"}]}}}}
+		type inner3 struct{ Fourth interface{} }
+		type inner2 struct{ Third []inner3 }
+		type inner1 struct{ Second map[string]inner2 }
+		type outer struct{ First inner1 }
+		inner3EmptyDoc := buildDocument(nil)
+		inner3Doc := buildDocument(bsoncore.AppendStringElement(nil, "fourth", "value"))
+		inner3Array := buildArray(
+			// buildArray takes []byte so we first append() all of the values into a single []byte
+			append(
+				bsoncore.AppendDocumentElement(nil, "0", inner3EmptyDoc),
+				bsoncore.AppendDocumentElement(nil, "1", inner3Doc)...,
+			),
+		)
+		inner2Doc := buildDocument(bsoncore.AppendArrayElement(nil, "third", inner3Array))
+		inner2Map := buildDocument(bsoncore.AppendDocumentElement(nil, "randomKey", inner2Doc))
+		inner1Doc := buildDocument(bsoncore.AppendDocumentElement(nil, "second", inner2Map))
+		outerDoc := buildDocument(bsoncore.AppendDocumentElement(nil, "first", inner1Doc))
+
+		// Use a registry that has all default decoders with the custom interface{} decoder that always errors.
+		nestedRegistryBuilder := NewRegistryBuilder()
+		defaultValueDecoders.RegisterDefaultDecoders(nestedRegistryBuilder)
+		nestedRegistry := nestedRegistryBuilder.
+			RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode)).
+			Build()
+		nestedErr := &DecodeError{
+			keys:    []string{"fourth(field Fourth)", "1", "third(field Third)", "randomKey", "second(field Second)", "first(field First)"},
+			wrapped: decodeValueError,
+		}
+
+		testCases := []struct {
+			name     string
+			val      interface{}
+			vr       bsonrw.ValueReader
+			registry *Registry // buildDefaultRegistry will be used if this is nil
+			decoder  ValueDecoder
+			err      error
+		}{
+			{
+				// DecodeValue error when decoding into a primitive.D.
+				"primitive.D slice",
+				primitive.D{},
+				bsonrw.NewBSONDocumentReader(docBytes),
+				emptyInterfaceErrorRegistry,
+				defaultSliceCodec,
+				docEmptyInterfaceErr,
+			},
+			{
+				// DecodeValue error when decoding into a []string.
+				"string slice",
+				[]string{},
+				&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Array},
+				nil,
+				defaultSliceCodec,
+				&DecodeError{
+					keys:    []string{"0"},
+					wrapped: errors.New("cannot decode array into a string type"),
+				},
+			},
+			{
+				// DecodeValue error when decoding into a primitive.E array. This should have the same behavior as
+				// the "primitive.D slice" test above because both the defaultSliceCodec and ArrayDecodeValue use
+				// the decodeD helper function.
+				"primitive.D array",
+				[1]primitive.E{},
+				bsonrw.NewBSONDocumentReader(docBytes),
+				emptyInterfaceErrorRegistry,
+				ValueDecoderFunc(dvd.ArrayDecodeValue),
+				docEmptyInterfaceErr,
+			},
+			{
+				// DecodeValue error when decoding into a string array. This should have the same behavior as
+				// the "primitive.D slice" test above because both the defaultSliceCodec and ArrayDecodeValue use
+				// the decodeDefault helper function.
+				"string array",
+				[1]string{},
+				&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Array},
+				nil,
+				ValueDecoderFunc(dvd.ArrayDecodeValue),
+				&DecodeError{
+					keys:    []string{"0"},
+					wrapped: errors.New("cannot decode array into a string type"),
+				},
+			},
+			{
+				// DecodeValue error when decoding into a map.
+				"map",
+				map[string]interface{}{},
+				bsonrw.NewBSONDocumentReader(docBytes),
+				emptyInterfaceErrorRegistry,
+				defaultMapCodec,
+				docEmptyInterfaceErr,
+			},
+			{
+				// DecodeValue error when decoding into a struct.
+				"struct - DecodeValue error",
+				emptyInterfaceStruct{},
+				bsonrw.NewBSONDocumentReader(docBytes),
+				emptyInterfaceErrorRegistry,
+				defaultStructCodec,
+				emptyInterfaceStructErr,
+			},
+			{
+				// ErrNoDecoder when decoding into a struct.
+				// This test uses NewRegistryBuilder().Build rather than buildDefaultRegistry to ensure that there is
+				// no decoder for strings.
+				"struct - no decoder found",
+				stringStruct{},
+				bsonrw.NewBSONDocumentReader(docBytes),
+				NewRegistryBuilder().Build(),
+				defaultStructCodec,
+				stringStructErr,
+			},
+			{
+				"deeply nested struct",
+				outer{},
+				bsonrw.NewBSONDocumentReader(outerDoc),
+				nestedRegistry,
+				defaultStructCodec,
+				nestedErr,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				dc := DecodeContext{Registry: tc.registry}
+				if dc.Registry == nil {
+					dc.Registry = buildDefaultRegistry()
+				}
+
+				var val reflect.Value
+				if rtype := reflect.TypeOf(tc.val); rtype != nil {
+					val = reflect.New(rtype).Elem()
+				}
+				err := tc.decoder.DecodeValue(dc, tc.vr, val)
+				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
+			})
+		}
+
+		t.Run("keys are correctly reversed", func(t *testing.T) {
+			innerBytes := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "bar", 10))
+			outerBytes := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendDocumentElement(nil, "foo", innerBytes))
+
+			type inner struct{ Bar string }
+			type outer struct{ Foo inner }
+
+			dc := DecodeContext{Registry: buildDefaultRegistry()}
+			vr := bsonrw.NewBSONDocumentReader(outerBytes)
+			val := reflect.New(reflect.TypeOf(outer{})).Elem()
+			err := defaultStructCodec.DecodeValue(dc, vr, val)
+
+			decodeErr, ok := err.(*DecodeError)
+			assert.True(t, ok, "expected DecodeError, got %v of type %T", err, err)
+			keyPattern := "foo(field Foo).bar(field Bar)"
+			assert.True(t, strings.Contains(decodeErr.Error(), keyPattern),
+				"expected error %v to contain key pattern %s", decodeErr, keyPattern)
 		})
 	})
 }
