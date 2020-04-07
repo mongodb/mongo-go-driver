@@ -72,8 +72,6 @@ functions:
           go version
           go env
 
-          BSON_INSTALL_PATH="$(pwd)/libbson-install"
-          LIBMONGOCRYPT_INSTALL_PATH="$(pwd)/libmongocrypt-install"
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
              mkdir -p c:/libmongocrypt/bin
