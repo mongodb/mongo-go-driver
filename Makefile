@@ -122,7 +122,7 @@ vet:
 # Evergreen specific targets
 .PHONY: evg-test
 evg-test:
-	for TEST in ./mongo/integration ; do \
+	for TEST in $(TEST_PKGS); do \
 		LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) go test $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST >> test.suite ; \
 	done
 
