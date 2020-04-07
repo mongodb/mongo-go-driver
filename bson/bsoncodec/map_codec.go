@@ -22,9 +22,9 @@ var defaultMapCodec = NewMapCodec()
 
 // MapCodec is the Codec used for map values.
 type MapCodec struct {
-	DecodeZerosMap   bool
-	EncodeNilAsEmpty bool
-	MgoKeyHandling   bool
+	DecodeZerosMap         bool
+	EncodeNilAsEmpty       bool
+	EncodeKeysWithStringer bool
 }
 
 var _ ValueCodec = &MapCodec{}
@@ -40,8 +40,8 @@ func NewMapCodec(opts ...*bsonoptions.MapCodecOptions) *MapCodec {
 	if mapOpt.EncodeNilAsEmpty != nil {
 		codec.EncodeNilAsEmpty = *mapOpt.EncodeNilAsEmpty
 	}
-	if mapOpt.MgoKeyHandling != nil {
-		codec.MgoKeyHandling = *mapOpt.MgoKeyHandling
+	if mapOpt.EncodeKeysWithStringer != nil {
+		codec.EncodeKeysWithStringer = *mapOpt.EncodeKeysWithStringer
 	}
 	return &codec
 }
@@ -201,7 +201,7 @@ func clearMap(m reflect.Value) {
 }
 
 func (mc *MapCodec) encodeKey(val reflect.Value) (string, error) {
-	if mc.MgoKeyHandling {
+	if mc.EncodeKeysWithStringer {
 		return fmt.Sprint(val), nil
 	}
 
@@ -236,7 +236,7 @@ func (mc *MapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, 
 	keyVal := reflect.ValueOf(key)
 	var err error
 	switch {
-	case !mc.MgoKeyHandling && reflect.PtrTo(keyType).Implements(textUnmarshalerType):
+	case !mc.EncodeKeysWithStringer && reflect.PtrTo(keyType).Implements(textUnmarshalerType):
 		keyVal = reflect.New(keyType)
 		v := keyVal.Interface().(encoding.TextUnmarshaler)
 		err = v.UnmarshalText([]byte(key))
@@ -261,7 +261,7 @@ func (mc *MapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, 
 			}
 			keyVal = reflect.ValueOf(n).Convert(keyType)
 		case reflect.Float32, reflect.Float64:
-			if mc.MgoKeyHandling {
+			if mc.EncodeKeysWithStringer {
 				parsed, err := strconv.ParseFloat(key, 64)
 				if err != nil {
 					return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %v", keyType.Kind(), err)

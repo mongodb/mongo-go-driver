@@ -144,7 +144,7 @@ func (tb textBool) UnmarshalText(text []byte) error {
 }
 
 func TestMapCodec(t *testing.T) {
-	t.Run("MgoKeyHandling", func(t *testing.T) {
+	t.Run("EncodeKeysWithStringer", func(t *testing.T) {
 		strstr := stringerString("foo")
 		mapObj := map[stringerString]int{strstr: 1}
 		testCases := []struct {
@@ -153,8 +153,8 @@ func TestMapCodec(t *testing.T) {
 			key  string
 		}{
 			{"default", bsonoptions.MapCodec(), "foo"},
-			{"true", bsonoptions.MapCodec().SetMgoKeyHandling(true), "bar"},
-			{"false", bsonoptions.MapCodec().SetMgoKeyHandling(false), "foo"},
+			{"true", bsonoptions.MapCodec().SetEncodeKeysWithStringer(true), "bar"},
+			{"false", bsonoptions.MapCodec().SetEncodeKeysWithStringer(false), "foo"},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
