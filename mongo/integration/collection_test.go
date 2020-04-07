@@ -164,6 +164,43 @@ func TestCollection(t *testing.T) {
 				})
 			}
 		})
+		mt.Run("return only inserted ids", func(mt *mtest.T) {
+			id := int32(11)
+			docs := []interface{}{
+				bson.D{{"_id", id}},
+				bson.D{{"_id", id}},
+				bson.D{{"x", 6}},
+				bson.D{{"_id", id}},
+			}
+
+			testCases := []struct {
+				name        string
+				ordered     bool
+				numInserted int
+				numErrors   int
+			}{
+				{"unordered", false, 2, 2},
+				{"ordered", true, 1, 1},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					res, err := mt.Coll.InsertMany(mtest.Background, docs, options.InsertMany().SetOrdered(tc.ordered))
+
+					assert.Equal(mt, tc.numInserted, len(res.InsertedIDs), "expected %v inserted IDs, got %v", tc.numInserted, len(res.InsertedIDs))
+					assert.Equal(mt, id, res.InsertedIDs[0], "expected inserted ID %v, got %v", id, res.InsertedIDs[0])
+					if tc.numInserted > 1 {
+						assert.NotNil(mt, res.InsertedIDs[1], "expected ID but got nil")
+					}
+
+					we, ok := err.(mongo.BulkWriteException)
+					assert.True(mt, ok, "expected error type %T, got %T", mongo.BulkWriteException{}, err)
+					numErrors := len(we.WriteErrors)
+					assert.Equal(mt, tc.numErrors, numErrors, "expected %v write errors, got %v", tc.numErrors, numErrors)
+					gotCode := we.WriteErrors[0].Code
+					assert.Equal(mt, errorDuplicateKey, gotCode, "expected error code %v, got %v", errorDuplicateKey, gotCode)
+				})
+			}
+		})
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet)
 		mt.RunOpts("write concern error", wcTestOpts, func(mt *mtest.T) {

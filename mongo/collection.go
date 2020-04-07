@@ -293,7 +293,22 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	}
 	op = op.Retry(retry)
 
-	return result, op.Execute(ctx)
+	err = op.Execute(ctx)
+	wce, ok := err.(driver.WriteCommandError)
+	if !ok {
+		return result, err
+	}
+
+	for i, we := range wce.WriteErrors {
+		idIndex := int(we.Index) - i
+		if imo.Ordered == nil || *imo.Ordered {
+			result = result[:idIndex]
+			break
+		}
+		result = append(result[:idIndex], result[idIndex+1:]...)
+	}
+
+	return result, err
 }
 
 // InsertOne executes an insert command to insert a single document into the collection.
@@ -367,6 +382,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 			nil,
 		})
 	}
+
 	return imResult, BulkWriteException{
 		WriteErrors:       bwErrors,
 		WriteConcernError: writeException.WriteConcernError,
