@@ -993,6 +993,19 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, expectedModel, actualModel, "expected model %v in BulkWriteException, got %v",
 				expectedModel, actualModel)
 		})
+		unackClientOpts := options.Client().
+			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+		mt.RunOpts("unacknowledged write", mtest.NewOptions().ClientOptions(unackClientOpts), func(mt *mtest.T) {
+			models := []mongo.WriteModel{
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"x", 1}}),
+			}
+			_, err := mt.Coll.BulkWrite(mtest.Background, models)
+			if err != mongo.ErrUnacknowledgedWrite {
+				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
+				// so the assertion would succeed even if the error had not been wrapped.
+				mt.Fatalf("expected BulkWrite error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
+			}
+		})
 	})
 }
 
