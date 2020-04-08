@@ -123,7 +123,7 @@ vet:
 .PHONY: evg-test
 evg-test:
 	for TEST in $(TEST_PKGS); do \
-		LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) go test $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST >> test.suite ; \
+		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST >> test.suite ; \
 	done
 
 .PHONY: evg-test-auth
