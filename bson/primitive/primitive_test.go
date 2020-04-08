@@ -7,9 +7,11 @@
 package primitive
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 // The same interface as bsoncodec.Zeroer implemented for tests.
@@ -77,4 +79,27 @@ func TestRegexCompare(t *testing.T) {
 			require.True(t, tc.r1.Equal(tc.r2) == tc.eq)
 		})
 	}
+}
+
+func TestDateTime(t *testing.T) {
+	t.Run("json", func(t *testing.T) {
+		t.Run("round trip", func(t *testing.T) {
+			original := DateTime(1000)
+			jsonBytes, err := json.Marshal(original)
+			assert.Nil(t, err, "Marshal error: %v", err)
+
+			var unmarshalled DateTime
+			err = json.Unmarshal(jsonBytes, &unmarshalled)
+			assert.Nil(t, err, "Unmarshal error: %v", err)
+
+			assert.Equal(t, original, unmarshalled, "expected DateTime %v, got %v", original, unmarshalled)
+		})
+		t.Run("decode null", func(t *testing.T) {
+			jsonBytes := []byte("null")
+			var dt DateTime
+			err := json.Unmarshal(jsonBytes, &dt)
+			assert.Nil(t, err, "Unmarshal error: %v", err)
+			assert.Equal(t, DateTime(0), dt, "expected DateTime value to be 0, got %v", dt)
+		})
+	})
 }
