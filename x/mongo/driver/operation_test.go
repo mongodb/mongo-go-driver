@@ -54,20 +54,6 @@ func TestOperation(t *testing.T) {
 				t.Error("Expected a validation error from selectServer, but got <nil>")
 			}
 		})
-		t.Run("returns context error when expired", func(t *testing.T) {
-			op := &Operation{
-				CommandFn:  func([]byte, description.SelectedServer) ([]byte, error) { return nil, nil },
-				Deployment: new(mockDeployment),
-				Database:   "testing",
-			}
-			ctx, cancel := context.WithCancel(context.Background())
-			cancel()
-			want := context.Canceled
-			_, got := op.selectServer(ctx)
-			if got != want {
-				t.Errorf("Did not get expected error. got %v; want %v", got, want)
-			}
-		})
 		t.Run("uses specified server selector", func(t *testing.T) {
 			want := new(mockServerSelector)
 			d := new(mockDeployment)
