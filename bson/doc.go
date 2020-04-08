@@ -67,8 +67,8 @@
 //       5. uint8 and uint16 marshal to a BSON int32.
 //       6. uint, uint32, and uint64 marshal to a BSON int32 if the value is between math.MinInt32 and math.MaxInt32,
 //       inclusive, and BSON int64 otherwise.
-//       7. BSON null values will unmarshal into the zero value of a field (e.g. unmarshalling a BSON null value into a string
-//       will yield the empty string.).
+//       7. BSON null and undefined values will unmarshal into the zero value of a field (e.g. unmarshalling a BSON null or
+//       undefined value into a string will yield the empty string.).
 //
 // Structs
 //

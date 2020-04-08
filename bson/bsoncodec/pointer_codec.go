@@ -83,6 +83,10 @@ func (pc *PointerCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
 	}
+	if vr.Type() == bsontype.Undefined {
+		val.Set(reflect.Zero(val.Type()))
+		return vr.ReadUndefined()
+	}
 
 	if val.IsNil() {
 		val.Set(reflect.New(val.Type().Elem()))

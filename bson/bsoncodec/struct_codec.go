@@ -183,6 +183,13 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 
 		val.Set(reflect.Zero(val.Type()))
 		return nil
+	case bsontype.Undefined:
+		if err := vr.ReadUndefined(); err != nil {
+			return err
+		}
+
+		val.Set(reflect.Zero(val.Type()))
+		return nil
 	default:
 		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
 	}
