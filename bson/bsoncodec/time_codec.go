@@ -80,6 +80,10 @@ func (tc *TimeCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val re
 		if err := vr.ReadNull(); err != nil {
 			return err
 		}
+	case bsontype.Undefined:
+		if err := vr.ReadUndefined(); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("cannot decode %v into a time.Time", vrType)
 	}

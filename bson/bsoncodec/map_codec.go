@@ -129,6 +129,9 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 	case bsontype.Null:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
+	case bsontype.Undefined:
+		val.Set(reflect.Zero(val.Type()))
+		return vr.ReadUndefined()
 	default:
 		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
 	}

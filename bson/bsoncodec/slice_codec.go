@@ -123,6 +123,9 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val r
 	case bsontype.Null:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
+	case bsontype.Undefined:
+		val.Set(reflect.Zero(val.Type()))
+		return vr.ReadUndefined()
 	case bsontype.Type(0), bsontype.EmbeddedDocument:
 		if val.Type().Elem() != tE {
 			return fmt.Errorf("cannot decode document into %s", val.Type())
