@@ -7,6 +7,7 @@
 package bsoncodec
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"reflect"
@@ -39,15 +40,15 @@ func (de *DecodeError) Unwrap() error {
 func (de *DecodeError) Error() string {
 	// The keys are stored in reverse order because the de.keys slice is builtup while propagating the error up the
 	// stack of BSON keys. Reverse the keys and join them with "." as they're reversed.
-	var sb strings.Builder
+	var keyPattern bytes.Buffer
 	for idx := len(de.keys) - 1; idx >= 0; idx-- {
-		sb.WriteString(de.keys[idx])
+		keyPattern.WriteString(de.keys[idx])
 		if idx != 0 {
-			sb.WriteByte('.')
+			keyPattern.WriteByte('.')
 		}
 	}
 
-	return fmt.Sprintf("error decoding key %s: %v", sb.String(), de.wrapped)
+	return fmt.Sprintf("error decoding key %s: %v", keyPattern.String(), de.wrapped)
 }
 
 // Zeroer allows custom struct types to implement a report of zero
