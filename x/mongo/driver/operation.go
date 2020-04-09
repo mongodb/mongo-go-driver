@@ -1061,7 +1061,7 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 		doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 	case readpref.SecondaryPreferredMode:
 		_, ok := rp.MaxStaleness()
-		if serverKind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 {
+		if serverKind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 && rp.Hedge() == nil {
 			return nil, nil
 		}
 		doc = bsoncore.AppendStringElement(doc, "mode", "secondaryPreferred")
@@ -1094,6 +1094,10 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 
 	if d, ok := rp.MaxStaleness(); ok {
 		doc = bsoncore.AppendInt32Element(doc, "maxStalenessSeconds", int32(d.Seconds()))
+	}
+
+	if hedge := rp.Hedge(); hedge != nil {
+		doc = bsoncore.AppendDocumentElement(doc, "hedge", hedge)
 	}
 
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)

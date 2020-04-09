@@ -58,3 +58,12 @@ func WithTagSets(tagSets ...tag.Set) Option {
 		return nil
 	}
 }
+
+// WithHedgeEnabled specifies whether or not hedged reads should be enabled in the server.
+// TODO: we need something to link to here to explain what hedged reads are and what the server defaults are.
+func WithHedgeEnabled(hedgeEnabled bool) Option {
+	return func(rp *ReadPref) error {
+		rp.hedge.enabled = &hedgeEnabled
+		return nil
+	}
+}
