@@ -152,8 +152,8 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val r
 		}
 		return nil
 	case bsontype.String:
-		if val.Type().Elem() != tByte {
-			return fmt.Errorf("SliceDecodeValue can only decode a string into a byte array, got %v", vrType)
+		if sliceType := val.Type().Elem(); sliceType != tByte {
+			return fmt.Errorf("SliceDecodeValue can only decode a string into a byte array, got %v", sliceType)
 		}
 		str, err := vr.ReadString()
 		if err != nil {

@@ -193,7 +193,7 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 		elem := reflect.New(eType).Elem()
 		err = decoder.DecodeValue(dc, vr, elem)
 		if err != nil {
-			return err
+			return newDecodeError(key, err)
 		}
 
 		val.SetMapIndex(k, elem)

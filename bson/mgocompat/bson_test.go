@@ -947,7 +947,12 @@ func TestUnmarshalSetterErrors(t *testing.T) {
 		"\x02def\x00\x02\x00\x00\x002\x00" +
 		"\x02ghi\x00\x02\x00\x00\x003\x00")
 	err := bson.UnmarshalWithRegistry(Registry, []byte(data), m)
-	assert.Equal(t, boom, err, "expected error to be: %v, got: %v", boom, err)
+	assert.NotNil(t, err, "expected UnmarshalWithRegistry error %v, got nil", boom)
+
+	// It's not possible to generate the actual expected error here because it's an *UnmarshalError, which is defined
+	// in bsoncodec and only contains unexported fields.
+	expectedErr := errors.New("error decoding key def: BOOM")
+	assert.Equal(t, expectedErr.Error(), err.Error(), "expected UnmarshalWithRegistry error %v, got %v", expectedErr, err)
 
 	assert.NotNil(t, m["abc"], "expected value not to be nil")
 	assert.Nil(t, m["def"], "expected value to be nil, got: %v", m["def"])
