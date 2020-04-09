@@ -63,7 +63,7 @@ func WithTagSets(tagSets ...tag.Set) Option {
 // TODO: we need something to link to here to explain what hedged reads are and what the server defaults are.
 func WithHedgeEnabled(hedgeEnabled bool) Option {
 	return func(rp *ReadPref) error {
-		rp.hedge.enabled = &hedgeEnabled
+		rp.hedgeEnabled = &hedgeEnabled
 		return nil
 	}
 }
