@@ -75,7 +75,9 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 		bwErr.WriteErrors = append(bwErr.WriteErrors, batchErr.WriteErrors...)
 
-		if !continueOnError && (err != nil || len(batchErr.WriteErrors) > 0 || batchErr.WriteConcernError != nil) {
+		commandErrorOccurred := err != nil && err != driver.ErrUnacknowledgedWrite
+		writeErrorOccurred := len(batchErr.WriteErrors) > 0 || batchErr.WriteConcernError != nil
+		if !continueOnError && (commandErrorOccurred || writeErrorOccurred) {
 			if err != nil {
 				return err
 			}
@@ -92,6 +94,7 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 	bw.result.MatchedCount -= bw.result.UpsertedCount
 	if lastErr != nil {
+		_, lastErr = processWriteError(lastErr)
 		return lastErr
 	}
 	if len(bwErr.WriteErrors) > 0 || bwErr.WriteConcernError != nil {
