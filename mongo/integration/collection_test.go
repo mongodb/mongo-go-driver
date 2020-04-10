@@ -995,7 +995,10 @@ func TestCollection(t *testing.T) {
 		})
 		unackClientOpts := options.Client().
 			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
-		mt.RunOpts("unacknowledged write", mtest.NewOptions().ClientOptions(unackClientOpts), func(mt *mtest.T) {
+		unackMtOpts := mtest.NewOptions().
+			ClientOptions(unackClientOpts).
+			MinServerVersion("3.6")
+		mt.RunOpts("unacknowledged write", unackMtOpts, func(mt *mtest.T) {
 			models := []mongo.WriteModel{
 				mongo.NewInsertOneModel().SetDocument(bson.D{{"x", 1}}),
 			}
