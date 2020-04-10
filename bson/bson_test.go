@@ -124,21 +124,20 @@ func (ss stringerString) String() string {
 	return "bar"
 }
 
-type textBool bool
+type keyBool bool
 
-func (tb textBool) MarshalText() (text []byte, err error) {
-	return []byte(fmt.Sprintf("%v", tb)), nil
+func (kb keyBool) MarshalKey() (string, error) {
+	return fmt.Sprintf("%v", kb), nil
 }
 
-func (tb textBool) UnmarshalText(text []byte) error {
-	str := string(text)
-	switch str {
+func (kb keyBool) UnmarshalKey(key string) error {
+	switch key {
 	case "true":
-		tb = true
+		kb = true
 	case "false":
-		tb = false
+		kb = false
 	default:
-		return fmt.Errorf("invalid bool value %v", str)
+		return fmt.Errorf("invalid bool value %v", key)
 	}
 	return nil
 }
@@ -166,8 +165,8 @@ func TestMapCodec(t *testing.T) {
 			})
 		}
 	})
-	t.Run("keys implements textMarshaler and textUnmarshaler", func(t *testing.T) {
-		mapObj := map[textBool]int{textBool(false): 1}
+	t.Run("keys implements keyMarshaler and keyUnmarshaler", func(t *testing.T) {
+		mapObj := map[keyBool]int{keyBool(false): 1}
 
 		doc, err := Marshal(mapObj)
 		assert.Nil(t, err, "Marshal error: %v", err)
@@ -176,7 +175,7 @@ func TestMapCodec(t *testing.T) {
 		want, _ = bsoncore.AppendDocumentEnd(want, idx)
 		assert.Equal(t, want, doc, "expected result %v, got %v", string(want), string(doc))
 
-		var got map[textBool]int
+		var got map[keyBool]int
 		err = Unmarshal(doc, &got)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, mapObj, got, "expected result %v, got %v", mapObj, got)
