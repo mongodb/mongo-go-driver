@@ -1061,7 +1061,7 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 		doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 	case readpref.SecondaryPreferredMode:
 		_, ok := rp.MaxStaleness()
-		if serverKind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 {
+		if serverKind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 && rp.HedgeEnabled() == nil {
 			return nil, nil
 		}
 		doc = bsoncore.AppendStringElement(doc, "mode", "secondaryPreferred")
@@ -1094,6 +1094,16 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 
 	if d, ok := rp.MaxStaleness(); ok {
 		doc = bsoncore.AppendInt32Element(doc, "maxStalenessSeconds", int32(d.Seconds()))
+	}
+
+	if hedgeEnabled := rp.HedgeEnabled(); hedgeEnabled != nil {
+		var hedgeIdx int32
+		hedgeIdx, doc = bsoncore.AppendDocumentElementStart(doc, "hedge")
+		doc = bsoncore.AppendBooleanElement(doc, "enabled", *hedgeEnabled)
+		doc, err = bsoncore.AppendDocumentEnd(doc, hedgeIdx)
+		if err != nil {
+			return nil, fmt.Errorf("error creating hedge document: %v", err)
+		}
 	}
 
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)

@@ -4,14 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package readpref_test
+package readpref
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	. "go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/tag"
 )
 
@@ -119,4 +119,18 @@ func TestNearest_with_options(t *testing.T) {
 	require.True(set)
 	require.Equal(time.Duration(10), ms)
 	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"}, tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
+}
+
+func TestHedge(t *testing.T) {
+	t.Run("hedge specified with primary mode errors", func(t *testing.T) {
+		_, err := New(PrimaryMode, WithHedgeEnabled(true))
+		assert.Equal(t, errInvalidReadPreference, err, "expected error %v, got %v", errInvalidReadPreference, err)
+	})
+	t.Run("valid hedge document and mode succeeds", func(t *testing.T) {
+		rp, err := New(SecondaryMode, WithHedgeEnabled(true))
+		assert.Nil(t, err, "expected no error, got %v", err)
+		enabled := rp.HedgeEnabled()
+		assert.NotNil(t, enabled, "expected HedgeEnabled to return a non-nil value, got nil")
+		assert.True(t, *enabled, "expected HedgeEnabled to return true, got false")
+	})
 }

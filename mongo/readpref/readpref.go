@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	errInvalidReadPreference = errors.New("can not specify tags or max staleness on primary")
+	errInvalidReadPreference = errors.New("can not specify tags, max staleness, or hedge with mode primary")
 )
 
 var primary = ReadPref{mode: PrimaryMode}
@@ -78,6 +78,7 @@ type ReadPref struct {
 	maxStalenessSet bool
 	mode            Mode
 	tagSets         []tag.Set
+	hedgeEnabled    *bool
 }
 
 // MaxStaleness is the maximum amount of time to allow
@@ -96,4 +97,10 @@ func (r *ReadPref) Mode() Mode {
 // which servers should be considered.
 func (r *ReadPref) TagSets() []tag.Set {
 	return r.tagSets
+}
+
+// HedgeEnabled returns whether or not hedged reads are enabled for this read preference. If this option was not
+// specified during read preference construction, nil is returned.
+func (r *ReadPref) HedgeEnabled() *bool {
+	return r.hedgeEnabled
 }
