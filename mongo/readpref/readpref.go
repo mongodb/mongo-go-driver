@@ -10,7 +10,6 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/tag"
 )
 
@@ -80,7 +79,6 @@ type ReadPref struct {
 	mode            Mode
 	tagSets         []tag.Set
 	hedgeEnabled    *bool
-	hedgeRaw        bson.Raw
 }
 
 // MaxStaleness is the maximum amount of time to allow
