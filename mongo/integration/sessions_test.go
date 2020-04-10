@@ -254,7 +254,11 @@ func TestSessions(t *testing.T) {
 			})
 		}
 	})
-	mt.Run("NewSessionContext", func(mt *mtest.T) {
+	newSessionContextOpts := mtest.NewOptions().RunOn(
+		mtest.RunOnBlock{Topology: []mtest.TopologyKind{mtest.ReplicaSet}, MinServerVersion: "4.0"},
+		mtest.RunOnBlock{Topology: []mtest.TopologyKind{mtest.Sharded}, MinServerVersion: "4.2"},
+	)
+	mt.RunOpts("NewSessionContext", newSessionContextOpts, func(mt *mtest.T) {
 		// Test that the imperative sessions API can be used to run a transaction.
 		sess, err := mt.Client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
