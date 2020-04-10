@@ -254,6 +254,37 @@ func TestSessions(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("NewSessionContext", func(mt *mtest.T) {
+		// Test that the imperative sessions API can be used to run a transaction.
+		sess, err := mt.Client.StartSession()
+		assert.Nil(mt, err, "StartSession error: %v", err)
+		defer sess.EndSession(mtest.Background)
+
+		sessCtx := mongo.NewSessionContext(mtest.Background, sess)
+		err = sess.StartTransaction()
+		assert.Nil(mt, err, "StartTransaction error: %v", err)
+
+		numDocs := 2
+		for i := 0; i < numDocs; i++ {
+			_, err = mt.Coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+			assert.Nil(mt, err, "InsertOne error at index %d: %v", i, err)
+		}
+
+		// Assert that the collection count is 0 before committing and numDocs after. This tests that the InsertOne
+		// calls were actually executed in the transaction because the pre-commit count does not include them.
+		assertCollectionCount(mt, 0)
+		err = sess.CommitTransaction(sessCtx)
+		assert.Nil(mt, err, "CommitTransaction error: %v", err)
+		assertCollectionCount(mt, int64(numDocs))
+	})
+}
+
+func assertCollectionCount(mt *mtest.T, expectedCount int64) {
+	mt.Helper()
+
+	count, err := mt.Coll.CountDocuments(mtest.Background, bson.D{})
+	assert.Nil(mt, err, "CountDocuments error: %v", err)
+	assert.Equal(mt, expectedCount, count, "expected CountDocuments result %v, got %v", expectedCount, count)
 }
 
 type sessionFunction struct {

@@ -30,6 +30,10 @@ var withTransactionTimeout = 120 * time.Second
 // SessionContext combines the context.Context and mongo.Session interfaces. It should be used as the Context arguments
 // to operations that should be executed in a session. This type is not goroutine safe and must not be used concurrently
 // by multiple goroutines.
+//
+// There are two ways to create a SessionContext and use it in a session/transaction. The first is to use one of the
+// callback-based functions such as WithSession and UseSession. These functions create a SessionContext and pass it to
+// the provided callback. The other is to use NewSessionContext to explicitly create a SessionContext.
 type SessionContext interface {
 	context.Context
 	Session
@@ -41,6 +45,14 @@ type sessionContext struct {
 }
 
 type sessionKey struct {
+}
+
+// NewSessionContext creates a new SessionContext associated with the given Context and Session parameters.
+func NewSessionContext(ctx context.Context, sess Session) SessionContext {
+	return &sessionContext{
+		Context: context.WithValue(ctx, sessionKey{}, sess),
+		Session: sess,
+	}
 }
 
 // Session is an interface that represents a MongoDB logical session. Sessions can be used to enable causal consistency
@@ -145,7 +157,7 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 			return nil, err
 		}
 
-		res, err := fn(contextWithSession(ctx, s))
+		res, err := fn(NewSessionContext(ctx, s))
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
 				_ = s.AbortTransaction(ctx)
@@ -321,12 +333,4 @@ func sessionFromContext(ctx context.Context) *session.Client {
 	}
 
 	return nil
-}
-
-// contextWithSession creates a new SessionContext associated with the given Context and Session parameters.
-func contextWithSession(ctx context.Context, sess Session) SessionContext {
-	return &sessionContext{
-		Context: context.WithValue(ctx, sessionKey{}, sess),
-		Session: sess,
-	}
 }
