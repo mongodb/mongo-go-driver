@@ -200,7 +200,7 @@ func TestClientOptions(t *testing.T) {
 				"ReadPreference Primary With Options",
 				"mongodb://localhost/?readPreference=Primary&maxStaleness=200",
 				&ClientOptions{
-					err:   errors.New("can not specify tags or max staleness on primary"),
+					err:   errors.New("can not specify tags, max staleness, or hedge with mode primary"),
 					Hosts: []string{"localhost"},
 				},
 			},
