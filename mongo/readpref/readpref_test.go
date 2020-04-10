@@ -7,14 +7,12 @@
 package readpref
 
 import (
-	"bytes"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestPrimary(t *testing.T) {
@@ -131,12 +129,8 @@ func TestHedge(t *testing.T) {
 	t.Run("valid hedge document and mode succeeds", func(t *testing.T) {
 		rp, err := New(SecondaryMode, WithHedgeEnabled(true))
 		assert.Nil(t, err, "expected no error, got %v", err)
-
-		transformedDoc := bsoncore.Document(bsoncore.BuildDocumentFromElements(
-			nil,
-			bsoncore.AppendBooleanElement(nil, "enabled", true),
-		))
-		assert.True(t, bytes.Equal(transformedDoc, rp.Hedge()), "expected stored hedge document %v, got %v",
-			transformedDoc, rp.Hedge())
+		enabled := rp.HedgeEnabled()
+		assert.NotNil(t, enabled, "expected HedgeEnabled to return a non-nil value, got nil")
+		assert.True(t, *enabled, "expected HedgeEnabled to return true, got false")
 	})
 }

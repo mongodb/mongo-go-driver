@@ -353,6 +353,21 @@ func TestOperation(t *testing.T) {
 				bsoncore.AppendBooleanElement(nil, "enabled", true),
 			)),
 		)
+		rpWithAllOptions := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendStringElement(nil, "mode", "secondaryPreferred"),
+			bsoncore.BuildArrayElement(nil, "tags",
+				bsoncore.Value{Type: bsontype.EmbeddedDocument,
+					Data: bsoncore.BuildDocumentFromElements(nil,
+						bsoncore.AppendStringElement(nil, "disk", "ssd"),
+						bsoncore.AppendStringElement(nil, "use", "reporting"),
+					),
+				},
+			),
+			bsoncore.AppendInt32Element(nil, "maxStalenessSeconds", 25),
+			bsoncore.AppendDocumentElement(nil, "hedge", bsoncore.BuildDocumentFromElements(nil,
+				bsoncore.AppendBooleanElement(nil, "enabled", false),
+			)),
+		)
 
 		rpPrimaryPreferred := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendStringElement(nil, "mode", "primaryPreferred"))
 		rpPrimary := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendStringElement(nil, "mode", "primary"))
@@ -396,6 +411,18 @@ func TestOperation(t *testing.T) {
 				description.Sharded,
 				true,
 				rpWithHedge,
+			},
+			{
+				"secondaryPreferred with all options",
+				readpref.SecondaryPreferred(
+					readpref.WithTags("disk", "ssd", "use", "reporting"),
+					readpref.WithMaxStaleness(25*time.Second),
+					readpref.WithHedgeEnabled(false),
+				),
+				description.RSSecondary,
+				description.ReplicaSet,
+				false,
+				rpWithAllOptions,
 			},
 		}
 

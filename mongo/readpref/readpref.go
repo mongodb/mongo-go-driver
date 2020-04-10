@@ -8,12 +8,10 @@ package readpref // import "go.mongodb.org/mongo-driver/mongo/readpref"
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 var (
@@ -72,11 +70,6 @@ func New(mode Mode, opts ...Option) (*ReadPref, error) {
 		}
 	}
 
-	// Create the hedge document if necessary.
-	if err := rp.setHedgeDocument(); err != nil {
-		return nil, fmt.Errorf("error creating hedge document: %v", err)
-	}
-
 	return rp, nil
 }
 
@@ -108,26 +101,8 @@ func (r *ReadPref) TagSets() []tag.Set {
 	return r.tagSets
 }
 
-// Hedge returns the document used to configure server hedged reads. If no hedge options were specified when creating
-// the read preference, nil is returned.
-func (r *ReadPref) Hedge() bson.Raw {
-	return r.hedgeRaw
-}
-
-func (r *ReadPref) setHedgeDocument() error {
-	if r.hedgeEnabled == nil {
-		return nil
-	}
-
-	idx, doc := bsoncore.AppendDocumentStart(nil)
-	if r.hedgeEnabled != nil {
-		doc = bsoncore.AppendBooleanElement(doc, "enabled", *r.hedgeEnabled)
-	}
-	doc, err := bsoncore.AppendDocumentEnd(doc, idx)
-	if err != nil {
-		return err
-	}
-
-	r.hedgeRaw = doc
-	return nil
+// HedgeEnabled returns whether or not hedged reads are enabled for this read preference. If this option was not
+// specified during read preference construction, nil is returned.
+func (r *ReadPref) HedgeEnabled() *bool {
+	return r.hedgeEnabled
 }
