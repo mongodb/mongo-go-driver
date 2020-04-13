@@ -8,11 +8,17 @@ package bson
 
 import (
 	"bytes"
+	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -109,6 +115,71 @@ func TestD(t *testing.T) {
 		if !cmp.Equal(got, want) {
 			t.Errorf("Unmarshaled documents do not match. got %v; want %v", got, want)
 		}
+	})
+}
+
+type stringerString string
+
+func (ss stringerString) String() string {
+	return "bar"
+}
+
+type keyBool bool
+
+func (kb keyBool) MarshalKey() (string, error) {
+	return fmt.Sprintf("%v", kb), nil
+}
+
+func (kb keyBool) UnmarshalKey(key string) error {
+	switch key {
+	case "true":
+		kb = true
+	case "false":
+		kb = false
+	default:
+		return fmt.Errorf("invalid bool value %v", key)
+	}
+	return nil
+}
+
+func TestMapCodec(t *testing.T) {
+	t.Run("EncodeKeysWithStringer", func(t *testing.T) {
+		strstr := stringerString("foo")
+		mapObj := map[stringerString]int{strstr: 1}
+		testCases := []struct {
+			name string
+			opts *bsonoptions.MapCodecOptions
+			key  string
+		}{
+			{"default", bsonoptions.MapCodec(), "foo"},
+			{"true", bsonoptions.MapCodec().SetEncodeKeysWithStringer(true), "bar"},
+			{"false", bsonoptions.MapCodec().SetEncodeKeysWithStringer(false), "foo"},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				mapCodec := bsoncodec.NewMapCodec(tc.opts)
+				mapRegistry := NewRegistryBuilder().RegisterDefaultEncoder(reflect.Map, mapCodec).Build()
+				val, err := MarshalWithRegistry(mapRegistry, mapObj)
+				assert.Nil(t, err, "Marshal error: %v", err)
+				assert.True(t, strings.Contains(string(val), tc.key), "expected result to contain %v, got: %v", tc.key, string(val))
+			})
+		}
+	})
+	t.Run("keys implements keyMarshaler and keyUnmarshaler", func(t *testing.T) {
+		mapObj := map[keyBool]int{keyBool(false): 1}
+
+		doc, err := Marshal(mapObj)
+		assert.Nil(t, err, "Marshal error: %v", err)
+		idx, want := bsoncore.AppendDocumentStart(nil)
+		want = bsoncore.AppendInt32Element(want, "false", 1)
+		want, _ = bsoncore.AppendDocumentEnd(want, idx)
+		assert.Equal(t, want, doc, "expected result %v, got %v", string(want), string(doc))
+
+		var got map[keyBool]int
+		err = Unmarshal(doc, &got)
+		assert.Nil(t, err, "Unmarshal error: %v", err)
+		assert.Equal(t, mapObj, got, "expected result %v, got %v", mapObj, got)
+
 	})
 }
 
