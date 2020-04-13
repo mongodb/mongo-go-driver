@@ -254,18 +254,27 @@ func TestSessions(t *testing.T) {
 			})
 		}
 	})
+
 	newSessionContextOpts := mtest.NewOptions().RunOn(
 		mtest.RunOnBlock{Topology: []mtest.TopologyKind{mtest.ReplicaSet}, MinServerVersion: "4.0"},
 		mtest.RunOnBlock{Topology: []mtest.TopologyKind{mtest.Sharded}, MinServerVersion: "4.2"},
 	)
-	mt.RunOpts("NewSessionContext", newSessionContextOpts, func(mt *mtest.T) {
+	mt.RunOpts("imperative API", newSessionContextOpts, func(mt *mtest.T) {
 		// Test that the imperative sessions API can be used to run a transaction.
-		sess, err := mt.Client.StartSession()
-		assert.Nil(mt, err, "StartSession error: %v", err)
+
+		createSessionContext := func() mongo.SessionContext {
+			sess, err := mt.Client.StartSession()
+			assert.Nil(mt, err, "StartSession error: %v", err)
+
+			return mongo.NewSessionContext(mtest.Background, sess)
+		}
+
+		sessCtx := createSessionContext()
+		sess := mongo.SessionFromContext(sessCtx)
+		assert.NotNil(mt, sess, "expected SessionFromContext to return non-nil value, got nil")
 		defer sess.EndSession(mtest.Background)
 
-		sessCtx := mongo.NewSessionContext(mtest.Background, sess)
-		err = sess.StartTransaction()
+		err := sess.StartTransaction()
 		assert.Nil(mt, err, "StartTransaction error: %v", err)
 
 		numDocs := 2

@@ -55,6 +55,23 @@ func NewSessionContext(ctx context.Context, sess Session) SessionContext {
 	}
 }
 
+// SessionFromContext extracts the mongo.Session object stored in a Context. This can be used on a SessionContext that
+// was created implicitly through one of the callback-based session APIs or explicitly by calling NewSessionContext. If
+// there is no Session stored in the provided Context, nil is returned.
+func SessionFromContext(ctx context.Context) Session {
+	val := ctx.Value(sessionKey{})
+	if val == nil {
+		return nil
+	}
+
+	sess, ok := val.(Session)
+	if !ok {
+		return nil
+	}
+
+	return sess
+}
+
 // Session is an interface that represents a MongoDB logical session. Sessions can be used to enable causal consistency
 // for a group of operations or to execute operations in an ACID transaction. A new Session can be created from a Client
 // instance. A Session created from a Client must only be used to execute operations using that Client or a Database or
