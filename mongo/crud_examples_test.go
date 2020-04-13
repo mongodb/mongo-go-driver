@@ -614,6 +614,41 @@ func ExampleClient_StartSession_withTransaction() {
 	fmt.Printf("result: %v\n", result)
 }
 
+func ExampleNewSessionContext() {
+	var client *mongo.Client
+
+	// Create a new Session and SessionContext.
+	sess, err := client.StartSession()
+	if err != nil {
+		panic(err)
+	}
+	defer sess.EndSession(context.TODO())
+	sessCtx := mongo.NewSessionContext(context.TODO(), sess)
+
+	// Start a transaction and sessCtx as the Context parameter to InsertOne and FindOne so both operations will be
+	// run in the transaction.
+	if err = sess.StartTransaction(); err != nil {
+		panic(err)
+	}
+
+	coll := client.Database("db").Collection("coll")
+	res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+	if err != nil {
+		panic(err)
+	}
+
+	var result bson.M
+	if err = coll.FindOne(sessCtx, bson.D{{"_id", res.InsertedID}}).Decode(&result); err != nil {
+		panic(err)
+	}
+	fmt.Printf("result: %v\n", result)
+
+	// Commit the transaction so the inserted document will be stored.
+	if err = sess.CommitTransaction(sessCtx); err != nil {
+		panic(err)
+	}
+}
+
 // Cursor examples
 
 func ExampleCursor_All() {
