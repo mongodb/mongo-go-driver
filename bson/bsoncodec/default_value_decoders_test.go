@@ -782,7 +782,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: buildDefaultRegistry()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.ReadElement,
-					errors.New("Unexpected key type"),
+					fmt.Errorf("unsupported key type: %T", false),
 				},
 				{
 					"ReadDocument Error",
