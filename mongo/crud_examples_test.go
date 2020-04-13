@@ -58,6 +58,62 @@ func ExampleClient_Watch() {
 
 // Database examples
 
+func ExampleDatabase_CreateCollection() {
+	var db *mongo.Database
+
+	// Create a "users" collection with a JSON schema validator. The validator will ensure that each document in the
+	// collection has "name" and "age" fields.
+	jsonSchema := bson.M{
+		"bsonType": "object",
+		"required": []string{"name", "age"},
+		"properties": bson.M{
+			"name": bson.M{
+				"bsonType":    "string",
+				"description": "the name of the user, which is required and must be a string",
+			},
+			"age": bson.M{
+				"bsonType":    "int",
+				"minimum":     18,
+				"description": "the age of the user, which is required and must be an integer >= 18",
+			},
+		},
+	}
+	validator := bson.M{
+		"$jsonSchema": jsonSchema,
+	}
+	opts := options.CreateCollection().SetValidator(validator)
+
+	if err := db.CreateCollection(context.TODO(), "users", opts); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func ExampleDatabase_CreateView() {
+	var db *mongo.Database
+
+	// Create a view on the "users" collection called "usernames". Specify a pipeline that concatenates the "firstName"
+	// and "lastName" fields from each document in "users" and projects the result into the "fullName" field in the
+	// view.
+	projectStage := bson.D{
+		{"$project", bson.D{
+			{"_id", 0},
+			{"fullName", bson.D{
+				{"$concat", []string{"$firstName", " ", "$lastName"}},
+			}},
+		}},
+	}
+	pipeline := mongo.Pipeline{projectStage}
+
+	// Specify the Collation option to set a default collation for the view.
+	opts := options.CreateView().SetCollation(&options.Collation{
+		Locale: "en_US",
+	})
+
+	if err := db.CreateView(context.TODO(), "usernames", "users", pipeline, opts); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func ExampleDatabase_ListCollectionNames() {
 	var db *mongo.Database
 

@@ -9,17 +9,26 @@ package integration
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
 	listCollCapped   = "listcoll_capped"
 	listCollUncapped = "listcoll_uncapped"
+)
+
+var (
+	interfaceAsMapRegistry = bson.NewRegistryBuilder().
+		RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(bson.M{})).
+		Build()
 )
 
 func TestDatabase(t *testing.T) {
@@ -196,6 +205,180 @@ func TestDatabase(t *testing.T) {
 			})
 		}
 	})
+
+	mt.RunOpts("create collection", noClientOpts, func(mt *mtest.T) {
+		collectionName := "create-collection-test"
+
+		mt.RunOpts("options", noClientOpts, func(mt *mtest.T) {
+			// Tests for various options combinations. The test creates a collection with some options and then verifies
+			// the result using the options document reported by listCollections.
+
+			// All possible options except collation. The collation is omitted here and tested below because the
+			// collation document reported by listCollections fills in extra fields and includes a "version" field
+			// that's not described in https://docs.mongodb.com/manual/reference/collation/.
+			storageEngine := bson.M{
+				"wiredTiger": bson.M{
+					"configString": "block_compressor=zlib",
+				},
+			}
+			defaultIndexOpts := options.DefaultIndex().SetStorageEngine(storageEngine)
+			validator := bson.M{
+				"$or": bson.A{
+					bson.M{
+						"phone": bson.M{"$type": "string"},
+					},
+					bson.M{
+						"email": bson.M{"$type": "string"},
+					},
+				},
+			}
+			nonCollationOpts := options.CreateCollection().
+				SetCapped(true).
+				SetDefaultIndexOptions(defaultIndexOpts).
+				SetMaxDocuments(100).
+				SetSizeInBytes(1024).
+				SetStorageEngine(storageEngine).
+				SetValidator(validator).
+				SetValidationAction("warn").
+				SetValidationLevel("moderate")
+			nonCollationExpected := bson.M{
+				"capped": true,
+				"indexOptionDefaults": bson.M{
+					"storageEngine": storageEngine,
+				},
+				"max":              int32(100),
+				"size":             int32(1024),
+				"storageEngine":    storageEngine,
+				"validator":        validator,
+				"validationAction": "warn",
+				"validationLevel":  "moderate",
+			}
+
+			testCases := []struct {
+				name             string
+				minServerVersion string
+				maxServerVersion string
+				createOpts       *options.CreateCollectionOptions
+				expectedOpts     bson.M
+			}{
+				{"all options except collation", "3.2", "", nonCollationOpts, nonCollationExpected},
+			}
+
+			for _, tc := range testCases {
+				mtOpts := mtest.NewOptions().
+					MinServerVersion(tc.minServerVersion).
+					MaxServerVersion(tc.maxServerVersion)
+
+				mt.RunOpts(tc.name, mtOpts, func(mt *mtest.T) {
+					mt.CreateCollection(mtest.Collection{
+						Name: collectionName,
+					}, false)
+
+					err := mt.DB.CreateCollection(mtest.Background, collectionName, tc.createOpts)
+					assert.Nil(mt, err, "CreateCollection error: %v", err)
+
+					actualOpts := getCollectionOptions(mt, collectionName)
+					assert.Equal(mt, tc.expectedOpts, actualOpts, "options mismatch; expected %v, got %v",
+						tc.expectedOpts, actualOpts)
+				})
+			}
+		})
+		mt.RunOpts("collation", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
+			mt.CreateCollection(mtest.Collection{
+				Name: collectionName,
+			}, false)
+
+			locale := "en_US"
+			createOpts := options.CreateCollection().SetCollation(&options.Collation{
+				Locale: locale,
+			})
+			err := mt.DB.CreateCollection(mtest.Background, collectionName, createOpts)
+			assert.Nil(mt, err, "CreateCollection error: %v", err)
+
+			actualOpts := getCollectionOptions(mt, collectionName)
+			collationVal, ok := actualOpts["collation"]
+			assert.True(mt, ok, "expected key 'collation' in collection options %v", actualOpts)
+			collation := collationVal.(bson.M)
+			assert.Equal(mt, locale, collation["locale"], "expected locale %v, got %v", locale, collation["locale"])
+		})
+		mt.Run("write concern", func(mt *mtest.T) {
+			mt.CreateCollection(mtest.Collection{
+				Name: collectionName,
+			}, false)
+
+			err := mt.DB.CreateCollection(mtest.Background, collectionName)
+			assert.Nil(mt, err, "CreateCollection error: %v", err)
+
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, evt.CommandName, "create", "expected event for 'create', got '%v'", evt.CommandName)
+			_, err = evt.Command.LookupErr("writeConcern")
+			assert.Nil(mt, err, "expected write concern to be included in command %v", evt.Command)
+		})
+	})
+
+	mt.RunOpts("create view", mtest.NewOptions().CreateClient(false).MinServerVersion("3.4"), func(mt *mtest.T) {
+		sourceCollectionName := "create-view-test-collection"
+		viewName := "create-view-test-view"
+		projectStage := bson.M{
+			"$project": bson.M{
+				"projectedField": "foo",
+			},
+		}
+		pipeline := []bson.M{projectStage}
+
+		mt.Run("function parameters are translated into options", func(mt *mtest.T) {
+			mt.CreateCollection(mtest.Collection{
+				Name: viewName,
+			}, false)
+
+			err := mt.DB.CreateView(mtest.Background, viewName, sourceCollectionName, pipeline)
+			assert.Nil(mt, err, "CreateView error: %v", err)
+
+			expectedOpts := bson.M{
+				"viewOn":   sourceCollectionName,
+				"pipeline": bson.A{projectStage},
+			}
+			actualOpts := getCollectionOptions(mt, viewName)
+			assert.Equal(mt, expectedOpts, actualOpts, "options mismatch; expected %v, got %v", expectedOpts,
+				actualOpts)
+		})
+		mt.Run("collation", func(mt *mtest.T) {
+			mt.CreateCollection(mtest.Collection{
+				Name: viewName,
+			}, false)
+
+			locale := "en_US"
+			viewOpts := options.CreateView().SetCollation(&options.Collation{
+				Locale: locale,
+			})
+			err := mt.DB.CreateView(mtest.Background, viewName, sourceCollectionName, mongo.Pipeline{}, viewOpts)
+			assert.Nil(mt, err, "CreateView error: %v", err)
+
+			actualOpts := getCollectionOptions(mt, viewName)
+			collationVal, ok := actualOpts["collation"]
+			assert.True(mt, ok, "expected key 'collation' in view options %v", actualOpts)
+			collation := collationVal.(bson.M)
+			assert.Equal(mt, locale, collation["locale"], "expected locale %v, got %v", locale, collation["locale"])
+		})
+	})
+}
+
+func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
+	mt.Helper()
+
+	filter := bson.M{
+		"name": collectionName,
+	}
+	cursor, err := mt.DB.ListCollections(mtest.Background, filter)
+	assert.Nil(mt, err, "ListCollections error: %v", err)
+	defer cursor.Close(mtest.Background)
+	assert.True(mt, cursor.Next(mtest.Background), "expected Next to return true, got false")
+
+	var actualOpts bson.M
+	err = bson.UnmarshalWithRegistry(interfaceAsMapRegistry, cursor.Current.Lookup("options").Document(), &actualOpts)
+	assert.Nil(mt, err, "UnmarshalWithRegistry error: %v", err)
+
+	return actualOpts
 }
 
 func verifyListCollections(cursor *mongo.Cursor, cappedOnly bool) error {
