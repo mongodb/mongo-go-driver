@@ -242,12 +242,15 @@ func ExampleConnect_aWS() {
 	// 2. Environment variables
 	// 3. ECS endpoint if and only if AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is set
 	// 4. EC2 endpoint
+	//
+	// The following examples set the appropriate credentials via the ClientOptions.SetAuth method. All of these
+	// credentials can be specified via the ClientOptions.ApplyURI method as well. If using ApplyURI, both the
+	// username and password must be URL encoded (see net.URL.QueryEscape()).
 
 	// AWS IAM Credentials
 
 	// Applications can authenticate using AWS IAM credentials by providing a valid access key ID and secret access key
-	// pair as the username and password, respectively, either via the SetAuth or ApplyURI Client options. If using
-	// the ApplyURI option, both the username and password must be URL encoded (see net.URL.QueryEscape()).
+	// pair as the username and password, respectively.
 	var accessKeyID, secretAccessKey string
 	awsCredential := options.Credential{
 		AuthMechanism: "MONGODB-AWS",
