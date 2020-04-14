@@ -119,6 +119,13 @@ func setUpFSM(t *testing.T, uri string) *fsm {
 		fsm.Kind = description.Single
 	}
 
+	// GODRIVER-1578: The new test requires support for directConnection, which will be added in follow-up ticket
+	// GODRIVER-1486. In this case, look for "directconnection" in the parsed URI's set of unrecognized options and
+	// emulate direct connection behavior.
+	if dcValues, ok := cs.UnknownOptions["directconnection"]; ok && dcValues[0] == "true" {
+		fsm.Kind = description.Single
+	}
+
 	for _, host := range cs.Hosts {
 		fsm.Servers = append(fsm.Servers, description.Server{Addr: address.Address(host).Canonicalize()})
 	}
@@ -133,7 +140,7 @@ func applyResponses(f *fsm, responses []response) error {
 			return err
 		}
 		server := description.NewServer(address.Address(response.Host), bsoncore.Document(doc))
-		_, err = f.apply(server)
+		_, _, err = f.apply(server)
 
 		if err != nil {
 			return err
