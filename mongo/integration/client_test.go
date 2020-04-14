@@ -373,12 +373,6 @@ func TestClient(t *testing.T) {
 			appName := appNameVal.StringValue()
 			assert.Equal(mt, testAppName, appName, "expected app name %v at index %d, got %v", testAppName, idx, appName)
 		}
-
-		for _, wm := range sent {
-			cmd, err := drivertest.GetCommandFromQueryWireMessage(wm)
-			assert.Nil(mt, err, "err getting command: %v", err)
-			fmt.Println(cmd.Index(0).Key())
-		}
 	})
 }
 
