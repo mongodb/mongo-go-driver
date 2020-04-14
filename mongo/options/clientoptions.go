@@ -380,7 +380,7 @@ func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
 // If this option is specified, the driver will perform a negotiation with the server to determine a common list of of
 // compressors and will use the first one in that list when performing operations. See
 // https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors for more
-// information about configuring compression on the server the the server-side defaults.
+// information about configuring compression on the server and the server-side defaults.
 //
 // This can also be set through the "compressors" URI option (e.g. "compressors=zstd,zlib,snappy"). The default is
 // an empty slice, meaning no compression will be enabled.
