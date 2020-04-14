@@ -80,7 +80,6 @@ type T struct {
 
 	// members for only this T instance
 	createClient     *bool
-	createCollection *bool
 	runOn            []RunOnBlock
 	mockDeployment   *mockDeployment // nil if the test is not being run against a mock
 	mockResponses    []bson.D
@@ -206,7 +205,7 @@ func (t *T) RunOpts(name string, opts *Options, callback func(*T)) {
 			}
 		}
 		// create a collection for this test
-		if sub.Client != nil && (sub.createCollection == nil || *sub.createCollection) {
+		if sub.Client != nil {
 			sub.createTestCollection()
 		}
 

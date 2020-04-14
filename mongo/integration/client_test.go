@@ -351,7 +351,7 @@ func TestClient(t *testing.T) {
 		SetAppName(testAppName)
 	appNameMtOpts := mtest.NewOptions().
 		ClientOptions(appNameDialerOpts).
-		CreateCollection(false)
+		Topologies(mtest.Single)
 	mt.RunOpts("app name is always sent", appNameMtOpts, func(mt *mtest.T) {
 		err := mt.Client.Ping(mtest.Background, mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
