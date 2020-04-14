@@ -349,7 +349,10 @@ func TestClient(t *testing.T) {
 		SetHosts(hosts[:1]).
 		SetDirect(true).
 		SetAppName(testAppName)
-	mt.RunOpts("app name is always sent", mtest.NewOptions().ClientOptions(appNameDialerOpts), func(mt *mtest.T) {
+	appNameMtOpts := mtest.NewOptions().
+		ClientOptions(appNameDialerOpts).
+		CreateCollection(false)
+	mt.RunOpts("app name is always sent", appNameMtOpts, func(mt *mtest.T) {
 		err := mt.Client.Ping(mtest.Background, mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
@@ -369,6 +372,12 @@ func TestClient(t *testing.T) {
 			assert.Nil(mt, err, "expected command %s at index %d to contain app name", cmd, idx)
 			appName := appNameVal.StringValue()
 			assert.Equal(mt, testAppName, appName, "expected app name %v at index %d, got %v", testAppName, idx, appName)
+		}
+
+		for _, wm := range sent {
+			cmd, err := drivertest.GetCommandFromQueryWireMessage(wm)
+			assert.Nil(mt, err, "err getting command: %v", err)
+			fmt.Println(cmd.Index(0).Key())
 		}
 	})
 }
