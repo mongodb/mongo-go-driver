@@ -219,3 +219,98 @@ func ExampleConnect_kerberos() {
 	}
 	_ = client
 }
+
+func ExampleConnect_aWS() {
+	// Configure a Client with authentication using the MONGODB-AWS authentication mechanism. Credentials for this
+	// mechanism can come from one of four sources:
+	//
+	// 1. AWS IAM credentials (an access key ID and a secret access key)
+	//
+	// 2. Temporary AWS IAM (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html) credentials
+	// obtained from an AWS Security Token Service (STS) Assume Role request
+	// (https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html)
+	//
+	// 3. AWS Lambda environment variables
+	// (https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime)
+	//
+	// 4. Temporary AWS IAM credentials assigned to an EC2 instance
+	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html) or ECS task
+
+	// The order in which the driver searches for credentials is:
+	//
+	// 1. Credentials passed through the URI
+	// 2. Environment variables
+	// 3. ECS endpoint if and only if AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is set
+	// 4. EC2 endpoint
+	//
+	// The following examples set the appropriate credentials via the ClientOptions.SetAuth method. All of these
+	// credentials can be specified via the ClientOptions.ApplyURI method as well. If using ApplyURI, both the
+	// username and password must be URL encoded (see net.URL.QueryEscape()).
+
+	// AWS IAM Credentials
+
+	// Applications can authenticate using AWS IAM credentials by providing a valid access key ID and secret access key
+	// pair as the username and password, respectively.
+	var accessKeyID, secretAccessKey string
+	awsCredential := options.Credential{
+		AuthMechanism: "MONGODB-AWS",
+		Username:      accessKeyID,
+		Password:      secretAccessKey,
+	}
+	awsIAMClient, err := mongo.Connect(context.TODO(), options.Client().SetAuth(awsCredential))
+	if err != nil {
+		panic(err)
+	}
+	_ = awsIAMClient
+
+	// AssumeRole
+
+	// Applications can authenticate using temporary credentials returned from an assume role request. These temporary
+	// credentials consist of an access key ID, a secret access key, and a security token.
+	var sessionToken string
+	assumeRoleCredential := options.Credential{
+		AuthMechanism: "MONGODB-AWS",
+		Username:      accessKeyID,
+		Password:      secretAccessKey,
+		AuthMechanismProperties: map[string]string{
+			"AWS_SESSION_TOKEN": sessionToken,
+		},
+	}
+	assumeRoleClient, err := mongo.Connect(context.TODO(), options.Client().SetAuth(assumeRoleCredential))
+	if err != nil {
+		panic(err)
+	}
+	_ = assumeRoleClient
+
+	// AWS Lambda (Environment Variables)
+
+	// When the username and password are not provided and the MONGODB-AWS mechanism is set, the client will fallback to
+	// using the environment variables AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_SESSION_TOKEN for the access
+	// key ID, secret access key, and session token, respectively. These environment variables must not be URL encoded.
+
+	// $ export AWS_ACCESS_KEY_ID=<accessKeyID>
+	// $ export AWS_SECRET_ACCESS_KEY=<secretAccessKey>
+	// $ export AWS_SESSION_TOKEN=<sessionToken>
+	envVariablesCredential := options.Credential{
+		AuthMechanism: "MONGODB-AWS",
+	}
+	envVariablesClient, err := mongo.Connect(context.TODO(), options.Client().SetAuth(envVariablesCredential))
+	if err != nil {
+		panic(err)
+	}
+	_ = envVariablesClient
+
+	// ECS Container or EC2 Instance
+
+	// Applications can authenticate from an ECS container or EC2 instance via temporary credentials assigned to the
+	// machine. If using an ECS container, the "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI" environment variable must be
+	// set to a non-empty value. The driver will query the ECS or EC2 endpoint to obtain the relevant credentials.
+	ecCredential := options.Credential{
+		AuthMechanism: "MONGODB-AWS",
+	}
+	ecClient, err := mongo.Connect(context.TODO(), options.Client().SetAuth(ecCredential))
+	if err != nil {
+		panic(err)
+	}
+	_ = ecClient
+}
