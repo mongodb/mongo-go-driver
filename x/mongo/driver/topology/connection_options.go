@@ -59,7 +59,6 @@ func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 	cfg := &connectionConfig{
 		connectTimeout: 30 * time.Second,
 		dialer:         nil,
-		idleTimeout:    10 * time.Minute,
 		lifeTimeout:    30 * time.Minute,
 	}
 
