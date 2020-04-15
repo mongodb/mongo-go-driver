@@ -325,11 +325,13 @@ func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
 		return enc, nil
 	}
 
-	enc, found = r.lookupInterfaceEncoder(t)
-	if found {
+	enc, found = r.lookupInterfaceEncoder(t, true)
+	if _, ok := enc.(*CondAddrEncoder); found && !ok {
 		r.mu.Lock()
 		r.typeEncoders[t] = enc
 		r.mu.Unlock()
+	}
+	if found {
 		return enc, nil
 	}
 
@@ -359,13 +361,20 @@ func (r *Registry) lookupTypeEncoder(t reflect.Type) (ValueEncoder, bool) {
 	return enc, found
 }
 
-func (r *Registry) lookupInterfaceEncoder(t reflect.Type) (ValueEncoder, bool) {
+func (r *Registry) lookupInterfaceEncoder(t reflect.Type, allowAddr bool) (ValueEncoder, bool) {
 	if t == nil {
 		return nil, false
 	}
 	for _, ienc := range r.interfaceEncoders {
-		if t.Implements(ienc.i) || reflect.PtrTo(t).Implements(ienc.i) {
+		if t.Implements(ienc.i) {
 			return ienc.ve, true
+		}
+		if allowAddr && t.Kind() != reflect.Ptr && reflect.PtrTo(t).Implements(ienc.i) {
+			defaultEnc, found := r.lookupInterfaceEncoder(t, false)
+			if !found {
+				defaultEnc, _ = r.kindEncoders[t.Kind()]
+			}
+			return NewCondAddrEncoder(ienc.ve, defaultEnc), true
 		}
 	}
 	return nil, false
@@ -397,11 +406,13 @@ func (r *Registry) LookupDecoder(t reflect.Type) (ValueDecoder, error) {
 		return dec, nil
 	}
 
-	dec, found = r.lookupInterfaceDecoder(t)
-	if found {
+	dec, found = r.lookupInterfaceDecoder(t, true)
+	if _, ok := dec.(*CondAddrDecoder); found && !ok {
 		r.mu.Lock()
 		r.typeDecoders[t] = dec
 		r.mu.Unlock()
+	}
+	if found {
 		return dec, nil
 	}
 
@@ -424,13 +435,18 @@ func (r *Registry) lookupTypeDecoder(t reflect.Type) (ValueDecoder, bool) {
 	return dec, found
 }
 
-func (r *Registry) lookupInterfaceDecoder(t reflect.Type) (ValueDecoder, bool) {
+func (r *Registry) lookupInterfaceDecoder(t reflect.Type, allowAddr bool) (ValueDecoder, bool) {
 	for _, idec := range r.interfaceDecoders {
-		if !t.Implements(idec.i) && !reflect.PtrTo(t).Implements(idec.i) {
-			continue
+		if t.Implements(idec.i) {
+			return idec.vd, true
 		}
-
-		return idec.vd, true
+		if allowAddr && t.Kind() != reflect.Ptr && reflect.PtrTo(t).Implements(idec.i) {
+			defaultDec, found := r.lookupInterfaceDecoder(t, false)
+			if !found {
+				defaultDec, _ = r.kindDecoders[t.Kind()]
+			}
+			return NewCondAddrDecoder(idec.vd, defaultDec), true
+		}
 	}
 	return nil, false
 }
