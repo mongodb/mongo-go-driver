@@ -305,9 +305,11 @@ func (c *connection) close() error {
 
 func (c *connection) expired() bool {
 	now := time.Now()
-	idleDeadline, ok := c.idleDeadline.Load().(time.Time)
-	if ok && now.After(idleDeadline) {
-		return true
+	if c.idleTimeout > 0 {
+		idleDeadline, ok := c.idleDeadline.Load().(time.Time)
+		if ok && now.After(idleDeadline) {
+			return true
+		}
 	}
 
 	if !c.lifetimeDeadline.IsZero() && now.After(c.lifetimeDeadline) {

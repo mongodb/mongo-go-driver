@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
@@ -44,6 +45,13 @@ func TestConnection(t *testing.T) {
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
+			})
+			t.Run("no default idle timeout", func(t *testing.T) {
+				conn, err := newConnection(context.Background(), address.Address(""))
+				assert.Nil(t, err, "newConnection error: %v", err)
+				wantTimeout := time.Duration(0)
+				assert.Equal(t, wantTimeout, conn.idleTimeout, "expected idle timeout %v, got %v", wantTimeout,
+					conn.idleTimeout)
 			})
 		})
 		t.Run("connect", func(t *testing.T) {
