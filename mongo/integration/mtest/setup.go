@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -57,9 +58,25 @@ func Setup() error {
 	if err != nil {
 		return fmt.Errorf("error getting connection string: %v", err)
 	}
-	testContext.topo, err = topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
-		return testContext.connString
-	}))
+
+	connectionOpts := []topology.ConnectionOption{
+		topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
+			return ocsp.NewCache()
+		}),
+	}
+	serverOpts := []topology.ServerOption{
+		topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+			return append(opts, connectionOpts...)
+		}),
+	}
+	testContext.topo, err = topology.New(
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
+			return testContext.connString
+		}),
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(opts, serverOpts...)
+		}),
+	)
 	if err != nil {
 		return fmt.Errorf("error creating topology: %v", err)
 	}
@@ -90,6 +107,8 @@ func Setup() error {
 		testContext.topoKind = ReplicaSet
 	case description.Sharded:
 		testContext.topoKind = Sharded
+	default:
+		return fmt.Errorf("could not detect topology kind; current topology: %s", testContext.topo.String())
 	}
 
 	if testContext.topoKind == ReplicaSet && compareVersions(testContext.serverVersion, "4.0") >= 0 {
