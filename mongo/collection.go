@@ -299,8 +299,11 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		return result, err
 	}
 
+	// remove the ids that had writeErrors from result
 	for i, we := range wce.WriteErrors {
+		// i indexes have been removed before the current error, so the index is we.Index-i
 		idIndex := int(we.Index) - i
+		// if the insert is ordered, nothing after the error was inserted
 		if imo.Ordered == nil || *imo.Ordered {
 			result = result[:idIndex]
 			break

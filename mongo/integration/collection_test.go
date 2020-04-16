@@ -201,6 +201,35 @@ func TestCollection(t *testing.T) {
 				})
 			}
 		})
+		mt.Run("writeError index", func(mt *mtest.T) {
+			// TODO(GODRIVER-425): remove this as part a larger project to
+			// refactor integration and other longrunning tasks.
+			if os.Getenv("EVR_TASK_ID") == "" {
+				mt.Skip("skipping long running integration test outside of evergreen")
+			}
+
+			// force multiple batches
+			numDocs := 700000
+			var docs []interface{}
+			for i := 0; i < numDocs; i++ {
+				d := bson.D{
+					{"a", int32(i)},
+					{"b", int32(i * 2)},
+					{"c", int32(i * 3)},
+				}
+				docs = append(docs, d)
+			}
+			repeated := bson.D{{"_id", int32(11)}}
+			docs = append(docs, repeated, repeated)
+			_, err := mt.Coll.InsertMany(context.Background(), docs)
+			assert.NotNil(mt, err, "expected InsertMany error, got nil")
+			we, ok := err.(mongo.BulkWriteException)
+			assert.True(mt, ok, "expected error type %T, got %T", mongo.BulkWriteException{}, err)
+			numErrors := len(we.WriteErrors)
+			assert.Equal(mt, 1, numErrors, "expected 1 write error, got %v", numErrors)
+			gotIndex := we.WriteErrors[0].Index
+			assert.Equal(mt, numDocs+1, gotIndex, "expected index :%v, got %v", numDocs+1, gotIndex)
+		})
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet)
 		mt.RunOpts("write concern error", wcTestOpts, func(mt *mtest.T) {
