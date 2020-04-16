@@ -221,14 +221,16 @@ func TestCollection(t *testing.T) {
 			}
 			repeated := bson.D{{"_id", int32(11)}}
 			docs = append(docs, repeated, repeated)
+
 			_, err := mt.Coll.InsertMany(context.Background(), docs)
 			assert.NotNil(mt, err, "expected InsertMany error, got nil")
+
 			we, ok := err.(mongo.BulkWriteException)
 			assert.True(mt, ok, "expected error type %T, got %T", mongo.BulkWriteException{}, err)
 			numErrors := len(we.WriteErrors)
 			assert.Equal(mt, 1, numErrors, "expected 1 write error, got %v", numErrors)
 			gotIndex := we.WriteErrors[0].Index
-			assert.Equal(mt, numDocs+1, gotIndex, "expected index :%v, got %v", numDocs+1, gotIndex)
+			assert.Equal(mt, numDocs+1, gotIndex, "expected index %v, got %v", numDocs+1, gotIndex)
 		})
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet)
