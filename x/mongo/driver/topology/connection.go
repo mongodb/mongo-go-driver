@@ -97,13 +97,16 @@ func (c *connection) connect(ctx context.Context) {
 	ctx, c.cancelConnectContext = context.WithCancel(ctx)
 	close(c.connectContextMade)
 
+	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
 	var err error
-	c.nc, err = c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
+	var tempNc net.Conn
+	tempNc, err = c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
 		atomic.StoreInt32(&c.connected, disconnected)
 		c.connectErr = ConnectionError{Wrapped: err, init: true}
 		return
 	}
+	c.nc = tempNc
 
 	if c.config.tlsConfig != nil {
 		tlsConfig := c.config.tlsConfig.Clone()
