@@ -821,13 +821,11 @@ func verifyTestOutcome(mt *mtest.T, outcomeColl *outcomeCollection) {
 	if outcomeColl.Name != "" {
 		collName = outcomeColl.Name
 	}
-	coll := mt.GlobalClient().Database(mt.DB.Name()).Collection(collName)
+	coll := mt.GlobalClient().Database(mt.DB.Name()).Collection(collName, checkOutcomeOpts)
 
-	var err error
-	coll, err = coll.Clone(checkOutcomeOpts)
-	assert.Nil(mt, err, "Clone error: %v", err)
-
-	cursor, err := coll.Find(mtest.Background, bson.D{})
+	findOpts := options.Find().
+		SetSort(bson.M{"_id": 1})
+	cursor, err := coll.Find(mtest.Background, bson.D{}, findOpts)
 	assert.Nil(mt, err, "Find error: %v", err)
 	verifyCursorResult(mt, cursor, outcomeColl.Data)
 }
