@@ -130,7 +130,7 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 		}
 	}
 	if !kvnsFound {
-		aeo.SetKeyVaultNamespace("admin.datakeys")
+		aeo.SetKeyVaultNamespace("keyvault.datakeys")
 	}
 
 	return aeo

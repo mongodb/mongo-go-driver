@@ -38,11 +38,11 @@ const (
 	clientEncryptionProseDir      = "../../data/client-side-encryption-prose"
 	deterministicAlgorithm        = "AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic"
 	randomAlgorithm               = "AEAD_AES_256_CBC_HMAC_SHA_512-Random"
-	kvNamespace                   = "admin.datakeys" // default namespace for the key vault collection
-	keySubtype               byte = 4                // expected subtype for data keys
-	encryptedValueSubtype    byte = 6                // expected subtypes for encrypted values
-	cryptMaxBatchSizeBytes        = 2097152          // max bytes in write batch when auto encryption is enabled
-	maxBsonObjSize                = 16777216         // max bytes in BSON object
+	kvNamespace                   = "keyvault.datakeys" // default namespace for the key vault collection
+	keySubtype               byte = 4                   // expected subtype for data keys
+	encryptedValueSubtype    byte = 6                   // expected subtypes for encrypted values
+	cryptMaxBatchSizeBytes        = 2097152             // max bytes in write batch when auto encryption is enabled
+	maxBsonObjSize                = 16777216            // max bytes in BSON object
 )
 
 func TestClientSideEncryptionProse(t *testing.T) {
@@ -732,7 +732,7 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 	}, false)
 	cpt.keyVaultColl = mt.CreateCollection(mtest.Collection{
 		Name: "datakeys",
-		DB:   "admin",
+		DB:   "keyvault",
 	}, false)
 
 	if aeo != nil {
