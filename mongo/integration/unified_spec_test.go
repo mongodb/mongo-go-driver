@@ -774,7 +774,7 @@ func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 	if len(testFile.KeyVaultData) > 0 {
 		keyVaultColl := mt.CreateCollection(mtest.Collection{
 			Name:   "datakeys",
-			DB:     "admin",
+			DB:     "keyvault",
 			Client: setupClient,
 		}, false)
 
