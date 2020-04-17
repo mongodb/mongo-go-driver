@@ -38,6 +38,7 @@ func WrapCase(bench BenchCase) BenchFunction {
 	return func(b *testing.B) {
 		ctx := context.Background()
 		b.ResetTimer()
+		b.ReportAllocs()
 		err := bench(ctx, b, b.N)
 		require.NoError(b, err, "case='%s'", name)
 	}
