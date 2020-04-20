@@ -838,6 +838,20 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
 
+  - name: test-standalone-auth-nossl
+    tags: ["test", "standalone", "authssl"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+
   - name: test-standalone-auth-ssl-snappy-compression
     tags: ["test", "standalone", "authssl", "compression", "snappy"]
     commands:
