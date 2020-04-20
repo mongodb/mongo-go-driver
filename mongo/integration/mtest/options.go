@@ -33,9 +33,11 @@ const (
 	Pinned
 	// Mock specifies a client that communicates with a mock deployment.
 	Mock
-	// Proxy specifies a client that proxies messages to the server and also stores parsed copies.
+	// Proxy specifies a client that proxies messages to the server and also stores parsed copies. The proxied
+	// messages can be retrieved via T.GetProxiedMessages or T.GetRawProxiedMessages.
 	Proxy
-	// RawProxy specifies a client that proxies messages to the server and stores raw copies.
+	// RawProxy specifies a client that proxies messages to the server and stores raw copies. The proxied messages can
+	// be retrieved via T.GetRawProxiedMessages.
 	RawProxy
 )
 

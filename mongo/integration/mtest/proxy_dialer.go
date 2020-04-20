@@ -73,7 +73,7 @@ func newProxyErrorWithWireMsg(wm []byte, err error) error {
 func (p *proxyDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	netConn, err := p.Dialer.DialContext(ctx, network, address)
 	if err != nil {
-		return netConn, newProxyError(err)
+		return netConn, err
 	}
 
 	proxy := &proxyConn{
@@ -87,7 +87,10 @@ func (p *proxyDialer) storeSentMessage(wm []byte) error {
 	p.Lock()
 	defer p.Unlock()
 
-	parsed, err := parseSentMessage(wm, p.rawMessagesOnly)
+	// Create a copy of the wire message so it can be parsed/stored and will not be affected if the wm slice is
+	// changed by the driver.
+	wmCopy := copyBytes(wm)
+	parsed, err := parseSentMessage(wmCopy, p.rawMessagesOnly)
 	if err != nil {
 		return err
 	}
@@ -95,12 +98,14 @@ func (p *proxyDialer) storeSentMessage(wm []byte) error {
 	return nil
 }
 
-func (p *proxyDialer) storeReceivedMessage(msg []byte) error {
+func (p *proxyDialer) storeReceivedMessage(wm []byte) error {
 	p.Lock()
 	defer p.Unlock()
 
-	// Parse the incoming message and get the corresponding outgoing message.
-	parsed, err := parseReceivedMessage(msg, p.rawMessagesOnly)
+	// Create a copy of the wire message so it can be parsed/stored and will not be affected if the wm slice is
+	// changed by the driver. Parse the incoming message and get the corresponding outgoing message.
+	wmCopy := copyBytes(wm)
+	parsed, err := parseReceivedMessage(wmCopy, p.rawMessagesOnly)
 	if err != nil {
 		return err
 	}

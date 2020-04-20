@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
-// ReceivedMessage is thing
+// ReceivedMessage represents a message received from the server.
 type ReceivedMessage struct {
 	ResponseTo int32
 	RawMessage wiremessage.WireMessage
@@ -36,11 +36,7 @@ func getReceivedMessageParser(opcode wiremessage.OpCode) (receivedMsgParseFn, bo
 	}
 }
 
-func parseReceivedMessage(original []byte, parseRawOnly bool) (*ReceivedMessage, error) {
-	// Create a copy of the entire wire message and pass that around to helpers so no copies will be needed later in
-	// the code.
-	wm := copyBytes(original)
-
+func parseReceivedMessage(wm []byte, parseRawOnly bool) (*ReceivedMessage, error) {
 	// Re-assign the wire message to "remaining" so "wm" continues to point to the entire message after parsing.
 	_, _, responseTo, opcode, remaining, ok := wiremessage.ReadHeader(wm)
 	if !ok {

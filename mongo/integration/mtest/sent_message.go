@@ -47,11 +47,7 @@ func getSentMessageParser(opcode wiremessage.OpCode) (sentMsgParseFn, bool) {
 	}
 }
 
-func parseSentMessage(original []byte, parseRawOnly bool) (*SentMessage, error) {
-	// Create a copy of the entire wire message and pass that around to helpers so no copies will be needed later in
-	// the code.
-	wm := copyBytes(original)
-
+func parseSentMessage(wm []byte, parseRawOnly bool) (*SentMessage, error) {
 	// Re-assign the wire message to "remaining" so "wm" continues to point to the entire message after parsing.
 	_, requestID, _, opcode, remaining, ok := wiremessage.ReadHeader(wm)
 	if !ok {
