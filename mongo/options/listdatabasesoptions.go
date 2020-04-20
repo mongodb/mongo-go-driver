@@ -13,7 +13,8 @@ type ListDatabasesOptions struct {
 	NameOnly *bool
 
 	// If true, only the databases which the user is authorized to see will be returned. For more information about
-	// the behavior of this option, see https://docs.mongodb.com/manual/reference/privilege-actions/#find.
+	// the behavior of this option, see https://docs.mongodb.com/manual/reference/privilege-actions/#find. The default
+	// value is true.
 	AuthorizedDatabases *bool
 }
 
