@@ -174,8 +174,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.AppName = &cs.AppName
 	}
 
-	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil || cs.AuthSource != "" ||
-		cs.Username != "" || cs.PasswordSet {
+	// Only create a Credential if there is a request for authentication via non-empty credentials in the URI.
+	// Per SPEC-1511, an auth source without other credentials is semantically valid and must not be interpreted as a
+	// request for authentication.
+	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil || cs.Username != "" || cs.PasswordSet {
 		c.Auth = &Credential{
 			AuthMechanism:           cs.AuthMechanism,
 			AuthMechanismProperties: cs.AuthMechanismProperties,

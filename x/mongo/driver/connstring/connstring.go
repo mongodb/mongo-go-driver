@@ -345,6 +345,7 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 			}
 		}
 	case "":
+		// Only set auth source if there is a request for authentication via non-empty credentials.
 		if p.AuthSource == "" && (p.AuthMechanismProperties != nil || p.Username != "" || p.PasswordSet) {
 			p.AuthSource = dbName
 			if p.AuthSource == "" {
@@ -433,9 +434,6 @@ func (p *parser) validateAuth() error {
 			return fmt.Errorf("SCRAM-SHA-256 cannot have mechanism properties")
 		}
 	case "":
-		if p.Username == "" && p.AuthSource != "" {
-			return fmt.Errorf("authsource without username is invalid")
-		}
 	default:
 		return fmt.Errorf("invalid auth mechanism")
 	}
