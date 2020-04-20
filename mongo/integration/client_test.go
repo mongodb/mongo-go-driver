@@ -351,7 +351,8 @@ func TestClient(t *testing.T) {
 		SetAppName(testAppName)
 	appNameMtOpts := mtest.NewOptions().
 		ClientOptions(appNameDialerOpts).
-		Topologies(mtest.Single)
+		Topologies(mtest.Single).
+		Auth(false) // Can't run with auth because the proxy dialer won't work with TLS enabled.
 	mt.RunOpts("app name is always sent", appNameMtOpts, func(mt *mtest.T) {
 		err := mt.Client.Ping(mtest.Background, mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
