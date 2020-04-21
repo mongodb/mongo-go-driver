@@ -241,13 +241,6 @@ func TestClientOptions(t *testing.T) {
 				}),
 			},
 			{
-				"AuthSourceNoUsername",
-				"mongodb://localhost/?authSource=random-database-example",
-				&ClientOptions{err: internal.WrapErrorf(
-					errors.New("authsource without username is invalid"), "error validating uri",
-				)},
-			},
-			{
 				"AuthSource",
 				"mongodb://foo@localhost/?authSource=random-database-example",
 				baseClient().SetAuth(Credential{AuthSource: "random-database-example", Username: "foo"}),
