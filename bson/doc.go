@@ -72,7 +72,7 @@
 //
 // Structs
 //
-// Structs can be marshalled/unmarshalled to/from BSON. When transforming structs to/from BSON, the following rules
+// Structs can be marshalled/unmarshalled to/from BSON or Extended JSON. When transforming structs to/from BSON or Extended JSON, the following rules
 // apply:
 //
 //     1. Only exported fields in structs will be marshalled or unmarshalled.
