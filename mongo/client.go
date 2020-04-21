@@ -718,9 +718,14 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.crypt)
+
 	if ldo.NameOnly != nil {
 		op = op.NameOnly(*ldo.NameOnly)
 	}
+	if ldo.AuthorizedDatabases != nil {
+		op = op.AuthorizedDatabases(*ldo.AuthorizedDatabases)
+	}
+
 	retry := driver.RetryNone
 	if c.retryReads {
 		retry = driver.RetryOncePerCommand

@@ -27,6 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -147,68 +148,106 @@ func TestClient(t *testing.T) {
 		mt.Fatal("unable to find authenticated user")
 	})
 	mt.RunOpts("list databases", noClientOpts, func(mt *mtest.T) {
-		testCases := []struct {
-			name             string
-			filter           bson.D
-			hasTestDb        bool
-			minServerVersion string
-		}{
-			{"no filter", bson.D{}, true, ""},
-			{"filter", bson.D{{"name", "foobar"}}, false, "3.6"},
-		}
-
-		for _, tc := range testCases {
-			opts := mtest.NewOptions()
-			if tc.minServerVersion != "" {
-				opts.MinServerVersion(tc.minServerVersion)
+		mt.RunOpts("filter", noClientOpts, func(mt *mtest.T) {
+			testCases := []struct {
+				name             string
+				filter           bson.D
+				hasTestDb        bool
+				minServerVersion string
+			}{
+				{"empty", bson.D{}, true, ""},
+				{"non-empty", bson.D{{"name", "foobar"}}, false, "3.6"},
 			}
 
-			mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
-				res, err := mt.Client.ListDatabases(mtest.Background, tc.filter)
-				assert.Nil(mt, err, "ListDatabases error: %v", err)
-
-				var found bool
-				for _, db := range res.Databases {
-					if db.Name == mtest.TestDb {
-						found = true
-						break
-					}
+			for _, tc := range testCases {
+				opts := mtest.NewOptions()
+				if tc.minServerVersion != "" {
+					opts.MinServerVersion(tc.minServerVersion)
 				}
-				assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
-			})
-		}
+
+				mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+					res, err := mt.Client.ListDatabases(mtest.Background, tc.filter)
+					assert.Nil(mt, err, "ListDatabases error: %v", err)
+
+					var found bool
+					for _, db := range res.Databases {
+						if db.Name == mtest.TestDb {
+							found = true
+							break
+						}
+					}
+					assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
+				})
+			}
+		})
+		mt.Run("options", func(mt *mtest.T) {
+			allOpts := options.ListDatabases().SetNameOnly(true).SetAuthorizedDatabases(true)
+			mt.ClearEvents()
+
+			_, err := mt.Client.ListDatabases(mtest.Background, bson.D{}, allOpts)
+			assert.Nil(mt, err, "ListDatabases error: %v", err)
+
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "listDatabases", evt.CommandName, "expected ")
+
+			expectedDoc := bsoncore.BuildDocumentFromElements(nil,
+				bsoncore.AppendBooleanElement(nil, "nameOnly", true),
+				bsoncore.AppendBooleanElement(nil, "authorizedDatabases", true),
+			)
+			err = compareDocs(mt, expectedDoc, evt.Command)
+			assert.Nil(mt, err, "compareDocs error: %v", err)
+		})
 	})
 	mt.RunOpts("list database names", noClientOpts, func(mt *mtest.T) {
-		testCases := []struct {
-			name             string
-			filter           bson.D
-			hasTestDb        bool
-			minServerVersion string
-		}{
-			{"no filter", bson.D{}, true, ""},
-			{"filter", bson.D{{"name", "foobar"}}, false, "3.6"},
-		}
-
-		for _, tc := range testCases {
-			opts := mtest.NewOptions()
-			if tc.minServerVersion != "" {
-				opts.MinServerVersion(tc.minServerVersion)
+		mt.RunOpts("filter", noClientOpts, func(mt *mtest.T) {
+			testCases := []struct {
+				name             string
+				filter           bson.D
+				hasTestDb        bool
+				minServerVersion string
+			}{
+				{"no filter", bson.D{}, true, ""},
+				{"filter", bson.D{{"name", "foobar"}}, false, "3.6"},
 			}
 
-			mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
-				dbs, err := mt.Client.ListDatabaseNames(mtest.Background, tc.filter)
-				assert.Nil(mt, err, "ListDatabaseNames error: %v", err)
-
-				var found bool
-				for _, db := range dbs {
-					if db == mtest.TestDb {
-						found = true
-						break
-					}
+			for _, tc := range testCases {
+				opts := mtest.NewOptions()
+				if tc.minServerVersion != "" {
+					opts.MinServerVersion(tc.minServerVersion)
 				}
-				assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
-			})
-		}
+
+				mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+					dbs, err := mt.Client.ListDatabaseNames(mtest.Background, tc.filter)
+					assert.Nil(mt, err, "ListDatabaseNames error: %v", err)
+
+					var found bool
+					for _, db := range dbs {
+						if db == mtest.TestDb {
+							found = true
+							break
+						}
+					}
+					assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
+				})
+			}
+		})
+		mt.Run("options", func(mt *mtest.T) {
+			allOpts := options.ListDatabases().SetNameOnly(true).SetAuthorizedDatabases(true)
+			mt.ClearEvents()
+
+			_, err := mt.Client.ListDatabaseNames(mtest.Background, bson.D{}, allOpts)
+			assert.Nil(mt, err, "ListDatabaseNames error: %v", err)
+
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "listDatabases", evt.CommandName, "expected ")
+
+			expectedDoc := bsoncore.BuildDocumentFromElements(nil,
+				bsoncore.AppendBooleanElement(nil, "nameOnly", true),
+				bsoncore.AppendBooleanElement(nil, "authorizedDatabases", true),
+			)
+			err = compareDocs(mt, expectedDoc, evt.Command)
+			assert.Nil(mt, err, "compareDocs error: %v", err)
+		})
 	})
 	mt.RunOpts("ping", noClientOpts, func(mt *mtest.T) {
 		mt.Run("default read preference", func(mt *mtest.T) {

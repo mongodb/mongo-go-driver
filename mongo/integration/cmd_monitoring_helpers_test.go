@@ -171,7 +171,9 @@ func compareDocsHelper(mt *mtest.T, expected, actual bson.Raw, prefix string) er
 		}
 
 		aVal, err := actual.LookupErr(eKey)
-		assert.Nil(mt, err, "key %s not found in result", e.Key())
+		if err != nil {
+			return fmt.Errorf("key %s not found in result", fullKeyName)
+		}
 
 		if err := compareValues(mt, fullKeyName, e.Value(), aVal); err != nil {
 			return err
