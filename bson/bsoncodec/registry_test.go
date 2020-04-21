@@ -350,7 +350,7 @@ func TestRegistry(t *testing.T) {
 					gotEnc, err := reg.LookupEncoder(ti3Impl)
 					assert.Nil(t, err, "LookupEncoder error: %v", err)
 
-					cae, ok := gotEnc.(*CondAddrEncoder)
+					cae, ok := gotEnc.(*condAddrEncoder)
 					assert.True(t, ok, "Expected CondAddrEncoder, got %T", gotEnc)
 					if !cmp.Equal(cae.canAddrEnc, fc3, allowunexported, cmp.Comparer(comparepc)) {
 						t.Errorf("expected canAddrEnc %v, got %v", cae.canAddrEnc, fc3)
@@ -363,7 +363,7 @@ func TestRegistry(t *testing.T) {
 					gotDec, err := reg.LookupDecoder(ti3Impl)
 					assert.Nil(t, err, "LookupDecoder error: %v", err)
 
-					cad, ok := gotDec.(*CondAddrDecoder)
+					cad, ok := gotDec.(*condAddrDecoder)
 					assert.True(t, ok, "Expected CondAddrDecoder, got %T", gotDec)
 					if !cmp.Equal(cad.canAddrDec, fc3, allowunexported, cmp.Comparer(comparepc)) {
 						t.Errorf("expected canAddrDec %v, got %v", cad.canAddrDec, fc3)

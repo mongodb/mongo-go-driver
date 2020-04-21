@@ -12,22 +12,22 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
-// CondAddrEncoder is the encoder used when a pointer to the encoding value has an encoder.
-type CondAddrEncoder struct {
+// condAddrEncoder is the encoder used when a pointer to the encoding value has an encoder.
+type condAddrEncoder struct {
 	canAddrEnc ValueEncoder
 	elseEnc    ValueEncoder
 }
 
-var _ ValueEncoder = &CondAddrEncoder{}
+var _ ValueEncoder = &condAddrEncoder{}
 
-// NewCondAddrEncoder returns an CondAddrEncoder.
-func NewCondAddrEncoder(canAddrEnc, elseEnc ValueEncoder) *CondAddrEncoder {
-	encoder := CondAddrEncoder{canAddrEnc: canAddrEnc, elseEnc: elseEnc}
+// newCondAddrEncoder returns an condAddrEncoder.
+func newCondAddrEncoder(canAddrEnc, elseEnc ValueEncoder) *condAddrEncoder {
+	encoder := condAddrEncoder{canAddrEnc: canAddrEnc, elseEnc: elseEnc}
 	return &encoder
 }
 
 // EncodeValue is the ValueEncoderFunc for a value that may be addressable.
-func (cae *CondAddrEncoder) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (cae *condAddrEncoder) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if val.CanAddr() {
 		return cae.canAddrEnc.EncodeValue(ec, vw, val)
 	}
@@ -37,22 +37,22 @@ func (cae *CondAddrEncoder) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter,
 	return ErrNoEncoder{Type: val.Type()}
 }
 
-// CondAddrDecoder is the decoder used when a pointer to the value has a decoder.
-type CondAddrDecoder struct {
+// condAddrDecoder is the decoder used when a pointer to the value has a decoder.
+type condAddrDecoder struct {
 	canAddrDec ValueDecoder
 	elseDec    ValueDecoder
 }
 
-var _ ValueDecoder = &CondAddrDecoder{}
+var _ ValueDecoder = &condAddrDecoder{}
 
-// NewCondAddrDecoder returns an CondAddrDecoder.
-func NewCondAddrDecoder(canAddrDec, elseDec ValueDecoder) *CondAddrDecoder {
-	decoder := CondAddrDecoder{canAddrDec: canAddrDec, elseDec: elseDec}
+// newCondAddrDecoder returns an CondAddrDecoder.
+func newCondAddrDecoder(canAddrDec, elseDec ValueDecoder) *condAddrDecoder {
+	decoder := condAddrDecoder{canAddrDec: canAddrDec, elseDec: elseDec}
 	return &decoder
 }
 
 // DecodeValue is the ValueDecoderFunc for a value that may be addressable.
-func (cad *CondAddrDecoder) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func (cad *condAddrDecoder) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if val.CanAddr() {
 		return cad.canAddrDec.DecodeValue(dc, vr, val)
 	}
