@@ -133,8 +133,8 @@ func (u *ConnString) String() string {
 // HasAuthParameters returns true if this ConnString has any authentication parameters set and therefore represents
 // a request for authentication.
 func (u *ConnString) HasAuthParameters() bool {
-	// Per SPEC-1511, an auth source without other credentials is semantically valid and must not be interpreted as a
-	// request for authentication.
+	// Check all auth parameters except for AuthSource because an auth source without other credentials is semantically
+	// valid and must not be interpreted as a request for authentication.
 	return u.AuthMechanism != "" || u.AuthMechanismProperties != nil || u.Username != "" || u.PasswordSet
 }
 
