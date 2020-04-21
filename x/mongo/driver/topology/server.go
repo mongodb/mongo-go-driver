@@ -107,9 +107,14 @@ type Server struct {
 	subscriptionsClosed bool
 }
 
+// updateTopologyCallback is a callback used to create a server that should be called when the parent Topology instance
+// should be updated based on a new server description. The callback must return the server description that should be
+// stored by the server.
+type updateTopologyCallback func(description.Server) description.Server
+
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
-func ConnectServer(addr address.Address, updateCallback func(description.Server), opts ...ServerOption) (*Server, error) {
+func ConnectServer(addr address.Address, updateCallback updateTopologyCallback, opts ...ServerOption) (*Server, error) {
 	srvr, err := NewServer(addr, opts...)
 	if err != nil {
 		return nil, err
@@ -166,7 +171,7 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 
 // Connect initializes the Server by starting background monitoring goroutines.
 // This method must be called before a Server can be used.
-func (s *Server) Connect(updateCallback func(description.Server)) error {
+func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 	if !atomic.CompareAndSwapInt32(&s.connectionstate, disconnected, connected) {
 		return ErrServerConnected
 	}
@@ -191,7 +196,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 		return ErrServerClosed
 	}
 
-	s.updateTopologyCallback.Store((func(description.Server))(nil))
+	s.updateTopologyCallback.Store((updateTopologyCallback)(nil))
 
 	// For every call to Connect there must be at least 1 goroutine that is
 	// waiting on the done channel.
@@ -446,12 +451,13 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 		//  ¯\_(ツ)_/¯
 		_ = recover()
 	}()
-	s.desc.Store(desc)
 
-	callback, ok := s.updateTopologyCallback.Load().(func(description.Server))
+	// Use the updateTopologyCallback to update the parent Topology and get the description that should be stored.
+	callback, ok := s.updateTopologyCallback.Load().(updateTopologyCallback)
 	if ok && callback != nil {
-		callback(desc)
+		desc = callback(desc)
 	}
+	s.desc.Store(desc)
 
 	s.subLock.Lock()
 	for _, c := range s.subscribers {

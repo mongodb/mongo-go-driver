@@ -243,7 +243,12 @@ func TestServer(t *testing.T) {
 	t.Run("update topology", func(t *testing.T) {
 		var updated atomic.Value // bool
 		updated.Store(false)
-		s, err := ConnectServer(address.Address("localhost"), func(description.Server) { updated.Store(true) })
+
+		updateCallback := func(desc description.Server) description.Server {
+			updated.Store(true)
+			return desc
+		}
+		s, err := ConnectServer(address.Address("localhost"), updateCallback)
 		require.NoError(t, err)
 		s.updateDescription(description.Server{Addr: s.address}, false)
 		require.True(t, updated.Load().(bool))

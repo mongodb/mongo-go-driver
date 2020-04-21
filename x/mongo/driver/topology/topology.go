@@ -70,7 +70,8 @@ type Topology struct {
 	rescanSRVInterval time.Duration
 	pollHeartbeatTime atomic.Value // holds a bool
 
-	fsm *fsm
+	updateCallback updateTopologyCallback
+	fsm            *fsm
 
 	// This should really be encapsulated into it's own type. This will likely
 	// require a redesign so we can share a minimum of data between the
@@ -122,6 +123,9 @@ func New(opts ...Option) (*Topology, error) {
 		dnsResolver:       dns.DefaultResolver,
 	}
 	t.desc.Store(description.Topology{})
+	t.updateCallback = func(desc description.Server) description.Server {
+		return t.apply(context.TODO(), desc)
+	}
 
 	if cfg.replicaSetName != "" {
 		t.fsm.SetName = cfg.replicaSetName
@@ -592,21 +596,24 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 
 }
 
-func (t *Topology) apply(ctx context.Context, desc description.Server) {
+// apply updates the Topology and its underlying FSM based on the provided server description and returns the server
+// description that should be stored.
+func (t *Topology) apply(ctx context.Context, desc description.Server) description.Server {
 	var err error
 
 	t.serversLock.Lock()
 	defer t.serversLock.Unlock()
 
 	if _, ok := t.servers[desc.Addr]; t.serversClosed || !ok {
-		return
+		return desc
 	}
 
 	prev := t.fsm.Topology
 
-	current, err := t.fsm.apply(desc)
+	var current description.Topology
+	current, desc, err = t.fsm.apply(desc)
 	if err != nil {
-		return
+		return desc
 	}
 
 	diff := description.DiffTopology(prev, current)
@@ -639,6 +646,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) {
 	}
 	t.subLock.Unlock()
 
+	return desc
 }
 
 func (t *Topology) addServer(addr address.Address) error {
@@ -646,10 +654,7 @@ func (t *Topology) addServer(addr address.Address) error {
 		return nil
 	}
 
-	topoFunc := func(desc description.Server) {
-		t.apply(context.TODO(), desc)
-	}
-	svr, err := ConnectServer(addr, topoFunc, t.cfg.serverOpts...)
+	svr, err := ConnectServer(addr, t.updateCallback, t.cfg.serverOpts...)
 	if err != nil {
 		return err
 	}
