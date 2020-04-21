@@ -130,6 +130,14 @@ func (u *ConnString) String() string {
 	return u.Original
 }
 
+// HasAuthParameters returns true if this ConnString has any authentication parameters set and therefore represents
+// a request for authentication.
+func (u *ConnString) HasAuthParameters() bool {
+	// Check all auth parameters except for AuthSource because an auth source without other credentials is semantically
+	// valid and must not be interpreted as a request for authentication.
+	return u.AuthMechanism != "" || u.AuthMechanismProperties != nil || u.Username != "" || u.PasswordSet
+}
+
 // Validate checks that the Auth and SSL parameters are valid values.
 func (u *ConnString) Validate() error {
 	p := parser{
@@ -345,6 +353,7 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 			}
 		}
 	case "":
+		// Only set auth source if there is a request for authentication via non-empty credentials.
 		if p.AuthSource == "" && (p.AuthMechanismProperties != nil || p.Username != "" || p.PasswordSet) {
 			p.AuthSource = dbName
 			if p.AuthSource == "" {
@@ -433,9 +442,6 @@ func (p *parser) validateAuth() error {
 			return fmt.Errorf("SCRAM-SHA-256 cannot have mechanism properties")
 		}
 	case "":
-		if p.Username == "" && p.AuthSource != "" {
-			return fmt.Errorf("authsource without username is invalid")
-		}
 	default:
 		return fmt.Errorf("invalid auth mechanism")
 	}
