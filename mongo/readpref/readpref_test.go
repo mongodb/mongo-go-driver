@@ -134,3 +134,25 @@ func TestHedge(t *testing.T) {
 		assert.True(t, *enabled, "expected HedgeEnabled to return true, got false")
 	})
 }
+
+func TestReadPref_String(t *testing.T) {
+	t.Run("ReadPref.String() with all options", func(t *testing.T) {
+		readPref := Nearest(
+			WithMaxStaleness(120*time.Second),
+			WithTagSets(tag.Set{{"a", "1"}, {"b", "2"}}, tag.Set{{"q", "5"}, {"r", "6"}}),
+			WithHedgeEnabled(true),
+		)
+		expected := "nearest(maxStaleness=2m0s tagSet=a=1,b=2 tagSet=q=5,r=6 hedgeEnabled=true)"
+		assert.Equal(t, expected, readPref.String(), "expected %q, got %q", expected, readPref.String())
+	})
+	t.Run("ReadPref.String() with one option", func(t *testing.T) {
+		readPref := Secondary(WithTags("a", "1", "b", "2"))
+		expected := "secondary(tagSet=a=1,b=2)"
+		assert.Equal(t, expected, readPref.String(), "expected %q, got %q", expected, readPref.String())
+	})
+	t.Run("ReadPref.String() with no options", func(t *testing.T) {
+		readPref := Primary()
+		expected := "primary"
+		assert.Equal(t, expected, readPref.String(), "expected %q, got %q", expected, readPref.String())
+	})
+}

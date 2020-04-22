@@ -10,7 +10,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
+
+func TestTag_String(t *testing.T) {
+	t.Parallel()
+
+	tag := Tag{Name: "a", Value: "1"}
+	assert.Equal(t, "a=1", tag.String(), `expected "a=1", got %q`, tag.String())
+}
 
 func TestTagSets_NewTagSet(t *testing.T) {
 	t.Parallel()
@@ -75,4 +83,14 @@ func TestTagSets_ContainsAll(t *testing.T) {
 	require.False(t, ts.ContainsAll(test))
 	test = Set{Tag{Name: "a", Value: "2"}, Tag{Name: "b", Value: "2"}}
 	require.False(t, ts.ContainsAll(test))
+}
+
+func TestTagSets_String(t *testing.T) {
+	t.Parallel()
+
+	ts := Set{
+		Tag{Name: "a", Value: "1"},
+		Tag{Name: "b", Value: "2"},
+	}
+	assert.Equal(t, "a=1,b=2", ts.String(), `expected "a=1,b=2", got %q`, ts.String())
 }
