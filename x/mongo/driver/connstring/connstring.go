@@ -169,7 +169,7 @@ func (c ConnectMode) String() string {
 	case SingleConnect:
 		return "direct"
 	default:
-		return "invalid"
+		return "unknown"
 	}
 }
 
