@@ -7,12 +7,11 @@
 package primitive
 
 import (
-	"fmt"
-	"testing"
-
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
