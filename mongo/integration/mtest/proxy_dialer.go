@@ -21,15 +21,17 @@ import (
 
 // ProxyMessage represents a sent/received pair of parsed wire messages.
 type ProxyMessage struct {
-	CommandName string
-	Sent        *SentMessage
-	Received    *ReceivedMessage
+	ServerAddress string
+	CommandName   string
+	Sent          *SentMessage
+	Received      *ReceivedMessage
 }
 
 // RawProxyMessage represents a sent/received pair of raw wire messages.
 type RawProxyMessage struct {
-	Sent     wiremessage.WireMessage
-	Received wiremessage.WireMessage
+	ServerAddress string
+	Sent          wiremessage.WireMessage
+	Received      wiremessage.WireMessage
 }
 
 // proxyDialer is a ContextDialer implementation that wraps a net.Dialer and records the messages sent and received
@@ -39,9 +41,10 @@ type proxyDialer struct {
 	sync.Mutex
 	// sentMap temporarily stores the message sent to the server using the requestID so it can map requests to their
 	// responses.
-	sentMap     map[int32]*SentMessage
-	messages    []*ProxyMessage
-	rawMessages []*RawProxyMessage
+	sentMap         map[int32]*SentMessage
+	messages        []*ProxyMessage
+	rawMessages     []*RawProxyMessage
+	dialedAddresses map[string]struct{}
 
 	rawMessagesOnly bool
 }
@@ -50,8 +53,9 @@ var _ options.ContextDialer = (*proxyDialer)(nil)
 
 func newProxyDialer() *proxyDialer {
 	return &proxyDialer{
-		Dialer:  &net.Dialer{Timeout: 30 * time.Second},
-		sentMap: make(map[int32]*SentMessage),
+		Dialer:          &net.Dialer{Timeout: 30 * time.Second},
+		sentMap:         make(map[int32]*SentMessage),
+		dialedAddresses: make(map[string]struct{}),
 	}
 }
 
@@ -71,6 +75,7 @@ func newProxyErrorWithWireMsg(wm []byte, err error) error {
 
 // DialContext creates a new proxyConnection.
 func (p *proxyDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	p.dialedAddresses[address] = struct{}{}
 	netConn, err := p.Dialer.DialContext(ctx, network, address)
 	if err != nil {
 		return netConn, err
@@ -98,9 +103,38 @@ func (p *proxyDialer) storeSentMessage(wm []byte) error {
 	return nil
 }
 
-func (p *proxyDialer) storeReceivedMessage(wm []byte) error {
+// getDialedAddress gets the address that was originally dialed corresponding to the given address.
+func (p *proxyDialer) getDialedAddress(addr string) (string, error) {
+	if _, ok := p.dialedAddresses[addr]; ok {
+		return addr, nil
+	}
+
+	// If localhost:<port> was dialed, the internally reported remote address will be 127.0.0.1:<port>. In this case,
+	// check the dialedAddresses map again with the localhost:<port>.
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", fmt.Errorf("net.SplitHostPort error: %v", err)
+	}
+
+	if host == "127.0.0.1" {
+		host = "localhost"
+	}
+	addr = net.JoinHostPort(host, port)
+	if _, ok := p.dialedAddresses[addr]; ok {
+		return addr, nil
+	}
+
+	return "", errors.New("address not found")
+}
+
+func (p *proxyDialer) storeReceivedMessage(wm []byte, addr string) error {
 	p.Lock()
 	defer p.Unlock()
+
+	serverAddress, err := p.getDialedAddress(addr)
+	if err != nil {
+		return fmt.Errorf("error getting known address for %s: %v", addr, err)
+	}
 
 	// Create a copy of the wire message so it can be parsed/stored and will not be affected if the wm slice is
 	// changed by the driver. Parse the incoming message and get the corresponding outgoing message.
@@ -117,8 +151,9 @@ func (p *proxyDialer) storeReceivedMessage(wm []byte) error {
 
 	// Store the raw message pair.
 	rawMsgPair := &RawProxyMessage{
-		Sent:     sent.RawMessage,
-		Received: parsed.RawMessage,
+		ServerAddress: serverAddress,
+		Sent:          sent.RawMessage,
+		Received:      parsed.RawMessage,
 	}
 	p.rawMessages = append(p.rawMessages, rawMsgPair)
 	if p.rawMessagesOnly {
@@ -128,9 +163,10 @@ func (p *proxyDialer) storeReceivedMessage(wm []byte) error {
 	// Store the parsed message pair.
 	msgPair := &ProxyMessage{
 		// The command name is always the first key in the command document.
-		CommandName: sent.Command.Index(0).Key(),
-		Sent:        sent,
-		Received:    parsed,
+		CommandName:   sent.Command.Index(0).Key(),
+		ServerAddress: serverAddress,
+		Sent:          sent,
+		Received:      parsed,
 	}
 	p.messages = append(p.messages, msgPair)
 	return nil
@@ -177,7 +213,7 @@ func (pc *proxyConn) Read(buffer []byte) (int, error) {
 	wm = append(wm, buffer...)
 	wm = bsoncore.UpdateLength(wm, idx, int32(len(wm[idx:])))
 
-	if err := pc.dialer.storeReceivedMessage(wm); err != nil {
+	if err := pc.dialer.storeReceivedMessage(wm, pc.RemoteAddr().String()); err != nil {
 		wrapped := fmt.Errorf("error storing received message: %v", err)
 		return 0, newProxyErrorWithWireMsg(wm, wrapped)
 	}
