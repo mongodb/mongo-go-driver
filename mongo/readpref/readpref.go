@@ -7,7 +7,9 @@
 package readpref // import "go.mongodb.org/mongo-driver/mongo/readpref"
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/tag"
@@ -103,4 +105,27 @@ func (r *ReadPref) TagSets() []tag.Set {
 // specified during read preference construction, nil is returned.
 func (r *ReadPref) HedgeEnabled() *bool {
 	return r.hedgeEnabled
+}
+
+// String returns a human-readable description of the read preference.
+func (r *ReadPref) String() string {
+	var b bytes.Buffer
+	b.WriteString(r.mode.String())
+	delim := "("
+	if r.maxStalenessSet {
+		fmt.Fprintf(&b, "%smaxStaleness=%v", delim, r.maxStaleness)
+		delim = " "
+	}
+	for _, tagSet := range r.tagSets {
+		fmt.Fprintf(&b, "%stagSet=%s", delim, tagSet.String())
+		delim = " "
+	}
+	if r.hedgeEnabled != nil {
+		fmt.Fprintf(&b, "%shedgeEnabled=%v", delim, *r.hedgeEnabled)
+		delim = " "
+	}
+	if delim != "(" {
+		b.WriteString(")")
+	}
+	return b.String()
 }
