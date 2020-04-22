@@ -463,7 +463,6 @@ func TestClientOptions(t *testing.T) {
 					cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
 					cmp.Comparer(compareTLSConfig),
 					cmp.Comparer(compareErrors),
-					cmp.AllowUnexported(ClientOptions{}),
 					cmpopts.IgnoreFields(connstring.ConnString{}, "SSLClientCertificateKeyPassword"),
 				); diff != "" {
 					t.Errorf("URI did not apply correctly: (-want +got)\n%s", diff)
