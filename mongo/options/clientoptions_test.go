@@ -459,7 +459,7 @@ func TestClientOptions(t *testing.T) {
 
 				if diff := cmp.Diff(
 					tc.result, result,
-					cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
+					cmp.AllowUnexported(ClientOptions{}, readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
 					cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
 					cmp.Comparer(compareTLSConfig),
 					cmp.Comparer(compareErrors),
