@@ -42,6 +42,7 @@ var testContext struct {
 	client           *mongo.Client // client used for setup and teardown
 	serverVersion    string
 	authEnabled      bool
+	sslEnabled       bool
 	enterpriseServer bool
 }
 
@@ -53,6 +54,14 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 // Setup initializes the current testing context.
 // This function must only be called one time and must be called before any tests run.
 func Setup() error {
+	defer func() {
+		fmt.Println("===Detected Details===")
+		fmt.Printf("%s\n\n", testContext.topo)
+		fmt.Printf("auth: %v\nssl: %v\n", testContext.authEnabled, testContext.sslEnabled)
+		fmt.Printf("connstring: %v\n", testContext.connString)
+		fmt.Println("==Detected Details===")
+	}()
+
 	var err error
 	testContext.connString, err = getConnString()
 	if err != nil {
@@ -121,7 +130,8 @@ func Setup() error {
 		}
 	}
 
-	testContext.authEnabled = len(os.Getenv("MONGO_GO_DRIVER_CA_FILE")) != 0
+	testContext.authEnabled = os.Getenv("AUTH") == "auth"
+	testContext.sslEnabled = os.Getenv("SSL") == "ssl"
 	biRes, err := testContext.client.Database("admin").RunCommand(Background, bson.D{{"buildInfo", 1}}).DecodeBytes()
 	if err != nil {
 		return fmt.Errorf("buildInfo error: %v", err)

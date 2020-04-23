@@ -46,7 +46,7 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), desc, c)
+	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -85,7 +85,7 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), desc, c)
+	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}

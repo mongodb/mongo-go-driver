@@ -94,7 +94,7 @@ type saslResponse struct {
 }
 
 // Finish completes the conversation based on the first server response to authenticate the given connection.
-func (sc *saslConversation) Finish(ctx context.Context, firstResponse bsoncore.Document, conn driver.Connection) error {
+func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstResponse bsoncore.Document) error {
 	if closer, ok := sc.client.(SaslClientCloser); ok {
 		defer closer.Close()
 	}
@@ -132,7 +132,10 @@ func (sc *saslConversation) Finish(ctx context.Context, firstResponse bsoncore.D
 			bsoncore.AppendInt32Element(nil, "conversationId", int32(cid)),
 			bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 		)
-		saslContinueCmd := operation.NewCommand(doc).Database(sc.source).Deployment(driver.SingleConnectionDeployment{conn})
+		saslContinueCmd := operation.NewCommand(doc).
+			Database(sc.source).
+			Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+			ClusterClock(cfg.ClusterClock)
 
 		err = saslContinueCmd.Execute(ctx)
 		if err != nil {
@@ -149,7 +152,7 @@ func (sc *saslConversation) Finish(ctx context.Context, firstResponse bsoncore.D
 }
 
 // ConductSaslConversation runs a full SASL conversation to authenticate the given connection.
-func ConductSaslConversation(ctx context.Context, conn driver.Connection, authSource string, client SaslClient) error {
+func ConductSaslConversation(ctx context.Context, cfg *Config, authSource string, client SaslClient) error {
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
 
@@ -157,10 +160,13 @@ func ConductSaslConversation(ctx context.Context, conn driver.Connection, authSo
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}
-	saslStartCmd := operation.NewCommand(saslStartDoc).Database(authSource).Deployment(driver.SingleConnectionDeployment{conn})
+	saslStartCmd := operation.NewCommand(saslStartDoc).
+		Database(authSource).
+		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+		ClusterClock(cfg.ClusterClock)
 	if err := saslStartCmd.Execute(ctx); err != nil {
 		return newError(err, conversation.mechanism)
 	}
 
-	return conversation.Finish(ctx, saslStartCmd.Result(), conn)
+	return conversation.Finish(ctx, cfg, saslStartCmd.Result())
 }

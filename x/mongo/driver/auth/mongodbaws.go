@@ -8,9 +8,6 @@ package auth
 
 import (
 	"context"
-
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
@@ -37,7 +34,7 @@ type MongoDBAWSAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, _ description.Server, conn driver.Connection) error {
+func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
 			username: a.username,
@@ -45,7 +42,7 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, _ description.Server
 			token:    a.sessionToken,
 		},
 	}
-	err := ConductSaslConversation(ctx, conn, a.source, adapter)
+	err := ConductSaslConversation(ctx, cfg, a.source, adapter)
 	if err != nil {
 		return newAuthError("sasl conversation error", err)
 	}

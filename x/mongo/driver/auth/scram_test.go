@@ -74,7 +74,7 @@ func TestSCRAM(t *testing.T) {
 					Desc:     desc,
 				}
 
-				err = authenticator.Auth(context.Background(), desc, conn)
+				err = authenticator.Auth(context.Background(), &Config{Description: desc, Connection: conn})
 				assert.Nil(t, err, "Auth error: %v\n", err)
 
 				// Verify that the first command sent is saslStart.

@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
@@ -49,11 +48,11 @@ func (a *DefaultAuthenticator) CreateSpeculativeConversation() (SpeculativeConve
 }
 
 // Auth authenticates the connection.
-func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server, conn driver.Connection) error {
+func (a *DefaultAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	var actual Authenticator
 	var err error
 
-	switch chooseAuthMechanism(desc) {
+	switch chooseAuthMechanism(cfg.Description) {
 	case SCRAMSHA256:
 		actual, err = newScramSHA256Authenticator(a.Cred)
 	case SCRAMSHA1:
@@ -66,7 +65,7 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server
 		return newAuthError("error creating authenticator", err)
 	}
 
-	return actual.Auth(ctx, desc, conn)
+	return actual.Auth(ctx, cfg)
 }
 
 // If a server provides a list of supported mechanisms, we choose
