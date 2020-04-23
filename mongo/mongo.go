@@ -430,17 +430,20 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, chec
 }
 
 func transformValue(registry *bsoncodec.Registry, val interface{}) (bsoncore.Value, error) {
-	switch conv := val.(type) {
-	case string:
-		return bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, conv)}, nil
-	default:
-		doc, err := transformBsoncoreDocument(registry, val)
-		if err != nil {
-			return bsoncore.Value{}, err
-		}
-
-		return bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: doc}, nil
+	if registry == nil {
+		registry = bson.DefaultRegistry
 	}
+	if val == nil {
+		return bsoncore.Value{}, ErrNilValue
+	}
+
+	buf := make([]byte, 0, 256)
+	bsonType, bsonValue, err := bson.MarshalValueAppendWithRegistry(registry, buf[:0], val)
+	if err != nil {
+		return bsoncore.Value{}, MarshalError{Value: val, Err: err}
+	}
+
+	return bsoncore.Value{Type: bsonType, Data: bsonValue}, nil
 }
 
 // Build the aggregation pipeline for the CountDocument command.

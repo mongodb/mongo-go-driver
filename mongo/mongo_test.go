@@ -274,6 +274,38 @@ func TestMongoHelpers(t *testing.T) {
 			})
 		}
 	})
+	t.Run("transform value", func(t *testing.T) {
+		valueMarshaler := bvMarsh{
+			t:    bsontype.String,
+			data: bsoncore.AppendString(nil, "foo"),
+		}
+		doc := bson.D{{"x", 1}}
+		docBytes, _ := bson.Marshal(doc)
+
+		testCases := []struct {
+			name      string
+			value     interface{}
+			err       error
+			bsonType  bsontype.Type
+			bsonValue []byte
+		}{
+			{"nil document", nil, ErrNilValue, 0, nil},
+			{"value marshaler", valueMarshaler, nil, valueMarshaler.t, valueMarshaler.data},
+			{"document", doc, nil, bsontype.EmbeddedDocument, docBytes},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				res, err := transformValue(nil, tc.value)
+				if tc.err != nil {
+					assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
+					return
+				}
+
+				assert.Equal(t, tc.bsonType, res.Type, "expected BSON type %s, got %s", tc.bsonType, res.Type)
+				assert.Equal(t, tc.bsonValue, res.Data, "expected BSON data %v, got %v", tc.bsonValue, res.Data)
+			})
+		}
+	})
 }
 
 var _ bson.Marshaler = bMarsh{}
