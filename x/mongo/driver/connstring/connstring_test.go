@@ -102,11 +102,17 @@ func TestConnect(t *testing.T) {
 		{s: "connect=AUTOMATIC", expected: connstring.AutoConnect},
 		{s: "connect=direct", expected: connstring.SingleConnect},
 		{s: "connect=blah", err: true},
-		// combinations of connect and directConnection - conflicting combinations must error
+		// Combinations of connect and directConnection where connect is set first - conflicting combinations must
+		// error.
 		{s: "connect=automatic&directConnection=true", err: true},
 		{s: "connect=automatic&directConnection=false", expected: connstring.AutoConnect},
 		{s: "connect=direct&directConnection=true", expected: connstring.SingleConnect},
 		{s: "connect=direct&directConnection=false", err: true},
+		// Combinations of connect and directConnection where directConnection is set first.
+		{s: "directConnection=true&connect=automatic", err: true},
+		{s: "directConnection=false&connect=automatic", expected: connstring.AutoConnect},
+		{s: "directConnection=true&connect=direct", expected: connstring.SingleConnect},
+		{s: "directConnection=false&connect=direct", err: true},
 	}
 
 	for _, test := range tests {
