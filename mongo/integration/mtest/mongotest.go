@@ -580,14 +580,17 @@ func (t *T) createTestClient() {
 	switch t.clientType {
 	case Default:
 		// only specify URI if the deployment is not set to avoid setting topology/server options along with the deployment
+		var uriOpts *options.ClientOptions
 		if clientOpts.Deployment == nil {
-			clientOpts.ApplyURI(testContext.connString.Original)
+			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
 		}
-		t.Client, err = mongo.NewClient(clientOpts)
+		// Specify the URI-based options first so the test can override them.
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Pinned:
 		// pin to first mongos
-		clientOpts.ApplyURI(testContext.connString.Original).SetHosts([]string{testContext.connString.Hosts[0]})
-		t.Client, err = mongo.NewClient(clientOpts)
+		pinnedHostList := []string{testContext.connString.Hosts[0]}
+		uriOpts := options.Client().ApplyURI(testContext.connString.Original).SetHosts(pinnedHostList)
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
 		clientOpts.PoolMonitor = nil
