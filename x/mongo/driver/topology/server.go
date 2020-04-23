@@ -520,7 +520,10 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 			// one because need to make sure we don't do auth.
 			opts = append(opts, WithHandshaker(func(h Handshaker) Handshaker {
 				now = time.Now()
-				return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
+				return operation.NewIsMaster().
+					AppName(s.cfg.appname).
+					Compressors(s.cfg.compressionOpts).
+					ClusterClock(s.cfg.clock)
 			}))
 
 			// Override any command monitors specified in options with nil to avoid monitoring heartbeats.

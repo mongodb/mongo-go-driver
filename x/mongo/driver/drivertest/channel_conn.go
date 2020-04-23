@@ -9,6 +9,7 @@ package drivertest
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
@@ -106,4 +107,64 @@ func GetCommandFromQueryWireMessage(wm []byte) (bsoncore.Document, error) {
 		return nil, errors.New("could not read query")
 	}
 	return query, nil
+}
+
+// GetCommandFromMsgWireMessage returns the command sent in an OP_QUERY wire message.
+func GetCommandFromMsgWireMessage(wm []byte) (bsoncore.Document, error) {
+	var ok bool
+	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
+	if !ok {
+		return nil, errors.New("could not read header")
+	}
+
+	if _, wm, ok = wiremessage.ReadMsgFlags(wm); !ok {
+		return nil, errors.New("failed to read flags")
+	}
+
+	sectionType, wm, ok := wiremessage.ReadMsgSectionType(wm)
+	if !ok {
+		return nil, errors.New("failed to read section type")
+	}
+	if sectionType != wiremessage.SingleDocument {
+		return nil, fmt.Errorf("expected section type %v, got %v", wiremessage.SingleDocument, sectionType)
+	}
+
+	commandDoc, wm, ok := wiremessage.ReadMsgSectionSingleDocument(wm)
+	if !ok {
+		return nil, errors.New("failed to read command document")
+	}
+	return commandDoc, nil
+}
+
+// GetReplyFromOpReply gets the reply document from an OP_REPLY wire message.
+func GetReplyFromOpReply(wm []byte) (bsoncore.Document, error) {
+	var ok bool
+
+	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
+	if !ok {
+		return nil, errors.New("could not read header")
+	}
+	if _, wm, ok = wiremessage.ReadReplyFlags(wm); !ok {
+		return nil, errors.New("failed to read reply flags")
+	}
+	if _, wm, ok = wiremessage.ReadReplyCursorID(wm); !ok {
+		return nil, errors.New("failed to read cursor ID")
+	}
+	if _, wm, ok = wiremessage.ReadReplyStartingFrom(wm); !ok {
+		return nil, errors.New("failed to read starting from")
+	}
+	if _, wm, ok = wiremessage.ReadReplyNumberReturned(wm); !ok {
+		return nil, errors.New("failed to read number returned")
+	}
+
+	var replyDocuments []bsoncore.Document
+	replyDocuments, wm, ok = wiremessage.ReadReplyDocuments(wm)
+	if !ok {
+		return nil, errors.New("failed to read reply documents")
+	}
+	if len(replyDocuments) == 0 {
+		return nil, errors.New("no documents in response")
+	}
+
+	return replyDocuments[0], nil
 }

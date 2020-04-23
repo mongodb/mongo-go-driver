@@ -329,6 +329,9 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		return opts.GetURI()
 	}))
 
+	// ClusterClock
+	c.clock = new(session.ClusterClock)
+
 	// AppName
 	var appName string
 	if opts.AppName != nil {
@@ -368,7 +371,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	}
 	// Handshaker
 	var handshaker = func(driver.Handshaker) driver.Handshaker {
-		return operation.NewIsMaster().AppName(appName).Compressors(comps)
+		return operation.NewIsMaster().AppName(appName).Compressors(comps).ClusterClock(c.clock)
 	}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
@@ -399,6 +402,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			AppName:       appName,
 			Authenticator: authenticator,
 			Compressors:   comps,
+			ClusterClock:  c.clock,
 		}
 		if mechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
@@ -552,9 +556,6 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			return err
 		}
 	}
-
-	// ClusterClock
-	c.clock = new(session.ClusterClock)
 
 	// OCSP cache
 	ocspCache := ocsp.NewCache()

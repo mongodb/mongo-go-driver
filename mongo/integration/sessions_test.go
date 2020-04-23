@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +19,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -111,6 +114,72 @@ func TestSessions(t *testing.T) {
 				assert.Equal(mt, replyClusterTimeDoc, sentClusterTimeDoc,
 					"expected cluster time %v, got %v", replyClusterTimeDoc, sentClusterTimeDoc)
 			})
+		}
+	})
+
+	handshakeProxyDialer := newProxyDialer()
+	clusterTimeHandshakeClientOpts := options.Client().
+		SetDialer(handshakeProxyDialer).
+		SetHeartbeatInterval(50 * time.Second)
+	clusterTimeHandshakeMtOpts := mtest.NewOptions().
+		ClientOptions(clusterTimeHandshakeClientOpts).
+		Auth(false)
+	mt.RunOpts("cluster time updated from handshakes", clusterTimeHandshakeMtOpts, func(mt *mtest.T) {
+		err := mt.Client.Ping(mtest.Background, readpref.Primary())
+		assert.Nil(mt, err, "Ping error: %v", err)
+
+		// The ConnectionID field is reported as <server address>[<connection number>]. We only need the server address,
+		// so we can take the ConnectionID until the "[" character.
+		evt := mt.GetStartedEvent()
+		assert.Equal(mt, "ping", evt.CommandName, "expected command name %q, got %q", "ping", evt.CommandName)
+		targetAddress := evt.ConnectionID[:strings.Index(evt.ConnectionID, "[")]
+
+		// Filter the messages to only get the ones sent/receieved from targetAddress.
+		allMessages := handshakeProxyDialer.messages
+		var filtered []proxyMessage
+		for _, msg := range allMessages {
+			if msg.serverAddress == targetAddress {
+				filtered = append(filtered, msg)
+			}
+		}
+
+		var expectedClusterTime bsoncore.Document
+		for idx, msg := range filtered {
+			// Get the sent command document.
+			cmd, err := drivertest.GetCommandFromQueryWireMessage(msg.sent)
+			if err != nil {
+				cmd, err = drivertest.GetCommandFromMsgWireMessage(msg.sent)
+			}
+			if err != nil {
+				mt.Fatalf("error reading command document from wire message: %v", err)
+			}
+
+			// Get the reply document.
+			reply, err := drivertest.GetReplyFromOpReply(msg.received)
+			if err != nil {
+				// We can use GetCommandFromMsgWireMessage because OP_MSG is bidirectional.
+				reply, err = drivertest.GetCommandFromMsgWireMessage(msg.received)
+			}
+			if err != nil {
+				mt.Fatalf("error reading reply document from wire message: %v", err)
+			}
+
+			sentClusterTime, err := cmd.LookupErr("$clusterTime")
+			if idx < len(filtered)-1 {
+				// The handshake for the heartbeat connection and the handshake for the application connection should
+				// not contain $clusterTime because the handshakes don't know the wire version of the server, so they
+				// don't know if the server supports sessions. However, they should have a valid ClusterClock, so they
+				// should update the clock's cluster time from the server response.
+				assert.NotNil(mt, err, "expected no $clusterTime in command %s", cmd)
+				expectedClusterTime = reply.Lookup("$clusterTime").Document()
+				continue
+			}
+
+			// The "ping" operation should include the cluster time recorded from the application connection handshake
+			// response.
+			assert.Nil(mt, err, "expected $clusterTime in command %s", cmd)
+			assert.Equal(mt, expectedClusterTime, sentClusterTime.Document(), "expected cluster time %s, got %s",
+				expectedClusterTime, sentClusterTime)
 		}
 	})
 	mt.RunOpts("explicit implicit session arguments", noClientOpts, func(mt *mtest.T) {

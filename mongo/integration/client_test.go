@@ -396,13 +396,13 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(mtest.Background, mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		sent := appNameProxyDialer.sent
-		assert.True(mt, len(sent) >= 2, "expected at least 2 events sent, got %v", len(sent))
+		msgPairs := appNameProxyDialer.messages
+		assert.True(mt, len(msgPairs) >= 2, "expected at least 2 events sent, got %v", len(msgPairs))
 
 		// First two messages should be connection handshakes: one for the heartbeat connection and the other for the
 		// application connection.
-		for idx, wm := range sent[:2] {
-			cmd, err := drivertest.GetCommandFromQueryWireMessage(wm)
+		for idx, msgPair := range msgPairs[:2] {
+			cmd, err := drivertest.GetCommandFromQueryWireMessage(msgPair.sent)
 			assert.Nil(mt, err, "GetCommandFromQueryWireMessage error at index %d: %v", idx, err)
 			heartbeatCmdName := cmd.Index(0).Key()
 			assert.Equal(mt, "isMaster", heartbeatCmdName,
@@ -416,20 +416,33 @@ func TestClient(t *testing.T) {
 	})
 }
 
+type proxyMessage struct {
+	serverAddress string
+	sent          wiremessage.WireMessage
+	received      wiremessage.WireMessage
+}
+
 // proxyDialer is a ContextDialer implementation that wraps a net.Dialer and records the messages sent and received
 // using connections created through it.
 type proxyDialer struct {
 	*net.Dialer
 	sync.Mutex
-	sent     []wiremessage.WireMessage
-	received []wiremessage.WireMessage
+	sentMap  map[int32]wiremessage.WireMessage
+	messages []proxyMessage
+
+	// If address "localhost:<port>" is dialed, the new connection will report a remote address of "127.0.0.1:<port>",
+	// which prevents us from being able to lookup the address later on. This map stores translations from the dialed
+	// address to the reported remote address if they differ.
+	addressTranslations map[string]string
 }
 
 var _ options.ContextDialer = (*proxyDialer)(nil)
 
 func newProxyDialer() *proxyDialer {
 	return &proxyDialer{
-		Dialer: &net.Dialer{Timeout: 30 * time.Second},
+		Dialer:              &net.Dialer{Timeout: 30 * time.Second},
+		addressTranslations: make(map[string]string),
+		sentMap:             make(map[int32]wiremessage.WireMessage),
 	}
 }
 
@@ -438,6 +451,10 @@ func (p *proxyDialer) DialContext(ctx context.Context, network, address string) 
 	netConn, err := p.Dialer.DialContext(ctx, network, address)
 	if err != nil {
 		return netConn, err
+	}
+
+	if remoteAddr := netConn.RemoteAddr().String(); remoteAddr != address {
+		p.addressTranslations[remoteAddr] = address
 	}
 
 	proxy := &proxyConn{
@@ -455,17 +472,37 @@ func (p *proxyDialer) storeSentMessage(msg []byte) {
 
 	msgCopy := make(wiremessage.WireMessage, len(msg))
 	copy(msgCopy, msg)
-	p.sent = append(p.sent, msgCopy)
+
+	_, requestID, _, _, _, _ := wiremessage.ReadHeader(msg)
+	p.sentMap[requestID] = msgCopy
 }
 
 // storeReceivedMessage stores a copy of the wire message being received from the server.
-func (p *proxyDialer) storeReceivedMessage(msg []byte) {
+func (p *proxyDialer) storeReceivedMessage(msg []byte, addr string) {
 	p.Lock()
 	defer p.Unlock()
 
 	msgCopy := make(wiremessage.WireMessage, len(msg))
 	copy(msgCopy, msg)
-	p.received = append(p.received, msgCopy)
+
+	// Get the other half of the message pair.
+	_, _, responseTo, _, _, _ := wiremessage.ReadHeader(msg)
+	sent := p.sentMap[responseTo]
+	delete(p.sentMap, responseTo)
+
+	// Get the address of the server. This will either be the remote address of the connection used to receieved this
+	// message or a translated version that is stored in the addressTranslations map.
+	lookupAddr := addr
+	if translated, ok := p.addressTranslations[lookupAddr]; ok {
+		lookupAddr = translated
+	}
+
+	msgPair := proxyMessage{
+		serverAddress: lookupAddr,
+		sent:          sent,
+		received:      msgCopy,
+	}
+	p.messages = append(p.messages, msgPair)
 }
 
 // proxyConn is a net.Conn that wraps a network connection. All messages sent/received through a proxyConn are stored
@@ -496,7 +533,7 @@ func (pc *proxyConn) Read(buffer []byte) (int, error) {
 		return 0, fmt.Errorf("error copying to mock: %v", err)
 	}
 	if len(buffer) != 4 {
-		pc.dialer.storeReceivedMessage(pc.currentReading.Bytes())
+		pc.dialer.storeReceivedMessage(pc.currentReading.Bytes(), pc.RemoteAddr().String())
 		pc.currentReading.Reset()
 	}
 

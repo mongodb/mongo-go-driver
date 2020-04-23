@@ -405,14 +405,16 @@ func (t *T) extractDatabase(coll Collection) *mongo.Database {
 
 // CreateCollection creates a new collection with the given configuration. The collection will be dropped after the test
 // finishes running. If createOnServer is true, the function ensures that the collection has been created server-side
-// by running the create command. The create command will appear in command monitoring channels.
+// by running the create command. The create command will not appear in command monitoring channels.
 func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collection {
 	db := t.extractDatabase(coll)
 	if createOnServer && t.clientType != Mock {
 		cmd := bson.D{{"create", coll.Name}}
 		cmd = append(cmd, coll.CreateOpts...)
 
-		if err := db.RunCommand(Background, cmd).Err(); err != nil {
+		// Use global client to run the create command.
+		cmdDb := t.GlobalClient().Database(db.Name())
+		if err := cmdDb.RunCommand(Background, cmd).Err(); err != nil {
 			// ignore NamespaceExists errors for idempotency
 
 			cmdErr, ok := err.(mongo.CommandError)
@@ -430,12 +432,14 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 // ClearCollections drops all collections previously created by this test.
 func (t *T) ClearCollections() {
 	for _, coll := range t.createdColls {
-		_ = coll.Drop(Background)
+		// Use the global client to execute the drop.
+		globalColl := t.GlobalClient().Database(coll.Database().Name()).Collection(coll.Name())
+		_ = globalColl.Drop(Background)
 	}
 	t.createdColls = t.createdColls[:0]
 }
 
-// SetFailPoint sets a fail point for the client associated with T. Commands to create the failpoint will appear
+// SetFailPoint sets a fail point for the client associated with T. Commands to create the failpoint will not appear
 // in command monitoring channels. The fail point will automatically be disabled after this test has run.
 func (t *T) SetFailPoint(fp FailPoint) {
 	// ensure mode fields are int32
@@ -457,7 +461,8 @@ func (t *T) SetFailPoint(fp FailPoint) {
 		}
 	}
 
-	admin := t.Client.Database("admin")
+	// Use the global client to execute the fail point command.
+	admin := t.GlobalClient().Database("admin")
 	if err := admin.RunCommand(Background, fp).Err(); err != nil {
 		t.Fatalf("error creating fail point on server: %v", err)
 	}
@@ -472,7 +477,8 @@ func (t *T) TrackFailPoint(fpName string) {
 
 // ClearFailPoints disables all previously set failpoints for this test.
 func (t *T) ClearFailPoints() {
-	db := t.Client.Database("admin")
+	// Use the global client to execute the configureFailPoint command.
+	db := t.GlobalClient().Database("admin")
 	for _, fp := range t.failPointNames {
 		cmd := bson.D{
 			{"configureFailPoint", fp},
