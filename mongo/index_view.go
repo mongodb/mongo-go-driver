@@ -238,6 +238,14 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 	if option.MaxTime != nil {
 		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
 	}
+	if option.CommitQuorum != nil {
+		commitQuorum, err := transformValue(iv.coll.registry, option.CommitQuorum)
+		if err != nil {
+			return nil, err
+		}
+
+		op.CommitQuorum(commitQuorum)
+	}
 
 	err = op.Execute(ctx)
 	if err != nil {

@@ -137,6 +137,54 @@ func TestIndexView(t *testing.T) {
 			})
 			assert.NotNil(mt, err, "expected CreateOne error, got nil")
 		})
+		mt.RunOpts("commit quorum", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
+			intVal := options.CreateIndexes().SetCommitQuorumInt(1)
+			stringVal := options.CreateIndexes().SetCommitQuorumString("majority")
+			majority := options.CreateIndexes().SetCommitQuorumMajority()
+			votingMembers := options.CreateIndexes().SetCommitQuorumVotingMembers()
+
+			indexModel := mongo.IndexModel{
+				Keys: bson.D{{"x", 1}},
+			}
+
+			testCases := []struct {
+				name             string
+				opts             *options.CreateIndexesOptions
+				expectError      bool
+				expectedValue    interface{} // ignored if expectError is true
+				minServerVersion string
+				maxServerVersion string
+			}{
+				{"error on server versions before 4.4", majority, true, nil, "", "4.2"},
+				{"integer value", intVal, false, int32(1), "4.4", ""},
+				{"string value", stringVal, false, "majority", "4.4", ""},
+				{"majority", majority, false, "majority", "4.4", ""},
+				{"votingMembers", votingMembers, false, "votingMembers", "4.4", ""},
+			}
+			for _, tc := range testCases {
+				mtOpts := mtest.NewOptions().MinServerVersion(tc.minServerVersion).MaxServerVersion(tc.maxServerVersion)
+				mt.RunOpts(tc.name, mtOpts, func(mt *mtest.T) {
+					mt.ClearEvents()
+					_, err := mt.Coll.Indexes().CreateOne(mtest.Background, indexModel, tc.opts)
+					if tc.expectError {
+						assert.NotNil(mt, err, "expected CreateOne error, got nil")
+						return
+					}
+
+					assert.Nil(mt, err, "CreateOne error: %v", err)
+					cmd := mt.GetStartedEvent().Command
+					sentBSONValue, err := cmd.LookupErr("commitQuorum")
+					assert.Nil(mt, err, "expected commitQuorum in command %s", cmd)
+
+					var sentValue interface{}
+					err = sentBSONValue.Unmarshal(&sentValue)
+					assert.Nil(mt, err, "Unmarshal error: %v", err)
+
+					assert.Equal(mt, tc.expectedValue, sentValue, "expected commitQuorum value %v, got %v",
+						tc.expectedValue, sentValue)
+				})
+			}
+		})
 	})
 	mt.Run("create many", func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {
@@ -162,31 +210,78 @@ func TestIndexView(t *testing.T) {
 			})
 		})
 		wc := writeconcern.New(writeconcern.W(1))
-		mt.RunOpts("uses writeconcern",
-			mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(wc)),
-			func(mt *mtest.T) {
-				iv := mt.Coll.Indexes()
-				_, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
-					{
-						Keys: bson.D{{"foo", -1}},
-					},
-					{
-						Keys: bson.D{{"bar", 1}, {"baz", -1}},
-					},
-				})
-				assert.Nil(mt, err, "CreateMany error: %v", err)
-
-				evt := mt.GetStartedEvent()
-				assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
-
-				assert.Equal(mt, "createIndexes", evt.CommandName, "command name mismatch; expected createIndexes, got %s", evt.CommandName)
-
-				actual, err := evt.Command.LookupErr("writeConcern", "w")
-				assert.Nil(mt, err, "error getting writeConcern.w: %s", err)
-
-				wcVal := numberFromValue(mt, actual)
-				assert.Equal(mt, int64(1), wcVal, "expected writeConcern to be 1, got: %v", wcVal)
+		wcMtOpts := mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(wc))
+		mt.RunOpts("uses writeconcern", wcMtOpts, func(mt *mtest.T) {
+			iv := mt.Coll.Indexes()
+			_, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+				{
+					Keys: bson.D{{"foo", -1}},
+				},
+				{
+					Keys: bson.D{{"bar", 1}, {"baz", -1}},
+				},
 			})
+			assert.Nil(mt, err, "CreateMany error: %v", err)
+
+			evt := mt.GetStartedEvent()
+			assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
+
+			assert.Equal(mt, "createIndexes", evt.CommandName, "command name mismatch; expected createIndexes, got %s", evt.CommandName)
+
+			actual, err := evt.Command.LookupErr("writeConcern", "w")
+			assert.Nil(mt, err, "error getting writeConcern.w: %s", err)
+
+			wcVal := numberFromValue(mt, actual)
+			assert.Equal(mt, int64(1), wcVal, "expected writeConcern to be 1, got: %v", wcVal)
+		})
+		mt.RunOpts("commit quorum", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
+			intVal := options.CreateIndexes().SetCommitQuorumInt(1)
+			stringVal := options.CreateIndexes().SetCommitQuorumString("majority")
+			majority := options.CreateIndexes().SetCommitQuorumMajority()
+			votingMembers := options.CreateIndexes().SetCommitQuorumVotingMembers()
+
+			indexModel := mongo.IndexModel{
+				Keys: bson.D{{"x", 1}},
+			}
+
+			testCases := []struct {
+				name             string
+				opts             *options.CreateIndexesOptions
+				expectError      bool
+				expectedValue    interface{} // ignored if expectError is true
+				minServerVersion string
+				maxServerVersion string
+			}{
+				{"error on server versions before 4.4", majority, true, nil, "", "4.2"},
+				{"integer value", intVal, false, int32(1), "4.4", ""},
+				{"string value", stringVal, false, "majority", "4.4", ""},
+				{"majority", majority, false, "majority", "4.4", ""},
+				{"votingMembers", votingMembers, false, "votingMembers", "4.4", ""},
+			}
+			for _, tc := range testCases {
+				mtOpts := mtest.NewOptions().MinServerVersion(tc.minServerVersion).MaxServerVersion(tc.maxServerVersion)
+				mt.RunOpts(tc.name, mtOpts, func(mt *mtest.T) {
+					mt.ClearEvents()
+					_, err := mt.Coll.Indexes().CreateOne(mtest.Background, indexModel, tc.opts)
+					if tc.expectError {
+						assert.NotNil(mt, err, "expected CreateOne error, got nil")
+						return
+					}
+
+					assert.Nil(mt, err, "CreateOne error: %v", err)
+					cmd := mt.GetStartedEvent().Command
+					sentBSONValue, err := cmd.LookupErr("commitQuorum")
+					assert.Nil(mt, err, "expected commitQuorum in command %s", cmd)
+
+					var sentValue interface{}
+					err = sentBSONValue.Unmarshal(&sentValue)
+					assert.Nil(mt, err, "Unmarshal error: %v", err)
+
+					assert.Equal(mt, tc.expectedValue, sentValue, "expected commitQuorum value %v, got %v",
+						tc.expectedValue, sentValue)
+				})
+			}
+		})
 	})
 	mt.Run("drop one", func(mt *mtest.T) {
 		iv := mt.Coll.Indexes()

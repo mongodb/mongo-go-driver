@@ -1,0 +1,4 @@
+- Add CommitQuorum to CreateIndexesOptions 
+    - accepts any int32 + string ("majority" or "votingMembers") - done
+- Mark Background option in IndexOptions as deprecated starting in 4.2 - done
+- Manually raise error if option specified on pre-4.4 server
