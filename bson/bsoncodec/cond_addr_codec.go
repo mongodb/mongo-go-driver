@@ -18,7 +18,7 @@ type condAddrEncoder struct {
 	elseEnc    ValueEncoder
 }
 
-var _ ValueEncoder = &condAddrEncoder{}
+var _ ValueEncoder = (*condAddrEncoder)(nil)
 
 // newCondAddrEncoder returns an condAddrEncoder.
 func newCondAddrEncoder(canAddrEnc, elseEnc ValueEncoder) *condAddrEncoder {
@@ -43,7 +43,7 @@ type condAddrDecoder struct {
 	elseDec    ValueDecoder
 }
 
-var _ ValueDecoder = &condAddrDecoder{}
+var _ ValueDecoder = (*condAddrDecoder)(nil)
 
 // newCondAddrDecoder returns an CondAddrDecoder.
 func newCondAddrDecoder(canAddrDec, elseDec ValueDecoder) *condAddrDecoder {
