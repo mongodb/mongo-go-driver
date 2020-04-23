@@ -368,6 +368,8 @@ func (r *Registry) lookupInterfaceEncoder(t reflect.Type, allowAddr bool) (Value
 			return ienc.ve, true
 		}
 		if allowAddr && t.Kind() != reflect.Ptr && reflect.PtrTo(t).Implements(ienc.i) {
+			// if *t implements an interface, this will catch if t implements an interface further ahead
+			// in interfaceEncoders
 			defaultEnc, found := r.lookupInterfaceEncoder(t, false)
 			if !found {
 				defaultEnc, _ = r.kindEncoders[t.Kind()]
@@ -437,6 +439,8 @@ func (r *Registry) lookupInterfaceDecoder(t reflect.Type, allowAddr bool) (Value
 			return idec.vd, true
 		}
 		if allowAddr && t.Kind() != reflect.Ptr && reflect.PtrTo(t).Implements(idec.i) {
+			// if *t implements an interface, this will catch if t implements an interface further ahead
+			// in interfaceDecoders
 			defaultDec, found := r.lookupInterfaceDecoder(t, false)
 			if !found {
 				defaultDec, _ = r.kindDecoders[t.Kind()]
