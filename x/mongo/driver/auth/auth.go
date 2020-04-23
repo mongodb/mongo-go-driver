@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
 // AuthenticatorFactory constructs an authenticator.
@@ -56,6 +57,7 @@ type HandshakeOptions struct {
 	Compressors           []string
 	DBUser                string
 	PerformAuthentication func(description.Server) bool
+	ClusterClock          *session.ClusterClock
 }
 
 type authHandshaker struct {
@@ -74,7 +76,8 @@ func (ah *authHandshaker) GetDescription(ctx context.Context, addr address.Addre
 	op := operation.NewIsMaster().
 		AppName(ah.options.AppName).
 		Compressors(ah.options.Compressors).
-		SASLSupportedMechs(ah.options.DBUser)
+		SASLSupportedMechs(ah.options.DBUser).
+		ClusterClock(ah.options.ClusterClock)
 
 	if ah.options.Authenticator != nil {
 		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {

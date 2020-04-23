@@ -412,7 +412,8 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 		cmd := bson.D{{"create", coll.Name}}
 		cmd = append(cmd, coll.CreateOpts...)
 
-		if err := db.RunCommand(Background, cmd).Err(); err != nil {
+		cmdDb := t.GlobalClient().Database(db.Name())
+		if err := cmdDb.RunCommand(Background, cmd).Err(); err != nil {
 			// ignore NamespaceExists errors for idempotency
 
 			cmdErr, ok := err.(mongo.CommandError)
@@ -457,7 +458,7 @@ func (t *T) SetFailPoint(fp FailPoint) {
 		}
 	}
 
-	admin := t.Client.Database("admin")
+	admin := t.GlobalClient().Database("admin")
 	if err := admin.RunCommand(Background, fp).Err(); err != nil {
 		t.Fatalf("error creating fail point on server: %v", err)
 	}
@@ -515,7 +516,10 @@ func (t *T) CloneCollection(opts *options.CollectionOptions) {
 
 // GlobalClient returns a client configured with read concern majority, write concern majority, and read preference
 // primary. The returned client is not tied to the receiver and is valid outside the lifetime of the receiver.
-func (T) GlobalClient() *mongo.Client {
+func (t *T) GlobalClient() *mongo.Client {
+	if t.clientType == Pinned {
+		return testContext.pinnedClient
+	}
 	return testContext.client
 }
 
@@ -574,14 +578,17 @@ func (t *T) createTestClient() {
 	switch t.clientType {
 	case Default:
 		// only specify URI if the deployment is not set to avoid setting topology/server options along with the deployment
+		var uriOpts *options.ClientOptions
 		if clientOpts.Deployment == nil {
-			clientOpts.ApplyURI(testContext.connString.Original)
+			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
 		}
-		t.Client, err = mongo.NewClient(clientOpts)
+		// Specify the URI-based options first so the test can override them.
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Pinned:
 		// pin to first mongos
-		clientOpts.ApplyURI(testContext.connString.Original).SetHosts([]string{testContext.connString.Hosts[0]})
-		t.Client, err = mongo.NewClient(clientOpts)
+		pinnedHostList := []string{testContext.connString.Hosts[0]}
+		uriOpts := options.Client().ApplyURI(testContext.connString.Original).SetHosts(pinnedHostList)
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
 		clientOpts.PoolMonitor = nil

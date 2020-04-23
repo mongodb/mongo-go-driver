@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
@@ -40,14 +39,10 @@ var testContext struct {
 	topo             *topology.Topology
 	topoKind         TopologyKind
 	client           *mongo.Client // client used for setup and teardown
+	pinnedClient     *mongo.Client
 	serverVersion    string
 	authEnabled      bool
 	enterpriseServer bool
-}
-
-func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
-	wcMajority := writeconcern.New(writeconcern.WMajority())
-	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority))
 }
 
 // Setup initializes the current testing context.
@@ -84,17 +79,27 @@ func Setup() error {
 		return fmt.Errorf("error connecting topology: %v", err)
 	}
 
-	testContext.client, err = setupClient(testContext.connString, options.Client())
+	clientOpts := options.Client().
+		ApplyURI(testContext.connString.Original).
+		SetReadPreference(PrimaryRp).
+		SetWriteConcern(MajorityWc)
+	testContext.client, err = mongo.Connect(Background, clientOpts)
 	if err != nil {
 		return fmt.Errorf("error connecting test client: %v", err)
 	}
 
-	pingCtx, cancel := context.WithTimeout(Background, 2*time.Second)
-	defer cancel()
-	if err := testContext.client.Ping(pingCtx, readpref.Primary()); err != nil {
-		return fmt.Errorf("ping error: %v; make sure the deployment is running on URI %v", err,
-			testContext.connString.Original)
+	pinnedOpts := options.Client().
+		ApplyURI(testContext.connString.Original).
+		SetHosts([]string{testContext.connString.Hosts[0]}).
+		SetReadPreference(PrimaryRp).
+		SetWriteConcern(MajorityWc)
+	testContext.pinnedClient, err = mongo.Connect(Background, pinnedOpts)
+	if err != nil {
+		return fmt.Errorf("error connecting pinned test client: %v", err)
 	}
+
+	pingSetupClient(testContext.client)
+	pingSetupClient(testContext.pinnedClient)
 
 	if testContext.serverVersion, err = getServerVersion(); err != nil {
 		return fmt.Errorf("error getting server version: %v", err)
@@ -140,6 +145,17 @@ func Setup() error {
 	return nil
 }
 
+func pingSetupClient(client *mongo.Client) error {
+	pingCtx, cancel := context.WithTimeout(Background, 2*time.Second)
+	defer cancel()
+	if err := testContext.client.Ping(pingCtx, readpref.Primary()); err != nil {
+		return fmt.Errorf("ping error: %v; make sure the deployment is running on URI %v", err,
+			testContext.connString.Original)
+	}
+
+	return nil
+}
+
 // Teardown cleans up resources initialized by Setup.
 // This function must be called once after all tests have finished running.
 func Teardown() error {
@@ -147,6 +163,9 @@ func Teardown() error {
 		return fmt.Errorf("error dropping test database: %v", err)
 	}
 	if err := testContext.client.Disconnect(Background); err != nil {
+		return fmt.Errorf("error disconnecting test client: %v", err)
+	}
+	if err := testContext.pinnedClient.Disconnect(Background); err != nil {
 		return fmt.Errorf("error disconnecting test client: %v", err)
 	}
 	if err := testContext.topo.Disconnect(Background); err != nil {

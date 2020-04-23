@@ -69,6 +69,10 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 		}, options.RunCmd().SetReadPreference(readpref.Primary())).Err()
 		assert.Nil(mt, err, "replSetStepDown error: %v", err)
 
+		// Because this test forces the primary to step-down, run a write command using the global client so it can
+		// update its state and will not get NotMaster errors when executing operations for future tests.
+		mt.GlobalClient().Database(mtest.TestDb).RunCommand(mtest.Background, bson.M{"create": mt.Coll.Name()})
+
 		assert.True(mt, cur.Next(mtest.Background), "expected Next true, got false")
 		assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
 	})

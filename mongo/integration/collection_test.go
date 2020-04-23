@@ -910,7 +910,7 @@ func TestCollection(t *testing.T) {
 	})
 	mt.RunOpts("bulk write", noClientOpts, func(mt *mtest.T) {
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
-		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet).CreateClient(false)
+		wcTestOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false)
 		mt.RunOpts("write concern error", wcTestOpts, func(mt *mtest.T) {
 			filter := bson.D{{"foo", "bar"}}
 			update := bson.D{{"$set", bson.D{{"foo", 10}}}}
@@ -928,6 +928,13 @@ func TestCollection(t *testing.T) {
 			}
 			for _, tc := range testCases {
 				mt.Run(tc.name, func(mt *mtest.T) {
+					// On 2.6/3.0 servers, the update and delete commands don't result in a write concern timeout if
+					// there's nothing in the collection. To work around this, have mt.Coll be created normally, insert
+					// some documents via initCollection, and then call mt.CloneCollection to create the collection
+					// with an unsatisfiable write concern.
+					initCollection(mt, mt.Coll)
+
+					mt.CloneCollection(wcCollOpts)
 					_, err := mt.Coll.BulkWrite(mtest.Background, tc.models)
 					bwe, ok := err.(mongo.BulkWriteException)
 					assert.True(mt, ok, "expected error type %v, got %v", mongo.BulkWriteException{}, err)
