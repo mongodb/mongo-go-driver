@@ -81,11 +81,20 @@ func (op *Options) ClientOptions(opts *options.ClientOptions) *Options {
 	return op
 }
 
-// CreateClient specifies whether or not a client and collection should be created for a test. This should be set to
-// false when running a test that only runs other tests.
+// CreateClient specifies whether or not a client should be created for a test. This should be set to false when running
+// a test that only runs other tests.
 func (op *Options) CreateClient(create bool) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.createClient = &create
+	})
+	return op
+}
+
+// CreateCollection specifies whether or not a collection should be created for a test. This should be set to false when
+// running a test that only runs other tests.
+func (op *Options) CreateCollection(create bool) *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.createCollection = &create
 	})
 	return op
 }

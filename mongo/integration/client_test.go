@@ -29,6 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -414,17 +415,18 @@ func TestClient(t *testing.T) {
 			assert.Equal(mt, testAppName, appName, "expected app name %v at index %d, got %v", testAppName, idx, appName)
 		}
 	})
+
 	// Test that direct connections work as expected.
-	globalTopo := mt.GlobalTopology()
-	firstServerAddr := globalTopo.Description().Servers[0].Addr
+	firstServerAddr := getPrimaryAddress(mt)
 	directConnectionOpts := options.Client().
 		ApplyURI(fmt.Sprintf("mongodb://%s", firstServerAddr)).
 		SetReadPreference(readpref.Primary()).
 		SetDirect(true)
 	mtOpts := mtest.NewOptions().
 		ClientOptions(directConnectionOpts).
-		MinServerVersion("3.6"). // Minimum server version 3.6 to force OP_MSG
-		Topologies(mtest.ReplicaSet)
+		CreateCollection(false).
+		MinServerVersion("3.6").     // Minimum server version 3.6 to force OP_MSG.
+		Topologies(mtest.ReplicaSet) // Read preference isn't sent to standalones so we can test on replica sets.
 	mt.RunOpts("direct connection made", mtOpts, func(mt *mtest.T) {
 		_, err := mt.Coll.Find(mtest.Background, bson.D{})
 		assert.Nil(mt, err, "Find error: %v", err)
@@ -438,6 +440,19 @@ func TestClient(t *testing.T) {
 		mode := modeVal.StringValue()
 		assert.Equal(mt, mode, "primaryPreferred", "expected read preference mode primaryPreferred, got %v", mode)
 	})
+}
+
+func getPrimaryAddress(mt *mtest.T) string {
+	mt.Helper()
+	topo := mt.GlobalTopology()
+	for _, server := range topo.Description().Servers {
+		if server.Kind == description.RSPrimary {
+			return server.Addr.String()
+		}
+	}
+
+	mt.Fatalf("could not find primary; topology description: %s", topo)
+	return ""
 }
 
 // proxyDialer is a ContextDialer implementation that wraps a net.Dialer and records the messages sent and received
