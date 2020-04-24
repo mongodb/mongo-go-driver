@@ -37,3 +37,42 @@ func TestOptionsSetting(t *testing.T) {
 	assert.Nil(t, err, "error from newServerConfig: %v", err)
 	assert.Equal(t, name, serverConf.appname, "expected appname to be: %v, got: %v", name, serverConf.appname)
 }
+
+func TestDirectConnectionFromConnString(t *testing.T) {
+	singleConnect := connstring.ConnString{
+		Connect:    connstring.SingleConnect,
+		ConnectSet: true,
+	}
+	autoConnect := connstring.ConnString{
+		Connect:    connstring.AutoConnect,
+		ConnectSet: true,
+	}
+	directConnectionTrue := connstring.ConnString{
+		DirectConnection:    true,
+		DirectConnectionSet: true,
+	}
+	directConnectionFalse := connstring.ConnString{
+		DirectConnection:    false,
+		DirectConnectionSet: true,
+	}
+	defaultConnString := connstring.ConnString{}
+
+	testCases := []struct {
+		name string
+		cs   connstring.ConnString
+		mode MonitorMode
+	}{
+		{"connect=direct", singleConnect, SingleMode},
+		{"connect=automatic", autoConnect, AutomaticMode},
+		{"directConnection=true", directConnectionTrue, SingleMode},
+		{"directConnection=false", directConnectionFalse, AutomaticMode},
+		{"default", defaultConnString, AutomaticMode},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return tc.cs }))
+			assert.Nil(t, err, "topology.New error: %v", err)
+			assert.Equal(t, tc.mode, topo.cfg.mode, "expected mode %v, got %v", tc.mode, topo.cfg.mode)
+		})
+	}
+}

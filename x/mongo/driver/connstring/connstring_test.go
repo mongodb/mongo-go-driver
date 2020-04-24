@@ -129,6 +129,36 @@ func TestConnect(t *testing.T) {
 	}
 }
 
+func TestDirectConnection(t *testing.T) {
+	testCases := []struct {
+		s        string
+		expected bool
+		err      bool
+	}{
+		{"directConnection=true", true, false},
+		{"directConnection=false", false, false},
+		{"directConnection=TRUE", true, false},
+		{"directConnection=FALSE", false, false},
+		{"directConnection=blah", false, true},
+	}
+
+	for _, tc := range testCases {
+		s := fmt.Sprintf("mongodb://localhost/?%s", tc.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.ParseAndValidate(s)
+			if tc.err {
+				assert.NotNil(t, err, "expected error, got nil")
+				return
+			}
+
+			assert.Nil(t, err, "expected no error, got %v", err)
+			assert.Equal(t, tc.expected, cs.DirectConnection, "expected DirectConnection value %v, got %v", tc.expected,
+				cs.DirectConnection)
+			assert.True(t, cs.DirectConnectionSet, "expected DirectConnectionSet to be true, got false")
+		})
+	}
+}
+
 func TestConnectTimeout(t *testing.T) {
 	tests := []struct {
 		s        string
