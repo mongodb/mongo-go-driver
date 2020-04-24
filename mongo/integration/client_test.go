@@ -29,7 +29,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -417,7 +416,7 @@ func TestClient(t *testing.T) {
 	})
 
 	// Test that direct connections work as expected.
-	firstServerAddr := getPrimaryAddress(mt)
+	firstServerAddr := mt.GlobalTopology().Description().Servers[0].Addr
 	directConnectionOpts := options.Client().
 		ApplyURI(fmt.Sprintf("mongodb://%s", firstServerAddr)).
 		SetReadPreference(readpref.Primary()).
@@ -440,18 +439,6 @@ func TestClient(t *testing.T) {
 		mode := modeVal.StringValue()
 		assert.Equal(mt, mode, "primaryPreferred", "expected read preference mode primaryPreferred, got %v", mode)
 	})
-}
-
-func getPrimaryAddress(mt *mtest.T) string {
-	mt.Helper()
-	topo := mt.GlobalTopology()
-	for _, server := range topo.Description().Servers {
-		if server.Kind == description.RSPrimary {
-			return server.Addr.String()
-		}
-	}
-
-	return ""
 }
 
 // proxyDialer is a ContextDialer implementation that wraps a net.Dialer and records the messages sent and received
