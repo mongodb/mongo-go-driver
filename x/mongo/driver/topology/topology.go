@@ -127,11 +127,14 @@ func New(opts ...Option) (*Topology, error) {
 		return t.apply(context.TODO(), desc)
 	}
 
+	// A replica set name sets the initial topology type to ReplicaSetNoPrimary unless a direct connection is also
+	// specified, in which case the initial type is Single.
 	if cfg.replicaSetName != "" {
 		t.fsm.SetName = cfg.replicaSetName
 		t.fsm.Kind = description.ReplicaSetNoPrimary
 	}
 
+	// A direct connection unconditionally sets the topology type to Single.
 	if cfg.mode == SingleMode {
 		t.fsm.Kind = description.Single
 	}

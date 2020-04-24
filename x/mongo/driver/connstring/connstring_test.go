@@ -102,6 +102,17 @@ func TestConnect(t *testing.T) {
 		{s: "connect=AUTOMATIC", expected: connstring.AutoConnect},
 		{s: "connect=direct", expected: connstring.SingleConnect},
 		{s: "connect=blah", err: true},
+		// Combinations of connect and directConnection where connect is set first - conflicting combinations must
+		// error.
+		{s: "connect=automatic&directConnection=true", err: true},
+		{s: "connect=automatic&directConnection=false", expected: connstring.AutoConnect},
+		{s: "connect=direct&directConnection=true", expected: connstring.SingleConnect},
+		{s: "connect=direct&directConnection=false", err: true},
+		// Combinations of connect and directConnection where directConnection is set first.
+		{s: "directConnection=true&connect=automatic", err: true},
+		{s: "directConnection=false&connect=automatic", expected: connstring.AutoConnect},
+		{s: "directConnection=true&connect=direct", expected: connstring.SingleConnect},
+		{s: "directConnection=false&connect=direct", err: true},
 	}
 
 	for _, test := range tests {
@@ -114,6 +125,36 @@ func TestConnect(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, test.expected, cs.Connect)
 			}
+		})
+	}
+}
+
+func TestDirectConnection(t *testing.T) {
+	testCases := []struct {
+		s        string
+		expected bool
+		err      bool
+	}{
+		{"directConnection=true", true, false},
+		{"directConnection=false", false, false},
+		{"directConnection=TRUE", true, false},
+		{"directConnection=FALSE", false, false},
+		{"directConnection=blah", false, true},
+	}
+
+	for _, tc := range testCases {
+		s := fmt.Sprintf("mongodb://localhost/?%s", tc.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.ParseAndValidate(s)
+			if tc.err {
+				assert.NotNil(t, err, "expected error, got nil")
+				return
+			}
+
+			assert.Nil(t, err, "expected no error, got %v", err)
+			assert.Equal(t, tc.expected, cs.DirectConnection, "expected DirectConnection value %v, got %v", tc.expected,
+				cs.DirectConnection)
+			assert.True(t, cs.DirectConnectionSet, "expected DirectConnectionSet to be true, got false")
 		})
 	}
 }

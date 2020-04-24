@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
@@ -23,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
 var tClientOptions = reflect.TypeOf(&ClientOptions{})
@@ -436,19 +438,32 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsDisableOCSPEndpointCheck=true",
 				baseClient().SetDisableOCSPEndpointCheck(true),
 			},
+			{
+				"directConnection",
+				"mongodb://localhost/?directConnection=true",
+				baseClient().SetDirect(true),
+			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				result := Client().ApplyURI(tc.uri)
-				tc.result.uri = tc.uri // manually add URI to avoid writing it in each test
+
+				// Manually add the URI and ConnString to the test expectations to avoid adding them in each test
+				// definition. The ConnString should only be recorded if there was no error while parsing.
+				tc.result.uri = tc.uri
+				cs, err := connstring.ParseAndValidate(tc.uri)
+				if err == nil {
+					tc.result.cs = &cs
+				}
+
 				if diff := cmp.Diff(
 					tc.result, result,
-					cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
+					cmp.AllowUnexported(ClientOptions{}, readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
 					cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
 					cmp.Comparer(compareTLSConfig),
 					cmp.Comparer(compareErrors),
-					cmp.AllowUnexported(ClientOptions{}),
+					cmpopts.IgnoreFields(connstring.ConnString{}, "SSLClientCertificateKeyPassword"),
 				); diff != "" {
 					t.Errorf("URI did not apply correctly: (-want +got)\n%s", diff)
 				}
@@ -484,6 +499,36 @@ func TestClientOptions(t *testing.T) {
 				assert.True(t, containsMsg, "expected error %v, got %v", tc.err, err)
 			})
 		}
+	})
+	t.Run("direct connection validation", func(t *testing.T) {
+		t.Run("multiple hosts", func(t *testing.T) {
+			expectedErr := errors.New("a direct connection cannot be made if multiple hosts are specified")
+
+			testCases := []struct {
+				name string
+				opts *ClientOptions
+			}{
+				{"hosts in URI", Client().ApplyURI("mongodb://localhost,localhost2")},
+				{"hosts in options", Client().SetHosts([]string{"localhost", "localhost2"})},
+			}
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					err := tc.opts.SetDirect(true).Validate()
+					assert.NotNil(t, err, "expected errror, got nil")
+					assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
+				})
+			}
+		})
+		t.Run("srv", func(t *testing.T) {
+			expectedErr := errors.New("a direct connection cannot be made if an SRV URI is used")
+			// Use a non-SRV URI and manually set the scheme because using an SRV URI would force an SRV lookup.
+			opts := Client().ApplyURI("mongodb://localhost:27017")
+			opts.cs.Scheme = connstring.SchemeMongoDBSRV
+
+			err := opts.SetDirect(true).Validate()
+			assert.NotNil(t, err, "expected errror, got nil")
+			assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
+		})
 	})
 }
 

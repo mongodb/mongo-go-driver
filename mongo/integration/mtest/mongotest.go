@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 var (
@@ -80,6 +81,7 @@ type T struct {
 
 	// members for only this T instance
 	createClient     *bool
+	createCollection *bool
 	runOn            []RunOnBlock
 	mockDeployment   *mockDeployment // nil if the test is not being run against a mock
 	mockResponses    []bson.D
@@ -519,6 +521,11 @@ func (T) GlobalClient() *mongo.Client {
 	return testContext.client
 }
 
+// GlobalTopology returns the Topology backing the global Client.
+func (T) GlobalTopology() *topology.Topology {
+	return testContext.topo
+}
+
 func sanitizeCollectionName(db string, coll string) string {
 	// Collections can't have "$" in their names, so we substitute it with "%".
 	coll = strings.Replace(coll, "$", "%", -1)
@@ -574,14 +581,17 @@ func (t *T) createTestClient() {
 	switch t.clientType {
 	case Default:
 		// only specify URI if the deployment is not set to avoid setting topology/server options along with the deployment
+		var uriOpts *options.ClientOptions
 		if clientOpts.Deployment == nil {
-			clientOpts.ApplyURI(testContext.connString.Original)
+			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
 		}
-		t.Client, err = mongo.NewClient(clientOpts)
+		// Specify the URI-based options first so the test can override them.
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Pinned:
 		// pin to first mongos
-		clientOpts.ApplyURI(testContext.connString.Original).SetHosts([]string{testContext.connString.Hosts[0]})
-		t.Client, err = mongo.NewClient(clientOpts)
+		pinnedHostList := []string{testContext.connString.Hosts[0]}
+		uriOpts := options.Client().ApplyURI(testContext.connString.Original).SetHosts(pinnedHostList)
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
 		clientOpts.PoolMonitor = nil
@@ -600,11 +610,13 @@ func (t *T) createTestClient() {
 func (t *T) createTestCollection() {
 	t.DB = t.Client.Database(t.dbName)
 	t.createdColls = t.createdColls[:0]
+
+	createOnServer := t.createCollection == nil || *t.createCollection
 	t.Coll = t.CreateCollection(Collection{
 		Name:       t.collName,
 		CreateOpts: t.collCreateOpts,
 		Opts:       t.collOpts,
-	}, true)
+	}, createOnServer)
 }
 
 // matchesServerVersion checks if the current server version is in the range [min, max]. Server versions will only be

@@ -115,14 +115,8 @@ func setUpFSM(t *testing.T, uri string) *fsm {
 	fsm.SetName = cs.ReplicaSet
 	if fsm.SetName != "" {
 		fsm.Kind = description.ReplicaSetNoPrimary
-	} else if len(cs.Hosts) == 1 {
-		fsm.Kind = description.Single
 	}
-
-	// GODRIVER-1578: The new test requires support for directConnection, which will be added in follow-up ticket
-	// GODRIVER-1486. In this case, look for "directconnection" in the parsed URI's set of unrecognized options and
-	// emulate direct connection behavior.
-	if dcValues, ok := cs.UnknownOptions["directconnection"]; ok && dcValues[0] == "true" {
+	if cs.DirectConnectionSet && cs.DirectConnection {
 		fsm.Kind = description.Single
 	}
 

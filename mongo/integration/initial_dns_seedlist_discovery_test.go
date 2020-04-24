@@ -62,13 +62,13 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		mt.Skip("skipping to avoid go1.11 problem with multiple strings in one TXT record")
 	}
 
-	cs, err := connstring.Parse(test.URI)
+	cs, err := connstring.ParseAndValidate(test.URI)
 	if test.Error {
 		assert.NotNil(mt, err, "expected URI parsing error, got nil")
 		return
 	}
 
-	assert.Nil(mt, err, "Connect error: %v", err)
+	assert.Nil(mt, err, "ParseAndValidate error: %v", err)
 	assert.Equal(mt, connstring.SchemeMongoDBSRV, cs.Scheme,
 		"expected scheme %v, got %v", connstring.SchemeMongoDBSRV, cs.Scheme)
 

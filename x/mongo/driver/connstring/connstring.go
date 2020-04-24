@@ -60,6 +60,8 @@ type ConnString struct {
 	Compressors                        []string
 	Connect                            ConnectMode
 	ConnectSet                         bool
+	DirectConnection                   bool
+	DirectConnectionSet                bool
 	ConnectTimeout                     time.Duration
 	ConnectTimeoutSet                  bool
 	Database                           string
@@ -151,11 +153,25 @@ func (u *ConnString) Validate() error {
 // to the server.
 type ConnectMode uint8
 
+var _ fmt.Stringer = ConnectMode(0)
+
 // ConnectMode constants.
 const (
 	AutoConnect ConnectMode = iota
 	SingleConnect
 )
+
+// String implements the fmt.Stringer interface.
+func (c ConnectMode) String() string {
+	switch c {
+	case AutoConnect:
+		return "automatic"
+	case SingleConnect:
+		return "direct"
+	default:
+		return "unknown"
+	}
+}
 
 // Scheme constants
 const (
@@ -312,6 +328,16 @@ func (p *parser) validate() error {
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if p.WNumberSet && p.WNumber == 0 && p.JSet && p.J {
 		return writeconcern.ErrInconsistent
+	}
+
+	// Check for invalid use of direct connections.
+	if (p.ConnectSet && p.Connect == SingleConnect) || (p.DirectConnectionSet && p.DirectConnection) {
+		if len(p.Hosts) > 1 {
+			return errors.New("a direct connection cannot be made if multiple hosts are specified")
+		}
+		if p.Scheme == SchemeMongoDBSRV {
+			return errors.New("a direct connection cannot be made if an SRV URI is used")
+		}
 	}
 
 	return nil
@@ -555,8 +581,34 @@ func (p *parser) addOption(pair string) error {
 		default:
 			return fmt.Errorf("invalid 'connect' value: %s", value)
 		}
+		if p.DirectConnectionSet {
+			expectedValue := p.Connect == SingleConnect // directConnection should be true if connect=direct
+			if p.DirectConnection != expectedValue {
+				return fmt.Errorf("options connect=%s and directConnection=%v conflict", value, p.DirectConnection)
+			}
+		}
 
 		p.ConnectSet = true
+	case "directconnection":
+		switch strings.ToLower(value) {
+		case "true":
+			p.DirectConnection = true
+		case "false":
+		default:
+			return fmt.Errorf("invalid 'directConnection' value: %s", value)
+		}
+
+		if p.ConnectSet {
+			expectedValue := AutoConnect
+			if p.DirectConnection {
+				expectedValue = SingleConnect
+			}
+
+			if p.Connect != expectedValue {
+				return fmt.Errorf("options connect=%s and directConnection=%s conflict", p.Connect, value)
+			}
+		}
+		p.DirectConnectionSet = true
 	case "connecttimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {

@@ -68,8 +68,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			c.serverOpts = append(c.serverOpts, WithServerAppName(func(string) string { return cs.AppName }))
 		}
 
-		switch cs.Connect {
-		case connstring.SingleConnect:
+		if cs.Connect == connstring.SingleConnect || (cs.DirectConnectionSet && cs.DirectConnection) {
 			c.mode = SingleMode
 		}
 
