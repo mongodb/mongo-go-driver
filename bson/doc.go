@@ -72,8 +72,8 @@
 //
 // Structs
 //
-// Structs can be marshalled/unmarshalled to/from BSON. When transforming structs to/from BSON, the following rules
-// apply:
+// Structs can be marshalled/unmarshalled to/from BSON or Extended JSON. When transforming structs to/from BSON or Extended
+// JSON, the following rules apply:
 //
 //     1. Only exported fields in structs will be marshalled or unmarshalled.
 //
@@ -89,7 +89,10 @@
 //     5. When unmarshalling, a field of type interface{} will follow the D/M type mappings listed above. BSON documents
 //     unmarshalled into an interface{} field will be unmarshalled as a D.
 //
-// The following struct tags can be used to configure behavior:
+// The encoding of each struct field can be customized by the "bson" struct tag.
+// The tag gives the name of the field, possibly followed by a comma-separated list of options.
+// The name may be empty in order to specify options without overriding the default field name. The following options can be used
+// to configure behavior:
 //
 //     1. omitempty: If the omitempty struct tag is specified on a field, the field will not be marshalled if it is set to
 //     the zero value. By default, a struct field is only considered empty if the field's type implements the Zeroer
