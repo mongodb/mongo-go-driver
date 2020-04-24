@@ -137,6 +137,7 @@ func TestIndexView(t *testing.T) {
 			})
 			assert.NotNil(mt, err, "expected CreateOne error, got nil")
 		})
+		// Only run on replica sets as commitQuorum is not supported on standalones.
 		mt.RunOpts("commit quorum", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
 			intVal := options.CreateIndexes().SetCommitQuorumInt(1)
 			stringVal := options.CreateIndexes().SetCommitQuorumString("majority")
@@ -234,6 +235,7 @@ func TestIndexView(t *testing.T) {
 			wcVal := numberFromValue(mt, actual)
 			assert.Equal(mt, int64(1), wcVal, "expected writeConcern to be 1, got: %v", wcVal)
 		})
+		// Only run on replica sets as commitQuorum is not supported on standalones.
 		mt.RunOpts("commit quorum", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
 			intVal := options.CreateIndexes().SetCommitQuorumInt(1)
 			stringVal := options.CreateIndexes().SetCommitQuorumString("majority")

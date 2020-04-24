@@ -18,9 +18,9 @@ type CreateIndexesOptions struct {
 	// semantics of the values are as follows:
 	//
 	// 1. String: specifies a tag. All members with that tag must complete the build.
-	// 2. int: the number of memebers that must complete the build.
+	// 2. int: the number of members that must complete the build.
 	// 3. "majority": A special value to indicate that more than half the nodes must complete the build.
-	// 4. "voitingMembers": A special value to indicate that all voting data-bearing nodes must complete.
+	// 4. "votingMembers": A special value to indicate that all voting data-bearing nodes must complete.
 	//
 	// This option is only available on MongoDB versions >= 4.4. A client-side error will be returned if the option
 	// is specified for MongoDB versions <= 4.2. The default value is nil, meaning that the server-side default will be
