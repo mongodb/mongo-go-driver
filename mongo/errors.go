@@ -26,6 +26,9 @@ var ErrClientDisconnected = errors.New("client is disconnected")
 // ErrNilDocument is returned when a nil document is passed to a CRUD method.
 var ErrNilDocument = errors.New("document is nil")
 
+// ErrNilValue is returned when a nil value is passed to a CRUD method.
+var ErrNilValue = errors.New("value is nil")
+
 // ErrEmptySlice is returned when an empty slice is passed to a CRUD method that requires a non-empty slice.
 var ErrEmptySlice = errors.New("must provide at least one element in input slice")
 
