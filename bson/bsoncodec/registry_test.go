@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 func TestRegistry(t *testing.T) {
@@ -252,15 +253,6 @@ func TestRegistry(t *testing.T) {
 					false,
 				},
 				{
-					// lookup a type whose pointer implements an interface and expect that the registered hook is
-					// returned
-					"interface implementation with hook (pointer)",
-					ti3Impl,
-					fc3,
-					nil,
-					false,
-				},
-				{
 					// lookup a pointer to a type where the pointer implements an interface and expect that the
 					// registered hook is returned
 					"interface pointer to implementation with hook (pointer)",
@@ -351,6 +343,36 @@ func TestRegistry(t *testing.T) {
 					})
 				})
 			}
+			// lookup a type whose pointer implements an interface and expect that the registered hook is
+			// returned
+			t.Run("interface implementation with hook (pointer)", func(t *testing.T) {
+				t.Run("Encoder", func(t *testing.T) {
+					gotEnc, err := reg.LookupEncoder(ti3Impl)
+					assert.Nil(t, err, "LookupEncoder error: %v", err)
+
+					cae, ok := gotEnc.(*condAddrEncoder)
+					assert.True(t, ok, "Expected CondAddrEncoder, got %T", gotEnc)
+					if !cmp.Equal(cae.canAddrEnc, fc3, allowunexported, cmp.Comparer(comparepc)) {
+						t.Errorf("expected canAddrEnc %v, got %v", cae.canAddrEnc, fc3)
+					}
+					if !cmp.Equal(cae.elseEnc, fsc, allowunexported, cmp.Comparer(comparepc)) {
+						t.Errorf("expected elseEnc %v, got %v", cae.elseEnc, fsc)
+					}
+				})
+				t.Run("Decoder", func(t *testing.T) {
+					gotDec, err := reg.LookupDecoder(ti3Impl)
+					assert.Nil(t, err, "LookupDecoder error: %v", err)
+
+					cad, ok := gotDec.(*condAddrDecoder)
+					assert.True(t, ok, "Expected CondAddrDecoder, got %T", gotDec)
+					if !cmp.Equal(cad.canAddrDec, fc3, allowunexported, cmp.Comparer(comparepc)) {
+						t.Errorf("expected canAddrDec %v, got %v", cad.canAddrDec, fc3)
+					}
+					if !cmp.Equal(cad.elseDec, fsc, allowunexported, cmp.Comparer(comparepc)) {
+						t.Errorf("expected elseDec %v, got %v", cad.elseDec, fsc)
+					}
+				})
+			})
 		})
 	})
 	t.Run("Type Map", func(t *testing.T) {
