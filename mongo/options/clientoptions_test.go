@@ -1,6 +1,7 @@
 package options
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -353,7 +354,9 @@ func TestClientOptions(t *testing.T) {
 			{
 				"TLS CACertificate",
 				"mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/ca.pem",
-				baseClient().SetTLSConfig(&tls.Config{RootCAs: x509.NewCertPool()}),
+				baseClient().SetTLSConfig(&tls.Config{
+					RootCAs: createCertPool(t, "testdata/ca.pem"),
+				}),
 			},
 			{
 				"TLS Insecure",
@@ -579,6 +582,20 @@ func compareTLSConfig(cfg1, cfg2 *tls.Config) bool {
 
 	if (cfg1.RootCAs == nil && cfg1.RootCAs != nil) || (cfg1.RootCAs != nil && cfg1.RootCAs == nil) {
 		return false
+	}
+
+	if cfg1.RootCAs != nil {
+		cfg1Subjects := cfg1.RootCAs.Subjects()
+		cfg2Subjects := cfg2.RootCAs.Subjects()
+		if len(cfg1Subjects) != len(cfg2Subjects) {
+			return false
+		}
+
+		for idx, firstSubject := range cfg1Subjects {
+			if !bytes.Equal(firstSubject, cfg2Subjects[idx]) {
+				return false
+			}
+		}
 	}
 
 	if len(cfg1.Certificates) != len(cfg2.Certificates) {
