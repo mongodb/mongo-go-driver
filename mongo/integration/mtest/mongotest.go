@@ -207,7 +207,7 @@ func (t *T) RunOpts(name string, opts *Options, callback func(*T)) {
 			}
 		}
 		// create a collection for this test
-		if sub.Client != nil && (sub.createCollection == nil || *sub.createCollection) {
+		if sub.Client != nil {
 			sub.createTestCollection()
 		}
 
@@ -610,11 +610,13 @@ func (t *T) createTestClient() {
 func (t *T) createTestCollection() {
 	t.DB = t.Client.Database(t.dbName)
 	t.createdColls = t.createdColls[:0]
+
+	createOnServer := t.createCollection == nil || *t.createCollection
 	t.Coll = t.CreateCollection(Collection{
 		Name:       t.collName,
 		CreateOpts: t.collCreateOpts,
 		Opts:       t.collOpts,
-	}, true)
+	}, createOnServer)
 }
 
 // matchesServerVersion checks if the current server version is in the range [min, max]. Server versions will only be

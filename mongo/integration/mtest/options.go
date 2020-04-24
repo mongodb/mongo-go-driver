@@ -90,8 +90,7 @@ func (op *Options) CreateClient(create bool) *Options {
 	return op
 }
 
-// CreateCollection specifies whether or not a collection should be created for a test. This should be set to false when
-// running a test that only runs other tests.
+// CreateCollection specifies whether or not a collection should be created for a test. The default value is true.
 func (op *Options) CreateCollection(create bool) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.createCollection = &create

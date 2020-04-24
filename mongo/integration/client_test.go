@@ -451,7 +451,6 @@ func getPrimaryAddress(mt *mtest.T) string {
 		}
 	}
 
-	mt.Fatalf("could not find primary; topology description: %s", topo)
 	return ""
 }
 
