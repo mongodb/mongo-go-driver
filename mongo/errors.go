@@ -37,7 +37,13 @@ func replaceErrors(err error) error {
 		return ErrClientDisconnected
 	}
 	if de, ok := err.(driver.Error); ok {
-		return CommandError{Code: de.Code, Message: de.Message, Labels: de.Labels, Name: de.Name}
+		return CommandError{
+			Code:    de.Code,
+			Message: de.Message,
+			Labels:  de.Labels,
+			Name:    de.Name,
+			Wrapped: de.Wrapped,
+		}
 	}
 	if qe, ok := err.(driver.QueryFailureError); ok {
 		// qe.Message is "command failure"
@@ -83,6 +89,11 @@ func (ekve EncryptionKeyVaultError) Error() string {
 	return fmt.Sprintf("key vault communication error: %v", ekve.Wrapped)
 }
 
+// Unwrap returns the underlying error.
+func (ekve EncryptionKeyVaultError) Unwrap() error {
+	return ekve.Wrapped
+}
+
 // MongocryptdError represents an error while communicating with mongocryptd during client-side encryption.
 type MongocryptdError struct {
 	Wrapped error
@@ -93,12 +104,18 @@ func (e MongocryptdError) Error() string {
 	return fmt.Sprintf("mongocryptd communication error: %v", e.Wrapped)
 }
 
+// Unwrap returns the underlying error.
+func (e MongocryptdError) Unwrap() error {
+	return e.Wrapped
+}
+
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
 	Code    int32
 	Message string
 	Labels  []string // Categories to which the error belongs
 	Name    string   // A human-readable name corresponding to the error code
+	Wrapped error    // The underlying error, if one exists.
 }
 
 // Error implements the error interface.
@@ -107,6 +124,11 @@ func (e CommandError) Error() string {
 		return fmt.Sprintf("(%v) %v", e.Name, e.Message)
 	}
 	return e.Message
+}
+
+// Unwrap returns the underlying error.
+func (e CommandError) Unwrap() error {
+	return e.Wrapped
 }
 
 // HasErrorLabel returns true if the error contains the specified label.

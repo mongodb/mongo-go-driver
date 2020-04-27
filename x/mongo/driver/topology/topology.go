@@ -325,7 +325,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		if !doneOnce {
 			// for the first pass, select a server from the current description.
 			// this improves selection speed for up-to-date topology descriptions.
-			suitable, selectErr = t.selectServerFromDescription(ctx, t.Description(), selectionState)
+			suitable, selectErr = t.selectServerFromDescription(t.Description(), selectionState)
 			doneOnce = true
 		} else {
 			// if the first pass didn't select a server, the previous description did not contain a suitable server, so
@@ -450,7 +450,7 @@ func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptio
 		case current = <-subscriptionCh:
 		}
 
-		suitable, err := t.selectServerFromDescription(ctx, current, selectionState)
+		suitable, err := t.selectServerFromDescription(current, selectionState)
 		if err != nil {
 			return nil, err
 		}
@@ -463,7 +463,7 @@ func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptio
 }
 
 // selectServerFromDescription process the given topology description and returns a slice of suitable servers.
-func (t *Topology) selectServerFromDescription(ctx context.Context, desc description.Topology,
+func (t *Topology) selectServerFromDescription(desc description.Topology,
 	selectionState serverSelectionState) ([]description.Server, error) {
 
 	// Unlike selectServerFromSubscription, this code path does not check ctx.Done or selectionState.timeoutChan because

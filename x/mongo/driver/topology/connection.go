@@ -541,7 +541,7 @@ func configureTLS(ctx context.Context, nc net.Conn, addr address.Address, config
 			return nil, ocspErr
 		}
 	case <-ctx.Done():
-		return nil, errors.New("server connection cancelled/timeout during TLS handshake")
+		return nil, ctx.Err()
 	}
 	return client, nil
 }
