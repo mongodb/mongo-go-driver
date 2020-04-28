@@ -54,14 +54,6 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 // Setup initializes the current testing context.
 // This function must only be called one time and must be called before any tests run.
 func Setup() error {
-	defer func() {
-		fmt.Println("===Detected Details===")
-		fmt.Printf("%s\n\n", testContext.topo)
-		fmt.Printf("auth: %v\nssl: %v\n", testContext.authEnabled, testContext.sslEnabled)
-		fmt.Printf("connstring: %v\n", testContext.connString)
-		fmt.Println("==Detected Details===")
-	}()
-
 	var err error
 	testContext.connString, err = getConnString()
 	if err != nil {

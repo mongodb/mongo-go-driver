@@ -71,7 +71,7 @@ func TestClient(t *testing.T) {
 
 		assert.Equal(mt, int64(-10), got.ID, "expected ID -10, got %v", got.ID)
 	})
-	mt.RunOpts("tls connection", mtest.NewOptions().MinServerVersion("3.0").Auth(true), func(mt *mtest.T) {
+	mt.RunOpts("tls connection", mtest.NewOptions().MinServerVersion("3.0").SSL(true), func(mt *mtest.T) {
 		var result bson.Raw
 		err := mt.Coll.Database().RunCommand(mtest.Background, bson.D{
 			{"serverStatus", 1},
@@ -86,7 +86,7 @@ func TestClient(t *testing.T) {
 		_, found = security.Document().LookupErr("SSLServerHasCertificateAuthority")
 		assert.Nil(mt, found, "SSLServerHasCertificateAuthority not found in result")
 	})
-	mt.RunOpts("x509", mtest.NewOptions().Auth(true), func(mt *mtest.T) {
+	mt.RunOpts("x509", mtest.NewOptions().Auth(true).SSL(true), func(mt *mtest.T) {
 		const user = "C=US,ST=New York,L=New York City,O=MongoDB,OU=other,CN=external"
 		db := mt.Client.Database("$external")
 
