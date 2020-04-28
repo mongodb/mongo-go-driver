@@ -454,11 +454,6 @@ type proxyDialer struct {
 	sync.Mutex
 	messages []proxyMessage
 	sentMap  sync.Map
-
-	// addressTranslations maps dialed addresses to the remote addresses reported by the created connections if they
-	// differ. This can happen if a connection is dialed to a host name, in which case the reported remote address will
-	// be the resolved IP address.
-	addressTranslations sync.Map
 }
 
 var _ options.ContextDialer = (*proxyDialer)(nil)
@@ -474,10 +469,6 @@ func (p *proxyDialer) DialContext(ctx context.Context, network, address string) 
 	netConn, err := p.Dialer.DialContext(ctx, network, address)
 	if err != nil {
 		return netConn, err
-	}
-
-	if remoteAddr := netConn.RemoteAddr().String(); remoteAddr != address {
-		p.addressTranslations.Store(remoteAddr, address)
 	}
 
 	proxy := &proxyConn{
@@ -501,26 +492,20 @@ func (p *proxyDialer) storeSentMessage(msg []byte) {
 }
 
 // storeReceivedMessage stores a copy of the wire message being received from the server.
-func (p *proxyDialer) storeReceivedMessage(msg []byte, connectionAddr string) {
+func (p *proxyDialer) storeReceivedMessage(msg []byte) {
 	p.Lock()
 	defer p.Unlock()
 
 	msgCopy := make(wiremessage.WireMessage, len(msg))
 	copy(msgCopy, msg)
 
-	serverAddr := connectionAddr
-	if translated, ok := p.addressTranslations.Load(serverAddr); ok {
-		serverAddr = translated.(string)
-	}
-
 	_, _, responseTo, _, _, _ := wiremessage.ReadHeader(msgCopy)
 	sentMsg, _ := p.sentMap.Load(responseTo)
 	p.sentMap.Delete(responseTo)
 
 	proxyMsg := proxyMessage{
-		sent:          sentMsg.(wiremessage.WireMessage),
-		received:      msgCopy,
-		serverAddress: serverAddr,
+		sent:     sentMsg.(wiremessage.WireMessage),
+		received: msgCopy,
 	}
 	p.messages = append(p.messages, proxyMsg)
 }
@@ -553,7 +538,7 @@ func (pc *proxyConn) Read(buffer []byte) (int, error) {
 		return 0, fmt.Errorf("error copying to mock: %v", err)
 	}
 	if len(buffer) != 4 {
-		pc.dialer.storeReceivedMessage(pc.currentReading.Bytes(), pc.RemoteAddr().String())
+		pc.dialer.storeReceivedMessage(pc.currentReading.Bytes())
 		pc.currentReading.Reset()
 	}
 
