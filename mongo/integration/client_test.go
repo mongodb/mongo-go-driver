@@ -452,8 +452,12 @@ type proxyMessage struct {
 type proxyDialer struct {
 	*net.Dialer
 	sync.Mutex
-	messages            []proxyMessage
-	sentMap             sync.Map
+	messages []proxyMessage
+	sentMap  sync.Map
+
+	// addressTranslations maps dialed addresses to the remote addresses reported by the created connections if they
+	// differ. This can happen if a connection is dialed to a host name, in which case the reported remote address will
+	// be the resolved IP address.
 	addressTranslations sync.Map
 }
 
