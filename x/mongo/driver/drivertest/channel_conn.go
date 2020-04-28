@@ -131,34 +131,3 @@ func GetCommandFromMsgWireMessage(wm []byte) (bsoncore.Document, error) {
 	}
 	return cmdDoc, nil
 }
-
-// GetReplyFromOpReply returns the response document received in an OP_REPLY wire message.
-func GetReplyFromOpReply(wm []byte) (bsoncore.Document, error) {
-	var ok bool
-
-	if _, _, _, _, wm, ok = wiremessage.ReadHeader(wm); !ok {
-		return nil, errors.New("could not read header")
-	}
-	if _, wm, ok = wiremessage.ReadReplyFlags(wm); !ok {
-		return nil, errors.New("failed to read reply flags")
-	}
-	if _, wm, ok = wiremessage.ReadReplyCursorID(wm); !ok {
-		return nil, errors.New("failed to read cursor ID")
-	}
-	if _, wm, ok = wiremessage.ReadReplyStartingFrom(wm); !ok {
-		return nil, errors.New("failed to read starting from")
-	}
-	if _, wm, ok = wiremessage.ReadReplyNumberReturned(wm); !ok {
-		return nil, errors.New("failed to read number returned")
-	}
-
-	var replyDocuments []bsoncore.Document
-	replyDocuments, wm, ok = wiremessage.ReadReplyDocuments(wm)
-	if !ok {
-		return nil, errors.New("failed to read reply documents")
-	}
-	if len(replyDocuments) == 0 {
-		return nil, errors.New("no documents in response")
-	}
-	return replyDocuments[0], nil
-}

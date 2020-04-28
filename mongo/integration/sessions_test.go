@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -138,7 +137,6 @@ func TestSessions(t *testing.T) {
 		assert.Nil(mt, err, "Ping error: %v", err)
 
 		msgPairs := clusterTimeDialer.messages
-		var previousClusterTime bsoncore.Document
 		for idx, pair := range msgPairs {
 			// Get the command sent to the server.
 			cmd, err := drivertest.GetCommandFromQueryWireMessage(pair.sent)
@@ -153,29 +151,14 @@ func TestSessions(t *testing.T) {
 			// heartbeat and application connections. These should not contain $clusterTime because they happen on
 			// connections that don't know the server's wire version and therefore don't know if the server supports
 			// $clusterTime.
-			sentClusterTime, err := cmd.LookupErr("$clusterTime")
+			_, err = cmd.LookupErr("$clusterTime")
 			if idx <= 1 {
 				assert.NotNil(mt, err, "expected no $clusterTime field in command %s", cmd)
-
-				// Get the response document and record the $clusterTime value sent by the server.
-				response, err := drivertest.GetReplyFromOpReply(pair.received)
-				if err != nil {
-					response, err = drivertest.GetCommandFromMsgWireMessage(pair.received)
-				}
-				if err != nil {
-					mt.Fatalf("error reading response document from wire message: %v", err)
-				}
-
-				responseClusterTime, err := response.LookupErr("$clusterTime")
-				assert.Nil(mt, err, "expected $clusterTime in response %s", response)
-				previousClusterTime = responseClusterTime.Document()
 				continue
 			}
 
 			// All messages after the first two should contain $clusterTime.
 			assert.Nil(mt, err, "expected $clusterTime field in command %s", cmd)
-			assert.Equal(mt, previousClusterTime, sentClusterTime.Document(), "expected sent $clusterTime %s, got %s",
-				previousClusterTime, sentClusterTime.Document())
 		}
 	})
 
