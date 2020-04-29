@@ -631,6 +631,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
+	changeStreamOpts := mtest.NewOptions().
+		CreateClient(false).
+		Topologies(mtest.ReplicaSet)
 	mt.RunOpts("bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
