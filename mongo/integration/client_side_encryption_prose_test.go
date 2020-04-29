@@ -631,9 +631,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	changeStreamOpts := mtest.NewOptions().
-		CreateClient(false).
-		Topologies(mtest.ReplicaSet)
 	mt.RunOpts("bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
@@ -711,7 +708,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	mt.RunOpts("change streams", noClientOpts, func(mt *mtest.T) {
+	changeStreamOpts := mtest.NewOptions().
+		CreateClient(false).
+		Topologies(mtest.ReplicaSet)
+	mt.RunOpts("change streams", changeStreamOpts, func(mt *mtest.T) {
 		// Change streams can't easily fit into the spec test format because of their tailable nature, so there are two
 		// prose tests for them instead:
 		//
