@@ -277,14 +277,6 @@ func (p *pool) makeNewConnection(ctx context.Context) (*connection, string, erro
 	c.poolID = atomic.AddUint64(&p.nextid, 1)
 	c.generation = atomic.LoadUint64(&p.generation)
 
-	if p.monitor != nil {
-		p.monitor.Event(&event.PoolEvent{
-			Type:         event.ConnectionCreated,
-			Address:      p.address.String(),
-			ConnectionID: c.poolID,
-		})
-	}
-
 	if atomic.LoadInt32(&p.connected) != connected {
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
@@ -300,7 +292,17 @@ func (p *pool) makeNewConnection(ctx context.Context) (*connection, string, erro
 
 	p.Lock()
 	p.opened[c.poolID] = c
+	poolSize := uint64(len(p.opened))
 	p.Unlock()
+
+	if p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:         event.ConnectionCreated,
+			Address:      p.address.String(),
+			ConnectionID: c.poolID,
+			PoolSize:     poolSize,
+		})
+	}
 
 	return c, "", nil
 

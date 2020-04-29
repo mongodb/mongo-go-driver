@@ -81,6 +81,7 @@ type PoolEvent struct {
 	Type         string              `json:"type"`
 	Address      string              `json:"address"`
 	ConnectionID uint64              `json:"connectionId"`
+	PoolSize     uint64              `json:"poolSize"`
 	PoolOptions  *MonitorPoolOptions `json:"options"`
 	Reason       string              `json:"reason"`
 }
