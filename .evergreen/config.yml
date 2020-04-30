@@ -251,7 +251,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          ${BUILD_ENV|} make ${targets} BUILD_TAGS="-tags gssapi"
+          ${BUILD_ENV|} make ${targets} BUILD_TAGS="-tags cse,gssapi"
 
   run-tests:
     - command: shell.exec
@@ -1484,57 +1484,57 @@ axes:
   - id: os-ssl-legacy
     display_name: OS
     values:
-      - id: "ubuntu1404-go-1-12"
+      - id: "ubuntu1404-go-1-13"
         display_name: "Ubuntu 14.04"
         run_on: ubuntu1404-test
         variables:
-          GO_DIST: "/opt/golang/go1.12"
+          GO_DIST: "/opt/golang/go1.13"
 
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-12"
+      - id: "windows-64-go-1-13"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2017-test
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.12"
-      - id: "ubuntu1604-64-go-1-12"
+          GO_DIST: "C:\\golang\\go1.13"
+      - id: "ubuntu1604-64-go-1-13"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
-          GO_DIST: "/opt/golang/go1.12"
-      - id: "osx-go-1-12"
+          GO_DIST: "/opt/golang/go1.13"
+      - id: "osx-go-1-13"
         display_name: "MacOS 10.14"
         run_on: macos-1014
         variables:
-          GO_DIST: "/opt/golang/go1.12"
+          GO_DIST: "/opt/golang/go1.13"
 
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vsMulti-small-go-1-12"
+      - id: "windows-64-vsMulti-small-go-1-13"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vsMulti-small
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.12"
+          GO_DIST: "C:\\golang\\go1.13"
           SKIP_ECS_AUTH_TEST: true
           PYTHON3: "C:/python/Python38/python.exe"
-      - id: "ubuntu1804-64-go-1-12"
+      - id: "ubuntu1804-64-go-1-13"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
         variables:
-          GO_DIST: "/opt/golang/go1.12"
+          GO_DIST: "/opt/golang/go1.13"
           PYTHON3: python3
-      - id: "osx-go-1-12"
+      - id: "osx-go-1-13"
         display_name: "MacOS 10.14"
         run_on: macos-1014
         variables:
-          GO_DIST: "/opt/golang/go1.12"
+          GO_DIST: "/opt/golang/go1.13"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           PYTHON3: python3
@@ -1545,7 +1545,7 @@ buildvariants:
     run_on:
       - ubuntu1604-build
     expansions:
-      GO_DIST: "/opt/golang/go1.12"
+      GO_DIST: "/opt/golang/go1.13"
     tasks:
       - name: ".static-analysis"
 
@@ -1554,7 +1554,7 @@ buildvariants:
     run_on:
       - ubuntu1604-build
     expansions:
-      GO_DIST: "/opt/golang/go1.12"
+      GO_DIST: "/opt/golang/go1.13"
     tasks:
       - name: ".performance"
 
@@ -1563,7 +1563,7 @@ buildvariants:
     run_on:
       - ubuntu1604-test
     expansions:
-      GO_DIST: "/opt/golang/go1.12"
+      GO_DIST: "/opt/golang/go1.13"
     tasks:
       - name: ".compile-check"
 
@@ -1572,7 +1572,7 @@ buildvariants:
     run_on:
       - ubuntu1604-build
     expansions:
-      GO_DIST: "/opt/golang/go1.12"
+      GO_DIST: "/opt/golang/go1.13"
     tasks:
       - name: "atlas-test"
 
@@ -1625,7 +1625,7 @@ buildvariants:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["latest"], os-ssl-32: ["ubuntu1604-64-go-1-12"] }
+    matrix_spec: { version: ["latest"], os-ssl-32: ["ubuntu1604-64-go-1-13"] }
     display_name: "OCSP - ${os-ssl-32}"
     batchtime: 20160 # 14 days
     tasks:

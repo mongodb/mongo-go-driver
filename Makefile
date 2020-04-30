@@ -116,7 +116,7 @@ update-notices:
 
 .PHONY: vet
 vet:
-	go vet -cgocall=false -composites=false -unusedstringmethods="Error" $(PKGS)
+	go vet $(BUILD_TAGS) -cgocall=false -composites=false -unusedstringmethods="Error" $(PKGS)
 
 
 # Evergreen specific targets
