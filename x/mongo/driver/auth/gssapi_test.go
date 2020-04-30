@@ -31,9 +31,9 @@ func TestGSSAPIAuthenticator(t *testing.T) {
 		}
 		desc := description.Server{
 			WireVersion: &description.VersionRange{
-				Max:  6,
-				Addr: address.Address("foo:27017"),
+				Max: 6,
 			},
+			Addr: address.Address("foo:27017"),
 		}
 		err := authenticator.Auth(context.Background(), &Config{Description: desc})
 		if err == nil {
