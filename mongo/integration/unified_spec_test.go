@@ -339,7 +339,8 @@ func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 m
 
 	op.opError = errorFromResult(mt, op.Result)
 	// Some tests (e.g. crud/v2) only specify that an error should occur via the op.Error field but do not specify
-	// which error via the op.Result field.
+	// which error via the op.Result field. In this case, pass in an empty non-nil operationError so verifyError will
+	// make the right assertions.
 	if op.Error && op.Result == nil {
 		op.opError = &operationError{}
 	}
