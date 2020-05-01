@@ -337,18 +337,12 @@ func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 m
 		mt.Fatalf("unrecognized operation object: %v", op.Object)
 	}
 
-	// ensure error occurred and it's the error we expect
-	if op.Error {
-		assert.NotNil(mt, err, "expected error but got nil")
-	}
-
-	// some tests (e.g. crud/v2) only specify that an error should occur via the op.Error field but do not specify
+	op.opError = errorFromResult(mt, op.Result)
+	// Some tests (e.g. crud/v2) only specify that an error should occur via the op.Error field but do not specify
 	// which error via the op.Result field.
 	if op.Error && op.Result == nil {
-		return
+		op.opError = &operationError{}
 	}
-	// compute expected error from op.Result and compare that to the actual error
-	op.opError = errorFromResult(mt, op.Result)
 	verifyError(mt, op.opError, err)
 }
 

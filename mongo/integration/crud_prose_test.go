@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -138,39 +137,6 @@ func TestHintErrors(t *testing.T) {
 	mt.Run("BulkWrite", func(mt *mtest.T) {
 		models := []mongo.WriteModel{
 			&mongo.InsertOneModel{bson.D{{"_id", 2}}},
-			&mongo.ReplaceOneModel{Filter: bson.D{{"_id", 2}}, Replacement: bson.D{{"a", 2}}, Hint: "_id_"},
-		}
-		_, got := mt.Coll.BulkWrite(mtest.Background, models)
-		assert.NotNil(mt, got, "expected non-nil error, got nil")
-		assert.Equal(mt, got, expected, "expected: %v got: %v", expected, got)
-	})
-}
-
-func TestHintWithUnacknowledgedWriteErrors(t *testing.T) {
-	mtOpts := mtest.NewOptions().MinServerVersion("3.6").MaxServerVersion("4.0").CreateClient(false).
-		CollectionOptions(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(0))))
-	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
-
-	expected := errors.New("the 'hint' command parameter with unacknowledged WriteConcern requires a minimum server wire version of 8")
-	mt.Run("UpdateMany", func(mt *mtest.T) {
-
-		_, got := mt.Coll.UpdateMany(mtest.Background, bson.D{{"a", 1}}, bson.D{{"$inc", bson.D{{"a", 1}}}},
-			options.Update().SetHint("_id_"))
-		assert.NotNil(mt, got, "expected non-nil error, got nil")
-		assert.Equal(mt, got, expected, "expected: %v got: %v", expected, got)
-	})
-
-	mt.Run("ReplaceOne", func(mt *mtest.T) {
-
-		_, got := mt.Coll.ReplaceOne(mtest.Background, bson.D{{"a", 1}}, bson.D{{"a", 2}},
-			options.Replace().SetHint("_id_"))
-		assert.NotNil(mt, got, "expected non-nil error, got nil")
-		assert.Equal(mt, got, expected, "expected: %v got: %v", expected, got)
-	})
-
-	mt.Run("BulkWrite", func(mt *mtest.T) {
-		models := []mongo.WriteModel{
 			&mongo.ReplaceOneModel{Filter: bson.D{{"_id", 2}}, Replacement: bson.D{{"a", 2}}, Hint: "_id_"},
 		}
 		_, got := mt.Coll.BulkWrite(mtest.Background, models)

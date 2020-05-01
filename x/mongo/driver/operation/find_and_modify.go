@@ -195,6 +195,9 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(8) {
 			return nil, errors.New("the 'hint' command parameter requires a minimum server wire version of 8")
 		}
+		if !fam.writeConcern.Acknowledged() {
+			return nil, errUnacknowledgedHint
+		}
 		dst = bsoncore.AppendValueElement(dst, "hint", fam.hint)
 	}
 

@@ -117,6 +117,9 @@ func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
 			return nil, errors.New("the 'hint' command parameter requires a minimum server wire version of 5")
 		}
+		if !d.writeConcern.Acknowledged() {
+			return nil, errUnacknowledgedHint
+		}
 	}
 	return dst, nil
 }
