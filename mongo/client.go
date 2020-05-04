@@ -812,6 +812,7 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 		client:         c,
 		registry:       c.registry,
 		streamType:     ClientStream,
+		crypt:          c.crypt,
 	}
 
 	return newChangeStream(ctx, csConfig, pipeline, opts...)

@@ -429,6 +429,7 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 		registry:       db.registry,
 		streamType:     DatabaseStream,
 		databaseName:   db.Name(),
+		crypt:          db.client.crypt,
 	}
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }

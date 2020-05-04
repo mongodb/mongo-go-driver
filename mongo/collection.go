@@ -1553,6 +1553,7 @@ func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
 		streamType:     CollectionStream,
 		collectionName: coll.Name(),
 		databaseName:   coll.db.Name(),
+		crypt:          coll.client.crypt,
 	}
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
