@@ -116,7 +116,12 @@ func TestIndexView(t *testing.T) {
 			})
 			mt.Run("wildcard projection", func(mt *mtest.T) {
 				iv := mt.Coll.Indexes()
-				proj := bson.D{{"a", int32(1)}, {"b.c", int32(1)}}
+
+				// Create an index with a wildcard projection document. The "_id: false" isn't needed to create the
+				// index. We use the listIndexes command below to assert that the created index has this projection
+				// document and the format of the document returned by listIndexes was changed in 4.5.x to explicitly
+				// include "_id: false", so we include it here too.
+				proj := bson.D{{"a", true}, {"_id", false}}
 				_, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
 					Keys:    keysDoc,
 					Options: options.Index().SetWildcardProjection(proj),
