@@ -251,7 +251,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          ${BUILD_ENV|} make ${targets} BUILD_TAGS="-tags cse,gssapi"
+          ${BUILD_ENV|} make ${targets} BUILD_TAGS="-tags \"cse gssapi\""
 
   run-tests:
     - command: shell.exec
@@ -1377,7 +1377,7 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build"
+          targets: "build build-tests"
           BUILD_ENV: "PATH=/opt/golang/go1.9/bin:$PATH GOROOT=/opt/golang/go1.9"
 
   - name: go1.10-build
@@ -1385,15 +1385,23 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build"
+          targets: "build build-tests"
           BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
+
+  # Build with whatever the latest Go version is that we're using for tests
+  - name: build
+    tags: ["compile-check"]
+    commands:
+      - func: run-make
+        vars:
+          targets: "build build-tests"
 
   - name: linux-32-bit
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
-          targets: "build"
+          targets: "build-no-tags"
           BUILD_ENV: "GOARCH=386"
 
   - name: linux-arm64
@@ -1401,7 +1409,7 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build"
+          targets: "build-no-tags"
           BUILD_ENV: "GOARCH=arm64"
 
   - name: linux-s390x
@@ -1409,7 +1417,7 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build"
+          targets: "build-no-tags"
           BUILD_ENV: "GOARCH=ppc64le"
 
   - name: "atlas-test"
@@ -1430,14 +1438,6 @@ tasks:
       - func: run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables
       - func: run-aws-auth-test-with-aws-EC2-credentials
       - func: run-aws-ECS-auth-test
-
-  - name: go1.10-build-cse
-    tags: ["compile-check"]
-    commands:
-      - func: run-make
-        vars:
-          targets: "build-cse"
-          BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
 
 axes:
   - id: version
