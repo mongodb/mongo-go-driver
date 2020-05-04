@@ -708,6 +708,105 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
+	changeStreamOpts := mtest.NewOptions().
+		CreateClient(false).
+		Topologies(mtest.ReplicaSet)
+	mt.RunOpts("change streams", changeStreamOpts, func(mt *mtest.T) {
+		// Change streams can't easily fit into the spec test format because of their tailable nature, so there are two
+		// prose tests for them instead:
+		//
+		// 1. Auto-encryption errors for Watch operations. Collection-level change streams error because the
+		// $changeStream aggregation stage is not valid for encryption. Client and database-level streams error because
+		// only collection-level operations are valid for encryption.
+		//
+		// 2. Events are automatically decrypted: If the Watch() is done with BypassAutoEncryption=true, the Watch
+		// should succeed and subsequent getMore calls should decrypt documents when necessary.
+
+		var testConfig struct {
+			JSONSchema        bson.Raw   `bson:"json_schema"`
+			KeyVaultData      []bson.Raw `bson:"key_vault_data"`
+			EncryptedDocument bson.Raw   `bson:"encrypted_document"`
+			DecryptedDocument bson.Raw   `bson:"decrytped_document"`
+		}
+		decodeJSONFile(mt, "change-streams-test.json", &testConfig)
+
+		schemaMap := map[string]interface{}{
+			"db.coll": testConfig.JSONSchema,
+		}
+		kmsProviders := map[string]map[string]interface{}{
+			"aws": {
+				"accessKeyId":     keyID,
+				"secretAccessKey": secretAccessKey,
+			},
+		}
+
+		testCases := []struct {
+			name       string
+			streamType mongo.StreamType
+		}{
+			{"client", mongo.ClientStream},
+			{"database", mongo.DatabaseStream},
+			{"collection", mongo.CollectionStream},
+		}
+		mt.RunOpts("auto encryption errors", noClientOpts, func(mt *mtest.T) {
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					autoEncryptionOpts := options.AutoEncryption().
+						SetKmsProviders(kmsProviders).
+						SetKeyVaultNamespace(kvNamespace).
+						SetSchemaMap(schemaMap)
+					cpt := setup(mt, autoEncryptionOpts, nil, nil)
+					defer cpt.teardown(mt)
+
+					_, err := getWatcher(mt, tc.streamType, cpt).Watch(mtest.Background, mongo.Pipeline{})
+					assert.NotNil(mt, err, "expected Watch error: %v", err)
+				})
+			}
+		})
+		mt.RunOpts("events are automatically decrypted", noClientOpts, func(mt *mtest.T) {
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					autoEncryptionOpts := options.AutoEncryption().
+						SetKmsProviders(kmsProviders).
+						SetKeyVaultNamespace(kvNamespace).
+						SetSchemaMap(schemaMap).
+						SetBypassAutoEncryption(true)
+					cpt := setup(mt, autoEncryptionOpts, nil, nil)
+					defer cpt.teardown(mt)
+
+					// Insert key vault data so the key can be accessed when starting the change stream.
+					insertDocuments(mt, cpt.keyVaultColl, testConfig.KeyVaultData)
+
+					stream, err := getWatcher(mt, tc.streamType, cpt).Watch(mtest.Background, mongo.Pipeline{})
+					assert.Nil(mt, err, "Watch error: %v", err)
+					defer stream.Close(mtest.Background)
+
+					// Insert already encrypted data and verify that it is automatically decrypted by Next().
+					insertDocuments(mt, cpt.coll, []bson.Raw{testConfig.EncryptedDocument})
+					assert.True(mt, stream.Next(mtest.Background), "expected Next to return true, got false")
+					gotDocument := stream.Current.Lookup("fullDocument").Document()
+					err = compareDocs(mt, testConfig.DecryptedDocument, gotDocument)
+					assert.Nil(mt, err, "compareDocs error: %v", err)
+				})
+			}
+		})
+	})
+}
+
+func getWatcher(mt *mtest.T, streamType mongo.StreamType, cpt *cseProseTest) watcher {
+	mt.Helper()
+
+	switch streamType {
+	case mongo.ClientStream:
+		return cpt.cseClient
+	case mongo.DatabaseStream:
+		return cpt.cseColl.Database()
+	case mongo.CollectionStream:
+		return cpt.cseColl
+	default:
+		mt.Fatalf("unknown stream type %v", streamType)
+	}
+	return nil
 }
 
 type cseProseTest struct {
@@ -729,10 +828,12 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 	cpt.coll = mt.CreateCollection(mtest.Collection{
 		Name: "coll",
 		DB:   "db",
+		Opts: options.Collection().SetWriteConcern(mtest.MajorityWc),
 	}, false)
 	cpt.keyVaultColl = mt.CreateCollection(mtest.Collection{
 		Name: "datakeys",
 		DB:   "keyvault",
+		Opts: options.Collection().SetWriteConcern(mtest.MajorityWc),
 	}, false)
 
 	if aeo != nil {
@@ -777,6 +878,18 @@ func readJSONFile(mt *mtest.T, file string) bson.Raw {
 
 	var doc bson.Raw
 	err = bson.UnmarshalExtJSON(content, true, &doc)
+	assert.Nil(mt, err, "UnmarshalExtJSON error for file %v: %v", file, err)
+	return doc
+}
+
+func decodeJSONFile(mt *mtest.T, file string, val interface{}) bson.Raw {
+	mt.Helper()
+
+	content, err := ioutil.ReadFile(filepath.Join(clientEncryptionProseDir, file))
+	assert.Nil(mt, err, "ReadFile error for %v: %v", file, err)
+
+	var doc bson.Raw
+	err = bson.UnmarshalExtJSON(content, true, val)
 	assert.Nil(mt, err, "UnmarshalExtJSON error for file %v: %v", file, err)
 	return doc
 }
