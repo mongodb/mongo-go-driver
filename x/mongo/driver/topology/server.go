@@ -153,7 +153,7 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 	}
 	s.desc.Store(description.Server{Addr: addr})
 
-	callback := func(desc description.Server) { s.updateDescription(desc, false) }
+	callback := func(desc description.Server) { s.updateDescription(desc) }
 	pc := poolConfig{
 		Address:     addr,
 		MinPoolSize: cfg.minConns,
@@ -259,7 +259,8 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 			Kind:      description.Unknown,
 			LastError: wrappedConnErr,
 		}
-		s.updateDescription(desc, false)
+		s.updateDescription(desc)
+		s.pool.clear()
 
 		return nil, err
 	}
@@ -329,7 +330,7 @@ func (s *Server) ProcessError(err error) {
 		desc.Kind = description.Unknown
 		desc.LastError = err
 		// updates description to unknown
-		s.updateDescription(desc, false)
+		s.updateDescription(desc)
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			s.RequestImmediateCheck()
@@ -342,7 +343,7 @@ func (s *Server) ProcessError(err error) {
 		desc.Kind = description.Unknown
 		desc.LastError = err
 		// updates description to unknown
-		s.updateDescription(desc, false)
+		s.updateDescription(desc)
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			s.RequestImmediateCheck()
@@ -368,7 +369,7 @@ func (s *Server) ProcessError(err error) {
 	desc.Kind = description.Unknown
 	desc.LastError = err
 	// updates description to unknown
-	s.updateDescription(desc, false)
+	s.updateDescription(desc)
 	s.pool.clear()
 }
 
@@ -398,7 +399,7 @@ func (s *Server) update() {
 	var desc description.Server
 
 	desc, conn = s.heartbeat(nil)
-	s.updateDescription(desc, true)
+	s.updateDescription(desc)
 
 	closeServer := func() {
 		doneOnce = true
@@ -438,7 +439,7 @@ func (s *Server) update() {
 		}
 
 		desc, conn = s.heartbeat(conn)
-		s.updateDescription(desc, false)
+		s.updateDescription(desc)
 	}
 }
 
@@ -446,7 +447,7 @@ func (s *Server) update() {
 // subscribers, and potentially draining the connection pool. The initial
 // parameter is used to determine if this is the first description from the
 // server.
-func (s *Server) updateDescription(desc description.Server, initial bool) {
+func (s *Server) updateDescription(desc description.Server) {
 	defer func() {
 		//  ¯\_(ツ)_/¯
 		_ = recover()
@@ -469,16 +470,6 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 		c <- desc
 	}
 	s.subLock.Unlock()
-
-	if initial {
-		// We don't clear the pool on the first update on the description.
-		return
-	}
-
-	switch desc.Kind {
-	case description.Unknown:
-		s.pool.drain()
-	}
 }
 
 // heartbeat sends a heartbeat to the server using the given connection. The connection can be nil.
@@ -561,7 +552,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 			saved = err
 			conn = nil
 			if wrappedConnErr := unwrapConnectionError(err); wrappedConnErr != nil {
-				s.pool.drain()
+				s.pool.clear()
 				// If the server is not connected, give up and exit loop
 				if s.Description().Kind == description.Unknown {
 					break
