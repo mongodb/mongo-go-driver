@@ -10,3 +10,4 @@ debug
 driver-test-data.tar.gz
 perf
 **mongocryptd.pid
+*.test

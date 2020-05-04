@@ -31,11 +31,21 @@ build-examples:
 
 .PHONY: build
 build:
+	go build $(BUILD_TAGS) $(filter-out ./core/auth/internal/gssapi,$(PKGS))
+
+.PHONY: build-no-tags
+build-no-tags:
 	go build $(filter-out ./core/auth/internal/gssapi,$(PKGS))
 
-.PHONY: build-cse
-build-cse:
-	go build -tags cse $(filter-out ./core/auth/internal/gssapi,$(PKGS))
+.PHONY: build-tests
+build-tests:
+	for TEST in $(PKGS); do \
+		go test $(BUILD_TAGS) -c $$TEST ; \
+		if [ $$? -ne 0 ]; \
+		then \
+			exit 1; \
+		fi \
+	done
 
 .PHONY: check-fmt
 check-fmt:
