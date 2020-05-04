@@ -470,7 +470,7 @@ func (p *pool) put(c *connection) error {
 	return nil
 }
 
-// clear clears the pool by incrementing the generation and then maintaining the pool
+// clear clears the pool by incrementing the generation
 func (p *pool) clear() {
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
@@ -479,5 +479,4 @@ func (p *pool) clear() {
 		})
 	}
 	atomic.AddUint64(&p.generation, 1)
-	p.conns.Maintain()
 }
