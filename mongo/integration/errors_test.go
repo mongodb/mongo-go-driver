@@ -33,7 +33,7 @@ func TestErrors(t *testing.T) {
 			assert.True(mt, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
 		})
 
-		authOpts := mtest.NewOptions().Auth(false).Topologies(mtest.ReplicaSet, mtest.Single).MinServerVersion("4.0")
+		authOpts := mtest.NewOptions().Auth(true).Topologies(mtest.ReplicaSet, mtest.Single).MinServerVersion("4.0")
 		mt.RunOpts("network error during auth", authOpts, func(mt *mtest.T) {
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
@@ -41,6 +41,8 @@ func TestErrors(t *testing.T) {
 					Times: 1,
 				},
 				Data: mtest.FailPointData{
+					// Set the fail point for saslContinue rather than saslStart because the driver will use speculative
+					// auth on 4.4+ so there won't be an explicit saslStart command.
 					FailCommands:    []string{"saslContinue"},
 					CloseConnection: true,
 				},
