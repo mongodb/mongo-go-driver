@@ -334,6 +334,9 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 
 		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "wildcardProjection", doc)
 	}
+	if opts.Hidden != nil {
+		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "hidden", *opts.Hidden)
+	}
 
 	return optsDoc, nil
 }
