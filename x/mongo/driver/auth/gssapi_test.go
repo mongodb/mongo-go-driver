@@ -29,12 +29,13 @@ func TestGSSAPIAuthenticator(t *testing.T) {
 				"SERVICE_HOST":           "localhost",
 			},
 		}
-		err := authenticator.Auth(context.Background(), description.Server{
+		desc := description.Server{
 			WireVersion: &description.VersionRange{
 				Max: 6,
 			},
 			Addr: address.Address("foo:27017"),
-		}, nil)
+		}
+		err := authenticator.Auth(context.Background(), &Config{Description: desc})
 		if err == nil {
 			t.Fatalf("expected err, got nil")
 		}

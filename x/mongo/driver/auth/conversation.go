@@ -10,7 +10,6 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // SpeculativeConversation represents an authentication conversation that can be merged with the initial connection
@@ -23,7 +22,7 @@ import (
 // authenticate the provided connection.
 type SpeculativeConversation interface {
 	FirstMessage() (bsoncore.Document, error)
-	Finish(ctx context.Context, firstResponse bsoncore.Document, conn driver.Connection) error
+	Finish(ctx context.Context, cfg *Config, firstResponse bsoncore.Document) error
 }
 
 // SpeculativeAuthenticator represents an authenticator that supports speculative authentication.

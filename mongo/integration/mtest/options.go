@@ -184,6 +184,15 @@ func (op *Options) Auth(auth bool) *Options {
 	return op
 }
 
+// SSL specifies whether or not SSL should be enabled for this test to run. By default, a test will run regardless
+// of whether or not SSL is enabled.
+func (op *Options) SSL(ssl bool) *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.ssl = &ssl
+	})
+	return op
+}
+
 // Enterprise specifies whether or not this test should only be run on enterprise server variants. Defaults to false.
 func (op *Options) Enterprise(ent bool) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {

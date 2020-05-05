@@ -8,6 +8,7 @@ package integration
 
 import (
 	"bytes"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -113,6 +115,53 @@ func TestSessions(t *testing.T) {
 			})
 		}
 	})
+
+	clusterTimeDialer := newProxyDialer()
+	hosts := options.Client().ApplyURI(mt.ConnString()).Hosts
+	clusterTimeHandshakeOpts := options.Client().
+		SetDialer(clusterTimeDialer).
+		SetHosts(hosts[:1]).
+		SetDirect(true)
+	clusterTimeHandshakeMtOpts := mtest.NewOptions().
+		ClientOptions(clusterTimeHandshakeOpts).
+		CreateCollection(false).
+		SSL(false) // The proxy dialer doesn't work for SSL connections.
+	mt.RunOpts("cluster time is updated from handshakes", clusterTimeHandshakeMtOpts, func(mt *mtest.T) {
+		// Compression uses a different opcode that the existing drivertest helpers can't handle and doesn't affect
+		// the functionality tested here, so we can skip the test if compression is enabled.
+		if len(os.Getenv("MONGO_GO_DRIVER_COMPRESSOR")) > 0 {
+			mt.Skip("skipping for compression")
+		}
+
+		err := mt.Client.Ping(mtest.Background, mtest.PrimaryRp)
+		assert.Nil(mt, err, "Ping error: %v", err)
+
+		msgPairs := clusterTimeDialer.messages
+		for idx, pair := range msgPairs {
+			// Get the command sent to the server.
+			cmd, err := drivertest.GetCommandFromQueryWireMessage(pair.sent)
+			if err != nil {
+				cmd, err = drivertest.GetCommandFromMsgWireMessage(pair.sent)
+			}
+			if err != nil {
+				mt.Fatalf("error reading command document from wire message: %v", err)
+			}
+
+			// Get the $clusterTime value sent to the server. The first two messages are the handshakes for the
+			// heartbeat and application connections. These should not contain $clusterTime because they happen on
+			// connections that don't know the server's wire version and therefore don't know if the server supports
+			// $clusterTime.
+			_, err = cmd.LookupErr("$clusterTime")
+			if idx <= 1 {
+				assert.NotNil(mt, err, "expected no $clusterTime field in command %s", cmd)
+				continue
+			}
+
+			// All messages after the first two should contain $clusterTime.
+			assert.Nil(mt, err, "expected $clusterTime field in command %s", cmd)
+		}
+	})
+
 	mt.RunOpts("explicit implicit session arguments", noClientOpts, func(mt *mtest.T) {
 		// lsid is included in commands with explicit and implicit sessions
 

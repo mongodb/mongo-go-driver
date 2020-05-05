@@ -1235,6 +1235,20 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
 
+  - name: test-replicaset-auth-nossl
+    tags: ["test", "replicaset", "authssl"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "nossl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "nossl"
+
   - name: test-sharded-noauth-nossl
     tags: ["test", "sharded"]
     commands:

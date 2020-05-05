@@ -107,3 +107,27 @@ func GetCommandFromQueryWireMessage(wm []byte) (bsoncore.Document, error) {
 	}
 	return query, nil
 }
+
+// GetCommandFromMsgWireMessage returns the command document sent in an OP_MSG wire message.
+func GetCommandFromMsgWireMessage(wm []byte) (bsoncore.Document, error) {
+	var ok bool
+	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
+	if !ok {
+		return nil, errors.New("could not read header")
+	}
+
+	_, wm, ok = wiremessage.ReadMsgFlags(wm)
+	if !ok {
+		return nil, errors.New("could not read flags")
+	}
+	_, wm, ok = wiremessage.ReadMsgSectionType(wm)
+	if !ok {
+		return nil, errors.New("could not read section type")
+	}
+
+	cmdDoc, wm, ok := wiremessage.ReadMsgSectionSingleDocument(wm)
+	if !ok {
+		return nil, errors.New("could not read command document")
+	}
+	return cmdDoc, nil
+}

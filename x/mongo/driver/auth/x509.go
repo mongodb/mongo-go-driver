@@ -58,7 +58,7 @@ func createFirstX509Message(desc description.Server, user string) bsoncore.Docum
 
 // Finish implements the SpeculativeConversation interface and is a no-op because an X509 conversation only has one
 // step.
-func (c *x509Conversation) Finish(context.Context, bsoncore.Document, driver.Connection) error {
+func (c *x509Conversation) Finish(context.Context, *Config, bsoncore.Document) error {
 	return nil
 }
 
@@ -68,12 +68,13 @@ func (a *MongoDBX509Authenticator) CreateSpeculativeConversation() (SpeculativeC
 }
 
 // Auth authenticates the provided connection by conducting an X509 authentication conversation.
-func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Server, conn driver.Connection) error {
-	requestDoc := createFirstX509Message(desc, a.User)
+func (a *MongoDBX509Authenticator) Auth(ctx context.Context, cfg *Config) error {
+	requestDoc := createFirstX509Message(cfg.Description, a.User)
 	authCmd := operation.
 		NewCommand(requestDoc).
 		Database("$external").
-		Deployment(driver.SingleConnectionDeployment{conn})
+		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+		ClusterClock(cfg.ClusterClock)
 	err := authCmd.Execute(ctx)
 	if err != nil {
 		return newAuthError("round trip error", err)

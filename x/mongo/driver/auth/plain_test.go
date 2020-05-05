@@ -47,7 +47,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), desc, c)
+	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -90,7 +90,7 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), desc, c)
+	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -128,7 +128,7 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), desc, c)
+	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}

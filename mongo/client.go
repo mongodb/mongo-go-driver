@@ -324,6 +324,9 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
 
+	// ClusterClock
+	c.clock = new(session.ClusterClock)
+
 	// Pass down URI so topology can determine whether or not SRV polling is required
 	topologyOpts = append(topologyOpts, topology.WithURI(func(uri string) string {
 		return opts.GetURI()
@@ -368,7 +371,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	}
 	// Handshaker
 	var handshaker = func(driver.Handshaker) driver.Handshaker {
-		return operation.NewIsMaster().AppName(appName).Compressors(comps)
+		return operation.NewIsMaster().AppName(appName).Compressors(comps).ClusterClock(c.clock)
 	}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
@@ -399,6 +402,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			AppName:       appName,
 			Authenticator: authenticator,
 			Compressors:   comps,
+			ClusterClock:  c.clock,
 		}
 		if mechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
@@ -552,9 +556,6 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			return err
 		}
 	}
-
-	// ClusterClock
-	c.clock = new(session.ClusterClock)
 
 	// OCSP cache
 	ocspCache := ocsp.NewCache()

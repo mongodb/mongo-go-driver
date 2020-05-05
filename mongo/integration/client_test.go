@@ -71,7 +71,7 @@ func TestClient(t *testing.T) {
 
 		assert.Equal(mt, int64(-10), got.ID, "expected ID -10, got %v", got.ID)
 	})
-	mt.RunOpts("tls connection", mtest.NewOptions().MinServerVersion("3.0").Auth(true), func(mt *mtest.T) {
+	mt.RunOpts("tls connection", mtest.NewOptions().MinServerVersion("3.0").SSL(true), func(mt *mtest.T) {
 		var result bson.Raw
 		err := mt.Coll.Database().RunCommand(mtest.Background, bson.D{
 			{"serverStatus", 1},
@@ -86,7 +86,7 @@ func TestClient(t *testing.T) {
 		_, found = security.Document().LookupErr("SSLServerHasCertificateAuthority")
 		assert.Nil(mt, found, "SSLServerHasCertificateAuthority not found in result")
 	})
-	mt.RunOpts("x509", mtest.NewOptions().Auth(true), func(mt *mtest.T) {
+	mt.RunOpts("x509", mtest.NewOptions().Auth(true).SSL(true), func(mt *mtest.T) {
 		const user = "C=US,ST=New York,L=New York City,O=MongoDB,OU=other,CN=external"
 		db := mt.Client.Database("$external")
 
@@ -396,13 +396,13 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(mtest.Background, mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		sent := appNameProxyDialer.sent
-		assert.True(mt, len(sent) >= 2, "expected at least 2 events sent, got %v", len(sent))
+		msgPairs := appNameProxyDialer.messages
+		assert.True(mt, len(msgPairs) >= 2, "expected at least 2 events sent, got %v", len(msgPairs))
 
 		// First two messages should be connection handshakes: one for the heartbeat connection and the other for the
 		// application connection.
-		for idx, wm := range sent[:2] {
-			cmd, err := drivertest.GetCommandFromQueryWireMessage(wm)
+		for idx, pair := range msgPairs[:2] {
+			cmd, err := drivertest.GetCommandFromQueryWireMessage(pair.sent)
 			assert.Nil(mt, err, "GetCommandFromQueryWireMessage error at index %d: %v", idx, err)
 			heartbeatCmdName := cmd.Index(0).Key()
 			assert.Equal(mt, "isMaster", heartbeatCmdName,
@@ -441,13 +441,19 @@ func TestClient(t *testing.T) {
 	})
 }
 
+type proxyMessage struct {
+	serverAddress string
+	sent          wiremessage.WireMessage
+	received      wiremessage.WireMessage
+}
+
 // proxyDialer is a ContextDialer implementation that wraps a net.Dialer and records the messages sent and received
 // using connections created through it.
 type proxyDialer struct {
 	*net.Dialer
 	sync.Mutex
-	sent     []wiremessage.WireMessage
-	received []wiremessage.WireMessage
+	messages []proxyMessage
+	sentMap  sync.Map
 }
 
 var _ options.ContextDialer = (*proxyDialer)(nil)
@@ -480,7 +486,9 @@ func (p *proxyDialer) storeSentMessage(msg []byte) {
 
 	msgCopy := make(wiremessage.WireMessage, len(msg))
 	copy(msgCopy, msg)
-	p.sent = append(p.sent, msgCopy)
+
+	_, requestID, _, _, _, _ := wiremessage.ReadHeader(msgCopy)
+	p.sentMap.Store(requestID, msgCopy)
 }
 
 // storeReceivedMessage stores a copy of the wire message being received from the server.
@@ -490,7 +498,16 @@ func (p *proxyDialer) storeReceivedMessage(msg []byte) {
 
 	msgCopy := make(wiremessage.WireMessage, len(msg))
 	copy(msgCopy, msg)
-	p.received = append(p.received, msgCopy)
+
+	_, _, responseTo, _, _, _ := wiremessage.ReadHeader(msgCopy)
+	sentMsg, _ := p.sentMap.Load(responseTo)
+	p.sentMap.Delete(responseTo)
+
+	proxyMsg := proxyMessage{
+		sent:     sentMsg.(wiremessage.WireMessage),
+		received: msgCopy,
+	}
+	p.messages = append(p.messages, proxyMsg)
 }
 
 // proxyConn is a net.Conn that wraps a network connection. All messages sent/received through a proxyConn are stored

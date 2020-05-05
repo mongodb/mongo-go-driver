@@ -92,6 +92,7 @@ type T struct {
 	maxServerVersion string
 	validTopologies  []TopologyKind
 	auth             *bool
+	ssl              *bool
 	enterprise       *bool
 	collCreateOpts   bson.D
 	connsCheckedOut  int // net number of connections checked out during test execution
@@ -493,6 +494,11 @@ func (t *T) AuthEnabled() bool {
 	return testContext.authEnabled
 }
 
+// SSLEnabled returns whether or not this test is running in an environment with SSL.
+func (t *T) SSLEnabled() bool {
+	return testContext.sslEnabled
+}
+
 // TopologyKind returns the topology kind of the environment
 func (t *T) TopologyKind() TopologyKind {
 	return testContext.topoKind
@@ -660,6 +666,9 @@ func (t *T) shouldSkip() bool {
 		return true
 	}
 	if t.auth != nil && *t.auth != testContext.authEnabled {
+		return true
+	}
+	if t.ssl != nil && *t.ssl != testContext.sslEnabled {
 		return true
 	}
 	if t.enterprise != nil && *t.enterprise != testContext.enterpriseServer {
