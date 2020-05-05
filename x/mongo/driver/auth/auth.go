@@ -201,6 +201,11 @@ func (e *Error) Inner() error {
 	return e.inner
 }
 
+// Unwrap returns the underlying error.
+func (e *Error) Unwrap() error {
+	return e.inner
+}
+
 // Message returns the message.
 func (e *Error) Message() string {
 	return e.message

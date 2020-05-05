@@ -220,6 +220,11 @@ func (e Error) Error() string {
 	return e.Message
 }
 
+// Unwrap returns the underlying error.
+func (e Error) Unwrap() error {
+	return e.Wrapped
+}
+
 // HasErrorLabel returns true if the error contains the specified label.
 func (e Error) HasErrorLabel(label string) bool {
 	if e.Labels != nil {

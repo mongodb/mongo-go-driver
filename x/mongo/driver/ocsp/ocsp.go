@@ -271,8 +271,9 @@ func contactResponders(ctx context.Context, cfg config) (*ResponseDetails, error
 
 				timeout := urlErr.Timeout()
 				cancelled := urlErr.Err == context.Canceled // Timeout() does not return true for context.Cancelled.
-				if userContextUsed && (timeout || cancelled) {
-					// Handle the original context expiring or being cancelled.
+				if cancelled || (userContextUsed && timeout) {
+					// Handle the original context expiring or being cancelled. The url.Error type supports Unwrap, so
+					// users can use errors.Is to check for context errors.
 					return err
 				}
 				return nil // Ignore all other errors.
