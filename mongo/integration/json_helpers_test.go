@@ -407,7 +407,7 @@ func errorFromResult(t testing.TB, result interface{}) *operationError {
 func verifyError(t testing.TB, expected *operationError, actual error) {
 	t.Helper()
 
-	// The spec test format doesn't treat ErrNoDocuments or ErrUnacknowledged wriet as errors, so set actual to nil
+	// The spec test format doesn't treat ErrNoDocuments or ErrUnacknowledgedWrite as errors, so set actual to nil
 	// to indicate that no error occurred.
 	if actual == mongo.ErrNoDocuments || actual == mongo.ErrUnacknowledgedWrite {
 		actual = nil
