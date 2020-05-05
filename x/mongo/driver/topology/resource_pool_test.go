@@ -182,6 +182,7 @@ func TestResourcePool(t *testing.T) {
 			assert.Equal(t, int32(5), expiredCalled, "expected expire to be called 5 times, got %v", expiredCalled)
 			closeCalled := ec.getCloseCalled()
 			assert.Equal(t, int32(3), closeCalled, "expected close to be called 3 times, got %v", closeCalled)
+			assert.True(t, rp.maintainTimer.Stop(), "expected timer to be reset")
 		})
 	})
 }
