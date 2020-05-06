@@ -708,6 +708,43 @@ func ExampleCursor_TryNext() {
 	}
 }
 
+func ExampleCursor_RemainingBatchLength() {
+	// Because we're using a tailable cursor, this must be a handle to a capped collection.
+	var coll *mongo.Collection
+
+	// Create a tailable await cursor. Specify the MaxAwaitTime option so requests to get more data will return if there
+	// are no documents available after two seconds.
+	findOpts := options.Find().
+		SetCursorType(options.TailableAwait).
+		SetMaxAwaitTime(2 * time.Second)
+	cursor, err := coll.Find(context.TODO(), bson.D{}, findOpts)
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		// Iterate the cursor using TryNext.
+		if cursor.TryNext(context.TODO()) {
+			fmt.Println(cursor.Current)
+		}
+
+		// Handle cursor errors or the cursor being closed by the server.
+		if err = cursor.Err(); err != nil {
+			panic(err)
+		}
+		if cursor.ID() == 0 {
+			panic("cursor was unexpectedly closed by the server")
+		}
+
+		// Use the RemainingBatchLength function to rate-limit the number of network requests the driver does. If the
+		// current batch is empty, sleep for a short amount of time to let documents build up on the server before
+		// the next TryNext call, which will do a network request.
+		if cursor.RemainingBatchLength() == 0 {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+}
+
 // ChangeStream examples
 
 func ExampleChangeStream_Next() {
