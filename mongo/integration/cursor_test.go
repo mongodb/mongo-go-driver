@@ -9,6 +9,7 @@ package integration
 import (
 	"context"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -24,6 +25,7 @@ const (
 func TestCursor(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 	defer mt.Close()
+	cappedCollectionOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
 
 	// server versions 2.6 and 3.0 use OP_GET_MORE so this works on >= 3.2
 	mt.RunOpts("cursor is killed on server", mtest.NewOptions().MinServerVersion("3.2"), func(mt *mtest.T) {
@@ -53,8 +55,7 @@ func TestCursor(t *testing.T) {
 			defer cursor.Close(mtest.Background)
 			tryNextExistingBatchTest(mt, cursor)
 		})
-		cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
-		mt.RunOpts("one getMore sent", mtest.NewOptions().CollectionCreateOptions(cappedOpts), func(mt *mtest.T) {
+		mt.RunOpts("one getMore sent", mtest.NewOptions().CollectionCreateOptions(cappedCollectionOpts), func(mt *mtest.T) {
 			// If the current batch is empty, TryNext should send one getMore and return.
 
 			// insert a document because a tailable cursor will only have a non-zero ID if the initial Find matches
@@ -80,6 +81,88 @@ func TestCursor(t *testing.T) {
 			assert.Nil(mt, err, "Find error: %v", err)
 			defer cursor.Close(mtest.Background)
 			tryNextGetmoreError(mt, cursor)
+		})
+	})
+	mt.RunOpts("RemainingBatchLength", noClientOpts, func(mt *mtest.T) {
+		cappedMtOpts := mtest.NewOptions().CollectionCreateOptions(cappedCollectionOpts)
+		mt.RunOpts("first batch is non empty", cappedMtOpts, func(mt *mtest.T) {
+			// Test that the cursor reports the correct value for RemainingBatchLength at various execution points if
+			// the first batch from the server is non-empty.
+
+			initCollection(mt, mt.Coll)
+
+			// Create a tailable await cursor with a low cursor timeout.
+			batchSize := 2
+			findOpts := options.Find().
+				SetBatchSize(int32(batchSize)).
+				SetCursorType(options.TailableAwait).
+				SetMaxAwaitTime(100 * time.Millisecond)
+			cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, findOpts)
+			assert.Nil(mt, err, "Find error: %v", err)
+			defer cursor.Close(mtest.Background)
+
+			mt.ClearEvents()
+
+			// The initial batch length should be equal to the batchSize. Do batchSize Next calls to exhaust the current
+			// batch and assert that no getMore was done.
+			assertCursorBatchLength(mt, cursor, batchSize)
+			for i := 0; i < batchSize; i++ {
+				prevLength := cursor.RemainingBatchLength()
+				if !cursor.Next(mtest.Background) {
+					mt.Fatalf("expected Next to return true on index %d; cursor err: %v", i, cursor.Err())
+				}
+
+				// Each successful Next call should decrement batch length by 1.
+				assertCursorBatchLength(mt, cursor, prevLength-1)
+			}
+			evt := mt.GetStartedEvent()
+			assert.Nil(mt, evt, "expected no events, got %v", evt)
+
+			// The batch is exhaused, so the batch length should be 0. Do one Next call, which should do a getMore and
+			// fetch batchSize more documents. The batch length after the call should be (batchSize-1) because Next consumes
+			// one document.
+			assertCursorBatchLength(mt, cursor, 0)
+
+			assert.True(mt, cursor.Next(mtest.Background), "expected Next to return true; cursor err: %v", cursor.Err())
+			evt = mt.GetStartedEvent()
+			assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
+			assert.Equal(mt, "getMore", evt.CommandName, "expected command %q, got %q", "getMore", evt.CommandName)
+
+			assertCursorBatchLength(mt, cursor, batchSize-1)
+		})
+		mt.RunOpts("first batch is empty", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
+			// Test that the cursor reports the correct value for RemainingBatchLength if the first batch is empty.
+			// Using a mock deployment simplifies this test becuase the server won't create a valid cursor if the
+			// collection is empty when the find is run.
+
+			cursorID := int64(50)
+			ns := mt.DB.Name() + "." + mt.Coll.Name()
+			getMoreBatch := []bson.D{
+				{{"x", 1}},
+				{{"x", 2}},
+			}
+
+			// Create mock responses.
+			find := mtest.CreateCursorResponse(cursorID, ns, mtest.FirstBatch)
+			getMore := mtest.CreateCursorResponse(cursorID, ns, mtest.NextBatch, getMoreBatch...)
+			killCursors := mtest.CreateSuccessResponse()
+			mt.AddMockResponses(find, getMore, killCursors)
+
+			cursor, err := mt.Coll.Find(mtest.Background, bson.D{})
+			assert.Nil(mt, err, "Find error: %v", err)
+			defer cursor.Close(mtest.Background)
+			mt.ClearEvents()
+
+			for {
+				if cursor.TryNext(mtest.Background) {
+					break
+				}
+
+				assert.Nil(mt, cursor.Err(), "cursor error: %v", err)
+				assertCursorBatchLength(mt, cursor, 0)
+			}
+			// TryNext consumes one document so the remaining batch size should be len(getMoreBatch)-1.
+			assertCursorBatchLength(mt, cursor, len(getMoreBatch)-1)
 		})
 	})
 }
@@ -132,4 +215,9 @@ func tryNextGetmoreError(mt *mtest.T, cursor tryNextCursor) {
 
 	err := cursor.Err()
 	assert.NotNil(mt, err, "expected change stream error, got nil")
+}
+
+func assertCursorBatchLength(mt *mtest.T, cursor *mongo.Cursor, expected int) {
+	batchLen := cursor.RemainingBatchLength()
+	assert.Equal(mt, expected, batchLen, "expected remaining batch length %d, got %d", expected, batchLen)
 }
