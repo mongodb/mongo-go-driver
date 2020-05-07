@@ -136,6 +136,24 @@ func TestIndexView(t *testing.T) {
 				})
 			})
 		})
+		mt.RunOpts("hidden", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
+			iv := mt.Coll.Indexes()
+			keysDoc := bson.D{{"x", int32(1)}}
+			model := mongo.IndexModel{
+				Keys:    keysDoc,
+				Options: options.Index().SetHidden(true),
+			}
+
+			_, err := iv.CreateOne(mtest.Background, model)
+			assert.Nil(mt, err, "CreateOne error: %v", err)
+
+			indexDoc := getIndexDoc(mt, iv, keysDoc)
+			assert.NotNil(mt, indexDoc, "index with keys document %v was not found", keysDoc)
+			checkIndexDocContains(mt, indexDoc, bson.E{
+				Key:   "hidden",
+				Value: true,
+			})
+		})
 		mt.Run("nil keys", func(mt *mtest.T) {
 			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{
 				Keys: nil,

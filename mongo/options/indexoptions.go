@@ -249,6 +249,10 @@ type IndexOptions struct {
 
 	// A document that defines the wildcard projection for the index.
 	WildcardProjection interface{}
+
+	// If true, the index will exist on the target collection but will not be used by the query planner when executing
+	// operations. This option is only valid for MongoDB versions >= 4.4. The default value is false.
+	Hidden *bool
 }
 
 // Index creates a new IndexOptions instance.
@@ -370,6 +374,12 @@ func (i *IndexOptions) SetWildcardProjection(wildcardProjection interface{}) *In
 	return i
 }
 
+// SetHidden sets the value for the Hidden field.
+func (i *IndexOptions) SetHidden(hidden bool) *IndexOptions {
+	i.Hidden = &hidden
+	return i
+}
+
 // MergeIndexOptions combines the given IndexOptions into a single IndexOptions in a last-one-wins fashion.
 func MergeIndexOptions(opts ...*IndexOptions) *IndexOptions {
 	i := Index()
@@ -431,6 +441,9 @@ func MergeIndexOptions(opts ...*IndexOptions) *IndexOptions {
 		}
 		if opt.WildcardProjection != nil {
 			i.WildcardProjection = opt.WildcardProjection
+		}
+		if opt.Hidden != nil {
+			i.Hidden = opt.Hidden
 		}
 	}
 
