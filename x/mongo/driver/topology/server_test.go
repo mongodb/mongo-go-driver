@@ -122,7 +122,6 @@ func TestServer(t *testing.T) {
 				desc = &descript
 				require.Nil(t, desc.LastError)
 			}
-			//err = s.Connect(nil)
 			err = s.pool.connect()
 			require.NoError(t, err, "unable to connect to pool")
 			s.connectionstate = connected
@@ -245,7 +244,7 @@ func TestServer(t *testing.T) {
 		updated.Store(false)
 		s, err := ConnectServer(address.Address("localhost"), func(description.Server) { updated.Store(true) })
 		require.NoError(t, err)
-		s.updateDescription(description.Server{Addr: s.address}, false)
+		s.updateDescription(description.Server{Addr: s.address})
 		require.True(t, updated.Load().(bool))
 	})
 	t.Run("heartbeat", func(t *testing.T) {

@@ -179,9 +179,6 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 	return pool, nil
 }
 
-// drain drains the pool by increasing the generation ID.
-func (p *pool) drain() { atomic.AddUint64(&p.generation, 1) }
-
 // stale checks if a given connection's generation is below the generation of the pool
 func (p *pool) stale(c *connection) bool {
 	return c == nil || c.generation < atomic.LoadUint64(&p.generation)
@@ -473,7 +470,7 @@ func (p *pool) put(c *connection) error {
 	return nil
 }
 
-// clear clears the pool by incrementing the generation and then maintaining the pool
+// clear clears the pool by incrementing the generation
 func (p *pool) clear() {
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
@@ -481,7 +478,5 @@ func (p *pool) clear() {
 			Address: p.address.String(),
 		})
 	}
-
-	p.drain()
-	p.conns.Maintain()
+	atomic.AddUint64(&p.generation, 1)
 }
