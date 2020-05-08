@@ -240,6 +240,13 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 				return desc
 			}
 			desc.SetVersion = uint32(i64)
+		case "speculativeAuthenticate":
+			desc.SpeculativeAuthenticate, ok = element.Value().DocumentOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'speculativeAuthenticate' to be a document but it's a BSON %s",
+					element.Value().Type)
+				return desc
+			}
 		case "tags":
 			m, err := decodeStringMap(element, "tags")
 			if err != nil {
