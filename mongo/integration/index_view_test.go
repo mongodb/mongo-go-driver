@@ -19,7 +19,7 @@ import (
 )
 
 type index struct {
-	Key  map[string]int
+	Key  bson.D
 	Name string
 }
 
@@ -29,35 +29,44 @@ func TestIndexView(t *testing.T) {
 
 	mt.Run("list", func(mt *mtest.T) {
 		verifyIndexExists(mt, mt.Coll.Indexes(), index{
-			Key: map[string]int{
-				"_id": 1,
-			},
+			Key:  bson.D{{"_id", int32(1)}},
 			Name: "_id_",
 		})
 	})
 	mt.RunOpts("create one", noClientOpts, func(mt *mtest.T) {
-		mt.Run("success", func(mt *mtest.T) {
+		mt.Run("name not specified", func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
+			keysDoc := bson.D{
+				{"foo", int32(1)},
+				{"bar", int32(-1)},
+			}
+			expectedName := "foo_1_bar_-1"
+
 			indexName, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
-				Keys: bson.D{{"foo", -1}},
+				Keys: keysDoc,
 			})
 			assert.Nil(mt, err, "CreateOne error: %v", err)
+			assert.Equal(mt, expectedName, indexName, "expected name %q, got %q", expectedName, indexName)
 
 			verifyIndexExists(mt, iv, index{
-				Key:  map[string]int{"foo": -1},
+				Key:  keysDoc,
 				Name: indexName,
 			})
 		})
 		mt.Run("specify name", func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
+			keysDoc := bson.D{{"foo", int32(-1)}}
+			name := "testname"
+
 			indexName, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
-				Keys:    bson.D{{"foo", -1}},
-				Options: options.Index().SetName("testname"),
+				Keys:    keysDoc,
+				Options: options.Index().SetName(name),
 			})
 			assert.Nil(mt, err, "CreateOne error: %v", err)
+			assert.Equal(mt, name, indexName, "expected returned name %q, got %q", name, indexName)
 
 			verifyIndexExists(mt, iv, index{
-				Key:  map[string]int{"foo": -1},
+				Key:  keysDoc,
 				Name: indexName,
 			})
 		})
@@ -110,7 +119,7 @@ func TestIndexView(t *testing.T) {
 				})
 				assert.Nil(mt, err, "CreateOne error: %v", err)
 				verifyIndexExists(mt, iv, index{
-					Key:  map[string]int{"$**": 1},
+					Key:  keysDoc,
 					Name: indexName,
 				})
 			})
@@ -213,23 +222,26 @@ func TestIndexView(t *testing.T) {
 	mt.Run("create many", func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
+			firstKeysDoc := bson.D{{"foo", int32(-1)}}
+			secondKeysDoc := bson.D{{"bar", int32(1)}, {"baz", int32(-1)}}
+			expectedNames := []string{"foo_-1", "bar_1_baz_-1"}
 			indexNames, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
 				{
-					Keys: bson.D{{"foo", -1}},
+					Keys: firstKeysDoc,
 				},
 				{
-					Keys: bson.D{{"bar", 1}, {"baz", -1}},
+					Keys: secondKeysDoc,
 				},
 			})
 			assert.Nil(mt, err, "CreateMany error: %v", err)
-			assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
+			assert.Equal(mt, expectedNames, indexNames, "expected returned names %v, got %v", expectedNames, indexNames)
 
 			verifyIndexExists(mt, iv, index{
-				Key:  map[string]int{"foo": -1},
+				Key:  firstKeysDoc,
 				Name: indexNames[0],
 			})
 			verifyIndexExists(mt, iv, index{
-				Key:  map[string]int{"bar": 1, "baz": -1},
+				Key:  secondKeysDoc,
 				Name: indexNames[1],
 			})
 		})
