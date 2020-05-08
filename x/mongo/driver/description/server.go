@@ -253,29 +253,12 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 				desc.LastError = fmt.Errorf("expected 'topologyVersion' to be an document but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-			elements, err := doc.Elements()
+
+			desc.TopologyVersion, err = NewTopologyVersion(doc)
 			if err != nil {
 				desc.LastError = err
 				return desc
 			}
-			var tv TopologyVersion
-			for _, element := range elements {
-				switch element.Key() {
-				case "processId":
-					tv.ProcessID, ok = element.Value().ObjectIDOK()
-					if !ok {
-						desc.LastError = fmt.Errorf("expected 'processId' to be a objectID but it's a BSON %s", element.Value().Type)
-						return desc
-					}
-				case "counter":
-					tv.Counter, ok = element.Value().AsInt64OK()
-					if !ok {
-						desc.LastError = fmt.Errorf("expected 'counter' to be an integer but it's a BSON %s", element.Value().Type)
-						return desc
-					}
-				}
-			}
-			desc.TopologyVersion = &tv
 		}
 	}
 

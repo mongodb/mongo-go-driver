@@ -427,16 +427,13 @@ func extractError(rdr bsoncore.Document) error {
 				}
 			}
 		case "topologyVersion":
-			doc, exists := elem.Value().DocumentOK()
-			if !exists {
+			doc, ok := elem.Value().DocumentOK()
+			if !ok {
 				break
 			}
-			tv = &description.TopologyVersion{}
-			if id, exists := doc.Lookup("processId").ObjectIDOK(); exists {
-				tv.ProcessID = id
-			}
-			if counter, exists := doc.Lookup("counter").Int64OK(); exists {
-				tv.Counter = counter
+			version, err := description.NewTopologyVersion(doc)
+			if err == nil {
+				tv = version
 			}
 		}
 	}
