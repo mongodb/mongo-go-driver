@@ -211,7 +211,8 @@ func TestServer(t *testing.T) {
 			Message:         "not master",
 			Details:         []byte{},
 			Labels:          []string{},
-			TopologyVersion: nil}
+			TopologyVersion: nil,
+		}
 		s.ProcessError(wce)
 
 		// should set ServerDescription to Unknown

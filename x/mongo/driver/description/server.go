@@ -257,7 +257,7 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 		case "topologyVersion":
 			doc, ok := element.Value().DocumentOK()
 			if !ok {
-				desc.LastError = fmt.Errorf("expected 'topologyVersion' to be an document but it's a BSON %s", element.Value().Type)
+				desc.LastError = fmt.Errorf("expected 'topologyVersion' to be a document but it's a BSON %s", element.Value().Type)
 				return desc
 			}
 
