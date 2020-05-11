@@ -297,7 +297,7 @@ func (op Operation) legacyKillCursors(ctx context.Context, dst []byte, srvr Serv
 	if err != nil {
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 		if ep, ok := srvr.(ErrorProcessor); ok {
-			ep.ProcessError(err)
+			ep.ProcessError(err, conn)
 		}
 
 		finishedInfo.cmdErr = err
@@ -635,7 +635,7 @@ func (op Operation) appendLegacyQueryDocument(dst []byte, filter bsoncore.Docume
 func (op Operation) roundTripLegacyCursor(ctx context.Context, wm []byte, srvr Server, conn Connection, collName, identifier string) (bsoncore.Document, error) {
 	wm, err := op.roundTripLegacy(ctx, conn, wm)
 	if ep, ok := srvr.(ErrorProcessor); ok {
-		ep.ProcessError(err)
+		ep.ProcessError(err, conn)
 	}
 	if err != nil {
 		return nil, err

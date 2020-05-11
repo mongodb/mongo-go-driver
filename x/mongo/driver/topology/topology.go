@@ -602,8 +602,6 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 // apply updates the Topology and its underlying FSM based on the provided server description and returns the server
 // description that should be stored.
 func (t *Topology) apply(ctx context.Context, desc description.Server) description.Server {
-	var err error
-
 	t.serversLock.Lock()
 	defer t.serversLock.Unlock()
 
@@ -612,10 +610,16 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	}
 
 	prev := t.fsm.Topology
-
+	ind, ok := t.fsm.findServer(desc.Addr)
+	if ok {
+		oldDesc := t.fsm.Servers[ind]
+		if description.CompareTopologyVersion(oldDesc.TopologyVersion, desc.TopologyVersion) > 0 {
+			return oldDesc
+		}
+	}
 	var current description.Topology
-	current, desc, err = t.fsm.apply(desc)
-	if err != nil {
+	current, desc = t.fsm.apply(desc)
+	if t.fsm.compatibilityErr != nil {
 		return desc
 	}
 

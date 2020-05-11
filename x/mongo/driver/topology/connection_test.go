@@ -21,21 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
-type netErr struct {
-}
-
-func (n netErr) Error() string {
-	return "error"
-}
-
-func (n netErr) Timeout() bool {
-	return false
-}
-
-func (n netErr) Temporary() bool {
-	return false
-}
-
 func TestConnection(t *testing.T) {
 	t.Run("connection", func(t *testing.T) {
 		t.Run("newConnection", func(t *testing.T) {

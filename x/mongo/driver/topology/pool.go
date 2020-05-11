@@ -322,6 +322,12 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		ctx = context.Background()
 	}
 
+	// ProcessError needs this to check the staleness of the error
+	errorConn := &connection{
+		pool:       p,
+		generation: atomic.LoadUint64(&p.generation),
+	}
+
 	if atomic.LoadInt32(&p.connected) != connected {
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
@@ -330,7 +336,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				Reason:  event.ReasonPoolClosed,
 			})
 		}
-		return nil, ErrPoolDisconnected
+		return errorConn, ErrPoolDisconnected
 	}
 
 	err := p.sem.Acquire(ctx, 1)
@@ -342,7 +348,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				Reason:  event.ReasonTimedOut,
 			})
 		}
-		return nil, ErrWaitQueueTimeout
+		return errorConn, ErrWaitQueueTimeout
 	}
 
 	// This loop is so that we don't end up with more than maxPoolSize connections if p.conns.Maintain runs between
@@ -357,7 +363,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				})
 			}
 			p.sem.Release(1)
-			return nil, ErrPoolDisconnected
+			return errorConn, ErrPoolDisconnected
 		}
 
 		connVal := p.conns.Get()
@@ -378,7 +384,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				}
 				p.conns.decrementTotal()
 				p.sem.Release(1)
-				return nil, err
+				return errorConn, err
 			}
 
 			if p.monitor != nil {
@@ -401,7 +407,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				})
 			}
 			p.sem.Release(1)
-			return nil, ctx.Err()
+			return errorConn, ctx.Err()
 		default:
 			made := p.conns.incrementTotal()
 			if !made {
@@ -419,7 +425,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				}
 				p.sem.Release(1)
 				p.conns.decrementTotal()
-				return nil, err
+				return errorConn, err
 			}
 
 			c.connect(ctx)
@@ -435,7 +441,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				}
 				p.sem.Release(1)
 				p.conns.decrementTotal()
-				return nil, err
+				return errorConn, err
 			}
 
 			if p.monitor != nil {

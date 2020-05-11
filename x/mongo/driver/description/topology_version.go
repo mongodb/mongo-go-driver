@@ -44,15 +44,20 @@ func NewTopologyVersion(doc bsoncore.Document) (*TopologyVersion, error) {
 	return &tv, nil
 }
 
-// MoreRecentThan returns if this TopologyVersion is more recent than the one passed in.
-// This should be called on the original TopologyVersion with the new one passed in.
-func (tv *TopologyVersion) MoreRecentThan(other *TopologyVersion) bool {
-	if tv == nil || other == nil {
-		return false
+// CompareTopologyVersion returns -1 if tv1<tv2, 0 if tv1==tv2, 1 if tv1>tv2. This comparsion is not communtative
+// so the original TopologyVersion should be first.
+func CompareTopologyVersion(tv1, tv2 *TopologyVersion) int {
+	if tv1 == nil || tv2 == nil {
+		return -1
 	}
-	if tv.ProcessID != other.ProcessID {
-		return false
+	if tv1.ProcessID != tv2.ProcessID {
+		return -1
 	}
-
-	return tv.Counter > other.Counter
+	if tv1.Counter == tv2.Counter {
+		return 0
+	}
+	if tv1.Counter < tv2.Counter {
+		return -1
+	}
+	return 1
 }

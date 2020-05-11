@@ -308,15 +308,16 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 
 // NewDefaultServer creates a new unknown server description with the given address.
 func NewDefaultServer(addr address.Address) Server {
-	return NewServerFromError(addr, nil)
+	return NewServerFromError(addr, nil, nil)
 }
 
-// NewServerFromError creates a new unknown server description with the given address and error.
-func NewServerFromError(addr address.Address, err error) Server {
+// NewServerFromError creates a new unknown server description with the given parameters.
+func NewServerFromError(addr address.Address, err error, tv *TopologyVersion) Server {
 	return Server{
-		Addr:      addr,
-		LastError: err,
-		Kind:      Unknown,
+		Addr:            addr,
+		LastError:       err,
+		Kind:            Unknown,
+		TopologyVersion: tv,
 	}
 }
 

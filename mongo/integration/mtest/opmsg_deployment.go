@@ -87,6 +87,11 @@ func (*connection) Address() address.Address {
 	return serverAddress
 }
 
+// Stale returns if the connection is stale.
+func (*connection) Stale() bool {
+	return false
+}
+
 // mockDeployment wraps a connection and implements the driver.Deployment interface.
 type mockDeployment struct {
 	conn    *connection

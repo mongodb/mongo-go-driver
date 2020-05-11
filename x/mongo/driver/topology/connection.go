@@ -378,6 +378,7 @@ func (c initConnection) Description() description.Server {
 func (c initConnection) Close() error             { return nil }
 func (c initConnection) ID() string               { return c.id }
 func (c initConnection) Address() address.Address { return c.addr }
+func (c initConnection) Stale() bool              { return false }
 func (c initConnection) LocalAddress() address.Address {
 	if c.connection == nil || c.nc == nil {
 		return address.Address("0.0.0.0")
@@ -517,6 +518,13 @@ func (c *Connection) ID() string {
 		return "<closed>"
 	}
 	return c.id
+}
+
+// Stale returns if the connection is stale.
+func (c *Connection) Stale() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.s.pool.stale(c.connection)
 }
 
 // Address returns the address of this connection.
