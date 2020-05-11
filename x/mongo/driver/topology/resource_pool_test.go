@@ -184,7 +184,9 @@ func TestResourcePool(t *testing.T) {
 			assert.Equal(t, int32(3), closeCalled, "expected close to be called 3 times, got %v", closeCalled)
 			// rp.maintainTimer should be reset after Maintain runs. Stop() returns true if the
 			// timer was set, ensuring that it was correctly reset.
+			rp.Lock()
 			assert.True(t, rp.maintainTimer.Stop(), "expected timer to be reset")
+			rp.Unlock()
 		})
 	})
 }
