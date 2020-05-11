@@ -116,11 +116,12 @@ func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bo
 // WriteConcernError is a write concern failure that occurred as a result of a
 // write operation.
 type WriteConcernError struct {
-	Name    string
-	Code    int64
-	Message string
-	Details bsoncore.Document
-	Labels  []string
+	Name            string
+	Code            int64
+	Message         string
+	Details         bsoncore.Document
+	Labels          []string
+	TopologyVersion *description.TopologyVersion
 }
 
 func (wce WriteConcernError) Error() string {
@@ -200,11 +201,12 @@ func (we WriteErrors) Error() string {
 
 // Error is a command execution error from the database.
 type Error struct {
-	Code    int32
-	Message string
-	Labels  []string
-	Name    string
-	Wrapped error
+	Code            int32
+	Message         string
+	Labels          []string
+	Name            string
+	Wrapped         error
+	TopologyVersion *description.TopologyVersion
 }
 
 // UnsupportedStorageEngine returns whether e came as a result of an unsupported storage engine
@@ -324,6 +326,7 @@ func extractError(rdr bsoncore.Document) error {
 	var code int32
 	var labels []string
 	var ok bool
+	var tv *description.TopologyVersion
 	var wcError WriteCommandError
 	elems, err := rdr.Elements()
 	if err != nil {
@@ -428,6 +431,15 @@ func extractError(rdr bsoncore.Document) error {
 					}
 				}
 			}
+		case "topologyVersion":
+			doc, ok := elem.Value().DocumentOK()
+			if !ok {
+				break
+			}
+			version, err := description.NewTopologyVersion(doc)
+			if err == nil {
+				tv = version
+			}
 		}
 	}
 
@@ -437,15 +449,19 @@ func extractError(rdr bsoncore.Document) error {
 		}
 
 		return Error{
-			Code:    code,
-			Message: errmsg,
-			Name:    codeName,
-			Labels:  labels,
+			Code:            code,
+			Message:         errmsg,
+			Name:            codeName,
+			Labels:          labels,
+			TopologyVersion: tv,
 		}
 	}
 
 	if len(wcError.WriteErrors) > 0 || wcError.WriteConcernError != nil {
 		wcError.Labels = labels
+		if wcError.WriteConcernError != nil {
+			wcError.WriteConcernError.TopologyVersion = tv
+		}
 		return wcError
 	}
 

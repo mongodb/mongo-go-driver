@@ -50,6 +50,7 @@ type Server struct {
 	SetVersion              uint32
 	SpeculativeAuthenticate bsoncore.Document
 	Tags                    tag.Set
+	TopologyVersion         *TopologyVersion
 	Kind                    ServerKind
 	WireVersion             *VersionRange
 
@@ -239,6 +240,13 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 				return desc
 			}
 			desc.SetVersion = uint32(i64)
+		case "speculativeAuthenticate":
+			desc.SpeculativeAuthenticate, ok = element.Value().DocumentOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'speculativeAuthenticate' to be a document but it's a BSON %s",
+					element.Value().Type)
+				return desc
+			}
 		case "tags":
 			m, err := decodeStringMap(element, "tags")
 			if err != nil {
@@ -246,6 +254,18 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 				return desc
 			}
 			desc.Tags = tag.NewTagSetFromMap(m)
+		case "topologyVersion":
+			doc, ok := element.Value().DocumentOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'topologyVersion' to be a document but it's a BSON %s", element.Value().Type)
+				return desc
+			}
+
+			desc.TopologyVersion, err = NewTopologyVersion(doc)
+			if err != nil {
+				desc.LastError = err
+				return desc
+			}
 		}
 	}
 
