@@ -49,6 +49,8 @@ type connection struct {
 	config               *connectionConfig
 	cancelConnectContext context.CancelFunc
 	connectContextMade   chan struct{}
+	canStream            bool
+	currentlyStreaming   bool
 
 	// pool related fields
 	pool       *pool
@@ -339,6 +341,7 @@ func (c *connection) bumpIdleDeadline() {
 type initConnection struct{ *connection }
 
 var _ driver.Connection = initConnection{}
+var _ driver.Streamer = initConnection{}
 
 func (c initConnection) Description() description.Server {
 	if c.connection == nil {
@@ -360,6 +363,15 @@ func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
 }
 func (c initConnection) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
 	return c.readWireMessage(ctx, dst)
+}
+func (c initConnection) SetStreaming(streaming bool) {
+	c.currentlyStreaming = streaming
+}
+func (c initConnection) CurrentlyStreaming() bool {
+	return c.currentlyStreaming
+}
+func (c initConnection) CanStream() bool {
+	return c.canStream
 }
 
 // Connection implements the driver.Connection interface to allow reading and writing wire

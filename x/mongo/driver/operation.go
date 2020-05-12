@@ -191,10 +191,6 @@ func (op Operation) shouldEncrypt() bool {
 
 // selectServer handles performing server selection for an operation.
 func (op Operation) selectServer(ctx context.Context) (Server, error) {
-	if err := op.Validate(); err != nil {
-		return nil, err
-	}
-
 	selector := op.Selector
 	if selector == nil {
 		rp := op.ReadPreference
@@ -329,7 +325,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc)
+		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, conn)
 		if err != nil {
 			return err
 		}
@@ -575,6 +571,12 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 		return nil, Error{Message: err.Error(), Labels: labels, Wrapped: err}
 	}
 
+	return op.readWireMessage(ctx, conn, wm)
+}
+
+func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	var err error
+
 	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
 		labels := []string{NetworkError}
@@ -588,6 +590,13 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 			labels = append(labels, UnknownTransactionCommitResult)
 		}
 		return nil, Error{Message: err.Error(), Labels: labels, Wrapped: err}
+	}
+
+	// If the server replied with moreToCome set, the connection should be marked as "streaming".
+	if wiremessage.IsMsgMoreToCome(wm) {
+		if streamer, ok := conn.(Streamer); ok {
+			streamer.SetStreaming(true)
+		}
 	}
 
 	// decompress wiremessage
@@ -675,12 +684,12 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 }
 
 func (op Operation) createWireMessage(ctx context.Context, dst []byte,
-	desc description.SelectedServer) ([]byte, startedInformation, error) {
+	desc description.SelectedServer, conn Connection) ([]byte, startedInformation, error) {
 
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return op.createQueryWireMessage(dst, desc)
 	}
-	return op.createMsgWireMessage(ctx, dst, desc)
+	return op.createMsgWireMessage(ctx, dst, desc, conn)
 }
 
 func (op Operation) addBatchArray(dst []byte) []byte {
@@ -758,7 +767,9 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
 }
 
-func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc description.SelectedServer,
+	conn Connection) ([]byte, startedInformation, error) {
+
 	var info startedInformation
 	var flags wiremessage.MsgFlag
 	var wmindex int32
@@ -767,6 +778,12 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 	if op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern) && (op.Batches == nil || len(op.Batches.Documents) == 0) {
 		flags = wiremessage.MoreToCome
 	}
+	// Set the ExhaustAllowed flag if the connection supports streaming. This will tell the server that it can
+	// respond with the MoreToCome flag and then stream responses over this connection.
+	if streamer, ok := conn.(Streamer); ok && streamer.CanStream() {
+		flags |= wiremessage.ExhaustAllowed
+	}
+
 	info.requestID = wiremessage.NextRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessage.AppendMsgFlags(dst, flags)
