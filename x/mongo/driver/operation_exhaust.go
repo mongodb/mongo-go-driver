@@ -15,7 +15,7 @@ import (
 
 // ExecuteExhaust gets a connection from the provided deployment and reads a response from it. This will error if the
 // connection CurrentlyStreaming function returns false.
-func (op Operation) ExecuteExhaust(ctx context.Context, conn Streamer, scratch []byte) error {
+func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection, scratch []byte) error {
 	if !conn.CurrentlyStreaming() {
 		return errors.New("exhaust read must be done with a Streamer that is currently streaming")
 	}

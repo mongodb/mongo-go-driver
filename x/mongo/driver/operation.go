@@ -598,7 +598,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 
 	// If the server replied with moreToCome set, the connection should be marked as "streaming".
 	if wiremessage.IsMsgMoreToCome(wm) {
-		if streamer, ok := conn.(Streamer); ok {
+		if streamer, ok := conn.(StreamerConnection); ok {
 			streamer.SetStreaming(true)
 		}
 	}
@@ -784,7 +784,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 	}
 	// Set the ExhaustAllowed flag if the connection supports streaming. This will tell the server that it can
 	// respond with the MoreToCome flag and then stream responses over this connection.
-	if streamer, ok := conn.(Streamer); ok && streamer.CanStream() {
+	if streamer, ok := conn.(StreamerConnection); ok && streamer.SupportsStreaming() {
 		flags |= wiremessage.ExhaustAllowed
 	}
 

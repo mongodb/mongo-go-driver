@@ -341,7 +341,7 @@ func (c *connection) bumpIdleDeadline() {
 type initConnection struct{ *connection }
 
 var _ driver.Connection = initConnection{}
-var _ driver.Streamer = initConnection{}
+var _ driver.StreamerConnection = initConnection{}
 
 func (c initConnection) Description() description.Server {
 	if c.connection == nil {
@@ -370,7 +370,7 @@ func (c initConnection) SetStreaming(streaming bool) {
 func (c initConnection) CurrentlyStreaming() bool {
 	return c.currentlyStreaming
 }
-func (c initConnection) CanStream() bool {
+func (c initConnection) SupportsStreaming() bool {
 	return c.canStream
 }
 

@@ -657,7 +657,7 @@ func (m *mockConnection) Description() description.Server { return m.rDesc }
 func (m *mockConnection) Close() error                    { return m.rCloseErr }
 func (m *mockConnection) ID() string                      { return m.rID }
 func (m *mockConnection) Address() address.Address        { return m.rAddr }
-func (m *mockConnection) CanStream() bool                 { return m.rCanStream }
+func (m *mockConnection) SupportsStreaming() bool         { return m.rCanStream }
 func (m *mockConnection) CurrentlyStreaming() bool        { return m.rStreaming }
 func (m *mockConnection) SetStreaming(streaming bool)     { m.rStreaming = streaming }
 

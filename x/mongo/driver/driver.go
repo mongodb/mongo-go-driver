@@ -65,7 +65,7 @@ type Expirable interface {
 	Alive() bool
 }
 
-// Streamer represents a Connection that supports streaming wire protocol messages using the moreToCome and
+// StreamerConnection represents a Connection that supports streaming wire protocol messages using the moreToCome and
 // exhaustAllowed flags.
 //
 // The SetStreaming and CurrentlyStreaming functions correspond to the moreToCome flag on server responses. If a
@@ -73,11 +73,11 @@ type Expirable interface {
 //
 // CanStream corresponds to the exhaustAllowed flag. The operations layer will set exhaustAllowed on outgoing wire
 // messages to inform the server that the driver supports streaming.
-type Streamer interface {
+type StreamerConnection interface {
 	Connection
 	SetStreaming(bool)
 	CurrentlyStreaming() bool
-	CanStream() bool
+	SupportsStreaming() bool
 }
 
 // Compressor is an interface used to compress wire messages. If a Connection supports compression
