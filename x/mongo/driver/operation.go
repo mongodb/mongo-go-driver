@@ -191,6 +191,10 @@ func (op Operation) shouldEncrypt() bool {
 
 // selectServer handles performing server selection for an operation.
 func (op Operation) selectServer(ctx context.Context) (Server, error) {
+	if err := op.Validate(); err != nil {
+		return nil, err
+	}
+
 	selector := op.Selector
 	if selector == nil {
 		rp := op.ReadPreference
