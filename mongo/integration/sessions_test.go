@@ -72,7 +72,6 @@ func TestSessions(t *testing.T) {
 	mt := mtest.New(t, mtOpts)
 
 	// Pin to a single mongos so heartbeats/handshakes to other mongoses won't cause errors.
-	// Pin to a single mongos so heartbeats/handshakes to other mongoses won't cause errors.
 	clusterTimeOpts := mtest.NewOptions().
 		ClientOptions(options.Client().SetHeartbeatInterval(50 * time.Second)).
 		ClientType(mtest.Pinned).
@@ -120,8 +119,9 @@ func TestSessions(t *testing.T) {
 
 	hosts := options.Client().ApplyURI(mt.ConnString()).Hosts
 	clusterTimeHandshakeOpts := options.Client().
-		SetHosts(hosts[:1]).
-		SetDirect(true)
+		SetHosts(hosts[:1]). // Prevent handshakes to other hosts from updating the cluster time.
+		SetDirect(true).
+		SetHeartbeatInterval(50 * time.Second) // Prevent extra heartbeats from updating the cluster time.
 	clusterTimeHandshakeMtOpts := mtest.NewOptions().
 		ClientType(mtest.Proxy).
 		ClientOptions(clusterTimeHandshakeOpts).

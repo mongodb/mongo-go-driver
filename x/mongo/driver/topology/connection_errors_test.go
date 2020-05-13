@@ -24,7 +24,7 @@ func TestConnectionErrors(t *testing.T) {
 		t.Run("dial error", func(t *testing.T) {
 			dialError := errors.New("foo")
 
-			conn, err := newConnection(context.Background(), address.Address(""), WithDialer(func(Dialer) Dialer {
+			conn, err := newConnection(address.Address(""), WithDialer(func(Dialer) Dialer {
 				return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, dialError })
 			}))
 			assert.Nil(t, err, "newConnection error: %v", err)
@@ -34,7 +34,7 @@ func TestConnectionErrors(t *testing.T) {
 			assert.True(t, errors.Is(err, dialError), "expected error %v, got %v", dialError, err)
 		})
 		t.Run("handshake error", func(t *testing.T) {
-			conn, err := newConnection(context.Background(), address.Address(""),
+			conn, err := newConnection(address.Address(""),
 				WithHandshaker(func(Handshaker) Handshaker {
 					return auth.Handshaker(nil, &auth.HandshakeOptions{})
 				}),

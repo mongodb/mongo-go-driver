@@ -124,7 +124,7 @@ func connectionCloseFunc(v interface{}) {
 
 // connectionInitFunc returns an init function for the resource pool that will make new connections for this pool
 func (p *pool) connectionInitFunc() interface{} {
-	c, _, err := p.makeNewConnection(context.Background())
+	c, _, err := p.makeNewConnection()
 	if err != nil {
 		return nil
 	}
@@ -269,8 +269,8 @@ func (p *pool) disconnect(ctx context.Context) error {
 // connection.connect on the returned instance before using it for operations. This function ensures that a
 // ConnectionClosed event is published if there is an error after the ConnectionCreated event has been published. The
 // caller must not hold the pool lock when calling this function.
-func (p *pool) makeNewConnection(ctx context.Context) (*connection, string, error) {
-	c, err := newConnection(ctx, p.address, p.opts...)
+func (p *pool) makeNewConnection() (*connection, string, error) {
+	c, err := newConnection(p.address, p.opts...)
 	if err != nil {
 		return nil, event.ReasonConnectionErrored, err
 	}
@@ -410,7 +410,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 			if !made {
 				continue
 			}
-			c, reason, err := p.makeNewConnection(ctx)
+			c, reason, err := p.makeNewConnection()
 
 			if err != nil {
 				if p.monitor != nil {

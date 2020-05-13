@@ -51,7 +51,10 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false))
 	defer mt.Close()
 
-	clientOpts := options.Client().ApplyURI(mt.ConnString()).SetRetryWrites(false).SetPoolMonitor(poolMonitor)
+	clientOpts := options.Client().
+		ApplyURI(mt.ConnString()).
+		SetRetryWrites(false).
+		SetPoolMonitor(poolMonitor)
 
 	getMoreOpts := mtest.NewOptions().MinServerVersion("4.2").ClientOptions(clientOpts)
 	mt.RunOpts("getMore iteration", getMoreOpts, func(mt *mtest.T) {
@@ -73,6 +76,10 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 		assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
 	})
 	mt.RunOpts("server errors", noClientOpts, func(mt *mtest.T) {
+		// Use a low heartbeat frequency so the Client will quickly recover when using failpoints that cause SDAM state
+		// changes.
+		clientOpts.SetHeartbeatInterval(defaultHeartbeatInterval)
+
 		testCases := []struct {
 			name                   string
 			minVersion, maxVersion string

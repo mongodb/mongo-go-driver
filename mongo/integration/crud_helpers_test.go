@@ -1397,6 +1397,21 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 	return mt.DB.RunCommand(mtest.Background, createCmd).Err()
 }
 
+func executeAdminCommand(mt *mtest.T, op *operation) {
+	// Per the streamable isMaster test format description, a separate client must be used to execute this operation.
+	clientOpts := options.Client().ApplyURI(mt.ConnString())
+	client, err := mongo.Connect(mtest.Background, clientOpts)
+	assert.Nil(mt, err, "Connect error: %v", err)
+	defer func() {
+		_ = client.Disconnect(mtest.Background)
+	}()
+
+	db := client.Database("admin")
+	cmd := op.Arguments.Lookup("command").Document()
+	err = db.RunCommand(mtest.Background, cmd).Err()
+	assert.Nil(mt, err, "RunCommand error for command %q: %v", op.CommandName, err)
+}
+
 // verification function to use for all count operations
 func verifyCountResult(mt *mtest.T, actualResult int64, expectedResult interface{}) {
 	mt.Helper()

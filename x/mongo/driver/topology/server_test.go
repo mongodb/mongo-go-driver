@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
@@ -236,7 +237,12 @@ func TestServer(t *testing.T) {
 		s.pool.connected = connected
 
 		wce := driver.WriteConcernError{}
+<<<<<<< HEAD
 		s.ProcessError(&wce, initConnection{})
+=======
+		// Use initConnection as it always returns false for Stale().
+		s.ProcessError(wce, initConnection{})
+>>>>>>> 1b2c6365... GODRIVER-1489 Implement streaming heartbeat protocol
 
 		// should not be a LastError
 		require.Nil(t, s.Description().LastError)
@@ -275,11 +281,11 @@ func TestServer(t *testing.T) {
 		}
 
 		// do a heartbeat with a nil connection so a new one will be dialed
-		_, conn := s.heartbeat(nil)
-		if conn == nil {
-			t.Fatal("no connection dialed")
-		}
-		channelConn := conn.nc.(*drivertest.ChannelNetConn)
+		_, err = s.check()
+		assert.Nil(t, err, "check error: %v", err)
+		assert.NotNil(t, s.conn, "no connection dialed in check")
+
+		channelConn := s.conn.nc.(*drivertest.ChannelNetConn)
 		wm := channelConn.GetWrittenMessage()
 		if wm == nil {
 			t.Fatal("no wire message written for handshake")
@@ -292,7 +298,9 @@ func TestServer(t *testing.T) {
 		if err = channelConn.AddResponse(makeIsMasterReply()); err != nil {
 			t.Fatalf("error adding response: %v", err)
 		}
-		_, _ = s.heartbeat(conn)
+		_, err = s.check()
+		assert.Nil(t, err, "check error: %v", err)
+
 		wm = channelConn.GetWrittenMessage()
 		if wm == nil {
 			t.Fatal("no wire message written for heartbeat")

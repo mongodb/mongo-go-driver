@@ -40,6 +40,7 @@ type connection struct {
 	readTimeout          time.Duration
 	writeTimeout         time.Duration
 	desc                 description.Server
+	isMasterRTT          time.Duration
 	compressor           wiremessage.CompressorID
 	zliblevel            int
 	zstdLevel            int
@@ -61,7 +62,7 @@ type connection struct {
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
-func newConnection(ctx context.Context, addr address.Address, opts ...ConnectionOption) (*connection, error) {
+func newConnection(addr address.Address, opts ...ConnectionOption) (*connection, error) {
 	cfg, err := newConnectionConfig(opts...)
 	if err != nil {
 		return nil, err
@@ -164,9 +165,11 @@ func (c *connection) connect(ctx context.Context) {
 		return
 	}
 
+	now := time.Now()
 	handshakeConn := initConnection{c}
 	c.desc, err = handshaker.GetDescription(ctx, c.addr, handshakeConn)
 	if err == nil {
+		c.isMasterRTT = time.Now().Sub(now)
 		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
 	if err != nil {
@@ -354,6 +357,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 }
 
 func (c *connection) close() error {
+	// Overwrite the connection state as the first step so only the first close call will execute.
 	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
 		return nil
 	}
@@ -391,6 +395,27 @@ func (c *connection) bumpIdleDeadline() {
 	}
 }
 
+func (c *connection) setCanStream(canStream bool) {
+	c.canStream = canStream
+}
+
+func (c initConnection) supportsStreaming() bool {
+	return c.canStream
+}
+
+func (c *connection) setStreaming(streaming bool) {
+	c.currentlyStreaming = streaming
+}
+
+func (c *connection) getCurrentlyStreaming() bool {
+	return c.currentlyStreaming
+}
+
+func (c *connection) setSocketTimeout(timeout time.Duration) {
+	c.readTimeout = timeout
+	c.writeTimeout = timeout
+}
+
 // initConnection is an adapter used during connection initialization. It has the minimum
 // functionality necessary to implement the driver.Connection interface, which is required to pass a
 // *connection to a Handshaker.
@@ -422,13 +447,13 @@ func (c initConnection) ReadWireMessage(ctx context.Context, dst []byte) ([]byte
 	return c.readWireMessage(ctx, dst)
 }
 func (c initConnection) SetStreaming(streaming bool) {
-	c.currentlyStreaming = streaming
+	c.setStreaming(streaming)
 }
 func (c initConnection) CurrentlyStreaming() bool {
-	return c.currentlyStreaming
+	return c.getCurrentlyStreaming()
 }
 func (c initConnection) SupportsStreaming() bool {
-	return c.canStream
+	return c.supportsStreaming()
 }
 
 // Connection implements the driver.Connection interface to allow reading and writing wire
