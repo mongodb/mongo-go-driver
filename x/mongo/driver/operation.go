@@ -596,11 +596,10 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 		return nil, Error{Message: err.Error(), Labels: labels, Wrapped: err}
 	}
 
-	// If the server replied with moreToCome set, the connection should be marked as "streaming".
-	if wiremessage.IsMsgMoreToCome(wm) {
-		if streamer, ok := conn.(StreamerConnection); ok {
-			streamer.SetStreaming(true)
-		}
+	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
+	// response.
+	if streamer, ok := conn.(StreamerConnection); ok {
+		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
 	}
 
 	// decompress wiremessage
