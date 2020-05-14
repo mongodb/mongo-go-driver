@@ -13,11 +13,11 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
-// ExecuteExhaust gets a connection from the provided deployment and reads a response from it. This will error if the
-// connection CurrentlyStreaming function returns false.
+// ExecuteExhaust reads a response from the provided StreamerConnection. This will error if the connection's
+// CurrentlyStreaming function returns false.
 func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection, scratch []byte) error {
 	if !conn.CurrentlyStreaming() {
-		return errors.New("exhaust read must be done with a Streamer that is currently streaming")
+		return errors.New("exhaust read must be done with a connection that is currently streaming")
 	}
 
 	scratch = scratch[:0]
