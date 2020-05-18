@@ -16,7 +16,7 @@ import (
 
 // ErrNoDocuments is returned by SingleResult methods when the operation that created the SingleResult did not return
 // any documents.
-var ErrNoDocuments = errors.New("mongo: no documents in result")
+var ErrNoDocuments = errors.New("no documents in result")
 
 // SingleResult represents a single document returned from an operation. If the operation resulted in an error, all
 // SingleResult methods will return that error. If the operation did not return any documents, all SingleResult methods
