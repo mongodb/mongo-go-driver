@@ -1,0 +1,53 @@
+package integration
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+func TestSDAMErrorHandling(t *testing.T) {
+	mt := mtest.New(t, noClientOpts)
+	clientOpts := options.Client().ApplyURI(mt.ConnString()).SetRetryWrites(false).SetPoolMonitor(poolMonitor)
+
+	mt.RunOpts("network errors", mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.0"), func(mt *mtest.T) {
+		t.Run("pool cleared on non-timeout network error", func(t *testing.T) {
+			clearPoolChan()
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: mtest.FailPointMode{
+					Times: 1,
+				},
+				Data: mtest.FailPointData{
+					FailCommands:    []string{"insert"},
+					CloseConnection: true,
+				},
+			})
+
+			_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"test", 1}})
+			assert.NotNil(mt, err, "expected InsertOne error, got nil")
+			assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
+		})
+		t.Run("pool not cleared on timeout network error", func(t *testing.T) {
+			clearPoolChan()
+
+			_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+
+			filter := bson.M{
+				"$where": "function() { sleep(1000); return false; }",
+			}
+			timeoutCtx, cancel := context.WithTimeout(mtest.Background, 100*time.Millisecond)
+			defer cancel()
+			_, err = mt.Coll.Find(timeoutCtx, filter)
+			assert.NotNil(mt, err, "expected Find error, got %v", err)
+
+			assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
+		})
+	})
+}
