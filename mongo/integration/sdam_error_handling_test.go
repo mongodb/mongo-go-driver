@@ -13,10 +13,14 @@ import (
 
 func TestSDAMErrorHandling(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
-	clientOpts := options.Client().ApplyURI(mt.ConnString()).SetRetryWrites(false).SetPoolMonitor(poolMonitor)
+	clientOpts := options.Client().
+		ApplyURI(mt.ConnString()).
+		SetRetryWrites(false).
+		SetPoolMonitor(poolMonitor).
+		SetWriteConcern(mtest.MajorityWc)
 
 	mt.RunOpts("network errors", mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.0"), func(mt *mtest.T) {
-		t.Run("pool cleared on non-timeout network error", func(t *testing.T) {
+		mt.Run("pool cleared on non-timeout network error", func(mt *mtest.T) {
 			clearPoolChan()
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
@@ -33,7 +37,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 			assert.NotNil(mt, err, "expected InsertOne error, got nil")
 			assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
 		})
-		t.Run("pool not cleared on timeout network error", func(t *testing.T) {
+		mt.Run("pool not cleared on timeout network error", func(mt *mtest.T) {
 			clearPoolChan()
 
 			_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
