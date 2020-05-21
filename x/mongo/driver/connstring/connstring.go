@@ -216,7 +216,7 @@ func (p *parser) parse(original string) error {
 			p.PasswordSet = true
 		}
 
-		if len(username) > 1 {
+		if len(username) > 0 {
 			if strings.Contains(username, "/") {
 				return fmt.Errorf("unescaped slash in username")
 			}
@@ -226,7 +226,7 @@ func (p *parser) parse(original string) error {
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid username")
 		}
-		if len(password) > 1 {
+		if len(password) > 0 {
 			if strings.Contains(password, ":") {
 				return fmt.Errorf("unescaped colon in password")
 			}
