@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"math"
 	"sort"
@@ -19,6 +18,8 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var ejvwPool = sync.Pool{
@@ -81,10 +82,23 @@ type extJSONValueWriter struct {
 	w   io.Writer
 	buf []byte
 
-	stack      []ejvwState
-	frame      int64
-	canonical  bool
-	escapeHTML bool
+	stack        []ejvwState
+	frame        int64
+	canonical    bool
+	escapeHTML   bool
+	nestingDepth int
+}
+
+func (ejvw *extJSONValueWriter) incrementDepth() error {
+	if ejvw.nestingDepth == MaxBSONDepth {
+		return ErrMaxDepthExceeded
+	}
+	ejvw.nestingDepth++
+	return nil
+}
+
+func (ejvw *extJSONValueWriter) decrementDepth() {
+	ejvw.nestingDepth--
 }
 
 // NewExtJSONValueWriter creates a ValueWriter that writes Extended JSON to w.
@@ -133,6 +147,7 @@ func (ejvw *extJSONValueWriter) reset(buf []byte, canonical, escapeHTML bool) {
 	ejvw.frame = 0
 	ejvw.buf = buf
 	ejvw.w = nil
+	ejvw.nestingDepth = 0
 }
 
 func (ejvw *extJSONValueWriter) advanceFrame() {
@@ -204,6 +219,10 @@ func (ejvw *extJSONValueWriter) writeExtendedSingleValue(key string, value strin
 }
 
 func (ejvw *extJSONValueWriter) WriteArray() (ArrayWriter, error) {
+	if err := ejvw.incrementDepth(); err != nil {
+		return nil, err
+	}
+
 	if err := ejvw.ensureElementValue(mArray, "WriteArray"); err != nil {
 		return nil, err
 	}
@@ -316,6 +335,12 @@ func (ejvw *extJSONValueWriter) WriteDocument() (DocumentWriter, error) {
 	if ejvw.stack[ejvw.frame].mode == mTopLevel {
 		ejvw.buf = append(ejvw.buf, '{')
 		return ejvw, nil
+	}
+
+	// Increment the depth after ensuring the current mode is not mTopLevel because we only want to count nested
+	// documents, not the top-level document.
+	if err := ejvw.incrementDepth(); err != nil {
+		return nil, err
 	}
 
 	if err := ejvw.ensureElementValue(mDocument, "WriteDocument", mTopLevel); err != nil {
@@ -565,9 +590,10 @@ func (ejvw *extJSONValueWriter) WriteDocumentEnd() error {
 	switch ejvw.stack[ejvw.frame].mode {
 	case mCodeWithScope:
 		ejvw.buf = append(ejvw.buf, '}')
-		fallthrough
+		ejvw.buf = append(ejvw.buf, ',')
 	case mDocument:
 		ejvw.buf = append(ejvw.buf, ',')
+		ejvw.decrementDepth()
 	case mTopLevel:
 		if ejvw.w != nil {
 			if _, err := ejvw.w.Write(ejvw.buf); err != nil {
@@ -605,6 +631,7 @@ func (ejvw *extJSONValueWriter) WriteArrayEnd() error {
 		ejvw.buf = append(ejvw.buf, ',')
 
 		ejvw.pop()
+		ejvw.decrementDepth()
 	default:
 		return fmt.Errorf("incorrect mode to end array: %s", ejvw.stack[ejvw.frame].mode)
 	}
