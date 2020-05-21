@@ -254,11 +254,27 @@ func TestClientOptions(t *testing.T) {
 				baseClient().SetAuth(Credential{AuthSource: "admin", Username: "foo"}),
 			},
 			{
+				"Unescaped slash in username",
+				"mongodb:///:pwd@localhost",
+				&ClientOptions{err: internal.WrapErrorf(
+					errors.New("unescaped slash in username"),
+					"error parsing uri",
+				)},
+			},
+			{
 				"Password",
 				"mongodb://foo:bar@localhost/",
 				baseClient().SetAuth(Credential{
 					AuthSource: "admin", Username: "foo",
 					Password: "bar", PasswordSet: true,
+				}),
+			},
+			{
+				"Single character username and password",
+				"mongodb://f:b@localhost/",
+				baseClient().SetAuth(Credential{
+					AuthSource: "admin", Username: "f",
+					Password: "b", PasswordSet: true,
 				}),
 			},
 			{
