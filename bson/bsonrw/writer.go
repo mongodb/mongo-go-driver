@@ -7,8 +7,20 @@
 package bsonrw
 
 import (
+	"errors"
+
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+const (
+	// MaxBSONDepth represents the maximum number of times a BSON document can be nested during marshalling.
+	MaxBSONDepth = 250
+)
+
+var (
+	// ErrMaxDepthExceeded is returned when a BSON document exceeds MaxBSONDepth.
+	ErrMaxDepthExceeded = errors.New("max depth exceeded")
 )
 
 // ArrayWriter is the interface used to create a BSON or BSON adjacent array.

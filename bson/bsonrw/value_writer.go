@@ -140,8 +140,21 @@ type valueWriter struct {
 	w   io.Writer
 	buf []byte
 
-	stack []vwState
-	frame int64
+	stack        []vwState
+	frame        int64
+	nestingDepth int64
+}
+
+func (vw *valueWriter) incrementDepth() error {
+	if vw.nestingDepth == MaxBSONDepth {
+		return ErrMaxDepthExceeded
+	}
+	vw.nestingDepth++
+	return nil
+}
+
+func (vw *valueWriter) decrementDepth() {
+	vw.nestingDepth--
 }
 
 func (vw *valueWriter) advanceFrame() {
@@ -228,6 +241,7 @@ func (vw *valueWriter) reset(buf []byte) {
 	vw.buf = buf
 	vw.frame = 0
 	vw.w = nil
+	vw.nestingDepth = 0
 }
 
 func (vw *valueWriter) invalidTransitionError(destination mode, name string, modes []mode) error {
@@ -272,6 +286,10 @@ func (vw *valueWriter) WriteValueBytes(t bsontype.Type, b []byte) error {
 }
 
 func (vw *valueWriter) WriteArray() (ArrayWriter, error) {
+	if err := vw.incrementDepth(); err != nil {
+		return nil, err
+	}
+
 	if err := vw.writeElementHeader(bsontype.Array, mArray, "WriteArray"); err != nil {
 		return nil, err
 	}
@@ -454,6 +472,13 @@ func (vw *valueWriter) WriteDocument() (DocumentWriter, error) {
 		vw.reserveLength()
 		return vw, nil
 	}
+
+	// Increment the depth after ensuring the current mode is not mTopLevel because we only want to count nested
+	// documents, not the top-level document.
+	if err := vw.incrementDepth(); err != nil {
+		return nil, err
+	}
+
 	if err := vw.writeElementHeader(bsontype.EmbeddedDocument, mDocument, "WriteDocument", mTopLevel); err != nil {
 		return nil, err
 	}
@@ -518,10 +543,12 @@ func (vw *valueWriter) WriteDocumentEnd() error {
 		return err
 	}
 
+	decrementDepth := true
 	if vw.stack[vw.frame].mode == mTopLevel {
 		if err = vw.Flush(); err != nil {
 			return err
 		}
+		decrementDepth = false
 	}
 
 	vw.pop()
@@ -531,6 +558,10 @@ func (vw *valueWriter) WriteDocumentEnd() error {
 		// See the docs for writeLength for more info.
 		_ = vw.writeLength()
 		vw.pop()
+		decrementDepth = false
+	}
+	if decrementDepth {
+		vw.decrementDepth()
 	}
 	return nil
 }
@@ -579,6 +610,7 @@ func (vw *valueWriter) WriteArrayEnd() error {
 	}
 
 	vw.pop()
+	vw.decrementDepth()
 	return nil
 }
 
