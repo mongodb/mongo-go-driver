@@ -8,12 +8,14 @@ package topology
 
 import (
 	"context"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"golang.org/x/sync/semaphore"
 )
 
 // ErrPoolConnected is returned from an attempt to connect an already connected pool
@@ -67,6 +69,7 @@ type pool struct {
 	connected int32 // Must be accessed using the sync/atomic package.
 	nextid    uint64
 	opened    map[uint64]*connection // opened holds all of the currently open connections.
+	sem       *semaphore.Weighted
 	sync.Mutex
 }
 
@@ -141,16 +144,23 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 		opts = append(opts, WithIdleTimeout(func(_ time.Duration) time.Duration { return config.MaxIdleTime }))
 	}
 
+	var maxConns = config.MaxPoolSize
+	if maxConns == 0 {
+		maxConns = math.MaxInt64
+	}
+
 	pool := &pool{
 		address:   config.Address,
 		monitor:   config.PoolMonitor,
 		connected: disconnected,
 		opened:    make(map[uint64]*connection),
 		opts:      opts,
+		sem:       semaphore.NewWeighted(int64(maxConns)),
 	}
 
 	// we do not pass in config.MaxPoolSize because we manage the max size at this level rather than the resource pool level
 	rpc := resourcePoolConfig{
+		MaxSize:          maxConns,
 		MinSize:          config.MinPoolSize,
 		MaintainInterval: maintainInterval,
 		ExpiredFn:        connectionExpiredFunc,
@@ -162,7 +172,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 		pool.monitor.Event(&event.PoolEvent{
 			Type: event.PoolCreated,
 			PoolOptions: &event.MonitorPoolOptions{
-				MaxPoolSize:        config.MaxPoolSize,
+				MaxPoolSize:        rpc.MaxSize,
 				MinPoolSize:        rpc.MinSize,
 				WaitQueueTimeoutMS: uint64(config.MaxIdleTime) / uint64(time.Millisecond),
 			},
@@ -305,53 +315,12 @@ func (p *pool) makeNewConnection(ctx context.Context) (*connection, string, erro
 
 // Checkout returns a connection from the pool
 func (p *pool) get(ctx context.Context) (*connection, error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	if atomic.LoadInt32(&p.connected) != connected {
-		if p.monitor != nil {
-			p.monitor.Event(&event.PoolEvent{
-				Type:    event.GetFailed,
-				Address: p.address.String(),
-				Reason:  event.ReasonPoolClosed,
-			})
-		}
-		return nil, ErrPoolDisconnected
-	}
-
-	connVal := p.conns.Get()
-	if c, ok := connVal.(*connection); ok && connVal != nil {
-		// call connect if not connected
-		if atomic.LoadInt32(&c.connected) == initialized {
-			c.connect(ctx)
-		}
-
-		err := c.wait()
-		if err != nil {
-			if p.monitor != nil {
-				p.monitor.Event(&event.PoolEvent{
-					Type:    event.GetFailed,
-					Address: p.address.String(),
-					Reason:  event.ReasonConnectionErrored,
-				})
-			}
-			return nil, err
-		}
-
-		if p.monitor != nil {
-			p.monitor.Event(&event.PoolEvent{
-				Type:         event.GetSucceeded,
-				Address:      p.address.String(),
-				ConnectionID: c.poolID,
-			})
-		}
-		return c, nil
-	}
-
-	select {
-	case <-ctx.Done():
+	err := p.sem.Acquire(ctx, 1)
+	if err != nil {
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
@@ -359,55 +328,118 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				Reason:  event.ReasonTimedOut,
 			})
 		}
-		return nil, ctx.Err()
-	default:
-		c, reason, err := p.makeNewConnection(ctx)
+		return nil, ErrWaitQueueTimeout
+	}
 
-		if err != nil {
+	for {
+		if atomic.LoadInt32(&p.connected) != connected {
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
 					Type:    event.GetFailed,
 					Address: p.address.String(),
-					Reason:  reason,
+					Reason:  event.ReasonPoolClosed,
 				})
 			}
-			return nil, err
+			p.sem.Release(1)
+			return nil, ErrPoolDisconnected
 		}
 
-		c.connect(ctx)
-		// wait for conn to be connected
-		err = c.wait()
-		if err != nil {
+		connVal := p.conns.Get()
+		if c, ok := connVal.(*connection); ok && connVal != nil {
+			// call connect if not connected
+			if atomic.LoadInt32(&c.connected) == initialized {
+				c.connect(ctx)
+			}
+
+			err := c.wait()
+			if err != nil {
+				if p.monitor != nil {
+					p.monitor.Event(&event.PoolEvent{
+						Type:    event.GetFailed,
+						Address: p.address.String(),
+						Reason:  event.ReasonConnectionErrored,
+					})
+				}
+				p.sem.Release(1)
+				return nil, err
+			}
+
+			if p.monitor != nil {
+				p.monitor.Event(&event.PoolEvent{
+					Type:         event.GetSucceeded,
+					Address:      p.address.String(),
+					ConnectionID: c.poolID,
+				})
+			}
+			return c, nil
+		}
+
+		select {
+		case <-ctx.Done():
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
 					Type:    event.GetFailed,
 					Address: p.address.String(),
-					Reason:  reason,
+					Reason:  event.ReasonTimedOut,
 				})
 			}
-			return nil, err
-		}
+			p.sem.Release(1)
+			return nil, ctx.Err()
+		default:
+			made := p.conns.incrementTotal()
+			if !made {
+				continue
+			}
+			c, reason, err := p.makeNewConnection(ctx)
 
-		if p.monitor != nil {
-			p.monitor.Event(&event.PoolEvent{
-				Type:         event.GetSucceeded,
-				Address:      p.address.String(),
-				ConnectionID: c.poolID,
-			})
+			if err != nil {
+				if p.monitor != nil {
+					p.monitor.Event(&event.PoolEvent{
+						Type:    event.GetFailed,
+						Address: p.address.String(),
+						Reason:  reason,
+					})
+				}
+				p.sem.Release(1)
+				p.conns.decrementTotal()
+				return nil, err
+			}
+
+			c.connect(ctx)
+			// wait for conn to be connected
+			err = c.wait()
+			if err != nil {
+				if p.monitor != nil {
+					p.monitor.Event(&event.PoolEvent{
+						Type:    event.GetFailed,
+						Address: p.address.String(),
+						Reason:  reason,
+					})
+				}
+				p.sem.Release(1)
+				p.conns.decrementTotal()
+				return nil, err
+			}
+
+			if p.monitor != nil {
+				p.monitor.Event(&event.PoolEvent{
+					Type:         event.GetSucceeded,
+					Address:      p.address.String(),
+					ConnectionID: c.poolID,
+				})
+			}
+			return c, nil
 		}
-		return c, nil
 	}
 }
 
 // closeConnection closes a connection, not the pool itself. This method will actually closeConnection the connection,
 // making it unusable, to instead return the connection to the pool, use put.
 func (p *pool) closeConnection(c *connection) error {
-	if c.pool != p {
-		return ErrWrongPool
+	err := p.removeConnection(c)
+	if err != nil {
+		return err
 	}
-	p.Lock()
-	delete(p.opened, c.poolID)
-	p.Unlock()
 
 	if atomic.LoadInt32(&c.connected) == connected {
 		c.closeConnectContext()
@@ -436,12 +468,14 @@ func (p *pool) removeConnection(c *connection) error {
 	p.Lock()
 	delete(p.opened, c.poolID)
 	p.Unlock()
+	p.conns.decrementTotal()
 
 	return nil
 }
 
 // put returns a connection to this pool. If the pool is connected, the connection is not
-// stale, and there is space in the cache, the connection is returned to the cache.
+// stale, and there is space in the cache, the connection is returned to the cache. This
+// assumes that the connection has already been counted in p.conns.totalSize.
 func (p *pool) put(c *connection) error {
 	if p.monitor != nil {
 		var cid uint64

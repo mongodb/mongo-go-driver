@@ -26,6 +26,7 @@ type closeFunc func(interface{})
 type initFunc func() interface{}
 
 type resourcePoolConfig struct {
+	MaxSize          uint64
 	MinSize          uint64
 	MaintainInterval time.Duration
 	ExpiredFn        expiredFunc
@@ -55,13 +56,13 @@ type resourcePoolElement struct {
 
 // resourcePool is a concurrent resource pool
 type resourcePool struct {
-	start, end       *resourcePoolElement
-	size, minSize    uint64
-	expiredFn        expiredFunc
-	closeFn          closeFunc
-	initFn           initFunc
-	maintainTimer    *time.Timer
-	maintainInterval time.Duration
+	start, end                        *resourcePoolElement
+	size, minSize, maxSize, totalSize uint64
+	expiredFn                         expiredFunc
+	closeFn                           closeFunc
+	initFn                            initFunc
+	maintainTimer                     *time.Timer
+	maintainInterval                  time.Duration
 
 	sync.Mutex
 }
@@ -75,6 +76,7 @@ func newResourcePool(config resourcePoolConfig) (*resourcePool, error) {
 	}
 	rp := &resourcePool{
 		minSize:          config.MinSize,
+		maxSize:          config.MaxSize,
 		expiredFn:        config.ExpiredFn,
 		closeFn:          config.CloseFn,
 		initFn:           config.InitFn,
@@ -123,14 +125,31 @@ func (rp *resourcePool) Get() interface{} {
 			return curr.value
 		}
 		rp.closeFn(curr.value)
+		atomicSubtract1Uint64(&rp.totalSize)
 	}
 	return nil
 }
 
-// Put puts the resource back into the pool if it will not exceed the max size of the pool
+func (rp *resourcePool) incrementTotal() bool {
+	rp.Lock()
+	defer rp.Unlock()
+	if rp.maxSize > 0 && atomic.LoadUint64(&rp.totalSize) >= rp.maxSize {
+		return false
+	}
+	atomic.AddUint64(&rp.totalSize, 1)
+	return true
+}
+
+func (rp *resourcePool) decrementTotal() {
+	atomicSubtract1Uint64(&rp.totalSize)
+}
+
+// Put puts the resource back into the pool if it will not exceed the max size of the pool.
+// This assumes that v has already been accounted for by rp.totalSize
 func (rp *resourcePool) Put(v interface{}) bool {
 	if rp.expiredFn(v) {
 		rp.closeFn(v)
+		atomicSubtract1Uint64(&rp.totalSize)
 		return false
 	}
 
@@ -169,11 +188,13 @@ func (rp *resourcePool) Maintain() {
 		if rp.expiredFn(curr.value) {
 			rp.remove(curr)
 			rp.closeFn(curr.value)
+			atomicSubtract1Uint64(&rp.totalSize)
 		}
 	}
 
 	for atomic.LoadUint64(&rp.size) < rp.minSize {
 		rp.add(nil)
+		atomic.AddUint64(&rp.totalSize, 1)
 	}
 
 	// reset the timer for the background cleanup routine
@@ -201,6 +222,7 @@ func (rp *resourcePool) Clear() {
 		rp.closeFn(rp.start.value)
 	}
 	atomic.StoreUint64(&rp.size, 0)
+	atomic.StoreUint64(&rp.totalSize, 0)
 	rp.end = nil
 }
 
