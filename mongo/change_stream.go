@@ -199,8 +199,9 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	defer conn.Close()
 	cs.wireVersion = conn.Description().WireVersion
 
-	cs.aggregate.Deployment(driver.SingleConnectionDeployment{
-		C: conn,
+	cs.aggregate.Deployment(&changeStreamDeployment{
+		server: server,
+		conn:   conn,
 	})
 
 	if resuming {
