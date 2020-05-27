@@ -634,14 +634,22 @@ func (ss *ServerSubscription) Unsubscribe() error {
 
 // unwrapConnectionError returns the connection error wrapped by err, or nil if err does not wrap a connection error.
 func unwrapConnectionError(err error) error {
+	// This is essentially an implementation of errors.As to unwrap this error until we get a ConnectionError and then
+	// return ConnectionError.Wrapped.
+
 	connErr, ok := err.(ConnectionError)
 	if ok {
 		return connErr.Wrapped
 	}
 
 	driverErr, ok := err.(driver.Error)
-	if ok && driverErr.NetworkError() {
-		return driverErr.Wrapped
+	if !ok || !driverErr.NetworkError() {
+		return nil
+	}
+
+	connErr, ok = driverErr.Wrapped.(ConnectionError)
+	if ok {
+		return connErr.Wrapped
 	}
 
 	return nil
