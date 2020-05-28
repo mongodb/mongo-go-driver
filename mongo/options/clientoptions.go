@@ -427,7 +427,8 @@ func (c *ClientOptions) SetConnectTimeout(d time.Duration) *ClientOptions {
 }
 
 // SetDialer specifies a custom ContextDialer to be used to create new connections to the server. The default is a
-// net.Dialer instance with a 300 second keepalive time.
+// net.Dialer with the Timeout field set to ConnectTimeout. See https://golang.org/pkg/net/#Dialer for more information
+// about the net.Dialer type.
 func (c *ClientOptions) SetDialer(d ContextDialer) *ClientOptions {
 	c.Dialer = d
 	return c
