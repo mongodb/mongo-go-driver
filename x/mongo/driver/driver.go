@@ -65,6 +65,21 @@ type Expirable interface {
 	Alive() bool
 }
 
+// StreamerConnection represents a Connection that supports streaming wire protocol messages using the moreToCome and
+// exhaustAllowed flags.
+//
+// The SetStreaming and CurrentlyStreaming functions correspond to the moreToCome flag on server responses. If a
+// response has moreToCome set, SetStreaming(true) will be called and CurrentlyStreaming() should return true.
+//
+// CanStream corresponds to the exhaustAllowed flag. The operations layer will set exhaustAllowed on outgoing wire
+// messages to inform the server that the driver supports streaming.
+type StreamerConnection interface {
+	Connection
+	SetStreaming(bool)
+	CurrentlyStreaming() bool
+	SupportsStreaming() bool
+}
+
 // Compressor is an interface used to compress wire messages. If a Connection supports compression
 // it should implement this interface as well. The CompressWireMessage method will be called during
 // the execution of an operation if the wire message is allowed to be compressed.
@@ -127,19 +142,9 @@ func (ssd SingleConnectionDeployment) SupportsRetryWrites() bool { return false 
 func (ssd SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }
 
 // Connection implements the Server interface. It always returns the embedded connection.
-//
-// This method returns a Connection with a no-op Close method. This ensures that a
-// SingleConnectionDeployment can be used across multiple operation executions.
 func (ssd SingleConnectionDeployment) Connection(context.Context) (Connection, error) {
-	return nopCloserConnection{ssd.C}, nil
+	return ssd.C, nil
 }
-
-// nopCloserConnection is an adapter used in a SingleConnectionDeployment. It passes through all
-// functionality expcect for closing, which is a no-op. This is done so the connection can be used
-// across multiple operations.
-type nopCloserConnection struct{ Connection }
-
-func (ncc nopCloserConnection) Close() error { return nil }
 
 // TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using
 // 2 bits for the mode and 1 bit for the type. Although in the practical sense, we might not want to
