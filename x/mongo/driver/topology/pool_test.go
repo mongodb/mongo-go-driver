@@ -176,6 +176,8 @@ func TestPool(t *testing.T) {
 			}
 			err = p.closeConnection(c)
 			noerr(t, err)
+			err = p.put(c)
+			noerr(t, err)
 			if p.conns.totalSize != 0 {
 				t.Errorf("Pool should have 0 total connections. got %d; want %d", p.conns.totalSize, 0)
 			}

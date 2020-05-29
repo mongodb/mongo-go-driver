@@ -295,7 +295,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 }
 
 func (c *connection) close() error {
-	if atomic.LoadInt32(&c.connected) != connected {
+	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
 		return nil
 	}
 
@@ -303,7 +303,6 @@ func (c *connection) close() error {
 	if c.nc != nil {
 		err = c.nc.Close()
 	}
-	atomic.StoreInt32(&c.connected, disconnected)
 
 	if c.pool != nil {
 		_ = c.pool.removeConnection(c)

@@ -319,6 +319,17 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		ctx = context.Background()
 	}
 
+	if atomic.LoadInt32(&p.connected) != connected {
+		if p.monitor != nil {
+			p.monitor.Event(&event.PoolEvent{
+				Type:    event.GetFailed,
+				Address: p.address.String(),
+				Reason:  event.ReasonPoolClosed,
+			})
+		}
+		return nil, ErrPoolDisconnected
+	}
+
 	err := p.sem.Acquire(ctx, 1)
 	if err != nil {
 		if p.monitor != nil {
@@ -331,6 +342,8 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		return nil, ErrWaitQueueTimeout
 	}
 
+	// This loop is so that we don't end up with more than maxPoolSize connections if p.conns.Maintain runs between
+	// calling p.conns.Get() and making the new connection
 	for {
 		if atomic.LoadInt32(&p.connected) != connected {
 			if p.monitor != nil {
@@ -360,6 +373,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 						Reason:  event.ReasonConnectionErrored,
 					})
 				}
+				p.conns.decrementTotal()
 				p.sem.Release(1)
 				return nil, err
 			}
@@ -468,7 +482,6 @@ func (p *pool) removeConnection(c *connection) error {
 	p.Lock()
 	delete(p.opened, c.poolID)
 	p.Unlock()
-	p.conns.decrementTotal()
 
 	return nil
 }
