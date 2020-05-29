@@ -374,21 +374,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
 
-		// Pull out $clusterTime and operationTime and update session and clock. We handle this before
-		// handling the error to ensure we are properly gossiping the cluster time.
-		op.updateClusterTimes(res)
-		op.updateOperationTime(res)
-		op.Client.UpdateRecoveryToken(bson.Raw(res))
-
-		// automatically attempt to decrypt all results if client side encryption enabled
-		if op.Crypt != nil {
-			// use decryptErr isntead of err because err is used below for retrying
-			var decryptErr error
-			res, decryptErr = op.Crypt.Decrypt(ctx, res)
-			if decryptErr != nil {
-				return decryptErr
-			}
-		}
 		var perr error
 		if op.ProcessResponseFn != nil {
 			perr = op.ProcessResponseFn(res, srvr, desc.Server)
@@ -583,12 +568,21 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 
 	// decode
 	res, err := op.decodeResult(wm)
-	// Pull out $clusterTime and operationTime and update session and clock. We handle this before
-	// handling the error to ensure we are properly gossiping the cluster time.
+	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
+	// everything.
 	op.updateClusterTimes(res)
 	op.updateOperationTime(res)
+	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
-	return res, err
+	if err != nil {
+		return res, err
+	}
+
+	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
+	if op.Crypt != nil {
+		return op.Crypt.Decrypt(ctx, res)
+	}
+	return res, nil
 }
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
