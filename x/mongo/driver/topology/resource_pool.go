@@ -192,7 +192,7 @@ func (rp *resourcePool) Maintain() {
 		}
 	}
 
-	for atomic.LoadUint64(&rp.size) < rp.minSize {
+	for atomic.LoadUint64(&rp.totalSize) < rp.minSize {
 		rp.add(nil)
 		atomic.AddUint64(&rp.totalSize, 1)
 	}
