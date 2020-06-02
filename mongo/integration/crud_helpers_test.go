@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math"
 	"strconv"
 	"time"
@@ -88,16 +89,55 @@ func isExpectedKillAllSessionsError(err error) bool {
 func killSessions(mt *mtest.T) {
 	mt.Helper()
 
-	err := mt.GlobalClient().Database("admin").RunCommand(mtest.Background, bson.D{
+	cmd := bson.D{
 		{"killAllSessions", bson.A{}},
-	}, options.RunCmd().SetReadPreference(mtest.PrimaryRp)).Err()
+	}
+	runCmdOpts := options.RunCmd().SetReadPreference(mtest.PrimaryRp)
+
+	// killAllSessions has to be run against each mongos in a sharded cluster, so we use the runCommandOnAllServers
+	// helper.
+	err := runCommandOnAllServers(mt, func(client *mongo.Client) error {
+		return client.Database("admin").RunCommand(mtest.Background, cmd, runCmdOpts).Err()
+	})
+
 	if err == nil {
 		return
 	}
-
 	if !isExpectedKillAllSessionsError(err) {
 		mt.Fatalf("killAllSessions error: %v", err)
 	}
+}
+
+// Utility function to run a command on all servers. For standalones, the command is run against the one server. For
+// replica sets, the command is run against the primary. sharded clusters, the command is run against each mongos.
+func runCommandOnAllServers(mt *mtest.T, commandFn func(client *mongo.Client) error) error {
+	opts := options.Client().
+		ApplyURI(mt.ConnString())
+
+	if mt.TopologyKind() != mtest.Sharded {
+		client, err := mongo.Connect(mtest.Background, opts)
+		if err != nil {
+			return fmt.Errorf("error creating replica set client: %v", err)
+		}
+		defer func() { _ = client.Disconnect(mtest.Background) }()
+
+		return commandFn(client)
+	}
+
+	for _, host := range opts.Hosts {
+		shardClient, err := mongo.Connect(mtest.Background, opts.SetHosts([]string{host}))
+		if err != nil {
+			return fmt.Errorf("error creating client for mongos %v: %v", host, err)
+		}
+
+		err = commandFn(shardClient)
+		_ = shardClient.Disconnect(mtest.Background)
+		if err != nil {
+			return fmt.Errorf("error running command on mongos %v: %v", host, err)
+		}
+	}
+
+	return nil
 }
 
 // aggregator is an interface used to run collection and database-level aggregations
