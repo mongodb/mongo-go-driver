@@ -253,8 +253,9 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 				break
 			}
 
-			cs.aggregate.Deployment(driver.SingleConnectionDeployment{
-				C: conn,
+			cs.aggregate.Deployment(&changeStreamDeployment{
+				server: server,
+				conn:   conn,
 			})
 			cs.err = cs.aggregate.Execute(ctx)
 		}
