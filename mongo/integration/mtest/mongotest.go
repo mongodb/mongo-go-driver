@@ -364,15 +364,18 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 	t.Coll = t.DB.Collection(t.collName, t.collOpts)
 
 	for _, coll := range t.createdColls {
+		// If the collection was created using a different Client, it doesn't need to be reset.
 		if coll.hasDifferentClient {
 			continue
 		}
 
-		if coll.created.Name() == t.collName {
+		// If the namespace is the same as t.Coll, we can use t.Coll.
+		if coll.created.Name() == t.collName && coll.created.Database().Name() == t.dbName {
 			coll.created = t.Coll
 			continue
 		}
 
+		// Otherwise, reset the collection to use the new Client.
 		coll.created = t.Client.Database(coll.DB).Collection(coll.Name, coll.Opts)
 	}
 }
