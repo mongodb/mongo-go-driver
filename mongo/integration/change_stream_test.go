@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -555,6 +556,34 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			assert.True(mt, cs.Next(mtest.Background), "expected Next to return true, got false (iteration error %v)",
 				cs.Err())
 			assert.True(mt, isPoolCleared(), "expected pool to be cleared after non-timeout network error but was not")
+		})
+		retryAggClientOpts := options.Client().SetRetryReads(true).SetPoolMonitor(poolMonitor)
+		retryAggMtOpts := mtest.NewOptions().ClientOptions(retryAggClientOpts)
+		mt.RunOpts("errors are processed for SDAM on retried aggregate", retryAggMtOpts, func(mt *mtest.T) {
+			clearPoolChan()
+
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: mtest.FailPointMode{
+					Times: 2,
+				},
+				Data: mtest.FailPointData{
+					FailCommands:    []string{"aggregate"},
+					CloseConnection: true,
+				},
+			})
+
+			_, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
+			assert.NotNil(mt, err, "expected Watch error, got nil")
+
+			var numClearedEvents int
+			for len(poolChan) > 0 {
+				curr := <-poolChan
+				if curr.Type == event.PoolCleared {
+					numClearedEvents++
+				}
+			}
+			assert.Equal(mt, 2, numClearedEvents, "expected two PoolCleared events, got %d", numClearedEvents)
 		})
 	})
 }
