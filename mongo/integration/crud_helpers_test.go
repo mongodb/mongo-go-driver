@@ -132,9 +132,7 @@ func runCommandOnAllServers(mt *mtest.T, commandFn func(client *mongo.Client) er
 
 		err = commandFn(shardClient)
 		_ = shardClient.Disconnect(mtest.Background)
-		if err != nil {
-			return fmt.Errorf("error running command on mongos %v: %v", host, err)
-		}
+		return err
 	}
 
 	return nil
