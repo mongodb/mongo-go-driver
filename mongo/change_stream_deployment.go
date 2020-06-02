@@ -14,8 +14,9 @@ import (
 )
 
 type changeStreamDeployment struct {
-	server driver.Server
-	conn   driver.Connection
+	topologyKind description.TopologyKind
+	server       driver.Server
+	conn         driver.Connection
 }
 
 var _ driver.Deployment = (*changeStreamDeployment)(nil)
@@ -31,7 +32,7 @@ func (c *changeStreamDeployment) SupportsRetryWrites() bool {
 }
 
 func (c *changeStreamDeployment) Kind() description.TopologyKind {
-	return description.Single
+	return c.topologyKind
 }
 
 func (c *changeStreamDeployment) Connection(context.Context) (driver.Connection, error) {
