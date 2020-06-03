@@ -162,6 +162,14 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	return cs, cs.Err()
 }
 
+func (cs *ChangeStream) createOperationDeployment(server driver.Server, connection driver.Connection) driver.Deployment {
+	return &changeStreamDeployment{
+		topologyKind: cs.client.deployment.Kind(),
+		server:       server,
+		conn:         connection,
+	}
+}
+
 func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) error {
 	var server driver.Server
 	var conn driver.Connection
@@ -176,9 +184,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 
 	defer conn.Close()
 
-	cs.aggregate.Deployment(driver.SingleConnectionDeployment{
-		C: conn,
-	})
+	cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
 
 	if resuming {
 		cs.replaceOptions(ctx, conn.Description().WireVersion) // pass wire version
@@ -230,9 +236,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 				break
 			}
 
-			cs.aggregate.Deployment(driver.SingleConnectionDeployment{
-				C: conn,
-			})
+			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
 			cs.err = cs.aggregate.Execute(ctx)
 		}
 
