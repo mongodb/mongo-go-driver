@@ -85,7 +85,7 @@ type T struct {
 	runOn            []RunOnBlock
 	mockDeployment   *mockDeployment // nil if the test is not being run against a mock
 	mockResponses    []bson.D
-	createdColls     []*mongo.Collection // collections created in this test
+	createdColls     []*Collection // collections created in this test
 	dbName, collName string
 	failPointNames   []string
 	minServerVersion string
@@ -361,18 +361,23 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 	_ = t.Client.Disconnect(Background)
 	t.createTestClient()
 	t.DB = t.Client.Database(t.dbName)
-	t.Coll = t.DB.Collection(t.collName)
+	t.Coll = t.DB.Collection(t.collName, t.collOpts)
 
-	created := make([]*mongo.Collection, len(t.createdColls))
-	for i, coll := range t.createdColls {
-		if coll.Name() == t.collName {
-			created[i] = t.Coll
+	for _, coll := range t.createdColls {
+		// If the collection was created using a different Client, it doesn't need to be reset.
+		if coll.hasDifferentClient {
 			continue
 		}
 
-		created[i] = t.DB.Collection(coll.Name())
+		// If the namespace is the same as t.Coll, we can use t.Coll.
+		if coll.created.Name() == t.collName && coll.created.Database().Name() == t.dbName {
+			coll.created = t.Coll
+			continue
+		}
+
+		// Otherwise, reset the collection to use the new Client.
+		coll.created = t.Client.Database(coll.DB).Collection(coll.Name, coll.Opts)
 	}
-	t.createdColls = created
 }
 
 // Collection is used to configure a new collection created during a test.
@@ -382,35 +387,25 @@ type Collection struct {
 	Client     *mongo.Client // defaults to mt.Client if not specified
 	Opts       *options.CollectionOptions
 	CreateOpts bson.D
-}
 
-// returns database to use for creating a new collection
-func (t *T) extractDatabase(coll Collection) *mongo.Database {
-	// default to t.DB unless coll overrides it
-	var createNewDb bool
-	dbName := t.DB.Name()
-	if coll.DB != "" {
-		createNewDb = true
-		dbName = coll.DB
-	}
-
-	// if a client is specified, a new database must be created
-	if coll.Client != nil {
-		return coll.Client.Database(dbName)
-	}
-	// if dbName is the same as t.DB.Name(), t.DB can be used
-	if !createNewDb {
-		return t.DB
-	}
-	// a new database must be created from t.Client
-	return t.Client.Database(dbName)
+	hasDifferentClient bool
+	created            *mongo.Collection // the actual collection that was created
 }
 
 // CreateCollection creates a new collection with the given configuration. The collection will be dropped after the test
 // finishes running. If createOnServer is true, the function ensures that the collection has been created server-side
 // by running the create command. The create command will appear in command monitoring channels.
 func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collection {
-	db := t.extractDatabase(coll)
+	if coll.DB == "" {
+		coll.DB = t.DB.Name()
+	}
+	if coll.Client == nil {
+		coll.Client = t.Client
+	}
+	coll.hasDifferentClient = coll.Client != t.Client
+
+	db := coll.Client.Database(coll.DB)
+
 	if createOnServer && t.clientType != Mock {
 		cmd := bson.D{{"create", coll.Name}}
 		cmd = append(cmd, coll.CreateOpts...)
@@ -425,15 +420,15 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 		}
 	}
 
-	created := db.Collection(coll.Name, coll.Opts)
-	t.createdColls = append(t.createdColls, created)
-	return created
+	coll.created = db.Collection(coll.Name, coll.Opts)
+	t.createdColls = append(t.createdColls, &coll)
+	return coll.created
 }
 
 // ClearCollections drops all collections previously created by this test.
 func (t *T) ClearCollections() {
 	for _, coll := range t.createdColls {
-		_ = coll.Drop(Background)
+		_ = coll.created.Drop(Background)
 	}
 	t.createdColls = t.createdColls[:0]
 }

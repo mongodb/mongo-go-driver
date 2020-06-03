@@ -11,7 +11,6 @@ import (
 	"path"
 	"reflect"
 	"testing"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -184,9 +183,6 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 }
 
 func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
-	testClientOpts := createClientOptions(mt, test.ClientOptions)
-	testClientOpts.SetHeartbeatInterval(50 * time.Millisecond)
-
 	opts := mtest.NewOptions().DatabaseName(testFile.DatabaseName).CollectionName(testFile.CollectionName)
 	if mt.TopologyKind() == mtest.Sharded && !test.UseMultipleMongoses {
 		// pin to a single mongos
@@ -200,12 +196,8 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 			{"validator", validator},
 		})
 	}
-	if test.Description != cseMaxVersionTest {
-		// don't specify client options for the maxWireVersion CSE test because the client cannot
-		// be created successfully. Should be fixed by SPEC-1403.
-		opts.ClientOptions(testClientOpts)
-	}
 
+	// Start the test without setting client options so the setup will be done with a default client.
 	mt.RunOpts(test.Description, opts, func(mt *mtest.T) {
 		if len(test.SkipReason) > 0 {
 			mt.Skip(test.SkipReason)
@@ -219,36 +211,38 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 
 		// work around for SERVER-39704: run a non-transactional distinct against each shard in a sharded cluster
 		if mt.TopologyKind() == mtest.Sharded && test.Description == "distinct" {
-			opts := options.Client().ApplyURI(mt.ConnString())
-			for _, host := range opts.Hosts {
-				shardClient, err := mongo.Connect(mtest.Background, opts.SetHosts([]string{host}))
-				assert.Nil(mt, err, "Connect error for shard %v: %v", host, err)
-				coll := shardClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
-				_, err = coll.Distinct(mtest.Background, "x", bson.D{})
-				assert.Nil(mt, err, "Distinct error for shard %v: %v", host, err)
-				_ = shardClient.Disconnect(mtest.Background)
-			}
+			err := runCommandOnAllServers(mt, func(mongosClient *mongo.Client) error {
+				coll := mongosClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
+				_, err := coll.Distinct(mtest.Background, "x", bson.D{})
+				return err
+			})
+			assert.Nil(mt, err, "error running distinct against all mongoses: %v", err)
 		}
 
-		// defer killSessions to ensure it runs regardless of the state of the test because the client has already
+		// Defer killSessions to ensure it runs regardless of the state of the test because the client has already
 		// been created and the collection drop in mongotest will hang for transactions to be aborted (60 seconds)
 		// in error cases.
 		defer killSessions(mt)
+
+		// Test setup: create collections that are tracked by mtest, insert test data, and set the failpoint.
 		setupTest(mt, &testFile, test)
+		if test.FailPoint != nil {
+			mt.SetFailPoint(*test.FailPoint)
+		}
 
-		// create the GridFS bucket after resetting the client so it will be created with a connected client
+		// Reset the client using the client options specified in the test.
+		testClientOpts := createClientOptions(mt, test.ClientOptions)
+		mt.ResetClient(testClientOpts)
+
+		// Create the GridFS bucket and sessions after resetting the client so it will be created with a connected
+		// client.
 		createBucket(mt, testFile, test)
-
-		// create sessions, fail points, and collection
 		sess0, sess1 := setupSessions(mt, test)
 		if sess0 != nil {
 			defer func() {
 				sess0.EndSession(mtest.Background)
 				sess1.EndSession(mtest.Background)
 			}()
-		}
-		if test.FailPoint != nil {
-			mt.SetFailPoint(*test.FailPoint)
 		}
 
 		// run operations
@@ -762,15 +756,11 @@ func insertDocuments(mt *mtest.T, coll *mongo.Collection, rawDocs []bson.Raw) {
 func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 	mt.Helper()
 
-	// all setup should be done with the global client instead of the test client to prevent any errors created by
-	// client configurations.
-	setupClient := mt.GlobalClient()
 	// key vault data
 	if len(testFile.KeyVaultData) > 0 {
 		keyVaultColl := mt.CreateCollection(mtest.Collection{
-			Name:   "datakeys",
-			DB:     "keyvault",
-			Client: setupClient,
+			Name: "datakeys",
+			DB:   "keyvault",
 		}, false)
 
 		insertDocuments(mt, keyVaultColl, testFile.KeyVaultData)
@@ -778,8 +768,7 @@ func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 
 	// regular documents
 	if testFile.Data.Documents != nil {
-		insertColl := setupClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
-		insertDocuments(mt, insertColl, testFile.Data.Documents)
+		insertDocuments(mt, mt.Coll, testFile.Data.Documents)
 		return
 	}
 
@@ -788,15 +777,13 @@ func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 
 	if gfsData.Chunks != nil {
 		chunks := mt.CreateCollection(mtest.Collection{
-			Name:   gridFSChunks,
-			Client: setupClient,
+			Name: gridFSChunks,
 		}, false)
 		insertDocuments(mt, chunks, gfsData.Chunks)
 	}
 	if gfsData.Files != nil {
 		files := mt.CreateCollection(mtest.Collection{
-			Name:   gridFSFiles,
-			Client: setupClient,
+			Name: gridFSFiles,
 		}, false)
 		insertDocuments(mt, files, gfsData.Files)
 
