@@ -304,9 +304,6 @@ func (c *connection) close() error {
 		err = c.nc.Close()
 	}
 
-	if c.pool != nil {
-		_ = c.pool.removeConnection(c)
-	}
 	return err
 }
 
@@ -445,9 +442,7 @@ func (c *Connection) Close() error {
 	if c.connection == nil {
 		return nil
 	}
-	if c.pool != nil {
-		defer c.pool.sem.Release(1)
-	}
+
 	err := c.pool.put(c.connection)
 	c.connection = nil
 	return err
@@ -460,10 +455,9 @@ func (c *Connection) Expire() error {
 	if c.connection == nil {
 		return nil
 	}
-	if c.pool != nil {
-		c.pool.sem.Release(1)
-	}
-	err := c.close()
+
+	_ = c.close()
+	err := c.pool.put(c.connection)
 	c.connection = nil
 	return err
 }

@@ -140,7 +140,7 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have opened 3 connections, but didn't. got %d; want %d", d.lenopened(), 3)
 			}
 			if p.conns.totalSize != 3 {
-				t.Errorf("Pool should have 1 total connections. got %d; want %d", p.conns.totalSize, 3)
+				t.Errorf("Pool should have 3 total connections. got %d; want %d", p.conns.totalSize, 3)
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Microsecond)
 			defer cancel()

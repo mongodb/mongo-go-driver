@@ -119,6 +119,7 @@ func connectionCloseFunc(v interface{}) {
 		return
 	}
 
+	_ = c.pool.removeConnection(c)
 	go func() {
 		_ = c.pool.closeConnection(c)
 	}()
@@ -259,9 +260,11 @@ func (p *pool) disconnect(ctx context.Context) error {
 				Reason:       event.ReasonPoolClosed,
 			})
 		}
+		_ = p.removeConnection(pc)
 		_ = p.closeConnection(pc) // We don't care about errors while closing the connection.
 	}
 	atomic.StoreInt32(&p.connected, disconnected)
+	p.conns.clearTotal()
 
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
@@ -450,9 +453,8 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 // closeConnection closes a connection, not the pool itself. This method will actually closeConnection the connection,
 // making it unusable, to instead return the connection to the pool, use put.
 func (p *pool) closeConnection(c *connection) error {
-	err := p.removeConnection(c)
-	if err != nil {
-		return err
+	if c.pool != p {
+		return ErrWrongPool
 	}
 
 	if atomic.LoadInt32(&c.connected) == connected {
@@ -490,6 +492,7 @@ func (p *pool) removeConnection(c *connection) error {
 // stale, and there is space in the cache, the connection is returned to the cache. This
 // assumes that the connection has already been counted in p.conns.totalSize.
 func (p *pool) put(c *connection) error {
+	defer p.sem.Release(1)
 	if p.monitor != nil {
 		var cid uint64
 		var addr string

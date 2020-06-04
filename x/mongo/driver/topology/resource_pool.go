@@ -125,7 +125,7 @@ func (rp *resourcePool) Get() interface{} {
 			return curr.value
 		}
 		rp.closeFn(curr.value)
-		atomicSubtract1Uint64(&rp.totalSize)
+		rp.totalSize--
 	}
 	return nil
 }
@@ -133,28 +133,36 @@ func (rp *resourcePool) Get() interface{} {
 func (rp *resourcePool) incrementTotal() bool {
 	rp.Lock()
 	defer rp.Unlock()
-	if rp.maxSize > 0 && atomic.LoadUint64(&rp.totalSize) >= rp.maxSize {
+	if rp.maxSize > 0 && rp.totalSize >= rp.maxSize {
 		return false
 	}
-	atomic.AddUint64(&rp.totalSize, 1)
+	rp.totalSize++
 	return true
 }
 
 func (rp *resourcePool) decrementTotal() {
-	atomicSubtract1Uint64(&rp.totalSize)
+	rp.Lock()
+	defer rp.Unlock()
+	rp.totalSize--
+}
+
+func (rp *resourcePool) clearTotal() {
+	rp.Lock()
+	defer rp.Unlock()
+	rp.totalSize = 0
 }
 
 // Put puts the resource back into the pool if it will not exceed the max size of the pool.
 // This assumes that v has already been accounted for by rp.totalSize
 func (rp *resourcePool) Put(v interface{}) bool {
+	rp.Lock()
+	defer rp.Unlock()
 	if rp.expiredFn(v) {
 		rp.closeFn(v)
-		atomicSubtract1Uint64(&rp.totalSize)
+		rp.totalSize--
 		return false
 	}
 
-	rp.Lock()
-	defer rp.Unlock()
 	rp.add(&resourcePoolElement{value: v})
 	return true
 }
@@ -188,13 +196,13 @@ func (rp *resourcePool) Maintain() {
 		if rp.expiredFn(curr.value) {
 			rp.remove(curr)
 			rp.closeFn(curr.value)
-			atomicSubtract1Uint64(&rp.totalSize)
+			rp.totalSize--
 		}
 	}
 
-	for atomic.LoadUint64(&rp.totalSize) < rp.minSize {
+	for rp.totalSize < rp.minSize {
 		rp.add(nil)
-		atomic.AddUint64(&rp.totalSize, 1)
+		rp.totalSize++
 	}
 
 	// reset the timer for the background cleanup routine
@@ -220,9 +228,9 @@ func (rp *resourcePool) Clear() {
 	defer rp.Unlock()
 	for ; rp.start != nil; rp.start = rp.start.next {
 		rp.closeFn(rp.start.value)
+		rp.totalSize--
 	}
 	atomic.StoreUint64(&rp.size, 0)
-	atomic.StoreUint64(&rp.totalSize, 0)
 	rp.end = nil
 }
 
