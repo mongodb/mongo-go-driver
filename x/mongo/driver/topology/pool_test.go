@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -146,9 +147,18 @@ func TestPool(t *testing.T) {
 			defer cancel()
 			err = p.disconnect(ctx)
 			noerr(t, err)
-			if d.lenclosed() != 3 {
-				t.Errorf("Should have closed 3 connections, but didn't. got %d; want %d", d.lenclosed(), 3)
+
+			callback := func() error {
+				for {
+					if d.lenclosed() >= 3 {
+						return nil
+					}
+
+					time.Sleep(100 * time.Millisecond)
+				}
 			}
+			err = assert.RunWithTimeout(callback, 3*time.Second)
+			assert.Nil(t, err, "error running callback: %s", err)
 			if p.conns.totalSize != 0 {
 				t.Errorf("Pool should have 0 total connections. got %d; want %d", p.conns.totalSize, 0)
 			}
