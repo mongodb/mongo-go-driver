@@ -148,6 +148,7 @@ func TestPool(t *testing.T) {
 			err = p.disconnect(ctx)
 			noerr(t, err)
 
+			// The checked out connection may be closed in a goroutine instead of disconnect.
 			callback := func() error {
 				for {
 					if d.lenclosed() >= 3 {
