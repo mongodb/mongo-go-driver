@@ -1381,6 +1381,20 @@ tasks:
           SSL: "ssl"
           MONGO_GO_DRIVER_COMPRESSOR: "zstd"
 
+  - name: test-sharded-auth-nossl
+    tags: ["test", "sharded", "authssl"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+
   - name: test-enterprise-auth-plain
     tags: ["test", "enterprise-auth"]
     commands:
