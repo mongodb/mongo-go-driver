@@ -619,11 +619,17 @@ func (t *T) createTestClient() {
 		// After setting the Dialer, fall-through to the Default case to apply the correct URI
 		fallthrough
 	case Default:
-		// only specify URI if the deployment is not set to avoid setting topology/server options along with the deployment
+		// Use a different set of options to specify the URI because clientOpts may already have a URI or host seedlist
+		// specified.
+		var uriOpts *options.ClientOptions
 		if clientOpts.Deployment == nil {
-			clientOpts.ApplyURI(testContext.connString.Original)
+			// Only specify URI if the deployment is not set to avoid setting topology/server options along with the
+			// deployment.
+			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
 		}
-		t.Client, err = mongo.NewClient(clientOpts)
+
+		// Pass in uriOpts first so clientOpts wins if there are any conflicting settings.
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	}
 	if err != nil {
 		t.Fatalf("error creating client: %v", err)
