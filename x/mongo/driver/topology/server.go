@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -21,11 +20,9 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"golang.org/x/sync/semaphore"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
-const connectionSemaphoreSize = math.MaxInt64
 
 // ErrServerClosed occurs when an attempt to Get a connection is made after
 // the server has been closed.
@@ -86,7 +83,6 @@ type Server struct {
 
 	// connection related fields
 	pool *pool
-	sem  *semaphore.Weighted
 
 	// goroutine management fields
 	done          chan struct{}
@@ -129,16 +125,9 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 		return nil, err
 	}
 
-	var maxConns = cfg.maxConns
-	if maxConns == 0 {
-		maxConns = math.MaxInt64
-	}
-
 	s := &Server{
 		cfg:     cfg,
 		address: addr,
-
-		sem: semaphore.NewWeighted(int64(maxConns)),
 
 		done:          make(chan struct{}),
 		checkNow:      make(chan struct{}, 1),
@@ -228,21 +217,8 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		return nil, ErrServerClosed
 	}
 
-	err := s.sem.Acquire(ctx, 1)
-	if err != nil {
-		if s.pool.monitor != nil {
-			s.pool.monitor.Event(&event.PoolEvent{
-				Type:    "ConnectionCheckOutFailed",
-				Address: s.pool.address.String(),
-				Reason:  "timeout",
-			})
-		}
-		return nil, ErrWaitQueueTimeout
-	}
-
 	conn, err := s.pool.get(ctx)
 	if err != nil {
-		s.sem.Release(1)
 		wrappedConnErr := unwrapConnectionError(err)
 		if wrappedConnErr == nil {
 			return nil, err

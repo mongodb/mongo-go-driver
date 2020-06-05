@@ -290,7 +290,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 }
 
 func (c *connection) close() error {
-	if atomic.LoadInt32(&c.connected) != connected {
+	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
 		return nil
 	}
 
@@ -298,11 +298,7 @@ func (c *connection) close() error {
 	if c.nc != nil {
 		err = c.nc.Close()
 	}
-	atomic.StoreInt32(&c.connected, disconnected)
 
-	if c.pool != nil {
-		_ = c.pool.removeConnection(c)
-	}
 	return err
 }
 
@@ -441,9 +437,7 @@ func (c *Connection) Close() error {
 	if c.connection == nil {
 		return nil
 	}
-	if c.s != nil {
-		defer c.s.sem.Release(1)
-	}
+
 	err := c.pool.put(c.connection)
 	c.connection = nil
 	return err
@@ -456,10 +450,9 @@ func (c *Connection) Expire() error {
 	if c.connection == nil {
 		return nil
 	}
-	if c.s != nil {
-		c.s.sem.Release(1)
-	}
-	err := c.close()
+
+	_ = c.close()
+	err := c.pool.put(c.connection)
 	c.connection = nil
 	return err
 }
