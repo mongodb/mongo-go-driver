@@ -7,9 +7,11 @@
 package assert
 
 import (
+	"errors"
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -23,6 +25,7 @@ var errorCompareFn = func(e1, e2 error) bool {
 	return e1.Error() == e2.Error()
 }
 var errorCompareOpts = cmp.Options{cmp.Comparer(errorCompareFn)}
+var ErrCallbackTimedOut = errors.New("callback timed out")
 
 // RegisterOpts registers go-cmp options for a type. These options will be used when comparing two objects for equality.
 func RegisterOpts(t reflect.Type, opts ...cmp.Option) {
@@ -77,6 +80,29 @@ func NotNil(t testing.TB, obj interface{}, msg string, args ...interface{}) {
 	t.Helper()
 	if isNil(obj) {
 		t.Fatalf(msg, args...)
+	}
+}
+
+// RunWithTimeout runs the provided callback for a maximum of timeoutMS milliseconds. It returns the callback error
+// if the callback returned and ErrCallbackTimedOut if the timeout expired.
+func RunWithTimeout(callback func() error, timeout time.Duration) error {
+	done := make(chan struct{})
+	var err error
+	fullCallback := func() {
+		err = callback()
+		done <- struct{}{}
+	}
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	go fullCallback()
+
+	select {
+	case <-done:
+		return err
+	case <-timer.C:
+		return ErrCallbackTimedOut
 	}
 }
 
