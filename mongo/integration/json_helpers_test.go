@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math"
 	"os"
@@ -404,9 +405,7 @@ func errorFromResult(t testing.TB, result interface{}) *operationError {
 }
 
 // verify that an error returned by an operation matches the expected error.
-func verifyError(t testing.TB, expected *operationError, actual error) {
-	t.Helper()
-
+func verifyError(expected *operationError, actual error) error {
 	// The spec test format doesn't treat ErrNoDocuments or ErrUnacknowledgedWrite as errors, so set actual to nil
 	// to indicate that no error occurred.
 	if actual == mongo.ErrNoDocuments || actual == mongo.ErrUnacknowledgedWrite {
@@ -414,37 +413,45 @@ func verifyError(t testing.TB, expected *operationError, actual error) {
 	}
 
 	if expected == nil && actual != nil {
-		t.Fatalf("did not expect error but got %v", actual)
+		return fmt.Errorf("did not expect error but got %v", actual)
 	}
 	if expected != nil && actual == nil {
-		t.Fatalf("expected error but got nil")
+		return fmt.Errorf("expected error but got nil")
 	}
 	if expected == nil {
-		return
+		return nil
 	}
 
 	// check ErrorContains for all error types
 	if expected.ErrorContains != nil {
 		emsg := strings.ToLower(*expected.ErrorContains)
 		amsg := strings.ToLower(actual.Error())
-		assert.True(t, strings.Contains(amsg, emsg), "expected error message '%v' to contain '%v'", amsg, emsg)
+		if !strings.Contains(amsg, emsg) {
+			return fmt.Errorf("expected error message %q to contain %q", amsg, emsg)
+		}
 	}
 
 	cerr, ok := actual.(mongo.CommandError)
 	if !ok {
-		return
+		return nil
 	}
 
 	if expected.ErrorCodeName != nil {
-		assert.Equal(t, *expected.ErrorCodeName, cerr.Name,
-			"error name mismatch; expected %v, got %v", *expected.ErrorCodeName, cerr.Name)
+		if *expected.ErrorCodeName != cerr.Name {
+			return fmt.Errorf("expected error name %v, got %v", *expected.ErrorCodeName, cerr.Name)
+		}
 	}
 	for _, label := range expected.ErrorLabelsContain {
-		assert.True(t, cerr.HasErrorLabel(label), "expected error %v to contain label %v", actual, label)
+		if !cerr.HasErrorLabel(label) {
+			return fmt.Errorf("expected error %v to contain label %q", actual, label)
+		}
 	}
 	for _, label := range expected.ErrorLabelsOmit {
-		assert.False(t, cerr.HasErrorLabel(label), "expected error %v to not contain label %v", actual, label)
+		if cerr.HasErrorLabel(label) {
+			return fmt.Errorf("expected error %v to not contain label %q", actual, label)
+		}
 	}
+	return nil
 }
 
 // get the underlying value of i as an int64. returns nil if i is not an int, int32, or int64 type.

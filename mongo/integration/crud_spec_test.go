@@ -96,7 +96,8 @@ func verifyCrudError(mt *mtest.T, outcome crudOutcome, err error) {
 	if opError == nil {
 		return
 	}
-	verifyError(mt, opError, err)
+	verificationErr := verifyError(opError, err)
+	assert.Nil(mt, verificationErr, "error mismatch: %v", verificationErr)
 }
 
 // run a CRUD operation and verify errors and outcomes.
