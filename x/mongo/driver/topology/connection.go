@@ -513,16 +513,15 @@ var notMasterCodes = []int32{10107, 13435}
 var recoveringCodes = []int32{11600, 11602, 13436, 189, 91}
 
 func configureTLS(ctx context.Context, nc net.Conn, addr address.Address, config *tls.Config, ocspOpts *ocsp.VerifyOptions) (net.Conn, error) {
-	if !config.InsecureSkipVerify {
-		hostname := addr.String()
-		colonPos := strings.LastIndex(hostname, ":")
-		if colonPos == -1 {
-			colonPos = len(hostname)
-		}
-
-		hostname = hostname[:colonPos]
-		config.ServerName = hostname
+	// Ensure config.ServerName is always set for SNI.
+	hostname := addr.String()
+	colonPos := strings.LastIndex(hostname, ":")
+	if colonPos == -1 {
+		colonPos = len(hostname)
 	}
+
+	hostname = hostname[:colonPos]
+	config.ServerName = hostname
 
 	client := tls.Client(nc, config)
 
