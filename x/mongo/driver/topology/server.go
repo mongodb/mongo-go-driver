@@ -231,10 +231,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 
 		// Since the only kind of ConnectionError we receive from pool.Get will be an initialization
 		// error, we should set the description.Server appropriately.
-		desc := description.Server{
-			Kind:      description.Unknown,
-			LastError: wrappedConnErr,
-		}
+		desc := description.NewUnknownServer(s.address, wrappedConnErr)
 		s.updateDescription(desc)
 		s.pool.clear()
 
@@ -299,14 +296,12 @@ func (s *Server) RequestImmediateCheck() {
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
 func (s *Server) ProcessError(err error) {
+	desc := s.Description()
 	// Invalidate server description if not master or node recovering error occurs.
 	// These errors can be reported as a command error or a write concern error.
 	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotMaster()) {
-		desc := s.Description()
-		desc.Kind = description.Unknown
-		desc.LastError = err
 		// updates description to unknown
-		s.updateDescription(desc)
+		s.updateDescription(description.NewUnknownServer(s.address, err))
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			s.RequestImmediateCheck()
@@ -315,11 +310,8 @@ func (s *Server) ProcessError(err error) {
 		return
 	}
 	if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
-		desc := s.Description()
-		desc.Kind = description.Unknown
-		desc.LastError = err
 		// updates description to unknown
-		s.updateDescription(desc)
+		s.updateDescription(description.NewUnknownServer(s.address, err))
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			s.RequestImmediateCheck()
@@ -341,11 +333,8 @@ func (s *Server) ProcessError(err error) {
 		return
 	}
 
-	desc := s.Description()
-	desc.Kind = description.Unknown
-	desc.LastError = err
 	// updates description to unknown
-	s.updateDescription(desc)
+	s.updateDescription(description.NewUnknownServer(s.address, err))
 	s.pool.clear()
 }
 
@@ -547,11 +536,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 	}
 
 	if !set {
-		desc = description.Server{
-			Addr:      s.address,
-			LastError: saved,
-			Kind:      description.Unknown,
-		}
+		desc = description.NewUnknownServer(s.address, saved)
 	}
 
 	return desc, conn

@@ -306,6 +306,15 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 	return desc
 }
 
+// NewUnknownServer creates a new unknown server description with the given address and error.
+func NewUnknownServer(addr address.Address, err error) Server {
+	return Server{
+		Addr:      addr,
+		LastError: err,
+		Kind:      Unknown,
+	}
+}
+
 // SetAverageRTT sets the average round trip time for this server description.
 func (s Server) SetAverageRTT(rtt time.Duration) Server {
 	s.AverageRTT = rtt
