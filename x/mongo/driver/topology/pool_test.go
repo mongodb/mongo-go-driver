@@ -148,17 +148,7 @@ func TestPool(t *testing.T) {
 			err = p.disconnect(ctx)
 			noerr(t, err)
 
-			// The checked out connection may be closed in a goroutine instead of disconnect.
-			callback := func() error {
-				for {
-					if d.lenclosed() >= 3 {
-						return nil
-					}
-
-					time.Sleep(100 * time.Millisecond)
-				}
-			}
-			err = assert.RunWithTimeout(callback, 3*time.Second)
+			assertConnectionsClosed(t, d, 3)
 			assert.Nil(t, err, "error running callback: %s", err)
 			if p.conns.totalSize != 0 {
 				t.Errorf("Pool should have 0 total connections. got %d; want %d", p.conns.totalSize, 0)
@@ -287,9 +277,8 @@ func TestPool(t *testing.T) {
 			defer cancel()
 			err = p.disconnect(ctx)
 			noerr(t, err)
-			if d.lenclosed() != 1 {
-				t.Errorf("Should have closed 1 connections, but didn't. got %d; want %d", d.lenclosed(), 1)
-			}
+
+			assertConnectionsClosed(t, d, 1)
 			if p.conns.totalSize != 0 {
 				t.Errorf("Pool should have 0 total connections. got %d; want %d", p.conns.totalSize, 0)
 			}
@@ -710,4 +699,21 @@ func newSleepDialer(d Dialer) *sleepDialer {
 func (d *sleepDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	time.Sleep(5 * time.Second)
 	return d.Dialer.DialContext(ctx, network, address)
+}
+
+func assertConnectionsClosed(t *testing.T, dialer *dialer, expectedClosedCount int) {
+	t.Helper()
+
+	callback := func() error {
+		for {
+			if dialer.lenclosed() == 3 {
+				return nil
+			}
+
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+
+	err := assert.RunWithTimeout(callback, 3*time.Second)
+	assert.Nil(t, err, "timed out waiting for connection closed count to hit %d", expectedClosedCount)
 }
