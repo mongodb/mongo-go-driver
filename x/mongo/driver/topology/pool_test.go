@@ -706,7 +706,7 @@ func assertConnectionsClosed(t *testing.T, dialer *dialer, expectedClosedCount i
 
 	callback := func() error {
 		for {
-			if dialer.lenclosed() == 3 {
+			if dialer.lenclosed() == expectedClosedCount {
 				return nil
 			}
 
