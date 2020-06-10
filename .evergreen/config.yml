@@ -1634,13 +1634,14 @@ buildvariants:
 
   - matrix_name: "aws-auth-test"
     matrix_spec: { os-aws-auth: "*" }
-    display_name: "MONGODB-AWS Auth ${os-aws-auth}"
+    matrix_spec: { version: ["4.4", "latest"], os-aws-auth: "*" }
+    display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["latest"], os-ssl-32: ["ubuntu1604-64-go-1-13"] }
-    display_name: "OCSP - ${os-ssl-32}"
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["ubuntu1604-64-go-1-13"] }
+    display_name: "OCSP ${version} ${os-ssl-32}"
     batchtime: 20160 # 14 days
     tasks:
       - name: ".ocsp"
