@@ -3385,11 +3385,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 			Foo string
 		}
 		emptyInterfaceStructErr := &DecodeError{
-			keys:    []string{"foo(field Foo)"},
+			keys:    []string{"foo"},
 			wrapped: decodeValueError,
 		}
 		stringStructErr := &DecodeError{
-			keys:    []string{"foo(field Foo)"},
+			keys:    []string{"foo"},
 			wrapped: ErrNoDecoder{reflect.TypeOf("")},
 		}
 
@@ -3420,7 +3420,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode)).
 			Build()
 		nestedErr := &DecodeError{
-			keys:    []string{"fourth(field Fourth)", "1", "third(field Third)", "randomKey", "second(field Second)", "first(field First)"},
+			keys:    []string{"fourth", "1", "third", "randomKey", "second", "first"},
 			wrapped: decodeValueError,
 		}
 
@@ -3546,9 +3546,12 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 			decodeErr, ok := err.(*DecodeError)
 			assert.True(t, ok, "expected DecodeError, got %v of type %T", err, err)
-			keyPattern := "foo(field Foo).bar(field Bar)"
-			assert.True(t, strings.Contains(decodeErr.Error(), keyPattern),
-				"expected error %v to contain key pattern %s", decodeErr, keyPattern)
+			expectedKeys := []string{"foo", "bar"}
+			assert.Equal(t, expectedKeys, decodeErr.Keys(), "expected keys slice %v, got %v", expectedKeys,
+				decodeErr.Keys())
+			keyPath := strings.Join(expectedKeys, ".")
+			assert.True(t, strings.Contains(decodeErr.Error(), keyPath),
+				"expected error %v to contain key pattern %s", decodeErr, keyPath)
 		})
 	})
 }
