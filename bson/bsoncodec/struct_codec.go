@@ -7,7 +7,6 @@
 package bsoncodec
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"reflect"
@@ -39,16 +38,21 @@ func (de *DecodeError) Unwrap() error {
 // Error implements the error interface.
 func (de *DecodeError) Error() string {
 	// The keys are stored in reverse order because the de.keys slice is builtup while propagating the error up the
-	// stack of BSON keys. Reverse the keys and join them with "." as they're reversed.
-	var keyPattern bytes.Buffer
+	// stack of BSON keys, so we call de.Keys(), which reverses them.
+	keyPath := strings.Join(de.Keys(), ".")
+	return fmt.Sprintf("error decoding key %s: %v", keyPath, de.wrapped)
+}
+
+// Keys returns the BSON key path that caused an error as a slice of strings. The keys in the slice are in top-down
+// order. For example, if the document being unmarshalled was {a: {b: {c: 1}}} and the value for c was supposed to be
+// a string, the keys slice will be ["a", "b", "c"].
+func (de *DecodeError) Keys() []string {
+	reversedKeys := make([]string, 0, len(de.keys))
 	for idx := len(de.keys) - 1; idx >= 0; idx-- {
-		keyPattern.WriteString(de.keys[idx])
-		if idx != 0 {
-			keyPattern.WriteByte('.')
-		}
+		reversedKeys = append(reversedKeys, de.keys[idx])
 	}
 
-	return fmt.Sprintf("error decoding key %s: %v", keyPattern.String(), de.wrapped)
+	return reversedKeys
 }
 
 // Zeroer allows custom struct types to implement a report of zero
@@ -206,11 +210,6 @@ func newDecodeError(key string, original error) error {
 	return de
 }
 
-func newDecodeErrorFromFieldDescription(fd fieldDescription, original error) error {
-	fullName := fmt.Sprintf("%s(field %s)", fd.name, fd.fieldName)
-	return newDecodeError(fullName, original)
-}
-
 // DecodeValue implements the Codec interface.
 // By default, map types in val will not be cleared. If a map has existing key/value pairs, it will be extended with the new ones from vr.
 // For slices, the decoder will set the length of the slice to zero and append all elements. The underlying array will not be cleared.
@@ -320,7 +319,7 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 
 		if !field.CanSet() { // Being settable is a super set of being addressable.
 			innerErr := fmt.Errorf("field %v is not settable", field)
-			return newDecodeErrorFromFieldDescription(fd, innerErr)
+			return newDecodeError(fd.name, innerErr)
 		}
 		if field.Kind() == reflect.Ptr && field.IsNil() {
 			field.Set(reflect.New(field.Type().Elem()))
@@ -329,19 +328,19 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 
 		dctx := DecodeContext{Registry: r.Registry, Truncate: fd.truncate || r.Truncate}
 		if fd.decoder == nil {
-			return newDecodeErrorFromFieldDescription(fd, ErrNoDecoder{Type: field.Elem().Type()})
+			return newDecodeError(fd.name, ErrNoDecoder{Type: field.Elem().Type()})
 		}
 
 		if decoder, ok := fd.decoder.(ValueDecoder); ok {
 			err = decoder.DecodeValue(dctx, vr, field.Elem())
 			if err != nil {
-				return newDecodeErrorFromFieldDescription(fd, err)
+				return newDecodeError(fd.name, err)
 			}
 			continue
 		}
 		err = fd.decoder.DecodeValue(dctx, vr, field)
 		if err != nil {
-			return newDecodeErrorFromFieldDescription(fd, err)
+			return newDecodeError(fd.name, err)
 		}
 	}
 
