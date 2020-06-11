@@ -7,6 +7,8 @@
 package integration
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"path"
 	"reflect"
@@ -247,8 +249,9 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 
 		// run operations
 		mt.ClearEvents()
-		for _, op := range test.Operations {
-			runOperation(mt, test, op, sess0, sess1)
+		for idx, op := range test.Operations {
+			err := runOperation(mt, test, op, sess0, sess1)
+			assert.Nil(mt, err, "error running operation %q at index %d: %v", op.Name, idx, err)
 		}
 
 		// Needs to be done here (in spite of defer) because some tests
@@ -285,7 +288,7 @@ func createBucket(mt *mtest.T, testFile testFile, testCase *testCase) {
 	assert.Nil(mt, err, "NewBucket error: %v", err)
 }
 
-func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 mongo.Session) {
+func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 mongo.Session) error {
 	if op.Name == "count" {
 		mt.Skip("count has been deprecated")
 	}
@@ -299,13 +302,12 @@ func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 m
 		case "session1":
 			sess = sess1
 		default:
-			mt.Fatalf("unrecognized session identifier: %v", sessStr)
+			return fmt.Errorf("unrecognized session identifier: %v", sessStr)
 		}
 	}
 
 	if op.Object == "testRunner" {
-		executeTestRunnerOperation(mt, op, sess)
-		return
+		return executeTestRunnerOperation(mt, op, sess)
 	}
 
 	mt.CloneDatabase(createDatabaseOptions(mt, op.DatabaseOptions))
@@ -328,7 +330,7 @@ func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 m
 	case "client":
 		err = executeClientOperation(mt, op, sess)
 	default:
-		mt.Fatalf("unrecognized operation object: %v", op.Object)
+		return fmt.Errorf("unrecognized operation object: %v", op.Object)
 	}
 
 	op.opError = errorFromResult(mt, op.Result)
@@ -338,7 +340,7 @@ func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 m
 	if op.Error && op.Result == nil {
 		op.opError = &operationError{}
 	}
-	verifyError(mt, op.opError, err)
+	return verifyError(op.opError, err)
 }
 
 func executeGridFSOperation(mt *mtest.T, bucket *gridfs.Bucket, op *operation) error {
@@ -358,107 +360,146 @@ func executeGridFSOperation(mt *mtest.T, bucket *gridfs.Bucket, op *operation) e
 	return nil
 }
 
-func executeTestRunnerOperation(mt *mtest.T, op *operation, sess mongo.Session) {
+func executeTestRunnerOperation(mt *mtest.T, op *operation, sess mongo.Session) error {
 	var clientSession *session.Client
 	if sess != nil {
 		xsess, ok := sess.(mongo.XSession)
-		assert.True(mt, ok, "expected %T to implement mongo.XSession", sess)
+		if !ok {
+			return fmt.Errorf("expected session type %T to implement mongo.XSession", sess)
+		}
 		clientSession = xsess.ClientSession()
 	}
 
 	switch op.Name {
 	case "targetedFailPoint":
-		fpDoc, err := op.Arguments.LookupErr("failPoint")
-		assert.Nil(mt, err, "failPoint not found in arguments")
+		fpDoc := op.Arguments.Lookup("failPoint")
 
 		var fp mtest.FailPoint
-		err = bson.Unmarshal(fpDoc.Document(), &fp)
-		assert.Nil(mt, err, "error creating fail point: %v", err)
+		if err := bson.Unmarshal(fpDoc.Document(), &fp); err != nil {
+			return fmt.Errorf("Unmarshal error: %v", err)
+		}
 
 		targetHost := clientSession.PinnedServer.Addr.String()
 		opts := options.Client().ApplyURI(mt.ConnString()).SetHosts([]string{targetHost})
 		client, err := mongo.Connect(mtest.Background, opts)
-		assert.Nil(mt, err, "error creating targeted client: %v", err)
+		if err != nil {
+			return fmt.Errorf("Connect error for targeted client: %v", err)
+		}
 		defer func() { _ = client.Disconnect(mtest.Background) }()
 
-		err = client.Database("admin").RunCommand(mtest.Background, fp).Err()
-		assert.Nil(mt, err, "error setting targeted fail point: %v", err)
+		if err = client.Database("admin").RunCommand(mtest.Background, fp).Err(); err != nil {
+			return fmt.Errorf("error setting targeted fail point: %v", err)
+		}
 		mt.TrackFailPoint(fp.ConfigureFailPoint)
 	case "assertSessionPinned":
-		assert.NotNil(mt, clientSession.PinnedServer, "expected pinned server but got nil")
+		if clientSession.PinnedServer == nil {
+			return errors.New("expected pinned server, got nil")
+		}
 	case "assertSessionUnpinned":
-		assert.Nil(mt, clientSession.PinnedServer,
-			"expected pinned server to be nil but got %v", clientSession.PinnedServer)
+		// We don't use a combined helper for assertSessionPinned and assertSessionUnpinned because the unpinned
+		// case provides the pinned server address in the error msg for debugging.
+		if clientSession.PinnedServer != nil {
+			return fmt.Errorf("expected pinned server to be nil but got %q", clientSession.PinnedServer.Addr)
+		}
 	case "assertSessionDirty":
-		assert.NotNil(mt, clientSession.Server, "expected server session but got nil")
-		assert.True(mt, clientSession.Server.Dirty, "expected server session to be marked dirty but was not")
+		return verifyDirtySessionState(clientSession, true)
 	case "assertSessionNotDirty":
-		assert.NotNil(mt, clientSession.Server, "expected server session but got nil")
-		assert.False(mt, clientSession.Server.Dirty, "expected server session not to be marked dirty but was")
+		return verifyDirtySessionState(clientSession, false)
 	case "assertSameLsidOnLastTwoCommands":
 		first, second := lastTwoIDs(mt)
-		assert.Equal(mt, first, second, "expected last two lsids to be equal but got %v and %v", first, second)
+		if !first.Equal(second) {
+			return fmt.Errorf("expected last two lsids to be equal but got %v and %v", first, second)
+		}
 	case "assertDifferentLsidOnLastTwoCommands":
 		first, second := lastTwoIDs(mt)
-		assert.NotEqual(mt, first, second, "expected last two lsids to be not equal but got %v and %v", first, second)
+		if first.Equal(second) {
+			return fmt.Errorf("expected last two lsids to be not equal but both were %v", first)
+		}
 	case "assertCollectionExists":
-		assertCollectionState(mt, op, true)
+		return verifyCollectionState(mt, op, true)
 	case "assertCollectionNotExists":
-		assertCollectionState(mt, op, false)
+		return verifyCollectionState(mt, op, false)
 	case "assertIndexExists":
-		assertIndexState(mt, op, true)
+		return verifyIndexState(mt, op, true)
 	case "assertIndexNotExists":
-		assertIndexState(mt, op, false)
+		return verifyIndexState(mt, op, false)
 	default:
 		mt.Fatalf("unrecognized testRunner operation %v", op.Name)
 	}
+
+	return nil
 }
 
-func assertIndexState(mt *mtest.T, op *operation, shouldExist bool) {
+func verifyDirtySessionState(clientSession *session.Client, expectedDirty bool) error {
+	if clientSession.Server == nil {
+		return errors.New("expected valid server session, got nil")
+	}
+	if markedDirty := clientSession.Server.Dirty; markedDirty != expectedDirty {
+		return fmt.Errorf("expected server session to be marked dirty: %v, got %v", expectedDirty, markedDirty)
+	}
+	return nil
+}
+
+func verifyIndexState(mt *mtest.T, op *operation, shouldExist bool) error {
 	db := op.Arguments.Lookup("database").StringValue()
 	coll := op.Arguments.Lookup("collection").StringValue()
 	index := op.Arguments.Lookup("index").StringValue()
-	exists := indexExists(mt, db, coll, index)
 
-	assert.Equal(mt, shouldExist, exists,
-		"index state mismatch for index %s in namespace %s.%s; should exist: %v, exists: %v", index, db, coll,
-		shouldExist, exists)
+	exists, err := indexExists(mt, db, coll, index)
+	if err != nil {
+		return err
+	}
+	if exists != shouldExist {
+		return fmt.Errorf("index state mismatch for index %s in namespace %s.%s; should exist: %v, exists: %v",
+			index, db, coll, shouldExist, exists)
+	}
+	return nil
 }
 
-func indexExists(mt *mtest.T, dbName, collName, indexName string) bool {
+func indexExists(mt *mtest.T, dbName, collName, indexName string) (bool, error) {
 	// Use global client because listIndexes cannot be executed inside a transaction.
 	iv := mt.GlobalClient().Database(dbName).Collection(collName).Indexes()
 	cursor, err := iv.List(mtest.Background)
-	assert.Nil(mt, err, "IndexView.List error: %v", err)
+	if err != nil {
+		return false, fmt.Errorf("IndexView.List error: %v", err)
+	}
 	defer cursor.Close(mtest.Background)
 
 	for cursor.Next(mtest.Background) {
 		if cursor.Current.Lookup("name").StringValue() == indexName {
-			return true
+			return true, nil
 		}
 	}
-	assert.Nil(mt, cursor.Err(), "unexpected cursor iteration error: %v", cursor.Err())
-	return false
+	return false, cursor.Err()
 }
 
-func assertCollectionState(mt *mtest.T, op *operation, shouldExist bool) {
+func verifyCollectionState(mt *mtest.T, op *operation, shouldExist bool) error {
 	db := op.Arguments.Lookup("database").StringValue()
 	coll := op.Arguments.Lookup("collection").StringValue()
-	exists := collectionExists(mt, db, coll)
-	assert.Equal(mt, shouldExist, exists, "collection state mismatch for %s:%s; should exist: %v, exists: %v",
-		db, coll, shouldExist, coll)
+
+	exists, err := collectionExists(mt, db, coll)
+	if err != nil {
+		return err
+	}
+	if exists != shouldExist {
+		return fmt.Errorf("collection state mismatch for %s.%s; should exist %v, exists: %v", db, coll, shouldExist,
+			exists)
+	}
+	return nil
 }
 
-func collectionExists(mt *mtest.T, dbName, collName string) bool {
+func collectionExists(mt *mtest.T, dbName, collName string) (bool, error) {
 	filter := bson.D{
 		{"name", collName},
 	}
 
 	// Use global client because listCollections cannot be executed inside a transaction.
 	collections, err := mt.GlobalClient().Database(dbName).ListCollectionNames(mtest.Background, filter)
-	assert.Nil(mt, err, "ListCollectionNames error: %v", err)
+	if err != nil {
+		return false, fmt.Errorf("ListCollectionNames error: %v", err)
+	}
 
-	return len(collections) > 0
+	return len(collections) > 0, nil
 }
 
 func lastTwoIDs(mt *mtest.T) (bson.RawValue, bson.RawValue) {
