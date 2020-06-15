@@ -337,9 +337,10 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 
 		// updates description to unknown
 		s.updateDescription(description.NewServerFromError(s.address, err, cerr.TopologyVersion))
+		s.RequestImmediateCheck()
+
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
-			s.RequestImmediateCheck()
 			s.pool.clear()
 		}
 		return
@@ -352,9 +353,10 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 
 		// updates description to unknown
 		s.updateDescription(description.NewServerFromError(s.address, err, wcerr.TopologyVersion))
+		s.RequestImmediateCheck()
+
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
-			s.RequestImmediateCheck()
 			s.pool.clear()
 		}
 		return
