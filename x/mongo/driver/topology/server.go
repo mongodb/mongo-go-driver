@@ -217,7 +217,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 	// been cancelled.
 	s.globalCtxCancel()
 	s.cancelCheck()
-	s.done <- struct{}{}
+	close(s.done)
 
 	s.rttMonitor.disconnect()
 	err := s.pool.disconnect(ctx)
@@ -436,7 +436,6 @@ func (s *Server) update() {
 		}
 	}
 
-	var disconnectedWhileWaiting bool
 	waitUntilNextCheck := func() {
 		// Wait until heartbeatFrequency elapses, an application operation requests an immediate check, or the server
 		// is disconnecting.
@@ -444,7 +443,7 @@ func (s *Server) update() {
 		case <-heartbeatTicker.C:
 		case <-checkNow:
 		case <-done:
-			disconnectedWhileWaiting = true
+			// Return because the next update iteration will check the done channel again and clean up.
 			return
 		}
 
@@ -452,24 +451,18 @@ func (s *Server) update() {
 		select {
 		case <-rateLimiter.C:
 		case <-done:
-			disconnectedWhileWaiting = true
 			return
 		}
 	}
 
 	for {
-		// Check if the server is disconnecting. If the disconnect happened between the next check and now, we'll read
-		// a value from the done channel. If it happened during waitUntilNextCheck, the value has already been read
-		// from the channel, so we check the disconnectedWhileWaiting flag.
-		var disconnecting bool
+		// Check if the server is disconnecting. Even if waitForNextCheck has already read from the done channel, we
+		// can safely read from it again because Disconnect closes the channel.
 		select {
 		case <-done:
-			disconnecting = true
-		default:
-		}
-		if disconnecting || disconnectedWhileWaiting {
 			closeServer()
 			return
+		default:
 		}
 
 		previousDescription := s.Description()
@@ -488,6 +481,10 @@ func (s *Server) update() {
 		}
 
 		s.updateDescription(desc)
+		if desc.LastError != nil {
+			// Clear the pool once the description has been updated to Unknown.
+			s.pool.clear()
+		}
 
 		// If the server supports streaming or we're already streaming, we want to move to streaming the next response
 		// without waiting. If the server has transitioned to Unknown from a network error, we want to do another
@@ -683,9 +680,9 @@ func (s *Server) check() (description.Server, error) {
 		return emptyDescription, errCheckCancelled
 	}
 
-	// An error occurred. We clear the pool for all errors and return an Unknown description.
+	// An error occurred. We reset the RTT monitor for all errors and return an Unknown description. The pool must
+	// also be cleared, but only after the description has already been updated, so that is handled by the caller.
 	s.rttMonitor.reset()
-	s.pool.clear()
 	return description.NewServerFromError(s.address, err), nil
 }
 
