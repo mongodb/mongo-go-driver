@@ -162,27 +162,25 @@ func (p *parser) parse(original string) error {
 			p.PasswordSet = true
 		}
 
-		if len(username) > 1 {
-			if strings.Contains(username, "/") {
-				return fmt.Errorf("unescaped slash in username")
-			}
+		// Validate and process the username.
+		if strings.Contains(username, "/") {
+			return fmt.Errorf("unescaped slash in username")
 		}
-
 		p.Username, err = url.QueryUnescape(username)
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid username")
 		}
-		if len(password) > 1 {
-			if strings.Contains(password, ":") {
-				return fmt.Errorf("unescaped colon in password")
-			}
-			if strings.Contains(password, "/") {
-				return fmt.Errorf("unescaped slash in password")
-			}
-			p.Password, err = url.QueryUnescape(password)
-			if err != nil {
-				return internal.WrapErrorf(err, "invalid password")
-			}
+
+		// Validate and process the password.
+		if strings.Contains(password, ":") {
+			return fmt.Errorf("unescaped colon in password")
+		}
+		if strings.Contains(password, "/") {
+			return fmt.Errorf("unescaped slash in password")
+		}
+		p.Password, err = url.QueryUnescape(password)
+		if err != nil {
+			return internal.WrapErrorf(err, "invalid password")
 		}
 	}
 
