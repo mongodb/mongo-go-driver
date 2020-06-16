@@ -192,8 +192,8 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 	s.desc.Store(description.NewDefaultServer(s.address))
 	s.updateTopologyCallback.Store(updateCallback)
 	s.rttMonitor.connect()
-	go s.update()
 	s.closewg.Add(1)
+	go s.update()
 	return s.pool.connect()
 }
 
