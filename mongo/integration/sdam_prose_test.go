@@ -19,15 +19,13 @@ func TestSDAMProse(t *testing.T) {
 	mt := mtest.New(t)
 	defer mt.Close()
 
-	proxyDialer := newProxyDialer()
 	lowHeartbeatFrequency := 50 * time.Millisecond
 	heartbeatFrequencyClientOpts := options.Client().
-		SetHeartbeatInterval(lowHeartbeatFrequency).
-		SetDialer(proxyDialer)
+		SetHeartbeatInterval(lowHeartbeatFrequency)
 	heartbeatFrequencyMtOpts := mtest.NewOptions().
 		ClientOptions(heartbeatFrequencyClientOpts).
 		CreateCollection(false).
-		SSL(false)
+		ClientType(mtest.Proxy)
 	mt.RunOpts("heartbeats processed more frequently", heartbeatFrequencyMtOpts, func(mt *mtest.T) {
 		// Test that lowering heartbeat frequency to 50ms causes the client to process heartbeats more frequently.
 		//
@@ -47,8 +45,9 @@ func TestSDAMProse(t *testing.T) {
 		mt.Logf("num responses expected: %d\n", numExpectedResponses)
 
 		time.Sleep(timeDuration + 50*time.Millisecond)
-		assert.True(mt, len(proxyDialer.messages) >= numExpectedResponses, "expected at least %d responses, got %d",
-			numExpectedResponses, len(proxyDialer.messages))
+		messages := mt.GetProxiedMessages()
+		assert.True(mt, len(messages) >= numExpectedResponses, "expected at least %d responses, got %d",
+			numExpectedResponses, len(messages))
 	})
 
 	mt.RunOpts("rtt tests", noClientOpts, func(mt *mtest.T) {
