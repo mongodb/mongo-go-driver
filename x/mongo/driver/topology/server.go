@@ -390,10 +390,11 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 	}
 
 	// For a non-timeout network error, we clear the pool, set the description to Unknown, and cancel the in-progress
-	// monitoring check.
-	s.cancelCheck()
+	// monitoring check. The check is cancelled last to avoid a post-cancellation reconnect racing with
+	// updateDescription.
 	s.updateDescription(description.NewServerFromError(s.address, err, nil))
 	s.pool.clear()
+	s.cancelCheck()
 }
 
 // update handles performing heartbeats and updating any subscribers of the
@@ -590,9 +591,9 @@ func (s *Server) cancelCheck() {
 		return
 	}
 
-	// If the connection exists, we need to wait for it to be connected. We can ignore the error from conn.wait(). If
-	// the connection wasn't successfully opened, its state was set back to disconnected, so calling conn.close() will
-	// be a noop.
+	// If the connection exists, we need to wait for it to be connected conn.connect() and conn.close() cannot be called
+	// concurrently. We can ignore the error from conn.wait(). If the connection wasn't successfully opened, its state
+	// was set back to disconnected, so calling conn.close() will be a noop.
 	conn.closeConnectContext()
 	_ = conn.wait()
 	_ = conn.close()
