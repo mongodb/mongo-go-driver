@@ -838,6 +838,20 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
 
+  - name: test-standalone-auth-nossl
+    tags: ["test", "standalone", "authssl"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+
   - name: test-standalone-auth-ssl-snappy-compression
     tags: ["test", "standalone", "authssl", "compression", "snappy"]
     commands:
@@ -1366,6 +1380,20 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
           MONGO_GO_DRIVER_COMPRESSOR: "zstd"
+
+  - name: test-sharded-auth-nossl
+    tags: ["test", "sharded", "authssl"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
 
   - name: test-enterprise-auth-plain
     tags: ["test", "enterprise-auth"]

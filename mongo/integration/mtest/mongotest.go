@@ -86,14 +86,15 @@ type T struct {
 	mockDeployment   *mockDeployment // nil if the test is not being run against a mock
 	mockResponses    []bson.D
 	createdColls     []*Collection // collections created in this test
+	proxyDialer      *proxyDialer
 	dbName, collName string
 	failPointNames   []string
 	minServerVersion string
 	maxServerVersion string
 	validTopologies  []TopologyKind
 	auth             *bool
-	ssl              *bool
 	enterprise       *bool
+	ssl              *bool
 	collCreateOpts   bson.D
 	connsCheckedOut  int // net number of connections checked out during test execution
 
@@ -342,6 +343,15 @@ func (t *T) FilterFailedEvents(filter func(*event.CommandFailedEvent) bool) {
 	t.failed = newEvents
 }
 
+// GetProxiedMessages returns the messages proxied to the server by the test. If the client type is not Proxy, this
+// returns nil.
+func (t *T) GetProxiedMessages() []*ProxyMessage {
+	if t.proxyDialer == nil {
+		return nil
+	}
+	return t.proxyDialer.messages
+}
+
 // ClearEvents clears the existing command monitoring events.
 func (t *T) ClearEvents() {
 	t.started = t.started[:0]
@@ -580,14 +590,6 @@ func (t *T) createTestClient() {
 
 	var err error
 	switch t.clientType {
-	case Default:
-		// only specify URI if the deployment is not set to avoid setting topology/server options along with the deployment
-		var uriOpts *options.ClientOptions
-		if clientOpts.Deployment == nil {
-			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
-		}
-		// Specify the URI-based options first so the test can override them.
-		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Pinned:
 		// pin to first mongos
 		pinnedHostList := []string{testContext.connString.Hosts[0]}
@@ -599,6 +601,24 @@ func (t *T) createTestClient() {
 		t.mockDeployment = newMockDeployment()
 		clientOpts.Deployment = t.mockDeployment
 		t.Client, err = mongo.NewClient(clientOpts)
+	case Proxy:
+		t.proxyDialer = newProxyDialer()
+		clientOpts.SetDialer(t.proxyDialer)
+
+		// After setting the Dialer, fall-through to the Default case to apply the correct URI
+		fallthrough
+	case Default:
+		// Use a different set of options to specify the URI because clientOpts may already have a URI or host seedlist
+		// specified.
+		var uriOpts *options.ClientOptions
+		if clientOpts.Deployment == nil {
+			// Only specify URI if the deployment is not set to avoid setting topology/server options along with the
+			// deployment.
+			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
+		}
+
+		// Pass in uriOpts first so clientOpts wins if there are any conflicting settings.
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	}
 	if err != nil {
 		t.Fatalf("error creating client: %v", err)

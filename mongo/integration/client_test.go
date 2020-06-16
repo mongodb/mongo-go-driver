@@ -7,15 +7,10 @@
 package integration
 
 import (
-	"bytes"
-	"context"
 	"fmt"
-	"io"
-	"net"
 	"path"
 	"reflect"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -29,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
@@ -381,37 +375,31 @@ func TestClient(t *testing.T) {
 	})
 
 	testAppName := "foo"
-	hosts := options.Client().ApplyURI(mt.ConnString()).Hosts
-	appNameProxyDialer := newProxyDialer()
-	appNameDialerOpts := options.Client().
-		SetDialer(appNameProxyDialer).
-		SetHosts(hosts[:1]).
-		SetDirect(true).
+	appNameClientOpts := options.Client().
 		SetAppName(testAppName)
 	appNameMtOpts := mtest.NewOptions().
-		ClientOptions(appNameDialerOpts).
-		Topologies(mtest.Single).
-		Auth(false) // Can't run with auth because the proxy dialer won't work with TLS enabled.
+		ClientType(mtest.Proxy).
+		ClientOptions(appNameClientOpts).
+		Topologies(mtest.Single)
 	mt.RunOpts("app name is always sent", appNameMtOpts, func(mt *mtest.T) {
 		err := mt.Client.Ping(mtest.Background, mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := appNameProxyDialer.messages
+		msgPairs := mt.GetProxiedMessages()
 		assert.True(mt, len(msgPairs) >= 2, "expected at least 2 events sent, got %v", len(msgPairs))
 
 		// First two messages should be connection handshakes: one for the heartbeat connection and the other for the
 		// application connection.
 		for idx, pair := range msgPairs[:2] {
-			cmd, err := drivertest.GetCommandFromQueryWireMessage(pair.sent)
-			assert.Nil(mt, err, "GetCommandFromQueryWireMessage error at index %d: %v", idx, err)
-			heartbeatCmdName := cmd.Index(0).Key()
-			assert.Equal(mt, "isMaster", heartbeatCmdName,
-				"expected command name isMaster at index %d, got %v", idx, heartbeatCmdName)
+			assert.Equal(mt, pair.CommandName, "isMaster", "expected command name isMaster at index %d, got %s", idx,
+				pair.CommandName)
 
-			appNameVal, err := cmd.LookupErr("client", "application", "name")
-			assert.Nil(mt, err, "expected command %s at index %d to contain app name", cmd, idx)
+			sent := pair.Sent
+			appNameVal, err := sent.Command.LookupErr("client", "application", "name")
+			assert.Nil(mt, err, "expected command %s at index %d to contain app name", sent.Command, idx)
 			appName := appNameVal.StringValue()
-			assert.Equal(mt, testAppName, appName, "expected app name %v at index %d, got %v", testAppName, idx, appName)
+			assert.Equal(mt, testAppName, appName, "expected app name %v at index %d, got %v", testAppName, idx,
+				appName)
 		}
 	})
 
@@ -445,102 +433,4 @@ type proxyMessage struct {
 	serverAddress string
 	sent          wiremessage.WireMessage
 	received      wiremessage.WireMessage
-}
-
-// proxyDialer is a ContextDialer implementation that wraps a net.Dialer and records the messages sent and received
-// using connections created through it.
-type proxyDialer struct {
-	*net.Dialer
-	sync.Mutex
-	messages []proxyMessage
-	sentMap  sync.Map
-}
-
-var _ options.ContextDialer = (*proxyDialer)(nil)
-
-func newProxyDialer() *proxyDialer {
-	return &proxyDialer{
-		Dialer: &net.Dialer{Timeout: 30 * time.Second},
-	}
-}
-
-// DialContext creates a new proxyConnection.
-func (p *proxyDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	netConn, err := p.Dialer.DialContext(ctx, network, address)
-	if err != nil {
-		return netConn, err
-	}
-
-	proxy := &proxyConn{
-		Conn:           netConn,
-		dialer:         p,
-		currentReading: bytes.NewBuffer(nil),
-	}
-	return proxy, nil
-}
-
-// storeSentMessage stores a copy of the wire message being sent to the server.
-func (p *proxyDialer) storeSentMessage(msg []byte) {
-	p.Lock()
-	defer p.Unlock()
-
-	msgCopy := make(wiremessage.WireMessage, len(msg))
-	copy(msgCopy, msg)
-
-	_, requestID, _, _, _, _ := wiremessage.ReadHeader(msgCopy)
-	p.sentMap.Store(requestID, msgCopy)
-}
-
-// storeReceivedMessage stores a copy of the wire message being received from the server.
-func (p *proxyDialer) storeReceivedMessage(msg []byte) {
-	p.Lock()
-	defer p.Unlock()
-
-	msgCopy := make(wiremessage.WireMessage, len(msg))
-	copy(msgCopy, msg)
-
-	_, _, responseTo, _, _, _ := wiremessage.ReadHeader(msgCopy)
-	sentMsg, _ := p.sentMap.Load(responseTo)
-	p.sentMap.Delete(responseTo)
-
-	proxyMsg := proxyMessage{
-		sent:     sentMsg.(wiremessage.WireMessage),
-		received: msgCopy,
-	}
-	p.messages = append(p.messages, proxyMsg)
-}
-
-// proxyConn is a net.Conn that wraps a network connection. All messages sent/received through a proxyConn are stored
-// in the associated proxyDialer and are forwarded over the wrapped connection.
-type proxyConn struct {
-	net.Conn
-	dialer         *proxyDialer
-	currentReading *bytes.Buffer // The current message being read.
-}
-
-// Write stores the given message in the proxyDialer associated with this connection and forwards the message to the
-// server.
-func (pc *proxyConn) Write(msg []byte) (n int, err error) {
-	pc.dialer.storeSentMessage(msg)
-	return pc.Conn.Write(msg)
-}
-
-// Read reads the message from the server into the given buffer and stores the read message in the proxyDialer
-// associated with this connection.
-func (pc *proxyConn) Read(buffer []byte) (int, error) {
-	n, err := pc.Conn.Read(buffer)
-	if err != nil {
-		return n, err
-	}
-
-	_, err = io.Copy(pc.currentReading, bytes.NewReader(buffer))
-	if err != nil {
-		return 0, fmt.Errorf("error copying to mock: %v", err)
-	}
-	if len(buffer) != 4 {
-		pc.dialer.storeReceivedMessage(pc.currentReading.Bytes())
-		pc.currentReading.Reset()
-	}
-
-	return n, err
 }

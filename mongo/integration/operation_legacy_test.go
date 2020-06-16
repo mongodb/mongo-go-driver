@@ -63,11 +63,12 @@ func TestOperationLegacy(t *testing.T) {
 		}
 		for _, tc := range cases {
 			mt.RunOpts(tc.name, mtest.NewOptions().ClientOptions(testClientOpts), func(mt *mtest.T) {
-				// clear any messages written during test setup
+				// Clear any messages written during test setup. Each message written consumed one of the pre-loaded
+				// replies, so add a fakeOpReply to the ReadResp channel for each one.
 				for len(testConn.Written) > 0 {
 					<-testConn.Written
+					testConn.ReadResp <- fakeOpReply
 				}
-				testConn.ReadResp <- fakeOpReply
 				expectedQuery := tc.cmdFn(mt)
 
 				assert.NotEqual(mt, 0, len(testConn.Written), "no message written to connection")
