@@ -36,9 +36,6 @@ const (
 	// Proxy specifies a client that proxies messages to the server and also stores parsed copies. The proxied
 	// messages can be retrieved via T.GetProxiedMessages or T.GetRawProxiedMessages.
 	Proxy
-	// RawProxy specifies a client that proxies messages to the server and stores raw copies. The proxied messages can
-	// be retrieved via T.GetRawProxiedMessages.
-	RawProxy
 )
 
 var (
@@ -135,13 +132,13 @@ func (op *Options) DatabaseName(dbName string) *Options {
 }
 
 // ClientType specifies the type of client that should be created for a test. This option will be propagated to all
-// sub-tests. If the provided ClientType is Proxy or RawProxy, the SSL(false) option will be also be added because
-// the internal proxy dialer and connection types do not support SSL.
+// sub-tests. If the provided ClientType is Proxy, the SSL(false) option will be also be added because the internal
+// proxy dialer and connection types do not support SSL.
 func (op *Options) ClientType(ct ClientType) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.clientType = ct
 
-		if ct == Proxy || ct == RawProxy {
+		if ct == Proxy {
 			t.ssl = &falseBool
 		}
 	})

@@ -343,20 +343,13 @@ func (t *T) FilterFailedEvents(filter func(*event.CommandFailedEvent) bool) {
 	t.failed = newEvents
 }
 
-// GetProxiedMessages does thing
+// GetProxiedMessages returns the messages proxied to the server by the test. If the client type is not Proxy, this
+// returns nil.
 func (t *T) GetProxiedMessages() []*ProxyMessage {
 	if t.proxyDialer == nil {
 		return nil
 	}
 	return t.proxyDialer.messages
-}
-
-// GetRawProxiedMessages does thing
-func (t *T) GetRawProxiedMessages() []*RawProxyMessage {
-	if t.proxyDialer == nil {
-		return nil
-	}
-	return t.proxyDialer.rawMessages
 }
 
 // ClearEvents clears the existing command monitoring events.
@@ -608,12 +601,8 @@ func (t *T) createTestClient() {
 		t.mockDeployment = newMockDeployment()
 		clientOpts.Deployment = t.mockDeployment
 		t.Client, err = mongo.NewClient(clientOpts)
-	case Proxy, RawProxy:
-		dialerFn := newProxyDialer
-		if t.clientType == RawProxy {
-			dialerFn = newRawProxyDialer
-		}
-		t.proxyDialer = dialerFn()
+	case Proxy:
+		t.proxyDialer = newProxyDialer()
 		clientOpts.SetDialer(t.proxyDialer)
 
 		// After setting the Dialer, fall-through to the Default case to apply the correct URI

@@ -16,7 +16,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // ProxyMessage represents a sent/received pair of parsed wire messages.
@@ -27,22 +26,13 @@ type ProxyMessage struct {
 	Received      *ReceivedMessage
 }
 
-// RawProxyMessage represents a sent/received pair of raw wire messages.
-type RawProxyMessage struct {
-	ServerAddress string
-	Sent          wiremessage.WireMessage
-	Received      wiremessage.WireMessage
-}
-
 // proxyDialer is a ContextDialer implementation that wraps a net.Dialer and records the messages sent and received
 // using connections created through it.
 type proxyDialer struct {
 	*net.Dialer
 	sync.Mutex
 
-	messages        []*ProxyMessage
-	rawMessages     []*RawProxyMessage
-	rawMessagesOnly bool
+	messages []*ProxyMessage
 	// sentMap temporarily stores the message sent to the server using the requestID so it can map requests to their
 	// responses.
 	sentMap sync.Map
@@ -58,12 +48,6 @@ func newProxyDialer() *proxyDialer {
 	return &proxyDialer{
 		Dialer: &net.Dialer{Timeout: 30 * time.Second},
 	}
-}
-
-func newRawProxyDialer() *proxyDialer {
-	pd := newProxyDialer()
-	pd.rawMessagesOnly = true
-	return pd
 }
 
 func newProxyError(err error) error {
@@ -102,7 +86,7 @@ func (p *proxyDialer) storeSentMessage(wm []byte) error {
 	// Create a copy of the wire message so it can be parsed/stored and will not be affected if the wm slice is
 	// changed by the driver.
 	wmCopy := copyBytes(wm)
-	parsed, err := parseSentMessage(wmCopy, p.rawMessagesOnly)
+	parsed, err := parseSentMessage(wmCopy)
 	if err != nil {
 		return err
 	}
@@ -122,7 +106,7 @@ func (p *proxyDialer) storeReceivedMessage(wm []byte, addr string) error {
 	// Create a copy of the wire message so it can be parsed/stored and will not be affected if the wm slice is
 	// changed by the driver. Parse the incoming message and get the corresponding outgoing message.
 	wmCopy := copyBytes(wm)
-	parsed, err := parseReceivedMessage(wmCopy, p.rawMessagesOnly)
+	parsed, err := parseReceivedMessage(wmCopy)
 	if err != nil {
 		return err
 	}
@@ -132,17 +116,6 @@ func (p *proxyDialer) storeReceivedMessage(wm []byte, addr string) error {
 	}
 	sent := mapValue.(*SentMessage)
 	p.sentMap.Delete(parsed.ResponseTo)
-
-	// Store the raw message pair.
-	rawMsgPair := &RawProxyMessage{
-		ServerAddress: serverAddress,
-		Sent:          sent.RawMessage,
-		Received:      parsed.RawMessage,
-	}
-	p.rawMessages = append(p.rawMessages, rawMsgPair)
-	if p.rawMessagesOnly {
-		return nil
-	}
 
 	// Store the parsed message pair.
 	msgPair := &ProxyMessage{

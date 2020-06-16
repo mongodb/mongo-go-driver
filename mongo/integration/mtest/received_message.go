@@ -36,19 +36,11 @@ func getReceivedMessageParser(opcode wiremessage.OpCode) (receivedMsgParseFn, bo
 	}
 }
 
-func parseReceivedMessage(wm []byte, parseRawOnly bool) (*ReceivedMessage, error) {
+func parseReceivedMessage(wm []byte) (*ReceivedMessage, error) {
 	// Re-assign the wire message to "remaining" so "wm" continues to point to the entire message after parsing.
 	_, _, responseTo, opcode, remaining, ok := wiremessage.ReadHeader(wm)
 	if !ok {
 		return nil, errors.New("failed to read wiremessage header")
-	}
-
-	if parseRawOnly {
-		rm := &ReceivedMessage{
-			ResponseTo: responseTo,
-			RawMessage: wm,
-		}
-		return rm, nil
 	}
 
 	parseFn, ok := getReceivedMessageParser(opcode)
