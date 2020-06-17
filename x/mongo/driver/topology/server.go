@@ -545,6 +545,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
 	if !s.averageRTTSet {
 		s.averageRTT = delay
+		s.averageRTTSet = true
 	} else {
 		alpha := 0.2
 		s.averageRTT = time.Duration(alpha*float64(delay) + (1-alpha)*float64(s.averageRTT))
