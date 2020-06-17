@@ -40,7 +40,7 @@ func newFSM() *fsm {
 //
 // apply should operation on immutable descriptions so we don't have to lock for the entire time we're applying the
 // server description.
-func (f *fsm) apply(s description.Server) (description.Topology, description.Server) {
+func (f *fsm) apply(s description.Server) (description.Topology, description.Server, error) {
 	newServers := make([]description.Server, len(f.Servers))
 	copy(newServers, f.Servers)
 
@@ -49,8 +49,6 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 		Kind:    f.Kind,
 		Servers: newServers,
 	}
-	f.compatible.Store(true)
-	f.compatibilityErr = nil
 
 	// For data bearing servers, set SessionTimeoutMinutes to the lowest among them
 	if oldMinutes == 0 {
@@ -72,7 +70,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 	}
 
 	if _, ok := f.findServer(s.Addr); !ok {
-		return f.Topology, s
+		return f.Topology, s, nil
 	}
 
 	updatedDesc := s
@@ -101,25 +99,25 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					supportedWireVersions.Min,
 					minSupportedMongoDBVersion,
 				)
-				return description.Topology{}, s
+				return description.Topology{}, s, f.compatibilityErr
 			}
 
 			if server.WireVersion.Min > supportedWireVersions.Max {
 				f.compatible.Store(false)
 				f.compatibilityErr = fmt.Errorf(
-					"server at %s reports wire version %d, but this version of the Go driver requires "+
-						"at least %d (MongoDB %s)",
+					"server at %s requires wire version %d, but this version of the Go driver only supports up to %d",
 					server.Addr.String(),
-					server.WireVersion.Max,
-					supportedWireVersions.Min,
-					minSupportedMongoDBVersion,
+					server.WireVersion.Min,
+					supportedWireVersions.Max,
 				)
-				return description.Topology{}, s
+				return description.Topology{}, s, f.compatibilityErr
 			}
 		}
 	}
 
-	return f.Topology, updatedDesc
+	f.compatible.Store(true)
+	f.compatibilityErr = nil
+	return f.Topology, updatedDesc, nil
 }
 
 func (f *fsm) applyToReplicaSetNoPrimary(s description.Server) description.Server {

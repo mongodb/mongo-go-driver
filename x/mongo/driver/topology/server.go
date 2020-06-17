@@ -101,6 +101,8 @@ type Server struct {
 	subscribers         map[uint64]chan description.Server
 	currentSubscriberID uint64
 	subscriptionsClosed bool
+
+	processErrorLock sync.Mutex
 }
 
 // updateTopologyCallback is a callback used to create a server that should be called when the parent Topology instance
@@ -222,14 +224,14 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		return nil, ErrServerClosed
 	}
 
+	poolGen := s.pool.getGeneration()
 	connImpl, err := s.pool.get(ctx)
-	conn := &Connection{connection: connImpl, s: s}
 	if err != nil {
 		// The error has already been handled by connection.connect, which calls Server.ProcessHandshakeError.
 		return nil, err
 	}
 
-	return conn, nil
+	return &Connection{connection: connImpl}, nil
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection finishes handshaking.
@@ -304,8 +306,8 @@ func (s *Server) RequestImmediateCheck() {
 
 // ProcessHandshakeError handles connection errors during the handshake.
 func (s *Server) ProcessHandshakeError(err error, conn driver.Connection) {
-	//ignore stale error
-	if conn.Stale() {
+	// ignore nil or stale error
+	if err == nil || conn.Stale() {
 		return
 	}
 
@@ -322,8 +324,11 @@ func (s *Server) ProcessHandshakeError(err error, conn driver.Connection) {
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
 func (s *Server) ProcessError(err error, conn driver.Connection) {
-	//ignore stale error
-	if conn.Stale() {
+	s.processErrorLock.Lock()
+	defer s.processErrorLock.Unlock()
+
+	// ignore nil or stale error
+	if err == nil || conn.Stale() {
 		return
 	}
 	// Invalidate server description if not master or node recovering error occurs.

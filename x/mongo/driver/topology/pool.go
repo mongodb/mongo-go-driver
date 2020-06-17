@@ -316,16 +316,14 @@ func (p *pool) makeNewConnection(ctx context.Context) (*connection, string, erro
 
 }
 
+func (p *pool) getGeneration() uint64 {
+	return atomic.LoadUint64(&p.generation)
+}
+
 // Checkout returns a connection from the pool
 func (p *pool) get(ctx context.Context) (*connection, error) {
 	if ctx == nil {
 		ctx = context.Background()
-	}
-
-	// ProcessError needs this to check the staleness of the error
-	errorConn := &connection{
-		pool:       p,
-		generation: atomic.LoadUint64(&p.generation),
 	}
 
 	if atomic.LoadInt32(&p.connected) != connected {
@@ -336,7 +334,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				Reason:  event.ReasonPoolClosed,
 			})
 		}
-		return errorConn, ErrPoolDisconnected
+		return nil, ErrPoolDisconnected
 	}
 
 	err := p.sem.Acquire(ctx, 1)
@@ -348,7 +346,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				Reason:  event.ReasonTimedOut,
 			})
 		}
-		return errorConn, ErrWaitQueueTimeout
+		return nil, ErrWaitQueueTimeout
 	}
 
 	// This loop is so that we don't end up with more than maxPoolSize connections if p.conns.Maintain runs between
@@ -363,7 +361,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				})
 			}
 			p.sem.Release(1)
-			return errorConn, ErrPoolDisconnected
+			return nil, ErrPoolDisconnected
 		}
 
 		connVal := p.conns.Get()
@@ -384,7 +382,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				}
 				p.conns.decrementTotal()
 				p.sem.Release(1)
-				return errorConn, err
+				return nil, err
 			}
 
 			if p.monitor != nil {
@@ -407,7 +405,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				})
 			}
 			p.sem.Release(1)
-			return errorConn, ctx.Err()
+			return nil, ctx.Err()
 		default:
 			made := p.conns.incrementTotal()
 			if !made {
@@ -425,7 +423,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				}
 				p.sem.Release(1)
 				p.conns.decrementTotal()
-				return errorConn, err
+				return nil, err
 			}
 
 			c.connect(ctx)
@@ -441,7 +439,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				}
 				p.sem.Release(1)
 				p.conns.decrementTotal()
-				return errorConn, err
+				return nil, err
 			}
 
 			if p.monitor != nil {

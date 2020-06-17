@@ -405,7 +405,6 @@ func (c initConnection) SupportsStreaming() bool {
 // messages and the driver.Expirable interface to allow expiring.
 type Connection struct {
 	*connection
-	s *Server
 
 	mu sync.RWMutex
 }
@@ -524,7 +523,7 @@ func (c *Connection) ID() string {
 func (c *Connection) Stale() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.s.pool.stale(c.connection)
+	return c.pool.stale(c.connection)
 }
 
 // Address returns the address of this connection.

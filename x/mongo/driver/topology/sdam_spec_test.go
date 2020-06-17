@@ -378,7 +378,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 			generation: generation,
 			pool:       server.pool,
 		}
-		conn := Connection{connection: &innerConn, s: server}
+		conn := Connection{connection: &innerConn}
 
 		switch appErr.When {
 		case "beforeHandshakeCompletes":

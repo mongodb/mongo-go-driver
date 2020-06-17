@@ -44,19 +44,19 @@ func NewTopologyVersion(doc bsoncore.Document) (*TopologyVersion, error) {
 	return &tv, nil
 }
 
-// CompareTopologyVersion returns -1 if tv1<tv2, 0 if tv1==tv2, 1 if tv1>tv2. This comparsion is not communtative
-// so the original TopologyVersion should be first.
-func CompareTopologyVersion(tv1, tv2 *TopologyVersion) int {
-	if tv1 == nil || tv2 == nil {
+// CompareTopologyVersion returns -1 if currentTV<responseTV, 0 if currentTV==responseTV, 1 if currentTV>responseTV.
+// This comparsion is not commutative so the original TopologyVersion should be first.
+func CompareTopologyVersion(currentTV, responseTV *TopologyVersion) int {
+	if currentTV == nil || responseTV == nil {
 		return -1
 	}
-	if tv1.ProcessID != tv2.ProcessID {
+	if currentTV.ProcessID != responseTV.ProcessID {
 		return -1
 	}
-	if tv1.Counter == tv2.Counter {
+	if currentTV.Counter == responseTV.Counter {
 		return 0
 	}
-	if tv1.Counter < tv2.Counter {
+	if currentTV.Counter < responseTV.Counter {
 		return -1
 	}
 	return 1
