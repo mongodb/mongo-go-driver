@@ -73,12 +73,9 @@ func TestSessions(t *testing.T) {
 	hosts := options.Client().ApplyURI(mt.ConnString()).Hosts
 
 	// Pin to a single mongos so heartbeats/handshakes to other mongoses won't cause errors.
-	clusterTimeClientOpts := options.Client().
-		SetHosts(hosts[:1]).
-		SetDirect(true).
-		SetHeartbeatInterval(50 * time.Second)
 	clusterTimeOpts := mtest.NewOptions().
-		ClientOptions(clusterTimeClientOpts).
+		ClientOptions(options.Client().SetHeartbeatInterval(50 * time.Second)).
+		ClientType(mtest.Pinned).
 		CreateClient(false)
 	mt.RunOpts("cluster time", clusterTimeOpts, func(mt *mtest.T) {
 		// $clusterTime included in commands
