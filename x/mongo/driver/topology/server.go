@@ -642,7 +642,14 @@ func (s *Server) check() (description.Server, error) {
 
 			// Calculation for maxAwaitTimeMS is taken from time.Duration.Milliseconds (added in Go 1.13).
 			maxAwaitTimeMS := int64(s.cfg.heartbeatInterval) / 1e6
-			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout + s.cfg.heartbeatInterval)
+			// If connectTimeoutMS=0, the socket timeout should be infinite. Otherwise, it is connectTimeoutMS +
+			// heartbeatFrequencyMS to account for the fact that the query will block for heartbeatFrequencyMS
+			// server-side.
+			socketTimeout := s.cfg.heartbeatTimeout
+			if socketTimeout != 0 {
+				socketTimeout += s.cfg.heartbeatInterval
+			}
+			s.conn.setSocketTimeout(socketTimeout)
 			baseOperation = baseOperation.TopologyVersion(previousDescription.TopologyVersion).
 				MaxAwaitTimeMS(maxAwaitTimeMS)
 			s.conn.setCanStream(true)
