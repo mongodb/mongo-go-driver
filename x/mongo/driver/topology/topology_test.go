@@ -367,6 +367,9 @@ func TestSessionTimeout(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
 		topo.servers["foo"] = nil
+		topo.fsm.Servers = []description.Server{
+			{Addr: address.Address("foo").Canonicalize(), Kind: description.RSPrimary, SessionTimeoutMinutes: 60},
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
@@ -386,8 +389,13 @@ func TestSessionTimeout(t *testing.T) {
 	t.Run("MultipleUpdates", func(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
+		topo.fsm.Kind = description.ReplicaSetWithPrimary
 		topo.servers["foo"] = nil
 		topo.servers["bar"] = nil
+		topo.fsm.Servers = []description.Server{
+			{Addr: address.Address("foo").Canonicalize(), Kind: description.RSPrimary, SessionTimeoutMinutes: 60},
+			{Addr: address.Address("bar").Canonicalize(), Kind: description.RSSecondary, SessionTimeoutMinutes: 60},
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
@@ -396,12 +404,14 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                  "foo",
 			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 30,
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should update because new timeout is lower
 		desc2 := description.Server{
 			Addr:                  "bar",
 			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 20,
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
 		topo.apply(ctx, desc2)
@@ -416,6 +426,10 @@ func TestSessionTimeout(t *testing.T) {
 		noerr(t, err)
 		topo.servers["foo"] = nil
 		topo.servers["bar"] = nil
+		topo.fsm.Servers = []description.Server{
+			{Addr: address.Address("foo").Canonicalize(), Kind: description.RSPrimary, SessionTimeoutMinutes: 60},
+			{Addr: address.Address("bar").Canonicalize(), Kind: description.RSSecondary, SessionTimeoutMinutes: 60},
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
@@ -424,12 +438,14 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                  "foo",
 			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 20,
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because new timeout is higher
 		desc2 := description.Server{
 			Addr:                  "bar",
 			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 30,
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
 		topo.apply(ctx, desc2)
@@ -444,6 +460,10 @@ func TestSessionTimeout(t *testing.T) {
 		noerr(t, err)
 		topo.servers["foo"] = nil
 		topo.servers["bar"] = nil
+		topo.fsm.Servers = []description.Server{
+			{Addr: address.Address("foo").Canonicalize(), Kind: description.RSPrimary, SessionTimeoutMinutes: 60},
+			{Addr: address.Address("bar").Canonicalize(), Kind: description.RSSecondary, SessionTimeoutMinutes: 60},
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
@@ -452,12 +472,14 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                  "foo",
 			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 20,
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because not a data bearing server
 		desc2 := description.Server{
 			Addr:                  "bar",
 			Kind:                  description.Unknown,
 			SessionTimeoutMinutes: 10,
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
 		topo.apply(ctx, desc2)
@@ -475,8 +497,9 @@ func TestSessionTimeout(t *testing.T) {
 		topo.servers["two"] = nil
 		topo.servers["three"] = nil
 		topo.fsm.Servers = []description.Server{
-			{Addr: address.Address("one"), Kind: description.RSPrimary, SessionTimeoutMinutes: 20},
-			{Addr: address.Address("two"), Kind: description.RSSecondary}, // does not support sessions
+			{Addr: address.Address("one").Canonicalize(), Kind: description.RSPrimary, SessionTimeoutMinutes: 20},
+			{Addr: address.Address("two").Canonicalize(), Kind: description.RSSecondary}, // does not support sessions
+			{Addr: address.Address("three").Canonicalize(), Kind: description.RSPrimary, SessionTimeoutMinutes: 60},
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)

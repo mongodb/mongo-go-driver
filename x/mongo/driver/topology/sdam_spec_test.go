@@ -382,7 +382,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 
 		switch appErr.When {
 		case "beforeHandshakeCompletes":
-			server.ProcessHandshakeError(currError, &conn)
+			server.ProcessHandshakeError(currError, generation)
 		case "afterHandshakeCompletes":
 			server.ProcessError(currError, &conn)
 		default:

@@ -605,17 +605,15 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	t.serversLock.Lock()
 	defer t.serversLock.Unlock()
 
-	svr, ok := t.servers[desc.Addr]
+	ind, ok := t.fsm.findServer(desc.Addr)
 	if t.serversClosed || !ok {
 		return desc
 	}
 
 	prev := t.fsm.Topology
-	if svr != nil {
-		oldDesc := svr.Description()
-		if description.CompareTopologyVersion(oldDesc.TopologyVersion, desc.TopologyVersion) > 0 {
-			return oldDesc
-		}
+	oldDesc := t.fsm.Servers[ind]
+	if description.CompareTopologyVersion(oldDesc.TopologyVersion, desc.TopologyVersion) > 0 {
+		return oldDesc
 	}
 
 	var current description.Topology

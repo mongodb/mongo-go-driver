@@ -305,9 +305,9 @@ func (s *Server) RequestImmediateCheck() {
 }
 
 // ProcessHandshakeError handles connection errors during the handshake.
-func (s *Server) ProcessHandshakeError(err error, conn driver.Connection) {
+func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64) {
 	// ignore nil or stale error
-	if err == nil || conn.Stale() {
+	if err == nil || startingGenerationNumber < atomic.LoadUint64(&s.pool.generation) {
 		return
 	}
 
@@ -324,11 +324,16 @@ func (s *Server) ProcessHandshakeError(err error, conn driver.Connection) {
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
 func (s *Server) ProcessError(err error, conn driver.Connection) {
+	// ignore nil error
+	if err == nil {
+		return
+	}
+
 	s.processErrorLock.Lock()
 	defer s.processErrorLock.Unlock()
 
-	// ignore nil or stale error
-	if err == nil || conn.Stale() {
+	// ignore stale error
+	if conn.Stale() {
 		return
 	}
 	// Invalidate server description if not master or node recovering error occurs.
