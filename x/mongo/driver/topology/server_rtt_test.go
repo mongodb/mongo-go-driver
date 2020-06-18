@@ -45,7 +45,7 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 				var server Server
 
 				if test.AvgRttMs != "NULL" {
-					// If not "NULL", then must be a number, so typecast to float64
+					// If not "NULL", then must be a number, so typecast to float64.
 					server.updateAverageRTT(time.Duration(test.AvgRttMs.(float64) * float64(time.Millisecond)))
 				}
 
