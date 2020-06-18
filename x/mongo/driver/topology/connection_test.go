@@ -96,32 +96,34 @@ func TestConnection(t *testing.T) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
 			})
-			t.Run("calls description callback", func(t *testing.T) {
-				want := description.Server{Addr: address.Address("1.2.3.4:56789")}
-				var got description.Server
+			t.Run("calls error callback", func(t *testing.T) {
+				handshakerError := errors.New("handshaker error")
+				var got error
+
 				conn, err := newConnection(context.Background(), address.Address(""),
-					withServerDescriptionCallback(func(desc description.Server) { got = desc },
-						WithHandshaker(func(Handshaker) Handshaker {
-							return &testHandshaker{
-								getDescription: func(context.Context, address.Address, driver.Connection) (description.Server, error) {
-									return want, nil
-								},
-							}
-						}),
-						WithDialer(func(Dialer) Dialer {
-							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
-								return &net.TCPConn{}, nil
-							})
-						}),
-					)...,
+					WithHandshaker(func(Handshaker) Handshaker {
+						return &testHandshaker{
+							getDescription: func(context.Context, address.Address, driver.Connection) (description.Server, error) {
+								return description.Server{}, handshakerError
+							},
+						}
+					}),
+					WithDialer(func(Dialer) Dialer {
+						return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+							return &net.TCPConn{}, nil
+						})
+					}),
+					withErrorHandlingCallback(func(err error) {
+						got = err
+					}),
 				)
 				noerr(t, err)
 				conn.connect(context.Background())
+
+				var want error = ConnectionError{Wrapped: handshakerError}
 				err = conn.wait()
-				noerr(t, err)
-				if !cmp.Equal(got, want) {
-					t.Errorf("Server descriptions do not match. got %v; want %v", got, want)
-				}
+				assert.NotNil(t, err, "expected connect error %v, got nil", want)
+				assert.Equal(t, want, got, "expected error %v, got %v", want, got)
 			})
 		})
 		t.Run("writeWireMessage", func(t *testing.T) {

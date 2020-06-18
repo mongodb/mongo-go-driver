@@ -141,6 +141,7 @@ func (c *connection) connect(ctx context.Context) {
 
 	handshakeConn := initConnection{c}
 	c.desc, err = handshaker.GetDescription(ctx, c.addr, handshakeConn)
+	fmt.Printf("GetDesc err: %v\n", err)
 	if err == nil {
 		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
@@ -148,14 +149,15 @@ func (c *connection) connect(ctx context.Context) {
 		if c.nc != nil {
 			_ = c.nc.Close()
 		}
+
 		atomic.StoreInt32(&c.connected, disconnected)
 		c.connectErr = ConnectionError{Wrapped: err, init: true}
+		if c.config.errorHandlingCallback != nil {
+			c.config.errorHandlingCallback(c.connectErr)
+		}
 		return
 	}
 
-	if c.config.descCallback != nil {
-		c.config.descCallback(c.desc)
-	}
 	if len(c.desc.Compression) > 0 {
 	clientMethodLoop:
 		for _, method := range c.config.compressors {

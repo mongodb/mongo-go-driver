@@ -8,7 +8,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 )
 
@@ -50,9 +49,9 @@ type connectionConfig struct {
 	compressors              []string
 	zlibLevel                *int
 	zstdLevel                *int
-	descCallback             func(description.Server)
 	ocspCache                ocsp.Cache
 	disableOCSPEndpointCheck bool
+	errorHandlingCallback    func(error)
 }
 
 func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
@@ -76,15 +75,15 @@ func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 	return cfg, nil
 }
 
-func withServerDescriptionCallback(callback func(description.Server), opts ...ConnectionOption) []ConnectionOption {
-	return append(opts, ConnectionOption(func(c *connectionConfig) error {
-		c.descCallback = callback
-		return nil
-	}))
-}
-
 // ConnectionOption is used to configure a connection.
 type ConnectionOption func(*connectionConfig) error
+
+func withErrorHandlingCallback(fn func(error)) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.errorHandlingCallback = fn
+		return nil
+	}
+}
 
 // WithCompressors sets the compressors that can be used for communication.
 func WithCompressors(fn func([]string) []string) ConnectionOption {
