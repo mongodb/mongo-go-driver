@@ -590,11 +590,16 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
 		assert.Nil(mt, err, "Watch error: %v", err)
 		defer closeStream(cs)
-		// Call Coll.Drop to generate drop event
+		// Generate insert events
+		generateEvents(mt, 5)
+		// Call Coll.Drop to generate drop and invalidate event
 		assert.Nil(mt, mt.Coll.Drop(mtest.Background), "expected Nil but returned %v", err)
-		assert.True(mt, cs.Next(mtest.Background), "expected to return True, but returned False")
+		// Test that all events were successful
+		for i := 0; i < 7; i++ {
+			assert.True(mt, cs.Next(mtest.Background), "expected to return True, but returned False")
+		}
 		operationType := cs.Current.Lookup("operationType").String()
-		assert.Equal(mt, operationType[1:len(operationType)-1], "drop", "expected drop event but returned %s event", operationType)
+		assert.Equal(mt, operationType[1:len(operationType)-1], "invalidate", "expected invalidate event but returned %s event", operationType)
 		// next call to cs.Next should return False since cursor is closed
 		assert.False(mt, cs.Next(mtest.Background), "expected to return False, but returned True")
 	})
