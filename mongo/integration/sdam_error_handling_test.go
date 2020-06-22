@@ -25,10 +25,16 @@ func TestSDAMErrorHandling(t *testing.T) {
 		SetPoolMonitor(poolMonitor).
 		SetWriteConcern(mtest.MajorityWc)
 	baseMtOpts := func() *mtest.Options {
-		return mtest.NewOptions().
+		mtOpts := mtest.NewOptions().
 			Topologies(mtest.ReplicaSet). // Don't run on sharded clusters to avoid complexity of sharded failpoints.
 			MinServerVersion("4.0").      // 4.0+ is required to use failpoints on replica sets.
 			ClientOptions(clientOpts)
+
+		if mt.TopologyKind() == mtest.Sharded {
+			// Pin to a single mongos because the tests use failpoints.
+			mtOpts.ClientType(mtest.Pinned)
+		}
+		return mtOpts
 	}
 
 	// Set min server version of 4.4 because the during-handshake tests use failpoint features introduced in 4.4 like
