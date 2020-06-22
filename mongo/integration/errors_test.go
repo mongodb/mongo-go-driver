@@ -12,8 +12,11 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"testing"
+	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -55,6 +58,51 @@ func TestErrors(t *testing.T) {
 			// A connection getting closed should manifest as an io.EOF error.
 			err = client.Ping(mtest.Background, mtest.PrimaryRp)
 			assert.True(mt, errors.Is(err, io.EOF), "expected error %v, got %v", io.EOF, err)
+		})
+	})
+
+	mt.RunOpts("network timeouts", noClientOpts, func(mt *mtest.T) {
+		mt.Run("context timeouts return DeadlineExceeded", func(mt *mtest.T) {
+			_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+
+			mt.ClearEvents()
+			filter := bson.M{
+				"$where": "function() { sleep(5000); return false; }",
+			}
+			timeoutCtx, cancel := context.WithTimeout(mtest.Background, 100*time.Millisecond)
+			defer cancel()
+			_, err = mt.Coll.Find(timeoutCtx, filter)
+
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
+			assert.True(mt, errors.Is(err, context.DeadlineExceeded), "expected error %v, got %v",
+				context.DeadlineExceeded, err)
+		})
+
+		socketTimeoutOpts := options.Client().
+			SetSocketTimeout(100 * time.Millisecond)
+		socketTimeoutMtOpts := mtest.NewOptions().
+			ClientOptions(socketTimeoutOpts)
+		mt.RunOpts("socketTimeoutMS timeouts return network errors", socketTimeoutMtOpts, func(mt *mtest.T) {
+			_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+
+			mt.ClearEvents()
+			filter := bson.M{
+				"$where": "function() { sleep(5000); return false; }",
+			}
+			_, err = mt.Coll.Find(mtest.Background, filter)
+
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
+
+			assert.False(mt, errors.Is(err, context.DeadlineExceeded),
+				"expected error %v to not be context.DeadlineExceeded", err)
+			var netErr net.Error
+			ok := errors.As(err, &netErr)
+			assert.True(mt, ok, "expected error %v to be a net.Error", err)
+			assert.True(mt, netErr.Timeout(), "expected error %v to be a network timeout", err)
 		})
 	})
 }

@@ -198,6 +198,20 @@ func (c *connection) closeConnectContext() {
 	c.cancelConnectContext()
 }
 
+func transformNetworkError(originalError error, contextDeadlineUsed bool) error {
+	if originalError == nil {
+		return nil
+	}
+	if !contextDeadlineUsed {
+		return originalError
+	}
+
+	if netErr, ok := originalError.(net.Error); ok && netErr.Timeout() {
+		return context.DeadlineExceeded
+	}
+	return originalError
+}
+
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	var err error
 	if atomic.LoadInt32(&c.connected) != connected {
@@ -214,7 +228,9 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 		deadline = time.Now().Add(c.writeTimeout)
 	}
 
+	var contextDeadlineUsed bool
 	if dl, ok := ctx.Deadline(); ok && (deadline.IsZero() || dl.Before(deadline)) {
+		contextDeadlineUsed = true
 		deadline = dl
 	}
 
@@ -225,7 +241,11 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	_, err = c.nc.Write(wm)
 	if err != nil {
 		c.close()
-		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to write wire message to network"}
+		return ConnectionError{
+			ConnectionID: c.id,
+			Wrapped:      transformNetworkError(err, contextDeadlineUsed),
+			message:      "unable to write wire message to network",
+		}
 	}
 
 	c.bumpIdleDeadline()
@@ -251,7 +271,9 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 		deadline = time.Now().Add(c.readTimeout)
 	}
 
+	var contextDeadlineUsed bool
 	if dl, ok := ctx.Deadline(); ok && (deadline.IsZero() || dl.Before(deadline)) {
+		contextDeadlineUsed = true
 		deadline = dl
 	}
 
@@ -270,7 +292,11 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
-		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "incomplete read of message header"}
+		return nil, ConnectionError{
+			ConnectionID: c.id,
+			Wrapped:      transformNetworkError(err, contextDeadlineUsed),
+			message:      "incomplete read of message header",
+		}
 	}
 
 	// read the length as an int32
@@ -289,7 +315,11 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
-		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "incomplete read of full message"}
+		return nil, ConnectionError{
+			ConnectionID: c.id,
+			Wrapped:      transformNetworkError(err, contextDeadlineUsed),
+			message:      "incomplete read of full message",
+		}
 	}
 
 	c.bumpIdleDeadline()
