@@ -141,7 +141,6 @@ func (c *connection) connect(ctx context.Context) {
 
 	handshakeConn := initConnection{c}
 	c.desc, err = handshaker.GetDescription(ctx, c.addr, handshakeConn)
-	fmt.Printf("GetDesc err: %v\n", err)
 	if err == nil {
 		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
