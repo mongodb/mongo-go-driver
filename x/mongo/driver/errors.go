@@ -44,11 +44,17 @@ var (
 type QueryFailureError struct {
 	Message  string
 	Response bsoncore.Document
+	Wrapped  error
 }
 
 // Error implements the error interface.
 func (e QueryFailureError) Error() string {
 	return fmt.Sprintf("%s: %v", e.Message, e.Response)
+}
+
+// Unwrap returns the underlying error.
+func (e QueryFailureError) Unwrap() error {
+	return e.Wrapped
 }
 
 // ResponseError is an error parsing the response to a command.

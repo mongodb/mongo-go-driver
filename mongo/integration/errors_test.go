@@ -68,7 +68,7 @@ func TestErrors(t *testing.T) {
 
 			mt.ClearEvents()
 			filter := bson.M{
-				"$where": "function() { sleep(5000); return false; }",
+				"$where": "function() { sleep(1000); return false; }",
 			}
 			timeoutCtx, cancel := context.WithTimeout(mtest.Background, 100*time.Millisecond)
 			defer cancel()
@@ -90,7 +90,7 @@ func TestErrors(t *testing.T) {
 
 			mt.ClearEvents()
 			filter := bson.M{
-				"$where": "function() { sleep(5000); return false; }",
+				"$where": "function() { sleep(1000); return false; }",
 			}
 			_, err = mt.Coll.Find(mtest.Background, filter)
 
