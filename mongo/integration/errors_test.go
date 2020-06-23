@@ -76,8 +76,8 @@ func TestErrors(t *testing.T) {
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
-			assert.True(mt, errors.Is(err, context.DeadlineExceeded), "expected error %v, got %v",
-				context.DeadlineExceeded, err)
+			assert.True(mt, errors.Is(err, context.DeadlineExceeded),
+				"errors.Is failure: expected error %v to be %v", err, context.DeadlineExceeded)
 		})
 
 		socketTimeoutOpts := options.Client().
@@ -98,10 +98,10 @@ func TestErrors(t *testing.T) {
 			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
 
 			assert.False(mt, errors.Is(err, context.DeadlineExceeded),
-				"expected error %v to not be context.DeadlineExceeded", err)
+				"errors.Is failure: expected error %v to not be %v", err, context.DeadlineExceeded)
 			var netErr net.Error
 			ok := errors.As(err, &netErr)
-			assert.True(mt, ok, "expected error %v to be a net.Error", err)
+			assert.True(mt, ok, "errors.As failure: expected error %v to be a net.Error", err)
 			assert.True(mt, netErr.Timeout(), "expected error %v to be a network timeout", err)
 		})
 	})
