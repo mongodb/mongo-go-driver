@@ -586,7 +586,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			assert.Equal(mt, 2, numClearedEvents, "expected two PoolCleared events, got %d", numClearedEvents)
 		})
 	})
-	mt.Run("call to cursor.Next after cursor closed", func(mt *mtest.T) {
+	mt.RunOpts("call to cursor.Next after cursor closed", mtest.NewOptions().MinServerVersion("4.0"), func(mt *mtest.T) {
 		cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
 		assert.Nil(mt, err, "Watch error: %v", err)
 		defer closeStream(cs)
