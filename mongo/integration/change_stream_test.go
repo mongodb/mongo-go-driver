@@ -586,22 +586,27 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			assert.Equal(mt, 2, numClearedEvents, "expected two PoolCleared events, got %d", numClearedEvents)
 		})
 	})
+	// Setting min server version as 4.0 since v3.6 does not send a "dropEvent"
 	mt.RunOpts("call to cursor.Next after cursor closed", mtest.NewOptions().MinServerVersion("4.0"), func(mt *mtest.T) {
 		cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
 		assert.Nil(mt, err, "Watch error: %v", err)
 		defer closeStream(cs)
+
 		// Generate insert events
 		generateEvents(mt, 5)
 		// Call Coll.Drop to generate drop and invalidate event
-		assert.Nil(mt, mt.Coll.Drop(mtest.Background), "expected Nil but returned %v", err)
+		err = mt.Coll.Drop(mtest.Background)
+		assert.Nil(mt, err, "Drop error: %v", err)
+
 		// Test that all events were successful
 		for i := 0; i < 7; i++ {
-			assert.True(mt, cs.Next(mtest.Background), "expected to return True, but returned False")
+			assert.True(mt, cs.Next(mtest.Background), "Next returned false at index %d; iteration error: %v", i, cs.Err())
 		}
-		operationType := cs.Current.Lookup("operationType").String()
-		assert.Equal(mt, operationType[1:len(operationType)-1], "invalidate", "expected invalidate event but returned %s event", operationType)
+
+		operationType := cs.Current.Lookup("operationType").StringValue()
+		assert.Equal(mt, operationType, "invalidate", "expected invalidate event but returned %q event", operationType)
 		// next call to cs.Next should return False since cursor is closed
-		assert.False(mt, cs.Next(mtest.Background), "expected to return False, but returned True")
+		assert.False(mt, cs.Next(mtest.Background), "expected to return false, but returned true")
 	})
 }
 

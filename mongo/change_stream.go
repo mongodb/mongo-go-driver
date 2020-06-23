@@ -517,7 +517,6 @@ func (cs *ChangeStream) TryNext(ctx context.Context) bool {
 
 func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 	// return false right away if the change stream has already errored or if cursor is closed.
-	// || cs.ID() == 0
 	if cs.err != nil {
 		return false
 	}
