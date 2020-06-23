@@ -15,7 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 const (
@@ -66,11 +65,14 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 		defer cur.Close(mtest.Background)
 		assert.True(mt, cur.Next(mtest.Background), "expected Next true, got false")
 
-		err = mt.Client.Database("admin").RunCommand(mtest.Background, bson.D{
+		// replSetStepDown can fail with transient errors, so we use executeAdminCommandWithRetry to handle them and
+		// retry until a timeout is hit.
+		stepDownCmd := bson.D{
 			{"replSetStepDown", 5},
 			{"force", true},
-		}, options.RunCmd().SetReadPreference(readpref.Primary())).Err()
-		assert.Nil(mt, err, "replSetStepDown error: %v", err)
+		}
+		stepDownOpts := options.RunCmd().SetReadPreference(mtest.PrimaryRp)
+		executeAdminCommandWithRetry(mt, mt.Client, stepDownCmd, stepDownOpts)
 
 		assert.True(mt, cur.Next(mtest.Background), "expected Next true, got false")
 		assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
