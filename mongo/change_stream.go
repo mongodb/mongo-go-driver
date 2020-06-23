@@ -495,7 +495,7 @@ func (cs *ChangeStream) TryNext(ctx context.Context) bool {
 }
 
 func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
-	// return false right away if the change stream has already errored.
+	// return false right away if the change stream has already errored or if cursor is closed.
 	if cs.err != nil {
 		return false
 	}
@@ -538,6 +538,11 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 
 		cs.err = replaceErrors(cs.cursor.Err())
 		if cs.err == nil {
+			// Check if cursor is alive
+			if cs.ID() == 0 {
+				return
+			}
+
 			// If a getMore was done but the batch was empty, the batch cursor will return false with no error.
 			// Update the tracked resume token to catch the post batch resume token from the server response.
 			cs.updatePbrtFromCommand()
