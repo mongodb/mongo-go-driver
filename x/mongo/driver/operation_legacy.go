@@ -648,12 +648,12 @@ func (op Operation) roundTripLegacyCursor(ctx context.Context, wm []byte, srvr S
 func (op Operation) roundTripLegacy(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
 	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
+		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
 
 	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
-		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
+		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
 	return wm, err
 }

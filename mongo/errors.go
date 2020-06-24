@@ -47,7 +47,10 @@ func replaceErrors(err error) error {
 	}
 	if qe, ok := err.(driver.QueryFailureError); ok {
 		// qe.Message is "command failure"
-		ce := CommandError{Name: qe.Message}
+		ce := CommandError{
+			Name:    qe.Message,
+			Wrapped: qe.Wrapped,
+		}
 
 		dollarErr, err := qe.Response.LookupErr("$err")
 		if err == nil {
