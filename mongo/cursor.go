@@ -196,7 +196,7 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	}
 
 	if sliceVal.Kind() != reflect.Slice {
-		panic("result argument must be a slice address")
+		return errors.New("results argument must be a slice address")
 	}
 
 	elementType := sliceVal.Type().Elem()
