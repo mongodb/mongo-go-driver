@@ -185,11 +185,17 @@ func (c *Cursor) Close(ctx context.Context) error {
 // This method requires driver version >= 1.1.0.
 func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	resultsVal := reflect.ValueOf(results)
+
 	if resultsVal.Kind() != reflect.Ptr {
 		return errors.New("results argument must be a pointer to a slice")
 	}
 
 	sliceVal := resultsVal.Elem()
+
+	if sliceVal.Kind() == reflect.Interface {
+		sliceVal = sliceVal.Elem()
+	}
+
 	elementType := sliceVal.Type().Elem()
 	var index int
 	var err error
