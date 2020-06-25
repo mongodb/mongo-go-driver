@@ -9,6 +9,7 @@ package mongo
 import (
 	"crypto/tls"
 	"os"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -56,7 +57,15 @@ func TestOCSP(t *testing.T) {
 }
 
 func createOCSPClientOptions(uri string) *options.ClientOptions {
-	return options.Client().ApplyURI(uri).SetServerSelectionTimeout(500 * time.Millisecond)
+	opts := options.Client().ApplyURI(uri)
+
+	timeout := 500 * time.Millisecond
+	if runtime.GOOS == "windows" {
+		// Non-stapled OCSP endpoint checks are slow on Windows.
+		timeout = 5 * time.Second
+	}
+	opts.SetServerSelectionTimeout(timeout)
+	return opts
 }
 
 func createInsecureOCSPClientOptions(uri string) *options.ClientOptions {
