@@ -88,11 +88,12 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 	return c, nil
 }
 
-func (c *connection) processInitializationError(err error, closeConnection bool) {
-	if closeConnection && c.nc != nil {
+func (c *connection) processInitializationError(err error) {
+	atomic.StoreInt32(&c.connected, disconnected)
+	if c.nc != nil {
 		_ = c.nc.Close()
 	}
-	atomic.StoreInt32(&c.connected, disconnected)
+
 	c.connectErr = ConnectionError{Wrapped: err, init: true}
 	if c.config.errorHandlingCallback != nil {
 		c.config.errorHandlingCallback(c.connectErr)
@@ -115,8 +116,7 @@ func (c *connection) connect(ctx context.Context) {
 	var tempNc net.Conn
 	tempNc, err = c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		// Pass false because there's no net.Conn to close if dialing fails.
-		c.processInitializationError(err, false)
+		c.processInitializationError(err)
 		return
 	}
 	c.nc = tempNc
@@ -132,7 +132,7 @@ func (c *connection) connect(ctx context.Context) {
 		}
 		tlsNc, err := configureTLS(ctx, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
-			c.processInitializationError(err, true)
+			c.processInitializationError(err)
 			return
 		}
 		c.nc = tlsNc
@@ -152,7 +152,7 @@ func (c *connection) connect(ctx context.Context) {
 		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
 	if err != nil {
-		c.processInitializationError(err, true)
+		c.processInitializationError(err)
 		return
 	}
 
