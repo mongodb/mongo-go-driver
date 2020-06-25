@@ -96,7 +96,7 @@ func (c *connection) processInitializationError(err error) {
 
 	c.connectErr = ConnectionError{Wrapped: err, init: true}
 	if c.config.errorHandlingCallback != nil {
-		c.config.errorHandlingCallback(c.connectErr)
+		c.config.errorHandlingCallback(c.connectErr, c.generation)
 	}
 }
 

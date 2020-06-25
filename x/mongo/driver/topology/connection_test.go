@@ -98,7 +98,7 @@ func TestConnection(t *testing.T) {
 							return &net.TCPConn{}, nil
 						})
 					}),
-					withErrorHandlingCallback(func(err error) {
+					withErrorHandlingCallback(func(err error, _ uint64) {
 						got = err
 					}),
 				)

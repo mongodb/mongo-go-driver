@@ -224,7 +224,6 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		return nil, ErrServerClosed
 	}
 
-	poolGen := s.pool.getGeneration()
 	connImpl, err := s.pool.get(ctx)
 	if err != nil {
 		// The error has already been handled by connection.connect, which calls Server.ProcessHandshakeError.
@@ -235,19 +234,20 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection finishes handshaking.
-func (s *Server) ProcessHandshakeError(err error) {
-	if err == nil {
+func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64) {
+	// ignore nil or stale error
+	if err == nil || startingGenerationNumber < atomic.LoadUint64(&s.pool.generation) {
 		return
 	}
+
 	wrappedConnErr := unwrapConnectionError(err)
 	if wrappedConnErr == nil {
 		return
 	}
 
-	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization error, we should set
-	// the description.Server appropriately.
-	desc := description.NewServerFromError(s.address, wrappedConnErr)
-	s.updateDescription(desc)
+	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization
+	// error, we should set the description.Server appropriately.
+	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, s.Description().TopologyVersion))
 	s.pool.clear()
 }
 
@@ -302,24 +302,6 @@ func (s *Server) RequestImmediateCheck() {
 	case s.checkNow <- struct{}{}:
 	default:
 	}
-}
-
-// ProcessHandshakeError handles connection errors during the handshake.
-func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64) {
-	// ignore nil or stale error
-	if err == nil || startingGenerationNumber < atomic.LoadUint64(&s.pool.generation) {
-		return
-	}
-
-	wrappedConnErr := unwrapConnectionError(err)
-	if wrappedConnErr == nil {
-		return
-	}
-
-	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization
-	// error, we should set the description.Server appropriately.
-	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, s.Description().TopologyVersion))
-	s.pool.clear()
 }
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
