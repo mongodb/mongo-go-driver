@@ -137,7 +137,6 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 	}
 	s.desc.Store(description.NewDefaultServer(addr))
 
-	callback := func(desc description.Server) { s.updateDescription(desc) }
 	pc := poolConfig{
 		Address:     addr,
 		MinPoolSize: cfg.minConns,
@@ -146,7 +145,8 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 		PoolMonitor: cfg.poolMonitor,
 	}
 
-	s.pool, err = newPool(pc, withServerDescriptionCallback(callback, cfg.connectionOpts...)...)
+	connectionOpts := append(cfg.connectionOpts, withErrorHandlingCallback(s.ProcessHandshakeError))
+	s.pool, err = newPool(pc, connectionOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -219,21 +219,28 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 
 	conn, err := s.pool.get(ctx)
 	if err != nil {
-		wrappedConnErr := unwrapConnectionError(err)
-		if wrappedConnErr == nil {
-			return nil, err
-		}
-
-		// Since the only kind of ConnectionError we receive from pool.Get will be an initialization
-		// error, we should set the description.Server appropriately.
-		desc := description.NewServerFromError(s.address, wrappedConnErr)
-		s.updateDescription(desc)
-		s.pool.clear()
-
+		// The error has already been handled by connection.connect, which calls Server.ProcessHandshakeError.
 		return nil, err
 	}
 
 	return &Connection{connection: conn, s: s}, nil
+}
+
+// ProcessHandshakeError implements SDAM error handling for errors that occur before a connection finishes handshaking.
+func (s *Server) ProcessHandshakeError(err error) {
+	if err == nil {
+		return
+	}
+	wrappedConnErr := unwrapConnectionError(err)
+	if wrappedConnErr == nil {
+		return
+	}
+
+	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization error, we should set
+	// the description.Server appropriately.
+	desc := description.NewServerFromError(s.address, wrappedConnErr)
+	s.updateDescription(desc)
+	s.pool.clear()
 }
 
 // Description returns a description of the server as of the last heartbeat.

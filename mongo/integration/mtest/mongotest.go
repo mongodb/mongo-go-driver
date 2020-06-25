@@ -66,6 +66,9 @@ type FailPointData struct {
 		Name   string `bson:"codeName"`
 		Errmsg string `bson:"errmsg"`
 	} `bson:"writeConcernError,omitempty"`
+	BlockConnection bool   `bson:"blockConnection,omitempty"`
+	BlockTimeMS     int32  `bson:"blockTimeMS,omitempty"`
+	AppName         string `bson:"appName,omitempty"`
 }
 
 // T is a wrapper around testing.T.
