@@ -179,6 +179,7 @@ func applyResponses(t *testing.T, topo *Topology, responses []response, sub *dri
 		if ok {
 			server.updateDescription(desc)
 		} else {
+			// for tests that check that server descriptions that aren't in the topology are applied
 			topo.apply(context.Background(), desc)
 		}
 		select {
