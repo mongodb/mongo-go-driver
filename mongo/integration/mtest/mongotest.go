@@ -64,6 +64,9 @@ type FailPointData struct {
 	FailBeforeCommitExceptionCode int32                  `bson:"failBeforeCommitExceptionCode,omitempty"`
 	ErrorLabels                   *[]string              `bson:"errorLabels,omitempty"`
 	WriteConcernError             *WriteConcernErrorData `bson:"writeConcernError,omitempty"`
+	BlockConnection               bool                   `bson:"blockConnection,omitempty"`
+	BlockTimeMS                   int32                  `bson:"blockTimeMS,omitempty"`
+	AppName                       string                 `bson:"appName,omitempty"`
 }
 
 // WriteConcernErrorData is a representation of the FailPoint.Data.WriteConcern field.

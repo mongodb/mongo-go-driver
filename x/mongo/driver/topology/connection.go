@@ -88,6 +88,18 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 	return c, nil
 }
 
+func (c *connection) processInitializationError(err error) {
+	atomic.StoreInt32(&c.connected, disconnected)
+	if c.nc != nil {
+		_ = c.nc.Close()
+	}
+
+	c.connectErr = ConnectionError{Wrapped: err, init: true}
+	if c.config.errorHandlingCallback != nil {
+		c.config.errorHandlingCallback(c.connectErr)
+	}
+}
+
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform
 // initialization handshakes.
 func (c *connection) connect(ctx context.Context) {
@@ -104,8 +116,7 @@ func (c *connection) connect(ctx context.Context) {
 	var tempNc net.Conn
 	tempNc, err = c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		atomic.StoreInt32(&c.connected, disconnected)
-		c.connectErr = ConnectionError{Wrapped: err, init: true}
+		c.processInitializationError(err)
 		return
 	}
 	c.nc = tempNc
@@ -121,11 +132,7 @@ func (c *connection) connect(ctx context.Context) {
 		}
 		tlsNc, err := configureTLS(ctx, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
-			if c.nc != nil {
-				_ = c.nc.Close()
-			}
-			atomic.StoreInt32(&c.connected, disconnected)
-			c.connectErr = ConnectionError{Wrapped: err, init: true}
+			c.processInitializationError(err)
 			return
 		}
 		c.nc = tlsNc
@@ -145,17 +152,10 @@ func (c *connection) connect(ctx context.Context) {
 		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
 	if err != nil {
-		if c.nc != nil {
-			_ = c.nc.Close()
-		}
-		atomic.StoreInt32(&c.connected, disconnected)
-		c.connectErr = ConnectionError{Wrapped: err, init: true}
+		c.processInitializationError(err)
 		return
 	}
 
-	if c.config.descCallback != nil {
-		c.config.descCallback(c.desc)
-	}
 	if len(c.desc.Compression) > 0 {
 	clientMethodLoop:
 		for _, method := range c.config.compressors {
