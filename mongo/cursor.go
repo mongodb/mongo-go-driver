@@ -186,7 +186,7 @@ func (c *Cursor) Close(ctx context.Context) error {
 func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	resultsVal := reflect.ValueOf(results)
 	if resultsVal.Kind() != reflect.Ptr {
-		return errors.New("results argument must be a pointer to a slice")
+		return errors.New("results argument must be a pointer to a slice, but was a" + resultsVal.Kind().String())
 	}
 
 	sliceVal := resultsVal.Elem()
@@ -195,7 +195,7 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	}
 
 	if sliceVal.Kind() != reflect.Slice {
-		return errors.New("results argument must be a slice address")
+		return errors.New("results argument must be a pointer to a slice, but was a pointer to" + sliceVal.Kind().String())
 	}
 
 	elementType := sliceVal.Type().Elem()
