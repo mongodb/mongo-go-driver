@@ -660,6 +660,7 @@ func (m *mockConnection) Address() address.Address        { return m.rAddr }
 func (m *mockConnection) SupportsStreaming() bool         { return m.rCanStream }
 func (m *mockConnection) CurrentlyStreaming() bool        { return m.rStreaming }
 func (m *mockConnection) SetStreaming(streaming bool)     { m.rStreaming = streaming }
+func (m *mockConnection) Stale() bool                     { return false }
 
 func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	m.pWriteWM = wm

@@ -212,7 +212,7 @@ func TestServer(t *testing.T) {
 			Labels:          []string{},
 			TopologyVersion: nil,
 		}
-		s.ProcessError(wce)
+		s.ProcessError(wce, initConnection{})
 
 		// should set ServerDescription to Unknown
 		resultDesc := s.Description()
@@ -236,7 +236,7 @@ func TestServer(t *testing.T) {
 		s.pool.connected = connected
 
 		wce := driver.WriteConcernError{}
-		s.ProcessError(&wce)
+		s.ProcessError(&wce, initConnection{})
 
 		// should not be a LastError
 		require.Nil(t, s.Description().LastError)

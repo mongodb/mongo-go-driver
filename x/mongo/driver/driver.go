@@ -52,6 +52,7 @@ type Connection interface {
 	Close() error
 	ID() string
 	Address() address.Address
+	Stale() bool
 }
 
 // LocalAddresser is a type that is able to supply its local address
@@ -91,7 +92,7 @@ type Compressor interface {
 // If this type is implemented by a Server, then Operation.Execute will call it's ProcessError
 // method after it decodes a wire message.
 type ErrorProcessor interface {
-	ProcessError(error)
+	ProcessError(err error, conn Connection)
 }
 
 // Handshaker is the interface implemented by types that can perform a MongoDB

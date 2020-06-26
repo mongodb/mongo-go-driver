@@ -96,7 +96,7 @@ func (c *connection) processInitializationError(err error) {
 
 	c.connectErr = ConnectionError{Wrapped: err, init: true}
 	if c.config.errorHandlingCallback != nil {
-		c.config.errorHandlingCallback(c.connectErr)
+		c.config.errorHandlingCallback(c.connectErr, c.generation)
 	}
 }
 
@@ -378,6 +378,7 @@ func (c initConnection) Description() description.Server {
 func (c initConnection) Close() error             { return nil }
 func (c initConnection) ID() string               { return c.id }
 func (c initConnection) Address() address.Address { return c.addr }
+func (c initConnection) Stale() bool              { return false }
 func (c initConnection) LocalAddress() address.Address {
 	if c.connection == nil || c.nc == nil {
 		return address.Address("0.0.0.0")
@@ -404,7 +405,6 @@ func (c initConnection) SupportsStreaming() bool {
 // messages and the driver.Expirable interface to allow expiring.
 type Connection struct {
 	*connection
-	s *Server
 
 	mu sync.RWMutex
 }
@@ -517,6 +517,13 @@ func (c *Connection) ID() string {
 		return "<closed>"
 	}
 	return c.id
+}
+
+// Stale returns if the connection is stale.
+func (c *Connection) Stale() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.pool.stale(c.connection)
 }
 
 // Address returns the address of this connection.

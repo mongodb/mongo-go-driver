@@ -51,7 +51,7 @@ type connectionConfig struct {
 	zstdLevel                *int
 	ocspCache                ocsp.Cache
 	disableOCSPEndpointCheck bool
-	errorHandlingCallback    func(error)
+	errorHandlingCallback    func(error, uint64)
 }
 
 func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
@@ -78,7 +78,7 @@ func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 // ConnectionOption is used to configure a connection.
 type ConnectionOption func(*connectionConfig) error
 
-func withErrorHandlingCallback(fn func(error)) ConnectionOption {
+func withErrorHandlingCallback(fn func(error, uint64)) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.errorHandlingCallback = fn
 		return nil

@@ -316,6 +316,10 @@ func (p *pool) makeNewConnection(ctx context.Context) (*connection, string, erro
 
 }
 
+func (p *pool) getGeneration() uint64 {
+	return atomic.LoadUint64(&p.generation)
+}
+
 // Checkout returns a connection from the pool
 func (p *pool) get(ctx context.Context) (*connection, error) {
 	if ctx == nil {

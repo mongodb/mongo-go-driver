@@ -101,6 +101,8 @@ type Server struct {
 	subscribers         map[uint64]chan description.Server
 	currentSubscriberID uint64
 	subscriptionsClosed bool
+
+	processErrorLock sync.Mutex
 }
 
 // updateTopologyCallback is a callback used to create a server that should be called when the parent Topology instance
@@ -222,29 +224,30 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		return nil, ErrServerClosed
 	}
 
-	conn, err := s.pool.get(ctx)
+	connImpl, err := s.pool.get(ctx)
 	if err != nil {
 		// The error has already been handled by connection.connect, which calls Server.ProcessHandshakeError.
 		return nil, err
 	}
 
-	return &Connection{connection: conn, s: s}, nil
+	return &Connection{connection: connImpl}, nil
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection finishes handshaking.
-func (s *Server) ProcessHandshakeError(err error) {
-	if err == nil {
+func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64) {
+	// ignore nil or stale error
+	if err == nil || startingGenerationNumber < atomic.LoadUint64(&s.pool.generation) {
 		return
 	}
+
 	wrappedConnErr := unwrapConnectionError(err)
 	if wrappedConnErr == nil {
 		return
 	}
 
-	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization error, we should set
-	// the description.Server appropriately.
-	desc := description.NewServerFromError(s.address, wrappedConnErr)
-	s.updateDescription(desc)
+	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization
+	// error, we should set the description.Server appropriately.
+	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, s.Description().TopologyVersion))
 	s.pool.clear()
 }
 
@@ -302,26 +305,50 @@ func (s *Server) RequestImmediateCheck() {
 }
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
-func (s *Server) ProcessError(err error) {
-	desc := s.Description()
+func (s *Server) ProcessError(err error, conn driver.Connection) {
+	// ignore nil error
+	if err == nil {
+		return
+	}
+
+	s.processErrorLock.Lock()
+	defer s.processErrorLock.Unlock()
+
+	// ignore stale error
+	if conn.Stale() {
+		return
+	}
 	// Invalidate server description if not master or node recovering error occurs.
 	// These errors can be reported as a command error or a write concern error.
+	desc := conn.Description()
 	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotMaster()) {
+		// ignore stale error
+		if description.CompareTopologyVersion(desc.TopologyVersion, cerr.TopologyVersion) >= 0 {
+			return
+		}
+
 		// updates description to unknown
-		s.updateDescription(description.NewServerFromError(s.address, err))
+		s.updateDescription(description.NewServerFromError(s.address, err, cerr.TopologyVersion))
+		s.RequestImmediateCheck()
+
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
-			s.RequestImmediateCheck()
 			s.pool.clear()
 		}
 		return
 	}
 	if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
+		// ignore stale error
+		if description.CompareTopologyVersion(desc.TopologyVersion, wcerr.TopologyVersion) >= 0 {
+			return
+		}
+
 		// updates description to unknown
-		s.updateDescription(description.NewServerFromError(s.address, err))
+		s.updateDescription(description.NewServerFromError(s.address, err, wcerr.TopologyVersion))
+		s.RequestImmediateCheck()
+
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
-			s.RequestImmediateCheck()
 			s.pool.clear()
 		}
 		return
@@ -341,7 +368,7 @@ func (s *Server) ProcessError(err error) {
 	}
 
 	// updates description to unknown
-	s.updateDescription(description.NewServerFromError(s.address, err))
+	s.updateDescription(description.NewServerFromError(s.address, err, desc.TopologyVersion))
 	s.pool.clear()
 }
 
@@ -543,7 +570,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 	}
 
 	if !set {
-		desc = description.NewServerFromError(s.address, saved)
+		desc = description.NewServerFromError(s.address, saved, s.Description().TopologyVersion)
 	}
 
 	return desc, conn
