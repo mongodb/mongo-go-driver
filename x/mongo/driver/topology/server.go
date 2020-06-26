@@ -690,7 +690,7 @@ func (s *Server) check() (description.Server, error) {
 	// An error occurred. We reset the RTT monitor for all errors and return an Unknown description. The pool must
 	// also be cleared, but only after the description has already been updated, so that is handled by the caller.
 	s.rttMonitor.reset()
-	return description.NewServerFromError(s.address, err), nil
+	return description.NewServerFromError(s.address, err, nil), nil
 }
 
 // String implements the Stringer interface.
