@@ -139,8 +139,9 @@ func TestOperation(t *testing.T) {
 		wcAck := writeconcern.New(writeconcern.WMajority())
 		wcUnack := writeconcern.New(writeconcern.W(0))
 
-		descRetryable := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}}
-		descNotRetryable := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 5}}
+		descRetryable := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1}
+		descNotRetryableWireVersion := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 5}, SessionTimeoutMinutes: 1}
+		descNotRetryableStandalone := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1, Kind: description.Standalone}
 
 		testCases := []struct {
 			name string
@@ -149,7 +150,8 @@ func TestOperation(t *testing.T) {
 			want Type
 		}{
 			{"deployment doesn't support", Operation{Deployment: deploymentNoRetry}, description.Server{}, Type(0)},
-			{"wire version too low", Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcAck}, descNotRetryable, Type(0)},
+			{"wire version too low", Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcAck}, descNotRetryableWireVersion, Type(0)},
+			{"standalone not supported", Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcAck}, descNotRetryableStandalone, Type(0)},
 			{
 				"transaction in progress",
 				Operation{Deployment: deploymentRetry, Client: sessInProgressTransaction, WriteConcern: wcAck},

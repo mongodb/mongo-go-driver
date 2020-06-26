@@ -10,7 +10,6 @@ import (
 // Deployment is implemented by types that can select a server from a deployment.
 type Deployment interface {
 	SelectServer(context.Context, description.ServerSelector) (Server, error)
-	SupportsRetryWrites() bool
 	Kind() description.TopologyKind
 }
 
