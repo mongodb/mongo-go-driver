@@ -90,7 +90,7 @@ func TestConnection(t *testing.T) {
 				handshakerError := errors.New("handshaker error")
 				var got error
 
-				conn, err := newConnection(context.Background(), address.Address(""),
+				conn, err := newConnection(address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{
 							getDescription: func(context.Context, address.Address, driver.Connection) (description.Server, error) {

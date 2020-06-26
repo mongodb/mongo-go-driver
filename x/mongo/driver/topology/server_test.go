@@ -237,12 +237,7 @@ func TestServer(t *testing.T) {
 		s.pool.connected = connected
 
 		wce := driver.WriteConcernError{}
-<<<<<<< HEAD
 		s.ProcessError(&wce, initConnection{})
-=======
-		// Use initConnection as it always returns false for Stale().
-		s.ProcessError(wce, initConnection{})
->>>>>>> 1b2c6365... GODRIVER-1489 Implement streaming heartbeat protocol
 
 		// should not be a LastError
 		require.Nil(t, s.Description().LastError)
