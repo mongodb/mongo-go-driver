@@ -213,11 +213,13 @@ func (s *Server) Disconnect(ctx context.Context) error {
 
 	s.updateTopologyCallback.Store((updateTopologyCallback)(nil))
 
-	// Forcefully cancel any in-progress SDAM checks and wait for the receiver of done to ensure that everything has
-	// been cancelled.
+	// Cancel the global context so any new contexts created from it will be automatically cancelled. Close the done
+	// channel so the update() routine will know that it can stop. Cancel any in-progress monitoring checks at the end.
+	// The done channel is closed before cancelling the check so the update routine() will immediately detect that it
+	// can stop rather than trying to create new connections until the read from done succeeds.
 	s.globalCtxCancel()
-	s.cancelCheck()
 	close(s.done)
+	s.cancelCheck()
 
 	s.rttMonitor.disconnect()
 	err := s.pool.disconnect(ctx)
