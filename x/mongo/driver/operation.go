@@ -540,7 +540,6 @@ func (op Operation) retryable(desc description.Server) bool {
 			return true
 		}
 		if SupportsRetryWrites(desc) &&
-			op.Deployment.Kind() != description.Single &&
 			desc.WireVersion != nil && desc.WireVersion.Max >= 6 &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
