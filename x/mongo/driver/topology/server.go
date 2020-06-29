@@ -245,9 +245,10 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 		return
 	}
 
-	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization
-	// error, we should set the description.Server appropriately.
-	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, s.Description().TopologyVersion))
+	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization error, we should set
+	// the description.Server appropriately. The description should not have a TopologyVersion because the staleness
+	// checking logic above has already determined that this description is not stale.
+	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, nil))
 	s.pool.clear()
 }
 
@@ -367,8 +368,9 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 		return
 	}
 
-	// updates description to unknown
-	s.updateDescription(description.NewServerFromError(s.address, err, desc.TopologyVersion))
+	// Update description to Unknown and clear the pool. The description should not have a TopologyVersion because
+	// the staleness checking logic above has already determined that this description is not stale.
+	s.updateDescription(description.NewServerFromError(s.address, err, nil))
 	s.pool.clear()
 }
 
