@@ -419,15 +419,15 @@ functions:
       params:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          /opt/mongodbtoolchain/v3/bin/python3 -m venv ./venv
-          ./venv/bin/pip3 install -r mock-ocsp-responder-requirements.txt
+          ${PYTHON3_BINARY} -m venv ./venv
+          ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
 
-          nohup ./venv/bin/python3 ocsp_mock.py \
+          ./venv/${VENV_BIN_DIR|bin}/python ocsp_mock.py \
           --ca_file ${OCSP_ALGORITHM}/ca.pem \
           --ocsp_responder_cert ${OCSP_ALGORITHM}/ca.crt \
           --ocsp_responder_key ${OCSP_ALGORITHM}/ca.key \
@@ -438,15 +438,15 @@ functions:
       params:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          /opt/mongodbtoolchain/v3/bin/python3 -m venv ./venv
-          ./venv/bin/pip3 install -r mock-ocsp-responder-requirements.txt
+          ${PYTHON3_BINARY} -m venv ./venv
+          ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
 
-          nohup ./venv/bin/python3 ocsp_mock.py \
+          ./venv/${VENV_BIN_DIR|bin}/python ocsp_mock.py \
           --ca_file ${OCSP_ALGORITHM}/ca.pem \
           --ocsp_responder_cert ${OCSP_ALGORITHM}/ca.crt \
           --ocsp_responder_key ${OCSP_ALGORITHM}/ca.key \
@@ -459,15 +459,15 @@ functions:
       params:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          /opt/mongodbtoolchain/v3/bin/python3 -m venv ./venv
-          ./venv/bin/pip3 install -r mock-ocsp-responder-requirements.txt
+          ${PYTHON3_BINARY} -m venv ./venv
+          ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
 
-          nohup ./venv/bin/python3 ocsp_mock.py \
+          ./venv/${VENV_BIN_DIR|bin}/python ocsp_mock.py \
           --ca_file ${OCSP_ALGORITHM}/ca.pem \
           --ocsp_responder_cert ${OCSP_ALGORITHM}/ocsp-responder.crt \
           --ocsp_responder_key ${OCSP_ALGORITHM}/ocsp-responder.key \
@@ -478,15 +478,15 @@ functions:
       params:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          /opt/mongodbtoolchain/v3/bin/python3 -m venv ./venv
-          ./venv/bin/pip3 install -r mock-ocsp-responder-requirements.txt
+          ${PYTHON3_BINARY} -m venv ./venv
+          ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
 
-          nohup ./venv/bin/python3 ocsp_mock.py \
+          ./venv/${VENV_BIN_DIR|bin}/python ocsp_mock.py \
           --ca_file ${OCSP_ALGORITHM}/ca.pem \
           --ocsp_responder_cert ${OCSP_ALGORITHM}/ocsp-responder.crt \
           --ocsp_responder_key ${OCSP_ALGORITHM}/ocsp-responder.key \
@@ -898,7 +898,7 @@ tasks:
           MONGO_GO_DRIVER_COMPRESSOR: "zstd"
 
   - name: test-ocsp-rsa-valid-cert-server-staples
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
       - func: run-valid-ocsp-server
         vars:
@@ -912,7 +912,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-rsa-invalid-cert-server-staples
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
       - func: run-revoked-ocsp-server
         vars:
@@ -926,7 +926,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-rsa-valid-cert-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa"]
     commands:
       - func: run-valid-ocsp-server
         vars:
@@ -940,7 +940,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-rsa-invalid-cert-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa"]
     commands:
       - func: run-revoked-ocsp-server
         vars:
@@ -954,7 +954,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-rsa-soft-fail
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa"]
     commands:
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
@@ -965,7 +965,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-rsa-malicious-invalid-cert-mustStaple-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa"]
     commands:
       - func: run-revoked-ocsp-server
         vars:
@@ -979,7 +979,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-rsa-malicious-no-responder-mustStaple-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa"]
     commands:
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
@@ -990,7 +990,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-rsa-delegate-valid-cert-server-staples
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
       - func: run-valid-delegate-ocsp-server
         vars:
@@ -1004,7 +1004,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-rsa-delegate-invalid-cert-server-staples
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
       - func: run-revoked-delegate-ocsp-server
         vars:
@@ -1018,7 +1018,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-rsa-delegate-valid-cert-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa"]
     commands:
       - func: run-valid-delegate-ocsp-server
         vars:
@@ -1032,7 +1032,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-rsa-delegate-invalid-cert-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa"]
     commands:
       - func: run-revoked-delegate-ocsp-server
         vars:
@@ -1046,7 +1046,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-rsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-rsa"]
     commands:
       - func: run-revoked-delegate-ocsp-server
         vars:
@@ -1060,7 +1060,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-ecdsa-valid-cert-server-staples
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
       - func: run-valid-ocsp-server
         vars:
@@ -1074,7 +1074,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-ecdsa-invalid-cert-server-staples
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
       - func: run-revoked-ocsp-server
         vars:
@@ -1088,7 +1088,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-ecdsa-valid-cert-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa"]
     commands:
       - func: run-valid-ocsp-server
         vars:
@@ -1102,7 +1102,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-ecdsa-invalid-cert-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa"]
     commands:
       - func: run-revoked-ocsp-server
         vars:
@@ -1116,7 +1116,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-ecdsa-soft-fail
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa"]
     commands:
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
@@ -1127,7 +1127,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-ecdsa-malicious-invalid-cert-mustStaple-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa"]
     commands:
       - func: run-revoked-ocsp-server
         vars:
@@ -1141,7 +1141,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-ecdsa-malicious-no-responder-mustStaple-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa"]
     commands:
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
@@ -1152,7 +1152,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-ecdsa-delegate-valid-cert-server-staples
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
       - func: run-valid-delegate-ocsp-server
         vars:
@@ -1166,7 +1166,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-ecdsa-delegate-invalid-cert-server-staples
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
       - func: run-revoked-delegate-ocsp-server
         vars:
@@ -1180,7 +1180,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-ecdsa-delegate-valid-cert-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa"]
     commands:
       - func: run-valid-delegate-ocsp-server
         vars:
@@ -1194,7 +1194,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "true"
 
   - name: test-ocsp-ecdsa-delegate-invalid-cert-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa"]
     commands:
       - func: run-revoked-delegate-ocsp-server
         vars:
@@ -1208,7 +1208,7 @@ tasks:
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
   - name: test-ocsp-ecdsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
-    tags: ["ocsp"]
+    tags: ["ocsp", "ocsp-ecdsa"]
     commands:
       - func: run-revoked-delegate-ocsp-server
         vars:
@@ -1543,16 +1543,20 @@ axes:
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.13"
+          PYTHON3_BINARY: "C:/python/Python38/python.exe"
+          VENV_BIN_DIR: "Scripts"
       - id: "ubuntu1604-64-go-1-13"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
           GO_DIST: "/opt/golang/go1.13"
+          PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-13"
         display_name: "MacOS 10.14"
         run_on: macos-1014
         variables:
           GO_DIST: "/opt/golang/go1.13"
+          PYTHON3_BINARY: python3
 
   - id: os-aws-auth
     display_name: OS
@@ -1673,3 +1677,19 @@ buildvariants:
     batchtime: 20160 # 14 days
     tasks:
       - name: ".ocsp"
+
+  - matrix_name: "ocsp-test-windows"
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["windows-64-go-1-13"] }
+    display_name: "OCSP ${version} ${os-ssl-32}"
+    batchtime: 20160 # 14 days
+    tasks:
+      # Windows MongoDB servers do not staple OCSP responses and only support RSA.
+      - name: ".ocsp-rsa !.ocsp-staple"
+
+  - matrix_name: "ocsp-test-macos"
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["osx-go-1-13"] }
+    display_name: "OCSP ${version} ${os-ssl-32}"
+    batchtime: 20160 # 14 days
+    tasks:
+      # macos MongoDB servers do not staple OCSP responses and only support RSA.
+      - name: ".ocsp-rsa !.ocsp-staple"
