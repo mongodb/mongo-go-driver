@@ -157,5 +157,25 @@ func TestCursor(t *testing.T) {
 			assert.Nil(t, err, "All error: %v", err)
 			assert.True(t, tbc.closed, "expected batch cursor to be closed but was not")
 		})
+
+		t.Run("does not error given interface as parameter", func(t *testing.T) {
+			var docs interface{} = []bson.D{}
+
+			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			assert.Nil(t, err, "newCursor error: %v", err)
+
+			err = cursor.All(context.Background(), &docs)
+			assert.Nil(t, err, "expected Nil, got error: %v", err)
+			assert.Equal(t, 5, len(docs.([]bson.D)), "expected 5 documents, got %v", len(docs.([]bson.D)))
+		})
+		t.Run("errors when not given pointer to slice", func(t *testing.T) {
+			var docs interface{} = "test"
+
+			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			assert.Nil(t, err, "newCursor error: %v", err)
+
+			err = cursor.All(context.Background(), &docs)
+			assert.NotNil(t, err, "expected error, got: %v", err)
+		})
 	})
 }

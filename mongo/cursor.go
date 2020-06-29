@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 
@@ -186,10 +187,18 @@ func (c *Cursor) Close(ctx context.Context) error {
 func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	resultsVal := reflect.ValueOf(results)
 	if resultsVal.Kind() != reflect.Ptr {
-		return errors.New("results argument must be a pointer to a slice")
+		return fmt.Errorf("results argument must be a pointer to a slice, but was a %s", resultsVal.Kind())
 	}
 
 	sliceVal := resultsVal.Elem()
+	if sliceVal.Kind() == reflect.Interface {
+		sliceVal = sliceVal.Elem()
+	}
+
+	if sliceVal.Kind() != reflect.Slice {
+		return fmt.Errorf("results argument must be a pointer to a slice, but was a pointer to %s", sliceVal.Kind())
+	}
+
 	elementType := sliceVal.Type().Elem()
 	var index int
 	var err error
