@@ -688,10 +688,21 @@ func (s *Server) check() (description.Server, error) {
 		return emptyDescription, errCheckCancelled
 	}
 
-	// An error occurred. We reset the RTT monitor for all errors and return an Unknown description. The pool must
-	// also be cleared, but only after the description has already been updated, so that is handled by the caller.
+	// An error occurred. Extract the topology version to use in the server description.
+	var topologyVersion *description.TopologyVersion
+	switch converted := err.(type) {
+	case driver.Error:
+		topologyVersion = converted.TopologyVersion
+	case driver.WriteCommandError:
+		if converted.WriteConcernError != nil {
+			topologyVersion = converted.WriteConcernError.TopologyVersion
+		}
+	}
+
+	// We reset the RTT monitor for all errors and return an Unknown description. The pool must also be cleared, but
+	// only after the description has already been updated, so that is handled by the caller.
 	s.rttMonitor.reset()
-	return description.NewServerFromError(s.address, err, nil), nil
+	return description.NewServerFromError(s.address, err, topologyVersion), nil
 }
 
 // String implements the Stringer interface.
