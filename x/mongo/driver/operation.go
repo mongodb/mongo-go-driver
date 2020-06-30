@@ -539,7 +539,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
 			return true
 		}
-		if SupportsRetryWrites(desc) &&
+		if desc.SupportsRetryWrites() &&
 			desc.WireVersion != nil && desc.WireVersion.Max >= 6 &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
@@ -555,12 +555,6 @@ func (op Operation) retryable(desc description.Server) bool {
 		}
 	}
 	return false
-}
-
-// SupportsRetryWrites returns true if retryable writes are supported which requires
-// that logicalSessionTimeoutMinutes exists, and server type is not standalone
-func SupportsRetryWrites(desc description.Server) bool {
-	return desc.SessionTimeoutMinutes != 0 && desc.Kind.String() != description.Standalone.String()
 }
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
