@@ -678,8 +678,7 @@ func (s *Server) check() (description.Server, error) {
 	if descPtr != nil {
 		// The check was successful. Set the average RTT and return.
 		desc := *descPtr
-		desc.AverageRTT = s.rttMonitor.getRTT()
-
+		desc = desc.SetAverageRTT(s.rttMonitor.getRTT())
 		return desc, nil
 	}
 
