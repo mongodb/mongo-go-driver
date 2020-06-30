@@ -51,6 +51,7 @@ To get started with the driver, import the `mongo` package, create a `mongo.Clie
 import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
+    "go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
@@ -59,15 +60,30 @@ client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27
 And connect it to your running MongoDB server:
 
 ```go
-ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
 err = client.Connect(ctx)
 ```
 
 To do this in a single step, you can use the `Connect` function:
 
 ```go
-ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
 client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+```
+
+Make sure to set a panic to catch errors on `Disconnect` that may only
+surface as log warnings:
+
+```go
+client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+...
+defer func() {
+    if err = client.Disconnect(ctx); err != nil {
+        panic(err)
+    }
+}()
 ```
 
 Calling `Connect` does not block for server discovery. If you wish to know if a MongoDB server has been found and connected to,
@@ -75,7 +91,14 @@ use the `Ping` method:
 
 ```go
 ctx, _ = context.WithTimeout(context.Background(), 2*time.Second)
+client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+defer func() {
+    if err = client.Disconnect(ctx); err != nil {
+        panic(err)
+    }
+}()
 err = client.Ping(ctx, readpref.Primary())
+
 ```
 
 To insert a document into a collection, first retrieve a `Database` and then `Collection` instance from the `Client`:
