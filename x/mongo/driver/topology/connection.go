@@ -51,6 +51,7 @@ type connection struct {
 	connectContextMade   chan struct{}
 	canStream            bool
 	currentlyStreaming   bool
+	mu                   sync.Mutex
 
 	// pool related fields
 	pool       *pool
@@ -108,7 +109,19 @@ func (c *connection) connect(ctx context.Context) {
 	}
 	defer close(c.connectDone)
 
+	c.mu.Lock()
 	ctx, c.cancelConnectContext = context.WithCancel(ctx)
+	c.mu.Unlock()
+
+	defer func() {
+		c.mu.Lock()
+		if c.cancelConnectContext != nil {
+			c.cancelConnectContext()
+			c.cancelConnectContext = nil
+		}
+		c.mu.Unlock()
+	}()
+
 	close(c.connectContextMade)
 
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
@@ -195,7 +208,12 @@ func (c *connection) wait() error {
 
 func (c *connection) closeConnectContext() {
 	<-c.connectContextMade
-	c.cancelConnectContext()
+	c.mu.Lock()
+	if c.cancelConnectContext != nil {
+		c.cancelConnectContext()
+		c.cancelConnectContext = nil
+	}
+	c.mu.Unlock()
 }
 
 func transformNetworkError(originalError error, contextDeadlineUsed bool) error {
