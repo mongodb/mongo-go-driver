@@ -137,9 +137,21 @@ func setUpTopology(t *testing.T, uri string) *Topology {
 	cs, err := connstring.ParseAndValidate(uri)
 	assert.Nil(t, err, "Parse error: %v", err)
 
-	topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString {
-		return cs
-	}))
+	// Disable server monitoring because the hosts in the SDAM spec tests don't actually exist, so the server monitor
+	// can race with the test and mark the server Unknown when it fails to connect, which causes tests to fail.
+	serverOpts := []ServerOption{
+		withMonitoringDisabled(func(bool) bool {
+			return true
+		}),
+	}
+	topo, err := New(
+		WithConnString(func(connstring.ConnString) connstring.ConnString {
+			return cs
+		}),
+		WithServerOptions(func(opts ...ServerOption) []ServerOption {
+			return append(opts, serverOpts...)
+		}),
+	)
 	assert.Nil(t, err, "topology.New error: %v", err)
 
 	// add servers to topology without starting heartbeat goroutines

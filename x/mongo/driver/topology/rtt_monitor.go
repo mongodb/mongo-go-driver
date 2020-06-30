@@ -59,16 +59,14 @@ func (r *rttMonitor) disconnect() {
 	conn = r.conn
 	r.Unlock()
 
-	if conn == nil {
-		return
+	if conn != nil {
+		// If the connection exists, we need to wait for it to be connected. We can ignore the error from conn.wait().
+		// If the connection wasn't successfully opened, its state was set back to disconnected, so calling conn.close()
+		// will be a noop.
+		conn.closeConnectContext()
+		_ = conn.wait()
+		_ = conn.close()
 	}
-
-	// If the connection exists, we need to wait for it to be connected. We can ignore the error from conn.wait(). If
-	// the connection wasn't successfully opened, its state was set back to disconnected, so calling conn.close() will
-	// be a noop.
-	conn.closeConnectContext()
-	_ = conn.wait()
-	_ = conn.close()
 
 	r.closeWg.Wait()
 }
