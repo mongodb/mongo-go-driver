@@ -191,7 +191,7 @@ func compareDocs(mt *mtest.T, expected, actual bson.Raw) error {
 func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bson.Raw) {
 	mt.Helper()
 
-	// Filter out events that shoulndn't show up in monitoring expectations.
+	// Filter out events that shouldn't show up in monitoring expectations.
 	ignoredEvents := map[string]struct{}{
 		"configureFailPoint": {},
 	}
