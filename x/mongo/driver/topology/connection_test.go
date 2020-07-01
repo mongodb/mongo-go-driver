@@ -111,11 +111,9 @@ func TestConnection(t *testing.T) {
 				assert.Equal(t, want, got, "expected error %v, got %v", want, got)
 			})
 			t.Run("cancelConnectContext is nil after connect", func(t *testing.T) {
-				conn, got := newConnection(context.Background(), address.Address(""))
+				conn, err := newConnection(context.Background(), address.Address(""))
+				assert.Nil(t, err, "newConnection shouldn't error. got %v; want nil", err)
 
-				if got != nil {
-					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
-				}
 				go func() {
 					conn.connect(context.Background())
 					assert.Nil(t, conn.cancelConnectContext, "expected nil, got context.CancelFunc")
