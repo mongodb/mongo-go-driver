@@ -112,10 +112,6 @@ func (ssd SingleServerDeployment) SelectServer(context.Context, description.Serv
 	return ssd.Server, nil
 }
 
-// SupportsRetryWrites implements the Deployment interface. It always returns Type(0), because a single
-// server does not support retryability.
-func (SingleServerDeployment) SupportsRetryWrites() bool { return false }
-
 // Kind implements the Deployment interface. It always returns description.Single.
 func (SingleServerDeployment) Kind() description.TopologyKind { return description.Single }
 
@@ -134,10 +130,6 @@ var _ Server = SingleConnectionDeployment{}
 func (ssd SingleConnectionDeployment) SelectServer(context.Context, description.ServerSelector) (Server, error) {
 	return ssd, nil
 }
-
-// SupportsRetryWrites implements the Deployment interface. It always returns Type(0), because a single
-// connection does not support retryability.
-func (ssd SingleConnectionDeployment) SupportsRetryWrites() bool { return false }
 
 // Kind implements the Deployment interface. It always returns description.Single.
 func (ssd SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }

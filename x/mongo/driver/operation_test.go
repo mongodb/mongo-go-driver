@@ -627,9 +627,6 @@ func (m *mockDeployment) SelectServer(ctx context.Context, desc description.Serv
 	return m.returns.server, m.returns.err
 }
 
-func (m *mockDeployment) SupportsRetryWrites() bool {
-	return m.returns.retry
-}
 func (m *mockDeployment) Kind() description.TopologyKind { return m.returns.kind }
 
 type mockServerSelector struct{}

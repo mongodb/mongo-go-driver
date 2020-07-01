@@ -43,10 +43,6 @@ func (md mockDeployment) SelectServer(context.Context, description.ServerSelecto
 	return nil, nil
 }
 
-func (md mockDeployment) SupportsRetryWrites() bool {
-	return false
-}
-
 func (md mockDeployment) Kind() description.TopologyKind {
 	return description.Single
 }
