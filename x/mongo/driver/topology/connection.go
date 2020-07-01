@@ -51,7 +51,7 @@ type connection struct {
 	connectContextMade   chan struct{}
 	canStream            bool
 	currentlyStreaming   bool
-	mu                   sync.Mutex
+	connectContextMutex  sync.Mutex
 
 	// pool related fields
 	pool       *pool
@@ -109,17 +109,22 @@ func (c *connection) connect(ctx context.Context) {
 	}
 	defer close(c.connectDone)
 
-	c.mu.Lock()
+	var cancelFn context.CancelFunc
+
+	c.connectContextMutex.Lock()
 	ctx, c.cancelConnectContext = context.WithCancel(ctx)
-	c.mu.Unlock()
+	c.connectContextMutex.Unlock()
 
 	defer func() {
-		c.mu.Lock()
-		if c.cancelConnectContext != nil {
-			c.cancelConnectContext()
-			c.cancelConnectContext = nil
-		}
-		c.mu.Unlock()
+		c.connectContextMutex.Lock()
+		defer func() {
+			c.connectContextMutex.Unlock()
+			if cancelFn != nil {
+				cancelFn()
+			}
+		}()
+		cancelFn = c.cancelConnectContext
+		c.cancelConnectContext = nil
 	}()
 
 	close(c.connectContextMade)
@@ -208,12 +213,16 @@ func (c *connection) wait() error {
 
 func (c *connection) closeConnectContext() {
 	<-c.connectContextMade
-	c.mu.Lock()
-	if c.cancelConnectContext != nil {
-		c.cancelConnectContext()
-		c.cancelConnectContext = nil
+	var cancelFn context.CancelFunc
+
+	c.connectContextMutex.Lock()
+	cancelFn = c.cancelConnectContext
+	c.cancelConnectContext = nil
+	c.connectContextMutex.Unlock()
+
+	if cancelFn != nil {
+		cancelFn()
 	}
-	c.mu.Unlock()
 }
 
 func transformNetworkError(originalError error, contextDeadlineUsed bool) error {
