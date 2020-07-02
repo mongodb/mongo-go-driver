@@ -48,6 +48,7 @@ type connection struct {
 	config               *connectionConfig
 	cancelConnectContext context.CancelFunc
 	connectContextMade   chan struct{}
+	connectContextMutex  sync.Mutex
 
 	// pool related fields
 	pool       *pool
@@ -105,7 +106,23 @@ func (c *connection) connect(ctx context.Context) {
 	}
 	defer close(c.connectDone)
 
+	c.connectContextMutex.Lock()
 	ctx, c.cancelConnectContext = context.WithCancel(ctx)
+	c.connectContextMutex.Unlock()
+
+	defer func() {
+		var cancelFn context.CancelFunc
+
+		c.connectContextMutex.Lock()
+		cancelFn = c.cancelConnectContext
+		c.cancelConnectContext = nil
+		c.connectContextMutex.Unlock()
+
+		if cancelFn != nil {
+			cancelFn()
+		}
+	}()
+
 	close(c.connectContextMade)
 
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
@@ -188,7 +205,16 @@ func (c *connection) wait() error {
 
 func (c *connection) closeConnectContext() {
 	<-c.connectContextMade
-	c.cancelConnectContext()
+	var cancelFn context.CancelFunc
+
+	c.connectContextMutex.Lock()
+	cancelFn = c.cancelConnectContext
+	c.cancelConnectContext = nil
+	c.connectContextMutex.Unlock()
+
+	if cancelFn != nil {
+		cancelFn()
+	}
 }
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
