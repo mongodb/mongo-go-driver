@@ -27,10 +27,6 @@ func (c *changeStreamDeployment) SelectServer(context.Context, description.Serve
 	return c, nil
 }
 
-func (c *changeStreamDeployment) SupportsRetryWrites() bool {
-	return false
-}
-
 func (c *changeStreamDeployment) Kind() description.TopologyKind {
 	return c.topologyKind
 }
