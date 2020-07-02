@@ -110,6 +110,22 @@ func TestConnection(t *testing.T) {
 				assert.NotNil(t, err, "expected connect error %v, got nil", want)
 				assert.Equal(t, want, got, "expected error %v, got %v", want, got)
 			})
+			t.Run("cancelConnectContext is nil after connect", func(t *testing.T) {
+				conn, err := newConnection(context.Background(), address.Address(""))
+				assert.Nil(t, err, "newConnection shouldn't error. got %v; want nil", err)
+				var wg sync.WaitGroup
+				wg.Add(1)
+
+				go func() {
+					defer wg.Done()
+					conn.connect(context.Background())
+					assert.Nil(t, conn.cancelConnectContext, "expected nil, got context.CancelFunc")
+				}()
+
+				conn.closeConnectContext()
+				assert.Nil(t, conn.cancelConnectContext, "expected nil, got context.CancelFunc")
+				wg.Wait()
+			})
 		})
 		t.Run("writeWireMessage", func(t *testing.T) {
 			t.Run("closed connection", func(t *testing.T) {
