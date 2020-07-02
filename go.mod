@@ -8,7 +8,6 @@ require (
 	github.com/golang/snappy v0.0.1
 	github.com/google/go-cmp v0.2.0
 	github.com/karrick/godirwalk v1.10.3 // indirect
-	github.com/kisielk/errcheck v1.2.0 // indirect
 	github.com/klauspost/compress v1.9.5
 	github.com/kr/pretty v0.1.0
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
