@@ -73,12 +73,9 @@ defer cancel()
 client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 ```
 
-Make sure to set a panic to catch errors on `Disconnect` that may only
-surface as log warnings:
+Make sure to defer a call to `Disconnect` after instantiating your client:
 
 ```go
-client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
-...
 defer func() {
     if err = client.Disconnect(ctx); err != nil {
         panic(err)
