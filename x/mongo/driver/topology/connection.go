@@ -115,10 +115,12 @@ func (c *connection) connect(ctx context.Context) {
 
 	defer func() {
 		var cancelFn context.CancelFunc
+
 		c.connectContextMutex.Lock()
 		cancelFn = c.cancelConnectContext
 		c.cancelConnectContext = nil
 		c.connectContextMutex.Unlock()
+
 		if cancelFn != nil {
 			cancelFn()
 		}
