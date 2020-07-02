@@ -111,12 +111,6 @@ func (md *mockDeployment) SelectServer(context.Context, description.ServerSelect
 	return md, nil
 }
 
-// SupportsRetry implements the Deployment interface. It always returns true to allow for testing
-// retryability.
-func (md *mockDeployment) SupportsRetryWrites() bool {
-	return true
-}
-
 // Kind implements the Deployment interface. It always returns description.Single.
 func (md *mockDeployment) Kind() description.TopologyKind {
 	return description.Single

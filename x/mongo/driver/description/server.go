@@ -391,3 +391,8 @@ func decodeStringMap(element bsoncore.Element, name string) (map[string]string, 
 	}
 	return m, nil
 }
+
+// SupportsRetryWrites returns true if this description represents a server that supports retryable writes.
+func (s Server) SupportsRetryWrites() bool {
+	return s.SessionTimeoutMinutes != 0 && s.Kind != Standalone
+}
