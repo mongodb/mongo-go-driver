@@ -11,7 +11,6 @@ require (
 	github.com/golang/snappy v0.0.1
 	github.com/google/go-cmp v0.2.0
 	github.com/karrick/godirwalk v1.10.3 // indirect
-	github.com/kisielk/errcheck v1.2.0 // indirect
 	github.com/klauspost/compress v1.9.5
 	github.com/kr/pretty v0.1.0
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
@@ -25,6 +24,6 @@ require (
 	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20190531175056-4c3a928424d2 // indirect
-	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/tools v0.0.0-20190531172133-b3315ee88b7d
 )
