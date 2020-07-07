@@ -52,7 +52,7 @@ func TestCMAPProse(t *testing.T) {
 			assert.Equal(t, numClosed, len(closed), "expected %d closed events, got %d", numClosed, len(closed))
 
 			netCount := numCreated - numClosed
-			assert.Equal(t, netCount, len(p.opened), "expected %d conenctions in openend map, got %d", netCount,
+			assert.Equal(t, netCount, len(p.opened), "expected %d connections in opened map, got %d", netCount,
 				len(p.opened))
 		}
 
@@ -188,7 +188,7 @@ func TestCMAPProse(t *testing.T) {
 				}
 				assertConnectionCounts(t, pool, numConns, 0)
 
-				// Disconnenct the pool and assert that a closed event is published for each connection.
+				// Disconnect the pool and assert that a closed event is published for each connection.
 				err := pool.disconnect(context.Background())
 				assert.Nil(t, err, "disconnect error: %v", err)
 				assertConnectionCounts(t, pool, numConns, numConns)
