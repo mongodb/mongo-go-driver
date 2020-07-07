@@ -43,8 +43,6 @@ github.com/joho/godotenv
 # github.com/karrick/godirwalk v1.10.3
 ## explicit
 github.com/karrick/godirwalk
-# github.com/kisielk/errcheck v1.2.0
-## explicit
 # github.com/klauspost/compress v1.9.5
 ## explicit
 github.com/klauspost/compress/fse
@@ -105,7 +103,7 @@ golang.org/x/sync/semaphore
 ## explicit
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.2
+# golang.org/x/text v0.3.3
 ## explicit
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
