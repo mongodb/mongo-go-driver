@@ -51,9 +51,10 @@ type connection struct {
 	connectContextMutex  sync.Mutex
 
 	// pool related fields
-	pool       *pool
-	poolID     uint64
-	generation uint64
+	pool         *pool
+	poolID       uint64
+	generation   uint64
+	expireReason string
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -328,7 +329,11 @@ func (c *connection) close() error {
 	return err
 }
 
-func (c *connection) expired() bool {
+func (c *connection) closed() bool {
+	return atomic.LoadInt32(&c.connected) == disconnected
+}
+
+func (c *connection) idleTimeoutExpired() bool {
 	now := time.Now()
 	if c.idleTimeout > 0 {
 		idleDeadline, ok := c.idleDeadline.Load().(time.Time)
@@ -340,8 +345,7 @@ func (c *connection) expired() bool {
 	if !c.lifetimeDeadline.IsZero() && now.After(c.lifetimeDeadline) {
 		return true
 	}
-
-	return atomic.LoadInt32(&c.connected) == disconnected
+	return false
 }
 
 func (c *connection) bumpIdleDeadline() {

@@ -459,7 +459,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 		var now time.Time
 		var descPtr *description.Server
 
-		if conn != nil && conn.expired() {
+		if conn != nil && (conn.idleTimeoutExpired() || conn.closed()) {
 			if conn.nc != nil {
 				conn.nc.Close()
 			}
