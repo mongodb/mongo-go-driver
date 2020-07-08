@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 func TestSDAMProse(t *testing.T) {
@@ -64,6 +65,8 @@ func TestSDAMProse(t *testing.T) {
 			testTopology := getTopologyFromClient(mt.Client)
 			time.Sleep(2 * time.Second)
 			for _, serverDesc := range testTopology.Description().Servers {
+				assert.NotEqual(mt, description.Unknown, serverDesc.Kind, "server %v is Unknown", serverDesc)
+				assert.True(mt, serverDesc.AverageRTTSet, "AverageRTTSet for server description %v is false", serverDesc)
 				assert.True(mt, serverDesc.AverageRTT > 0, "server description %v has 0 RTT", serverDesc)
 			}
 
