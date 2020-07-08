@@ -119,7 +119,7 @@ func (r *rttMonitor) setupRttConnection() error {
 }
 
 func (r *rttMonitor) pingServer() {
-	if r.conn == nil || r.conn.expired() {
+	if r.conn == nil || r.conn.closed() {
 		if err := r.setupRttConnection(); err != nil {
 			return
 		}

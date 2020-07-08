@@ -116,7 +116,7 @@ func TestConnection(t *testing.T) {
 				assert.Equal(t, want, got, "expected error %v, got %v", want, got)
 			})
 			t.Run("cancelConnectContext is nil after connect", func(t *testing.T) {
-				conn, err := newConnection(context.Background(), address.Address(""))
+				conn, err := newConnection(address.Address(""))
 				assert.Nil(t, err, "newConnection shouldn't error. got %v; want nil", err)
 				var wg sync.WaitGroup
 				wg.Add(1)
