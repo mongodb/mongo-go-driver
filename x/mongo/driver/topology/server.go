@@ -670,7 +670,7 @@ func (s *Server) check() (description.Server, error) {
 			tempDesc := baseOperation.Result(s.address)
 			descPtr = &tempDesc
 		} else {
-			// Close the connection here rather than below so we ensure we're only closing a connection if one was
+			// Close the connection here rather than below so we ensure we're not closing a connection that wasn't
 			// successfully created.
 			if s.conn != nil {
 				_ = s.conn.close()
@@ -682,6 +682,7 @@ func (s *Server) check() (description.Server, error) {
 		// The check was successful. Set the average RTT and return.
 		desc := *descPtr
 		desc = desc.SetAverageRTT(s.rttMonitor.getRTT())
+		desc.HeartbeatInterval = s.cfg.heartbeatInterval
 		return desc, nil
 	}
 
