@@ -42,7 +42,6 @@ func TestSDAMProse(t *testing.T) {
 		if mtest.CompareServerVersions(mt.ServerVersion(), "4.4") >= 0 {
 			numExpectedResponses = numNodes * (2*int(timeDuration/lowHeartbeatFrequency) + 1)
 		}
-		mt.Logf("num responses expected: %d\n", numExpectedResponses)
 
 		time.Sleep(timeDuration + 50*time.Millisecond)
 		messages := mt.GetProxiedMessages()
