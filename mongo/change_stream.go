@@ -36,6 +36,7 @@ var (
 	minResumableLabelWireVersion int32 = 9 // Wire version at which the server includes the resumable error label
 	networkErrorLabel                  = "NetworkError"
 	resumableErrorLabel                = "ResumableChangeStreamError"
+	errorCursorNotFound          int32 = 43 // CursorNotFound error code
 
 	// Whitelist of error codes that are considered resumable.
 	resumableChangeStreamErrors = map[int32]struct{}{
@@ -590,6 +591,10 @@ func (cs *ChangeStream) isResumableError() bool {
 	commandErr, ok := cs.err.(CommandError)
 	if !ok || commandErr.HasErrorLabel(networkErrorLabel) {
 		// All non-server errors or network errors are resumable.
+		return true
+	}
+
+	if commandErr.Code == errorCursorNotFound {
 		return true
 	}
 

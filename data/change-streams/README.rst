@@ -63,7 +63,7 @@ The definition of MATCH or MATCHES in the Spec Test Runner is as follows:
 
 - MATCH takes two values, ``expected`` and ``actual``
 - Notation is "Assert [actual] MATCHES [expected]
-- Assertion passes if ``expected`` is a subset of ``actual``, with the values ``42`` and ``"42"`` acting as placeholders for "any value"
+- Assertion passes if ``expected`` is a subset of ``actual``, with the value ``42`` acting as placeholders for "any value"
 
 Pseudocode implementation of ``actual`` MATCHES ``expected``:
 
@@ -148,6 +148,20 @@ Iterating the Change Stream
 Although synchronous drivers must provide a `non-blocking mode of iteration <../change-streams.rst#not-blocking-on-iteration>`_, asynchronous drivers may not have such a mechanism. Those drivers with only a blocking mode of iteration should be careful not to iterate the change stream unnecessarily, as doing so could cause the test runner to block indefinitely. For this reason, the test runner procedure above advises drivers to take a conservative approach to iteration.
 
 If the test expects an error and one was not thrown by either creating the change stream or executing the test's operations, iterating the change stream once allows for an error to be thrown by a ``getMore`` command. If the test does not expect any error, the change stream should be iterated only until it returns as many result documents as are expected by the test.
+
+Testing on Sharded Clusters
+---------------------------
+
+When writing data on sharded clusters, majority-committed data does not always show up in the response of the first
+``getMore`` command after the data is written. This is because in sharded clusters, no data from shard A may be returned
+until all other shard reports an entry that sorts after the change in shard A.
+
+To account for this, drivers MUST NOT rely on change stream documents in certain batches. For example, if expecting two
+documents in a change stream, these may not be part of the same ``getMore`` response, or even be produced in two
+subsequent ``getMore`` responses. Drivers MUST allow for a ``getMore`` to produce empty batches when testing on a
+sharded cluster. By default, this can take up to 10 seconds, but can be controlled by enabling the ``writePeriodicNoops``
+server parameter and configuring the ``periodNoopIntervalSecs`` parameter. Choosing lower values allows for running
+change stream tests with smaller timeouts.
 
 Prose Tests
 ===========
