@@ -158,15 +158,8 @@ func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
 
 	mt := mtest.New(t, mtOpts)
 	mt.Run("aggregate $out with read preference secondary", func(mt *mtest.T) {
-		doc, err := bson.Marshal(bson.D{
-			{"_id", 1},
-			{"x", 11},
-		})
-		assert.Nil(mt, err, "Marshal error: %v", err)
-		_, err = mt.Coll.InsertOne(mtest.Background, doc)
-		assert.Nil(mt, err, "InsertOne error: %v", err)
+		// No read preference should be sent to the server for an aggregation with an output stage.
 
-		mt.ClearEvents()
 		outputCollName := "aggregate-read-pref-secondary-output"
 		outStage := bson.D{
 			{"$out", outputCollName},
@@ -174,16 +167,6 @@ func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
 		cursor, err := mt.Coll.Aggregate(mtest.Background, mongo.Pipeline{outStage})
 		assert.Nil(mt, err, "Aggregate error: %v", err)
 		_ = cursor.Close(mtest.Background)
-
-		// Assert that the output collection contains the document we expect.
-		outputColl := mt.CreateCollection(mtest.Collection{Name: outputCollName}, false)
-		cursor, err = outputColl.Find(mtest.Background, bson.D{})
-		assert.Nil(mt, err, "Find error: %v", err)
-		defer cursor.Close(mtest.Background)
-
-		assert.True(mt, cursor.Next(mtest.Background), "expected Next to return true, got false")
-		assert.True(mt, bytes.Equal(doc, cursor.Current), "expected document %s, got %s", bson.Raw(doc), cursor.Current)
-		assert.False(mt, cursor.Next(mtest.Background), "unexpected document returned by Find: %s", cursor.Current)
 
 		// Assert that no read preference was sent to the server.
 		evt := mt.GetStartedEvent()
