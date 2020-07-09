@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -67,7 +68,13 @@ func TestSDAMProse(t *testing.T) {
 			for _, serverDesc := range testTopology.Description().Servers {
 				assert.NotEqual(mt, description.Unknown, serverDesc.Kind, "server %v is Unknown", serverDesc)
 				assert.True(mt, serverDesc.AverageRTTSet, "AverageRTTSet for server description %v is false", serverDesc)
-				assert.True(mt, serverDesc.AverageRTT > 0, "server description %v has 0 RTT", serverDesc)
+
+				if runtime.GOOS != "windows" {
+					// Windows has a lower time resolution than other platforms, which causes the reported RTT to be
+					// 0 if it's below some threshold. The assertion above already confirms that the RTT is set to
+					// a value, so we can skip this assertion on Windows.
+					assert.True(mt, serverDesc.AverageRTT > 0, "server description %v has 0 RTT", serverDesc)
+				}
 			}
 
 			// Force isMaster requests to block for 500ms and wait until a server's average RTT goes over 250ms.
