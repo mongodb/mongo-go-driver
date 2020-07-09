@@ -625,6 +625,9 @@ func (s *Server) check() (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.isMasterRTT)
 			descPtr = &s.conn.desc
+		} else if connErr, ok := err.(ConnectionError); ok {
+			// Unwrap one layer so the code that extracts TopologyVersion in error cases works for handshake errors.
+			err = connErr.Wrapped
 		}
 	}
 
