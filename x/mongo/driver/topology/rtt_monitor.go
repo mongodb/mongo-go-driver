@@ -76,7 +76,6 @@ func (r *rttMonitor) start() {
 	ticker := time.NewTicker(r.cfg.interval)
 	defer ticker.Stop()
 
-	// TODO: need doneOnce logic similar to server.update()?
 	for {
 		// The context is only cancelled in disconnect() so if there's an error on it, the monitor is shutting down.
 		if r.ctx.Err() != nil {
