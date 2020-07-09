@@ -1,6 +1,10 @@
 package topology
 
-import "fmt"
+import (
+	"fmt"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+)
 
 // ConnectionError represents a connection error.
 type ConnectionError struct {
@@ -15,13 +19,37 @@ type ConnectionError struct {
 
 // Error implements the error interface.
 func (e ConnectionError) Error() string {
-	if e.Wrapped != nil {
-		return fmt.Sprintf("connection(%s) %s: %s", e.ConnectionID, e.message, e.Wrapped.Error())
+	message := e.message
+	if e.init == true {
+		message += "error occured during connection initialization or handshake"
 	}
-	return fmt.Sprintf("connection(%s) %s", e.ConnectionID, e.message)
+	if e.Wrapped != nil {
+		return fmt.Sprintf("connection(%s) %s: %s", e.ConnectionID, message, e.Wrapped.Error())
+	}
+	return fmt.Sprintf("connection(%s) %s", e.ConnectionID, message)
 }
 
 // Unwrap returns the underlying error.
 func (e ConnectionError) Unwrap() error {
+	return e.Wrapped
+}
+
+// ServerSelectionError represents a Server Selection error.
+type ServerSelectionError struct {
+	Desc    description.Topology
+	Wrapped error
+	message string
+}
+
+// Error implements the error interface.
+func (e ServerSelectionError) Error() string {
+	if e.Wrapped != nil {
+		return fmt.Sprintf("server selection error: %s, %s, current topology: { %s }", e.Wrapped.Error(), e.message, e.Desc.String())
+	}
+	return fmt.Sprintf("server selection error: %s, current topology: { %s }", e.message, e.Desc.String())
+}
+
+// Unwrap returns the underlying error.
+func (e ServerSelectionError) Unwrap() error {
 	return e.Wrapped
 }

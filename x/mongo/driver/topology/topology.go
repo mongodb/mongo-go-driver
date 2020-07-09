@@ -430,10 +430,6 @@ func (t *Topology) FindServer(selected description.Server) (*SelectedServer, err
 	}, nil
 }
 
-func wrapServerSelectionError(err error, t *Topology) error {
-	return fmt.Errorf("server selection error: %v, current topology: { %s }", err, t.String())
-}
-
 // selectServerFromSubscription loops until a topology description is available for server selection. It returns
 // when the given context expires, server selection timeout is reached, or a description containing a selectable
 // server is available.
@@ -444,9 +440,9 @@ func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptio
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, ServerSelectionError{Wrapped: ctx.Err(), message: "context expired", Desc: t.Description()}
 		case <-selectionState.timeoutChan:
-			return nil, wrapServerSelectionError(ErrServerSelectionTimeout, t)
+			return nil, ServerSelectionError{Wrapped: ErrServerSelectionTimeout, Desc: t.Description()}
 		case current = <-subscriptionCh:
 		}
 
@@ -478,7 +474,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 
 	suitable, err := selectionState.selector.SelectServer(desc, allowed)
 	if err != nil {
-		return nil, wrapServerSelectionError(err, t)
+		return nil, ServerSelectionError{Wrapped: err, Desc: t.Description()}
 	}
 	return suitable, nil
 }

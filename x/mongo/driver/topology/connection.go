@@ -151,6 +151,8 @@ func (c *connection) connect(ctx context.Context) {
 	if err == nil {
 		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
+
+	// We have a failed handshake here
 	if err != nil {
 		c.processInitializationError(err)
 		return
@@ -292,10 +294,16 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
+		var message string
+		if err == io.EOF {
+			message = "Socket was unexpectedly closed"
+		} else {
+			message = "incomplete read of message header"
+		}
 		return nil, ConnectionError{
 			ConnectionID: c.id,
 			Wrapped:      transformNetworkError(err, contextDeadlineUsed),
-			message:      "incomplete read of message header",
+			message:      message,
 		}
 	}
 

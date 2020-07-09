@@ -42,7 +42,7 @@ func TestConnection(t *testing.T) {
 		t.Run("connect", func(t *testing.T) {
 			t.Run("dialer error", func(t *testing.T) {
 				err := errors.New("dialer error")
-				var want error = ConnectionError{Wrapped: err}
+				var want error = ConnectionError{Wrapped: err, init: true}
 				conn, got := newConnection(context.Background(), address.Address(""), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))
@@ -57,7 +57,7 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")
-				var want error = ConnectionError{Wrapped: err}
+				var want error = ConnectionError{Wrapped: err, init: true}
 				conn, got := newConnection(context.Background(), address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{
@@ -105,7 +105,7 @@ func TestConnection(t *testing.T) {
 				noerr(t, err)
 				conn.connect(context.Background())
 
-				var want error = ConnectionError{Wrapped: handshakerError}
+				var want error = ConnectionError{Wrapped: handshakerError, init: true}
 				err = conn.wait()
 				assert.NotNil(t, err, "expected connect error %v, got nil", want)
 				assert.Equal(t, want, got, "expected error %v, got %v", want, got)

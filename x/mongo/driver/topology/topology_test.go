@@ -548,7 +548,6 @@ func TestTopology_String_Race(t *testing.T) {
 	}()
 
 	go func() {
-		topo.String()
 		ch <- true
 	}()
 
