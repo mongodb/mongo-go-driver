@@ -23,6 +23,8 @@ type IsMaster struct {
 	d                  driver.Deployment
 	clock              *session.ClusterClock
 	speculativeAuth    bsoncore.Document
+	topologyVersion    *description.TopologyVersion
+	maxAwaitTimeMS     *int64
 
 	res bsoncore.Document
 }
@@ -70,6 +72,18 @@ func (im *IsMaster) Deployment(d driver.Deployment) *IsMaster {
 // SpeculativeAuthenticate sets the document to be used for speculative authentication.
 func (im *IsMaster) SpeculativeAuthenticate(doc bsoncore.Document) *IsMaster {
 	im.speculativeAuth = doc
+	return im
+}
+
+// TopologyVersion sets the TopologyVersion to be used for heartbeats.
+func (im *IsMaster) TopologyVersion(tv *description.TopologyVersion) *IsMaster {
+	im.topologyVersion = tv
+	return im
+}
+
+// MaxAwaitTimeMS sets the maximum time for the sever to wait for topology changes during a heartbeat.
+func (im *IsMaster) MaxAwaitTimeMS(awaitTime int64) *IsMaster {
+	im.maxAwaitTimeMS = &awaitTime
 	return im
 }
 
@@ -165,7 +179,21 @@ func (im *IsMaster) handshakeCommand(dst []byte, desc description.SelectedServer
 
 // command appends all necessary command fields.
 func (im *IsMaster) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
-	return bsoncore.AppendInt32Element(dst, "isMaster", 1), nil
+	dst = bsoncore.AppendInt32Element(dst, "isMaster", 1)
+
+	if tv := im.topologyVersion; tv != nil {
+		var tvIdx int32
+
+		tvIdx, dst = bsoncore.AppendDocumentElementStart(dst, "topologyVersion")
+		dst = bsoncore.AppendObjectIDElement(dst, "processId", tv.ProcessID)
+		dst = bsoncore.AppendInt64Element(dst, "counter", tv.Counter)
+		dst, _ = bsoncore.AppendDocumentEnd(dst, tvIdx)
+	}
+	if im.maxAwaitTimeMS != nil {
+		dst = bsoncore.AppendInt64Element(dst, "maxAwaitTimeMS", *im.maxAwaitTimeMS)
+	}
+
+	return dst, nil
 }
 
 // Execute runs this operation.
@@ -174,6 +202,15 @@ func (im *IsMaster) Execute(ctx context.Context) error {
 		return errors.New("an IsMaster must have a Deployment set before Execute can be called")
 	}
 
+	return im.createOperation().Execute(ctx, nil)
+}
+
+// StreamResponse gets the next streaming isMaster response from the server.
+func (im *IsMaster) StreamResponse(ctx context.Context, conn driver.StreamerConnection) error {
+	return im.createOperation().ExecuteExhaust(ctx, conn, nil)
+}
+
+func (im *IsMaster) createOperation() driver.Operation {
 	return driver.Operation{
 		Clock:      im.clock,
 		CommandFn:  im.command,
@@ -183,7 +220,7 @@ func (im *IsMaster) Execute(ctx context.Context) error {
 			im.res = response
 			return nil
 		},
-	}.Execute(ctx, nil)
+	}
 }
 
 // GetDescription retrieves the server description for the given connection. This function implements the Handshaker

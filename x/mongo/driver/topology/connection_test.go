@@ -11,6 +11,7 @@ import (
 	"errors"
 	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -26,13 +27,13 @@ func TestConnection(t *testing.T) {
 		t.Run("newConnection", func(t *testing.T) {
 			t.Run("config error", func(t *testing.T) {
 				want := errors.New("config error")
-				_, got := newConnection(context.Background(), address.Address(""), ConnectionOption(func(*connectionConfig) error { return want }))
+				_, got := newConnection(address.Address(""), ConnectionOption(func(*connectionConfig) error { return want }))
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
 			})
 			t.Run("no default idle timeout", func(t *testing.T) {
-				conn, err := newConnection(context.Background(), address.Address(""))
+				conn, err := newConnection(address.Address(""))
 				assert.Nil(t, err, "newConnection error: %v", err)
 				wantTimeout := time.Duration(0)
 				assert.Equal(t, wantTimeout, conn.idleTimeout, "expected idle timeout %v, got %v", wantTimeout,
@@ -43,7 +44,7 @@ func TestConnection(t *testing.T) {
 			t.Run("dialer error", func(t *testing.T) {
 				err := errors.New("dialer error")
 				var want error = ConnectionError{Wrapped: err}
-				conn, got := newConnection(context.Background(), address.Address(""), WithDialer(func(Dialer) Dialer {
+				conn, got := newConnection(address.Address(""), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))
 				if got != nil {
@@ -54,11 +55,13 @@ func TestConnection(t *testing.T) {
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
+				connState := atomic.LoadInt32(&conn.connected)
+				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
 			})
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")
 				var want error = ConnectionError{Wrapped: err}
-				conn, got := newConnection(context.Background(), address.Address(""),
+				conn, got := newConnection(address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{
 							finishHandshake: func(context.Context, driver.Connection) error {
@@ -80,12 +83,14 @@ func TestConnection(t *testing.T) {
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
+				connState := atomic.LoadInt32(&conn.connected)
+				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
 			})
 			t.Run("calls error callback", func(t *testing.T) {
 				handshakerError := errors.New("handshaker error")
 				var got error
 
-				conn, err := newConnection(context.Background(), address.Address(""),
+				conn, err := newConnection(address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{
 							getDescription: func(context.Context, address.Address, driver.Connection) (description.Server, error) {
@@ -111,7 +116,7 @@ func TestConnection(t *testing.T) {
 				assert.Equal(t, want, got, "expected error %v, got %v", want, got)
 			})
 			t.Run("cancelConnectContext is nil after connect", func(t *testing.T) {
-				conn, err := newConnection(context.Background(), address.Address(""))
+				conn, err := newConnection(address.Address(""))
 				assert.Nil(t, err, "newConnection shouldn't error. got %v; want nil", err)
 				var wg sync.WaitGroup
 				wg.Add(1)
@@ -304,6 +309,34 @@ func TestConnection(t *testing.T) {
 				if !cmp.Equal(got, want) {
 					t.Errorf("did not read full wire message. got %v; want %v", got, want)
 				}
+			})
+		})
+		t.Run("close", func(t *testing.T) {
+			t.Run("can close a connection that failed handshaking", func(t *testing.T) {
+				conn, err := newConnection(address.Address(""),
+					WithHandshaker(func(Handshaker) Handshaker {
+						return &testHandshaker{
+							finishHandshake: func(context.Context, driver.Connection) error {
+								return errors.New("handshake err")
+							},
+						}
+					}),
+					WithDialer(func(Dialer) Dialer {
+						return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+							return &net.TCPConn{}, nil
+						})
+					}),
+				)
+				assert.Nil(t, err, "newConnection error: %v", err)
+
+				conn.connect(context.Background())
+				err = conn.wait()
+				assert.NotNil(t, err, "expected handshake error from wait, got nil")
+				connState := atomic.LoadInt32(&conn.connected)
+				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
+
+				err = conn.close()
+				assert.Nil(t, err, "close error: %v", err)
 			})
 		})
 	})

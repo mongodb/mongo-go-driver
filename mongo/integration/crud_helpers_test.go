@@ -31,6 +31,7 @@ import (
 var (
 	emptyDoc                        = []byte{5, 0, 0, 0, 0}
 	errorCommandNotFound      int32 = 59
+	errorLockTimeout          int32 = 24
 	killAllSessionsErrorCodes       = map[int32]struct{}{
 		errorInterrupted:     {},
 		errorCommandNotFound: {}, // the killAllSessions command does not exist on server versions < 3.6
@@ -1395,6 +1396,47 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 		return err
 	}
 	return mt.DB.RunCommand(mtest.Background, createCmd).Err()
+}
+
+func executeAdminCommand(mt *mtest.T, op *operation) {
+	// Per the streamable isMaster test format description, a separate client must be used to execute this operation.
+	clientOpts := options.Client().ApplyURI(mt.ConnString())
+	client, err := mongo.Connect(mtest.Background, clientOpts)
+	assert.Nil(mt, err, "Connect error: %v", err)
+	defer func() {
+		_ = client.Disconnect(mtest.Background)
+	}()
+
+	cmd := op.Arguments.Lookup("command").Document()
+	if op.CommandName == "replSetStepDown" {
+		// replSetStepDown can fail with transient errors, so we use executeAdminCommandWithRetry to handle them and
+		// retry until a timeout is hit.
+		executeAdminCommandWithRetry(mt, client, cmd)
+		return
+	}
+
+	db := client.Database("admin")
+	err = db.RunCommand(mtest.Background, cmd).Err()
+	assert.Nil(mt, err, "RunCommand error for command %q: %v", op.CommandName, err)
+}
+
+func executeAdminCommandWithRetry(mt *mtest.T, client *mongo.Client, cmd interface{}, opts ...*options.RunCmdOptions) {
+	mt.Helper()
+
+	ctx, cancel := context.WithTimeout(mtest.Background, 10*time.Second)
+	defer cancel()
+
+	for {
+		err := client.Database("admin").RunCommand(ctx, cmd, opts...).Err()
+		if err == nil {
+			return
+		}
+
+		if ce, ok := err.(mongo.CommandError); ok && ce.Code == errorLockTimeout {
+			continue
+		}
+		mt.Fatalf("error executing command: %v", err)
+	}
 }
 
 // verification function to use for all count operations

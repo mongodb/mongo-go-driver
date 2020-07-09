@@ -85,12 +85,20 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 		case "readPreference":
 			clientOpts.SetReadPreference(readPrefFromString(opt.StringValue()))
 		case "heartbeatFrequencyMS":
-			hfms := time.Duration(opt.Int32()) * time.Millisecond
-			clientOpts.SetHeartbeatInterval(hfms)
+			hf := convertValueToMilliseconds(t, opt)
+			clientOpts.SetHeartbeatInterval(hf)
 		case "retryReads":
 			clientOpts.SetRetryReads(opt.Boolean())
 		case "autoEncryptOpts":
 			clientOpts.SetAutoEncryptionOptions(createAutoEncryptionOptions(t, opt.Document()))
+		case "appname":
+			clientOpts.SetAppName(opt.StringValue())
+		case "connectTimeoutMS":
+			ct := convertValueToMilliseconds(t, opt)
+			clientOpts.SetConnectTimeout(ct)
+		case "serverSelectionTimeoutMS":
+			sst := convertValueToMilliseconds(t, opt)
+			clientOpts.SetConnectTimeout(sst)
 		default:
 			t.Fatalf("unrecognized client option: %v", name)
 		}
@@ -310,7 +318,7 @@ func createWriteConcern(t testing.TB, opt bson.RawValue) *writeconcern.WriteConc
 
 		switch key {
 		case "wtimeout":
-			wtimeout := time.Duration(val.Int32()) * time.Millisecond
+			wtimeout := convertValueToMilliseconds(t, val)
 			opts = append(opts, writeconcern.WTimeout(wtimeout))
 		case "j":
 			opts = append(opts, writeconcern.J(val.Boolean()))
@@ -533,4 +541,14 @@ func createChangeStreamOptions(t testing.TB, opts bson.Raw) *options.ChangeStrea
 		}
 	}
 	return csOpts
+}
+
+func convertValueToMilliseconds(t testing.TB, val bson.RawValue) time.Duration {
+	t.Helper()
+
+	int32Val, ok := val.Int32OK()
+	if !ok {
+		t.Fatalf("failed to convert value of type %s to int32", val.Type)
+	}
+	return time.Duration(int32Val) * time.Millisecond
 }

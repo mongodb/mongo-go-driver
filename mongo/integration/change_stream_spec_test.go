@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -94,8 +95,17 @@ func runChangeStreamTestFile(mt *mtest.T, file string) {
 }
 
 func runChangeStreamTest(mt *mtest.T, test changeStreamTest, testFile changeStreamTestFile) {
-	mtOpts := mtest.NewOptions().MinServerVersion(test.MinServerVersion).MaxServerVersion(test.MaxServerVersion).
-		Topologies(test.Topology...).DatabaseName(testFile.DatabaseName).CollectionName(testFile.CollectionName)
+	// Use a low heartbeat frequency so the Client will quickly recover when using failpoints that cause SDAM state
+	// changes.
+	clientOpts := options.Client().
+		SetHeartbeatInterval(defaultHeartbeatInterval)
+	mtOpts := mtest.NewOptions().
+		MinServerVersion(test.MinServerVersion).
+		MaxServerVersion(test.MaxServerVersion).
+		Topologies(test.Topology...).
+		DatabaseName(testFile.DatabaseName).
+		CollectionName(testFile.CollectionName).
+		ClientOptions(clientOpts)
 
 	// Pin to a single mongos because some tests set fail points and in a sharded cluster, the failpoint and command
 	// that fail must be sent to the same mongos.
