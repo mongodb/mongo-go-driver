@@ -140,7 +140,7 @@ func (r *rttMonitor) pingServer() {
 		return
 	}
 
-	r.addSample(time.Now().Sub(start))
+	r.addSample(time.Since(start))
 }
 
 func (r *rttMonitor) addSample(rtt time.Duration) {

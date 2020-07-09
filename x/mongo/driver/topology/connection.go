@@ -165,11 +165,11 @@ func (c *connection) connect(ctx context.Context) {
 		return
 	}
 
-	now := time.Now()
+	handshakeStartTime := time.Now()
 	handshakeConn := initConnection{c}
 	c.desc, err = handshaker.GetDescription(ctx, c.addr, handshakeConn)
 	if err == nil {
-		c.isMasterRTT = time.Now().Sub(now)
+		c.isMasterRTT = time.Since(handshakeStartTime)
 		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
 	if err != nil {
