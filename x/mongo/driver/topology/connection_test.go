@@ -311,6 +311,34 @@ func TestConnection(t *testing.T) {
 				}
 			})
 		})
+		t.Run("close", func(t *testing.T) {
+			t.Run("can close a connection that failed handshaking", func(t *testing.T) {
+				conn, err := newConnection(address.Address(""),
+					WithHandshaker(func(Handshaker) Handshaker {
+						return &testHandshaker{
+							finishHandshake: func(context.Context, driver.Connection) error {
+								return errors.New("handshake err")
+							},
+						}
+					}),
+					WithDialer(func(Dialer) Dialer {
+						return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+							return &net.TCPConn{}, nil
+						})
+					}),
+				)
+				assert.Nil(t, err, "newConnection error: %v", err)
+
+				conn.connect(context.Background())
+				err = conn.wait()
+				assert.NotNil(t, err, "expected handshake error from wait, got nil")
+				connState := atomic.LoadInt32(&conn.connected)
+				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
+
+				err = conn.close()
+				assert.Nil(t, err, "close error: %v", err)
+			})
+		})
 	})
 	t.Run("Connection", func(t *testing.T) {
 		t.Run("nil connection does not panic", func(t *testing.T) {
