@@ -160,7 +160,8 @@ func TestServerSelection(t *testing.T) {
 			t.Errorf("Timed out while trying to retrieve selected servers")
 		}
 
-		if err != context.Canceled {
+		want := ServerSelectionError{Wrapped: context.Canceled, Desc: topo.Description()}
+		if err.Error() != want.Error() {
 			t.Errorf("Incorrect error received. got %v; want %v", err, context.Canceled)
 		}
 	})
