@@ -15,14 +15,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var defaultEmptyInterfaceCodec = NewEmptyInterfaceCodec()
-
 // EmptyInterfaceCodec is the Codec used for interface{} values.
 type EmptyInterfaceCodec struct {
 	DecodeBinaryAsSlice bool
 }
 
 var (
+	defaultEmptyInterfaceCodec = NewEmptyInterfaceCodec()
+
 	_ ValueCodec  = defaultEmptyInterfaceCodec
 	_ typeDecoder = defaultEmptyInterfaceCodec
 )
