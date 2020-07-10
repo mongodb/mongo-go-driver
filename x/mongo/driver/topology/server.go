@@ -625,9 +625,6 @@ func (s *Server) check() (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.isMasterRTT)
 			descPtr = &s.conn.desc
-		} else if connErr, ok := err.(ConnectionError); ok {
-			// Unwrap one layer so the code that extracts TopologyVersion in error cases works for handshake errors.
-			err = connErr.Wrapped
 		}
 	}
 
@@ -695,21 +692,28 @@ func (s *Server) check() (description.Server, error) {
 		return emptyDescription, errCheckCancelled
 	}
 
-	// An error occurred. Extract the topology version to use in the server description.
-	var topologyVersion *description.TopologyVersion
+	// An error occurred. We reset the RTT monitor for all errors and return an Unknown description. The pool must also
+	// be cleared, but only after the description has already been updated, so that is handled by the caller.
+	topologyVersion := extractTopologyVersion(err)
+	s.rttMonitor.reset()
+	return description.NewServerFromError(s.address, err, topologyVersion), nil
+}
+
+func extractTopologyVersion(err error) *description.TopologyVersion {
+	if ce, ok := err.(ConnectionError); ok {
+		err = ce.Wrapped
+	}
+
 	switch converted := err.(type) {
 	case driver.Error:
-		topologyVersion = converted.TopologyVersion
+		return converted.TopologyVersion
 	case driver.WriteCommandError:
 		if converted.WriteConcernError != nil {
-			topologyVersion = converted.WriteConcernError.TopologyVersion
+			return converted.WriteConcernError.TopologyVersion
 		}
 	}
 
-	// We reset the RTT monitor for all errors and return an Unknown description. The pool must also be cleared, but
-	// only after the description has already been updated, so that is handled by the caller.
-	s.rttMonitor.reset()
-	return description.NewServerFromError(s.address, err, topologyVersion), nil
+	return nil
 }
 
 // String implements the Stringer interface.
