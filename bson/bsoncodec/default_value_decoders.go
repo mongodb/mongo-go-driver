@@ -132,6 +132,7 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr bsonrw.ValueRe
 	}
 	typeDecoder, isTypeDecoder := decoder.(typeDecoder)
 
+	// Use the elements in the provided value if it's non nil. Otherwise, allocate a new D instance.
 	var elems primitive.D
 	if !val.IsNil() {
 		val.SetLen(0)
@@ -149,7 +150,9 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr bsonrw.ValueRe
 		}
 
 		// Delegate out to the typeDecoder for interface{} if it exists. If not, create a new interface{} value and
-		// delegate out to the ValueDecoder.
+		// delegate out to the ValueDecoder. This could be accomplished by calling decodeTypeOrValue, but this would
+		// require casting decoder to typeDecoder for every element. Because decoder isn't changing, we can optimize and
+		// only cast once.
 		var elem reflect.Value
 		if isTypeDecoder {
 			elem, err = typeDecoder.decodeType(dc, elemVr, tEmpty)

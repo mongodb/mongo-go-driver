@@ -160,21 +160,19 @@ func (fn ValueDecoderFunc) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, 
 	return fn(dc, vr, val)
 }
 
-// typeDecoder is the interface implemented by types that can handle the decoding of a value by
+// typeDecoder is the interface implemented by types that can handle the decoding of a value given its type.
 type typeDecoder interface {
 	decodeType(DecodeContext, bsonrw.ValueReader, reflect.Type) (reflect.Value, error)
 }
 
-// typeDecoderFunc is an adapter function that allows a function with the correct signature to be
-// used as a TypeDecoder.
+// typeDecoderFunc is an adapter function that allows a function with the correct signature to be used as a typeDecoder.
 type typeDecoderFunc func(DecodeContext, bsonrw.ValueReader, reflect.Type) (reflect.Value, error)
 
 func (fn typeDecoderFunc) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	return fn(dc, vr, t)
 }
 
-// ValueTypeDecoderFunc is an adapter struct that allows two functions with the correct signature
-// to be used as a ValueTypeDecoder.
+// decodeAdapter allows two functions with the correct signatures to be used as both a ValueDecoder and typeDecoder.
 type decodeAdapter struct {
 	ValueDecoderFunc
 	typeDecoderFunc
@@ -183,8 +181,8 @@ type decodeAdapter struct {
 var _ ValueDecoder = decodeAdapter{}
 var _ typeDecoder = decodeAdapter{}
 
-// decodeTypeOrValue calls decoder.decodeType is decoder is a typeDecoder. Otherwise, it allocates a new element of
-// type t and calls decoder.DecodeValue on it.
+// decodeTypeOrValue calls decoder.decodeType is decoder is a typeDecoder. Otherwise, it allocates a new element of type
+// t and calls decoder.DecodeValue on it.
 func decodeTypeOrValue(decoder ValueDecoder, dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if typeDecoder, ok := decoder.(typeDecoder); ok {
 		return typeDecoder.decodeType(dc, vr, t)
