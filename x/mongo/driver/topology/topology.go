@@ -440,7 +440,7 @@ func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptio
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, ServerSelectionError{Wrapped: ctx.Err(), message: "context expired", Desc: t.Description()}
+			return nil, ServerSelectionError{Wrapped: ctx.Err(), Desc: t.Description()}
 		case <-selectionState.timeoutChan:
 			return nil, ServerSelectionError{Wrapped: ErrServerSelectionTimeout, Desc: t.Description()}
 		case current = <-subscriptionCh:

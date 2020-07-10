@@ -21,10 +21,13 @@ type ConnectionError struct {
 func (e ConnectionError) Error() string {
 	message := e.message
 	if e.init == true {
-		message += "error occured during connection initialization or handshake"
+		message += "error occured during connection handshake"
+	}
+	if e.Wrapped != nil && message != "" {
+		return fmt.Sprintf("connection(%s) %s: %s", e.ConnectionID, message, e.Wrapped.Error())
 	}
 	if e.Wrapped != nil {
-		return fmt.Sprintf("connection(%s) %s: %s", e.ConnectionID, message, e.Wrapped.Error())
+		return fmt.Sprintf("connection(%s) %s", e.ConnectionID, e.Wrapped.Error())
 	}
 	return fmt.Sprintf("connection(%s) %s", e.ConnectionID, message)
 }
@@ -43,8 +46,11 @@ type ServerSelectionError struct {
 
 // Error implements the error interface.
 func (e ServerSelectionError) Error() string {
-	if e.Wrapped != nil {
+	if e.Wrapped != nil && e.message != "" {
 		return fmt.Sprintf("server selection error: %s, %s, current topology: { %s }", e.Wrapped.Error(), e.message, e.Desc.String())
+	}
+	if e.Wrapped != nil {
+		return fmt.Sprintf("server selection error: %s, current topology: { %s }", e.Wrapped.Error(), e.Desc.String())
 	}
 	return fmt.Sprintf("server selection error: %s, current topology: { %s }", e.message, e.Desc.String())
 }
