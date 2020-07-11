@@ -231,6 +231,35 @@ func TestServerSelection(t *testing.T) {
 			t.Fatalf("did not receive error from server selection")
 		}
 	})
+	t.Run("Context Deadline Error", func(t *testing.T) {
+		desc := description.Topology{
+			Servers: []description.Server{
+				{Addr: address.Address("one"), Kind: description.Standalone},
+				{Addr: address.Address("two"), Kind: description.Standalone},
+				{Addr: address.Address("three"), Kind: description.Standalone},
+			},
+		}
+		topo, err := New()
+		noerr(t, err)
+		subCh := make(chan description.Topology, 1)
+		subCh <- desc
+		resp := make(chan error)
+		timeout := make(chan time.Time)
+		go func() {
+			state := newServerSelectionState(selectError, timeout)
+			ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+			_, err := topo.selectServerFromSubscription(ctx, subCh, state)
+			resp <- err
+		}()
+
+		select {
+		case err = <-resp:
+		case <-time.After(100 * time.Millisecond):
+			t.Errorf("Timed out while trying to retrieve selected servers")
+		}
+		want := ServerSelectionError{Wrapped: context.DeadlineExceeded, Desc: desc}
+		assert.Equal(t, err, want, "expected %v, recieved %v", want, err)
+	})
 	t.Run("findServer returns topology kind", func(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
