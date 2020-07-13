@@ -60,6 +60,10 @@ func TestServerSelection(t *testing.T) {
 	var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return nil, errSelectionError
 	}
+	var errContextError = context.DeadlineExceeded
+	var selectContextError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
+		return nil, errContextError
+	}
 
 	t.Run("Success", func(t *testing.T) {
 		topo, err := New()
@@ -232,13 +236,7 @@ func TestServerSelection(t *testing.T) {
 		}
 	})
 	t.Run("Context Deadline Error", func(t *testing.T) {
-		desc := description.Topology{
-			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone},
-				{Addr: address.Address("two"), Kind: description.Standalone},
-				{Addr: address.Address("three"), Kind: description.Standalone},
-			},
-		}
+		desc := description.Topology{}
 		topo, err := New()
 		noerr(t, err)
 		subCh := make(chan description.Topology, 1)
@@ -246,8 +244,9 @@ func TestServerSelection(t *testing.T) {
 		resp := make(chan error)
 		timeout := make(chan time.Time)
 		go func() {
-			state := newServerSelectionState(selectError, timeout)
-			ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+			state := newServerSelectionState(selectContextError, timeout)
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
 			_, err := topo.selectServerFromSubscription(ctx, subCh, state)
 			resp <- err
 		}()
