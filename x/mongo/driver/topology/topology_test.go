@@ -164,7 +164,7 @@ func TestServerSelection(t *testing.T) {
 		}
 
 		want := ServerSelectionError{Wrapped: context.Canceled, Desc: topo.Description()}
-		assert.Equal(t, err, want, "Incorrect error received. got %v; want %v", err, context.Canceled)
+		assert.Equal(t, err, want, "Incorrect error received. got %v; want %v", err, want)
 	})
 	t.Run("Timeout", func(t *testing.T) {
 		desc := description.Topology{
