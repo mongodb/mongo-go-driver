@@ -342,6 +342,12 @@ func (p *parser) validate() error {
 }
 
 func (p *parser) setDefaultAuthParams(dbName string) error {
+	// We do this check here rather than in validateAuth because this function is called as part of parsing and sets
+	// the value of AuthSource if authentication is enabled.
+	if p.AuthSourceSet && p.AuthSource == "" {
+		return errors.New("authSource must be non-empty when supplied in a URI")
+	}
+
 	switch strings.ToLower(p.AuthMechanism) {
 	case "plain":
 		if p.AuthSource == "" {
