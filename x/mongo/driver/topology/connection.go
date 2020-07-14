@@ -40,6 +40,7 @@ type connection struct {
 	readTimeout          time.Duration
 	writeTimeout         time.Duration
 	desc                 description.Server
+	isMasterRTT          time.Duration
 	compressor           wiremessage.CompressorID
 	zliblevel            int
 	zstdLevel            int
@@ -51,15 +52,17 @@ type connection struct {
 	connectContextMade   chan struct{}
 	canStream            bool
 	currentlyStreaming   bool
+	connectContextMutex  sync.Mutex
 
 	// pool related fields
-	pool       *pool
-	poolID     uint64
-	generation uint64
+	pool         *pool
+	poolID       uint64
+	generation   uint64
+	expireReason string
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
-func newConnection(ctx context.Context, addr address.Address, opts ...ConnectionOption) (*connection, error) {
+func newConnection(addr address.Address, opts ...ConnectionOption) (*connection, error) {
 	cfg, err := newConnectionConfig(opts...)
 	if err != nil {
 		return nil, err
@@ -108,7 +111,23 @@ func (c *connection) connect(ctx context.Context) {
 	}
 	defer close(c.connectDone)
 
+	c.connectContextMutex.Lock()
 	ctx, c.cancelConnectContext = context.WithCancel(ctx)
+	c.connectContextMutex.Unlock()
+
+	defer func() {
+		var cancelFn context.CancelFunc
+
+		c.connectContextMutex.Lock()
+		cancelFn = c.cancelConnectContext
+		c.cancelConnectContext = nil
+		c.connectContextMutex.Unlock()
+
+		if cancelFn != nil {
+			cancelFn()
+		}
+	}()
+
 	close(c.connectContextMade)
 
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
@@ -146,9 +165,11 @@ func (c *connection) connect(ctx context.Context) {
 		return
 	}
 
+	handshakeStartTime := time.Now()
 	handshakeConn := initConnection{c}
 	c.desc, err = handshaker.GetDescription(ctx, c.addr, handshakeConn)
 	if err == nil {
+		c.isMasterRTT = time.Since(handshakeStartTime)
 		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
 
@@ -197,7 +218,16 @@ func (c *connection) wait() error {
 
 func (c *connection) closeConnectContext() {
 	<-c.connectContextMade
-	c.cancelConnectContext()
+	var cancelFn context.CancelFunc
+
+	c.connectContextMutex.Lock()
+	cancelFn = c.cancelConnectContext
+	c.cancelConnectContext = nil
+	c.connectContextMutex.Unlock()
+
+	if cancelFn != nil {
+		cancelFn()
+	}
 }
 
 func transformNetworkError(originalError error, contextDeadlineUsed bool) error {
@@ -337,6 +367,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 }
 
 func (c *connection) close() error {
+	// Overwrite the connection state as the first step so only the first close call will execute.
 	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
 		return nil
 	}
@@ -349,7 +380,11 @@ func (c *connection) close() error {
 	return err
 }
 
-func (c *connection) expired() bool {
+func (c *connection) closed() bool {
+	return atomic.LoadInt32(&c.connected) == disconnected
+}
+
+func (c *connection) idleTimeoutExpired() bool {
 	now := time.Now()
 	if c.idleTimeout > 0 {
 		idleDeadline, ok := c.idleDeadline.Load().(time.Time)
@@ -361,14 +396,34 @@ func (c *connection) expired() bool {
 	if !c.lifetimeDeadline.IsZero() && now.After(c.lifetimeDeadline) {
 		return true
 	}
-
-	return atomic.LoadInt32(&c.connected) == disconnected
+	return false
 }
 
 func (c *connection) bumpIdleDeadline() {
 	if c.idleTimeout > 0 {
 		c.idleDeadline.Store(time.Now().Add(c.idleTimeout))
 	}
+}
+
+func (c *connection) setCanStream(canStream bool) {
+	c.canStream = canStream
+}
+
+func (c initConnection) supportsStreaming() bool {
+	return c.canStream
+}
+
+func (c *connection) setStreaming(streaming bool) {
+	c.currentlyStreaming = streaming
+}
+
+func (c *connection) getCurrentlyStreaming() bool {
+	return c.currentlyStreaming
+}
+
+func (c *connection) setSocketTimeout(timeout time.Duration) {
+	c.readTimeout = timeout
+	c.writeTimeout = timeout
 }
 
 // initConnection is an adapter used during connection initialization. It has the minimum
@@ -402,13 +457,13 @@ func (c initConnection) ReadWireMessage(ctx context.Context, dst []byte) ([]byte
 	return c.readWireMessage(ctx, dst)
 }
 func (c initConnection) SetStreaming(streaming bool) {
-	c.currentlyStreaming = streaming
+	c.setStreaming(streaming)
 }
 func (c initConnection) CurrentlyStreaming() bool {
-	return c.currentlyStreaming
+	return c.getCurrentlyStreaming()
 }
 func (c initConnection) SupportsStreaming() bool {
-	return c.canStream
+	return c.supportsStreaming()
 }
 
 // Connection implements the driver.Connection interface to allow reading and writing wire

@@ -63,6 +63,7 @@ type resourcePool struct {
 	initFn                            initFunc
 	maintainTimer                     *time.Timer
 	maintainInterval                  time.Duration
+	closed                            bool
 
 	sync.Mutex
 }
@@ -192,6 +193,11 @@ func (rp *resourcePool) remove(e *resourcePoolElement) {
 func (rp *resourcePool) Maintain() {
 	rp.Lock()
 	defer rp.Unlock()
+
+	if rp.closed {
+		return
+	}
+
 	for curr := rp.end; curr != nil; curr = curr.prev {
 		if rp.expiredFn(curr.value) {
 			rp.remove(curr)
@@ -216,22 +222,23 @@ func (rp *resourcePool) Maintain() {
 	rp.maintainTimer.Reset(rp.maintainInterval)
 }
 
-// Close clears the pool and stops the background maintenance of the pool
+// Close clears the pool and stops the background maintenance routine.
 func (rp *resourcePool) Close() {
-	rp.Clear()
-	_ = rp.maintainTimer.Stop()
-}
-
-// Clear closes all resources in the pool
-func (rp *resourcePool) Clear() {
 	rp.Lock()
 	defer rp.Unlock()
+
+	// Clear the resources in the pool.
 	for ; rp.start != nil; rp.start = rp.start.next {
 		rp.closeFn(rp.start.value)
 		rp.totalSize--
 	}
 	atomic.StoreUint64(&rp.size, 0)
 	rp.end = nil
+
+	// Stop the maintenance timer. If it's already fired, a call to Maintain might be waiting for the lock to be
+	// released, so we set closed to make that call a no-op.
+	rp.closed = true
+	_ = rp.maintainTimer.Stop()
 }
 
 func atomicSubtract1Uint64(p *uint64) {

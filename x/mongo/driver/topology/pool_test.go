@@ -704,16 +704,15 @@ func (d *sleepDialer) DialContext(ctx context.Context, network, address string) 
 func assertConnectionsClosed(t *testing.T, dialer *dialer, expectedClosedCount int) {
 	t.Helper()
 
-	callback := func() error {
+	callback := func() {
 		for {
 			if dialer.lenclosed() == expectedClosedCount {
-				return nil
+				return
 			}
 
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
-	err := assert.RunWithTimeout(callback, 3*time.Second)
-	assert.Nil(t, err, "timed out waiting for connection closed count to hit %d", expectedClosedCount)
+	assert.Soon(t, callback, 3*time.Second)
 }

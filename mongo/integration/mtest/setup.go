@@ -112,7 +112,7 @@ func Setup() error {
 		return fmt.Errorf("could not detect topology kind; current topology: %s", testContext.topo.String())
 	}
 
-	if testContext.topoKind == ReplicaSet && compareVersions(testContext.serverVersion, "4.0") >= 0 {
+	if testContext.topoKind == ReplicaSet && CompareServerVersions(testContext.serverVersion, "4.0") >= 0 {
 		err = testContext.client.Database("admin").RunCommand(Background, bson.D{
 			{"setParameter", 1},
 			{"transactionLifetimeLimitSeconds", 3},
@@ -227,13 +227,13 @@ func getConnString() (connstring.ConnString, error) {
 	return connstring.ParseAndValidate(uri)
 }
 
-// compareVersions compares two version number strings (i.e. positive integers separated by
+// CompareServerVersions compares two version number strings (i.e. positive integers separated by
 // periods). Comparisons are done to the lesser precision of the two versions. For example, 3.2 is
 // considered equal to 3.2.11, whereas 3.2.0 is considered less than 3.2.11.
 //
 // Returns a positive int if version1 is greater than version2, a negative int if version1 is less
 // than version2, and 0 if version1 is equal to version2.
-func compareVersions(v1 string, v2 string) int {
+func CompareServerVersions(v1 string, v2 string) int {
 	n1 := strings.Split(v1, ".")
 	n2 := strings.Split(v2, ".")
 

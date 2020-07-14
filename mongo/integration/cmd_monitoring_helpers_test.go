@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
@@ -189,6 +190,26 @@ func compareDocs(mt *mtest.T, expected, actual bson.Raw) error {
 
 func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bson.Raw) {
 	mt.Helper()
+
+	// Filter out events that shouldn't show up in monitoring expectations.
+	ignoredEvents := map[string]struct{}{
+		"configureFailPoint": {},
+	}
+	mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+		// ok is true if the command should be ignored, so return !ok
+		_, ok := ignoredEvents[evt.CommandName]
+		return !ok
+	})
+	mt.FilterSucceededEvents(func(evt *event.CommandSucceededEvent) bool {
+		// ok is true if the command should be ignored, so return !ok
+		_, ok := ignoredEvents[evt.CommandName]
+		return !ok
+	})
+	mt.FilterFailedEvents(func(evt *event.CommandFailedEvent) bool {
+		// ok is true if the command should be ignored, so return !ok
+		_, ok := ignoredEvents[evt.CommandName]
+		return !ok
+	})
 
 	for idx, expectation := range expectations {
 		var err error

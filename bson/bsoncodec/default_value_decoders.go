@@ -40,6 +40,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 	}
 
 	rb.
+		RegisterTypeDecoder(tD, ValueDecoderFunc(dvd.DDecodeValue)).
 		RegisterTypeDecoder(tBinary, ValueDecoderFunc(dvd.BinaryDecodeValue)).
 		RegisterTypeDecoder(tUndefined, ValueDecoderFunc(dvd.UndefinedDecodeValue)).
 		RegisterTypeDecoder(tDateTime, ValueDecoderFunc(dvd.DateTimeDecodeValue)).
@@ -102,6 +103,72 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeMapEntry(bsontype.EmbeddedDocument, tD).
 		RegisterHookDecoder(tValueUnmarshaler, ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue)).
 		RegisterHookDecoder(tUnmarshaler, ValueDecoderFunc(dvd.UnmarshalerDecodeValue))
+}
+
+// DDecodeValue is the ValueDecoderFunc for primitive.D instances.
+func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.IsValid() || !val.CanSet() || val.Type() != tD {
+		return ValueDecoderError{Name: "DDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
+	}
+
+	switch vrType := vr.Type(); vrType {
+	case bsontype.Type(0), bsontype.EmbeddedDocument:
+		dc.Ancestor = tD
+	case bsontype.Null:
+		val.Set(reflect.Zero(val.Type()))
+		return vr.ReadNull()
+	default:
+		return fmt.Errorf("cannot decode %v into a primitive.D", vrType)
+	}
+
+	dr, err := vr.ReadDocument()
+	if err != nil {
+		return err
+	}
+
+	decoder, err := dc.LookupDecoder(tEmpty)
+	if err != nil {
+		return err
+	}
+	typeDecoder, isTypeDecoder := decoder.(typeDecoder)
+
+	// Use the elements in the provided value if it's non nil. Otherwise, allocate a new D instance.
+	var elems primitive.D
+	if !val.IsNil() {
+		val.SetLen(0)
+		elems = val.Interface().(primitive.D)
+	} else {
+		elems = make(primitive.D, 0)
+	}
+
+	for {
+		key, elemVr, err := dr.ReadElement()
+		if err == bsonrw.ErrEOD {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		// Delegate out to the typeDecoder for interface{} if it exists. If not, create a new interface{} value and
+		// delegate out to the ValueDecoder. This could be accomplished by calling decodeTypeOrValue, but this would
+		// require casting decoder to typeDecoder for every element. Because decoder isn't changing, we can optimize and
+		// only cast once.
+		var elem reflect.Value
+		if isTypeDecoder {
+			elem, err = typeDecoder.decodeType(dc, elemVr, tEmpty)
+		} else {
+			elem = reflect.New(tEmpty).Elem()
+			err = decoder.DecodeValue(dc, elemVr, elem)
+		}
+		if err != nil {
+			return err
+		}
+
+		elems = append(elems, primitive.E{Key: key, Value: elem.Interface()})
+	}
+
+	val.Set(reflect.ValueOf(elems))
+	return nil
 }
 
 // BooleanDecodeValue is the ValueDecoderFunc for bool types.

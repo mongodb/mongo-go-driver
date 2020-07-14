@@ -51,6 +51,7 @@ To get started with the driver, import the `mongo` package, create a `mongo.Clie
 import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
+    "go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
@@ -59,22 +60,35 @@ client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27
 And connect it to your running MongoDB server:
 
 ```go
-ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
 err = client.Connect(ctx)
 ```
 
 To do this in a single step, you can use the `Connect` function:
 
 ```go
-ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
 client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+```
+
+Make sure to defer a call to `Disconnect` after instantiating your client:
+
+```go
+defer func() {
+    if err = client.Disconnect(ctx); err != nil {
+        panic(err)
+    }
+}()
 ```
 
 Calling `Connect` does not block for server discovery. If you wish to know if a MongoDB server has been found and connected to,
 use the `Ping` method:
 
 ```go
-ctx, _ = context.WithTimeout(context.Background(), 2*time.Second)
+ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+defer cancel()
 err = client.Ping(ctx, readpref.Primary())
 ```
 
@@ -87,7 +101,8 @@ collection := client.Database("testing").Collection("numbers")
 The `Collection` instance can then be used to insert documents:
 
 ```go
-ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
+ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
 res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
 id := res.InsertedID
 ```
@@ -95,7 +110,8 @@ id := res.InsertedID
 Several query methods return a cursor, which can be used like this:
 
 ```go
-ctx, _ = context.WithTimeout(context.Background(), 30*time.Second)
+ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
 cur, err := collection.Find(ctx, bson.D{})
 if err != nil { log.Fatal(err) }
 defer cur.Close(ctx)
@@ -117,7 +133,8 @@ var result struct {
     Value float64
 }
 filter := bson.M{"name": "pi"}
-ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
+ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
 err = collection.FindOne(ctx, filter).Decode(&result)
 if err != nil {
     log.Fatal(err)

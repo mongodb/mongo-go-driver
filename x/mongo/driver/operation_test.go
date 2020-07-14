@@ -113,11 +113,6 @@ func TestOperation(t *testing.T) {
 		}
 	})
 	t.Run("retryableWrite", func(t *testing.T) {
-		deploymentRetry := new(mockDeployment)
-		deploymentRetry.returns.retry = true
-
-		deploymentNoRetry := new(mockDeployment)
-
 		sessPool := session.NewPool(nil)
 		id, err := uuid.New()
 		noerr(t, err)
@@ -139,8 +134,9 @@ func TestOperation(t *testing.T) {
 		wcAck := writeconcern.New(writeconcern.WMajority())
 		wcUnack := writeconcern.New(writeconcern.W(0))
 
-		descRetryable := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}}
-		descNotRetryable := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 5}}
+		descRetryable := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1}
+		descNotRetryableWireVersion := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 5}, SessionTimeoutMinutes: 1}
+		descNotRetryableStandalone := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1, Kind: description.Standalone}
 
 		testCases := []struct {
 			name string
@@ -148,22 +144,23 @@ func TestOperation(t *testing.T) {
 			desc description.Server
 			want Type
 		}{
-			{"deployment doesn't support", Operation{Deployment: deploymentNoRetry}, description.Server{}, Type(0)},
-			{"wire version too low", Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcAck}, descNotRetryable, Type(0)},
+			{"deployment doesn't support", Operation{}, description.Server{}, Type(0)},
+			{"wire version too low", Operation{Client: sess, WriteConcern: wcAck}, descNotRetryableWireVersion, Type(0)},
+			{"standalone not supported", Operation{Client: sess, WriteConcern: wcAck}, descNotRetryableStandalone, Type(0)},
 			{
 				"transaction in progress",
-				Operation{Deployment: deploymentRetry, Client: sessInProgressTransaction, WriteConcern: wcAck},
+				Operation{Client: sessInProgressTransaction, WriteConcern: wcAck},
 				descRetryable, Type(0),
 			},
 			{
 				"transaction starting",
-				Operation{Deployment: deploymentRetry, Client: sessStartingTransaction, WriteConcern: wcAck},
+				Operation{Client: sessStartingTransaction, WriteConcern: wcAck},
 				descRetryable, Type(0),
 			},
-			{"unacknowledged write concern", Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcUnack}, descRetryable, Type(0)},
+			{"unacknowledged write concern", Operation{Client: sess, WriteConcern: wcUnack}, descRetryable, Type(0)},
 			{
 				"acknowledged write concern",
-				Operation{Deployment: deploymentRetry, Client: sess, WriteConcern: wcAck, Type: Write},
+				Operation{Client: sess, WriteConcern: wcAck, Type: Write},
 				descRetryable, Write,
 			},
 		}
@@ -625,9 +622,6 @@ func (m *mockDeployment) SelectServer(ctx context.Context, desc description.Serv
 	return m.returns.server, m.returns.err
 }
 
-func (m *mockDeployment) SupportsRetryWrites() bool {
-	return m.returns.retry
-}
 func (m *mockDeployment) Kind() description.TopologyKind { return m.returns.kind }
 
 type mockServerSelector struct{}

@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -110,9 +111,10 @@ type T struct {
 	baseOpts *Options // used to create subtests
 
 	// command monitoring channels
-	started   []*event.CommandStartedEvent
-	succeeded []*event.CommandSucceededEvent
-	failed    []*event.CommandFailedEvent
+	monitorLock sync.Mutex
+	started     []*event.CommandStartedEvent
+	succeeded   []*event.CommandSucceededEvent
+	failed      []*event.CommandFailedEvent
 
 	Client *mongo.Client
 	DB     *mongo.Database
@@ -475,6 +477,20 @@ func (t *T) SetFailPoint(fp FailPoint) {
 	t.failPointNames = append(t.failPointNames, fp.ConfigureFailPoint)
 }
 
+// SetFailPointFromDocument sets the fail point represented by the given document for the client associated with T. This
+// method assumes that the given document is in the form {configureFailPoint: <failPointName>, ...}. Commands to create
+// the failpoint will appear in command monitoring channels. The fail point will be automatically disabled after this
+// test has run.
+func (t *T) SetFailPointFromDocument(fp bson.Raw) {
+	admin := t.Client.Database("admin")
+	if err := admin.RunCommand(Background, fp).Err(); err != nil {
+		t.Fatalf("error creating fail point on server: %v", err)
+	}
+
+	name := fp.Index(0).Value().StringValue()
+	t.failPointNames = append(t.failPointNames, name)
+}
+
 // TrackFailPoint adds the given fail point to the list of fail points to be disabled when the current test finishes.
 // This function does not create a fail point on the server.
 func (t *T) TrackFailPoint(fpName string) {
@@ -531,13 +547,19 @@ func (t *T) CloneCollection(opts *options.CollectionOptions) {
 
 // GlobalClient returns a client configured with read concern majority, write concern majority, and read preference
 // primary. The returned client is not tied to the receiver and is valid outside the lifetime of the receiver.
-func (T) GlobalClient() *mongo.Client {
+func (*T) GlobalClient() *mongo.Client {
 	return testContext.client
 }
 
 // GlobalTopology returns the Topology backing the global Client.
-func (T) GlobalTopology() *topology.Topology {
+func (*T) GlobalTopology() *topology.Topology {
 	return testContext.topo
+}
+
+// ServerVersion returns the server version of the cluster. This assumes that all nodes in the cluster have the same
+// version.
+func (*T) ServerVersion() string {
+	return testContext.serverVersion
 }
 
 func sanitizeCollectionName(db string, coll string) string {
@@ -562,12 +584,18 @@ func (t *T) createTestClient() {
 	// command monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
+			t.monitorLock.Lock()
+			defer t.monitorLock.Unlock()
 			t.started = append(t.started, cse)
 		},
 		Succeeded: func(_ context.Context, cse *event.CommandSucceededEvent) {
+			t.monitorLock.Lock()
+			defer t.monitorLock.Unlock()
 			t.succeeded = append(t.succeeded, cse)
 		},
 		Failed: func(_ context.Context, cfe *event.CommandFailedEvent) {
+			t.monitorLock.Lock()
+			defer t.monitorLock.Unlock()
 			t.failed = append(t.failed, cfe)
 		},
 	})
@@ -646,10 +674,10 @@ func (t *T) createTestCollection() {
 // matchesServerVersion checks if the current server version is in the range [min, max]. Server versions will only be
 // compared if they are non-empty.
 func matchesServerVersion(min, max string) bool {
-	if min != "" && compareVersions(testContext.serverVersion, min) < 0 {
+	if min != "" && CompareServerVersions(testContext.serverVersion, min) < 0 {
 		return false
 	}
-	return max == "" || compareVersions(testContext.serverVersion, max) <= 0
+	return max == "" || CompareServerVersions(testContext.serverVersion, max) <= 0
 }
 
 // matchesTopology checks if the current topology is present in topologies.

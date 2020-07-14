@@ -68,7 +68,7 @@ type testInfo struct {
 
 const cmapTestDir = "../../../../data/connection-monitoring-and-pooling/"
 
-func TestCMAP(t *testing.T) {
+func TestCMAPSpec(t *testing.T) {
 	for _, testFileName := range testHelpers.FindJSONFilesInDir(t, cmapTestDir) {
 		t.Run(testFileName, func(t *testing.T) {
 			runCMAPTest(t, testFileName)

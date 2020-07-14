@@ -70,8 +70,8 @@ func TestSessions(t *testing.T) {
 	mtOpts := mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.ReplicaSet, mtest.Sharded).
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)
+	hosts := options.Client().ApplyURI(mt.ConnString()).Hosts
 
-	// Pin to a single mongos so heartbeats/handshakes to other mongoses won't cause errors.
 	// Pin to a single mongos so heartbeats/handshakes to other mongoses won't cause errors.
 	clusterTimeOpts := mtest.NewOptions().
 		ClientOptions(options.Client().SetHeartbeatInterval(50 * time.Second)).
@@ -118,10 +118,10 @@ func TestSessions(t *testing.T) {
 		}
 	})
 
-	hosts := options.Client().ApplyURI(mt.ConnString()).Hosts
 	clusterTimeHandshakeOpts := options.Client().
-		SetHosts(hosts[:1]).
-		SetDirect(true)
+		SetHosts(hosts[:1]). // Prevent handshakes to other hosts from updating the cluster time.
+		SetDirect(true).
+		SetHeartbeatInterval(50 * time.Second) // Prevent extra heartbeats from updating the cluster time.
 	clusterTimeHandshakeMtOpts := mtest.NewOptions().
 		ClientType(mtest.Proxy).
 		ClientOptions(clusterTimeHandshakeOpts).
@@ -134,12 +134,12 @@ func TestSessions(t *testing.T) {
 		assert.True(mt, len(msgPairs) > 2, "expected more than two messages, got %d", len(msgPairs))
 
 		for idx, pair := range mt.GetProxiedMessages() {
-			// Get the $clusterTime value sent to the server. The first two messages are the handshakes for the
-			// heartbeat and application connections. These should not contain $clusterTime because they happen on
+			// Get the $clusterTime value sent to the server. The first three messages are the handshakes for the
+			// heartbeat, RTT, and application connections. These should not contain $clusterTime because they happen on
 			// connections that don't know the server's wire version and therefore don't know if the server supports
 			// $clusterTime.
 			_, err = pair.Sent.Command.LookupErr("$clusterTime")
-			if idx <= 1 {
+			if idx <= 2 {
 				assert.NotNil(mt, err, "expected no $clusterTime field in command %s", pair.Sent.Command)
 				continue
 			}
