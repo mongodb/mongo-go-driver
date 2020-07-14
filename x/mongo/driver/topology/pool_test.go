@@ -225,8 +225,9 @@ func TestPool(t *testing.T) {
 					case <-disconnectDone:
 						return
 					default:
-						_, _ = p.get(getCtx)
-						noerr(t, err)
+						loopCtx, loopCancel := context.WithTimeout(getCtx, 3*time.Second)
+						_, _ = p.get(loopCtx)
+						loopCancel()
 						time.Sleep(time.Microsecond)
 					}
 				}
