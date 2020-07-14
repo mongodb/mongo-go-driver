@@ -118,6 +118,10 @@ func verifyConnstringOptions(mt *mtest.T, expected bson.Raw, cs connstring.ConnS
 		case "authSource":
 			source := opt.StringValue()
 			assert.Equal(mt, source, cs.AuthSource, "expected auth source value %v, got %v", source, cs.AuthSource)
+		case "directConnection":
+			dc := opt.Boolean()
+			assert.True(mt, cs.DirectConnectionSet, "expected cs.DirectConnectionSet to be true, got false")
+			assert.Equal(mt, dc, cs.DirectConnection, "expected cs.DirectConnection to be %v, got %v", dc, cs.DirectConnection)
 		default:
 			mt.Fatalf("unrecognized connstring option %v", key)
 		}
