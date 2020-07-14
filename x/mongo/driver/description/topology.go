@@ -96,7 +96,7 @@ func (t Topology) DiffHostlist(hostlist []string) HostlistDiff {
 
 // String implements the Stringer interface
 func (t Topology) String() string {
-	serversStr := ""
+	var serversStr string
 	for _, s := range t.Servers {
 		serversStr += "{ " + s.String() + " }, "
 	}

@@ -60,9 +60,8 @@ func TestServerSelection(t *testing.T) {
 	var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return nil, errSelectionError
 	}
-	var errContextError = context.DeadlineExceeded
 	var selectContextError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
-		return nil, errContextError
+		return nil, context.DeadlineExceeded
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -165,9 +164,7 @@ func TestServerSelection(t *testing.T) {
 		}
 
 		want := ServerSelectionError{Wrapped: context.Canceled, Desc: topo.Description()}
-		if err.Error() != want.Error() {
-			t.Errorf("Incorrect error received. got %v; want %v", err, context.Canceled)
-		}
+		assert.Equal(t, err, want, "Incorrect error received. got %v; want %v", err, context.Canceled)
 	})
 	t.Run("Timeout", func(t *testing.T) {
 		desc := description.Topology{
@@ -245,7 +242,7 @@ func TestServerSelection(t *testing.T) {
 		timeout := make(chan time.Time)
 		go func() {
 			state := newServerSelectionState(selectContextError, timeout)
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 			defer cancel()
 			_, err := topo.selectServerFromSubscription(ctx, subCh, state)
 			resp <- err

@@ -294,11 +294,9 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
-		var message string
+		message := "incomplete read of message header"
 		if err == io.EOF {
-			message = "Socket was unexpectedly closed"
-		} else {
-			message = "incomplete read of message header"
+			message = "socket was unexpectedly closed"
 		}
 		return nil, ConnectionError{
 			ConnectionID: c.id,
@@ -323,10 +321,14 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
+		message := "incomplete read of full message"
+		if err == io.EOF {
+			message = "socket was unexpectedly closed"
+		}
 		return nil, ConnectionError{
 			ConnectionID: c.id,
 			Wrapped:      transformNetworkError(err, contextDeadlineUsed),
-			message:      "incomplete read of full message",
+			message:      message,
 		}
 	}
 

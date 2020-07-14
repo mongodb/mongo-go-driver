@@ -436,13 +436,13 @@ func (t *Topology) FindServer(selected description.Server) (*SelectedServer, err
 func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptionCh <-chan description.Topology,
 	selectionState serverSelectionState) ([]description.Server, error) {
 
-	var current description.Topology
+	current := t.Description()
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, ServerSelectionError{Wrapped: ctx.Err(), Desc: t.Description()}
+			return nil, ServerSelectionError{Wrapped: ctx.Err(), Desc: current}
 		case <-selectionState.timeoutChan:
-			return nil, ServerSelectionError{Wrapped: ErrServerSelectionTimeout, Desc: t.Description()}
+			return nil, ServerSelectionError{Wrapped: ErrServerSelectionTimeout, Desc: current}
 		case current = <-subscriptionCh:
 		}
 
@@ -474,7 +474,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 
 	suitable, err := selectionState.selector.SelectServer(desc, allowed)
 	if err != nil {
-		return nil, ServerSelectionError{Wrapped: err, Desc: t.Description()}
+		return nil, ServerSelectionError{Wrapped: err, Desc: desc}
 	}
 	return suitable, nil
 }
