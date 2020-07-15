@@ -240,19 +240,18 @@ func TestServerSelection(t *testing.T) {
 		subCh <- desc
 		resp := make(chan error)
 		timeout := make(chan time.Time)
-		go func() {
+		callback := func() {
 			state := newServerSelectionState(selectContextError, timeout)
 			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 			defer cancel()
 			_, err := topo.selectServerFromSubscription(ctx, subCh, state)
 			resp <- err
-		}()
-
-		select {
-		case err = <-resp:
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("Timed out while trying to retrieve selected servers")
+			return
 		}
+		go func() {
+			assert.Soon(t, callback, 100*time.Millisecond)
+		}()
+		err = <-resp
 		want := ServerSelectionError{Wrapped: context.DeadlineExceeded, Desc: desc}
 		assert.Equal(t, err, want, "expected %v, recieved %v", want, err)
 	})
@@ -574,6 +573,7 @@ func TestTopology_String_Race(t *testing.T) {
 	}()
 
 	go func() {
+		topo.String()
 		ch <- true
 	}()
 
