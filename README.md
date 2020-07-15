@@ -107,7 +107,7 @@ res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
 id := res.InsertedID
 ```
 
-To use `bson.M`, you will need to add `"go.mongodb.org/mongo-driver/mongo/bson"` to your imports.
+To use `bson.M`, you will need to add `"go.mongodb.org/mongo-driver/bson"` to your imports.
 
 Your import statement should now look like this:
 
@@ -116,7 +116,7 @@ import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
     "go.mongodb.org/mongo-driver/mongo/readpref"
-    "go.mongodb.org/mongo-driver/mongo/bson"
+    "go.mongodb.org/mongo-driver/bson"
 )
 ```
 
