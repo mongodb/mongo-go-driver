@@ -115,6 +115,7 @@ type ConnString struct {
 	WNumber                            int
 	WNumberSet                         bool
 	Username                           string
+	UsernameSet                        bool
 	ZlibLevel                          int
 	ZlibLevelSet                       bool
 	ZstdLevel                          int
@@ -137,7 +138,7 @@ func (u *ConnString) String() string {
 func (u *ConnString) HasAuthParameters() bool {
 	// Check all auth parameters except for AuthSource because an auth source without other credentials is semantically
 	// valid and must not be interpreted as a request for authentication.
-	return u.AuthMechanism != "" || u.AuthMechanismProperties != nil || u.Username != "" || u.PasswordSet
+	return u.AuthMechanism != "" || u.AuthMechanismProperties != nil || u.UsernameSet || u.PasswordSet
 }
 
 // Validate checks that the Auth and SSL parameters are valid values.
@@ -224,6 +225,7 @@ func (p *parser) parse(original string) error {
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid username")
 		}
+		p.UsernameSet = true
 
 		// Validate and process the password.
 		if strings.Contains(password, ":") {
@@ -472,6 +474,9 @@ func (p *parser) validateAuth() error {
 			return fmt.Errorf("SCRAM-SHA-256 cannot have mechanism properties")
 		}
 	case "":
+		if p.UsernameSet && p.Username == "" {
+			return fmt.Errorf("username required if URI contains user info")
+		}
 	default:
 		return fmt.Errorf("invalid auth mechanism")
 	}

@@ -311,6 +311,14 @@ tests:
         valid: true
         credential: ~
     -
+        description: "should throw an exception if no username provided (userinfo implies default mechanism)"
+        uri: "mongodb://@localhost.com/"
+        valid: false
+    -
+        description: "should throw an exception if no username/password provided (userinfo implies default mechanism)"
+        uri: "mongodb://:@localhost.com/"
+        valid: false
+    -
         description: "should recognise the mechanism (MONGODB-AWS)"
         uri: "mongodb://localhost/?authMechanism=MONGODB-AWS"
         valid: true
