@@ -84,8 +84,8 @@ func TestServer(t *testing.T) {
 		{"network_error_desc", false, true, true},
 	}
 
-	authErr := ConnectionError{Wrapped: &auth.Error{}}
-	netErr := ConnectionError{Wrapped: &net.AddrError{}}
+	authErr := ConnectionError{Wrapped: &auth.Error{}, init: true}
+	netErr := ConnectionError{Wrapped: &net.AddrError{}, init: true}
 	for _, tt := range serverTestTable {
 		t.Run(tt.name, func(t *testing.T) {
 			s, err := NewServer(

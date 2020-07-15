@@ -7,6 +7,8 @@
 package description
 
 import (
+	"fmt"
+
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 )
 
@@ -90,4 +92,13 @@ func (t Topology) DiffHostlist(hostlist []string) HostlistDiff {
 	}
 
 	return diff
+}
+
+// String implements the Stringer interface
+func (t Topology) String() string {
+	var serversStr string
+	for _, s := range t.Servers {
+		serversStr += "{ " + s.String() + " }, "
+	}
+	return fmt.Sprintf("Type: %s, Servers: [%s]", t.Kind, serversStr)
 }

@@ -351,6 +351,22 @@ func (s Server) SelectServer(_ Topology, candidates []Server) ([]Server, error) 
 	return nil, nil
 }
 
+// String implements the Stringer interface
+func (s Server) String() string {
+	str := fmt.Sprintf("Addr: %s, Type: %s",
+		s.Addr, s.Kind)
+	if len(s.Tags) != 0 {
+		str += fmt.Sprintf(", Tag sets: %s", s.Tags)
+	}
+
+	str += fmt.Sprintf(", Average RTT: %d", s.AverageRTT)
+
+	if s.LastError != nil {
+		str += fmt.Sprintf(", Last error: %s", s.LastError)
+	}
+	return str
+}
+
 func decodeStringSlice(element bsoncore.Element, name string) ([]string, error) {
 	arr, ok := element.Value().ArrayOK()
 	if !ok {
