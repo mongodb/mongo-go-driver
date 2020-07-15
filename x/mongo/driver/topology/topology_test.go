@@ -4,8 +4,6 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// +build go1.13
-
 package topology
 
 import (
@@ -230,23 +228,6 @@ func TestServerSelection(t *testing.T) {
 		if err == nil {
 			t.Fatalf("did not receive error from server selection")
 		}
-	})
-	t.Run("Context Deadline Error", func(t *testing.T) {
-		var serverSelectionErr error
-		callback := func() {
-			desc := description.Topology{}
-			topo, err := New()
-			noerr(t, err)
-			subCh := make(chan description.Topology, 1)
-			subCh <- desc
-			state := newServerSelectionState(selectNone, nil)
-			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-			defer cancel()
-			_, serverSelectionErr = topo.selectServerFromSubscription(ctx, subCh, state)
-			return
-		}
-		assert.Soon(t, callback, 100*time.Millisecond)
-		assert.True(t, errors.Is(serverSelectionErr, context.DeadlineExceeded), "expected %v, recieved %v", context.DeadlineExceeded, serverSelectionErr)
 	})
 	t.Run("findServer returns topology kind", func(t *testing.T) {
 		topo, err := New()
