@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// +build go1.13
+
 package topology
 
 import (
@@ -59,9 +61,6 @@ func TestServerSelection(t *testing.T) {
 	var errSelectionError = errors.New("encountered an error in the selector")
 	var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return nil, errSelectionError
-	}
-	var selectContextError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
-		return nil, context.DeadlineExceeded
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -233,27 +232,21 @@ func TestServerSelection(t *testing.T) {
 		}
 	})
 	t.Run("Context Deadline Error", func(t *testing.T) {
-		desc := description.Topology{}
-		topo, err := New()
-		noerr(t, err)
-		subCh := make(chan description.Topology, 1)
-		subCh <- desc
-		resp := make(chan error)
-		timeout := make(chan time.Time)
+		var serverSelectionErr error
 		callback := func() {
-			state := newServerSelectionState(selectContextError, timeout)
+			desc := description.Topology{}
+			topo, err := New()
+			noerr(t, err)
+			subCh := make(chan description.Topology, 1)
+			subCh <- desc
+			state := newServerSelectionState(selectNone, nil)
 			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 			defer cancel()
-			_, err := topo.selectServerFromSubscription(ctx, subCh, state)
-			resp <- err
+			_, serverSelectionErr = topo.selectServerFromSubscription(ctx, subCh, state)
 			return
 		}
-		go func() {
-			assert.Soon(t, callback, 100*time.Millisecond)
-		}()
-		err = <-resp
-		want := ServerSelectionError{Wrapped: context.DeadlineExceeded, Desc: desc}
-		assert.Equal(t, err, want, "expected %v, recieved %v", want, err)
+		assert.Soon(t, callback, 100*time.Millisecond)
+		assert.True(t, errors.Is(serverSelectionErr, context.DeadlineExceeded), "expected %v, recieved %v", context.DeadlineExceeded, serverSelectionErr)
 	})
 	t.Run("findServer returns topology kind", func(t *testing.T) {
 		topo, err := New()

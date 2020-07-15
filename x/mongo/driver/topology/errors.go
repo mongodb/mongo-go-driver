@@ -21,7 +21,11 @@ type ConnectionError struct {
 func (e ConnectionError) Error() string {
 	message := e.message
 	if e.init {
-		message += "error occured during connection handshake"
+		fullMsg := "error occured during connection handshake"
+		if message != "" {
+			fullMsg = fmt.Sprintf("%s: %s", fullMsg, message)
+		}
+		message = fullMsg
 	}
 	if e.Wrapped != nil && message != "" {
 		return fmt.Sprintf("connection(%s) %s: %s", e.ConnectionID, message, e.Wrapped.Error())
