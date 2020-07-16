@@ -184,12 +184,28 @@ var _ typeDecoder = decodeAdapter{}
 // decodeTypeOrValue calls decoder.decodeType is decoder is a typeDecoder. Otherwise, it allocates a new element of type
 // t and calls decoder.DecodeValue on it.
 func decodeTypeOrValue(decoder ValueDecoder, dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
-	if typeDecoder, ok := decoder.(typeDecoder); ok {
-		return typeDecoder.decodeType(dc, vr, t)
+	td, _ := decoder.(typeDecoder)
+	return decodeTypeOrValueWithInfo(decoder, td, dc, vr, t, true)
+}
+
+func decodeTypeOrValueWithInfo(vd ValueDecoder, td typeDecoder, dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
+	if td != nil {
+		val, err := td.decodeType(dc, vr, t)
+		if err == nil && convert && val.Type() != t {
+			// This conversion step is necessary for slices and maps. If a user declares variables like:
+			//
+			// type myBool bool
+			// var m map[string]myBool
+			//
+			// and tries to decode BSON bytes into the map, the decoding will fail if this conversion is not present
+			// because we'll try to assign a value of type bool to one of type myBool.
+			val = val.Convert(t)
+		}
+		return val, err
 	}
 
 	val := reflect.New(t).Elem()
-	err := decoder.DecodeValue(dc, vr, val)
+	err := vd.DecodeValue(dc, vr, val)
 	return val, err
 }
 
