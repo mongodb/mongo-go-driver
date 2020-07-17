@@ -62,7 +62,7 @@
       }
     },
     {
-      "description": "FindOneAndDelete with hint document",
+      "description": "FindOneAndDelete with hint document unsupported (server-side error)",
       "operations": [
         {
           "object": "collection",
