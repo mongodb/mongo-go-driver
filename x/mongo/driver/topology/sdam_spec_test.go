@@ -466,6 +466,8 @@ func runTest(t *testing.T, directory string, filename string) {
 						"expected server TopologyVersion ProcessID to be %v, got %v", server.TopologyVersion.ProcessID, fsmServer.TopologyVersion.ProcessID)
 					assert.Equal(t, server.TopologyVersion.Counter, fsmServer.TopologyVersion.Counter,
 						"expected server TopologyVersion Counter to be %v, got %v", server.TopologyVersion.Counter, fsmServer.TopologyVersion.Counter)
+				} else {
+					assert.Nil(t, fsmServer.TopologyVersion, "expected server TopologyVersion to be nil")
 				}
 
 				// PossiblePrimary is only relevant to single-threaded drivers.
