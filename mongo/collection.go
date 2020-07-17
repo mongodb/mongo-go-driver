@@ -550,7 +550,8 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Hint(uo.Hint != nil)
+		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Hint(uo.Hint != nil).
+		ArrayFilters(uo.ArrayFilters != nil)
 
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
@@ -669,8 +670,8 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
-	if elem, err := r.IndexErr(0); err == nil && strings.HasPrefix(elem.Key(), "$") {
-		return nil, errors.New("replacement document cannot contains keys beginning with '$")
+	if err := ensureNoDollarKey(r); err != nil {
+		return nil, err
 	}
 
 	updateOptions := make([]*options.UpdateOptions, 0, len(opts))

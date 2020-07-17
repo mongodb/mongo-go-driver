@@ -34,6 +34,7 @@ type Update struct {
 	database                 string
 	deployment               driver.Deployment
 	hint                     *bool
+	arrayFilters             *bool
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	retry                    *driver.RetryMode
@@ -177,6 +178,11 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 			return nil, errUnacknowledgedHint
 		}
 	}
+	if u.arrayFilters != nil && *u.arrayFilters {
+		if desc.WireVersion == nil || !desc.WireVersion.Includes(6) {
+			return nil, errors.New("the 'arrayFilters' command parameter requires a minimum server wire version of 6")
+		}
+	}
 
 	return dst, nil
 }
@@ -201,6 +207,17 @@ func (u *Update) Hint(hint bool) *Update {
 	}
 
 	u.hint = &hint
+	return u
+}
+
+// ArrayFilters is a flag to indicate that the update document contains an arrayFilters field. This option is only
+// supported on server versions 3.6 and higher. For servers < 3.6, the driver will return an error.
+func (u *Update) ArrayFilters(arrayFilters bool) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.arrayFilters = &arrayFilters
 	return u
 }
 

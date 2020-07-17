@@ -1034,7 +1034,11 @@ func TestCollection(t *testing.T) {
 		})
 		mt.Run("correct model in errors", func(mt *mtest.T) {
 			models := []mongo.WriteModel{
-				mongo.NewUpdateOneModel().SetFilter(bson.M{}).SetUpdate(bson.M{}),
+				mongo.NewUpdateOneModel().SetFilter(bson.M{}).SetUpdate(bson.M{
+					"$set": bson.M{
+						"x": 1,
+					},
+				}),
 				mongo.NewInsertOneModel().SetDocument(bson.M{
 					"_id": "notduplicate",
 				}),
