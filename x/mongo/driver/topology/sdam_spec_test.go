@@ -426,8 +426,11 @@ func runTest(t *testing.T, directory string, filename string) {
 			applyErrors(t, topo, phase.ApplicationErrors)
 			if phase.Outcome.Compatible == nil || *phase.Outcome.Compatible {
 				assert.True(t, topo.fsm.compatible.Load().(bool), "Expected servers to be compatible")
+				assert.Nil(t, topo.fsm.compatibilityErr, "expected fsm.compatiblity to be nil, got %v",
+					topo.fsm.compatibilityErr)
 			} else {
 				assert.False(t, topo.fsm.compatible.Load().(bool), "Expected servers to not be compatible")
+				assert.NotNil(t, topo.fsm.compatibilityErr, "expected fsm.compatiblity error to be non-nil")
 				continue
 			}
 			desc := topo.Description()
