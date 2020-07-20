@@ -152,6 +152,11 @@ evg-test-ocsp:
 build-aws-ecs-test:
 	go build $(BUILD_TAGS) ./mongo/testaws/main.go
 
+.PHONY: evg-test-atlas-data-lake
+evg-test-atlas-data-lake:
+	ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./mongo/integration -run TestUnifiedSpecs/atlas-data-lake-testing >> spec_test.suite
+	ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./mongo/integration -run TestAtlasDataLake >> spec_test.suite
+
 # benchmark specific targets and support
 perf:driver-test-data.tar.gz
 	tar -zxf $< $(if $(eq $(UNAME_S),Darwin),-s , --transform=s)/data/perf/
