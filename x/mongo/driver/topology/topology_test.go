@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -83,6 +84,27 @@ func TestServerSelection(t *testing.T) {
 		if srvs[0].Addr != desc.Servers[0].Addr {
 			t.Errorf("Incorrect sever selected. got %s; want %s", srvs[0].Addr, desc.Servers[0].Addr)
 		}
+	})
+	t.Run("Compatibility Error", func(t *testing.T) {
+		topo, err := New()
+		noerr(t, err)
+		desc := description.Topology{
+			Servers: []description.Server{
+				{Addr: address.Address("one"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 11, Min: 11}},
+				{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+				{Addr: address.Address("three"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+			},
+		}
+		atomic.StoreInt32(&topo.connectionstate, connected)
+		topo.desc.Store(desc)
+		_, err = topo.SelectServer(context.Background(), selectFirst)
+		want := fmt.Errorf(
+			"server at %s requires wire version %d, but this version of the Go driver only supports up to %d",
+			desc.Servers[0].Addr.String(),
+			desc.Servers[0].WireVersion.Min,
+			supportedWireVersions.Max,
+		)
+		assert.Equal(t, err, want, "expected %v, got %v\n", want, err)
 	})
 	t.Run("Updated", func(t *testing.T) {
 		topo, err := New()

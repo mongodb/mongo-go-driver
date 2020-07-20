@@ -290,6 +290,40 @@ func (t *Topology) RequestImmediateCheck() {
 	t.serversLock.Unlock()
 }
 
+// isCompatible checks for the compability (wire version) of all servers
+func (t *Topology) isCompatible() error {
+	desc := t.Description()
+	for _, server := range desc.Servers {
+		if server.WireVersion != nil {
+			if server.WireVersion.Max < supportedWireVersions.Min {
+				t.fsm.compatible.Store(false)
+				t.fsm.compatibilityErr = fmt.Errorf(
+					"server at %s reports wire version %d, but this version of the Go driver requires "+
+						"at least %d (MongoDB %s)",
+					server.Addr.String(),
+					server.WireVersion.Max,
+					supportedWireVersions.Min,
+					minSupportedMongoDBVersion,
+				)
+				return t.fsm.compatibilityErr
+			}
+
+			if server.WireVersion.Min > supportedWireVersions.Max {
+				t.fsm.compatible.Store(false)
+				t.fsm.compatibilityErr = fmt.Errorf(
+					"server at %s requires wire version %d, but this version of the Go driver only supports up to %d",
+					server.Addr.String(),
+					server.WireVersion.Min,
+					supportedWireVersions.Max,
+				)
+				return t.fsm.compatibilityErr
+			}
+		}
+	}
+	t.fsm.compatibilityErr = nil
+	return t.fsm.compatibilityErr
+}
+
 // SelectServer selects a server with given a selector. SelectServer complies with the
 // server selection spec, and will time out after severSelectionTimeout or when the
 // parent context is done.
@@ -297,6 +331,12 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 	if atomic.LoadInt32(&t.connectionstate) != connected {
 		return nil, ErrTopologyClosed
 	}
+
+	err := t.isCompatible()
+	if err != nil {
+		return nil, err
+	}
+
 	var ssTimeoutCh <-chan time.Time
 
 	if t.cfg.serverSelectionTimeout > 0 {
@@ -363,6 +403,12 @@ func (t *Topology) SelectServerLegacy(ctx context.Context, ss description.Server
 	if atomic.LoadInt32(&t.connectionstate) != connected {
 		return nil, ErrTopologyClosed
 	}
+
+	err := t.isCompatible()
+	if err != nil {
+		return nil, err
+	}
+
 	var ssTimeoutCh <-chan time.Time
 
 	if t.cfg.serverSelectionTimeout > 0 {
