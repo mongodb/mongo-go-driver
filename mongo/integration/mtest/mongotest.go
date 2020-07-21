@@ -667,7 +667,8 @@ func (t *T) createTestCollection() {
 	t.DB = t.Client.Database(t.dbName)
 	t.createdColls = t.createdColls[:0]
 
-	// Collections should not be explicitly created because they already exist in the server with pre-seeded data.
+	// Collections should not be explicitly created when testing against Atlas Data Lake because they already exist in
+	// the server with pre-seeded data.
 	createOnServer := (t.createCollection == nil || *t.createCollection) && !testContext.dataLake
 	t.Coll = t.CreateCollection(Collection{
 		Name:       t.collName,
