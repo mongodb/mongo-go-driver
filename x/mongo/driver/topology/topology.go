@@ -290,40 +290,6 @@ func (t *Topology) RequestImmediateCheck() {
 	t.serversLock.Unlock()
 }
 
-// isCompatible checks for the compability (wire version) of all servers
-func (t *Topology) isCompatible() error {
-	desc := t.Description()
-	for _, server := range desc.Servers {
-		if server.WireVersion != nil {
-			if server.WireVersion.Max < supportedWireVersions.Min {
-				t.fsm.compatible.Store(false)
-				t.fsm.compatibilityErr = fmt.Errorf(
-					"server at %s reports wire version %d, but this version of the Go driver requires "+
-						"at least %d (MongoDB %s)",
-					server.Addr.String(),
-					server.WireVersion.Max,
-					supportedWireVersions.Min,
-					minSupportedMongoDBVersion,
-				)
-				return t.fsm.compatibilityErr
-			}
-
-			if server.WireVersion.Min > supportedWireVersions.Max {
-				t.fsm.compatible.Store(false)
-				t.fsm.compatibilityErr = fmt.Errorf(
-					"server at %s requires wire version %d, but this version of the Go driver only supports up to %d",
-					server.Addr.String(),
-					server.WireVersion.Min,
-					supportedWireVersions.Max,
-				)
-				return t.fsm.compatibilityErr
-			}
-		}
-	}
-	t.fsm.compatibilityErr = nil
-	return t.fsm.compatibilityErr
-}
-
 // SelectServer selects a server with given a selector. SelectServer complies with the
 // server selection spec, and will time out after severSelectionTimeout or when the
 // parent context is done.
@@ -332,9 +298,9 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		return nil, ErrTopologyClosed
 	}
 
-	err := t.isCompatible()
-	if err != nil {
-		return nil, err
+	desc := t.Description()
+	if desc.CompatibilityErr != nil {
+		return nil, desc.CompatibilityErr
 	}
 
 	var ssTimeoutCh <-chan time.Time
@@ -404,9 +370,9 @@ func (t *Topology) SelectServerLegacy(ctx context.Context, ss description.Server
 		return nil, ErrTopologyClosed
 	}
 
-	err := t.isCompatible()
-	if err != nil {
-		return nil, err
+	desc := t.Description()
+	if desc.CompatibilityErr != nil {
+		return nil, desc.CompatibilityErr
 	}
 
 	var ssTimeoutCh <-chan time.Time
@@ -651,7 +617,11 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	var current description.Topology
 	var err error
 	current, desc, err = t.fsm.apply(desc)
+
 	if err != nil {
+		updatedDesc := t.Description()
+		updatedDesc.CompatibilityErr = err
+		t.desc.Store(updatedDesc)
 		return desc
 	}
 

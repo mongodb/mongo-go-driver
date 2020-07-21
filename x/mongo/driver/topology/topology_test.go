@@ -85,24 +85,55 @@ func TestServerSelection(t *testing.T) {
 			t.Errorf("Incorrect sever selected. got %s; want %s", srvs[0].Addr, desc.Servers[0].Addr)
 		}
 	})
-	t.Run("Compatibility Error", func(t *testing.T) {
+	t.Run("Compatibility Error Min Version Too High", func(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
 		desc := description.Topology{
+			Kind: description.Single,
 			Servers: []description.Server{
 				{Addr: address.Address("one"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 11, Min: 11}},
 				{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
 				{Addr: address.Address("three"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
 			},
 		}
+		serverDesc := description.Server{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}}
+		topo.fsm.Servers = desc.Servers
 		atomic.StoreInt32(&topo.connectionstate, connected)
 		topo.desc.Store(desc)
+		topo.apply(context.Background(), serverDesc)
 		_, err = topo.SelectServer(context.Background(), selectFirst)
 		want := fmt.Errorf(
 			"server at %s requires wire version %d, but this version of the Go driver only supports up to %d",
 			desc.Servers[0].Addr.String(),
 			desc.Servers[0].WireVersion.Min,
 			supportedWireVersions.Max,
+		)
+		assert.Equal(t, err, want, "expected %v, got %v\n", want, err)
+	})
+	t.Run("Compatibility Error Max Version Too Low", func(t *testing.T) {
+		topo, err := New()
+		noerr(t, err)
+		desc := description.Topology{
+			Kind: description.Single,
+			Servers: []description.Server{
+				{Addr: address.Address("one"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 1, Min: 1}},
+				{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+				{Addr: address.Address("three"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+			},
+		}
+		serverDesc := description.Server{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}}
+		topo.fsm.Servers = desc.Servers
+		atomic.StoreInt32(&topo.connectionstate, connected)
+		topo.desc.Store(desc)
+		topo.apply(context.Background(), serverDesc)
+		_, err = topo.SelectServer(context.Background(), selectFirst)
+		want := fmt.Errorf(
+			"server at %s reports wire version %d, but this version of the Go driver requires "+
+				"at least %d (MongoDB %s)",
+			desc.Servers[0].Addr.String(),
+			desc.Servers[0].WireVersion.Max,
+			supportedWireVersions.Min,
+			minSupportedMongoDBVersion,
 		)
 		assert.Equal(t, err, want, "expected %v, got %v\n", want, err)
 	})

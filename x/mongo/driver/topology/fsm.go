@@ -99,7 +99,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					supportedWireVersions.Min,
 					minSupportedMongoDBVersion,
 				)
-				return description.Topology{}, s, f.compatibilityErr
+				return description.Topology{CompatibilityErr: f.compatibilityErr}, s, f.compatibilityErr
 			}
 
 			if server.WireVersion.Min > supportedWireVersions.Max {
@@ -110,7 +110,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					server.WireVersion.Min,
 					supportedWireVersions.Max,
 				)
-				return description.Topology{}, s, f.compatibilityErr
+				return description.Topology{CompatibilityErr: f.compatibilityErr}, s, f.compatibilityErr
 			}
 		}
 	}
@@ -349,7 +349,7 @@ func (f *fsm) findPrimary() (int, bool) {
 func (f *fsm) findServer(addr address.Address) (int, bool) {
 	canon := addr.Canonicalize()
 	for i, s := range f.Servers {
-		if canon == s.Addr {
+		if canon == s.Addr.Canonicalize() {
 			return i, true
 		}
 	}

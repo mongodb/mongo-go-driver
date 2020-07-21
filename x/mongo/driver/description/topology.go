@@ -17,6 +17,7 @@ type Topology struct {
 	Servers               []Server
 	Kind                  TopologyKind
 	SessionTimeoutMinutes uint32
+	CompatibilityErr      error
 }
 
 // Server returns the server for the given address. Returns false if the server
