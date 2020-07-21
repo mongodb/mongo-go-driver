@@ -195,7 +195,13 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 	assert.Nil(t, err, "unable to unmarshal spec test file at %v: %v", filePath, err)
 
 	// create mtest wrapper and skip if needed
-	mt := mtest.New(t, mtest.NewOptions().RunOn(testFile.RunOn...).CreateClient(false))
+	mtOpts := mtest.NewOptions().
+		RunOn(testFile.RunOn...).
+		CreateClient(false)
+	if specDir == "atlas-data-lake-testing" {
+		mtOpts.AtlasDataLake(true)
+	}
+	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
 	for _, test := range testFile.Tests {
