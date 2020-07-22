@@ -91,9 +91,9 @@ func TestServerSelection(t *testing.T) {
 		desc := description.Topology{
 			Kind: description.Single,
 			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 11, Min: 11}},
-				{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
-				{Addr: address.Address("three"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+				{Addr: address.Address("one:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 11, Min: 11}},
+				{Addr: address.Address("two:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+				{Addr: address.Address("three:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
 			},
 		}
 		serverDesc := description.Server{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}}
@@ -116,9 +116,9 @@ func TestServerSelection(t *testing.T) {
 		desc := description.Topology{
 			Kind: description.Single,
 			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 1, Min: 1}},
-				{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
-				{Addr: address.Address("three"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+				{Addr: address.Address("one:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 1, Min: 1}},
+				{Addr: address.Address("two:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+				{Addr: address.Address("three:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
 			},
 		}
 		serverDesc := description.Server{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}}

@@ -349,7 +349,7 @@ func (f *fsm) findPrimary() (int, bool) {
 func (f *fsm) findServer(addr address.Address) (int, bool) {
 	canon := addr.Canonicalize()
 	for i, s := range f.Servers {
-		if canon == s.Addr.Canonicalize() {
+		if canon == s.Addr {
 			return i, true
 		}
 	}
