@@ -618,7 +618,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	var err error
 	current, desc, err = t.fsm.apply(desc)
 
-	if err != nil {
+	if err != nil && current.CompatibilityErr != nil {
 		updatedDesc := t.Description()
 		updatedDesc.CompatibilityErr = err
 		t.desc.Store(updatedDesc)
