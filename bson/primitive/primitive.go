@@ -73,7 +73,7 @@ func (d DateTime) Time() time.Time {
 
 // NewDateTimeFromTime creates a new DateTime from a Time.
 func NewDateTimeFromTime(t time.Time) DateTime {
-	return DateTime(t.UnixNano() / 1000000)
+	return DateTime(t.Unix()*1e3 + int64(t.Nanosecond())/1e6)
 }
 
 // Null represents the BSON null value.
