@@ -8,8 +8,10 @@ package primitive
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 // The same interface as bsoncodec.Zeroer implemented for tests.
@@ -77,4 +79,21 @@ func TestRegexCompare(t *testing.T) {
 			require.True(t, tc.r1.Equal(tc.r2) == tc.eq)
 		})
 	}
+}
+
+func TestDateTime(t *testing.T) {
+	t.Run("NewDateTimeFromTime", func(t *testing.T) {
+		t.Run("range is not limited", func(t *testing.T) {
+			// If the implementation internally calls time.Time.UnixNano(), the constructor cannot handle times after
+			// the year 2262.
+
+			timeFormat := "2006-01-02T15:04:05.999Z07:00"
+			timeString := "3001-01-01T00:00:00Z"
+			tt, err := time.Parse(timeFormat, timeString)
+			assert.Nil(t, err, "Parse error: %v", err)
+
+			dt := NewDateTimeFromTime(tt)
+			assert.True(t, dt > 0, "expected a valid DateTime greater than 0, got %v", dt)
+		})
+	})
 }
