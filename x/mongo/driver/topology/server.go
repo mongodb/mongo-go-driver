@@ -502,7 +502,12 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 				NewIsMaster().
 				ClusterClock(s.cfg.clock).
 				Deployment(driver.SingleConnectionDeployment{initConnection{conn}})
-			err = op.Execute(ctx)
+
+			func() {
+				timeoutCtx, cancel := context.WithTimeout(ctx, s.cfg.heartbeatTimeout)
+				defer cancel()
+				err = op.Execute(timeoutCtx)
+			}()
 			if err == nil {
 				tmpDesc := op.Result(s.address)
 				descPtr = &tmpDesc
