@@ -99,7 +99,8 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					supportedWireVersions.Min,
 					minSupportedMongoDBVersion,
 				)
-				return description.Topology{CompatibilityErr: f.compatibilityErr}, s, f.compatibilityErr
+				f.Topology.CompatibilityErr = f.compatibilityErr
+				return f.Topology, s, f.compatibilityErr
 			}
 
 			if server.WireVersion.Min > supportedWireVersions.Max {
@@ -110,7 +111,8 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					server.WireVersion.Min,
 					supportedWireVersions.Max,
 				)
-				return description.Topology{CompatibilityErr: f.compatibilityErr}, s, f.compatibilityErr
+				f.Topology.CompatibilityErr = f.compatibilityErr
+				return f.Topology, s, f.compatibilityErr
 			}
 		}
 	}

@@ -298,11 +298,6 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		return nil, ErrTopologyClosed
 	}
 
-	desc := t.Description()
-	if desc.CompatibilityErr != nil {
-		return nil, desc.CompatibilityErr
-	}
-
 	var ssTimeoutCh <-chan time.Time
 
 	if t.cfg.serverSelectionTimeout > 0 {
@@ -317,6 +312,11 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 	for {
 		var suitable []description.Server
 		var selectErr error
+
+		desc := t.Description()
+		if desc.CompatibilityErr != nil {
+			return nil, desc.CompatibilityErr
+		}
 
 		if !doneOnce {
 			// for the first pass, select a server from the current description.
@@ -618,7 +618,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	var err error
 	current, desc, err = t.fsm.apply(desc)
 
-	if err != nil && current.CompatibilityErr != nil {
+	if current.CompatibilityErr != nil {
 		updatedDesc := t.Description()
 		updatedDesc.CompatibilityErr = err
 		t.desc.Store(updatedDesc)
