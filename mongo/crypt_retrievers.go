@@ -39,7 +39,7 @@ func (kr *keyRetriever) cryptKeys(ctx context.Context, filter bsoncore.Document)
 
 // collInfoRetriever gets info for collections from a database.
 type collInfoRetriever struct {
-	client *Client
+	client Client
 }
 
 func (cir *collInfoRetriever) cryptCollInfo(ctx context.Context, db string, filter bsoncore.Document) (bsoncore.Document, error) {

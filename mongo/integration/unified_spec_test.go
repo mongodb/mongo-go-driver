@@ -231,7 +231,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 
 		// work around for SERVER-39704: run a non-transactional distinct against each shard in a sharded cluster
 		if mt.TopologyKind() == mtest.Sharded && test.Description == "distinct" {
-			err := runCommandOnAllServers(mt, func(mongosClient *mongo.Client) error {
+			err := runCommandOnAllServers(mt, func(mongosClient mongo.Client) error {
 				coll := mongosClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
 				_, err := coll.Distinct(mtest.Background, "x", bson.D{})
 				return err
@@ -909,7 +909,7 @@ func verifyTestOutcome(mt *mtest.T, outcomeColl *outcomeCollection) {
 	verifyCursorResult(mt, cursor, outcomeColl.Data)
 }
 
-func getTopologyFromClient(client *mongo.Client) *topology.Topology {
+func getTopologyFromClient(client mongo.Client) *topology.Topology {
 	clientElem := reflect.ValueOf(client).Elem()
 	deploymentField := clientElem.FieldByName("deployment")
 	deploymentField = reflect.NewAt(deploymentField.Type(), unsafe.Pointer(deploymentField.UnsafeAddr())).Elem()

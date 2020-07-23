@@ -812,7 +812,7 @@ func getWatcher(mt *mtest.T, streamType mongo.StreamType, cpt *cseProseTest) wat
 type cseProseTest struct {
 	coll         *mongo.Collection // collection db.coll
 	keyVaultColl *mongo.Collection
-	cseClient    *mongo.Client     // encrypted client
+	cseClient    mongo.IClient     // encrypted client
 	cseColl      *mongo.Collection // db.coll with encrypted client
 	clientEnc    *mongo.ClientEncryption
 	cseStarted   []*event.CommandStartedEvent

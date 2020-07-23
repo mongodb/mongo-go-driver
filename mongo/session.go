@@ -116,7 +116,7 @@ type Session interface {
 	// Functions to retrieve session properties.
 	ClusterTime() bson.Raw
 	OperationTime() *primitive.Timestamp
-	Client() *Client
+	Client() Client
 	ID() bson.Raw
 
 	// Functions to modify mutable session properties.
@@ -135,7 +135,7 @@ type XSession interface {
 // sessionImpl represents a set of sequential operations executed by an application that are related in some way.
 type sessionImpl struct {
 	clientSession       *session.Client
-	client              *Client
+	client              Client
 	deployment          driver.Deployment
 	didCommitAfterStart bool // true if commit was called after start with no other operations
 }
@@ -260,9 +260,9 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
 
 	s.clientSession.Aborting = true
-	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
+	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.(*clientImpl).clock).Database("admin").
 		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
-		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).
+		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.(*clientImpl).monitor).
 		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).Execute(ctx)
 
 	s.clientSession.Aborting = false
@@ -292,9 +292,9 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 
 	s.clientSession.Committing = true
 	op := operation.NewCommitTransaction().
-		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
+		Session(s.clientSession).ClusterClock(s.client.(*clientImpl).clock).Database("admin").Deployment(s.deployment).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
-		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken))
+		CommandMonitor(s.client.(*clientImpl).monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken))
 	if s.clientSession.CurrentMct != nil {
 		op.MaxTimeMS(int64(*s.clientSession.CurrentMct / time.Millisecond))
 	}
@@ -333,7 +333,7 @@ func (s *sessionImpl) AdvanceOperationTime(ts *primitive.Timestamp) error {
 }
 
 // Client implements the Session interface.
-func (s *sessionImpl) Client() *Client {
+func (s *sessionImpl) Client() Client {
 	return s.client
 }
 

@@ -79,7 +79,7 @@ func TestChangeStreamExamples(t *testing.T) {
 	documentation_examples.ChangeStreamExamples(t, db)
 }
 
-func getServerVersion(ctx context.Context, client *mongo.Client) (string, error) {
+func getServerVersion(ctx context.Context, client mongo.Client) (string, error) {
 	serverStatus, err := client.Database("admin").RunCommand(
 		ctx,
 		bsonx.Doc{{"serverStatus", bsonx.Int32(1)}},

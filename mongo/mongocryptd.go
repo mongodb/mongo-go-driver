@@ -30,7 +30,7 @@ var databaseOpts = options.Database().SetReadConcern(readconcern.New()).SetReadP
 
 type mcryptClient struct {
 	bypassSpawn bool
-	client      *Client
+	client      Client
 	path        string
 	spawnArgs   []string
 }

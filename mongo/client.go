@@ -6,6 +6,8 @@
 
 package mongo
 
+//go:generate mockgen -destination=../mocks/mongo/client.go -package=mock_mongo . Client
+
 import (
 	"context"
 	"crypto/tls"
@@ -42,12 +44,34 @@ var (
 	endSessionsBatchSize = 10000
 )
 
+type Client interface {
+	Connect(ctx context.Context) error
+	Disconnect(ctx context.Context) error
+
+	Ping(ctx context.Context, rp *readpref.ReadPref) error
+
+	StartSession(opts ...*options.SessionOptions) (Session, error)
+
+	Database(name string, opts ...*options.DatabaseOptions) *Database
+	ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error)
+	ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error)
+
+	UseSession(ctx context.Context, fn func(SessionContext) error) error
+	UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error
+
+	Watch(ctx context.Context, pipeline interface{}, opts ...*options.ChangeStreamOptions) (*ChangeStream, error)
+
+	NumberSessionsInProgress() int
+
+	client()
+}
+
 // Client is a handle representing a pool of connections to a MongoDB deployment. It is safe for concurrent use by
 // multiple goroutines.
 //
 // The Client type opens and closes connections automatically and maintains a pool of idle connections. For
 // connection pool configuration options, see documentation for the ClientOptions type in the mongo/options package.
-type Client struct {
+type clientImpl struct {
 	id              uuid.UUID
 	topologyOptions []topology.Option
 	deployment      driver.Deployment
@@ -65,11 +89,13 @@ type Client struct {
 	sessionPool     *session.Pool
 
 	// client-side encryption fields
-	keyVaultClient *Client
+	keyVaultClient Client
 	keyVaultColl   *Collection
 	mongocryptd    *mcryptClient
 	crypt          *driver.Crypt
 }
+
+var _ Client = &clientImpl{}
 
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
 // NewClient followed by Client.Connect.
@@ -93,7 +119,7 @@ type Client struct {
 //
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
 // Client was correctly configured.
-func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, error) {
+func Connect(ctx context.Context, opts ...*options.ClientOptions) (Client, error) {
 	c, err := NewClient(opts...)
 	if err != nil {
 		return nil, err
@@ -118,14 +144,14 @@ func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, erro
 // option fields of previous options, there is no partial overwriting. For example, if Username is
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
-func NewClient(opts ...*options.ClientOptions) (*Client, error) {
+func NewClient(opts ...*options.ClientOptions) (Client, error) {
 	clientOpt := options.MergeClientOptions(opts...)
 
 	id, err := uuid.New()
 	if err != nil {
 		return nil, err
 	}
-	client := &Client{id: id}
+	client := &clientImpl{id: id}
 
 	err = client.configure(clientOpt)
 	if err != nil {
@@ -146,7 +172,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 //
 // Connect starts background goroutines to monitor the state of the deployment and does not do any I/O in the main
 // goroutine. The Client.Ping method can be used to verify that the connection was created successfully.
-func (c *Client) Connect(ctx context.Context) error {
+func (c *clientImpl) Connect(ctx context.Context) error {
 	if connector, ok := c.deployment.(driver.Connector); ok {
 		err := connector.Connect()
 		if err != nil {
@@ -185,7 +211,7 @@ func (c *Client) Connect(ctx context.Context) error {
 // connections will be closed, resulting in the failure of any in flight read
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
-func (c *Client) Disconnect(ctx context.Context) error {
+func (c *clientImpl) Disconnect(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -222,7 +248,7 @@ func (c *Client) Disconnect(ctx context.Context) error {
 //
 // Using Ping reduces application resilience because applications starting up will error if the server is temporarily
 // unavailable or is failing over (e.g. during autoscaling due to a load spike).
-func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
+func (c *clientImpl) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -243,7 +269,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 //
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
-func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
+func (c *clientImpl) StartSession(opts ...*options.SessionOptions) (Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
@@ -285,7 +311,7 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	}, nil
 }
 
-func (c *Client) endSessions(ctx context.Context) {
+func (c *clientImpl) endSessions(ctx context.Context) {
 	if c.sessionPool == nil {
 		return
 	}
@@ -313,7 +339,7 @@ func (c *Client) endSessions(ctx context.Context) {
 	}
 }
 
-func (c *Client) configure(opts *options.ClientOptions) error {
+func (c *clientImpl) configure(opts *options.ClientOptions) error {
 	if err := opts.Validate(); err != nil {
 		return err
 	}
@@ -594,7 +620,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	return nil
 }
 
-func (c *Client) configureAutoEncryption(opts *options.AutoEncryptionOptions) error {
+func (c *clientImpl) configureAutoEncryption(opts *options.AutoEncryptionOptions) error {
 	if err := c.configureKeyVault(opts); err != nil {
 		return err
 	}
@@ -604,7 +630,7 @@ func (c *Client) configureAutoEncryption(opts *options.AutoEncryptionOptions) er
 	return c.configureCrypt(opts)
 }
 
-func (c *Client) configureKeyVault(opts *options.AutoEncryptionOptions) error {
+func (c *clientImpl) configureKeyVault(opts *options.AutoEncryptionOptions) error {
 	// parse key vault options and create new client if necessary
 	if opts.KeyVaultClientOptions != nil {
 		var err error
@@ -623,13 +649,13 @@ func (c *Client) configureKeyVault(opts *options.AutoEncryptionOptions) error {
 	return nil
 }
 
-func (c *Client) configureMongocryptd(opts *options.AutoEncryptionOptions) error {
+func (c *clientImpl) configureMongocryptd(opts *options.AutoEncryptionOptions) error {
 	var err error
 	c.mongocryptd, err = newMcryptClient(opts)
 	return err
 }
 
-func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
+func (c *clientImpl) configureCrypt(opts *options.AutoEncryptionOptions) error {
 	// convert schemas in SchemaMap to bsoncore documents
 	cryptSchemaMap := make(map[string]bsoncore.Document)
 	for k, v := range opts.SchemaMap {
@@ -662,7 +688,7 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 }
 
 // validSession returns an error if the session doesn't belong to the client
-func (c *Client) validSession(sess *session.Client) error {
+func (c *clientImpl) validSession(sess *session.Client) error {
 	if sess != nil && !uuid.Equal(sess.ClientID, c.id) {
 		return ErrWrongClient
 	}
@@ -670,7 +696,7 @@ func (c *Client) validSession(sess *session.Client) error {
 }
 
 // Database returns a handle for a database with the given name configured with the given DatabaseOptions.
-func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Database {
+func (c *clientImpl) Database(name string, opts ...*options.DatabaseOptions) *Database {
 	return newDatabase(c, name, opts...)
 }
 
@@ -683,7 +709,7 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 // The opts paramter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
+func (c *clientImpl) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -752,7 +778,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // documentation.)
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
+func (c *clientImpl) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
 	res, err := c.ListDatabases(ctx, filter, opts...)
@@ -787,12 +813,12 @@ func WithSession(ctx context.Context, sess Session, fn func(SessionContext) erro
 // If the ctx parameter already contains a Session, that Session will be replaced with the newly created one.
 //
 // Any error returned by the fn callback will be returned without any modifications.
-func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) error {
+func (c *clientImpl) UseSession(ctx context.Context, fn func(SessionContext) error) error {
 	return c.UseSessionWithOptions(ctx, options.Session(), fn)
 }
 
 // UseSessionWithOptions operates like UseSession but uses the given SessionOptions to create the Session.
-func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
+func (c *clientImpl) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
 	defaultSess, err := c.StartSession(opts)
 	if err != nil {
 		return err
@@ -815,7 +841,7 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
-func (c *Client) Watch(ctx context.Context, pipeline interface{},
+func (c *clientImpl) Watch(ctx context.Context, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
@@ -835,6 +861,10 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 
 // NumberSessionsInProgress returns the number of sessions that have been started for this client but have not been
 // closed (i.e. EndSession has not been called).
-func (c *Client) NumberSessionsInProgress() int {
+func (c *clientImpl) NumberSessionsInProgress() int {
 	return c.sessionPool.CheckedOut()
+}
+
+// client implements the Client interface.
+func (*clientImpl) client() {
 }

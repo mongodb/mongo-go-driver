@@ -1741,7 +1741,7 @@ var log = logger.New(ioutil.Discard, "", logger.LstdFlags)
 // Start Transactions Intro Example 1
 
 // UpdateEmployeeInfo is an example function demonstrating transactions.
-func UpdateEmployeeInfo(ctx context.Context, client *mongo.Client) error {
+func UpdateEmployeeInfo(ctx context.Context, client mongo.Client) error {
 	employees := client.Database("hr").Collection("employees")
 	events := client.Database("reporting").Collection("events")
 
@@ -1840,7 +1840,7 @@ func CommitWithRetry(sctx mongo.SessionContext) error {
 // End Transactions Retry Example 2
 
 // TransactionsExamples contains examples for transaction operations.
-func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
+func TransactionsExamples(ctx context.Context, client mongo.Client) error {
 	_, err := client.Database("hr").Collection("employees").InsertOne(ctx, bson.D{{"pi", 3.14159}})
 	if err != nil {
 		return err

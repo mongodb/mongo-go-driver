@@ -24,7 +24,7 @@ import (
 // Client examples
 
 func ExampleClient_ListDatabaseNames() {
-	var client *mongo.Client
+	var client mongo.Client
 
 	// use a filter to only select non-empty databases
 	result, err := client.ListDatabaseNames(context.TODO(), bson.D{{"empty", false}})
@@ -38,7 +38,7 @@ func ExampleClient_ListDatabaseNames() {
 }
 
 func ExampleClient_Watch() {
-	var client *mongo.Client
+	var client mongo.Client
 
 	// specify a pipeline that will only match "insert" events
 	// specify the MaxAwaitTimeOption to have each attempt wait two seconds for new documents
@@ -513,7 +513,7 @@ func ExampleCollection_Watch() {
 // Session examples
 
 func ExampleWithSession() {
-	var client *mongo.Client // assume client is configured with write concern majority and read preference primary
+	var client mongo.Client // assume client is configured with write concern majority and read preference primary
 
 	// Specify the DefaultReadConcern option so any transactions started through the session will have read concern
 	// majority.
@@ -547,7 +547,7 @@ func ExampleWithSession() {
 }
 
 func ExampleClient_UseSessionWithOptions() {
-	var client *mongo.Client
+	var client mongo.Client
 
 	// Specify the DefaultReadConcern option so any transactions started through the session will have read concern
 	// majority.
@@ -577,7 +577,7 @@ func ExampleClient_UseSessionWithOptions() {
 }
 
 func ExampleClient_StartSession_withTransaction() {
-	var client *mongo.Client // assume client is configured with write concern majority and read preference primary
+	var client mongo.Client // assume client is configured with write concern majority and read preference primary
 
 	// Specify the DefaultReadConcern option so any transactions started through the session will have read concern
 	// majority.
@@ -615,7 +615,7 @@ func ExampleClient_StartSession_withTransaction() {
 }
 
 func ExampleNewSessionContext() {
-	var client *mongo.Client
+	var client mongo.Client
 
 	// Create a new Session and SessionContext.
 	sess, err := client.StartSession()
@@ -797,7 +797,7 @@ func ExampleChangeStream_TryNext() {
 }
 
 func ExampleChangeStream_ResumeToken() {
-	var client *mongo.Client
+	var client mongo.Client
 	var stream *mongo.ChangeStream // assume stream was created via client.Watch()
 
 	cancelCtx, cancel := context.WithCancel(context.TODO())
@@ -824,7 +824,7 @@ func ExampleChangeStream_ResumeToken() {
 
 	// Once a new client is created, the change stream can be re-created. Specify resumeToken as the ResumeAfter option
 	// so only events that occurred after resumeToken will be returned.
-	var newClient *mongo.Client
+	var newClient mongo.Client
 	opts := options.ChangeStream().SetResumeAfter(resumeToken)
 	newStream, err := newClient.Watch(context.TODO(), mongo.Pipeline{}, opts)
 	if err != nil {

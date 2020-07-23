@@ -181,10 +181,10 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 
 	op := operation.NewInsert(docs...).
-		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
-		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
+		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.(*clientImpl).monitor).
+		ServerSelector(bw.selector).ClusterClock(bw.collection.client.(*clientImpl).clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
-		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.crypt)
+		Deployment(bw.collection.client.(*clientImpl).deployment).Crypt(bw.collection.client.(*clientImpl).crypt)
 	if bw.bypassDocumentValidation != nil && *bw.bypassDocumentValidation {
 		op = op.BypassDocumentValidation(*bw.bypassDocumentValidation)
 	}
@@ -193,7 +193,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 
 	retry := driver.RetryNone
-	if bw.collection.client.retryWrites && batch.canRetry {
+	if bw.collection.client.(*clientImpl).retryWrites && batch.canRetry {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
@@ -230,15 +230,15 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 
 	op := operation.NewDelete(docs...).
-		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
-		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
+		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.(*clientImpl).monitor).
+		ServerSelector(bw.selector).ClusterClock(bw.collection.client.(*clientImpl).clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
-		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.crypt).Hint(hasHint)
+		Deployment(bw.collection.client.(*clientImpl).deployment).Crypt(bw.collection.client.(*clientImpl).crypt).Hint(hasHint)
 	if bw.ordered != nil {
 		op = op.Ordered(*bw.ordered)
 	}
 	retry := driver.RetryNone
-	if bw.collection.client.retryWrites && batch.canRetry {
+	if bw.collection.client.(*clientImpl).retryWrites && batch.canRetry {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
@@ -307,10 +307,10 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 
 	op := operation.NewUpdate(docs...).
-		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
-		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
+		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.(*clientImpl).monitor).
+		ServerSelector(bw.selector).ClusterClock(bw.collection.client.(*clientImpl).clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
-		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.crypt).Hint(hasHint)
+		Deployment(bw.collection.client.(*clientImpl).deployment).Crypt(bw.collection.client.(*clientImpl).crypt).Hint(hasHint)
 	if bw.ordered != nil {
 		op = op.Ordered(*bw.ordered)
 	}
@@ -318,7 +318,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		op = op.BypassDocumentValidation(*bw.bypassDocumentValidation)
 	}
 	retry := driver.RetryNone
-	if bw.collection.client.retryWrites && batch.canRetry {
+	if bw.collection.client.(*clientImpl).retryWrites && batch.canRetry {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)

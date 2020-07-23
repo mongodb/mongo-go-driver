@@ -179,7 +179,7 @@ func TestConvenientTransactions(t *testing.T) {
 	})
 }
 
-func setupConvenientTransactions(t *testing.T) *Client {
+func setupConvenientTransactions(t *testing.T) Client {
 	cs := testutil.ConnString(t)
 	poolMonitor := &event.PoolMonitor{
 		Event: func(evt *event.PoolEvent) {
@@ -198,7 +198,7 @@ func setupConvenientTransactions(t *testing.T) *Client {
 
 	version, err := getServerVersion(client.Database("admin"))
 	assert.Nil(t, err, "getServerVersion error: %v", err)
-	topoKind := client.deployment.(*topology.Topology).Kind()
+	topoKind := client.(*clientImpl).deployment.(*topology.Topology).Kind()
 	if compareVersions(t, version, "4.1") < 0 || topoKind == description.Single {
 		t.Skip("skipping standalones and versions < 4.1")
 	}

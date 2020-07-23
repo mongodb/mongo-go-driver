@@ -29,7 +29,7 @@ import (
 
 // Collection is a handle to a MongoDB collection. It is safe for concurrent use by multiple goroutines.
 type Collection struct {
-	client         *Client
+	client         Client
 	db             *Database
 	name           string
 	readConcern    *readconcern.ReadConcern
@@ -44,7 +44,7 @@ type Collection struct {
 type aggregateParams struct {
 	ctx            context.Context
 	pipeline       interface{}
-	client         *Client
+	client         Client
 	registry       *bsoncodec.Registry
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
@@ -88,12 +88,12 @@ func newCollection(db *Database, name string, opts ...*options.CollectionOptions
 
 	readSelector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(rp),
-		description.LatencySelector(db.client.localThreshold),
+		description.LatencySelector(db.client.(*clientImpl).localThreshold),
 	})
 
 	writeSelector := description.CompositeSelector([]description.ServerSelector{
 		description.WriteSelector(),
-		description.LatencySelector(db.client.localThreshold),
+		description.LatencySelector(db.client.(*clientImpl).localThreshold),
 	})
 
 	coll := &Collection{
@@ -150,7 +150,7 @@ func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, 
 
 	copyColl.readSelector = description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(copyColl.readPreference),
-		description.LatencySelector(copyColl.client.localThreshold),
+		description.LatencySelector(copyColl.client.(*clientImpl).localThreshold),
 	})
 
 	return copyColl, nil
@@ -185,16 +185,16 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && coll.client.sessionPool != nil {
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
 		defer sess.EndSession()
 	}
 
-	err := coll.client.validSession(sess)
+	err := coll.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -251,16 +251,16 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && coll.client.sessionPool != nil {
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
 		defer sess.EndSession()
 	}
 
-	err := coll.client.validSession(sess)
+	err := coll.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -276,10 +276,10 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
 	op := operation.NewInsert(docs...).
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.(*clientImpl).monitor).
+		ServerSelector(selector).ClusterClock(coll.client.(*clientImpl).clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		Deployment(coll.client.(*clientImpl).deployment).Crypt(coll.client.(*clientImpl).crypt)
 	imo := options.MergeInsertManyOptions(opts...)
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
@@ -288,7 +288,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		op = op.Ordered(*imo.Ordered)
 	}
 	retry := driver.RetryNone
-	if coll.client.retryWrites {
+	if coll.client.(*clientImpl).retryWrites {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
@@ -406,15 +406,15 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
 		defer sess.EndSession()
 	}
 
-	err = coll.client.validSession(sess)
+	err = coll.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -451,17 +451,17 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
 
 	op := operation.NewDelete(doc).
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.(*clientImpl).monitor).
+		ServerSelector(selector).ClusterClock(coll.client.(*clientImpl).clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		Deployment(coll.client.(*clientImpl).deployment).Crypt(coll.client.(*clientImpl).crypt)
 	if do.Hint != nil {
 		op = op.Hint(true)
 	}
 
 	// deleteMany cannot be retried
 	retryMode := driver.RetryNone
-	if deleteOne && coll.client.retryWrites {
+	if deleteOne && coll.client.(*clientImpl).retryWrites {
 		retryMode = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retryMode)
@@ -522,16 +522,16 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && coll.client.sessionPool != nil {
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
 		defer sess.EndSession()
 	}
 
-	err = coll.client.validSession(sess)
+	err = coll.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -547,17 +547,17 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
 	op := operation.NewUpdate(updateDoc).
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.(*clientImpl).monitor).
+		ServerSelector(selector).ClusterClock(coll.client.(*clientImpl).clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Hint(uo.Hint != nil)
+		Deployment(coll.client.(*clientImpl).deployment).Crypt(coll.client.(*clientImpl).crypt).Hint(uo.Hint != nil)
 
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
 	}
 	retry := driver.RetryNone
 	// retryable writes are only enabled updateOne/replaceOne operations
-	if !multi && coll.client.retryWrites {
+	if !multi && coll.client.(*clientImpl).retryWrites {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
@@ -706,7 +706,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		registry:       coll.registry,
 		readConcern:    coll.readConcern,
 		writeConcern:   coll.writeConcern,
-		retryRead:      coll.client.retryReads,
+		retryRead:      coll.client.(*clientImpl).retryReads,
 		db:             coll.db.name,
 		col:            coll.name,
 		readSelector:   coll.readSelector,
@@ -730,13 +730,13 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	}
 
 	sess := sessionFromContext(a.ctx)
-	if sess == nil && a.client.sessionPool != nil {
-		sess, err = session.NewClientSession(a.client.sessionPool, a.client.id, session.Implicit)
+	if sess == nil && a.client.(*clientImpl).sessionPool != nil {
+		sess, err = session.NewClientSession(a.client.(*clientImpl).sessionPool, a.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if err = a.client.validSession(sess); err != nil {
+	if err = a.client.(*clientImpl).validSession(sess); err != nil {
 		return nil, err
 	}
 
@@ -756,26 +756,26 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 
 	selector := makePinnedSelector(sess, a.writeSelector)
 	if !hasOutputStage {
-		selector = makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
+		selector = makeReadPrefSelector(sess, a.readSelector, a.client.(*clientImpl).localThreshold)
 	}
 
 	ao := options.MergeAggregateOptions(a.opts...)
 	cursorOpts := driver.CursorOptions{
-		CommandMonitor: a.client.monitor,
-		Crypt:          a.client.crypt,
+		CommandMonitor: a.client.(*clientImpl).monitor,
+		Crypt:          a.client.(*clientImpl).crypt,
 	}
 
 	op := operation.NewAggregate(pipelineArr).
 		Session(sess).
 		WriteConcern(wc).
 		ReadConcern(rc).
-		CommandMonitor(a.client.monitor).
+		CommandMonitor(a.client.(*clientImpl).monitor).
 		ServerSelector(selector).
-		ClusterClock(a.client.clock).
+		ClusterClock(a.client.(*clientImpl).clock).
 		Database(a.db).
 		Collection(a.col).
-		Deployment(a.client.deployment).
-		Crypt(a.client.crypt)
+		Deployment(a.client.(*clientImpl).deployment).
+		Crypt(a.client.(*clientImpl).crypt)
 	if !hasOutputStage {
 		// Only pass the user-specified read preference if the aggregation doesn't have a $out or $merge stage.
 		// Otherwise, the read preference could be forwarded to a mongos, which would error if the aggregation were
@@ -862,14 +862,14 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return 0, err
 		}
 		defer sess.EndSession()
 	}
-	if err = coll.client.validSession(sess); err != nil {
+	if err = coll.client.(*clientImpl).validSession(sess); err != nil {
 		return 0, err
 	}
 
@@ -878,10 +878,10 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.(*clientImpl).localThreshold)
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
-		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
-		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		CommandMonitor(coll.client.(*clientImpl).monitor).ServerSelector(selector).ClusterClock(coll.client.(*clientImpl).clock).Database(coll.db.name).
+		Collection(coll.name).Deployment(coll.client.(*clientImpl).deployment).Crypt(coll.client.(*clientImpl).crypt)
 	if countOpts.Collation != nil {
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
@@ -896,7 +896,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		op.Hint(hintVal)
 	}
 	retry := driver.RetryNone
-	if coll.client.retryReads {
+	if coll.client.(*clientImpl).retryReads {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
@@ -941,15 +941,15 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	sess := sessionFromContext(ctx)
 
 	var err error
-	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return 0, err
 		}
 		defer sess.EndSession()
 	}
 
-	err = coll.client.validSession(sess)
+	err = coll.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return 0, err
 	}
@@ -959,18 +959,18 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		rc = nil
 	}
 
-	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
-	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
-		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector).Crypt(coll.client.crypt)
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.(*clientImpl).localThreshold)
+	op := operation.NewCount().Session(sess).ClusterClock(coll.client.(*clientImpl).clock).
+		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.(*clientImpl).monitor).
+		Deployment(coll.client.(*clientImpl).deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
+		ServerSelector(selector).Crypt(coll.client.(*clientImpl).crypt)
 
 	co := options.MergeEstimatedDocumentCountOptions(opts...)
 	if co.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*co.MaxTime / time.Millisecond))
 	}
 	retry := driver.RetryNone
-	if coll.client.retryReads {
+	if coll.client.(*clientImpl).retryReads {
 		retry = driver.RetryOncePerCommand
 	}
 	op.Retry(retry)
@@ -1004,15 +1004,15 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 
 	sess := sessionFromContext(ctx)
 
-	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
 		defer sess.EndSession()
 	}
 
-	err = coll.client.validSession(sess)
+	err = coll.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -1022,14 +1022,14 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		rc = nil
 	}
 
-	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.(*clientImpl).localThreshold)
 	option := options.MergeDistinctOptions(opts...)
 
 	op := operation.NewDistinct(fieldName, bsoncore.Document(f)).
-		Session(sess).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
-		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector).Crypt(coll.client.crypt)
+		Session(sess).ClusterClock(coll.client.(*clientImpl).clock).
+		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.(*clientImpl).monitor).
+		Deployment(coll.client.(*clientImpl).deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
+		ServerSelector(selector).Crypt(coll.client.(*clientImpl).crypt)
 
 	if option.Collation != nil {
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
@@ -1038,7 +1038,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
 	}
 	retry := driver.RetryNone
-	if coll.client.retryReads {
+	if coll.client.(*clientImpl).retryReads {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
@@ -1092,15 +1092,15 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && coll.client.sessionPool != nil {
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = coll.client.validSession(sess)
+	err = coll.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, err
@@ -1111,17 +1111,17 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.(*clientImpl).localThreshold)
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
-		CommandMonitor(coll.client.monitor).ServerSelector(selector).
-		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		CommandMonitor(coll.client.(*clientImpl).monitor).ServerSelector(selector).
+		ClusterClock(coll.client.(*clientImpl).clock).Database(coll.db.name).Collection(coll.name).
+		Deployment(coll.client.(*clientImpl).deployment).Crypt(coll.client.(*clientImpl).crypt)
 
 	fo := options.MergeFindOptions(opts...)
 	cursorOpts := driver.CursorOptions{
-		CommandMonitor: coll.client.monitor,
-		Crypt:          coll.client.crypt,
+		CommandMonitor: coll.client.(*clientImpl).monitor,
+		Crypt:          coll.client.(*clientImpl).crypt,
 	}
 
 	if fo.AllowDiskUse != nil {
@@ -1223,7 +1223,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		op.Sort(sort)
 	}
 	retry := driver.RetryNone
-	if coll.client.retryReads {
+	if coll.client.(*clientImpl).retryReads {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
@@ -1294,15 +1294,15 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 
 	sess := sessionFromContext(ctx)
 	var err error
-	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
 		defer sess.EndSession()
 	}
 
-	err = coll.client.validSession(sess)
+	err = coll.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
@@ -1318,20 +1318,20 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
 	retry := driver.RetryNone
-	if coll.client.retryWrites {
+	if coll.client.(*clientImpl).retryWrites {
 		retry = driver.RetryOnce
 	}
 
 	op = op.Session(sess).
 		WriteConcern(wc).
-		CommandMonitor(coll.client.monitor).
+		CommandMonitor(coll.client.(*clientImpl).monitor).
 		ServerSelector(selector).
-		ClusterClock(coll.client.clock).
+		ClusterClock(coll.client.(*clientImpl).clock).
 		Database(coll.db.name).
 		Collection(coll.name).
-		Deployment(coll.client.deployment).
+		Deployment(coll.client.(*clientImpl).deployment).
 		Retry(retry).
-		Crypt(coll.client.crypt)
+		Crypt(coll.client.(*clientImpl).crypt)
 
 	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
@@ -1570,7 +1570,7 @@ func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
 		streamType:     CollectionStream,
 		collectionName: coll.Name(),
 		databaseName:   coll.db.Name(),
-		crypt:          coll.client.crypt,
+		crypt:          coll.client.(*clientImpl).crypt,
 	}
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
@@ -1588,16 +1588,16 @@ func (coll *Collection) Drop(ctx context.Context) error {
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && coll.client.sessionPool != nil {
+	if sess == nil && coll.client.(*clientImpl).sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+		sess, err = session.NewClientSession(coll.client.(*clientImpl).sessionPool, coll.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return err
 		}
 		defer sess.EndSession()
 	}
 
-	err := coll.client.validSession(sess)
+	err := coll.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return err
 	}
@@ -1613,10 +1613,10 @@ func (coll *Collection) Drop(ctx context.Context) error {
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
 	op := operation.NewDropCollection().
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.(*clientImpl).monitor).
+		ServerSelector(selector).ClusterClock(coll.client.(*clientImpl).clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		Deployment(coll.client.(*clientImpl).deployment).Crypt(coll.client.(*clientImpl).crypt)
 	err = op.Execute(ctx)
 
 	// ignore namespace not found erorrs

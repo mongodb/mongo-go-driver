@@ -116,7 +116,7 @@ type T struct {
 	succeeded   []*event.CommandSucceededEvent
 	failed      []*event.CommandFailedEvent
 
-	Client *mongo.Client
+	Client mongo.Client
 	DB     *mongo.Database
 	Coll   *mongo.Collection
 }
@@ -398,8 +398,8 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 // Collection is used to configure a new collection created during a test.
 type Collection struct {
 	Name       string
-	DB         string        // defaults to mt.DB.Name() if not specified
-	Client     *mongo.Client // defaults to mt.Client if not specified
+	DB         string       // defaults to mt.DB.Name() if not specified
+	Client     mongo.Client // defaults to mt.Client if not specified
 	Opts       *options.CollectionOptions
 	CreateOpts bson.D
 
@@ -547,7 +547,7 @@ func (t *T) CloneCollection(opts *options.CollectionOptions) {
 
 // GlobalClient returns a client configured with read concern majority, write concern majority, and read preference
 // primary. The returned client is not tied to the receiver and is valid outside the lifetime of the receiver.
-func (*T) GlobalClient() *mongo.Client {
+func (*T) GlobalClient() mongo.Client {
 	return testContext.client
 }
 

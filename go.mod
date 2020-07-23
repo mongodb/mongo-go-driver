@@ -8,6 +8,7 @@ require (
 	github.com/gobuffalo/genny v0.1.1 // indirect
 	github.com/gobuffalo/gogen v0.1.1 // indirect
 	github.com/gobuffalo/packr/v2 v2.2.0
+	github.com/golang/mock v1.4.3
 	github.com/golang/snappy v0.0.1
 	github.com/google/go-cmp v0.2.0
 	github.com/karrick/godirwalk v1.10.3 // indirect

@@ -31,7 +31,7 @@ var (
 
 // Database is a handle to a MongoDB database. It is safe for concurrent use by multiple goroutines.
 type Database struct {
-	client         *Client
+	client         Client
 	name           string
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
@@ -41,25 +41,25 @@ type Database struct {
 	registry       *bsoncodec.Registry
 }
 
-func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
+func newDatabase(client Client, name string, opts ...*options.DatabaseOptions) *Database {
 	dbOpt := options.MergeDatabaseOptions(opts...)
 
-	rc := client.readConcern
+	rc := client.(*clientImpl).readConcern
 	if dbOpt.ReadConcern != nil {
 		rc = dbOpt.ReadConcern
 	}
 
-	rp := client.readPreference
+	rp := client.(*clientImpl).readPreference
 	if dbOpt.ReadPreference != nil {
 		rp = dbOpt.ReadPreference
 	}
 
-	wc := client.writeConcern
+	wc := client.(*clientImpl).writeConcern
 	if dbOpt.WriteConcern != nil {
 		wc = dbOpt.WriteConcern
 	}
 
-	reg := client.registry
+	reg := client.(*clientImpl).registry
 	if dbOpt.Registry != nil {
 		reg = dbOpt.Registry
 	}
@@ -75,19 +75,19 @@ func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) 
 
 	db.readSelector = description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(db.readPreference),
-		description.LatencySelector(db.client.localThreshold),
+		description.LatencySelector(db.client.(*clientImpl).localThreshold),
 	})
 
 	db.writeSelector = description.CompositeSelector([]description.ServerSelector{
 		description.WriteSelector(),
-		description.LatencySelector(db.client.localThreshold),
+		description.LatencySelector(db.client.(*clientImpl).localThreshold),
 	})
 
 	return db
 }
 
 // Client returns the Client the Database was created from.
-func (db *Database) Client() *Client {
+func (db *Database) Client() Client {
 	return db.client
 }
 
@@ -122,7 +122,7 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 		registry:       db.registry,
 		readConcern:    db.readConcern,
 		writeConcern:   db.writeConcern,
-		retryRead:      db.client.retryReads,
+		retryRead:      db.client.(*clientImpl).retryReads,
 		db:             db.name,
 		readSelector:   db.readSelector,
 		writeSelector:  db.writeSelector,
@@ -135,15 +135,15 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
 	sess := sessionFromContext(ctx)
-	if sess == nil && db.client.sessionPool != nil {
+	if sess == nil && db.client.(*clientImpl).sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
+		sess, err = session.NewClientSession(db.client.(*clientImpl).sessionPool, db.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return nil, sess, err
 		}
 	}
 
-	err := db.client.validSession(sess)
+	err := db.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return nil, sess, err
 	}
@@ -159,16 +159,16 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	}
 	readSelect := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(ro.ReadPreference),
-		description.LatencySelector(db.client.localThreshold),
+		description.LatencySelector(db.client.(*clientImpl).localThreshold),
 	})
 	if sess != nil && sess.PinnedServer != nil {
 		readSelect = sess.PinnedServer
 	}
 
 	return operation.NewCommand(runCmdDoc).
-		Session(sess).CommandMonitor(db.client.monitor).
-		ServerSelector(readSelect).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).Crypt(db.client.crypt), sess, nil
+		Session(sess).CommandMonitor(db.client.(*clientImpl).monitor).
+		ServerSelector(readSelect).ClusterClock(db.client.(*clientImpl).clock).
+		Database(db.name).Deployment(db.client.(*clientImpl).deployment).ReadConcern(db.readConcern).Crypt(db.client.(*clientImpl).crypt), sess, nil
 }
 
 // RunCommand executes the given command against the database.
@@ -239,16 +239,16 @@ func (db *Database) Drop(ctx context.Context) error {
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && db.client.sessionPool != nil {
+	if sess == nil && db.client.(*clientImpl).sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
+		sess, err = session.NewClientSession(db.client.(*clientImpl).sessionPool, db.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return err
 		}
 		defer sess.EndSession()
 	}
 
-	err := db.client.validSession(sess)
+	err := db.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return err
 	}
@@ -264,9 +264,9 @@ func (db *Database) Drop(ctx context.Context) error {
 	selector := makePinnedSelector(sess, db.writeSelector)
 
 	op := operation.NewDropDatabase().
-		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
-		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.crypt)
+		Session(sess).WriteConcern(wc).CommandMonitor(db.client.(*clientImpl).monitor).
+		ServerSelector(selector).ClusterClock(db.client.(*clientImpl).clock).
+		Database(db.name).Deployment(db.client.(*clientImpl).deployment).Crypt(db.client.(*clientImpl).crypt)
 
 	err = op.Execute(ctx)
 
@@ -298,14 +298,14 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	}
 
 	sess := sessionFromContext(ctx)
-	if sess == nil && db.client.sessionPool != nil {
-		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
+	if sess == nil && db.client.(*clientImpl).sessionPool != nil {
+		sess, err = session.NewClientSession(db.client.(*clientImpl).sessionPool, db.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = db.client.validSession(sess)
+	err = db.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, err
@@ -313,20 +313,20 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 
 	selector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(readpref.Primary()),
-		description.LatencySelector(db.client.localThreshold),
+		description.LatencySelector(db.client.(*clientImpl).localThreshold),
 	})
-	selector = makeReadPrefSelector(sess, selector, db.client.localThreshold)
+	selector = makeReadPrefSelector(sess, selector, db.client.(*clientImpl).localThreshold)
 
 	lco := options.MergeListCollectionsOptions(opts...)
 	op := operation.NewListCollections(filterDoc).
-		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
-		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.crypt)
+		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.(*clientImpl).monitor).
+		ServerSelector(selector).ClusterClock(db.client.(*clientImpl).clock).
+		Database(db.name).Deployment(db.client.(*clientImpl).deployment).Crypt(db.client.(*clientImpl).crypt)
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)
 	}
 	retry := driver.RetryNone
-	if db.client.retryReads {
+	if db.client.(*clientImpl).retryReads {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
@@ -337,7 +337,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, replaceErrors(err)
 	}
 
-	bc, err := op.Result(driver.CursorOptions{Crypt: db.client.crypt})
+	bc, err := op.Result(driver.CursorOptions{Crypt: db.client.(*clientImpl).crypt})
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
@@ -430,7 +430,7 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 		registry:       db.registry,
 		streamType:     DatabaseStream,
 		databaseName:   db.Name(),
-		crypt:          db.client.crypt,
+		crypt:          db.client.(*clientImpl).crypt,
 	}
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
@@ -532,16 +532,16 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 
 func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Create) error {
 	sess := sessionFromContext(ctx)
-	if sess == nil && db.client.sessionPool != nil {
+	if sess == nil && db.client.(*clientImpl).sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
+		sess, err = session.NewClientSession(db.client.(*clientImpl).sessionPool, db.client.(*clientImpl).id, session.Implicit)
 		if err != nil {
 			return err
 		}
 		defer sess.EndSession()
 	}
 
-	err := db.client.validSession(sess)
+	err := db.client.(*clientImpl).validSession(sess)
 	if err != nil {
 		return err
 	}
@@ -557,12 +557,12 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 	selector := makePinnedSelector(sess, db.writeSelector)
 	op = op.Session(sess).
 		WriteConcern(wc).
-		CommandMonitor(db.client.monitor).
+		CommandMonitor(db.client.(*clientImpl).monitor).
 		ServerSelector(selector).
-		ClusterClock(db.client.clock).
+		ClusterClock(db.client.(*clientImpl).clock).
 		Database(db.name).
-		Deployment(db.client.deployment).
-		Crypt(db.client.crypt)
+		Deployment(db.client.(*clientImpl).deployment).
+		Crypt(db.client.(*clientImpl).crypt)
 
 	return replaceErrors(op.Execute(ctx))
 }

@@ -76,7 +76,7 @@ type ChangeStream struct {
 	resumeToken   bson.Raw
 	err           error
 	sess          *session.Client
-	client        *Client
+	client        Client
 	registry      *bsoncodec.Registry
 	streamType    StreamType
 	options       *options.ChangeStreamOptions
@@ -88,7 +88,7 @@ type ChangeStream struct {
 type changeStreamConfig struct {
 	readConcern    *readconcern.ReadConcern
 	readPreference *readpref.ReadPref
-	client         *Client
+	client         Client
 	registry       *bsoncodec.Registry
 	streamType     StreamType
 	collectionName string
@@ -111,21 +111,21 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	}
 
 	cs.sess = sessionFromContext(ctx)
-	if cs.sess == nil && cs.client.sessionPool != nil {
-		cs.sess, cs.err = session.NewClientSession(cs.client.sessionPool, cs.client.id, session.Implicit)
+	if cs.sess == nil && cs.client.(*clientImpl).sessionPool != nil {
+		cs.sess, cs.err = session.NewClientSession(cs.client.(*clientImpl).sessionPool, cs.client.(*clientImpl).id, session.Implicit)
 		if cs.err != nil {
 			return nil, cs.Err()
 		}
 	}
-	if cs.err = cs.client.validSession(cs.sess); cs.err != nil {
+	if cs.err = cs.client.(*clientImpl).validSession(cs.sess); cs.err != nil {
 		closeImplicitSession(cs.sess)
 		return nil, cs.Err()
 	}
 
 	cs.aggregate = operation.NewAggregate(nil).
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
-		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
-		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
+		Deployment(cs.client.(*clientImpl).deployment).ClusterClock(cs.client.(*clientImpl).clock).
+		CommandMonitor(cs.client.(*clientImpl).monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
 		Crypt(config.crypt)
 
 	if config.crypt != nil {
@@ -141,7 +141,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	if cs.options.MaxAwaitTime != nil {
 		cs.cursorOptions.MaxTimeMS = int64(time.Duration(*cs.options.MaxAwaitTime) / time.Millisecond)
 	}
-	cs.cursorOptions.CommandMonitor = cs.client.monitor
+	cs.cursorOptions.CommandMonitor = cs.client.(*clientImpl).monitor
 
 	switch cs.streamType {
 	case ClientStream:
@@ -188,7 +188,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 func (cs *ChangeStream) createOperationDeployment(server driver.Server, connection driver.Connection) driver.Deployment {
 	return &changeStreamDeployment{
-		topologyKind: cs.client.deployment.Kind(),
+		topologyKind: cs.client.(*clientImpl).deployment.Kind(),
 		server:       server,
 		conn:         connection,
 	}
@@ -199,7 +199,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	var conn driver.Connection
 	var err error
 
-	if server, cs.err = cs.client.deployment.SelectServer(ctx, cs.selector); cs.err != nil {
+	if server, cs.err = cs.client.(*clientImpl).deployment.SelectServer(ctx, cs.selector); cs.err != nil {
 		return cs.Err()
 	}
 	if conn, cs.err = server.Connection(ctx); cs.err != nil {
@@ -229,7 +229,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	}
 
 	if original := cs.aggregate.Execute(ctx); original != nil {
-		retryableRead := cs.client.retryReads && cs.wireVersion != nil && cs.wireVersion.Max >= 6
+		retryableRead := cs.client.(*clientImpl).retryReads && cs.wireVersion != nil && cs.wireVersion.Max >= 6
 		if !retryableRead {
 			cs.err = replaceErrors(original)
 			return cs.err
@@ -242,7 +242,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 				break
 			}
 
-			server, err = cs.client.deployment.SelectServer(ctx, cs.selector)
+			server, err = cs.client.(*clientImpl).deployment.SelectServer(ctx, cs.selector)
 			if err != nil {
 				break
 			}
@@ -274,7 +274,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	cr := cs.aggregate.ResultCursorResponse()
 	cr.Server = server
 
-	cs.cursor, cs.err = driver.NewBatchCursor(cr, cs.sess, cs.client.clock, cs.cursorOptions)
+	cs.cursor, cs.err = driver.NewBatchCursor(cr, cs.sess, cs.client.(*clientImpl).clock, cs.cursorOptions)
 	if cs.err = replaceErrors(cs.err); cs.err != nil {
 		return cs.Err()
 	}

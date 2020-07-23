@@ -22,7 +22,7 @@ import (
 
 func TestMain(m *testing.M) {
 	// register equality options
-	assert.RegisterOpts(reflect.TypeOf(&Client{}), cmp.Comparer(func(c1, c2 *Client) bool {
+	assert.RegisterOpts(reflect.TypeOf(&clientImpl{}), cmp.Comparer(func(c1, c2 *Client) bool {
 		return c1 == c2
 	}))
 	assert.RegisterOpts(reflect.TypeOf(&bsoncodec.Registry{}), cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool {

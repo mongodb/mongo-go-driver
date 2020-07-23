@@ -22,12 +22,12 @@ import (
 // ClientEncryption is used to create data keys and explicitly encrypt and decrypt BSON values.
 type ClientEncryption struct {
 	crypt          *driver.Crypt
-	keyVaultClient *Client
+	keyVaultClient Client
 	keyVaultColl   *Collection
 }
 
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
-func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncryptionOptions) (*ClientEncryption, error) {
+func NewClientEncryption(keyVaultClient Client, opts ...*options.ClientEncryptionOptions) (*ClientEncryption, error) {
 	if keyVaultClient == nil {
 		return nil, errors.New("keyVaultClient must not be nil")
 	}
@@ -64,7 +64,7 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 	dko := options.MergeDataKeyOptions(opts...)
 	co := cryptOpts.DataKey().SetKeyAltNames(dko.KeyAltNames)
 	if dko.MasterKey != nil {
-		keyDoc, err := transformBsoncoreDocument(ce.keyVaultClient.registry, dko.MasterKey)
+		keyDoc, err := transformBsoncoreDocument(ce.keyVaultClient.(*clientImpl).registry, dko.MasterKey)
 		if err != nil {
 			return primitive.Binary{}, err
 		}

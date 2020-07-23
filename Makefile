@@ -92,6 +92,12 @@ test-short:
     	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(COVER_ARGS) $$TEST ; \
     done
 
+.PHONY: mocks
+mocks:
+	for TEST in $(TEST_PKGS) ; do \
+    	go generate $$TEST ; \
+    done
+
 .PHONY: update-bson-corpus-tests
 update-bson-corpus-tests:
 	etc/update-spec-tests.sh bson-corpus

@@ -13,6 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
@@ -29,7 +32,7 @@ import (
 
 var bgCtx = context.Background()
 
-func setupClient(opts ...*options.ClientOptions) *Client {
+func setupClient(opts ...*options.ClientOptions) Client {
 	if len(opts) == 0 {
 		opts = append(opts, options.Client().ApplyURI("mongodb://localhost:27017"))
 	}
@@ -49,7 +52,7 @@ func (md mockDeployment) Kind() description.TopologyKind {
 
 func TestClient(t *testing.T) {
 	t.Run("new client", func(t *testing.T) {
-		client := setupClient()
+		client := setupClient().(*clientImpl)
 		assert.NotNil(t, client.deployment, "expected valid deployment, got nil")
 	})
 	t.Run("database", func(t *testing.T) {
@@ -57,7 +60,13 @@ func TestClient(t *testing.T) {
 		client := setupClient()
 		db := client.Database(dbName)
 		assert.Equal(t, dbName, db.Name(), "expected db name %v, got %v", dbName, db.Name())
-		assert.Equal(t, client, db.Client(), "expected client %v, got %v", client, db.Client())
+		// assert.Equal(t, client, db.Client(), "expected client %v, got %v", client, db.Client())
+		if !cmp.Equal(
+			db.Client(), client,
+			cmpopts.IgnoreUnexported(clientImpl{}),
+		) {
+			t.Errorf("expected client %v, got %v", client, db.Client())
+		}
 	})
 	t.Run("replace topology error", func(t *testing.T) {
 		client := setupClient()
@@ -79,7 +88,7 @@ func TestClient(t *testing.T) {
 	})
 	t.Run("nil document error", func(t *testing.T) {
 		// manually set session pool to non-nil because Watch will return ErrClientDisconnected
-		client := setupClient()
+		client := setupClient().(*clientImpl)
 		client.sessionPool = &session.Pool{}
 
 		_, err := client.Watch(bgCtx, nil)
@@ -94,7 +103,7 @@ func TestClient(t *testing.T) {
 	})
 	t.Run("read preference", func(t *testing.T) {
 		t.Run("absent", func(t *testing.T) {
-			client := setupClient()
+			client := setupClient().(*clientImpl)
 			gotMode := client.readPreference.Mode()
 			wantMode := readpref.PrimaryMode
 			assert.Equal(t, gotMode, wantMode, "expected mode %v, got %v", wantMode, gotMode)
@@ -119,7 +128,7 @@ func TestClient(t *testing.T) {
 			cs := "mongodb://localhost:27017/"
 			cs += "?readpreference=secondary&readPreferenceTags=one:1&readPreferenceTags=two:2&maxStaleness=5"
 
-			client := setupClient(options.Client().ApplyURI(cs))
+			client := setupClient(options.Client().ApplyURI(cs)).(*clientImpl)
 			gotMode := client.readPreference.Mode()
 			assert.Equal(t, gotMode, readpref.SecondaryMode, "expected mode %v, got %v", readpref.SecondaryMode, gotMode)
 			gotTags := client.readPreference.TagSets()
@@ -132,7 +141,7 @@ func TestClient(t *testing.T) {
 	})
 	t.Run("custom deployment", func(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
-			client := setupClient(&options.ClientOptions{Deployment: mockDeployment{}})
+			client := setupClient(&options.ClientOptions{Deployment: mockDeployment{}}).(*clientImpl)
 			_, ok := client.deployment.(mockDeployment)
 			assert.True(t, ok, "expected deployment type %T, got %T", mockDeployment{}, client.deployment)
 		})
@@ -166,7 +175,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				client := setupClient(tc.opts)
+				client := setupClient(tc.opts).(*clientImpl)
 				assert.Equal(t, tc.expectedThreshold, client.localThreshold,
 					"expected localThreshold %v, got %v", tc.expectedThreshold, client.localThreshold)
 			})
@@ -174,7 +183,7 @@ func TestClient(t *testing.T) {
 	})
 	t.Run("read concern", func(t *testing.T) {
 		rc := readconcern.Majority()
-		client := setupClient(options.Client().SetReadConcern(rc))
+		client := setupClient(options.Client().SetReadConcern(rc)).(*clientImpl)
 		assert.Equal(t, rc, client.readConcern, "expected read concern %v, got %v", rc, client.readConcern)
 	})
 	t.Run("retry writes", func(t *testing.T) {
@@ -200,8 +209,8 @@ func TestClient(t *testing.T) {
 					return
 				}
 				assert.Nil(t, err, "configuration error: %v", err)
-				assert.Equal(t, tc.expectedRetry, client.retryWrites, "expected retryWrites %v, got %v",
-					tc.expectedRetry, client.retryWrites)
+				assert.Equal(t, tc.expectedRetry, client.(*clientImpl).retryWrites, "expected retryWrites %v, got %v",
+					tc.expectedRetry, client.(*clientImpl).retryWrites)
 			})
 		}
 	})
@@ -228,14 +237,14 @@ func TestClient(t *testing.T) {
 					return
 				}
 				assert.Nil(t, err, "configuration error: %v", err)
-				assert.Equal(t, tc.expectedRetry, client.retryReads, "expected retryReads %v, got %v",
-					tc.expectedRetry, client.retryReads)
+				assert.Equal(t, tc.expectedRetry, client.(*clientImpl).retryReads, "expected retryReads %v, got %v",
+					tc.expectedRetry, client.(*clientImpl).retryReads)
 			})
 		}
 	})
 	t.Run("write concern", func(t *testing.T) {
 		wc := writeconcern.New(writeconcern.WMajority())
-		client := setupClient(options.Client().SetWriteConcern(wc))
+		client := setupClient(options.Client().SetWriteConcern(wc)).(*clientImpl)
 		assert.Equal(t, wc, client.writeConcern, "mismatch; expected write concern %v, got %v", wc, client.writeConcern)
 	})
 	t.Run("GetURI", func(t *testing.T) {
@@ -321,7 +330,7 @@ func TestClient(t *testing.T) {
 					sess.EndSession(bgCtx)
 				}
 
-				client.endSessions(bgCtx)
+				client.(*clientImpl).endSessions(bgCtx)
 				divisionResult := float64(tc.numSessions) / float64(endSessionsBatchSize)
 				numEventsExpected := int(math.Ceil(divisionResult))
 				assert.Equal(t, len(started), numEventsExpected, "expected %d started events, got %d", numEventsExpected,

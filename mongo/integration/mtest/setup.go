@@ -39,14 +39,14 @@ var testContext struct {
 	connString       connstring.ConnString
 	topo             *topology.Topology
 	topoKind         TopologyKind
-	client           *mongo.Client // client used for setup and teardown
+	client           mongo.Client // client used for setup and teardown
 	serverVersion    string
 	authEnabled      bool
 	sslEnabled       bool
 	enterpriseServer bool
 }
 
-func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
+func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (mongo.Client, error) {
 	wcMajority := writeconcern.New(writeconcern.WMajority())
 	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority))
 }

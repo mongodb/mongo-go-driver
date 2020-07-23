@@ -97,7 +97,7 @@ func killSessions(mt *mtest.T) {
 
 	// killAllSessions has to be run against each mongos in a sharded cluster, so we use the runCommandOnAllServers
 	// helper.
-	err := runCommandOnAllServers(mt, func(client *mongo.Client) error {
+	err := runCommandOnAllServers(mt, func(client mongo.Client) error {
 		return client.Database("admin").RunCommand(mtest.Background, cmd, runCmdOpts).Err()
 	})
 
@@ -111,7 +111,7 @@ func killSessions(mt *mtest.T) {
 
 // Utility function to run a command on all servers. For standalones, the command is run against the one server. For
 // replica sets, the command is run against the primary. sharded clusters, the command is run against each mongos.
-func runCommandOnAllServers(mt *mtest.T, commandFn func(client *mongo.Client) error) error {
+func runCommandOnAllServers(mt *mtest.T, commandFn func(client mongo.Client) error) error {
 	opts := options.Client().
 		ApplyURI(mt.ConnString())
 
@@ -1420,7 +1420,7 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 	assert.Nil(mt, err, "RunCommand error for command %q: %v", op.CommandName, err)
 }
 
-func executeAdminCommandWithRetry(mt *mtest.T, client *mongo.Client, cmd interface{}, opts ...*options.RunCmdOptions) {
+func executeAdminCommandWithRetry(mt *mtest.T, client mongo.Client, cmd interface{}, opts ...*options.RunCmdOptions) {
 	mt.Helper()
 
 	ctx, cancel := context.WithTimeout(mtest.Background, 10*time.Second)
