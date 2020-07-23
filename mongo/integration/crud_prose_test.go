@@ -145,19 +145,17 @@ func TestHintErrors(t *testing.T) {
 	})
 }
 
-func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
-	// Use secondaryPreferred instead of secondary because sharded clusters started up by mongo-orchestration have
-	// one-node shards, so a secondary read preference is not satisfiable.
-	secondaryPrefClientOpts := options.Client().
+func TestAggregatePrimaryPreferredReadPreference(t *testing.T) {
+	nonPrimaryPrefClientOpts := options.Client().
 		SetWriteConcern(mtest.MajorityWc).
-		SetReadPreference(readpref.SecondaryPreferred()).
+		SetReadPreference(readpref.PrimaryPreferred()).
 		SetReadConcern(mtest.MajorityRc)
 	mtOpts := mtest.NewOptions().
-		ClientOptions(secondaryPrefClientOpts).
+		ClientOptions(nonPrimaryPrefClientOpts).
 		MinServerVersion("4.1.0") // Consistent with tests in aggregate-out-readConcern.json
 
 	mt := mtest.New(t, mtOpts)
-	mt.Run("aggregate $out with read preference secondary", func(mt *mtest.T) {
+	mt.Run("aggregate $out with non-primary read ppreference", func(mt *mtest.T) {
 		doc, err := bson.Marshal(bson.D{
 			{"_id", 1},
 			{"x", 11},
@@ -167,7 +165,7 @@ func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 
 		mt.ClearEvents()
-		outputCollName := "aggregate-read-pref-secondary-output"
+		outputCollName := "aggregate-read-pref-primary-preferred-output"
 		outStage := bson.D{
 			{"$out", outputCollName},
 		}
