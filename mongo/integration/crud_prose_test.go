@@ -146,12 +146,12 @@ func TestHintErrors(t *testing.T) {
 }
 
 func TestAggregatePrimaryPreferredReadPreference(t *testing.T) {
-	nonPrimaryPrefClientOpts := options.Client().
+	primaryPrefClientOpts := options.Client().
 		SetWriteConcern(mtest.MajorityWc).
 		SetReadPreference(readpref.PrimaryPreferred()).
 		SetReadConcern(mtest.MajorityRc)
 	mtOpts := mtest.NewOptions().
-		ClientOptions(nonPrimaryPrefClientOpts).
+		ClientOptions(primaryPrefClientOpts).
 		MinServerVersion("4.1.0") // Consistent with tests in aggregate-out-readConcern.json
 
 	mt := mtest.New(t, mtOpts)
