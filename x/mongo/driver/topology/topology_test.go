@@ -103,7 +103,6 @@ func TestServerSelection(t *testing.T) {
 			supportedWireVersions.Max,
 		)
 		desc.CompatibilityErr = want
-		topo.fsm.Servers = desc.Servers
 		atomic.StoreInt32(&topo.connectionstate, connected)
 		topo.desc.Store(desc)
 		_, err = topo.SelectServer(context.Background(), selectFirst)
@@ -129,7 +128,6 @@ func TestServerSelection(t *testing.T) {
 			minSupportedMongoDBVersion,
 		)
 		desc.CompatibilityErr = want
-		topo.fsm.Servers = desc.Servers
 		atomic.StoreInt32(&topo.connectionstate, connected)
 		topo.desc.Store(desc)
 		_, err = topo.SelectServer(context.Background(), selectFirst)
