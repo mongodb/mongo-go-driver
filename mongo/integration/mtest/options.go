@@ -212,3 +212,11 @@ func (op *Options) Enterprise(ent bool) *Options {
 	})
 	return op
 }
+
+// AtlasDataLake specifies whether this test should only be run against Atlas Data Lake servers. Defaults to false.
+func (op *Options) AtlasDataLake(adl bool) *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.dataLake = &adl
+	})
+	return op
+}

@@ -98,6 +98,7 @@ type T struct {
 	validTopologies  []TopologyKind
 	auth             *bool
 	enterprise       *bool
+	dataLake         *bool
 	ssl              *bool
 	collCreateOpts   bson.D
 	connsCheckedOut  int // net number of connections checked out during test execution
@@ -442,8 +443,11 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 
 // ClearCollections drops all collections previously created by this test.
 func (t *T) ClearCollections() {
-	for _, coll := range t.createdColls {
-		_ = coll.created.Drop(Background)
+	// Collections should not be dropped when testing against Atlas Data Lake because the data is pre-inserted.
+	if !testContext.dataLake {
+		for _, coll := range t.createdColls {
+			_ = coll.created.Drop(Background)
+		}
 	}
 	t.createdColls = t.createdColls[:0]
 }
@@ -663,7 +667,9 @@ func (t *T) createTestCollection() {
 	t.DB = t.Client.Database(t.dbName)
 	t.createdColls = t.createdColls[:0]
 
-	createOnServer := t.createCollection == nil || *t.createCollection
+	// Collections should not be explicitly created when testing against Atlas Data Lake because they already exist in
+	// the server with pre-seeded data.
+	createOnServer := (t.createCollection == nil || *t.createCollection) && !testContext.dataLake
 	t.Coll = t.CreateCollection(Collection{
 		Name:       t.collName,
 		CreateOpts: t.collCreateOpts,
@@ -718,6 +724,9 @@ func (t *T) shouldSkip() bool {
 		return true
 	}
 	if t.enterprise != nil && *t.enterprise != testContext.enterpriseServer {
+		return true
+	}
+	if t.dataLake != nil && *t.dataLake != testContext.dataLake {
 		return true
 	}
 

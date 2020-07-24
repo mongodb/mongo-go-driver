@@ -32,9 +32,11 @@ var (
 	emptyDoc                        = []byte{5, 0, 0, 0, 0}
 	errorCommandNotFound      int32 = 59
 	errorLockTimeout          int32 = 24
+	errorCommandNotSupported  int32 = 115
 	killAllSessionsErrorCodes       = map[int32]struct{}{
-		errorInterrupted:     {},
-		errorCommandNotFound: {}, // the killAllSessions command does not exist on server versions < 3.6
+		errorInterrupted:         {}, // the command interrupts itself
+		errorCommandNotFound:     {}, // the killAllSessions command does not exist on server versions < 3.6
+		errorCommandNotSupported: {}, // the command is not supported on Atlas Data Lake
 	}
 )
 
@@ -381,6 +383,8 @@ func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor,
 			setFindModifiers(mt, val.Document(), opts)
 		case "allowDiskUse":
 			opts = opts.SetAllowDiskUse(val.Boolean())
+		case "projection":
+			opts = opts.SetProjection(val.Document())
 		case "session":
 		default:
 			mt.Fatalf("unrecognized find option: %v", key)
@@ -1622,21 +1626,24 @@ func verifyListDatabasesResult(mt *mtest.T, actualResult mongo.ListDatabasesResu
 func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
 	mt.Helper()
 
+	// The Atlas Data Lake tests expect a getMore to be sent even though the operation does not have a Result field.
+	// To account for this, we fetch all documents via cursor.All and then compare them to the result if it's non-nil.
+	assert.NotNil(mt, cur, "expected cursor to not be nil")
+	var actual []bson.Raw
+	err := cur.All(mtest.Background, &actual)
+	assert.Nil(mt, err, "All error: %v", err)
+
 	if result == nil {
 		return
 	}
 
-	assert.NotNil(mt, cur, "expected cursor to not be nil")
-	for i, expected := range result.(bson.A) {
-		assert.True(mt, cur.Next(mtest.Background), "expected Next to return true but got false")
-		if err := compareDocs(mt, expected.(bson.Raw), cur.Current); err != nil {
-			mt.Fatalf("cursor document mismatch at index %d: %s", i, err)
-		}
+	resultsArray := result.(bson.A)
+	assert.Equal(mt, len(resultsArray), len(actual), "expected %d documents from cursor, got %d", len(resultsArray),
+		len(actual))
+	for i, expected := range resultsArray {
+		err := compareDocs(mt, expected.(bson.Raw), actual[i])
+		assert.Nil(mt, err, "cursor document mismatch at index %d: %v", i, err)
 	}
-
-	assert.False(mt, cur.Next(mtest.Background), "expected Next to return false but got true")
-	err := cur.Err()
-	assert.Nil(mt, err, "cursor error: %v", err)
 }
 
 func verifySingleResult(mt *mtest.T, actualResult *mongo.SingleResult, expectedResult interface{}) {

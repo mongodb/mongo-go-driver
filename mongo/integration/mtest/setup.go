@@ -44,6 +44,7 @@ var testContext struct {
 	authEnabled      bool
 	sslEnabled       bool
 	enterpriseServer bool
+	dataLake         bool
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
@@ -59,6 +60,7 @@ func Setup() error {
 	if err != nil {
 		return fmt.Errorf("error getting connection string: %v", err)
 	}
+	testContext.dataLake = os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") == "true"
 
 	connectionOpts := []topology.ConnectionOption{
 		topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
@@ -145,8 +147,11 @@ func Setup() error {
 // Teardown cleans up resources initialized by Setup.
 // This function must be called once after all tests have finished running.
 func Teardown() error {
-	if err := testContext.client.Database(TestDb).Drop(Background); err != nil {
-		return fmt.Errorf("error dropping test database: %v", err)
+	// Dropping the test database causes an error against Atlas Data Lake.
+	if !testContext.dataLake {
+		if err := testContext.client.Database(TestDb).Drop(Background); err != nil {
+			return fmt.Errorf("error dropping test database: %v", err)
+		}
 	}
 	if err := testContext.client.Disconnect(Background); err != nil {
 		return fmt.Errorf("error disconnecting test client: %v", err)
@@ -161,7 +166,7 @@ func getServerVersion() (string, error) {
 	var serverStatus bson.Raw
 	err := testContext.client.Database(TestDb).RunCommand(
 		Background,
-		bson.D{{"serverStatus", 1}},
+		bson.D{{"buildInfo", 1}},
 	).Decode(&serverStatus)
 	if err != nil {
 		return "", err

@@ -162,6 +162,23 @@ functions:
         content_type: ${content_type|application/x-gzip}
         display_name: "mongodb-logs.tar.gz"
 
+  bootstrap-mongohoused:
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+
+          cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
+          DRIVERS_TOOLS="${DRIVERS_TOOLS}" sh build-mongohouse-local.sh
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          ${PREPARE_SHELL}
+
+          cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
+          DRIVERS_TOOLS="${DRIVERS_TOOLS}" sh run-mongohouse-local.sh
+
   bootstrap-mongo-orchestration:
     - command: shell.exec
       params:
@@ -413,6 +430,20 @@ functions:
           MONGODB_URI="${MONGODB_URI}" \
           OCSP_TLS_SHOULD_SUCCEED="${OCSP_TLS_SHOULD_SUCCEED}" \
           make evg-test-ocsp
+
+  run-atlas-data-lake-test:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          set +o xtrace
+          AUTH="auth" \
+          SSL="nossl" \
+          TOPOLOGY="server" \
+          MONGODB_URI="mongodb://mhuser:pencil@localhost" \
+          make evg-test-atlas-data-lake
 
   run-valid-ocsp-server:
     - command: shell.exec
@@ -1221,6 +1252,11 @@ tasks:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
 
+  - name: test-atlas-data-lake
+    commands:
+      - func: bootstrap-mongohoused
+      - func: run-atlas-data-lake-test
+
   - name: test-replicaset-noauth-nossl
     tags: ["test", "replicaset"]
     commands:
@@ -1621,6 +1657,15 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.13"
     tasks:
       - name: "atlas-test"
+
+  - name: atlas-data-lake-test
+    display_name: "Atlas Data Lake Test"
+    run_on:
+      - ubuntu1604-build
+    expansions:
+      GO_DIST: "/opt/golang/go1.13"
+    tasks:
+      - name: "test-atlas-data-lake"
 
   - matrix_name: "tests-legacy-auth-ssl"
     matrix_spec: { version: ["2.6", "3.0"], os-ssl-legacy: "*" }
