@@ -297,7 +297,6 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 	if atomic.LoadInt32(&t.connectionstate) != connected {
 		return nil, ErrTopologyClosed
 	}
-
 	var ssTimeoutCh <-chan time.Time
 
 	if t.cfg.serverSelectionTimeout > 0 {
@@ -364,7 +363,6 @@ func (t *Topology) SelectServerLegacy(ctx context.Context, ss description.Server
 	if atomic.LoadInt32(&t.connectionstate) != connected {
 		return nil, ErrTopologyClosed
 	}
-
 	var ssTimeoutCh <-chan time.Time
 
 	if t.cfg.serverSelectionTimeout > 0 {
