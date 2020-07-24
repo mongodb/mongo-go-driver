@@ -107,7 +107,7 @@ func TestServerSelection(t *testing.T) {
 		atomic.StoreInt32(&topo.connectionstate, connected)
 		topo.desc.Store(desc)
 		_, err = topo.SelectServer(context.Background(), selectFirst)
-		assert.Equal(t, err, want, "expected %v, got %v\n", want, err)
+		assert.Equal(t, err, want, "expected %v, got %v", want, err)
 	})
 	t.Run("Compatibility Error Max Version Too Low", func(t *testing.T) {
 		topo, err := New()
