@@ -96,18 +96,17 @@ func TestServerSelection(t *testing.T) {
 				{Addr: address.Address("three:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
 			},
 		}
-		serverDesc := description.Server{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}}
-		topo.fsm.Servers = desc.Servers
-		atomic.StoreInt32(&topo.connectionstate, connected)
-		topo.desc.Store(desc)
-		topo.apply(context.Background(), serverDesc)
-		_, err = topo.SelectServer(context.Background(), selectFirst)
 		want := fmt.Errorf(
 			"server at %s requires wire version %d, but this version of the Go driver only supports up to %d",
 			desc.Servers[0].Addr.String(),
 			desc.Servers[0].WireVersion.Min,
 			supportedWireVersions.Max,
 		)
+		desc.CompatibilityErr = want
+		topo.fsm.Servers = desc.Servers
+		atomic.StoreInt32(&topo.connectionstate, connected)
+		topo.desc.Store(desc)
+		_, err = topo.SelectServer(context.Background(), selectFirst)
 		assert.Equal(t, err, want, "expected %v, got %v\n", want, err)
 	})
 	t.Run("Compatibility Error Max Version Too Low", func(t *testing.T) {
@@ -121,12 +120,6 @@ func TestServerSelection(t *testing.T) {
 				{Addr: address.Address("three:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
 			},
 		}
-		serverDesc := description.Server{Addr: address.Address("two"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}}
-		topo.fsm.Servers = desc.Servers
-		atomic.StoreInt32(&topo.connectionstate, connected)
-		topo.desc.Store(desc)
-		topo.apply(context.Background(), serverDesc)
-		_, err = topo.SelectServer(context.Background(), selectFirst)
 		want := fmt.Errorf(
 			"server at %s reports wire version %d, but this version of the Go driver requires "+
 				"at least %d (MongoDB %s)",
@@ -135,7 +128,12 @@ func TestServerSelection(t *testing.T) {
 			supportedWireVersions.Min,
 			minSupportedMongoDBVersion,
 		)
-		assert.Equal(t, err, want, "expected %v, got %v\n", want, err)
+		desc.CompatibilityErr = want
+		topo.fsm.Servers = desc.Servers
+		atomic.StoreInt32(&topo.connectionstate, connected)
+		topo.desc.Store(desc)
+		_, err = topo.SelectServer(context.Background(), selectFirst)
+		assert.Equal(t, err, want, "expected %v, got %v", want, err)
 	})
 	t.Run("Updated", func(t *testing.T) {
 		topo, err := New()
