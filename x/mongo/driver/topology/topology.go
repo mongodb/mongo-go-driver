@@ -313,11 +313,6 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		var suitable []description.Server
 		var selectErr error
 
-		desc := t.Description()
-		if desc.CompatibilityErr != nil {
-			return nil, desc.CompatibilityErr
-		}
-
 		if !doneOnce {
 			// for the first pass, select a server from the current description.
 			// this improves selection speed for up-to-date topology descriptions.
@@ -617,10 +612,8 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	var err error
 	current, desc, err = t.fsm.apply(desc)
 
-	if current.CompatibilityErr != nil {
-		updatedDesc := t.Description()
-		updatedDesc.CompatibilityErr = err
-		t.desc.Store(updatedDesc)
+	if err != nil {
+		t.desc.Store(current)
 		return desc
 	}
 
