@@ -370,11 +370,6 @@ func (t *Topology) SelectServerLegacy(ctx context.Context, ss description.Server
 		return nil, ErrTopologyClosed
 	}
 
-	desc := t.Description()
-	if desc.CompatibilityErr != nil {
-		return nil, desc.CompatibilityErr
-	}
-
 	var ssTimeoutCh <-chan time.Time
 
 	if t.cfg.serverSelectionTimeout > 0 {
@@ -466,6 +461,10 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 
 	// Unlike selectServerFromSubscription, this code path does not check ctx.Done or selectionState.timeoutChan because
 	// selecting a server from a description is not a blocking operation.
+
+	if desc.CompatibilityErr != nil {
+		return nil, desc.CompatibilityErr
+	}
 
 	var allowed []description.Server
 	for _, s := range desc.Servers {
