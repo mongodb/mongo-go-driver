@@ -37,10 +37,12 @@ func TestAtlasDataLake(t *testing.T) {
 		expectedID := findEvt.Reply.Lookup("cursor", "id").Int64()
 		expectedNS := findEvt.Reply.Lookup("cursor", "ns").StringValue()
 
-		// Close the cursor, forcing a killCursors command and assert that it sent the correct cursor ID and namespace.
+		// Close the cursor, forcing a killCursors command.
 		mt.ClearEvents()
 		err = cursor.Close(mtest.Background)
 		assert.Nil(mt, err, "Close error: %v", err)
+
+		// Extract information from the killCursors started event and assert that it sent the right cursor ID and ns.
 		killCursorsEvt := mt.GetStartedEvent()
 		assert.Equal(mt, "killCursors", killCursorsEvt.CommandName, "expected command name %q, got %q", "killCursors",
 			killCursorsEvt.CommandName)
@@ -53,6 +55,16 @@ func TestAtlasDataLake(t *testing.T) {
 			expectedID, actualID, findEvt, killCursorsEvt)
 		assert.Equal(mt, expectedNS, actualNS, "expected namespace %q, got %q; find event %v, killCursors event %v",
 			expectedNS, actualNS, findEvt, killCursorsEvt)
+
+		// Extract information from the killCursors succeeded event and assert that the right cursor was killed.
+		var killCursorsResponse struct {
+			CursorsKilled []int64
+		}
+		err = bson.Unmarshal(mt.GetSucceededEvent().Reply, &killCursorsResponse)
+		assert.Nil(mt, err, "error unmarshalling killCursors response: %v", err)
+		expectedCursorsKilled := []int64{expectedID}
+		assert.Equal(mt, expectedCursorsKilled, killCursorsResponse.CursorsKilled,
+			"expected cursorsKilled array %v, got %v", expectedCursorsKilled, killCursorsResponse.CursorsKilled)
 	})
 
 	mt.RunOpts("auth settings", noClientOpts, func(mt *mtest.T) {
