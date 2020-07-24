@@ -611,9 +611,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	var current description.Topology
 	var err error
 	current, desc, err = t.fsm.apply(desc)
-
 	if err != nil {
-		t.desc.Store(current)
 		return desc
 	}
 
