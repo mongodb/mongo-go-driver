@@ -42,16 +42,31 @@ func (r *reflectionFreeDEncoder) EncodeValue(ec bsoncodec.EncodeContext, vw bson
 }
 
 func (r *reflectionFreeDEncoder) encodeDocumentValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, v interface{}) error {
-	numberOk, numberErr := r.encodeNumber(ec, v, vw)
-	if numberErr != nil {
-		return numberErr
-	}
-	if numberOk {
-		// The value was written to vw.
-		return nil
-	}
-
 	switch val := v.(type) {
+	case int:
+		return r.encodeInt(ec, vw, val)
+	case int8:
+		return vw.WriteInt32(int32(val))
+	case int16:
+		return vw.WriteInt32(int32(val))
+	case int32:
+		return vw.WriteInt32(int32(val))
+	case int64:
+		return r.encodeInt64(ec, vw, val)
+	case uint:
+		return r.encodeUint64(ec, vw, uint64(val))
+	case uint8:
+		return vw.WriteInt32(int32(val))
+	case uint16:
+		return vw.WriteInt32(int32(val))
+	case uint32:
+		return r.encodeUint64(ec, vw, uint64(val))
+	case uint64:
+		return r.encodeUint64(ec, vw, val)
+	case float32:
+		return vw.WriteDouble(float64(val))
+	case float64:
+		return vw.WriteDouble(val)
 	case []byte:
 		return vw.WriteBinary(val)
 	case primitive.Binary:
@@ -69,10 +84,6 @@ func (r *reflectionFreeDEncoder) encodeDocumentValue(ec bsoncodec.EncodeContext,
 		return vw.WriteDateTime(int64(dt))
 	case primitive.Decimal128:
 		return vw.WriteDecimal128(val)
-	case float32:
-		return vw.WriteDouble(float64(val))
-	case float64:
-		return vw.WriteDouble(val)
 	case primitive.JavaScript:
 		return vw.WriteJavascript(string(val))
 	case primitive.MinKey:
@@ -164,21 +175,21 @@ func (r *reflectionFreeDEncoder) encodeDocumentValue(ec bsoncodec.EncodeContext,
 	}
 }
 
-func (r *reflectionFreeDEncoder) encodeInt(ec bsoncodec.EncodeContext, val int, vw bsonrw.ValueWriter) error {
+func (r *reflectionFreeDEncoder) encodeInt(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val int) error {
 	if fitsIn32Bits(int64(val)) {
 		return vw.WriteInt32(int32(val))
 	}
 	return vw.WriteInt64(int64(val))
 }
 
-func (r *reflectionFreeDEncoder) encodeInt64(ec bsoncodec.EncodeContext, val int64, vw bsonrw.ValueWriter) error {
+func (r *reflectionFreeDEncoder) encodeInt64(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val int64) error {
 	if ec.MinSize && fitsIn32Bits(val) {
 		return vw.WriteInt32(int32(val))
 	}
 	return vw.WriteInt64(int64(val))
 }
 
-func (r *reflectionFreeDEncoder) encodeUint64(ec bsoncodec.EncodeContext, val uint64, vw bsonrw.ValueWriter) error {
+func (r *reflectionFreeDEncoder) encodeUint64(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val uint64) error {
 	if ec.MinSize && val <= math.MaxInt32 {
 		return vw.WriteInt32(int32(val))
 	}
@@ -187,33 +198,6 @@ func (r *reflectionFreeDEncoder) encodeUint64(ec bsoncodec.EncodeContext, val ui
 	}
 
 	return vw.WriteInt64(int64(val))
-}
-
-func (r *reflectionFreeDEncoder) encodeNumber(ec bsoncodec.EncodeContext, i interface{}, vw bsonrw.ValueWriter) (bool, error) {
-	switch val := i.(type) {
-	case int:
-		return true, r.encodeInt(ec, val, vw)
-	case int8:
-		return true, vw.WriteInt32(int32(val))
-	case int16:
-		return true, vw.WriteInt32(int32(val))
-	case int32:
-		return true, vw.WriteInt32(int32(val))
-	case int64:
-		return true, r.encodeInt64(ec, val, vw)
-	case uint:
-		return true, r.encodeUint64(ec, uint64(val), vw)
-	case uint8:
-		return true, vw.WriteInt32(int32(val))
-	case uint16:
-		return true, vw.WriteInt32(int32(val))
-	case uint32:
-		return true, r.encodeUint64(ec, uint64(val), vw)
-	case uint64:
-		return true, r.encodeUint64(ec, val, vw)
-	default:
-		return false, nil
-	}
 }
 
 func (r *reflectionFreeDEncoder) encodeDocument(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, doc primitive.D) error {
@@ -689,7 +673,7 @@ func (r *reflectionFreeDEncoder) encodeSliceInt(ec bsoncodec.EncodeContext, vw b
 			return err
 		}
 
-		if err := r.encodeInt(ec, val, arrayValWriter); err != nil {
+		if err := r.encodeInt(ec, arrayValWriter, val); err != nil {
 			return err
 		}
 	}
@@ -769,7 +753,7 @@ func (r *reflectionFreeDEncoder) encodeSliceInt64(ec bsoncodec.EncodeContext, vw
 			return err
 		}
 
-		if err := r.encodeInt64(ec, val, arrayValWriter); err != nil {
+		if err := r.encodeInt64(ec, arrayValWriter, val); err != nil {
 			return err
 		}
 	}
@@ -789,7 +773,7 @@ func (r *reflectionFreeDEncoder) encodeSliceUint(ec bsoncodec.EncodeContext, vw 
 			return err
 		}
 
-		if err := r.encodeUint64(ec, uint64(val), arrayValWriter); err != nil {
+		if err := r.encodeUint64(ec, arrayValWriter, uint64(val)); err != nil {
 			return err
 		}
 	}
@@ -829,7 +813,7 @@ func (r *reflectionFreeDEncoder) encodeSliceUint32(ec bsoncodec.EncodeContext, v
 			return err
 		}
 
-		if err := r.encodeUint64(ec, uint64(val), arrayValWriter); err != nil {
+		if err := r.encodeUint64(ec, arrayValWriter, uint64(val)); err != nil {
 			return err
 		}
 	}
@@ -849,7 +833,7 @@ func (r *reflectionFreeDEncoder) encodeSliceUint64(ec bsoncodec.EncodeContext, v
 			return err
 		}
 
-		if err := r.encodeUint64(ec, val, arrayValWriter); err != nil {
+		if err := r.encodeUint64(ec, arrayValWriter, val); err != nil {
 			return err
 		}
 	}
