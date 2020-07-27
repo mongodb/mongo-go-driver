@@ -200,7 +200,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"ReadDouble (no truncate)", int64(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14)}, bsonrwtest.ReadDouble,
-					errors.New("IntDecodeValue can only truncate float64 to an integer type when truncation is enabled"),
+					errCannotTruncate,
 				},
 				{
 					"ReadDouble overflows int64", int64(0), nil,
@@ -432,7 +432,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"ReadDouble (no truncate)", uint64(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14)}, bsonrwtest.ReadDouble,
-					errors.New("UintDecodeValue can only truncate float64 to an integer type when truncation is enabled"),
+					errCannotTruncate,
 				},
 				{
 					"ReadDouble overflows int64", uint64(0), nil,
@@ -683,7 +683,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"float32/fast path (no truncate)", float32(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14)}, bsonrwtest.ReadDouble,
-					errors.New("FloatDecodeValue can only convert float64 to float32 when truncation is allowed"),
+					errCannotTruncate,
 				},
 				{
 					"float32/fast path - nil", (*float32)(nil), nil,
@@ -721,7 +721,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"float32/reflection path (no truncate)", myfloat32(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14)}, bsonrwtest.ReadDouble,
-					errors.New("FloatDecodeValue can only convert float64 to float32 when truncation is allowed"),
+					errCannotTruncate,
 				},
 				{
 					"can set false",
@@ -1402,7 +1402,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						},
 					},
 					bsonrwtest.ReadBinary,
-					fmt.Errorf("ByteSliceDecodeValue can only be used to decode subtype 0x00 or 0x02 for %s, got %v", bsontype.Binary, byte(0xFF)),
+					decodeBinaryError{subtype: byte(0xFF), typeName: "[]byte"},
 				},
 				{
 					"can set false",
