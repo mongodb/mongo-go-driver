@@ -3558,6 +3558,56 @@ func TestDefaultValueDecoders(t *testing.T) {
 				"expected error %v to contain key pattern %s", decodeErr, keyPath)
 		})
 	})
+
+	t.Run("values are converted", func(t *testing.T) {
+		// When decoding into a D or M, values must be converted if they are not being decoded to the default type.
+
+		t.Run("D", func(t *testing.T) {
+			trueValue := bsoncore.Value{
+				Type: bsontype.Boolean,
+				Data: bsoncore.AppendBoolean(nil, true),
+			}
+			docBytes := bsoncore.BuildDocumentFromElements(nil,
+				bsoncore.AppendBooleanElement(nil, "bool", true),
+				bsoncore.BuildArrayElement(nil, "boolArray", trueValue),
+			)
+
+			rb := NewRegistryBuilder()
+			defaultValueDecoders.RegisterDefaultDecoders(rb)
+			reg := rb.RegisterTypeMapEntry(bsontype.Boolean, reflect.TypeOf(mybool(true))).Build()
+
+			dc := DecodeContext{Registry: reg}
+			vr := bsonrw.NewBSONDocumentReader(docBytes)
+			val := reflect.New(tD).Elem()
+			err := defaultValueDecoders.DDecodeValue(dc, vr, val)
+			assert.Nil(t, err, "DDecodeValue error: %v", err)
+
+			want := primitive.D{
+				{"bool", mybool(true)},
+				{"boolArray", primitive.A{mybool(true)}},
+			}
+			got := val.Interface().(primitive.D)
+			assert.Equal(t, want, got, "want document %v, got %v", want, got)
+		})
+		t.Run("M", func(t *testing.T) {
+			docBytes := bsoncore.BuildDocumentFromElements(nil,
+				bsoncore.AppendBooleanElement(nil, "bool", true),
+			)
+
+			type myMap map[string]mybool
+			dc := DecodeContext{Registry: buildDefaultRegistry()}
+			vr := bsonrw.NewBSONDocumentReader(docBytes)
+			val := reflect.New(reflect.TypeOf(myMap{})).Elem()
+			err := defaultMapCodec.DecodeValue(dc, vr, val)
+			assert.Nil(t, err, "DecodeValue error: %v", err)
+
+			want := myMap{
+				"bool": mybool(true),
+			}
+			got := val.Interface().(myMap)
+			assert.Equal(t, want, got, "expected map %v, got %v", want, got)
+		})
+	})
 }
 
 type testValueUnmarshaler struct {
