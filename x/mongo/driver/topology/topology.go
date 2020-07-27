@@ -455,6 +455,10 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 	// Unlike selectServerFromSubscription, this code path does not check ctx.Done or selectionState.timeoutChan because
 	// selecting a server from a description is not a blocking operation.
 
+	if desc.CompatibilityErr != nil {
+		return nil, desc.CompatibilityErr
+	}
+
 	var allowed []description.Server
 	for _, s := range desc.Servers {
 		if s.Kind != description.Unknown {
