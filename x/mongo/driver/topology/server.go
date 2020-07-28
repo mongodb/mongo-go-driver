@@ -546,7 +546,7 @@ func (s *Server) createConnection() (*connection, error) {
 		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 	}
-	opts = append(opts, s.cfg.connectionOpts...)
+	opts = append(s.cfg.connectionOpts, opts...)
 	// We override whatever handshaker is currently attached to the options with a basic
 	// one because need to make sure we don't do auth.
 	opts = append(opts, WithHandshaker(func(h Handshaker) Handshaker {
