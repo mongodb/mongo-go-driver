@@ -276,6 +276,7 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	// checking logic above has already determined that this description is not stale.
 	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, nil))
 	s.pool.clear()
+	s.cancelCheck()
 }
 
 // Description returns a description of the server as of the last heartbeat.
