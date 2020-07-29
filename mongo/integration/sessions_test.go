@@ -252,43 +252,27 @@ func TestSessions(t *testing.T) {
 		deleteID := extractSentSessionID(mt)
 		assert.Equal(mt, findID, deleteID, "expected session ID %v, got %v", findID, deleteID)
 	})
-	mt.RunOpts("find and getMore use same ID", noClientOpts, func(mt *mtest.T) {
-		testCases := []struct {
-			name  string
-			rp    *readpref.ReadPref
-			topos []mtest.TopologyKind // if nil, all will be used
-		}{
-			{"primary", readpref.Primary(), nil},
-			{"primaryPreferred", readpref.PrimaryPreferred(), nil},
-			{"secondary", readpref.Secondary(), []mtest.TopologyKind{mtest.ReplicaSet}},
-			{"secondaryPreferred", readpref.SecondaryPreferred(), nil},
-			{"nearest", readpref.Nearest(), nil},
+	mt.Run("find and getMore use same ID", func(mt *mtest.T) {
+		var docs []interface{}
+		for i := 0; i < 3; i++ {
+			docs = append(docs, bson.D{{"x", i}})
 		}
-		for _, tc := range testCases {
-			clientOpts := options.Client().SetReadPreference(tc.rp).SetWriteConcern(mtest.MajorityWc)
-			mt.RunOpts(tc.name, mtest.NewOptions().ClientOptions(clientOpts).Topologies(tc.topos...), func(mt *mtest.T) {
-				var docs []interface{}
-				for i := 0; i < 3; i++ {
-					docs = append(docs, bson.D{{"x", i}})
-				}
-				_, err := mt.Coll.InsertMany(mtest.Background, docs)
-				assert.Nil(mt, err, "InsertMany error: %v", err)
+		_, err := mt.Coll.InsertMany(mtest.Background, docs)
+		assert.Nil(mt, err, "InsertMany error: %v", err)
 
-				// run a find that will hold onto an implicit session and record the session ID
-				mt.ClearEvents()
-				cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(2))
-				assert.Nil(mt, err, "Find error: %v", err)
-				findID := extractSentSessionID(mt)
-				assert.NotNil(mt, findID, "expected session ID for find, got nil")
+		// run a find that will hold onto an implicit session and record the session ID
+		mt.ClearEvents()
+		cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(2))
+		assert.Nil(mt, err, "Find error: %v", err)
+		findID := extractSentSessionID(mt)
+		assert.NotNil(mt, findID, "expected session ID for find, got nil")
 
-				// iterate over all documents and record the session ID of the getMore
-				for i := 0; i < 3; i++ {
-					assert.True(mt, cursor.Next(mtest.Background), "Next returned false on iteration %v", i)
-				}
-				getMoreID := extractSentSessionID(mt)
-				assert.Equal(mt, findID, getMoreID, "expected session ID %v, got %v", findID, getMoreID)
-			})
+		// iterate over all documents and record the session ID of the getMore
+		for i := 0; i < 3; i++ {
+			assert.True(mt, cursor.Next(mtest.Background), "Next returned false on iteration %v", i)
 		}
+		getMoreID := extractSentSessionID(mt)
+		assert.Equal(mt, findID, getMoreID, "expected session ID %v, got %v", findID, getMoreID)
 	})
 
 	mt.Run("imperative API", func(mt *mtest.T) {

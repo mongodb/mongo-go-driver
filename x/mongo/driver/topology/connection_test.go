@@ -115,21 +115,65 @@ func TestConnection(t *testing.T) {
 				assert.NotNil(t, err, "expected connect error %v, got nil", want)
 				assert.Equal(t, want, got, "expected error %v, got %v", want, got)
 			})
-			t.Run("cancelConnectContext is nil after connect", func(t *testing.T) {
-				conn, err := newConnection(address.Address(""))
-				assert.Nil(t, err, "newConnection shouldn't error. got %v; want nil", err)
-				var wg sync.WaitGroup
-				wg.Add(1)
+			t.Run("context is not pinned by connect", func(t *testing.T) {
+				// connect creates a cancel-able version of the context passed to it and stores the CancelFunc on the
+				// connection. The CancelFunc must be set to nil once the connection has been established so the driver
+				// does not pin the memory associated with the context for the connection's lifetime.
 
-				go func() {
-					defer wg.Done()
+				t.Run("connect succeeds", func(t *testing.T) {
+					// In the case where connect finishes successfully, it unpins the CancelFunc.
+
+					conn, err := newConnection(address.Address(""),
+						WithDialer(func(Dialer) Dialer {
+							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+								return &net.TCPConn{}, nil
+							})
+						}),
+						WithHandshaker(func(Handshaker) Handshaker {
+							return &testHandshaker{}
+						}),
+					)
+					assert.Nil(t, err, "newConnection error: %v", err)
+
 					conn.connect(context.Background())
-					assert.Nil(t, conn.cancelConnectContext, "expected nil, got context.CancelFunc")
-				}()
+					err = conn.wait()
+					assert.Nil(t, err, "error establishing connection: %v", err)
+					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
+				})
+				t.Run("connect cancelled", func(t *testing.T) {
+					// In the case where connection establishment is cancelled, the closeConnectContext function
+					// unpins the CancelFunc.
 
-				conn.closeConnectContext()
-				assert.Nil(t, conn.cancelConnectContext, "expected nil, got context.CancelFunc")
-				wg.Wait()
+					// Create a connection that will block in connect until doneChan is closed. This prevents
+					// connect from succeeding and unpinning the CancelFunc.
+					doneChan := make(chan struct{})
+					conn, err := newConnection(address.Address(""),
+						WithDialer(func(Dialer) Dialer {
+							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+								<-doneChan
+								return &net.TCPConn{}, nil
+							})
+						}),
+						WithHandshaker(func(Handshaker) Handshaker {
+							return &testHandshaker{}
+						}),
+					)
+					assert.Nil(t, err, "newConnection error: %v", err)
+
+					// Call connect in a goroutine because it will block.
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						conn.connect(context.Background())
+					}()
+
+					// Simulate cancelling connection establishment and assert that this cleares the CancelFunc.
+					conn.closeConnectContext()
+					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
+					close(doneChan)
+					wg.Wait()
+				})
 			})
 		})
 		t.Run("writeWireMessage", func(t *testing.T) {

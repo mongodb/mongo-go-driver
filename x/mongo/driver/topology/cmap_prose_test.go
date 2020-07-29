@@ -78,7 +78,15 @@ func TestCMAPProse(t *testing.T) {
 
 				_, err := pool.get(context.Background())
 				assert.NotNil(t, err, "expected get() error, got nil")
-				assertConnectionCounts(t, pool, 1, 1)
+
+				// If the connection doesn't finish connecting before resourcePool gives it back, the error will be
+				// detected by pool.get and result in a created/closed count of 1. If it does finish connecting, the
+				// error will be detected by resourcePool, which will return nil. Then, pool will try to create a new
+				// connection, which will also error. This process will result in a created/closed count of 2.
+				assert.True(t, len(created) == 1 || len(created) == 2, "expected 1 or 2 opened events, got %d", len(created))
+				assert.True(t, len(closed) == 1 || len(closed) == 2, "expected 1 or 2 closed events, got %d", len(closed))
+				netCount := len(created) - len(closed)
+				assert.Equal(t, 0, netCount, "expected net connection count to be 0, got %d", netCount)
 			})
 			t.Run("pool is empty", func(t *testing.T) {
 				// If a new connection is created during get(), get() should report that error and publish an event.
