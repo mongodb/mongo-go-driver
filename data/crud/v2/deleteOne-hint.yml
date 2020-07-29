@@ -28,6 +28,7 @@ tests:
               -
                 q: *filter
                 hint: "_id_"
+                limit: 1
     outcome: &outcome
       collection:
         data:
@@ -51,5 +52,6 @@ tests:
               -
                 q: *filter
                 hint: { _id: 1 }
+                limit: 1
     outcome: *outcome
 

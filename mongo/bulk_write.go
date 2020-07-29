@@ -281,6 +281,7 @@ func createDeleteDoc(filter interface{}, collation *options.Collation, hint inte
 func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (operation.UpdateResult, error) {
 	docs := make([]bsoncore.Document, len(batch.models))
 	var hasHint bool
+	var hasArrayFilters bool
 	for i, model := range batch.models {
 		var doc bsoncore.Document
 		var err error
@@ -292,12 +293,14 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 			hasHint = hasHint || (converted.Hint != nil)
 		case *UpdateOneModel:
 			doc, err = createUpdateDoc(converted.Filter, converted.Update, converted.Hint, converted.ArrayFilters, converted.Collation, converted.Upsert, false,
-				false, bw.collection.registry)
+				true, bw.collection.registry)
 			hasHint = hasHint || (converted.Hint != nil)
+			hasArrayFilters = hasArrayFilters || (converted.ArrayFilters != nil)
 		case *UpdateManyModel:
 			doc, err = createUpdateDoc(converted.Filter, converted.Update, converted.Hint, converted.ArrayFilters, converted.Collation, converted.Upsert, true,
-				false, bw.collection.registry)
+				true, bw.collection.registry)
 			hasHint = hasHint || (converted.Hint != nil)
+			hasArrayFilters = hasArrayFilters || (converted.ArrayFilters != nil)
 		}
 		if err != nil {
 			return operation.UpdateResult{}, err
@@ -310,7 +313,8 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
 		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
-		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.crypt).Hint(hasHint)
+		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.crypt).Hint(hasHint).
+		ArrayFilters(hasArrayFilters)
 	if bw.ordered != nil {
 		op = op.Ordered(*bw.ordered)
 	}
@@ -350,6 +354,7 @@ func createUpdateDoc(
 	if err != nil {
 		return nil, err
 	}
+
 	updateDoc = bsoncore.AppendValueElement(updateDoc, "u", u)
 
 	if multi {

@@ -257,6 +257,24 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		}
 		assert.Nil(mt, err, "UpdateMany error: %v", err)
 		verifyUpdateResult(mt, res, outcome.Result)
+	case "estimatedDocumentCount":
+		res, err := executeEstimatedDocumentCount(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected EstimatedDocumentCount error, got nil")
+			verifyCrudError(mt, outcome, err)
+			break
+		}
+		assert.Nil(mt, err, "EstimatedDocumentCount error: %v", err)
+		verifyCountResult(mt, res, outcome.Result)
+	case "countDocuments":
+		res, err := executeCountDocuments(mt, nil, operation.Arguments)
+		if outcome.Error {
+			assert.NotNil(mt, err, "expected CountDocuments error, got nil")
+			verifyCrudError(mt, outcome, err)
+			break
+		}
+		assert.Nil(mt, err, "CountDocuments error: %v", err)
+		verifyCountResult(mt, res, outcome.Result)
 	default:
 		mt.Fatalf("unrecognized operation: %v", operation.Name)
 	}
