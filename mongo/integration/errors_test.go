@@ -80,13 +80,15 @@ func TestErrors(t *testing.T) {
 				"errors.Is failure: expected error %v to be %v", err, context.DeadlineExceeded)
 		})
 
-		socketTimeoutOpts := options.Client().
-			SetSocketTimeout(100 * time.Millisecond)
-		socketTimeoutMtOpts := mtest.NewOptions().
-			ClientOptions(socketTimeoutOpts)
-		mt.RunOpts("socketTimeoutMS timeouts return network errors", socketTimeoutMtOpts, func(mt *mtest.T) {
+		mt.Run("socketTimeoutMS timeouts return network errors", func(mt *mtest.T) {
 			_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
+
+			// Reset the test client to have a 100ms socket timeout. We do this here rather than passing it in as a
+			// test option using mt.RunOpts because that could cause the collection creation or InsertOne to fail.
+			resetClientOpts := options.Client().
+				SetSocketTimeout(100 * time.Millisecond)
+			mt.ResetClient(resetClientOpts)
 
 			mt.ClearEvents()
 			filter := bson.M{
