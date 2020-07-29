@@ -1,30 +1,32 @@
 package bsonx
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
-func TestReflectionFreeDecoder(t *testing.T) {
-	// TODO: json.Number, url.URL, bson.Raw/bsoncore.Document, map
+func TestReflectionFreeDCodec(t *testing.T) {
+	assert.RegisterOpts(reflect.TypeOf(primitive.D{}), cmp.AllowUnexported(primitive.Decimal128{}))
 
 	now := time.Now()
 	oid := primitive.NewObjectID()
-	d128 := primitive.NewDecimal128(20, 20)
+	d128 := primitive.NewDecimal128(10, 20)
 	js := primitive.JavaScript("js")
 	symbol := primitive.Symbol("sybmol")
 	binary := primitive.Binary{Subtype: 2, Data: []byte("binary")}
 	datetime := primitive.NewDateTimeFromTime(now)
 	regex := primitive.Regex{Pattern: "pattern", Options: "i"}
 	dbPointer := primitive.DBPointer{DB: "db", Pointer: oid}
-	timestamp := primitive.Timestamp{T: 10, I: 10}
+	timestamp := primitive.Timestamp{T: 5, I: 10}
 	cws := primitive.CodeWithScope{Code: js, Scope: bson.D{{"x", 1}}}
-
-	doc := primitive.D{
+	noReflectionRegistry := bson.NewRegistryBuilder().RegisterCodec(tPrimitiveD, ReflectionFreeDCodec).Build()
+	docWithAllTypes := primitive.D{
 		{"byteSlice", []byte("foobar")},
 		{"sliceByteSlice", [][]byte{[]byte("foobar")}},
 		{"timeTime", now},
@@ -86,10 +88,30 @@ func TestReflectionFreeDecoder(t *testing.T) {
 		{"primitiveA", primitive.A{"foo", "bar"}},
 	}
 
-	expected, err := bson.Marshal(doc)
-	assert.Nil(t, err, "Marshal error: %v", err)
-	registry := bson.NewRegistryBuilder().RegisterEncoder(tPrimitiveD, ReflectionFreeDEncoder).Build()
-	actual, err := bson.MarshalWithRegistry(registry, doc)
-	assert.Nil(t, err, "Marshal error: %v", err)
-	assert.Equal(t, expected, actual, "expected doc %s, got %s", bson.Raw(expected), bson.Raw(actual))
+	t.Run("encode", func(t *testing.T) {
+		// Assert that bson.Marshal returns the same result when using the default registry and noReflectionRegistry.
+
+		expected, err := bson.Marshal(docWithAllTypes)
+		assert.Nil(t, err, "Marshal error with default registry: %v", err)
+		actual, err := bson.MarshalWithRegistry(noReflectionRegistry, docWithAllTypes)
+		assert.Nil(t, err, "Marshal error with noReflectionRegistry: %v", err)
+		assert.Equal(t, expected, actual, "expected doc %s, got %s", bson.Raw(expected), bson.Raw(actual))
+	})
+	t.Run("decode", func(t *testing.T) {
+		// Assert that bson.Unmarshal returns the same result when using the default registry and noReflectionRegistry.
+
+		// docWithAllTypes contains some types that can't be roundtripped. For example, any slices besides primitive.A
+		// would start of as []T but unmarshal to primitive.A. To get around this, we first marshal docWithAllTypes to
+		// raw bytes and then Unmarshal to another primitive.D rather than asserting directly against docWithAllTypes.
+		docBytes, err := bson.Marshal(docWithAllTypes)
+		assert.Nil(t, err, "Marshal error: %v", err)
+
+		var expected, actual primitive.D
+		err = bson.Unmarshal(docBytes, &expected)
+		assert.Nil(t, err, "Unmarshal error with default registry: %v", err)
+		err = bson.UnmarshalWithRegistry(noReflectionRegistry, docBytes, &actual)
+		assert.Nil(t, err, "Unmarshal error with noReflectionRegistry: %v", err)
+
+		assert.Equal(t, expected, actual, "expected document %v, got %v", expected, actual)
+	})
 }
