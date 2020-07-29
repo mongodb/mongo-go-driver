@@ -327,7 +327,7 @@ func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.I
 		})
 		return res, err
 	}
-	return mt.Coll.InsertMany(mtest.Background, docs)
+	return mt.Coll.InsertMany(mtest.Background, docs, opts)
 }
 
 func setFindModifiers(mt *mtest.T, modifiersDoc bson.Raw, opts *options.FindOptions) {
@@ -1193,7 +1193,8 @@ func executeEstimatedDocumentCount(mt *mtest.T, sess mongo.Session, args bson.Ra
 	mt.Helper()
 
 	// no arguments expected. add a Fatal in case arguments are added in the future
-	assert.Equal(mt, 0, len(args), "unexpected estimatedDocumentCount arguments: %v", args)
+	elems, _ := args.Elements()
+	assert.Equal(mt, 0, len(elems), "unexpected estimatedDocumentCount arguments %v", args)
 
 	if sess != nil {
 		var res int64

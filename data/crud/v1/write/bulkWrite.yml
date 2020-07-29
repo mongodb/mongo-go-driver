@@ -113,15 +113,6 @@ tests:
                             filter: { _id: 3 }
                             replacement: { x: 33 }
                     -
-                        # does not modify the matched document
-                        name: "replaceOne"
-                        arguments:
-                            filter: { _id: 1 }
-                            # Repeat _id in replacement document so the server
-                            # does not report a modification for this update.
-                            # See: https://jira.mongodb.org/browse/SERVER-36405
-                            replacement: { _id: 1, x: 11 }
-                    -
                         # modifies the matched document
                         name: "replaceOne"
                         arguments:
@@ -140,10 +131,10 @@ tests:
                 deletedCount: 0
                 insertedCount: 0
                 insertedIds: {}
-                matchedCount: 2
+                matchedCount: 1
                 modifiedCount: 1
                 upsertedCount: 1
-                upsertedIds: { 3: 3 }
+                upsertedIds: { 2: 3 }
             collection:
                 data:
                     - {_id: 1, x: 12 }
@@ -332,3 +323,79 @@ tests:
                 data:
                     - {_id: 2, x: 23 }
                     - {_id: 3, x: 33 }
+    -
+        description: "BulkWrite continue-on-error behavior with unordered (preexisting duplicate key)"
+        operation:
+            name: "bulkWrite"
+            arguments:
+                requests:
+                    -
+                        name: "insertOne"
+                        arguments:
+                            document: { _id: 2, x: 22 }
+                    -
+                        name: "insertOne"
+                        arguments:
+                            document: { _id: 3, x: 33 }
+                    -
+                        name: "insertOne"
+                        arguments:
+                            document: { _id: 4, x: 44 }
+                options: { ordered: false }
+        outcome:
+            error: true
+            result:
+                deletedCount: 0
+                insertedCount: 2
+                # Since the map of insertedIds is generated before execution it
+                # could indicate inserts that did not actually succeed. We omit
+                # this field rather than expect drivers to provide an accurate
+                # map filtered by write errors.
+                matchedCount: 0
+                modifiedCount: 0
+                upsertedCount: 0
+                upsertedIds: { }
+            collection:
+                data:
+                    - { _id: 1, x: 11 }
+                    - { _id: 2, x: 22 }
+                    - { _id: 3, x: 33 }
+                    - { _id: 4, x: 44 }
+    -
+        description: "BulkWrite continue-on-error behavior with unordered (duplicate key in requests)"
+        operation:
+            name: "bulkWrite"
+            arguments:
+                requests:
+                    -
+                        name: "insertOne"
+                        arguments:
+                            document: { _id: 3, x: 33 }
+                    -
+                        name: "insertOne"
+                        arguments:
+                            document: { _id: 3, x: 33 }
+                    -
+                        name: "insertOne"
+                        arguments:
+                            document: { _id: 4, x: 44 }
+                options: { ordered: false }
+        outcome:
+            error: true
+            result:
+                deletedCount: 0
+                insertedCount: 2
+                # Since the map of insertedIds is generated before execution it
+                # could indicate inserts that did not actually succeed. We omit
+                # this field rather than expect drivers to provide an accurate
+                # map filtered by write errors.
+                matchedCount: 0
+                modifiedCount: 0
+                upsertedCount: 0
+                upsertedIds: { }
+            collection:
+                data:
+                    - { _id: 1, x: 11 }
+                    - { _id: 2, x: 22 }
+                    - { _id: 3, x: 33 }
+                    - { _id: 4, x: 44 }

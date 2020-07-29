@@ -253,6 +253,14 @@ func ensureDollarKeyv2(doc bsoncore.Document) error {
 	return nil
 }
 
+func ensureNoDollarKey(doc bsoncore.Document) error {
+	if elem, err := doc.IndexErr(0); err == nil && strings.HasPrefix(elem.Key(), "$") {
+		return errors.New("replacement document cannot contains keys beginning with '$")
+	}
+
+	return nil
+}
+
 func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface{}) (bsonx.Arr, error) {
 	pipelineArr := bsonx.Arr{}
 	switch t := pipeline.(type) {
@@ -333,7 +341,12 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 	}
 }
 
-func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, checkDocDollarKey bool) (bsoncore.Value, error) {
+func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, dollarKeysAllowed bool) (bsoncore.Value, error) {
+	documentCheckerFunc := ensureDollarKeyv2
+	if !dollarKeysAllowed {
+		documentCheckerFunc = ensureNoDollarKey
+	}
+
 	var u bsoncore.Value
 	var err error
 	switch t := update.(type) {
@@ -346,31 +359,19 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, chec
 			return u, err
 		}
 
-		if checkDocDollarKey {
-			err = ensureDollarKeyv2(u.Data)
-		}
-		return u, err
+		return u, documentCheckerFunc(u.Data)
 	case bson.Raw:
 		u.Type = bsontype.EmbeddedDocument
 		u.Data = t
-		if checkDocDollarKey {
-			err = ensureDollarKeyv2(u.Data)
-		}
-		return u, err
+		return u, documentCheckerFunc(u.Data)
 	case bsoncore.Document:
 		u.Type = bsontype.EmbeddedDocument
 		u.Data = t
-		if checkDocDollarKey {
-			err = ensureDollarKeyv2(u.Data)
-		}
-		return u, err
+		return u, documentCheckerFunc(u.Data)
 	case []byte:
 		u.Type = bsontype.EmbeddedDocument
 		u.Data = t
-		if checkDocDollarKey {
-			err = ensureDollarKeyv2(u.Data)
-		}
-		return u, err
+		return u, documentCheckerFunc(u.Data)
 	case bsoncodec.Marshaler:
 		u.Type = bsontype.EmbeddedDocument
 		u.Data, err = t.MarshalBSON()
@@ -378,10 +379,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, chec
 			return u, err
 		}
 
-		if checkDocDollarKey {
-			err = ensureDollarKeyv2(u.Data)
-		}
-		return u, err
+		return u, documentCheckerFunc(u.Data)
 	case bsoncodec.ValueMarshaler:
 		u.Type, u.Data, err = t.MarshalBSONValue()
 		if err != nil {
@@ -403,10 +401,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, chec
 				return u, err
 			}
 
-			if checkDocDollarKey {
-				err = ensureDollarKeyv2(u.Data)
-			}
-			return u, err
+			return u, documentCheckerFunc(u.Data)
 		}
 
 		u.Type = bsontype.Array
@@ -418,7 +413,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, chec
 				return u, err
 			}
 
-			if err := ensureDollarKeyv2(doc); err != nil {
+			if err := documentCheckerFunc(doc); err != nil {
 				return u, err
 			}
 
