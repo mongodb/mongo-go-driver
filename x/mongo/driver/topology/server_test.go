@@ -312,6 +312,28 @@ func TestServer(t *testing.T) {
 		require.Nil(t, err, "error from NewServer: %v", err)
 		require.Equal(t, name, s.cfg.appname, "expected appname to be: %v, got: %v", name, s.cfg.appname)
 	})
+	t.Run("createConnection overwrites WithSocketTimeout", func(t *testing.T) {
+		socketTimeout := 40 * time.Second
+
+		s, err := NewServer(
+			address.Address("localhost"),
+			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
+				return append(
+					connOpts,
+					WithReadTimeout(func(time.Duration) time.Duration { return socketTimeout }),
+					WithWriteTimeout(func(time.Duration) time.Duration { return socketTimeout }),
+				)
+			}),
+		)
+		assert.Nil(t, err, "NewServer error: %v", err)
+
+		conn, err := s.createConnection()
+		assert.Nil(t, err, "createConnection error: %v", err)
+
+		assert.Equal(t, s.cfg.heartbeatTimeout, 10*time.Second, "expected heartbeatTimeout to be: %v, got: %v", 10*time.Second, s.cfg.heartbeatTimeout)
+		assert.Equal(t, s.cfg.heartbeatTimeout, conn.readTimeout, "expected readTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.readTimeout)
+		assert.Equal(t, s.cfg.heartbeatTimeout, conn.writeTimeout, "expected writeTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.writeTimeout)
+	})
 }
 
 func includesMetadata(t *testing.T, wm []byte) bool {

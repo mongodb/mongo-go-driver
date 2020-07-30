@@ -546,18 +546,15 @@ func (s *Server) createConnection() (*connection, error) {
 		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+		// We override whatever handshaker is currently attached to the options with a basic
+		// one because need to make sure we don't do auth.
+		WithHandshaker(func(h Handshaker) Handshaker {
+			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
+		}),
+		// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
+		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
 	}
-	opts = append(opts, s.cfg.connectionOpts...)
-	// We override whatever handshaker is currently attached to the options with a basic
-	// one because need to make sure we don't do auth.
-	opts = append(opts, WithHandshaker(func(h Handshaker) Handshaker {
-		return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
-	}))
-
-	// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
-	opts = append(opts, WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
-		return nil
-	}))
+	opts = append(s.cfg.connectionOpts, opts...)
 
 	return newConnection(s.address, opts...)
 }
