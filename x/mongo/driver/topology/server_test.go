@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
@@ -296,6 +297,28 @@ func TestServer(t *testing.T) {
 			WithServerAppName(func(string) string { return name }))
 		require.Nil(t, err, "error from NewServer: %v", err)
 		require.Equal(t, name, s.cfg.appname, "expected appname to be: %v, got: %v", name, s.cfg.appname)
+	})
+	t.Run("createConnection overwrites WithSocketTimeout", func(t *testing.T) {
+		socketTimeout := 40 * time.Second
+
+		s, err := NewServer(
+			address.Address("localhost"),
+			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
+				return append(
+					connOpts,
+					WithReadTimeout(func(time.Duration) time.Duration { return socketTimeout }),
+					WithWriteTimeout(func(time.Duration) time.Duration { return socketTimeout }),
+				)
+			}),
+		)
+		assert.Nil(t, err, "NewServer error: %v", err)
+
+		conn, err := s.createConnection(context.Background())
+		assert.Nil(t, err, "createConnection error: %v", err)
+
+		assert.Equal(t, s.cfg.heartbeatTimeout, 10*time.Second, "expected heartbeatTimeout to be: %v, got: %v", 10*time.Second, s.cfg.heartbeatTimeout)
+		assert.Equal(t, s.cfg.heartbeatTimeout, conn.readTimeout, "expected readTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.readTimeout)
+		assert.Equal(t, s.cfg.heartbeatTimeout, conn.writeTimeout, "expected writeTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.writeTimeout)
 	})
 }
 

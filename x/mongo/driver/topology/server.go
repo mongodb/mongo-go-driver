@@ -438,6 +438,26 @@ func (s *Server) updateDescription(desc description.Server) {
 	s.subLock.Unlock()
 }
 
+// createConnection creates a new connection instance but does not call connect on it. The caller must call connect
+// before the connection can be used for network operations.
+func (s *Server) createConnection(ctx context.Context) (*connection, error) {
+	opts := []ConnectionOption{
+		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+		WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+		// We override whatever handshaker is currently attached to the options with a basic
+		// one because need to make sure we don't do auth.
+		WithHandshaker(func(h Handshaker) Handshaker {
+			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
+		}),
+		// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
+		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
+	}
+	opts = append(s.cfg.connectionOpts, opts...)
+
+	return newConnection(ctx, s.address, opts...)
+}
+
 // heartbeat sends a heartbeat to the server using the given connection. The connection can be nil.
 func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 	const maxRetry = 2
@@ -467,25 +487,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 		}
 
 		if conn == nil {
-			opts := []ConnectionOption{
-				WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-				WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-				WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-			}
-			opts = append(opts, s.cfg.connectionOpts...)
-			// We override whatever handshaker is currently attached to the options with a basic
-			// one because need to make sure we don't do auth.
-			opts = append(opts, WithHandshaker(func(h Handshaker) Handshaker {
-				now = time.Now()
-				return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
-			}))
-
-			// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
-			opts = append(opts, WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
-				return nil
-			}))
-
-			conn, err = newConnection(ctx, s.address, opts...)
+			conn, err = s.createConnection(ctx)
 
 			conn.connect(ctx)
 
