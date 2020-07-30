@@ -21,7 +21,6 @@ var minSupportedMongoDBVersion = "2.6"
 
 type fsm struct {
 	description.Topology
-	SetName          string
 	maxElectionID    primitive.ObjectID
 	maxSetVersion    uint32
 	compatible       atomic.Value
@@ -48,6 +47,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 	f.Topology = description.Topology{
 		Kind:    f.Kind,
 		Servers: newServers,
+		SetName: f.SetName,
 	}
 
 	// For data bearing servers, set SessionTimeoutMinutes to the lowest among them

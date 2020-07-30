@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // CommandStartedEvent represents an event generated when a command is sent to a server.
@@ -88,4 +89,255 @@ type PoolEvent struct {
 // PoolMonitor is a function that allows the user to gain access to events occurring in the pool
 type PoolMonitor struct {
 	Event func(*PoolEvent)
+}
+
+// ServerAddress represents a server's address.
+// This type will be a string value of the server's canonical address.
+type ServerAddress string
+
+// TopologyID represents a unique topology.
+type TopologyID [16]byte
+
+// ServerKind represents the type of a server.
+type ServerKind uint32
+
+// These constants are the possible types of servers.
+const (
+	Standalone  ServerKind = 1
+	RSMember    ServerKind = 2
+	RSPrimary   ServerKind = 4 + RSMember
+	RSSecondary ServerKind = 8 + RSMember
+	RSArbiter   ServerKind = 16 + RSMember
+	RSGhost     ServerKind = 32 + RSMember
+	Mongos      ServerKind = 256
+)
+
+// String implements the fmt.Stringer interface.
+func (kind ServerKind) String() string {
+	switch kind {
+	case Standalone:
+		return "Standalone"
+	case RSMember:
+		return "RSOther"
+	case RSPrimary:
+		return "RSPrimary"
+	case RSSecondary:
+		return "RSSecondary"
+	case RSArbiter:
+		return "RSArbiter"
+	case RSGhost:
+		return "RSGhost"
+	case Mongos:
+		return "Mongos"
+	}
+
+	return "Unknown"
+}
+
+// TopologyKind represents a specific topology configuration.
+type TopologyKind uint32
+
+// These constants are the available topology configurations.
+const (
+	Single                TopologyKind = 1
+	ReplicaSet            TopologyKind = 2
+	ReplicaSetNoPrimary   TopologyKind = 4 + ReplicaSet
+	ReplicaSetWithPrimary TopologyKind = 8 + ReplicaSet
+	Sharded               TopologyKind = 256
+)
+
+// String implements the fmt.Stringer interface.
+func (kind TopologyKind) String() string {
+	switch kind {
+	case Single:
+		return "Single"
+	case ReplicaSet:
+		return "ReplicaSet"
+	case ReplicaSetNoPrimary:
+		return "ReplicaSetNoPrimary"
+	case ReplicaSetWithPrimary:
+		return "ReplicaSetWithPrimary"
+	case Sharded:
+		return "Sharded"
+	}
+
+	return "Unknown"
+}
+
+// ServerDescription describes a server to a user.
+type ServerDescription struct {
+	Address  ServerAddress
+	Arbiters []ServerAddress
+	Hosts    []ServerAddress
+	Passives []ServerAddress
+	Primary  ServerAddress
+	SetName  string
+	Kind     ServerKind
+}
+
+// TopologyDescription describes the current topology.
+type TopologyDescription struct {
+	Kind    TopologyKind
+	Servers []ServerDescription
+	SetName string
+}
+
+// HasReadableServer returns true if a topology has a server available for reading
+// based on the specified read preference.
+func (t *TopologyDescription) HasReadableServer(mode readpref.Mode) bool {
+	switch t.Kind {
+	case Single, Sharded:
+		return hasAvailableServer(t.Servers, 0)
+	case ReplicaSetWithPrimary:
+		return hasAvailableServer(t.Servers, mode)
+	case ReplicaSetNoPrimary, ReplicaSet:
+		if mode == readpref.PrimaryMode {
+			return false
+		}
+		// invalid read preference
+		if mode > readpref.NearestMode || mode < readpref.PrimaryMode {
+			return false
+		}
+
+		return hasAvailableServer(t.Servers, mode)
+	}
+	return false
+}
+
+// HasWritableServer returns true if a topology has a server available for writing
+func (t *TopologyDescription) HasWritableServer() bool {
+	switch t.Kind {
+	case ReplicaSetWithPrimary:
+		return true
+	case Single, Sharded:
+		return hasAvailableServer(t.Servers, 0)
+	}
+	return false
+}
+
+// hasAvailableServer returns true if any servers are available based on
+// the read preference.
+func hasAvailableServer(servers []ServerDescription, mode readpref.Mode) bool {
+	switch mode {
+	case readpref.PrimaryMode:
+		for _, s := range servers {
+			if s.Kind == RSPrimary {
+				return true
+			}
+		}
+		return false
+	case readpref.PrimaryPreferredMode, readpref.SecondaryPreferredMode, readpref.NearestMode:
+		for _, s := range servers {
+			if s.Kind == RSPrimary || s.Kind == RSSecondary {
+				return true
+			}
+		}
+		return false
+	case readpref.SecondaryMode:
+		for _, s := range servers {
+			if s.Kind == RSSecondary {
+				return true
+			}
+		}
+		return false
+	}
+
+	// read preference is not specified
+	for _, s := range servers {
+		switch s.Kind {
+		case Standalone,
+			RSMember,
+			RSPrimary,
+			RSSecondary,
+			RSArbiter,
+			RSGhost,
+			Mongos:
+			return true
+		}
+	}
+
+	return false
+}
+
+// ServerDescriptionChangedEvent represents a server description change.
+type ServerDescriptionChangedEvent struct {
+	Address             ServerAddress
+	ID                  TopologyID
+	PreviousDescription ServerDescription
+	NewDescription      ServerDescription
+}
+
+// ServerOpeningEvent is an event generated when the server is initialized.
+type ServerOpeningEvent struct {
+	Address ServerAddress
+	ID      TopologyID
+}
+
+// ServerClosedEvent is an event generated when the server is closed.
+type ServerClosedEvent struct {
+	Address ServerAddress
+	ID      TopologyID
+}
+
+// TopologyDescriptionChangedEvent represents a topology description change.
+type TopologyDescriptionChangedEvent struct {
+	ID                  TopologyID
+	PreviousDescription TopologyDescription
+	NewDescription      TopologyDescription
+}
+
+// TopologyOpeningEvent is an event generated when the topology is initialized.
+type TopologyOpeningEvent struct {
+	ID TopologyID
+}
+
+// TopologyClosedEvent is an event generated when the topology is closed.
+type TopologyClosedEvent struct {
+	ID TopologyID
+}
+
+// ServerHeartbeatStartedEvent is an event generated when the ismaster command is started.
+type ServerHeartbeatStartedEvent struct {
+	ConnectionID string
+	Awaited      bool
+}
+
+// ServerHeartbeatSucceededEvent is an event generated when the ismaster succeeds.
+type ServerHeartbeatSucceededEvent struct {
+	Duration     int64
+	Reply        ServerDescription
+	ConnectionID string
+	Awaited      bool
+}
+
+// ServerHeartbeatFailedEvent is an event generated when the ismaster fails.
+type ServerHeartbeatFailedEvent struct {
+	Duration     int64
+	Reply        error
+	ConnectionID string
+	Awaited      bool
+}
+
+// SdamMonitor represents a monitor that is triggered for different SDAM events.
+type SdamMonitor struct {
+	ServerDescriptionChanged   func(*ServerDescriptionChangedEvent)
+	ServerOpening              func(*ServerOpeningEvent)
+	ServerClosed               func(*ServerClosedEvent)
+	TopologyDescriptionChanged func(*TopologyDescriptionChangedEvent)
+	TopologyOpening            func(*TopologyOpeningEvent)
+	TopologyClosed             func(*TopologyClosedEvent)
+	ServerHeartbeatStarted     func(*ServerHeartbeatStartedEvent)
+	ServerHeartbeatSucceeded   func(*ServerHeartbeatSucceededEvent)
+	ServerHeartbeatFailed      func(*ServerHeartbeatFailedEvent)
+}
+
+// AddressToServerAddress is a helper method
+// that transforms []address.Address to []event.ServerAddress
+func AddressToServerAddress(addresses []string) []ServerAddress {
+	var serverAddresses []ServerAddress
+	for _, a := range addresses {
+		serverAddresses = append(serverAddresses, ServerAddress(a))
+	}
+
+	return serverAddresses
 }

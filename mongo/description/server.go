@@ -31,12 +31,14 @@ type SelectedServer struct {
 type Server struct {
 	Addr address.Address
 
+	Arbiters                []string
 	AverageRTT              time.Duration
 	AverageRTTSet           bool
 	Compression             []string // compression methods returned by server
 	CanonicalAddr           address.Address
 	ElectionID              primitive.ObjectID
 	HeartbeatInterval       time.Duration
+	Hosts                   []string
 	LastError               error
 	LastUpdateTime          time.Time
 	LastWriteTime           time.Time
@@ -44,6 +46,8 @@ type Server struct {
 	MaxDocumentSize         uint32
 	MaxMessageSize          uint32
 	Members                 []address.Address
+	Passives                []string
+	Primary                 address.Address
 	ReadOnly                bool
 	SessionTimeoutMinutes   uint32
 	SetName                 string
@@ -69,12 +73,11 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 	var isReplicaSet, isMaster, hidden, secondary, arbiterOnly bool
 	var msg string
 	var version VersionRange
-	var hosts, passives, arbiters []string
 	for _, element := range elements {
 		switch element.Key() {
 		case "arbiters":
 			var err error
-			arbiters, err = decodeStringSlice(element, "arbiters")
+			desc.Arbiters, err = decodeStringSlice(element, "arbiters")
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -106,7 +109,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "hosts":
 			var err error
-			hosts, err = decodeStringSlice(element, "hosts")
+			desc.Hosts, err = decodeStringSlice(element, "hosts")
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -203,11 +206,18 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "passives":
 			var err error
-			passives, err = decodeStringSlice(element, "passives")
+			desc.Passives, err = decodeStringSlice(element, "passives")
 			if err != nil {
 				desc.LastError = err
 				return desc
 			}
+		case "primary":
+			primary, ok := element.Value().StringValueOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'primary' to be a string but it's a BSON %s", element.Value().Type)
+				return desc
+			}
+			desc.Primary = address.Address(primary)
 		case "readOnly":
 			desc.ReadOnly, ok = element.Value().BooleanOK()
 			if !ok {
@@ -269,15 +279,15 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 		}
 	}
 
-	for _, host := range hosts {
+	for _, host := range desc.Hosts {
 		desc.Members = append(desc.Members, address.Address(host).Canonicalize())
 	}
 
-	for _, passive := range passives {
+	for _, passive := range desc.Passives {
 		desc.Members = append(desc.Members, address.Address(passive).Canonicalize())
 	}
 
-	for _, arbiter := range arbiters {
+	for _, arbiter := range desc.Arbiters {
 		desc.Members = append(desc.Members, address.Address(arbiter).Canonicalize())
 	}
 
@@ -411,4 +421,50 @@ func decodeStringMap(element bson.RawElement, name string) (map[string]string, e
 // SupportsRetryWrites returns true if this description represents a server that supports retryable writes.
 func (s Server) SupportsRetryWrites() bool {
 	return s.SessionTimeoutMinutes != 0 && s.Kind != Standalone
+}
+
+// ServerEqual compares two server descriptions and returns true if they are equal
+func ServerEqual(prev Server, current Server) bool {
+	// the rest of the fields are not used in sdam monitoring server descriptions
+	if prev.Addr.String() != current.Addr.String() {
+		return false
+	}
+
+	if len(prev.Arbiters) != len(current.Arbiters) ||
+		len(prev.Hosts) != len(current.Hosts) ||
+		len(prev.Passives) != len(current.Passives) {
+		return false
+	}
+
+	for idx, a := range prev.Arbiters {
+		if a != current.Arbiters[idx] {
+			return false
+		}
+	}
+
+	for idx, h := range prev.Hosts {
+		if h != current.Hosts[idx] {
+			return false
+		}
+	}
+
+	for idx, p := range prev.Passives {
+		if p != current.Passives[idx] {
+			return false
+		}
+	}
+
+	if prev.Primary != current.Primary {
+		return false
+	}
+
+	if prev.SetName != current.SetName {
+		return false
+	}
+
+	if prev.Kind != current.Kind {
+		return false
+	}
+
+	return true
 }

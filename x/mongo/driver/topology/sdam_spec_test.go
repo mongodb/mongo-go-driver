@@ -12,12 +12,14 @@ import (
 	"io/ioutil"
 	"net"
 	"path"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -53,6 +55,7 @@ type IsMaster struct {
 	Msg                          string             `bson:"msg,omitempty"`
 	OK                           int32              `bson:"ok"`
 	Passives                     []string           `bson:"passives,omitempty"`
+	Primary                      string             `bson:"primary,omitempty"`
 	ReadOnly                     bool               `bson:"readOnly,omitempty"`
 	SaslSupportedMechs           []string           `bson:"saslSupportedMechs,omitempty"`
 	Secondary                    bool               `bson:"secondary,omitempty"`
@@ -95,6 +98,57 @@ type applicationError struct {
 	Response       bsoncore.Document
 }
 
+type topologyDescription struct {
+	TopologyType string              `bson:"topologyType"`
+	Servers      []serverDescription `bson:"servers"`
+	SetName      string              `bson:"setName,omitempty"`
+}
+
+type serverDescription struct {
+	Address  string   `bson:"address"`
+	Arbiters []string `bson:"arbiters"`
+	Hosts    []string `bson:"hosts"`
+	Passives []string `bson:"passives"`
+	Primary  string   `bson:"primary,omitempty"`
+	SetName  string   `bson:"setName,omitempty"`
+	Type     string   `bson:"type"`
+}
+
+type topologyOpeningEvent struct {
+	TopologyID string `bson:"topologyId"`
+}
+
+type serverOpeningEvent struct {
+	Address    string `bson:"address"`
+	TopologyID string `bson:"topologyId"`
+}
+
+type topologyDescriptionChangedEvent struct {
+	TopologyID          string              `bson:"topologyId"`
+	PreviousDescription topologyDescription `bson:"previousDescription"`
+	NewDescription      topologyDescription `bson:"newDescription"`
+}
+
+type serverDescriptionChangedEvent struct {
+	Address             string            `bson:"address"`
+	TopologyID          string            `bson:"topologyId"`
+	PreviousDescription serverDescription `bson:"previousDescription"`
+	NewDescription      serverDescription `bson:"newDescription"`
+}
+
+type serverClosedEvent struct {
+	Address    string `bson:"address"`
+	TopologyID string `bson:"topologyId"`
+}
+
+type monitoringEvent struct {
+	TopologyOpeningEvent            *topologyOpeningEvent            `bson:"topology_opening_event,omitempty"`
+	ServerOpeningEvent              *serverOpeningEvent              `bson:"server_opening_event,omitempty"`
+	TopologyDescriptionChangedEvent *topologyDescriptionChangedEvent `bson:"topology_description_changed_event,omitempty"`
+	ServerDescriptionChangedEvent   *serverDescriptionChangedEvent   `bson:"server_description_changed_event,omitempty"`
+	ServerClosedEvent               *serverClosedEvent               `bson:"server_closed_event,omitempty"`
+}
+
 type outcome struct {
 	Servers                      map[string]server
 	TopologyType                 string
@@ -103,6 +157,7 @@ type outcome struct {
 	MaxSetVersion                uint32
 	MaxElectionID                primitive.ObjectID `bson:"maxElectionId"`
 	Compatible                   *bool
+	Events                       []monitoringEvent
 }
 
 type phase struct {
@@ -118,7 +173,40 @@ type testCase struct {
 	Phases      []phase
 }
 
+func serverDescriptionChanged(e *event.ServerDescriptionChangedEvent) {
+	lock.Lock()
+	publishedEvents = append(publishedEvents, *e)
+	lock.Unlock()
+}
+
+func serverOpening(e *event.ServerOpeningEvent) {
+	lock.Lock()
+	publishedEvents = append(publishedEvents, *e)
+	lock.Unlock()
+}
+
+func topologyDescriptionChanged(e *event.TopologyDescriptionChangedEvent) {
+	lock.Lock()
+	publishedEvents = append(publishedEvents, *e)
+	lock.Unlock()
+}
+
+func topologyOpening(e *event.TopologyOpeningEvent) {
+	lock.Lock()
+	publishedEvents = append(publishedEvents, *e)
+	lock.Unlock()
+}
+
+func serverClosed(e *event.ServerClosedEvent) {
+	lock.Lock()
+	publishedEvents = append(publishedEvents, *e)
+	lock.Unlock()
+}
+
 const testsDir string = "../../../../data/server-discovery-and-monitoring/"
+
+var publishedEvents []interface{}
+var lock sync.Mutex
 
 func (r *response) UnmarshalBSON(buf []byte) error {
 	doc := bson.Raw(buf)
@@ -133,9 +221,17 @@ func (r *response) UnmarshalBSON(buf []byte) error {
 	return nil
 }
 
-func setUpTopology(t *testing.T, uri string) *Topology {
+func setUpTopology(t *testing.T, uri string, monitoring bool) *Topology {
 	cs, err := connstring.ParseAndValidate(uri)
 	assert.Nil(t, err, "Parse error: %v", err)
+
+	sdam := &event.SdamMonitor{
+		ServerDescriptionChanged:   serverDescriptionChanged,
+		ServerOpening:              serverOpening,
+		TopologyDescriptionChanged: topologyDescriptionChanged,
+		TopologyOpening:            topologyOpening,
+		ServerClosed:               serverClosed,
+	}
 
 	// Disable server monitoring because the hosts in the SDAM spec tests don't actually exist, so the server monitor
 	// can race with the test and mark the server Unknown when it fails to connect, which causes tests to fail.
@@ -144,34 +240,28 @@ func setUpTopology(t *testing.T, uri string) *Topology {
 			return true
 		}),
 	}
+	if monitoring {
+		serverOpts = append(serverOpts, WithServerSdamMonitor(func(*event.SdamMonitor) *event.SdamMonitor { return sdam }))
+	}
 	topo, err := New(
 		WithConnString(func(connstring.ConnString) connstring.ConnString {
 			return cs
 		}),
+		WithSeedList(func(...string) []string { return cs.Hosts }),
 		WithServerOptions(func(opts ...ServerOption) []ServerOption {
 			return append(opts, serverOpts...)
+		}),
+		WithTopologySdamMonitor(func(*event.SdamMonitor) *event.SdamMonitor {
+			if monitoring {
+				return sdam
+			}
+			return nil
 		}),
 	)
 	assert.Nil(t, err, "topology.New error: %v", err)
 
-	// add servers to topology without starting heartbeat goroutines
-	topo.serversLock.Lock()
-	for _, a := range topo.cfg.seedList {
-		addr := address.Address(a).Canonicalize()
-		topo.fsm.Servers = append(topo.fsm.Servers, description.Server{Addr: addr})
-
-		svr, err := NewServer(addr, primitive.NewObjectID(), topo.cfg.serverOpts...)
-		assert.Nil(t, err, "NewServer error: %v", err)
-		atomic.StoreInt32(&svr.connectionstate, connected)
-		svr.desc.Store(description.NewDefaultServer(svr.address))
-		svr.updateTopologyCallback.Store(topo.updateCallback)
-
-		topo.servers[addr] = svr
-	}
-	topo.desc.Store(description.Topology{Servers: topo.fsm.Servers})
-	topo.serversLock.Unlock()
-
-	atomic.StoreInt32(&topo.connectionstate, connected)
+	err = topo.Connect()
+	assert.Nil(t, err, "topology.Connect error: %v", err)
 
 	return topo
 }
@@ -404,6 +494,111 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 	}
 }
 
+func compareServerDescriptions(t *testing.T,
+	e serverDescription, a event.ServerDescription, idx int) {
+	assert.Equal(t, e.Address, string(a.Address),
+		"%v: expected server address %s, got %s", idx, e.Address, a.Address)
+
+	assert.Equal(t, len(e.Hosts), len(a.Hosts),
+		"%v: expected %d hosts, got %d", idx, len(e.Hosts), len(a.Hosts))
+	for idx, eh := range e.Hosts {
+		ah := a.Hosts[idx]
+		assert.Equal(t, eh, string(ah), "%v: expected host %s, got %s", idx, eh, ah)
+	}
+
+	assert.Equal(t, len(e.Passives), len(a.Passives),
+		"%v: expected %d hosts, got %d", idx, len(e.Passives), len(a.Passives))
+	for idx, ep := range e.Passives {
+		ap := a.Passives[idx]
+		assert.Equal(t, ep, string(ap), "%v: expected passive %s, got %s", idx, ep, ap)
+	}
+
+	assert.Equal(t, e.Primary, string(a.Primary),
+		"%v: expected primary %s, got %s", idx, e.Primary, a.Primary)
+	assert.Equal(t, e.SetName, a.SetName,
+		"%v: expected set name %s, got %s", idx, e.SetName, a.SetName)
+
+	// PossiblePrimary is only relevant to single-threaded drivers.
+	if e.Type == "PossiblePrimary" {
+		e.Type = "Unknown"
+	}
+	assert.Equal(t, e.Type, a.Kind.String(),
+		"%v: expected server kind %s, got %s", idx, e.Type, a.Kind.String())
+}
+
+func compareTopologyDescriptions(t *testing.T,
+	e topologyDescription, a event.TopologyDescription, idx int) {
+	assert.Equal(t, e.TopologyType, a.Kind.String(),
+		"%v: expected topology kind %s, got %s", idx, e.TopologyType, a.Kind.String())
+	assert.Equal(t, len(e.Servers), len(a.Servers),
+		"%v: expected %d servers, got %d", idx, len(e.Servers), len(a.Servers))
+
+	for idx, es := range e.Servers {
+		as := a.Servers[idx]
+		compareServerDescriptions(t, es, as, idx)
+	}
+
+	assert.Equal(t, e.SetName, a.SetName,
+		"%v: expected set name %s, got %s", idx, e.SetName, a.SetName)
+}
+
+func compareEvents(t *testing.T, events []monitoringEvent) {
+	var emptyUUID uuid.UUID
+
+	lock.Lock()
+	defer lock.Unlock()
+
+	assert.Equal(t, len(events), len(publishedEvents),
+		"expected %d published events, got %d\n",
+		len(events), len(publishedEvents))
+
+	for idx, me := range events {
+		if me.TopologyOpeningEvent != nil {
+			actual, ok := publishedEvents[idx].(event.TopologyOpeningEvent)
+			assert.True(t, ok, "%v: expected type %T, got %T", idx, event.TopologyOpeningEvent{}, publishedEvents[idx])
+			assert.False(t, uuid.Equal(uuid.UUID(actual.ID), emptyUUID), "%v: expected topology id", idx)
+		}
+		if me.ServerOpeningEvent != nil {
+			actual, ok := publishedEvents[idx].(event.ServerOpeningEvent)
+			assert.True(t, ok, "%v: expected type %T, got %T", idx, event.ServerOpeningEvent{}, publishedEvents[idx])
+
+			evt := me.ServerOpeningEvent
+			assert.Equal(t, evt.Address, string(actual.Address),
+				"%v: expected address %s, got %s", idx, evt.Address, actual.Address)
+			assert.False(t, uuid.Equal(uuid.UUID(actual.ID), emptyUUID), "%v: expected topology id %v", idx, actual.ID)
+		}
+		if me.TopologyDescriptionChangedEvent != nil {
+			actual, ok := publishedEvents[idx].(event.TopologyDescriptionChangedEvent)
+			assert.True(t, ok, "%v: expected type %T, got %T", idx, event.TopologyDescriptionChangedEvent{}, publishedEvents[idx])
+
+			evt := me.TopologyDescriptionChangedEvent
+			compareTopologyDescriptions(t, evt.PreviousDescription, actual.PreviousDescription, idx)
+			compareTopologyDescriptions(t, evt.NewDescription, actual.NewDescription, idx)
+			assert.False(t, uuid.Equal(uuid.UUID(actual.ID), emptyUUID), "%v: expected topology id", idx)
+		}
+		if me.ServerDescriptionChangedEvent != nil {
+			actual, ok := publishedEvents[idx].(event.ServerDescriptionChangedEvent)
+			assert.True(t, ok, "%v: expected type %T, got %T", idx, event.ServerDescriptionChangedEvent{}, publishedEvents[idx])
+
+			evt := me.ServerDescriptionChangedEvent
+			assert.Equal(t, evt.Address, string(actual.Address),
+				"%v: expected server address %s, got %s", idx, evt.Address, actual.Address)
+			compareServerDescriptions(t, evt.PreviousDescription, actual.PreviousDescription, idx)
+			compareServerDescriptions(t, evt.NewDescription, actual.NewDescription, idx)
+			assert.False(t, uuid.Equal(uuid.UUID(actual.ID), emptyUUID), "%v: expected topology id", idx)
+		}
+		if me.ServerClosedEvent != nil {
+			actual, ok := publishedEvents[idx].(event.ServerClosedEvent)
+			assert.True(t, ok, "%v: expected type %T, got %T", idx, event.ServerClosedEvent{}, publishedEvents[idx])
+
+			evt := me.ServerClosedEvent
+			assert.Equal(t, evt.Address, string(actual.Address),
+				"%v: expected server address %s, got %s", idx, evt.Address, actual.Address)
+			assert.False(t, uuid.Equal(uuid.UUID(actual.ID), emptyUUID), "%v: expected topology id", idx)
+		}
+	}
+}
+
 func runTest(t *testing.T, directory string, filename string) {
 	filepath := path.Join(testsDir, directory, filename)
 	content, err := ioutil.ReadFile(filepath)
@@ -412,18 +607,25 @@ func runTest(t *testing.T, directory string, filename string) {
 	// Remove ".json" from filename.
 	filename = filename[:len(filename)-5]
 	testName := directory + "/" + filename + ":"
+	monitoring := directory == "monitoring"
 
 	t.Run(testName, func(t *testing.T) {
 		var test testCase
 		err = bson.UnmarshalExtJSON(content, false, &test)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
-		topo := setUpTopology(t, test.URI)
+		topo := setUpTopology(t, test.URI, monitoring)
 		sub, err := topo.Subscribe()
 		assert.Nil(t, err, "subscribe error: %v", err)
 
 		for _, phase := range test.Phases {
 			applyResponses(t, topo, phase.Responses, sub)
 			applyErrors(t, topo, phase.ApplicationErrors)
+
+			if monitoring {
+				compareEvents(t, phase.Outcome.Events)
+				publishedEvents = nil
+				continue
+			}
 			if phase.Outcome.Compatible == nil || *phase.Outcome.Compatible {
 				assert.True(t, topo.fsm.compatible.Load().(bool), "Expected servers to be compatible")
 				assert.Nil(t, topo.fsm.compatibilityErr, "expected fsm.compatiblity to be nil, got %v",
@@ -495,7 +697,7 @@ func runTest(t *testing.T, directory string, filename string) {
 
 // Test case for all SDAM spec tests.
 func TestSDAMSpec(t *testing.T) {
-	for _, subdir := range []string{"single", "rs", "sharded", "errors"} {
+	for _, subdir := range []string{"single", "rs", "sharded", "errors", "monitoring"} {
 		for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(testsDir, subdir)) {
 			runTest(t, subdir, file)
 		}

@@ -8,6 +8,7 @@ package topology
 
 import (
 	"context"
+	"errors"
 	"net"
 	"runtime"
 	"sync"
@@ -18,6 +19,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -41,6 +43,7 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 	cnc := &drivertest.ChannelNetConn{
 		Written:  make(chan []byte, 1),
 		ReadResp: make(chan []byte, 2),
+		ReadErr:  make(chan error, 1),
 	}
 	if err := cnc.AddResponse(makeIsMasterReply()); err != nil {
 		return nil, err
@@ -308,6 +311,90 @@ func TestServer(t *testing.T) {
 		if includesMetadata(t, wm) {
 			t.Fatal("client metadata not expected in heartbeat but found")
 		}
+	})
+	t.Run("heartbeat monitoring", func(t *testing.T) {
+		var publishedEvents []interface{}
+
+		serverHeartbeatStarted := func(e *event.ServerHeartbeatStartedEvent) {
+			publishedEvents = append(publishedEvents, *e)
+		}
+
+		serverHeartbeatSucceeded := func(e *event.ServerHeartbeatSucceededEvent) {
+			publishedEvents = append(publishedEvents, *e)
+		}
+
+		serverHeartbeatFailed := func(e *event.ServerHeartbeatFailedEvent) {
+			publishedEvents = append(publishedEvents, *e)
+		}
+
+		sdam := &event.SdamMonitor{
+			ServerHeartbeatStarted:   serverHeartbeatStarted,
+			ServerHeartbeatSucceeded: serverHeartbeatSucceeded,
+			ServerHeartbeatFailed:    serverHeartbeatFailed,
+		}
+
+		// test that client metadata is sent on handshakes but not heartbeats
+		dialer := &channelNetConnDialer{}
+		dialerOpt := WithDialer(func(Dialer) Dialer {
+			return dialer
+		})
+		serverOpts := []ServerOption{
+			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
+				return append(connOpts, dialerOpt)
+			}),
+			withMonitoringDisabled(func(bool) bool { return true }),
+			WithServerSdamMonitor(func(*event.SdamMonitor) *event.SdamMonitor { return sdam }),
+		}
+
+		s, err := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpts...)
+		if err != nil {
+			t.Fatalf("error from NewServer: %v", err)
+		}
+
+		// set up heartbeat connection, which doesn't send events
+		_, err = s.check()
+		assert.Nil(t, err, "check error: %v", err)
+
+		channelConn := s.conn.nc.(*drivertest.ChannelNetConn)
+		_ = channelConn.GetWrittenMessage()
+
+		t.Run("success", func(t *testing.T) {
+			publishedEvents = nil
+			// do a heartbeat with a non-nil connection
+			if err = channelConn.AddResponse(makeIsMasterReply()); err != nil {
+				t.Fatalf("error adding response: %v", err)
+			}
+			_, err = s.check()
+			assert.Nil(t, err, "check error: %v", err)
+
+			assert.Equal(t, len(publishedEvents), 2, "expected %v events, got %v", 2, len(publishedEvents))
+
+			started, ok := publishedEvents[0].(event.ServerHeartbeatStartedEvent)
+			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatStartedEvent{}, publishedEvents[0])
+			assert.Equal(t, started.ConnectionID, s.conn.ID(), "expected connectionID to match")
+
+			succeeded, ok := publishedEvents[1].(event.ServerHeartbeatSucceededEvent)
+			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatSucceededEvent{}, publishedEvents[1])
+			assert.Equal(t, succeeded.ConnectionID, s.conn.ID(), "expected connectionID to match")
+			assert.Equal(t, string(succeeded.Reply.Address), s.address.String(), "expected address %T, got %T", s.address, succeeded.Reply.Address)
+		})
+		t.Run("failure", func(t *testing.T) {
+			publishedEvents = nil
+			// do a heartbeat with a non-nil connection
+			channelConn.ReadErr <- errors.New("error")
+			_, err = s.check()
+			assert.Nil(t, err, "check error: %v", err)
+
+			assert.Equal(t, len(publishedEvents), 2, "expected %v events, got %v", 2, len(publishedEvents))
+
+			started, ok := publishedEvents[0].(event.ServerHeartbeatStartedEvent)
+			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatStartedEvent{}, publishedEvents[0])
+			assert.Equal(t, started.ConnectionID, s.conn.ID(), "expected connectionID to match")
+
+			failed, ok := publishedEvents[1].(event.ServerHeartbeatFailedEvent)
+			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatFailedEvent{}, publishedEvents[1])
+			assert.Equal(t, failed.ConnectionID, s.conn.ID(), "expected connectionID to match")
+		})
 	})
 	t.Run("WithServerAppName", func(t *testing.T) {
 		name := "test"

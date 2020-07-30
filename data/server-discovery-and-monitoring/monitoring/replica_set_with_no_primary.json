@@ -33,8 +33,7 @@
             "topology_description_changed_event": {
               "topologyId": "42",
               "previousDescription": {
-                "topologyType": "Unknown",
-                "servers": []
+                "topologyType": "Unknown"
               },
               "newDescription": {
                 "topologyType": "Unknown",
