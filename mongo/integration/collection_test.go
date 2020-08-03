@@ -32,14 +32,16 @@ const (
 	errorModifiedID             = 66
 )
 
-func TestCollection(t *testing.T) {
-	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
-	defer mt.Close()
-
+var (
 	// impossibleWc is a write concern that can't be satisfied and is used to test write concern errors
 	// for various operations. It includes a timeout because legacy servers will wait for all W nodes to respond,
 	// causing tests to hang.
-	impossibleWc := writeconcern.New(writeconcern.W(30), writeconcern.WTimeout(time.Second))
+	impossibleWc = writeconcern.New(writeconcern.W(30), writeconcern.WTimeout(time.Second))
+)
+
+func TestCollection(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
+	defer mt.Close()
 
 	mt.RunOpts("insert one", noClientOpts, func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {
