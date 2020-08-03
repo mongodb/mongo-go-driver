@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // DocumentBuilder builds a bson document
@@ -127,8 +128,205 @@ func (db *DocumentBuilder) AppendDouble(key string, f float64) *DocumentBuilder 
 // AppendDouble will append f to ArrayBuilder.doc
 func (a *ArrayBuilder) AppendDouble(f float64) *ArrayBuilder {
 	last := len(a.key) - 1
-	key := strconv.Itoa(a.key[last])
-	a.arr = AppendDoubleElement(a.arr, key, f)
+	a.arr = AppendDoubleElement(a.arr, strconv.Itoa(a.key[last]), f)
+	a.key[last]++
+	return a
+}
+
+// AppendString will append str to ArrayBuilder.doc with the given key
+func (db *DocumentBuilder) AppendString(key string, str string) *DocumentBuilder {
+	db.doc = AppendStringElement(db.doc, key, str)
+	return db
+}
+
+// AppendString will append str to ArrayBuilder.doc
+func (a *ArrayBuilder) AppendString(str string) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendStringElement(a.arr, strconv.Itoa(a.key[last]), str)
+	a.key[last]++
+	return a
+}
+
+// AppendObjectID will append oid to DocumentBuilder.doc with the given key
+func (db *DocumentBuilder) AppendObjectID(key string, oid primitive.ObjectID) *DocumentBuilder {
+	db.doc = AppendObjectIDElement(db.doc, key, oid)
+	return db
+}
+
+// AppendObjectID will append oid to ArrayBuilder.doc
+func (a *ArrayBuilder) AppendObjectID(oid primitive.ObjectID) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendObjectIDElement(a.arr, strconv.Itoa(a.key[last]), oid)
+	a.key[last]++
+	return a
+}
+
+// AppendBinary will append a BSON binary element using key, subtype, and
+// b to db.doc
+func (db *DocumentBuilder) AppendBinary(key string, subtype byte, b []byte) *DocumentBuilder {
+	db.doc = AppendBinaryElement(db.doc, key, subtype, b)
+	return db
+}
+
+// AppendBinary will append a BSON binary element using subtype, and
+// b to a.arr
+func (a *ArrayBuilder) AppendBinary(subtype byte, b []byte) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendBinaryElement(a.arr, strconv.Itoa(a.key[last]), subtype, b)
+	a.key[last]++
+	return a
+}
+
+// AppendBoolean will append a boolean element using key and b to db.doc
+func (db *DocumentBuilder) AppendBoolean(key string, b bool) *DocumentBuilder {
+	db.doc = AppendBooleanElement(db.doc, key, b)
+	return db
+}
+
+// AppendBoolean will append a boolean element using b to a.arr
+func (a *ArrayBuilder) AppendBoolean(b bool) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendBooleanElement(a.arr, strconv.Itoa(a.key[last]), b)
+	a.key[last]++
+	return a
+}
+
+// AppendDateTime will append a datetime element using key and dt to db.doc
+func (db *DocumentBuilder) AppendDateTime(key string, dt int64) *DocumentBuilder {
+	db.doc = AppendDateTimeElement(db.doc, key, dt)
+	return db
+}
+
+// AppendDateTime will append datetime element dt to a.arr
+func (a *ArrayBuilder) AppendDateTime(dt int64) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendDateTimeElement(a.arr, strconv.Itoa(a.key[last]), dt)
+	a.key[last]++
+	return a
+}
+
+// AppendNull will append a null element using key to db.doc
+func (db *DocumentBuilder) AppendNull(key string) *DocumentBuilder {
+	db.doc = AppendNullElement(db.doc, key)
+	return db
+}
+
+// AppendNull will append a null element to a.arr
+func (a *ArrayBuilder) AppendNull() *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendNullElement(a.arr, strconv.Itoa(a.key[last]))
+	a.key[last]++
+	return a
+}
+
+// AppendRegex will append pattern and options using key to db.doc
+func (db *DocumentBuilder) AppendRegex(key, pattern, options string) *DocumentBuilder {
+	db.doc = AppendRegexElement(db.doc, key, pattern, options)
+	return db
+}
+
+// AppendRegex will append pattern and options to a.arr
+func (a *ArrayBuilder) AppendRegex(pattern, options string) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendRegexElement(a.arr, strconv.Itoa(a.key[last]), pattern, options)
+	a.key[last]++
+	return a
+}
+
+// AppendJavaScript will append js using the provided key to db.doc
+func (db *DocumentBuilder) AppendJavaScript(key, js string) *DocumentBuilder {
+	db.doc = AppendJavaScriptElement(db.doc, key, js)
+	return db
+}
+
+// AppendJavaScript will append js to a.arr
+func (a *ArrayBuilder) AppendJavaScript(js string) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendJavaScriptElement(a.arr, strconv.Itoa(a.key[last]), js)
+	a.key[last]++
+	return a
+}
+
+// AppendCodeWithScope will append code and scope using key to db.doc
+func (db *DocumentBuilder) AppendCodeWithScope(key, code string, scope []byte) *DocumentBuilder {
+	db.doc = AppendCodeWithScopeElement(db.doc, key, code, scope)
+	return db
+}
+
+// AppendCodeWithScope will append code and scope to a.arr
+func (a *ArrayBuilder) AppendCodeWithScope(code string, scope []byte) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendCodeWithScopeElement(a.arr, strconv.Itoa(a.key[last]), code, scope)
+	a.key[last]++
+	return a
+}
+
+// AppendTimestamp will append t and i to db.doc using provided key
+func (db *DocumentBuilder) AppendTimestamp(key string, t, i uint32) *DocumentBuilder {
+	db.doc = AppendTimestampElement(db.doc, key, t, i)
+	return db
+}
+
+// AppendTimestamp will append t and i to a.arr
+func (a *ArrayBuilder) AppendTimestamp(t, i uint32) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendTimestampElement(a.arr, strconv.Itoa(a.key[last]), t, i)
+	a.key[last]++
+	return a
+}
+
+// AppendInt64 will append i64 to dst using key to db.doc
+func (db *DocumentBuilder) AppendInt64(key string, i64 int64) *DocumentBuilder {
+	db.doc = AppendInt64Element(db.doc, key, i64)
+	return db
+}
+
+// AppendInt64 will append i64 to a.arr
+func (a *ArrayBuilder) AppendInt64(i64 int64) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendInt64Element(a.arr, strconv.Itoa(a.key[last]), i64)
+	a.key[last]++
+	return a
+}
+
+// AppendDecimal128 will append d128 to db.doc using provided key
+func (db *DocumentBuilder) AppendDecimal128(key string, d128 primitive.Decimal128) *DocumentBuilder {
+	db.doc = AppendDecimal128Element(db.doc, key, d128)
+	return db
+}
+
+// AppendDecimal128 will append d128 to a.arr
+func (a *ArrayBuilder) AppendDecimal128(d128 primitive.Decimal128) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendDecimal128Element(a.arr, strconv.Itoa(a.key[last]), d128)
+	a.key[last]++
+	return a
+}
+
+// AppendMaxKey will append a max key element using key to db.doc
+func (db *DocumentBuilder) AppendMaxKey(key string) *DocumentBuilder {
+	db.doc = AppendMaxKeyElement(db.doc, key)
+	return db
+}
+
+// AppendMaxKey will append a max key element to a.arr
+func (a *ArrayBuilder) AppendMaxKey(key string) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendMaxKeyElement(a.arr, strconv.Itoa(a.key[last]))
+	a.key[last]++
+	return a
+}
+
+// AppendMinKey will append a min key element using key to db.doc
+func (db *DocumentBuilder) AppendMinKey(key string) *DocumentBuilder {
+	db.doc = AppendMinKeyElement(db.doc, key)
+	return db
+}
+
+// AppendMinKey will append a min key element to a.arr
+func (a *ArrayBuilder) AppendMinKey(key string) *ArrayBuilder {
+	last := len(a.key) - 1
+	a.arr = AppendMinKeyElement(a.arr, strconv.Itoa(a.key[last]))
 	a.key[last]++
 	return a
 }

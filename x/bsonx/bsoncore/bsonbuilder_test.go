@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func emptyDocumentBuilder() *DocumentBuilder {
@@ -49,6 +50,134 @@ func TestDocumentBuilder(t *testing.T) {
 			emptyDocumentBuilder().AppendDouble,
 			[]interface{}{"foobar", float64(3.14159)},
 			append([]byte{byte(bsontype.Double), 'f', 'o', 'o', 'b', 'a', 'r', 0x00}, pi...),
+		},
+		{
+			"AppendString",
+			emptyDocumentBuilder().AppendString,
+			[]interface{}{"foobar", "x"},
+			[]byte{byte(bsontype.String), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x02, 0x00, 0x00, 0x00, 'x', 0x00},
+		},
+		{
+			"AppendDocument",
+			emptyDocumentBuilder().AppendDocument,
+			[]interface{}{"foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]byte{byte(bsontype.EmbeddedDocument),
+				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				0x05, 0x00, 0x00, 0x00, 0x00,
+			},
+		},
+		{
+			"AppendArray",
+			emptyDocumentBuilder().AppendArray,
+			[]interface{}{"foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]byte{byte(bsontype.Array),
+				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				0x05, 0x00, 0x00, 0x00, 0x00,
+			},
+		},
+		{
+			"AppendBinary",
+			emptyDocumentBuilder().AppendBinary,
+			[]interface{}{"foobar", byte(0x02), []byte{0x01, 0x02, 0x03}},
+			[]byte{byte(bsontype.Binary),
+				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				0x07, 0x00, 0x00, 0x00,
+				0x02,
+				0x03, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03,
+			},
+		},
+		{
+			"AppendObjectID",
+			emptyDocumentBuilder().AppendObjectID,
+			[]interface{}{
+				"foobar",
+				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+			},
+			[]byte{byte(bsontype.ObjectID),
+				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
+			},
+		},
+		{
+			"AppendBoolean",
+			emptyDocumentBuilder().AppendBoolean,
+			[]interface{}{"foobar", true},
+			[]byte{byte(bsontype.Boolean), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x01},
+		},
+		{
+			"AppendDateTime",
+			emptyDocumentBuilder().AppendDateTime,
+			[]interface{}{"foobar", int64(256)},
+			[]byte{byte(bsontype.DateTime), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		},
+		{
+			"AppendNull",
+			emptyDocumentBuilder().AppendNull,
+			[]interface{}{"foobar"},
+			[]byte{byte(bsontype.Null), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
+		},
+		{
+			"AppendRegex",
+			emptyDocumentBuilder().AppendRegex,
+			[]interface{}{"foobar", "bar", "baz"},
+			[]byte{byte(bsontype.Regex),
+				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				'b', 'a', 'r', 0x00, 'b', 'a', 'z', 0x00,
+			},
+		},
+		{
+			"AppendJavaScript",
+			emptyDocumentBuilder().AppendJavaScript,
+			[]interface{}{"foobar", "barbaz"},
+			[]byte{byte(bsontype.JavaScript),
+				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
+			},
+		},
+		{
+			"AppendCodeWithScope",
+			emptyDocumentBuilder().AppendCodeWithScope,
+			[]interface{}{"foobar", "barbaz", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]byte{byte(bsontype.CodeWithScope),
+				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				0x14, 0x00, 0x00, 0x00,
+				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
+				0x05, 0x00, 0x00, 0x00, 0x00,
+			},
+		},
+		{
+			"AppendTimestamp",
+			emptyDocumentBuilder().AppendTimestamp,
+			[]interface{}{"foobar", uint32(65536), uint32(256)},
+			[]byte{byte(bsontype.Timestamp), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00},
+		},
+		{
+			"AppendInt64",
+			emptyDocumentBuilder().AppendInt64,
+			[]interface{}{"foobar", int64(4294967296)},
+			[]byte{byte(bsontype.Int64), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
+		},
+		{
+			"AppendDecimal128",
+			emptyDocumentBuilder().AppendDecimal128,
+			[]interface{}{"foobar", primitive.NewDecimal128(4294967296, 65536)},
+			[]byte{
+				byte(bsontype.Decimal128), 'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+			},
+		},
+		{
+			"AppendMaxKey",
+			emptyDocumentBuilder().AppendMaxKey,
+			[]interface{}{"foobar"},
+			[]byte{byte(bsontype.MaxKey), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
+		},
+		{
+			"AppendMinKey",
+			emptyDocumentBuilder().AppendMinKey,
+			[]interface{}{"foobar"},
+			[]byte{byte(bsontype.MinKey), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 	}
 	for _, tc := range testCases {
