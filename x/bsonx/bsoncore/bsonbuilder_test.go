@@ -22,7 +22,7 @@ func emptyDocumentBuilder() *DocumentBuilder {
 
 func emptyArrayBuilder() *ArrayBuilder {
 	a := ArrayBuilder{}
-	a.index = append(a.index, int32(0))
+	a.indexes = append(a.indexes, int32(0))
 	a.key = append(a.key, 0)
 	return &a
 }
@@ -43,6 +43,12 @@ func TestDocumentBuilder(t *testing.T) {
 			emptyDocumentBuilder().AppendInt32,
 			[]interface{}{"foobar", int32(256)},
 			[]byte{byte(bsontype.Int32), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00},
+		},
+		{
+			"AppendDouble",
+			emptyDocumentBuilder().AppendDouble,
+			[]interface{}{"foobar", float64(3.14159)},
+			append([]byte{byte(bsontype.Double), 'f', 'o', 'o', 'b', 'a', 'r', 0x00}, pi...),
 		},
 	}
 	for _, tc := range testCases {
