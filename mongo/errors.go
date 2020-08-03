@@ -201,7 +201,12 @@ func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcern
 		return nil
 	}
 
-	return &WriteConcernError{Code: int(wce.Code), Message: wce.Message, Details: bson.Raw(wce.Details)}
+	return &WriteConcernError{
+		Name:    wce.Name,
+		Code:    int(wce.Code),
+		Message: wce.Message,
+		Details: bson.Raw(wce.Details),
+	}
 }
 
 // BulkWriteError is an error that occurred during execution of one operation in a BulkWrite. This error type is only

@@ -65,3 +65,52 @@ func TestAggregateSecondaryPreferredReadPreference(t *testing.T) {
 		assert.NotNil(mt, err, "expected command %s to not contain $readPreference", evt.Command)
 	})
 }
+
+func TestErrorsCodeNamePropagated(t *testing.T) {
+	// Ensure the codeName field is propagated for both command and write concern errors.
+
+	mtOpts := mtest.NewOptions().
+		Topologies(mtest.ReplicaSet).
+		CreateClient(false)
+	mt := mtest.New(t, mtOpts)
+	defer mt.Close()
+
+	mt.RunOpts("command error", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
+		// codeName is propagated in an ok:0 error.
+
+		cmd := bson.D{
+			{"insert", mt.Coll.Name()},
+			{"documents", []bson.D{}},
+		}
+		err := mt.DB.RunCommand(mtest.Background, cmd).Err()
+		assert.NotNil(mt, err, "expected RunCommand error, got nil")
+
+		ce, ok := err.(mongo.CommandError)
+		assert.True(mt, ok, "expected error of type %T, got %v of type %T", mongo.CommandError{}, err, err)
+		expectedCodeName := "InvalidLength"
+		assert.Equal(mt, expectedCodeName, ce.Name, "expected error code name %q, got %q", expectedCodeName, ce.Name)
+	})
+
+	wcCollOpts := options.Collection().
+		SetWriteConcern(impossibleWc)
+	wcMtOpts := mtest.NewOptions().
+		CollectionOptions(wcCollOpts)
+	mt.RunOpts("write concern error", wcMtOpts, func(mt *mtest.T) {
+		// codeName is propagated for write concern errors.
+
+		_, err := mt.Coll.InsertOne(mtest.Background, bson.D{})
+		assert.NotNil(mt, err, "expected InsertOne error, got nil")
+
+		we, ok := err.(mongo.WriteException)
+		assert.True(mt, ok, "expected error of type %T, got %v of type %T", mongo.WriteException{}, err, err)
+		wce := we.WriteConcernError
+		assert.NotNil(mt, wce, "expected write concern error, got %v", we)
+
+		var expectedCodeName string
+		if codeNameVal, err := mt.GetSucceededEvent().Reply.LookupErr("writeConcernError", "codeName"); err == nil {
+			expectedCodeName = codeNameVal.StringValue()
+		}
+
+		assert.Equal(mt, expectedCodeName, wce.Name, "expected code name %q, got %q", expectedCodeName, wce.Name)
+	})
+}
