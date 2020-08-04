@@ -119,8 +119,8 @@ func (db *DocumentBuilder) AppendJavaScript(key, js string) *DocumentBuilder {
 }
 
 // AppendCodeWithScope will append code and scope using key to db.doc
-func (db *DocumentBuilder) AppendCodeWithScope(key string, code Document, scope []byte) *DocumentBuilder {
-	db.doc = AppendCodeWithScopeElement(db.doc, key, string(code), scope)
+func (db *DocumentBuilder) AppendCodeWithScope(key string, code string, scope Document) *DocumentBuilder {
+	db.doc = AppendCodeWithScopeElement(db.doc, key, code, scope)
 	return db
 }
 

@@ -105,8 +105,8 @@ func TestArrayBuilder(t *testing.T) {
 		{
 			"AppendCodeWithScope",
 			NewArrayBuilder().AppendCodeWithScope,
-			[]interface{}{Document("barbaz"), []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
-			BuildDocumentFromElements(nil, AppendCodeWithScopeElement(nil, "0", "barbaz", []byte{0x05, 0x00, 0x00, 0x00, 0x00})),
+			[]interface{}{"barbaz", Document([]byte{0x05, 0x00, 0x00, 0x00, 0x00})},
+			BuildDocumentFromElements(nil, AppendCodeWithScopeElement(nil, "0", "barbaz", Document([]byte{0x05, 0x00, 0x00, 0x00, 0x00}))),
 		},
 		{
 			"AppendTimestamp",
@@ -164,19 +164,9 @@ func TestArrayBuilder(t *testing.T) {
 			}
 		})
 	}
-	t.Run("TestBuildOneElementArray", func(t *testing.T) {
-		expected := []byte{0x0c, 0x00, 0x00, 0x00, 0x10, '0', 0x00, 0x00, 0x01, 0x00, 0x00, 0x00}
-		result, _ := NewArrayBuilder().AppendInt32(int32(256)).Build()
-		if !bytes.Equal(result, expected) {
-			t.Errorf("Arrays do not match. got %v; want %v", result, expected)
-		}
-	})
 	t.Run("TestBuildTwoElementsArray", func(t *testing.T) {
-		expected := []byte{
-			0x1b, 0x00, 0x00, 0x00, 0x10, '0', 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
-			'1', 0x00, 0x0c, 0x00, 0x00, 0x00, 0x10, '0', 0x00, 0x01, 0x00, 0x00,
-			0x00, 0x00, 0x00,
-		}
+		intArr := BuildDocumentFromElements(nil, AppendInt32Element(nil, "0", int32(1)))
+		expected := BuildDocumentFromElements(nil, AppendArrayElement(AppendInt32Element(nil, "0", int32(3)), "1", intArr))
 		elem, _ := NewArrayBuilder().AppendInt32(int32(1)).Build()
 		result, _ := NewArrayBuilder().AppendInt32(int32(3)).AppendArray(elem).Build()
 		if !bytes.Equal(result, expected) {
