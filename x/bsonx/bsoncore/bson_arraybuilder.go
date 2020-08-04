@@ -35,15 +35,15 @@ func (a *ArrayBuilder) startArray() *ArrayBuilder {
 	return a
 }
 
-// append element updates the
+// append element updates a.keys and calls the given function (fn) with params given
 func (a *ArrayBuilder) appendElement(fn interface{}, params []interface{}) *ArrayBuilder {
 	last := len(a.keys) - 1
-	function := reflect.ValueOf(fn)
+	fun := reflect.ValueOf(fn)
 	parameters := make([]reflect.Value, 0, len(params))
 	for _, param := range params {
 		parameters = append(parameters, reflect.ValueOf(param))
 	}
-	a.arr = function.Call(parameters)[0].Interface().([]byte)
+	a.arr = fun.Call(parameters)[0].Interface().([]byte)
 	a.keys[last]++
 	return a
 }
