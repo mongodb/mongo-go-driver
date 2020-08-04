@@ -24,19 +24,14 @@ func NewCancellationListener() *CancellationListener {
 // detects that the context has been cancelled (i.e. ctx.Err() == context.Canceled), the provided callback is called to
 // abort in-progress work. Even if the context expires, this function will block until StopListening is called.
 func (c *CancellationListener) Listen(ctx context.Context, abortFn func()) {
-	for {
-		select {
-		case <-ctx.Done():
-			if ctx.Err() != context.Canceled {
-				continue
-			}
-
+	select {
+	case <-ctx.Done():
+		if ctx.Err() == context.Canceled {
 			abortFn()
-			<-c.done
-			return
-		case <-c.done:
-			return
 		}
+
+		<-c.done
+	case <-c.done:
 	}
 }
 
