@@ -20,7 +20,7 @@ func NewCancellationListener() *CancellationListener {
 	}
 }
 
-// Listen loops until the provided context is cancelled or listening is aborted via the StopListening function. If this
+// Listen blocks until the provided context is cancelled or listening is aborted via the StopListening function. If this
 // detects that the context has been cancelled (i.e. ctx.Err() == context.Canceled), the provided callback is called to
 // abort in-progress work. Even if the context expires, this function will block until StopListening is called.
 func (c *CancellationListener) Listen(ctx context.Context, abortFn func()) {

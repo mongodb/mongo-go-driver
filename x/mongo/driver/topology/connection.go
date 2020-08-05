@@ -286,8 +286,8 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	}
 
 	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
+	defer c.cancellationListener.StopListening()
 	_, err = c.nc.Write(wm)
-	c.cancellationListener.StopListening()
 	if err != nil {
 		c.close()
 		return ConnectionError{
@@ -335,12 +335,13 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	var sizeBuf [4]byte
 
 	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
+	defer c.cancellationListener.StopListening()
+
 	// We do a ReadFull into an array here instead of doing an opportunistic ReadAtLeast into dst
 	// because there might be more than one wire message waiting to be read, for example when
 	// reading messages from an exhaust cursor.
 	_, err := io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
-		c.cancellationListener.StopListening()
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
 		message := "incomplete read of message header"
@@ -367,7 +368,6 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	copy(dst, sizeBuf[:])
 
 	_, err = io.ReadFull(c.nc, dst[4:])
-	c.cancellationListener.StopListening()
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
