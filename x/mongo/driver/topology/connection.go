@@ -32,29 +32,30 @@ var globalConnectionID uint64 = 1
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
 type connection struct {
-	id                   string
-	nc                   net.Conn // When nil, the connection is closed.
-	addr                 address.Address
-	idleTimeout          time.Duration
-	idleDeadline         atomic.Value // Stores a time.Time
-	lifetimeDeadline     time.Time
-	readTimeout          time.Duration
-	writeTimeout         time.Duration
-	desc                 description.Server
-	isMasterRTT          time.Duration
-	compressor           wiremessage.CompressorID
-	zliblevel            int
-	zstdLevel            int
-	connected            int32 // must be accessed using the sync/atomic package
-	connectDone          chan struct{}
-	connectErr           error
-	config               *connectionConfig
-	cancelConnectContext context.CancelFunc
-	connectContextMade   chan struct{}
-	canStream            bool
-	currentlyStreaming   bool
-	connectContextMutex  sync.Mutex
-	cancellationListener cancellationListener
+	id                     string
+	nc                     net.Conn // When nil, the connection is closed.
+	addr                   address.Address
+	idleTimeout            time.Duration
+	idleDeadline           atomic.Value // Stores a time.Time
+	lifetimeDeadline       time.Time
+	readTimeout            time.Duration
+	writeTimeout           time.Duration
+	desc                   description.Server
+	isMasterRTT            time.Duration
+	compressor             wiremessage.CompressorID
+	zliblevel              int
+	zstdLevel              int
+	connected              int32 // must be accessed using the sync/atomic package
+	connectDone            chan struct{}
+	connectErr             error
+	config                 *connectionConfig
+	cancelConnectContext   context.CancelFunc
+	connectContextMade     chan struct{}
+	canStream              bool
+	currentlyStreaming     bool
+	connectContextMutex    sync.Mutex
+	cancellationListener   cancellationListener
+	abortedForCancellation bool
 
 	// pool related fields
 	pool         *pool
@@ -256,7 +257,8 @@ func transformNetworkError(ctx context.Context, originalError error, contextDead
 }
 
 func (c *connection) cancellationListenerCallback() {
-	_ = c.nc.Close()
+	c.abortedForCancellation = true
+	_ = c.close()
 }
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
@@ -285,9 +287,7 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set write deadline"}
 	}
 
-	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
-	defer c.cancellationListener.StopListening()
-	_, err = c.nc.Write(wm)
+	err = c.write(ctx, wm)
 	if err != nil {
 		c.close()
 		return ConnectionError{
@@ -299,6 +299,24 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 
 	c.bumpIdleDeadline()
 	return nil
+}
+
+func (c *connection) write(ctx context.Context, wm []byte) (err error) {
+	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
+	defer func() {
+		// There is a race condition between Write and StopListening. If the context is cancelled after c.nc.Write
+		// succeeds, the cancellation listener could fire and close the connection. In this case, the connection has
+		// been invalidated but the error is nil. To account for this, overwrite the error to context.Cancelled if
+		// the abortedForCancellation flag was set.
+
+		c.cancellationListener.StopListening()
+		if c.abortedForCancellation && err == nil {
+			err = context.Canceled
+		}
+	}()
+
+	_, err = c.nc.Write(wm)
+	return err
 }
 
 // readWireMessage reads a wiremessage from the connection. The dst parameter will be overwritten.
@@ -330,21 +348,11 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set read deadline"}
 	}
 
-	// We use an array here because it only costs 4 bytes on the stack and means we'll only need to
-	// reslice dst once instead of twice.
-	var sizeBuf [4]byte
-
-	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
-	defer c.cancellationListener.StopListening()
-
-	// We do a ReadFull into an array here instead of doing an opportunistic ReadAtLeast into dst
-	// because there might be more than one wire message waiting to be read, for example when
-	// reading messages from an exhaust cursor.
-	_, err := io.ReadFull(c.nc, sizeBuf[:])
+	dst, errMsg, err := c.read(ctx, dst)
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
-		message := "incomplete read of message header"
+		message := errMsg
 		if err == io.EOF {
 			message = "socket was unexpectedly closed"
 		}
@@ -353,6 +361,36 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),
 			message:      message,
 		}
+	}
+
+	c.bumpIdleDeadline()
+	return dst, nil
+}
+
+func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, errMsg string, err error) {
+	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
+	defer func() {
+		// If the context is cancelled after we finish reading the server response, the cancellation listener could fire
+		// even though the socket reads succeed. To account for this, we overwrite err to be context.Canceled if the
+		// abortedForCancellation flag is set.
+
+		c.cancellationListener.StopListening()
+		if c.abortedForCancellation && err == nil {
+			errMsg = "unable to read server response"
+			err = context.Canceled
+		}
+	}()
+
+	// We use an array here because it only costs 4 bytes on the stack and means we'll only need to
+	// reslice dst once instead of twice.
+	var sizeBuf [4]byte
+
+	// We do a ReadFull into an array here instead of doing an opportunistic ReadAtLeast into dst
+	// because there might be more than one wire message waiting to be read, for example when
+	// reading messages from an exhaust cursor.
+	_, err = io.ReadFull(c.nc, sizeBuf[:])
+	if err != nil {
+		return nil, "incomplete read of message header", err
 	}
 
 	// read the length as an int32
@@ -369,21 +407,10 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 
 	_, err = io.ReadFull(c.nc, dst[4:])
 	if err != nil {
-		// We closeConnection the connection because we don't know if there are other bytes left to read.
-		c.close()
-		message := "incomplete read of full message"
-		if err == io.EOF {
-			message = "socket was unexpectedly closed"
-		}
-		return nil, ConnectionError{
-			ConnectionID: c.id,
-			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),
-			message:      message,
-		}
+		return nil, "incomplete read of full message", err
 	}
 
-	c.bumpIdleDeadline()
-	return dst, nil
+	return dst, "", nil
 }
 
 func (c *connection) close() error {
