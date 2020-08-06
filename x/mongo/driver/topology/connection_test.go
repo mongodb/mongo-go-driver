@@ -404,6 +404,8 @@ func TestConnection(t *testing.T) {
 				want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: "unable to read server response"}
 				_, err := conn.readWireMessage(context.Background(), nil)
 				assert.Equal(t, want, err, "expected error %v, got %v", want, err)
+				assert.Equal(t, disconnected, conn.connected, "expected connection state %v, got %v", disconnected,
+					conn.connected)
 			})
 		})
 		t.Run("close", func(t *testing.T) {
