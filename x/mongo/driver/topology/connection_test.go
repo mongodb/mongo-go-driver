@@ -236,6 +236,8 @@ func TestConnection(t *testing.T) {
 				}
 			})
 			t.Run("Write", func(t *testing.T) {
+				writeErrMsg := "unable to write wire message to network"
+
 				t.Run("error", func(t *testing.T) {
 					err := errors.New("Write error")
 					tnc := &testNetConn{writeerr: err}
@@ -243,7 +245,7 @@ func TestConnection(t *testing.T) {
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
-					want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "unable to write wire message to network"}
+					want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: writeErrMsg}
 					got := conn.writeWireMessage(context.Background(), []byte{})
 					if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 						t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -268,6 +270,32 @@ func TestConnection(t *testing.T) {
 					}
 					listener.assertMethodsCalled(t, 1, 1)
 				})
+				t.Run("can cancel in-progress write", func(t *testing.T) {
+					nc := newCancellationTestNetConn(&testNetConn{})
+					conn := &connection{id: "foobar", nc: nc, connected: connected}
+					listener := newTestCancellationListener(false)
+					conn.cancellationListener = listener
+
+					ctx, cancel := context.WithCancel(context.Background())
+					var err error
+
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						err = conn.writeWireMessage(ctx, []byte("foobar"))
+					}()
+
+					<-nc.operationStartedChan
+					cancel()
+					nc.continueChan <- struct{}{}
+
+					wg.Wait()
+					want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: writeErrMsg}
+					assert.Equal(t, want, err, "expected error %v, got %v", want, err)
+					assert.Equal(t, disconnected, conn.connected, "expected connection state %v, got %v", disconnected,
+						conn.connected)
+				})
 				t.Run("connection is closed if context is cancelled even if network write succeeds", func(t *testing.T) {
 					// Test the race condition between Write and the cancellation listener. The socket write will
 					// succeed, but we set the abortedForCancellation flag to true to simulate the context being
@@ -278,7 +306,7 @@ func TestConnection(t *testing.T) {
 					listener := newTestCancellationListener(true)
 					conn.cancellationListener = listener
 
-					want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: "unable to write wire message to network"}
+					want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: writeErrMsg}
 					err := conn.writeWireMessage(context.Background(), []byte("foobar"))
 					assert.Equal(t, want, err, "expected error %v, got %v", want, err)
 					assert.Equal(t, conn.connected, disconnected, "expected connection state %v, got %v", disconnected,
@@ -509,6 +537,33 @@ func TestConnection(t *testing.T) {
 			}
 		})
 	})
+}
+
+type cancellationTestNetConn struct {
+	net.Conn
+
+	operationStartedChan chan struct{}
+	continueChan         chan struct{}
+}
+
+func newCancellationTestNetConn(nc net.Conn) *cancellationTestNetConn {
+	return &cancellationTestNetConn{
+		Conn:                 nc,
+		operationStartedChan: make(chan struct{}),
+		continueChan:         make(chan struct{}),
+	}
+}
+
+func (c *cancellationTestNetConn) Read([]byte) (int, error) {
+	c.operationStartedChan <- struct{}{}
+	<-c.continueChan
+	return 0, errors.New("cancelled read")
+}
+
+func (c *cancellationTestNetConn) Write([]byte) (n int, err error) {
+	c.operationStartedChan <- struct{}{}
+	<-c.continueChan
+	return 0, errors.New("cancelled write")
 }
 
 type testNetConn struct {
