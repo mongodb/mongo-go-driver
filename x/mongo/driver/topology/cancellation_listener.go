@@ -10,5 +10,5 @@ import "context"
 
 type cancellationListener interface {
 	Listen(context.Context, func())
-	StopListening()
+	StopListening() bool
 }

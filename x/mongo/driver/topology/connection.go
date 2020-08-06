@@ -32,30 +32,29 @@ var globalConnectionID uint64 = 1
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
 type connection struct {
-	id                     string
-	nc                     net.Conn // When nil, the connection is closed.
-	addr                   address.Address
-	idleTimeout            time.Duration
-	idleDeadline           atomic.Value // Stores a time.Time
-	lifetimeDeadline       time.Time
-	readTimeout            time.Duration
-	writeTimeout           time.Duration
-	desc                   description.Server
-	isMasterRTT            time.Duration
-	compressor             wiremessage.CompressorID
-	zliblevel              int
-	zstdLevel              int
-	connected              int32 // must be accessed using the sync/atomic package
-	connectDone            chan struct{}
-	connectErr             error
-	config                 *connectionConfig
-	cancelConnectContext   context.CancelFunc
-	connectContextMade     chan struct{}
-	canStream              bool
-	currentlyStreaming     bool
-	connectContextMutex    sync.Mutex
-	cancellationListener   cancellationListener
-	abortedForCancellation bool
+	id                   string
+	nc                   net.Conn // When nil, the connection is closed.
+	addr                 address.Address
+	idleTimeout          time.Duration
+	idleDeadline         atomic.Value // Stores a time.Time
+	lifetimeDeadline     time.Time
+	readTimeout          time.Duration
+	writeTimeout         time.Duration
+	desc                 description.Server
+	isMasterRTT          time.Duration
+	compressor           wiremessage.CompressorID
+	zliblevel            int
+	zstdLevel            int
+	connected            int32 // must be accessed using the sync/atomic package
+	connectDone          chan struct{}
+	connectErr           error
+	config               *connectionConfig
+	cancelConnectContext context.CancelFunc
+	connectContextMade   chan struct{}
+	canStream            bool
+	currentlyStreaming   bool
+	connectContextMutex  sync.Mutex
+	cancellationListener cancellationListener
 
 	// pool related fields
 	pool         *pool
@@ -257,7 +256,6 @@ func transformNetworkError(ctx context.Context, originalError error, contextDead
 }
 
 func (c *connection) cancellationListenerCallback() {
-	c.abortedForCancellation = true
 	_ = c.close()
 }
 
@@ -309,8 +307,7 @@ func (c *connection) write(ctx context.Context, wm []byte) (err error) {
 		// been invalidated but the error is nil. To account for this, overwrite the error to context.Cancelled if
 		// the abortedForCancellation flag was set.
 
-		c.cancellationListener.StopListening()
-		if c.abortedForCancellation && err == nil {
+		if aborted := c.cancellationListener.StopListening(); aborted && err == nil {
 			err = context.Canceled
 		}
 	}()
@@ -374,8 +371,7 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 		// even though the socket reads succeed. To account for this, we overwrite err to be context.Canceled if the
 		// abortedForCancellation flag is set.
 
-		c.cancellationListener.StopListening()
-		if c.abortedForCancellation && err == nil {
+		if aborted := c.cancellationListener.StopListening(); aborted && err == nil {
 			errMsg = "unable to read server response"
 			err = context.Canceled
 		}

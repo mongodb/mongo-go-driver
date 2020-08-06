@@ -10,7 +10,8 @@ import "context"
 
 // CancellationListener listens for context cancellation in a loop until the context expires or the listener is aborted.
 type CancellationListener struct {
-	done chan struct{}
+	aborted bool
+	done    chan struct{}
 }
 
 // NewCancellationListener constructs a CancellationListener.
@@ -24,9 +25,12 @@ func NewCancellationListener() *CancellationListener {
 // detects that the context has been cancelled (i.e. ctx.Err() == context.Canceled), the provided callback is called to
 // abort in-progress work. Even if the context expires, this function will block until StopListening is called.
 func (c *CancellationListener) Listen(ctx context.Context, abortFn func()) {
+	c.aborted = false
+
 	select {
 	case <-ctx.Done():
 		if ctx.Err() == context.Canceled {
+			c.aborted = true
 			abortFn()
 		}
 
@@ -35,7 +39,9 @@ func (c *CancellationListener) Listen(ctx context.Context, abortFn func()) {
 	}
 }
 
-// StopListening stops the in-progress Listen call. This function will block if there is no in-progress Listen call.
-func (c *CancellationListener) StopListening() {
+// StopListening stops the in-progress Listen call. This blocks if there is no in-progress Listen call. This function
+// will return true if the provided abort callback was called when listening for cancellation on the previous context.
+func (c *CancellationListener) StopListening() bool {
 	c.done <- struct{}{}
+	return c.aborted
 }

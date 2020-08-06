@@ -240,7 +240,7 @@ func TestConnection(t *testing.T) {
 					err := errors.New("Write error")
 					tnc := &testNetConn{writeerr: err}
 					conn := &connection{id: "foobar", nc: tnc, connected: connected}
-					listener := newTestCancellationListener()
+					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
 					want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "unable to write wire message to network"}
@@ -256,7 +256,7 @@ func TestConnection(t *testing.T) {
 				t.Run("success", func(t *testing.T) {
 					tnc := &testNetConn{}
 					conn := &connection{id: "foobar", nc: tnc, connected: connected}
-					listener := newTestCancellationListener()
+					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
 					want := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}
@@ -275,10 +275,9 @@ func TestConnection(t *testing.T) {
 
 					tnc := &testNetConn{}
 					conn := &connection{id: "foobar", nc: tnc, connected: connected}
-					listener := newTestCancellationListener()
+					listener := newTestCancellationListener(true)
 					conn.cancellationListener = listener
 
-					conn.abortedForCancellation = true
 					want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: "unable to write wire message to network"}
 					err := conn.writeWireMessage(context.Background(), []byte("foobar"))
 					assert.Equal(t, want, err, "expected error %v, got %v", want, err)
@@ -349,7 +348,7 @@ func TestConnection(t *testing.T) {
 				err := errors.New("Read error")
 				tnc := &testNetConn{readerr: err}
 				conn := &connection{id: "foobar", nc: tnc, connected: connected}
-				listener := newTestCancellationListener()
+				listener := newTestCancellationListener(false)
 				conn.cancellationListener = listener
 
 				want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "incomplete read of message header"}
@@ -366,7 +365,7 @@ func TestConnection(t *testing.T) {
 				err := errors.New("Read error")
 				tnc := &testNetConn{readerr: err, buf: []byte{0x11, 0x00, 0x00, 0x00}}
 				conn := &connection{id: "foobar", nc: tnc, connected: connected}
-				listener := newTestCancellationListener()
+				listener := newTestCancellationListener(false)
 				conn.cancellationListener = listener
 
 				want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "incomplete read of full message"}
@@ -384,7 +383,7 @@ func TestConnection(t *testing.T) {
 				tnc := &testNetConn{buf: make([]byte, len(want))}
 				copy(tnc.buf, want)
 				conn := &connection{id: "foobar", nc: tnc, connected: connected}
-				listener := newTestCancellationListener()
+				listener := newTestCancellationListener(false)
 				conn.cancellationListener = listener
 
 				got, err := conn.readWireMessage(context.Background(), nil)
@@ -397,10 +396,9 @@ func TestConnection(t *testing.T) {
 			t.Run("closes connection if context is cancelled even if the socket read succeeds", func(t *testing.T) {
 				tnc := &testNetConn{buf: []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}}
 				conn := &connection{id: "foobar", nc: tnc, connected: connected}
-				listener := newTestCancellationListener()
+				listener := newTestCancellationListener(true)
 				conn.cancellationListener = listener
 
-				conn.abortedForCancellation = true
 				want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: "unable to read server response"}
 				_, err := conn.readWireMessage(context.Background(), nil)
 				assert.Equal(t, want, err, "expected error %v, got %v", want, err)
@@ -445,7 +443,6 @@ func TestConnection(t *testing.T) {
 				assert.True(t, conn.connected == disconnected, "expected connection state %v, got %v", disconnected,
 					conn.connected)
 				assert.True(t, tnc.closed, "expected net.Conn to be closed but was not")
-				assert.True(t, conn.abortedForCancellation, "expected abortedForCancellation flag to be set but was not")
 			})
 		})
 	})
@@ -706,11 +703,15 @@ type testCancellationListener struct {
 	listener         *internal.CancellationListener
 	numListen        int
 	numStopListening int
+	aborted          bool
 }
 
-func newTestCancellationListener() *testCancellationListener {
+// This function creates a new testCancellationListener. The aborted parameter specifies the value that should be
+// returned by the StopListening method.
+func newTestCancellationListener(aborted bool) *testCancellationListener {
 	return &testCancellationListener{
 		listener: internal.NewCancellationListener(),
+		aborted:  aborted,
 	}
 }
 
@@ -719,9 +720,10 @@ func (t *testCancellationListener) Listen(ctx context.Context, abortFn func()) {
 	t.listener.Listen(ctx, abortFn)
 }
 
-func (t *testCancellationListener) StopListening() {
+func (t *testCancellationListener) StopListening() bool {
 	t.numStopListening++
 	t.listener.StopListening()
+	return t.aborted
 }
 
 func (t *testCancellationListener) assertMethodsCalled(testingT *testing.T, numListen int, numStopListening int) {
