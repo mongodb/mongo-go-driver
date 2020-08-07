@@ -8,6 +8,7 @@ package integration
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 type index struct {
@@ -318,6 +320,37 @@ func TestIndexView(t *testing.T) {
 						tc.expectedValue, sentValue)
 				})
 			}
+		})
+	})
+	mt.RunOpts("list specifications", noClientOpts, func(mt *mtest.T) {
+		mt.Run("verify results", func(mt *mtest.T) {
+			keysDoc := bsoncore.NewDocumentBuilder().AppendInt32("_id", 1).Build()
+			expectedSpec := &mongo.IndexSpecification{
+				Name:         "_id_",
+				Namespace:    mt.DB.Name() + "." + mt.Coll.Name(),
+				KeysDocument: bson.Raw(keysDoc),
+				Version:      2,
+			}
+			if mtest.CompareServerVersions(mt.ServerVersion(), "3.4") < 0 {
+				expectedSpec.Version = 1
+			}
+
+			specs, err := mt.Coll.Indexes().ListSpecifications(mtest.Background)
+			assert.Nil(mt, err, "ListSpecifications error: %v", err)
+			assert.Equal(mt, 1, len(specs), "expected 1 specification, got %d", len(specs))
+			assert.Equal(mt, expectedSpec, specs[0], "expected specification %v, got %v", expectedSpec, specs[0])
+		})
+		mt.RunOpts("options passed to listIndexes", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
+			opts := options.ListIndexes().SetMaxTime(100 * time.Millisecond)
+			_, err := mt.Coll.Indexes().ListSpecifications(mtest.Background, opts)
+			assert.Nil(mt, err, "ListSpecifications error: %v", err)
+
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, evt.CommandName, "listIndexes", "expected %q command to be sent, got %q", "listIndexes",
+				evt.CommandName)
+			maxTimeMS, ok := evt.Command.Lookup("maxTimeMS").Int64OK()
+			assert.True(mt, ok, "expected command %v to contain %q field", evt.Command, "maxTimeMS")
+			assert.Equal(mt, int64(100), maxTimeMS, "expected maxTimeMS value to be 100, got %d", maxTimeMS)
 		})
 	})
 	mt.Run("drop one", func(mt *mtest.T) {

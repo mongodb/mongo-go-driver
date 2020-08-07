@@ -132,6 +132,27 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 	return cursor, replaceErrors(err)
 }
 
+// ListSpecifications executes a List command and returns a slice of returned IndexSpecifications
+func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.ListIndexesOptions) ([]*IndexSpecification, error) {
+	cursor, err := iv.List(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []*IndexSpecification
+	err = cursor.All(ctx, &results)
+	if err != nil {
+		return nil, err
+	}
+
+	ns := iv.coll.db.Name() + "." + iv.coll.Name()
+	for _, res := range results {
+		res.Namespace = ns
+	}
+
+	return results, nil
+}
+
 // CreateOne executes a createIndexes command to create an index on the collection and returns the name of the new
 // index. See the IndexView.CreateMany documentation for more information and an example.
 func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*options.CreateIndexesOptions) (string, error) {
