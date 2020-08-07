@@ -138,6 +138,26 @@ func TestArrayBuilder(t *testing.T) {
 			[]interface{}{},
 			BuildDocumentFromElements(nil, AppendMinKeyElement(nil, "0")),
 		},
+		{
+			"AppendSymbol",
+			NewArrayBuilder().AppendSymbol,
+			[]interface{}{"barbaz"},
+			BuildDocumentFromElements(nil, AppendSymbolElement(nil, "0", "barbaz")),
+		},
+		{
+			"AppendDBPointer",
+			NewArrayBuilder().AppendDBPointer,
+			[]interface{}{"barbaz",
+				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}},
+			BuildDocumentFromElements(nil, AppendDBPointerElement(nil, "0", "barbaz",
+				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C})),
+		},
+		{
+			"AppendUndefined",
+			NewArrayBuilder().AppendUndefined,
+			[]interface{}{},
+			BuildDocumentFromElements(nil, AppendUndefinedElement(nil, "0")),
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

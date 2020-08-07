@@ -88,6 +88,12 @@ func (db *DocumentBuilder) AppendBinary(key string, subtype byte, b []byte) *Doc
 	return db
 }
 
+// AppendUndefined will append a BSON undefined element using key to db.doc
+func (db *DocumentBuilder) AppendUndefined(key string) *DocumentBuilder {
+	db.doc = AppendUndefinedElement(db.doc, key)
+	return db
+}
+
 // AppendBoolean will append a boolean element using key and b to db.doc
 func (db *DocumentBuilder) AppendBoolean(key string, b bool) *DocumentBuilder {
 	db.doc = AppendBooleanElement(db.doc, key, b)
@@ -112,9 +118,21 @@ func (db *DocumentBuilder) AppendRegex(key, pattern, options string) *DocumentBu
 	return db
 }
 
+// AppendDBPointer will append ns and oid to using key to db.doc
+func (db *DocumentBuilder) AppendDBPointer(key string, ns string, oid primitive.ObjectID) *DocumentBuilder {
+	db.doc = AppendDBPointerElement(db.doc, key, ns, oid)
+	return db
+}
+
 // AppendJavaScript will append js using the provided key to db.doc
 func (db *DocumentBuilder) AppendJavaScript(key, js string) *DocumentBuilder {
 	db.doc = AppendJavaScriptElement(db.doc, key, js)
+	return db
+}
+
+// AppendSymbol will append a BSON symbol element using key and symbol db.doc
+func (db *DocumentBuilder) AppendSymbol(key, symbol string) *DocumentBuilder {
+	db.doc = AppendSymbolElement(db.doc, key, symbol)
 	return db
 }
 

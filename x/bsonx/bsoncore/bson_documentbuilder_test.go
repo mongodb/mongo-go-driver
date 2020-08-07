@@ -139,6 +139,26 @@ func TestDocumentBuilder(t *testing.T) {
 			[]interface{}{"foobar"},
 			BuildDocumentFromElements(nil, AppendMinKeyElement(nil, "foobar")),
 		},
+		{
+			"AppendSymbol",
+			NewDocumentBuilder().AppendSymbol,
+			[]interface{}{"foobar", "barbaz"},
+			BuildDocumentFromElements(nil, AppendSymbolElement(nil, "foobar", "barbaz")),
+		},
+		{
+			"AppendDBPointer",
+			NewDocumentBuilder().AppendDBPointer,
+			[]interface{}{"foobar", "barbaz",
+				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}},
+			BuildDocumentFromElements(nil, AppendDBPointerElement(nil, "foobar", "barbaz",
+				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C})),
+		},
+		{
+			"AppendUndefined",
+			NewDocumentBuilder().AppendUndefined,
+			[]interface{}{"foobar"},
+			BuildDocumentFromElements(nil, AppendUndefinedElement(nil, "foobar")),
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

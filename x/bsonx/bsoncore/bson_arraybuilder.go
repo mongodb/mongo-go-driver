@@ -100,6 +100,12 @@ func (a *ArrayBuilder) AppendBinary(subtype byte, b []byte) *ArrayBuilder {
 	return a
 }
 
+// AppendUndefined will append a BSON undefined element using key to a.arr
+func (a *ArrayBuilder) AppendUndefined() *ArrayBuilder {
+	a.arr = AppendUndefinedElement(a.arr, a.incrementKey())
+	return a
+}
+
 // AppendBoolean will append a boolean element using b to a.arr
 func (a *ArrayBuilder) AppendBoolean(b bool) *ArrayBuilder {
 	a.arr = AppendBooleanElement(a.arr, a.incrementKey(), b)
@@ -124,9 +130,21 @@ func (a *ArrayBuilder) AppendRegex(pattern, options string) *ArrayBuilder {
 	return a
 }
 
+// AppendDBPointer will append ns and oid to a.arr
+func (a *ArrayBuilder) AppendDBPointer(ns string, oid primitive.ObjectID) *ArrayBuilder {
+	a.arr = AppendDBPointerElement(a.arr, a.incrementKey(), ns, oid)
+	return a
+}
+
 // AppendJavaScript will append js to a.arr
 func (a *ArrayBuilder) AppendJavaScript(js string) *ArrayBuilder {
 	a.arr = AppendJavaScriptElement(a.arr, a.incrementKey(), js)
+	return a
+}
+
+// AppendSymbol will append symbol to a.arr
+func (a *ArrayBuilder) AppendSymbol(symbol string) *ArrayBuilder {
+	a.arr = AppendSymbolElement(a.arr, a.incrementKey(), symbol)
 	return a
 }
 
