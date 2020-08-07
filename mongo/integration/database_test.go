@@ -404,13 +404,11 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 func verifyListCollectionModels(mt *mtest.T, cursor *mongo.Cursor, collectionModels *[]mongo.CollectionModel) {
 
 	var expectedMap []bson.M
-	cursor.All(mtest.Background, &expectedMap)
+	err := cursor.All(mtest.Background, &expectedMap)
+	assert.Nil(mt, err, "cursor.All error: %v", err)
 	for i, collectionModel := range *collectionModels {
-		var mapVar bson.M
-		mapVar = expectedMap[i]["idIndex"].(bson.M)
-		verifyIndex(mt, collectionModel.IndexSpecification, mapVar)
-		mapVar = expectedMap[i]["info"].(bson.M)
-		verifyCollectionInfo(mt, collectionModel.Info, mapVar)
+		verifyIndex(mt, collectionModel.IndexSpecification, expectedMap[i]["idIndex"].(bson.M))
+		verifyCollectionInfo(mt, collectionModel.Info, expectedMap[i]["info"].(bson.M))
 		assert.Equal(mt, collectionModel.Name, expectedMap[i]["name"], "expected %v, got %v", expectedMap[i]["name"], collectionModel.Name)
 		assert.Equal(mt, collectionModel.Type, expectedMap[i]["type"], "expected %v, got %v", expectedMap[i]["type"], collectionModel.Type)
 		assert.NotNil(mt, collectionModel.Options, "collectionModel.Options: %v", collectionModel.Options.String())

@@ -56,7 +56,7 @@ type IndexModel struct {
 
 // IndexSpecification represents the indexes in a collection
 type IndexSpecification struct {
-	Name         string
+	Name         string      `bson:"name"`
 	Namespace    string      `bson:"ns"`
 	KeysDocument primitive.D `bson:"key"`
 	Version      int32       `bson:"v"`

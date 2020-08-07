@@ -44,16 +44,16 @@ type Database struct {
 
 // CollectionInfo represents information about a Collection
 type CollectionInfo struct {
-	ReadOnly bool
-	UUID     primitive.Binary
+	ReadOnly bool             `bson:"readOnly"`
+	UUID     primitive.Binary `bson:"uuid"`
 }
 
 // CollectionModel represents the collection returned from listCollections
 type CollectionModel struct {
-	Name               string
-	Type               string
-	Info               CollectionInfo
-	Options            bson.Raw
+	Name               string             `bson:"name"`
+	Type               string             `bson:"type"`
+	Info               CollectionInfo     `bson:"info"`
+	Options            bson.Raw           `bson:"options"`
 	IndexSpecification IndexSpecification `bson:"idIndex"`
 }
 
