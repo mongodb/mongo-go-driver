@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -51,6 +52,14 @@ type IndexModel struct {
 
 	// The options to use to create the index.
 	Options *options.IndexOptions
+}
+
+// IDIndex represents the indexes in a collection
+type IDIndex struct {
+	Name string
+	Ns   string
+	Key  primitive.D
+	V    int32
 }
 
 func isNamespaceNotFoundError(err error) bool {
@@ -130,6 +139,20 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 	}
 	cursor, err := newCursorWithSession(bc, iv.coll.registry, sess)
 	return cursor, replaceErrors(err)
+}
+
+// ListIndexes executes a List command and returns a slice of returned IDIndexes
+func (iv IndexView) ListIndexes(ctx context.Context, opts ...*options.ListIndexesOptions) (*[]IDIndex, error) {
+	cursor, err := iv.List(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	var results []IDIndex
+	err = cursor.All(ctx, &results)
+	if err != nil {
+		return nil, err
+	}
+	return &results, nil
 }
 
 // CreateOne executes a createIndexes command to create an index on the collection and returns the name of the new

@@ -320,6 +320,23 @@ func TestIndexView(t *testing.T) {
 			}
 		})
 	})
+	mt.Run("listIndexes", func(mt *mtest.T) {
+		iv := mt.Coll.Indexes()
+		indexName, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+			Keys:    bson.D{{"foo", -1}},
+			Options: options.Index().SetVersion(1),
+		})
+		expectedName := "foo_-1"
+		assert.Nil(mt, err, "CreateOne error: %v", err)
+		assert.Equal(mt, expectedName, indexName, "expected name %q, got %q", expectedName, indexName)
+		cursor, err := iv.List(mtest.Background)
+		var expectedMap []bson.M
+		err = cursor.All(mtest.Background, &expectedMap)
+		assert.Nil(mt, err, "cursor.All error: %v", err)
+		idIndexes, err := iv.ListIndexes(mtest.Background)
+		assert.Nil(mt, err, "ListIndex error: %v", err)
+		verifyIndexes(mt, idIndexes, expectedMap)
+	})
 	mt.Run("drop one", func(mt *mtest.T) {
 		iv := mt.Coll.Indexes()
 		indexNames, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
@@ -430,4 +447,17 @@ func verifyIndexExists(mt *mtest.T, iv mongo.IndexView, expected index) {
 	}
 	assert.Nil(mt, cursor.Err(), "cursor error: %v", err)
 	assert.True(mt, found, "expected to find index %v but was not found", expected.Name)
+}
+
+func verifyIndexes(mt *mtest.T, idIndexes *[]mongo.IDIndex, expectedMap []bson.M) {
+	for i, index := range *idIndexes {
+		verifyIndex(mt, index, expectedMap[i])
+	}
+}
+
+func verifyIndex(mt *mtest.T, index mongo.IDIndex, expectedMap bson.M) {
+	assert.Equal(mt, expectedMap["name"], index.Name, "expected %v, got %v", expectedMap["name"], index.Name)
+	assert.Equal(mt, expectedMap["v"], index.V, "expected %v, got %v", expectedMap["v"], index.V)
+	assert.Equal(mt, expectedMap["ns"], index.Ns, "expected %v, got %v", expectedMap["ns"], index.Ns)
+	assert.Equal(mt, expectedMap["key"], index.Key.Map(), "expected %v, got %v", expectedMap["key"], index.Key)
 }

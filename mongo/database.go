@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -39,6 +40,20 @@ type Database struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	registry       *bsoncodec.Registry
+}
+
+type CollectionInfo struct {
+	ReadOnly bool
+	UUID     primitive.Binary
+}
+
+// CollectionModel represents the collection returned from listCollections
+type CollectionModel struct {
+	Name    string
+	Type    string
+	Info    CollectionInfo
+	Options bson.D
+	IDIndex IDIndex
 }
 
 func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
@@ -275,6 +290,20 @@ func (db *Database) Drop(ctx context.Context) error {
 		return replaceErrors(err)
 	}
 	return nil
+}
+
+// ListCollectionModels executes a ListCollections and returns a slice of CollectionModel representing the collections in the database
+func (db *Database) ListCollectionModels(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*[]CollectionModel, error) {
+	cursor, err := db.ListCollections(ctx, filter, opts...)
+	if err != nil {
+		return nil, err
+	}
+	var coll []CollectionModel
+	err = cursor.All(ctx, &coll)
+	if err != nil {
+		return nil, err
+	}
+	return &coll, nil
 }
 
 // ListCollections executes a listCollections command and returns a cursor over the collections in the database.

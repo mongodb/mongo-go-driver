@@ -147,6 +147,26 @@ func TestDatabase(t *testing.T) {
 				}
 				mt.Fatalf("error verifying list collections result: %v", err)
 			})
+			mt.RunOpts(tc.name, tcOpts, func(mt *mtest.T) {
+				mt.CreateCollection(mtest.Collection{Name: listCollUncapped}, true)
+				mt.CreateCollection(mtest.Collection{
+					Name:       listCollCapped,
+					CreateOpts: bson.D{{"capped", true}, {"size", 64 * 1024}},
+				}, true)
+
+				filter := bson.D{}
+				if tc.cappedOnly {
+					filter = bson.D{{"options.capped", true}}
+				}
+
+				for i := 0; i < 1; i++ {
+					cursor, err := mt.DB.ListCollections(mtest.Background, filter)
+					assert.Nil(mt, err, "ListCollections error (iteration %v): %v", i, err)
+					collectionModels, err := mt.DB.ListCollectionModels(mtest.Background, filter)
+					verifyListCollectionModels(mt, cursor, collectionModels)
+					return
+				}
+			})
 		}
 	})
 
@@ -379,6 +399,27 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 	assert.Nil(mt, err, "UnmarshalWithRegistry error: %v", err)
 
 	return actualOpts
+}
+
+func verifyListCollectionModels(mt *mtest.T, cursor *mongo.Cursor, collectionModels *[]mongo.CollectionModel) {
+
+	var expectedMap []bson.M
+	cursor.All(mtest.Background, &expectedMap)
+	for i, collectionModel := range *collectionModels {
+		var mapVar bson.M
+		mapVar = expectedMap[i]["idIndex"].(bson.M)
+		verifyIndex(mt, collectionModel.IDIndex, mapVar)
+		mapVar = expectedMap[i]["info"].(bson.M)
+		verifyCollectionInfo(mt, collectionModel.Info, mapVar)
+		assert.Equal(mt, collectionModel.Name, expectedMap[i]["name"], "expected %v, got %v", expectedMap[i]["name"], collectionModel.Name)
+		assert.Equal(mt, collectionModel.Type, expectedMap[i]["type"], "expected %v, got %v", expectedMap[i]["type"], collectionModel.Type)
+		assert.Equal(mt, collectionModel.Options.Map(), expectedMap[i]["options"], "expected %v, got %v", expectedMap[i]["options"], collectionModel.Options)
+	}
+}
+
+func verifyCollectionInfo(mt *mtest.T, collectionInfo mongo.CollectionInfo, expected bson.M) {
+	assert.Equal(mt, collectionInfo.ReadOnly, expected["readOnly"], "expected %v, got %v", expected["readOnly"], collectionInfo.ReadOnly)
+	assert.Equal(mt, collectionInfo.UUID, expected["uuid"], "expected %v, got %v", expected["uuid"], collectionInfo.UUID)
 }
 
 func verifyListCollections(cursor *mongo.Cursor, cappedOnly bool) error {
