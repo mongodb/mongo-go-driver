@@ -42,6 +42,7 @@ type Database struct {
 	registry       *bsoncodec.Registry
 }
 
+// CollectionInfo represents information about a Collection
 type CollectionInfo struct {
 	ReadOnly bool
 	UUID     primitive.Binary
@@ -49,11 +50,11 @@ type CollectionInfo struct {
 
 // CollectionModel represents the collection returned from listCollections
 type CollectionModel struct {
-	Name    string
-	Type    string
-	Info    CollectionInfo
-	Options bson.D
-	IDIndex IDIndex
+	Name               string
+	Type               string
+	Info               CollectionInfo
+	Options            bson.Raw
+	IndexSpecification IndexSpecification `bson:"idIndex"`
 }
 
 func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {

@@ -408,12 +408,12 @@ func verifyListCollectionModels(mt *mtest.T, cursor *mongo.Cursor, collectionMod
 	for i, collectionModel := range *collectionModels {
 		var mapVar bson.M
 		mapVar = expectedMap[i]["idIndex"].(bson.M)
-		verifyIndex(mt, collectionModel.IDIndex, mapVar)
+		verifyIndex(mt, collectionModel.IndexSpecification, mapVar)
 		mapVar = expectedMap[i]["info"].(bson.M)
 		verifyCollectionInfo(mt, collectionModel.Info, mapVar)
 		assert.Equal(mt, collectionModel.Name, expectedMap[i]["name"], "expected %v, got %v", expectedMap[i]["name"], collectionModel.Name)
 		assert.Equal(mt, collectionModel.Type, expectedMap[i]["type"], "expected %v, got %v", expectedMap[i]["type"], collectionModel.Type)
-		assert.Equal(mt, collectionModel.Options.Map(), expectedMap[i]["options"], "expected %v, got %v", expectedMap[i]["options"], collectionModel.Options)
+		assert.NotNil(mt, collectionModel.Options, "collectionModel.Options: %v", collectionModel.Options.String())
 	}
 }
 

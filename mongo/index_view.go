@@ -54,12 +54,12 @@ type IndexModel struct {
 	Options *options.IndexOptions
 }
 
-// IDIndex represents the indexes in a collection
-type IDIndex struct {
-	Name string
-	Ns   string
-	Key  primitive.D
-	V    int32
+// IndexSpecification represents the indexes in a collection
+type IndexSpecification struct {
+	Name         string
+	Namespace    string      `bson:"ns"`
+	KeysDocument primitive.D `bson:"key"`
+	Version      int32       `bson:"v"`
 }
 
 func isNamespaceNotFoundError(err error) bool {
@@ -141,13 +141,13 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 	return cursor, replaceErrors(err)
 }
 
-// ListIndexes executes a List command and returns a slice of returned IDIndexes
-func (iv IndexView) ListIndexes(ctx context.Context, opts ...*options.ListIndexesOptions) (*[]IDIndex, error) {
+// ListIndexSpecifications executes a List command and returns a slice of returned IndexSpecifications
+func (iv IndexView) ListIndexSpecifications(ctx context.Context, opts ...*options.ListIndexesOptions) (*[]IndexSpecification, error) {
 	cursor, err := iv.List(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
-	var results []IDIndex
+	var results []IndexSpecification
 	err = cursor.All(ctx, &results)
 	if err != nil {
 		return nil, err
