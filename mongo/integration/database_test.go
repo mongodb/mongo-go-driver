@@ -162,8 +162,8 @@ func TestDatabase(t *testing.T) {
 				for i := 0; i < 1; i++ {
 					cursor, err := mt.DB.ListCollections(mtest.Background, filter)
 					assert.Nil(mt, err, "ListCollections error (iteration %v): %v", i, err)
-					collectionModels, err := mt.DB.ListCollectionModels(mtest.Background, filter)
-					verifyListCollectionModels(mt, cursor, collectionModels)
+					collectionSpecifications, err := mt.DB.ListCollectionSpecifications(mtest.Background, filter)
+					verifyListCollectionSpecifications(mt, cursor, collectionSpecifications)
 					return
 				}
 			})
@@ -401,17 +401,17 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 	return actualOpts
 }
 
-func verifyListCollectionModels(mt *mtest.T, cursor *mongo.Cursor, collectionModels *[]mongo.CollectionModel) {
+func verifyListCollectionSpecifications(mt *mtest.T, cursor *mongo.Cursor, collectionSpecifications *[]mongo.CollectionSpecification) {
 
 	var expectedMap []bson.M
 	err := cursor.All(mtest.Background, &expectedMap)
 	assert.Nil(mt, err, "cursor.All error: %v", err)
-	for i, collectionModel := range *collectionModels {
-		verifyIndex(mt, collectionModel.IndexSpecification, expectedMap[i]["idIndex"].(bson.M))
-		verifyCollectionInfo(mt, collectionModel.Info, expectedMap[i]["info"].(bson.M))
-		assert.Equal(mt, collectionModel.Name, expectedMap[i]["name"], "expected %v, got %v", expectedMap[i]["name"], collectionModel.Name)
-		assert.Equal(mt, collectionModel.Type, expectedMap[i]["type"], "expected %v, got %v", expectedMap[i]["type"], collectionModel.Type)
-		assert.NotNil(mt, collectionModel.Options, "collectionModel.Options: %v", collectionModel.Options.String())
+	for i, collectionSpecification := range *collectionSpecifications {
+		verifyIndex(mt, collectionSpecification.IndexSpecification, expectedMap[i]["idIndex"].(bson.M))
+		verifyCollectionInfo(mt, collectionSpecification.Info, expectedMap[i]["info"].(bson.M))
+		assert.Equal(mt, collectionSpecification.Name, expectedMap[i]["name"], "expected %v, got %v", expectedMap[i]["name"], collectionSpecification.Name)
+		assert.Equal(mt, collectionSpecification.Type, expectedMap[i]["type"], "expected %v, got %v", expectedMap[i]["type"], collectionSpecification.Type)
+		assert.NotNil(mt, collectionSpecification.Options, "collectionSpecification.Options: %v", collectionSpecification.Options.String())
 	}
 }
 

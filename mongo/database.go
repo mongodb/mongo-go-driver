@@ -48,8 +48,8 @@ type CollectionInfo struct {
 	UUID     primitive.Binary `bson:"uuid"`
 }
 
-// CollectionModel represents the collection returned from listCollections
-type CollectionModel struct {
+// CollectionSpecification represents the collection returned from listCollections
+type CollectionSpecification struct {
 	Name               string             `bson:"name"`
 	Type               string             `bson:"type"`
 	Info               CollectionInfo     `bson:"info"`
@@ -293,13 +293,13 @@ func (db *Database) Drop(ctx context.Context) error {
 	return nil
 }
 
-// ListCollectionModels executes a ListCollections and returns a slice of CollectionModel representing the collections in the database
-func (db *Database) ListCollectionModels(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*[]CollectionModel, error) {
+// ListCollectionSpecifications executes a ListCollections and returns a slice of CollectionSpecification representing the collections in the database
+func (db *Database) ListCollectionSpecifications(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*[]CollectionSpecification, error) {
 	cursor, err := db.ListCollections(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
 	}
-	var coll []CollectionModel
+	var coll []CollectionSpecification
 	err = cursor.All(ctx, &coll)
 	if err != nil {
 		return nil, err
