@@ -439,8 +439,9 @@ func (s *Server) updateDescription(desc description.Server) {
 }
 
 // createConnection creates a new connection instance but does not call connect on it. The caller must call connect
-// before the connection can be used for network operations.
-func (s *Server) createConnection(ctx context.Context) (*connection, error) {
+// before the connection can be used for network operations. The nowPtr pointer will be set to the time right before
+// the connection handshake starts and can be used by the caller to measure RTT for the connection handshake.
+func (s *Server) createConnection(ctx context.Context, nowPtr *time.Time) (*connection, error) {
 	opts := []ConnectionOption{
 		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
@@ -448,6 +449,7 @@ func (s *Server) createConnection(ctx context.Context) (*connection, error) {
 		// We override whatever handshaker is currently attached to the options with a basic
 		// one because need to make sure we don't do auth.
 		WithHandshaker(func(h Handshaker) Handshaker {
+			*nowPtr = time.Now()
 			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
 		}),
 		// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
@@ -487,7 +489,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 		}
 
 		if conn == nil {
-			conn, err = s.createConnection(ctx)
+			conn, err = s.createConnection(ctx, &now)
 
 			conn.connect(ctx)
 

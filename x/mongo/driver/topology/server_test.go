@@ -313,12 +313,33 @@ func TestServer(t *testing.T) {
 		)
 		assert.Nil(t, err, "NewServer error: %v", err)
 
-		conn, err := s.createConnection(context.Background())
+		var now time.Time
+		conn, err := s.createConnection(context.Background(), &now)
 		assert.Nil(t, err, "createConnection error: %v", err)
 
 		assert.Equal(t, s.cfg.heartbeatTimeout, 10*time.Second, "expected heartbeatTimeout to be: %v, got: %v", 10*time.Second, s.cfg.heartbeatTimeout)
 		assert.Equal(t, s.cfg.heartbeatTimeout, conn.readTimeout, "expected readTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.readTimeout)
 		assert.Equal(t, s.cfg.heartbeatTimeout, conn.writeTimeout, "expected writeTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.writeTimeout)
+	})
+	t.Run("heartbeat connection RTT is accurately measured", func(t *testing.T) {
+		dialer := &channelNetConnDialer{}
+
+		s, err := NewServer(
+			address.Address("localhost"),
+			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
+				return append(
+					connOpts,
+					WithDialer(func(Dialer) Dialer {
+						return dialer
+					}),
+				)
+			}),
+		)
+		assert.Nil(t, err, "NewServer error: %v", err)
+
+		_, _ = s.heartbeat(nil)
+		assert.True(t, s.averageRTTSet, "expected averageRTTSet to be true but was not")
+		assert.True(t, s.averageRTT < time.Second, "expected average RTT to be less than 1s, got %v", s.averageRTT)
 	})
 }
 
