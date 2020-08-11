@@ -32,15 +32,11 @@ func NewDocumentBuilder() *DocumentBuilder {
 
 // Build updates the length of the document and index to the beginning of the documents length
 // bytes, then returns the document (bson bytes)
-func (db *DocumentBuilder) Build() (Document, error) {
+func (db *DocumentBuilder) Build() Document {
 	last := len(db.indexes) - 1
-	var err error
-	db.doc, err = AppendDocumentEnd(db.doc, db.indexes[last])
-	if err != nil {
-		return nil, err
-	}
+	db.doc, _ = AppendDocumentEnd(db.doc, db.indexes[last])
 	db.indexes = db.indexes[:last]
-	return db.doc, nil
+	return db.doc
 }
 
 // AppendInt32 will append an int32 element using key and i32 to DocumentBuilder.doc
@@ -182,6 +178,6 @@ func (db *DocumentBuilder) StartDocument(key string) *DocumentBuilder {
 
 // FinishDocument builds the most recent document created
 func (db *DocumentBuilder) FinishDocument() *DocumentBuilder {
-	db.doc, _ = db.Build()
+	db.doc = db.Build()
 	return db
 }

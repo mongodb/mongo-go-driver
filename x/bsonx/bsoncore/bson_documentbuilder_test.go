@@ -179,7 +179,7 @@ func TestDocumentBuilder(t *testing.T) {
 			}
 			results := fn.Call(params)
 			got := results[0].Interface().(*DocumentBuilder)
-			doc, _ := got.Build()
+			doc := got.Build()
 			want := tc.expected
 			if !bytes.Equal(doc, want) {
 				t.Errorf("Did not receive expected bytes. got %v; want %v", got, want)
@@ -189,8 +189,8 @@ func TestDocumentBuilder(t *testing.T) {
 	t.Run("TestBuildTwoElements", func(t *testing.T) {
 		intArr := BuildDocumentFromElements(nil, AppendInt32Element(nil, "0", int32(1)))
 		expected := BuildDocumentFromElements(nil, AppendArrayElement(AppendInt32Element(nil, "x", int32(3)), "y", intArr))
-		elem, _ := NewArrayBuilder().AppendInt32(int32(1)).Build()
-		result, _ := NewDocumentBuilder().AppendInt32("x", int32(3)).AppendArray("y", elem).Build()
+		elem := NewArrayBuilder().AppendInt32(int32(1)).Build()
+		result := NewDocumentBuilder().AppendInt32("x", int32(3)).AppendArray("y", elem).Build()
 		if !bytes.Equal(result, expected) {
 			t.Errorf("Documents do not match. got %v; want %v", result, expected)
 		}
@@ -199,7 +199,7 @@ func TestDocumentBuilder(t *testing.T) {
 		docElement := BuildDocumentFromElements(nil, AppendInt32Element(nil, "x", int32(256)))
 		var expected Document
 		expected = BuildDocumentFromElements(nil, AppendDocumentElement(nil, "y", docElement))
-		result, _ := NewDocumentBuilder().StartDocument("y").AppendInt32("x", int32(256)).FinishDocument().Build()
+		result := NewDocumentBuilder().StartDocument("y").AppendInt32("x", int32(256)).FinishDocument().Build()
 		if !bytes.Equal(result, expected) {
 			t.Errorf("Documents do not match. got %v; want %v", result, expected)
 		}
@@ -209,7 +209,7 @@ func TestDocumentBuilder(t *testing.T) {
 		docInline := BuildDocumentFromElements(nil, AppendDocumentElement(nil, "y", docElement))
 		var expected Document
 		expected = BuildDocumentFromElements(nil, AppendDocumentElement(nil, "z", docInline))
-		result, _ := NewDocumentBuilder().StartDocument("z").StartDocument("y").AppendDouble("x", 3.14).FinishDocument().FinishDocument().Build()
+		result := NewDocumentBuilder().StartDocument("z").StartDocument("y").AppendDouble("x", 3.14).FinishDocument().FinishDocument().Build()
 		if !bytes.Equal(result, expected) {
 			t.Errorf("Documents do not match. got %v; want %v", result, expected)
 		}
