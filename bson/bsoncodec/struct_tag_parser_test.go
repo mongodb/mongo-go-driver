@@ -13,12 +13,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestDefaultStructTagParser(t *testing.T) {
-	testCases := []struct {
+func TestStructTagParsers(t *testing.T) {
+	type testCase struct {
 		name string
 		sf   reflect.StructField
 		want StructTags
-	}{
+	}
+	testCases := []testCase{
 		{
 			"no bson tag",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag("bar")},
@@ -60,13 +61,54 @@ func TestDefaultStructTagParser(t *testing.T) {
 			StructTags{Name: "foo", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
 		},
 	}
+	jsonCases := []testCase{
+		{
+			"json tag all options",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`json:"bar,omitempty,minsize,truncate,inline"`)},
+			StructTags{Name: "bar", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+		},
+		{
+			"bson tag all options default name",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`json:",omitempty,minsize,truncate,inline"`)},
+			StructTags{Name: "foo", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+		},
+	}
+	parsers := []struct {
+		name   string
+		parser StructTagParserFunc
+	}{
+		{
+			"default",
+			DefaultStructTagParser,
+		},
+		{
+			"jsonFallback",
+			JsonFallbackStructTagParser,
+		},
+	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := DefaultStructTagParser(tc.sf)
-			noerr(t, err)
-			if !cmp.Equal(got, tc.want) {
-				t.Errorf("Returned struct tags do not match. got %#v; want %#v", got, tc.want)
+	for _, p := range parsers {
+		t.Run(p.name, func(t *testing.T) {
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					got, err := p.parser(tc.sf)
+					noerr(t, err)
+					if !cmp.Equal(got, tc.want) {
+						t.Errorf("Returned struct tags do not match. got %#v; want %#v", got, tc.want)
+					}
+				})
+			}
+			if p.name != "jsonFallback" {
+				return
+			}
+			for _, jc := range jsonCases {
+				t.Run(jc.name, func(t *testing.T) {
+					got, err := p.parser(jc.sf)
+					noerr(t, err)
+					if !cmp.Equal(got, jc.want) {
+						t.Errorf("Returned struct tags do not match. got %#v; want %#v", got, jc.want)
+					}
+				})
 			}
 		})
 	}
