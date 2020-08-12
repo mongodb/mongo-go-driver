@@ -177,7 +177,7 @@ func TestArrayBuilder(t *testing.T) {
 				params = append(params, reflect.ValueOf(param))
 			}
 			results := fn.Call(params)
-			got, _ := results[0].Interface().(*ArrayBuilder).Build()
+			got := results[0].Interface().(*ArrayBuilder).Build()
 			want := tc.expected
 			if !bytes.Equal(got, want) {
 				t.Errorf("Did not receive expected bytes. got %v; want %v", got, want)
@@ -187,8 +187,8 @@ func TestArrayBuilder(t *testing.T) {
 	t.Run("TestBuildTwoElementsArray", func(t *testing.T) {
 		intArr := BuildDocumentFromElements(nil, AppendInt32Element(nil, "0", int32(1)))
 		expected := BuildDocumentFromElements(nil, AppendArrayElement(AppendInt32Element(nil, "0", int32(3)), "1", intArr))
-		elem, _ := NewArrayBuilder().AppendInt32(int32(1)).Build()
-		result, _ := NewArrayBuilder().AppendInt32(int32(3)).AppendArray(elem).Build()
+		elem := NewArrayBuilder().AppendInt32(int32(1)).Build()
+		result := NewArrayBuilder().AppendInt32(int32(3)).AppendArray(elem).Build()
 		if !bytes.Equal(result, expected) {
 			t.Errorf("Arrays do not match. got %v; want %v", result, expected)
 		}
@@ -197,7 +197,7 @@ func TestArrayBuilder(t *testing.T) {
 		docElement := BuildDocumentFromElements(nil, AppendInt32Element(nil, "0", int32(256)))
 		var expected Document
 		expected = BuildDocumentFromElements(nil, AppendArrayElement(nil, "0", docElement))
-		result, _ := NewArrayBuilder().StartArray().AppendInt32(int32(256)).FinishArray().Build()
+		result := NewArrayBuilder().StartArray().AppendInt32(int32(256)).FinishArray().Build()
 		if !bytes.Equal(result, expected) {
 			t.Errorf("Documents do not match. got %v; want %v", result, expected)
 		}
@@ -207,7 +207,7 @@ func TestArrayBuilder(t *testing.T) {
 		docInline := BuildDocumentFromElements(nil, AppendArrayElement(nil, "0", docElement))
 		var expected Document
 		expected = BuildDocumentFromElements(nil, AppendArrayElement(nil, "0", docInline))
-		result, _ := NewArrayBuilder().StartArray().StartArray().AppendDouble(3.14).FinishArray().FinishArray().Build()
+		result := NewArrayBuilder().StartArray().StartArray().AppendDouble(3.14).FinishArray().FinishArray().Build()
 		if !bytes.Equal(result, expected) {
 			t.Errorf("Documents do not match. got %v; want %v", result, expected)
 		}

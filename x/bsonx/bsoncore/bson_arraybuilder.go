@@ -36,17 +36,13 @@ func (a *ArrayBuilder) startArray() *ArrayBuilder {
 
 // Build updates the length of the array and index to the beginning of the documents length
 // bytes, then returns the array (bson bytes)
-func (a *ArrayBuilder) Build() (Array, error) {
+func (a *ArrayBuilder) Build() Array {
 	lastIndex := len(a.indexes) - 1
 	lastKey := len(a.keys) - 1
-	var err error
-	a.arr, err = AppendArrayEnd(a.arr, a.indexes[lastIndex])
-	if err != nil {
-		return nil, err
-	}
+	a.arr, _ = AppendArrayEnd(a.arr, a.indexes[lastIndex])
 	a.indexes = a.indexes[:lastIndex]
 	a.keys = a.keys[:lastKey]
-	return a.arr, nil
+	return a.arr
 }
 
 // incrementKey() increments the value keys and returns the key to be used to a.appendArray* functions
@@ -194,6 +190,6 @@ func (a *ArrayBuilder) StartArray() *ArrayBuilder {
 
 // FinishArray builds the most recent array created
 func (a *ArrayBuilder) FinishArray() *ArrayBuilder {
-	a.arr, _ = a.Build()
+	a.arr = a.Build()
 	return a
 }
