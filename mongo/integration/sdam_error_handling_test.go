@@ -4,15 +4,19 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// +build go1.13
+
 package integration
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -169,6 +173,30 @@ func TestSDAMErrorHandling(t *testing.T) {
 				defer cancel()
 				_, err = mt.Coll.Find(timeoutCtx, filter)
 				assert.NotNil(mt, err, "expected Find error, got %v", err)
+
+				assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
+			})
+			mt.Run("pool not cleared on context cancellation", func(mt *mtest.T) {
+				clearPoolChan()
+
+				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+				assert.Nil(mt, err, "InsertOne error: %v", err)
+
+				findCtx, cancel := context.WithCancel(mtest.Background)
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					cancel()
+				}()
+
+				filter := bson.M{
+					"$where": "function() { sleep(1000); return false; }",
+				}
+				_, err = mt.Coll.Find(findCtx, filter)
+				assert.NotNil(mt, err, "expected Find error, got nil")
+				cmdErr, ok := err.(mongo.CommandError)
+				assert.True(mt, ok, "expected error of type %T, got %v of type %T", mongo.CommandError{}, err, err)
+				assert.True(mt, cmdErr.HasErrorLabel("NetworkError"), "expected error %v to have 'NetworkError' label", cmdErr)
+				assert.True(mt, errors.Is(err, context.Canceled), "expected error %v to be context.Canceled", err)
 
 				assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
 			})

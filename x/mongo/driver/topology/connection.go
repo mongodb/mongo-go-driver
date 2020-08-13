@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
@@ -53,6 +54,7 @@ type connection struct {
 	canStream            bool
 	currentlyStreaming   bool
 	connectContextMutex  sync.Mutex
+	cancellationListener cancellationListener
 
 	// pool related fields
 	pool         *pool
@@ -76,15 +78,16 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 	id := fmt.Sprintf("%s[-%d]", addr, nextConnectionID())
 
 	c := &connection{
-		id:                 id,
-		addr:               addr,
-		idleTimeout:        cfg.idleTimeout,
-		lifetimeDeadline:   lifetimeDeadline,
-		readTimeout:        cfg.readTimeout,
-		writeTimeout:       cfg.writeTimeout,
-		connectDone:        make(chan struct{}),
-		config:             cfg,
-		connectContextMade: make(chan struct{}),
+		id:                   id,
+		addr:                 addr,
+		idleTimeout:          cfg.idleTimeout,
+		lifetimeDeadline:     lifetimeDeadline,
+		readTimeout:          cfg.readTimeout,
+		writeTimeout:         cfg.writeTimeout,
+		connectDone:          make(chan struct{}),
+		config:               cfg,
+		connectContextMade:   make(chan struct{}),
+		cancellationListener: internal.NewCancellationListener(),
 	}
 	atomic.StoreInt32(&c.connected, initialized)
 
@@ -230,18 +233,30 @@ func (c *connection) closeConnectContext() {
 	}
 }
 
-func transformNetworkError(originalError error, contextDeadlineUsed bool) error {
+func transformNetworkError(ctx context.Context, originalError error, contextDeadlineUsed bool) error {
 	if originalError == nil {
 		return nil
 	}
+
+	// If there was an error and the context was cancelled, we assume it happened due to the cancellation.
+	if ctx.Err() == context.Canceled {
+		return context.Canceled
+	}
+
+	// If there was a timeout error and the context deadline was used, we convert the error into
+	// context.DeadlineExceeded.
 	if !contextDeadlineUsed {
 		return originalError
 	}
-
 	if netErr, ok := originalError.(net.Error); ok && netErr.Timeout() {
 		return context.DeadlineExceeded
 	}
+
 	return originalError
+}
+
+func (c *connection) cancellationListenerCallback() {
+	_ = c.close()
 }
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
@@ -270,18 +285,35 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set write deadline"}
 	}
 
-	_, err = c.nc.Write(wm)
+	err = c.write(ctx, wm)
 	if err != nil {
 		c.close()
 		return ConnectionError{
 			ConnectionID: c.id,
-			Wrapped:      transformNetworkError(err, contextDeadlineUsed),
+			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),
 			message:      "unable to write wire message to network",
 		}
 	}
 
 	c.bumpIdleDeadline()
 	return nil
+}
+
+func (c *connection) write(ctx context.Context, wm []byte) (err error) {
+	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
+	defer func() {
+		// There is a race condition between Write and StopListening. If the context is cancelled after c.nc.Write
+		// succeeds, the cancellation listener could fire and close the connection. In this case, the connection has
+		// been invalidated but the error is nil. To account for this, overwrite the error to context.Cancelled if
+		// the abortedForCancellation flag was set.
+
+		if aborted := c.cancellationListener.StopListening(); aborted && err == nil {
+			err = context.Canceled
+		}
+	}()
+
+	_, err = c.nc.Write(wm)
+	return err
 }
 
 // readWireMessage reads a wiremessage from the connection. The dst parameter will be overwritten.
@@ -313,6 +345,38 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set read deadline"}
 	}
 
+	dst, errMsg, err := c.read(ctx, dst)
+	if err != nil {
+		// We closeConnection the connection because we don't know if there are other bytes left to read.
+		c.close()
+		message := errMsg
+		if err == io.EOF {
+			message = "socket was unexpectedly closed"
+		}
+		return nil, ConnectionError{
+			ConnectionID: c.id,
+			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),
+			message:      message,
+		}
+	}
+
+	c.bumpIdleDeadline()
+	return dst, nil
+}
+
+func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, errMsg string, err error) {
+	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
+	defer func() {
+		// If the context is cancelled after we finish reading the server response, the cancellation listener could fire
+		// even though the socket reads succeed. To account for this, we overwrite err to be context.Canceled if the
+		// abortedForCancellation flag is set.
+
+		if aborted := c.cancellationListener.StopListening(); aborted && err == nil {
+			errMsg = "unable to read server response"
+			err = context.Canceled
+		}
+	}()
+
 	// We use an array here because it only costs 4 bytes on the stack and means we'll only need to
 	// reslice dst once instead of twice.
 	var sizeBuf [4]byte
@@ -320,19 +384,9 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	// We do a ReadFull into an array here instead of doing an opportunistic ReadAtLeast into dst
 	// because there might be more than one wire message waiting to be read, for example when
 	// reading messages from an exhaust cursor.
-	_, err := io.ReadFull(c.nc, sizeBuf[:])
+	_, err = io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
-		// We closeConnection the connection because we don't know if there are other bytes left to read.
-		c.close()
-		message := "incomplete read of message header"
-		if err == io.EOF {
-			message = "socket was unexpectedly closed"
-		}
-		return nil, ConnectionError{
-			ConnectionID: c.id,
-			Wrapped:      transformNetworkError(err, contextDeadlineUsed),
-			message:      message,
-		}
+		return nil, "incomplete read of message header", err
 	}
 
 	// read the length as an int32
@@ -349,21 +403,10 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 
 	_, err = io.ReadFull(c.nc, dst[4:])
 	if err != nil {
-		// We closeConnection the connection because we don't know if there are other bytes left to read.
-		c.close()
-		message := "incomplete read of full message"
-		if err == io.EOF {
-			message = "socket was unexpectedly closed"
-		}
-		return nil, ConnectionError{
-			ConnectionID: c.id,
-			Wrapped:      transformNetworkError(err, contextDeadlineUsed),
-			message:      message,
-		}
+		return nil, "incomplete read of full message", err
 	}
 
-	c.bumpIdleDeadline()
-	return dst, nil
+	return dst, "", nil
 }
 
 func (c *connection) close() error {
