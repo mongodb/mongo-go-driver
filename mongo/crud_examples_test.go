@@ -526,23 +526,36 @@ func ExampleWithSession() {
 	}
 	defer sess.EndSession(context.TODO())
 
-	// Call WithSession to use the new Session to insert a document and find it.
+	// Call WithSession to start a transaction within the new session.
 	err = mongo.WithSession(context.TODO(), sess, func(sessCtx mongo.SessionContext) error {
 		// Use sessCtx as the Context parameter for InsertOne and FindOne so both operations are run under the new
 		// Session.
 
+		if err := sess.StartTransaction(); err != nil {
+			return err
+		}
+
 		coll := client.Database("db").Collection("coll")
 		res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
 		if err != nil {
+			// Abort the transaction after an error. Use context.Background() to ensure that the abort can complete
+			// successfully even if the context passed to mongo.WithSession is changed to have a timeout.
+			_ = sess.AbortTransaction(context.Background())
 			return err
 		}
 
 		var result bson.M
 		if err = coll.FindOne(sessCtx, bson.D{{"_id", res.InsertedID}}).Decode(result); err != nil {
+			// Abort the transaction after an error. Use context.Background() to ensure that the abort can complete
+			// successfully even if the context passed to mongo.WithSession is changed to have a timeout.
+			_ = sess.AbortTransaction(context.Background())
 			return err
 		}
 		fmt.Println(result)
-		return nil
+
+		// Use context.Background() to ensure that the commit can complete successfully even if the context passed to
+		// mongo.WithSession is changed to have a timeout.
+		return sess.CommitTransaction(context.Background())
 	})
 }
 
@@ -558,18 +571,31 @@ func ExampleClient_UseSessionWithOptions() {
 		// Use sessCtx as the Context parameter for InsertOne and FindOne so both operations are run under the new
 		// Session.
 
+		if err := sessCtx.StartTransaction(); err != nil {
+			return err
+		}
+
 		coll := client.Database("db").Collection("coll")
 		res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
 		if err != nil {
+			// Abort the transaction after an error. Use context.Background() to ensure that the abort can complete
+			// successfully even if the context passed to mongo.WithSession is changed to have a timeout.
+			_ = sessCtx.AbortTransaction(context.Background())
 			return err
 		}
 
 		var result bson.M
 		if err = coll.FindOne(sessCtx, bson.D{{"_id", res.InsertedID}}).Decode(result); err != nil {
+			// Abort the transaction after an error. Use context.Background() to ensure that the abort can complete
+			// successfully even if the context passed to mongo.WithSession is changed to have a timeout.
+			_ = sessCtx.AbortTransaction(context.Background())
 			return err
 		}
 		fmt.Println(result)
-		return nil
+
+		// Use context.Background() to ensure that the commit can complete successfully even if the context passed to
+		// mongo.WithSession is changed to have a timeout.
+		return sessCtx.CommitTransaction(context.Background())
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -634,17 +660,24 @@ func ExampleNewSessionContext() {
 	coll := client.Database("db").Collection("coll")
 	res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
 	if err != nil {
+		// Abort the transaction after an error. Use context.Background() to ensure that the abort can complete
+		// successfully even if the context passed to NewSessionContext is changed to have a timeout.
+		_ = sess.AbortTransaction(context.Background())
 		panic(err)
 	}
 
 	var result bson.M
 	if err = coll.FindOne(sessCtx, bson.D{{"_id", res.InsertedID}}).Decode(&result); err != nil {
+		// Abort the transaction after an error. Use context.Background() to ensure that the abort can complete
+		// successfully even if the context passed to NewSessionContext is changed to have a timeout.
+		_ = sess.AbortTransaction(context.Background())
 		panic(err)
 	}
 	fmt.Printf("result: %v\n", result)
 
-	// Commit the transaction so the inserted document will be stored.
-	if err = sess.CommitTransaction(sessCtx); err != nil {
+	// Commit the transaction so the inserted document will be stored. Use context.Background() to ensure that the
+	// commit can complete successfully even if the context passed to NewSessionContext is changed to have a timeout.
+	if err = sess.CommitTransaction(context.Background()); err != nil {
 		panic(err)
 	}
 }
