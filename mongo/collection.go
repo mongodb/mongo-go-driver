@@ -279,7 +279,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Ordered(true)
 	imo := options.MergeInsertManyOptions(opts...)
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
@@ -454,7 +454,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Ordered(true)
 	if do.Hint != nil {
 		op = op.Hint(true)
 	}
@@ -551,7 +551,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Hint(uo.Hint != nil).
-		ArrayFilters(uo.ArrayFilters != nil)
+		ArrayFilters(uo.ArrayFilters != nil).Ordered(true)
 
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)

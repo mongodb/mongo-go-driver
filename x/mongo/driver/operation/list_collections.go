@@ -34,6 +34,7 @@ type ListCollections struct {
 	selector       description.ServerSelector
 	retry          *driver.RetryMode
 	result         driver.CursorResponse
+	batchSize      *int32
 }
 
 // NewListCollections constructs and returns a new ListCollections.
@@ -95,6 +96,12 @@ func (lc *ListCollections) command(dst []byte, desc description.SelectedServer) 
 	if lc.nameOnly != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "nameOnly", *lc.nameOnly)
 	}
+	cursorDoc := bsoncore.NewDocumentBuilder()
+	if lc.batchSize != nil {
+		cursorDoc.AppendInt32("batchSize", *lc.batchSize)
+	}
+	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc.Build())
+
 	return dst, nil
 }
 
@@ -206,5 +213,15 @@ func (lc *ListCollections) Retry(retry driver.RetryMode) *ListCollections {
 	}
 
 	lc.retry = &retry
+	return lc
+}
+
+// BatchSize specifies the number of documents to return in every batch.
+func (lc *ListCollections) BatchSize(batchSize int32) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.batchSize = &batchSize
 	return lc
 }
