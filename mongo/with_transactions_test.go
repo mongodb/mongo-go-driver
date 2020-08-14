@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -28,8 +29,11 @@ import (
 )
 
 var (
-	connsCheckedOut  int
-	errorInterrupted int32 = 11601
+	connsCheckedOut        int
+	errorInterrupted       int32 = 11601
+	withTxnStartedEvents   []*event.CommandStartedEvent
+	withTxnSucceededEvents []*event.CommandSucceededEvent
+	withTxnFailedEvents    []*event.CommandFailedEvent
 )
 
 func TestConvenientTransactions(t *testing.T) {
@@ -177,9 +181,82 @@ func TestConvenientTransactions(t *testing.T) {
 				"expected error with label %v, got %v", driver.TransientTransactionError, cmdErr)
 		})
 	})
+	t.Run("abortTransaction does not time out", func(t *testing.T) {
+		// Create a special CommandMonitor that only records information about abortTransaction events and also
+		// records the Context used in the CommandStartedEvent listener.
+		var abortStarted []*event.CommandStartedEvent
+		var abortSucceeded []*event.CommandSucceededEvent
+		var abortFailed []*event.CommandFailedEvent
+		var abortCtx context.Context
+		monitor := &event.CommandMonitor{
+			Started: func(ctx context.Context, evt *event.CommandStartedEvent) {
+				if evt.CommandName == "abortTransaction" {
+					abortStarted = append(abortStarted, evt)
+					if abortCtx == nil {
+						abortCtx = ctx
+					}
+				}
+			},
+			Succeeded: func(_ context.Context, evt *event.CommandSucceededEvent) {
+				if evt.CommandName == "abortTransaction" {
+					abortSucceeded = append(abortSucceeded, evt)
+				}
+			},
+			Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
+				if evt.CommandName == "abortTransaction" {
+					log.Printf("FAILED: %v\n", evt.Failure)
+					abortFailed = append(abortFailed, evt)
+				}
+			},
+		}
+
+		client := setupConvenientTransactions(t, options.Client().SetMonitor(monitor))
+		coll := client.Database("foo").Collection("bar")
+		sess, err := client.StartSession()
+		assert.Nil(t, err, "StartSession error: %v", err)
+		defer func() {
+			sess.EndSession(bgCtx)
+			_ = coll.Drop(bgCtx)
+			_ = client.Disconnect(bgCtx)
+		}()
+
+		// Create a cancellable Context with a value for ctxKey.
+		type ctxKey struct{}
+		ctx, cancel := context.WithCancel(context.WithValue(context.Background(), ctxKey{}, "foobar"))
+		defer cancel()
+
+		// The WithTransaction callback does an Insert to ensure that the txn has been started server-side. After the
+		// insert succeeds, it cancels the Context created above and returns a non-retryable error, which forces
+		// WithTransaction to abort the txn.
+		callbackErr := errors.New("error")
+		callback := func(sc SessionContext) (interface{}, error) {
+			_, err = coll.InsertOne(sc, bson.D{{"x", 1}})
+			if err != nil {
+				return nil, err
+			}
+
+			cancel()
+			return nil, callbackErr
+		}
+
+		_, err = sess.WithTransaction(ctx, callback)
+		assert.Equal(t, callbackErr, err, "expected WithTransaction error %v, got %v", callbackErr, err)
+
+		// Assert that abortTransaction was sent once and succeede.
+		assert.Equal(t, 1, len(abortStarted), "expected 1 abortTransaction started event, got %d", len(abortStarted))
+		assert.Equal(t, 1, len(abortSucceeded), "expected 1 abortTransaction succeeded event, got %d",
+			len(abortSucceeded))
+		assert.Equal(t, 0, len(abortFailed), "expected 0 abortTransaction failed event, got %d", len(abortFailed))
+
+		// Assert that the Context propagated to the CommandStartedEvent listener for abortTransaction contained a value
+		// for ctxKey.
+		ctxValue, ok := abortCtx.Value(ctxKey{}).(string)
+		assert.True(t, ok, "expected context for abortTransaction to contain ctxKey")
+		assert.Equal(t, "foobar", ctxValue, "expected value for ctxKey to be 'world', got %s", ctxValue)
+	})
 }
 
-func setupConvenientTransactions(t *testing.T) *Client {
+func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.ClientOptions) *Client {
 	cs := testutil.ConnString(t)
 	poolMonitor := &event.PoolMonitor{
 		Event: func(evt *event.PoolEvent) {
@@ -191,9 +268,11 @@ func setupConvenientTransactions(t *testing.T) *Client {
 			}
 		},
 	}
+
 	clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
 		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetPoolMonitor(poolMonitor)
-	client, err := Connect(bgCtx, clientOpts)
+	fullClientOpts := []*options.ClientOptions{clientOpts}
+	client, err := Connect(bgCtx, append(fullClientOpts, extraClientOpts...)...)
 	assert.Nil(t, err, "Connect error: %v", err)
 
 	version, err := getServerVersion(client.Database("admin"))
