@@ -22,6 +22,7 @@ import (
 type bulkWriteBatch struct {
 	models   []WriteModel
 	canRetry bool
+	indexes  []int
 }
 
 // bulkWrite perfoms a bulkwrite operation
@@ -70,9 +71,6 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 		bwErr.WriteConcernError = batchErr.WriteConcernError
 		bwErr.Labels = append(bwErr.Labels, batchErr.Labels...)
-		for i := range batchErr.WriteErrors {
-			batchErr.WriteErrors[i].Index = batchErr.WriteErrors[i].Index + int(opIndex)
-		}
 
 		bwErr.WriteErrors = append(bwErr.WriteErrors, batchErr.WriteErrors...)
 
@@ -158,9 +156,11 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 	batchErr.WriteErrors = make([]BulkWriteError, 0, len(writeErrors))
 	convWriteErrors := writeErrorsFromDriverWriteErrors(writeErrors)
 	for _, we := range convWriteErrors {
+		request := batch.models[we.Index]
+		we.Index = batch.indexes[we.Index]
 		batchErr.WriteErrors = append(batchErr.WriteErrors, BulkWriteError{
 			WriteError: we,
-			Request:    batch.models[we.Index],
+			Request:    request,
 		})
 	}
 	return batchRes, batchErr, nil
@@ -401,18 +401,23 @@ func createBatches(models []WriteModel, ordered bool) []bulkWriteBatch {
 	batches[updateOneCommand].canRetry = true
 
 	// TODO(GODRIVER-1157): fix batching once operation retryability is fixed
-	for _, model := range models {
+	for i, model := range models {
 		switch model.(type) {
 		case *InsertOneModel:
 			batches[insertCommand].models = append(batches[insertCommand].models, model)
+			batches[insertCommand].indexes = append(batches[insertCommand].indexes, i)
 		case *DeleteOneModel:
 			batches[deleteOneCommand].models = append(batches[deleteOneCommand].models, model)
+			batches[deleteOneCommand].indexes = append(batches[deleteOneCommand].indexes, i)
 		case *DeleteManyModel:
 			batches[deleteManyCommand].models = append(batches[deleteManyCommand].models, model)
+			batches[deleteManyCommand].indexes = append(batches[deleteManyCommand].indexes, i)
 		case *ReplaceOneModel, *UpdateOneModel:
 			batches[updateOneCommand].models = append(batches[updateOneCommand].models, model)
+			batches[updateOneCommand].indexes = append(batches[updateOneCommand].indexes, i)
 		case *UpdateManyModel:
 			batches[updateManyCommand].models = append(batches[updateManyCommand].models, model)
+			batches[updateManyCommand].indexes = append(batches[updateManyCommand].indexes, i)
 		}
 	}
 
@@ -424,7 +429,7 @@ func createOrderedBatches(models []WriteModel) []bulkWriteBatch {
 	var prevKind writeCommandKind = -1
 	i := -1 // batch index
 
-	for _, model := range models {
+	for ind, model := range models {
 		var createNewBatch bool
 		var canRetry bool
 		var newKind writeCommandKind
@@ -455,6 +460,7 @@ func createOrderedBatches(models []WriteModel) []bulkWriteBatch {
 			batches = append(batches, bulkWriteBatch{
 				models:   []WriteModel{model},
 				canRetry: canRetry,
+				indexes:  []int{ind},
 			})
 			i++
 		} else {
@@ -462,6 +468,7 @@ func createOrderedBatches(models []WriteModel) []bulkWriteBatch {
 			if !canRetry {
 				batches[i].canRetry = false // don't make it true if it was already false
 			}
+			batches[i].indexes = append(batches[i].indexes, ind)
 		}
 
 		prevKind = newKind

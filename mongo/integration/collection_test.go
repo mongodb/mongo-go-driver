@@ -1067,6 +1067,29 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, expectedModel, actualModel, "expected model %v in BulkWriteException, got %v",
 				expectedModel, actualModel)
 		})
+		mt.Run("unordered writeError index", func(mt *mtest.T) {
+			models := []mongo.WriteModel{
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id3"}}),
+			}
+			_, err := mt.Coll.BulkWrite(mtest.Background, models, options.BulkWrite())
+			assert.Nil(t, err, "BulkWrite error: %v", err)
+
+			models = []mongo.WriteModel{
+				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id0"}}),
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
+				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id2"}}),
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id3"}}),
+				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id4"}}),
+			}
+			_, err = mt.Coll.BulkWrite(mtest.Background, models, options.BulkWrite().SetOrdered(false))
+			bwException, ok := err.(mongo.BulkWriteException)
+			assert.True(mt, ok, "expected error of type %T, got %T", mongo.BulkWriteException{}, err)
+
+			assert.Equal(mt, len(bwException.WriteErrors), 2, "expected 2 writeErrors, got %v", len(bwException.WriteErrors))
+			assert.Equal(mt, bwException.WriteErrors[0].Index, 1, "expected index 1, got %v", bwException.WriteErrors[0].Index)
+			assert.Equal(mt, bwException.WriteErrors[1].Index, 3, "expected index 3, got %v", bwException.WriteErrors[1].Index)
+		})
 		unackClientOpts := options.Client().
 			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
 		unackMtOpts := mtest.NewOptions().
