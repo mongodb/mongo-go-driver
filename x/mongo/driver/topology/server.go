@@ -810,15 +810,13 @@ func (s *Server) publishServerDescriptionChangedEvent(prev *description.Server, 
 	if s == nil || s.cfg.sdamMonitor == nil || s.cfg.sdamMonitor.ServerDescriptionChanged == nil {
 		return
 	}
-	prevDesc := convertToServerDescription(prev)
-	newDesc := convertToServerDescription(current)
 
 	topID, _ := s.topologyID.Load().(uuid.UUID)
 	serverDescriptionChanged := &event.ServerDescriptionChangedEvent{
-		Address:             event.ServerAddress(s.address.String()),
+		Address:             s.address,
 		ID:                  event.TopologyID(topID),
-		PreviousDescription: prevDesc,
-		NewDescription:      newDesc,
+		PreviousDescription: *prev,
+		NewDescription:      *current,
 	}
 
 	s.cfg.sdamMonitor.ServerDescriptionChanged(serverDescriptionChanged)
@@ -831,7 +829,7 @@ func (s *Server) publishServerOpeningEvent(addr address.Address) {
 	}
 	topID, _ := s.topologyID.Load().(uuid.UUID)
 	serverOpening := &event.ServerOpeningEvent{
-		Address: event.ServerAddress(addr.String()),
+		Address: addr,
 		ID:      event.TopologyID(topID),
 	}
 
@@ -859,11 +857,10 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	if s == nil || s.cfg.sdamMonitor == nil || s.cfg.sdamMonitor.ServerHeartbeatSucceeded == nil {
 		return
 	}
-	serverDesc := convertToServerDescription(desc)
 
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
 		Duration:     duration,
-		Reply:        serverDesc,
+		Reply:        *desc,
 		ConnectionID: connectionID,
 		Awaited:      await,
 	}
@@ -887,18 +884,6 @@ func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 	}
 
 	s.cfg.sdamMonitor.ServerHeartbeatFailed(serverHeartbeatFailed)
-}
-
-func convertToServerDescription(desc *description.Server) event.ServerDescription {
-	return event.ServerDescription{
-		Address:  event.ServerAddress(desc.Addr.String()),
-		Arbiters: event.AddressToServerAddress(desc.Arbiters),
-		Hosts:    event.AddressToServerAddress(desc.Hosts),
-		Passives: event.AddressToServerAddress(desc.Passives),
-		Primary:  event.ServerAddress(desc.Primary.String()),
-		SetName:  desc.SetName,
-		Kind:     event.ServerKind(desc.Kind),
-	}
 }
 
 // unwrapConnectionError returns the connection error wrapped by err, or nil if err does not wrap a connection error.

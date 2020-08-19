@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // Topology represents a description of a mongodb topology
@@ -140,4 +141,81 @@ func TopologyEqual(prev Topology, current Topology) bool {
 	}
 
 	return true
+}
+
+// HasReadableServer returns true if a topology has a server available for reading
+// based on the specified read preference.
+func (t *Topology) HasReadableServer(mode readpref.Mode) bool {
+	switch t.Kind {
+	case Single, Sharded:
+		return hasAvailableServer(t.Servers, 0)
+	case ReplicaSetWithPrimary:
+		return hasAvailableServer(t.Servers, mode)
+	case ReplicaSetNoPrimary, ReplicaSet:
+		if mode == readpref.PrimaryMode {
+			return false
+		}
+		// invalid read preference
+		if mode > readpref.NearestMode || mode < readpref.PrimaryMode {
+			return false
+		}
+
+		return hasAvailableServer(t.Servers, mode)
+	}
+	return false
+}
+
+// HasWritableServer returns true if a topology has a server available for writing
+func (t *Topology) HasWritableServer() bool {
+	switch t.Kind {
+	case ReplicaSetWithPrimary:
+		return true
+	case Single, Sharded:
+		return hasAvailableServer(t.Servers, 0)
+	}
+	return false
+}
+
+// hasAvailableServer returns true if any servers are available based on
+// the read preference.
+func hasAvailableServer(servers []Server, mode readpref.Mode) bool {
+	switch mode {
+	case readpref.PrimaryMode:
+		for _, s := range servers {
+			if s.Kind == RSPrimary {
+				return true
+			}
+		}
+		return false
+	case readpref.PrimaryPreferredMode, readpref.SecondaryPreferredMode, readpref.NearestMode:
+		for _, s := range servers {
+			if s.Kind == RSPrimary || s.Kind == RSSecondary {
+				return true
+			}
+		}
+		return false
+	case readpref.SecondaryMode:
+		for _, s := range servers {
+			if s.Kind == RSSecondary {
+				return true
+			}
+		}
+		return false
+	}
+
+	// read preference is not specified
+	for _, s := range servers {
+		switch s.Kind {
+		case Standalone,
+			RSMember,
+			RSPrimary,
+			RSSecondary,
+			RSArbiter,
+			RSGhost,
+			Mongos:
+			return true
+		}
+	}
+
+	return false
 }

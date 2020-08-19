@@ -25,6 +25,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 )
@@ -713,7 +715,7 @@ func (t *Topology) String() string {
 // publishes a ServerClosedEvent to indicate the server has closed
 func (t *Topology) publishServerClosedEvent(addr address.Address) {
 	serverClosed := &event.ServerClosedEvent{
-		Address: event.ServerAddress(addr.String()),
+		Address: addr,
 		ID:      event.TopologyID(t.id),
 	}
 
@@ -724,35 +726,11 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 
 // publishes a TopologyDescriptionChangedEvent to indicate the topology description has changed
 func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topology, current description.Topology) {
-	var prevServers, newServers []event.ServerDescription
-
-	// creates event.ServerDescriptions from desc.Servers
-	for _, s := range prev.Servers {
-		server := convertToServerDescription(&s)
-		prevServers = append(prevServers, server)
-	}
-
-	for _, s := range current.Servers {
-		server := convertToServerDescription(&s)
-		newServers = append(newServers, server)
-	}
-
-	var prevDesc, newDesc event.TopologyDescription
-	prevDesc = event.TopologyDescription{
-		Kind:    event.TopologyKind(prev.Kind),
-		Servers: prevServers,
-		SetName: prev.SetName,
-	}
-	newDesc = event.TopologyDescription{
-		Kind:    event.TopologyKind(current.Kind),
-		Servers: newServers,
-		SetName: current.SetName,
-	}
 
 	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
 		ID:                  event.TopologyID(t.id),
-		PreviousDescription: prevDesc,
-		NewDescription:      newDesc,
+		PreviousDescription: prev,
+		NewDescription:      current,
 	}
 
 	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyDescriptionChanged != nil {

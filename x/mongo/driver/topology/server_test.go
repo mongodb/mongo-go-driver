@@ -376,7 +376,7 @@ func TestServer(t *testing.T) {
 			succeeded, ok := publishedEvents[1].(event.ServerHeartbeatSucceededEvent)
 			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatSucceededEvent{}, publishedEvents[1])
 			assert.Equal(t, succeeded.ConnectionID, s.conn.ID(), "expected connectionID to match")
-			assert.Equal(t, string(succeeded.Reply.Address), s.address.String(), "expected address %T, got %T", s.address, succeeded.Reply.Address)
+			assert.Equal(t, succeeded.Reply.Addr, s.address, "expected address %T, got %T", s.address, succeeded.Reply.Addr)
 		})
 		t.Run("failure", func(t *testing.T) {
 			publishedEvents = nil
