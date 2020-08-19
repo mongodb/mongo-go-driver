@@ -117,6 +117,9 @@
 //     can be used with fields that are pointers to structs. If an inlined pointer field is nil, it will not be marshalled.
 //     For fields that are not maps or structs, this tag is ignored.
 //
+// This tag behavior is configurable, and different struct tag behavior can be configured by initializing a new
+// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry.
+//
 // Marshalling and Unmarshalling
 //
 // Manually marshalling and unmarshalling can be done with the Marshal and Unmarshal family of functions.
