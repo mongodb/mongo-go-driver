@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -61,6 +62,23 @@ func TestDatabase(t *testing.T) {
 			assert.Nil(mt, err, "RunCommand error: %v", err)
 			assert.Equal(mt, true, result.IsMaster, "expected isMaster value true, got false")
 			assert.Equal(mt, 1.0, result.Ok, "expected ok value 1.0, got %v", result.Ok)
+		})
+
+		readPrefOpts := mtest.NewOptions()
+		mt.RunOpts("read pref passed to mongos", readPrefOpts, func(mt *mtest.T) {
+			runCmdOpts := options.RunCmd().
+				SetReadPreference(readpref.SecondaryPreferred())
+			err := mt.DB.RunCommand(mtest.Background, bson.D{{"isMaster", 1}}, runCmdOpts).Err()
+			assert.Nil(mt, err, "RunCommand error: %v", err)
+
+			expected := bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendString("mode", "secondaryPreferred").
+				Build())
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "isMaster", evt.CommandName, "expected 'isMaster' command to be sent, got %q", evt.CommandName)
+			actual, ok := evt.Command.Lookup("$readPreference").DocumentOK()
+			assert.True(mt, ok, "expected command %v to contain a $readPreference document", evt.Command)
+			assert.Equal(mt, expected, actual, "expected $readPreference document %v, got %v", expected, actual)
 		})
 	})
 
