@@ -88,11 +88,7 @@ func SessionFromContext(ctx context.Context) Session {
 // active transaction for this session or the transaction has been aborted.
 //
 // AbortTransaction aborts the active transaction for this session. This method will return an error if there is no
-// active transaction for this session or the transaction has been committed or aborted. Because this method has to run
-// successfully to ensure that the server-side resources for a transaction are cleaned up, it will overwrite the context
-// passed to it with a context that has no deadline and cannot be cancelled. The new context will wrap the original
-// context and will propagate context.Value() requests to the original one. This allows for context values to be used
-// with the command monitoring API.
+// active transaction for this session or the transaction has been committed or aborted.
 //
 // WithTransaction starts a transaction on this session and runs the fn callback. Errors with the
 // TransientTransactionError and UnknownTransactionCommitResult labels are retried for up to 120 seconds. Inside the
