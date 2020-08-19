@@ -9,7 +9,6 @@ package mongo
 import (
 	"context"
 	"errors"
-	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -204,7 +203,6 @@ func TestConvenientTransactions(t *testing.T) {
 			},
 			Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
 				if evt.CommandName == "abortTransaction" {
-					log.Printf("FAILED: %v\n", evt.Failure)
 					abortFailed = append(abortFailed, evt)
 				}
 			},
