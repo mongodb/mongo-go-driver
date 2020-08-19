@@ -274,10 +274,15 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 		},
 	}
 
-	clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
-		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetPoolMonitor(poolMonitor)
-	fullClientOpts := []*options.ClientOptions{clientOpts}
-	client, err := Connect(bgCtx, append(fullClientOpts, extraClientOpts...)...)
+	baseClientOpts := options.Client().
+		ApplyURI(cs.Original).
+		SetReadPreference(readpref.Primary()).
+		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).
+		SetPoolMonitor(poolMonitor)
+	fullClientOpts := []*options.ClientOptions{baseClientOpts}
+	fullClientOpts = append(fullClientOpts, extraClientOpts...)
+
+	client, err := Connect(bgCtx, fullClientOpts...)
 	assert.Nil(t, err, "Connect error: %v", err)
 
 	version, err := getServerVersion(client.Database("admin"))
@@ -287,11 +292,14 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 		t.Skip("skipping standalones and versions < 4.1")
 	}
 
-	// pin to a single mongos if necessary
 	if topoKind != description.Sharded {
 		return client
 	}
-	client, err = Connect(bgCtx, clientOpts.SetHosts([]string{cs.Hosts[0]}))
+
+	// For sharded clusters, disconnect the previous Client and create a new one that's pinned to a single mongos.
+	_ = client.Disconnect(bgCtx)
+	fullClientOpts = append(fullClientOpts, options.Client().SetHosts([]string{cs.Hosts[0]}))
+	client, err = Connect(bgCtx, fullClientOpts...)
 	assert.Nil(t, err, "Connect error: %v", err)
 	return client
 }
