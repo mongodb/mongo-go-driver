@@ -118,7 +118,11 @@
 //     For fields that are not maps or structs, this tag is ignored.
 //
 // This tag behavior is configurable, and different struct tag behavior can be configured by initializing a new
-// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry.
+// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry. We don't honor JSON
+// tags by default, but that can be enabled by creating a StructCodec with JSONFallbackStructTagParser, like below:
+//
+// Example:
+//      structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.JSONFallbackStructTagParser)
 //
 // Marshalling and Unmarshalling
 //
