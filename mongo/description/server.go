@@ -11,10 +11,11 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 )
 
 // UnsetRTT is the unset value for a round trip time.
@@ -48,7 +49,7 @@ type Server struct {
 	SessionTimeoutMinutes   uint32
 	SetName                 string
 	SetVersion              uint32
-	SpeculativeAuthenticate bsoncore.Document
+	SpeculativeAuthenticate bson.Raw
 	Tags                    tag.Set
 	TopologyVersion         *TopologyVersion
 	Kind                    ServerKind
@@ -58,7 +59,7 @@ type Server struct {
 }
 
 // NewServer creates a new server description from the given parameters.
-func NewServer(addr address.Address, response bsoncore.Document) Server {
+func NewServer(addr address.Address, response bson.Raw) Server {
 	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
 	elements, err := response.Elements()
 	if err != nil {
@@ -261,7 +262,7 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 				return desc
 			}
 
-			desc.TopologyVersion, err = NewTopologyVersion(doc)
+			desc.TopologyVersion, err = NewTopologyVersion(bsoncore.Document(doc))
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -367,7 +368,7 @@ func (s Server) String() string {
 	return str
 }
 
-func decodeStringSlice(element bsoncore.Element, name string) ([]string, error) {
+func decodeStringSlice(element bson.RawElement, name string) ([]string, error) {
 	arr, ok := element.Value().ArrayOK()
 	if !ok {
 		return nil, fmt.Errorf("expected '%s' to be an array but it's a BSON %s", name, element.Value().Type)
@@ -387,7 +388,7 @@ func decodeStringSlice(element bsoncore.Element, name string) ([]string, error) 
 	return strs, nil
 }
 
-func decodeStringMap(element bsoncore.Element, name string) (map[string]string, error) {
+func decodeStringMap(element bson.RawElement, name string) (map[string]string, error) {
 	doc, ok := element.Value().DocumentOK()
 	if !ok {
 		return nil, fmt.Errorf("expected '%s' to be a document but it's a BSON %s", name, element.Value().Type)

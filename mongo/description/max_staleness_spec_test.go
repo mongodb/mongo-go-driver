@@ -13,7 +13,7 @@ import (
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 )
 
-const maxStalenessTestsDir = "../../../../data/max-staleness"
+const maxStalenessTestsDir = "../../data/max-staleness"
 
 // Test case for all max staleness spec tests.
 func TestMaxStalenessSpec(t *testing.T) {

@@ -14,7 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	testHelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"go.mongodb.org/mongo-driver/mongo/address"
 )
 
 type cmapEvent struct {

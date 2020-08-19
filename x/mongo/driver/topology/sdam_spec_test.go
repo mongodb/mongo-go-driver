@@ -20,11 +20,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 type response struct {
@@ -186,7 +186,7 @@ func applyResponses(t *testing.T, topo *Topology, responses []response, sub *dri
 		assert.Nil(t, err, "Marshal error: %v", err)
 
 		addr := address.Address(response.Host)
-		desc := description.NewServer(addr, bsoncore.Document(doc))
+		desc := description.NewServer(addr, doc)
 		server, ok := topo.servers[addr]
 		if ok {
 			server.updateDescription(desc)
