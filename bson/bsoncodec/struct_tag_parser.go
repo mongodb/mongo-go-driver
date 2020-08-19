@@ -91,6 +91,10 @@ var DefaultStructTagParser StructTagParserFunc = func(sf reflect.StructField) (S
 	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
 		tag = string(sf.Tag)
 	}
+	return parseTags(key, tag)
+}
+
+func parseTags(key string, tag string) (StructTags, error) {
 	var st StructTags
 	if tag == "-" {
 		st.Skip = true
@@ -118,10 +122,10 @@ var DefaultStructTagParser StructTagParserFunc = func(sf reflect.StructField) (S
 	return st, nil
 }
 
-// JsonFallbackStructTagParser has the same behavior as DefaultStructTagParser
+// JSONFallbackStructTagParser has the same behavior as DefaultStructTagParser
 // but will also fallback to parsing the json tag instead on a field where the
 // bson tag isn't available.
-var JsonFallbackStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
+var JSONFallbackStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
 	key := strings.ToLower(sf.Name)
 	tag, ok := sf.Tag.Lookup("bson")
 	if !ok {
@@ -130,29 +134,6 @@ var JsonFallbackStructTagParser StructTagParserFunc = func(sf reflect.StructFiel
 	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
 		tag = string(sf.Tag)
 	}
-	var st StructTags
-	if tag == "-" {
-		st.Skip = true
-		return st, nil
-	}
 
-	for idx, str := range strings.Split(tag, ",") {
-		if idx == 0 && str != "" {
-			key = str
-		}
-		switch str {
-		case "omitempty":
-			st.OmitEmpty = true
-		case "minsize":
-			st.MinSize = true
-		case "truncate":
-			st.Truncate = true
-		case "inline":
-			st.Inline = true
-		}
-	}
-
-	st.Name = key
-
-	return st, nil
+	return parseTags(key, tag)
 }
