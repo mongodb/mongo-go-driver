@@ -210,8 +210,15 @@ func TestConvenientTransactions(t *testing.T) {
 			},
 		}
 
+		// Set up a new Client using the command monitor defined above get a handle to a collection. The collection
+		// needs to be explicitly created on the server because implicit collection creation is not allowed in
+		// transactions for server versions <= 4.2.
 		client := setupConvenientTransactions(t, options.Client().SetMonitor(monitor))
-		coll := client.Database("foo").Collection("bar")
+		db := client.Database("foo")
+		coll := db.Collection("bar")
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v\n", err)
+
 		sess, err := client.StartSession()
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer func() {
