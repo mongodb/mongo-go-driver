@@ -69,6 +69,12 @@ func TestStructTagParsers(t *testing.T) {
 			DefaultStructTagParser,
 		},
 		{
+			"default ignore xml",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`xml:"bar"`)},
+			StructTags{Name: "foo"},
+			DefaultStructTagParser,
+		},
+		{
 			"JSONFallback no bson tag",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag("bar")},
 			StructTags{Name: "bar"},
@@ -129,9 +135,15 @@ func TestStructTagParsers(t *testing.T) {
 			JSONFallbackStructTagParser,
 		},
 		{
-			"JSONFallback bson tag overrides json",
-			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:"bar" json:"baz,omitempty"`)},
+			"JSONFallback bson tag overrides other tags",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:"bar" json:"qux,truncate"`)},
 			StructTags{Name: "bar"},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback ignore xml",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`xml:"bar"`)},
+			StructTags{Name: "foo"},
 			JSONFallbackStructTagParser,
 		},
 	}

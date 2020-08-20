@@ -90,7 +90,7 @@
 //     unmarshalled into an interface{} field will be unmarshalled as a D.
 //
 // The encoding of each struct field can be customized by the "bson" struct tag.
-
+//
 // This tag behavior is configurable, and different struct tag behavior can be configured by initializing a new
 // bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry. By default, JSON tags
 // are not honored, but that can be enabled by creating a StructCodec with JSONFallbackStructTagParser, like below:
