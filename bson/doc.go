@@ -90,7 +90,15 @@
 //     unmarshalled into an interface{} field will be unmarshalled as a D.
 //
 // The encoding of each struct field can be customized by the "bson" struct tag.
-// The tag gives the name of the field, possibly followed by a comma-separated list of options.
+
+// This tag behavior is configurable, and different struct tag behavior can be configured by initializing a new
+// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry. By default, JSON tags
+// are not honored, but that can be enabled by creating a StructCodec with JSONFallbackStructTagParser, like below:
+//
+// Example:
+//      structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.JSONFallbackStructTagParser)
+//
+// The bson tag gives the name of the field, possibly followed by a comma-separated list of options.
 // The name may be empty in order to specify options without overriding the default field name. The following options can be used
 // to configure behavior:
 //
@@ -116,13 +124,6 @@
 //     duplicated fields in the resulting document when an inlined field is marshalled, an error will be returned. This tag
 //     can be used with fields that are pointers to structs. If an inlined pointer field is nil, it will not be marshalled.
 //     For fields that are not maps or structs, this tag is ignored.
-//
-// This tag behavior is configurable, and different struct tag behavior can be configured by initializing a new
-// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry. We don't honor JSON
-// tags by default, but that can be enabled by creating a StructCodec with JSONFallbackStructTagParser, like below:
-//
-// Example:
-//      structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.JSONFallbackStructTagParser)
 //
 // Marshalling and Unmarshalling
 //

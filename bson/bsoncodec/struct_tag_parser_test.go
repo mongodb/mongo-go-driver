@@ -128,6 +128,12 @@ func TestStructTagParsers(t *testing.T) {
 			StructTags{Name: "foo", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
 			JSONFallbackStructTagParser,
 		},
+		{
+			"JSONFallback bson tag overrides json",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:"bar" json:"baz,omitempty"`)},
+			StructTags{Name: "bar"},
+			JSONFallbackStructTagParser,
+		},
 	}
 
 	for _, tc := range testCases {
