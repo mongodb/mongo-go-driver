@@ -148,16 +148,39 @@ func (result *UpdateResult) UnmarshalBSON(b []byte) error {
 // function and is also used in the CollectionSpecification type.
 type IndexSpecification struct {
 	// The index name.
-	Name string `bson:"name"`
+	Name string
 
 	// The namespace for the index. This is a string in the format "databaseName.collectionName".
-	Namespace string `bson:"ns"`
+	Namespace string
 
 	// The keys specification document for the index.
-	KeysDocument bson.Raw `bson:"key"`
+	KeysDocument bson.Raw
 
 	// The index version.
-	Version int32 `bson:"v"`
+	Version int32
+}
+
+var _ bson.Unmarshaler = (*IndexSpecification)(nil)
+
+type unmarshalIndexSpecification struct {
+	Name         string   `bson:"name"`
+	Namespace    string   `bson:"ns"`
+	KeysDocument bson.Raw `bson:"key"`
+	Version      int32    `bson:"v"`
+}
+
+// UnmarshalBSON implements the bson.Unmarshaler interface.
+func (i *IndexSpecification) UnmarshalBSON(data []byte) error {
+	var temp unmarshalIndexSpecification
+	if err := bson.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	i.Name = temp.Name
+	i.Namespace = temp.Namespace
+	i.KeysDocument = temp.KeysDocument
+	i.Version = temp.Version
+	return nil
 }
 
 // CollectionSpecification represents a collection in a database. This type is returned by the

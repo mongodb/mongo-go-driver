@@ -147,6 +147,8 @@ func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.Lis
 
 	ns := iv.coll.db.Name() + "." + iv.coll.Name()
 	for _, res := range results {
+		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
+		// the response.
 		res.Namespace = ns
 	}
 

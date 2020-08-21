@@ -303,7 +303,9 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 	}
 
 	for _, spec := range specs {
-		if spec.IDIndex != nil {
+		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
+		// the response.
+		if spec.IDIndex != nil && spec.IDIndex.Namespace == "" {
 			spec.IDIndex.Namespace = db.name + "." + spec.Name
 		}
 	}
