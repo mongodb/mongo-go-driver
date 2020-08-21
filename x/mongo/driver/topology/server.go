@@ -332,6 +332,9 @@ func (s *Server) RequestImmediateCheck() {
 	}
 }
 
+// getWriteConcernErrorForProcessing extracts a driver.WriteConcernError from the provided error. This function returns
+// (error, true) if the error is a WriteConcernError and the falls under the requirements for SDAM error
+// handling and (nil, false) otherwise.
 func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bool) {
 	writeCmdErr, ok := err.(driver.WriteCommandError)
 	if !ok {
