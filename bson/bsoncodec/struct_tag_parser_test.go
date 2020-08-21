@@ -13,57 +13,144 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestDefaultStructTagParser(t *testing.T) {
+func TestStructTagParsers(t *testing.T) {
 	testCases := []struct {
-		name string
-		sf   reflect.StructField
-		want StructTags
+		name   string
+		sf     reflect.StructField
+		want   StructTags
+		parser StructTagParserFunc
 	}{
 		{
-			"no bson tag",
+			"default no bson tag",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag("bar")},
 			StructTags{Name: "bar"},
+			DefaultStructTagParser,
 		},
 		{
-			"empty",
+			"default empty",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag("")},
 			StructTags{Name: "foo"},
+			DefaultStructTagParser,
 		},
 		{
-			"tag only dash",
+			"default tag only dash",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag("-")},
 			StructTags{Skip: true},
+			DefaultStructTagParser,
 		},
 		{
-			"bson tag only dash",
+			"default bson tag only dash",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:"-"`)},
 			StructTags{Skip: true},
+			DefaultStructTagParser,
 		},
 		{
-			"all options",
+			"default all options",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bar,omitempty,minsize,truncate,inline`)},
 			StructTags{Name: "bar", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			DefaultStructTagParser,
 		},
 		{
-			"all options default name",
+			"default all options default name",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`,omitempty,minsize,truncate,inline`)},
 			StructTags{Name: "foo", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			DefaultStructTagParser,
 		},
 		{
-			"bson tag all options",
+			"default bson tag all options",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:"bar,omitempty,minsize,truncate,inline"`)},
 			StructTags{Name: "bar", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			DefaultStructTagParser,
 		},
 		{
-			"bson tag all options default name",
+			"default bson tag all options default name",
 			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:",omitempty,minsize,truncate,inline"`)},
 			StructTags{Name: "foo", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			DefaultStructTagParser,
+		},
+		{
+			"default ignore xml",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`xml:"bar"`)},
+			StructTags{Name: "foo"},
+			DefaultStructTagParser,
+		},
+		{
+			"JSONFallback no bson tag",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag("bar")},
+			StructTags{Name: "bar"},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback empty",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag("")},
+			StructTags{Name: "foo"},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback tag only dash",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag("-")},
+			StructTags{Skip: true},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback bson tag only dash",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:"-"`)},
+			StructTags{Skip: true},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback all options",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bar,omitempty,minsize,truncate,inline`)},
+			StructTags{Name: "bar", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback all options default name",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`,omitempty,minsize,truncate,inline`)},
+			StructTags{Name: "foo", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback bson tag all options",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:"bar,omitempty,minsize,truncate,inline"`)},
+			StructTags{Name: "bar", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback bson tag all options default name",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:",omitempty,minsize,truncate,inline"`)},
+			StructTags{Name: "foo", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback json tag all options",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`json:"bar,omitempty,minsize,truncate,inline"`)},
+			StructTags{Name: "bar", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback json tag all options default name",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`json:",omitempty,minsize,truncate,inline"`)},
+			StructTags{Name: "foo", OmitEmpty: true, MinSize: true, Truncate: true, Inline: true},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback bson tag overrides other tags",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`bson:"bar" json:"qux,truncate"`)},
+			StructTags{Name: "bar"},
+			JSONFallbackStructTagParser,
+		},
+		{
+			"JSONFallback ignore xml",
+			reflect.StructField{Name: "foo", Tag: reflect.StructTag(`xml:"bar"`)},
+			StructTags{Name: "foo"},
+			JSONFallbackStructTagParser,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := DefaultStructTagParser(tc.sf)
+			got, err := tc.parser(tc.sf)
 			noerr(t, err)
 			if !cmp.Equal(got, tc.want) {
 				t.Errorf("Returned struct tags do not match. got %#v; want %#v", got, tc.want)
