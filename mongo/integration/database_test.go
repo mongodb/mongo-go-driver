@@ -64,7 +64,7 @@ func TestDatabase(t *testing.T) {
 			assert.Equal(mt, 1.0, result.Ok, "expected ok value 1.0, got %v", result.Ok)
 		})
 
-		readPrefOpts := mtest.NewOptions()
+		readPrefOpts := mtest.NewOptions().Topologies(mtest.Sharded)
 		mt.RunOpts("read pref passed to mongos", readPrefOpts, func(mt *mtest.T) {
 			runCmdOpts := options.RunCmd().
 				SetReadPreference(readpref.SecondaryPreferred())
