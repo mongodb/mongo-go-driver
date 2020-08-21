@@ -218,17 +218,23 @@ func TestSDAMErrorHandling(t *testing.T) {
 				ClientOptions(baseClientOpts().SetRetryWrites(false))
 
 			testCases := []struct {
-				name            string
-				errorCode       int32
+				name      string
+				errorCode int32
+
+				// For shutdown errors, the pool is always cleared. For non-shutdown errors, the pool is only cleared
+				// for pre-4.2 servers.
 				isShutdownError bool
 			}{
-				// NodeIsRecovering error that is also a ShutdownError so pool will always be cleared.
-				{"node is recovering, shutdown", 11600, true},
-				// NodeIsRecovering error that is not a ShutdownError so pool is only cleared for pre-4.2.
-				{"node is recovering, not shutdown", 11602, false},
-				// NotMaster error. None of the NotMaster errors are in the ShutdownError category, so the pool is
-				// only cleared for pre-4.2.
-				{"not master", 10107, false},
+				// "node is recovering" errors
+				{"InterruptedAtShutdown", 11600, true},
+				{"InterruptedDueToReplStateChange, not shutdown", 11602, false},
+				{"NotMasterOrSecondary", 13436, false},
+				{"PrimarySteppedDown", 189, false},
+				{"ShutdownInProgress", 91, true},
+
+				// "not master" errors
+				{"NotMaster", 10107, false},
+				{"NotMasterNoSlaveOk", 13435, false},
 			}
 			for _, tc := range testCases {
 				mt.RunOpts(fmt.Sprintf("command error - %s", tc.name), serverErrorsMtOpts, func(mt *mtest.T) {

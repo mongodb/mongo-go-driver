@@ -378,7 +378,6 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 		}
 		return
 	}
-	// if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
 	if wcerr, ok := getWriteConcernErrorForProcessing(err); ok {
 		// ignore stale error
 		if description.CompareTopologyVersion(desc.TopologyVersion, wcerr.TopologyVersion) >= 0 {
