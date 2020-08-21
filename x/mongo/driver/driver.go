@@ -118,8 +118,7 @@ func (SingleServerDeployment) Kind() description.TopologyKind { return descripti
 
 // SingleConnectionDeployment is an implementation of Deployment that always returns the same Connection. This
 // implementation should only be used for connection handshakes and server heartbeats as it does not implement
-// ErrorProcessor, which is necessary for application operations and wraps the connection in nopCloserConnection,
-// which does not implement Compressor.
+// ErrorProcessor, which is necessary for application operations.
 type SingleConnectionDeployment struct{ C Connection }
 
 var _ Deployment = SingleConnectionDeployment{}
