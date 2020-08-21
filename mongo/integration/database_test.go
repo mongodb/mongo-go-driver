@@ -64,8 +64,16 @@ func TestDatabase(t *testing.T) {
 			assert.Equal(mt, 1.0, result.Ok, "expected ok value 1.0, got %v", result.Ok)
 		})
 
-		readPrefOpts := mtest.NewOptions().Topologies(mtest.Sharded)
+		// We set min server version 3.6 because pre-3.6 servers use OP_QUERY, so the command document will look like
+		// {$query: {...}, $readPreference: {...}}. Per the command monitoring spec, the $query subdocument is unwrapped
+		// and the $readPreference is dropped for monitoring purposes, so we can't examine it.
+		readPrefOpts := mtest.NewOptions().
+			Topologies(mtest.Sharded).
+			MinServerVersion("3.6")
 		mt.RunOpts("read pref passed to mongos", readPrefOpts, func(mt *mtest.T) {
+			// When communicating with a mongos, the supplied read preference should be passed down to the operations
+			// layer, which should add a top-level $readPreference field to the command.
+
 			runCmdOpts := options.RunCmd().
 				SetReadPreference(readpref.SecondaryPreferred())
 			err := mt.DB.RunCommand(mtest.Background, bson.D{{"isMaster", 1}}, runCmdOpts).Err()
