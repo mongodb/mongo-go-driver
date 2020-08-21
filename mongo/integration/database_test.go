@@ -14,10 +14,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 const (
@@ -148,6 +150,76 @@ func TestDatabase(t *testing.T) {
 				mt.Fatalf("error verifying list collections result: %v", err)
 			})
 		}
+	})
+
+	mt.RunOpts("list collection specifications", noClientOpts, func(mt *mtest.T) {
+		mt.Run("filter passed to listCollections", func(mt *mtest.T) {
+			// Test that ListCollectionSpecifications correctly uses the supplied filter.
+			cappedName := "list-collection-specs-capped"
+			mt.CreateCollection(mtest.Collection{
+				Name: cappedName,
+				CreateOpts: bson.D{
+					{"capped", true},
+					{"size", 4096},
+				},
+			}, true)
+
+			filter := bson.M{
+				"options.capped": true,
+			}
+			cursor, err := mt.DB.ListCollections(mtest.Background, filter)
+			assert.Nil(mt, err, "ListCollections error: %v", err)
+			defer cursor.Close(mtest.Background)
+			assert.True(mt, cursor.Next(mtest.Background), "expected Next to return true, got false; cursor error: %v",
+				cursor.Err())
+
+			optionsDoc := bsoncore.NewDocumentBuilder().
+				AppendBoolean("capped", true).
+				AppendInt32("size", 4096).
+				Build()
+
+			expectedSpec := &mongo.CollectionSpecification{
+				Name:     cappedName,
+				Type:     "collection",
+				ReadOnly: false,
+				Options:  bson.Raw(optionsDoc),
+			}
+			if mtest.CompareServerVersions(mt.ServerVersion(), "3.6") >= 0 {
+				uuidSubtype, uuidData := cursor.Current.Lookup("info", "uuid").Binary()
+				expectedSpec.UUID = &primitive.Binary{Subtype: uuidSubtype, Data: uuidData}
+			}
+			if mtest.CompareServerVersions(mt.ServerVersion(), "3.4") >= 0 {
+				keysDoc := bsoncore.NewDocumentBuilder().
+					AppendInt32("_id", 1).
+					Build()
+				expectedSpec.IDIndex = &mongo.IndexSpecification{
+					Name:         "_id_",
+					Namespace:    mt.DB.Name() + "." + cappedName,
+					KeysDocument: bson.Raw(keysDoc),
+					Version:      2,
+				}
+			}
+
+			specs, err := mt.DB.ListCollectionSpecifications(mtest.Background, filter)
+			assert.Nil(mt, err, "ListCollectionSpecifications error: %v", err)
+			assert.Equal(mt, 1, len(specs), "expected 1 CollectionSpecification, got %d", len(specs))
+			assert.Equal(mt, expectedSpec, specs[0], "expected specification %v, got %v", expectedSpec, specs[0])
+		})
+
+		mt.RunOpts("options passed to listCollections", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
+			// Test that ListCollectionSpecifications correctly uses the supplied options.
+
+			opts := options.ListCollections().SetNameOnly(true)
+			_, err := mt.DB.ListCollectionSpecifications(mtest.Background, bson.D{}, opts)
+			assert.Nil(mt, err, "ListCollectionSpecifications error: %v", err)
+
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "listCollections", evt.CommandName, "expected %q command to be sent, got %q",
+				"listCollections", evt.CommandName)
+			nameOnly, ok := evt.Command.Lookup("nameOnly").BooleanOK()
+			assert.True(mt, ok, "expected command %v to contain %q field", evt.Command, "nameOnly")
+			assert.True(mt, nameOnly, "expected nameOnly value to be true, got false")
+		})
 	})
 
 	mt.RunOpts("run command cursor", noClientOpts, func(mt *mtest.T) {

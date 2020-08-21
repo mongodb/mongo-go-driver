@@ -277,6 +277,41 @@ func (db *Database) Drop(ctx context.Context) error {
 	return nil
 }
 
+// ListCollectionSpecifications executes a listCollections command and returns a slice of CollectionSpecification
+// instances representing the collections in the database.
+//
+// The filter parameter must be a document containing query operators and can be used to select which collections
+// are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
+// collections.
+//
+// The opts parameter can be used to specify options for the operation (see the options.ListCollectionsOptions
+// documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
+func (db *Database) ListCollectionSpecifications(ctx context.Context, filter interface{},
+	opts ...*options.ListCollectionsOptions) ([]*CollectionSpecification, error) {
+
+	cursor, err := db.ListCollections(ctx, filter, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	var specs []*CollectionSpecification
+	err = cursor.All(ctx, &specs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, spec := range specs {
+		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
+		// the response.
+		if spec.IDIndex != nil && spec.IDIndex.Namespace == "" {
+			spec.IDIndex.Namespace = db.name + "." + spec.Name
+		}
+	}
+	return specs, nil
+}
+
 // ListCollections executes a listCollections command and returns a cursor over the collections in the database.
 //
 // The filter parameter must be a document containing query operators and can be used to select which collections
