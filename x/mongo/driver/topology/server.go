@@ -332,6 +332,19 @@ func (s *Server) RequestImmediateCheck() {
 	}
 }
 
+func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bool) {
+	writeCmdErr, ok := err.(driver.WriteCommandError)
+	if !ok {
+		return nil, false
+	}
+
+	wcerr := writeCmdErr.WriteConcernError
+	if wcerr != nil && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
+		return wcerr, true
+	}
+	return nil, false
+}
+
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
 func (s *Server) ProcessError(err error, conn driver.Connection) {
 	// ignore nil error
@@ -365,7 +378,8 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 		}
 		return
 	}
-	if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
+	// if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
+	if wcerr, ok := getWriteConcernErrorForProcessing(err); ok {
 		// ignore stale error
 		if description.CompareTopologyVersion(desc.TopologyVersion, wcerr.TopologyVersion) >= 0 {
 			return
