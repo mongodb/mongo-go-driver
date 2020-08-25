@@ -205,13 +205,15 @@ func TestServer(t *testing.T) {
 		s.connectionstate = connected
 		s.pool.connected = connected
 
-		wce := driver.WriteConcernError{
-			Name:            "",
-			Code:            10107,
-			Message:         "not master",
-			Details:         []byte{},
-			Labels:          []string{},
-			TopologyVersion: nil,
+		wce := driver.WriteCommandError{
+			WriteConcernError: &driver.WriteConcernError{
+				Name:            "",
+				Code:            10107,
+				Message:         "not master",
+				Details:         []byte{},
+				Labels:          []string{},
+				TopologyVersion: nil,
+			},
 		}
 		s.ProcessError(wce, initConnection{})
 
