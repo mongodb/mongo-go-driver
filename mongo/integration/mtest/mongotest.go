@@ -354,7 +354,7 @@ func (t *T) GetProxiedMessages() []*ProxyMessage {
 	if t.proxyDialer == nil {
 		return nil
 	}
-	return t.proxyDialer.messages
+	return t.proxyDialer.Messages()
 }
 
 // ClearEvents clears the existing command monitoring events.
