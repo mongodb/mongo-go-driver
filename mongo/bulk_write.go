@@ -53,7 +53,6 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 	}
 
 	var lastErr error
-	var opIndex int64 // the operation index for the upsertedIDs map
 	continueOnError := !ordered
 	for _, batch := range batches {
 		if len(batch.models) == 0 {
@@ -67,7 +66,7 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 		batchRes, batchErr, err := bw.runBatch(ctx, batch)
 
-		bw.mergeResults(batchRes, opIndex)
+		bw.mergeResults(batchRes)
 
 		bwErr.WriteConcernError = batchErr.WriteConcernError
 		bwErr.Labels = append(bwErr.Labels, batchErr.Labels...)
@@ -87,8 +86,6 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 		if err != nil {
 			lastErr = err
 		}
-
-		opIndex += int64(len(batch.models))
 	}
 
 	bw.result.MatchedCount -= bw.result.UpsertedCount
@@ -149,7 +146,7 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 		batchRes.ModifiedCount = int64(res.NModified)
 		batchRes.UpsertedCount = int64(len(res.Upserted))
 		for _, upsert := range res.Upserted {
-			batchRes.UpsertedIDs[upsert.Index] = upsert.ID
+			batchRes.UpsertedIDs[int64(batch.indexes[upsert.Index])] = upsert.ID
 		}
 	}
 
@@ -477,7 +474,7 @@ func createOrderedBatches(models []WriteModel) []bulkWriteBatch {
 	return batches
 }
 
-func (bw *bulkWrite) mergeResults(newResult BulkWriteResult, opIndex int64) {
+func (bw *bulkWrite) mergeResults(newResult BulkWriteResult) {
 	bw.result.InsertedCount += newResult.InsertedCount
 	bw.result.MatchedCount += newResult.MatchedCount
 	bw.result.ModifiedCount += newResult.ModifiedCount
@@ -485,7 +482,7 @@ func (bw *bulkWrite) mergeResults(newResult BulkWriteResult, opIndex int64) {
 	bw.result.UpsertedCount += newResult.UpsertedCount
 
 	for index, upsertID := range newResult.UpsertedIDs {
-		bw.result.UpsertedIDs[index+opIndex] = upsertID
+		bw.result.UpsertedIDs[index] = upsertID
 	}
 }
 
