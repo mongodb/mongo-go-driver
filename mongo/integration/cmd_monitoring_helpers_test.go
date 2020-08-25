@@ -253,26 +253,21 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bson.Ra
 		key := elem.Key()
 		val := elem.Value()
 
-		actualVal := evt.Command.Lookup(key)
+		actualVal, err := evt.Command.LookupErr(key)
 
 		// Keys that may be nil
 		if val.Type == bson.TypeNull {
-			if actualVal.Type != 0 || len(actualVal.Value) > 0 {
-				return fmt.Errorf("expected value for key %s to be nil but got %s", key, actualVal)
-			}
+			assert.NotNil(mt, err, "expected key %q to be omitted but got %q", key, actualVal)
 			continue
 		}
-		if key == "ordered" || key == "cursor" || key == "batchSize" {
-			// TODO: some tests specify that "ordered" must be a key in the event but ordered isn't a valid option for
-			// some of these cases (e.g. insertOne)
-			// TODO: some FLE tests specify "cursor" subdocument for listCollections
-			// TODO: find.json cmd monitoring tests expect different batch sizes for find/getMore commands based on an
-			// optional limit
-			continue
-		}
+		assert.Nil(mt, err, "expected command to contain key %q", key)
 
-		if err = actualVal.Validate(); err != nil {
-			return fmt.Errorf("error validatinmg value for key %s: %s", key, err)
+		if key == "batchSize" {
+			// Some command monitoring tests expect that the driver will send a lower batch size if the required batch
+			// size is lower than the operation limit. We only do this for legacy servers <= 3.0 because those server
+			// versions do not support the limit option, but not for 3.2+. We've already validated that the command
+			// contains a batchSize field above and we can skip the actual value comparison below.
+			continue
 		}
 
 		switch key {

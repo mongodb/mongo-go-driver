@@ -137,45 +137,66 @@ func TestDatabase(t *testing.T) {
 	})
 
 	mt.RunOpts("list collections", noClientOpts, func(mt *mtest.T) {
-		testCases := []struct {
-			name             string
-			expectedTopology mtest.TopologyKind
-			cappedOnly       bool
-		}{
-			{"standalone no filter", mtest.Single, false},
-			{"standalone filter", mtest.Single, true},
-			{"replica set no filter", mtest.ReplicaSet, false},
-			{"replica set filter", mtest.ReplicaSet, true},
-			{"sharded no filter", mtest.Sharded, false},
-			{"sharded filter", mtest.Sharded, true},
-		}
-		for _, tc := range testCases {
-			tcOpts := mtest.NewOptions().Topologies(tc.expectedTopology)
-			mt.RunOpts(tc.name, tcOpts, func(mt *mtest.T) {
-				mt.CreateCollection(mtest.Collection{Name: listCollUncapped}, true)
-				mt.CreateCollection(mtest.Collection{
-					Name:       listCollCapped,
-					CreateOpts: bson.D{{"capped", true}, {"size", 64 * 1024}},
-				}, true)
+		mt.RunOpts("verify results", noClientOpts, func(mt *mtest.T) {
+			testCases := []struct {
+				name             string
+				expectedTopology mtest.TopologyKind
+				cappedOnly       bool
+			}{
+				{"standalone no filter", mtest.Single, false},
+				{"standalone filter", mtest.Single, true},
+				{"replica set no filter", mtest.ReplicaSet, false},
+				{"replica set filter", mtest.ReplicaSet, true},
+				{"sharded no filter", mtest.Sharded, false},
+				{"sharded filter", mtest.Sharded, true},
+			}
+			for _, tc := range testCases {
+				tcOpts := mtest.NewOptions().Topologies(tc.expectedTopology)
+				mt.RunOpts(tc.name, tcOpts, func(mt *mtest.T) {
+					mt.CreateCollection(mtest.Collection{Name: listCollUncapped}, true)
+					mt.CreateCollection(mtest.Collection{
+						Name:       listCollCapped,
+						CreateOpts: bson.D{{"capped", true}, {"size", 64 * 1024}},
+					}, true)
 
-				filter := bson.D{}
-				if tc.cappedOnly {
-					filter = bson.D{{"options.capped", true}}
-				}
-
-				var err error
-				for i := 0; i < 1; i++ {
-					cursor, err := mt.DB.ListCollections(mtest.Background, filter)
-					assert.Nil(mt, err, "ListCollections error (iteration %v): %v", i, err)
-
-					err = verifyListCollections(cursor, tc.cappedOnly)
-					if err == nil {
-						return
+					filter := bson.D{}
+					if tc.cappedOnly {
+						filter = bson.D{{"options.capped", true}}
 					}
-				}
-				mt.Fatalf("error verifying list collections result: %v", err)
-			})
-		}
+
+					var err error
+					for i := 0; i < 1; i++ {
+						cursor, err := mt.DB.ListCollections(mtest.Background, filter)
+						assert.Nil(mt, err, "ListCollections error (iteration %v): %v", i, err)
+
+						err = verifyListCollections(cursor, tc.cappedOnly)
+						if err == nil {
+							return
+						}
+					}
+					mt.Fatalf("error verifying list collections result: %v", err)
+				})
+			}
+		})
+		mt.RunOpts("batch size", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
+			// Create two new collections so there will be three total.
+			for i := 0; i < 2; i++ {
+				mt.CreateCollection(mtest.Collection{
+					Name: fmt.Sprintf("list-collections-batchSize-%d", i),
+				}, true)
+			}
+
+			mt.ClearEvents()
+			lcOpts := options.ListCollections().SetBatchSize(2)
+			_, err := mt.DB.ListCollectionNames(mtest.Background, bson.D{}, lcOpts)
+			assert.Nil(mt, err, "ListCollectionNames error: %v", err)
+
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "listCollections", evt.CommandName, "expected 'listCollections' command to be sent, got %q",
+				evt.CommandName)
+			_, err = evt.Command.LookupErr("cursor", "batchSize")
+			assert.Nil(mt, err, "expected command %s to contain key 'batchSize'", evt.Command)
+		})
 	})
 
 	mt.RunOpts("list collection specifications", noClientOpts, func(mt *mtest.T) {
