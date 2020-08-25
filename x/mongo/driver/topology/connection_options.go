@@ -52,13 +52,15 @@ type connectionConfig struct {
 	ocspCache                ocsp.Cache
 	disableOCSPEndpointCheck bool
 	errorHandlingCallback    func(error, uint64)
+	tlsConnectionSource      tlsConnectionSource
 }
 
 func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 	cfg := &connectionConfig{
-		connectTimeout: 30 * time.Second,
-		dialer:         nil,
-		lifeTimeout:    30 * time.Minute,
+		connectTimeout:      30 * time.Second,
+		dialer:              nil,
+		lifeTimeout:         30 * time.Minute,
+		tlsConnectionSource: defaultTLSConnectionSource,
 	}
 
 	for _, opt := range opts {
@@ -77,6 +79,13 @@ func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 
 // ConnectionOption is used to configure a connection.
 type ConnectionOption func(*connectionConfig) error
+
+func withTLSConnectionSource(fn func(tlsConnectionSource) tlsConnectionSource) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.tlsConnectionSource = fn(c.tlsConnectionSource)
+		return nil
+	}
+}
 
 func withErrorHandlingCallback(fn func(error, uint64)) ConnectionOption {
 	return func(c *connectionConfig) error {
