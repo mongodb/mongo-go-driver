@@ -129,6 +129,19 @@ func (p *proxyDialer) storeReceivedMessage(wm []byte, addr string) error {
 	return nil
 }
 
+// Messages returns a slice of proxied messages. This slice is a copy of the messages proxied so far and will not be
+// updated for messages proxied after this call.
+func (p *proxyDialer) Messages() []*ProxyMessage {
+	p.Lock()
+	defer p.Unlock()
+
+	copiedMessages := make([]*ProxyMessage, 0, len(p.messages))
+	for _, msg := range p.messages {
+		copiedMessages = append(copiedMessages, msg)
+	}
+	return copiedMessages
+}
+
 // proxyConn is a net.Conn that wraps a network connection. All messages sent/received through a proxyConn are stored
 // in the associated proxyDialer and are forwarded over the wrapped connection. Errors encountered when parsing and
 // storing wire messages are wrapped to add context, while errors returned from the underlying network connection are
