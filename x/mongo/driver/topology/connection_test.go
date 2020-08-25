@@ -8,6 +8,7 @@ package topology
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net"
 	"sync"
@@ -173,6 +174,58 @@ func TestConnection(t *testing.T) {
 					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
 					close(doneChan)
 					wg.Wait()
+				})
+			})
+			t.Run("tls", func(t *testing.T) {
+				t.Run("connection source is set to default if unspecified", func(t *testing.T) {
+					conn, err := newConnection(address.Address(""))
+					assert.Nil(t, err, "newConnection error: %v", err)
+					assert.NotNil(t, conn.config.tlsConnectionSource, "expected tlsConnectionSource to be set but was not")
+				})
+				t.Run("server name", func(t *testing.T) {
+					testCases := []struct {
+						name               string
+						addr               address.Address
+						cfg                *tls.Config
+						expectedServerName string
+					}{
+						{"set to connection address if empty", "localhost:27017", &tls.Config{}, "localhost"},
+						{"left alone if non-empty", "localhost:27017", &tls.Config{ServerName: "other"}, "other"},
+					}
+					for _, tc := range testCases {
+						t.Run(tc.name, func(t *testing.T) {
+							var sentCfg *tls.Config
+							var testTLSConnectionSource tlsConnectionSourceFn = func(nc net.Conn, cfg *tls.Config) *tls.Conn {
+								sentCfg = cfg
+								return tls.Client(nc, cfg)
+							}
+
+							connOpts := []ConnectionOption{
+								WithDialer(func(Dialer) Dialer {
+									return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+										return &net.TCPConn{}, nil
+									})
+								}),
+								WithHandshaker(func(Handshaker) Handshaker {
+									return &testHandshaker{}
+								}),
+								WithTLSConfig(func(*tls.Config) *tls.Config {
+									return tc.cfg
+								}),
+								withTLSConnectionSource(func(tlsConnectionSource) tlsConnectionSource {
+									return testTLSConnectionSource
+								}),
+							}
+							conn, err := newConnection(tc.addr, connOpts...)
+							assert.Nil(t, err, "newConnection error: %v", err)
+
+							conn.connect(context.Background())
+							err = conn.wait()
+							assert.NotNil(t, sentCfg, "expected TLS config to be set, but was not")
+							assert.Equal(t, tc.expectedServerName, sentCfg.ServerName, "expected ServerName %s, got %s",
+								tc.expectedServerName, sentCfg.ServerName)
+						})
+					}
 				})
 			})
 		})

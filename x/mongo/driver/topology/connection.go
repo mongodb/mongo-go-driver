@@ -149,7 +149,7 @@ func (c *connection) connect(ctx context.Context) {
 			Cache:                   c.config.ocspCache,
 			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
 		}
-		tlsNc, err := configureTLS(ctx, c.nc, c.addr, tlsConfig, ocspOpts)
+		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
 			c.processInitializationError(err)
 			return
@@ -604,19 +604,27 @@ func (c *Connection) LocalAddress() address.Address {
 var notMasterCodes = []int32{10107, 13435}
 var recoveringCodes = []int32{11600, 11602, 13436, 189, 91}
 
-func configureTLS(ctx context.Context, nc net.Conn, addr address.Address, config *tls.Config, ocspOpts *ocsp.VerifyOptions) (net.Conn, error) {
+func configureTLS(ctx context.Context,
+	tlsConnSource tlsConnectionSource,
+	nc net.Conn,
+	addr address.Address,
+	config *tls.Config,
+	ocspOpts *ocsp.VerifyOptions,
+) (net.Conn, error) {
+
 	// Ensure config.ServerName is always set for SNI.
-	hostname := addr.String()
-	colonPos := strings.LastIndex(hostname, ":")
-	if colonPos == -1 {
-		colonPos = len(hostname)
+	if config.ServerName == "" {
+		hostname := addr.String()
+		colonPos := strings.LastIndex(hostname, ":")
+		if colonPos == -1 {
+			colonPos = len(hostname)
+		}
+
+		hostname = hostname[:colonPos]
+		config.ServerName = hostname
 	}
 
-	hostname = hostname[:colonPos]
-	config.ServerName = hostname
-
-	client := tls.Client(nc, config)
-
+	client := tlsConnSource.Client(nc, config)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- client.Handshake()
