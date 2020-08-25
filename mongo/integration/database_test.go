@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -61,6 +62,31 @@ func TestDatabase(t *testing.T) {
 			assert.Nil(mt, err, "RunCommand error: %v", err)
 			assert.Equal(mt, true, result.IsMaster, "expected isMaster value true, got false")
 			assert.Equal(mt, 1.0, result.Ok, "expected ok value 1.0, got %v", result.Ok)
+		})
+
+		// We set min server version 3.6 because pre-3.6 servers use OP_QUERY, so the command document will look like
+		// {$query: {...}, $readPreference: {...}}. Per the command monitoring spec, the $query subdocument is unwrapped
+		// and the $readPreference is dropped for monitoring purposes, so we can't examine it.
+		readPrefOpts := mtest.NewOptions().
+			Topologies(mtest.Sharded).
+			MinServerVersion("3.6")
+		mt.RunOpts("read pref passed to mongos", readPrefOpts, func(mt *mtest.T) {
+			// When communicating with a mongos, the supplied read preference should be passed down to the operations
+			// layer, which should add a top-level $readPreference field to the command.
+
+			runCmdOpts := options.RunCmd().
+				SetReadPreference(readpref.SecondaryPreferred())
+			err := mt.DB.RunCommand(mtest.Background, bson.D{{"isMaster", 1}}, runCmdOpts).Err()
+			assert.Nil(mt, err, "RunCommand error: %v", err)
+
+			expected := bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendString("mode", "secondaryPreferred").
+				Build())
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "isMaster", evt.CommandName, "expected 'isMaster' command to be sent, got %q", evt.CommandName)
+			actual, ok := evt.Command.Lookup("$readPreference").DocumentOK()
+			assert.True(mt, ok, "expected command %v to contain a $readPreference document", evt.Command)
+			assert.Equal(mt, expected, actual, "expected $readPreference document %v, got %v", expected, actual)
 		})
 	})
 
