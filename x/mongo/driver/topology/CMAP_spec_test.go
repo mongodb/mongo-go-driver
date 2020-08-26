@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	testHelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -101,6 +102,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 	testHelpers.RequireNil(t, err, "unable to create listener: %v", err)
 
 	s, err := NewServer(address.Address(l.Addr().String()),
+		primitive.NewObjectID(),
 		WithMaxConnections(func(u uint64) uint64 {
 			return uint64(test.PoolOptions.MaxPoolSize)
 		}),

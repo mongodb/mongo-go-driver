@@ -282,7 +282,7 @@ func TestServerSelection(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
 		atomic.StoreInt32(&topo.connectionstate, connected)
-		srvr, err := ConnectServer(address.Address("one"), topo.updateCallback)
+		srvr, err := ConnectServer(address.Address("one"), topo.updateCallback, topo.id)
 		noerr(t, err)
 		topo.servers[address.Address("one")] = srvr
 		desc := topo.desc.Load().(description.Topology)
@@ -316,7 +316,7 @@ func TestServerSelection(t *testing.T) {
 
 		// manually add the servers to the topology
 		for _, srv := range desc.Servers {
-			s, err := ConnectServer(srv.Addr, topo.updateCallback)
+			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id)
 			noerr(t, err)
 			topo.servers[srv.Addr] = s
 		}
@@ -378,7 +378,7 @@ func TestServerSelection(t *testing.T) {
 		}
 		topo.desc.Store(desc)
 		for _, srv := range desc.Servers {
-			s, err := ConnectServer(srv.Addr, topo.updateCallback)
+			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id)
 			noerr(t, err)
 			topo.servers[srv.Addr] = s
 		}

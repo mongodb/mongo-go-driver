@@ -160,7 +160,7 @@ func setUpTopology(t *testing.T, uri string) *Topology {
 		addr := address.Address(a).Canonicalize()
 		topo.fsm.Servers = append(topo.fsm.Servers, description.Server{Addr: addr})
 
-		svr, err := NewServer(addr, topo.cfg.serverOpts...)
+		svr, err := NewServer(addr, primitive.NewObjectID(), topo.cfg.serverOpts...)
 		assert.Nil(t, err, "NewServer error: %v", err)
 		atomic.StoreInt32(&svr.connectionstate, connected)
 		svr.desc.Store(description.NewDefaultServer(svr.address))
