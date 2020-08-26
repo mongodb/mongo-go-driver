@@ -21,7 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
@@ -811,10 +810,10 @@ func (s *Server) publishServerDescriptionChangedEvent(prev *description.Server, 
 		return
 	}
 
-	topID, _ := s.topologyID.Load().(uuid.UUID)
+	topID, _ := s.topologyID.Load().(primitive.ObjectID)
 	serverDescriptionChanged := &event.ServerDescriptionChangedEvent{
 		Address:             s.address,
-		ID:                  event.TopologyID(topID),
+		ID:                  topID,
 		PreviousDescription: *prev,
 		NewDescription:      *current,
 	}
@@ -827,10 +826,10 @@ func (s *Server) publishServerOpeningEvent(addr address.Address) {
 	if s == nil || s.cfg.sdamMonitor == nil || s.cfg.sdamMonitor.ServerOpening == nil {
 		return
 	}
-	topID, _ := s.topologyID.Load().(uuid.UUID)
+	topID, _ := s.topologyID.Load().(primitive.ObjectID)
 	serverOpening := &event.ServerOpeningEvent{
 		Address: addr,
-		ID:      event.TopologyID(topID),
+		ID:      topID,
 	}
 
 	s.cfg.sdamMonitor.ServerOpening(serverOpening)

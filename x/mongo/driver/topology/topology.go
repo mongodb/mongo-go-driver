@@ -716,7 +716,7 @@ func (t *Topology) String() string {
 func (t *Topology) publishServerClosedEvent(addr address.Address) {
 	serverClosed := &event.ServerClosedEvent{
 		Address: addr,
-		ID:      event.TopologyID(t.id),
+		ID:      t.id,
 	}
 
 	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.ServerClosed != nil {
@@ -728,7 +728,7 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topology, current description.Topology) {
 
 	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
-		ID:                  event.TopologyID(t.id),
+		ID:                  t.id,
 		PreviousDescription: prev,
 		NewDescription:      current,
 	}
@@ -742,7 +742,7 @@ func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topol
 // publishes a TopologyOpeningEvent to indicate the topology is being initialized
 func (t *Topology) publishTopologyOpeningEvent() {
 	topologyOpening := &event.TopologyOpeningEvent{
-		ID: event.TopologyID(t.id),
+		ID: t.id,
 	}
 
 	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyOpening != nil {
@@ -754,7 +754,7 @@ func (t *Topology) publishTopologyOpeningEvent() {
 // publishes a TopologyClosedEvent to indicate the topology has been closed
 func (t *Topology) publishTopologyClosedEvent() {
 	topologyClosed := &event.TopologyClosedEvent{
-		ID: event.TopologyID(t.id),
+		ID: t.id,
 	}
 
 	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyClosed != nil {

@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
@@ -92,13 +93,10 @@ type PoolMonitor struct {
 	Event func(*PoolEvent)
 }
 
-// TopologyID represents a unique topology.
-type TopologyID [16]byte
-
 // ServerDescriptionChangedEvent represents a server description change.
 type ServerDescriptionChangedEvent struct {
 	Address             address.Address
-	ID                  TopologyID
+	ID                  primitive.ObjectID
 	PreviousDescription description.Server
 	NewDescription      description.Server
 }
@@ -106,30 +104,30 @@ type ServerDescriptionChangedEvent struct {
 // ServerOpeningEvent is an event generated when the server is initialized.
 type ServerOpeningEvent struct {
 	Address address.Address
-	ID      TopologyID
+	ID      primitive.ObjectID
 }
 
 // ServerClosedEvent is an event generated when the server is closed.
 type ServerClosedEvent struct {
 	Address address.Address
-	ID      TopologyID
+	ID      primitive.ObjectID
 }
 
 // TopologyDescriptionChangedEvent represents a topology description change.
 type TopologyDescriptionChangedEvent struct {
-	ID                  TopologyID
+	ID                  primitive.ObjectID
 	PreviousDescription description.Topology
 	NewDescription      description.Topology
 }
 
 // TopologyOpeningEvent is an event generated when the topology is initialized.
 type TopologyOpeningEvent struct {
-	ID TopologyID
+	ID primitive.ObjectID
 }
 
 // TopologyClosedEvent is an event generated when the topology is closed.
 type TopologyClosedEvent struct {
-	ID TopologyID
+	ID primitive.ObjectID
 }
 
 // ServerHeartbeatStartedEvent is an event generated when the ismaster command is started.
