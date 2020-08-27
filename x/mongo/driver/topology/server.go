@@ -98,7 +98,7 @@ type Server struct {
 	// description related fields
 	desc                   atomic.Value // holds a description.Server
 	updateTopologyCallback atomic.Value
-	topologyID             atomic.Value // holds a primitive.ObjectID
+	topologyID             primitive.ObjectID
 
 	// subscriber related fields
 	subLock             sync.Mutex
@@ -156,6 +156,8 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		done:          make(chan struct{}),
 		checkNow:      make(chan struct{}, 1),
 		disconnecting: make(chan struct{}),
+
+		topologyID: topologyID,
 
 		subscribers:     make(map[uint64]chan description.Server),
 		globalCtx:       globalCtx,

@@ -442,7 +442,7 @@ func extractError(rdr bsoncore.Document) error {
 			if !ok {
 				break
 			}
-			version, err := description.NewTopologyVersion(doc)
+			version, err := description.NewTopologyVersion(bson.Raw(doc))
 			if err == nil {
 				tv = version
 			}

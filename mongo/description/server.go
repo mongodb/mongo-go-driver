@@ -15,7 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // UnsetRTT is the unset value for a round trip time.
@@ -262,7 +261,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				return desc
 			}
 
-			desc.TopologyVersion, err = NewTopologyVersion(bsoncore.Document(doc))
+			desc.TopologyVersion, err = NewTopologyVersion(doc)
 			if err != nil {
 				desc.LastError = err
 				return desc

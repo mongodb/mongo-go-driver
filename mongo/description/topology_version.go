@@ -9,8 +9,8 @@ package description
 import (
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // TopologyVersion represents a software version.
@@ -20,7 +20,7 @@ type TopologyVersion struct {
 }
 
 // NewTopologyVersion creates a TopologyVersion based on doc
-func NewTopologyVersion(doc bsoncore.Document) (*TopologyVersion, error) {
+func NewTopologyVersion(doc bson.Raw) (*TopologyVersion, error) {
 	elements, err := doc.Elements()
 	if err != nil {
 		return nil, err
