@@ -87,15 +87,15 @@ func decodeTestData(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val refle
 }
 
 type testCase struct {
-	Description         string         `bson:"description"`
-	SkipReason          string         `bson:"skipReason"`
-	FailPoint           *bson.Raw      `bson:"failPoint"`
-	ClientOptions       bson.Raw       `bson:"clientOptions"`
-	SessionOptions      bson.Raw       `bson:"sessionOptions"`
-	Operations          []*operation   `bson:"operations"`
-	Expectations        []*expectation `bson:"expectations"`
-	UseMultipleMongoses bool           `bson:"useMultipleMongoses"`
-	Outcome             *outcome       `bson:"outcome"`
+	Description         string          `bson:"description"`
+	SkipReason          string          `bson:"skipReason"`
+	FailPoint           *bson.Raw       `bson:"failPoint"`
+	ClientOptions       bson.Raw        `bson:"clientOptions"`
+	SessionOptions      bson.Raw        `bson:"sessionOptions"`
+	Operations          []*operation    `bson:"operations"`
+	Expectations        *[]*expectation `bson:"expectations"`
+	UseMultipleMongoses bool            `bson:"useMultipleMongoses"`
+	Outcome             *outcome        `bson:"outcome"`
 
 	// set in code if the test is a GridFS test
 	chunkSize int32

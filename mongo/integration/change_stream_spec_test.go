@@ -41,7 +41,7 @@ type changeStreamTest struct {
 	Pipeline         []bson.Raw              `bson:"changeStreamPipeline"`
 	Options          bson.Raw                `bson:"changeStreamOptions"`
 	Operations       []changeStreamOperation `bson:"operations"`
-	Expectations     []*expectation          `bson:"expectations"`
+	Expectations     *[]*expectation         `bson:"expectations"`
 	Result           changeStreamResult      `bson:"result"`
 
 	// set of namespaces created in a test

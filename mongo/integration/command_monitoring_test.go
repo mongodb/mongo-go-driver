@@ -35,7 +35,7 @@ type monitoringTest struct {
 	MaxServerVersion  string               `bson:"ignore_if_server_version_greater_than"`
 	IgnoredTopologies []mtest.TopologyKind `bson:"ignore_if_topology_type"`
 	Operation         monitoringOperation  `bson:"operation"`
-	Expectations      []*expectation       `bson:"expectations"`
+	Expectations      *[]*expectation      `bson:"expectations"`
 }
 
 type monitoringOperation struct {

@@ -188,8 +188,13 @@ func compareDocs(mt *mtest.T, expected, actual bson.Raw) error {
 	return compareDocsHelper(mt, expected, actual, "")
 }
 
-func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bson.Raw) {
+func checkExpectations(mt *mtest.T, expectations *[]*expectation, id0, id1 bson.Raw) {
 	mt.Helper()
+
+	// If the expectations field in the test JSON is null, we want to skip all command monitoring assertions.
+	if expectations == nil {
+		return
+	}
 
 	// Filter out events that shouldn't show up in monitoring expectations.
 	ignoredEvents := map[string]struct{}{
@@ -211,7 +216,15 @@ func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bson.R
 		return !ok
 	})
 
-	for idx, expectation := range expectations {
+	// If the epxectations field in the test JSON is non-null but is empty, we want to assert that no events were
+	// emitted.
+	if len(*expectations) == 0 {
+		numEvents := len(mt.GetAllStartedEvents())
+		assert.Equal(mt, 0, numEvents, "expected no events to be sent, but got %d events", numEvents)
+		return
+	}
+
+	for idx, expectation := range *expectations {
 		var err error
 
 		if expectation.CommandStartedEvent != nil {
