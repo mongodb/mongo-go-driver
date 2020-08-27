@@ -1069,6 +1069,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.Run("unordered writeError index", func(mt *mtest.T) {
 			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
+			// Use a capped collection to get WriteErrors for delete operations
 			capped := mt.CreateCollection(mtest.Collection{
 				Name:       "deleteOne_capped",
 				CreateOpts: cappedOpts,
@@ -1086,12 +1087,13 @@ func TestCollection(t *testing.T) {
 				mongo.NewUpdateManyModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
 				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
 				mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+				mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetReplacement(bson.D{{"_id", 3.14159}}),
 			}
 			_, err = capped.BulkWrite(mtest.Background, models, options.BulkWrite().SetOrdered(false))
 			bwException, ok := err.(mongo.BulkWriteException)
 			assert.True(mt, ok, "expected error of type %T, got %T", mongo.BulkWriteException{}, err)
 
-			assert.Equal(mt, len(bwException.WriteErrors), 5, "expected 2 writeErrors, got %v", len(bwException.WriteErrors))
+			assert.Equal(mt, len(bwException.WriteErrors), 6, "expected 6 writeErrors, got %v", len(bwException.WriteErrors))
 			for _, writeErr := range bwException.WriteErrors {
 				switch writeErr.Request.(type) {
 				case *mongo.DeleteOneModel:
@@ -1104,7 +1106,8 @@ func TestCollection(t *testing.T) {
 					assert.Equal(mt, writeErr.Index, 3, "expected index 3, got %v", writeErr.Index)
 				case *mongo.UpdateOneModel:
 					assert.Equal(mt, writeErr.Index, 4, "expected index 4, got %v", writeErr.Index)
-
+				case *mongo.ReplaceOneModel:
+					assert.Equal(mt, writeErr.Index, 5, "expected index 5, got %v", writeErr.Index)
 				}
 
 			}
