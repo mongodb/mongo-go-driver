@@ -33,7 +33,7 @@ Each YAML file has the following keys:
   - ``description``: The name of the test.
   - ``minServerVersion``: The minimum server version to run this test against. If not present, assume there is no minimum server version.
   - ``maxServerVersion``: Reserved for later use
-  - ``failPoint``(optional): The configureFailPoint command document to run to configure a fail point on the primary server.
+  - ``failPoint``: Optional configureFailPoint command document to run to configure a fail point on the primary server.
   - ``target``: The entity on which to run the change stream. Valid values are:
   
     - ``collection``: Watch changes on collection ``database_name.collection_name``
@@ -171,7 +171,7 @@ The following tests have not yet been automated, but MUST still be tested. All t
 #. ``ChangeStream`` must continuously track the last seen ``resumeToken``
 #. ``ChangeStream`` will throw an exception if the server response is missing the resume token (if wire version is < 8, this is a driver-side error; for 8+, this is a server-side error)
 #. After receiving a ``resumeToken``, ``ChangeStream`` will automatically resume one time on a resumable error with the initial pipeline and options, except for the addition/update of a ``resumeToken``.
-#. ``ChangeStream`` will not attempt to resume on any error encountered while executing an ``aggregate`` command. Note that retryable reads may retry ``aggregate`` commands. Drivers should be careful to distinguish retries from resume attempts. Alternatively, drivers may specify `retryReads=false` or avoid using a [retryable error](../../retryable-reads/retryable-reads.rst#retryable-error) for this test.
+#. ``ChangeStream`` will not attempt to resume on any error encountered while executing an ``aggregate`` command. Note that retryable reads may retry ``aggregate`` commands. Drivers should be careful to distinguish retries from resume attempts. Alternatively, drivers may specify ``retryReads=false`` or avoid using a `retryable error <../../retryable-reads/retryable-reads.rst#retryable-error>`_ for this test.
 #. **Removed**
 #. ``ChangeStream`` will perform server selection before attempting to resume, using initial ``readPreference``
 #. Ensure that a cursor returned from an aggregate command with a cursor id and an initial empty batch is not closed on the driver side.

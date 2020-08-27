@@ -188,8 +188,12 @@ func compareDocs(mt *mtest.T, expected, actual bson.Raw) error {
 	return compareDocsHelper(mt, expected, actual, "")
 }
 
-func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bson.Raw) {
+func checkExpectations(mt *mtest.T, expectations *[]*expectation, id0, id1 bson.Raw) {
 	mt.Helper()
+
+	if expectations == nil {
+		return
+	}
 
 	// Filter out events that shouldn't show up in monitoring expectations.
 	ignoredEvents := map[string]struct{}{
@@ -211,7 +215,7 @@ func checkExpectations(mt *mtest.T, expectations []*expectation, id0, id1 bson.R
 		return !ok
 	})
 
-	for idx, expectation := range expectations {
+	for idx, expectation := range *expectations {
 		var err error
 
 		if expectation.CommandStartedEvent != nil {
