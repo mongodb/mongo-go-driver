@@ -3,7 +3,7 @@
 package imports
 
 var stdlib = map[string]map[string]bool{
-	"archive/tar": {
+	"archive/tar": map[string]bool{
 		"ErrFieldTooLong":    true,
 		"ErrHeader":          true,
 		"ErrWriteAfterClose": true,
@@ -34,7 +34,7 @@ var stdlib = map[string]map[string]bool{
 		"TypeXHeader":        true,
 		"Writer":             true,
 	},
-	"archive/zip": {
+	"archive/zip": map[string]bool{
 		"Compressor":           true,
 		"Decompressor":         true,
 		"Deflate":              true,
@@ -54,7 +54,7 @@ var stdlib = map[string]map[string]bool{
 		"Store":                true,
 		"Writer":               true,
 	},
-	"bufio": {
+	"bufio": map[string]bool{
 		"ErrAdvanceTooFar":     true,
 		"ErrBufferFull":        true,
 		"ErrFinalToken":        true,
@@ -80,7 +80,7 @@ var stdlib = map[string]map[string]bool{
 		"SplitFunc":            true,
 		"Writer":               true,
 	},
-	"bytes": {
+	"bytes": map[string]bool{
 		"Buffer":          true,
 		"Compare":         true,
 		"Contains":        true,
@@ -135,11 +135,11 @@ var stdlib = map[string]map[string]bool{
 		"TrimSpace":       true,
 		"TrimSuffix":      true,
 	},
-	"compress/bzip2": {
+	"compress/bzip2": map[string]bool{
 		"NewReader":       true,
 		"StructuralError": true,
 	},
-	"compress/flate": {
+	"compress/flate": map[string]bool{
 		"BestCompression":    true,
 		"BestSpeed":          true,
 		"CorruptInputError":  true,
@@ -157,7 +157,7 @@ var stdlib = map[string]map[string]bool{
 		"WriteError":         true,
 		"Writer":             true,
 	},
-	"compress/gzip": {
+	"compress/gzip": map[string]bool{
 		"BestCompression":    true,
 		"BestSpeed":          true,
 		"DefaultCompression": true,
@@ -172,14 +172,14 @@ var stdlib = map[string]map[string]bool{
 		"Reader":             true,
 		"Writer":             true,
 	},
-	"compress/lzw": {
+	"compress/lzw": map[string]bool{
 		"LSB":       true,
 		"MSB":       true,
 		"NewReader": true,
 		"NewWriter": true,
 		"Order":     true,
 	},
-	"compress/zlib": {
+	"compress/zlib": map[string]bool{
 		"BestCompression":    true,
 		"BestSpeed":          true,
 		"DefaultCompression": true,
@@ -196,7 +196,7 @@ var stdlib = map[string]map[string]bool{
 		"Resetter":           true,
 		"Writer":             true,
 	},
-	"container/heap": {
+	"container/heap": map[string]bool{
 		"Fix":       true,
 		"Init":      true,
 		"Interface": true,
@@ -204,16 +204,16 @@ var stdlib = map[string]map[string]bool{
 		"Push":      true,
 		"Remove":    true,
 	},
-	"container/list": {
+	"container/list": map[string]bool{
 		"Element": true,
 		"List":    true,
 		"New":     true,
 	},
-	"container/ring": {
+	"container/ring": map[string]bool{
 		"New":  true,
 		"Ring": true,
 	},
-	"context": {
+	"context": map[string]bool{
 		"Background":       true,
 		"CancelFunc":       true,
 		"Canceled":         true,
@@ -225,7 +225,7 @@ var stdlib = map[string]map[string]bool{
 		"WithTimeout":      true,
 		"WithValue":        true,
 	},
-	"crypto": {
+	"crypto": map[string]bool{
 		"BLAKE2b_256":   true,
 		"BLAKE2b_384":   true,
 		"BLAKE2b_512":   true,
@@ -254,12 +254,12 @@ var stdlib = map[string]map[string]bool{
 		"Signer":        true,
 		"SignerOpts":    true,
 	},
-	"crypto/aes": {
+	"crypto/aes": map[string]bool{
 		"BlockSize":    true,
 		"KeySizeError": true,
 		"NewCipher":    true,
 	},
-	"crypto/cipher": {
+	"crypto/cipher": map[string]bool{
 		"AEAD":                true,
 		"Block":               true,
 		"BlockMode":           true,
@@ -276,13 +276,13 @@ var stdlib = map[string]map[string]bool{
 		"StreamReader":        true,
 		"StreamWriter":        true,
 	},
-	"crypto/des": {
+	"crypto/des": map[string]bool{
 		"BlockSize":          true,
 		"KeySizeError":       true,
 		"NewCipher":          true,
 		"NewTripleDESCipher": true,
 	},
-	"crypto/dsa": {
+	"crypto/dsa": map[string]bool{
 		"ErrInvalidPublicKey": true,
 		"GenerateKey":         true,
 		"GenerateParameters":  true,
@@ -297,14 +297,14 @@ var stdlib = map[string]map[string]bool{
 		"Sign":                true,
 		"Verify":              true,
 	},
-	"crypto/ecdsa": {
+	"crypto/ecdsa": map[string]bool{
 		"GenerateKey": true,
 		"PrivateKey":  true,
 		"PublicKey":   true,
 		"Sign":        true,
 		"Verify":      true,
 	},
-	"crypto/elliptic": {
+	"crypto/elliptic": map[string]bool{
 		"Curve":       true,
 		"CurveParams": true,
 		"GenerateKey": true,
@@ -315,28 +315,28 @@ var stdlib = map[string]map[string]bool{
 		"P521":        true,
 		"Unmarshal":   true,
 	},
-	"crypto/hmac": {
+	"crypto/hmac": map[string]bool{
 		"Equal": true,
 		"New":   true,
 	},
-	"crypto/md5": {
+	"crypto/md5": map[string]bool{
 		"BlockSize": true,
 		"New":       true,
 		"Size":      true,
 		"Sum":       true,
 	},
-	"crypto/rand": {
+	"crypto/rand": map[string]bool{
 		"Int":    true,
 		"Prime":  true,
 		"Read":   true,
 		"Reader": true,
 	},
-	"crypto/rc4": {
+	"crypto/rc4": map[string]bool{
 		"Cipher":       true,
 		"KeySizeError": true,
 		"NewCipher":    true,
 	},
-	"crypto/rsa": {
+	"crypto/rsa": map[string]bool{
 		"CRTValue":                  true,
 		"DecryptOAEP":               true,
 		"DecryptPKCS1v15":           true,
@@ -361,13 +361,13 @@ var stdlib = map[string]map[string]bool{
 		"VerifyPKCS1v15":            true,
 		"VerifyPSS":                 true,
 	},
-	"crypto/sha1": {
+	"crypto/sha1": map[string]bool{
 		"BlockSize": true,
 		"New":       true,
 		"Size":      true,
 		"Sum":       true,
 	},
-	"crypto/sha256": {
+	"crypto/sha256": map[string]bool{
 		"BlockSize": true,
 		"New":       true,
 		"New224":    true,
@@ -376,7 +376,7 @@ var stdlib = map[string]map[string]bool{
 		"Sum224":    true,
 		"Sum256":    true,
 	},
-	"crypto/sha512": {
+	"crypto/sha512": map[string]bool{
 		"BlockSize":  true,
 		"New":        true,
 		"New384":     true,
@@ -391,7 +391,7 @@ var stdlib = map[string]map[string]bool{
 		"Sum512_224": true,
 		"Sum512_256": true,
 	},
-	"crypto/subtle": {
+	"crypto/subtle": map[string]bool{
 		"ConstantTimeByteEq":   true,
 		"ConstantTimeCompare":  true,
 		"ConstantTimeCopy":     true,
@@ -399,7 +399,7 @@ var stdlib = map[string]map[string]bool{
 		"ConstantTimeLessOrEq": true,
 		"ConstantTimeSelect":   true,
 	},
-	"crypto/tls": {
+	"crypto/tls": map[string]bool{
 		"Certificate":                          true,
 		"CertificateRequestInfo":               true,
 		"Client":                               true,
@@ -477,7 +477,7 @@ var stdlib = map[string]map[string]bool{
 		"X25519":                                  true,
 		"X509KeyPair":                             true,
 	},
-	"crypto/x509": {
+	"crypto/x509": map[string]bool{
 		"CANotAuthorizedForExtKeyUsage":             true,
 		"CANotAuthorizedForThisName":                true,
 		"CertPool":                                  true,
@@ -578,7 +578,7 @@ var stdlib = map[string]map[string]bool{
 		"UnknownSignatureAlgorithm":                 true,
 		"VerifyOptions":                             true,
 	},
-	"crypto/x509/pkix": {
+	"crypto/x509/pkix": map[string]bool{
 		"AlgorithmIdentifier":          true,
 		"AttributeTypeAndValue":        true,
 		"AttributeTypeAndValueSET":     true,
@@ -590,7 +590,7 @@ var stdlib = map[string]map[string]bool{
 		"RevokedCertificate":           true,
 		"TBSCertificateList":           true,
 	},
-	"database/sql": {
+	"database/sql": map[string]bool{
 		"ColumnType":           true,
 		"Conn":                 true,
 		"DB":                   true,
@@ -627,7 +627,7 @@ var stdlib = map[string]map[string]bool{
 		"Tx":                   true,
 		"TxOptions":            true,
 	},
-	"database/sql/driver": {
+	"database/sql/driver": map[string]bool{
 		"Bool":                           true,
 		"ColumnConverter":                true,
 		"Conn":                           true,
@@ -674,7 +674,7 @@ var stdlib = map[string]map[string]bool{
 		"ValueConverter":                 true,
 		"Valuer":                         true,
 	},
-	"debug/dwarf": {
+	"debug/dwarf": map[string]bool{
 		"AddrType":                  true,
 		"ArrayType":                 true,
 		"Attr":                      true,
@@ -862,7 +862,7 @@ var stdlib = map[string]map[string]bool{
 		"UnspecifiedType":           true,
 		"VoidType":                  true,
 	},
-	"debug/elf": {
+	"debug/elf": map[string]bool{
 		"ARM_MAGIC_TRAMP_NUMBER":             true,
 		"COMPRESS_HIOS":                      true,
 		"COMPRESS_HIPROC":                    true,
@@ -2098,7 +2098,7 @@ var stdlib = map[string]map[string]bool{
 		"Type":                                      true,
 		"Version":                                   true,
 	},
-	"debug/gosym": {
+	"debug/gosym": map[string]bool{
 		"DecodingError":    true,
 		"Func":             true,
 		"LineTable":        true,
@@ -2110,7 +2110,7 @@ var stdlib = map[string]map[string]bool{
 		"UnknownFileError": true,
 		"UnknownLineError": true,
 	},
-	"debug/macho": {
+	"debug/macho": map[string]bool{
 		"ARM64_RELOC_ADDEND":              true,
 		"ARM64_RELOC_BRANCH26":            true,
 		"ARM64_RELOC_GOT_LOAD_PAGE21":     true,
@@ -2240,7 +2240,7 @@ var stdlib = map[string]map[string]bool{
 		"X86_64_RELOC_TLV":                true,
 		"X86_64_RELOC_UNSIGNED":           true,
 	},
-	"debug/pe": {
+	"debug/pe": map[string]bool{
 		"COFFSymbol":                           true,
 		"COFFSymbolSize":                       true,
 		"DataDirectory":                        true,
@@ -2296,7 +2296,7 @@ var stdlib = map[string]map[string]bool{
 		"StringTable":                          true,
 		"Symbol":                               true,
 	},
-	"debug/plan9obj": {
+	"debug/plan9obj": map[string]bool{
 		"File":          true,
 		"FileHeader":    true,
 		"Magic386":      true,
@@ -2309,13 +2309,13 @@ var stdlib = map[string]map[string]bool{
 		"SectionHeader": true,
 		"Sym":           true,
 	},
-	"encoding": {
+	"encoding": map[string]bool{
 		"BinaryMarshaler":   true,
 		"BinaryUnmarshaler": true,
 		"TextMarshaler":     true,
 		"TextUnmarshaler":   true,
 	},
-	"encoding/ascii85": {
+	"encoding/ascii85": map[string]bool{
 		"CorruptInputError": true,
 		"Decode":            true,
 		"Encode":            true,
@@ -2323,7 +2323,7 @@ var stdlib = map[string]map[string]bool{
 		"NewDecoder":        true,
 		"NewEncoder":        true,
 	},
-	"encoding/asn1": {
+	"encoding/asn1": map[string]bool{
 		"BitString":            true,
 		"ClassApplication":     true,
 		"ClassContextSpecific": true,
@@ -2360,7 +2360,7 @@ var stdlib = map[string]map[string]bool{
 		"Unmarshal":            true,
 		"UnmarshalWithParams":  true,
 	},
-	"encoding/base32": {
+	"encoding/base32": map[string]bool{
 		"CorruptInputError": true,
 		"Encoding":          true,
 		"HexEncoding":       true,
@@ -2371,7 +2371,7 @@ var stdlib = map[string]map[string]bool{
 		"StdEncoding":       true,
 		"StdPadding":        true,
 	},
-	"encoding/base64": {
+	"encoding/base64": map[string]bool{
 		"CorruptInputError": true,
 		"Encoding":          true,
 		"NewDecoder":        true,
@@ -2384,7 +2384,7 @@ var stdlib = map[string]map[string]bool{
 		"StdPadding":        true,
 		"URLEncoding":       true,
 	},
-	"encoding/binary": {
+	"encoding/binary": map[string]bool{
 		"BigEndian":      true,
 		"ByteOrder":      true,
 		"LittleEndian":   true,
@@ -2401,7 +2401,7 @@ var stdlib = map[string]map[string]bool{
 		"Varint":         true,
 		"Write":          true,
 	},
-	"encoding/csv": {
+	"encoding/csv": map[string]bool{
 		"ErrBareQuote":     true,
 		"ErrFieldCount":    true,
 		"ErrQuote":         true,
@@ -2412,7 +2412,7 @@ var stdlib = map[string]map[string]bool{
 		"Reader":           true,
 		"Writer":           true,
 	},
-	"encoding/gob": {
+	"encoding/gob": map[string]bool{
 		"CommonType":   true,
 		"Decoder":      true,
 		"Encoder":      true,
@@ -2423,7 +2423,7 @@ var stdlib = map[string]map[string]bool{
 		"Register":     true,
 		"RegisterName": true,
 	},
-	"encoding/hex": {
+	"encoding/hex": map[string]bool{
 		"Decode":           true,
 		"DecodeString":     true,
 		"DecodedLen":       true,
@@ -2437,7 +2437,7 @@ var stdlib = map[string]map[string]bool{
 		"NewDecoder":       true,
 		"NewEncoder":       true,
 	},
-	"encoding/json": {
+	"encoding/json": map[string]bool{
 		"Compact":               true,
 		"Decoder":               true,
 		"Delim":                 true,
@@ -2464,13 +2464,13 @@ var stdlib = map[string]map[string]bool{
 		"UnsupportedValueError": true,
 		"Valid":                 true,
 	},
-	"encoding/pem": {
+	"encoding/pem": map[string]bool{
 		"Block":          true,
 		"Decode":         true,
 		"Encode":         true,
 		"EncodeToMemory": true,
 	},
-	"encoding/xml": {
+	"encoding/xml": map[string]bool{
 		"Attr":                 true,
 		"CharData":             true,
 		"Comment":              true,
@@ -2504,10 +2504,10 @@ var stdlib = map[string]map[string]bool{
 		"UnmarshalerAttr":      true,
 		"UnsupportedTypeError": true,
 	},
-	"errors": {
+	"errors": map[string]bool{
 		"New": true,
 	},
-	"expvar": {
+	"expvar": map[string]bool{
 		"Do":        true,
 		"Float":     true,
 		"Func":      true,
@@ -2524,7 +2524,7 @@ var stdlib = map[string]map[string]bool{
 		"String":    true,
 		"Var":       true,
 	},
-	"flag": {
+	"flag": map[string]bool{
 		"Arg":             true,
 		"Args":            true,
 		"Bool":            true,
@@ -2567,7 +2567,7 @@ var stdlib = map[string]map[string]bool{
 		"Visit":           true,
 		"VisitAll":        true,
 	},
-	"fmt": {
+	"fmt": map[string]bool{
 		"Errorf":     true,
 		"Formatter":  true,
 		"Fprint":     true,
@@ -2594,7 +2594,7 @@ var stdlib = map[string]map[string]bool{
 		"State":      true,
 		"Stringer":   true,
 	},
-	"go/ast": {
+	"go/ast": map[string]bool{
 		"ArrayType":                  true,
 		"AssignStmt":                 true,
 		"Bad":                        true,
@@ -2692,7 +2692,7 @@ var stdlib = map[string]map[string]bool{
 		"Visitor":                    true,
 		"Walk":                       true,
 	},
-	"go/build": {
+	"go/build": map[string]bool{
 		"AllowBinary":          true,
 		"ArchChar":             true,
 		"Context":              true,
@@ -2709,7 +2709,7 @@ var stdlib = map[string]map[string]bool{
 		"Package":              true,
 		"ToolDir":              true,
 	},
-	"go/constant": {
+	"go/constant": map[string]bool{
 		"BinaryOp":        true,
 		"BitLen":          true,
 		"Bool":            true,
@@ -2747,7 +2747,7 @@ var stdlib = map[string]map[string]bool{
 		"UnaryOp":         true,
 		"Unknown":         true,
 	},
-	"go/doc": {
+	"go/doc": map[string]bool{
 		"AllDecls":        true,
 		"AllMethods":      true,
 		"Example":         true,
@@ -2767,17 +2767,17 @@ var stdlib = map[string]map[string]bool{
 		"Type":            true,
 		"Value":           true,
 	},
-	"go/format": {
+	"go/format": map[string]bool{
 		"Node":   true,
 		"Source": true,
 	},
-	"go/importer": {
+	"go/importer": map[string]bool{
 		"Default":     true,
 		"For":         true,
 		"ForCompiler": true,
 		"Lookup":      true,
 	},
-	"go/parser": {
+	"go/parser": map[string]bool{
 		"AllErrors":         true,
 		"DeclarationErrors": true,
 		"ImportsOnly":       true,
@@ -2791,7 +2791,7 @@ var stdlib = map[string]map[string]bool{
 		"SpuriousErrors":    true,
 		"Trace":             true,
 	},
-	"go/printer": {
+	"go/printer": map[string]bool{
 		"CommentedNode": true,
 		"Config":        true,
 		"Fprint":        true,
@@ -2801,7 +2801,7 @@ var stdlib = map[string]map[string]bool{
 		"TabIndent":     true,
 		"UseSpaces":     true,
 	},
-	"go/scanner": {
+	"go/scanner": map[string]bool{
 		"Error":        true,
 		"ErrorHandler": true,
 		"ErrorList":    true,
@@ -2810,7 +2810,7 @@ var stdlib = map[string]map[string]bool{
 		"ScanComments": true,
 		"Scanner":      true,
 	},
-	"go/token": {
+	"go/token": map[string]bool{
 		"ADD":            true,
 		"ADD_ASSIGN":     true,
 		"AND":            true,
@@ -2904,7 +2904,7 @@ var stdlib = map[string]map[string]bool{
 		"XOR":            true,
 		"XOR_ASSIGN":     true,
 	},
-	"go/types": {
+	"go/types": map[string]bool{
 		"Array":                   true,
 		"AssertableTo":            true,
 		"AssignableTo":            true,
@@ -3039,17 +3039,17 @@ var stdlib = map[string]map[string]bool{
 		"WriteSignature":          true,
 		"WriteType":               true,
 	},
-	"hash": {
+	"hash": map[string]bool{
 		"Hash":   true,
 		"Hash32": true,
 		"Hash64": true,
 	},
-	"hash/adler32": {
+	"hash/adler32": map[string]bool{
 		"Checksum": true,
 		"New":      true,
 		"Size":     true,
 	},
-	"hash/crc32": {
+	"hash/crc32": map[string]bool{
 		"Castagnoli":   true,
 		"Checksum":     true,
 		"ChecksumIEEE": true,
@@ -3063,7 +3063,7 @@ var stdlib = map[string]map[string]bool{
 		"Table":        true,
 		"Update":       true,
 	},
-	"hash/crc64": {
+	"hash/crc64": map[string]bool{
 		"Checksum":  true,
 		"ECMA":      true,
 		"ISO":       true,
@@ -3073,7 +3073,7 @@ var stdlib = map[string]map[string]bool{
 		"Table":     true,
 		"Update":    true,
 	},
-	"hash/fnv": {
+	"hash/fnv": map[string]bool{
 		"New128":  true,
 		"New128a": true,
 		"New32":   true,
@@ -3081,11 +3081,11 @@ var stdlib = map[string]map[string]bool{
 		"New64":   true,
 		"New64a":  true,
 	},
-	"html": {
+	"html": map[string]bool{
 		"EscapeString":   true,
 		"UnescapeString": true,
 	},
-	"html/template": {
+	"html/template": map[string]bool{
 		"CSS":                  true,
 		"ErrAmbigContext":      true,
 		"ErrBadHTML":           true,
@@ -3122,7 +3122,7 @@ var stdlib = map[string]map[string]bool{
 		"URL":                  true,
 		"URLQueryEscaper":      true,
 	},
-	"image": {
+	"image": map[string]bool{
 		"Alpha":                  true,
 		"Alpha16":                true,
 		"Black":                  true,
@@ -3174,7 +3174,7 @@ var stdlib = map[string]map[string]bool{
 		"ZP":                     true,
 		"ZR":                     true,
 	},
-	"image/color": {
+	"image/color": map[string]bool{
 		"Alpha":        true,
 		"Alpha16":      true,
 		"Alpha16Model": true,
@@ -3210,11 +3210,11 @@ var stdlib = map[string]map[string]bool{
 		"YCbCrModel":   true,
 		"YCbCrToRGB":   true,
 	},
-	"image/color/palette": {
+	"image/color/palette": map[string]bool{
 		"Plan9":   true,
 		"WebSafe": true,
 	},
-	"image/draw": {
+	"image/draw": map[string]bool{
 		"Draw":           true,
 		"DrawMask":       true,
 		"Drawer":         true,
@@ -3225,7 +3225,7 @@ var stdlib = map[string]map[string]bool{
 		"Quantizer":      true,
 		"Src":            true,
 	},
-	"image/gif": {
+	"image/gif": map[string]bool{
 		"Decode":             true,
 		"DecodeAll":          true,
 		"DecodeConfig":       true,
@@ -3237,7 +3237,7 @@ var stdlib = map[string]map[string]bool{
 		"GIF":                true,
 		"Options":            true,
 	},
-	"image/jpeg": {
+	"image/jpeg": map[string]bool{
 		"Decode":           true,
 		"DecodeConfig":     true,
 		"DefaultQuality":   true,
@@ -3247,7 +3247,7 @@ var stdlib = map[string]map[string]bool{
 		"Reader":           true,
 		"UnsupportedError": true,
 	},
-	"image/png": {
+	"image/png": map[string]bool{
 		"BestCompression":    true,
 		"BestSpeed":          true,
 		"CompressionLevel":   true,
@@ -3262,11 +3262,11 @@ var stdlib = map[string]map[string]bool{
 		"NoCompression":      true,
 		"UnsupportedError":   true,
 	},
-	"index/suffixarray": {
+	"index/suffixarray": map[string]bool{
 		"Index": true,
 		"New":   true,
 	},
-	"io": {
+	"io": map[string]bool{
 		"ByteReader":       true,
 		"ByteScanner":      true,
 		"ByteWriter":       true,
@@ -3314,7 +3314,7 @@ var stdlib = map[string]map[string]bool{
 		"WriterAt":         true,
 		"WriterTo":         true,
 	},
-	"io/ioutil": {
+	"io/ioutil": map[string]bool{
 		"Discard":   true,
 		"NopCloser": true,
 		"ReadAll":   true,
@@ -3324,7 +3324,7 @@ var stdlib = map[string]map[string]bool{
 		"TempFile":  true,
 		"WriteFile": true,
 	},
-	"log": {
+	"log": map[string]bool{
 		"Fatal":         true,
 		"Fatalf":        true,
 		"Fatalln":       true,
@@ -3350,7 +3350,7 @@ var stdlib = map[string]map[string]bool{
 		"SetOutput":     true,
 		"SetPrefix":     true,
 	},
-	"log/syslog": {
+	"log/syslog": map[string]bool{
 		"Dial":         true,
 		"LOG_ALERT":    true,
 		"LOG_AUTH":     true,
@@ -3385,7 +3385,7 @@ var stdlib = map[string]map[string]bool{
 		"Priority":     true,
 		"Writer":       true,
 	},
-	"math": {
+	"math": map[string]bool{
 		"Abs":                    true,
 		"Acos":                   true,
 		"Acosh":                  true,
@@ -3480,7 +3480,7 @@ var stdlib = map[string]map[string]bool{
 		"Y1":                     true,
 		"Yn":                     true,
 	},
-	"math/big": {
+	"math/big": map[string]bool{
 		"Above":         true,
 		"Accuracy":      true,
 		"AwayFromZero":  true,
@@ -3507,7 +3507,7 @@ var stdlib = map[string]map[string]bool{
 		"ToZero":        true,
 		"Word":          true,
 	},
-	"math/bits": {
+	"math/bits": map[string]bool{
 		"Add":             true,
 		"Add32":           true,
 		"Add64":           true,
@@ -3556,7 +3556,7 @@ var stdlib = map[string]map[string]bool{
 		"TrailingZeros8":  true,
 		"UintSize":        true,
 	},
-	"math/cmplx": {
+	"math/cmplx": map[string]bool{
 		"Abs":   true,
 		"Acos":  true,
 		"Acosh": true,
@@ -3585,7 +3585,7 @@ var stdlib = map[string]map[string]bool{
 		"Tan":   true,
 		"Tanh":  true,
 	},
-	"math/rand": {
+	"math/rand": map[string]bool{
 		"ExpFloat64":  true,
 		"Float32":     true,
 		"Float64":     true,
@@ -3610,7 +3610,7 @@ var stdlib = map[string]map[string]bool{
 		"Uint64":      true,
 		"Zipf":        true,
 	},
-	"mime": {
+	"mime": map[string]bool{
 		"AddExtensionType":         true,
 		"BEncoding":                true,
 		"ErrInvalidMediaParameter": true,
@@ -3622,7 +3622,7 @@ var stdlib = map[string]map[string]bool{
 		"WordDecoder":              true,
 		"WordEncoder":              true,
 	},
-	"mime/multipart": {
+	"mime/multipart": map[string]bool{
 		"ErrMessageTooLarge": true,
 		"File":               true,
 		"FileHeader":         true,
@@ -3633,13 +3633,13 @@ var stdlib = map[string]map[string]bool{
 		"Reader":             true,
 		"Writer":             true,
 	},
-	"mime/quotedprintable": {
+	"mime/quotedprintable": map[string]bool{
 		"NewReader": true,
 		"NewWriter": true,
 		"Reader":    true,
 		"Writer":    true,
 	},
-	"net": {
+	"net": map[string]bool{
 		"Addr":                       true,
 		"AddrError":                  true,
 		"Buffers":                    true,
@@ -3738,7 +3738,7 @@ var stdlib = map[string]map[string]bool{
 		"UnixListener":               true,
 		"UnknownNetworkError":        true,
 	},
-	"net/http": {
+	"net/http": map[string]bool{
 		"CanonicalHeaderKey":                  true,
 		"Client":                              true,
 		"CloseNotifier":                       true,
@@ -3907,25 +3907,25 @@ var stdlib = map[string]map[string]bool{
 		"TrailerPrefix":                       true,
 		"Transport":                           true,
 	},
-	"net/http/cgi": {
+	"net/http/cgi": map[string]bool{
 		"Handler":        true,
 		"Request":        true,
 		"RequestFromMap": true,
 		"Serve":          true,
 	},
-	"net/http/cookiejar": {
+	"net/http/cookiejar": map[string]bool{
 		"Jar":              true,
 		"New":              true,
 		"Options":          true,
 		"PublicSuffixList": true,
 	},
-	"net/http/fcgi": {
+	"net/http/fcgi": map[string]bool{
 		"ErrConnClosed":     true,
 		"ErrRequestAborted": true,
 		"ProcessEnv":        true,
 		"Serve":             true,
 	},
-	"net/http/httptest": {
+	"net/http/httptest": map[string]bool{
 		"DefaultRemoteAddr":  true,
 		"NewRecorder":        true,
 		"NewRequest":         true,
@@ -3935,7 +3935,7 @@ var stdlib = map[string]map[string]bool{
 		"ResponseRecorder":   true,
 		"Server":             true,
 	},
-	"net/http/httptrace": {
+	"net/http/httptrace": map[string]bool{
 		"ClientTrace":        true,
 		"ContextClientTrace": true,
 		"DNSDoneInfo":        true,
@@ -3944,7 +3944,7 @@ var stdlib = map[string]map[string]bool{
 		"WithClientTrace":    true,
 		"WroteRequestInfo":   true,
 	},
-	"net/http/httputil": {
+	"net/http/httputil": map[string]bool{
 		"BufferPool":                true,
 		"ClientConn":                true,
 		"DumpRequest":               true,
@@ -3963,7 +3963,7 @@ var stdlib = map[string]map[string]bool{
 		"ReverseProxy":              true,
 		"ServerConn":                true,
 	},
-	"net/http/pprof": {
+	"net/http/pprof": map[string]bool{
 		"Cmdline": true,
 		"Handler": true,
 		"Index":   true,
@@ -3971,7 +3971,7 @@ var stdlib = map[string]map[string]bool{
 		"Symbol":  true,
 		"Trace":   true,
 	},
-	"net/mail": {
+	"net/mail": map[string]bool{
 		"Address":             true,
 		"AddressParser":       true,
 		"ErrHeaderNotPresent": true,
@@ -3982,7 +3982,7 @@ var stdlib = map[string]map[string]bool{
 		"ParseDate":           true,
 		"ReadMessage":         true,
 	},
-	"net/rpc": {
+	"net/rpc": map[string]bool{
 		"Accept":             true,
 		"Call":               true,
 		"Client":             true,
@@ -4009,14 +4009,14 @@ var stdlib = map[string]map[string]bool{
 		"ServerCodec":        true,
 		"ServerError":        true,
 	},
-	"net/rpc/jsonrpc": {
+	"net/rpc/jsonrpc": map[string]bool{
 		"Dial":           true,
 		"NewClient":      true,
 		"NewClientCodec": true,
 		"NewServerCodec": true,
 		"ServeConn":      true,
 	},
-	"net/smtp": {
+	"net/smtp": map[string]bool{
 		"Auth":        true,
 		"CRAMMD5Auth": true,
 		"Client":      true,
@@ -4026,7 +4026,7 @@ var stdlib = map[string]map[string]bool{
 		"SendMail":    true,
 		"ServerInfo":  true,
 	},
-	"net/textproto": {
+	"net/textproto": map[string]bool{
 		"CanonicalMIMEHeaderKey": true,
 		"Conn":                   true,
 		"Dial":                   true,
@@ -4042,7 +4042,7 @@ var stdlib = map[string]map[string]bool{
 		"TrimString":             true,
 		"Writer":                 true,
 	},
-	"net/url": {
+	"net/url": map[string]bool{
 		"Error":            true,
 		"EscapeError":      true,
 		"InvalidHostError": true,
@@ -4059,7 +4059,7 @@ var stdlib = map[string]map[string]bool{
 		"Userinfo":         true,
 		"Values":           true,
 	},
-	"os": {
+	"os": map[string]bool{
 		"Args":              true,
 		"Chdir":             true,
 		"Chmod":             true,
@@ -4165,7 +4165,7 @@ var stdlib = map[string]map[string]bool{
 		"UserCacheDir":      true,
 		"UserHomeDir":       true,
 	},
-	"os/exec": {
+	"os/exec": map[string]bool{
 		"Cmd":            true,
 		"Command":        true,
 		"CommandContext": true,
@@ -4174,14 +4174,14 @@ var stdlib = map[string]map[string]bool{
 		"ExitError":      true,
 		"LookPath":       true,
 	},
-	"os/signal": {
+	"os/signal": map[string]bool{
 		"Ignore":  true,
 		"Ignored": true,
 		"Notify":  true,
 		"Reset":   true,
 		"Stop":    true,
 	},
-	"os/user": {
+	"os/user": map[string]bool{
 		"Current":             true,
 		"Group":               true,
 		"Lookup":              true,
@@ -4194,7 +4194,7 @@ var stdlib = map[string]map[string]bool{
 		"UnknownUserIdError":  true,
 		"User":                true,
 	},
-	"path": {
+	"path": map[string]bool{
 		"Base":          true,
 		"Clean":         true,
 		"Dir":           true,
@@ -4205,7 +4205,7 @@ var stdlib = map[string]map[string]bool{
 		"Match":         true,
 		"Split":         true,
 	},
-	"path/filepath": {
+	"path/filepath": map[string]bool{
 		"Abs":           true,
 		"Base":          true,
 		"Clean":         true,
@@ -4230,12 +4230,12 @@ var stdlib = map[string]map[string]bool{
 		"Walk":          true,
 		"WalkFunc":      true,
 	},
-	"plugin": {
+	"plugin": map[string]bool{
 		"Open":   true,
 		"Plugin": true,
 		"Symbol": true,
 	},
-	"reflect": {
+	"reflect": map[string]bool{
 		"Append":          true,
 		"AppendSlice":     true,
 		"Array":           true,
@@ -4306,7 +4306,7 @@ var stdlib = map[string]map[string]bool{
 		"ValueOf":         true,
 		"Zero":            true,
 	},
-	"regexp": {
+	"regexp": map[string]bool{
 		"Compile":          true,
 		"CompilePOSIX":     true,
 		"Match":            true,
@@ -4317,7 +4317,7 @@ var stdlib = map[string]map[string]bool{
 		"QuoteMeta":        true,
 		"Regexp":           true,
 	},
-	"regexp/syntax": {
+	"regexp/syntax": map[string]bool{
 		"ClassNL":                  true,
 		"Compile":                  true,
 		"DotNL":                    true,
@@ -4395,7 +4395,7 @@ var stdlib = map[string]map[string]bool{
 		"UnicodeGroups":            true,
 		"WasDollar":                true,
 	},
-	"runtime": {
+	"runtime": map[string]bool{
 		"BlockProfile":            true,
 		"BlockProfileRecord":      true,
 		"Breakpoint":              true,
@@ -4443,7 +4443,7 @@ var stdlib = map[string]map[string]bool{
 		"UnlockOSThread":          true,
 		"Version":                 true,
 	},
-	"runtime/debug": {
+	"runtime/debug": map[string]bool{
 		"BuildInfo":       true,
 		"FreeOSMemory":    true,
 		"GCStats":         true,
@@ -4459,7 +4459,7 @@ var stdlib = map[string]map[string]bool{
 		"Stack":           true,
 		"WriteHeapDump":   true,
 	},
-	"runtime/pprof": {
+	"runtime/pprof": map[string]bool{
 		"Do":                 true,
 		"ForLabels":          true,
 		"Label":              true,
@@ -4475,7 +4475,7 @@ var stdlib = map[string]map[string]bool{
 		"WithLabels":         true,
 		"WriteHeapProfile":   true,
 	},
-	"runtime/trace": {
+	"runtime/trace": map[string]bool{
 		"IsEnabled":   true,
 		"Log":         true,
 		"Logf":        true,
@@ -4487,7 +4487,7 @@ var stdlib = map[string]map[string]bool{
 		"Task":        true,
 		"WithRegion":  true,
 	},
-	"sort": {
+	"sort": map[string]bool{
 		"Float64Slice":      true,
 		"Float64s":          true,
 		"Float64sAreSorted": true,
@@ -4510,7 +4510,7 @@ var stdlib = map[string]map[string]bool{
 		"Strings":           true,
 		"StringsAreSorted":  true,
 	},
-	"strconv": {
+	"strconv": map[string]bool{
 		"AppendBool":               true,
 		"AppendFloat":              true,
 		"AppendInt":                true,
@@ -4547,7 +4547,7 @@ var stdlib = map[string]map[string]bool{
 		"Unquote":                  true,
 		"UnquoteChar":              true,
 	},
-	"strings": {
+	"strings": map[string]bool{
 		"Builder":        true,
 		"Compare":        true,
 		"Contains":       true,
@@ -4598,7 +4598,7 @@ var stdlib = map[string]map[string]bool{
 		"TrimSpace":      true,
 		"TrimSuffix":     true,
 	},
-	"sync": {
+	"sync": map[string]bool{
 		"Cond":      true,
 		"Locker":    true,
 		"Map":       true,
@@ -4609,7 +4609,7 @@ var stdlib = map[string]map[string]bool{
 		"RWMutex":   true,
 		"WaitGroup": true,
 	},
-	"sync/atomic": {
+	"sync/atomic": map[string]bool{
 		"AddInt32":              true,
 		"AddInt64":              true,
 		"AddUint32":             true,
@@ -4641,7 +4641,7 @@ var stdlib = map[string]map[string]bool{
 		"SwapUintptr":           true,
 		"Value":                 true,
 	},
-	"syscall": {
+	"syscall": map[string]bool{
 		"AF_ALG":                              true,
 		"AF_APPLETALK":                        true,
 		"AF_ARP":                              true,
@@ -9783,7 +9783,7 @@ var stdlib = map[string]map[string]bool{
 		"XP1_UNI_RECV":                                 true,
 		"XP1_UNI_SEND":                                 true,
 	},
-	"syscall/js": {
+	"syscall/js": map[string]bool{
 		"Error":         true,
 		"Func":          true,
 		"FuncOf":        true,
@@ -9806,7 +9806,7 @@ var stdlib = map[string]map[string]bool{
 		"ValueOf":       true,
 		"Wrapper":       true,
 	},
-	"testing": {
+	"testing": map[string]bool{
 		"AllocsPerRun":      true,
 		"B":                 true,
 		"Benchmark":         true,
@@ -9830,7 +9830,7 @@ var stdlib = map[string]map[string]bool{
 		"T":                 true,
 		"Verbose":           true,
 	},
-	"testing/iotest": {
+	"testing/iotest": map[string]bool{
 		"DataErrReader":  true,
 		"ErrTimeout":     true,
 		"HalfReader":     true,
@@ -9840,7 +9840,7 @@ var stdlib = map[string]map[string]bool{
 		"TimeoutReader":  true,
 		"TruncateWriter": true,
 	},
-	"testing/quick": {
+	"testing/quick": map[string]bool{
 		"Check":           true,
 		"CheckEqual":      true,
 		"CheckEqualError": true,
@@ -9850,7 +9850,7 @@ var stdlib = map[string]map[string]bool{
 		"SetupError":      true,
 		"Value":           true,
 	},
-	"text/scanner": {
+	"text/scanner": map[string]bool{
 		"Char":           true,
 		"Comment":        true,
 		"EOF":            true,
@@ -9873,7 +9873,7 @@ var stdlib = map[string]map[string]bool{
 		"String":         true,
 		"TokenString":    true,
 	},
-	"text/tabwriter": {
+	"text/tabwriter": map[string]bool{
 		"AlignRight":          true,
 		"Debug":               true,
 		"DiscardEmptyColumns": true,
@@ -9884,7 +9884,7 @@ var stdlib = map[string]map[string]bool{
 		"TabIndent":           true,
 		"Writer":              true,
 	},
-	"text/template": {
+	"text/template": map[string]bool{
 		"ExecError":        true,
 		"FuncMap":          true,
 		"HTMLEscape":       true,
@@ -9901,7 +9901,7 @@ var stdlib = map[string]map[string]bool{
 		"Template":         true,
 		"URLQueryEscaper":  true,
 	},
-	"text/template/parse": {
+	"text/template/parse": map[string]bool{
 		"ActionNode":     true,
 		"BoolNode":       true,
 		"BranchNode":     true,
@@ -9948,7 +9948,7 @@ var stdlib = map[string]map[string]bool{
 		"VariableNode":   true,
 		"WithNode":       true,
 	},
-	"time": {
+	"time": map[string]bool{
 		"ANSIC":                  true,
 		"After":                  true,
 		"AfterFunc":              true,
@@ -10017,7 +10017,7 @@ var stdlib = map[string]map[string]bool{
 		"Wednesday":              true,
 		"Weekday":                true,
 	},
-	"unicode": {
+	"unicode": map[string]bool{
 		"ASCII_Hex_Digit":                    true,
 		"Adlam":                              true,
 		"Ahom":                               true,
@@ -10288,14 +10288,14 @@ var stdlib = map[string]map[string]bool{
 		"Zp":                                 true,
 		"Zs":                                 true,
 	},
-	"unicode/utf16": {
+	"unicode/utf16": map[string]bool{
 		"Decode":      true,
 		"DecodeRune":  true,
 		"Encode":      true,
 		"EncodeRune":  true,
 		"IsSurrogate": true,
 	},
-	"unicode/utf8": {
+	"unicode/utf8": map[string]bool{
 		"DecodeLastRune":         true,
 		"DecodeLastRuneInString": true,
 		"DecodeRune":             true,
@@ -10315,7 +10315,7 @@ var stdlib = map[string]map[string]bool{
 		"ValidRune":              true,
 		"ValidString":            true,
 	},
-	"unsafe": {
+	"unsafe": map[string]bool{
 		"Alignof":       true,
 		"ArbitraryType": true,
 		"Offsetof":      true,
