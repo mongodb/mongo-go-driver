@@ -12,7 +12,7 @@ tests:
     changeStreamPipeline: []
     changeStreamOptions: {}
     operations: []
-    expectations: []
+    expectations: ~
     result:
       error:
         code: 40573

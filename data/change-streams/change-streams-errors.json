@@ -14,7 +14,7 @@
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
       "operations": [],
-      "expectations": [],
+      "expectations": null,
       "result": {
         "error": {
           "code": 40573
