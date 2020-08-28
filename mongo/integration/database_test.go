@@ -88,6 +88,35 @@ func TestDatabase(t *testing.T) {
 			assert.True(mt, ok, "expected command %v to contain a $readPreference document", evt.Command)
 			assert.Equal(mt, expected, actual, "expected $readPreference document %v, got %v", expected, actual)
 		})
+		mt.Run("gets result and error", func(mt *mtest.T) {
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: mtest.FailPointMode{
+					Times: 1,
+				},
+				Data: mtest.FailPointData{
+					FailCommands: []string{"insert"},
+					WriteConcernError: &mtest.WriteConcernErrorData{
+						Code: 100,
+					},
+				},
+			})
+			cmd := bson.D{
+				{"insert", "test"},
+				{"documents", bson.A{bson.D{{"a", 1}}}},
+			}
+			res, gotErr := mt.DB.RunCommand(mtest.Background, cmd).DecodeBytes()
+
+			n, err := res.LookupErr("n")
+			assert.Nil(mt, err, "n field not found in result")
+			assert.Equal(mt, bson.TypeInt32, n.Type, "expected n type %v, got %v", bson.TypeInt32, n.Type)
+			assert.Equal(mt, int32(1), n.Int32(), "expected n value 1, got %v", n.Int32())
+
+			writeExcept, ok := gotErr.(mongo.WriteException)
+			assert.True(mt, ok, "expected WriteCommandError, got %T", gotErr)
+			assert.NotNil(mt, writeExcept.WriteConcernError, "expected WriteConcernError to be non-nil")
+			assert.Equal(mt, writeExcept.WriteConcernError.Code, 100, "expeced error code 100, got %v", writeExcept.WriteConcernError.Code)
+		})
 	})
 
 	dropOpts := mtest.NewOptions().DatabaseName("dropDb")

@@ -1154,6 +1154,59 @@ func TestCollection(t *testing.T) {
 				mt.Fatalf("expected BulkWrite error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
 			}
 		})
+		mt.Run("insert and delete with batches", func(mt *mtest.T) {
+			// // TODO(GODRIVER-425): remove this as part a larger project to
+			// // refactor integration and other longrunning tasks.
+			if os.Getenv("EVR_TASK_ID") == "" {
+				mt.Skip("skipping long running integration test outside of evergreen")
+			}
+
+			// grouped together because delete requires the documents to be inserted
+			numDocs := 100050
+			var insertModels []mongo.WriteModel
+			var deleteModels []mongo.WriteModel
+			for i := 0; i < numDocs; i++ {
+				d := bson.D{
+					{"a", int32(i)},
+					{"b", int32(i * 2)},
+					{"c", int32(i * 3)},
+				}
+				insertModels = append(insertModels, mongo.NewInsertOneModel().SetDocument(d))
+				deleteModels = append(deleteModels, mongo.NewDeleteOneModel().SetFilter(bson.D{}))
+			}
+			res, err := mt.Coll.BulkWrite(context.Background(), insertModels)
+			assert.Nil(mt, err, "BulkWrite error: %v", err)
+			assert.Equal(mt, int64(numDocs), res.InsertedCount, "expected %v inserted documents, got %v", numDocs, res.InsertedCount)
+
+			res, err = mt.Coll.BulkWrite(context.Background(), deleteModels)
+			assert.Nil(mt, err, "BulkWrite error: %v", err)
+			assert.Equal(mt, int64(numDocs), res.DeletedCount, "expected %v inserted documents, got %v", numDocs, res.DeletedCount)
+		})
+		mt.Run("update with batches", func(mt *mtest.T) {
+			// TODO(GODRIVER-425): remove this as part a larger project to
+			// refactor integration and other longrunning tasks.
+			if os.Getenv("EVR_TASK_ID") == "" {
+				mt.Skip("skipping long running integration test outside of evergreen")
+			}
+
+			var models []mongo.WriteModel
+			numModels := 100050
+			// it's significantly faster to upsert one model and modify the rest than to upsert all of them
+			for i := 0; i < numModels; i++ {
+				models = append(models, mongo.NewUpdateOneModel().
+					SetFilter(bson.D{{"a", int32(i)}}).
+					SetUpdate(bson.D{{"$set",
+						bson.D{
+							{"a", int32(i + 1)},
+							{"b", int32(i * 2)},
+							{"c", int32(i * 3)},
+						}}}).SetUpsert(true))
+			}
+			res, err := mt.Coll.BulkWrite(context.Background(), models)
+			assert.Nil(mt, err, "BulkWrite error: %v", err)
+			assert.Equal(mt, int64(1), res.UpsertedCount, "expected %v inserted documents, got %v", 1, res.UpsertedCount)
+			assert.Equal(mt, int64(numModels-1), res.ModifiedCount, "expected %v modified documents, got %v", numModels-1, res.ModifiedCount)
+		})
 	})
 }
 

@@ -192,8 +192,9 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	}
 
 	err = op.Execute(ctx)
+	_, convErr := processWriteError(err)
 	return &SingleResult{
-		err: replaceErrors(err),
+		err: convErr,
 		rdr: bson.Raw(op.Result()),
 		reg: db.registry,
 	}

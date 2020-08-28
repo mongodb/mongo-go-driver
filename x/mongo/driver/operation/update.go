@@ -122,9 +122,11 @@ func NewUpdate(updates ...bsoncore.Document) *Update {
 func (u *Update) Result() UpdateResult { return u.result }
 
 func (u *Update) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
-	var err error
+	ur, err := buildUpdateResult(response, srvr)
 
-	u.result, err = buildUpdateResult(response, srvr)
+	u.result.N += ur.N
+	u.result.NModified += ur.NModified
+	u.result.Upserted = append(u.result.Upserted, ur.Upserted...)
 	return err
 
 }

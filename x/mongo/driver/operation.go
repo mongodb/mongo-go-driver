@@ -375,9 +375,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.publishFinishedEvent(ctx, finishedInfo)
 
 		var perr error
-		if op.ProcessResponseFn != nil {
-			perr = op.ProcessResponseFn(res, srvr, desc.Server)
-		}
 		switch tt := err.(type) {
 		case WriteCommandError:
 			if e := err.(WriteCommandError); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
@@ -416,6 +413,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					op.WriteConcern = op.Client.CurrentWc
 				}
 				continue
+			}
+
+			if op.ProcessResponseFn != nil {
+				perr = op.ProcessResponseFn(res, srvr, desc.Server)
 			}
 
 			if batching && len(tt.WriteErrors) > 0 && currIndex > 0 {
@@ -498,6 +499,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				continue
 			}
 
+			if op.ProcessResponseFn != nil {
+				perr = op.ProcessResponseFn(res, srvr, desc.Server)
+			}
+
 			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
 				// If we got a retryable error or MaxTimeMSExpired error, we add UnknownTransactionCommitResult.
 				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
@@ -507,10 +512,16 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if moreToCome {
 				return ErrUnacknowledgedWrite
 			}
+			if op.ProcessResponseFn != nil {
+				perr = op.ProcessResponseFn(res, srvr, desc.Server)
+			}
 			if perr != nil {
 				return perr
 			}
 		default:
+			if op.ProcessResponseFn != nil {
+				perr = op.ProcessResponseFn(res, srvr, desc.Server)
+			}
 			return err
 		}
 
