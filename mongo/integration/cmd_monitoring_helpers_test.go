@@ -216,7 +216,7 @@ func checkExpectations(mt *mtest.T, expectations *[]*expectation, id0, id1 bson.
 		return !ok
 	})
 
-	// If the epxectations field in the test JSON is non-null but is empty, we want to assert that no events were
+	// If the expectations field in the test JSON is non-null but is empty, we want to assert that no events were
 	// emitted.
 	if len(*expectations) == 0 {
 		numEvents := len(mt.GetAllStartedEvents())
