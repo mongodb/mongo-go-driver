@@ -21,6 +21,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/mongologger"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -103,6 +104,7 @@ type ClientOptions struct {
 	HeartbeatInterval        *time.Duration
 	Hosts                    []string
 	LocalThreshold           *time.Duration
+	Logger                   *mongologger.MongoLogger
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
 	MinPoolSize              *uint64
@@ -481,6 +483,13 @@ func (c *ClientOptions) SetLocalThreshold(d time.Duration) *ClientOptions {
 	return c
 }
 
+// SetLogger specifies a MongoLogger to log messages. See the mongologger.MongoLogger documentation
+// for more information about the structure of the logger and the messages it logs.
+func (c *ClientOptions) SetLogger(m *mongologger.MongoLogger) *ClientOptions {
+	c.Logger = m
+	return c
+}
+
 // SetMaxConnIdleTime specifies the maximum amount of time that a connection will remain idle in a connection pool
 // before it is removed from the pool and closed. This can also be set through the "maxIdleTimeMS" URI option (e.g.
 // "maxIdleTimeMS=10000"). The default is 0, meaning a connection can remain unused indefinitely.
@@ -741,6 +750,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.LocalThreshold != nil {
 			c.LocalThreshold = opt.LocalThreshold
+		}
+		if opt.Logger != nil {
+			c.Logger = opt.Logger
 		}
 		if opt.MaxConnIdleTime != nil {
 			c.MaxConnIdleTime = opt.MaxConnIdleTime

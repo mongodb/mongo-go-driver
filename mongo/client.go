@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongologger"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -53,6 +54,7 @@ type Client struct {
 	deployment      driver.Deployment
 	connString      connstring.ConnString
 	localThreshold  time.Duration
+	logger          *mongologger.MongoLogger
 	retryWrites     bool
 	retryReads      bool
 	clock           *session.ClusterClock
@@ -508,6 +510,23 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			topologyOpts,
 			topology.WithTopologyServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return opts.ServerMonitor }),
 		)
+	}
+	// Logger
+	if opts.Logger == nil {
+		var err error
+		opts.Logger, err = mongologger.NewMongoLoggerFromEnv()
+		if err != nil {
+			return err
+		}
+	}
+	// This wraps the command monitor, so it must be set after c.monitor is set
+	if opts.Logger != nil {
+		c.logger = opts.Logger
+
+		c.monitor = newCommandLogger(c.logger, c.monitor)
+		connOpts = append(connOpts, topology.WithMonitor(
+			func(*event.CommandMonitor) *event.CommandMonitor { return c.monitor },
+		))
 	}
 	// ReadConcern
 	c.readConcern = readconcern.New()
