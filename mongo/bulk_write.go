@@ -22,6 +22,7 @@ import (
 type bulkWriteBatch struct {
 	models   []WriteModel
 	canRetry bool
+	indexes  []int
 }
 
 // bulkWrite perfoms a bulkwrite operation
@@ -52,7 +53,6 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 	}
 
 	var lastErr error
-	var opIndex int64 // the operation index for the upsertedIDs map
 	continueOnError := !ordered
 	for _, batch := range batches {
 		if len(batch.models) == 0 {
@@ -66,13 +66,10 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 		batchRes, batchErr, err := bw.runBatch(ctx, batch)
 
-		bw.mergeResults(batchRes, opIndex)
+		bw.mergeResults(batchRes)
 
 		bwErr.WriteConcernError = batchErr.WriteConcernError
 		bwErr.Labels = append(bwErr.Labels, batchErr.Labels...)
-		for i := range batchErr.WriteErrors {
-			batchErr.WriteErrors[i].Index = batchErr.WriteErrors[i].Index + int(opIndex)
-		}
 
 		bwErr.WriteErrors = append(bwErr.WriteErrors, batchErr.WriteErrors...)
 
@@ -89,8 +86,6 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 		if err != nil {
 			lastErr = err
 		}
-
-		opIndex += int64(len(batch.models))
 	}
 
 	bw.result.MatchedCount -= bw.result.UpsertedCount
@@ -151,16 +146,18 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 		batchRes.ModifiedCount = int64(res.NModified)
 		batchRes.UpsertedCount = int64(len(res.Upserted))
 		for _, upsert := range res.Upserted {
-			batchRes.UpsertedIDs[upsert.Index] = upsert.ID
+			batchRes.UpsertedIDs[int64(batch.indexes[upsert.Index])] = upsert.ID
 		}
 	}
 
 	batchErr.WriteErrors = make([]BulkWriteError, 0, len(writeErrors))
 	convWriteErrors := writeErrorsFromDriverWriteErrors(writeErrors)
 	for _, we := range convWriteErrors {
+		request := batch.models[we.Index]
+		we.Index = batch.indexes[we.Index]
 		batchErr.WriteErrors = append(batchErr.WriteErrors, BulkWriteError{
 			WriteError: we,
-			Request:    batch.models[we.Index],
+			Request:    request,
 		})
 	}
 	return batchRes, batchErr, nil
@@ -401,18 +398,23 @@ func createBatches(models []WriteModel, ordered bool) []bulkWriteBatch {
 	batches[updateOneCommand].canRetry = true
 
 	// TODO(GODRIVER-1157): fix batching once operation retryability is fixed
-	for _, model := range models {
+	for i, model := range models {
 		switch model.(type) {
 		case *InsertOneModel:
 			batches[insertCommand].models = append(batches[insertCommand].models, model)
+			batches[insertCommand].indexes = append(batches[insertCommand].indexes, i)
 		case *DeleteOneModel:
 			batches[deleteOneCommand].models = append(batches[deleteOneCommand].models, model)
+			batches[deleteOneCommand].indexes = append(batches[deleteOneCommand].indexes, i)
 		case *DeleteManyModel:
 			batches[deleteManyCommand].models = append(batches[deleteManyCommand].models, model)
+			batches[deleteManyCommand].indexes = append(batches[deleteManyCommand].indexes, i)
 		case *ReplaceOneModel, *UpdateOneModel:
 			batches[updateOneCommand].models = append(batches[updateOneCommand].models, model)
+			batches[updateOneCommand].indexes = append(batches[updateOneCommand].indexes, i)
 		case *UpdateManyModel:
 			batches[updateManyCommand].models = append(batches[updateManyCommand].models, model)
+			batches[updateManyCommand].indexes = append(batches[updateManyCommand].indexes, i)
 		}
 	}
 
@@ -424,7 +426,7 @@ func createOrderedBatches(models []WriteModel) []bulkWriteBatch {
 	var prevKind writeCommandKind = -1
 	i := -1 // batch index
 
-	for _, model := range models {
+	for ind, model := range models {
 		var createNewBatch bool
 		var canRetry bool
 		var newKind writeCommandKind
@@ -455,6 +457,7 @@ func createOrderedBatches(models []WriteModel) []bulkWriteBatch {
 			batches = append(batches, bulkWriteBatch{
 				models:   []WriteModel{model},
 				canRetry: canRetry,
+				indexes:  []int{ind},
 			})
 			i++
 		} else {
@@ -462,6 +465,7 @@ func createOrderedBatches(models []WriteModel) []bulkWriteBatch {
 			if !canRetry {
 				batches[i].canRetry = false // don't make it true if it was already false
 			}
+			batches[i].indexes = append(batches[i].indexes, ind)
 		}
 
 		prevKind = newKind
@@ -470,7 +474,7 @@ func createOrderedBatches(models []WriteModel) []bulkWriteBatch {
 	return batches
 }
 
-func (bw *bulkWrite) mergeResults(newResult BulkWriteResult, opIndex int64) {
+func (bw *bulkWrite) mergeResults(newResult BulkWriteResult) {
 	bw.result.InsertedCount += newResult.InsertedCount
 	bw.result.MatchedCount += newResult.MatchedCount
 	bw.result.ModifiedCount += newResult.ModifiedCount
@@ -478,7 +482,7 @@ func (bw *bulkWrite) mergeResults(newResult BulkWriteResult, opIndex int64) {
 	bw.result.UpsertedCount += newResult.UpsertedCount
 
 	for index, upsertID := range newResult.UpsertedIDs {
-		bw.result.UpsertedIDs[index+opIndex] = upsertID
+		bw.result.UpsertedIDs[index] = upsertID
 	}
 }
 
