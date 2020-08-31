@@ -134,9 +134,14 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          # any go tools that we need
+
+          # Install any go tools that we need. Do this in a temp directory because running "go get" inside the driver
+          # repo will update the driver's go.mod/go.sum files. This puts the contents of go.mod/go.sum out of sync with
+          # the vendor directory and tests fail to compile due to inconsistent vendoring.
+          cd $(mktemp -d)
           go get -u golang.org/x/lint/golint
           go get -u github.com/kisielk/errcheck
+          cd -
 
           # initialize submodules
           git submodule init
@@ -1562,61 +1567,61 @@ axes:
   - id: os-ssl-legacy
     display_name: OS
     values:
-      - id: "ubuntu1404-go-1-13"
+      - id: "ubuntu1404-go-1-15"
         display_name: "Ubuntu 14.04"
         run_on: ubuntu1404-test
         variables:
-          GO_DIST: "/opt/golang/go1.13"
+          GO_DIST: "/opt/golang/go1.15"
 
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-13"
+      - id: "windows-64-go-1-15"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2017-test
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.13"
+          GO_DIST: "C:\\golang\\go1.15"
           PYTHON3_BINARY: "C:/python/Python38/python.exe"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1604-64-go-1-13"
+      - id: "ubuntu1604-64-go-1-15"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
-          GO_DIST: "/opt/golang/go1.13"
+          GO_DIST: "/opt/golang/go1.15"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
-      - id: "osx-go-1-13"
+      - id: "osx-go-1-15"
         display_name: "MacOS 10.14"
         run_on: macos-1014
         variables:
-          GO_DIST: "/opt/golang/go1.13"
+          GO_DIST: "/opt/golang/go1.15"
           PYTHON3_BINARY: python3
 
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vsMulti-small-go-1-13"
+      - id: "windows-64-vsMulti-small-go-1-15"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vsMulti-small
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.13"
+          GO_DIST: "C:\\golang\\go1.15"
           SKIP_ECS_AUTH_TEST: true
           PYTHON3: "C:/python/Python38/python.exe"
-      - id: "ubuntu1804-64-go-1-13"
+      - id: "ubuntu1804-64-go-1-15"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
         variables:
-          GO_DIST: "/opt/golang/go1.13"
+          GO_DIST: "/opt/golang/go1.15"
           PYTHON3: python3
-      - id: "osx-go-1-13"
+      - id: "osx-go-1-15"
         display_name: "MacOS 10.14"
         run_on: macos-1014
         variables:
-          GO_DIST: "/opt/golang/go1.13"
+          GO_DIST: "/opt/golang/go1.15"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           PYTHON3: python3
@@ -1627,7 +1632,7 @@ buildvariants:
     run_on:
       - ubuntu1604-build
     expansions:
-      GO_DIST: "/opt/golang/go1.13"
+      GO_DIST: "/opt/golang/go1.15"
     tasks:
       - name: ".static-analysis"
 
@@ -1636,7 +1641,7 @@ buildvariants:
     run_on:
       - ubuntu1604-build
     expansions:
-      GO_DIST: "/opt/golang/go1.13"
+      GO_DIST: "/opt/golang/go1.15"
     tasks:
       - name: ".performance"
 
@@ -1645,7 +1650,7 @@ buildvariants:
     run_on:
       - ubuntu1604-test
     expansions:
-      GO_DIST: "/opt/golang/go1.13"
+      GO_DIST: "/opt/golang/go1.15"
     tasks:
       - name: ".compile-check"
 
@@ -1654,7 +1659,7 @@ buildvariants:
     run_on:
       - ubuntu1604-build
     expansions:
-      GO_DIST: "/opt/golang/go1.13"
+      GO_DIST: "/opt/golang/go1.15"
     tasks:
       - name: "atlas-test"
 
@@ -1663,7 +1668,7 @@ buildvariants:
     run_on:
       - ubuntu1604-build
     expansions:
-      GO_DIST: "/opt/golang/go1.13"
+      GO_DIST: "/opt/golang/go1.15"
     tasks:
       - name: "test-atlas-data-lake"
 
@@ -1717,14 +1722,14 @@ buildvariants:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["ubuntu1604-64-go-1-13"] }
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["ubuntu1604-64-go-1-15"] }
     display_name: "OCSP ${version} ${os-ssl-32}"
     batchtime: 20160 # 14 days
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["windows-64-go-1-13"] }
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["windows-64-go-1-15"] }
     display_name: "OCSP ${version} ${os-ssl-32}"
     batchtime: 20160 # 14 days
     tasks:
@@ -1732,7 +1737,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["osx-go-1-13"] }
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["osx-go-1-15"] }
     display_name: "OCSP ${version} ${os-ssl-32}"
     batchtime: 20160 # 14 days
     tasks:
