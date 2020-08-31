@@ -1081,33 +1081,42 @@ func TestCollection(t *testing.T) {
 			_, err := capped.BulkWrite(mtest.Background, models, options.BulkWrite())
 			assert.Nil(t, err, "BulkWrite error: %v", err)
 
+			// UpdateOne and ReplaceOne models are batched together, so they each appear once
 			models = []mongo.WriteModel{
 				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id0"}}),
 				mongo.NewDeleteManyModel().SetFilter(bson.D{{"_id", "id0"}}),
-				mongo.NewUpdateManyModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
-				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
 				mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
+				mongo.NewDeleteManyModel().SetFilter(bson.D{{"_id", "id0"}}),
+				mongo.NewUpdateManyModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id0"}}),
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
 				mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetReplacement(bson.D{{"_id", 3.14159}}),
+				mongo.NewUpdateManyModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
 			}
 			_, err = capped.BulkWrite(mtest.Background, models, options.BulkWrite().SetOrdered(false))
 			bwException, ok := err.(mongo.BulkWriteException)
 			assert.True(mt, ok, "expected error of type %T, got %T", mongo.BulkWriteException{}, err)
 
-			assert.Equal(mt, len(bwException.WriteErrors), 6, "expected 6 writeErrors, got %v", len(bwException.WriteErrors))
+			assert.Equal(mt, len(bwException.WriteErrors), 10, "expected 10 writeErrors, got %v", len(bwException.WriteErrors))
 			for _, writeErr := range bwException.WriteErrors {
 				switch writeErr.Request.(type) {
 				case *mongo.DeleteOneModel:
-					assert.Equal(mt, writeErr.Index, 0, "expected index 0, got %v", writeErr.Index)
+					assert.True(mt, writeErr.Index == 0 || writeErr.Index == 6,
+						"expected index 0 or 6, got %v", writeErr.Index)
 				case *mongo.DeleteManyModel:
-					assert.Equal(mt, writeErr.Index, 1, "expected index 1, got %v", writeErr.Index)
+					assert.True(mt, writeErr.Index == 1 || writeErr.Index == 4,
+						"expected index 1 or 4, got %v", writeErr.Index)
 				case *mongo.UpdateManyModel:
-					assert.Equal(mt, writeErr.Index, 2, "expected index 2, got %v", writeErr.Index)
+					assert.True(mt, writeErr.Index == 5 || writeErr.Index == 9,
+						"expected index 5 or 9, got %v", writeErr.Index)
 				case *mongo.InsertOneModel:
-					assert.Equal(mt, writeErr.Index, 3, "expected index 3, got %v", writeErr.Index)
+					assert.True(mt, writeErr.Index == 3 || writeErr.Index == 7,
+						"expected index 3 or 7, got %v", writeErr.Index)
 				case *mongo.UpdateOneModel:
-					assert.Equal(mt, writeErr.Index, 4, "expected index 4, got %v", writeErr.Index)
+					assert.Equal(mt, writeErr.Index, 2, "expected index 2, got %v", writeErr.Index)
 				case *mongo.ReplaceOneModel:
-					assert.Equal(mt, writeErr.Index, 5, "expected index 5, got %v", writeErr.Index)
+					assert.Equal(mt, writeErr.Index, 8, "expected index 8, got %v", writeErr.Index)
 				}
 
 			}
