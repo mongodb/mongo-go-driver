@@ -490,7 +490,9 @@ func ReadCompressedOriginalOpCode(src []byte) (opcode OpCode, rem []byte, ok boo
 
 // ReadCompressedUncompressedSize reads the uncompressed size of a
 // compressed wiremessage to dst.
-func ReadCompressedUncompressedSize(src []byte) (size int32, rem []byte, ok bool) { return readi32(src) }
+func ReadCompressedUncompressedSize(src []byte) (size int32, rem []byte, ok bool) {
+	return readi32(src)
+}
 
 // ReadCompressedCompressorID reads the ID of the compressor to dst.
 func ReadCompressedCompressorID(src []byte) (id CompressorID, rem []byte, ok bool) {

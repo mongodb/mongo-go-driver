@@ -30,7 +30,9 @@ func noerr(t *testing.T, err error) {
 	}
 }
 
-func requireErrEqual(t *testing.T, err1 error, err2 error) { require.True(t, compareErrors(err1, err2)) }
+func requireErrEqual(t *testing.T, err1 error, err2 error) {
+	require.True(t, compareErrors(err1, err2))
+}
 
 func TestTimeRoundTrip(t *testing.T) {
 	val := struct {
