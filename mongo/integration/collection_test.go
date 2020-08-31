@@ -1067,6 +1067,77 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, expectedModel, actualModel, "expected model %v in BulkWriteException, got %v",
 				expectedModel, actualModel)
 		})
+		mt.Run("unordered writeError index", func(mt *mtest.T) {
+			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
+			// Use a capped collection to get WriteErrors for delete operations
+			capped := mt.CreateCollection(mtest.Collection{
+				Name:       "deleteOne_capped",
+				CreateOpts: cappedOpts,
+			}, true)
+			models := []mongo.WriteModel{
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id3"}}),
+			}
+			_, err := capped.BulkWrite(mtest.Background, models, options.BulkWrite())
+			assert.Nil(t, err, "BulkWrite error: %v", err)
+
+			// UpdateOne and ReplaceOne models are batched together, so they each appear once
+			models = []mongo.WriteModel{
+				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id0"}}),
+				mongo.NewDeleteManyModel().SetFilter(bson.D{{"_id", "id0"}}),
+				mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
+				mongo.NewDeleteManyModel().SetFilter(bson.D{{"_id", "id0"}}),
+				mongo.NewUpdateManyModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id0"}}),
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
+				mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetReplacement(bson.D{{"_id", 3.14159}}),
+				mongo.NewUpdateManyModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+			}
+			_, err = capped.BulkWrite(mtest.Background, models, options.BulkWrite().SetOrdered(false))
+			bwException, ok := err.(mongo.BulkWriteException)
+			assert.True(mt, ok, "expected error of type %T, got %T", mongo.BulkWriteException{}, err)
+
+			assert.Equal(mt, len(bwException.WriteErrors), 10, "expected 10 writeErrors, got %v", len(bwException.WriteErrors))
+			for _, writeErr := range bwException.WriteErrors {
+				switch writeErr.Request.(type) {
+				case *mongo.DeleteOneModel:
+					assert.True(mt, writeErr.Index == 0 || writeErr.Index == 6,
+						"expected index 0 or 6, got %v", writeErr.Index)
+				case *mongo.DeleteManyModel:
+					assert.True(mt, writeErr.Index == 1 || writeErr.Index == 4,
+						"expected index 1 or 4, got %v", writeErr.Index)
+				case *mongo.UpdateManyModel:
+					assert.True(mt, writeErr.Index == 5 || writeErr.Index == 9,
+						"expected index 5 or 9, got %v", writeErr.Index)
+				case *mongo.InsertOneModel:
+					assert.True(mt, writeErr.Index == 3 || writeErr.Index == 7,
+						"expected index 3 or 7, got %v", writeErr.Index)
+				case *mongo.UpdateOneModel:
+					assert.Equal(mt, writeErr.Index, 2, "expected index 2, got %v", writeErr.Index)
+				case *mongo.ReplaceOneModel:
+					assert.Equal(mt, writeErr.Index, 8, "expected index 8, got %v", writeErr.Index)
+				}
+
+			}
+		})
+		mt.Run("unordered upsertID index", func(mt *mtest.T) {
+			id1 := "id1"
+			id3 := "id3"
+			models := []mongo.WriteModel{
+				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id0"}}),
+				mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", id1}}).SetReplacement(bson.D{{"_id", id1}}).SetUpsert(true),
+				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id2"}}),
+				mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", id3}}).SetReplacement(bson.D{{"_id", id3}}).SetUpsert(true),
+				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id4"}}),
+			}
+			res, err := mt.Coll.BulkWrite(mtest.Background, models, options.BulkWrite().SetOrdered(false))
+			assert.Nil(mt, err, "bulkwrite error: %v", err)
+
+			assert.Equal(mt, len(res.UpsertedIDs), 2, "expected 2 UpsertedIDs, got %v", len(res.UpsertedIDs))
+			assert.Equal(mt, res.UpsertedIDs[1].(string), id1, "expected UpsertedIDs[1] to be %v, got %v", id1, res.UpsertedIDs[1])
+			assert.Equal(mt, res.UpsertedIDs[3].(string), id3, "expected UpsertedIDs[3] to be %v, got %v", id3, res.UpsertedIDs[3])
+		})
 		unackClientOpts := options.Client().
 			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
 		unackMtOpts := mtest.NewOptions().
