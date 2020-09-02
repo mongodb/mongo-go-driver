@@ -330,6 +330,23 @@ func TestSessions(t *testing.T) {
 	})
 }
 
+func TestSessionsStandalone(t *testing.T) {
+	standaloneOpts := mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.Single)
+	mt := mtest.New(t, standaloneOpts)
+	mt.RunOpts("doesn't send transaction number", standaloneOpts, func(mt *mtest.T) {
+		sess, err := mt.Client.StartSession()
+		assert.Nil(mt, err, "StartSession error: %v", err)
+		defer sess.EndSession(mtest.Background)
+
+		err = mongo.WithSession(mtest.Background, sess, func(ctx mongo.SessionContext) error {
+			doc := bson.D{{"foo", 1}}
+			_, err := mt.Client.Database("foo").Collection("bar").InsertOne(ctx, doc)
+			return err
+		})
+		assert.Nil(mt, err, "InsertOne error: %v", err)
+	})
+}
+
 func assertCollectionCount(mt *mtest.T, expectedCount int64) {
 	mt.Helper()
 

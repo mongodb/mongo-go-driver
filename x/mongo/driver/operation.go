@@ -273,6 +273,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	var original error
 	var retries int
 	retryable := op.retryable(desc.Server)
+	if op.Client != nil {
+		op.Client.RetryWrite = false
+	}
 	if retryable && op.RetryMode != nil {
 		switch op.Type {
 		case Write:
@@ -286,7 +289,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				retries = -1
 			}
 
-			op.Client.RetryWrite = false
 			if *op.RetryMode > RetryNone {
 				op.Client.RetryWrite = true
 				if !op.Client.Committing && !op.Client.Aborting {
