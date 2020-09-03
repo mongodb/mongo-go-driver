@@ -331,10 +331,10 @@ func TestSessions(t *testing.T) {
 }
 
 func TestSessionsStandalone(t *testing.T) {
-	standaloneOpts := mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.Single)
+	standaloneOpts := mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.Single).CreateClient(false)
 	mt := mtest.New(t, standaloneOpts)
 	defer mt.Close()
-	mt.RunOpts("transaction number not sent on writes", standaloneOpts, func(mt *mtest.T) {
+	mt.Run("transaction number not sent on writes", func(mt *mtest.T) {
 		// Standalones do not support retryable writes and will error if a transaction number is sent
 
 		sess, err := mt.Client.StartSession()
@@ -356,8 +356,8 @@ func TestSessionsStandalone(t *testing.T) {
 		assert.Nil(mt, err, "Error getting lsid: %v", err)
 		_, gotID := lsid.Document().Lookup("id").Binary()
 		assert.True(mt, bytes.Equal(wantID, gotID), "expected session ID %v, got %v", wantID, gotID)
-		txnNumber := command.Lookup("txnNumber")
-		assert.NotNil(mt, txnNumber.Validate(), "expected no txnNumber, got %v", txnNumber.Type)
+		txnNumber, err := command.LookupErr("txnNumber")
+		assert.NotNil(mt, err, "expected no txnNumber, got %v", txnNumber)
 	})
 }
 
