@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/kr/pretty"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -19,6 +20,7 @@ func main() {
 	s, err := topology.ConnectServer(
 		address.Address("localhost:27017"),
 		nil,
+		primitive.NewObjectID(),
 		topology.WithHeartbeatInterval(func(time.Duration) time.Duration { return 2 * time.Second }),
 	)
 	if err != nil {

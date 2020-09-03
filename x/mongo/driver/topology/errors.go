@@ -3,7 +3,7 @@ package topology
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 // ConnectionError represents a connection error.

@@ -20,11 +20,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 type response struct {
@@ -160,7 +160,7 @@ func setUpTopology(t *testing.T, uri string) *Topology {
 		addr := address.Address(a).Canonicalize()
 		topo.fsm.Servers = append(topo.fsm.Servers, description.Server{Addr: addr})
 
-		svr, err := NewServer(addr, topo.cfg.serverOpts...)
+		svr, err := NewServer(addr, primitive.NewObjectID(), topo.cfg.serverOpts...)
 		assert.Nil(t, err, "NewServer error: %v", err)
 		atomic.StoreInt32(&svr.connectionstate, connected)
 		svr.desc.Store(description.NewDefaultServer(svr.address))
@@ -186,7 +186,7 @@ func applyResponses(t *testing.T, topo *Topology, responses []response, sub *dri
 		assert.Nil(t, err, "Marshal error: %v", err)
 
 		addr := address.Address(response.Host)
-		desc := description.NewServer(addr, bsoncore.Document(doc))
+		desc := description.NewServer(addr, doc)
 		server, ok := topo.servers[addr]
 		if ok {
 			server.updateDescription(desc)
@@ -335,7 +335,7 @@ func getError(rdr bsoncore.Document) error {
 			if !ok {
 				break
 			}
-			version, err := description.NewTopologyVersion(doc)
+			version, err := description.NewTopologyVersion(bson.Raw(doc))
 			if err == nil {
 				tv = version
 			}

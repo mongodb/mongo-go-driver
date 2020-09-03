@@ -3,8 +3,8 @@ package driver // import "go.mongodb.org/mongo-driver/x/mongo/driver"
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 // Deployment is implemented by types that can select a server from a deployment.

@@ -15,10 +15,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -97,6 +98,7 @@ type Server struct {
 	// description related fields
 	desc                   atomic.Value // holds a description.Server
 	updateTopologyCallback atomic.Value
+	topologyID             primitive.ObjectID
 
 	// subscriber related fields
 	subLock             sync.Mutex
@@ -126,8 +128,8 @@ type updateTopologyCallback func(description.Server) description.Server
 
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
-func ConnectServer(addr address.Address, updateCallback updateTopologyCallback, opts ...ServerOption) (*Server, error) {
-	srvr, err := NewServer(addr, opts...)
+func ConnectServer(addr address.Address, updateCallback updateTopologyCallback, topologyID primitive.ObjectID, opts ...ServerOption) (*Server, error) {
+	srvr, err := NewServer(addr, topologyID, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +142,7 @@ func ConnectServer(addr address.Address, updateCallback updateTopologyCallback, 
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
+func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...ServerOption) (*Server, error) {
 	cfg, err := newServerConfig(opts...)
 	if err != nil {
 		return nil, err
@@ -154,6 +156,8 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 		done:          make(chan struct{}),
 		checkNow:      make(chan struct{}, 1),
 		disconnecting: make(chan struct{}),
+
+		topologyID: topologyID,
 
 		subscribers:     make(map[uint64]chan description.Server),
 		globalCtx:       globalCtx,

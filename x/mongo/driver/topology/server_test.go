@@ -17,12 +17,13 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -90,6 +91,7 @@ func TestServer(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s, err := NewServer(
 				address.Address("localhost"),
+				primitive.NewObjectID(),
 				WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
 					return append(connOpts,
 						WithHandshaker(func(Handshaker) Handshaker {
@@ -157,6 +159,7 @@ func TestServer(t *testing.T) {
 		})
 		d := newdialer(&net.Dialer{})
 		s, err := NewServer(address.Address(addr.String()),
+			primitive.NewObjectID(),
 			WithConnectionOptions(func(option ...ConnectionOption) []ConnectionOption {
 				return []ConnectionOption{WithDialer(func(_ Dialer) Dialer { return d })}
 			}),
@@ -195,7 +198,7 @@ func TestServer(t *testing.T) {
 		close(cleanup)
 	})
 	t.Run("WriteConcernError", func(t *testing.T) {
-		s, err := NewServer(address.Address("localhost"))
+		s, err := NewServer(address.Address("localhost"), primitive.NewObjectID())
 		require.NoError(t, err)
 
 		var desc *description.Server
@@ -228,7 +231,7 @@ func TestServer(t *testing.T) {
 		}
 	})
 	t.Run("no WriteConcernError", func(t *testing.T) {
-		s, err := NewServer(address.Address("localhost"))
+		s, err := NewServer(address.Address("localhost"), primitive.NewObjectID())
 		require.NoError(t, err)
 
 		var desc *description.Server
@@ -257,7 +260,7 @@ func TestServer(t *testing.T) {
 			updated.Store(true)
 			return desc
 		}
-		s, err := ConnectServer(address.Address("localhost"), updateCallback)
+		s, err := ConnectServer(address.Address("localhost"), updateCallback, primitive.NewObjectID())
 		require.NoError(t, err)
 		s.updateDescription(description.Server{Addr: s.address})
 		require.True(t, updated.Load().(bool))
@@ -272,7 +275,7 @@ func TestServer(t *testing.T) {
 			return append(connOpts, dialerOpt)
 		})
 
-		s, err := NewServer(address.Address("localhost:27017"), serverOpt)
+		s, err := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpt)
 		if err != nil {
 			t.Fatalf("error from NewServer: %v", err)
 		}
@@ -310,6 +313,7 @@ func TestServer(t *testing.T) {
 		name := "test"
 
 		s, err := NewServer(address.Address("localhost"),
+			primitive.NewObjectID(),
 			WithServerAppName(func(string) string { return name }))
 		require.Nil(t, err, "error from NewServer: %v", err)
 		require.Equal(t, name, s.cfg.appname, "expected appname to be: %v, got: %v", name, s.cfg.appname)
@@ -319,6 +323,7 @@ func TestServer(t *testing.T) {
 
 		s, err := NewServer(
 			address.Address("localhost"),
+			primitive.NewObjectID(),
 			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
 				return append(
 					connOpts,

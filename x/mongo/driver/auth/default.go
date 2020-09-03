@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 func newDefaultAuthenticator(cred *Cred) (Authenticator, error) {

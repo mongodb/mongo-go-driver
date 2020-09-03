@@ -9,7 +9,7 @@ package description
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"go.mongodb.org/mongo-driver/mongo/address"
 )
 
 // Topology represents a description of a mongodb topology

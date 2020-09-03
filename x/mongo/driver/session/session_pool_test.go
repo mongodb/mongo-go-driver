@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 func TestSessionPool(t *testing.T) {
