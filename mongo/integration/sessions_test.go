@@ -330,37 +330,6 @@ func TestSessions(t *testing.T) {
 	})
 }
 
-func TestSessionsStandalone(t *testing.T) {
-	standaloneOpts := mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.Single).CreateClient(false)
-	mt := mtest.New(t, standaloneOpts)
-	defer mt.Close()
-	mt.Run("transaction number not sent on writes", func(mt *mtest.T) {
-		// Standalones do not support retryable writes and will error if a transaction number is sent
-
-		sess, err := mt.Client.StartSession()
-		assert.Nil(mt, err, "StartSession error: %v", err)
-		defer sess.EndSession(mtest.Background)
-
-		mt.ClearEvents()
-
-		err = mongo.WithSession(mtest.Background, sess, func(ctx mongo.SessionContext) error {
-			doc := bson.D{{"foo", 1}}
-			_, err := mt.Coll.InsertOne(ctx, doc)
-			return err
-		})
-		assert.Nil(mt, err, "InsertOne error: %v", err)
-
-		_, wantID := sess.ID().Lookup("id").Binary()
-		command := mt.GetStartedEvent().Command
-		lsid, err := command.LookupErr("lsid")
-		assert.Nil(mt, err, "Error getting lsid: %v", err)
-		_, gotID := lsid.Document().Lookup("id").Binary()
-		assert.True(mt, bytes.Equal(wantID, gotID), "expected session ID %v, got %v", wantID, gotID)
-		txnNumber, err := command.LookupErr("txnNumber")
-		assert.NotNil(mt, err, "expected no txnNumber, got %v", txnNumber)
-	})
-}
-
 func assertCollectionCount(mt *mtest.T, expectedCount int64) {
 	mt.Helper()
 
