@@ -199,7 +199,7 @@ type CollectionSpecification struct {
 	// be a primitive.Binary with Subtype 4.
 	UUID *primitive.Binary
 
-	// A document containing the options used to construct the collectino.
+	// A document containing the options used to construct the collection.
 	Options bson.Raw
 
 	// An IndexSpecification instance with details about the collection's _id index. This will be nil if the NameOnly
