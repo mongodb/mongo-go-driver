@@ -22,8 +22,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -726,11 +724,35 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 
 // publishes a TopologyDescriptionChangedEvent to indicate the topology description has changed
 func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topology, current description.Topology) {
+	var prevServers, newServers []event.ServerDescription
+
+	// creates event.ServerDescriptions from desc.Servers
+	for _, s := range prev.Servers {
+		server := convertToServerDescription(&s)
+		prevServers = append(prevServers, server)
+	}
+
+	for _, s := range current.Servers {
+		server := convertToServerDescription(&s)
+		newServers = append(newServers, server)
+	}
+
+	var prevDesc, newDesc event.TopologyDescription
+	prevDesc = event.TopologyDescription{
+		Kind:    prev.Kind,
+		Servers: prevServers,
+		SetName: prev.SetName,
+	}
+	newDesc = event.TopologyDescription{
+		Kind:    current.Kind,
+		Servers: newServers,
+		SetName: current.SetName,
+	}
 
 	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
 		ID:                  t.id,
-		PreviousDescription: prev,
-		NewDescription:      current,
+		PreviousDescription: prevDesc,
+		NewDescription:      newDesc,
 	}
 
 	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyDescriptionChanged != nil {

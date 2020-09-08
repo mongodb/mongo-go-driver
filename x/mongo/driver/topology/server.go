@@ -164,7 +164,6 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		globalCtxCancel: globalCtxCancel,
 	}
 	s.desc.Store(description.NewDefaultServer(addr))
-	s.topologyID.Store(topologyID)
 	rttCfg := &rttConfig{
 		interval:           cfg.heartbeatInterval,
 		createConnectionFn: s.createConnection,
@@ -810,12 +809,11 @@ func (s *Server) publishServerDescriptionChangedEvent(prev *description.Server, 
 		return
 	}
 
-	topID, _ := s.topologyID.Load().(primitive.ObjectID)
 	serverDescriptionChanged := &event.ServerDescriptionChangedEvent{
 		Address:             s.address,
-		ID:                  topID,
-		PreviousDescription: *prev,
-		NewDescription:      *current,
+		ID:                  s.topologyID,
+		PreviousDescription: convertToServerDescription(prev),
+		NewDescription:      convertToServerDescription(current),
 	}
 
 	s.cfg.sdamMonitor.ServerDescriptionChanged(serverDescriptionChanged)
@@ -826,10 +824,9 @@ func (s *Server) publishServerOpeningEvent(addr address.Address) {
 	if s == nil || s.cfg.sdamMonitor == nil || s.cfg.sdamMonitor.ServerOpening == nil {
 		return
 	}
-	topID, _ := s.topologyID.Load().(primitive.ObjectID)
 	serverOpening := &event.ServerOpeningEvent{
 		Address: addr,
-		ID:      topID,
+		ID:      s.topologyID,
 	}
 
 	s.cfg.sdamMonitor.ServerOpening(serverOpening)
@@ -859,7 +856,7 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
 		Duration:     duration,
-		Reply:        *desc,
+		Reply:        convertToServerDescription(desc),
 		ConnectionID: connectionID,
 		Awaited:      await,
 	}
@@ -883,6 +880,18 @@ func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 	}
 
 	s.cfg.sdamMonitor.ServerHeartbeatFailed(serverHeartbeatFailed)
+}
+
+func convertToServerDescription(desc *description.Server) event.ServerDescription {
+	return event.ServerDescription{
+		Address:  desc.Addr,
+		Arbiters: desc.Arbiters,
+		Hosts:    desc.Hosts,
+		Passives: desc.Passives,
+		Primary:  desc.Primary,
+		SetName:  desc.SetName,
+		Kind:     desc.Kind,
+	}
 }
 
 // unwrapConnectionError returns the connection error wrapped by err, or nil if err does not wrap a connection error.

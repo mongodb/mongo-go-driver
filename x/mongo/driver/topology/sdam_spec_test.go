@@ -495,9 +495,9 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 }
 
 func compareServerDescriptions(t *testing.T,
-	e serverDescription, a description.Server, idx int) {
-	assert.Equal(t, e.Address, a.Addr.String(),
-		"%v: expected server address %s, got %s", idx, e.Address, a.Addr)
+	e serverDescription, a event.ServerDescription, idx int) {
+	assert.Equal(t, e.Address, a.Address.String(),
+		"%v: expected server address %s, got %s", idx, e.Address, a.Address)
 
 	assert.Equal(t, len(e.Hosts), len(a.Hosts),
 		"%v: expected %d hosts, got %d", idx, len(e.Hosts), len(a.Hosts))
@@ -527,7 +527,7 @@ func compareServerDescriptions(t *testing.T,
 }
 
 func compareTopologyDescriptions(t *testing.T,
-	e topologyDescription, a description.Topology, idx int) {
+	e topologyDescription, a event.TopologyDescription, idx int) {
 	assert.Equal(t, e.TopologyType, a.Kind.String(),
 		"%v: expected topology kind %s, got %s", idx, e.TopologyType, a.Kind.String())
 	assert.Equal(t, len(e.Servers), len(a.Servers),
