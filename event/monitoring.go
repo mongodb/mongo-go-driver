@@ -93,30 +93,12 @@ type PoolMonitor struct {
 	Event func(*PoolEvent)
 }
 
-// ServerDescription describes a server to a user.
-type ServerDescription struct {
-	Address  address.Address
-	Arbiters []string
-	Hosts    []string
-	Passives []string
-	Primary  address.Address
-	SetName  string
-	Kind     description.ServerKind
-}
-
-// TopologyDescription describes the current topology.
-type TopologyDescription struct {
-	Kind    description.TopologyKind
-	Servers []ServerDescription
-	SetName string
-}
-
 // ServerDescriptionChangedEvent represents a server description change.
 type ServerDescriptionChangedEvent struct {
 	Address             address.Address
 	ID                  primitive.ObjectID
-	PreviousDescription ServerDescription
-	NewDescription      ServerDescription
+	PreviousDescription description.Server
+	NewDescription      description.Server
 }
 
 // ServerOpeningEvent is an event generated when the server is initialized.
@@ -134,8 +116,8 @@ type ServerClosedEvent struct {
 // TopologyDescriptionChangedEvent represents a topology description change.
 type TopologyDescriptionChangedEvent struct {
 	ID                  primitive.ObjectID
-	PreviousDescription TopologyDescription
-	NewDescription      TopologyDescription
+	PreviousDescription description.Topology
+	NewDescription      description.Topology
 }
 
 // TopologyOpeningEvent is an event generated when the topology is initialized.
@@ -157,7 +139,7 @@ type ServerHeartbeatStartedEvent struct {
 // ServerHeartbeatSucceededEvent is an event generated when the ismaster succeeds.
 type ServerHeartbeatSucceededEvent struct {
 	Duration     int64
-	Reply        ServerDescription
+	Reply        description.Server
 	ConnectionID string
 	Awaited      bool
 }

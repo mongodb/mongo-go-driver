@@ -812,8 +812,8 @@ func (s *Server) publishServerDescriptionChangedEvent(prev *description.Server, 
 	serverDescriptionChanged := &event.ServerDescriptionChangedEvent{
 		Address:             s.address,
 		ID:                  s.topologyID,
-		PreviousDescription: convertToServerDescription(prev),
-		NewDescription:      convertToServerDescription(current),
+		PreviousDescription: *prev,
+		NewDescription:      *current,
 	}
 
 	s.cfg.sdamMonitor.ServerDescriptionChanged(serverDescriptionChanged)
@@ -856,7 +856,7 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
 		Duration:     duration,
-		Reply:        convertToServerDescription(desc),
+		Reply:        *desc,
 		ConnectionID: connectionID,
 		Awaited:      await,
 	}
@@ -880,18 +880,6 @@ func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 	}
 
 	s.cfg.sdamMonitor.ServerHeartbeatFailed(serverHeartbeatFailed)
-}
-
-func convertToServerDescription(desc *description.Server) event.ServerDescription {
-	return event.ServerDescription{
-		Address:  desc.Addr,
-		Arbiters: desc.Arbiters,
-		Hosts:    desc.Hosts,
-		Passives: desc.Passives,
-		Primary:  desc.Primary,
-		SetName:  desc.SetName,
-		Kind:     desc.Kind,
-	}
 }
 
 // unwrapConnectionError returns the connection error wrapped by err, or nil if err does not wrap a connection error.
