@@ -21,12 +21,12 @@ import (
 func TestRetryableWritesProse(t *testing.T) {
 	clientOpts := options.Client().SetRetryWrites(true).SetWriteConcern(mtest.MajorityWc).
 		SetReadConcern(mtest.MajorityRc)
-	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("3.6").Topologies(mtest.ReplicaSet, mtest.Sharded).
-		CreateClient(false)
+	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("3.6").CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	mt.RunOpts("txn number included", noClientOpts, func(mt *mtest.T) {
+	includeOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.Sharded).CreateClient(false)
+	mt.RunOpts("txn number included", includeOpts, func(mt *mtest.T) {
 		updateDoc := bson.D{{"$inc", bson.D{{"x", 1}}}}
 		insertOneDoc := bson.D{{"x", 1}}
 		insertManyOrderedArgs := bson.D{
@@ -77,7 +77,8 @@ func TestRetryableWritesProse(t *testing.T) {
 			})
 		}
 	})
-	mt.Run("wrap mmapv1 error", func(mt *mtest.T) {
+	errorOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.Sharded)
+	mt.RunOpts("wrap mmapv1 error", errorOpts, func(mt *mtest.T) {
 		res, err := mt.DB.RunCommand(mtest.Background, bson.D{{"serverStatus", 1}}).DecodeBytes()
 		assert.Nil(mt, err, "serverStatus error: %v", err)
 		storageEngine, ok := res.Lookup("storageEngine", "name").StringValueOK()
@@ -89,13 +90,9 @@ func TestRetryableWritesProse(t *testing.T) {
 		assert.Equal(mt, driver.ErrUnsupportedStorageEngine, err,
 			"expected error %v, got %v", driver.ErrUnsupportedStorageEngine, err)
 	})
-}
 
-func TestRetryableWritesProseStandalone(t *testing.T) {
-	standaloneOpts := mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.Single).CreateClient(false)
-	mt := mtest.New(t, standaloneOpts)
-	defer mt.Close()
-	mt.RunOpts("transaction number not sent on writes", noClientOpts, func(mt *mtest.T) {
+	standaloneOpts := mtest.NewOptions().Topologies(mtest.Single).CreateClient(false)
+	mt.RunOpts("transaction number not sent on writes", standaloneOpts, func(mt *mtest.T) {
 		mt.Run("explicit session", func(mt *mtest.T) {
 			// Standalones do not support retryable writes and will error if a transaction number is sent
 
