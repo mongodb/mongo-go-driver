@@ -153,8 +153,8 @@ type ServerHeartbeatFailedEvent struct {
 }
 
 // ServerMonitor represents a monitor that is triggered for different server events. The client
-// will monitor changes on the MongoDB deployment that it is connected to, and this monitor reports
-// the changes in the client's representation of the depoloyment. The topology represents the
+// will monitor changes on the MongoDB deployment it is connected to, and this monitor reports
+// the changes in the client's representation of the deployment. The topology represents the
 // overall deployment, and heartbeats are sent to individual servers to check their current status.
 type ServerMonitor struct {
 	ServerDescriptionChanged   func(*ServerDescriptionChangedEvent)

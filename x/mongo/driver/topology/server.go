@@ -647,8 +647,8 @@ func (s *Server) check() (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.isMasterRTT)
 			descPtr = &s.conn.desc
+			duration = int64(s.conn.isMasterRTT)
 		}
-		duration = int64(s.conn.isMasterRTT)
 	}
 
 	if descPtr == nil && err == nil {
@@ -660,10 +660,11 @@ func (s *Server) check() (description.Server, error) {
 		previousDescription := s.Description()
 		streamable := previousDescription.TopologyVersion != nil
 
-		s.publishServerHeartbeatStartedEvent(s.conn.ID(), false)
+		s.publishServerHeartbeatStartedEvent(s.conn.ID(), s.conn.getCurrentlyStreaming() || streamable)
 		start := time.Now()
 		switch {
 		case s.conn.getCurrentlyStreaming():
+
 			// The connection is already in a streaming state, so we stream the next response.
 			err = baseOperation.StreamResponse(s.heartbeatCtx, heartbeatConn)
 		case streamable:
@@ -698,6 +699,7 @@ func (s *Server) check() (description.Server, error) {
 
 		if err == nil {
 			tempDesc := baseOperation.Result(s.address)
+			descPtr = &tempDesc
 			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, tempDesc, streamable)
 		} else {
 			// Close the connection here rather than below so we ensure we're not closing a connection that wasn't
