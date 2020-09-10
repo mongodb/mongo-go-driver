@@ -423,48 +423,54 @@ func (s Server) SupportsRetryWrites() bool {
 	return s.SessionTimeoutMinutes != 0 && s.Kind != Standalone
 }
 
-// ServerEqual compares two server descriptions and returns true if they are equal
-func ServerEqual(prev Server, current Server) bool {
-	// the rest of the fields are not used in sdam monitoring server descriptions
-	if prev.Addr.String() != current.Addr.String() {
+// Equal compares two server descriptions and returns true if they are equal
+func (s Server) Equal(other Server) bool {
+	if s.Addr.String() != other.Addr.String() {
 		return false
 	}
 
-	if len(prev.Arbiters) != len(current.Arbiters) ||
-		len(prev.Hosts) != len(current.Hosts) ||
-		len(prev.Passives) != len(current.Passives) {
+	if len(s.Arbiters) != len(other.Arbiters) ||
+		len(s.Hosts) != len(other.Hosts) ||
+		len(s.Passives) != len(other.Passives) {
 		return false
 	}
 
-	for idx, a := range prev.Arbiters {
-		if a != current.Arbiters[idx] {
+	if !sliceStringEqual(s.Arbiters, other.Arbiters) {
+		return false
+	}
+
+	if !sliceStringEqual(s.Hosts, other.Hosts) {
+		return false
+	}
+
+	if !sliceStringEqual(s.Passives, other.Passives) {
+		return false
+	}
+
+	if s.Primary != other.Primary {
+		return false
+	}
+
+	if s.SetName != other.SetName {
+		return false
+	}
+
+	if s.Kind != other.Kind {
+		return false
+	}
+
+	// the rest of the server fields are not used in sdam monitoring server descriptions and not compared
+	return true
+}
+
+func sliceStringEqual(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
 			return false
 		}
 	}
-
-	for idx, h := range prev.Hosts {
-		if h != current.Hosts[idx] {
-			return false
-		}
-	}
-
-	for idx, p := range prev.Passives {
-		if p != current.Passives[idx] {
-			return false
-		}
-	}
-
-	if prev.Primary != current.Primary {
-		return false
-	}
-
-	if prev.SetName != current.SetName {
-		return false
-	}
-
-	if prev.Kind != current.Kind {
-		return false
-	}
-
 	return true
 }

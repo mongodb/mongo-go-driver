@@ -35,7 +35,7 @@ type config struct {
 	cs                     connstring.ConnString // This must not be used for any logic in topology.Topology.
 	uri                    string
 	serverSelectionTimeout time.Duration
-	sdamMonitor            *event.SdamMonitor
+	serverMonitor          *event.ServerMonitor
 }
 
 func newConfig(opts ...Option) (*config, error) {
@@ -276,10 +276,10 @@ func WithServerSelectionTimeout(fn func(time.Duration) time.Duration) Option {
 	}
 }
 
-// WithTopologySdamMonitor configures the monitor for all SDAM events
-func WithTopologySdamMonitor(fn func(*event.SdamMonitor) *event.SdamMonitor) Option {
+// WithTopologyServerMonitor configures the monitor for all SDAM events
+func WithTopologyServerMonitor(fn func(*event.ServerMonitor) *event.ServerMonitor) Option {
 	return func(cfg *config) error {
-		cfg.sdamMonitor = fn(cfg.sdamMonitor)
+		cfg.serverMonitor = fn(cfg.serverMonitor)
 		return nil
 	}
 }

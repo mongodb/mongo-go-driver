@@ -96,38 +96,38 @@ type PoolMonitor struct {
 // ServerDescriptionChangedEvent represents a server description change.
 type ServerDescriptionChangedEvent struct {
 	Address             address.Address
-	ID                  primitive.ObjectID
+	TopologyID          primitive.ObjectID
 	PreviousDescription description.Server
 	NewDescription      description.Server
 }
 
 // ServerOpeningEvent is an event generated when the server is initialized.
 type ServerOpeningEvent struct {
-	Address address.Address
-	ID      primitive.ObjectID
+	Address    address.Address
+	TopologyID primitive.ObjectID
 }
 
 // ServerClosedEvent is an event generated when the server is closed.
 type ServerClosedEvent struct {
-	Address address.Address
-	ID      primitive.ObjectID
+	Address    address.Address
+	TopologyID primitive.ObjectID
 }
 
 // TopologyDescriptionChangedEvent represents a topology description change.
 type TopologyDescriptionChangedEvent struct {
-	ID                  primitive.ObjectID
+	TopologyID          primitive.ObjectID
 	PreviousDescription description.Topology
 	NewDescription      description.Topology
 }
 
 // TopologyOpeningEvent is an event generated when the topology is initialized.
 type TopologyOpeningEvent struct {
-	ID primitive.ObjectID
+	TopologyID primitive.ObjectID
 }
 
 // TopologyClosedEvent is an event generated when the topology is closed.
 type TopologyClosedEvent struct {
-	ID primitive.ObjectID
+	TopologyID primitive.ObjectID
 }
 
 // ServerHeartbeatStartedEvent is an event generated when the ismaster command is started.
@@ -152,8 +152,11 @@ type ServerHeartbeatFailedEvent struct {
 	Awaited      bool
 }
 
-// SdamMonitor represents a monitor that is triggered for different SDAM events.
-type SdamMonitor struct {
+// ServerMonitor represents a monitor that is triggered for different server events. The client
+// will monitor changes on the MongoDB deployment that it is connected to, and this monitor reports
+// the changes in the client's representation of the depoloyment. The topology represents the
+// overall deployment, and heartbeats are sent to individual servers to check their current status.
+type ServerMonitor struct {
 	ServerDescriptionChanged   func(*ServerDescriptionChangedEvent)
 	ServerOpening              func(*ServerOpeningEvent)
 	ServerClosed               func(*ServerClosedEvent)

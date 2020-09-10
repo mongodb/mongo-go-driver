@@ -225,7 +225,7 @@ func setUpTopology(t *testing.T, uri string, monitoring bool) *Topology {
 	cs, err := connstring.ParseAndValidate(uri)
 	assert.Nil(t, err, "Parse error: %v", err)
 
-	sdam := &event.SdamMonitor{
+	sdam := &event.ServerMonitor{
 		ServerDescriptionChanged:   serverDescriptionChanged,
 		ServerOpening:              serverOpening,
 		TopologyDescriptionChanged: topologyDescriptionChanged,
@@ -241,17 +241,16 @@ func setUpTopology(t *testing.T, uri string, monitoring bool) *Topology {
 		}),
 	}
 	if monitoring {
-		serverOpts = append(serverOpts, WithServerSdamMonitor(func(*event.SdamMonitor) *event.SdamMonitor { return sdam }))
+		serverOpts = append(serverOpts, WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }))
 	}
 	topo, err := New(
 		WithConnString(func(connstring.ConnString) connstring.ConnString {
 			return cs
 		}),
-		WithSeedList(func(...string) []string { return cs.Hosts }),
 		WithServerOptions(func(opts ...ServerOption) []ServerOption {
 			return append(opts, serverOpts...)
 		}),
-		WithTopologySdamMonitor(func(*event.SdamMonitor) *event.SdamMonitor {
+		WithTopologyServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 			if monitoring {
 				return sdam
 			}
@@ -495,54 +494,60 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 }
 
 func compareServerDescriptions(t *testing.T,
-	e serverDescription, a description.Server, idx int) {
-	assert.Equal(t, e.Address, a.Addr.String(),
-		"%v: expected server address %s, got %s", idx, e.Address, a.Addr)
+	expected serverDescription, actual description.Server, idx int) {
+	t.Helper()
 
-	assert.Equal(t, len(e.Hosts), len(a.Hosts),
-		"%v: expected %d hosts, got %d", idx, len(e.Hosts), len(a.Hosts))
-	for idx, eh := range e.Hosts {
-		ah := a.Hosts[idx]
-		assert.Equal(t, eh, string(ah), "%v: expected host %s, got %s", idx, eh, ah)
+	assert.Equal(t, expected.Address, actual.Addr.String(),
+		"%v: expected server address %s, got %s", idx, expected.Address, actual.Addr)
+
+	assert.Equal(t, len(expected.Hosts), len(actual.Hosts),
+		"%v: expected %d hosts, got %d", idx, len(expected.Hosts), len(actual.Hosts))
+	for idx, expectedHost := range expected.Hosts {
+		actualHost := actual.Hosts[idx]
+		assert.Equal(t, expectedHost, string(actualHost), "%v: expected host %s, got %s", idx, expectedHost, actualHost)
 	}
 
-	assert.Equal(t, len(e.Passives), len(a.Passives),
-		"%v: expected %d hosts, got %d", idx, len(e.Passives), len(a.Passives))
-	for idx, ep := range e.Passives {
-		ap := a.Passives[idx]
-		assert.Equal(t, ep, string(ap), "%v: expected passive %s, got %s", idx, ep, ap)
+	assert.Equal(t, len(expected.Passives), len(actual.Passives),
+		"%v: expected %d hosts, got %d", idx, len(expected.Passives), len(actual.Passives))
+	for idx, expectedPassive := range expected.Passives {
+		actualPassive := actual.Passives[idx]
+		assert.Equal(t, expectedPassive, string(actualPassive), "%v: expected passive %s, got %s", idx, expectedPassive, actualPassive)
 	}
 
-	assert.Equal(t, e.Primary, string(a.Primary),
-		"%v: expected primary %s, got %s", idx, e.Primary, a.Primary)
-	assert.Equal(t, e.SetName, a.SetName,
-		"%v: expected set name %s, got %s", idx, e.SetName, a.SetName)
+	assert.Equal(t, expected.Primary, string(actual.Primary),
+		"%v: expected primary %s, got %s", idx, expected.Primary, actual.Primary)
+	assert.Equal(t, expected.SetName, actual.SetName,
+		"%v: expected set name %s, got %s", idx, expected.SetName, actual.SetName)
 
 	// PossiblePrimary is only relevant to single-threaded drivers.
-	if e.Type == "PossiblePrimary" {
-		e.Type = "Unknown"
+	if expected.Type == "PossiblePrimary" {
+		expected.Type = "Unknown"
 	}
-	assert.Equal(t, e.Type, a.Kind.String(),
-		"%v: expected server kind %s, got %s", idx, e.Type, a.Kind.String())
+	assert.Equal(t, expected.Type, actual.Kind.String(),
+		"%v: expected server kind %s, got %s", idx, expected.Type, actual.Kind.String())
 }
 
 func compareTopologyDescriptions(t *testing.T,
-	e topologyDescription, a description.Topology, idx int) {
-	assert.Equal(t, e.TopologyType, a.Kind.String(),
-		"%v: expected topology kind %s, got %s", idx, e.TopologyType, a.Kind.String())
-	assert.Equal(t, len(e.Servers), len(a.Servers),
-		"%v: expected %d servers, got %d", idx, len(e.Servers), len(a.Servers))
+	expected topologyDescription, actual description.Topology, idx int) {
+	t.Helper()
 
-	for idx, es := range e.Servers {
-		as := a.Servers[idx]
+	assert.Equal(t, expected.TopologyType, actual.Kind.String(),
+		"%v: expected topology kind %s, got %s", idx, expected.TopologyType, actual.Kind.String())
+	assert.Equal(t, len(expected.Servers), len(actual.Servers),
+		"%v: expected %d servers, got %d", idx, len(expected.Servers), len(actual.Servers))
+
+	for idx, es := range expected.Servers {
+		as := actual.Servers[idx]
 		compareServerDescriptions(t, es, as, idx)
 	}
 
-	assert.Equal(t, e.SetName, a.SetName,
-		"%v: expected set name %s, got %s", idx, e.SetName, a.SetName)
+	assert.Equal(t, expected.SetName, actual.SetName,
+		"%v: expected set name %s, got %s", idx, expected.SetName, actual.SetName)
 }
 
 func compareEvents(t *testing.T, events []monitoringEvent) {
+	t.Helper()
+
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -554,7 +559,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 		if me.TopologyOpeningEvent != nil {
 			actual, ok := publishedEvents[idx].(event.TopologyOpeningEvent)
 			assert.True(t, ok, "%v: expected type %T, got %T", idx, event.TopologyOpeningEvent{}, publishedEvents[idx])
-			assert.False(t, primitive.ObjectID(actual.ID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
 		}
 		if me.ServerOpeningEvent != nil {
 			actual, ok := publishedEvents[idx].(event.ServerOpeningEvent)
@@ -563,7 +568,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 			evt := me.ServerOpeningEvent
 			assert.Equal(t, evt.Address, string(actual.Address),
 				"%v: expected address %s, got %s", idx, evt.Address, actual.Address)
-			assert.False(t, primitive.ObjectID(actual.ID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
 		}
 		if me.TopologyDescriptionChangedEvent != nil {
 			actual, ok := publishedEvents[idx].(event.TopologyDescriptionChangedEvent)
@@ -572,7 +577,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 			evt := me.TopologyDescriptionChangedEvent
 			compareTopologyDescriptions(t, evt.PreviousDescription, actual.PreviousDescription, idx)
 			compareTopologyDescriptions(t, evt.NewDescription, actual.NewDescription, idx)
-			assert.False(t, primitive.ObjectID(actual.ID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
 		}
 		if me.ServerDescriptionChangedEvent != nil {
 			actual, ok := publishedEvents[idx].(event.ServerDescriptionChangedEvent)
@@ -583,7 +588,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 				"%v: expected server address %s, got %s", idx, evt.Address, actual.Address)
 			compareServerDescriptions(t, evt.PreviousDescription, actual.PreviousDescription, idx)
 			compareServerDescriptions(t, evt.NewDescription, actual.NewDescription, idx)
-			assert.False(t, primitive.ObjectID(actual.ID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
 		}
 		if me.ServerClosedEvent != nil {
 			actual, ok := publishedEvents[idx].(event.ServerClosedEvent)
@@ -592,7 +597,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 			evt := me.ServerClosedEvent
 			assert.Equal(t, evt.Address, string(actual.Address),
 				"%v: expected server address %s, got %s", idx, evt.Address, actual.Address)
-			assert.False(t, primitive.ObjectID(actual.ID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
 		}
 	}
 }

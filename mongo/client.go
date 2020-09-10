@@ -62,7 +62,7 @@ type Client struct {
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
 	monitor         *event.CommandMonitor
-	sdamMonitor     *event.SdamMonitor
+	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
 
 	// client-side encryption fields
@@ -495,17 +495,17 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			func(*event.CommandMonitor) *event.CommandMonitor { return opts.Monitor },
 		))
 	}
-	// SdamMonitor
-	if opts.SdamMonitor != nil {
-		c.sdamMonitor = opts.SdamMonitor
+	// ServerMonitor
+	if opts.ServerMonitor != nil {
+		c.serverMonitor = opts.ServerMonitor
 		serverOpts = append(
 			serverOpts,
-			topology.WithServerSdamMonitor(func(*event.SdamMonitor) *event.SdamMonitor { return opts.SdamMonitor }),
+			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return opts.ServerMonitor }),
 		)
 
 		topologyOpts = append(
 			topologyOpts,
-			topology.WithTopologySdamMonitor(func(*event.SdamMonitor) *event.SdamMonitor { return opts.SdamMonitor }),
+			topology.WithTopologyServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return opts.ServerMonitor }),
 		)
 	}
 	// ReadConcern

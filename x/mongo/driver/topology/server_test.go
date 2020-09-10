@@ -327,7 +327,7 @@ func TestServer(t *testing.T) {
 			publishedEvents = append(publishedEvents, *e)
 		}
 
-		sdam := &event.SdamMonitor{
+		sdam := &event.ServerMonitor{
 			ServerHeartbeatStarted:   serverHeartbeatStarted,
 			ServerHeartbeatSucceeded: serverHeartbeatSucceeded,
 			ServerHeartbeatFailed:    serverHeartbeatFailed,
@@ -343,7 +343,7 @@ func TestServer(t *testing.T) {
 				return append(connOpts, dialerOpt)
 			}),
 			withMonitoringDisabled(func(bool) bool { return true }),
-			WithServerSdamMonitor(func(*event.SdamMonitor) *event.SdamMonitor { return sdam }),
+			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }),
 		}
 
 		s, err := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpts...)

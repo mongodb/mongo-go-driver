@@ -238,10 +238,10 @@ func TestClient(t *testing.T) {
 		client := setupClient(options.Client().SetWriteConcern(wc))
 		assert.Equal(t, wc, client.writeConcern, "mismatch; expected write concern %v, got %v", wc, client.writeConcern)
 	})
-	t.Run("sdam monitor", func(t *testing.T) {
-		sdam := &event.SdamMonitor{}
-		client := setupClient(options.Client().SetSdamMonitor(sdam))
-		assert.Equal(t, sdam, client.sdamMonitor, "expected sdam monitor %v, got %v", sdam, client.sdamMonitor)
+	t.Run("server monitor", func(t *testing.T) {
+		monitor := &event.ServerMonitor{}
+		client := setupClient(options.Client().SetServerMonitor(monitor))
+		assert.Equal(t, monitor, client.serverMonitor, "expected sdam monitor %v, got %v", monitor, client.serverMonitor)
 	})
 	t.Run("GetURI", func(t *testing.T) {
 		t.Run("ApplyURI not called", func(t *testing.T) {

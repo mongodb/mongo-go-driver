@@ -108,7 +108,7 @@ type ClientOptions struct {
 	MinPoolSize              *uint64
 	PoolMonitor              *event.PoolMonitor
 	Monitor                  *event.CommandMonitor
-	SdamMonitor              *event.SdamMonitor
+	ServerMonitor            *event.ServerMonitor
 	ReadConcern              *readconcern.ReadConcern
 	ReadPreference           *readpref.ReadPref
 	Registry                 *bsoncodec.Registry
@@ -519,9 +519,9 @@ func (c *ClientOptions) SetMonitor(m *event.CommandMonitor) *ClientOptions {
 	return c
 }
 
-// SetSdamMonitor specifies an SDAM monitor used to monitor SDAM events.
-func (c *ClientOptions) SetSdamMonitor(m *event.SdamMonitor) *ClientOptions {
-	c.SdamMonitor = m
+// SetServerMonitor specifies an SDAM monitor used to monitor SDAM events.
+func (c *ClientOptions) SetServerMonitor(m *event.ServerMonitor) *ClientOptions {
+	c.ServerMonitor = m
 	return c
 }
 
@@ -757,8 +757,8 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.Monitor != nil {
 			c.Monitor = opt.Monitor
 		}
-		if opt.SdamMonitor != nil {
-			c.SdamMonitor = opt.SdamMonitor
+		if opt.ServerMonitor != nil {
+			c.ServerMonitor = opt.ServerMonitor
 		}
 		if opt.ReadConcern != nil {
 			c.ReadConcern = opt.ReadConcern

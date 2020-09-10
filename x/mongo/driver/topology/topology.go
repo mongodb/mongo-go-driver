@@ -148,9 +148,9 @@ func (t *Topology) Connect() error {
 		return ErrTopologyConnected
 	}
 
+	t.desc.Store(description.Topology{})
 	var err error
 	t.serversLock.Lock()
-	prev := t.desc.Load().(description.Topology)
 
 	// A replica set name sets the initial topology type to ReplicaSetNoPrimary unless a direct connection is also
 	// specified, in which case the initial type is Single.
@@ -169,14 +169,14 @@ func (t *Topology) Connect() error {
 		t.fsm.Servers = append(t.fsm.Servers, description.NewDefaultServer(addr))
 	}
 
-	//store new description
+	// store new description
 	newDesc := description.Topology{
 		Kind:                  t.fsm.Kind,
 		Servers:               t.fsm.Servers,
 		SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 	}
 	t.desc.Store(newDesc)
-	t.publishTopologyDescriptionChangedEvent(prev, t.fsm.Topology)
+	t.publishTopologyDescriptionChangedEvent(description.Topology{}, t.fsm.Topology)
 	for _, a := range t.cfg.seedList {
 		addr := address.Address(a).Canonicalize()
 		err = t.addServer(addr)
@@ -598,7 +598,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 	}
 	t.desc.Store(newDesc)
 
-	if !description.TopologyEqual(prev, newDesc) {
+	if !prev.Equal(newDesc) {
 		t.publishTopologyDescriptionChangedEvent(prev, newDesc)
 	}
 
@@ -641,8 +641,8 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 		return desc
 	}
 
-	if !description.ServerEqual(oldDesc, desc) {
-		t.servers[desc.Addr].publishServerDescriptionChangedEvent(&oldDesc, &desc)
+	if !oldDesc.Equal(desc) {
+		t.publishServerDescriptionChangedEvent(oldDesc, desc)
 	}
 
 	diff := description.DiffTopology(prev, current)
@@ -664,7 +664,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	}
 
 	t.desc.Store(current)
-	if !description.TopologyEqual(prev, current) {
+	if !prev.Equal(current) {
 		t.publishTopologyDescriptionChangedEvent(prev, current)
 	}
 
@@ -710,52 +710,63 @@ func (t *Topology) String() string {
 	return fmt.Sprintf("Type: %s, Servers: [%s]", desc.Kind, serversStr)
 }
 
+// publishes a ServerDescriptionChangedEvent to indicate the server description has changed
+func (t *Topology) publishServerDescriptionChangedEvent(prev description.Server, current description.Server) {
+	serverDescriptionChanged := &event.ServerDescriptionChangedEvent{
+		Address:             current.Addr,
+		TopologyID:          t.id,
+		PreviousDescription: prev,
+		NewDescription:      current,
+	}
+
+	if t.cfg.serverMonitor != nil && t.cfg.serverMonitor.ServerDescriptionChanged != nil {
+		t.cfg.serverMonitor.ServerDescriptionChanged(serverDescriptionChanged)
+	}
+}
+
 // publishes a ServerClosedEvent to indicate the server has closed
 func (t *Topology) publishServerClosedEvent(addr address.Address) {
 	serverClosed := &event.ServerClosedEvent{
-		Address: addr,
-		ID:      t.id,
+		Address:    addr,
+		TopologyID: t.id,
 	}
 
-	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.ServerClosed != nil {
-		t.cfg.sdamMonitor.ServerClosed(serverClosed)
+	if t.cfg.serverMonitor != nil && t.cfg.serverMonitor.ServerClosed != nil {
+		t.cfg.serverMonitor.ServerClosed(serverClosed)
 	}
 }
 
 // publishes a TopologyDescriptionChangedEvent to indicate the topology description has changed
 func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topology, current description.Topology) {
 	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
-		ID:                  t.id,
+		TopologyID:          t.id,
 		PreviousDescription: prev,
 		NewDescription:      current,
 	}
 
-	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyDescriptionChanged != nil {
-		sdam := t.cfg.sdamMonitor
-		sdam.TopologyDescriptionChanged(topologyDescriptionChanged)
+	if t.cfg.serverMonitor != nil && t.cfg.serverMonitor.TopologyDescriptionChanged != nil {
+		t.cfg.serverMonitor.TopologyDescriptionChanged(topologyDescriptionChanged)
 	}
 }
 
 // publishes a TopologyOpeningEvent to indicate the topology is being initialized
 func (t *Topology) publishTopologyOpeningEvent() {
 	topologyOpening := &event.TopologyOpeningEvent{
-		ID: t.id,
+		TopologyID: t.id,
 	}
 
-	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyOpening != nil {
-		sdam := t.cfg.sdamMonitor
-		sdam.TopologyOpening(topologyOpening)
+	if t.cfg.serverMonitor != nil && t.cfg.serverMonitor.TopologyOpening != nil {
+		t.cfg.serverMonitor.TopologyOpening(topologyOpening)
 	}
 }
 
 // publishes a TopologyClosedEvent to indicate the topology has been closed
 func (t *Topology) publishTopologyClosedEvent() {
 	topologyClosed := &event.TopologyClosedEvent{
-		ID: t.id,
+		TopologyID: t.id,
 	}
 
-	if t.cfg.sdamMonitor != nil && t.cfg.sdamMonitor.TopologyClosed != nil {
-		sdam := t.cfg.sdamMonitor
-		sdam.TopologyClosed(topologyClosed)
+	if t.cfg.serverMonitor != nil && t.cfg.serverMonitor.TopologyClosed != nil {
+		t.cfg.serverMonitor.TopologyClosed(topologyClosed)
 	}
 }

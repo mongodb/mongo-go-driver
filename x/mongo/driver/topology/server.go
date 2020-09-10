@@ -648,6 +648,7 @@ func (s *Server) check() (description.Server, error) {
 			s.rttMonitor.addSample(s.conn.isMasterRTT)
 			descPtr = &s.conn.desc
 		}
+		duration = int64(s.conn.isMasterRTT)
 	}
 
 	if descPtr == nil && err == nil {
@@ -659,9 +660,10 @@ func (s *Server) check() (description.Server, error) {
 		previousDescription := s.Description()
 		streamable := previousDescription.TopologyVersion != nil
 
+		s.publishServerHeartbeatStartedEvent(s.conn.ID(), false)
+		start := time.Now()
 		switch {
 		case s.conn.getCurrentlyStreaming():
-
 			// The connection is already in a streaming state, so we stream the next response.
 			err = baseOperation.StreamResponse(s.heartbeatCtx, heartbeatConn)
 		case streamable:
@@ -683,31 +685,20 @@ func (s *Server) check() (description.Server, error) {
 				MaxAwaitTimeMS(maxAwaitTimeMS)
 			s.conn.setCanStream(true)
 
-			s.publishServerHeartbeatStartedEvent(s.conn.ID(), true)
-			start := time.Now()
-
 			err = baseOperation.Execute(s.heartbeatCtx)
-
-			end := time.Now()
-			duration = int64(end.Sub(start))
 		default:
 			// The server doesn't support the awaitable protocol. Set the socket timeout to connectTimeoutMS and
 			// execute a regular heartbeat without any additional parameters.
 
 			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout)
 
-			s.publishServerHeartbeatStartedEvent(s.conn.ID(), false)
-			start := time.Now()
-
 			err = baseOperation.Execute(s.heartbeatCtx)
-
-			end := time.Now()
-			duration = int64(end.Sub(start))
 		}
+		duration = int64(time.Since(start))
+
 		if err == nil {
 			tempDesc := baseOperation.Result(s.address)
-			descPtr = &tempDesc
-			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, descPtr, streamable)
+			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, tempDesc, streamable)
 		} else {
 			// Close the connection here rather than below so we ensure we're not closing a connection that wasn't
 			// successfully created.
@@ -803,65 +794,45 @@ func (ss *ServerSubscription) Unsubscribe() error {
 	return nil
 }
 
-// publishes a ServerDescriptionChangedEvent to indicate the server description has changed
-func (s *Server) publishServerDescriptionChangedEvent(prev *description.Server, current *description.Server) {
-	if s == nil || s.cfg.sdamMonitor == nil || s.cfg.sdamMonitor.ServerDescriptionChanged == nil {
-		return
-	}
-
-	serverDescriptionChanged := &event.ServerDescriptionChangedEvent{
-		Address:             s.address,
-		ID:                  s.topologyID,
-		PreviousDescription: *prev,
-		NewDescription:      *current,
-	}
-
-	s.cfg.sdamMonitor.ServerDescriptionChanged(serverDescriptionChanged)
-}
-
 // publishes a ServerOpeningEvent to indicate the server is being initialized
 func (s *Server) publishServerOpeningEvent(addr address.Address) {
-	if s == nil || s.cfg.sdamMonitor == nil || s.cfg.sdamMonitor.ServerOpening == nil {
-		return
-	}
 	serverOpening := &event.ServerOpeningEvent{
-		Address: addr,
-		ID:      s.topologyID,
+		Address:    addr,
+		TopologyID: s.topologyID,
 	}
 
-	s.cfg.sdamMonitor.ServerOpening(serverOpening)
+	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerOpening != nil {
+		s.cfg.serverMonitor.ServerOpening(serverOpening)
+	}
 }
 
 // publishes a ServerHeartbeatStartedEvent to indicate an ismaster command has started
 func (s *Server) publishServerHeartbeatStartedEvent(connectionID string, await bool) {
-	if s == nil || s.cfg.sdamMonitor == nil || s.cfg.sdamMonitor.ServerHeartbeatStarted == nil {
-		return
-	}
 	serverHeartbeatStarted := &event.ServerHeartbeatStartedEvent{
 		ConnectionID: connectionID,
 		Awaited:      await,
 	}
 
-	s.cfg.sdamMonitor.ServerHeartbeatStarted(serverHeartbeatStarted)
+	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatStarted != nil {
+		s.cfg.serverMonitor.ServerHeartbeatStarted(serverHeartbeatStarted)
+	}
 }
 
 // publishes a ServerHeartbeatSucceededEvent to indicate ismaster has succeeded
 func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	duration int64,
-	desc *description.Server,
+	desc description.Server,
 	await bool) {
-	if s == nil || s.cfg.sdamMonitor == nil || s.cfg.sdamMonitor.ServerHeartbeatSucceeded == nil {
-		return
-	}
-
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
 		Duration:     duration,
-		Reply:        *desc,
+		Reply:        desc,
 		ConnectionID: connectionID,
 		Awaited:      await,
 	}
 
-	s.cfg.sdamMonitor.ServerHeartbeatSucceeded(serverHeartbeatSucceeded)
+	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatSucceeded != nil {
+		s.cfg.serverMonitor.ServerHeartbeatSucceeded(serverHeartbeatSucceeded)
+	}
 }
 
 // publishes a ServerHeartbeatFailedEvent to indicate ismaster has failed
@@ -869,9 +840,6 @@ func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 	duration int64,
 	err error,
 	await bool) {
-	if s == nil || s.cfg.sdamMonitor == nil || s.cfg.sdamMonitor.ServerHeartbeatFailed == nil {
-		return
-	}
 	serverHeartbeatFailed := &event.ServerHeartbeatFailedEvent{
 		Duration:     duration,
 		Reply:        err,
@@ -879,7 +847,9 @@ func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 		Awaited:      await,
 	}
 
-	s.cfg.sdamMonitor.ServerHeartbeatFailed(serverHeartbeatFailed)
+	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatFailed != nil {
+		s.cfg.serverMonitor.ServerHeartbeatFailed(serverHeartbeatFailed)
+	}
 }
 
 // unwrapConnectionError returns the connection error wrapped by err, or nil if err does not wrap a connection error.

@@ -106,36 +106,36 @@ func (t Topology) String() string {
 	return fmt.Sprintf("Type: %s, Servers: [%s]", t.Kind, serversStr)
 }
 
-// TopologyEqual compares two topology descriptions and returns true if they are equal
-func TopologyEqual(prev Topology, current Topology) bool {
+// Equal compares two topology descriptions and returns true if they are equal
+func (t Topology) Equal(other Topology) bool {
 
-	diff := DiffTopology(prev, current)
+	diff := DiffTopology(t, other)
 	if len(diff.Added) != 0 || len(diff.Removed) != 0 {
 		return false
 	}
 
-	if prev.Kind != current.Kind {
+	if t.Kind != other.Kind {
 		return false
 	}
 
-	oldServers := make(map[string]Server)
-	for _, s := range prev.Servers {
-		oldServers[s.Addr.String()] = s
+	topoServers := make(map[string]Server)
+	for _, s := range t.Servers {
+		topoServers[s.Addr.String()] = s
 	}
 
-	newServers := make(map[string]Server)
-	for _, s := range current.Servers {
-		newServers[s.Addr.String()] = s
+	otherServers := make(map[string]Server)
+	for _, s := range other.Servers {
+		otherServers[s.Addr.String()] = s
 	}
 
-	if len(oldServers) != len(newServers) {
+	if len(topoServers) != len(otherServers) {
 		return false
 	}
 
-	for _, old := range oldServers {
-		new := newServers[old.Addr.String()]
+	for _, server := range topoServers {
+		otherServer := otherServers[server.Addr.String()]
 
-		if !ServerEqual(old, new) {
+		if !server.Equal(otherServer) {
 			return false
 		}
 	}
@@ -144,8 +144,9 @@ func TopologyEqual(prev Topology, current Topology) bool {
 }
 
 // HasReadableServer returns true if a topology has a server available for reading
-// based on the specified read preference.
-func (t *Topology) HasReadableServer(mode readpref.Mode) bool {
+// based on the specified read preference. Single and sharded topologies require an
+// available server, while replica sets require an available serve of the right kind.
+func (t Topology) HasReadableServer(mode readpref.Mode) bool {
 	switch t.Kind {
 	case Single, Sharded:
 		return hasAvailableServer(t.Servers, 0)
@@ -156,7 +157,7 @@ func (t *Topology) HasReadableServer(mode readpref.Mode) bool {
 			return false
 		}
 		// invalid read preference
-		if mode > readpref.NearestMode || mode < readpref.PrimaryMode {
+		if !mode.IsValid() {
 			return false
 		}
 
@@ -166,7 +167,7 @@ func (t *Topology) HasReadableServer(mode readpref.Mode) bool {
 }
 
 // HasWritableServer returns true if a topology has a server available for writing
-func (t *Topology) HasWritableServer() bool {
+func (t Topology) HasWritableServer() bool {
 	switch t.Kind {
 	case ReplicaSetWithPrimary:
 		return true
