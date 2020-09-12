@@ -55,6 +55,7 @@ type aggregateParams struct {
 	writeSelector  description.ServerSelector
 	readPreference *readpref.ReadPref
 	opts           []*options.AggregateOptions
+	dbClient       *Database
 }
 
 func closeImplicitSession(sess *session.Client) {
@@ -714,6 +715,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		writeSelector:  coll.writeSelector,
 		readPreference: coll.readPreference,
 		opts:           opts,
+		dbClient:       coll.db,
 	}
 	return aggregate(a)
 }
@@ -754,6 +756,13 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		closeImplicitSession(sess)
 		sess = nil
 	}
+
+	newReadSelector, rp := makeReadPref(sess, a.dbClient, a.readPreference)
+	// refresh query read preference. read statement in the transaction is executed in the primary.
+	// otherwise use user config.
+	a.readSelector = newReadSelector
+	sess.CurrentRp = rp
+	a.readPreference = rp
 
 	selector := makePinnedSelector(sess, a.writeSelector)
 	if !hasOutputStage {
@@ -874,6 +883,13 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
+	newReadSelector, rp := makeReadPref(sess, coll.db, coll.readPreference)
+	// refresh query read preference. read statement in the transaction is executed in the primary.
+	// otherwise use user config.
+	coll.readSelector = newReadSelector
+	sess.CurrentRp = rp
+	coll.readPreference = rp
+
 	rc := coll.readConcern
 	if sess.TransactionRunning() {
 		rc = nil
@@ -955,6 +971,13 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		return 0, err
 	}
 
+	newReadSelector, rp := makeReadPref(sess, coll.db, coll.readPreference)
+	// refresh query read preference. read statement in the transaction is executed in the primary.
+	// otherwise use user config.
+	coll.readSelector = newReadSelector
+	sess.CurrentRp = rp
+	coll.readPreference = rp
+
 	rc := coll.readConcern
 	if sess.TransactionRunning() {
 		rc = nil
@@ -1017,6 +1040,13 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	if err != nil {
 		return nil, err
 	}
+
+	newReadSelector, rp := makeReadPref(sess, coll.db, coll.readPreference)
+	// refresh query read preference. read statement in the transaction is executed in the primary.
+	// otherwise use user config.
+	coll.readSelector = newReadSelector
+	sess.CurrentRp = rp
+	coll.readPreference = rp
 
 	rc := coll.readConcern
 	if sess.TransactionRunning() {
@@ -1106,6 +1136,13 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		closeImplicitSession(sess)
 		return nil, err
 	}
+
+	newReadSelector, rp := makeReadPref(sess, coll.db, coll.readPreference)
+	// refresh query read preference. read statement in the transaction is executed in the primary.
+	// otherwise use user config.
+	coll.readSelector = newReadSelector
+	sess.CurrentRp = rp
+	coll.readPreference = rp
 
 	rc := coll.readConcern
 	if sess.TransactionRunning() {
@@ -1649,4 +1686,32 @@ func makeReadPrefSelector(sess *session.Client, selector description.ServerSelec
 	}
 
 	return makePinnedSelector(sess, selector)
+}
+
+// makeReadPref According to whether the connection is reset in the transaction, the ReadPreference of the connection is
+// selected to be executed, and the read statement in the transaction is executed in the primary
+// 根据连接是否在事务中重新设置选择执行连接的ReadPreference, 让事务内的读语句在primary 中执行
+func makeReadPref(sess *session.Client, db *Database, rp *readpref.ReadPref) (readSelector description.ServerSelector, newRP *readpref.ReadPref) {
+	if sess.TransactionRunning() {
+		if rp != nil {
+			newRP = readpref.Primary()
+		}
+		readSelector = description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(readpref.Primary()),
+			description.LatencySelector(db.client.localThreshold),
+		})
+	} else {
+		if rp != nil {
+			newRP = rp
+		}
+		if newRP == nil {
+			newRP = db.readPreference
+		}
+		readSelector = description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(newRP),
+			description.LatencySelector(db.client.localThreshold),
+		})
+	}
+
+	return
 }
