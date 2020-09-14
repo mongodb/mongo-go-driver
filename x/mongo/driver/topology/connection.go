@@ -36,7 +36,6 @@ type connection struct {
 	addr                 address.Address
 	idleTimeout          time.Duration
 	idleDeadline         atomic.Value // Stores a time.Time
-	lifetimeDeadline     time.Time
 	readTimeout          time.Duration
 	writeTimeout         time.Duration
 	desc                 description.Server
@@ -68,18 +67,12 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 		return nil, err
 	}
 
-	var lifetimeDeadline time.Time
-	if cfg.lifeTimeout > 0 {
-		lifetimeDeadline = time.Now().Add(cfg.lifeTimeout)
-	}
-
 	id := fmt.Sprintf("%s[-%d]", addr, nextConnectionID())
 
 	c := &connection{
 		id:                 id,
 		addr:               addr,
 		idleTimeout:        cfg.idleTimeout,
-		lifetimeDeadline:   lifetimeDeadline,
 		readTimeout:        cfg.readTimeout,
 		writeTimeout:       cfg.writeTimeout,
 		connectDone:        make(chan struct{}),
@@ -383,9 +376,6 @@ func (c *connection) idleTimeoutExpired() bool {
 		}
 	}
 
-	if !c.lifetimeDeadline.IsZero() && now.After(c.lifetimeDeadline) {
-		return true
-	}
 	return false
 }
 

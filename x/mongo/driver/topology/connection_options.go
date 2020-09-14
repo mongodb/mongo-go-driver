@@ -41,7 +41,6 @@ type connectionConfig struct {
 	dialer                   Dialer
 	handshaker               Handshaker
 	idleTimeout              time.Duration
-	lifeTimeout              time.Duration
 	cmdMonitor               *event.CommandMonitor
 	readTimeout              time.Duration
 	writeTimeout             time.Duration
@@ -59,7 +58,6 @@ func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 	cfg := &connectionConfig{
 		connectTimeout:      30 * time.Second,
 		dialer:              nil,
-		lifeTimeout:         30 * time.Minute,
 		tlsConnectionSource: defaultTLSConnectionSource,
 	}
 
@@ -132,14 +130,6 @@ func WithHandshaker(fn func(Handshaker) Handshaker) ConnectionOption {
 func WithIdleTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.idleTimeout = fn(c.idleTimeout)
-		return nil
-	}
-}
-
-// WithLifeTimeout configures the maximum life of a connection.
-func WithLifeTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
-	return func(c *connectionConfig) error {
-		c.lifeTimeout = fn(c.lifeTimeout)
 		return nil
 	}
 }
