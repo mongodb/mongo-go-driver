@@ -221,7 +221,7 @@ func (r *response) UnmarshalBSON(buf []byte) error {
 	return nil
 }
 
-func setUpTopology(t *testing.T, uri string, monitoring bool) *Topology {
+func setUpTopology(t *testing.T, uri string) *Topology {
 	cs, err := connstring.ParseAndValidate(uri)
 	assert.Nil(t, err, "Parse error: %v", err)
 
@@ -239,9 +239,7 @@ func setUpTopology(t *testing.T, uri string, monitoring bool) *Topology {
 		withMonitoringDisabled(func(bool) bool {
 			return true
 		}),
-	}
-	if monitoring {
-		serverOpts = append(serverOpts, WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }))
+		WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }),
 	}
 	topo, err := New(
 		WithConnString(func(connstring.ConnString) connstring.ConnString {
@@ -251,10 +249,7 @@ func setUpTopology(t *testing.T, uri string, monitoring bool) *Topology {
 			return append(opts, serverOpts...)
 		}),
 		WithTopologyServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
-			if monitoring {
-				return sdam
-			}
-			return nil
+			return sdam
 		}),
 	)
 	assert.Nil(t, err, "topology.New error: %v", err)
@@ -610,13 +605,12 @@ func runTest(t *testing.T, directory string, filename string) {
 	// Remove ".json" from filename.
 	filename = filename[:len(filename)-5]
 	testName := directory + "/" + filename + ":"
-	monitoring := directory == "monitoring"
 
 	t.Run(testName, func(t *testing.T) {
 		var test testCase
 		err = bson.UnmarshalExtJSON(content, false, &test)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
-		topo := setUpTopology(t, test.URI, monitoring)
+		topo := setUpTopology(t, test.URI)
 		sub, err := topo.Subscribe()
 		assert.Nil(t, err, "subscribe error: %v", err)
 
@@ -624,11 +618,12 @@ func runTest(t *testing.T, directory string, filename string) {
 			applyResponses(t, topo, phase.Responses, sub)
 			applyErrors(t, topo, phase.ApplicationErrors)
 
-			if monitoring {
+			if phase.Outcome.Events != nil {
 				compareEvents(t, phase.Outcome.Events)
 				publishedEvents = nil
 				continue
 			}
+			publishedEvents = nil
 			if phase.Outcome.Compatible == nil || *phase.Outcome.Compatible {
 				assert.True(t, topo.fsm.compatible.Load().(bool), "Expected servers to be compatible")
 				assert.Nil(t, topo.fsm.compatibilityErr, "expected fsm.compatiblity to be nil, got %v",

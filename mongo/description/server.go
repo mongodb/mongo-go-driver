@@ -425,7 +425,7 @@ func (s Server) SupportsRetryWrites() bool {
 
 // Equal compares two server descriptions and returns true if they are equal
 func (s Server) Equal(other Server) bool {
-	if s.Addr.String() != other.Addr.String() {
+	if s.CanonicalAddr.String() != other.CanonicalAddr.String() {
 		return false
 	}
 
@@ -459,7 +459,34 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	// the rest of the server fields are not used in sdam monitoring server descriptions and not compared
+	if s.LastError != other.LastError {
+		return false
+	}
+
+	if !s.WireVersion.Equals(other.WireVersion) {
+		return false
+	}
+
+	if len(s.Tags) != len(other.Tags) || !s.Tags.ContainsAll(other.Tags) {
+		return false
+	}
+
+	if s.SetVersion != other.SetVersion {
+		return false
+	}
+
+	if s.ElectionID != other.ElectionID {
+		return false
+	}
+
+	if s.SessionTimeoutMinutes != other.SessionTimeoutMinutes {
+		return false
+	}
+
+	if s.TopologyVersion != other.TopologyVersion && CompareTopologyVersion(s.TopologyVersion, other.TopologyVersion) != 0 {
+		return false
+	}
+
 	return true
 }
 

@@ -73,7 +73,7 @@ func (mode Mode) String() string {
 	}
 }
 
-// IsValid checks whether the mode is invalid.
+// IsValid checks whether the mode is valid.
 func (mode Mode) IsValid() bool {
 	switch mode {
 	case PrimaryMode,
@@ -81,9 +81,8 @@ func (mode Mode) IsValid() bool {
 		SecondaryMode,
 		SecondaryPreferredMode,
 		NearestMode:
+		return true
 	default:
 		return false
 	}
-
-	return true
 }

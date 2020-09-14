@@ -144,8 +144,9 @@ func (t Topology) Equal(other Topology) bool {
 }
 
 // HasReadableServer returns true if a topology has a server available for reading
-// based on the specified read preference. Single and sharded topologies require an
-// available server, while replica sets require an available serve of the right kind.
+// based on the specified read preference. Single and sharded topologies only require an
+// available server, while replica sets require an available server that has a kind
+// compatible with the given read preference mode.
 func (t Topology) HasReadableServer(mode readpref.Mode) bool {
 	switch t.Kind {
 	case Single, Sharded:
@@ -168,13 +169,7 @@ func (t Topology) HasReadableServer(mode readpref.Mode) bool {
 
 // HasWritableServer returns true if a topology has a server available for writing
 func (t Topology) HasWritableServer() bool {
-	switch t.Kind {
-	case ReplicaSetWithPrimary:
-		return true
-	case Single, Sharded:
-		return hasAvailableServer(t.Servers, 0)
-	}
-	return false
+	return t.HasReadableServer(readpref.PrimaryMode)
 }
 
 // hasAvailableServer returns true if any servers are available based on

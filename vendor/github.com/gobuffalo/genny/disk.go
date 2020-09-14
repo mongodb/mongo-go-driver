@@ -55,7 +55,7 @@ func newDisk(r *Runner) *Disk {
 func (d *Disk) Remove(name string) {
 	d.moot.Lock()
 	defer d.moot.Unlock()
-	for f := range d.files {
+	for f, _ := range d.files {
 		if strings.HasPrefix(f, name) {
 			delete(d.files, f)
 		}

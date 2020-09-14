@@ -636,7 +636,7 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.IsMaster
 func (s *Server) check() (description.Server, error) {
 	var descPtr *description.Server
 	var err error
-	var duration int64
+	var durationNanos int64
 
 	// Create a new connection if this is the first check, the connection was closed after an error during the previous
 	// check, or the previous check was cancelled.
@@ -647,7 +647,7 @@ func (s *Server) check() (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.isMasterRTT)
 			descPtr = &s.conn.desc
-			duration = int64(s.conn.isMasterRTT)
+			durationNanos = s.conn.isMasterRTT.Nanoseconds()
 		}
 	}
 
@@ -664,7 +664,6 @@ func (s *Server) check() (description.Server, error) {
 		start := time.Now()
 		switch {
 		case s.conn.getCurrentlyStreaming():
-
 			// The connection is already in a streaming state, so we stream the next response.
 			err = baseOperation.StreamResponse(s.heartbeatCtx, heartbeatConn)
 		case streamable:
@@ -685,7 +684,6 @@ func (s *Server) check() (description.Server, error) {
 			baseOperation = baseOperation.TopologyVersion(previousDescription.TopologyVersion).
 				MaxAwaitTimeMS(maxAwaitTimeMS)
 			s.conn.setCanStream(true)
-
 			err = baseOperation.Execute(s.heartbeatCtx)
 		default:
 			// The server doesn't support the awaitable protocol. Set the socket timeout to connectTimeoutMS and
@@ -695,19 +693,19 @@ func (s *Server) check() (description.Server, error) {
 
 			err = baseOperation.Execute(s.heartbeatCtx)
 		}
-		duration = int64(time.Since(start))
+		durationNanos = time.Since(start).Nanoseconds()
 
 		if err == nil {
 			tempDesc := baseOperation.Result(s.address)
 			descPtr = &tempDesc
-			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, tempDesc, streamable)
+			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), durationNanos, tempDesc, s.conn.getCurrentlyStreaming() || streamable)
 		} else {
 			// Close the connection here rather than below so we ensure we're not closing a connection that wasn't
 			// successfully created.
 			if s.conn != nil {
 				_ = s.conn.close()
 			}
-			s.publishServerHeartbeatFailedEvent(s.conn.ID(), duration, err, streamable)
+			s.publishServerHeartbeatFailedEvent(s.conn.ID(), durationNanos, err, s.conn.getCurrentlyStreaming() || streamable)
 		}
 	}
 
@@ -822,14 +820,14 @@ func (s *Server) publishServerHeartbeatStartedEvent(connectionID string, await b
 
 // publishes a ServerHeartbeatSucceededEvent to indicate ismaster has succeeded
 func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
-	duration int64,
+	durationNanos int64,
 	desc description.Server,
 	await bool) {
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
-		Duration:     duration,
-		Reply:        desc,
-		ConnectionID: connectionID,
-		Awaited:      await,
+		DurationNanos: durationNanos,
+		Reply:         desc,
+		ConnectionID:  connectionID,
+		Awaited:       await,
 	}
 
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatSucceeded != nil {
@@ -839,14 +837,14 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 
 // publishes a ServerHeartbeatFailedEvent to indicate ismaster has failed
 func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
-	duration int64,
+	durationNanos int64,
 	err error,
 	await bool) {
 	serverHeartbeatFailed := &event.ServerHeartbeatFailedEvent{
-		Duration:     duration,
-		Reply:        err,
-		ConnectionID: connectionID,
-		Awaited:      await,
+		DurationNanos: durationNanos,
+		Failure:       err,
+		ConnectionID:  connectionID,
+		Awaited:       await,
 	}
 
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatFailed != nil {

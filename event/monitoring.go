@@ -96,7 +96,7 @@ type PoolMonitor struct {
 // ServerDescriptionChangedEvent represents a server description change.
 type ServerDescriptionChangedEvent struct {
 	Address             address.Address
-	TopologyID          primitive.ObjectID
+	TopologyID          primitive.ObjectID // A unique identifier for the topology this server is a part of
 	PreviousDescription description.Server
 	NewDescription      description.Server
 }
@@ -104,52 +104,52 @@ type ServerDescriptionChangedEvent struct {
 // ServerOpeningEvent is an event generated when the server is initialized.
 type ServerOpeningEvent struct {
 	Address    address.Address
-	TopologyID primitive.ObjectID
+	TopologyID primitive.ObjectID // A unique identifier for the topology this server is a part of
 }
 
 // ServerClosedEvent is an event generated when the server is closed.
 type ServerClosedEvent struct {
 	Address    address.Address
-	TopologyID primitive.ObjectID
+	TopologyID primitive.ObjectID // A unique identifier for the topology this server is a part of
 }
 
 // TopologyDescriptionChangedEvent represents a topology description change.
 type TopologyDescriptionChangedEvent struct {
-	TopologyID          primitive.ObjectID
+	TopologyID          primitive.ObjectID // A unique identifier for the topology this server is a part of
 	PreviousDescription description.Topology
 	NewDescription      description.Topology
 }
 
 // TopologyOpeningEvent is an event generated when the topology is initialized.
 type TopologyOpeningEvent struct {
-	TopologyID primitive.ObjectID
+	TopologyID primitive.ObjectID // A unique identifier for the topology this server is a part of
 }
 
 // TopologyClosedEvent is an event generated when the topology is closed.
 type TopologyClosedEvent struct {
-	TopologyID primitive.ObjectID
+	TopologyID primitive.ObjectID // A unique identifier for the topology this server is a part of
 }
 
-// ServerHeartbeatStartedEvent is an event generated when the ismaster command is started.
+// ServerHeartbeatStartedEvent is an event generated when the heartbeat is started.
 type ServerHeartbeatStartedEvent struct {
-	ConnectionID string
-	Awaited      bool
+	ConnectionID string // The address this heartbeat was sent to with a unique identifier
+	Awaited      bool // If this heartbeat was awaitable
 }
 
-// ServerHeartbeatSucceededEvent is an event generated when the ismaster succeeds.
+// ServerHeartbeatSucceededEvent is an event generated when the hearbeat succeeds.
 type ServerHeartbeatSucceededEvent struct {
-	Duration     int64
-	Reply        description.Server
-	ConnectionID string
-	Awaited      bool
+	DurationNanos int64
+	Reply         description.Server
+	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
+	Awaited       bool // If this heartbeat was awaitable
 }
 
-// ServerHeartbeatFailedEvent is an event generated when the ismaster fails.
+// ServerHeartbeatFailedEvent is an event generated when the heartbeat fails.
 type ServerHeartbeatFailedEvent struct {
-	Duration     int64
-	Reply        error
-	ConnectionID string
-	Awaited      bool
+	DurationNanos int64
+	Failure       error
+	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
+	Awaited       bool // If this heartbeat was awaitable
 }
 
 // ServerMonitor represents a monitor that is triggered for different server events. The client
@@ -160,6 +160,8 @@ type ServerMonitor struct {
 	ServerDescriptionChanged   func(*ServerDescriptionChangedEvent)
 	ServerOpening              func(*ServerOpeningEvent)
 	ServerClosed               func(*ServerClosedEvent)
+	// TopologyDescriptionChanged is called when the topology is locked, so the callback should
+	// not attempt any operation that requires server selection on the same client.
 	TopologyDescriptionChanged func(*TopologyDescriptionChangedEvent)
 	TopologyOpening            func(*TopologyOpeningEvent)
 	TopologyClosed             func(*TopologyClosedEvent)
