@@ -676,13 +676,15 @@ func TestPool(t *testing.T) {
 				MinPoolSize: 1,
 			}
 			maintainInterval = time.Second
-			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }),
-				WithLifeTimeout(func(time.Duration) time.Duration { return 10 * time.Millisecond }),
-			)
+			p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
 			maintainInterval = time.Minute
 			noerr(t, err)
 			err = p.connect()
 			noerr(t, err)
+
+			// Increment the pool's generation number so the connection will be considered stale and will be closed by
+			// get().
+			p.clear()
 			_, err = p.get(context.Background())
 			noerr(t, err)
 		})
