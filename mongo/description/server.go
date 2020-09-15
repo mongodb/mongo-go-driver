@@ -459,8 +459,13 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if s.LastError != other.LastError {
-		return false
+	if s.LastError != nil || other.LastError != nil {
+		if s.LastError == nil || other.LastError == nil {
+			return false
+		}
+		if s.LastError.Error() != other.LastError.Error() {
+			return false
+		}
 	}
 
 	if !s.WireVersion.Equals(other.WireVersion) {

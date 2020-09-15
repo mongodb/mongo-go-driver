@@ -33,7 +33,7 @@ func (vr *VersionRange) Equals(other *VersionRange) bool {
 	if vr == nil || other == nil {
 		return false
 	}
-	return vr.Min == other.Min && vr.Max <= other.Max
+	return vr.Min == other.Min && vr.Max == other.Max
 }
 
 // String implements the fmt.Stringer interface.

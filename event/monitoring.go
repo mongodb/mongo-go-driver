@@ -136,7 +136,7 @@ type ServerHeartbeatStartedEvent struct {
 	Awaited      bool // If this heartbeat was awaitable
 }
 
-// ServerHeartbeatSucceededEvent is an event generated when the hearbeat succeeds.
+// ServerHeartbeatSucceededEvent is an event generated when the heartbeat succeeds.
 type ServerHeartbeatSucceededEvent struct {
 	DurationNanos int64
 	Reply         description.Server

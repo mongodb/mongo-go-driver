@@ -333,7 +333,6 @@ func TestServer(t *testing.T) {
 			ServerHeartbeatFailed:    serverHeartbeatFailed,
 		}
 
-		// test that client metadata is sent on handshakes but not heartbeats
 		dialer := &channelNetConnDialer{}
 		dialerOpt := WithDialer(func(Dialer) Dialer {
 			return dialer
