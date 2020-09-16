@@ -275,7 +275,8 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 		return nil, replaceErrors(err)
 	}
 
-	sess.RetryWrite = c.retryWrites
+	// Writes are not retryable on standalones, so let operation determine whether to retry
+	sess.RetryWrite = false
 	sess.RetryRead = c.retryReads
 
 	return &sessionImpl{
