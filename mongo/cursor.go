@@ -272,8 +272,7 @@ func (c *Cursor) closeImplicitSession() {
 // driver.BatchCursor, nil is returned.
 //
 // Deprecated: This is an unstable function because the driver.BatchCursor type exists in the "x" package. Neither this
-// function nor the driver.BatchCursor type should not be used by applications and may be changed or removed in any
-// release.
+// function nor the driver.BatchCursor type should be used by applications and may be changed or removed in any release.
 func BatchCursorFromCursor(c *Cursor) *driver.BatchCursor {
 	bc, _ := c.bc.(*driver.BatchCursor)
 	return bc
