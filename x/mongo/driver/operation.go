@@ -273,7 +273,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	var original error
 	var retries int
 	retryable := op.retryable(desc.Server)
-
 	if retryable && op.RetryMode != nil {
 		switch op.Type {
 		case Write:
