@@ -40,7 +40,7 @@ func (iob *IndexOptionsBuilder) ExpireAfterSeconds(expireAfterSeconds int32) *In
 	return iob
 }
 
-// Name spcifies a value for the name option.
+// Name specifies a value for the name option.
 //
 // Deprecated: Use the IndexOptions.SetName function in mongo/options instead.
 func (iob *IndexOptionsBuilder) Name(name string) *IndexOptionsBuilder {
@@ -48,7 +48,7 @@ func (iob *IndexOptionsBuilder) Name(name string) *IndexOptionsBuilder {
 	return iob
 }
 
-// Sparse spcifies a value for the sparse option.
+// Sparse specifies a value for the sparse option.
 //
 // Deprecated: Use the IndexOptions.SetSparse function in mongo/options instead.
 func (iob *IndexOptionsBuilder) Sparse(sparse bool) *IndexOptionsBuilder {
@@ -56,7 +56,7 @@ func (iob *IndexOptionsBuilder) Sparse(sparse bool) *IndexOptionsBuilder {
 	return iob
 }
 
-// StorageEngine spcifies a value for the storageEngine option.
+// StorageEngine specifies a value for the storageEngine option.
 //
 // Deprecated: Use the IndexOptions.SetStorageEngine function in mongo/options instead.
 func (iob *IndexOptionsBuilder) StorageEngine(storageEngine interface{}) *IndexOptionsBuilder {
@@ -64,7 +64,7 @@ func (iob *IndexOptionsBuilder) StorageEngine(storageEngine interface{}) *IndexO
 	return iob
 }
 
-// Unique spcifies a value for the unique option.
+// Unique specifies a value for the unique option.
 //
 // Deprecated: Use the IndexOptions.SetUnique function in mongo/options instead.
 func (iob *IndexOptionsBuilder) Unique(unique bool) *IndexOptionsBuilder {
@@ -72,7 +72,7 @@ func (iob *IndexOptionsBuilder) Unique(unique bool) *IndexOptionsBuilder {
 	return iob
 }
 
-// Version spcifies a value for the version option.
+// Version specifies a value for the version option.
 //
 // Deprecated: Use the IndexOptions.SetVersion function in mongo/options instead.
 func (iob *IndexOptionsBuilder) Version(version int32) *IndexOptionsBuilder {
@@ -80,7 +80,7 @@ func (iob *IndexOptionsBuilder) Version(version int32) *IndexOptionsBuilder {
 	return iob
 }
 
-// DefaultLanguage spcifies a value for the default_language option.
+// DefaultLanguage specifies a value for the default_language option.
 //
 // Deprecated: Use the IndexOptions.SetDefaultLanguage function in mongo/options instead.
 func (iob *IndexOptionsBuilder) DefaultLanguage(defaultLanguage string) *IndexOptionsBuilder {
@@ -88,7 +88,7 @@ func (iob *IndexOptionsBuilder) DefaultLanguage(defaultLanguage string) *IndexOp
 	return iob
 }
 
-// LanguageOverride spcifies a value for the language_override option.
+// LanguageOverride specifies a value for the language_override option.
 //
 // Deprecated: Use the IndexOptions.SetLanguageOverride function in mongo/options instead.
 func (iob *IndexOptionsBuilder) LanguageOverride(languageOverride string) *IndexOptionsBuilder {
@@ -96,7 +96,7 @@ func (iob *IndexOptionsBuilder) LanguageOverride(languageOverride string) *Index
 	return iob
 }
 
-// TextVersion spcifies a value for the textIndexVersion option.
+// TextVersion specifies a value for the textIndexVersion option.
 //
 // Deprecated: Use the IndexOptions.SetTextVersion function in mongo/options instead.
 func (iob *IndexOptionsBuilder) TextVersion(textVersion int32) *IndexOptionsBuilder {
@@ -104,7 +104,7 @@ func (iob *IndexOptionsBuilder) TextVersion(textVersion int32) *IndexOptionsBuil
 	return iob
 }
 
-// Weights spcifies a value for the weights option.
+// Weights specifies a value for the weights option.
 //
 // Deprecated: Use the IndexOptions.SetWeights function in mongo/options instead.
 func (iob *IndexOptionsBuilder) Weights(weights interface{}) *IndexOptionsBuilder {
@@ -112,7 +112,7 @@ func (iob *IndexOptionsBuilder) Weights(weights interface{}) *IndexOptionsBuilde
 	return iob
 }
 
-// SphereVersion spcifies a value for the 2dsphereIndexVersion option.
+// SphereVersion specifies a value for the 2dsphereIndexVersion option.
 //
 // Deprecated: Use the IndexOptions.SetSphereVersion function in mongo/options instead.
 func (iob *IndexOptionsBuilder) SphereVersion(sphereVersion int32) *IndexOptionsBuilder {
@@ -120,7 +120,7 @@ func (iob *IndexOptionsBuilder) SphereVersion(sphereVersion int32) *IndexOptions
 	return iob
 }
 
-// Bits spcifies a value for the bits option.
+// Bits specifies a value for the bits option.
 //
 // Deprecated: Use the IndexOptions.SetBits function in mongo/options instead.
 func (iob *IndexOptionsBuilder) Bits(bits int32) *IndexOptionsBuilder {
@@ -128,7 +128,7 @@ func (iob *IndexOptionsBuilder) Bits(bits int32) *IndexOptionsBuilder {
 	return iob
 }
 
-// Max spcifies a value for the max option.
+// Max specifies a value for the max option.
 //
 // Deprecated: Use the IndexOptions.SetMax function in mongo/options instead.
 func (iob *IndexOptionsBuilder) Max(max float64) *IndexOptionsBuilder {
@@ -136,7 +136,7 @@ func (iob *IndexOptionsBuilder) Max(max float64) *IndexOptionsBuilder {
 	return iob
 }
 
-// Min spcifies a value for the min option.
+// Min specifies a value for the min option.
 //
 // Deprecated: Use the IndexOptions.SetMin function in mongo/options instead.
 func (iob *IndexOptionsBuilder) Min(min float64) *IndexOptionsBuilder {
@@ -144,7 +144,7 @@ func (iob *IndexOptionsBuilder) Min(min float64) *IndexOptionsBuilder {
 	return iob
 }
 
-// BucketSize spcifies a value for the bucketSize option.
+// BucketSize specifies a value for the bucketSize option.
 //
 // Deprecated: Use the IndexOptions.SetBucketSize function in mongo/options instead.
 func (iob *IndexOptionsBuilder) BucketSize(bucketSize int32) *IndexOptionsBuilder {
@@ -152,7 +152,7 @@ func (iob *IndexOptionsBuilder) BucketSize(bucketSize int32) *IndexOptionsBuilde
 	return iob
 }
 
-// PartialFilterExpression spcifies a value for the partialFilterExpression option.
+// PartialFilterExpression specifies a value for the partialFilterExpression option.
 //
 // Deprecated: Use the IndexOptions.SetPartialFilterExpression function in mongo/options instead.
 func (iob *IndexOptionsBuilder) PartialFilterExpression(partialFilterExpression interface{}) *IndexOptionsBuilder {
@@ -160,7 +160,7 @@ func (iob *IndexOptionsBuilder) PartialFilterExpression(partialFilterExpression 
 	return iob
 }
 
-// Collation spcifies a value for the collation option.
+// Collation specifies a value for the collation option.
 //
 // Deprecated: Use the IndexOptions.SetCollation function in mongo/options instead.
 func (iob *IndexOptionsBuilder) Collation(collation interface{}) *IndexOptionsBuilder {

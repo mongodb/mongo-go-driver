@@ -368,7 +368,7 @@ type FindOneOptions struct {
 	// If true, the cursor will not return a document more than once because of an intervening write operation. The
 	// default value is false.
 	//
-	// Deprecated: This option has been deprecated in MongoDB version 4.0. The default value is false.
+	// Deprecated: This option has been deprecated in MongoDB version 4.0.
 	Snapshot *bool
 
 	// A document specifying the sort order to apply to the query. The first document in the sorted order will be
