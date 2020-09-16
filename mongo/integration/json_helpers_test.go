@@ -412,6 +412,39 @@ func errorFromResult(t testing.TB, result interface{}) *operationError {
 	return &expected
 }
 
+// errorDetails is a helper type that holds information that can be returned by driver functions in different error
+// types.
+type errorDetails struct {
+	name   string
+	labels []string
+}
+
+// extractErrorDetails creates an errorDetails instance based on the provided error. It returns the details and an "ok"
+// value which is true if the provided error is of a known type that can be processed.
+func extractErrorDetails(err error) (errorDetails, bool) {
+	var details errorDetails
+
+	switch converted := err.(type) {
+	case mongo.CommandError:
+		details.name = converted.Name
+		details.labels = converted.Labels
+	case mongo.WriteException:
+		if converted.WriteConcernError != nil {
+			details.name = converted.WriteConcernError.Name
+		}
+		details.labels = converted.Labels
+	case mongo.BulkWriteException:
+		if converted.WriteConcernError != nil {
+			details.name = converted.WriteConcernError.Name
+		}
+		details.labels = converted.Labels
+	default:
+		return errorDetails{}, false
+	}
+
+	return details, true
+}
+
 // verify that an error returned by an operation matches the expected error.
 func verifyError(expected *operationError, actual error) error {
 	// The spec test format doesn't treat ErrNoDocuments or ErrUnacknowledgedWrite as errors, so set actual to nil
@@ -439,23 +472,28 @@ func verifyError(expected *operationError, actual error) error {
 		}
 	}
 
-	cerr, ok := actual.(mongo.CommandError)
+	// Get an errorDetails instance for the error. If this fails but the test has expectations about the error name or
+	// labels, fail because we can't verify them.
+	details, ok := extractErrorDetails(actual)
 	if !ok {
+		if expected.ErrorCodeName != nil || len(expected.ErrorLabelsContain) > 0 || len(expected.ErrorLabelsOmit) > 0 {
+			return fmt.Errorf("failed to extract details from error %v of type %T", actual, actual)
+		}
 		return nil
 	}
 
 	if expected.ErrorCodeName != nil {
-		if *expected.ErrorCodeName != cerr.Name {
-			return fmt.Errorf("expected error name %v, got %v", *expected.ErrorCodeName, cerr.Name)
+		if *expected.ErrorCodeName != details.name {
+			return fmt.Errorf("expected error name %v, got %v", *expected.ErrorCodeName, details.name)
 		}
 	}
 	for _, label := range expected.ErrorLabelsContain {
-		if !cerr.HasErrorLabel(label) {
+		if !stringSliceContains(details.labels, label) {
 			return fmt.Errorf("expected error %v to contain label %q", actual, label)
 		}
 	}
 	for _, label := range expected.ErrorLabelsOmit {
-		if cerr.HasErrorLabel(label) {
+		if stringSliceContains(details.labels, label) {
 			return fmt.Errorf("expected error %v to not contain label %q", actual, label)
 		}
 	}
@@ -551,4 +589,13 @@ func convertValueToMilliseconds(t testing.TB, val bson.RawValue) time.Duration {
 		t.Fatalf("failed to convert value of type %s to int32", val.Type)
 	}
 	return time.Duration(int32Val) * time.Millisecond
+}
+
+func stringSliceContains(stringSlice []string, target string) bool {
+	for _, str := range stringSlice {
+		if str == target {
+			return true
+		}
+	}
+	return false
 }
