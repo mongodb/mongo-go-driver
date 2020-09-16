@@ -170,8 +170,10 @@ func MergeListIndexesOptions(opts ...*ListIndexesOptions) *ListIndexesOptions {
 // IndexOptions represents options that can be used to configure a new index created through the IndexView.CreateOne
 // or IndexView.CreateMany operations.
 type IndexOptions struct {
-	// If true, the index will be built in the background on the server and will not block other tasks. This option
-	// has been deprecated in MongoDB version 4.2. The default value is false.
+	// If true, the index will be built in the background on the server and will not block other tasks. The default
+	// value is false.
+	//
+	// Deprecated: This option has been deprecated in MongoDB version 4.2.
 	Background *bool
 
 	// The length of time, in seconds, for documents to remain in the collection. The default value is 0, which means
@@ -261,6 +263,8 @@ func Index() *IndexOptions {
 }
 
 // SetBackground sets value for the Background field.
+//
+// Deprecated: This option has been deprecated in MongoDB version 4.2.
 func (i *IndexOptions) SetBackground(background bool) *IndexOptions {
 	i.Background = &background
 	return i

@@ -341,8 +341,8 @@ func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.Value
 }
 
 // UintDecodeValue is the ValueDecoderFunc for uint types.
-// This method is deprecated and does not have any stability guarantees. It may be removed in the
-// future. Use UIntCodec.DecodeValue instead.
+//
+// Deprecated: UintDecodeValue is not registered by default. Use UintCodec.DecodeValue instead.
 func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	var i64 int64
 	var err error
@@ -502,8 +502,8 @@ func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.Val
 }
 
 // StringDecodeValue is the ValueDecoderFunc for string types.
-// This method is deprecated and does not have any stability guarantees. It may be removed in the
-// future. Use StringCodec.DecodeValue instead.
+//
+// Deprecated: StringDecodeValue is not registered by default. Use StringCodec.DecodeValue instead.
 func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	var str string
 	var err error
@@ -1213,8 +1213,8 @@ func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr bsonrw.Value
 }
 
 // TimeDecodeValue is the ValueDecoderFunc for time.Time.
-// This method is deprecated and does not have any stability guarantees. It may be removed in the
-// future. Use Time.DecodeValue instead.
+//
+// Deprecated: TimeDecodeValue is not registered by default. Use TimeCodec.DecodeValue instead.
 func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.DateTime {
 		return fmt.Errorf("cannot decode %v into a time.Time", vr.Type())
@@ -1234,8 +1234,8 @@ func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr bsonrw.Valu
 }
 
 // ByteSliceDecodeValue is the ValueDecoderFunc for []byte.
-// This method is deprecated and does not have any stability guarantees. It may be removed in the
-// future. Use ByteSliceCodec.DecodeValue instead.
+//
+// Deprecated: ByteSliceDecodeValue is not registered by default. Use ByteSliceCodec.DecodeValue instead.
 func (dvd DefaultValueDecoders) ByteSliceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.Binary && vr.Type() != bsontype.Null {
 		return fmt.Errorf("cannot decode %v into a []byte", vr.Type())
@@ -1263,8 +1263,8 @@ func (dvd DefaultValueDecoders) ByteSliceDecodeValue(dc DecodeContext, vr bsonrw
 }
 
 // MapDecodeValue is the ValueDecoderFunc for map[string]* types.
-// This method is deprecated and does not have any stability guarantees. It may be removed in the
-// future. Use Map.DecodeValue instead.
+//
+// Deprecated: MapDecodeValue is not registered by default. Use MapCodec.DecodeValue instead.
 func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Map || val.Type().Key().Kind() != reflect.String {
 		return ValueDecoderError{Name: "MapDecodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
@@ -1387,8 +1387,8 @@ func (dvd DefaultValueDecoders) ArrayDecodeValue(dc DecodeContext, vr bsonrw.Val
 }
 
 // SliceDecodeValue is the ValueDecoderFunc for slice types.
-// This method is deprecated and does not have any stability guarantees. It may be removed in the
-// future. Use SliceCodec.DecodeValue instead.
+//
+// Deprecated: SliceDecodeValue is not registered by default. Use SliceCodec.DecodeValue instead.
 func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Slice {
 		return ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
@@ -1498,8 +1498,8 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(dc DecodeContext, vr bson
 }
 
 // EmptyInterfaceDecodeValue is the ValueDecoderFunc for interface{}.
-// This method is deprecated and does not have any stability guarantees. It may be removed in the
-// future. Use EmptyInterfaceCodec.DecodeValue instead.
+//
+// Deprecated: EmptyInterfaceDecodeValue is not registered by default. Use EmptyInterfaceCodec.DecodeValue instead.
 func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tEmpty {
 		return ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: val}
