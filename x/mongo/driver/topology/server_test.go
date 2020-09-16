@@ -8,6 +8,7 @@ package topology
 
 import (
 	"context"
+	"errors"
 	"net"
 	"runtime"
 	"sync"
@@ -381,7 +382,7 @@ func TestServer(t *testing.T) {
 		t.Run("failure", func(t *testing.T) {
 			publishedEvents = nil
 			// do a heartbeat with a non-nil connection
-			// channelConn will error on write if no response is added
+			channelConn.ReadErr <- errors.New("error")
 			_, err = s.check()
 			assert.Nil(t, err, "check error: %v", err)
 
