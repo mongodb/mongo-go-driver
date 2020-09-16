@@ -8,7 +8,6 @@ package topology
 
 import (
 	"context"
-	"errors"
 	"net"
 	"runtime"
 	"sync"
@@ -371,16 +370,18 @@ func TestServer(t *testing.T) {
 			started, ok := publishedEvents[0].(event.ServerHeartbeatStartedEvent)
 			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatStartedEvent{}, publishedEvents[0])
 			assert.Equal(t, started.ConnectionID, s.conn.ID(), "expected connectionID to match")
+			assert.False(t, started.Awaited, "expected awaited to be false")
 
 			succeeded, ok := publishedEvents[1].(event.ServerHeartbeatSucceededEvent)
 			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatSucceededEvent{}, publishedEvents[1])
 			assert.Equal(t, succeeded.ConnectionID, s.conn.ID(), "expected connectionID to match")
-			assert.Equal(t, succeeded.Reply.Addr, s.address, "expected address %T, got %T", s.address, succeeded.Reply.Addr)
+			assert.Equal(t, succeeded.Reply.Addr, s.address, "expected address %v, got %v", s.address, succeeded.Reply.Addr)
+			assert.False(t, succeeded.Awaited, "expected awaited to be false")
 		})
 		t.Run("failure", func(t *testing.T) {
 			publishedEvents = nil
 			// do a heartbeat with a non-nil connection
-			channelConn.ReadErr <- errors.New("error")
+			// channelConn will error on write if no response is added
 			_, err = s.check()
 			assert.Nil(t, err, "check error: %v", err)
 
@@ -389,10 +390,13 @@ func TestServer(t *testing.T) {
 			started, ok := publishedEvents[0].(event.ServerHeartbeatStartedEvent)
 			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatStartedEvent{}, publishedEvents[0])
 			assert.Equal(t, started.ConnectionID, s.conn.ID(), "expected connectionID to match")
+			assert.False(t, started.Awaited, "expected awaited to be false")
 
 			failed, ok := publishedEvents[1].(event.ServerHeartbeatFailedEvent)
 			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatFailedEvent{}, publishedEvents[1])
 			assert.Equal(t, failed.ConnectionID, s.conn.ID(), "expected connectionID to match")
+			assert.False(t, failed.Awaited, "expected awaited to be false")
+			assert.NotNil(t, failed.Failure, "expected Failure to be non-nil")
 		})
 	})
 	t.Run("WithServerAppName", func(t *testing.T) {
