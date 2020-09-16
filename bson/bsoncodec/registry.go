@@ -211,7 +211,7 @@ func (rb *RegistryBuilder) RegisterEncoder(t reflect.Type, enc ValueEncoder) *Re
 	return rb
 }
 
-// RegisterDecoder registers the provided type and encoder pair.
+// RegisterDecoder registers the provided type and decoder pair.
 //
 // Deprecated: Use RegisterTypeDecoder or RegisterHookDecoder instead.
 func (rb *RegistryBuilder) RegisterDecoder(t reflect.Type, dec ValueDecoder) *RegistryBuilder {
