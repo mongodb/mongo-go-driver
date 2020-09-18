@@ -54,29 +54,6 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 	return cnc, nil
 }
 
-type testHandshaker struct {
-	getDescription  func(context.Context, address.Address, driver.Connection) (description.Server, error)
-	finishHandshake func(context.Context, driver.Connection) error
-}
-
-// GetDescription implements the Handshaker interface.
-func (th *testHandshaker) GetDescription(ctx context.Context, addr address.Address, conn driver.Connection) (description.Server, error) {
-	if th.getDescription != nil {
-		return th.getDescription(ctx, addr, conn)
-	}
-	return description.Server{}, nil
-}
-
-// FinishHandshake implements the Handshaker interface.
-func (th *testHandshaker) FinishHandshake(ctx context.Context, conn driver.Connection) error {
-	if th.finishHandshake != nil {
-		return th.finishHandshake(ctx, conn)
-	}
-	return nil
-}
-
-var _ driver.Handshaker = &testHandshaker{}
-
 func TestServer(t *testing.T) {
 	var serverTestTable = []struct {
 		name            string
