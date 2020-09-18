@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// +build go1.13
+
 package topology
 
 import (
@@ -364,6 +366,7 @@ func TestServer(t *testing.T) {
 				t.Fatalf("error adding response: %v", err)
 			}
 			_, err = s.check()
+			_ = channelConn.GetWrittenMessage()
 			assert.Nil(t, err, "check error: %v", err)
 
 			assert.Equal(t, len(publishedEvents), 2, "expected %v events, got %v", 2, len(publishedEvents))
@@ -382,8 +385,10 @@ func TestServer(t *testing.T) {
 		t.Run("failure", func(t *testing.T) {
 			publishedEvents = nil
 			// do a heartbeat with a non-nil connection
-			channelConn.ReadErr <- errors.New("error")
+			readErr := errors.New("error")
+			channelConn.ReadErr <- readErr
 			_, err = s.check()
+			_ = channelConn.GetWrittenMessage()
 			assert.Nil(t, err, "check error: %v", err)
 
 			assert.Equal(t, len(publishedEvents), 2, "expected %v events, got %v", 2, len(publishedEvents))
@@ -397,7 +402,7 @@ func TestServer(t *testing.T) {
 			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatFailedEvent{}, publishedEvents[1])
 			assert.Equal(t, failed.ConnectionID, s.conn.ID(), "expected connectionID to match")
 			assert.False(t, failed.Awaited, "expected awaited to be false")
-			assert.NotNil(t, failed.Failure, "expected Failure to be non-nil")
+			assert.True(t, errors.Is(failed.Failure, readErr), "expected Failure to be %v, got: %v", readErr, failed.Failure)
 		})
 	})
 	t.Run("WithServerAppName", func(t *testing.T) {

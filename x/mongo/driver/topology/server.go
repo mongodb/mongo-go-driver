@@ -690,7 +690,6 @@ func (s *Server) check() (description.Server, error) {
 			// execute a regular heartbeat without any additional parameters.
 
 			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout)
-
 			err = baseOperation.Execute(s.heartbeatCtx)
 		}
 		durationNanos = time.Since(start).Nanoseconds()

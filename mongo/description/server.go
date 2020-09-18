@@ -429,12 +429,6 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if len(s.Arbiters) != len(other.Arbiters) ||
-		len(s.Hosts) != len(other.Hosts) ||
-		len(s.Passives) != len(other.Passives) {
-		return false
-	}
-
 	if !sliceStringEqual(s.Arbiters, other.Arbiters) {
 		return false
 	}
