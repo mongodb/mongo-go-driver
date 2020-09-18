@@ -108,6 +108,7 @@ type ClientOptions struct {
 	MinPoolSize              *uint64
 	PoolMonitor              *event.PoolMonitor
 	Monitor                  *event.CommandMonitor
+	ServerMonitor            *event.ServerMonitor
 	ReadConcern              *readconcern.ReadConcern
 	ReadPreference           *readpref.ReadPref
 	Registry                 *bsoncodec.Registry
@@ -518,6 +519,12 @@ func (c *ClientOptions) SetMonitor(m *event.CommandMonitor) *ClientOptions {
 	return c
 }
 
+// SetServerMonitor specifies an SDAM monitor used to monitor SDAM events.
+func (c *ClientOptions) SetServerMonitor(m *event.ServerMonitor) *ClientOptions {
+	c.ServerMonitor = m
+	return c
+}
+
 // SetReadConcern specifies the read concern to use for read operations. A read concern level can also be set through
 // the "readConcernLevel" URI option (e.g. "readConcernLevel=majority"). The default is nil, meaning the server will use
 // its configured default.
@@ -749,6 +756,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Monitor != nil {
 			c.Monitor = opt.Monitor
+		}
+		if opt.ServerMonitor != nil {
+			c.ServerMonitor = opt.ServerMonitor
 		}
 		if opt.ReadConcern != nil {
 			c.ReadConcern = opt.ReadConcern

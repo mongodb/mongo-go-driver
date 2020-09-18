@@ -25,6 +25,17 @@ func (vr VersionRange) Includes(v int32) bool {
 	return v >= vr.Min && v <= vr.Max
 }
 
+// Equals returns a bool indicating whether the supplied VersionRange is equal.
+func (vr *VersionRange) Equals(other *VersionRange) bool {
+	if vr == nil && other == nil {
+		return true
+	}
+	if vr == nil || other == nil {
+		return false
+	}
+	return vr.Min == other.Min && vr.Max == other.Max
+}
+
 // String implements the fmt.Stringer interface.
 func (vr VersionRange) String() string {
 	return fmt.Sprintf("[%d, %d]", vr.Min, vr.Max)

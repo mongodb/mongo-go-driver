@@ -459,6 +459,10 @@ func (c *connection) setSocketTimeout(timeout time.Duration) {
 	c.writeTimeout = timeout
 }
 
+func (c *connection) ID() string {
+	return c.id
+}
+
 // initConnection is an adapter used during connection initialization. It has the minimum
 // functionality necessary to implement the driver.Connection interface, which is required to pass a
 // *connection to a Handshaker.

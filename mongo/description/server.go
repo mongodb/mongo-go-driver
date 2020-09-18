@@ -31,12 +31,14 @@ type SelectedServer struct {
 type Server struct {
 	Addr address.Address
 
+	Arbiters                []string
 	AverageRTT              time.Duration
 	AverageRTTSet           bool
 	Compression             []string // compression methods returned by server
 	CanonicalAddr           address.Address
 	ElectionID              primitive.ObjectID
 	HeartbeatInterval       time.Duration
+	Hosts                   []string
 	LastError               error
 	LastUpdateTime          time.Time
 	LastWriteTime           time.Time
@@ -44,6 +46,8 @@ type Server struct {
 	MaxDocumentSize         uint32
 	MaxMessageSize          uint32
 	Members                 []address.Address
+	Passives                []string
+	Primary                 address.Address
 	ReadOnly                bool
 	SessionTimeoutMinutes   uint32
 	SetName                 string
@@ -69,12 +73,11 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 	var isReplicaSet, isMaster, hidden, secondary, arbiterOnly bool
 	var msg string
 	var version VersionRange
-	var hosts, passives, arbiters []string
 	for _, element := range elements {
 		switch element.Key() {
 		case "arbiters":
 			var err error
-			arbiters, err = decodeStringSlice(element, "arbiters")
+			desc.Arbiters, err = decodeStringSlice(element, "arbiters")
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -106,7 +109,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "hosts":
 			var err error
-			hosts, err = decodeStringSlice(element, "hosts")
+			desc.Hosts, err = decodeStringSlice(element, "hosts")
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -203,11 +206,18 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "passives":
 			var err error
-			passives, err = decodeStringSlice(element, "passives")
+			desc.Passives, err = decodeStringSlice(element, "passives")
 			if err != nil {
 				desc.LastError = err
 				return desc
 			}
+		case "primary":
+			primary, ok := element.Value().StringValueOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'primary' to be a string but it's a BSON %s", element.Value().Type)
+				return desc
+			}
+			desc.Primary = address.Address(primary)
 		case "readOnly":
 			desc.ReadOnly, ok = element.Value().BooleanOK()
 			if !ok {
@@ -269,15 +279,15 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 		}
 	}
 
-	for _, host := range hosts {
+	for _, host := range desc.Hosts {
 		desc.Members = append(desc.Members, address.Address(host).Canonicalize())
 	}
 
-	for _, passive := range passives {
+	for _, passive := range desc.Passives {
 		desc.Members = append(desc.Members, address.Address(passive).Canonicalize())
 	}
 
-	for _, arbiter := range arbiters {
+	for _, arbiter := range desc.Arbiters {
 		desc.Members = append(desc.Members, address.Address(arbiter).Canonicalize())
 	}
 
@@ -411,4 +421,82 @@ func decodeStringMap(element bson.RawElement, name string) (map[string]string, e
 // SupportsRetryWrites returns true if this description represents a server that supports retryable writes.
 func (s Server) SupportsRetryWrites() bool {
 	return s.SessionTimeoutMinutes != 0 && s.Kind != Standalone
+}
+
+// Equal compares two server descriptions and returns true if they are equal
+func (s Server) Equal(other Server) bool {
+	if s.CanonicalAddr.String() != other.CanonicalAddr.String() {
+		return false
+	}
+
+	if !sliceStringEqual(s.Arbiters, other.Arbiters) {
+		return false
+	}
+
+	if !sliceStringEqual(s.Hosts, other.Hosts) {
+		return false
+	}
+
+	if !sliceStringEqual(s.Passives, other.Passives) {
+		return false
+	}
+
+	if s.Primary != other.Primary {
+		return false
+	}
+
+	if s.SetName != other.SetName {
+		return false
+	}
+
+	if s.Kind != other.Kind {
+		return false
+	}
+
+	if s.LastError != nil || other.LastError != nil {
+		if s.LastError == nil || other.LastError == nil {
+			return false
+		}
+		if s.LastError.Error() != other.LastError.Error() {
+			return false
+		}
+	}
+
+	if !s.WireVersion.Equals(other.WireVersion) {
+		return false
+	}
+
+	if len(s.Tags) != len(other.Tags) || !s.Tags.ContainsAll(other.Tags) {
+		return false
+	}
+
+	if s.SetVersion != other.SetVersion {
+		return false
+	}
+
+	if s.ElectionID != other.ElectionID {
+		return false
+	}
+
+	if s.SessionTimeoutMinutes != other.SessionTimeoutMinutes {
+		return false
+	}
+
+	if s.TopologyVersion != other.TopologyVersion && CompareTopologyVersion(s.TopologyVersion, other.TopologyVersion) != 0 {
+		return false
+	}
+
+	return true
+}
+
+func sliceStringEqual(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }

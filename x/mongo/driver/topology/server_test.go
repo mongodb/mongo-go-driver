@@ -4,10 +4,13 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// +build go1.13
+
 package topology
 
 import (
 	"context"
+	"errors"
 	"net"
 	"runtime"
 	"sync"
@@ -18,6 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -41,6 +45,7 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 	cnc := &drivertest.ChannelNetConn{
 		Written:  make(chan []byte, 1),
 		ReadResp: make(chan []byte, 2),
+		ReadErr:  make(chan error, 1),
 	}
 	if err := cnc.AddResponse(makeIsMasterReply()); err != nil {
 		return nil, err
@@ -48,29 +53,6 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 
 	return cnc, nil
 }
-
-type testHandshaker struct {
-	getDescription  func(context.Context, address.Address, driver.Connection) (description.Server, error)
-	finishHandshake func(context.Context, driver.Connection) error
-}
-
-// GetDescription implements the Handshaker interface.
-func (th *testHandshaker) GetDescription(ctx context.Context, addr address.Address, conn driver.Connection) (description.Server, error) {
-	if th.getDescription != nil {
-		return th.getDescription(ctx, addr, conn)
-	}
-	return description.Server{}, nil
-}
-
-// FinishHandshake implements the Handshaker interface.
-func (th *testHandshaker) FinishHandshake(ctx context.Context, conn driver.Connection) error {
-	if th.finishHandshake != nil {
-		return th.finishHandshake(ctx, conn)
-	}
-	return nil
-}
-
-var _ driver.Handshaker = &testHandshaker{}
 
 func TestServer(t *testing.T) {
 	var serverTestTable = []struct {
@@ -308,6 +290,97 @@ func TestServer(t *testing.T) {
 		if includesMetadata(t, wm) {
 			t.Fatal("client metadata not expected in heartbeat but found")
 		}
+	})
+	t.Run("heartbeat monitoring", func(t *testing.T) {
+		var publishedEvents []interface{}
+
+		serverHeartbeatStarted := func(e *event.ServerHeartbeatStartedEvent) {
+			publishedEvents = append(publishedEvents, *e)
+		}
+
+		serverHeartbeatSucceeded := func(e *event.ServerHeartbeatSucceededEvent) {
+			publishedEvents = append(publishedEvents, *e)
+		}
+
+		serverHeartbeatFailed := func(e *event.ServerHeartbeatFailedEvent) {
+			publishedEvents = append(publishedEvents, *e)
+		}
+
+		sdam := &event.ServerMonitor{
+			ServerHeartbeatStarted:   serverHeartbeatStarted,
+			ServerHeartbeatSucceeded: serverHeartbeatSucceeded,
+			ServerHeartbeatFailed:    serverHeartbeatFailed,
+		}
+
+		dialer := &channelNetConnDialer{}
+		dialerOpt := WithDialer(func(Dialer) Dialer {
+			return dialer
+		})
+		serverOpts := []ServerOption{
+			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
+				return append(connOpts, dialerOpt)
+			}),
+			withMonitoringDisabled(func(bool) bool { return true }),
+			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }),
+		}
+
+		s, err := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpts...)
+		if err != nil {
+			t.Fatalf("error from NewServer: %v", err)
+		}
+
+		// set up heartbeat connection, which doesn't send events
+		_, err = s.check()
+		assert.Nil(t, err, "check error: %v", err)
+
+		channelConn := s.conn.nc.(*drivertest.ChannelNetConn)
+		_ = channelConn.GetWrittenMessage()
+
+		t.Run("success", func(t *testing.T) {
+			publishedEvents = nil
+			// do a heartbeat with a non-nil connection
+			if err = channelConn.AddResponse(makeIsMasterReply()); err != nil {
+				t.Fatalf("error adding response: %v", err)
+			}
+			_, err = s.check()
+			_ = channelConn.GetWrittenMessage()
+			assert.Nil(t, err, "check error: %v", err)
+
+			assert.Equal(t, len(publishedEvents), 2, "expected %v events, got %v", 2, len(publishedEvents))
+
+			started, ok := publishedEvents[0].(event.ServerHeartbeatStartedEvent)
+			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatStartedEvent{}, publishedEvents[0])
+			assert.Equal(t, started.ConnectionID, s.conn.ID(), "expected connectionID to match")
+			assert.False(t, started.Awaited, "expected awaited to be false")
+
+			succeeded, ok := publishedEvents[1].(event.ServerHeartbeatSucceededEvent)
+			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatSucceededEvent{}, publishedEvents[1])
+			assert.Equal(t, succeeded.ConnectionID, s.conn.ID(), "expected connectionID to match")
+			assert.Equal(t, succeeded.Reply.Addr, s.address, "expected address %v, got %v", s.address, succeeded.Reply.Addr)
+			assert.False(t, succeeded.Awaited, "expected awaited to be false")
+		})
+		t.Run("failure", func(t *testing.T) {
+			publishedEvents = nil
+			// do a heartbeat with a non-nil connection
+			readErr := errors.New("error")
+			channelConn.ReadErr <- readErr
+			_, err = s.check()
+			_ = channelConn.GetWrittenMessage()
+			assert.Nil(t, err, "check error: %v", err)
+
+			assert.Equal(t, len(publishedEvents), 2, "expected %v events, got %v", 2, len(publishedEvents))
+
+			started, ok := publishedEvents[0].(event.ServerHeartbeatStartedEvent)
+			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatStartedEvent{}, publishedEvents[0])
+			assert.Equal(t, started.ConnectionID, s.conn.ID(), "expected connectionID to match")
+			assert.False(t, started.Awaited, "expected awaited to be false")
+
+			failed, ok := publishedEvents[1].(event.ServerHeartbeatFailedEvent)
+			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatFailedEvent{}, publishedEvents[1])
+			assert.Equal(t, failed.ConnectionID, s.conn.ID(), "expected connectionID to match")
+			assert.False(t, failed.Awaited, "expected awaited to be false")
+			assert.True(t, errors.Is(failed.Failure, readErr), "expected Failure to be %v, got: %v", readErr, failed.Failure)
+		})
 	})
 	t.Run("WithServerAppName", func(t *testing.T) {
 		name := "test"

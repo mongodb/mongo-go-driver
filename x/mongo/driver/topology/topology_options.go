@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
@@ -34,6 +35,7 @@ type config struct {
 	cs                     connstring.ConnString // This must not be used for any logic in topology.Topology.
 	uri                    string
 	serverSelectionTimeout time.Duration
+	serverMonitor          *event.ServerMonitor
 }
 
 func newConfig(opts ...Option) (*config, error) {
@@ -270,6 +272,14 @@ func WithServerOptions(fn func(...ServerOption) []ServerOption) Option {
 func WithServerSelectionTimeout(fn func(time.Duration) time.Duration) Option {
 	return func(cfg *config) error {
 		cfg.serverSelectionTimeout = fn(cfg.serverSelectionTimeout)
+		return nil
+	}
+}
+
+// WithTopologyServerMonitor configures the monitor for all SDAM events
+func WithTopologyServerMonitor(fn func(*event.ServerMonitor) *event.ServerMonitor) Option {
+	return func(cfg *config) error {
+		cfg.serverMonitor = fn(cfg.serverMonitor)
 		return nil
 	}
 }
