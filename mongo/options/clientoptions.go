@@ -125,10 +125,17 @@ type ClientOptions struct {
 	uri string
 	cs  *connstring.ConnString
 
-	// These options are for internal use only and should not be set. They are deprecated and are
-	// not part of the stability guarantee. They may be removed in the future.
+	// AuthenticateToAnything skips server type checks when deciding if authentication is possible.
+	//
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
 	AuthenticateToAnything *bool
-	Deployment             driver.Deployment
+
+	// Deployment specifies a custom deployment to use for the new Client.
+	//
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Deployment driver.Deployment
 }
 
 // Client creates a new ClientOptions instance.

@@ -126,8 +126,10 @@ type Session interface {
 	session()
 }
 
-// XSession is an unstable interface for internal use only. This interface is deprecated and is not part of the
-// stability guarantee. It may be removed at any time.
+// XSession is an unstable interface for internal use only.
+//
+// Deprecated: This interface is unstable because it provides access to a session.Client object, which exists in the
+// "x" package. It should not be used by applications and may be changed or removed in any release.
 type XSession interface {
 	ClientSession() *session.Client
 }
