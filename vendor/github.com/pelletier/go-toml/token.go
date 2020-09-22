@@ -1,6 +1,9 @@
 package toml
 
-import "fmt"
+import (
+	"fmt"
+	"unicode"
+)
 
 // Define tokens
 type tokenType int
@@ -109,7 +112,7 @@ func isSpace(r rune) bool {
 }
 
 func isAlphanumeric(r rune) bool {
-	return 'a' <= r && r <= 'z' || 'A' <= r && r <= 'Z' || r == '_'
+	return unicode.IsLetter(r) || r == '_'
 }
 
 func isKeyChar(r rune) bool {
@@ -124,7 +127,7 @@ func isKeyStartChar(r rune) bool {
 }
 
 func isDigit(r rune) bool {
-	return '0' <= r && r <= '9'
+	return unicode.IsNumber(r)
 }
 
 func isHexDigit(r rune) bool {
