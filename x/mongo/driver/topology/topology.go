@@ -564,7 +564,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		return false
 	}
 	prev := t.fsm.Topology
-	diff := t.fsm.Topology.DiffHostlist(parsedHosts)
+	diff := diffHostList(t.fsm.Topology, parsedHosts)
 
 	if len(diff.Added) == 0 && len(diff.Removed) == 0 {
 		return true
@@ -630,7 +630,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 
 	prev := t.fsm.Topology
 	oldDesc := t.fsm.Servers[ind]
-	if description.CompareTopologyVersion(oldDesc.TopologyVersion, desc.TopologyVersion) > 0 {
+	if oldDesc.TopologyVersion.CompareToIncoming(desc.TopologyVersion) > 0 {
 		return oldDesc
 	}
 
@@ -645,7 +645,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 		t.publishServerDescriptionChangedEvent(oldDesc, desc)
 	}
 
-	diff := description.DiffTopology(prev, current)
+	diff := diffTopology(prev, current)
 
 	for _, removed := range diff.Removed {
 		if s, ok := t.servers[removed.Addr]; ok {

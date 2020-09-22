@@ -556,7 +556,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
 			return true
 		}
-		if desc.SupportsRetryWrites() &&
+		if retryWritesSupported(desc) &&
 			desc.WireVersion != nil && desc.WireVersion.Max >= 6 &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
@@ -924,7 +924,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		return dst, err
 	}
 
-	if description.SessionsSupported(desc.WireVersion) && client != nil && client.Consistent && client.OperationTime != nil {
+	if sessionsSupported(desc.WireVersion) && client != nil && client.Consistent && client.OperationTime != nil {
 		data = data[:len(data)-1] // remove the null byte
 		data = bsoncore.AppendTimestampElement(data, "afterClusterTime", client.OperationTime.T, client.OperationTime.I)
 		data, _ = bsoncore.AppendDocumentEnd(data, 0)
@@ -958,7 +958,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 
 func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	client := op.Client
-	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
+	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
 		return dst, nil
 	}
 	if err := client.UpdateUseTime(); err != nil {
@@ -988,7 +988,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 
 func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {
 	client, clock := op.Client, op.Clock
-	if (clock == nil && client == nil) || !description.SessionsSupported(desc.WireVersion) {
+	if (clock == nil && client == nil) || !sessionsSupported(desc.WireVersion) {
 		return dst
 	}
 	clusterTime := clock.GetClusterTime()
@@ -1403,4 +1403,14 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)
+}
+
+// sessionsSupported returns true of the given server version indicates that it supports sessions.
+func sessionsSupported(wireVersion *description.VersionRange) bool {
+	return wireVersion != nil && wireVersion.Max >= 6
+}
+
+// retryWritesSupported returns true if this description represents a server that supports retryable writes.
+func retryWritesSupported(s description.Server) bool {
+	return s.SessionTimeoutMinutes != 0 && s.Kind != description.Standalone
 }

@@ -6,7 +6,7 @@
 
 package description
 
-// ServerKind represents the type of a server.
+// ServerKind represents the type of a single server in a topology.
 type ServerKind uint32
 
 // These constants are the possible types of servers.
@@ -20,7 +20,7 @@ const (
 	Mongos      ServerKind = 256
 )
 
-// String implements the fmt.Stringer interface.
+// String returns a stringified version of the kind or "Unknown" if the kind is invalid.
 func (kind ServerKind) String() string {
 	switch kind {
 	case Standalone:
