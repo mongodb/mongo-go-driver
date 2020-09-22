@@ -68,8 +68,10 @@ type FindOptions struct {
 	// is false.
 	NoCursorTimeout *bool
 
-	// This option is for internal replication use only and should not be set. This option has been deprecated in
-	// MongoDB version 4.4 and will be ignored by the server if it is set.
+	// This option is for internal replication use only and should not be set.
+	//
+	// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is
+	// set.
 	OplogReplay *bool
 
 	// A document describing which fields will be included in the documents returned by the operation. The default value
@@ -87,8 +89,10 @@ type FindOptions struct {
 	// The number of documents to skip before adding documents to the result. The default value is 0.
 	Skip *int64
 
-	// If true, the cursor will not return a document more than once because of an intervening write operation. This
-	// option has been deprecated in MongoDB version 4.0. The default value is false.
+	// If true, the cursor will not return a document more than once because of an intervening write operation. The
+	// default value is false.
+	//
+	// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
 	Snapshot *bool
 
 	// A document specifying the order in which documents should be returned.
@@ -179,6 +183,8 @@ func (f *FindOptions) SetNoCursorTimeout(b bool) *FindOptions {
 }
 
 // SetOplogReplay sets the value for the OplogReplay field.
+//
+// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is set.
 func (f *FindOptions) SetOplogReplay(b bool) *FindOptions {
 	f.OplogReplay = &b
 	return f
@@ -209,6 +215,8 @@ func (f *FindOptions) SetSkip(i int64) *FindOptions {
 }
 
 // SetSnapshot sets the value for the Snapshot field.
+//
+// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
 func (f *FindOptions) SetSnapshot(b bool) *FindOptions {
 	f.Snapshot = &b
 	return f
@@ -357,8 +365,10 @@ type FindOneOptions struct {
 	// The number of documents to skip before selecting the document to be returned. The default value is 0.
 	Skip *int64
 
-	// If true, the cursor will not return a document more than once because of an intervening write operation. This
-	// option has been deprecated in MongoDB version 4.0. The default value is false.
+	// If true, the cursor will not return a document more than once because of an intervening write operation. The
+	// default value is false.
+	//
+	// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
 	Snapshot *bool
 
 	// A document specifying the sort order to apply to the query. The first document in the sorted order will be
@@ -468,6 +478,8 @@ func (f *FindOneOptions) SetSkip(i int64) *FindOneOptions {
 }
 
 // SetSnapshot sets the value for the Snapshot field.
+//
+// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
 func (f *FindOneOptions) SetSnapshot(b bool) *FindOneOptions {
 	f.Snapshot = &b
 	return f
