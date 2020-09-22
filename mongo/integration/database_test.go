@@ -88,7 +88,8 @@ func TestDatabase(t *testing.T) {
 			assert.True(mt, ok, "expected command %v to contain a $readPreference document", evt.Command)
 			assert.Equal(mt, expected, actual, "expected $readPreference document %v, got %v", expected, actual)
 		})
-		mt.Run("gets result and error", func(mt *mtest.T) {
+		failpointOpts := mtest.NewOptions().MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
+		mt.RunOpts("gets result and error", failpointOpts, func(mt *mtest.T) {
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
 				Mode: mtest.FailPointMode{
