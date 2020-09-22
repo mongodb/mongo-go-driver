@@ -21,7 +21,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/mongologger"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -104,7 +104,7 @@ type ClientOptions struct {
 	HeartbeatInterval        *time.Duration
 	Hosts                    []string
 	LocalThreshold           *time.Duration
-	Logger                   *mongologger.MongoLogger
+	Logger                   *mongolog.MongoLogger
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
 	MinPoolSize              *uint64
@@ -485,7 +485,7 @@ func (c *ClientOptions) SetLocalThreshold(d time.Duration) *ClientOptions {
 
 // SetLogger specifies a MongoLogger to log messages. See the mongologger.MongoLogger documentation
 // for more information about the structure of the logger and the messages it logs.
-func (c *ClientOptions) SetLogger(m *mongologger.MongoLogger) *ClientOptions {
+func (c *ClientOptions) SetLogger(m *mongolog.MongoLogger) *ClientOptions {
 	c.Logger = m
 	return c
 }

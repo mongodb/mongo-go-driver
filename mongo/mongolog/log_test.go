@@ -4,13 +4,12 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package mongologger
+package mongolog
 
 import (
 	"bytes"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -46,7 +45,7 @@ func TestMongoLogger(t *testing.T) {
 			buf.Reset()
 			ml, err := NewMongoLogger(tc.opts)
 			assert.Nil(t, err, "Error creating MongoLogger: %v", err)
-			ml.Log(tc.component, tc.logLevel, "foo", Int("apple", 1))
+			ml.Log(tc.component, tc.logLevel, "foo", Int64("apple", int64(1)))
 			got := buf.String()
 			if tc.logged {
 				want := fmt.Sprintf("{level:%v,msg:foo,apple:1}\n", tc.logLevel)
@@ -71,27 +70,13 @@ func TestDefaultLogger(t *testing.T) {
 		var buf bytes.Buffer
 		logger := defaultLogger{writer: &buf}
 		stringer := testStringer{true}
-		now := time.Now()
-		now = now.UTC().In(now.Location()) // Remove the monotonic clock time
 		logger.log(Warning, "all fields",
-			Bool("bool", true),
-			Float64("float64", float64(3.14)),
-			Float32("float32", float32(1.23)),
-			Int("int", 1),
 			Int64("int64", int64(2)),
-			Int32("int32", int32(3)),
-			Uint64("uint64", uint64(4)),
-			Uint32("uint32", uint32(5)),
-			Uintptr("uintptr", uintptr(6)),
-			Reflect("reflect", nil),
+			String("string", "apple"),
 			Stringer("stringer", stringer),
-			Time("time", now),
-			Duration("duration", time.Millisecond),
 		)
 		got := buf.String()
-		want := "{level:warning,msg:all fields,bool:true,float64:3.14,float32:1.23,int:1,int64:2,int32:3," +
-			fmt.Sprintf("uint64:4,uint32:5,uintptr:6,reflect:<nil>,stringer:%v,time:%v,", stringer, now) +
-			"duration:1ms}\n"
+		want := fmt.Sprintf("{level:warning,msg:all fields,int64:2,string:apple,stringer:%v}\n", stringer)
 		diff := cmp.Diff(got, want)
 		assert.Equal(t, diff, "", "mismatched logs:%v", diff)
 	})

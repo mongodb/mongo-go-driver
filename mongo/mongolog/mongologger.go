@@ -4,11 +4,11 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package mongologger // import "go.mongodb.org/mongo-driver/mongo/mongologger"
+package mongolog
 
 import (
+	"fmt"
 	"os"
-	"strconv"
 )
 
 // Logger is an interface for loggers to implement
@@ -46,7 +46,7 @@ func NewMongoLogger(opts ...*Options) (*MongoLogger, error) {
 			dl.outputFile = *mlo.OutputFile
 			dl.writer, err = os.Create(dl.outputFile)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Error opening logging output file: %v", err)
 			}
 		}
 		mlo.Logger = dl
@@ -78,62 +78,6 @@ func NewMongoLogger(opts ...*Options) (*MongoLogger, error) {
 	}
 
 	return &ml, nil
-}
-
-// NewMongoLoggerFromEnv returns a mongologger set to the environment variables. If not logging environment variables
-// are set, returns nil
-func NewMongoLoggerFromEnv() (*MongoLogger, error) {
-	var anySet bool
-	options := NewOptions()
-	if command := os.Getenv("MONGODB_LOGGING_COMMAND"); command != "" {
-		level, err := StringToLevel(command)
-		if err != nil {
-			return nil, err
-		}
-		options.SetCommandLevel(level)
-		anySet = true
-	}
-	if connection := os.Getenv("MONGODB_LOGGING_CONNECTION"); connection != "" {
-		level, err := StringToLevel(connection)
-		if err != nil {
-			return nil, err
-		}
-		options.SetConnectionLevel(level)
-		anySet = true
-	}
-	if sdam := os.Getenv("MONGODB_LOGGING_SDAM"); sdam != "" {
-		level, err := StringToLevel(sdam)
-		if err != nil {
-			return nil, err
-		}
-		options.SetSDAMLevel(level)
-		anySet = true
-	}
-	if serverSelection := os.Getenv("MONGODB_LOGGING_SERVER_SELECTION"); serverSelection != "" {
-		level, err := StringToLevel(serverSelection)
-		if err != nil {
-			return nil, err
-		}
-		options.SetServerSelectionLevel(level)
-		anySet = true
-	}
-	if path := os.Getenv("MONGODB_LOGGING_PATH"); path != "" {
-		options.SetOutputFile(path)
-		anySet = true
-	}
-	if logFullCommands := os.Getenv("MONGODB_LOG_FULL_COMMANDS"); logFullCommands != "" {
-		logFull, err := strconv.ParseBool(logFullCommands)
-		if err != nil {
-			return nil, err
-		}
-		options.SetLogFullCommands(logFull)
-		anySet = true
-	}
-
-	if anySet {
-		return NewMongoLogger(options)
-	}
-	return nil, nil
 }
 
 // Log logs a message on logger for component if it passes the log level. Ignores invalid components

@@ -10,6 +10,8 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,7 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/mongologger"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -54,7 +56,7 @@ type Client struct {
 	deployment      driver.Deployment
 	connString      connstring.ConnString
 	localThreshold  time.Duration
-	logger          *mongologger.MongoLogger
+	logger          *mongolog.MongoLogger
 	retryWrites     bool
 	retryReads      bool
 	clock           *session.ClusterClock
@@ -512,18 +514,20 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		)
 	}
 	// Logger
-	if opts.Logger == nil {
-		var err error
-		opts.Logger, err = mongologger.NewMongoLoggerFromEnv()
-		if err != nil {
-			return err
-		}
+	logger := opts.Logger
+	var err error
+	if logger == nil {
+		logger, err = mongoLoggerFromEnv()
 	}
-	// This wraps the command monitor, so it must be set after c.monitor is set
-	if opts.Logger != nil {
-		c.logger = opts.Logger
+	if err != nil {
+		return err
+	}
 
-		c.monitor = newCommandLogger(c.logger, c.monitor)
+	// This wraps the command monitor, so it must be set after c.monitor is set
+	if logger != nil {
+		c.logger = logger
+
+		c.monitor = newCommandLoggingMonitor(c.logger, c.monitor)
 		connOpts = append(connOpts, topology.WithMonitor(
 			func(*event.CommandMonitor) *event.CommandMonitor { return c.monitor },
 		))
@@ -693,6 +697,52 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 	var err error
 	c.crypt, err = driver.NewCrypt(cryptOpts)
 	return err
+}
+
+// mongoLoggerFromEnv returns a mongologger set to the environment variables. If no logging environment variables
+// are set, returns nil
+func mongoLoggerFromEnv() (*mongolog.MongoLogger, error) {
+	options := mongolog.NewOptions()
+	if command := os.Getenv("MONGODB_LOGGING_COMMAND"); command != "" {
+		level, err := mongolog.LevelFromString(command)
+		if err != nil {
+			return nil, err
+		}
+		options.SetCommandLevel(level)
+	}
+	if connection := os.Getenv("MONGODB_LOGGING_CONNECTION"); connection != "" {
+		level, err := mongolog.LevelFromString(connection)
+		if err != nil {
+			return nil, err
+		}
+		options.SetConnectionLevel(level)
+	}
+	if sdam := os.Getenv("MONGODB_LOGGING_SDAM"); sdam != "" {
+		level, err := mongolog.LevelFromString(sdam)
+		if err != nil {
+			return nil, err
+		}
+		options.SetSDAMLevel(level)
+	}
+	if serverSelection := os.Getenv("MONGODB_LOGGING_SERVER_SELECTION"); serverSelection != "" {
+		level, err := mongolog.LevelFromString(serverSelection)
+		if err != nil {
+			return nil, err
+		}
+		options.SetServerSelectionLevel(level)
+	}
+	if path := os.Getenv("MONGODB_LOGGING_PATH"); path != "" {
+		options.SetOutputFile(path)
+	}
+	if logFullCommands := os.Getenv("MONGODB_LOG_FULL_COMMANDS"); logFullCommands != "" {
+		logFull, err := strconv.ParseBool(logFullCommands)
+		if err != nil {
+			return nil, err
+		}
+		options.SetLogFullCommands(logFull)
+	}
+
+	return mongolog.NewMongoLogger(options)
 }
 
 // validSession returns an error if the session doesn't belong to the client

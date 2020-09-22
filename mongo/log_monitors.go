@@ -10,18 +10,18 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/mongologger"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 )
 
-func newCommandLogger(l *mongologger.MongoLogger, cm *event.CommandMonitor) *event.CommandMonitor {
+func newCommandLoggingMonitor(logger *mongolog.MongoLogger, cm *event.CommandMonitor) *event.CommandMonitor {
 	return &event.CommandMonitor{
 		Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
-			l.Log(mongologger.Command, mongologger.Debug, "Command started",
-				mongologger.Stringer("command", cse.Command),
-				mongologger.String("databaseName", cse.DatabaseName),
-				mongologger.String("commandName", cse.CommandName),
-				mongologger.Int64("requestId", cse.RequestID),
-				mongologger.String("driverConnectionId", cse.ConnectionID),
+			logger.Log(mongolog.Command, mongolog.Debug, "Command started",
+				mongolog.Stringer("command", cse.Command),
+				mongolog.String("databaseName", cse.DatabaseName),
+				mongolog.String("commandName", cse.CommandName),
+				mongolog.Int64("requestId", cse.RequestID),
+				mongolog.String("driverConnectionId", cse.ConnectionID),
 				// TODO: add serverConnectionId, explicitSession
 			)
 			if cm != nil && cm.Started != nil {
@@ -29,27 +29,27 @@ func newCommandLogger(l *mongologger.MongoLogger, cm *event.CommandMonitor) *eve
 			}
 		},
 		Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
-			l.Log(mongologger.Command, mongologger.Debug, "Command succeeded",
-				mongologger.Int64("durationNanos", cse.DurationNanos),
-				mongologger.Stringer("reply", cse.Reply),
-				mongologger.String("commandName", cse.CommandName),
-				mongologger.Int64("requestId", cse.RequestID),
-				mongologger.String("driverConnectionId", cse.ConnectionID),
+			logger.Log(mongolog.Command, mongolog.Debug, "Command succeeded",
+				mongolog.Int64("durationNanos", cse.DurationNanos),
+				mongolog.Stringer("reply", cse.Reply),
+				mongolog.String("commandName", cse.CommandName),
+				mongolog.Int64("requestId", cse.RequestID),
+				mongolog.String("driverConnectionId", cse.ConnectionID),
 				// TODO: add serverConnectionId, explicitSession
 			)
-			if cm != nil && cm.Started != nil {
+			if cm != nil && cm.Succeeded != nil {
 				cm.Succeeded(ctx, cse)
 			}
 		},
 		Failed: func(ctx context.Context, cfe *event.CommandFailedEvent) {
-			l.Log(mongologger.Command, mongologger.Debug, "Command failed",
-				mongologger.Int64("durationNanos", cfe.DurationNanos),
-				mongologger.String("commandName", cfe.CommandName),
-				mongologger.String("failure", cfe.Failure),
-				mongologger.String("driverConnectionId", cfe.ConnectionID),
+			logger.Log(mongolog.Command, mongolog.Debug, "Command failed",
+				mongolog.Int64("durationNanos", cfe.DurationNanos),
+				mongolog.String("commandName", cfe.CommandName),
+				mongolog.String("failure", cfe.Failure),
+				mongolog.String("driverConnectionId", cfe.ConnectionID),
 				// TODO: add serverConnectionId, explicitSession
 			)
-			if cm != nil && cm.Started != nil {
+			if cm != nil && cm.Failed != nil {
 				cm.Failed(ctx, cfe)
 			}
 		},

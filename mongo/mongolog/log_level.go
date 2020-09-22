@@ -4,14 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package mongologger
+package mongolog
 
 import (
 	"errors"
 	"strings"
 )
 
-// Level indicates the user's preference on logging.
+// Level indicates the priority of a log message.
 type Level uint8
 
 // Level constants
@@ -53,8 +53,8 @@ func (l Level) String() string {
 	}
 }
 
-// StringToLevel returns the level corresponding to the string.
-func StringToLevel(s string) (Level, error) {
+// LevelFromString returns a level corresponding to the string.
+func LevelFromString(s string) (Level, error) {
 	lower := strings.ToLower(s)
 	switch lower {
 	case "trace":
