@@ -29,7 +29,7 @@ type testHandshaker struct {
 	finishHandshake         func(context.Context, driver.Connection) error
 }
 
-// GetDescription implements the Handshaker interface.
+// GetHandshakeInformation implements the Handshaker interface.
 func (th *testHandshaker) GetHandshakeInformation(ctx context.Context, addr address.Address, conn driver.Connection) (driver.HandshakeInformation, error) {
 	if th.getHandshakeInformation != nil {
 		return th.getHandshakeInformation(ctx, addr, conn)
