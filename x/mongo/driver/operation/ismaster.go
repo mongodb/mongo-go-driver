@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/version"
@@ -224,9 +225,9 @@ func (im *IsMaster) createOperation() driver.Operation {
 	}
 }
 
-// GetDescription retrieves the server description for the given connection. This function implements the Handshaker
-// interface.
-func (im *IsMaster) GetDescription(ctx context.Context, _ address.Address, c driver.Connection) (description.Server, error) {
+// GetHandshakeInformation performs the MongoDB handshake for the provided connection and returns the relevant
+// information about the server. This function implements the driver.Handshaker interface.
+func (im *IsMaster) GetHandshakeInformation(ctx context.Context, _ address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
 	err := driver.Operation{
 		Clock:      im.clock,
 		CommandFn:  im.handshakeCommand,
@@ -238,9 +239,21 @@ func (im *IsMaster) GetDescription(ctx context.Context, _ address.Address, c dri
 		},
 	}.Execute(ctx, nil)
 	if err != nil {
-		return description.Server{}, err
+		return driver.HandshakeInformation{}, err
 	}
-	return im.Result(c.Address()), nil
+
+	info := driver.HandshakeInformation{
+		Description: im.Result(c.Address()),
+	}
+	if speculativeAuthenticate, ok := im.res.Lookup("speculativeAuthenticate").DocumentOK(); ok {
+		info.SpeculativeAuthenticate = speculativeAuthenticate
+	}
+	// Cast to bson.Raw to lookup saslSupportedMechs to avoid converting from bsoncore.Value to bson.RawValue for the
+	// StringSliceFromRawValue call.
+	if saslSupportedMechs, lookupErr := bson.Raw(im.res).LookupErr("saslSupportedMechs"); lookupErr == nil {
+		info.SaslSupportedMechs, err = internal.StringSliceFromRawValue(saslSupportedMechs, "saslSupportedMechs")
+	}
+	return info, err
 }
 
 // FinishHandshake implements the Handshaker interface. This is a no-op function because a non-authenticated connection

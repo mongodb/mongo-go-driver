@@ -25,16 +25,16 @@ import (
 )
 
 type testHandshaker struct {
-	getDescription  func(context.Context, address.Address, driver.Connection) (description.Server, error)
-	finishHandshake func(context.Context, driver.Connection) error
+	getHandshakeInformation func(context.Context, address.Address, driver.Connection) (driver.HandshakeInformation, error)
+	finishHandshake         func(context.Context, driver.Connection) error
 }
 
 // GetDescription implements the Handshaker interface.
-func (th *testHandshaker) GetDescription(ctx context.Context, addr address.Address, conn driver.Connection) (description.Server, error) {
-	if th.getDescription != nil {
-		return th.getDescription(ctx, addr, conn)
+func (th *testHandshaker) GetHandshakeInformation(ctx context.Context, addr address.Address, conn driver.Connection) (driver.HandshakeInformation, error) {
+	if th.getHandshakeInformation != nil {
+		return th.getHandshakeInformation(ctx, addr, conn)
 	}
-	return description.Server{}, nil
+	return driver.HandshakeInformation{}, nil
 }
 
 // FinishHandshake implements the Handshaker interface.
@@ -118,8 +118,8 @@ func TestConnection(t *testing.T) {
 				conn, err := newConnection(address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{
-							getDescription: func(context.Context, address.Address, driver.Connection) (description.Server, error) {
-								return description.Server{}, handshakerError
+							getHandshakeInformation: func(context.Context, address.Address, driver.Connection) (driver.HandshakeInformation, error) {
+								return driver.HandshakeInformation{}, handshakerError
 							},
 						}
 					}),

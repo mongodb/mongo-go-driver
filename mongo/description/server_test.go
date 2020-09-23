@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -49,16 +48,10 @@ func TestServer(t *testing.T) {
 			{"sessionTimeoutMinutes", Server{SessionTimeoutMinutes: 1}, false},
 			{"setName", Server{SetName: "foo"}, false},
 			{"setVersion", Server{SetVersion: 1}, false},
-			{
-				"speculativeAuthenticate",
-				Server{SpeculativeAuthenticate: bson.Raw{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}},
-				true,
-			},
 			{"tags", Server{Tags: tag.Set{tag.Tag{"foo", "bar"}}}, false},
 			{"topologyVersion", Server{TopologyVersion: &TopologyVersion{primitive.NewObjectID(), 0}}, false},
 			{"kind", Server{Kind: Standalone}, false},
 			{"wireVersion", Server{WireVersion: &VersionRange{1, 2}}, false},
-			{"saslSupportedMechs", Server{SaslSupportedMechs: []string{"foo"}}, true},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {

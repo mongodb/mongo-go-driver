@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/tag"
 )
@@ -31,34 +32,31 @@ type SelectedServer struct {
 type Server struct {
 	Addr address.Address
 
-	Arbiters                []string
-	AverageRTT              time.Duration
-	AverageRTTSet           bool
-	Compression             []string // compression methods returned by server
-	CanonicalAddr           address.Address
-	ElectionID              primitive.ObjectID
-	HeartbeatInterval       time.Duration
-	Hosts                   []string
-	LastError               error
-	LastUpdateTime          time.Time
-	LastWriteTime           time.Time
-	MaxBatchCount           uint32
-	MaxDocumentSize         uint32
-	MaxMessageSize          uint32
-	Members                 []address.Address
-	Passives                []string
-	Primary                 address.Address
-	ReadOnly                bool
-	SessionTimeoutMinutes   uint32
-	SetName                 string
-	SetVersion              uint32
-	SpeculativeAuthenticate bson.Raw
-	Tags                    tag.Set
-	TopologyVersion         *TopologyVersion
-	Kind                    ServerKind
-	WireVersion             *VersionRange
-
-	SaslSupportedMechs []string // user-specific from server handshake
+	Arbiters              []string
+	AverageRTT            time.Duration
+	AverageRTTSet         bool
+	Compression           []string // compression methods returned by server
+	CanonicalAddr         address.Address
+	ElectionID            primitive.ObjectID
+	HeartbeatInterval     time.Duration
+	Hosts                 []string
+	LastError             error
+	LastUpdateTime        time.Time
+	LastWriteTime         time.Time
+	MaxBatchCount         uint32
+	MaxDocumentSize       uint32
+	MaxMessageSize        uint32
+	Members               []address.Address
+	Passives              []string
+	Primary               address.Address
+	ReadOnly              bool
+	SessionTimeoutMinutes uint32
+	SetName               string
+	SetVersion            uint32
+	Tags                  tag.Set
+	TopologyVersion       *TopologyVersion
+	Kind                  ServerKind
+	WireVersion           *VersionRange
 }
 
 // NewServer creates a new server description from the given parameters.
@@ -77,7 +75,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 		switch element.Key() {
 		case "arbiters":
 			var err error
-			desc.Arbiters, err = decodeStringSlice(element, "arbiters")
+			desc.Arbiters, err = internal.StringSliceFromRawElement(element, "arbiters")
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -90,7 +88,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "compression":
 			var err error
-			desc.Compression, err = decodeStringSlice(element, "compression")
+			desc.Compression, err = internal.StringSliceFromRawElement(element, "compression")
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -109,7 +107,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "hosts":
 			var err error
-			desc.Hosts, err = decodeStringSlice(element, "hosts")
+			desc.Hosts, err = internal.StringSliceFromRawElement(element, "hosts")
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -206,7 +204,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "passives":
 			var err error
-			desc.Passives, err = decodeStringSlice(element, "passives")
+			desc.Passives, err = internal.StringSliceFromRawElement(element, "passives")
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -222,13 +220,6 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			desc.ReadOnly, ok = element.Value().BooleanOK()
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'readOnly' to be a boolean but it's a BSON %s", element.Value().Type)
-				return desc
-			}
-		case "saslSupportedMechs":
-			var err error
-			desc.SaslSupportedMechs, err = decodeStringSlice(element, "saslSupportedMechs")
-			if err != nil {
-				desc.LastError = err
 				return desc
 			}
 		case "secondary":
@@ -250,13 +241,6 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				return desc
 			}
 			desc.SetVersion = uint32(i64)
-		case "speculativeAuthenticate":
-			desc.SpeculativeAuthenticate, ok = element.Value().DocumentOK()
-			if !ok {
-				desc.LastError = fmt.Errorf("expected 'speculativeAuthenticate' to be a document but it's a BSON %s",
-					element.Value().Type)
-				return desc
-			}
 		case "tags":
 			m, err := decodeStringMap(element, "tags")
 			if err != nil {
@@ -375,26 +359,6 @@ func (s Server) String() string {
 		str += fmt.Sprintf(", Last error: %s", s.LastError)
 	}
 	return str
-}
-
-func decodeStringSlice(element bson.RawElement, name string) ([]string, error) {
-	arr, ok := element.Value().ArrayOK()
-	if !ok {
-		return nil, fmt.Errorf("expected '%s' to be an array but it's a BSON %s", name, element.Value().Type)
-	}
-	vals, err := arr.Values()
-	if err != nil {
-		return nil, err
-	}
-	var strs []string
-	for _, val := range vals {
-		str, ok := val.StringValueOK()
-		if !ok {
-			return nil, fmt.Errorf("expected '%s' to be an array of strings, but found a BSON %s", name, val.Type)
-		}
-		strs = append(strs, str)
-	}
-	return strs, nil
 }
 
 func decodeStringMap(element bson.RawElement, name string) (map[string]string, error) {
