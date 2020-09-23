@@ -104,7 +104,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterDefaultEncoder(reflect.Map, defaultMapCodec).
 		RegisterDefaultEncoder(reflect.Slice, defaultSliceCodec).
 		RegisterDefaultEncoder(reflect.String, defaultStringCodec).
-		RegisterDefaultEncoder(reflect.Struct, defaultStructCodec).
+		RegisterDefaultEncoder(reflect.Struct, newDefaultStructCodec()).
 		RegisterDefaultEncoder(reflect.Ptr, NewPointerCodec()).
 		RegisterHookEncoder(tValueMarshaler, ValueEncoderFunc(dve.ValueMarshalerEncodeValue)).
 		RegisterHookEncoder(tMarshaler, ValueEncoderFunc(dve.MarshalerEncodeValue)).

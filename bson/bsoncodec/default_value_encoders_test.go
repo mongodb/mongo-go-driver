@@ -66,6 +66,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	vmStruct := struct{ V testValueMarshalPtr }{testValueMarshalPtr{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}}}
 	mStruct := struct{ V testMarshalPtr }{testMarshalPtr{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))}}
 	pStruct := struct{ V testProxyPtr }{testProxyPtr{ret: int64(1234567890)}}
+	defaultStructCodec := newDefaultStructCodec()
 
 	type subtest struct {
 		name   string

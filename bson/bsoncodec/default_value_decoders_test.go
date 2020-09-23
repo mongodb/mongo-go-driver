@@ -55,6 +55,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 	var pbool = func(b bool) *bool { return &b }
 	var pi32 = func(i32 int32) *int32 { return &i32 }
 	var pi64 = func(i64 int64) *int64 { return &i64 }
+	defaultStructCodec := newDefaultStructCodec()
 
 	type subtest struct {
 		name   string

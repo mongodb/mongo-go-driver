@@ -93,7 +93,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDefaultDecoder(reflect.Map, defaultMapCodec).
 		RegisterDefaultDecoder(reflect.Slice, defaultSliceCodec).
 		RegisterDefaultDecoder(reflect.String, defaultStringCodec).
-		RegisterDefaultDecoder(reflect.Struct, defaultStructCodec).
+		RegisterDefaultDecoder(reflect.Struct, newDefaultStructCodec()).
 		RegisterDefaultDecoder(reflect.Ptr, NewPointerCodec()).
 		RegisterTypeMapEntry(bsontype.Double, tFloat64).
 		RegisterTypeMapEntry(bsontype.String, tString).
