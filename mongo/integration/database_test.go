@@ -108,10 +108,9 @@ func TestDatabase(t *testing.T) {
 			}
 			res, gotErr := mt.DB.RunCommand(mtest.Background, cmd).DecodeBytes()
 
-			n, err := res.LookupErr("n")
-			assert.Nil(mt, err, "n field not found in result")
-			assert.Equal(mt, bson.TypeInt32, n.Type, "expected n type %v, got %v", bson.TypeInt32, n.Type)
-			assert.Equal(mt, int32(1), n.Int32(), "expected n value 1, got %v", n.Int32())
+			n, ok := res.Lookup("n").Int32OK()
+			assert.True(mt, ok, "expected n in response")
+			assert.Equal(mt, int32(1), n, "expected n value 1, got %v", n)
 
 			writeExcept, ok := gotErr.(mongo.WriteException)
 			assert.True(mt, ok, "expected WriteCommandError, got %T", gotErr)

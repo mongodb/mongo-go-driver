@@ -192,6 +192,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	}
 
 	err = op.Execute(ctx)
+	// RunCommand can be used to run a write, thus execute may return a write error
 	_, convErr := processWriteError(err)
 	return &SingleResult{
 		err: convErr,

@@ -415,6 +415,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				continue
 			}
 
+			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
 				perr = op.ProcessResponseFn(res, srvr, desc.Server)
 			}
@@ -499,6 +500,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				continue
 			}
 
+			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
 				perr = op.ProcessResponseFn(res, srvr, desc.Server)
 			}

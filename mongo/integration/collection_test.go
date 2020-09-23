@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -1155,8 +1156,8 @@ func TestCollection(t *testing.T) {
 			}
 		})
 		mt.Run("insert and delete with batches", func(mt *mtest.T) {
-			// // TODO(GODRIVER-425): remove this as part a larger project to
-			// // refactor integration and other longrunning tasks.
+			// TODO(GODRIVER-425): remove this as part a larger project to
+			// refactor integration and other longrunning tasks.
 			if os.Getenv("EVR_TASK_ID") == "" {
 				mt.Skip("skipping long running integration test outside of evergreen")
 			}
@@ -1174,13 +1175,25 @@ func TestCollection(t *testing.T) {
 				insertModels = append(insertModels, mongo.NewInsertOneModel().SetDocument(d))
 				deleteModels = append(deleteModels, mongo.NewDeleteOneModel().SetFilter(bson.D{}))
 			}
-			res, err := mt.Coll.BulkWrite(context.Background(), insertModels)
+			mt.ClearEvents()
+			res, err := mt.Coll.BulkWrite(mtest.Background, insertModels)
 			assert.Nil(mt, err, "BulkWrite error: %v", err)
 			assert.Equal(mt, int64(numDocs), res.InsertedCount, "expected %v inserted documents, got %v", numDocs, res.InsertedCount)
+			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+				return evt.CommandName == "insert"
+			})
+			inserts := len(mt.GetAllStartedEvents())
+			assert.True(mt, inserts > 1, "expected multiple batches, got %v", inserts)
 
-			res, err = mt.Coll.BulkWrite(context.Background(), deleteModels)
+			mt.ClearEvents()
+			res, err = mt.Coll.BulkWrite(mtest.Background, deleteModels)
 			assert.Nil(mt, err, "BulkWrite error: %v", err)
-			assert.Equal(mt, int64(numDocs), res.DeletedCount, "expected %v inserted documents, got %v", numDocs, res.DeletedCount)
+			assert.Equal(mt, int64(numDocs), res.DeletedCount, "expected %v deleted documents, got %v", numDocs, res.DeletedCount)
+			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+				return evt.CommandName == "delete"
+			})
+			deletes := len(mt.GetAllStartedEvents())
+			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
 		})
 		mt.Run("update with batches", func(mt *mtest.T) {
 			// TODO(GODRIVER-425): remove this as part a larger project to
@@ -1192,20 +1205,37 @@ func TestCollection(t *testing.T) {
 			var models []mongo.WriteModel
 			numModels := 100050
 			// it's significantly faster to upsert one model and modify the rest than to upsert all of them
-			for i := 0; i < numModels; i++ {
-				models = append(models, mongo.NewUpdateOneModel().
+			for i := 0; i < numModels-1; i++ {
+				update := bson.D{
+					{"$set", bson.D{
+						{"a", int32(i + 1)},
+						{"b", int32(i * 2)},
+						{"c", int32(i * 3)},
+					}},
+				}
+				model := mongo.NewUpdateOneModel().
 					SetFilter(bson.D{{"a", int32(i)}}).
-					SetUpdate(bson.D{{"$set",
-						bson.D{
-							{"a", int32(i + 1)},
-							{"b", int32(i * 2)},
-							{"c", int32(i * 3)},
-						}}}).SetUpsert(true))
+					SetUpdate(update).SetUpsert(true)
+				models = append(models, model)
 			}
-			res, err := mt.Coll.BulkWrite(context.Background(), models)
+			// add one last upsert
+			models = append(models, mongo.NewUpdateOneModel().
+				SetFilter(bson.D{{"x", int32(1)}}).
+				SetUpdate(bson.D{{"$set", bson.D{{"x", int32(1)}}}}).
+				SetUpsert(true),
+			)
+
+			mt.ClearEvents()
+			res, err := mt.Coll.BulkWrite(mtest.Background, models)
 			assert.Nil(mt, err, "BulkWrite error: %v", err)
-			assert.Equal(mt, int64(1), res.UpsertedCount, "expected %v inserted documents, got %v", 1, res.UpsertedCount)
-			assert.Equal(mt, int64(numModels-1), res.ModifiedCount, "expected %v modified documents, got %v", numModels-1, res.ModifiedCount)
+			assert.Equal(mt, int64(2), res.UpsertedCount, "expected %v upserted documents, got %v", 2, res.UpsertedCount)
+			assert.Equal(mt, int64(numModels-2), res.ModifiedCount, "expected %v modified documents, got %v", numModels-2, res.ModifiedCount)
+			assert.Equal(mt, int64(numModels-2), res.MatchedCount, "expected %v matched documents, got %v", numModels-2, res.ModifiedCount)
+			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+				return evt.CommandName == "update"
+			})
+			updates := len(mt.GetAllStartedEvents())
+			assert.True(mt, updates > 1, "expected multiple batches, got %v", updates)
 		})
 	})
 }
