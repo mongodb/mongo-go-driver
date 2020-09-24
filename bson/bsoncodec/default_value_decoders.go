@@ -36,6 +36,16 @@ func (d decodeBinaryError) Error() string {
 	return fmt.Sprintf("only binary values with subtype 0x00 or 0x02 can be decoded into %s, but got subtype %v", d.typeName, d.subtype)
 }
 
+func newDefaultStructCodec() *StructCodec {
+	codec, err := NewStructCodec(DefaultStructTagParser)
+	if err != nil {
+		// This function is called from the codec registration path, so errors can't be propagated. If there's an error
+		// constructing the StructCodec, we panic to avoid losing it.
+		panic(fmt.Errorf("error creating default StructCodec: %v", err))
+	}
+	return codec
+}
+
 // DefaultValueDecoders is a namespace type for the default ValueDecoders used
 // when creating a registry.
 type DefaultValueDecoders struct{}

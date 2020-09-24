@@ -100,11 +100,6 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	return codec, nil
 }
 
-func newDefaultStructCodec() *StructCodec {
-	codec, _ := NewStructCodec(DefaultStructTagParser)
-	return codec
-}
-
 // EncodeValue handles encoding generic struct types.
 func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Struct {
