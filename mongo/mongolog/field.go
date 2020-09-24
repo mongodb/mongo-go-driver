@@ -9,6 +9,7 @@ package mongolog
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 )
 
@@ -41,6 +42,20 @@ func String(key string, val string) Field {
 // String method
 func Stringer(key string, val fmt.Stringer) Field {
 	return Field{Key: key, Type: StringerType, Interface: val}
+}
+
+// getValueString returns the value stored in field f as a string
+func (f Field) getValueString() string {
+	switch f.Type {
+	case Int64Type:
+		return strconv.FormatInt(f.Integer, 10)
+	case StringType:
+		return f.String
+	case StringerType:
+		return f.Interface.(fmt.Stringer).String()
+	default:
+		panic(fmt.Sprintf("unknown field type: %v", f))
+	}
 }
 
 // A FieldType indicates which member of the Field union struct should be used

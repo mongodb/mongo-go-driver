@@ -9,7 +9,6 @@ package mongolog
 import (
 	"fmt"
 	"io"
-	"strconv"
 )
 
 // defaultLogger is the default logger for the mongo package. By default, it sends logs to stdErr,
@@ -28,25 +27,11 @@ func (dl defaultLogger) log(level Level, message string, args ...Field) {
 	log := fmt.Sprintf("{level:%v,msg:%v", level, message)
 	if len(args) != 0 {
 		for _, field := range args {
-			log += fmt.Sprintf(",%v:%v", field.Key, getValueString(field))
+			log += fmt.Sprintf(",%v:%v", field.Key, field.getValueString())
 		}
 	}
 	log += "}\n"
 	_, _ = io.WriteString(dl.writer, log)
-}
-
-// getValueString returns the value stored in field f as a string
-func getValueString(f Field) string {
-	switch f.Type {
-	case Int64Type:
-		return strconv.FormatInt(f.Integer, 10)
-	case StringType:
-		return f.String
-	case StringerType:
-		return f.Interface.(fmt.Stringer).String()
-	default:
-		panic(fmt.Sprintf("unknown field type: %v", f))
-	}
 }
 
 // Trace logs a message at trace level

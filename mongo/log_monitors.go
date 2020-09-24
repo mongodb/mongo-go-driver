@@ -13,7 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/mongolog"
 )
 
-func newCommandLoggingMonitor(logger *mongolog.MongoLogger, cm *event.CommandMonitor) *event.CommandMonitor {
+// newLoggingCommandMonitor wraps cm to return a CommandMonitor that also logs to logger.
+func newLoggingCommandMonitor(logger *mongolog.MongoLogger, cm *event.CommandMonitor) *event.CommandMonitor {
 	return &event.CommandMonitor{
 		Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 			logger.Log(mongolog.Command, mongolog.Debug, "Command started",

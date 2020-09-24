@@ -527,7 +527,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if logger != nil {
 		c.logger = logger
 
-		c.monitor = newCommandLoggingMonitor(c.logger, c.monitor)
+		c.monitor = newLoggingCommandMonitor(c.logger, c.monitor)
 		connOpts = append(connOpts, topology.WithMonitor(
 			func(*event.CommandMonitor) *event.CommandMonitor { return c.monitor },
 		))
@@ -699,8 +699,7 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 	return err
 }
 
-// mongoLoggerFromEnv returns a mongologger set to the environment variables. If no logging environment variables
-// are set, returns nil
+// mongoLoggerFromEnv returns a mongologger set to the environment variables
 func mongoLoggerFromEnv() (*mongolog.MongoLogger, error) {
 	options := mongolog.NewOptions()
 	if command := os.Getenv("MONGODB_LOGGING_COMMAND"); command != "" {

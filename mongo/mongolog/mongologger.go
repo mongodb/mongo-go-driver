@@ -46,7 +46,7 @@ func NewMongoLogger(opts ...*Options) (*MongoLogger, error) {
 			dl.outputFile = *mlo.OutputFile
 			dl.writer, err = os.Create(dl.outputFile)
 			if err != nil {
-				return nil, fmt.Errorf("Error opening logging output file: %v", err)
+				return nil, fmt.Errorf("error opening logging output file: %v", err)
 			}
 		}
 		mlo.Logger = dl
