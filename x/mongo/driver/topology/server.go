@@ -574,8 +574,9 @@ func (s *Server) createConnection() (*connection, error) {
 		WithHandshaker(func(h Handshaker) Handshaker {
 			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
 		}),
-		// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
+		// Override any monitors specified in options with nil to avoid monitoring heartbeats.
 		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
+		WithPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return nil }),
 	}
 	opts = append(s.cfg.connectionOpts, opts...)
 
@@ -594,7 +595,7 @@ func (s *Server) setupHeartbeatConnection() error {
 	s.conn = conn
 	s.heartbeatLock.Unlock()
 
-	s.conn.connect(s.heartbeatCtx, nil)
+	s.conn.connect(s.heartbeatCtx)
 	return s.conn.wait()
 }
 

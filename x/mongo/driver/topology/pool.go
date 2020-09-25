@@ -129,7 +129,7 @@ func (p *pool) connectionInitFunc() interface{} {
 		return nil
 	}
 
-	go c.connect(context.Background(), p.monitor)
+	go c.connect(context.Background())
 
 	return c
 }
@@ -140,6 +140,9 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 	opts := connOpts
 	if config.MaxIdleTime != time.Duration(0) {
 		opts = append(opts, WithIdleTimeout(func(_ time.Duration) time.Duration { return config.MaxIdleTime }))
+	}
+	if config.PoolMonitor != nil {
+		opts = append(opts, WithPoolMonitor(func(_ *event.PoolMonitor) *event.PoolMonitor { return config.PoolMonitor }))
 	}
 
 	var maxConns = config.MaxPoolSize
@@ -362,7 +365,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		if c, ok := connVal.(*connection); ok && connVal != nil {
 			// call connect if not connected
 			if atomic.LoadInt32(&c.connected) == initialized {
-				c.connect(ctx, p.monitor)
+				c.connect(ctx)
 			}
 
 			err := c.wait()
@@ -427,7 +430,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				return nil, err
 			}
 
-			c.connect(ctx, p.monitor)
+			c.connect(ctx)
 			// wait for conn to be connected
 			err = c.wait()
 			if err != nil {

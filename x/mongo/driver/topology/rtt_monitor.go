@@ -113,7 +113,7 @@ func (r *rttMonitor) setupRttConnection() error {
 	r.conn = conn
 	r.Unlock()
 
-	r.conn.connect(r.ctx, nil)
+	r.conn.connect(r.ctx)
 	return r.conn.wait()
 }
 

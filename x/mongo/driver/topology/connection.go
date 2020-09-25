@@ -61,6 +61,7 @@ type connection struct {
 	poolID       uint64
 	generation   uint64
 	expireReason string
+	poolMonitor  *event.PoolMonitor
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -82,6 +83,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 		config:               cfg,
 		connectContextMade:   make(chan struct{}),
 		cancellationListener: internal.NewCancellationListener(),
+		poolMonitor:          cfg.poolMonitor,
 	}
 	atomic.StoreInt32(&c.connected, initialized)
 
@@ -102,7 +104,7 @@ func (c *connection) processInitializationError(err error) {
 
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform
 // initialization handshakes.
-func (c *connection) connect(ctx context.Context, monitor *event.PoolMonitor) {
+func (c *connection) connect(ctx context.Context) {
 	if !atomic.CompareAndSwapInt32(&c.connected, initialized, connected) {
 		return
 	}
@@ -159,8 +161,8 @@ func (c *connection) connect(ctx context.Context, monitor *event.PoolMonitor) {
 	// running isMaster and authentication is handled by a handshaker on the configuration instance.
 	handshaker := c.config.handshaker
 	if handshaker == nil {
-		if monitor != nil {
-			monitor.Event(&event.PoolEvent{
+		if c.poolMonitor != nil {
+			c.poolMonitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionReady,
 				Address:      c.addr.String(),
 				ConnectionID: c.poolID,
@@ -215,8 +217,8 @@ func (c *connection) connect(ctx context.Context, monitor *event.PoolMonitor) {
 			}
 		}
 	}
-	if monitor != nil {
-		monitor.Event(&event.PoolEvent{
+	if c.poolMonitor != nil {
+		c.poolMonitor.Event(&event.PoolEvent{
 			Type:         event.ConnectionReady,
 			Address:      c.addr.String(),
 			ConnectionID: c.poolID,
