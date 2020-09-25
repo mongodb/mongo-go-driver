@@ -129,7 +129,7 @@ func (p *pool) connectionInitFunc() interface{} {
 		return nil
 	}
 
-	go c.connect(context.Background())
+	go c.connect(context.Background(), p.monitor)
 
 	return c
 }
@@ -362,7 +362,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		if c, ok := connVal.(*connection); ok && connVal != nil {
 			// call connect if not connected
 			if atomic.LoadInt32(&c.connected) == initialized {
-				c.connect(ctx)
+				c.connect(ctx, p.monitor)
 			}
 
 			err := c.wait()
@@ -427,7 +427,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				return nil, err
 			}
 
-			c.connect(ctx)
+			c.connect(ctx, p.monitor)
 			// wait for conn to be connected
 			err = c.wait()
 			if err != nil {

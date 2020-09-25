@@ -75,7 +75,7 @@ func TestConnection(t *testing.T) {
 				if got != nil {
 					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
 				}
-				conn.connect(context.Background())
+				conn.connect(context.Background(), nil)
 				got = conn.wait()
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -103,7 +103,7 @@ func TestConnection(t *testing.T) {
 				if got != nil {
 					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
 				}
-				conn.connect(context.Background())
+				conn.connect(context.Background(), nil)
 				got = conn.wait()
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -133,7 +133,7 @@ func TestConnection(t *testing.T) {
 					}),
 				)
 				noerr(t, err)
-				conn.connect(context.Background())
+				conn.connect(context.Background(), nil)
 
 				var want error = ConnectionError{Wrapped: handshakerError, init: true}
 				err = conn.wait()
@@ -160,7 +160,7 @@ func TestConnection(t *testing.T) {
 					)
 					assert.Nil(t, err, "newConnection error: %v", err)
 
-					conn.connect(context.Background())
+					conn.connect(context.Background(), nil)
 					err = conn.wait()
 					assert.Nil(t, err, "error establishing connection: %v", err)
 					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
@@ -190,7 +190,7 @@ func TestConnection(t *testing.T) {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
-						conn.connect(context.Background())
+						conn.connect(context.Background(), nil)
 					}()
 
 					// Simulate cancelling connection establishment and assert that this cleares the CancelFunc.
@@ -243,7 +243,7 @@ func TestConnection(t *testing.T) {
 							conn, err := newConnection(tc.addr, connOpts...)
 							assert.Nil(t, err, "newConnection error: %v", err)
 
-							conn.connect(context.Background())
+							conn.connect(context.Background(), nil)
 							err = conn.wait()
 							assert.NotNil(t, sentCfg, "expected TLS config to be set, but was not")
 							assert.Equal(t, tc.expectedServerName, sentCfg.ServerName, "expected ServerName %s, got %s",
@@ -577,7 +577,7 @@ func TestConnection(t *testing.T) {
 				)
 				assert.Nil(t, err, "newConnection error: %v", err)
 
-				conn.connect(context.Background())
+				conn.connect(context.Background(), nil)
 				err = conn.wait()
 				assert.NotNil(t, err, "expected handshake error from wait, got nil")
 				connState := atomic.LoadInt32(&conn.connected)

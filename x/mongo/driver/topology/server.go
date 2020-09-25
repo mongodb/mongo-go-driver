@@ -594,7 +594,7 @@ func (s *Server) setupHeartbeatConnection() error {
 	s.conn = conn
 	s.heartbeatLock.Unlock()
 
-	s.conn.connect(s.heartbeatCtx)
+	s.conn.connect(s.heartbeatCtx, nil)
 	return s.conn.wait()
 }
 

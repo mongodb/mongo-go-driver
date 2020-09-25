@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -101,7 +102,7 @@ func (c *connection) processInitializationError(err error) {
 
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform
 // initialization handshakes.
-func (c *connection) connect(ctx context.Context) {
+func (c *connection) connect(ctx context.Context, monitor *event.PoolMonitor) {
 	if !atomic.CompareAndSwapInt32(&c.connected, initialized, connected) {
 		return
 	}
@@ -158,6 +159,13 @@ func (c *connection) connect(ctx context.Context) {
 	// running isMaster and authentication is handled by a handshaker on the configuration instance.
 	handshaker := c.config.handshaker
 	if handshaker == nil {
+		if monitor != nil {
+			monitor.Event(&event.PoolEvent{
+				Type:         event.ConnectionReady,
+				Address:      c.addr.String(),
+				ConnectionID: c.poolID,
+			})
+		}
 		return
 	}
 
@@ -206,6 +214,13 @@ func (c *connection) connect(ctx context.Context) {
 				break clientMethodLoop
 			}
 		}
+	}
+	if monitor != nil {
+		monitor.Event(&event.PoolEvent{
+			Type:         event.ConnectionReady,
+			Address:      c.addr.String(),
+			ConnectionID: c.poolID,
+		})
 	}
 }
 

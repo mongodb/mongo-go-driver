@@ -29,7 +29,7 @@ func TestConnectionErrors(t *testing.T) {
 			}))
 			assert.Nil(t, err, "newConnection error: %v", err)
 
-			conn.connect(context.Background())
+			conn.connect(context.Background(), nil)
 			err = conn.wait()
 			assert.True(t, errors.Is(err, dialError), "expected error %v, got %v", dialError, err)
 		})
@@ -49,7 +49,7 @@ func TestConnectionErrors(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			conn.connect(ctx)
+			conn.connect(ctx, nil)
 			err = conn.wait()
 
 			assert.True(t, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
