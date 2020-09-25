@@ -1183,7 +1183,7 @@ func TestCollection(t *testing.T) {
 				return evt.CommandName == "insert"
 			})
 			inserts := len(mt.GetAllStartedEvents())
-			assert.True(mt, inserts > 1, "expected multiple batches, got %v", inserts)
+			assert.Equal(mt, inserts, 2, "expected 2 batches, got %v", inserts)
 
 			mt.ClearEvents()
 			res, err = mt.Coll.BulkWrite(mtest.Background, deleteModels)
@@ -1193,7 +1193,7 @@ func TestCollection(t *testing.T) {
 				return evt.CommandName == "delete"
 			})
 			deletes := len(mt.GetAllStartedEvents())
-			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
+			assert.Equal(mt, deletes, 2, "expected 2 batches, got %v", deletes)
 		})
 		mt.Run("update with batches", func(mt *mtest.T) {
 			// TODO(GODRIVER-425): remove this as part a larger project to
@@ -1235,7 +1235,7 @@ func TestCollection(t *testing.T) {
 				return evt.CommandName == "update"
 			})
 			updates := len(mt.GetAllStartedEvents())
-			assert.True(mt, updates > 1, "expected multiple batches, got %v", updates)
+			assert.Equal(mt, updates, 2, "expected 2 batches, got %v", updates)
 		})
 	})
 }
