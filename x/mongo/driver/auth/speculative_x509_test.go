@@ -46,10 +46,10 @@ func TestSpeculativeX509(t *testing.T) {
 			ReadResp: responses,
 		}
 
-		desc, err := handshaker.GetDescription(context.Background(), address.Address("localhost:27017"), conn)
+		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), conn)
 		assert.Nil(t, err, "GetDescription error: %v", err)
-		assert.NotNil(t, desc.SpeculativeAuthenticate, "desc.SpeculativeAuthenticate not set")
-		conn.Desc = desc
+		assert.NotNil(t, info.SpeculativeAuthenticate, "desc.SpeculativeAuthenticate not set")
+		conn.Desc = info.Description
 
 		err = handshaker.FinishHandshake(context.Background(), conn)
 		assert.Nil(t, err, "FinishHandshake error: %v", err)
@@ -90,11 +90,11 @@ func TestSpeculativeX509(t *testing.T) {
 			ReadResp: responses,
 		}
 
-		desc, err := handshaker.GetDescription(context.Background(), address.Address("localhost:27017"), conn)
+		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), conn)
 		assert.Nil(t, err, "GetDescription error: %v", err)
-		assert.Nil(t, desc.SpeculativeAuthenticate, "expected desc.SpeculativeAuthenticate to be unset, got %s",
-			bson.Raw(desc.SpeculativeAuthenticate))
-		conn.Desc = desc
+		assert.Nil(t, info.SpeculativeAuthenticate, "expected desc.SpeculativeAuthenticate to be unset, got %s",
+			bson.Raw(info.SpeculativeAuthenticate))
+		conn.Desc = info.Description
 
 		err = handshaker.FinishHandshake(context.Background(), conn)
 		assert.Nil(t, err, "FinishHandshake error: %v", err)

@@ -5,6 +5,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // Deployment is implemented by types that can select a server from a deployment.
@@ -94,11 +95,20 @@ type ErrorProcessor interface {
 	ProcessError(err error, conn Connection)
 }
 
+// HandshakeInformation contains information extracted from a MongoDB connection handshake. This is a helper type that
+// augments description.Server by also tracking authentication-related fields. We use this type rather than adding
+// these fields to description.Server to avoid retaining sensitive information in a user-facing type.
+type HandshakeInformation struct {
+	Description             description.Server
+	SpeculativeAuthenticate bsoncore.Document
+	SaslSupportedMechs      []string
+}
+
 // Handshaker is the interface implemented by types that can perform a MongoDB
 // handshake over a provided driver.Connection. This is used during connection
 // initialization. Implementations must be goroutine safe.
 type Handshaker interface {
-	GetDescription(context.Context, address.Address, Connection) (description.Server, error)
+	GetHandshakeInformation(context.Context, address.Address, Connection) (HandshakeInformation, error)
 	FinishHandshake(context.Context, Connection) error
 }
 

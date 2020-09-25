@@ -52,7 +52,7 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	var actual Authenticator
 	var err error
 
-	switch chooseAuthMechanism(cfg.Description) {
+	switch chooseAuthMechanism(cfg) {
 	case SCRAMSHA256:
 		actual, err = newScramSHA256Authenticator(a.Cred)
 	case SCRAMSHA1:
@@ -71,9 +71,9 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 // If a server provides a list of supported mechanisms, we choose
 // SCRAM-SHA-256 if it exists or else MUST use SCRAM-SHA-1.
 // Otherwise, we decide based on what is supported.
-func chooseAuthMechanism(desc description.Server) string {
-	if desc.SaslSupportedMechs != nil {
-		for _, v := range desc.SaslSupportedMechs {
+func chooseAuthMechanism(cfg *Config) string {
+	if saslSupportedMechs := cfg.HandshakeInfo.SaslSupportedMechs; saslSupportedMechs != nil {
+		for _, v := range saslSupportedMechs {
 			if v == SCRAMSHA256 {
 				return v
 			}
@@ -81,7 +81,7 @@ func chooseAuthMechanism(desc description.Server) string {
 		return SCRAMSHA1
 	}
 
-	if err := description.ScramSHA1Supported(desc.WireVersion); err == nil {
+	if err := description.ScramSHA1Supported(cfg.HandshakeInfo.Description.WireVersion); err == nil {
 		return SCRAMSHA1
 	}
 

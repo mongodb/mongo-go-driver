@@ -161,10 +161,14 @@ func (c *connection) connect(ctx context.Context) {
 		return
 	}
 
+	var handshakeInfo driver.HandshakeInformation
 	handshakeStartTime := time.Now()
 	handshakeConn := initConnection{c}
-	c.desc, err = handshaker.GetDescription(ctx, c.addr, handshakeConn)
+	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
 	if err == nil {
+		// We only need to retain the Description field as the connection's description. The authentication-related
+		// fields in handshakeInfo are tracked by the handshaker if necessary.
+		c.desc = handshakeInfo.Description
 		c.isMasterRTT = time.Since(handshakeStartTime)
 		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
