@@ -251,7 +251,7 @@ func (im *IsMaster) GetHandshakeInformation(ctx context.Context, _ address.Addre
 	// Cast to bson.Raw to lookup saslSupportedMechs to avoid converting from bsoncore.Value to bson.RawValue for the
 	// StringSliceFromRawValue call.
 	if saslSupportedMechs, lookupErr := bson.Raw(im.res).LookupErr("saslSupportedMechs"); lookupErr == nil {
-		info.SaslSupportedMechs, err = internal.StringSliceFromRawValue(saslSupportedMechs, "saslSupportedMechs")
+		info.SaslSupportedMechs, err = internal.StringSliceFromRawValue("saslSupportedMechs", saslSupportedMechs)
 	}
 	return info, err
 }

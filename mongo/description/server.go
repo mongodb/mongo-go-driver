@@ -75,7 +75,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 		switch element.Key() {
 		case "arbiters":
 			var err error
-			desc.Arbiters, err = internal.StringSliceFromRawElement(element, "arbiters")
+			desc.Arbiters, err = internal.StringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -88,7 +88,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "compression":
 			var err error
-			desc.Compression, err = internal.StringSliceFromRawElement(element, "compression")
+			desc.Compression, err = internal.StringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -107,7 +107,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "hosts":
 			var err error
-			desc.Hosts, err = internal.StringSliceFromRawElement(element, "hosts")
+			desc.Hosts, err = internal.StringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -204,7 +204,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "passives":
 			var err error
-			desc.Passives, err = internal.StringSliceFromRawElement(element, "passives")
+			desc.Passives, err = internal.StringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
