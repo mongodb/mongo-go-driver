@@ -33,7 +33,7 @@ your project. This can be done either by importing packages from `go.mongodb.org
 step install the dependency or by explicitly running
 
 ```bash
-go get go.mongodb.org/mongo-driver/mongo
+go get -u go.mongodb.org/mongo-driver/mongo
 ```
 
 When using a version of Go that does not support modules, the driver can be installed using `dep` by running
