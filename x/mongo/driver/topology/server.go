@@ -576,7 +576,7 @@ func (s *Server) createConnection() (*connection, error) {
 		}),
 		// Override any monitors specified in options with nil to avoid monitoring heartbeats.
 		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
-		WithPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return nil }),
+		withPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return nil }),
 	}
 	opts = append(s.cfg.connectionOpts, opts...)
 

@@ -167,8 +167,8 @@ func WithMonitor(fn func(*event.CommandMonitor) *event.CommandMonitor) Connectio
 	}
 }
 
-// WithPoolMonitor configures a event for connection monitoring.
-func WithPoolMonitor(fn func(*event.PoolMonitor) *event.PoolMonitor) ConnectionOption {
+// withPoolMonitor configures a event for connection monitoring.
+func withPoolMonitor(fn func(*event.PoolMonitor) *event.PoolMonitor) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.poolMonitor = fn(c.poolMonitor)
 		return nil
