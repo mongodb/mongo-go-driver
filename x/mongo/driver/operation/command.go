@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -26,6 +27,7 @@ type Command struct {
 	clock          *session.ClusterClock
 	session        *session.Client
 	monitor        *event.CommandMonitor
+	logger         *mongolog.MongoLogger
 	result         bsoncore.Document
 	srvr           driver.Server
 	desc           description.Server
@@ -67,6 +69,7 @@ func (c *Command) Execute(ctx context.Context) error {
 		Client:         c.session,
 		Clock:          c.clock,
 		CommandMonitor: c.monitor,
+		Logger:         c.logger,
 		Database:       c.database,
 		Deployment:     c.deployment,
 		ReadPreference: c.readPreference,
@@ -112,6 +115,16 @@ func (c *Command) CommandMonitor(monitor *event.CommandMonitor) *Command {
 	}
 
 	c.monitor = monitor
+	return c
+}
+
+// Logger sets the logger for this operation.
+func (c *Command) Logger(logger *mongolog.MongoLogger) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.logger = logger
 	return c
 }
 

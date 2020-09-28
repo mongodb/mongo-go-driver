@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -30,6 +31,7 @@ type Insert struct {
 	clock                    *session.ClusterClock
 	collection               string
 	monitor                  *event.CommandMonitor
+	logger                   *mongolog.MongoLogger
 	crypt                    *driver.Crypt
 	database                 string
 	deployment               driver.Deployment
@@ -99,6 +101,7 @@ func (i *Insert) Execute(ctx context.Context) error {
 		Client:            i.session,
 		Clock:             i.clock,
 		CommandMonitor:    i.monitor,
+		Logger:            i.logger,
 		Crypt:             i.crypt,
 		Database:          i.database,
 		Deployment:        i.deployment,
@@ -189,6 +192,16 @@ func (i *Insert) CommandMonitor(monitor *event.CommandMonitor) *Insert {
 	}
 
 	i.monitor = monitor
+	return i
+}
+
+// Logger sets the logger for this operation.
+func (i *Insert) Logger(logger *mongolog.MongoLogger) *Insert {
+	if i == nil {
+		i = new(Insert)
+	}
+
+	i.logger = logger
 	return i
 }
 

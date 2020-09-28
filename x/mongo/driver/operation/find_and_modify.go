@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -40,6 +41,7 @@ type FindAndModify struct {
 	clock                    *session.ClusterClock
 	collection               string
 	monitor                  *event.CommandMonitor
+	logger                   *mongolog.MongoLogger
 	database                 string
 	deployment               driver.Deployment
 	selector                 description.ServerSelector
@@ -130,6 +132,7 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		Client:         fam.session,
 		Clock:          fam.clock,
 		CommandMonitor: fam.monitor,
+		Logger:         fam.logger,
 		Database:       fam.database,
 		Deployment:     fam.deployment,
 		Selector:       fam.selector,
@@ -352,6 +355,16 @@ func (fam *FindAndModify) CommandMonitor(monitor *event.CommandMonitor) *FindAnd
 	}
 
 	fam.monitor = monitor
+	return fam
+}
+
+// Logger sets the logger for this operation.
+func (fam *FindAndModify) Logger(logger *mongolog.MongoLogger) *FindAndModify {
+	if fam == nil {
+		fam = new(FindAndModify)
+	}
+
+	fam.logger = logger
 	return fam
 }
 

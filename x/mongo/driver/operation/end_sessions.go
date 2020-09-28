@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -25,6 +26,7 @@ type EndSessions struct {
 	session    *session.Client
 	clock      *session.ClusterClock
 	monitor    *event.CommandMonitor
+	logger     *mongolog.MongoLogger
 	crypt      *driver.Crypt
 	database   string
 	deployment driver.Deployment
@@ -55,6 +57,7 @@ func (es *EndSessions) Execute(ctx context.Context) error {
 		Client:            es.session,
 		Clock:             es.clock,
 		CommandMonitor:    es.monitor,
+		Logger:            es.logger,
 		Crypt:             es.crypt,
 		Database:          es.database,
 		Deployment:        es.deployment,
@@ -107,6 +110,16 @@ func (es *EndSessions) CommandMonitor(monitor *event.CommandMonitor) *EndSession
 	}
 
 	es.monitor = monitor
+	return es
+}
+
+// Logger sets the logger for this operation.
+func (es *EndSessions) Logger(logger *mongolog.MongoLogger) *EndSessions {
+	if es == nil {
+		es = new(EndSessions)
+	}
+
+	es.logger = logger
 	return es
 }
 

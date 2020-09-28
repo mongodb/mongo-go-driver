@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -37,6 +38,7 @@ type Aggregate struct {
 	clock                    *session.ClusterClock
 	collection               string
 	monitor                  *event.CommandMonitor
+	logger                   *mongolog.MongoLogger
 	database                 string
 	deployment               driver.Deployment
 	readConcern              *readconcern.ReadConcern
@@ -90,6 +92,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		Client:                         a.session,
 		Clock:                          a.clock,
 		CommandMonitor:                 a.monitor,
+		Logger:                         a.logger,
 		Database:                       a.database,
 		Deployment:                     a.deployment,
 		ReadConcern:                    a.readConcern,
@@ -269,6 +272,16 @@ func (a *Aggregate) CommandMonitor(monitor *event.CommandMonitor) *Aggregate {
 	}
 
 	a.monitor = monitor
+	return a
+}
+
+// Logger sets the logger for this operation.
+func (a *Aggregate) Logger(logger *mongolog.MongoLogger) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.logger = logger
 	return a
 }
 

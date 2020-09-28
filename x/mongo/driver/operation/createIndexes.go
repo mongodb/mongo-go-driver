@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -31,6 +32,7 @@ type CreateIndexes struct {
 	clock        *session.ClusterClock
 	collection   string
 	monitor      *event.CommandMonitor
+	logger       *mongolog.MongoLogger
 	crypt        *driver.Crypt
 	database     string
 	deployment   driver.Deployment
@@ -107,6 +109,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Client:            ci.session,
 		Clock:             ci.clock,
 		CommandMonitor:    ci.monitor,
+		Logger:            ci.logger,
 		Crypt:             ci.crypt,
 		Database:          ci.database,
 		Deployment:        ci.deployment,
@@ -202,6 +205,16 @@ func (ci *CreateIndexes) CommandMonitor(monitor *event.CommandMonitor) *CreateIn
 	}
 
 	ci.monitor = monitor
+	return ci
+}
+
+// Logger sets the logger for this operation.
+func (ci *CreateIndexes) Logger(logger *mongolog.MongoLogger) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.logger = logger
 	return ci
 }
 

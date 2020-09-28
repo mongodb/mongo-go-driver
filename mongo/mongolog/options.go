@@ -9,7 +9,7 @@ package mongolog
 // Options represents options that can be used to configure a MongoLogger object
 type Options struct {
 	Logger               Logger
-	LogFullCommands      *bool
+	MaxDocumentLength    interface{}
 	OutputFile           *string
 	CommandLevel         *Level
 	ConnectionLevel      *Level
@@ -28,9 +28,18 @@ func (mlo *Options) SetLogger(logger Logger) *Options {
 	return mlo
 }
 
-// SetLogFullCommands sets whether full command documents and replies are included in log messages. Defaults to false.
-func (mlo *Options) SetLogFullCommands(logFull bool) *Options {
-	mlo.LogFullCommands = &logFull
+// SetMaxDocumentLength sets maximum length for extended json docments in log messages. If the
+// document is longer than that it is truncated. Can be set to either an integer with this method
+// or to unlimited with SetMaxDocumentLengthUnlimited. Defaults to 1000.
+func (mlo *Options) SetMaxDocumentLength(len int) *Options {
+	mlo.MaxDocumentLength = len
+	return mlo
+}
+
+// SetMaxDocumentLengthUnlimited sets maxDocumentLength to be unlimited, so the logger will print
+// entire documents regardless of length. Defaults to 1000.
+func (mlo *Options) SetMaxDocumentLengthUnlimited() *Options {
+	mlo.MaxDocumentLength = "unlimited"
 	return mlo
 }
 
@@ -83,8 +92,8 @@ func MergeOptions(opts ...*Options) *Options {
 		if mlo.Logger != nil {
 			mlOpts.Logger = mlo.Logger
 		}
-		if mlo.LogFullCommands != nil {
-			mlOpts.LogFullCommands = mlo.LogFullCommands
+		if mlo.MaxDocumentLength != nil {
+			mlOpts.MaxDocumentLength = mlo.MaxDocumentLength
 		}
 		if mlo.OutputFile != nil {
 			mlOpts.OutputFile = mlo.OutputFile

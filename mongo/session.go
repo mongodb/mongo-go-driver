@@ -267,7 +267,7 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 	s.clientSession.Aborting = true
 	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
 		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
-		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).
+		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).Logger(s.client.logger).
 		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).Execute(ctx)
 
 	s.clientSession.Aborting = false
@@ -299,7 +299,8 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 	op := operation.NewCommitTransaction().
 		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
-		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken))
+		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).
+		Logger(s.client.logger)
 	if s.clientSession.CurrentMct != nil {
 		op.MaxTimeMS(int64(*s.clientSession.CurrentMct / time.Millisecond))
 	}

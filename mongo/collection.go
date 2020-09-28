@@ -277,7 +277,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 
 	op := operation.NewInsert(docs...).
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Logger(coll.client.logger).ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Ordered(true)
 	imo := options.MergeInsertManyOptions(opts...)
@@ -452,7 +452,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 
 	op := operation.NewDelete(doc).
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Logger(coll.client.logger).ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Ordered(true)
 	if do.Hint != nil {
@@ -548,7 +548,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 
 	op := operation.NewUpdate(updateDoc).
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Logger(coll.client.logger).ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Hint(uo.Hint != nil).
 		ArrayFilters(uo.ArrayFilters != nil).Ordered(true)
@@ -771,6 +771,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		WriteConcern(wc).
 		ReadConcern(rc).
 		CommandMonitor(a.client.monitor).
+		Logger(a.client.logger).
 		ServerSelector(selector).
 		ClusterClock(a.client.clock).
 		Database(a.db).
@@ -882,7 +883,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
-		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.crypt).Logger(coll.client.logger)
 	if countOpts.Collation != nil {
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
@@ -964,7 +965,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector).Crypt(coll.client.crypt)
+		ServerSelector(selector).Crypt(coll.client.crypt).Logger(coll.client.logger)
 
 	co := options.MergeEstimatedDocumentCountOptions(opts...)
 	if co.MaxTime != nil {
@@ -1030,7 +1031,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector).Crypt(coll.client.crypt)
+		ServerSelector(selector).Crypt(coll.client.crypt).Logger(coll.client.logger)
 
 	if option.Collation != nil {
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
@@ -1115,7 +1116,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
-		CommandMonitor(coll.client.monitor).ServerSelector(selector).
+		CommandMonitor(coll.client.monitor).Logger(coll.client.logger).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
 
@@ -1326,6 +1327,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 	op = op.Session(sess).
 		WriteConcern(wc).
 		CommandMonitor(coll.client.monitor).
+		Logger(coll.client.logger).
 		ServerSelector(selector).
 		ClusterClock(coll.client.clock).
 		Database(coll.db.name).
@@ -1615,7 +1617,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 
 	op := operation.NewDropCollection().
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Logger(coll.client.logger).ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
 	err = op.Execute(ctx)

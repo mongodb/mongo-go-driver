@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -30,6 +31,7 @@ type ListDatabases struct {
 	session             *session.Client
 	clock               *session.ClusterClock
 	monitor             *event.CommandMonitor
+	logger              *mongolog.MongoLogger
 	database            string
 	deployment          driver.Deployment
 	readPreference      *readpref.ReadPref
@@ -164,6 +166,7 @@ func (ld *ListDatabases) Execute(ctx context.Context) error {
 		Client:         ld.session,
 		Clock:          ld.clock,
 		CommandMonitor: ld.monitor,
+		Logger:         ld.logger,
 		Database:       ld.database,
 		Deployment:     ld.deployment,
 		ReadPreference: ld.readPreference,
@@ -250,6 +253,16 @@ func (ld *ListDatabases) CommandMonitor(monitor *event.CommandMonitor) *ListData
 	}
 
 	ld.monitor = monitor
+	return ld
+}
+
+// Logger sets the logger for this operation.
+func (ld *ListDatabases) Logger(logger *mongolog.MongoLogger) *ListDatabases {
+	if ld == nil {
+		ld = new(ListDatabases)
+	}
+
+	ld.logger = logger
 	return ld
 }
 

@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -27,6 +28,7 @@ type ListCollections struct {
 	session        *session.Client
 	clock          *session.ClusterClock
 	monitor        *event.CommandMonitor
+	logger         *mongolog.MongoLogger
 	crypt          *driver.Crypt
 	database       string
 	deployment     driver.Deployment
@@ -77,6 +79,7 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 		Client:            lc.session,
 		Clock:             lc.clock,
 		CommandMonitor:    lc.monitor,
+		Logger:            lc.logger,
 		Crypt:             lc.crypt,
 		Database:          lc.database,
 		Deployment:        lc.deployment,
@@ -152,6 +155,16 @@ func (lc *ListCollections) CommandMonitor(monitor *event.CommandMonitor) *ListCo
 	}
 
 	lc.monitor = monitor
+	return lc
+}
+
+// Logger sets the logger for this operation.
+func (lc *ListCollections) Logger(logger *mongolog.MongoLogger) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.logger = logger
 	return lc
 }
 

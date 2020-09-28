@@ -37,18 +37,25 @@ func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, con
 	if err != nil {
 		return err
 	}
-	startedInfo.connID = conn.ID()
+	startedInfo.getConnectionInfo(conn)
 	op.publishStartedEvent(ctx, startedInfo)
 
 	finishedInfo := finishedInformation{
-		cmdName:   startedInfo.cmdName,
-		requestID: startedInfo.requestID,
-		startTime: time.Now(),
-		connID:    startedInfo.connID,
+		cmdName:    startedInfo.cmdName,
+		requestID:  startedInfo.requestID,
+		startTime:  time.Now(),
+		connID:     startedInfo.connID,
+		serverHost: startedInfo.serverHost,
+		serverPort: startedInfo.serverPort,
+		ipAddress:  startedInfo.ipAddress,
+		clientPort: startedInfo.clientPort,
 	}
 
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, firstBatchIdentifier)
+	finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+
 	op.publishFinishedEvent(ctx, finishedInfo)
+	op.logFinishedEvent(ctx, finishedInfo)
 
 	if finishedInfo.cmdErr != nil {
 		return finishedInfo.cmdErr
@@ -208,17 +215,24 @@ func (op Operation) legacyGetMore(ctx context.Context, dst []byte, srvr Server, 
 		return err
 	}
 
-	startedInfo.connID = conn.ID()
+	startedInfo.getConnectionInfo(conn)
 	op.publishStartedEvent(ctx, startedInfo)
 
 	finishedInfo := finishedInformation{
-		cmdName:   startedInfo.cmdName,
-		requestID: startedInfo.requestID,
-		startTime: time.Now(),
-		connID:    startedInfo.connID,
+		cmdName:    startedInfo.cmdName,
+		requestID:  startedInfo.requestID,
+		startTime:  time.Now(),
+		connID:     startedInfo.connID,
+		serverHost: startedInfo.serverHost,
+		serverPort: startedInfo.serverPort,
+		ipAddress:  startedInfo.ipAddress,
+		clientPort: startedInfo.clientPort,
 	}
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, nextBatchIdentifier)
+	finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+
 	op.publishFinishedEvent(ctx, finishedInfo)
+	op.logFinishedEvent(ctx, finishedInfo)
 
 	if finishedInfo.cmdErr != nil {
 		return finishedInfo.cmdErr
@@ -283,14 +297,18 @@ func (op Operation) legacyKillCursors(ctx context.Context, dst []byte, srvr Serv
 		return err
 	}
 
-	startedInfo.connID = conn.ID()
+	startedInfo.getConnectionInfo(conn)
 	op.publishStartedEvent(ctx, startedInfo)
 
 	// skip startTime because OP_KILL_CURSORS does not return a response
 	finishedInfo := finishedInformation{
-		cmdName:   "killCursors",
-		requestID: startedInfo.requestID,
-		connID:    startedInfo.connID,
+		cmdName:    "killCursors",
+		requestID:  startedInfo.requestID,
+		connID:     startedInfo.connID,
+		serverHost: startedInfo.serverHost,
+		serverPort: startedInfo.serverPort,
+		ipAddress:  startedInfo.ipAddress,
+		clientPort: startedInfo.clientPort,
 	}
 
 	err = conn.WriteWireMessage(ctx, wm)
@@ -301,7 +319,9 @@ func (op Operation) legacyKillCursors(ctx context.Context, dst []byte, srvr Serv
 		}
 
 		finishedInfo.cmdErr = err
+
 		op.publishFinishedEvent(ctx, finishedInfo)
+		op.logFinishedEvent(ctx, finishedInfo)
 		return err
 	}
 
@@ -311,7 +331,9 @@ func (op Operation) legacyKillCursors(ctx context.Context, dst []byte, srvr Serv
 	response, _ = bsoncore.AppendDocumentEnd(response, ridx)
 
 	finishedInfo.response = response
+
 	op.publishFinishedEvent(ctx, finishedInfo)
+	op.logFinishedEvent(ctx, finishedInfo)
 	return nil
 }
 
@@ -375,18 +397,25 @@ func (op Operation) legacyListCollections(ctx context.Context, dst []byte, srvr 
 	if err != nil {
 		return err
 	}
-	startedInfo.connID = conn.ID()
+	startedInfo.getConnectionInfo(conn)
 	op.publishStartedEvent(ctx, startedInfo)
 
 	finishedInfo := finishedInformation{
-		cmdName:   startedInfo.cmdName,
-		requestID: startedInfo.requestID,
-		startTime: time.Now(),
-		connID:    startedInfo.connID,
+		cmdName:    startedInfo.cmdName,
+		requestID:  startedInfo.requestID,
+		startTime:  time.Now(),
+		connID:     startedInfo.connID,
+		serverHost: startedInfo.serverHost,
+		serverPort: startedInfo.serverPort,
+		ipAddress:  startedInfo.ipAddress,
+		clientPort: startedInfo.clientPort,
 	}
 
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, firstBatchIdentifier)
+	finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+
 	op.publishFinishedEvent(ctx, finishedInfo)
+	op.logFinishedEvent(ctx, finishedInfo)
 
 	if finishedInfo.cmdErr != nil {
 		return finishedInfo.cmdErr
@@ -502,18 +531,25 @@ func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Serv
 	if err != nil {
 		return err
 	}
-	startedInfo.connID = conn.ID()
+	startedInfo.getConnectionInfo(conn)
 	op.publishStartedEvent(ctx, startedInfo)
 
 	finishedInfo := finishedInformation{
-		cmdName:   startedInfo.cmdName,
-		requestID: startedInfo.requestID,
-		startTime: time.Now(),
-		connID:    startedInfo.connID,
+		cmdName:    startedInfo.cmdName,
+		requestID:  startedInfo.requestID,
+		startTime:  time.Now(),
+		connID:     startedInfo.connID,
+		serverHost: startedInfo.serverHost,
+		serverPort: startedInfo.serverPort,
+		ipAddress:  startedInfo.ipAddress,
+		clientPort: startedInfo.clientPort,
 	}
 
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, firstBatchIdentifier)
+	finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+
 	op.publishFinishedEvent(ctx, finishedInfo)
+	op.logFinishedEvent(ctx, finishedInfo)
 
 	if finishedInfo.cmdErr != nil {
 		return finishedInfo.cmdErr

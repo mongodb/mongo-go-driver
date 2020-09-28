@@ -8,14 +8,7 @@ package mongolog
 
 import (
 	"fmt"
-	"math"
 	"strconv"
-	"time"
-)
-
-var (
-	_minTimeInt64 = time.Unix(0, math.MinInt64)
-	_maxTimeInt64 = time.Unix(0, math.MaxInt64)
 )
 
 // A Field represents a key-value pair in the structured logs. Type is used to know
@@ -26,6 +19,15 @@ type Field struct {
 	Integer   int64
 	String    string
 	Interface interface{}
+}
+
+// Bool constructs a field that carries a bool
+func Bool(key string, val bool) Field {
+	var ival int64
+	if val {
+		ival = 1
+	}
+	return Field{Key: key, Type: BoolType, Integer: ival}
 }
 
 // Int64 constructs a field that carries an int64
@@ -47,6 +49,8 @@ func Stringer(key string, val fmt.Stringer) Field {
 // getValueString returns the value stored in field f as a string
 func (f Field) getValueString() string {
 	switch f.Type {
+	case BoolType:
+		return strconv.FormatBool(f.Integer == 1)
 	case Int64Type:
 		return strconv.FormatInt(f.Integer, 10)
 	case StringType:
@@ -64,6 +68,8 @@ type FieldType uint8
 
 const (
 	_ FieldType = iota
+	// BoolType indicates that the field carries a bool.
+	BoolType
 	// Int64Type indicates that the field carries an int64.
 	Int64Type
 	// StringType indicates that the field carries a string.

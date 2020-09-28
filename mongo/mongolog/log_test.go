@@ -71,12 +71,13 @@ func TestDefaultLogger(t *testing.T) {
 		logger := defaultLogger{writer: &buf}
 		stringer := testStringer{true}
 		logger.log(Warning, "all fields",
+			Bool("bool", false),
 			Int64("int64", int64(2)),
 			String("string", "apple"),
 			Stringer("stringer", stringer),
 		)
 		got := buf.String()
-		want := fmt.Sprintf("{level:warning,msg:all fields,int64:2,string:apple,stringer:%v}\n", stringer)
+		want := fmt.Sprintf("{level:warning,msg:all fields,bool:false,int64:2,string:apple,stringer:%v}\n", stringer)
 		diff := cmp.Diff(got, want)
 		assert.Equal(t, diff, "", "mismatched logs:%v", diff)
 	})

@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -31,6 +32,7 @@ type Update struct {
 	clock                    *session.ClusterClock
 	collection               string
 	monitor                  *event.CommandMonitor
+	logger                   *mongolog.MongoLogger
 	database                 string
 	deployment               driver.Deployment
 	hint                     *bool
@@ -149,6 +151,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		Client:            u.session,
 		Clock:             u.clock,
 		CommandMonitor:    u.monitor,
+		Logger:            u.logger,
 		Database:          u.database,
 		Deployment:        u.deployment,
 		Selector:          u.selector,
@@ -281,6 +284,16 @@ func (u *Update) CommandMonitor(monitor *event.CommandMonitor) *Update {
 	}
 
 	u.monitor = monitor
+	return u
+}
+
+// Logger sets the logger for this operation.
+func (u *Update) Logger(logger *mongolog.MongoLogger) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.logger = logger
 	return u
 }
 

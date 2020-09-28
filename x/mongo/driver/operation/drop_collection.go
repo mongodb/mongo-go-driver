@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -27,6 +28,7 @@ type DropCollection struct {
 	clock        *session.ClusterClock
 	collection   string
 	monitor      *event.CommandMonitor
+	logger       *mongolog.MongoLogger
 	crypt        *driver.Crypt
 	database     string
 	deployment   driver.Deployment
@@ -93,6 +95,7 @@ func (dc *DropCollection) Execute(ctx context.Context) error {
 		Client:            dc.session,
 		Clock:             dc.clock,
 		CommandMonitor:    dc.monitor,
+		Logger:            dc.logger,
 		Crypt:             dc.crypt,
 		Database:          dc.database,
 		Deployment:        dc.deployment,
@@ -144,6 +147,16 @@ func (dc *DropCollection) CommandMonitor(monitor *event.CommandMonitor) *DropCol
 	}
 
 	dc.monitor = monitor
+	return dc
+}
+
+// Logger sets the logger for this operation.
+func (dc *DropCollection) Logger(logger *mongolog.MongoLogger) *DropCollection {
+	if dc == nil {
+		dc = new(DropCollection)
+	}
+
+	dc.logger = logger
 	return dc
 }
 

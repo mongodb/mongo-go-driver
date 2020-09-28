@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -29,6 +30,7 @@ type DropIndexes struct {
 	clock        *session.ClusterClock
 	collection   string
 	monitor      *event.CommandMonitor
+	logger       *mongolog.MongoLogger
 	crypt        *driver.Crypt
 	database     string
 	deployment   driver.Deployment
@@ -89,6 +91,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		Client:            di.session,
 		Clock:             di.clock,
 		CommandMonitor:    di.monitor,
+		Logger:            di.logger,
 		Crypt:             di.crypt,
 		Database:          di.database,
 		Deployment:        di.deployment,
@@ -167,6 +170,16 @@ func (di *DropIndexes) CommandMonitor(monitor *event.CommandMonitor) *DropIndexe
 	}
 
 	di.monitor = monitor
+	return di
+}
+
+// Logger sets the logger for this operation.
+func (di *DropIndexes) Logger(logger *mongolog.MongoLogger) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.logger = logger
 	return di
 }
 

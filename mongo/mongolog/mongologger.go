@@ -9,30 +9,21 @@ package mongolog
 import (
 	"fmt"
 	"os"
+	"strings"
 )
-
-// Logger is an interface for loggers to implement
-type Logger interface {
-	Trace(message string, args ...Field)
-	Debug(message string, args ...Field)
-	Info(message string, args ...Field)
-	Notice(message string, args ...Field)
-	Warning(message string, args ...Field)
-	Error(message string, args ...Field)
-}
 
 // MongoLogger manages the mongo log messages sent to the logger
 type MongoLogger struct {
-	logger Logger
+	logger            Logger
+	maxDocumentLength interface{}
 
-	logFullCommands      bool
 	commandLevel         Level
 	connectionLevel      Level
 	sdamLevel            Level
 	serverSelectionLevel Level
 }
 
-// NewMongoLogger creates a new Mongologger to use with a mongo.Client. Log level defaults to Warning
+// NewMongoLogger creates a new Mongologger to use with a mongo.Client. Log level defaults to Off
 // for all components.
 func NewMongoLogger(opts ...*Options) (*MongoLogger, error) {
 	mlo := MergeOptions(opts...)
@@ -44,25 +35,32 @@ func NewMongoLogger(opts ...*Options) (*MongoLogger, error) {
 		var err error
 		if mlo.OutputFile != nil {
 			dl.outputFile = *mlo.OutputFile
-			dl.writer, err = os.Create(dl.outputFile)
-			if err != nil {
-				return nil, fmt.Errorf("error opening logging output file: %v", err)
+			switch strings.ToLower(dl.outputFile) {
+			case "stderr":
+			case "stdout":
+				dl.writer = os.Stdout
+			default:
+				dl.writer, err = os.OpenFile(dl.outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				if err != nil {
+					return nil, fmt.Errorf("error opening logging output file: %v", err)
+				}
 			}
 		}
 		mlo.Logger = dl
 	}
 
 	ml := MongoLogger{
-		logger: mlo.Logger,
+		logger:            mlo.Logger,
+		maxDocumentLength: 1000,
 
-		commandLevel:         Warning,
-		connectionLevel:      Warning,
-		sdamLevel:            Warning,
-		serverSelectionLevel: Warning,
+		commandLevel:         Off,
+		connectionLevel:      Off,
+		sdamLevel:            Off,
+		serverSelectionLevel: Off,
 	}
 
-	if mlo.LogFullCommands != nil {
-		ml.logFullCommands = *mlo.LogFullCommands
+	if mlo.MaxDocumentLength != nil {
+		ml.maxDocumentLength = mlo.MaxDocumentLength
 	}
 	if mlo.CommandLevel != nil {
 		ml.commandLevel = *mlo.CommandLevel
@@ -114,6 +112,15 @@ func (ml *MongoLogger) Log(comp Component, level Level, message string, args ...
 	case Error:
 		ml.logger.Error(message, args...)
 	}
+}
+
+// TruncateDocument shortens the given string to ml.maxDocumentLength
+func (ml MongoLogger) TruncateDocument(doc string) string {
+	maxLen, ok := ml.maxDocumentLength.(int)
+	if ok && len(doc) > maxLen {
+		return doc[:maxLen]
+	}
+	return doc
 }
 
 // Component indicates the component being logged on.

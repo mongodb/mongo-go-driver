@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -37,6 +38,7 @@ type Create struct {
 	session             *session.Client
 	clock               *session.ClusterClock
 	monitor             *event.CommandMonitor
+	logger              *mongolog.MongoLogger
 	crypt               *driver.Crypt
 	database            string
 	deployment          driver.Deployment
@@ -68,6 +70,7 @@ func (c *Create) Execute(ctx context.Context) error {
 		Client:            c.session,
 		Clock:             c.clock,
 		CommandMonitor:    c.monitor,
+		Logger:            c.logger,
 		Crypt:             c.crypt,
 		Database:          c.database,
 		Deployment:        c.deployment,
@@ -267,6 +270,16 @@ func (c *Create) CommandMonitor(monitor *event.CommandMonitor) *Create {
 	}
 
 	c.monitor = monitor
+	return c
+}
+
+// Logger sets the logger for this operation.
+func (c *Create) Logger(logger *mongolog.MongoLogger) *Create {
+	if c == nil {
+		c = new(Create)
+	}
+
+	c.logger = logger
 	return c
 }
 

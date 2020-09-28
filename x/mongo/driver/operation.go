@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -71,17 +73,47 @@ type startedInformation struct {
 	documentSequenceIncluded bool
 	connID                   string
 	redacted                 bool
+	explicitSession          *bool
+	serverHost               string
+	serverPort               string
+	ipAddress                string
+	clientPort               string
+}
+
+func (si *startedInformation) getConnectionInfo(conn Connection) {
+	si.connID = conn.ID()
+	addr := conn.Address().String()
+	si.serverHost, si.serverPort, _ = net.SplitHostPort(addr)
+	if ipAddrs, err := net.LookupHost(si.serverHost); err == nil && len(ipAddrs) > 0 {
+		si.ipAddress = ipAddrs[0]
+	}
+	if localAddresser, ok := conn.(LocalAddresser); ok {
+		localAddr := localAddresser.LocalAddress().String()
+		if localAddr == "0.0.0.0" {
+			return
+		}
+		_, port, err := net.SplitHostPort(localAddr)
+		if err == nil && port != "" {
+			si.clientPort = port
+		}
+	}
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
 type finishedInformation struct {
-	cmdName   string
-	requestID int32
-	response  bsoncore.Document
-	cmdErr    error
-	connID    string
-	startTime time.Time
-	redacted  bool
+	cmdName         string
+	requestID       int32
+	response        bsoncore.Document
+	cmdErr          error
+	connID          string
+	startTime       time.Time
+	redacted        bool
+	durationNanos   int64
+	explicitSession *bool
+	serverHost      string
+	serverPort      string
+	ipAddress       string
+	clientPort      string
 }
 
 // Operation is used to execute an operation. It contains all of the common code required to
@@ -182,6 +214,9 @@ type Operation struct {
 
 	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
 	Crypt *Crypt
+
+	// Logger specifies a logger for this operation. If this field is not set, no events will be logged.
+	Logger *mongolog.MongoLogger
 }
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
@@ -335,10 +370,15 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		// set extra data and send event if possible
-		startedInfo.connID = conn.ID()
+		startedInfo.getConnectionInfo(conn)
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
+		if desc.WireVersion != nil && desc.WireVersion.Max >= 6 {
+			explicit := op.Client != nil && op.Client.SessionType == session.Explicit
+			startedInfo.explicitSession = &explicit
+		}
 		op.publishStartedEvent(ctx, startedInfo)
+		op.logStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
 		moreToCome := wiremessage.IsMsgMoreToCome(wm)
@@ -352,11 +392,16 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		finishedInfo := finishedInformation{
-			cmdName:   startedInfo.cmdName,
-			requestID: startedInfo.requestID,
-			startTime: time.Now(),
-			connID:    startedInfo.connID,
-			redacted:  startedInfo.redacted,
+			cmdName:         startedInfo.cmdName,
+			requestID:       startedInfo.requestID,
+			startTime:       time.Now(),
+			connID:          startedInfo.connID,
+			redacted:        startedInfo.redacted,
+			explicitSession: startedInfo.explicitSession,
+			serverHost:      startedInfo.serverHost,
+			serverPort:      startedInfo.serverPort,
+			ipAddress:       startedInfo.ipAddress,
+			clientPort:      startedInfo.clientPort,
 		}
 
 		// roundtrip using either the full roundTripper or a special one for when the moreToCome
@@ -372,7 +417,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 		finishedInfo.response = res
 		finishedInfo.cmdErr = err
+		finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+
 		op.publishFinishedEvent(ctx, finishedInfo)
+		op.logFinishedEvent(ctx, finishedInfo)
 
 		var perr error
 		if op.ProcessResponseFn != nil {
@@ -1315,16 +1363,9 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 	return err == nil
 }
 
-// publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
-// an unacknowledged write, a CommandSucceededEvent will be published as well. If started events are not being monitored,
-// no events are published.
-func (op Operation) publishStartedEvent(ctx context.Context, info startedInformation) {
-	if op.CommandMonitor == nil || op.CommandMonitor.Started == nil {
-		return
-	}
-
-	// Make a copy of the command. Redact if the command is security sensitive and cannot be monitored.
-	// If there was a type 1 payload for the current batch, convert it to a BSON array.
+// getCommand makes a copy of the command. Redact if the command is security sensitive and cannot be monitored.
+// If there was a type 1 payload for the current batch, convert it to a BSON array.
+func (op Operation) getCommand(info startedInformation) bson.Raw {
 	cmdCopy := bson.Raw{}
 	if !info.redacted {
 		cmdCopy = make([]byte, len(info.cmd))
@@ -1335,15 +1376,65 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0) // add back 0 byte and update length
 		}
 	}
+	return cmdCopy
+}
+
+// publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
+// an unacknowledged write, a CommandSucceededEvent will be published as well. If started events are not being monitored,
+// no events are published.
+func (op Operation) publishStartedEvent(ctx context.Context, info startedInformation) {
+	if op.CommandMonitor == nil || op.CommandMonitor.Started == nil {
+		return
+	}
 
 	started := &event.CommandStartedEvent{
-		Command:      cmdCopy,
+		Command:      op.getCommand(info),
 		DatabaseName: op.Database,
 		CommandName:  info.cmdName,
 		RequestID:    int64(info.requestID),
 		ConnectionID: info.connID,
 	}
 	op.CommandMonitor.Started(ctx, started)
+}
+
+func (op Operation) logStartedEvent(ctx context.Context, info startedInformation) {
+	if op.Logger == nil {
+		return
+	}
+
+	fields := []mongolog.Field{
+		mongolog.String("command", op.Logger.TruncateDocument(op.getCommand(info).String())),
+		mongolog.String("databaseName", op.Database),
+		mongolog.String("commandName", info.cmdName),
+		mongolog.Int64("requestId", int64(info.requestID)),
+		mongolog.String("serverHostname", info.serverHost),
+		// TODO: add serverConnectionId, explicitSession
+	}
+	if info.ipAddress != "" {
+		fields = append(fields, mongolog.String("serverResolvedIPAddress", info.ipAddress))
+	}
+	fields = append(fields, mongolog.String("serverPort", info.serverPort))
+
+	if info.clientPort != "" {
+		fields = append(fields, mongolog.String("clientPort", info.clientPort))
+	}
+
+	fields = append(fields, mongolog.String("serverConnectionId", info.connID))
+
+	if info.explicitSession != nil {
+		fields = append(fields, mongolog.Bool("explicitSession", *info.explicitSession))
+	}
+	op.Logger.Log(mongolog.Command, mongolog.Debug, "Command started", fields...)
+}
+
+func getReply(info finishedInformation) bson.Raw {
+	res := bson.Raw{}
+	// Only copy the reply for commands that are not security sensitive
+	if !info.redacted {
+		res = make([]byte, len(info.response))
+		copy(res, info.response)
+	}
+	return res
 }
 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
@@ -1357,28 +1448,16 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		return
 	}
 
-	var durationNanos int64
-	var emptyTime time.Time
-	if info.startTime != emptyTime {
-		durationNanos = time.Now().Sub(info.startTime).Nanoseconds()
-	}
-
 	finished := event.CommandFinishedEvent{
 		CommandName:   info.cmdName,
 		RequestID:     int64(info.requestID),
 		ConnectionID:  info.connID,
-		DurationNanos: durationNanos,
+		DurationNanos: info.durationNanos,
 	}
 
 	if success {
-		res := bson.Raw{}
-		// Only copy the reply for commands that are not security sensitive
-		if !info.redacted {
-			res = make([]byte, len(info.response))
-			copy(res, info.response)
-		}
 		successEvent := &event.CommandSucceededEvent{
-			Reply:                res,
+			Reply:                getReply(info),
 			CommandFinishedEvent: finished,
 		}
 		op.CommandMonitor.Succeeded(ctx, successEvent)
@@ -1390,4 +1469,48 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)
+}
+
+// logFinishedEvent logs either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
+// monitor if possible. If success/failure events aren't being monitored, no events are published.
+func (op Operation) logFinishedEvent(ctx context.Context, info finishedInformation) {
+	success := info.cmdErr == nil
+	if _, ok := info.cmdErr.(WriteCommandError); ok {
+		success = true
+	}
+	if op.Logger == nil {
+		return
+	}
+
+	fields := []mongolog.Field{
+		mongolog.Int64("durationNanos", info.durationNanos),
+		mongolog.String("reply", op.Logger.TruncateDocument(getReply(info).String())),
+		mongolog.String("commandName", info.cmdName),
+		mongolog.Int64("requestId", int64(info.requestID)),
+		mongolog.String("serverHostname", info.serverHost),
+	}
+
+	if info.ipAddress != "" {
+		fields = append(fields, mongolog.String("serverResolvedIPAddress", info.ipAddress))
+	}
+	fields = append(fields, mongolog.String("serverPort", info.serverPort))
+
+	if info.clientPort != "" {
+		fields = append(fields, mongolog.String("clientPort", info.clientPort))
+	}
+
+	fields = append(fields, mongolog.String("serverConnectionId", info.connID))
+
+	if info.explicitSession != nil {
+		fields = append(fields, mongolog.Bool("explicitSession", *info.explicitSession))
+	}
+
+	if success {
+		op.Logger.Log(mongolog.Command, mongolog.Debug, "Command succeeded", fields...)
+		return
+	}
+
+	// TODO: find out if order matters
+	fields = append(fields, mongolog.String("error", info.cmdErr.Error()))
+	op.Logger.Log(mongolog.Command, mongolog.Debug, "Command failed", fields...)
 }

@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -50,6 +51,7 @@ type Find struct {
 	clock               *session.ClusterClock
 	collection          string
 	monitor             *event.CommandMonitor
+	logger              *mongolog.MongoLogger
 	crypt               *driver.Crypt
 	database            string
 	deployment          driver.Deployment
@@ -92,6 +94,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		Client:            f.session,
 		Clock:             f.clock,
 		CommandMonitor:    f.monitor,
+		Logger:            f.logger,
 		Crypt:             f.crypt,
 		Database:          f.database,
 		Deployment:        f.deployment,
@@ -437,6 +440,16 @@ func (f *Find) CommandMonitor(monitor *event.CommandMonitor) *Find {
 	}
 
 	f.monitor = monitor
+	return f
+}
+
+// Logger sets the logger for this operation.
+func (f *Find) Logger(logger *mongolog.MongoLogger) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.logger = logger
 	return f
 }
 

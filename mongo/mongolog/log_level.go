@@ -23,6 +23,7 @@ const (
 	Notice
 	Warning
 	Error
+	Off
 )
 
 // Includes returns if Level l prints out logs of Level other
@@ -48,6 +49,8 @@ func (l Level) String() string {
 		return "warning"
 	case Error:
 		return "error"
+	case Off:
+		return "off"
 	default:
 		return "unknown"
 	}
@@ -69,6 +72,8 @@ func LevelFromString(s string) (Level, error) {
 		return Warning, nil
 	case "error":
 		return Error, nil
+	case "off":
+		return Off, nil
 	default:
 		return Level(0), errors.New("invalid level")
 	}

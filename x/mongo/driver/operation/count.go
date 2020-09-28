@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -30,6 +31,7 @@ type Count struct {
 	clock          *session.ClusterClock
 	collection     string
 	monitor        *event.CommandMonitor
+	logger         *mongolog.MongoLogger
 	crypt          *driver.Crypt
 	database       string
 	deployment     driver.Deployment
@@ -92,6 +94,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		Client:            c.session,
 		Clock:             c.clock,
 		CommandMonitor:    c.monitor,
+		Logger:            c.logger,
 		Crypt:             c.crypt,
 		Database:          c.database,
 		Deployment:        c.deployment,
@@ -170,6 +173,16 @@ func (c *Count) CommandMonitor(monitor *event.CommandMonitor) *Count {
 	}
 
 	c.monitor = monitor
+	return c
+}
+
+// Logger sets the logger for this operation.
+func (c *Count) Logger(logger *mongolog.MongoLogger) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.logger = logger
 	return c
 }
 

@@ -18,7 +18,7 @@ func newLoggingCommandMonitor(logger *mongolog.MongoLogger, cm *event.CommandMon
 	return &event.CommandMonitor{
 		Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 			logger.Log(mongolog.Command, mongolog.Debug, "Command started",
-				mongolog.Stringer("command", cse.Command),
+				mongolog.String("command", logger.TruncateDocument(cse.Command.String())),
 				mongolog.String("databaseName", cse.DatabaseName),
 				mongolog.String("commandName", cse.CommandName),
 				mongolog.Int64("requestId", cse.RequestID),
@@ -32,7 +32,7 @@ func newLoggingCommandMonitor(logger *mongolog.MongoLogger, cm *event.CommandMon
 		Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
 			logger.Log(mongolog.Command, mongolog.Debug, "Command succeeded",
 				mongolog.Int64("durationNanos", cse.DurationNanos),
-				mongolog.Stringer("reply", cse.Reply),
+				mongolog.String("reply", logger.TruncateDocument(cse.Reply.String())),
 				mongolog.String("commandName", cse.CommandName),
 				mongolog.Int64("requestId", cse.RequestID),
 				mongolog.String("driverConnectionId", cse.ConnectionID),
@@ -46,7 +46,9 @@ func newLoggingCommandMonitor(logger *mongolog.MongoLogger, cm *event.CommandMon
 			logger.Log(mongolog.Command, mongolog.Debug, "Command failed",
 				mongolog.Int64("durationNanos", cfe.DurationNanos),
 				mongolog.String("commandName", cfe.CommandName),
-				mongolog.String("failure", cfe.Failure),
+				mongolog.Int64("requestId", cfe.RequestID),
+				//mongolog.String("reply", logger.TruncateDocument(cfe.Reply.String())),
+				mongolog.String("error", cfe.Failure), //make sure that this is the error
 				mongolog.String("driverConnectionId", cfe.ConnectionID),
 				// TODO: add serverConnectionId, explicitSession
 			)

@@ -68,6 +68,7 @@ type Client struct {
 	monitor         *event.CommandMonitor
 	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
+	implicit        *bool
 
 	// client-side encryption fields
 	keyVaultClient *Client
@@ -142,6 +143,9 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		if err != nil {
 			return nil, replaceErrors(err)
 		}
+	}
+	if client.logger != nil {
+		client.logger.Log(mongolog.Command, mongolog.Debug, "Client created")
 	}
 	return client, nil
 }
@@ -299,7 +303,7 @@ func (c *Client) endSessions(ctx context.Context) {
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
-		Database("admin").Crypt(c.crypt)
+		Logger(c.logger).Database("admin").Crypt(c.crypt)
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -514,24 +518,21 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		)
 	}
 	// Logger
-	logger := opts.Logger
-	var err error
-	if logger == nil {
-		logger, err = mongoLoggerFromEnv()
+	c.logger = opts.Logger
+	if c.logger == nil {
+		var err error
+		// TODO: decide if i want this to be nil if nothing set
+		c.logger, err = mongoLoggerFromEnv()
+		if err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		return err
-	}
-
-	// This wraps the command monitor, so it must be set after c.monitor is set
-	if logger != nil {
-		c.logger = logger
-
-		c.monitor = newLoggingCommandMonitor(c.logger, c.monitor)
-		connOpts = append(connOpts, topology.WithMonitor(
-			func(*event.CommandMonitor) *event.CommandMonitor { return c.monitor },
+	if c.logger != nil {
+		connOpts = append(connOpts, topology.WithLogger(
+			func(*mongolog.MongoLogger) *mongolog.MongoLogger { return c.logger },
 		))
 	}
+
 	// ReadConcern
 	c.readConcern = readconcern.New()
 	if opts.ReadConcern != nil {
@@ -702,46 +703,61 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 // mongoLoggerFromEnv returns a mongologger set to the environment variables
 func mongoLoggerFromEnv() (*mongolog.MongoLogger, error) {
 	options := mongolog.NewOptions()
+	var anySet bool
+	if all := os.Getenv("MONGODB_LOGGING_ALL"); all != "" {
+		level, err := mongolog.LevelFromString(all)
+		if err == nil {
+			options.SetLevel(level)
+			anySet = true
+		}
+	}
 	if command := os.Getenv("MONGODB_LOGGING_COMMAND"); command != "" {
 		level, err := mongolog.LevelFromString(command)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			options.SetCommandLevel(level)
+			anySet = true
 		}
-		options.SetCommandLevel(level)
 	}
 	if connection := os.Getenv("MONGODB_LOGGING_CONNECTION"); connection != "" {
 		level, err := mongolog.LevelFromString(connection)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			options.SetConnectionLevel(level)
+			anySet = true
 		}
-		options.SetConnectionLevel(level)
 	}
 	if sdam := os.Getenv("MONGODB_LOGGING_SDAM"); sdam != "" {
 		level, err := mongolog.LevelFromString(sdam)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			options.SetSDAMLevel(level)
+			anySet = true
 		}
-		options.SetSDAMLevel(level)
 	}
 	if serverSelection := os.Getenv("MONGODB_LOGGING_SERVER_SELECTION"); serverSelection != "" {
 		level, err := mongolog.LevelFromString(serverSelection)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			options.SetServerSelectionLevel(level)
+			anySet = true
 		}
-		options.SetServerSelectionLevel(level)
 	}
 	if path := os.Getenv("MONGODB_LOGGING_PATH"); path != "" {
 		options.SetOutputFile(path)
+		anySet = true
 	}
-	if logFullCommands := os.Getenv("MONGODB_LOG_FULL_COMMANDS"); logFullCommands != "" {
-		logFull, err := strconv.ParseBool(logFullCommands)
-		if err != nil {
-			return nil, err
+	if maxDocumentLength := os.Getenv("MONGODB_LOGGING_MAX_DOCUMENT_LENGTH"); maxDocumentLength != "" {
+		if strings.ToLower(maxDocumentLength) == "unlimited" {
+			options.SetMaxDocumentLengthUnlimited()
 		}
-		options.SetLogFullCommands(logFull)
+		maxLength, err := strconv.Atoi(maxDocumentLength)
+		if err == nil {
+			options.SetMaxDocumentLength(maxLength)
+			anySet = true
+		}
 	}
 
-	return mongolog.NewMongoLogger(options)
+	if anySet {
+		return mongolog.NewMongoLogger(options)
+	}
+	return nil, nil
 }
 
 // validSession returns an error if the session doesn't belong to the client
@@ -800,7 +816,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 
 	ldo := options.MergeListDatabasesOptions(opts...)
 	op := operation.NewListDatabases(filterDoc).
-		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
+		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).Logger(c.logger).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.crypt)
 
 	if ldo.NameOnly != nil {

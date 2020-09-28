@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -27,6 +28,7 @@ type ListIndexes struct {
 	clock      *session.ClusterClock
 	collection string
 	monitor    *event.CommandMonitor
+	logger     *mongolog.MongoLogger
 	database   string
 	deployment driver.Deployment
 	selector   description.ServerSelector
@@ -71,6 +73,7 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		Client:         li.session,
 		Clock:          li.clock,
 		CommandMonitor: li.monitor,
+		Logger:         li.logger,
 		Database:       li.database,
 		Deployment:     li.deployment,
 		Selector:       li.selector,
@@ -157,6 +160,16 @@ func (li *ListIndexes) CommandMonitor(monitor *event.CommandMonitor) *ListIndexe
 	}
 
 	li.monitor = monitor
+	return li
+}
+
+// Logger sets the logger for this operation.
+func (li *ListIndexes) Logger(logger *mongolog.MongoLogger) *ListIndexes {
+	if li == nil {
+		li = new(ListIndexes)
+	}
+
+	li.logger = logger
 	return li
 }
 

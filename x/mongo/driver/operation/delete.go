@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -29,6 +30,7 @@ type Delete struct {
 	clock        *session.ClusterClock
 	collection   string
 	monitor      *event.CommandMonitor
+	logger       *mongolog.MongoLogger
 	crypt        *driver.Crypt
 	database     string
 	deployment   driver.Deployment
@@ -99,6 +101,7 @@ func (d *Delete) Execute(ctx context.Context) error {
 		Client:            d.session,
 		Clock:             d.clock,
 		CommandMonitor:    d.monitor,
+		Logger:            d.logger,
 		Crypt:             d.crypt,
 		Database:          d.database,
 		Deployment:        d.deployment,
@@ -184,6 +187,16 @@ func (d *Delete) CommandMonitor(monitor *event.CommandMonitor) *Delete {
 	}
 
 	d.monitor = monitor
+	return d
+}
+
+// Logger sets the logger for this operation.
+func (d *Delete) Logger(logger *mongolog.MongoLogger) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.logger = logger
 	return d
 }
 

@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -31,6 +32,7 @@ type Distinct struct {
 	clock          *session.ClusterClock
 	collection     string
 	monitor        *event.CommandMonitor
+	logger         *mongolog.MongoLogger
 	crypt          *driver.Crypt
 	database       string
 	deployment     driver.Deployment
@@ -92,6 +94,7 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		Client:            d.session,
 		Clock:             d.clock,
 		CommandMonitor:    d.monitor,
+		Logger:            d.logger,
 		Crypt:             d.crypt,
 		Database:          d.database,
 		Deployment:        d.deployment,
@@ -199,6 +202,16 @@ func (d *Distinct) CommandMonitor(monitor *event.CommandMonitor) *Distinct {
 	}
 
 	d.monitor = monitor
+	return d
+}
+
+// Logger sets the logger for this operation.
+func (d *Distinct) Logger(logger *mongolog.MongoLogger) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.logger = logger
 	return d
 }
 

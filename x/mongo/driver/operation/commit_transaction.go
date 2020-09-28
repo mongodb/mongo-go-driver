@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -28,6 +29,7 @@ type CommitTransaction struct {
 	clock         *session.ClusterClock
 	monitor       *event.CommandMonitor
 	crypt         *driver.Crypt
+	logger        *mongolog.MongoLogger
 	database      string
 	deployment    driver.Deployment
 	selector      description.ServerSelector
@@ -59,6 +61,7 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Client:            ct.session,
 		Clock:             ct.clock,
 		CommandMonitor:    ct.monitor,
+		Logger:            ct.logger,
 		Crypt:             ct.crypt,
 		Database:          ct.database,
 		Deployment:        ct.deployment,
@@ -127,6 +130,16 @@ func (ct *CommitTransaction) CommandMonitor(monitor *event.CommandMonitor) *Comm
 	}
 
 	ct.monitor = monitor
+	return ct
+}
+
+// Logger sets the logger for this operation.
+func (ct *CommitTransaction) Logger(logger *mongolog.MongoLogger) *CommitTransaction {
+	if ct == nil {
+		ct = new(CommitTransaction)
+	}
+
+	ct.logger = logger
 	return ct
 }
 

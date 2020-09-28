@@ -54,6 +54,7 @@ type connection struct {
 	currentlyStreaming   bool
 	connectContextMutex  sync.Mutex
 	cancellationListener cancellationListener
+	resolvedIP           string
 
 	// pool related fields
 	pool         *pool
@@ -485,7 +486,11 @@ func (c initConnection) LocalAddress() address.Address {
 	if c.connection == nil || c.nc == nil {
 		return address.Address("0.0.0.0")
 	}
-	return address.Address(c.nc.LocalAddr().String())
+	localAddr := c.nc.LocalAddr()
+	if localAddr == nil {
+		return address.Address("0.0.0.0")
+	}
+	return address.Address(localAddr.String())
 }
 func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
@@ -645,7 +650,11 @@ func (c *Connection) LocalAddress() address.Address {
 	if c.connection == nil || c.nc == nil {
 		return address.Address("0.0.0.0")
 	}
-	return address.Address(c.nc.LocalAddr().String())
+	localAddr := c.nc.LocalAddr()
+	if localAddr == nil {
+		return address.Address("0.0.0.0")
+	}
+	return address.Address(localAddr.String())
 }
 
 var notMasterCodes = []int32{10107, 13435}

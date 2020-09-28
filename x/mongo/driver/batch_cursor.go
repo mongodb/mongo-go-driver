@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -30,6 +31,7 @@ type BatchCursor struct {
 	cmdMonitor           *event.CommandMonitor
 	postBatchResumeToken bsoncore.Document
 	crypt                *Crypt
+	logger               *mongolog.MongoLogger
 
 	// legacy server (< 3.2) fields
 	legacy      bool // This field is provided for ListCollectionsBatchCursor.
@@ -102,6 +104,7 @@ type CursorOptions struct {
 	MaxTimeMS      int64
 	Limit          int32
 	CommandMonitor *event.CommandMonitor
+	Logger         *mongolog.MongoLogger
 	Crypt          *Crypt
 }
 
@@ -118,6 +121,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		batchSize:            opts.BatchSize,
 		maxTimeMS:            opts.MaxTimeMS,
 		cmdMonitor:           opts.CommandMonitor,
+		logger:               opts.Logger,
 		firstBatch:           true,
 		postBatchResumeToken: cr.postBatchResumeToken,
 		crypt:                opts.Crypt,
@@ -230,6 +234,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 		Clock:          bc.clock,
 		Legacy:         LegacyKillCursors,
 		CommandMonitor: bc.cmdMonitor,
+		Logger:         bc.logger,
 	}.Execute(ctx, nil)
 }
 
@@ -302,6 +307,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		Clock:          bc.clock,
 		Legacy:         LegacyGetMore,
 		CommandMonitor: bc.cmdMonitor,
+		Logger:         bc.logger,
 		Crypt:          bc.crypt,
 	}.Execute(ctx, nil)
 

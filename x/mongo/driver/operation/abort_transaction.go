@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -27,6 +28,7 @@ type AbortTransaction struct {
 	clock         *session.ClusterClock
 	collection    string
 	monitor       *event.CommandMonitor
+	logger        *mongolog.MongoLogger
 	crypt         *driver.Crypt
 	database      string
 	deployment    driver.Deployment
@@ -59,6 +61,7 @@ func (at *AbortTransaction) Execute(ctx context.Context) error {
 		Client:            at.session,
 		Clock:             at.clock,
 		CommandMonitor:    at.monitor,
+		Logger:            at.logger,
 		Crypt:             at.crypt,
 		Database:          at.database,
 		Deployment:        at.deployment,
@@ -124,6 +127,16 @@ func (at *AbortTransaction) CommandMonitor(monitor *event.CommandMonitor) *Abort
 	}
 
 	at.monitor = monitor
+	return at
+}
+
+// Logger sets the logger for this operation.
+func (at *AbortTransaction) Logger(logger *mongolog.MongoLogger) *AbortTransaction {
+	if at == nil {
+		at = new(AbortTransaction)
+	}
+
+	at.logger = logger
 	return at
 }
 

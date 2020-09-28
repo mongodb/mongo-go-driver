@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/mongolog"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 )
@@ -52,6 +53,7 @@ type connectionConfig struct {
 	disableOCSPEndpointCheck bool
 	errorHandlingCallback    func(error, uint64)
 	tlsConnectionSource      tlsConnectionSource
+	logger                   *mongolog.MongoLogger
 }
 
 func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
@@ -196,6 +198,14 @@ func WithOCSPCache(fn func(ocsp.Cache) ocsp.Cache) ConnectionOption {
 func WithDisableOCSPEndpointCheck(fn func(bool) bool) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.disableOCSPEndpointCheck = fn(c.disableOCSPEndpointCheck)
+		return nil
+	}
+}
+
+// WithLogger configures a logger.
+func WithLogger(fn func(*mongolog.MongoLogger) *mongolog.MongoLogger) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.logger = fn(c.logger)
 		return nil
 	}
 }

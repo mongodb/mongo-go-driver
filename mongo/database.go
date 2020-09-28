@@ -268,7 +268,7 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	op := operation.NewDropDatabase().
 		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
-		ServerSelector(selector).ClusterClock(db.client.clock).
+		Logger(db.client.logger).ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.crypt)
 
 	err = op.Execute(ctx)
@@ -358,7 +358,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	lco := options.MergeListCollectionsOptions(opts...)
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
-		ServerSelector(selector).ClusterClock(db.client.clock).
+		Logger(db.client.logger).ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.crypt)
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)
@@ -600,6 +600,7 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 	op = op.Session(sess).
 		WriteConcern(wc).
 		CommandMonitor(db.client.monitor).
+		Logger(db.client.logger).
 		ServerSelector(selector).
 		ClusterClock(db.client.clock).
 		Database(db.name).
