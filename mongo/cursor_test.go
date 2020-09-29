@@ -179,38 +179,5 @@ func TestCursor(t *testing.T) {
 			err = cursor.All(context.Background(), &docs)
 			assert.NotNil(t, err, "expected error, got: %v", err)
 		})
-		t.Run("converts driver error to mongo error", func(t *testing.T) {
-			driverErr := driver.Error{Code: 100, Message: "test error"}
-			var docs []bson.D
-
-			cursor, err := newCursor(newTestBatchCursor(0, 0, driverErr), nil)
-			assert.Nil(t, err, "newCursor error: %v", err)
-
-			err = cursor.All(context.Background(), &docs)
-			assert.NotNil(t, err, "expected error, got nil")
-
-			mongoErr, ok := err.(CommandError)
-			assert.True(t, ok, "expected mongo.CommandError, got: %T", err)
-			assert.Equal(t, driverErr.Code, mongoErr.Code, "expected code %v, got: %v", driverErr.Code, mongoErr.Code)
-			assert.Equal(t, driverErr.Message, mongoErr.Message, "expected message %v, got: %v", driverErr.Message, mongoErr.Message)
-		})
-	})
-	t.Run("TestNext", func(t *testing.T) {
-		t.Run("converts driver error to mongo error", func(t *testing.T) {
-			driverErr := driver.Error{Code: 100, Message: "test error"}
-			cursor, err := newCursor(newTestBatchCursor(0, 0, driverErr), nil)
-			assert.Nil(t, err, "newCursor error: %v", err)
-
-			nxt := cursor.Next(context.Background())
-			assert.False(t, nxt, "expected next to be false %v", cursor.Current)
-
-			err = cursor.Err()
-			assert.NotNil(t, err, "expected error, got nil")
-
-			mongoErr, ok := err.(CommandError)
-			assert.True(t, ok, "expected mongo.CommandError, got: %T", err)
-			assert.Equal(t, driverErr.Code, mongoErr.Code, "expected code %v, got: %v", driverErr.Code, mongoErr.Code)
-			assert.Equal(t, driverErr.Message, mongoErr.Message, "expected message %v, got: %v", driverErr.Message, mongoErr.Message)
-		})
 	})
 }

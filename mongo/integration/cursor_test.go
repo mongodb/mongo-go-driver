@@ -165,6 +165,32 @@ func TestCursor(t *testing.T) {
 			assertCursorBatchLength(mt, cursor, len(getMoreBatch)-1)
 		})
 	})
+	mt.RunOpts("all", noClientOpts, func(mt *mtest.T) {
+		mt.Run("getMore error", func(mt *mtest.T) {
+			failpointData := mtest.FailPointData{
+				FailCommands:    []string{"getMore"},
+				ErrorCode: 100,
+			}
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: "alwaysOn",
+				Data: failpointData,
+			})
+			initCollection(mt, mt.Coll)
+			cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(2))
+			assert.Nil(mt, err, "Find error: %v", err)
+			defer cursor.Close(mtest.Background)
+
+			var docs []bson.D
+			err = cursor.All(context.Background(), &docs)
+			assert.NotNil(mt, err, "expected change stream error, got nil")
+
+			// make sure that a mongo.CommandError is returned instead of a driver.Error
+			mongoErr, ok := err.(mongo.CommandError)
+			assert.True(mt, ok, "expected mongo.CommandError, got: %T", err)
+			assert.Equal(mt, failpointData.ErrorCode, mongoErr.Code, "expected code %v, got: %v", failpointData.ErrorCode, mongoErr.Code)
+		})
+	})
 }
 
 type tryNextCursor interface {
@@ -198,12 +224,13 @@ func verifyOneGetmoreSent(mt *mtest.T, cursor tryNextCursor) {
 
 // should be called in a test run with a mock deployment
 func tryNextGetmoreError(mt *mtest.T, cursor tryNextCursor) {
-	getMoreRes := mtest.CreateCommandErrorResponse(mtest.CommandError{
+	testErr := mtest.CommandError{
 		Code:    100,
 		Message: "getMore error",
 		Name:    "CursorError",
 		Labels:  []string{"NonResumableChangeStreamError"},
-	})
+	}
+	getMoreRes := mtest.CreateCommandErrorResponse(testErr)
 	mt.AddMockResponses(getMoreRes)
 
 	// first call to TryNext should return false because first batch was empty so batch cursor returns false
@@ -215,6 +242,13 @@ func tryNextGetmoreError(mt *mtest.T, cursor tryNextCursor) {
 
 	err := cursor.Err()
 	assert.NotNil(mt, err, "expected change stream error, got nil")
+
+	// make sure that a mongo.CommandError is returned instead of a driver.Error
+	mongoErr, ok := err.(mongo.CommandError)
+	assert.True(mt, ok, "expected mongo.CommandError, got: %T", err)
+	assert.Equal(mt, testErr.Code, mongoErr.Code, "expected code %v, got: %v", testErr.Code, mongoErr.Code)
+	assert.Equal(mt, testErr.Message, mongoErr.Message, "expected message %v, got: %v", testErr.Message, mongoErr.Message)
+	assert.Equal(mt, testErr.Name, mongoErr.Name, "expected name %v, got: %v", testErr.Name, mongoErr.Name)
 }
 
 func assertCursorBatchLength(mt *mtest.T, cursor *mongo.Cursor, expected int) {
