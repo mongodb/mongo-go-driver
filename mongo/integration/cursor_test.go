@@ -166,7 +166,8 @@ func TestCursor(t *testing.T) {
 		})
 	})
 	mt.RunOpts("all", noClientOpts, func(mt *mtest.T) {
-		mt.Run("getMore error", func(mt *mtest.T) {
+		failpointOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0")
+		mt.RunOpts("getMore error", failpointOpts, func(mt *mtest.T) {
 			failpointData := mtest.FailPointData{
 				FailCommands:    []string{"getMore"},
 				ErrorCode: 100,
