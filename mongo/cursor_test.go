@@ -20,9 +20,10 @@ type testBatchCursor struct {
 	batches []*bsoncore.DocumentSequence
 	batch   *bsoncore.DocumentSequence
 	closed  bool
+	nextErr error
 }
 
-func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
+func newTestBatchCursor(numBatches, batchSize int, err error) *testBatchCursor {
 	batches := make([]*bsoncore.DocumentSequence, 0, numBatches)
 
 	counter := 0
@@ -47,6 +48,7 @@ func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
 
 	return &testBatchCursor{
 		batches: batches,
+		nextErr: err,
 	}
 }
 
@@ -77,7 +79,7 @@ func (tbc *testBatchCursor) Server() driver.Server {
 }
 
 func (tbc *testBatchCursor) Err() error {
-	return nil
+	return tbc.nextErr
 }
 
 func (tbc *testBatchCursor) Close(context.Context) error {
@@ -93,14 +95,14 @@ func TestCursor(t *testing.T) {
 
 	t.Run("TestAll", func(t *testing.T) {
 		t.Run("errors if argument is not pointer to slice", func(t *testing.T) {
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5, nil), nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 			err = cursor.All(context.Background(), []bson.D{})
 			assert.NotNil(t, err, "expected error, got nil")
 		})
 
 		t.Run("fills slice with all documents", func(t *testing.T) {
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5, nil), nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			var docs []bson.D
@@ -115,7 +117,7 @@ func TestCursor(t *testing.T) {
 		})
 
 		t.Run("decodes each document into slice type", func(t *testing.T) {
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5, nil), nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			type Document struct {
@@ -133,7 +135,7 @@ func TestCursor(t *testing.T) {
 		})
 
 		t.Run("multiple batches are included", func(t *testing.T) {
-			cursor, err := newCursor(newTestBatchCursor(2, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(2, 5, nil), nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 			var docs []bson.D
 			err = cursor.All(context.Background(), &docs)
@@ -149,7 +151,7 @@ func TestCursor(t *testing.T) {
 		t.Run("cursor is closed after All is called", func(t *testing.T) {
 			var docs []bson.D
 
-			tbc := newTestBatchCursor(1, 5)
+			tbc := newTestBatchCursor(1, 5, nil)
 			cursor, err := newCursor(tbc, nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
@@ -161,7 +163,7 @@ func TestCursor(t *testing.T) {
 		t.Run("does not error given interface as parameter", func(t *testing.T) {
 			var docs interface{} = []bson.D{}
 
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5, nil), nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
@@ -171,11 +173,44 @@ func TestCursor(t *testing.T) {
 		t.Run("errors when not given pointer to slice", func(t *testing.T) {
 			var docs interface{} = "test"
 
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5, nil), nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
 			assert.NotNil(t, err, "expected error, got: %v", err)
+		})
+		t.Run("converts driver error to mongo error", func(t *testing.T) {
+			driverErr := driver.Error{Code: 100, Message: "test error"}
+			var docs []bson.D
+
+			cursor, err := newCursor(newTestBatchCursor(0, 0, driverErr), nil)
+			assert.Nil(t, err, "newCursor error: %v", err)
+
+			err = cursor.All(context.Background(), &docs)
+			assert.NotNil(t, err, "expected error, got nil")
+
+			mongoErr, ok := err.(CommandError)
+			assert.True(t, ok, "expected mongo.CommandError, got: %T", err)
+			assert.Equal(t, driverErr.Code, mongoErr.Code, "expected code %v, got: %v", driverErr.Code, mongoErr.Code)
+			assert.Equal(t, driverErr.Message, mongoErr.Message, "expected message %v, got: %v", driverErr.Message, mongoErr.Message)
+		})
+	})
+	t.Run("TestNext", func(t *testing.T) {
+		t.Run("converts driver error to mongo error", func(t *testing.T) {
+			driverErr := driver.Error{Code: 100, Message: "test error"}
+			cursor, err := newCursor(newTestBatchCursor(0, 0, driverErr), nil)
+			assert.Nil(t, err, "newCursor error: %v", err)
+
+			nxt := cursor.Next(context.Background())
+			assert.False(t, nxt, "expected next to be false %v", cursor.Current)
+
+			err = cursor.Err()
+			assert.NotNil(t, err, "expected error, got nil")
+
+			mongoErr, ok := err.(CommandError)
+			assert.True(t, ok, "expected mongo.CommandError, got: %T", err)
+			assert.Equal(t, driverErr.Code, mongoErr.Code, "expected code %v, got: %v", driverErr.Code, mongoErr.Code)
+			assert.Equal(t, driverErr.Message, mongoErr.Message, "expected message %v, got: %v", driverErr.Message, mongoErr.Message)
 		})
 	})
 }

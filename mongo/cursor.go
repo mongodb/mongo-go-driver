@@ -124,7 +124,7 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 		// If we don't have a next batch
 		if !c.bc.Next(ctx) {
 			// Do we have an error? If so we return false.
-			c.err = c.bc.Err()
+			c.err = replaceErrors(c.bc.Err())
 			if c.err != nil {
 				return false
 			}
@@ -219,7 +219,7 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 		batch = c.bc.Batch()
 	}
 
-	if err = c.bc.Err(); err != nil {
+	if err = replaceErrors(c.bc.Err()); err != nil {
 		return err
 	}
 
