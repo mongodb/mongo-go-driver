@@ -1182,6 +1182,7 @@ func TestCollection(t *testing.T) {
 			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 				return evt.CommandName == "insert"
 			})
+			// MaxWriteBatchSize changed between 3.4 and 3.6, so there isn't a given number of batches that this will be split into
 			inserts := len(mt.GetAllStartedEvents())
 			assert.True(mt, inserts > 1, "expected multiple batches, got %v", inserts)
 
@@ -1192,18 +1193,20 @@ func TestCollection(t *testing.T) {
 			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 				return evt.CommandName == "delete"
 			})
+			// MaxWriteBatchSize changed between 3.4 and 3.6, so there isn't a given number of batches that this will be split into
 			deletes := len(mt.GetAllStartedEvents())
 			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
 		})
 		mt.Run("update with batches", func(mt *mtest.T) {
 			// TODO(GODRIVER-425): remove this as part a larger project to
 			// refactor integration and other longrunning tasks.
-			if os.Getenv("EVR_TASK_ID") == "" {
-				mt.Skip("skipping long running integration test outside of evergreen")
-			}
+			// if os.Getenv("EVR_TASK_ID") == "" {
+			// 	mt.Skip("skipping long running integration test outside of evergreen")
+			// }
 
 			var models []mongo.WriteModel
 			numModels := 100050
+
 			// it's significantly faster to upsert one model and modify the rest than to upsert all of them
 			for i := 0; i < numModels-1; i++ {
 				update := bson.D{
@@ -1228,14 +1231,47 @@ func TestCollection(t *testing.T) {
 			mt.ClearEvents()
 			res, err := mt.Coll.BulkWrite(mtest.Background, models)
 			assert.Nil(mt, err, "BulkWrite error: %v", err)
-			assert.Equal(mt, int64(2), res.UpsertedCount, "expected %v upserted documents, got %v", 2, res.UpsertedCount)
-			assert.Equal(mt, int64(numModels-2), res.ModifiedCount, "expected %v modified documents, got %v", numModels-2, res.ModifiedCount)
-			assert.Equal(mt, int64(numModels-2), res.MatchedCount, "expected %v matched documents, got %v", numModels-2, res.ModifiedCount)
+
 			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 				return evt.CommandName == "update"
 			})
+			// MaxWriteBatchSize changed between 3.4 and 3.6, so there isn't a given number of batches that this will be split into
 			updates := len(mt.GetAllStartedEvents())
 			assert.True(mt, updates > 1, "expected multiple batches, got %v", updates)
+
+			assert.Equal(mt, int64(numModels-2), res.ModifiedCount, "expected %v modified documents, got %v", numModels-2, res.ModifiedCount)
+			assert.Equal(mt, int64(numModels-2), res.MatchedCount, "expected %v matched documents, got %v", numModels-2, res.ModifiedCount)
+			assert.Equal(mt, int64(2), res.UpsertedCount, "expected %v upserted documents, got %v", 2, res.UpsertedCount)
+			assert.Equal(mt, 2, len(res.UpsertedIDs), "expected %v upserted ids, got %v", 2, len(res.UpsertedIDs))
+
+			id1, ok := res.UpsertedIDs[0]
+			assert.True(mt, ok, "expected id at key 0")
+			id2, ok := res.UpsertedIDs[int64(numModels-1)]
+			assert.True(mt, ok, "expected id at key %v", numModels-1)
+
+			doc, err := mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id1}}).DecodeBytes()
+			a, err := doc.LookupErr("a")
+			assert.Nil(mt, err, "a not found in document %v", doc)
+			assert.Equal(mt, bson.TypeInt32, a.Type, "expected a type %v, got %v", bson.TypeInt32, a.Type)
+			got := a.Int32()
+			assert.Equal(mt, int32(numModels-1), got, "expected a value %v, got %v", numModels-1, got)
+			b, err := doc.LookupErr("b")
+			assert.Nil(mt, err, "b not found in document %v", doc)
+			assert.Equal(mt, bson.TypeInt32, b.Type, "expected b type %v, got %v", bson.TypeInt32, b.Type)
+			got = b.Int32()
+			assert.Equal(mt, int32((numModels-2)*2), got, "expected b value %v, got %v", (numModels-2)*2, got)
+			c, err := doc.LookupErr("c")
+			assert.Nil(mt, err, "c not found in document %v", doc)
+			assert.Equal(mt, bson.TypeInt32, c.Type, "expected c type %v, got %v", bson.TypeInt32, c.Type)
+			got = c.Int32()
+			assert.Equal(mt, int32((numModels-2)*3), got, "expected b value %v, got %v", (numModels-2)*3, got)
+
+			doc, err = mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id2}}).DecodeBytes()
+			x, err := doc.LookupErr("x")
+			assert.Nil(mt, err, "x not found in document %v", doc)
+			assert.Equal(mt, bson.TypeInt32, x.Type, "expected x type %v, got %v", bson.TypeInt32, x.Type)
+			got = x.Int32()
+			assert.Equal(mt, int32(1), got, "expected a value 1, got %v", got)
 		})
 	})
 }

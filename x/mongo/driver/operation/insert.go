@@ -73,7 +73,7 @@ func NewInsert(documents ...bsoncore.Document) *Insert {
 // Result returns the result of executing this operation.
 func (i *Insert) Result() InsertResult { return i.result }
 
-func (i *Insert) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
+func (i *Insert) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, currIndex int) error {
 	ir, err := buildInsertResult(response, srvr)
 	i.result.N += ir.N
 	return err

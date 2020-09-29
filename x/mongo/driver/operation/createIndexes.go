@@ -89,7 +89,7 @@ func NewCreateIndexes(indexes bsoncore.Document) *CreateIndexes {
 // Result returns the result of executing this operation.
 func (ci *CreateIndexes) Result() CreateIndexesResult { return ci.result }
 
-func (ci *CreateIndexes) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
+func (ci *CreateIndexes) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, currIndex int) error {
 	var err error
 	ci.result, err = buildCreateIndexesResult(response, srvr)
 	return err

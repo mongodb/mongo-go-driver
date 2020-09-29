@@ -113,7 +113,7 @@ type Operation struct {
 	// ProcessResponseFn is called after a response to the command is returned. The server is
 	// provided for types like Cursor that are required to run subsequent commands using the same
 	// server.
-	ProcessResponseFn func(response bsoncore.Document, srvr Server, desc description.Server) error
+	ProcessResponseFn func(response bsoncore.Document, srvr Server, desc description.Server, currIndex int) error
 
 	// Selector is the server selector that's used during both initial server selection and
 	// subsequent selection for retries. Depending on the Deployment implementation, the
@@ -417,7 +417,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
-				perr = op.ProcessResponseFn(res, srvr, desc.Server)
+				perr = op.ProcessResponseFn(res, srvr, desc.Server, currIndex)
 			}
 
 			if batching && len(tt.WriteErrors) > 0 && currIndex > 0 {
@@ -502,7 +502,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
-				perr = op.ProcessResponseFn(res, srvr, desc.Server)
+				perr = op.ProcessResponseFn(res, srvr, desc.Server, currIndex)
 			}
 
 			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
@@ -515,14 +515,14 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				return ErrUnacknowledgedWrite
 			}
 			if op.ProcessResponseFn != nil {
-				perr = op.ProcessResponseFn(res, srvr, desc.Server)
+				perr = op.ProcessResponseFn(res, srvr, desc.Server, currIndex)
 			}
 			if perr != nil {
 				return perr
 			}
 		default:
 			if op.ProcessResponseFn != nil {
-				perr = op.ProcessResponseFn(res, srvr, desc.Server)
+				perr = op.ProcessResponseFn(res, srvr, desc.Server, currIndex)
 			}
 			return err
 		}
