@@ -14,11 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-var defaultPointerCodec = &PointerCodec{
-	ecache: make(map[reflect.Type]ValueEncoder),
-	dcache: make(map[reflect.Type]ValueDecoder),
-}
-
 var _ ValueEncoder = &PointerCodec{}
 var _ ValueDecoder = &PointerCodec{}
 

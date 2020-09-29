@@ -8,12 +8,17 @@ package bson
 
 import (
 	"bytes"
+	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestMarshalAppendWithRegistry(t *testing.T) {
@@ -206,4 +211,59 @@ func TestMarshal_roundtripFromDoc(t *testing.T) {
 	if !cmp.Equal(after, before) {
 		t.Errorf("Documents to not match. got %v; want %v", after, before)
 	}
+}
+
+func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
+	// Encoders that have caches for recursive encoder lookup should not be shared across Registry instances. Otherwise,
+	// the first EncodeValue call would cache an encoder and a subsequent call would see that encoder even if a
+	// different Registry is used.
+
+	// Create a custom Registry that negates int32 values when encoding.
+	var encodeInt32 bsoncodec.ValueEncoderFunc = func(_ bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+		if val.Kind() != reflect.Int32 {
+			return fmt.Errorf("expected kind to be int32, got %v", val.Kind())
+		}
+
+		return vw.WriteInt32(int32(val.Int()) * -1)
+	}
+	customReg := NewRegistryBuilder().
+		RegisterTypeEncoder(tInt32, encodeInt32).
+		Build()
+
+	// Helper function to run the test and make assertions. The provided original value should result in the document
+	// {"x": {$numberInt: 1}} when marshalled with the default registry.
+	verifyResults := func(t *testing.T, original interface{}) {
+		// Marshal using the default and custom registries. Assert that the result is {x: 1} and {x: -1}, respectively.
+
+		first, err := Marshal(original)
+		assert.Nil(t, err, "Marshal error: %v", err)
+		expectedFirst := Raw(bsoncore.BuildDocumentFromElements(
+			nil,
+			bsoncore.AppendInt32Element(nil, "x", 1),
+		))
+		assert.Equal(t, expectedFirst, Raw(first), "expected document %v, got %v", expectedFirst, Raw(first))
+
+		second, err := MarshalWithRegistry(customReg, original)
+		assert.Nil(t, err, "Marshal error: %v", err)
+		expectedSecond := Raw(bsoncore.BuildDocumentFromElements(
+			nil,
+			bsoncore.AppendInt32Element(nil, "x", -1),
+		))
+		assert.Equal(t, expectedSecond, Raw(second), "expected document %v, got %v", expectedSecond, Raw(second))
+	}
+
+	t.Run("struct", func(t *testing.T) {
+		type Struct struct {
+			X int32
+		}
+		verifyResults(t, Struct{
+			X: 1,
+		})
+	})
+	t.Run("pointer", func(t *testing.T) {
+		i32 := int32(1)
+		verifyResults(t, M{
+			"x": &i32,
+		})
+	})
 }

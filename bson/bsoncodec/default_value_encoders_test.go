@@ -1084,7 +1084,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"StructEncodeValue",
-			defaultStructCodec,
+			defaultTestStructCodec,
 			[]subtest{
 				{
 					"interface value",

@@ -19,11 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-var defaultStructCodec = &StructCodec{
-	cache:  make(map[reflect.Type]*structDescription),
-	parser: DefaultStructTagParser,
-}
-
 // DecodeError represents an error that occurs when unmarshalling BSON bytes into a native Go type.
 type DecodeError struct {
 	keys    []string
