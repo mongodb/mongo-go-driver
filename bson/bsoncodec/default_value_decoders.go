@@ -24,6 +24,16 @@ import (
 
 var defaultValueDecoders DefaultValueDecoders
 
+func newDefaultStructCodec() *StructCodec {
+	codec, err := NewStructCodec(DefaultStructTagParser)
+	if err != nil {
+		// This function is called from the codec registration path, so errors can't be propagated. If there's an error
+		// constructing the StructCodec, we panic to avoid losing it.
+		panic(fmt.Errorf("error creating default StructCodec: %v", err))
+	}
+	return codec
+}
+
 // DefaultValueDecoders is a namespace type for the default ValueDecoders used
 // when creating a registry.
 type DefaultValueDecoders struct{}
@@ -77,7 +87,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDefaultDecoder(reflect.Map, defaultMapCodec).
 		RegisterDefaultDecoder(reflect.Slice, defaultSliceCodec).
 		RegisterDefaultDecoder(reflect.String, defaultStringCodec).
-		RegisterDefaultDecoder(reflect.Struct, defaultStructCodec).
+		RegisterDefaultDecoder(reflect.Struct, newDefaultStructCodec()).
 		RegisterDefaultDecoder(reflect.Ptr, NewPointerCodec()).
 		RegisterTypeMapEntry(bsontype.Double, tFloat64).
 		RegisterTypeMapEntry(bsontype.String, tString).

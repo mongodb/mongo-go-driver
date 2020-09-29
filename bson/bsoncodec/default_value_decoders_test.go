@@ -27,6 +27,10 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+var (
+	defaultTestStructCodec = newDefaultStructCodec()
+)
+
 func TestDefaultValueDecoders(t *testing.T) {
 	var dvd DefaultValueDecoders
 	var wrong = func(string, string) string { return "wrong" }
@@ -2197,7 +2201,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"StructCodec.DecodeValue",
-			defaultStructCodec,
+			defaultTestStructCodec,
 			[]subtest{
 				{
 					"Not struct",
@@ -3497,7 +3501,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				emptyInterfaceStruct{},
 				bsonrw.NewBSONDocumentReader(docBytes),
 				emptyInterfaceErrorRegistry,
-				defaultStructCodec,
+				defaultTestStructCodec,
 				emptyInterfaceStructErr,
 			},
 			{
@@ -3508,7 +3512,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				stringStruct{},
 				bsonrw.NewBSONDocumentReader(docBytes),
 				NewRegistryBuilder().Build(),
-				defaultStructCodec,
+				defaultTestStructCodec,
 				stringStructErr,
 			},
 			{
@@ -3516,7 +3520,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				outer{},
 				bsonrw.NewBSONDocumentReader(outerDoc),
 				nestedRegistry,
-				defaultStructCodec,
+				defaultTestStructCodec,
 				nestedErr,
 			},
 		}
@@ -3546,7 +3550,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			dc := DecodeContext{Registry: buildDefaultRegistry()}
 			vr := bsonrw.NewBSONDocumentReader(outerBytes)
 			val := reflect.New(reflect.TypeOf(outer{})).Elem()
-			err := defaultStructCodec.DecodeValue(dc, vr, val)
+			err := defaultTestStructCodec.DecodeValue(dc, vr, val)
 
 			decodeErr, ok := err.(*DecodeError)
 			assert.True(t, ok, "expected DecodeError, got %v of type %T", err, err)

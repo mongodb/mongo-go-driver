@@ -13,6 +13,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestUnmarshal(t *testing.T) {
@@ -104,5 +106,63 @@ func TestUnmarshalExtJSONWithContext(t *testing.T) {
 		if !cmp.Equal(got, want) {
 			t.Errorf("Did not unmarshal as expected. got %v; want %v", got, want)
 		}
+	})
+}
+
+func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
+	// Decoders that have caches for recursive decoder lookup should not be shared across Registry instances. Otherwise,
+	// the first DecodeValue call would cache an decoder and a subsequent call would see that decoder even if a
+	// different Registry is used.
+
+	// Create a custom Registry that negates BSON int32 values when decoding.
+	var decodeInt32 bsoncodec.ValueDecoderFunc = func(_ bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+		i32, err := vr.ReadInt32()
+		if err != nil {
+			return err
+		}
+
+		val.SetInt(int64(-1 * i32))
+		return nil
+	}
+	customReg := NewRegistryBuilder().
+		RegisterTypeDecoder(tInt32, bsoncodec.ValueDecoderFunc(decodeInt32)).
+		Build()
+
+	docBytes := bsoncore.BuildDocumentFromElements(
+		nil,
+		bsoncore.AppendInt32Element(nil, "x", 1),
+	)
+
+	// For all sub-tests, unmarshal docBytes into a struct and assert that value for "x" is 1 when using the default
+	// registry and -1 when using the custom registry.
+	t.Run("struct", func(t *testing.T) {
+		type Struct struct {
+			X int32
+		}
+
+		var first Struct
+		err := Unmarshal(docBytes, &first)
+		assert.Nil(t, err, "Unmarshal error: %v", err)
+		assert.Equal(t, int32(1), first.X, "expected X value to be 1, got %v", first.X)
+
+		var second Struct
+		err = UnmarshalWithRegistry(customReg, docBytes, &second)
+		assert.Nil(t, err, "Unmarshal error: %v", err)
+		assert.Equal(t, int32(-1), second.X, "expected X value to be -1, got %v", second.X)
+	})
+	t.Run("pointer", func(t *testing.T) {
+		type Struct struct {
+			X *int32
+		}
+
+		var first Struct
+		err := Unmarshal(docBytes, &first)
+		assert.Nil(t, err, "Unmarshal error: %v", err)
+		assert.Equal(t, int32(1), *first.X, "expected X value to be 1, got %v", *first.X)
+
+		var second Struct
+		err = UnmarshalWithRegistry(customReg, docBytes, &second)
+		assert.Nil(t, err, "Unmarshal error: %v", err)
+		assert.Equal(t, int32(-1), *second.X, "expected X value to be -1, got %v", *second.X)
 	})
 }
