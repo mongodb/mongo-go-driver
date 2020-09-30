@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -60,6 +61,7 @@ type connection struct {
 	poolID       uint64
 	generation   uint64
 	expireReason string
+	poolMonitor  *event.PoolMonitor
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -81,6 +83,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 		config:               cfg,
 		connectContextMade:   make(chan struct{}),
 		cancellationListener: internal.NewCancellationListener(),
+		poolMonitor:          cfg.poolMonitor,
 	}
 	atomic.StoreInt32(&c.connected, initialized)
 
@@ -158,6 +161,13 @@ func (c *connection) connect(ctx context.Context) {
 	// running isMaster and authentication is handled by a handshaker on the configuration instance.
 	handshaker := c.config.handshaker
 	if handshaker == nil {
+		if c.poolMonitor != nil {
+			c.poolMonitor.Event(&event.PoolEvent{
+				Type:         event.ConnectionReady,
+				Address:      c.addr.String(),
+				ConnectionID: c.poolID,
+			})
+		}
 		return
 	}
 
@@ -206,6 +216,13 @@ func (c *connection) connect(ctx context.Context) {
 				break clientMethodLoop
 			}
 		}
+	}
+	if c.poolMonitor != nil {
+		c.poolMonitor.Event(&event.PoolEvent{
+			Type:         event.ConnectionReady,
+			Address:      c.addr.String(),
+			ConnectionID: c.poolID,
+		})
 	}
 }
 

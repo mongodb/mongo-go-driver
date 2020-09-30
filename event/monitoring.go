@@ -65,6 +65,7 @@ const (
 	ConnectionClosed   = "ConnectionClosed"
 	PoolCreated        = "ConnectionPoolCreated"
 	ConnectionCreated  = "ConnectionCreated"
+	ConnectionReady    = "ConnectionReady"
 	GetFailed          = "ConnectionCheckOutFailed"
 	GetSucceeded       = "ConnectionCheckedOut"
 	ConnectionReturned = "ConnectionCheckedIn"

@@ -141,6 +141,9 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 	if config.MaxIdleTime != time.Duration(0) {
 		opts = append(opts, WithIdleTimeout(func(_ time.Duration) time.Duration { return config.MaxIdleTime }))
 	}
+	if config.PoolMonitor != nil {
+		opts = append(opts, withPoolMonitor(func(_ *event.PoolMonitor) *event.PoolMonitor { return config.PoolMonitor }))
+	}
 
 	var maxConns = config.MaxPoolSize
 	if maxConns == 0 {
