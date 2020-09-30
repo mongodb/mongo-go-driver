@@ -169,13 +169,13 @@ func TestCursor(t *testing.T) {
 		failpointOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0")
 		mt.RunOpts("getMore error", failpointOpts, func(mt *mtest.T) {
 			failpointData := mtest.FailPointData{
-				FailCommands:    []string{"getMore"},
-				ErrorCode: 100,
+				FailCommands: []string{"getMore"},
+				ErrorCode:    100,
 			}
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: "alwaysOn",
-				Data: failpointData,
+				Mode:               "alwaysOn",
+				Data:               failpointData,
 			})
 			initCollection(mt, mt.Coll)
 			cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(2))
