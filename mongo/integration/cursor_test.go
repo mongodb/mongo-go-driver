@@ -192,6 +192,31 @@ func TestCursor(t *testing.T) {
 			assert.Equal(mt, failpointData.ErrorCode, mongoErr.Code, "expected code %v, got: %v", failpointData.ErrorCode, mongoErr.Code)
 		})
 	})
+	mt.RunOpts("close", noClientOpts, func(mt *mtest.T) {
+		failpointOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0")
+		mt.RunOpts("killCursors error", failpointOpts, func(mt *mtest.T) {
+			failpointData := mtest.FailPointData{
+				FailCommands: []string{"killCursors"},
+				ErrorCode:    100,
+			}
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode:               "alwaysOn",
+				Data:               failpointData,
+			})
+			initCollection(mt, mt.Coll)
+			cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(2))
+			assert.Nil(mt, err, "Find error: %v", err)
+
+			err = cursor.Close(mtest.Background)
+			assert.NotNil(mt, err, "expected change stream error, got nil")
+
+			// make sure that a mongo.CommandError is returned instead of a driver.Error
+			mongoErr, ok := err.(mongo.CommandError)
+			assert.True(mt, ok, "expected mongo.CommandError, got: %T", err)
+			assert.Equal(mt, failpointData.ErrorCode, mongoErr.Code, "expected code %v, got: %v", failpointData.ErrorCode, mongoErr.Code)
+		})
+	})
 }
 
 type tryNextCursor interface {
@@ -250,9 +275,22 @@ func tryNextGetmoreError(mt *mtest.T, cursor tryNextCursor) {
 	assert.Equal(mt, testErr.Code, mongoErr.Code, "expected code %v, got: %v", testErr.Code, mongoErr.Code)
 	assert.Equal(mt, testErr.Message, mongoErr.Message, "expected message %v, got: %v", testErr.Message, mongoErr.Message)
 	assert.Equal(mt, testErr.Name, mongoErr.Name, "expected name %v, got: %v", testErr.Name, mongoErr.Name)
+	assert.True(mt, sliceStringEqual(testErr.Labels, mongoErr.Labels), "expected labels %v, got: %v", testErr.Labels, mongoErr.Labels)
 }
 
 func assertCursorBatchLength(mt *mtest.T, cursor *mongo.Cursor, expected int) {
 	batchLen := cursor.RemainingBatchLength()
 	assert.Equal(mt, expected, batchLen, "expected remaining batch length %d, got %d", expected, batchLen)
+}
+
+func sliceStringEqual(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }

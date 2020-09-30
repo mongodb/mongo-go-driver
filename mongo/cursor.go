@@ -176,7 +176,7 @@ func (c *Cursor) Err() error { return c.err }
 // the first call, any subsequent calls will not change the state.
 func (c *Cursor) Close(ctx context.Context) error {
 	defer c.closeImplicitSession()
-	return c.bc.Close(ctx)
+	return replaceErrors(c.bc.Close(ctx))
 }
 
 // All iterates the cursor and decodes each document into results. The results parameter must be a pointer to a slice.

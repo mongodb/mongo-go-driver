@@ -18,7 +18,7 @@ func TestSingleResult(t *testing.T) {
 	t.Run("Decode", func(t *testing.T) {
 		t.Run("decode twice", func(t *testing.T) {
 			// Test that Decode and DecodeBytes can be called more than once
-			c, err := newCursor(newTestBatchCursor(1, 1, nil), bson.DefaultRegistry)
+			c, err := newCursor(newTestBatchCursor(1, 1), bson.DefaultRegistry)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			sr := &SingleResult{cur: c, reg: bson.DefaultRegistry}

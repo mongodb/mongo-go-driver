@@ -72,7 +72,7 @@ func CreateCommandErrorResponse(ce CommandError) bson.D {
 		for _, label := range ce.Labels {
 			labelsArr = append(labelsArr, label)
 		}
-		res = append(res, bson.E{Key: "labels", Value: labelsArr})
+		res = append(res, bson.E{Key: "errorLabels", Value: labelsArr})
 	}
 	return res
 }
