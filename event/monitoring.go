@@ -28,6 +28,7 @@ type CommandStartedEvent struct {
 type CommandFinishedEvent struct {
 	DurationNanos int64
 	CommandName   string
+	DatabaseName  string
 	RequestID     int64
 	ConnectionID  string
 }
@@ -133,7 +134,7 @@ type TopologyClosedEvent struct {
 // ServerHeartbeatStartedEvent is an event generated when the heartbeat is started.
 type ServerHeartbeatStartedEvent struct {
 	ConnectionID string // The address this heartbeat was sent to with a unique identifier
-	Awaited      bool // If this heartbeat was awaitable
+	Awaited      bool   // If this heartbeat was awaitable
 }
 
 // ServerHeartbeatSucceededEvent is an event generated when the heartbeat succeeds.
@@ -141,7 +142,7 @@ type ServerHeartbeatSucceededEvent struct {
 	DurationNanos int64
 	Reply         description.Server
 	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
-	Awaited       bool // If this heartbeat was awaitable
+	Awaited       bool   // If this heartbeat was awaitable
 }
 
 // ServerHeartbeatFailedEvent is an event generated when the heartbeat fails.
@@ -149,7 +150,7 @@ type ServerHeartbeatFailedEvent struct {
 	DurationNanos int64
 	Failure       error
 	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
-	Awaited       bool // If this heartbeat was awaitable
+	Awaited       bool   // If this heartbeat was awaitable
 }
 
 // ServerMonitor represents a monitor that is triggered for different server events. The client
@@ -157,9 +158,9 @@ type ServerHeartbeatFailedEvent struct {
 // the changes in the client's representation of the deployment. The topology represents the
 // overall deployment, and heartbeats are sent to individual servers to check their current status.
 type ServerMonitor struct {
-	ServerDescriptionChanged   func(*ServerDescriptionChangedEvent)
-	ServerOpening              func(*ServerOpeningEvent)
-	ServerClosed               func(*ServerClosedEvent)
+	ServerDescriptionChanged func(*ServerDescriptionChangedEvent)
+	ServerOpening            func(*ServerOpeningEvent)
+	ServerClosed             func(*ServerClosedEvent)
 	// TopologyDescriptionChanged is called when the topology is locked, so the callback should
 	// not attempt any operation that requires server selection on the same client.
 	TopologyDescriptionChanged func(*TopologyDescriptionChangedEvent)
