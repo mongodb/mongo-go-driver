@@ -275,22 +275,10 @@ func tryNextGetmoreError(mt *mtest.T, cursor tryNextCursor) {
 	assert.Equal(mt, testErr.Code, mongoErr.Code, "expected code %v, got: %v", testErr.Code, mongoErr.Code)
 	assert.Equal(mt, testErr.Message, mongoErr.Message, "expected message %v, got: %v", testErr.Message, mongoErr.Message)
 	assert.Equal(mt, testErr.Name, mongoErr.Name, "expected name %v, got: %v", testErr.Name, mongoErr.Name)
-	assert.True(mt, sliceStringEqual(testErr.Labels, mongoErr.Labels), "expected labels %v, got: %v", testErr.Labels, mongoErr.Labels)
+	assert.Equal(mt, testErr.Labels, mongoErr.Labels, "expected labels %v, got: %v", testErr.Labels, mongoErr.Labels)
 }
 
 func assertCursorBatchLength(mt *mtest.T, cursor *mongo.Cursor, expected int) {
 	batchLen := cursor.RemainingBatchLength()
 	assert.Equal(mt, expected, batchLen, "expected remaining batch length %d, got %d", expected, batchLen)
-}
-
-func sliceStringEqual(a []string, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
 }
