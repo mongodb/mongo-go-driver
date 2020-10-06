@@ -55,7 +55,7 @@ func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, con
 	}
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
+		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server, 0)
 	}
 	return nil
 }
@@ -225,7 +225,7 @@ func (op Operation) legacyGetMore(ctx context.Context, dst []byte, srvr Server, 
 	}
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
+		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server, 0)
 	}
 	return nil
 }
@@ -393,7 +393,7 @@ func (op Operation) legacyListCollections(ctx context.Context, dst []byte, srvr 
 	}
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
+		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server, 0)
 	}
 	return nil
 }
@@ -520,7 +520,7 @@ func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Serv
 	}
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
+		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server, 0)
 	}
 	return nil
 }

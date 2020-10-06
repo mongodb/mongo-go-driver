@@ -218,7 +218,7 @@ func (im *IsMaster) createOperation() driver.Operation {
 		CommandFn:  im.command,
 		Database:   "admin",
 		Deployment: im.d,
-		ProcessResponseFn: func(response bsoncore.Document, _ driver.Server, _ description.Server) error {
+		ProcessResponseFn: func(response bsoncore.Document, _ driver.Server, _ description.Server, _ int) error {
 			im.res = response
 			return nil
 		},
@@ -233,7 +233,7 @@ func (im *IsMaster) GetHandshakeInformation(ctx context.Context, _ address.Addre
 		CommandFn:  im.handshakeCommand,
 		Deployment: driver.SingleConnectionDeployment{c},
 		Database:   "admin",
-		ProcessResponseFn: func(response bsoncore.Document, _ driver.Server, _ description.Server) error {
+		ProcessResponseFn: func(response bsoncore.Document, _ driver.Server, _ description.Server, _ int) error {
 			im.res = response
 			return nil
 		},
