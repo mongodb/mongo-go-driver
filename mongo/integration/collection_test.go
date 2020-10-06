@@ -1156,12 +1156,6 @@ func TestCollection(t *testing.T) {
 			}
 		})
 		mt.Run("insert and delete with batches", func(mt *mtest.T) {
-			// TODO(GODRIVER-425): remove this as part a larger project to
-			// refactor integration and other longrunning tasks.
-			if os.Getenv("EVR_TASK_ID") == "" {
-				mt.Skip("skipping long running integration test outside of evergreen")
-			}
-
 			// grouped together because delete requires the documents to be inserted
 			numDocs := 100050
 			var insertModels []mongo.WriteModel
@@ -1198,12 +1192,6 @@ func TestCollection(t *testing.T) {
 			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
 		})
 		mt.Run("update with batches", func(mt *mtest.T) {
-			// TODO(GODRIVER-425): remove this as part a larger project to
-			// refactor integration and other longrunning tasks.
-			// if os.Getenv("EVR_TASK_ID") == "" {
-			// 	mt.Skip("skipping long running integration test outside of evergreen")
-			// }
-
 			var models []mongo.WriteModel
 			numModels := 100050
 
@@ -1244,34 +1232,27 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, int64(2), res.UpsertedCount, "expected %v upserted documents, got %v", 2, res.UpsertedCount)
 			assert.Equal(mt, 2, len(res.UpsertedIDs), "expected %v upserted ids, got %v", 2, len(res.UpsertedIDs))
 
+			// find the upserted documents and check their contents
 			id1, ok := res.UpsertedIDs[0]
 			assert.True(mt, ok, "expected id at key 0")
 			id2, ok := res.UpsertedIDs[int64(numModels-1)]
 			assert.True(mt, ok, "expected id at key %v", numModels-1)
 
 			doc, err := mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id1}}).DecodeBytes()
-			a, err := doc.LookupErr("a")
-			assert.Nil(mt, err, "a not found in document %v", doc)
-			assert.Equal(mt, bson.TypeInt32, a.Type, "expected a type %v, got %v", bson.TypeInt32, a.Type)
-			got := a.Int32()
-			assert.Equal(mt, int32(numModels-1), got, "expected a value %v, got %v", numModels-1, got)
-			b, err := doc.LookupErr("b")
-			assert.Nil(mt, err, "b not found in document %v", doc)
-			assert.Equal(mt, bson.TypeInt32, b.Type, "expected b type %v, got %v", bson.TypeInt32, b.Type)
-			got = b.Int32()
-			assert.Equal(mt, int32((numModels-2)*2), got, "expected b value %v, got %v", (numModels-2)*2, got)
-			c, err := doc.LookupErr("c")
-			assert.Nil(mt, err, "c not found in document %v", doc)
-			assert.Equal(mt, bson.TypeInt32, c.Type, "expected c type %v, got %v", bson.TypeInt32, c.Type)
-			got = c.Int32()
-			assert.Equal(mt, int32((numModels-2)*3), got, "expected b value %v, got %v", (numModels-2)*3, got)
+			a, ok := doc.Lookup("a").Int32OK()
+			assert.True(mt, ok, "expected a to be an int32")
+			assert.Equal(mt, int32(numModels-1), a, "expected a value %v, got %v", numModels-1, a)
+			b, ok := doc.Lookup("b").Int32OK()
+			assert.True(mt, ok, "expected b to be an int32")
+			assert.Equal(mt, int32((numModels-2)*2), b, "expected b value %v, got %v", (numModels-2)*2, b)
+			c, ok := doc.Lookup("c").Int32OK()
+			assert.True(mt, ok, "expected c to be an int32")
+			assert.Equal(mt, int32((numModels-2)*3), c, "expected b value %v, got %v", (numModels-2)*3, c)
 
 			doc, err = mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id2}}).DecodeBytes()
-			x, err := doc.LookupErr("x")
-			assert.Nil(mt, err, "x not found in document %v", doc)
-			assert.Equal(mt, bson.TypeInt32, x.Type, "expected x type %v, got %v", bson.TypeInt32, x.Type)
-			got = x.Int32()
-			assert.Equal(mt, int32(1), got, "expected a value 1, got %v", got)
+			x, ok := doc.Lookup("x").Int32OK()
+			assert.True(mt, ok, "expected x to be an int32")
+			assert.Equal(mt, int32(1), x, "expected a value 1, got %v", x)
 		})
 	})
 }

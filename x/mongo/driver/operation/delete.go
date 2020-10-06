@@ -73,7 +73,7 @@ func NewDelete(deletes ...bsoncore.Document) *Delete {
 // Result returns the result of executing this operation.
 func (d *Delete) Result() DeleteResult { return d.result }
 
-func (d *Delete) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, currIndex int) error {
+func (d *Delete) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
 	dr, err := buildDeleteResult(response, srvr)
 	d.result.N += dr.N
 	return err

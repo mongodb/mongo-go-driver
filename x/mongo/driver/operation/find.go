@@ -72,7 +72,7 @@ func (f *Find) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
 	return driver.NewBatchCursor(f.result, f.session, f.clock, opts)
 }
 
-func (f *Find) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, currIndex int) error {
+func (f *Find) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
 	var err error
 	f.result, err = driver.NewCursorResponse(response, srvr, desc)
 	return err
