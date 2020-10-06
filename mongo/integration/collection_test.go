@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -1153,6 +1154,105 @@ func TestCollection(t *testing.T) {
 				// so the assertion would succeed even if the error had not been wrapped.
 				mt.Fatalf("expected BulkWrite error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
 			}
+		})
+		mt.Run("insert and delete with batches", func(mt *mtest.T) {
+			// grouped together because delete requires the documents to be inserted
+			numDocs := 100050
+			var insertModels []mongo.WriteModel
+			var deleteModels []mongo.WriteModel
+			for i := 0; i < numDocs; i++ {
+				d := bson.D{
+					{"a", int32(i)},
+					{"b", int32(i * 2)},
+					{"c", int32(i * 3)},
+				}
+				insertModels = append(insertModels, mongo.NewInsertOneModel().SetDocument(d))
+				deleteModels = append(deleteModels, mongo.NewDeleteOneModel().SetFilter(bson.D{}))
+			}
+			mt.ClearEvents()
+			res, err := mt.Coll.BulkWrite(mtest.Background, insertModels)
+			assert.Nil(mt, err, "BulkWrite error: %v", err)
+			assert.Equal(mt, int64(numDocs), res.InsertedCount, "expected %v inserted documents, got %v", numDocs, res.InsertedCount)
+			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+				return evt.CommandName == "insert"
+			})
+			// MaxWriteBatchSize changed between 3.4 and 3.6, so there isn't a given number of batches that this will be split into
+			inserts := len(mt.GetAllStartedEvents())
+			assert.True(mt, inserts > 1, "expected multiple batches, got %v", inserts)
+
+			mt.ClearEvents()
+			res, err = mt.Coll.BulkWrite(mtest.Background, deleteModels)
+			assert.Nil(mt, err, "BulkWrite error: %v", err)
+			assert.Equal(mt, int64(numDocs), res.DeletedCount, "expected %v deleted documents, got %v", numDocs, res.DeletedCount)
+			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+				return evt.CommandName == "delete"
+			})
+			// MaxWriteBatchSize changed between 3.4 and 3.6, so there isn't a given number of batches that this will be split into
+			deletes := len(mt.GetAllStartedEvents())
+			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
+		})
+		mt.Run("update with batches", func(mt *mtest.T) {
+			var models []mongo.WriteModel
+			numModels := 100050
+
+			// it's significantly faster to upsert one model and modify the rest than to upsert all of them
+			for i := 0; i < numModels-1; i++ {
+				update := bson.D{
+					{"$set", bson.D{
+						{"a", int32(i + 1)},
+						{"b", int32(i * 2)},
+						{"c", int32(i * 3)},
+					}},
+				}
+				model := mongo.NewUpdateOneModel().
+					SetFilter(bson.D{{"a", int32(i)}}).
+					SetUpdate(update).SetUpsert(true)
+				models = append(models, model)
+			}
+			// add one last upsert
+			models = append(models, mongo.NewUpdateOneModel().
+				SetFilter(bson.D{{"x", int32(1)}}).
+				SetUpdate(bson.D{{"$set", bson.D{{"x", int32(1)}}}}).
+				SetUpsert(true),
+			)
+
+			mt.ClearEvents()
+			res, err := mt.Coll.BulkWrite(mtest.Background, models)
+			assert.Nil(mt, err, "BulkWrite error: %v", err)
+
+			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+				return evt.CommandName == "update"
+			})
+			// MaxWriteBatchSize changed between 3.4 and 3.6, so there isn't a given number of batches that this will be split into
+			updates := len(mt.GetAllStartedEvents())
+			assert.True(mt, updates > 1, "expected multiple batches, got %v", updates)
+
+			assert.Equal(mt, int64(numModels-2), res.ModifiedCount, "expected %v modified documents, got %v", numModels-2, res.ModifiedCount)
+			assert.Equal(mt, int64(numModels-2), res.MatchedCount, "expected %v matched documents, got %v", numModels-2, res.ModifiedCount)
+			assert.Equal(mt, int64(2), res.UpsertedCount, "expected %v upserted documents, got %v", 2, res.UpsertedCount)
+			assert.Equal(mt, 2, len(res.UpsertedIDs), "expected %v upserted ids, got %v", 2, len(res.UpsertedIDs))
+
+			// find the upserted documents and check their contents
+			id1, ok := res.UpsertedIDs[0]
+			assert.True(mt, ok, "expected id at key 0")
+			id2, ok := res.UpsertedIDs[int64(numModels-1)]
+			assert.True(mt, ok, "expected id at key %v", numModels-1)
+
+			doc, err := mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id1}}).DecodeBytes()
+			a, ok := doc.Lookup("a").Int32OK()
+			assert.True(mt, ok, "expected a to be an int32")
+			assert.Equal(mt, int32(numModels-1), a, "expected a value %v, got %v", numModels-1, a)
+			b, ok := doc.Lookup("b").Int32OK()
+			assert.True(mt, ok, "expected b to be an int32")
+			assert.Equal(mt, int32((numModels-2)*2), b, "expected b value %v, got %v", (numModels-2)*2, b)
+			c, ok := doc.Lookup("c").Int32OK()
+			assert.True(mt, ok, "expected c to be an int32")
+			assert.Equal(mt, int32((numModels-2)*3), c, "expected b value %v, got %v", (numModels-2)*3, c)
+
+			doc, err = mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id2}}).DecodeBytes()
+			x, ok := doc.Lookup("x").Int32OK()
+			assert.True(mt, ok, "expected x to be an int32")
+			assert.Equal(mt, int32(1), x, "expected a value 1, got %v", x)
 		})
 	})
 }

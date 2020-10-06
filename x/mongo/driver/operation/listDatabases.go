@@ -143,7 +143,7 @@ func NewListDatabases(filter bsoncore.Document) *ListDatabases {
 // Result returns the result of executing this operation.
 func (ld *ListDatabases) Result() ListDatabasesResult { return ld.result }
 
-func (ld *ListDatabases) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
+func (ld *ListDatabases) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
 	var err error
 
 	ld.result, err = buildListDatabasesResult(response, srvr)

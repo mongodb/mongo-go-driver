@@ -26,7 +26,7 @@ func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection,
 		return err
 	}
 	if op.ProcessResponseFn != nil {
-		if err = op.ProcessResponseFn(res, nil, description.Server{}); err != nil {
+		if err = op.ProcessResponseFn(res, nil, description.Server{}, 0); err != nil {
 			return err
 		}
 	}
