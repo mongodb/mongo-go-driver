@@ -124,7 +124,7 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 		// If we don't have a next batch
 		if !c.bc.Next(ctx) {
 			// Do we have an error? If so we return false.
-			c.err = c.bc.Err()
+			c.err = replaceErrors(c.bc.Err())
 			if c.err != nil {
 				return false
 			}
@@ -176,7 +176,7 @@ func (c *Cursor) Err() error { return c.err }
 // the first call, any subsequent calls will not change the state.
 func (c *Cursor) Close(ctx context.Context) error {
 	defer c.closeImplicitSession()
-	return c.bc.Close(ctx)
+	return replaceErrors(c.bc.Close(ctx))
 }
 
 // All iterates the cursor and decodes each document into results. The results parameter must be a pointer to a slice.
@@ -219,7 +219,7 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 		batch = c.bc.Batch()
 	}
 
-	if err = c.bc.Err(); err != nil {
+	if err = replaceErrors(c.bc.Err()); err != nil {
 		return err
 	}
 
