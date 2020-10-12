@@ -85,6 +85,12 @@ functions:
             ./libmongocrypt/.evergreen/compile.sh
           fi
 
+          # The Windows hosts in Evergreen have an old mingw version in their default PATH that is incompatible with Go
+          # 1.15. To work around this, we prepend the newer mingw version to the PATH so it will be used when linking.
+          if [ "Windows_NT" = "$OS" ]; then
+            export PATH=/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin:$PATH
+          fi
+
           cat <<EOT > expansion.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
           DRIVERS_TOOLS: "$DRIVERS_TOOLS"
