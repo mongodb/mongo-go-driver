@@ -85,12 +85,6 @@ functions:
             ./libmongocrypt/.evergreen/compile.sh
           fi
 
-          # The Windows hosts in Evergreen have an old mingw version in their default PATH that is incompatible with Go
-          # 1.15. To work around this, we prepend the newer mingw version to the PATH so it will be used when linking.
-          if [ "Windows_NT" = "$OS" ]; then
-            export PATH=/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin:$PATH
-          fi
-
           cat <<EOT > expansion.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
           DRIVERS_TOOLS: "$DRIVERS_TOOLS"
@@ -1588,7 +1582,7 @@ axes:
         run_on:
           - windows-64-vs2017-test
         variables:
-          GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
+          GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.15"
           PYTHON3_BINARY: "C:/python/Python38/python.exe"
           VENV_BIN_DIR: "Scripts"
@@ -1613,7 +1607,7 @@ axes:
         run_on:
           - windows-64-vsMulti-small
         variables:
-          GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
+          GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.15"
           SKIP_ECS_AUTH_TEST: true
           PYTHON3: "C:/python/Python38/python.exe"
