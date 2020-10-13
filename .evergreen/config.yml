@@ -1582,7 +1582,7 @@ axes:
         run_on:
           - windows-64-vs2017-test
         variables:
-          GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
+          GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.15"
           PYTHON3_BINARY: "C:/python/Python38/python.exe"
           VENV_BIN_DIR: "Scripts"
@@ -1607,7 +1607,7 @@ axes:
         run_on:
           - windows-64-vsMulti-small
         variables:
-          GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
+          GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.15"
           SKIP_ECS_AUTH_TEST: true
           PYTHON3: "C:/python/Python38/python.exe"
