@@ -41,7 +41,7 @@ func TestSDAMProse(t *testing.T) {
 		numNodes := len(options.Client().ApplyURI(mtest.ClusterURI()).Hosts)
 		timeDuration := 250 * time.Millisecond
 		numExpectedResponses := numNodes * int(timeDuration/lowHeartbeatFrequency)
-		if mtest.CompareServerVersions(mt.ServerVersion(), "4.4") >= 0 {
+		if mtest.CompareServerVersions(mtest.ServerVersion(), "4.4") >= 0 {
 			numExpectedResponses = numNodes * (2*int(timeDuration/lowHeartbeatFrequency) + 1)
 		}
 

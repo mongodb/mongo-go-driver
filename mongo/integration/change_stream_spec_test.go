@@ -192,7 +192,7 @@ func runChangeStreamOperations(mt *mtest.T, test changeStreamTest) error {
 			}, false)
 		}
 		// Use the global client to run the operations so they don't show up in the expectations
-		mt.DB = mt.GlobalClient().Database(op.Database)
+		mt.DB = mtest.GlobalClient().Database(op.Database)
 		mt.Coll = mt.DB.Collection(op.Collection)
 
 		var err error

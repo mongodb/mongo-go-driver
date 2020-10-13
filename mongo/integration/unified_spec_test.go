@@ -521,7 +521,7 @@ func verifyIndexState(mt *mtest.T, op *operation, shouldExist bool) error {
 
 func indexExists(mt *mtest.T, dbName, collName, indexName string) (bool, error) {
 	// Use global client because listIndexes cannot be executed inside a transaction.
-	iv := mt.GlobalClient().Database(dbName).Collection(collName).Indexes()
+	iv := mtest.GlobalClient().Database(dbName).Collection(collName).Indexes()
 	cursor, err := iv.List(mtest.Background)
 	if err != nil {
 		return false, fmt.Errorf("IndexView.List error: %v", err)
@@ -557,7 +557,7 @@ func collectionExists(mt *mtest.T, dbName, collName string) (bool, error) {
 	}
 
 	// Use global client because listCollections cannot be executed inside a transaction.
-	collections, err := mt.GlobalClient().Database(dbName).ListCollectionNames(mtest.Background, filter)
+	collections, err := mtest.GlobalClient().Database(dbName).ListCollectionNames(mtest.Background, filter)
 	if err != nil {
 		return false, fmt.Errorf("ListCollectionNames error: %v", err)
 	}
@@ -907,7 +907,7 @@ func verifyTestOutcome(mt *mtest.T, outcomeColl *outcomeCollection) {
 	if outcomeColl.Name != "" {
 		collName = outcomeColl.Name
 	}
-	coll := mt.GlobalClient().Database(mt.DB.Name()).Collection(collName, checkOutcomeOpts)
+	coll := mtest.GlobalClient().Database(mt.DB.Name()).Collection(collName, checkOutcomeOpts)
 
 	findOpts := options.Find().
 		SetSort(bson.M{"_id": 1})

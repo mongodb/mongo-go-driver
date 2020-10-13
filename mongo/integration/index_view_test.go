@@ -331,7 +331,7 @@ func TestIndexView(t *testing.T) {
 				KeysDocument: bson.Raw(keysDoc),
 				Version:      2,
 			}
-			if mtest.CompareServerVersions(mt.ServerVersion(), "3.4") < 0 {
+			if mtest.CompareServerVersions(mtest.ServerVersion(), "3.4") < 0 {
 				expectedSpec.Version = 1
 			}
 

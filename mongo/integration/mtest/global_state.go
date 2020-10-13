@@ -33,17 +33,17 @@ func ClusterURI() string {
 
 // GlobalClient returns a client configured with read concern majority, write concern majority, and read preference
 // primary. The returned client is not tied to the receiver and is valid outside the lifetime of the receiver.
-func (*T) GlobalClient() *mongo.Client {
+func GlobalClient() *mongo.Client {
 	return testContext.client
 }
 
 // GlobalTopology returns the Topology backing the global Client.
-func (*T) GlobalTopology() *topology.Topology {
+func GlobalTopology() *topology.Topology {
 	return testContext.topo
 }
 
 // ServerVersion returns the server version of the cluster. This assumes that all nodes in the cluster have the same
 // version.
-func (*T) ServerVersion() string {
+func ServerVersion() string {
 	return testContext.serverVersion
 }

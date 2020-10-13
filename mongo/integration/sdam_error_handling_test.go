@@ -293,7 +293,7 @@ func runServerErrorsTest(mt *mtest.T, isShutdownError bool) {
 	}
 
 	// For non-shutdown errors, the pool is only cleared if the error is from a pre-4.2 server.
-	wantCleared := mtest.CompareServerVersions(mt.ServerVersion(), "4.2") < 0
+	wantCleared := mtest.CompareServerVersions(mtest.ServerVersion(), "4.2") < 0
 	gotCleared := isPoolCleared()
 	assert.Equal(mt, wantCleared, gotCleared, "expected pool to be cleared: %v; pool was cleared: %v",
 		wantCleared, gotCleared)

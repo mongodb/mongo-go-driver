@@ -404,7 +404,7 @@ func TestClient(t *testing.T) {
 	})
 
 	// Test that direct connections work as expected.
-	firstServerAddr := mt.GlobalTopology().Description().Servers[0].Addr
+	firstServerAddr := mtest.GlobalTopology().Description().Servers[0].Addr
 	directConnectionOpts := options.Client().
 		ApplyURI(fmt.Sprintf("mongodb://%s", firstServerAddr)).
 		SetReadPreference(readpref.Primary()).
