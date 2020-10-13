@@ -38,7 +38,7 @@ func TestSDAMProse(t *testing.T) {
 		//
 		// Tests on < 4.4 should process at least numberOfNodes * X/frequency messages.
 
-		numNodes := len(options.Client().ApplyURI(mt.ConnString()).Hosts)
+		numNodes := len(options.Client().ApplyURI(mtest.ClusterURI()).Hosts)
 		timeDuration := 250 * time.Millisecond
 		numExpectedResponses := numNodes * int(timeDuration/lowHeartbeatFrequency)
 		if mtest.CompareServerVersions(mt.ServerVersion(), "4.4") >= 0 {

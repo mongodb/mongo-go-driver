@@ -96,14 +96,14 @@ func TestAtlasDataLake(t *testing.T) {
 }
 
 func getBaseClientOptions(mt *mtest.T) *options.ClientOptions {
-	opts := options.Client().ApplyURI(mt.ConnString())
+	opts := options.Client().ApplyURI(mtest.ClusterURI())
 	return options.Client().SetHosts(opts.Hosts)
 }
 
 func getBaseCredential(mt *mtest.T) options.Credential {
 	mt.Helper()
 
-	cred := options.Client().ApplyURI(mt.ConnString()).Auth
-	assert.NotNil(mt, cred, "expected options for URI %q to have a non-nil Auth field", mt.ConnString())
+	cred := options.Client().ApplyURI(mtest.ClusterURI()).Auth
+	assert.NotNil(mt, cred, "expected options for URI %q to have a non-nil Auth field", mtest.ClusterURI())
 	return *cred
 }

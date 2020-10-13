@@ -26,7 +26,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 	baseClientOpts := func() *options.ClientOptions {
 		return options.Client().
-			ApplyURI(mt.ConnString()).
+			ApplyURI(mtest.ClusterURI()).
 			SetRetryWrites(false).
 			SetPoolMonitor(poolMonitor).
 			SetWriteConcern(mtest.MajorityWc)
@@ -37,7 +37,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 			MinServerVersion("4.0").      // 4.0+ is required to use failpoints on replica sets.
 			ClientOptions(baseClientOpts())
 
-		if mt.TopologyKind() == mtest.Sharded {
+		if mtest.ClusterTopologyKind() == mtest.Sharded {
 			// Pin to a single mongos because the tests use failpoints.
 			mtOpts.ClientType(mtest.Pinned)
 		}

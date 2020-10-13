@@ -211,7 +211,7 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 
 func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 	opts := mtest.NewOptions().DatabaseName(testFile.DatabaseName).CollectionName(testFile.CollectionName)
-	if mt.TopologyKind() == mtest.Sharded && !test.UseMultipleMongoses {
+	if mtest.ClusterTopologyKind() == mtest.Sharded && !test.UseMultipleMongoses {
 		// pin to a single mongos
 		opts = opts.ClientType(mtest.Pinned)
 	}
@@ -237,7 +237,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		}
 
 		// work around for SERVER-39704: run a non-transactional distinct against each shard in a sharded cluster
-		if mt.TopologyKind() == mtest.Sharded && test.Description == "distinct" {
+		if mtest.ClusterTopologyKind() == mtest.Sharded && test.Description == "distinct" {
 			err := runCommandOnAllServers(mt, func(mongosClient *mongo.Client) error {
 				coll := mongosClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
 				_, err := coll.Distinct(mtest.Background, "x", bson.D{})
@@ -421,7 +421,7 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		}
 
 		targetHost := clientSession.PinnedServer.Addr.String()
-		opts := options.Client().ApplyURI(mt.ConnString()).SetHosts([]string{targetHost})
+		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost})
 		client, err := mongo.Connect(mtest.Background, opts)
 		if err != nil {
 			return fmt.Errorf("Connect error for targeted client: %v", err)

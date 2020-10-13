@@ -70,7 +70,7 @@ func TestSessions(t *testing.T) {
 	mtOpts := mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.ReplicaSet, mtest.Sharded).
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)
-	hosts := options.Client().ApplyURI(mt.ConnString()).Hosts
+	hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
 
 	// Pin to a single mongos so heartbeats/handshakes to other mongoses won't cause errors.
 	clusterTimeOpts := mtest.NewOptions().

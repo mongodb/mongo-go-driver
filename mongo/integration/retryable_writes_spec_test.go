@@ -63,7 +63,7 @@ func runRetryableWritesTest(mt *mtest.T, test retryableWritesTest, testFile retr
 	testClientOpts := createClientOptions(mt, test.ClientOptions)
 	testClientOpts.SetHeartbeatInterval(defaultHeartbeatInterval)
 	opts := mtest.NewOptions().ClientOptions(testClientOpts)
-	if mt.TopologyKind() == mtest.Sharded && !test.UseMultipleMongoses {
+	if mtest.ClusterTopologyKind() == mtest.Sharded && !test.UseMultipleMongoses {
 		// pin to a single mongos
 		opts = opts.ClientType(mtest.Pinned)
 	}
