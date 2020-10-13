@@ -11,12 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-// AuthEnabled returns whether or not this test is running in an environment with auth.
+// AuthEnabled returns whether or not the cluster requires auth.
 func AuthEnabled() bool {
 	return testContext.authEnabled
 }
 
-// SSLEnabled returns whether or not this test is running in an environment with SSL.
+// SSLEnabled returns whether or not the cluster requires SSL.
 func SSLEnabled() bool {
 	return testContext.sslEnabled
 }
@@ -26,18 +26,18 @@ func ClusterTopologyKind() TopologyKind {
 	return testContext.topoKind
 }
 
-// ClusterURI returns the connection string used to create the client for this test.
+// ClusterURI returns the connection string for the cluster.
 func ClusterURI() string {
 	return testContext.connString.Original
 }
 
-// GlobalClient returns a client configured with read concern majority, write concern majority, and read preference
-// primary. The returned client is not tied to the receiver and is valid outside the lifetime of the receiver.
+// GlobalClient returns a Client connected to the cluster configured with read concern majority, write concern majority,
+// and read preference primary.
 func GlobalClient() *mongo.Client {
 	return testContext.client
 }
 
-// GlobalTopology returns the Topology backing the global Client.
+// GlobalTopology returns a Topology that's connected to the cluster.
 func GlobalTopology() *topology.Topology {
 	return testContext.topo
 }
