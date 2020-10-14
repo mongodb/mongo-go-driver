@@ -51,7 +51,7 @@ func TestErrors(t *testing.T) {
 				},
 			})
 
-			client, err := mongo.Connect(mtest.Background, options.Client().ApplyURI(mt.ConnString()))
+			client, err := mongo.Connect(mtest.Background, options.Client().ApplyURI(mtest.ClusterURI()))
 			assert.Nil(mt, err, "Connect error: %v", err)
 			defer client.Disconnect(mtest.Background)
 

@@ -211,7 +211,7 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 
 func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 	opts := mtest.NewOptions().DatabaseName(testFile.DatabaseName).CollectionName(testFile.CollectionName)
-	if mt.TopologyKind() == mtest.Sharded && !test.UseMultipleMongoses {
+	if mtest.ClusterTopologyKind() == mtest.Sharded && !test.UseMultipleMongoses {
 		// pin to a single mongos
 		opts = opts.ClientType(mtest.Pinned)
 	}
@@ -237,7 +237,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		}
 
 		// work around for SERVER-39704: run a non-transactional distinct against each shard in a sharded cluster
-		if mt.TopologyKind() == mtest.Sharded && test.Description == "distinct" {
+		if mtest.ClusterTopologyKind() == mtest.Sharded && test.Description == "distinct" {
 			err := runCommandOnAllServers(mt, func(mongosClient *mongo.Client) error {
 				coll := mongosClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
 				_, err := coll.Distinct(mtest.Background, "x", bson.D{})
@@ -421,7 +421,7 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		}
 
 		targetHost := clientSession.PinnedServer.Addr.String()
-		opts := options.Client().ApplyURI(mt.ConnString()).SetHosts([]string{targetHost})
+		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost})
 		client, err := mongo.Connect(mtest.Background, opts)
 		if err != nil {
 			return fmt.Errorf("Connect error for targeted client: %v", err)
@@ -521,7 +521,7 @@ func verifyIndexState(mt *mtest.T, op *operation, shouldExist bool) error {
 
 func indexExists(mt *mtest.T, dbName, collName, indexName string) (bool, error) {
 	// Use global client because listIndexes cannot be executed inside a transaction.
-	iv := mt.GlobalClient().Database(dbName).Collection(collName).Indexes()
+	iv := mtest.GlobalClient().Database(dbName).Collection(collName).Indexes()
 	cursor, err := iv.List(mtest.Background)
 	if err != nil {
 		return false, fmt.Errorf("IndexView.List error: %v", err)
@@ -557,7 +557,7 @@ func collectionExists(mt *mtest.T, dbName, collName string) (bool, error) {
 	}
 
 	// Use global client because listCollections cannot be executed inside a transaction.
-	collections, err := mt.GlobalClient().Database(dbName).ListCollectionNames(mtest.Background, filter)
+	collections, err := mtest.GlobalClient().Database(dbName).ListCollectionNames(mtest.Background, filter)
 	if err != nil {
 		return false, fmt.Errorf("ListCollectionNames error: %v", err)
 	}
@@ -907,7 +907,7 @@ func verifyTestOutcome(mt *mtest.T, outcomeColl *outcomeCollection) {
 	if outcomeColl.Name != "" {
 		collName = outcomeColl.Name
 	}
-	coll := mt.GlobalClient().Database(mt.DB.Name()).Collection(collName, checkOutcomeOpts)
+	coll := mtest.GlobalClient().Database(mt.DB.Name()).Collection(collName, checkOutcomeOpts)
 
 	findOpts := options.Find().
 		SetSort(bson.M{"_id": 1})

@@ -76,12 +76,12 @@ func runMonitoringTest(mt *mtest.T, test monitoringTest, testFile monitoringTest
 		// ignored topologies have to be handled separately because mtest only accepts topologies to run on, not
 		// topologies to ignore
 		for _, top := range test.IgnoredTopologies {
-			if top == mt.TopologyKind() {
+			if top == mtest.ClusterTopologyKind() {
 				mt.Skipf("skipping topology %v", top)
 			}
 		}
 
-		setupColl := mt.GlobalClient().Database(mt.DB.Name()).Collection(mt.Coll.Name())
+		setupColl := mtest.GlobalClient().Database(mt.DB.Name()).Collection(mt.Coll.Name())
 		insertDocuments(mt, setupColl, testFile.Data)
 		mt.ClearEvents()
 		runMonitoringOperation(mt, test.Operation)

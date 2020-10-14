@@ -51,7 +51,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 	assert.NotEqual(mt, keyID, "", "%s env var not set", awsAccessKeyID)
 	assert.NotEqual(mt, secretAccessKey, "", "%s env var not set", awsSecretAccessKey)
-	defaultKvClientOptions := options.Client().ApplyURI(mt.ConnString())
+	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
 
 	mt.RunOpts("data key and double encryption", noClientOpts, func(mt *mtest.T) {
 		// set up options structs
@@ -100,7 +100,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						startedEvents = append(startedEvents, evt)
 					},
 				}
-				kvClientOpts := options.Client().ApplyURI(mt.ConnString()).SetMonitor(monitor)
+				kvClientOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetMonitor(monitor)
 				cpt := setup(mt, aeo, kvClientOpts, ceo)
 				defer cpt.teardown(mt)
 
@@ -188,7 +188,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				kvClientOpts := defaultKvClientOptions
 
 				if tc.externalVault {
-					externalKvOpts := options.Client().ApplyURI(mt.ConnString()).SetAuth(options.Credential{
+					externalKvOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetAuth(options.Credential{
 						Username: "fake-user",
 						Password: "fake-password",
 					})
@@ -842,7 +842,7 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 				cpt.cseStarted = append(cpt.cseStarted, evt)
 			},
 		}
-		opts := options.Client().ApplyURI(mt.ConnString()).SetWriteConcern(mtest.MajorityWc).
+		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc).
 			SetReadPreference(mtest.PrimaryRp).SetAutoEncryptionOptions(aeo).SetMonitor(cseMonitor)
 		cpt.cseClient, err = mongo.Connect(mtest.Background, opts)
 		assert.Nil(mt, err, "Connect error for encrypted client: %v", err)

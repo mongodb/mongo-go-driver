@@ -260,11 +260,11 @@ func TestDatabase(t *testing.T) {
 				ReadOnly: false,
 				Options:  bson.Raw(optionsDoc),
 			}
-			if mtest.CompareServerVersions(mt.ServerVersion(), "3.6") >= 0 {
+			if mtest.CompareServerVersions(mtest.ServerVersion(), "3.6") >= 0 {
 				uuidSubtype, uuidData := cursor.Current.Lookup("info", "uuid").Binary()
 				expectedSpec.UUID = &primitive.Binary{Subtype: uuidSubtype, Data: uuidData}
 			}
-			if mtest.CompareServerVersions(mt.ServerVersion(), "3.4") >= 0 {
+			if mtest.CompareServerVersions(mtest.ServerVersion(), "3.4") >= 0 {
 				keysDoc := bsoncore.NewDocumentBuilder().
 					AppendInt32("_id", 1).
 					Build()

@@ -51,7 +51,7 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 	defer mt.Close()
 
 	clientOpts := options.Client().
-		ApplyURI(mt.ConnString()).
+		ApplyURI(mtest.ClusterURI()).
 		SetRetryWrites(false).
 		SetPoolMonitor(poolMonitor)
 

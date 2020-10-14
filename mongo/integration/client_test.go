@@ -100,7 +100,7 @@ func TestClient(t *testing.T) {
 		).Err()
 		assert.Nil(mt, err, "createUser error: %v", err)
 
-		baseConnString := mt.ConnString()
+		baseConnString := mtest.ClusterURI()
 		// remove username/password from base conn string
 		revisedConnString := "mongodb://"
 		split := strings.Split(baseConnString, "@")
@@ -269,7 +269,7 @@ func TestClient(t *testing.T) {
 	})
 	mt.RunOpts("watch", noClientOpts, func(mt *mtest.T) {
 		mt.Run("disconnected", func(mt *mtest.T) {
-			c, err := mongo.NewClient(options.Client().ApplyURI(mt.ConnString()))
+			c, err := mongo.NewClient(options.Client().ApplyURI(mtest.ClusterURI()))
 			assert.Nil(mt, err, "NewClient error: %v", err)
 			_, err = c.Watch(mtest.Background, mongo.Pipeline{})
 			assert.Equal(mt, mongo.ErrClientDisconnected, err, "expected error %v, got %v", mongo.ErrClientDisconnected, err)
@@ -404,7 +404,7 @@ func TestClient(t *testing.T) {
 	})
 
 	// Test that direct connections work as expected.
-	firstServerAddr := mt.GlobalTopology().Description().Servers[0].Addr
+	firstServerAddr := mtest.GlobalTopology().Description().Servers[0].Addr
 	directConnectionOpts := options.Client().
 		ApplyURI(fmt.Sprintf("mongodb://%s", firstServerAddr)).
 		SetReadPreference(readpref.Primary()).

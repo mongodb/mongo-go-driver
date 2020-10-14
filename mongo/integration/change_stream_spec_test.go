@@ -109,7 +109,7 @@ func runChangeStreamTest(mt *mtest.T, test changeStreamTest, testFile changeStre
 
 	// Pin to a single mongos because some tests set fail points and in a sharded cluster, the failpoint and command
 	// that fail must be sent to the same mongos.
-	if mt.TopologyKind() == mtest.Sharded {
+	if mtest.ClusterTopologyKind() == mtest.Sharded {
 		mtOpts = mtOpts.ClientType(mtest.Pinned)
 	}
 
@@ -192,7 +192,7 @@ func runChangeStreamOperations(mt *mtest.T, test changeStreamTest) error {
 			}, false)
 		}
 		// Use the global client to run the operations so they don't show up in the expectations
-		mt.DB = mt.GlobalClient().Database(op.Database)
+		mt.DB = mtest.GlobalClient().Database(op.Database)
 		mt.Coll = mt.DB.Collection(op.Collection)
 
 		var err error

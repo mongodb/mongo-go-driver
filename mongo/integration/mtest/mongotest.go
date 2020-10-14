@@ -21,7 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 var (
@@ -517,26 +516,6 @@ func (t *T) ClearFailPoints() {
 	t.failPointNames = t.failPointNames[:0]
 }
 
-// AuthEnabled returns whether or not this test is running in an environment with auth.
-func (t *T) AuthEnabled() bool {
-	return testContext.authEnabled
-}
-
-// SSLEnabled returns whether or not this test is running in an environment with SSL.
-func (t *T) SSLEnabled() bool {
-	return testContext.sslEnabled
-}
-
-// TopologyKind returns the topology kind of the environment
-func (t *T) TopologyKind() TopologyKind {
-	return testContext.topoKind
-}
-
-// ConnString returns the connection string used to create the client for this test.
-func (t *T) ConnString() string {
-	return testContext.connString.Original
-}
-
 // CloneDatabase modifies the default database for this test to match the given options.
 func (t *T) CloneDatabase(opts *options.DatabaseOptions) {
 	t.DB = t.Client.Database(t.dbName, opts)
@@ -547,23 +526,6 @@ func (t *T) CloneCollection(opts *options.CollectionOptions) {
 	var err error
 	t.Coll, err = t.Coll.Clone(opts)
 	assert.Nil(t, err, "error cloning collection: %v", err)
-}
-
-// GlobalClient returns a client configured with read concern majority, write concern majority, and read preference
-// primary. The returned client is not tied to the receiver and is valid outside the lifetime of the receiver.
-func (*T) GlobalClient() *mongo.Client {
-	return testContext.client
-}
-
-// GlobalTopology returns the Topology backing the global Client.
-func (*T) GlobalTopology() *topology.Topology {
-	return testContext.topo
-}
-
-// ServerVersion returns the server version of the cluster. This assumes that all nodes in the cluster have the same
-// version.
-func (*T) ServerVersion() string {
-	return testContext.serverVersion
 }
 
 func sanitizeCollectionName(db string, coll string) string {

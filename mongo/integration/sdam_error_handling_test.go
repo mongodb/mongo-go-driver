@@ -26,7 +26,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 	baseClientOpts := func() *options.ClientOptions {
 		return options.Client().
-			ApplyURI(mt.ConnString()).
+			ApplyURI(mtest.ClusterURI()).
 			SetRetryWrites(false).
 			SetPoolMonitor(poolMonitor).
 			SetWriteConcern(mtest.MajorityWc)
@@ -37,7 +37,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 			MinServerVersion("4.0").      // 4.0+ is required to use failpoints on replica sets.
 			ClientOptions(baseClientOpts())
 
-		if mt.TopologyKind() == mtest.Sharded {
+		if mtest.ClusterTopologyKind() == mtest.Sharded {
 			// Pin to a single mongos because the tests use failpoints.
 			mtOpts.ClientType(mtest.Pinned)
 		}
@@ -293,7 +293,7 @@ func runServerErrorsTest(mt *mtest.T, isShutdownError bool) {
 	}
 
 	// For non-shutdown errors, the pool is only cleared if the error is from a pre-4.2 server.
-	wantCleared := mtest.CompareServerVersions(mt.ServerVersion(), "4.2") < 0
+	wantCleared := mtest.CompareServerVersions(mtest.ServerVersion(), "4.2") < 0
 	gotCleared := isPoolCleared()
 	assert.Equal(mt, wantCleared, gotCleared, "expected pool to be cleared: %v; pool was cleared: %v",
 		wantCleared, gotCleared)
