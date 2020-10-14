@@ -704,46 +704,46 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 func mongoLoggerFromEnv() (*mongolog.MongoLogger, error) {
 	options := mongolog.NewOptions()
 	var anySet bool
-	if all := os.Getenv("MONGODB_LOGGING_ALL"); all != "" {
+	if all := os.Getenv("MONGODB_LOG_ALL"); all != "" {
 		level, err := mongolog.LevelFromString(all)
 		if err == nil {
 			options.SetLevel(level)
 			anySet = true
 		}
 	}
-	if command := os.Getenv("MONGODB_LOGGING_COMMAND"); command != "" {
+	if command := os.Getenv("MONGODB_LOG_COMMAND"); command != "" {
 		level, err := mongolog.LevelFromString(command)
 		if err == nil {
 			options.SetCommandLevel(level)
 			anySet = true
 		}
 	}
-	if connection := os.Getenv("MONGODB_LOGGING_CONNECTION"); connection != "" {
+	if connection := os.Getenv("MONGODB_LOG_CONNECTION"); connection != "" {
 		level, err := mongolog.LevelFromString(connection)
 		if err == nil {
 			options.SetConnectionLevel(level)
 			anySet = true
 		}
 	}
-	if sdam := os.Getenv("MONGODB_LOGGING_SDAM"); sdam != "" {
+	if sdam := os.Getenv("MONGODB_LOG_SDAM"); sdam != "" {
 		level, err := mongolog.LevelFromString(sdam)
 		if err == nil {
 			options.SetSDAMLevel(level)
 			anySet = true
 		}
 	}
-	if serverSelection := os.Getenv("MONGODB_LOGGING_SERVER_SELECTION"); serverSelection != "" {
+	if serverSelection := os.Getenv("MONGODB_LOG_SERVER_SELECTION"); serverSelection != "" {
 		level, err := mongolog.LevelFromString(serverSelection)
 		if err == nil {
 			options.SetServerSelectionLevel(level)
 			anySet = true
 		}
 	}
-	if path := os.Getenv("MONGODB_LOGGING_PATH"); path != "" {
+	if path := os.Getenv("MONGODB_LOG_PATH"); path != "" {
 		options.SetOutputFile(path)
 		anySet = true
 	}
-	if maxDocumentLength := os.Getenv("MONGODB_LOGGING_MAX_DOCUMENT_LENGTH"); maxDocumentLength != "" {
+	if maxDocumentLength := os.Getenv("MONGODB_LOG_MAX_DOCUMENT_LENGTH"); maxDocumentLength != "" {
 		if strings.ToLower(maxDocumentLength) == "unlimited" {
 			options.SetMaxDocumentLengthUnlimited()
 		}
