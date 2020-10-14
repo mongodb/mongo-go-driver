@@ -93,7 +93,7 @@ func (t Topology) HasReadableServer(mode readpref.Mode) bool {
 // If the Topology's kind is Single or Sharded, this function returns true if any of the servers in the Topology are of
 // a known type.
 //
-// For replica ests, the function returns true if the replica set contains a primary.
+// For replica sets, the function returns true if the replica set contains a primary.
 func (t Topology) HasWritableServer() bool {
 	return t.HasReadableServer(readpref.PrimaryMode)
 }
