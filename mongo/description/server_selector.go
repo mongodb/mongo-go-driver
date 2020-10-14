@@ -15,8 +15,9 @@ import (
 	"go.mongodb.org/mongo-driver/tag"
 )
 
-// ServerSelector is an interface implemented by types that can select a server given a
-// topology description.
+// ServerSelector is an interface implemented by types that can perform server selection given a topology description
+// and list of candidate servers. The selector should filter the provided candidates list and return a subset that
+// matches some criteria.
 type ServerSelector interface {
 	SelectServer(Topology, []Server) ([]Server, error)
 }
@@ -33,7 +34,16 @@ type compositeSelector struct {
 	selectors []ServerSelector
 }
 
-// CompositeSelector combines multiple selectors into a single selector.
+// CompositeSelector combines multiple selectors into a single selector by applying them in order to the candidates
+// list.
+//
+// For example, if the initial candidates list is [s0, s1, s2, s3] and two selectors are provided where the first
+// matches s0 and s1 and the second matches s1 and s2, the following would occur during server selection:
+//
+// 1. firstSelector([s0, s1, s2, s3]) -> [s0, s1]
+// 2. secondSelector([s0, s1]) -> [s1]
+//
+// The final list of candidates returned by the composite selector would be [s1].
 func CompositeSelector(selectors []ServerSelector) ServerSelector {
 	return &compositeSelector{selectors: selectors}
 }
@@ -53,7 +63,7 @@ type latencySelector struct {
 	latency time.Duration
 }
 
-// LatencySelector creates a ServerSelector which selects servers based on their latency.
+// LatencySelector creates a ServerSelector which selects servers based on their average RTT values.
 func LatencySelector(latency time.Duration) ServerSelector {
 	return &latencySelector{latency: latency}
 }
@@ -120,7 +130,7 @@ func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 		if _, set := rp.MaxStaleness(); set {
 			for _, s := range candidates {
 				if s.Kind != Unknown {
-					if err := MaxStalenessSupported(s.WireVersion); err != nil {
+					if err := maxStalenessSupported(s.WireVersion); err != nil {
 						return nil, err
 					}
 				}
@@ -138,6 +148,15 @@ func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 
 		return nil, nil
 	})
+}
+
+// maxStalenessSupported returns an error if the given server version does not support max staleness.
+func maxStalenessSupported(wireVersion *VersionRange) error {
+	if wireVersion != nil && wireVersion.Max < 5 {
+		return fmt.Errorf("max staleness is only supported for servers 3.4 or newer")
+	}
+
+	return nil
 }
 
 func selectForReplicaSet(rp *readpref.ReadPref, t Topology, candidates []Server) ([]Server, error) {

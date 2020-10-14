@@ -374,7 +374,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 	desc := conn.Description()
 	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotMaster()) {
 		// ignore stale error
-		if description.CompareTopologyVersion(desc.TopologyVersion, cerr.TopologyVersion) >= 0 {
+		if desc.TopologyVersion.CompareToIncoming(cerr.TopologyVersion) >= 0 {
 			return
 		}
 
@@ -390,7 +390,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 	}
 	if wcerr, ok := getWriteConcernErrorForProcessing(err); ok {
 		// ignore stale error
-		if description.CompareTopologyVersion(desc.TopologyVersion, wcerr.TopologyVersion) >= 0 {
+		if desc.TopologyVersion.CompareToIncoming(wcerr.TopologyVersion) >= 0 {
 			return
 		}
 

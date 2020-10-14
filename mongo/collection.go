@@ -1633,7 +1633,14 @@ func (coll *Collection) Drop(ctx context.Context) error {
 func makePinnedSelector(sess *session.Client, defaultSelector description.ServerSelector) description.ServerSelectorFunc {
 	return func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
 		if sess != nil && sess.PinnedServer != nil {
-			return sess.PinnedServer.SelectServer(t, svrs)
+			// If there is a pinned server, try to find it in the list of candidates.
+			for _, candidate := range svrs {
+				if candidate.Addr == sess.PinnedServer.Addr {
+					return []description.Server{candidate}, nil
+				}
+			}
+
+			return nil, nil
 		}
 
 		return defaultSelector.SelectServer(t, svrs)

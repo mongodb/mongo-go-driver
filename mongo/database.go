@@ -162,7 +162,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		description.LatencySelector(db.client.localThreshold),
 	})
 	if sess != nil && sess.PinnedServer != nil {
-		readSelect = sess.PinnedServer
+		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
 	return operation.NewCommand(runCmdDoc).

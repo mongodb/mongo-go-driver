@@ -18,17 +18,14 @@ import (
 	"go.mongodb.org/mongo-driver/tag"
 )
 
-// UnsetRTT is the unset value for a round trip time.
-const UnsetRTT = -1 * time.Millisecond
-
-// SelectedServer represents a selected server that is a member of a topology.
+// SelectedServer augments the Server type by also including the TopologyKind of the topology that includes the server.
+// This type should be used to track the state of a server that was selected to perform an operation.
 type SelectedServer struct {
 	Server
 	Kind TopologyKind
 }
 
-// Server represents a description of a server. This is created from an isMaster
-// command.
+// Server contains information about a node in a cluster. This is created from isMaster command responses.
 type Server struct {
 	Addr address.Address
 
@@ -59,7 +56,7 @@ type Server struct {
 	WireVersion           *VersionRange
 }
 
-// NewServer creates a new server description from the given parameters.
+// NewServer creates a new server description from the given isMaster command response.
 func NewServer(addr address.Address, response bson.Raw) Server {
 	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
 	elements, err := response.Elements()
@@ -318,12 +315,7 @@ func NewServerFromError(addr address.Address, err error, tv *TopologyVersion) Se
 // SetAverageRTT sets the average round trip time for this server description.
 func (s Server) SetAverageRTT(rtt time.Duration) Server {
 	s.AverageRTT = rtt
-	if rtt == UnsetRTT {
-		s.AverageRTTSet = false
-	} else {
-		s.AverageRTTSet = true
-	}
-
+	s.AverageRTTSet = true
 	return s
 }
 
@@ -333,16 +325,6 @@ func (s Server) DataBearing() bool {
 		s.Kind == RSSecondary ||
 		s.Kind == Mongos ||
 		s.Kind == Standalone
-}
-
-// SelectServer selects this server if it is in the list of given candidates.
-func (s Server) SelectServer(_ Topology, candidates []Server) ([]Server, error) {
-	for _, candidate := range candidates {
-		if candidate.Addr == s.Addr {
-			return []Server{candidate}, nil
-		}
-	}
-	return nil, nil
 }
 
 // String implements the Stringer interface
@@ -380,11 +362,6 @@ func decodeStringMap(element bson.RawElement, name string) (map[string]string, e
 		m[key] = value
 	}
 	return m, nil
-}
-
-// SupportsRetryWrites returns true if this description represents a server that supports retryable writes.
-func (s Server) SupportsRetryWrites() bool {
-	return s.SessionTimeoutMinutes != 0 && s.Kind != Standalone
 }
 
 // Equal compares two server descriptions and returns true if they are equal
@@ -446,7 +423,7 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if s.TopologyVersion != other.TopologyVersion && CompareTopologyVersion(s.TopologyVersion, other.TopologyVersion) != 0 {
+	if s.TopologyVersion.CompareToIncoming(other.TopologyVersion) != 0 {
 		return false
 	}
 

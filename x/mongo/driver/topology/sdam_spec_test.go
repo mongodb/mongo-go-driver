@@ -597,6 +597,15 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 	}
 }
 
+func findServerInTopology(topo description.Topology, addr address.Address) (description.Server, bool) {
+	for _, server := range topo.Servers {
+		if server.Addr.String() == addr.String() {
+			return server, true
+		}
+	}
+	return description.Server{}, false
+}
+
 func runTest(t *testing.T, directory string, filename string) {
 	filepath := path.Join(testsDir, directory, filename)
 	content, err := ioutil.ReadFile(filepath)
@@ -649,7 +658,7 @@ func runTest(t *testing.T, directory string, filename string) {
 				"expected maxElectionID to be %v, got %v", phase.Outcome.MaxElectionID, topo.fsm.maxElectionID)
 
 			for addr, server := range phase.Outcome.Servers {
-				fsmServer, ok := desc.Server(address.Address(addr))
+				fsmServer, ok := findServerInTopology(desc, address.Address(addr))
 				assert.True(t, ok, "Couldn't find server %v", addr)
 
 				assert.Equal(t, address.Address(addr), fsmServer.Addr,
