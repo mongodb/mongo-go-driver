@@ -423,7 +423,7 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if s.TopologyVersion != other.TopologyVersion && s.TopologyVersion.CompareToIncoming(other.TopologyVersion) != 0 {
+	if s.TopologyVersion.CompareToIncoming(other.TopologyVersion) != 0 {
 		return false
 	}
 
