@@ -423,11 +423,13 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if s.TopologyVersion.CompareToIncoming(other.TopologyVersion) != 0 {
-		return false
+	// If TopologyVersion is nil for both servers, CompareToIncoming will return -1 because it assumes that the
+	// incoming response is newer. We want the descriptions to be considered equal in this case, though, so an
+	// explicit check is required.
+	if s.TopologyVersion == nil && other.TopologyVersion == nil {
+		return true
 	}
-
-	return true
+	return s.TopologyVersion.CompareToIncoming(other.TopologyVersion) == 0
 }
 
 func sliceStringEqual(a []string, b []string) bool {
