@@ -49,17 +49,35 @@ const (
 	Implicit
 )
 
-// State indicates the state of the FSM.
-type state uint8
+// TransactionState indicates the state of the transactions FSM.
+type TransactionState uint8
 
 // Client Session states
 const (
-	None state = iota
+	None TransactionState = iota
 	Starting
 	InProgress
 	Committed
 	Aborted
 )
+
+// String implements the fmt.Stringer interface.
+func (s TransactionState) String() string {
+	switch s {
+	case None:
+		return "none"
+	case Starting:
+		return "starting"
+	case InProgress:
+		return "in progress"
+	case Committed:
+		return "committed"
+	case Aborted:
+		return "aborted"
+	default:
+		return "unknown"
+	}
+}
 
 // Client is a session for clients to run commands.
 type Client struct {
@@ -89,10 +107,10 @@ type Client struct {
 	transactionWc            *writeconcern.WriteConcern
 	transactionMaxCommitTime *time.Duration
 
-	pool          *Pool
-	state         state
-	PinnedServer  *description.Server
-	RecoveryToken bson.Raw
+	pool             *Pool
+	TransactionState TransactionState
+	PinnedServer     *description.Server
+	RecoveryToken    bson.Raw
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -242,29 +260,29 @@ func (c *Client) EndSession() {
 
 // TransactionInProgress returns true if the client session is in an active transaction.
 func (c *Client) TransactionInProgress() bool {
-	return c.state == InProgress
+	return c.TransactionState == InProgress
 }
 
 // TransactionStarting returns true if the client session is starting a transaction.
 func (c *Client) TransactionStarting() bool {
-	return c.state == Starting
+	return c.TransactionState == Starting
 }
 
 // TransactionRunning returns true if the client session has started the transaction
 // and it hasn't been committed or aborted
 func (c *Client) TransactionRunning() bool {
-	return c != nil && (c.state == Starting || c.state == InProgress)
+	return c != nil && (c.TransactionState == Starting || c.TransactionState == InProgress)
 }
 
 // TransactionCommitted returns true of the client session just committed a transaciton.
 func (c *Client) TransactionCommitted() bool {
-	return c.state == Committed
+	return c.TransactionState == Committed
 }
 
 // CheckStartTransaction checks to see if allowed to start transaction and returns
 // an error if not allowed
 func (c *Client) CheckStartTransaction() error {
-	if c.state == InProgress || c.state == Starting {
+	if c.TransactionState == InProgress || c.TransactionState == Starting {
 		return ErrTransactInProgress
 	}
 	return nil
@@ -309,7 +327,7 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 		return ErrUnackWCUnsupported
 	}
 
-	c.state = Starting
+	c.TransactionState = Starting
 	c.PinnedServer = nil
 	return nil
 }
@@ -317,9 +335,9 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 // CheckCommitTransaction checks to see if allowed to commit transaction and returns
 // an error if not allowed.
 func (c *Client) CheckCommitTransaction() error {
-	if c.state == None {
+	if c.TransactionState == None {
 		return ErrNoTransactStarted
-	} else if c.state == Aborted {
+	} else if c.TransactionState == Aborted {
 		return ErrCommitAfterAbort
 	}
 	return nil
@@ -332,7 +350,7 @@ func (c *Client) CommitTransaction() error {
 	if err != nil {
 		return err
 	}
-	c.state = Committed
+	c.TransactionState = Committed
 	return nil
 }
 
@@ -351,11 +369,11 @@ func (c *Client) UpdateCommitTransactionWriteConcern() {
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns
 // an error if not allowed.
 func (c *Client) CheckAbortTransaction() error {
-	if c.state == None {
+	if c.TransactionState == None {
 		return ErrNoTransactStarted
-	} else if c.state == Committed {
+	} else if c.TransactionState == Committed {
 		return ErrAbortAfterCommit
-	} else if c.state == Aborted {
+	} else if c.TransactionState == Aborted {
 		return ErrAbortTwice
 	}
 	return nil
@@ -368,7 +386,7 @@ func (c *Client) AbortTransaction() error {
 	if err != nil {
 		return err
 	}
-	c.state = Aborted
+	c.TransactionState = Aborted
 	c.clearTransactionOpts()
 	return nil
 }
@@ -379,15 +397,15 @@ func (c *Client) ApplyCommand(desc description.Server) {
 		// Do not change state if committing after already committed
 		return
 	}
-	if c.state == Starting {
-		c.state = InProgress
+	if c.TransactionState == Starting {
+		c.TransactionState = InProgress
 		// If this is in a transaction and the server is a mongos, pin it
 		if desc.Kind == description.Mongos {
 			c.PinnedServer = &desc
 		}
-	} else if c.state == Committed || c.state == Aborted {
+	} else if c.TransactionState == Committed || c.TransactionState == Aborted {
 		c.clearTransactionOpts()
-		c.state = None
+		c.TransactionState = None
 	}
 }
 

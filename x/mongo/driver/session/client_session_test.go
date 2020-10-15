@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
@@ -134,14 +134,14 @@ func TestClientSession(t *testing.T) {
 			t.Errorf("expected error, got %v", err)
 		}
 
-		if sess.state != None {
-			t.Errorf("incorrect session state, expected None, received %v", sess.state)
+		if sess.TransactionState != None {
+			t.Errorf("incorrect session state, expected None, received %v", sess.TransactionState)
 		}
 
 		err = sess.StartTransaction(nil)
 		require.Nil(t, err, "error starting transaction: %s", err)
-		if sess.state != Starting {
-			t.Errorf("incorrect session state, expected Starting, received %v", sess.state)
+		if sess.TransactionState != Starting {
+			t.Errorf("incorrect session state, expected Starting, received %v", sess.TransactionState)
 		}
 
 		err = sess.StartTransaction(nil)
@@ -150,8 +150,8 @@ func TestClientSession(t *testing.T) {
 		}
 
 		sess.ApplyCommand(description.Server{Kind: description.Standalone})
-		if sess.state != InProgress {
-			t.Errorf("incorrect session state, expected InProgress, received %v", sess.state)
+		if sess.TransactionState != InProgress {
+			t.Errorf("incorrect session state, expected InProgress, received %v", sess.TransactionState)
 		}
 
 		err = sess.StartTransaction(nil)
@@ -161,8 +161,8 @@ func TestClientSession(t *testing.T) {
 
 		err = sess.CommitTransaction()
 		require.Nil(t, err, "error committing transaction: %s", err)
-		if sess.state != Committed {
-			t.Errorf("incorrect session state, expected Committed, received %v", sess.state)
+		if sess.TransactionState != Committed {
+			t.Errorf("incorrect session state, expected Committed, received %v", sess.TransactionState)
 		}
 
 		err = sess.AbortTransaction()
@@ -172,14 +172,14 @@ func TestClientSession(t *testing.T) {
 
 		err = sess.StartTransaction(nil)
 		require.Nil(t, err, "error starting transaction: %s", err)
-		if sess.state != Starting {
-			t.Errorf("incorrect session state, expected Starting, received %v", sess.state)
+		if sess.TransactionState != Starting {
+			t.Errorf("incorrect session state, expected Starting, received %v", sess.TransactionState)
 		}
 
 		err = sess.AbortTransaction()
 		require.Nil(t, err, "error aborting transaction: %s", err)
-		if sess.state != Aborted {
-			t.Errorf("incorrect session state, expected Aborted, received %v", sess.state)
+		if sess.TransactionState != Aborted {
+			t.Errorf("incorrect session state, expected Aborted, received %v", sess.TransactionState)
 		}
 
 		err = sess.AbortTransaction()
