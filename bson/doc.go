@@ -43,7 +43,7 @@
 // 		6. BSON embedded document unmarshals to the parent type (i.e. D for a D, M for an M).
 // 		7. BSON array unmarshals to a bson.A.
 // 		8. BSON ObjectId unmarshals to a primitive.ObjectID.
-// 		9. BSON datetime unmarshals to a primitive.Datetime.
+// 		9. BSON datetime unmarshals to a primitive.DateTime.
 // 		10. BSON binary unmarshals to a primitive.Binary.
 // 		11. BSON regular expression unmarshals to a primitive.Regex.
 // 		12. BSON JavaScript unmarshals to a primitive.JavaScript.
