@@ -7,7 +7,11 @@
 package mtest
 
 import (
+	"fmt"
+
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -31,6 +35,11 @@ func ClusterURI() string {
 	return testContext.connString.Original
 }
 
+// ClusterConnString returns the parsed ConnString for the cluster.
+func ClusterConnString() connstring.ConnString {
+	return testContext.connString
+}
+
 // GlobalClient returns a Client connected to the cluster configured with read concern majority, write concern majority,
 // and read preference primary.
 func GlobalClient() *mongo.Client {
@@ -46,4 +55,23 @@ func GlobalTopology() *topology.Topology {
 // version.
 func ServerVersion() string {
 	return testContext.serverVersion
+}
+
+// SetFailPoint configures the provided fail point on the cluster under test using the provided Client.
+func SetFailPoint(fp FailPoint, client *mongo.Client) error {
+	admin := client.Database("admin")
+	if err := admin.RunCommand(Background, fp).Err(); err != nil {
+		return fmt.Errorf("error creating fail point: %v", err)
+	}
+	return nil
+}
+
+// SetRawFailPoint configures the fail point represented by the fp parameter on the cluster under test using the
+// provided Client
+func SetRawFailPoint(fp bson.Raw, client *mongo.Client) error {
+	admin := client.Database("admin")
+	if err := admin.RunCommand(Background, fp).Err(); err != nil {
+		return fmt.Errorf("error creating fail point: %v", err)
+	}
+	return nil
 }

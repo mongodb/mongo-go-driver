@@ -133,7 +133,8 @@ tests:
             length: 5
             chunkSize: 4
             uploadDate: { $$type: date }
-            md5: "283d4fea5dded59cf837d3047328f5af"
+            # The md5 field is deprecated so some drivers do not calculate it when uploading files.
+            md5: { $$unsetOrMatches: "283d4fea5dded59cf837d3047328f5af" }
             filename: filename
       - name: find
         object: *bucket0_chunks_collection

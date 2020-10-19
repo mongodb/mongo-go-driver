@@ -240,7 +240,9 @@
               "uploadDate": {
                 "$$type": "date"
               },
-              "md5": "283d4fea5dded59cf837d3047328f5af",
+              "md5": {
+                "$$unsetOrMatches": "283d4fea5dded59cf837d3047328f5af"
+              },
               "filename": "filename"
             }
           ]

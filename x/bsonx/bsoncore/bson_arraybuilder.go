@@ -180,6 +180,12 @@ func (a *ArrayBuilder) AppendMinKey() *ArrayBuilder {
 	return a
 }
 
+// AppendValue appends a BSON value to the array.
+func (a *ArrayBuilder) AppendValue(val Value) *ArrayBuilder {
+	a.arr = AppendValueElement(a.arr, a.incrementKey(), val)
+	return a
+}
+
 // StartArray starts building an inline Array. After this document is completed,
 // the user must call a.FinishArray
 func (a *ArrayBuilder) StartArray() *ArrayBuilder {

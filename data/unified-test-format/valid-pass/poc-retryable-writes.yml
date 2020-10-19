@@ -141,9 +141,7 @@ tests:
             - { _id: 4, x: 44 }
           ordered: true
         expectResult:
-          # insertMany returns a BulkWriteResult, but there is no reason to
-          # assert other fields
-          insertedCount: 2
+          insertedCount: { $$unsetOrMatches: 2 }
           insertedIds: { $$unsetOrMatches: { 0: 3, 1: 4 } }
     outcome:
       - collectionName: *collectionName
