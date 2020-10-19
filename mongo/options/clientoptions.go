@@ -881,9 +881,17 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 		}
 
 		if currentBlock.Type == "CERTIFICATE" {
-			certBlock = data[start : len(data)-len(remaining)]
-			certDecodedBlock = currentBlock.Bytes
-			start += len(certBlock)
+			//Keeps only last certificate if multiple certs are present leading to key mismatch issue in tls config
+// 			certBlock = data[start : len(data)-len(remaining)]
+// 			certDecodedBlock = currentBlock.Bytes
+// 			start += len(certBlock)
+			tempCertBlock := data[start : len(data)-len(remaining)]
+			certBlock = append(certBlock, tempCertBlock...) //To handle usecase where multiple certs are present 
+
+			tempCertEncodedBlock := currentBlock.Bytes
+			certDecodedBlock = append(certDecodedBlock, tempCertEncodedBlock...)
+
+			start += len(tempCertBlock)
 		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
 			if keyPasswd != "" && x509.IsEncryptedPEMBlock(currentBlock) {
 				var encoded bytes.Buffer
