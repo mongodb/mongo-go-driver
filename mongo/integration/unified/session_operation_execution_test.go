@@ -15,6 +15,21 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+func executeAbortTransaction(ctx context.Context, operation *Operation) (*OperationResult, error) {
+	sess, err := Entities(ctx).Session(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	// AbortTransaction takes no options, so the arguments doc must be nil or empty.
+	elems, _ := operation.Arguments.Elements()
+	if len(elems) > 0 {
+		return nil, fmt.Errorf("unrecognized commitTransaction options %v", operation.Arguments)
+	}
+
+	return NewErrorResult(sess.AbortTransaction(ctx)), nil
+}
+
 func executeEndSession(ctx context.Context, operation *Operation) error {
 	sess, err := Entities(ctx).Session(operation.Object)
 	if err != nil {

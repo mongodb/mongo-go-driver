@@ -64,6 +64,8 @@ func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
 	}
 
 	switch op.Name {
+	case "abortTransaction":
+		return executeAbortTransaction(ctx, op)
 	case "aggregate":
 		return executeAggregate(ctx, op, sess)
 	case "bulkWrite":
