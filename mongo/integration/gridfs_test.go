@@ -255,6 +255,7 @@ func TestGridFS(x *testing.T) {
 
 			bucket, err := gridfs.NewBucket(mt.DB)
 			assert.Nil(mt, err, "NewBucket error: %v", err)
+			defer func() { _ = bucket.Drop() }()
 
 			fileData := []byte("hello world")
 			uploadOpts := options.GridFSUpload().SetChunkSizeBytes(4)
@@ -271,6 +272,9 @@ func TestGridFS(x *testing.T) {
 			assert.Equal(mt, fileData, downloadedBytes, "expected bytes %s, got %s", fileData, downloadedBytes)
 		})
 		mt.Run("error if files collection document does not have a chunkSize field", func(mt *mtest.T) {
+			// Test that opening a download returns ErrMissingChunkSize if the files collection document has no
+			// chunk size field.
+
 			oid := primitive.NewObjectID()
 			filesDoc := bson.D{
 				{"_id", oid},
@@ -282,6 +286,8 @@ func TestGridFS(x *testing.T) {
 
 			bucket, err := gridfs.NewBucket(mt.DB)
 			assert.Nil(mt, err, "NewBucket error: %v", err)
+			defer func() { _ = bucket.Drop() }()
+
 			_, err = bucket.OpenDownloadStream(oid)
 			assert.Equal(mt, gridfs.ErrMissingChunkSize, err, "expected error %v, got %v", gridfs.ErrMissingChunkSize, err)
 		})

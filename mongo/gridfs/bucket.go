@@ -387,7 +387,8 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 		return newDownloadStream(nil, foundFile.ChunkSize, &foundFile), nil
 	}
 
-	if foundFile.ChunkSize == 0 {
+	// For a file with non-zero length, chunkSize must exist so we know what size to expect when downloading chunks.
+	if _, err := cursor.Current.LookupErr("chunkSize"); err != nil {
 		return nil, ErrMissingChunkSize
 	}
 
