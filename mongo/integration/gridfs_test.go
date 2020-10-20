@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/internal/testutil/israce"
@@ -268,6 +269,21 @@ func TestGridFS(x *testing.T) {
 
 			downloadedBytes := downloadBuffer.Bytes()
 			assert.Equal(mt, fileData, downloadedBytes, "expected bytes %s, got %s", fileData, downloadedBytes)
+		})
+		mt.Run("error if files collection document does not have a chunkSize field", func(mt *mtest.T) {
+			oid := primitive.NewObjectID()
+			filesDoc := bson.D{
+				{"_id", oid},
+				{"length", 10},
+				{"filename", "filename"},
+			}
+			_, err := mt.DB.Collection("fs.files").InsertOne(mtest.Background, filesDoc)
+			assert.Nil(mt, err, "InsertOne error for files collection: %v", err)
+
+			bucket, err := gridfs.NewBucket(mt.DB)
+			assert.Nil(mt, err, "NewBucket error: %v", err)
+			_, err = bucket.OpenDownloadStream(oid)
+			assert.Equal(mt, gridfs.ErrMissingChunkSize, err, "expected error %v, got %v", gridfs.ErrMissingChunkSize, err)
 		})
 	})
 

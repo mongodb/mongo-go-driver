@@ -33,6 +33,9 @@ const DefaultChunkSize int32 = 255 * 1024 // 255 KiB
 // ErrFileNotFound occurs if a user asks to download a file with a file ID that isn't found in the files collection.
 var ErrFileNotFound = errors.New("file with given parameters not found")
 
+// ErrMissingChunkSize occurs when downloading a file if the files collection document is missing the "chunkSize" field.
+var ErrMissingChunkSize = errors.New("files collection document does not contain a 'chunkSize' field")
+
 // Bucket represents a GridFS bucket.
 type Bucket struct {
 	db         *mongo.Database
@@ -382,6 +385,10 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 
 	if foundFile.Length == 0 {
 		return newDownloadStream(nil, foundFile.ChunkSize, &foundFile), nil
+	}
+
+	if foundFile.ChunkSize == 0 {
+		return nil, ErrMissingChunkSize
 	}
 
 	chunksCursor, err := b.findChunks(ctx, foundFile.ID)
