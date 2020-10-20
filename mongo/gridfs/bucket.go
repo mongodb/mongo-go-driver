@@ -381,14 +381,16 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 	}
 
 	if foundFile.Length == 0 {
-		return newDownloadStream(nil, b.chunkSize, &foundFile), nil
+		return newDownloadStream(nil, foundFile.ChunkSize, &foundFile), nil
 	}
 
 	chunksCursor, err := b.findChunks(ctx, foundFile.ID)
 	if err != nil {
 		return nil, err
 	}
-	return newDownloadStream(chunksCursor, b.chunkSize, &foundFile), nil
+	// The chunk size can be overridden for individual files, so the expected chunk size should be the "chunkSize"
+	// field from the files collection document, not the bucket's chunk size.
+	return newDownloadStream(chunksCursor, foundFile.ChunkSize, &foundFile), nil
 }
 
 func deadlineContext(deadline time.Time) (context.Context, context.CancelFunc) {

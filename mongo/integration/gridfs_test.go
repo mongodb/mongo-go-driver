@@ -248,6 +248,27 @@ func TestGridFS(x *testing.T) {
 				})
 			}
 		})
+		mt.Run("chunk size determined by files collection document", func(mt *mtest.T) {
+			// Test that the chunk size for a file download is determined by the chunkSize field in the files
+			// collection document, not the bucket's chunk size.
+
+			bucket, err := gridfs.NewBucket(mt.DB)
+			assert.Nil(mt, err, "NewBucket error: %v", err)
+
+			fileData := []byte("hello world")
+			uploadOpts := options.GridFSUpload().SetChunkSizeBytes(4)
+			fileID, err := bucket.UploadFromStream("file", bytes.NewReader(fileData), uploadOpts)
+			assert.Nil(mt, err, "UploadFromStream error: %v", err)
+
+			// If the bucket's chunk size was used, this would error because the actual chunk size is 4 and the bucket
+			// chunk size is 255 KB.
+			var downloadBuffer bytes.Buffer
+			_, err = bucket.DownloadToStream(fileID, &downloadBuffer)
+			assert.Nil(mt, err, "DownloadToStream error: %v", err)
+
+			downloadedBytes := downloadBuffer.Bytes()
+			assert.Equal(mt, fileData, downloadedBytes, "expected bytes %s, got %s", fileData, downloadedBytes)
+		})
 	})
 
 	mt.RunOpts("bucket collection accessors", noClientOpts, func(mt *mtest.T) {
