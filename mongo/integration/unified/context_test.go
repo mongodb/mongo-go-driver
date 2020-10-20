@@ -45,7 +45,7 @@ func AddFailPoint(ctx context.Context, failPoint string, client *mongo.Client) e
 }
 
 func AddTargetedFailPoint(ctx context.Context, failPoint string, host string) error {
-	failPoints := ctx.Value(failPointsKey).(map[string]string)
+	failPoints := ctx.Value(targetedFailPointsKey).(map[string]string)
 	if _, ok := failPoints[failPoint]; ok {
 		return fmt.Errorf("fail point %q already exists in tracked targeted fail points map", failPoint)
 	}
