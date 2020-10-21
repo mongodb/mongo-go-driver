@@ -103,6 +103,9 @@
         {
           "name": "createChangeStream",
           "object": "client0",
+          "arguments": {
+            "pipeline": []
+          },
           "saveResultAsEntity": "changeStream0"
         },
         {
@@ -246,7 +249,8 @@
           "name": "createChangeStream",
           "object": "collection0",
           "arguments": {
-            "batchSize": 1
+            "batchSize": 1,
+            "pipeline": []
           },
           "saveResultAsEntity": "changeStream0"
         },

@@ -37,9 +37,7 @@ func executeCreateChangeStream(ctx context.Context, operation *Operation, sess m
 		return nil, fmt.Errorf("no client, database, or collection entity found with ID %q", operation.Object)
 	}
 
-	// TODO: pipeline is a required argument for watch() so we should error if it's not present in the Arguments doc,
-	// but multiple instances of the createChangeStream operation don't specify it in the JSON files.
-	pipeline := []interface{}{}
+	var pipeline []interface{}
 	opts := options.ChangeStream()
 
 	elems, _ := operation.Arguments.Elements()
