@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/tag"
 )
 
 // This file defines helper types to convert BSON documents to ReadConcern, WriteConcern, and ReadPref objects.
@@ -59,10 +60,10 @@ func (wc *writeConcern) toWriteConcernOption() (*writeconcern.WriteConcern, erro
 }
 
 type readPreference struct {
-	Mode                string   `bson:"mode"`
-	TagSets             []bson.D `bson:"tagSets"`
-	MaxStalenessSeconds *int64   `bson:"maxStalenessSeconds"`
-	Hedge               bson.M   `bson:"hedge"`
+	Mode                string              `bson:"mode"`
+	TagSets             []map[string]string `bson:"tagSets"`
+	MaxStalenessSeconds *int64              `bson:"maxStalenessSeconds"`
+	Hedge               bson.M              `bson:"hedge"`
 }
 
 func (rp *readPreference) toReadPrefOption() (*readpref.ReadPref, error) {
@@ -73,7 +74,17 @@ func (rp *readPreference) toReadPrefOption() (*readpref.ReadPref, error) {
 
 	var rpOptions []readpref.Option
 	if rp.TagSets != nil {
-		return nil, fmt.Errorf("tagSets not supported")
+		// Each item in the TagSets slice is a document that represents one set.
+		sets := make([]tag.Set, 0, len(rp.TagSets))
+		for _, rawSet := range rp.TagSets {
+			parsed := make(tag.Set, 0, len(rawSet))
+			for k, v := range rawSet {
+				parsed = append(parsed, tag.Tag{Name: k, Value: v})
+			}
+			sets = append(sets, parsed)
+		}
+
+		rpOptions = append(rpOptions, readpref.WithTagSets(sets...))
 	}
 	if rp.MaxStalenessSeconds != nil {
 		maxStaleness := time.Duration(*rp.MaxStalenessSeconds) * time.Second
