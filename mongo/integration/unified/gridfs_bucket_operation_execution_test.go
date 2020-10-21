@@ -20,7 +20,7 @@ import (
 )
 
 func executeBucketDelete(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	bucket, err := Entities(ctx).Bucket(operation.Object)
+	bucket, err := Entities(ctx).GridFSBucket(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func executeBucketDelete(ctx context.Context, operation *Operation) (*OperationR
 }
 
 func executeBucketDownload(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	bucket, err := Entities(ctx).Bucket(operation.Object)
+	bucket, err := Entities(ctx).GridFSBucket(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func executeBucketDownload(ctx context.Context, operation *Operation) (*Operatio
 }
 
 func executeBucketUpload(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	bucket, err := Entities(ctx).Bucket(operation.Object)
+	bucket, err := Entities(ctx).GridFSBucket(operation.Object)
 	if err != nil {
 		return nil, err
 	}

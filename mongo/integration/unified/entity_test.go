@@ -39,8 +39,8 @@ type EntityOptions struct {
 	// Options for session entities.
 	SessionOptions *SessionOptions `bson:"sessionOptions"`
 
-	// Options for bucket entities.
-	BucketOptions *BucketOptions `bson:"bucketOptions"`
+	// Options for GridFS bucket entities.
+	GridFSBucketOptions *GridFSBucketOptions `bson:"bucketOptions"`
 
 	// Options that reference other entities.
 	ClientID   string `bson:"client"`
@@ -57,14 +57,14 @@ type EntityMap struct {
 	dbs           map[string]*mongo.Database
 	collections   map[string]*mongo.Collection
 	sessions      map[string]mongo.Session
-	buckets       map[string]*gridfs.Bucket
+	gridfsBuckets map[string]*gridfs.Bucket
 	bsonValues    map[string]bson.RawValue
 }
 
 func NewEntityMap() *EntityMap {
 	return &EntityMap{
 		allEntities:   make(map[string]struct{}),
-		buckets:       make(map[string]*gridfs.Bucket),
+		gridfsBuckets: make(map[string]*gridfs.Bucket),
 		bsonValues:    make(map[string]bson.RawValue),
 		changeStreams: make(map[string]*mongo.ChangeStream),
 		clients:       make(map[string]*ClientEntity),
@@ -110,7 +110,7 @@ func (em *EntityMap) AddEntity(ctx context.Context, entityType string, entityOpt
 	case "session":
 		err = em.addSessionEntity(entityOptions)
 	case "bucket":
-		err = em.addBucketEntity(entityOptions)
+		err = em.addGridFSBucketEntity(entityOptions)
 	default:
 		return fmt.Errorf("unrecognized entity type %q", entityType)
 	}
@@ -122,10 +122,10 @@ func (em *EntityMap) AddEntity(ctx context.Context, entityType string, entityOpt
 	return nil
 }
 
-func (em *EntityMap) Bucket(id string) (*gridfs.Bucket, error) {
-	bucket, ok := em.buckets[id]
+func (em *EntityMap) GridFSBucket(id string) (*gridfs.Bucket, error) {
+	bucket, ok := em.gridfsBuckets[id]
 	if !ok {
-		return nil, newEntityNotFoundError("bucket", id)
+		return nil, newEntityNotFoundError("gridfs bucket", id)
 	}
 	return bucket, nil
 }
@@ -262,15 +262,15 @@ func (em *EntityMap) addSessionEntity(EntityOptions *EntityOptions) error {
 	return nil
 }
 
-func (em *EntityMap) addBucketEntity(EntityOptions *EntityOptions) error {
+func (em *EntityMap) addGridFSBucketEntity(EntityOptions *EntityOptions) error {
 	db, ok := em.dbs[EntityOptions.DatabaseID]
 	if !ok {
 		return newEntityNotFoundError("database", EntityOptions.DatabaseID)
 	}
 
 	bucketOpts := options.GridFSBucket()
-	if EntityOptions.BucketOptions != nil {
-		bucketOpts = EntityOptions.BucketOptions.BucketOptions
+	if EntityOptions.GridFSBucketOptions != nil {
+		bucketOpts = EntityOptions.GridFSBucketOptions.BucketOptions
 	}
 
 	bucket, err := gridfs.NewBucket(db, bucketOpts)
@@ -278,7 +278,7 @@ func (em *EntityMap) addBucketEntity(EntityOptions *EntityOptions) error {
 		return fmt.Errorf("error creating GridFS bucket: %v", err)
 	}
 
-	em.buckets[EntityOptions.ID] = bucket
+	em.gridfsBuckets[EntityOptions.ID] = bucket
 	return nil
 }
 

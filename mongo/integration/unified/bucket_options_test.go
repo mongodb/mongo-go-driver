@@ -13,15 +13,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// BucketOptions is a wrapper for *options.BucketOptions. This type implements the bson.Unmarshaler interface to
+// GridFSBucketOptions is a wrapper for *options.BucketOptions. This type implements the bson.Unmarshaler interface to
 // convert BSON documents to a BucketOptions instance.
-type BucketOptions struct {
+type GridFSBucketOptions struct {
 	*options.BucketOptions
 }
 
-var _ bson.Unmarshaler = (*BucketOptions)(nil)
+var _ bson.Unmarshaler = (*GridFSBucketOptions)(nil)
 
-func (bo BucketOptions) UnmarshalBSON(data []byte) error {
+func (bo GridFSBucketOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
 		Name      *string                `bson:"name"`
 		ChunkSize *int32                 `bson:"chunkSizeBytes"`
@@ -31,10 +31,10 @@ func (bo BucketOptions) UnmarshalBSON(data []byte) error {
 		Extra     map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
-		return fmt.Errorf("error unmarshalling to temporary BucketOptions object: %v", err)
+		return fmt.Errorf("error unmarshalling to temporary GridFSBucketOptions object: %v", err)
 	}
 	if len(temp.Extra) > 0 {
-		return fmt.Errorf("unrecognized fields for BucketOptions: %v", MapKeys(temp.Extra))
+		return fmt.Errorf("unrecognized fields for GridFSBucketOptions: %v", MapKeys(temp.Extra))
 	}
 
 	bo.BucketOptions = options.GridFSBucket()
