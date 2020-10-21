@@ -30,14 +30,14 @@ func (mlo *Options) SetLogger(logger Logger) *Options {
 
 // SetMaxDocumentLength sets maximum length for extended json docments in log messages. If the
 // document is longer than that it is truncated. Can be set to either an integer with this method
-// or to unlimited with SetMaxDocumentLengthUnlimited. Defaults to 1000.
+// or to unlimited with SetMaxDocumentLengthUnlimited. Defaults to 1000
 func (mlo *Options) SetMaxDocumentLength(len int) *Options {
 	mlo.MaxDocumentLength = len
 	return mlo
 }
 
 // SetMaxDocumentLengthUnlimited sets maxDocumentLength to be unlimited, so the logger will print
-// entire documents regardless of length. Defaults to 1000.
+// entire documents regardless of length. Defaults to 1000
 func (mlo *Options) SetMaxDocumentLengthUnlimited() *Options {
 	mlo.MaxDocumentLength = "unlimited"
 	return mlo

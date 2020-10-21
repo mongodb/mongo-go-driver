@@ -106,7 +106,6 @@ type finishedInformation struct {
 	response        bsoncore.Document
 	cmdErr          error
 	connID          string
-	startTime       time.Time
 	redacted        bool
 	durationNanos   int64
 	explicitSession *bool
@@ -391,10 +390,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		}
 
+		startTime := time.Now()
 		finishedInfo := finishedInformation{
 			cmdName:         startedInfo.cmdName,
 			requestID:       startedInfo.requestID,
-			startTime:       time.Now(),
 			connID:          startedInfo.connID,
 			redacted:        startedInfo.redacted,
 			explicitSession: startedInfo.explicitSession,
@@ -417,7 +416,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 		finishedInfo.response = res
 		finishedInfo.cmdErr = err
-		finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+		finishedInfo.durationNanos = time.Now().Sub(startTime).Nanoseconds()
 
 		op.publishFinishedEvent(ctx, finishedInfo)
 		op.logFinishedEvent(ctx, finishedInfo)
@@ -1408,7 +1407,6 @@ func (op Operation) logStartedEvent(ctx context.Context, info startedInformation
 		mongolog.String("commandName", info.cmdName),
 		mongolog.Int64("requestId", int64(info.requestID)),
 		mongolog.String("serverHostname", info.serverHost),
-		// TODO: add serverConnectionId, explicitSession
 	}
 	if info.ipAddress != "" {
 		fields = append(fields, mongolog.String("serverResolvedIPAddress", info.ipAddress))
@@ -1510,7 +1508,6 @@ func (op Operation) logFinishedEvent(ctx context.Context, info finishedInformati
 		return
 	}
 
-	// TODO: find out if order matters
 	fields = append(fields, mongolog.String("error", info.cmdErr.Error()))
 	op.Logger.Log(mongolog.Command, mongolog.Debug, "Command failed", fields...)
 }

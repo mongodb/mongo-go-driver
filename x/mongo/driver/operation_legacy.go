@@ -39,11 +39,11 @@ func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, con
 	}
 	startedInfo.getConnectionInfo(conn)
 	op.publishStartedEvent(ctx, startedInfo)
+	startTime := time.Now()
 
 	finishedInfo := finishedInformation{
 		cmdName:    startedInfo.cmdName,
 		requestID:  startedInfo.requestID,
-		startTime:  time.Now(),
 		connID:     startedInfo.connID,
 		serverHost: startedInfo.serverHost,
 		serverPort: startedInfo.serverPort,
@@ -52,7 +52,7 @@ func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, con
 	}
 
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, firstBatchIdentifier)
-	finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+	finishedInfo.durationNanos = time.Now().Sub(startTime).Nanoseconds()
 
 	op.publishFinishedEvent(ctx, finishedInfo)
 	op.logFinishedEvent(ctx, finishedInfo)
@@ -218,10 +218,10 @@ func (op Operation) legacyGetMore(ctx context.Context, dst []byte, srvr Server, 
 	startedInfo.getConnectionInfo(conn)
 	op.publishStartedEvent(ctx, startedInfo)
 
+	startTime := time.Now()
 	finishedInfo := finishedInformation{
 		cmdName:    startedInfo.cmdName,
 		requestID:  startedInfo.requestID,
-		startTime:  time.Now(),
 		connID:     startedInfo.connID,
 		serverHost: startedInfo.serverHost,
 		serverPort: startedInfo.serverPort,
@@ -229,7 +229,7 @@ func (op Operation) legacyGetMore(ctx context.Context, dst []byte, srvr Server, 
 		clientPort: startedInfo.clientPort,
 	}
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, nextBatchIdentifier)
-	finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+	finishedInfo.durationNanos = time.Now().Sub(startTime).Nanoseconds()
 
 	op.publishFinishedEvent(ctx, finishedInfo)
 	op.logFinishedEvent(ctx, finishedInfo)
@@ -319,7 +319,6 @@ func (op Operation) legacyKillCursors(ctx context.Context, dst []byte, srvr Serv
 		}
 
 		finishedInfo.cmdErr = err
-
 		op.publishFinishedEvent(ctx, finishedInfo)
 		op.logFinishedEvent(ctx, finishedInfo)
 		return err
@@ -331,7 +330,6 @@ func (op Operation) legacyKillCursors(ctx context.Context, dst []byte, srvr Serv
 	response, _ = bsoncore.AppendDocumentEnd(response, ridx)
 
 	finishedInfo.response = response
-
 	op.publishFinishedEvent(ctx, finishedInfo)
 	op.logFinishedEvent(ctx, finishedInfo)
 	return nil
@@ -399,11 +397,11 @@ func (op Operation) legacyListCollections(ctx context.Context, dst []byte, srvr 
 	}
 	startedInfo.getConnectionInfo(conn)
 	op.publishStartedEvent(ctx, startedInfo)
+	startTime := time.Now()
 
 	finishedInfo := finishedInformation{
 		cmdName:    startedInfo.cmdName,
 		requestID:  startedInfo.requestID,
-		startTime:  time.Now(),
 		connID:     startedInfo.connID,
 		serverHost: startedInfo.serverHost,
 		serverPort: startedInfo.serverPort,
@@ -412,7 +410,7 @@ func (op Operation) legacyListCollections(ctx context.Context, dst []byte, srvr 
 	}
 
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, firstBatchIdentifier)
-	finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+	finishedInfo.durationNanos = time.Now().Sub(startTime).Nanoseconds()
 
 	op.publishFinishedEvent(ctx, finishedInfo)
 	op.logFinishedEvent(ctx, finishedInfo)
@@ -533,11 +531,11 @@ func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Serv
 	}
 	startedInfo.getConnectionInfo(conn)
 	op.publishStartedEvent(ctx, startedInfo)
+	startTime := time.Now()
 
 	finishedInfo := finishedInformation{
 		cmdName:    startedInfo.cmdName,
 		requestID:  startedInfo.requestID,
-		startTime:  time.Now(),
 		connID:     startedInfo.connID,
 		serverHost: startedInfo.serverHost,
 		serverPort: startedInfo.serverPort,
@@ -546,7 +544,7 @@ func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Serv
 	}
 
 	finishedInfo.response, finishedInfo.cmdErr = op.roundTripLegacyCursor(ctx, wm, srvr, conn, collName, firstBatchIdentifier)
-	finishedInfo.durationNanos = time.Now().Sub(finishedInfo.startTime).Nanoseconds()
+	finishedInfo.durationNanos = time.Now().Sub(startTime).Nanoseconds()
 
 	op.publishFinishedEvent(ctx, finishedInfo)
 	op.logFinishedEvent(ctx, finishedInfo)

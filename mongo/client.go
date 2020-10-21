@@ -68,7 +68,6 @@ type Client struct {
 	monitor         *event.CommandMonitor
 	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
-	implicit        *bool
 
 	// client-side encryption fields
 	keyVaultClient *Client
