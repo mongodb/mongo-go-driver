@@ -56,7 +56,7 @@ type TestFile struct {
 
 func TestUnifiedSpec(t *testing.T) {
 	// Ensure the cluster is in a clean state before test execution begins.
-	if err := TerminateOpenTransactions(mtest.Background); err != nil {
+	if err := TerminateOpenSessions(mtest.Background); err != nil {
 		t.Fatalf("error terminating open transactions: %v", err)
 	}
 
@@ -114,7 +114,7 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *TestCase) {
 		// Failed tests should terminate any transactions left open on the server. If the helper also fails, we
 		// only log the error because the actual test failure has already occurred and should be preserved.
 		if mt.Failed() {
-			if err := TerminateOpenTransactions(mtest.Background); err != nil {
+			if err := TerminateOpenSessions(mtest.Background); err != nil {
 				mt.Logf("error terminating open transactions after failed test: %v", err)
 			}
 		}

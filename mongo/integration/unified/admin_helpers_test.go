@@ -20,10 +20,10 @@ const (
 	errorInterrupted int32 = 11601
 )
 
-// TerminateOpenTransactions executes a killAllSessions command to ensure open transactions don't cause future
-// operations to hang.
-func TerminateOpenTransactions(ctx context.Context) error {
-	if mtest.CompareServerVersions(mtest.ServerVersion(), "4.0") < 0 {
+// TerminateOpenSessions executes a killAllSessions command to ensure that sesssions left open on the server by a test
+// do not cause future tests to hang.
+func TerminateOpenSessions(ctx context.Context) error {
+	if mtest.CompareServerVersions(mtest.ServerVersion(), "3.6") < 0 {
 		return nil
 	}
 
