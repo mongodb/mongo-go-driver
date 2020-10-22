@@ -51,6 +51,27 @@ type TestCase struct {
 	Outcome           []*CollectionData  `bson:"outcome"`
 }
 
+func (t *TestCase) PerformsDistinct() bool {
+	return t.performsOperation("distinct")
+}
+
+func (t *TestCase) SetsFailPoint() bool {
+	return t.performsOperation("failPoint")
+}
+
+func (t *TestCase) StartsTransaction() bool {
+	return t.performsOperation("startTransaction")
+}
+
+func (t *TestCase) performsOperation(name string) bool {
+	for _, op := range t.Operations {
+		if op.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 type TestFile struct {
 	Description       string                      `bson:"description"`
 	SchemaVersion     string                      `bson:"schemaVersion"`
@@ -117,13 +138,8 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *TestCase) {
 	testCtx := NewTestContext(mtest.Background)
 
 	defer func() {
-		// Failed tests should terminate any transactions left open on the server. If the helper also fails, we
-		// only log the error because the actual test failure has already occurred and should be preserved.
-		if mt.Failed() {
-			if err := TerminateOpenSessions(mtest.Background); err != nil {
-				mt.Logf("error terminating open transactions after failed test: %v", err)
-			}
-		}
+		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
+		// failed and that failure should be preserved.
 
 		for _, err := range DisableUntargetedFailPoints(testCtx) {
 			mt.Log(err)
@@ -133,6 +149,14 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *TestCase) {
 		}
 		for _, err := range Entities(testCtx).Close(testCtx) {
 			mt.Log(err)
+		}
+		// Tests that failed or started a transaction should terminate any sessions left open on the server. This is
+		// reqiured even if the test attempted to commit/abort the transaction because an abortTransaction command can
+		// fail if it's sent to a mongos that isn't aware of the transaction.
+		if mt.Failed() || testCase.StartsTransaction() {
+			if err := TerminateOpenSessions(mtest.Background); err != nil {
+				mt.Logf("error terminating open transactions after failed test: %v", err)
+			}
 		}
 	}()
 
@@ -147,7 +171,7 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *TestCase) {
 	// a fail point, set a low heartbeatFrequencyMS value into the URI options map if one is not already present.
 	// This speeds up recovery time for the client if the fail point forces the server to return a state change
 	// error.
-	shouldSetHeartbeatFrequency := LowerHeartbeatFrequencyRequired(testCase)
+	shouldSetHeartbeatFrequency := testCase.SetsFailPoint()
 	for idx, entity := range testFile.CreateEntities {
 		for entityType, entityOptions := range entity {
 			if shouldSetHeartbeatFrequency && entityType == "client" {
@@ -166,7 +190,7 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *TestCase) {
 	}
 
 	// Work around SERVER-39704.
-	if DistinctWorkaroundRequired(testCase) {
+	if mtest.ClusterTopologyKind() == mtest.Sharded && testCase.PerformsDistinct() {
 		if err := PerformDistinctWorkaround(testCtx); err != nil {
 			mt.Fatalf("error performing \"distinct\" workaround: %v", err)
 		}
@@ -191,28 +215,6 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *TestCase) {
 		assert.Nil(mt, err, "error verifying outcome for collection %q at index %d: %v",
 			collData.Namespace(), idx, err)
 	}
-}
-
-func DistinctWorkaroundRequired(testCase *TestCase) bool {
-	if mtest.ClusterTopologyKind() != mtest.Sharded {
-		return false
-	}
-
-	for _, op := range testCase.Operations {
-		if op.Name == "distinct" {
-			return true
-		}
-	}
-	return false
-}
-
-func LowerHeartbeatFrequencyRequired(testCase *TestCase) bool {
-	for _, op := range testCase.Operations {
-		if op.Name == "failPoint" {
-			return true
-		}
-	}
-	return false
 }
 
 func DisableUntargetedFailPoints(ctx context.Context) []error {
