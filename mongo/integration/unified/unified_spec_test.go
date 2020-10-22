@@ -26,8 +26,14 @@ var (
 	}
 
 	skippedTestDescriptions = map[string]struct{}{
+		// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It expects batchSize values of three for
+		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor": {},
-		"Client side error in command starting transaction":                      {},
+
+		// This test expects the driver to raise a client-side error when inserting a document with a key that contains
+		// a "." or "$". We don't do this validation and the server is moving towards supporting this, so we don't have
+		// any plans to add it. This test will need to be changed once the server support lands anyway.
+		"Client side error in command starting transaction": {},
 	}
 )
 

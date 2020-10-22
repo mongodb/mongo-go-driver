@@ -141,6 +141,7 @@ func executeRunCommand(ctx context.Context, operation *Operation, sess mongo.Ses
 			// This is only necessary for languages that cannot preserve key order in the command document, so we can
 			// ignore it.
 		case "readConcern":
+			// GODRIVER-1774: We currently don't support overriding read concern for RunCommand.
 			return nil, fmt.Errorf("readConcern in runCommand not supported")
 		case "readPreference":
 			var temp readPreference
@@ -154,6 +155,7 @@ func executeRunCommand(ctx context.Context, operation *Operation, sess mongo.Ses
 			}
 			opts.SetReadPreference(rp)
 		case "writeConcern":
+			// GODRIVER-1774: We currently don't support overriding write concern for RunCommand.
 			return nil, fmt.Errorf("writeConcern in runCommand not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized runCommand option %q", key)
