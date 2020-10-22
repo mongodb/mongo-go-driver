@@ -23,6 +23,7 @@ int sspi_init(
 	char *directoryBuffer = (char *) calloc(1, actualLen);
 	int directoryLen = GetSystemDirectory(directoryBuffer, actualLen);
 	if (!directoryLen) {
+		free(directoryBuffer);
 		return GetLastError();
 	}
 
@@ -31,6 +32,7 @@ int sspi_init(
 	strcpy_s(&(directoryBuffer[directoryLen]), actualLen - directoryLen, dllName);
 
 	sspi_secur32_dll = LoadLibrary(directoryBuffer);
+	free(directoryBuffer);
 	if (!sspi_secur32_dll) {
 		return GetLastError();
 	}
