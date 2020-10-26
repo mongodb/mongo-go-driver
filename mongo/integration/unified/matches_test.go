@@ -12,9 +12,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // keyPathCtxKey is used as a key for a Context object. The value conveys the BSON key path that is currently being
@@ -58,16 +61,8 @@ func verifyValuesMatch(ctx context.Context, expected, actual bson.RawValue) erro
 			return newMatchingError(keyPath, "expected value to be a document but got a %s", actual.Type)
 		}
 
-		expectedElems, _ := expectedDoc.Elements()
-		if !extraKeysAllowed {
-			actualElems, _ := actualDoc.Elements()
-			if len(expectedElems) != len(actualElems) {
-				return newMatchingError(keyPath, "expected document length %d, got %d", len(expectedElems),
-					len(actualElems))
-			}
-		}
-
 		// Perform element-wise comparisons.
+		expectedElems, _ := expectedDoc.Elements()
 		for _, expectedElem := range expectedElems {
 			expectedKey := expectedElem.Key()
 			expectedValue := expectedElem.Value()
@@ -81,6 +76,11 @@ func verifyValuesMatch(ctx context.Context, expected, actual bson.RawValue) erro
 			// matching operators can assert that the value isn't present in the document (e.g. $$exists).
 			actualValue, err := actualDoc.LookupErr(expectedKey)
 			if specialDoc, ok := expectedValue.DocumentOK(); ok && requiresSpecialMatching(specialDoc) {
+				// Reset the key path so any errors returned from the function will only have the key path for the
+				// target value. Also unconditionally set extraKeysAllowed to false because an assertion like
+				// $$unsetOrMatches could recurse back into this function. In that case, the target document is nested
+				// and should not have extra keys.
+				ctx = makeMatchContext(ctx, "", false)
 				if err := evaluateSpecialComparison(ctx, specialDoc, actualValue, expectedKey); err != nil {
 					return newMatchingError(fullKeyPath, "error doing special matching assertion: %v", err)
 				}
@@ -96,6 +96,19 @@ func verifyValuesMatch(ctx context.Context, expected, actual bson.RawValue) erro
 			comparisonCtx := makeMatchContext(ctx, fullKeyPath, false)
 			if err := verifyValuesMatch(comparisonCtx, expectedValue, actualValue); err != nil {
 				return err
+			}
+		}
+		// If required, verify that the actual document does not have extra elements. We do this by iterating over the
+		// actual and checking for each key in the expected rather than comparing element counts because the presence of
+		// special operators can cause incorrect counts For example, the doucment {y: {$$exists: false}} has one
+		// element, but should match the document {}, which has none.
+		if !extraKeysAllowed {
+			actualElems, _ := actualDoc.Elements()
+			for _, actualElem := range actualElems {
+				if _, err := expectedDoc.LookupErr(actualElem.Key()); err != nil {
+					return newMatchingError(keyPath, "actual document %s contains extra key %q", actualDoc,
+						actualElem.Key())
+				}
 			}
 		}
 
@@ -280,7 +293,7 @@ func convertStringToBSONType(typeStr string) (bsontype.Type, error) {
 		return bsontype.Undefined, nil
 	case "objectId":
 		return bsontype.ObjectID, nil
-	case "boolean":
+	case "bool":
 		return bsontype.Boolean, nil
 	case "date":
 		return bsontype.DateTime, nil
@@ -322,4 +335,176 @@ func newMatchingError(keyPath, msg string, args ...interface{}) error {
 		return fmt.Errorf("comparison error at top-level: %s", fullMsg)
 	}
 	return fmt.Errorf("comparison error at key %q: %s", keyPath, fullMsg)
+}
+
+func TestMatches(t *testing.T) {
+	ctx := context.Background()
+	unmarshalExtJSONValue := func(t *testing.T, str string) bson.RawValue {
+		t.Helper()
+
+		if str == "" {
+			return bson.RawValue{}
+		}
+
+		var val bson.RawValue
+		err := bson.UnmarshalExtJSON([]byte(str), false, &val)
+		assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
+		return val
+	}
+	marshalValue := func(t *testing.T, val interface{}) bson.RawValue {
+		t.Helper()
+
+		valType, data, err := bson.MarshalValue(val)
+		assert.Nil(t, err, "MarshalValue error: %v", err)
+		return bson.RawValue{
+			Type:  valType,
+			Value: data,
+		}
+	}
+
+	assertMatches := func(t *testing.T, expected, actual bson.RawValue, shouldMatch bool) {
+		t.Helper()
+
+		err := VerifyValuesMatch(ctx, expected, actual, true)
+		if shouldMatch {
+			assert.Nil(t, err, "expected values to match, but got comparison error %v", err)
+			return
+		}
+		assert.NotNil(t, err, "expected values to not match, but got no error")
+	}
+
+	t.Run("documents with extra keys allowed", func(t *testing.T) {
+		expectedDoc := `{"x": 1, "y": {"a": 1, "b": 2}}`
+		expectedVal := unmarshalExtJSONValue(t, expectedDoc)
+
+		extraKeysAtRoot := `{"x": 1, "y": {"a": 1, "b": 2}, "z": 3}`
+		extraKeysInEmbedded := `{"x": 1, "y": {"a": 1, "b": 2, "c": 3}}`
+
+		testCases := []struct {
+			name    string
+			actual  string
+			matches bool
+		}{
+			{"exact match", expectedDoc, true},
+			{"extra keys allowed at root-level", extraKeysAtRoot, true},
+			{"incorrect type for y", `{"x": 1, "y": 2}`, false},
+			{"extra keys prohibited in embedded documents", extraKeysInEmbedded, false},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				assertMatches(t, expectedVal, unmarshalExtJSONValue(t, tc.actual), tc.matches)
+			})
+		}
+	})
+	t.Run("documents with extra keys not allowed", func(t *testing.T) {
+		expected := unmarshalExtJSONValue(t, `{"x": 1}`)
+		actual := unmarshalExtJSONValue(t, `{"x": 1, "y": 1}`)
+		err := VerifyValuesMatch(ctx, expected, actual, false)
+		assert.NotNil(t, err, "expected values to not match, but got no error")
+	})
+	t.Run("exists operator", func(t *testing.T) {
+		rootExists := unmarshalExtJSONValue(t, `{"x": {"$$exists": true}}`)
+		rootNotExists := unmarshalExtJSONValue(t, `{"x": {"$$exists": false}}`)
+		embeddedExists := unmarshalExtJSONValue(t, `{"x": {"y": {"$$exists": true}}}`)
+		embeddedNotExists := unmarshalExtJSONValue(t, `{"x": {"y": {"$$exists": false}}}`)
+
+		testCases := []struct {
+			name     string
+			expected bson.RawValue
+			actual   string
+			matches  bool
+		}{
+			{"root - should exist and does", rootExists, `{"x": 1}`, true},
+			{"root - should exist and does not", rootExists, `{"y": 1}`, false},
+			{"root - should not exist and does", rootNotExists, `{"x": 1}`, false},
+			{"root - should not exist and does not", rootNotExists, `{"y": 1}`, true},
+			{"embedded - should exist and does", embeddedExists, `{"x": {"y": 1}}`, true},
+			{"embedded - should exist and does not", embeddedExists, `{"x": {}}`, false},
+			{"embedded - should not exist and does", embeddedNotExists, `{"x": {"y": 1}}`, false},
+			{"embedded - should not exist and does not", embeddedNotExists, `{"x": {}}`, true}, // TODO
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				assertMatches(t, tc.expected, unmarshalExtJSONValue(t, tc.actual), tc.matches)
+			})
+		}
+	})
+	t.Run("type operator", func(t *testing.T) {
+		singleType := unmarshalExtJSONValue(t, `{"x": {"$$type": "string"}}`)
+		arrayTypes := unmarshalExtJSONValue(t, `{"x": {"$$type": ["string", "bool"]}}`)
+
+		testCases := []struct {
+			name     string
+			expected bson.RawValue
+			actual   string
+			matches  bool
+		}{
+			{"single type matches", singleType, `{"x": "foo"}`, true},
+			{"single type does not match", singleType, `{"x": 1}`, false},
+			{"multiple types matches first", arrayTypes, `{"x": "foo"}`, true},
+			{"multiple types matches second", arrayTypes, `{"x": true}`, true},
+			{"multiple types does not match", arrayTypes, `{"x": 1}`, false},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				assertMatches(t, tc.expected, unmarshalExtJSONValue(t, tc.actual), tc.matches)
+			})
+		}
+	})
+	t.Run("matchesHexBytes operator", func(t *testing.T) {
+		singleValue := unmarshalExtJSONValue(t, `{"$$matchesHexBytes": "DEADBEEF"}`)
+		document := unmarshalExtJSONValue(t, `{"x": {"$$matchesHexBytes": "DEADBEEF"}}`)
+
+		stringToBinary := func(str string) bson.RawValue {
+			hexBytes, err := hex.DecodeString(str)
+			assert.Nil(t, err, "hex.DecodeString error: %v", err)
+			return bson.RawValue{
+				Type:  bsontype.Binary,
+				Value: bsoncore.AppendBinary(nil, 0, hexBytes),
+			}
+		}
+
+		testCases := []struct {
+			name     string
+			expected bson.RawValue
+			actual   bson.RawValue
+			matches  bool
+		}{
+			{"single value matches", singleValue, stringToBinary("DEADBEEF"), true},
+			{"single value does not match", singleValue, stringToBinary("BEEF"), false},
+			{"document matches", document, marshalValue(t, bson.M{"x": stringToBinary("DEADBEEF")}), true},
+			{"document does not match", document, marshalValue(t, bson.M{"x": stringToBinary("BEEF")}), false},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				assertMatches(t, tc.expected, tc.actual, tc.matches)
+			})
+		}
+	})
+	t.Run("unsetOrMatches operator", func(t *testing.T) {
+		topLevel := unmarshalExtJSONValue(t, `{"$$unsetOrMatches": {"x": 1}}`)
+		nested := unmarshalExtJSONValue(t, `{"x": {"$$unsetOrMatches": {"y": 1}}}`)
+
+		testCases := []struct {
+			name     string
+			expected bson.RawValue
+			actual   string
+			matches  bool
+		}{
+			{"top-level unset", topLevel, "", true},
+			{"top-level matches", topLevel, `{"x": 1}`, true},
+			{"top-level matches with extra keys", topLevel, `{"x": 1, "y": 1}`, true},
+			{"top-level does not match", topLevel, `{"x": 2}`, false},
+			{"nested unset", nested, `{}`, true},
+			{"nested matches", nested, `{"x": {"y": 1}}`, true},
+			{"nested null exists but is null", nested, `{"x": "null"}`, false}, // null should not be considered unset
+			{"nested does not match", nested, `{"x": {"y": 2}}`, false},
+			{"nested does not match due to extra keys", nested, `{"x": {"y": 1, "z": 1}}`, false},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				assertMatches(t, tc.expected, unmarshalExtJSONValue(t, tc.actual), tc.matches)
+			})
+		}
+	})
 }
