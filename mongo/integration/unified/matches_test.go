@@ -100,14 +100,14 @@ func verifyValuesMatch(ctx context.Context, expected, actual bson.RawValue) erro
 		}
 		// If required, verify that the actual document does not have extra elements. We do this by iterating over the
 		// actual and checking for each key in the expected rather than comparing element counts because the presence of
-		// special operators can cause incorrect counts For example, the doucment {y: {$$exists: false}} has one
+		// special operators can cause incorrect counts. For example, the document {y: {$$exists: false}} has one
 		// element, but should match the document {}, which has none.
 		if !extraKeysAllowed {
 			actualElems, _ := actualDoc.Elements()
 			for _, actualElem := range actualElems {
 				if _, err := expectedDoc.LookupErr(actualElem.Key()); err != nil {
-					return newMatchingError(keyPath, "actual document %s contains extra key %q", actualDoc,
-						actualElem.Key())
+					return newMatchingError(keyPath, "extra key %q found in actual document %s", actualElem.Key(),
+						actualDoc)
 				}
 			}
 		}
@@ -421,7 +421,7 @@ func TestMatches(t *testing.T) {
 			{"embedded - should exist and does", embeddedExists, `{"x": {"y": 1}}`, true},
 			{"embedded - should exist and does not", embeddedExists, `{"x": {}}`, false},
 			{"embedded - should not exist and does", embeddedNotExists, `{"x": {"y": 1}}`, false},
-			{"embedded - should not exist and does not", embeddedNotExists, `{"x": {}}`, true}, // TODO
+			{"embedded - should not exist and does not", embeddedNotExists, `{"x": {}}`, true},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -497,7 +497,7 @@ func TestMatches(t *testing.T) {
 			{"top-level does not match", topLevel, `{"x": 2}`, false},
 			{"nested unset", nested, `{}`, true},
 			{"nested matches", nested, `{"x": {"y": 1}}`, true},
-			{"nested null exists but is null", nested, `{"x": "null"}`, false}, // null should not be considered unset
+			{"nested field exists but is null", nested, `{"x": null}`, false}, // null should not be considered unset
 			{"nested does not match", nested, `{"x": {"y": 2}}`, false},
 			{"nested does not match due to extra keys", nested, `{"x": {"y": 1, "z": 1}}`, false},
 		}
