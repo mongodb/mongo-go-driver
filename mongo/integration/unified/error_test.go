@@ -22,7 +22,7 @@ type ExpectedError struct {
 	ErrorSubstring *string        `bson:"errorContains"`
 	Code           *int32         `bson:"errorCode"`
 	CodeName       *string        `bson:"errorCodeName"`
-	IncluedLabels  []string       `bson:"errorLabelsContain"`
+	IncludedLabels []string       `bson:"errorLabelsContain"`
 	OmittedLabels  []string       `bson:"errorLabelsOmit"`
 	ExpectedResult *bson.RawValue `bson:"expectResult"`
 }
@@ -60,7 +60,7 @@ func VerifyOperationError(ctx context.Context, expected *ExpectedError, result *
 	}
 	if !serverError {
 		// Error if extractErrorDetails failed but the test requires assertions about server error details.
-		if expected.Code != nil || expected.CodeName != nil || expected.IncluedLabels != nil || expected.OmittedLabels != nil {
+		if expected.Code != nil || expected.CodeName != nil || expected.IncludedLabels != nil || expected.OmittedLabels != nil {
 			return fmt.Errorf("failed to extract details from error %v of type %T", result.Err, result.Err)
 		}
 	}
@@ -89,7 +89,7 @@ func VerifyOperationError(ctx context.Context, expected *ExpectedError, result *
 			return fmt.Errorf("expected error %v to have code name %q", result.Err, *expected.CodeName)
 		}
 	}
-	for _, label := range expected.IncluedLabels {
+	for _, label := range expected.IncludedLabels {
 		if !stringSliceContains(details.labels, label) {
 			return fmt.Errorf("expected error %v to contain label %q", result.Err, label)
 		}

@@ -104,7 +104,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 		if filter == nil {
 			return nil, newMissingArgumentError("filter")
 		}
-		if filter == nil {
+		if update == nil {
 			return nil, newMissingArgumentError("update")
 		}
 
@@ -153,7 +153,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 		if filter == nil {
 			return nil, newMissingArgumentError("filter")
 		}
-		if filter == nil {
+		if update == nil {
 			return nil, newMissingArgumentError("update")
 		}
 
