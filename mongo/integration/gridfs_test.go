@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/internal/testutil/israce"
@@ -247,6 +248,48 @@ func TestGridFS(x *testing.T) {
 					})
 				})
 			}
+		})
+		mt.Run("chunk size determined by files collection document", func(mt *mtest.T) {
+			// Test that the chunk size for a file download is determined by the chunkSize field in the files
+			// collection document, not the bucket's chunk size.
+
+			bucket, err := gridfs.NewBucket(mt.DB)
+			assert.Nil(mt, err, "NewBucket error: %v", err)
+			defer func() { _ = bucket.Drop() }()
+
+			fileData := []byte("hello world")
+			uploadOpts := options.GridFSUpload().SetChunkSizeBytes(4)
+			fileID, err := bucket.UploadFromStream("file", bytes.NewReader(fileData), uploadOpts)
+			assert.Nil(mt, err, "UploadFromStream error: %v", err)
+
+			// If the bucket's chunk size was used, this would error because the actual chunk size is 4 and the bucket
+			// chunk size is 255 KB.
+			var downloadBuffer bytes.Buffer
+			_, err = bucket.DownloadToStream(fileID, &downloadBuffer)
+			assert.Nil(mt, err, "DownloadToStream error: %v", err)
+
+			downloadedBytes := downloadBuffer.Bytes()
+			assert.Equal(mt, fileData, downloadedBytes, "expected bytes %s, got %s", fileData, downloadedBytes)
+		})
+		mt.Run("error if files collection document does not have a chunkSize field", func(mt *mtest.T) {
+			// Test that opening a download returns ErrMissingChunkSize if the files collection document has no
+			// chunk size field.
+
+			oid := primitive.NewObjectID()
+			filesDoc := bson.D{
+				{"_id", oid},
+				{"length", 10},
+				{"filename", "filename"},
+			}
+			_, err := mt.DB.Collection("fs.files").InsertOne(mtest.Background, filesDoc)
+			assert.Nil(mt, err, "InsertOne error for files collection: %v", err)
+
+			bucket, err := gridfs.NewBucket(mt.DB)
+			assert.Nil(mt, err, "NewBucket error: %v", err)
+			defer func() { _ = bucket.Drop() }()
+
+			_, err = bucket.OpenDownloadStream(oid)
+			assert.Equal(mt, gridfs.ErrMissingChunkSize, err, "expected error %v, got %v", gridfs.ErrMissingChunkSize, err)
 		})
 	})
 
