@@ -151,6 +151,8 @@ func (c *ClientEntity) getRecordEvents() bool {
 }
 
 func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts bson.M) error {
+	// A write concern can be constructed across multiple URI options (e.g. "w", "j", and "wTimeoutMS") so we declare an
+	// empty writeConcern instance here that can be populated in the loop below.
 	var wc writeConcern
 	var wcSet bool
 

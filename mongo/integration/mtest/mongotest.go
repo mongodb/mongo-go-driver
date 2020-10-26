@@ -666,7 +666,7 @@ func verifyTopologyConstraints(topologies []TopologyKind) error {
 	return fmt.Errorf("topology kind %q does not match any of the required kinds %q", testContext.topoKind, topologies)
 }
 
-// verifyRunOnBlockConstraint returns an error if the current environment does nto match the provided RunOnBlock.
+// verifyRunOnBlockConstraint returns an error if the current environment does not match the provided RunOnBlock.
 func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyVersionConstraints(rob.MinServerVersion, rob.MaxServerVersion); err != nil {
 		return err

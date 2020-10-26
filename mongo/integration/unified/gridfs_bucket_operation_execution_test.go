@@ -35,7 +35,7 @@ func executeBucketDelete(ctx context.Context, operation *Operation) (*OperationR
 		case "id":
 			id = &val
 		default:
-			return nil, fmt.Errorf("unrecongized delete option %q", key)
+			return nil, fmt.Errorf("unrecognized bucket delete option %q", key)
 		}
 	}
 	if id == nil {
@@ -61,7 +61,7 @@ func executeBucketDownload(ctx context.Context, operation *Operation) (*Operatio
 		case "id":
 			id = &val
 		default:
-			return nil, fmt.Errorf("unrecongized delete option %q", key)
+			return nil, fmt.Errorf("unrecognized bucket download option %q", key)
 		}
 	}
 	if id == nil {
@@ -109,7 +109,7 @@ func executeBucketUpload(ctx context.Context, operation *Operation) (*OperationR
 				return nil, fmt.Errorf("error converting source string to bytes: %v", err)
 			}
 		default:
-			return nil, fmt.Errorf("unrecognized upload option %q", key)
+			return nil, fmt.Errorf("unrecognized bucket upload option %q", key)
 		}
 	}
 	if filename == "" {

@@ -7,11 +7,11 @@
 package unified
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
 )
 
 type CommandMonitoringEvent struct {
@@ -51,24 +51,15 @@ func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
 	failed := client.FailedEvents()
 
 	// If the Events array is nil, verify that no events were sent.
-	if len(expectedEvents.Events) == 0 {
-		if len(started) != 0 {
-			return fmt.Errorf("expected no events but got started events %v", stringifyStartedEvents(started))
-		}
-		if len(succeeded) != 0 {
-			return fmt.Errorf("expected no events but got succeeded events %v", stringifySucceededEvents(succeeded))
-		}
-		if len(failed) != 0 {
-			return fmt.Errorf("expected no events but got failed events %v", stringifyFailedEvents(failed))
-		}
-		return nil
+	if len(expectedEvents.Events) == 0 && (len(started)+len(succeeded)+len(failed) != 0) {
+		return fmt.Errorf("expected no events to be sent but got %s", stringifyEventsForClient(client))
 	}
 
 	for idx, evt := range expectedEvents.Events {
 		switch {
 		case evt.CommandStartedEvent != nil:
 			if len(started) == 0 {
-				return newEventVerificationError(idx, "no CommandStartedEvent published")
+				return newEventVerificationError(idx, client, "no CommandStartedEvent published")
 			}
 
 			actual := started[0]
@@ -76,23 +67,23 @@ func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
 
 			expected := evt.CommandStartedEvent
 			if expected.CommandName != nil && *expected.CommandName != actual.CommandName {
-				return newEventVerificationError(idx, "expected command name %q, got %q", *expected.CommandName,
+				return newEventVerificationError(idx, client, "expected command name %q, got %q", *expected.CommandName,
 					actual.CommandName)
 			}
 			if expected.DatabaseName != nil && *expected.DatabaseName != actual.DatabaseName {
-				return newEventVerificationError(idx, "expected database name %q, got %q", *expected.DatabaseName,
+				return newEventVerificationError(idx, client, "expected database name %q, got %q", *expected.DatabaseName,
 					actual.DatabaseName)
 			}
 			if expected.Command != nil {
 				expectedDoc := DocumentToRawValue(expected.Command)
 				actualDoc := DocumentToRawValue(actual.Command)
 				if err := VerifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
-					return newEventVerificationError(idx, "error comparing command documents: %v", err)
+					return newEventVerificationError(idx, client, "error comparing command documents: %v", err)
 				}
 			}
 		case evt.CommandSucceededEvent != nil:
 			if len(succeeded) == 0 {
-				return newEventVerificationError(idx, "no CommandSucceededEvent published")
+				return newEventVerificationError(idx, client, "no CommandSucceededEvent published")
 			}
 
 			actual := succeeded[0]
@@ -100,19 +91,19 @@ func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
 
 			expected := evt.CommandSucceededEvent
 			if expected.CommandName != nil && *expected.CommandName != actual.CommandName {
-				return newEventVerificationError(idx, "expected command name %q, got %q", *expected.CommandName,
+				return newEventVerificationError(idx, client, "expected command name %q, got %q", *expected.CommandName,
 					actual.CommandName)
 			}
 			if expected.Reply != nil {
 				expectedDoc := DocumentToRawValue(expected.Reply)
 				actualDoc := DocumentToRawValue(actual.Reply)
 				if err := VerifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
-					return newEventVerificationError(idx, "error comparing reply documents: %v", err)
+					return newEventVerificationError(idx, client, "error comparing reply documents: %v", err)
 				}
 			}
 		case evt.CommandFailedEvent != nil:
 			if len(failed) == 0 {
-				return newEventVerificationError(idx, "no CommandFailedEvent published")
+				return newEventVerificationError(idx, client, "no CommandFailedEvent published")
 			}
 
 			actual := failed[0]
@@ -120,56 +111,44 @@ func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
 
 			expected := evt.CommandFailedEvent
 			if expected.CommandName != nil && *expected.CommandName != actual.CommandName {
-				return newEventVerificationError(idx, "expected command name %q, got %q", *expected.CommandName,
+				return newEventVerificationError(idx, client, "expected command name %q, got %q", *expected.CommandName,
 					actual.CommandName)
 			}
 		default:
-			return newEventVerificationError(idx, "no expected event set on CommandMonitoringEvent instance")
+			return newEventVerificationError(idx, client, "no expected event set on CommandMonitoringEvent instance")
 		}
 	}
 
 	// Verify that there are no remaining events.
-	if len(started) > 0 {
-		return fmt.Errorf("extra started events published: %v", stringifyStartedEvents(started))
+	if len(started) > 0 || len(succeeded) > 0 || len(failed) > 0 {
+		return fmt.Errorf("extra events published; all events for client: %s", stringifyEventsForClient(client))
 	}
-	if len(succeeded) > 0 {
-		return fmt.Errorf("extra succeeded events published: %v", stringifySucceededEvents(succeeded))
-	}
-	if len(failed) > 0 {
-		return fmt.Errorf("extra failed events published: %v", stringifyFailedEvents(failed))
-	}
-
 	return nil
 }
 
-func newEventVerificationError(idx int, msg string, args ...interface{}) error {
+func newEventVerificationError(idx int, client *ClientEntity, msg string, args ...interface{}) error {
 	fullMsg := fmt.Sprintf(msg, args...)
-	return fmt.Errorf("event comparison failed at index %d: %s", idx, fullMsg)
+	return fmt.Errorf("event comparison failed at index %d: %s; all events found for client: %s", idx, fullMsg,
+		stringifyEventsForClient(client))
 }
 
-func stringifyStartedEvents(events []*event.CommandStartedEvent) []string {
-	converted := make([]string, 0, len(events))
-	for _, evt := range events {
-		converted = append(converted, fmt.Sprintf("%s", evt.Command))
+func stringifyEventsForClient(client *ClientEntity) string {
+	str := bytes.NewBuffer(nil)
+
+	str.WriteString("\n\nStarted Events\n\n")
+	for _, evt := range client.StartedEvents() {
+		str.WriteString(fmt.Sprintf("[%s] %s\n", evt.ConnectionID, evt.Command))
 	}
 
-	return converted
-}
-
-func stringifySucceededEvents(events []*event.CommandSucceededEvent) []string {
-	converted := make([]string, 0, len(events))
-	for _, evt := range events {
-		converted = append(converted, fmt.Sprintf("command name: %s, reply: %s", evt.CommandName, evt.Reply))
+	str.WriteString("\nSucceeded Events\n\n")
+	for _, evt := range client.SucceededEvents() {
+		str.WriteString(fmt.Sprintf("[%s] CommandName: %s, Reply: %s\n", evt.ConnectionID, evt.CommandName, evt.Reply))
 	}
 
-	return converted
-}
-
-func stringifyFailedEvents(events []*event.CommandFailedEvent) []string {
-	converted := make([]string, 0, len(events))
-	for _, evt := range events {
-		converted = append(converted, fmt.Sprintf("command name: %s, failure: %s", evt.CommandName, evt.Failure))
+	str.WriteString("\nFailed Events\n\n")
+	for _, evt := range client.FailedEvents() {
+		str.WriteString(fmt.Sprintf("[%s] CommandName: %s, Failure: %s\n", evt.ConnectionID, evt.CommandName, evt.Failure))
 	}
 
-	return converted
+	return str.String()
 }

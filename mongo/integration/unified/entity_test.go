@@ -141,7 +141,7 @@ func (em *EntityMap) BSONValue(id string) (bson.RawValue, error) {
 func (em *EntityMap) ChangeStream(id string) (*mongo.ChangeStream, error) {
 	client, ok := em.changeStreams[id]
 	if !ok {
-		return nil, newEntityNotFoundError("client", id)
+		return nil, newEntityNotFoundError("change stream", id)
 	}
 	return client, nil
 }

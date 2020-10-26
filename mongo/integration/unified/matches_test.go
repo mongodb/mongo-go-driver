@@ -78,7 +78,7 @@ func verifyValuesMatch(ctx context.Context, expected, actual bson.RawValue) erro
 			}
 
 			// Get the value from actualDoc here but don't check the error until later because some of the special
-			// matching operaators can assert that the value isn't present in the document (e.g. $$exists).
+			// matching operators can assert that the value isn't present in the document (e.g. $$exists).
 			actualValue, err := actualDoc.LookupErr(expectedKey)
 			if specialDoc, ok := expectedValue.DocumentOK(); ok && requiresSpecialMatching(specialDoc) {
 				if err := evaluateSpecialComparison(ctx, specialDoc, actualValue, expectedKey); err != nil {

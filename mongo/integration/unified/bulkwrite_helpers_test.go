@@ -42,133 +42,214 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 
 	switch requestType {
 	case "insertOne":
-		return mongo.NewInsertOneModel().SetDocument(args.Lookup("document").Document()), nil
+		var document bson.Raw
+		elems, _ := args.Elements()
+		for _, elem := range elems {
+			key := elem.Key()
+			val := elem.Value()
+
+			switch key {
+			case "document":
+				document = val.Document()
+			default:
+				return nil, fmt.Errorf("unrecognized insertOne option %q", key)
+			}
+		}
+		if document == nil {
+			return nil, newMissingArgumentError("document")
+		}
+
+		return mongo.NewInsertOneModel().SetDocument(document), nil
 	case "updateOne":
-		uom := mongo.NewUpdateOneModel().SetFilter(args.Lookup("filter").Document())
-		update, err := createUpdateValue(args.Lookup("update"))
-		if err != nil {
-			return nil, fmt.Errorf("error creating update: %v", err)
-		}
-		uom.SetUpdate(update)
+		uom := mongo.NewUpdateOneModel()
+		var filter bson.Raw
+		var update interface{}
+		var err error
 
-		if val, err := args.LookupErr("arrayFilters"); err == nil {
-			uom.SetArrayFilters(options.ArrayFilters{
-				Filters: testhelpers.RawToInterfaceSlice(val.Array()),
-			})
-		}
-		if val, err := args.LookupErr("collation"); err == nil {
-			collation, err := createCollation(val.Document())
-			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %v", err)
+		elems, _ := args.Elements()
+		for _, elem := range elems {
+			key := elem.Key()
+			val := elem.Value()
+
+			switch key {
+			case "arrayFilters":
+				uom.SetArrayFilters(options.ArrayFilters{
+					Filters: testhelpers.RawToInterfaceSlice(val.Array()),
+				})
+			case "collation":
+				collation, err := createCollation(val.Document())
+				if err != nil {
+					return nil, fmt.Errorf("error creating collation: %v", err)
+				}
+				uom.SetCollation(collation)
+			case "filter":
+				filter = val.Document()
+			case "hint":
+				hint, err := createHint(val)
+				if err != nil {
+					return nil, fmt.Errorf("error creating hint: %v", err)
+				}
+				uom.SetHint(hint)
+			case "update":
+				update, err = createUpdateValue(val)
+				if err != nil {
+					return nil, fmt.Errorf("error creating update: %v", err)
+				}
+			case "upsert":
+				uom.SetUpsert(val.Boolean())
+			default:
+				return nil, fmt.Errorf("unrecognized updateOne option %q", key)
 			}
-			uom.SetCollation(collation)
 		}
-		if val, err := args.LookupErr("hint"); err == nil {
-			hint, err := createHint(val)
-			if err != nil {
-				return nil, fmt.Errorf("error creating hint: %v", err)
-			}
-			uom.SetHint(hint)
+		if filter == nil {
+			return nil, newMissingArgumentError("filter")
 		}
-		if val, err := args.LookupErr("upsert"); err == nil {
-			uom.SetUpsert(val.Boolean())
+		if filter == nil {
+			return nil, newMissingArgumentError("update")
 		}
 
-		return uom, nil
+		return uom.SetFilter(filter).SetUpdate(update), nil
 	case "updateMany":
-		umm := mongo.NewUpdateManyModel().SetFilter(args.Lookup("filter").Document())
-		update, err := createUpdateValue(args.Lookup("update"))
-		if err != nil {
-			return nil, fmt.Errorf("error creating update: %v", err)
-		}
-		umm.SetUpdate(update)
+		umm := mongo.NewUpdateManyModel()
+		var filter bson.Raw
+		var update interface{}
+		var err error
 
-		if val, err := args.LookupErr("arrayFilters"); err == nil {
-			umm.SetArrayFilters(options.ArrayFilters{
-				Filters: testhelpers.RawToInterfaceSlice(val.Array()),
-			})
-		}
-		if val, err := args.LookupErr("collation"); err == nil {
-			collation, err := createCollation(val.Document())
-			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %v", err)
+		elems, _ := args.Elements()
+		for _, elem := range elems {
+			key := elem.Key()
+			val := elem.Value()
+
+			switch key {
+			case "arrayFilters":
+				umm.SetArrayFilters(options.ArrayFilters{
+					Filters: testhelpers.RawToInterfaceSlice(val.Array()),
+				})
+			case "collation":
+				collation, err := createCollation(val.Document())
+				if err != nil {
+					return nil, fmt.Errorf("error creating collation: %v", err)
+				}
+				umm.SetCollation(collation)
+			case "filter":
+				filter = val.Document()
+			case "hint":
+				hint, err := createHint(val)
+				if err != nil {
+					return nil, fmt.Errorf("error creating hint: %v", err)
+				}
+				umm.SetHint(hint)
+			case "update":
+				update, err = createUpdateValue(val)
+				if err != nil {
+					return nil, fmt.Errorf("error creating update: %v", err)
+				}
+			case "upsert":
+				umm.SetUpsert(val.Boolean())
+			default:
+				return nil, fmt.Errorf("unrecognized updateMany option %q", key)
 			}
-			umm.SetCollation(collation)
 		}
-		if val, err := args.LookupErr("hint"); err == nil {
-			hint, err := createHint(val)
-			if err != nil {
-				return nil, fmt.Errorf("error creating hint: %v", err)
-			}
-			umm.SetHint(hint)
+		if filter == nil {
+			return nil, newMissingArgumentError("filter")
 		}
-		if val, err := args.LookupErr("upsert"); err == nil {
-			umm.SetUpsert(val.Boolean())
+		if filter == nil {
+			return nil, newMissingArgumentError("update")
 		}
 
-		return umm, nil
+		return umm.SetFilter(filter).SetUpdate(update), nil
 	case "deleteOne":
-		dom := mongo.NewDeleteOneModel().SetFilter(args.Lookup("filter").Document())
+		var filter bson.Raw
+		elems, _ := args.Elements()
+		for _, elem := range elems {
+			key := elem.Key()
+			val := elem.Value()
 
-		if val, err := args.LookupErr("collation"); err == nil {
-			collation, err := createCollation(val.Document())
-			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %v", err)
+			switch key {
+			case "filter":
+				filter = val.Document()
+			default:
+				return nil, fmt.Errorf("unrecognized deleteOne option %q", key)
 			}
-			dom.SetCollation(collation)
 		}
-		if val, err := args.LookupErr("hint"); err == nil {
-			hint, err := createHint(val)
-			if err != nil {
-				return nil, fmt.Errorf("error creating hint: %v", err)
-			}
-			dom.SetHint(hint)
+		if filter == nil {
+			return nil, newMissingArgumentError("filter")
 		}
 
-		return dom, nil
+		return mongo.NewDeleteOneModel().SetFilter(filter), nil
 	case "deleteMany":
-		dmm := mongo.NewDeleteManyModel().SetFilter(args.Lookup("filter").Document())
+		dmm := mongo.NewDeleteManyModel()
+		var filter bson.Raw
 
-		if val, err := args.LookupErr("collation"); err == nil {
-			collation, err := createCollation(val.Document())
-			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %v", err)
+		elems, _ := args.Elements()
+		for _, elem := range elems {
+			key := elem.Key()
+			val := elem.Value()
+
+			switch key {
+			case "collation":
+				collation, err := createCollation(val.Document())
+				if err != nil {
+					return nil, fmt.Errorf("error creating collation: %v", err)
+				}
+				dmm.SetCollation(collation)
+			case "filter":
+				filter = val.Document()
+			case "hint":
+				hint, err := createHint(val)
+				if err != nil {
+					return nil, fmt.Errorf("error creating hint: %v", err)
+				}
+				dmm.SetHint(hint)
+			default:
+				return nil, fmt.Errorf("unrecognized deleteMany option %q", key)
 			}
-			dmm.SetCollation(collation)
 		}
-		if val, err := args.LookupErr("hint"); err == nil {
-			hint, err := createHint(val)
-			if err != nil {
-				return nil, fmt.Errorf("error creating hint: %v", err)
-			}
-			dmm.SetHint(hint)
+		if filter == nil {
+			return nil, newMissingArgumentError("filter")
 		}
 
-		return dmm, nil
+		return dmm.SetFilter(filter), nil
 	case "replaceOne":
-		rom := mongo.NewReplaceOneModel().
-			SetFilter(args.Lookup("filter").Document()).
-			SetReplacement(args.Lookup("replacement").Document())
+		rom := mongo.NewReplaceOneModel()
+		var filter, replacement bson.Raw
 
-		if val, err := args.LookupErr("collation"); err == nil {
-			collation, err := createCollation(val.Document())
-			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %v", err)
+		elems, _ := args.Elements()
+		for _, elem := range elems {
+			key := elem.Key()
+			val := elem.Value()
+
+			switch key {
+			case "collation":
+				collation, err := createCollation(val.Document())
+				if err != nil {
+					return nil, fmt.Errorf("error creating collation: %v", err)
+				}
+				rom.SetCollation(collation)
+			case "filter":
+				filter = val.Document()
+			case "hint":
+				hint, err := createHint(val)
+				if err != nil {
+					return nil, fmt.Errorf("error creating hint: %v", err)
+				}
+				rom.SetHint(hint)
+			case "replacement":
+				replacement = val.Document()
+			case "upsert":
+				rom.SetUpsert(val.Boolean())
+			default:
+				return nil, fmt.Errorf("unrecognized replaceOne option %q", key)
 			}
-			rom.SetCollation(collation)
 		}
-		if val, err := args.LookupErr("hint"); err == nil {
-			hint, err := createHint(val)
-			if err != nil {
-				return nil, fmt.Errorf("error creating hint: %v", err)
-			}
-			rom.SetHint(hint)
+		if filter == nil {
+			return nil, newMissingArgumentError("filter")
 		}
-		if val, err := args.LookupErr("upsert"); err == nil {
-			rom.SetUpsert(val.Boolean())
+		if replacement == nil {
+			return nil, newMissingArgumentError("replacement")
 		}
 
-		return rom, nil
+		return rom.SetFilter(filter).SetReplacement(replacement), nil
 	default:
 		return nil, fmt.Errorf("unrecongized request type: %v", requestType)
 	}

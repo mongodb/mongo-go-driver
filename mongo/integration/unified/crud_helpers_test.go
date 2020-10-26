@@ -67,7 +67,7 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 		case "upsert":
 			ua.opts.SetUpsert(val.Boolean())
 		default:
-			return nil, fmt.Errorf("unrecognized deleteOne option %q", key)
+			return nil, fmt.Errorf("unrecognized update option %q", key)
 		}
 	}
 	if ua.filter == nil {

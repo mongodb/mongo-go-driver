@@ -138,15 +138,17 @@ func verifyLastTwoLsidsEqual(ctx context.Context, clientID string, expectedEqual
 		return err
 	}
 
-	if len(client.started) < 2 {
+	allEvents := client.StartedEvents()
+	if len(allEvents) < 2 {
 		return fmt.Errorf("client has recorded fewer than two command started events")
 	}
+	lastTwoEvents := allEvents[len(allEvents)-2:]
 
-	firstID, err := client.started[0].Command.LookupErr("lsid")
+	firstID, err := lastTwoEvents[0].Command.LookupErr("lsid")
 	if err != nil {
 		return fmt.Errorf("first command has no 'lsid' field: %v", client.started[0].Command)
 	}
-	secondID, err := client.started[1].Command.LookupErr("lsid")
+	secondID, err := lastTwoEvents[1].Command.LookupErr("lsid")
 	if err != nil {
 		return fmt.Errorf("first command has no 'lsid' field: %v", client.started[1].Command)
 	}

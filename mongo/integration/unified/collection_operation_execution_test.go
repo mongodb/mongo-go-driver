@@ -70,6 +70,8 @@ func executeAggregate(ctx context.Context, operation *Operation, sess mongo.Sess
 			opts.SetMaxAwaitTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "pipeline":
 			pipeline = testhelpers.RawToInterfaceSlice(val.Array())
+		default:
+			return nil, fmt.Errorf("unrecognized aggregate option %q", key)
 		}
 	}
 	if pipeline == nil {
@@ -392,7 +394,7 @@ func executeDistinct(ctx context.Context, operation *Operation, sess mongo.Sessi
 		case "maxTimeMS":
 			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		default:
-			return nil, fmt.Errorf("unrecognized estimatedDocumentCount option %q", key)
+			return nil, fmt.Errorf("unrecognized distinct option %q", key)
 		}
 	}
 	if fieldName == "" {
@@ -581,7 +583,7 @@ func executeFindOneAndUpdate(ctx context.Context, operation *Operation, sess mon
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
 		default:
-			return nil, fmt.Errorf("unrecognized find option %q", key)
+			return nil, fmt.Errorf("unrecognized findOneAndUpdate option %q", key)
 		}
 	}
 	if filter == nil {
@@ -660,7 +662,7 @@ func executeInsertOne(ctx context.Context, operation *Operation, sess mongo.Sess
 		case "bypassDocumentValidation":
 			opts.SetBypassDocumentValidation(val.Boolean())
 		default:
-			return nil, fmt.Errorf("unrecognized insertMany option %q", key)
+			return nil, fmt.Errorf("unrecognized insertOne option %q", key)
 		}
 	}
 	if document == nil {
@@ -718,7 +720,7 @@ func executeReplaceOne(ctx context.Context, operation *Operation, sess mongo.Ses
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
 		default:
-			return nil, fmt.Errorf("unrecognized deleteOne option %q", key)
+			return nil, fmt.Errorf("unrecognized replaceOne option %q", key)
 		}
 	}
 

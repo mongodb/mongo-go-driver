@@ -75,7 +75,7 @@ func executeCreateChangeStream(ctx context.Context, operation *Operation, sess m
 			t, i := val.Timestamp()
 			opts.SetStartAtOperationTime(&primitive.Timestamp{T: t, I: i})
 		default:
-			return nil, fmt.Errorf("unrecongized createChangeStream option %q", key)
+			return nil, fmt.Errorf("unrecognized createChangeStream option %q", key)
 		}
 	}
 	if pipeline == nil {

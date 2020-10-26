@@ -24,7 +24,7 @@ func executeAbortTransaction(ctx context.Context, operation *Operation) (*Operat
 	// AbortTransaction takes no options, so the arguments doc must be nil or empty.
 	elems, _ := operation.Arguments.Elements()
 	if len(elems) > 0 {
-		return nil, fmt.Errorf("unrecognized commitTransaction options %v", operation.Arguments)
+		return nil, fmt.Errorf("unrecognized abortTransaction options %v", operation.Arguments)
 	}
 
 	return NewErrorResult(sess.AbortTransaction(ctx)), nil

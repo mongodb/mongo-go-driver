@@ -150,10 +150,10 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *TestCase) {
 		for _, err := range Entities(testCtx).Close(testCtx) {
 			mt.Log(err)
 		}
-		// Tests that failed or started a transaction should terminate any sessions left open on the server. This is
-		// reqiured even if the test attempted to commit/abort the transaction because an abortTransaction command can
-		// fail if it's sent to a mongos that isn't aware of the transaction.
-		if mt.Failed() || testCase.StartsTransaction() {
+		// Tests that started a transaction should terminate any sessions left open on the server. This is required even
+		// if the test attempted to commit/abort the transaction because an abortTransaction command can fail if it's
+		// sent to a mongos that isn't aware of the transaction.
+		if testCase.StartsTransaction() {
 			if err := TerminateOpenSessions(mtest.Background); err != nil {
 				mt.Logf("error terminating open transactions after failed test: %v", err)
 			}

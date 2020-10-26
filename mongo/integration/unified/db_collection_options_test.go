@@ -31,7 +31,7 @@ func (d *DBOrCollectionOptions) UnmarshalBSON(data []byte) error {
 		return fmt.Errorf("error unmarshalling to temporary DBOrCollectionOptions object: %v", err)
 	}
 	if len(temp.Extra) > 0 {
-		return fmt.Errorf("unregonized fields for DBOrCollectionOptions: %v", MapKeys(temp.Extra))
+		return fmt.Errorf("unrecognized fields for DBOrCollectionOptions: %v", MapKeys(temp.Extra))
 	}
 
 	d.DBOptions = options.Database()

@@ -124,8 +124,6 @@ func executeRunCommand(ctx context.Context, operation *Operation, sess mongo.Ses
 		return nil, err
 	}
 
-	// TODO: file GODRIVER ticket for write concern
-
 	var command bson.Raw
 	opts := options.RunCmd()
 
