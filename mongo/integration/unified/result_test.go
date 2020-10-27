@@ -50,7 +50,7 @@ func NewValueResult(valueType bsontype.Type, data []byte, err error) *OperationR
 
 // NewCursorResult creates an OperationResult that contains documents retrieved by fully iterating a cursor.
 func NewCursorResult(arr []bson.Raw) *OperationResult {
-	// If the operation returned no documents, the array might be nil. It isn't possible to distingiush between this
+	// If the operation returned no documents, the array might be nil. It isn't possible to distinguish between this
 	// case and the case where there is no cursor result, so we overwrite the result with an non-nil empty slice.
 	result := arr
 	if result == nil {
