@@ -63,37 +63,53 @@ func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
 	}
 
 	switch op.Name {
+	// Session operations
 	case "abortTransaction":
 		return executeAbortTransaction(ctx, op)
+	case "commitTransaction":
+		return executeCommitTransaction(ctx, op)
+	case "endSession":
+		// The EndSession() method doesn't return a result, so we return a non-nil empty result.
+		return NewEmptyResult(), executeEndSession(ctx, op)
+	case "startTransaction":
+		return executeStartTransaction(ctx, op)
+	case "withTransaction":
+		// executeWithTransaction internally verifies results/errors for each operation, so it doesn't return a result.
+		return NewEmptyResult(), executeWithTransaction(ctx, op)
+
+	// Client operations
+	case "createChangeStream":
+		return executeCreateChangeStream(ctx, op)
+	case "listDatabases":
+		return executeListDatabases(ctx, op)
+
+	// Database operations
+	case "createCollection":
+		return executeCreateCollection(ctx, op)
+	case "dropCollection":
+		return executeDropCollection(ctx, op)
+	case "listCollections":
+		return executeListCollections(ctx, op)
+	case "listCollectionNames":
+		return executeListCollectionNames(ctx, op)
+	case "runCommand":
+		return executeRunCommand(ctx, op)
+
+	// Collection operations
 	case "aggregate":
 		return executeAggregate(ctx, op)
 	case "bulkWrite":
 		return executeBulkWrite(ctx, op)
-	case "commitTransaction":
-		return executeCommitTransaction(ctx, op)
 	case "countDocuments":
 		return executeCountDocuments(ctx, op)
-	case "createChangeStream":
-		return executeCreateChangeStream(ctx, op)
-	case "createCollection":
-		return executeCreateCollection(ctx, op)
 	case "createIndex":
 		return executeCreateIndex(ctx, op)
-	case "delete":
-		return executeBucketDelete(ctx, op)
-	case "download":
-		return executeBucketDownload(ctx, op)
 	case "deleteOne":
 		return executeDeleteOne(ctx, op)
 	case "deleteMany":
 		return executeDeleteMany(ctx, op)
 	case "distinct":
 		return executeDistinct(ctx, op)
-	case "dropCollection":
-		return executeDropCollection(ctx, op)
-	case "endSession":
-		// The EndSession() method doesn't return a result, so we return a non-nil empty result.
-		return NewEmptyResult(), executeEndSession(ctx, op)
 	case "estimatedDocumentCount":
 		return executeEstimatedDocumentCount(ctx, op)
 	case "find":
@@ -104,29 +120,24 @@ func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
 		return executeInsertMany(ctx, op)
 	case "insertOne":
 		return executeInsertOne(ctx, op)
-	case "iterateUntilDocumentOrError":
-		return executeIterateUntilDocumentOrError(ctx, op)
-	case "listCollections":
-		return executeListCollections(ctx, op)
-	case "listCollectionNames":
-		return executeListCollectionNames(ctx, op)
-	case "listDatabases":
-		return executeListDatabases(ctx, op)
 	case "replaceOne":
 		return executeReplaceOne(ctx, op)
-	case "runCommand":
-		return executeRunCommand(ctx, op)
-	case "startTransaction":
-		return executeStartTransaction(ctx, op)
 	case "updateOne":
 		return executeUpdateOne(ctx, op)
 	case "updateMany":
 		return executeUpdateMany(ctx, op)
+
+	// GridFS operations
+	case "delete":
+		return executeBucketDelete(ctx, op)
+	case "download":
+		return executeBucketDownload(ctx, op)
 	case "upload":
 		return executeBucketUpload(ctx, op)
-	case "withTransaction":
-		// executeWithTransaction internally verifies results/errors for each operation, so it doesn't return a result.
-		return NewEmptyResult(), executeWithTransaction(ctx, op)
+
+	// Change Stream operations
+	case "iterateUntilDocumentOrError":
+		return executeIterateUntilDocumentOrError(ctx, op)
 	default:
 		return nil, fmt.Errorf("unrecognized entity operation %q", op.Name)
 	}
