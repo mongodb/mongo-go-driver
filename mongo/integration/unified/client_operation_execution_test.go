@@ -20,7 +20,7 @@ import (
 
 // This file contains helpers to execute client operations.
 
-func executeCreateChangeStream(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeCreateChangeStream(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	var watcher interface {
 		Watch(context.Context, interface{}, ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error)
 	}
@@ -82,7 +82,7 @@ func executeCreateChangeStream(ctx context.Context, operation *Operation, sess m
 		return nil, newMissingArgumentError("pipeline")
 	}
 
-	stream, err := watcher.Watch(getOperationContext(ctx, sess), pipeline, opts)
+	stream, err := watcher.Watch(ctx, pipeline, opts)
 	if err != nil {
 		return NewErrorResult(err), nil
 	}
@@ -96,7 +96,7 @@ func executeCreateChangeStream(ctx context.Context, operation *Operation, sess m
 	return NewEmptyResult(), nil
 }
 
-func executeListDatabases(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeListDatabases(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	client, err := Entities(ctx).Client(operation.Object)
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func executeListDatabases(ctx context.Context, operation *Operation, sess mongo.
 		}
 	}
 
-	res, err := client.ListDatabases(getOperationContext(ctx, sess), filter, opts)
+	res, err := client.ListDatabases(ctx, filter, opts)
 	if err != nil {
 		return NewErrorResult(err), nil
 	}

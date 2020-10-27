@@ -21,7 +21,7 @@ import (
 
 // This file contains helpers to execute collection operations.
 
-func executeAggregate(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeAggregate(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	var aggregator interface {
 		Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*mongo.Cursor, error)
 	}
@@ -78,7 +78,7 @@ func executeAggregate(ctx context.Context, operation *Operation, sess mongo.Sess
 		return nil, newMissingArgumentError("pipeline")
 	}
 
-	cursor, err := aggregator.Aggregate(getOperationContext(ctx, sess), pipeline, opts)
+	cursor, err := aggregator.Aggregate(ctx, pipeline, opts)
 	if err != nil {
 		return NewErrorResult(err), nil
 	}
@@ -91,7 +91,7 @@ func executeAggregate(ctx context.Context, operation *Operation, sess mongo.Sess
 	return NewCursorResult(docs), nil
 }
 
-func executeBulkWrite(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeBulkWrite(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -121,7 +121,7 @@ func executeBulkWrite(ctx context.Context, operation *Operation, sess mongo.Sess
 		return nil, newMissingArgumentError("requests")
 	}
 
-	res, err := coll.BulkWrite(getOperationContext(ctx, sess), models, opts)
+	res, err := coll.BulkWrite(ctx, models, opts)
 	raw := emptyCoreDocument
 	if res != nil {
 		rawUpsertedIDs := emptyDocument
@@ -144,7 +144,7 @@ func executeBulkWrite(ctx context.Context, operation *Operation, sess mongo.Sess
 	return NewDocumentResult(raw, err), nil
 }
 
-func executeCountDocuments(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeCountDocuments(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -187,14 +187,14 @@ func executeCountDocuments(ctx context.Context, operation *Operation, sess mongo
 		return nil, newMissingArgumentError("filter")
 	}
 
-	count, err := coll.CountDocuments(getOperationContext(ctx, sess), filter, opts)
+	count, err := coll.CountDocuments(ctx, filter, opts)
 	if err != nil {
 		return NewErrorResult(err), nil
 	}
 	return NewValueResult(bsontype.Int64, bsoncore.AppendInt64(nil, count), nil), nil
 }
 
-func executeCreateIndex(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeCreateIndex(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -267,11 +267,11 @@ func executeCreateIndex(ctx context.Context, operation *Operation, sess mongo.Se
 		Keys:    keys,
 		Options: indexOpts,
 	}
-	name, err := coll.Indexes().CreateOne(getOperationContext(ctx, sess), model)
+	name, err := coll.Indexes().CreateOne(ctx, model)
 	return NewValueResult(bsontype.String, bsoncore.AppendString(nil, name), nil), nil
 }
 
-func executeDeleteOne(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeDeleteOne(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -308,7 +308,7 @@ func executeDeleteOne(ctx context.Context, operation *Operation, sess mongo.Sess
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.DeleteOne(getOperationContext(ctx, sess), filter, opts)
+	res, err := coll.DeleteOne(ctx, filter, opts)
 	raw := emptyCoreDocument
 	if res != nil {
 		raw = bsoncore.NewDocumentBuilder().
@@ -318,7 +318,7 @@ func executeDeleteOne(ctx context.Context, operation *Operation, sess mongo.Sess
 	return NewDocumentResult(raw, err), nil
 }
 
-func executeDeleteMany(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeDeleteMany(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -355,7 +355,7 @@ func executeDeleteMany(ctx context.Context, operation *Operation, sess mongo.Ses
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.DeleteMany(getOperationContext(ctx, sess), filter, opts)
+	res, err := coll.DeleteMany(ctx, filter, opts)
 	raw := emptyCoreDocument
 	if res != nil {
 		raw = bsoncore.NewDocumentBuilder().
@@ -365,7 +365,7 @@ func executeDeleteMany(ctx context.Context, operation *Operation, sess mongo.Ses
 	return NewDocumentResult(raw, err), nil
 }
 
-func executeDistinct(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeDistinct(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -404,7 +404,7 @@ func executeDistinct(ctx context.Context, operation *Operation, sess mongo.Sessi
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.Distinct(getOperationContext(ctx, sess), fieldName, filter, opts)
+	res, err := coll.Distinct(ctx, fieldName, filter, opts)
 	if err != nil {
 		return NewErrorResult(err), nil
 	}
@@ -415,7 +415,7 @@ func executeDistinct(ctx context.Context, operation *Operation, sess mongo.Sessi
 	return NewValueResult(bsontype.Array, rawRes, nil), nil
 }
 
-func executeEstimatedDocumentCount(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeEstimatedDocumentCount(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -435,14 +435,14 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *Operation, se
 		}
 	}
 
-	count, err := coll.EstimatedDocumentCount(getOperationContext(ctx, sess), opts)
+	count, err := coll.EstimatedDocumentCount(ctx, opts)
 	if err != nil {
 		return NewErrorResult(err), nil
 	}
 	return NewValueResult(bsontype.Int64, bsoncore.AppendInt64(nil, count), nil), nil
 }
 
-func executeFind(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeFind(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -511,7 +511,7 @@ func executeFind(ctx context.Context, operation *Operation, sess mongo.Session) 
 		return nil, newMissingArgumentError("filter")
 	}
 
-	cursor, err := coll.Find(getOperationContext(ctx, sess), filter, opts)
+	cursor, err := coll.Find(ctx, filter, opts)
 	if err != nil {
 		return NewErrorResult(err), nil
 	}
@@ -524,7 +524,7 @@ func executeFind(ctx context.Context, operation *Operation, sess mongo.Session) 
 	return NewCursorResult(docs), nil
 }
 
-func executeFindOneAndUpdate(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeFindOneAndUpdate(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -593,11 +593,11 @@ func executeFindOneAndUpdate(ctx context.Context, operation *Operation, sess mon
 		return nil, newMissingArgumentError("update")
 	}
 
-	res, err := coll.FindOneAndUpdate(getOperationContext(ctx, sess), filter, update, opts).DecodeBytes()
+	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).DecodeBytes()
 	return NewDocumentResult(res, err), nil
 }
 
-func executeInsertMany(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeInsertMany(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -624,7 +624,7 @@ func executeInsertMany(ctx context.Context, operation *Operation, sess mongo.Ses
 		return nil, newMissingArgumentError("documents")
 	}
 
-	res, err := coll.InsertMany(getOperationContext(ctx, sess), documents, opts)
+	res, err := coll.InsertMany(ctx, documents, opts)
 	raw := emptyCoreDocument
 	if res != nil {
 		// We return InsertedIDs as []interface{} but the CRUD spec documents it as a map[int64]interface{}, so
@@ -642,7 +642,7 @@ func executeInsertMany(ctx context.Context, operation *Operation, sess mongo.Ses
 	return NewDocumentResult(raw, err), nil
 }
 
-func executeInsertOne(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeInsertOne(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -669,7 +669,7 @@ func executeInsertOne(ctx context.Context, operation *Operation, sess mongo.Sess
 		return nil, newMissingArgumentError("documents")
 	}
 
-	res, err := coll.InsertOne(getOperationContext(ctx, sess), document, opts)
+	res, err := coll.InsertOne(ctx, document, opts)
 	raw := emptyCoreDocument
 	if res != nil {
 		t, data, err := bson.MarshalValue(res.InsertedID)
@@ -683,7 +683,7 @@ func executeInsertOne(ctx context.Context, operation *Operation, sess mongo.Sess
 	return NewDocumentResult(raw, err), nil
 }
 
-func executeReplaceOne(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeReplaceOne(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -724,7 +724,7 @@ func executeReplaceOne(ctx context.Context, operation *Operation, sess mongo.Ses
 		}
 	}
 
-	res, err := coll.ReplaceOne(getOperationContext(ctx, sess), filter, replacement, opts)
+	res, err := coll.ReplaceOne(ctx, filter, replacement, opts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
 		return nil, buildErr
@@ -732,7 +732,7 @@ func executeReplaceOne(ctx context.Context, operation *Operation, sess mongo.Ses
 	return NewDocumentResult(raw, err), nil
 }
 
-func executeUpdateOne(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeUpdateOne(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -743,7 +743,7 @@ func executeUpdateOne(ctx context.Context, operation *Operation, sess mongo.Sess
 		return nil, err
 	}
 
-	res, err := coll.UpdateOne(getOperationContext(ctx, sess), updateArgs.filter, updateArgs.update, updateArgs.opts)
+	res, err := coll.UpdateOne(ctx, updateArgs.filter, updateArgs.update, updateArgs.opts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
 		return nil, buildErr
@@ -751,7 +751,7 @@ func executeUpdateOne(ctx context.Context, operation *Operation, sess mongo.Sess
 	return NewDocumentResult(raw, err), nil
 }
 
-func executeUpdateMany(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeUpdateMany(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	coll, err := Entities(ctx).Collection(operation.Object)
 	if err != nil {
 		return nil, err
@@ -762,7 +762,7 @@ func executeUpdateMany(ctx context.Context, operation *Operation, sess mongo.Ses
 		return nil, err
 	}
 
-	res, err := coll.UpdateMany(getOperationContext(ctx, sess), updateArgs.filter, updateArgs.update, updateArgs.opts)
+	res, err := coll.UpdateMany(ctx, updateArgs.filter, updateArgs.update, updateArgs.opts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
 		return nil, buildErr

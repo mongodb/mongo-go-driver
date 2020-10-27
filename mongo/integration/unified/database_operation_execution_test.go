@@ -12,13 +12,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // This file contains helpers to execute database operations.
 
-func executeCreateCollection(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeCreateCollection(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	db, err := Entities(ctx).Database(operation.Object)
 	if err != nil {
 		return nil, err
@@ -41,11 +40,11 @@ func executeCreateCollection(ctx context.Context, operation *Operation, sess mon
 		return nil, newMissingArgumentError("collName")
 	}
 
-	err = db.CreateCollection(getOperationContext(ctx, sess), collName)
+	err = db.CreateCollection(ctx, collName)
 	return NewErrorResult(err), nil
 }
 
-func executeDropCollection(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeDropCollection(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	db, err := Entities(ctx).Database(operation.Object)
 	if err != nil {
 		return nil, err
@@ -68,11 +67,11 @@ func executeDropCollection(ctx context.Context, operation *Operation, sess mongo
 		return nil, newMissingArgumentError("collection")
 	}
 
-	err = db.Collection(collName).Drop(getOperationContext(ctx, sess))
+	err = db.Collection(collName).Drop(ctx)
 	return NewErrorResult(err), nil
 }
 
-func executeListCollections(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeListCollections(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	db, err := Entities(ctx).Database(operation.Object)
 	if err != nil {
 		return nil, err
@@ -83,7 +82,7 @@ func executeListCollections(ctx context.Context, operation *Operation, sess mong
 		return nil, err
 	}
 
-	cursor, err := db.ListCollections(getOperationContext(ctx, sess), listCollArgs.filter, listCollArgs.opts)
+	cursor, err := db.ListCollections(ctx, listCollArgs.filter, listCollArgs.opts)
 	if err != nil {
 		return NewErrorResult(err), nil
 	}
@@ -96,7 +95,7 @@ func executeListCollections(ctx context.Context, operation *Operation, sess mong
 	return NewCursorResult(docs), nil
 }
 
-func executeListCollectionNames(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeListCollectionNames(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	db, err := Entities(ctx).Database(operation.Object)
 	if err != nil {
 		return nil, err
@@ -107,7 +106,7 @@ func executeListCollectionNames(ctx context.Context, operation *Operation, sess 
 		return nil, err
 	}
 
-	names, err := db.ListCollectionNames(getOperationContext(ctx, sess), listCollArgs.filter, listCollArgs.opts)
+	names, err := db.ListCollectionNames(ctx, listCollArgs.filter, listCollArgs.opts)
 	if err != nil {
 		return NewErrorResult(err), nil
 	}
@@ -118,7 +117,7 @@ func executeListCollectionNames(ctx context.Context, operation *Operation, sess 
 	return NewValueResult(bsontype.Array, data, nil), nil
 }
 
-func executeRunCommand(ctx context.Context, operation *Operation, sess mongo.Session) (*OperationResult, error) {
+func executeRunCommand(ctx context.Context, operation *Operation) (*OperationResult, error) {
 	db, err := Entities(ctx).Database(operation.Object)
 	if err != nil {
 		return nil, err
@@ -163,6 +162,6 @@ func executeRunCommand(ctx context.Context, operation *Operation, sess mongo.Ses
 		return nil, newMissingArgumentError("command")
 	}
 
-	res, err := db.RunCommand(getOperationContext(ctx, sess), command, opts).DecodeBytes()
+	res, err := db.RunCommand(ctx, command, opts).DecodeBytes()
 	return NewDocumentResult(res, err), nil
 }

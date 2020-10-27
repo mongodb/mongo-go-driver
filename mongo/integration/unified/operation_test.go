@@ -50,13 +50,12 @@ func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
 	}
 
 	// Special handling for the "session" field because it applies to all operations.
-	var sess mongo.Session
-	var err error
 	if id, ok := op.Arguments.Lookup("session").StringValueOK(); ok {
-		sess, err = Entities(ctx).Session(id)
+		sess, err := Entities(ctx).Session(id)
 		if err != nil {
 			return nil, err
 		}
+		ctx = mongo.NewSessionContext(ctx, sess)
 
 		// Set op.Arguments to a new document that has the "session" field removed so individual operations do
 		// not have to account for it.
@@ -67,62 +66,62 @@ func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
 	case "abortTransaction":
 		return executeAbortTransaction(ctx, op)
 	case "aggregate":
-		return executeAggregate(ctx, op, sess)
+		return executeAggregate(ctx, op)
 	case "bulkWrite":
-		return executeBulkWrite(ctx, op, sess)
+		return executeBulkWrite(ctx, op)
 	case "commitTransaction":
 		return executeCommitTransaction(ctx, op)
 	case "countDocuments":
-		return executeCountDocuments(ctx, op, sess)
+		return executeCountDocuments(ctx, op)
 	case "createChangeStream":
-		return executeCreateChangeStream(ctx, op, sess)
+		return executeCreateChangeStream(ctx, op)
 	case "createCollection":
-		return executeCreateCollection(ctx, op, sess)
+		return executeCreateCollection(ctx, op)
 	case "createIndex":
-		return executeCreateIndex(ctx, op, sess)
+		return executeCreateIndex(ctx, op)
 	case "delete":
 		return executeBucketDelete(ctx, op)
 	case "download":
 		return executeBucketDownload(ctx, op)
 	case "deleteOne":
-		return executeDeleteOne(ctx, op, sess)
+		return executeDeleteOne(ctx, op)
 	case "deleteMany":
-		return executeDeleteMany(ctx, op, sess)
+		return executeDeleteMany(ctx, op)
 	case "distinct":
-		return executeDistinct(ctx, op, sess)
+		return executeDistinct(ctx, op)
 	case "dropCollection":
-		return executeDropCollection(ctx, op, sess)
+		return executeDropCollection(ctx, op)
 	case "endSession":
 		// The EndSession() method doesn't return a result, so we return a non-nil empty result.
 		return NewEmptyResult(), executeEndSession(ctx, op)
 	case "estimatedDocumentCount":
-		return executeEstimatedDocumentCount(ctx, op, sess)
+		return executeEstimatedDocumentCount(ctx, op)
 	case "find":
-		return executeFind(ctx, op, sess)
+		return executeFind(ctx, op)
 	case "findOneAndUpdate":
-		return executeFindOneAndUpdate(ctx, op, sess)
+		return executeFindOneAndUpdate(ctx, op)
 	case "insertMany":
-		return executeInsertMany(ctx, op, sess)
+		return executeInsertMany(ctx, op)
 	case "insertOne":
-		return executeInsertOne(ctx, op, sess)
+		return executeInsertOne(ctx, op)
 	case "iterateUntilDocumentOrError":
 		return executeIterateUntilDocumentOrError(ctx, op)
 	case "listCollections":
-		return executeListCollections(ctx, op, sess)
+		return executeListCollections(ctx, op)
 	case "listCollectionNames":
-		return executeListCollectionNames(ctx, op, sess)
+		return executeListCollectionNames(ctx, op)
 	case "listDatabases":
-		return executeListDatabases(ctx, op, sess)
+		return executeListDatabases(ctx, op)
 	case "replaceOne":
-		return executeReplaceOne(ctx, op, sess)
+		return executeReplaceOne(ctx, op)
 	case "runCommand":
-		return executeRunCommand(ctx, op, sess)
+		return executeRunCommand(ctx, op)
 	case "startTransaction":
 		return executeStartTransaction(ctx, op)
 	case "updateOne":
-		return executeUpdateOne(ctx, op, sess)
+		return executeUpdateOne(ctx, op)
 	case "updateMany":
-		return executeUpdateMany(ctx, op, sess)
+		return executeUpdateMany(ctx, op)
 	case "upload":
 		return executeBucketUpload(ctx, op)
 	case "withTransaction":
@@ -131,12 +130,4 @@ func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
 	default:
 		return nil, fmt.Errorf("unrecognized entity operation %q", op.Name)
 	}
-}
-
-// getOperationContext gets the Context object that should be used to execute an op.
-func getOperationContext(ctx context.Context, sess mongo.Session) context.Context {
-	if sess == nil {
-		return ctx
-	}
-	return mongo.NewSessionContext(ctx, sess)
 }
