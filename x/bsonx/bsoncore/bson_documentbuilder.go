@@ -168,6 +168,12 @@ func (db *DocumentBuilder) AppendMinKey(key string) *DocumentBuilder {
 	return db
 }
 
+// AppendValue will append a BSON element with the provided key and value to the document.
+func (db *DocumentBuilder) AppendValue(key string, val Value) *DocumentBuilder {
+	db.doc = AppendValueElement(db.doc, key, val)
+	return db
+}
+
 // StartDocument starts building an inline document element with the provided key
 // After this document is completed, the user must call finishDocument
 func (db *DocumentBuilder) StartDocument(key string) *DocumentBuilder {

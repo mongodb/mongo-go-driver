@@ -36,15 +36,19 @@ const (
 // once during the global setup in TestMain. These variables should only be accessed indirectly through MongoTest
 // instances.
 var testContext struct {
-	connString       connstring.ConnString
-	topo             *topology.Topology
-	topoKind         TopologyKind
-	client           *mongo.Client // client used for setup and teardown
-	serverVersion    string
-	authEnabled      bool
-	sslEnabled       bool
-	enterpriseServer bool
-	dataLake         bool
+	connString connstring.ConnString
+	topo       *topology.Topology
+	topoKind   TopologyKind
+	// shardedReplicaSet will be true if we're connected to a sharded cluster and each shard is backed by a replica set.
+	// We track this as a separate boolean rather than setting topoKind to ShardedReplicaSet because a general
+	// "Sharded" constraint in a test should match both Sharded and ShardedReplicaSet.
+	shardedReplicaSet bool
+	client            *mongo.Client // client used for setup and teardown
+	serverVersion     string
+	authEnabled       bool
+	sslEnabled        bool
+	enterpriseServer  bool
+	dataLake          bool
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
@@ -112,6 +116,37 @@ func Setup() error {
 		testContext.topoKind = Sharded
 	default:
 		return fmt.Errorf("could not detect topology kind; current topology: %s", testContext.topo.String())
+	}
+
+	// If we're connected to a sharded cluster, determine if the cluster is backed by replica sets.
+	if testContext.topoKind == Sharded {
+		// Run a find against config.shards and get each document in the collection.
+		cursor, err := testContext.client.Database("config").Collection("shards").Find(Background, bson.D{})
+		if err != nil {
+			return fmt.Errorf("error running find against config.shards: %v", err)
+		}
+		defer cursor.Close(Background)
+
+		var shards []struct {
+			Host string `bson:"host"`
+		}
+		if err := cursor.All(Background, &shards); err != nil {
+			return fmt.Errorf("error getting results find against config.shards: %v", err)
+		}
+
+		// Each document's host field will contain a single hostname if the shard is a standalone. If it's a replica
+		// set, the host field will be in the format "replicaSetName/host1,host2,...". Therefore, we can determine that
+		// the shard is a standalone if the "/" character isn't present.
+		var foundStandalone bool
+		for _, shard := range shards {
+			if strings.Index(shard.Host, "/") == -1 {
+				foundStandalone = true
+				break
+			}
+		}
+		if !foundStandalone {
+			testContext.shardedReplicaSet = true
+		}
 	}
 
 	if testContext.topoKind == ReplicaSet && CompareServerVersions(testContext.serverVersion, "4.0") >= 0 {

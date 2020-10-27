@@ -131,8 +131,8 @@ func newT(wrapped *testing.T, opts ...*Options) *T {
 		}
 	}
 
-	if t.shouldSkip() {
-		t.Skip("no matching environmental constraint found")
+	if err := t.verifyConstraints(); err != nil {
+		t.Skipf("skipping due to environmental constraints: %v", err)
 	}
 
 	if t.collName == "" {
@@ -473,9 +473,8 @@ func (t *T) SetFailPoint(fp FailPoint) {
 		}
 	}
 
-	admin := t.Client.Database("admin")
-	if err := admin.RunCommand(Background, fp).Err(); err != nil {
-		t.Fatalf("error creating fail point on server: %v", err)
+	if err := SetFailPoint(fp, t.Client); err != nil {
+		t.Fatal(err)
 	}
 	t.failPointNames = append(t.failPointNames, fp.ConfigureFailPoint)
 }
@@ -485,9 +484,8 @@ func (t *T) SetFailPoint(fp FailPoint) {
 // the failpoint will appear in command monitoring channels. The fail point will be automatically disabled after this
 // test has run.
 func (t *T) SetFailPointFromDocument(fp bson.Raw) {
-	admin := t.Client.Database("admin")
-	if err := admin.RunCommand(Background, fp).Err(); err != nil {
-		t.Fatalf("error creating fail point on server: %v", err)
+	if err := SetRawFailPoint(fp, t.Client); err != nil {
+		t.Fatal(err)
 	}
 
 	name := fp.Index(0).Value().StringValue()
@@ -639,71 +637,86 @@ func (t *T) createTestCollection() {
 	}, createOnServer)
 }
 
-// matchesServerVersion checks if the current server version is in the range [min, max]. Server versions will only be
-// compared if they are non-empty.
-func matchesServerVersion(min, max string) bool {
+// verifyVersionConstraints returns an error if the cluster's server version is not in the range [min, max]. Server
+// versions will only be checked if they are non-empty.
+func verifyVersionConstraints(min, max string) error {
 	if min != "" && CompareServerVersions(testContext.serverVersion, min) < 0 {
-		return false
+		return fmt.Errorf("server version %q is lower than min required version %q", testContext.serverVersion, min)
 	}
-	return max == "" || CompareServerVersions(testContext.serverVersion, max) <= 0
+	if max != "" && CompareServerVersions(testContext.serverVersion, max) > 0 {
+		return fmt.Errorf("server version %q is higher than max version %q", testContext.serverVersion, max)
+	}
+	return nil
 }
 
-// matchesTopology checks if the current topology is present in topologies.
-// if topologies is empty, true is returned without any additional checks.
-func matchesTopology(topologies []TopologyKind) bool {
+// verifyTopologyConstraints returns an error if the cluster's topology kind does not match one of the provided
+// kinds. If the topologies slice is empty, nil is returned without any additional checks.
+func verifyTopologyConstraints(topologies []TopologyKind) error {
 	if len(topologies) == 0 {
-		return true
+		return nil
 	}
 
 	for _, topo := range topologies {
-		if topo == testContext.topoKind {
-			return true
+		// For ShardedReplicaSet, we won't get an exact match because testContext.topoKind will be Sharded so we do an
+		// additional comparison with the testContext.shardedReplicaSet field.
+		if topo == testContext.topoKind || (topo == ShardedReplicaSet && testContext.shardedReplicaSet) {
+			return nil
 		}
 	}
-	return false
+	return fmt.Errorf("topology kind %q does not match any of the required kinds %q", testContext.topoKind, topologies)
 }
 
-// matchesRunOnBlock returns true if the current environmental constraints match the given RunOnBlock.
-func matchesRunOnBlock(rob RunOnBlock) bool {
-	if !matchesServerVersion(rob.MinServerVersion, rob.MaxServerVersion) {
-		return false
+// verifyRunOnBlockConstraint returns an error if the current environment does not match the provided RunOnBlock.
+func verifyRunOnBlockConstraint(rob RunOnBlock) error {
+	if err := verifyVersionConstraints(rob.MinServerVersion, rob.MaxServerVersion); err != nil {
+		return err
 	}
-	return matchesTopology(rob.Topology)
+
+	return verifyTopologyConstraints(rob.Topology)
 }
 
-func (t *T) shouldSkip() bool {
+// verifyConstraints returns an error if the current environment does not match the constraints specified for the test.
+func (t *T) verifyConstraints() error {
 	// Check constraints not specified as runOn blocks
-	if !matchesServerVersion(t.minServerVersion, t.maxServerVersion) {
-		return true
+	if err := verifyVersionConstraints(t.minServerVersion, t.maxServerVersion); err != nil {
+		return err
 	}
-	if !matchesTopology(t.validTopologies) {
-		return true
+	if err := verifyTopologyConstraints(t.validTopologies); err != nil {
+		return err
 	}
 	if t.auth != nil && *t.auth != testContext.authEnabled {
-		return true
+		return fmt.Errorf("test requires auth value: %v, cluster auth value: %v", *t.auth, testContext.authEnabled)
 	}
 	if t.ssl != nil && *t.ssl != testContext.sslEnabled {
-		return true
+		return fmt.Errorf("test requires ssl value: %v, cluster ssl value: %v", *t.ssl, testContext.sslEnabled)
 	}
 	if t.enterprise != nil && *t.enterprise != testContext.enterpriseServer {
-		return true
+		return fmt.Errorf("test requires enterprise value: %v, cluster enterprise value: %v", *t.enterprise,
+			testContext.enterpriseServer)
 	}
 	if t.dataLake != nil && *t.dataLake != testContext.dataLake {
-		return true
+		return fmt.Errorf("test requires cluster to be data lake: %v, cluster is data lake: %v", *t.dataLake,
+			testContext.dataLake)
 	}
 
-	// Check runOn blocks
-	// The test can be executed if there are no blocks or at least block matches the current test setup.
+	// Check runOn blocks. The test can be executed if there are no blocks or at least block matches the current test
+	// setup.
 	if len(t.runOn) == 0 {
-		return false
+		return nil
 	}
+
+	// Stop once we find a RunOnBlock that matches the current environment. Record all errors as we go because if we
+	// don't find any matching blocks, we want to report the comparison errors for each block.
+	var runOnErrors []error
 	for _, runOn := range t.runOn {
-		if matchesRunOnBlock(runOn) {
-			return false
+		err := verifyRunOnBlockConstraint(runOn)
+		if err == nil {
+			return nil
 		}
+
+		runOnErrors = append(runOnErrors, err)
 	}
-	// no matching block found
-	return true
+	return fmt.Errorf("no matching RunOnBlock; comparison errors: %v", runOnErrors)
 }
 
 func (t *T) interfaceToInt32(i interface{}) (int32, error) {

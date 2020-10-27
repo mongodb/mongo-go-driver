@@ -7,6 +7,9 @@
 package mtest
 
 import (
+	"errors"
+	"fmt"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -17,8 +20,11 @@ type TopologyKind string
 // These constants specify valid values for TopologyKind
 const (
 	ReplicaSet TopologyKind = "replicaset"
-	Sharded                 = "sharded"
-	Single                  = "single"
+	Sharded    TopologyKind = "sharded"
+	Single     TopologyKind = "single"
+	// ShardedReplicaSet is a special case of sharded that requires each shard to be a replica set rather than a
+	// standalone server.
+	ShardedReplicaSet TopologyKind = "sharded-replicaset"
 )
 
 // ClientType specifies the type of Client that should be created for a test.
@@ -47,6 +53,35 @@ type RunOnBlock struct {
 	MinServerVersion string         `bson:"minServerVersion"`
 	MaxServerVersion string         `bson:"maxServerVersion"`
 	Topology         []TopologyKind `bson:"topology"`
+}
+
+// UnmarshalBSON implements custom BSON unmarshalling behavior for RunOnBlock because some test formats use the
+// "topology" key while the unified test format uses "topologies".
+func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
+	var temp struct {
+		MinServerVersion string         `bson:"minServerVersion"`
+		MaxServerVersion string         `bson:"maxServerVersion"`
+		Topology         []TopologyKind `bson:"topology"`
+		Topologies       []TopologyKind `bson:"topologies"`
+	}
+	if err := bson.Unmarshal(data, &temp); err != nil {
+		return fmt.Errorf("error unmarshalling to temporary RunOnBlock object: %v", err)
+	}
+
+	r.MinServerVersion = temp.MinServerVersion
+	r.MaxServerVersion = temp.MaxServerVersion
+
+	if temp.Topology != nil {
+		r.Topology = temp.Topology
+	}
+	if temp.Topologies != nil {
+		if r.Topology != nil {
+			return errors.New("both 'topology' and 'topologies' keys cannot be specified for a RunOnBlock")
+		}
+
+		r.Topology = temp.Topologies
+	}
+	return nil
 }
 
 // optionFunc is a function type that configures a T instance.
