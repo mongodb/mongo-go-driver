@@ -765,6 +765,18 @@ func TestCollection(t *testing.T) {
 			limit := limitVal.Int64()
 			assert.Equal(mt, int64(1), limit, "expected limit 1, got %v", limit)
 		})
+		mt.Run("maxTime", func(mt *mtest.T) {
+			opts := options.FindOne().SetMaxTime(1 * time.Second)
+			err := mt.Coll.FindOne(mtest.Background, bson.D{}, opts).Err()
+			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
+
+			started := mt.GetStartedEvent()
+			assert.NotNil(mt, started, "expected CommandStartedEvent, got nil")
+			limitVal, err := started.Command.LookupErr("maxTimeMS")
+			assert.Nil(mt, err, "maxTimeMS not found in command")
+			limit := limitVal.Int64()
+			assert.Equal(mt, int64(1000), limit, "expected maxTime 1000, got %v", limit)
+		})
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			res, err := mt.Coll.FindOne(mtest.Background, bson.D{{"x", 1}}).DecodeBytes()
