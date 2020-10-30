@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -765,18 +766,6 @@ func TestCollection(t *testing.T) {
 			limit := limitVal.Int64()
 			assert.Equal(mt, int64(1), limit, "expected limit 1, got %v", limit)
 		})
-		mt.Run("maxTime", func(mt *mtest.T) {
-			opts := options.FindOne().SetMaxTime(1 * time.Second)
-			err := mt.Coll.FindOne(mtest.Background, bson.D{}, opts).Err()
-			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
-
-			started := mt.GetStartedEvent()
-			assert.NotNil(mt, started, "expected CommandStartedEvent, got nil")
-			limitVal, err := started.Command.LookupErr("maxTimeMS")
-			assert.Nil(mt, err, "maxTimeMS not found in command")
-			limit := limitVal.Int64()
-			assert.Equal(mt, int64(1000), limit, "expected maxTime 1000, got %v", limit)
-		})
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			res, err := mt.Coll.FindOne(mtest.Background, bson.D{{"x", 1}}).DecodeBytes()
@@ -790,8 +779,40 @@ func TestCollection(t *testing.T) {
 		})
 		mt.Run("options", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			opts := options.FindOne().SetComment("here's a query for ya")
-			res, err := mt.Coll.FindOne(mtest.Background, bson.D{{"x", 1}}, opts).DecodeBytes()
+
+			// Create an index for Hint, Max, and Min options
+			indexView := mt.Coll.Indexes()
+			indexName, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
+				Keys: bson.D{{"x", 1}},
+			})
+			assert.Nil(mt, err, "CreateOne error: %v", err)
+
+			mt.ClearEvents()
+			expectedCollation := options.Collation{Locale: "en_US"}
+			expectedComment := "here's a query for ya"
+			expectedMax := bson.D{{"x", int32(5)}}
+			expectedMin := bson.D{{"x", int32(0)}}
+			expectedProjection := bson.D{{"x", int32(1)}}
+			expectedSort := bson.D{{"x", int32(1)}}
+			// SetCursorType is excluded because cursor type and sort can't be specifed at the same time
+			// SetMaxAwaitTime affects the cursor and not the server command, so it can't be checked
+			opts := options.FindOne().
+				SetAllowPartialResults(true).
+				SetBatchSize(2).
+				SetCollation(&expectedCollation).
+				SetComment(expectedComment).
+				SetHint(indexName).
+				SetMax(expectedMax).
+				SetMaxTime(1 * time.Second).
+				SetMin(expectedMin).
+				SetNoCursorTimeout(false).
+				SetOplogReplay(false).
+				SetProjection(expectedProjection).
+				SetReturnKey(false).
+				SetShowRecordID(false).
+				SetSkip(0).
+				SetSort(expectedSort)
+			res, err := mt.Coll.FindOne(mtest.Background, bson.D{}, opts).DecodeBytes()
 			assert.Nil(mt, err, "FindOne error: %v", err)
 
 			x, err := res.LookupErr("x")
@@ -799,6 +820,97 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, bson.TypeInt32, x.Type, "expected x type %v, got %v", bson.TypeInt32, x.Type)
 			got := x.Int32()
 			assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
+
+			started := mt.GetStartedEvent()
+			assert.NotNil(mt, started, "expected CommandStartedEvent, got nil")
+
+			aprVal, err := started.Command.LookupErr("allowPartialResults")
+			assert.Nil(mt, err, "allowPartialResults not found in command")
+			apr := aprVal.Boolean()
+			assert.Equal(mt, true, apr, "expected allowPartialResults true, got %v", apr)
+
+			batchVal, err := started.Command.LookupErr("batchSize")
+			assert.Nil(mt, err, "batchSize not found in command")
+			batch := batchVal.Int32()
+			assert.Equal(mt, int32(2), batch, "expected batchSize 2, got %v", batch)
+
+			collationVal, err := started.Command.LookupErr("collation")
+			assert.Nil(mt, err, "collation not found in command")
+			var collation options.Collation
+			err = bson.Unmarshal(collationVal.Document(), &collation)
+			assert.Nil(mt, err, "error unmarshalling collation: %v", err)
+			assert.Equal(mt, expectedCollation, collation, "expected collation %v, got %v", expectedCollation, collation)
+
+			commentVal, err := started.Command.LookupErr("comment")
+			assert.Nil(mt, err, "comment not found in command")
+			comment := commentVal.String()
+			expectedComment = fmt.Sprintf("\"%v\"", expectedComment)
+			assert.Equal(mt, expectedComment, comment, "expected comment %v, got %v", expectedComment, comment)
+
+			hintVal, err := started.Command.LookupErr("hint")
+			assert.Nil(mt, err, "hint not found in command")
+			hint := hintVal.String()
+			indexName = fmt.Sprintf("\"%v\"", indexName)
+			assert.Equal(mt, indexName, hint, "expected comment %v, got %v", indexName, hint)
+
+			maxVal, err := started.Command.LookupErr("max")
+			assert.Nil(mt, err, "max not found in command")
+			var max bson.D
+			err = bson.Unmarshal(maxVal.Document(), &max)
+			assert.Nil(mt, err, "error unmarshalling max: %v", err)
+			assert.Equal(mt, expectedMax, max, "expected max %v, got %v", expectedMax, max)
+
+			maxTimeVal, err := started.Command.LookupErr("maxTimeMS")
+			assert.Nil(mt, err, "maxTimeMS not found in command")
+			maxTime := maxTimeVal.Int64()
+			assert.Equal(mt, int64(1000), maxTime, "expected maxTime 1000, got %v", maxTime)
+
+			minVal, err := started.Command.LookupErr("min")
+			assert.Nil(mt, err, "min not found in command")
+			var min bson.D
+			err = bson.Unmarshal(minVal.Document(), &min)
+			assert.Nil(mt, err, "error unmarshalling min: %v", err)
+			assert.Equal(mt, expectedMin, min, "expected min %v, got %v", expectedMin, min)
+
+			nctVal, err := started.Command.LookupErr("noCursorTimeout")
+			assert.Nil(mt, err, "noCursorTimeout not found in command")
+			nct := nctVal.Boolean()
+			assert.Equal(mt, false, nct, "expected noCursorTimeout false, got %v", nct)
+
+			oplogReplayVal, err := started.Command.LookupErr("oplogReplay")
+			assert.Nil(mt, err, "oplogReplay not found in command")
+			oplogReplay := oplogReplayVal.Boolean()
+			assert.Equal(mt, false, oplogReplay, "expected oplogReplay false, got %v", oplogReplay)
+
+			projVal, err := started.Command.LookupErr("projection")
+			assert.Nil(mt, err, "projection not found in command")
+			var proj bson.D
+			err = bson.Unmarshal(projVal.Document(), &proj)
+			assert.Nil(mt, err, "error unmarshalling projection: %v", err)
+			assert.Equal(mt, expectedProjection, proj, "expected projection %v, got %v", expectedProjection, proj)
+
+			returnKeyVal, err := started.Command.LookupErr("returnKey")
+			assert.Nil(mt, err, "returnKey not found in command")
+			returnKey := returnKeyVal.Boolean()
+			assert.Equal(mt, false, returnKey, "expected returnKey false, got %v", returnKey)
+
+			srIDVal, err := started.Command.LookupErr("showRecordId")
+			assert.Nil(mt, err, "showRecordId not found in command")
+			srID := srIDVal.Boolean()
+			assert.Equal(mt, false, srID, "expected showRecordId false, got %v", srID)
+
+			skipVal, err := started.Command.LookupErr("skip")
+			assert.Nil(mt, err, "skip not found in command")
+			skip := skipVal.Int64()
+			assert.Equal(mt, int64(0), skip, "expected skip 0, got %v", skip)
+
+			sortVal, err := started.Command.LookupErr("sort")
+			assert.Nil(mt, err, "sort not found in command")
+			var sort bson.D
+			err = bson.Unmarshal(sortVal.Document(), &sort)
+			assert.Nil(mt, err, "error unmarshalling sort: %v", err)
+			assert.Equal(mt, expectedSort, sort, "expected sort %v, got %v", expectedSort, sort)
+
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
