@@ -794,7 +794,9 @@ func TestCollection(t *testing.T) {
 			expectedMin := bson.D{{"x", int32(0)}}
 			expectedProjection := bson.D{{"x", int32(1)}}
 			expectedSort := bson.D{{"x", int32(1)}}
-			// SetCursorType is excluded because cursor type and sort can't be specifed at the same time
+			// SetCursorType is excluded because tailable cursors can't be used with limit -1,
+			// which all FindOne operations set, and the nontailable setting isn't passed to the
+			// operation layer
 			// SetMaxAwaitTime affects the cursor and not the server command, so it can't be checked
 			opts := options.FindOne().
 				SetAllowPartialResults(true).
