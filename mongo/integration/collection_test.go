@@ -776,10 +776,40 @@ func TestCollection(t *testing.T) {
 			got := x.Int32()
 			assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
 		})
-		mt.Run("options", func(mt *mtest.T) {
+		mt.RunOpts("options", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			opts := options.FindOne().SetComment("here's a query for ya")
-			res, err := mt.Coll.FindOne(mtest.Background, bson.D{{"x", 1}}, opts).DecodeBytes()
+
+			// Create an index for Hint, Max, and Min options
+			indexView := mt.Coll.Indexes()
+			indexName, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
+				Keys: bson.D{{"x", 1}},
+			})
+			assert.Nil(mt, err, "CreateOne error: %v", err)
+
+			mt.ClearEvents()
+			expectedComment := "here's a query for ya"
+			// SetCursorType is excluded because tailable cursors can't be used with limit -1,
+			// which all FindOne operations set, and the nontailable setting isn't passed to the
+			// operation layer
+			// SetMaxAwaitTime affects the cursor and not the server command, so it can't be checked
+			// SetCursorTime and setMaxAwaitTime will be deprecated in GODRIVER-1775
+			opts := options.FindOne().
+				SetAllowPartialResults(true).
+				SetBatchSize(2).
+				SetCollation(&options.Collation{Locale: "en_US"}).
+				SetComment(expectedComment).
+				SetHint(indexName).
+				SetMax(bson.D{{"x", int32(5)}}).
+				SetMaxTime(1 * time.Second).
+				SetMin(bson.D{{"x", int32(0)}}).
+				SetNoCursorTimeout(false).
+				SetOplogReplay(false).
+				SetProjection(bson.D{{"x", int32(1)}}).
+				SetReturnKey(false).
+				SetShowRecordID(false).
+				SetSkip(0).
+				SetSort(bson.D{{"x", int32(1)}})
+			res, err := mt.Coll.FindOne(mtest.Background, bson.D{}, opts).DecodeBytes()
 			assert.Nil(mt, err, "FindOne error: %v", err)
 
 			x, err := res.LookupErr("x")
@@ -787,6 +817,32 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, bson.TypeInt32, x.Type, "expected x type %v, got %v", bson.TypeInt32, x.Type)
 			got := x.Int32()
 			assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
+
+			optionsDoc := bsoncore.NewDocumentBuilder().
+				AppendBoolean("allowPartialResults", true).
+				AppendInt32("batchSize", 2).
+				StartDocument("collation").AppendString("locale", "en_US").FinishDocument().
+				AppendString("comment", expectedComment).
+				AppendString("hint", indexName).
+				StartDocument("max").AppendInt32("x", 5).FinishDocument().
+				AppendInt32("maxTimeMS", 1000).
+				StartDocument("min").AppendInt32("x", 0).FinishDocument().
+				AppendBoolean("noCursorTimeout", false).
+				AppendBoolean("oplogReplay", false).
+				StartDocument("projection").AppendInt32("x", 1).FinishDocument().
+				AppendBoolean("returnKey", false).
+				AppendBoolean("showRecordId", false).
+				AppendInt64("skip", 0).
+				StartDocument("sort").AppendInt32("x", 1).FinishDocument().
+				Build()
+
+			started := mt.GetStartedEvent()
+			assert.NotNil(mt, started, "expected CommandStartedEvent, got nil")
+
+			if err := compareDocs(mt, bson.Raw(optionsDoc), started.Command); err != nil {
+				mt.Fatalf("options mismatch: %v", err)
+			}
+
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
