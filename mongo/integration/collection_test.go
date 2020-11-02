@@ -798,6 +798,7 @@ func TestCollection(t *testing.T) {
 			// which all FindOne operations set, and the nontailable setting isn't passed to the
 			// operation layer
 			// SetMaxAwaitTime affects the cursor and not the server command, so it can't be checked
+			// SetCursorTime and setMaxAwaitTime will be deprecated in GODRIVER-1775
 			opts := options.FindOne().
 				SetAllowPartialResults(true).
 				SetBatchSize(2).
