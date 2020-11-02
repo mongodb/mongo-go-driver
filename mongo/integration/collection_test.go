@@ -776,7 +776,7 @@ func TestCollection(t *testing.T) {
 			got := x.Int32()
 			assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
 		})
-		mt.Run("options", func(mt *mtest.T) {
+		mt.RunOpts("options", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 
 			// Create an index for Hint, Max, and Min options
