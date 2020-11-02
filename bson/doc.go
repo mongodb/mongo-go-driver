@@ -53,7 +53,7 @@
 // 		16. BSON min key unmarshals to an primitive.MinKey.
 // 		17. BSON max key unmarshals to an primitive.MaxKey.
 // 		18. BSON undefined unmarshals to a primitive.Undefined.
-// 		19. BSON null unmarshals to a primitive.Null.
+// 		19. BSON null unmarshals to nil.
 // 		20. BSON DBPointer unmarshals to a primitive.DBPointer.
 // 		21. BSON symbol unmarshals to a primitive.Symbol.
 //
