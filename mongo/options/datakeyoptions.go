@@ -28,7 +28,7 @@ func DataKey() *DataKeyOptions {
 // {
 //   region: <string>,
 //   key: <string>,             // The Amazon Resource Name (ARN) to the AWS customer master key (CMK).
-//   endpoint: Optional<String> // An alternate host identifier to send KMS requests to.
+//   endpoint: Optional<string> // An alternate host identifier to send KMS requests to.
 // }
 // If unset, the "endpoint" defaults to "kms.<region>.amazonaws.com".
 //
@@ -36,7 +36,7 @@ func DataKey() *DataKeyOptions {
 // {
 //   keyVaultEndpoint: <string>,  // An alternate host identifier to send KMS requests to.
 //   keyName: <string>,
-//   keyVersion: Optional<String> // A specific version of the named key.
+//   keyVersion: Optional<string> // A specific version of the named key.
 // }
 // If unset, "keyVersion" defaults to the key's primary version.
 //
@@ -46,8 +46,8 @@ func DataKey() *DataKeyOptions {
 //   location: <string>,
 //   keyRing: <string>,
 //   keyName: <string>,
-//   keyVersion: Optional<String>, // A specific version of the named key.
-//   endpoint: Optional<String>    // An alternate host identifier to send KMS requests to.
+//   keyVersion: Optional<string>, // A specific version of the named key.
+//   endpoint: Optional<string>    // An alternate host identifier to send KMS requests to.
 // }
 // If unset, "keyVersion" defaults to the key's primary version and "endpoint" defaults to "cloudkms.googleapis.com".
 func (dk *DataKeyOptions) SetMasterKey(masterKey interface{}) *DataKeyOptions {
