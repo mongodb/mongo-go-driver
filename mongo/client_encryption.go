@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -41,14 +42,18 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	db, coll := splitNamespace(ceo.KeyVaultNamespace)
 	ce.keyVaultColl = ce.keyVaultClient.Database(db).Collection(coll, keyVaultCollOpts)
 
+	kmsProviders, err := transformBsoncoreDocument(bson.DefaultRegistry, ceo.KmsProviders)
+	if err != nil {
+		return nil, fmt.Errorf("error creating KMS providers map: %v", err)
+	}
+
 	// create Crypt
-	var err error
 	kr := keyRetriever{coll: ce.keyVaultColl}
 	cir := collInfoRetriever{client: ce.keyVaultClient}
 	ce.crypt, err = driver.NewCrypt(&driver.CryptOptions{
 		KeyFn:        kr.cryptKeys,
 		CollInfoFn:   cir.cryptCollInfo,
-		KmsProviders: ceo.KmsProviders,
+		KmsProviders: kmsProviders,
 	})
 	if err != nil {
 		return nil, err
