@@ -51,9 +51,9 @@ func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*Client
 	}
 	// UseMultipleMongoses is only relevant if we're connected to a sharded cluster. Options changes and validation are
 	// only required if the option is explicitly set. If it's unset, we make no changes because the cluster URI already
-	// includes all nodes and we don't enfoce any limits on the number of nodes.
+	// includes all nodes and we don't enforce any limits on the number of nodes.
 	if mtest.ClusterTopologyKind() == mtest.Sharded && entityOptions.UseMultipleMongoses != nil {
-		if err := evalulateUseMultipleMongoses(clientOpts, *entityOptions.UseMultipleMongoses); err != nil {
+		if err := evaluateUseMultipleMongoses(clientOpts, *entityOptions.UseMultipleMongoses); err != nil {
 			return nil, err
 		}
 	}
@@ -187,7 +187,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 	return nil
 }
 
-func evalulateUseMultipleMongoses(clientOpts *options.ClientOptions, useMultipleMongoses bool) error {
+func evaluateUseMultipleMongoses(clientOpts *options.ClientOptions, useMultipleMongoses bool) error {
 	hosts := mtest.ClusterConnString().Hosts
 
 	if !useMultipleMongoses {
