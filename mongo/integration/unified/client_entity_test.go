@@ -49,10 +49,13 @@ func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*Client
 			return nil, fmt.Errorf("error parsing URI options: %v", err)
 		}
 	}
-	// UseMultipleMongoses only requires options to be set if we're connected to a sharded cluster and it's set to
-	// false. If it's unset or true, we make no changes because the cluster URI already includes all mongos nodes.
-	if mtest.ClusterTopologyKind() == mtest.Sharded && !entityOptions.UseMultipleMongoses {
-		clientOpts.SetHosts(mtest.ClusterConnString().Hosts[:1])
+	// UseMultipleMongoses is only relevant if we're connected to a sharded cluster. Options changes and validation are
+	// only required if the option is explicitly set. If it's unset, we make no changes because the cluster URI already
+	// includes all nodes and we don't enfoce any limits on the number of nodes.
+	if mtest.ClusterTopologyKind() == mtest.Sharded && entityOptions.UseMultipleMongoses != nil {
+		if err := evalulateUseMultipleMongoses(clientOpts, *entityOptions.UseMultipleMongoses); err != nil {
+			return nil, err
+		}
 	}
 	if entityOptions.ObserveEvents != nil {
 		// Configure a command monitor that listens for the specified event types. We don't take the IgnoredCommands
@@ -180,6 +183,20 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			return fmt.Errorf("error creating write concern: %v", err)
 		}
 		clientOpts.SetWriteConcern(converted)
+	}
+	return nil
+}
+
+func evalulateUseMultipleMongoses(clientOpts *options.ClientOptions, useMultipleMongoses bool) error {
+	hosts := mtest.ClusterConnString().Hosts
+
+	if !useMultipleMongoses {
+		clientOpts.SetHosts(hosts[:1])
+		return nil
+	}
+
+	if len(hosts) < 2 {
+		return fmt.Errorf("multiple mongoses required but cluster URI %q only contains one host", mtest.ClusterURI())
 	}
 	return nil
 }
