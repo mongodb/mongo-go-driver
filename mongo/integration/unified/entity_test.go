@@ -24,7 +24,7 @@ type EntityOptions struct {
 
 	// Options for client entities.
 	URIOptions          bson.M   `bson:"uriOptions"`
-	UseMultipleMongoses bool     `bson:"useMultipleMongoses"`
+	UseMultipleMongoses *bool    `bson:"useMultipleMongoses"`
 	ObserveEvents       []string `bson:"observeEvents"`
 	IgnoredCommands     []string `bson:"ignoreCommandMonitoringEvents"`
 
