@@ -34,7 +34,7 @@ func DataKey() *DataKeyOptions {
 //
 // When using Azure, the document must have the format:
 // {
-//   keyVaultEndpoint: <string>,  // An alternate host identifier to send KMS requests to.
+//   keyVaultEndpoint: <string>,  // A host identifier to send KMS requests to.
 //   keyName: <string>,
 //   keyVersion: Optional<string> // A specific version of the named key.
 // }
