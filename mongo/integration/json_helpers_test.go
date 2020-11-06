@@ -25,9 +25,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-const (
-	awsAccessKeyID     = "AWS_ACCESS_KEY_ID"
-	awsSecretAccessKey = "AWS_SECRET_ACCESS_KEY"
+var (
+	awsAccessKeyID     = os.Getenv("AWS_ACCESS_KEY_ID")
+	awsSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	azureTenantID      = os.Getenv("AZURE_TENANT_ID")
+	azureClientID      = os.Getenv("AZURE_CLIENT_ID")
+	azureClientSecret  = os.Getenv("AZURE_CLIENT_SECRET")
+	gcpEmail           = os.Getenv("GCP_EMAIL")
+	gcpPrivateKey      = os.Getenv("GCP_PRIVATE_KEY")
 )
 
 // Helper functions to do read JSON spec test files and convert JSON objects into the appropriate driver types.
@@ -148,9 +153,6 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]interface{} {
 	t.Helper()
 
-	// aws: value is always empty object. create new map value from access key ID and secret access key
-	// local: value is {"key": primitive.Binary}. transform to {"key": []byte}
-
 	kmsMap := make(map[string]map[string]interface{})
 	elems, _ := opts.Elements()
 
@@ -160,20 +162,22 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 
 		switch provider {
 		case "aws":
-			keyID := os.Getenv(awsAccessKeyID)
-			if keyID == "" {
-				t.Fatalf("%s env var not set", awsAccessKeyID)
-			}
-			secretAccessKey := os.Getenv(awsSecretAccessKey)
-			if secretAccessKey == "" {
-				t.Fatalf("%s env var not set", awsSecretAccessKey)
-			}
-
 			awsMap := map[string]interface{}{
-				"accessKeyId":     keyID,
-				"secretAccessKey": secretAccessKey,
+				"accessKeyId":     awsAccessKeyID,
+				"secretAccessKey": awsSecretAccessKey,
 			}
 			kmsMap["aws"] = awsMap
+		case "azure":
+			kmsMap["azure"] = map[string]interface{}{
+				"tenantId":     azureTenantID,
+				"clientId":     azureClientID,
+				"clientSecret": azureClientSecret,
+			}
+		case "gcp":
+			kmsMap["gcp"] = map[string]interface{}{
+				"email":      gcpEmail,
+				"privateKey": gcpPrivateKey,
+			}
 		case "local":
 			_, key := providerOpt.Document().Lookup("key").Binary()
 			localMap := map[string]interface{}{

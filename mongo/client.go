@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -654,6 +655,10 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 		}
 		cryptSchemaMap[k] = schema
 	}
+	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders)
+	if err != nil {
+		return fmt.Errorf("error creating KMS providers document: %v", err)
+	}
 
 	// configure options
 	var bypass bool
@@ -666,12 +671,11 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptd.markCommand,
-		KmsProviders:         opts.KmsProviders,
+		KmsProviders:         kmsProviders,
 		BypassAutoEncryption: bypass,
 		SchemaMap:            cryptSchemaMap,
 	}
 
-	var err error
 	c.crypt, err = driver.NewCrypt(cryptOpts)
 	return err
 }

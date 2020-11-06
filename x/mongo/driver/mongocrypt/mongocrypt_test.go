@@ -48,11 +48,20 @@ func compareResources(t *testing.T, expected, actual bsoncore.Document) {
 
 func createMongoCrypt(t *testing.T) *MongoCrypt {
 	t.Helper()
-	localMasterKey := make([]byte, 96)
-	awsOpts := options.AwsKmsProvider().SetAccessKeyID("example").SetSecretAccessKey("example")
-	localOpts := options.LocalKmsProvider().SetMasterKey(localMasterKey)
-	cryptOpts := options.MongoCrypt().SetAwsProviderOptions(awsOpts).SetLocalProviderOptions(localOpts)
 
+	awsProvider := bsoncore.NewDocumentBuilder().
+		AppendString("accessKeyId", "example").
+		AppendString("secretAccessKey", "example").
+		Build()
+	localProvider := bsoncore.NewDocumentBuilder().
+		AppendBinary("key", 0, make([]byte, 96)).
+		Build()
+	kmsProviders := bsoncore.NewDocumentBuilder().
+		AppendDocument("aws", awsProvider).
+		AppendDocument("local", localProvider).
+		Build()
+
+	cryptOpts := options.MongoCrypt().SetKmsProviders(kmsProviders)
 	crypt, err := NewMongoCrypt(cryptOpts)
 	noerr(t, err)
 	if crypt == nil {
@@ -195,8 +204,13 @@ func TestMongoCrypt(t *testing.T) {
 			schemaMap := map[string]bsoncore.Document{
 				"test.test": schema,
 			}
-			awsOpts := options.AwsKmsProvider().SetSecretAccessKey("example").SetAccessKeyID("example")
-			cryptOpts := options.MongoCrypt().SetAwsProviderOptions(awsOpts).SetLocalSchemaMap(schemaMap)
+			kmsProviders := bsoncore.NewDocumentBuilder().
+				StartDocument("aws").
+				AppendString("accessKeyId", "example").
+				AppendString("secretAccessKey", "example").
+				FinishDocument().
+				Build()
+			cryptOpts := options.MongoCrypt().SetKmsProviders(kmsProviders).SetLocalSchemaMap(schemaMap)
 			crypt, err := NewMongoCrypt(cryptOpts)
 			noerr(t, err)
 			defer crypt.Close()
@@ -270,7 +284,7 @@ func TestMongoCrypt(t *testing.T) {
 
 		// create data key context and check initial state
 		dataKeyOpts := options.DataKey().SetMasterKey(masterKey)
-		dataKeyCtx, err := crypt.CreateDataKeyContext(LocalProvider, dataKeyOpts)
+		dataKeyCtx, err := crypt.CreateDataKeyContext("local", dataKeyOpts)
 		noerr(t, err)
 		defer dataKeyCtx.Close()
 		compareStates(t, Ready, dataKeyCtx.State())

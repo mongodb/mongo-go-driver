@@ -301,6 +301,11 @@ functions:
           BUILD_TAGS="-tags cse" \
           AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
           AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
+          AZURE_TENANT_ID="${cse_azure_tenant_id}" \
+          AZURE_CLIENT_ID="${cse_azure_client_id}" \
+          AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
+          GCP_EMAIL="${cse_gcp_email}" \
+          GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
           make evg-test \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
