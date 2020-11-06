@@ -120,7 +120,7 @@ func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.Data
 	switch {
 	case opts.MasterKey != nil:
 		// The original key passed into the top-level API was already transformed into a raw BSON document and passed
-		// down to here, so we can modify it without copying. Remove the terminating byte to add the "provier" field.
+		// down to here, so we can modify it without copying. Remove the terminating byte to add the "provider" field.
 		masterKey = opts.MasterKey[:len(opts.MasterKey)-1]
 		masterKey = bsoncore.AppendStringElement(masterKey, "provider", kmsProvider)
 		masterKey, _ = bsoncore.AppendDocumentEnd(masterKey, 0)
