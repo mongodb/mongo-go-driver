@@ -13,6 +13,7 @@ import (
 	"math"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -1380,6 +1381,56 @@ func TestDefaultValueEncoders(t *testing.T) {
 				nil,
 			},
 			{
+				"inline overwrite",
+				struct {
+					Foo struct {
+						A int64 `bson:",minsize"`
+						B string
+					} `bson:",inline"`
+					A int64
+				}{
+					Foo: struct {
+						A int64 `bson:",minsize"`
+						B string
+					}{
+						A: 0,
+						B: "foo",
+					},
+					A: 54321,
+				},
+				buildDocument(func(doc []byte) []byte {
+					doc = bsoncore.AppendStringElement(doc, "b", "foo")
+					doc = bsoncore.AppendInt64Element(doc, "a", 54321)
+					return doc
+				}(nil)),
+				nil,
+			},
+			{
+				"inline overwrite respects ordering",
+				struct {
+					A   int64
+					Foo struct {
+						A int64 `bson:",minsize"`
+						B string
+					} `bson:",inline"`
+				}{
+					A: 54321,
+					Foo: struct {
+						A int64 `bson:",minsize"`
+						B string
+					}{
+						A: 0,
+						B: "foo",
+					},
+				},
+				buildDocument(func(doc []byte) []byte {
+					doc = bsoncore.AppendInt64Element(doc, "a", 54321)
+					doc = bsoncore.AppendStringElement(doc, "b", "foo")
+					return doc
+				}(nil)),
+				nil,
+			},
+			{
 				"inline map",
 				struct {
 					Foo map[string]string `bson:",inline"`
@@ -1671,6 +1722,52 @@ func TestDefaultValueEncoders(t *testing.T) {
 					t.Errorf("Bytes written differ: (-got +want)\n%s", diff)
 					t.Errorf("Bytes\ngot: %v\nwant:%v\n", b, tc.b)
 					t.Errorf("Readers\ngot: %v\nwant:%v\n", bsoncore.Document(b), bsoncore.Document(tc.b))
+				}
+			})
+		}
+	})
+
+	t.Run("error path", func(t *testing.T) {
+		testCases := []struct {
+			name  string
+			value interface{}
+			err   error
+		}{
+			{
+				"duplicate name struct",
+				struct {
+					A int64
+					B int64 `bson:"a"`
+				}{
+					A: 12345,
+					B: 54321,
+				},
+				fmt.Errorf("duplicated key a"),
+			},
+			{
+				"inline map",
+				struct {
+					Foo map[string]string `bson:",inline"`
+					Baz string
+				}{
+					Foo: map[string]string{"baz": "bar"},
+					Baz: "hi",
+				},
+				fmt.Errorf("Key baz of inlined map conflicts with a struct field name"),
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				b := make(bsonrw.SliceWriter, 0, 512)
+				vw, err := bsonrw.NewBSONValueWriter(&b)
+				noerr(t, err)
+				reg := buildDefaultRegistry()
+				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
+				noerr(t, err)
+				err = enc.EncodeValue(EncodeContext{Registry: reg}, vw, reflect.ValueOf(tc.value))
+				if err == nil || !strings.Contains(err.Error(), tc.err.Error()) {
+					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
 			})
 		}

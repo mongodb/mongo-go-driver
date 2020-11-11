@@ -8,10 +8,11 @@ package bsonoptions
 
 // StructCodecOptions represents all possible options for struct encoding and decoding.
 type StructCodecOptions struct {
-	DecodeZeroStruct        *bool // Specifies if structs should be zeroed before decoding into them. Defaults to false.
-	DecodeDeepZeroInline    *bool // Specifies if structs should be recursively zeroed when a inline value is decoded. Defaults to false.
-	EncodeOmitDefaultStruct *bool // Specifies if default structs should be considered empty by omitempty. Defaults to false.
-	AllowUnexportedFields   *bool // Specifies if unexported fields should be marshaled/unmarshaled. Defaults to false.
+	DecodeZeroStruct               *bool // Specifies if structs should be zeroed before decoding into them. Defaults to false.
+	DecodeDeepZeroInline           *bool // Specifies if structs should be recursively zeroed when a inline value is decoded. Defaults to false.
+	EncodeOmitDefaultStruct        *bool // Specifies if default structs should be considered empty by omitempty. Defaults to false.
+	AllowUnexportedFields          *bool // Specifies if unexported fields should be marshaled/unmarshaled. Defaults to false.
+	AllowOverwritingEmbeddedFields *bool // Specifies if embedded fields can be overwritten by higher level fields. Defaults to true.
 }
 
 // StructCodec creates a new *StructCodecOptions
@@ -38,6 +39,12 @@ func (t *StructCodecOptions) SetEncodeOmitDefaultStruct(b bool) *StructCodecOpti
 	return t
 }
 
+// SetAllowOverwritingEmbeddedFields specifies if embedded fields can be overwritten by higher level fields. Defaults to true.
+func (t *StructCodecOptions) SetAllowOverwritingEmbeddedFields(b bool) *StructCodecOptions {
+	t.AllowOverwritingEmbeddedFields = &b
+	return t
+}
+
 // SetAllowUnexportedFields specifies if unexported fields should be marshaled/unmarshaled. Defaults to false.
 func (t *StructCodecOptions) SetAllowUnexportedFields(b bool) *StructCodecOptions {
 	t.AllowUnexportedFields = &b
@@ -60,6 +67,9 @@ func MergeStructCodecOptions(opts ...*StructCodecOptions) *StructCodecOptions {
 		}
 		if opt.EncodeOmitDefaultStruct != nil {
 			s.EncodeOmitDefaultStruct = opt.EncodeOmitDefaultStruct
+		}
+		if opt.AllowOverwritingEmbeddedFields != nil {
+			s.AllowOverwritingEmbeddedFields = opt.AllowOverwritingEmbeddedFields
 		}
 		if opt.AllowUnexportedFields != nil {
 			s.AllowUnexportedFields = opt.AllowUnexportedFields

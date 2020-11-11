@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -59,13 +60,14 @@ type Zeroer interface {
 
 // StructCodec is the Codec used for struct values.
 type StructCodec struct {
-	cache                   map[reflect.Type]*structDescription
-	l                       sync.RWMutex
-	parser                  StructTagParser
-	DecodeZeroStruct        bool
-	DecodeDeepZeroInline    bool
-	EncodeOmitDefaultStruct bool
-	AllowUnexportedFields   bool
+	cache                          map[reflect.Type]*structDescription
+	l                              sync.RWMutex
+	parser                         StructTagParser
+	DecodeZeroStruct               bool
+	DecodeDeepZeroInline           bool
+	EncodeOmitDefaultStruct        bool
+	AllowUnexportedFields          bool
+	AllowOverwritingEmbeddedFields bool
 }
 
 var _ ValueEncoder = &StructCodec{}
@@ -80,8 +82,9 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	structOpt := bsonoptions.MergeStructCodecOptions(opts...)
 
 	codec := &StructCodec{
-		cache:  make(map[reflect.Type]*structDescription),
-		parser: p,
+		cache:                          make(map[reflect.Type]*structDescription),
+		parser:                         p,
+		AllowOverwritingEmbeddedFields: true,
 	}
 
 	if structOpt.DecodeZeroStruct != nil {
@@ -92,6 +95,9 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	}
 	if structOpt.EncodeOmitDefaultStruct != nil {
 		codec.EncodeOmitDefaultStruct = *structOpt.EncodeOmitDefaultStruct
+	}
+	if structOpt.AllowOverwritingEmbeddedFields != nil {
+		codec.AllowOverwritingEmbeddedFields = *structOpt.AllowOverwritingEmbeddedFields
 	}
 	if structOpt.AllowUnexportedFields != nil {
 		codec.AllowUnexportedFields = *structOpt.AllowUnexportedFields
@@ -408,6 +414,35 @@ type fieldDescription struct {
 	decoder   ValueDecoder
 }
 
+type byIndex []fieldDescription
+
+func (bi byIndex) Len() int { return len(bi) }
+
+func (bi byIndex) Swap(i, j int) { bi[i], bi[j] = bi[j], bi[i] }
+
+func (bi byIndex) Less(i, j int) bool {
+	// If a field is inlined, its index in the top level struct is stored at inline[0]
+	iIdx, jIdx := bi[i].idx, bi[j].idx
+	if len(bi[i].inline) > 0 {
+		iIdx = bi[i].inline[0]
+	}
+	if len(bi[j].inline) > 0 {
+		jIdx = bi[j].inline[0]
+	}
+	if iIdx != jIdx {
+		return iIdx < jIdx
+	}
+	for k, biik := range bi[i].inline {
+		if k >= len(bi[j].inline) {
+			return false
+		}
+		if biik != bi[j].inline[k] {
+			return biik < bi[j].inline[k]
+		}
+	}
+	return len(bi[i].inline) < len(bi[j].inline)
+}
+
 func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescription, error) {
 	// We need to analyze the struct, including getting the tags, collecting
 	// information about inlining, and create a map of the field name to the field.
@@ -484,16 +519,22 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 					return nil, err
 				}
 				for _, fd := range inlinesf.fl {
-					if _, exists := sd.fm[fd.name]; exists {
-						return nil, fmt.Errorf("(struct %s) duplicated key %s", t.String(), fd.name)
-					}
 					if fd.inline == nil {
 						fd.inline = []int{i, fd.idx}
 					} else {
 						fd.inline = append([]int{i}, fd.inline...)
 					}
+					if old, exists := sd.fm[fd.name]; exists {
+						compared := compareField(old, fd)
+						if compared == 0 || !sc.AllowOverwritingEmbeddedFields {
+							return nil, fmt.Errorf("struct %s) duplicated key %s", t.String(), fd.name)
+						}
+						if compared > 0 {
+							continue
+						}
+					}
 					sd.fm[fd.name] = fd
-					sd.fl = append(sd.fl, fd)
+
 				}
 			default:
 				return nil, fmt.Errorf("(struct %s) inline fields must be a struct, a struct pointer, or a map", t.String())
@@ -501,19 +542,42 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 			continue
 		}
 
-		if _, exists := sd.fm[description.name]; exists {
-			return nil, fmt.Errorf("struct %s) duplicated key %s", t.String(), description.name)
+		if old, exists := sd.fm[description.name]; exists {
+			compared := compareField(old, description)
+			if compared == 0 || !sc.AllowOverwritingEmbeddedFields {
+				return nil, fmt.Errorf("(struct %s) duplicated key %s", t.String(), description.name)
+			}
+			if compared > 0 {
+				continue
+			}
 		}
 
 		sd.fm[description.name] = description
-		sd.fl = append(sd.fl, description)
 	}
+
+	// Add all the fieldDescriptions and sort them so the final document is correctly ordered
+	for _, desc := range sd.fm {
+		sd.fl = append(sd.fl, desc)
+	}
+	sort.Sort(byIndex(sd.fl))
 
 	sc.l.Lock()
 	sc.cache[t] = sd
 	sc.l.Unlock()
 
 	return sd, nil
+}
+
+// compareField compares two fieldDescriptions. Returns 1 if fd1 overwrites fd2, -1 if fd2 overwrites fd1, and 0 if
+// they are equally dominant
+func compareField(fd1, fd2 fieldDescription) int {
+	if len(fd1.inline) < len(fd2.inline) {
+		return 1
+	}
+	if len(fd1.inline) > len(fd2.inline) {
+		return -1
+	}
+	return 0
 }
 
 func fieldByIndexErr(v reflect.Value, index []int) (result reflect.Value, err error) {
