@@ -49,6 +49,8 @@ func TestPrimitiveIsZero(t *testing.T) {
 		nonzero zeroer
 	}{
 		{"binary", Binary{}, Binary{Data: []byte{0x01, 0x02, 0x03}, Subtype: 0xFF}},
+		{"decimal128", Decimal128{}, NewDecimal128(1, 2)},
+		{"objectID", ObjectID{}, NewObjectID()},
 		{"regex", Regex{}, Regex{Pattern: "foo", Options: "bar"}},
 		{"dbPointer", DBPointer{}, DBPointer{DB: "foobar", Pointer: ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}}},
 		{"timestamp", Timestamp{}, Timestamp{T: 12345, I: 67890}},
