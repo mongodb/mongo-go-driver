@@ -329,7 +329,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	imOpts := make([]*options.InsertManyOptions, len(opts))
 	for i, opt := range opts {
 		imo := options.InsertMany()
-		if opt.BypassDocumentValidation != nil && *opt.BypassDocumentValidation {
+		if opt != nil && opt.BypassDocumentValidation != nil && *opt.BypassDocumentValidation {
 			imo = imo.SetBypassDocumentValidation(*opt.BypassDocumentValidation)
 		}
 		imOpts[i] = imo
