@@ -74,6 +74,37 @@ func TestCollection(t *testing.T) {
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", we)
 		})
+
+		// Require 3.2 servers for bypassDocumentValidation support.
+		nilOptsOpts := mtest.NewOptions().MinServerVersion("3.2")
+		mt.RunOpts("nil opts", nilOptsOpts, func(mt *mtest.T) {
+			assertOptSet := func(expectSet bool) {
+				optName := "bypassDocumentValidation"
+				evt := mt.GetStartedEvent()
+
+				val, err := evt.Command.LookupErr(optName)
+				if expectSet {
+					assert.Nil(mt, err, "expected %v to be set but got: %v", optName, err)
+					assert.True(mt, val.Boolean(), "expected %v to be true but got: %v", optName, val.Boolean())
+				} else {
+					assert.NotNil(mt, err, "expected %v to be unset but got nil", optName)
+				}
+			}
+
+			doc := bson.D{{"x", 1}}
+			_, err := mt.Coll.InsertOne(mtest.Background, doc, nil)
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+			assertOptSet(false)
+
+			opts := options.InsertOne().SetBypassDocumentValidation(true)
+			_, err = mt.Coll.InsertOne(mtest.Background, doc, opts, nil)
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+			assertOptSet(true)
+
+			_, err = mt.Coll.InsertOne(mtest.Background, doc, nil, opts)
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+			assertOptSet(true)
+		})
 	})
 	mt.RunOpts("insert many", noClientOpts, func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {
