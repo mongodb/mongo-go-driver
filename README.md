@@ -155,6 +155,32 @@ if err != nil {
 // Do something with result...
 ```
 
+#### Authentication
+
+There is a difference between connecting to a database and performing operations on it.
+MongoDB lets you connect without authentication because you have to be able to connect to authenticate.
+
+Configure a Client with SCRAM authentication (https://docs.mongodb.com/manual/core/security-scram/).
+The default authentication database for SCRAM is "admin". This can be configured via the authSource query parameter in the URI or the AuthSource field in the options.Credential struct.
+
+SCRAM is the default auth mechanism so specifying a mechanism is not required:
+
+```go
+import (
+	"context"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+credential := options.Credential{
+	Username: "user",
+	Password: "password",
+}
+client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(credential))
+```
+
+More information about SCRAM [here](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo?tab=doc#example-Connect-SCRAM) and [here](https://docs.mongodb.com/manual/core/security-scram/).
+
 Additional examples and documentation can be found under the examples directory and [on the MongoDB Documentation website](https://docs.mongodb.com/drivers/go/).
 
 -------------------------
