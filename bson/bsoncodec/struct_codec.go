@@ -60,14 +60,14 @@ type Zeroer interface {
 
 // StructCodec is the Codec used for struct values.
 type StructCodec struct {
-	cache                          map[reflect.Type]*structDescription
-	l                              sync.RWMutex
-	parser                         StructTagParser
-	DecodeZeroStruct               bool
-	DecodeDeepZeroInline           bool
-	EncodeOmitDefaultStruct        bool
-	AllowUnexportedFields          bool
-	AllowOverwritingEmbeddedFields bool
+	cache                         map[reflect.Type]*structDescription
+	l                             sync.RWMutex
+	parser                        StructTagParser
+	DecodeZeroStruct              bool
+	DecodeDeepZeroInline          bool
+	EncodeOmitDefaultStruct       bool
+	AllowUnexportedFields         bool
+	AllowOverwritingInlinedFields bool
 }
 
 var _ ValueEncoder = &StructCodec{}
@@ -82,9 +82,8 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	structOpt := bsonoptions.MergeStructCodecOptions(opts...)
 
 	codec := &StructCodec{
-		cache:                          make(map[reflect.Type]*structDescription),
-		parser:                         p,
-		AllowOverwritingEmbeddedFields: true,
+		cache:  make(map[reflect.Type]*structDescription),
+		parser: p,
 	}
 
 	if structOpt.DecodeZeroStruct != nil {
@@ -96,8 +95,8 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	if structOpt.EncodeOmitDefaultStruct != nil {
 		codec.EncodeOmitDefaultStruct = *structOpt.EncodeOmitDefaultStruct
 	}
-	if structOpt.AllowOverwritingEmbeddedFields != nil {
-		codec.AllowOverwritingEmbeddedFields = *structOpt.AllowOverwritingEmbeddedFields
+	if structOpt.AllowOverwritingInlinedFields != nil {
+		codec.AllowOverwritingInlinedFields = *structOpt.AllowOverwritingInlinedFields
 	}
 	if structOpt.AllowUnexportedFields != nil {
 		codec.AllowUnexportedFields = *structOpt.AllowUnexportedFields
@@ -526,7 +525,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 					}
 					if old, exists := sd.fm[fd.name]; exists {
 						compared := compareField(old, fd)
-						if compared == 0 || !sc.AllowOverwritingEmbeddedFields {
+						if compared == 0 || !sc.AllowOverwritingInlinedFields {
 							return nil, fmt.Errorf("struct %s) duplicated key %s", t.String(), fd.name)
 						}
 						if compared > 0 {
@@ -544,7 +543,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 
 		if old, exists := sd.fm[description.name]; exists {
 			compared := compareField(old, description)
-			if compared == 0 || !sc.AllowOverwritingEmbeddedFields {
+			if compared == 0 || !sc.AllowOverwritingInlinedFields {
 				return nil, fmt.Errorf("(struct %s) duplicated key %s", t.String(), description.name)
 			}
 			if compared > 0 {

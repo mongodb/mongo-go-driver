@@ -2681,13 +2681,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 				"inline overwrite",
 				struct {
 					Foo struct {
-						A int64 `bson:",minsize"`
+						A int32
 						B string
 					} `bson:",inline"`
 					A int64
 				}{
 					Foo: struct {
-						A int64 `bson:",minsize"`
+						A int32
 						B string
 					}{
 						A: 0,

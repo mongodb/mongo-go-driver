@@ -51,7 +51,7 @@ func NewRegistryBuilder() *bsoncodec.RegistryBuilder {
 		bsonoptions.StructCodec().
 			SetDecodeZeroStruct(true).
 			SetEncodeOmitDefaultStruct(true).
-			SetAllowOverwritingEmbeddedFields(false).
+			SetAllowOverwritingInlinedFields(false).
 			SetAllowUnexportedFields(true))
 	emptyInterCodec := bsoncodec.NewEmptyInterfaceCodec(
 		bsonoptions.EmptyInterfaceCodec().
@@ -96,7 +96,7 @@ func NewRespectNilValuesRegistryBuilder() *bsoncodec.RegistryBuilder {
 		bsonoptions.StructCodec().
 			SetDecodeZeroStruct(true).
 			SetEncodeOmitDefaultStruct(true).
-			SetAllowOverwritingEmbeddedFields(false).
+			SetAllowOverwritingInlinedFields(false).
 			SetAllowUnexportedFields(true))
 	mapCodec := bsoncodec.NewMapCodec(
 		bsonoptions.MapCodec().
