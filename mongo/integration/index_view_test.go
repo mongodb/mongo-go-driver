@@ -220,6 +220,23 @@ func TestIndexView(t *testing.T) {
 				})
 			}
 		})
+		mt.Run("replace error", func(mt *mtest.T) {
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode:               "alwaysOn",
+				Data: mtest.FailPointData{
+					FailCommands: []string{"createIndexes"},
+					ErrorCode:    100,
+				},
+			})
+
+			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{Keys: bson.D{{"x", 1}}})
+			assert.NotNil(mt, err, "expected CreateOne error, got nil")
+			cmdErr, ok := err.(mongo.CommandError)
+			assert.True(mt, ok, "expected mongo.CommandError, got %T", err)
+			assert.Equal(mt, int32(100), cmdErr.Code, "expected error code 100, got %v", cmdErr.Code)
+
+		})
 	})
 	mt.Run("create many", func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {
@@ -279,8 +296,11 @@ func TestIndexView(t *testing.T) {
 			majority := options.CreateIndexes().SetCommitQuorumMajority()
 			votingMembers := options.CreateIndexes().SetCommitQuorumVotingMembers()
 
-			indexModel := mongo.IndexModel{
+			indexModel1 := mongo.IndexModel{
 				Keys: bson.D{{"x", 1}},
+			}
+			indexModel2 := mongo.IndexModel{
+				Keys: bson.D{{"y", 1}},
 			}
 
 			testCases := []struct {
@@ -301,13 +321,13 @@ func TestIndexView(t *testing.T) {
 				mtOpts := mtest.NewOptions().MinServerVersion(tc.minServerVersion).MaxServerVersion(tc.maxServerVersion)
 				mt.RunOpts(tc.name, mtOpts, func(mt *mtest.T) {
 					mt.ClearEvents()
-					_, err := mt.Coll.Indexes().CreateOne(mtest.Background, indexModel, tc.opts)
+					_, err := mt.Coll.Indexes().CreateMany(mtest.Background, []mongo.IndexModel{indexModel1, indexModel2}, tc.opts)
 					if tc.expectError {
-						assert.NotNil(mt, err, "expected CreateOne error, got nil")
+						assert.NotNil(mt, err, "expected CreateMany error, got nil")
 						return
 					}
 
-					assert.Nil(mt, err, "CreateOne error: %v", err)
+					assert.Nil(mt, err, "CreateMany error: %v", err)
 					cmd := mt.GetStartedEvent().Command
 					sentBSONValue, err := cmd.LookupErr("commitQuorum")
 					assert.Nil(mt, err, "expected commitQuorum in command %s", cmd)
@@ -320,6 +340,30 @@ func TestIndexView(t *testing.T) {
 						tc.expectedValue, sentValue)
 				})
 			}
+		})
+		mt.Run("replace error", func(mt *mtest.T) {
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode:               "alwaysOn",
+				Data: mtest.FailPointData{
+					FailCommands: []string{"createIndexes"},
+					ErrorCode:    100,
+				},
+			})
+
+			_, err := mt.Coll.Indexes().CreateMany(mtest.Background, []mongo.IndexModel{
+				{
+					Keys: bson.D{{"foo", int32(-1)}},
+				},
+				{
+					Keys: bson.D{{"bar", int32(1)}, {"baz", int32(-1)}},
+				},
+			})
+			assert.NotNil(mt, err, "expected CreateMany error, got nil")
+			cmdErr, ok := err.(mongo.CommandError)
+			assert.True(mt, ok, "expected mongo.CommandError, got %T", err)
+			assert.Equal(mt, int32(100), cmdErr.Code, "expected error code 100, got %v", cmdErr.Code)
+
 		})
 	})
 	mt.RunOpts("list specifications", noClientOpts, func(mt *mtest.T) {
