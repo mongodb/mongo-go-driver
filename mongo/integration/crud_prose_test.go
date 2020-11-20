@@ -172,6 +172,14 @@ func TestAggregatePrimaryPreferredReadPreference(t *testing.T) {
 				mongo.Pipeline{bson.D{{"$out", outputCollName}}},
 			},
 			{
+				"doc slice",
+				[]bson.D{{{"$out", outputCollName}}},
+			},
+			{
+				"bson a",
+				bson.A{bson.D{{"$out", outputCollName}}},
+			},
+			{
 				"valueMarshaler",
 				bsonx.Arr{bsonx.Document(bsonx.Doc{{"$out", bsonx.String(outputCollName)}})},
 			},
