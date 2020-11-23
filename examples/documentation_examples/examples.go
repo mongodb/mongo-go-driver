@@ -2107,133 +2107,181 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 	err := coll.Drop(context.Background())
 	require.NoError(t, err)
-	err1 := coll1.Drop(context.Background())
-	require.NoError(t, err1)
+	err = coll1.Drop(context.Background())
+	require.NoError(t, err)
 
 	{
 		// Start Aggregation Example 1
-		pipeline := bson.A{
-			bson.D{{"$match", bson.D{{"items.fruit", "banana"}}}},
-			bson.D{{"$sort", bson.D{{"date", 1}}}},
+		pipeline := mongo.Pipeline{
+			{
+				{"$match", bson.D{
+					{"items.fruit", "banana"},
+				}},
+			},
+			{
+				{"$sort", bson.D{
+					{"date", 1},
+				}},
+			},
 		}
 
-		cs, err := coll.Aggregate(ctx, pipeline)
-		require.NoError(t, err)
-		defer cs.Close(ctx)
+		cursor, err := coll.Aggregate(ctx, pipeline)
 
-		ok := cs.Next(ctx)
-		next := cs.Current
+		// End Aggregation Example 1
+
+		require.NoError(t, err)
+		defer cursor.Close(ctx)
+
+		ok := cursor.Next(ctx)
 
 		// End Aggregation Example 1
 
 		require.True(t, ok)
-		require.NoError(t, err)
-		require.NotEqual(t, len(next), 0)
 	}
 	{
 		// Start Aggregation Example 2
-		pipeline := bson.A{
-			bson.D{{"$unwind", "$items"}},
-			bson.D{{"$match", bson.D{{"items.fruit", "banana"}}}},
-			bson.D{{"$group", bson.D{
-				{"_id", bson.D{{
-					"day", bson.D{{"$dayOfWeek", "$date"}},
-				}}},
-				{"count", bson.D{{"$sum", "$items.quantity"}}},
-			}}},
-			bson.D{{"$project", bson.D{
-				{"dayOfWeek", "$_id.day"},
-				{"numberSold", "$count"},
-				{"_id", 0},
-			}}},
-			bson.D{{"$sort", bson.D{{"numberSold", 1}}}},
+		pipeline := mongo.Pipeline{
+			{
+				{"$unwind", "$items"},
+			},
+			{
+				{"$match", bson.D{
+					{"items.fruit", "banana"},
+				}},
+			},
+			{
+				{"$group", bson.D{
+					{"_id", bson.D{
+						{"day", bson.D{
+							{"$dayOfWeek", "$date"},
+						}},
+					}},
+					{"count", bson.D{
+						{"$sum", "$items.quantity"},
+					}},
+				}},
+			},
+			{
+				{"$project", bson.D{
+					{"dayOfWeek", "$_id.day"},
+					{"numberSold", "$count"},
+					{"_id", 0},
+				}},
+			},
+			{
+				{"$sort", bson.D{
+					{"numberSold", 1},
+				}},
+			},
 		}
 
-		cs, err := coll.Aggregate(ctx, pipeline)
-		require.NoError(t, err)
-		defer cs.Close(ctx)
-
-		ok := cs.Next(ctx)
-		next := cs.Current
+		cursor, err := coll.Aggregate(ctx, pipeline)
 
 		// End Aggregation Example 2
 
-		require.True(t, ok)
 		require.NoError(t, err)
-		require.NotEqual(t, len(next), 0)
+		defer cursor.Close(ctx)
+
+		ok := cursor.Next(ctx)
+
+		require.True(t, ok)
 	}
 	{
 		// Start Aggregation Example 3
-		pipeline := bson.A{
-			bson.D{{"$unwind", "$items"}},
-			bson.D{{"$group", bson.D{
-				{"_id", bson.D{
-					{"day", bson.D{{"$dayOfWeek", "$date"}}},
+		pipeline := mongo.Pipeline{
+			{
+				{"$unwind", "$items"},
+			},
+			{
+				{"$group", bson.D{
+					{"_id", bson.D{
+						{"day", bson.D{
+							{"$dayOfWeek", "$date"},
+						}},
+					}},
+					{"items_sold", bson.D{
+						{"$sum", "$items.quantity"},
+					}},
+					{"revenue", bson.D{
+						{"$sum", bson.D{
+							{"$multiply", bson.A{"$items.quantity", "$items.price"}},
+						}},
+					}},
 				}},
-				{"items_sold", bson.D{{"$sum", "$items.quantity"}}},
-				{"revenue", bson.D{{"$sum", bson.D{
-					{"$multiply", bson.A{"$items.quantity", "$items.price"}},
-				}}}},
-			}}},
-			bson.D{{"$project", bson.D{
-				{"day", "$_id.day"},
-				{"revenue", 1},
-				{"items_sold", 1},
-				{"discount", bson.D{{"$cond", bson.D{{"if", bson.D{
-					{"$lte", bson.A{"$revenue", 250}},
-					{"then", 25},
-					{"else", 0},
-				}}}}}},
-			}}},
+			},
+			{
+				{"$project", bson.D{
+					{"day", "$_id.day"},
+					{"revenue", 1},
+					{"items_sold", 1},
+					{"discount", bson.D{
+						{"$cond", bson.D{
+							{"if", bson.D{
+								{"$lte", bson.A{"$revenue", 250}},
+								{"then", 25},
+								{"else", 0},
+							}},
+						}},
+					}},
+				}},
+			},
 		}
 
-		cs, err := coll.Aggregate(ctx, pipeline)
-		require.NoError(t, err)
-		defer cs.Close(ctx)
-
-		ok := cs.Next(ctx)
-		next := cs.Current
+		cursor, err := coll.Aggregate(ctx, pipeline)
 
 		// End Aggregation Example 3
 
-		require.True(t, ok)
 		require.NoError(t, err)
-		require.NotEqual(t, len(next), 0)
+		defer cursor.Close(ctx)
+
+		ok := cursor.Next(ctx)
+
+		require.True(t, ok)
 	}
 	{
 		// Start Aggregation Example 4
-		pipeline := bson.A{
-			bson.D{{"$lookup", bson.D{
-				{"from", "air_airlines"},
-				{"let", bson.D{{"constituents", "$airlines"}}},
-				{"pipeline", bson.A{"$match", bson.D{
-					{"$expr", bson.D{{"$in", bson.A{"$name", "$$constituents"}}}},
-				}}},
-				{"as", "airlines"},
-			}}},
-			bson.D{{"$project", bson.D{
-				{"_id", 0},
-				{"name", 1},
-				{"airlines", bson.D{{"$filter", bson.D{
-					{"input", "$airlines"},
-					{"as", "airline"},
-					{"cond", bson.D{{"$eq", bson.A{"$$airline.country", "Canada"}}}},
-				}}}},
-			}}},
+		pipeline := mongo.Pipeline{
+			{
+				{"$lookup", bson.D{
+					{"from", "air_airlines"},
+					{"let", bson.D{
+						{"constituents", "$airlines"}},
+					},
+					{"pipeline", bson.A{"$match", bson.D{
+						{"$expr", bson.D{
+							{"$in", bson.A{"$name", "$$constituents"}},
+						}},
+					}}},
+					{"as", "airlines"},
+				}},
+			},
+			{
+				{"$project", bson.D{
+					{"_id", 0},
+					{"name", 1},
+					{"airlines", bson.D{
+						{"$filter", bson.D{
+							{"input", "$airlines"},
+							{"as", "airline"},
+							{"cond", bson.D{
+								{"$eq", bson.A{"$$airline.country", "Canada"}},
+							}},
+						}},
+					}},
+				}},
+			},
 		}
 
-		cs, err := coll1.Aggregate(ctx, pipeline)
-		require.NoError(t, err)
-		defer cs.Close(ctx)
-
-		ok := cs.Next(ctx)
-		next := cs.Current
+		cursor, err := coll1.Aggregate(ctx, pipeline)
 
 		// End Aggregation Example 4
 
-		require.True(t, ok)
 		require.NoError(t, err)
-		require.NotEqual(t, len(next), 0)
+		defer cursor.Close(ctx)
+
+		ok := cursor.Next(ctx)
+
+		require.True(t, ok)
 	}
 }
 
@@ -2244,6 +2292,7 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start RunCommand Example 1
 		res := db.RunCommand(ctx, bson.D{{"buildInfo", 1}})
+
 		// End RunCommand Example 1
 
 		err := res.Err()
@@ -2252,6 +2301,7 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start RunCommand Example 2
 		res := db.RunCommand(ctx, bson.D{{"collStats", "restaurants"}})
+
 		// End RunCommand Example 2
 
 		err := res.Err()
@@ -2268,27 +2318,39 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 	err := coll.Drop(context.Background())
 	require.NoError(t, err)
-	err1 := coll1.Drop(context.Background())
-	require.NoError(t, err1)
+	err = coll1.Drop(context.Background())
+	require.NoError(t, err)
 
 	{
 		// Start Index Example 1
-		indexView := coll.Indexes()
-		_, err := indexView.CreateOne(ctx, mongo.IndexModel{
-			Keys: bson.D{{"score", 1}},
-		})
+		indexModel := mongo.IndexModel{
+			Keys: bson.D{
+				{"score", 1},
+			},
+		}
+		_, err := coll.Indexes().CreateOne(ctx, indexModel)
+
 		// End Index Example 1
 
 		require.NoError(t, err)
 	}
 	{
 		// Start Index Example 2
-		indexView := coll1.Indexes()
-		_, err := indexView.CreateOne(ctx, mongo.IndexModel{
-			Keys: bson.D{{"cuisine", 1}, {"name", 1}},
-			Options: options.Index().
-				SetPartialFilterExpression(bson.D{{"rating", bson.D{{"$gt", 5}}}}),
-		})
+		partialFilterExpression := bson.D{
+			{"rating", bson.D{
+				{"$gt", 5},
+			}},
+		}
+		indexModel := mongo.IndexModel{
+			Keys: bson.D{
+				{"cuisine", 1},
+				{"name", 1},
+			},
+			Options: options.Index().SetPartialFilterExpression(partialFilterExpression),
+		}
+
+		_, err := coll1.Indexes().CreateOne(ctx, indexModel)
+
 		// End Index Example 2
 
 		require.NoError(t, err)
