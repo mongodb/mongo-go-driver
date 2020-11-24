@@ -9,15 +9,16 @@ package integration
 import (
 	"bytes"
 	"errors"
+	"strconv"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -146,6 +147,25 @@ func TestHintErrors(t *testing.T) {
 	})
 }
 
+type testValueMarshaler struct {
+	val []bson.D
+}
+
+func (tvm testValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	aidx, arr := bsoncore.AppendArrayStart(nil)
+	valLen := len(tvm.val)
+	for idx := 0; idx < valLen; idx++ {
+		buf := make([]byte, 0, 256)
+		doc, err := bson.MarshalAppendWithRegistry(bson.DefaultRegistry, buf[:0], tvm.val[idx])
+		if err != nil {
+			return bsontype.Type(0), nil, err
+		}
+		arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(idx), doc)
+	}
+	arr, err := bsoncore.AppendArrayEnd(arr, aidx)
+	return bsontype.Array, arr, err
+}
+
 func TestAggregatePrimaryPreferredReadPreference(t *testing.T) {
 	primaryPrefClientOpts := options.Client().
 		SetWriteConcern(mtest.MajorityWc).
@@ -181,7 +201,7 @@ func TestAggregatePrimaryPreferredReadPreference(t *testing.T) {
 			},
 			{
 				"valueMarshaler",
-				bsonx.Arr{bsonx.Document(bsonx.Doc{{"$out", bsonx.String(outputCollName)}})},
+				testValueMarshaler{[]bson.D{{{"$out", outputCollName}}}},
 			},
 		}
 		for _, tc := range testCases {
