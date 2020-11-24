@@ -2623,20 +2623,20 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 				{"student", "Marty McFly"},
 				{"classYear", 1986},
 				{"school", "Hill Valley High"},
-				{"GPA", 2.1},
+				{"score", 56.5},
 			},
 			bson.D{
 				{"student", "Ferris F. Bueller"},
 				{"classYear", 1987},
 				{"school", "Glenbrook North High"},
 				{"status", "Suspended"},
-				{"GPA", 3.4},
+				{"score", 76.0},
 			},
 			bson.D{
 				{"student", "Reynard Muldoon"},
 				{"classYear", 2007},
 				{"school", "Stonetown Middle"},
-				{"GPA", 4.0},
+				{"score", 99.9},
 			},
 		}
 		restaurants := []interface{}{
@@ -2691,20 +2691,20 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 		require.Len(t, restaurantsResult.InsertedIDs, 5)
 	}
 	{
-		// Start Index Example 3
+		// Start Index Example 2
 		indexModel := mongo.IndexModel{
 			Keys: bson.D{
-				{"GPA", 1},
+				{"score", 1},
 			},
 		}
 		_, err := recordsColl.Indexes().CreateOne(ctx, indexModel)
 
-		// End Index Example 3
+		// End Index Example 2
 
 		require.NoError(t, err)
 	}
 	{
-		// Start Index Example 2
+		// Start Index Example 3
 		partialFilterExpression := bson.D{
 			{"rating", bson.D{
 				{"$gt", 5},
@@ -2720,7 +2720,7 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 		_, err := restaurantsColl.Indexes().CreateOne(ctx, indexModel)
 
-		// End Index Example 2
+		// End Index Example 3
 
 		require.NoError(t, err)
 	}
