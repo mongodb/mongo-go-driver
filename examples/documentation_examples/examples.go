@@ -46,6 +46,14 @@ func containsKey(doc bson.Raw, key ...string) bool {
 	return true
 }
 
+func parseDate(t *testing.T, dateString string) time.Time {
+	rfc3339MilliLayout := "2006-01-02T15:04:05.999Z07:00" // layout defined with Go reference time
+	parsedDate, err := time.Parse(rfc3339MilliLayout, dateString)
+
+	require.NoError(t, err)
+	return parsedDate
+}
+
 // InsertExamples contains examples for insert operations.
 func InsertExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_insert")
@@ -2107,12 +2115,17 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	airAlliancesColl := db.Collection("air_alliances")
 
 	{
+		date20180208 := parseDate(t, "2018-02-08T09:00:00.000Z")
+		date20180109 := parseDate(t, "2018-01-09T07:12:00.000Z")
+		date20180127 := parseDate(t, "2018-01-27T09:13:00.000Z")
+		date20180203 := parseDate(t, "2018-02-03T07:58:00.000Z")
+		date20180205 := parseDate(t, "2018-02-05T06:03:00.000Z")
+		date20180111 := parseDate(t, "2018-01-11T07:15:00.000Z")
+
 		// Start Aggregation Example 1
 		docs := []interface{}{
 			bson.D{
-				{"date", bson.D{
-					{"$date", "2018-02-08T09:00:00.000Z"},
-				}},
+				{"date", date20180208}, // date objects are of type time.Time
 				{"items", bson.A{
 					bson.D{
 						{"fruit", "kiwi"},
@@ -2127,9 +2140,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 				}},
 			},
 			bson.D{
-				{"date", bson.D{
-					{"$date", "2018-01-09T07:12:00.000Z"},
-				}},
+				{"date", date20180109},
 				{"items", bson.A{
 					bson.D{
 						{"fruit", "banana"},
@@ -2149,9 +2160,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 				}},
 			},
 			bson.D{
-				{"date", bson.D{
-					{"$date", "2018-01-27T09:13:00.000Z"},
-				}},
+				{"date", date20180127},
 				{"items", bson.A{
 					bson.D{
 						{"fruit", "banana"},
@@ -2161,9 +2170,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 				}},
 			},
 			bson.D{
-				{"date", bson.D{
-					{"$date", "2018-02-03T07:58:00.000Z"},
-				}},
+				{"date", date20180203},
 				{"items", bson.A{
 					bson.D{
 						{"fruit", "banana"},
@@ -2173,9 +2180,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 				}},
 			},
 			bson.D{
-				{"date", bson.D{
-					{"$date", "2018-02-05T06:03:00.000Z"},
-				}},
+				{"date", date20180205},
 				{"items", bson.A{
 					bson.D{
 						{"fruit", "banana"},
@@ -2195,9 +2200,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 				}},
 			},
 			bson.D{
-				{"date", bson.D{
-					{"$date", "2018-01-11T07:15:00.000Z"},
-				}},
+				{"date", date20180111},
 				{"items", bson.A{
 					bson.D{
 						{"fruit", "banana"},
@@ -2331,9 +2334,9 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 						{"$cond", bson.D{
 							{"if", bson.D{
 								{"$lte", bson.A{"$revenue", 250}},
-								{"then", 25},
-								{"else", 0},
 							}},
+							{"then", 25},
+							{"else", 0},
 						}},
 					}},
 				}},
