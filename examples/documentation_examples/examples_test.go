@@ -45,6 +45,9 @@ func TestDocumentationExamples(t *testing.T) {
 	documentation_examples.ProjectionExamples(t, db)
 	documentation_examples.UpdateExamples(t, db)
 	documentation_examples.DeleteExamples(t, db)
+	documentation_examples.AggregationExamples(t, db)
+	documentation_examples.RunCommandExamples(t, db)
+	documentation_examples.IndexExamples(t, db)
 }
 
 func TestTransactionExamples(t *testing.T) {
