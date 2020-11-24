@@ -206,7 +206,7 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 
 		// try to skip whole chunk if possible
 		toSkip := 0
-		if skip-skipped < int64(len(ds.buffer)) {
+		if skip-skipped >= int64(len(ds.buffer)) {
 			// can skip whole chunk
 			toSkip = len(ds.buffer)
 		} else {
