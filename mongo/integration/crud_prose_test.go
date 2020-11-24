@@ -9,7 +9,6 @@ package integration
 import (
 	"bytes"
 	"errors"
-	"strconv"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -152,18 +151,7 @@ type testValueMarshaler struct {
 }
 
 func (tvm testValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, error) {
-	aidx, arr := bsoncore.AppendArrayStart(nil)
-	valLen := len(tvm.val)
-	for idx := 0; idx < valLen; idx++ {
-		buf := make([]byte, 0, 256)
-		doc, err := bson.MarshalAppendWithRegistry(bson.DefaultRegistry, buf[:0], tvm.val[idx])
-		if err != nil {
-			return bsontype.Type(0), nil, err
-		}
-		arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(idx), doc)
-	}
-	arr, err := bsoncore.AppendArrayEnd(arr, aidx)
-	return bsontype.Array, arr, err
+	return bson.MarshalValue(tvm.val)
 }
 
 func TestAggregatePrimaryPreferredReadPreference(t *testing.T) {
