@@ -2130,7 +2130,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 		date20180111 := parseDate(t, "2018-01-11T07:15:00.000Z")
 
 		// Start Aggregation Example 1
-		docs := []interface{}{
+		sales := []interface{}{
 			bson.D{
 				{"date", date20180208}, // date objects are of type time.Time
 				{"items", bson.A{
@@ -2227,143 +2227,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 				}},
 			},
 		}
-
-		result, err := salesColl.InsertMany(ctx, docs)
-
-		// End Aggregation Example 1
-
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 6)
-	}
-	{
-		// Start Aggregation Example 2
-		pipeline := mongo.Pipeline{
-			{
-				{"$match", bson.D{
-					{"items.fruit", "banana"},
-				}},
-			},
-			{
-				{"$sort", bson.D{
-					{"date", 1},
-				}},
-			},
-		}
-
-		cursor, err := salesColl.Aggregate(ctx, pipeline)
-
-		// End Aggregation Example 2
-
-		require.NoError(t, err)
-		defer cursor.Close(ctx)
-
-		ok := cursor.Next(ctx)
-
-		require.True(t, ok)
-	}
-	{
-		// Start Aggregation Example 3
-		pipeline := mongo.Pipeline{
-			{
-				{"$unwind", "$items"},
-			},
-			{
-				{"$match", bson.D{
-					{"items.fruit", "banana"},
-				}},
-			},
-			{
-				{"$group", bson.D{
-					{"_id", bson.D{
-						{"day", bson.D{
-							{"$dayOfWeek", "$date"},
-						}},
-					}},
-					{"count", bson.D{
-						{"$sum", "$items.quantity"},
-					}},
-				}},
-			},
-			{
-				{"$project", bson.D{
-					{"dayOfWeek", "$_id.day"},
-					{"numberSold", "$count"},
-					{"_id", 0},
-				}},
-			},
-			{
-				{"$sort", bson.D{
-					{"numberSold", 1},
-				}},
-			},
-		}
-
-		cursor, err := salesColl.Aggregate(ctx, pipeline)
-
-		// End Aggregation Example 3
-
-		require.NoError(t, err)
-		defer cursor.Close(ctx)
-
-		ok := cursor.Next(ctx)
-
-		require.True(t, ok)
-	}
-	{
-		// Start Aggregation Example 4
-		pipeline := mongo.Pipeline{
-			{
-				{"$unwind", "$items"},
-			},
-			{
-				{"$group", bson.D{
-					{"_id", bson.D{
-						{"day", bson.D{
-							{"$dayOfWeek", "$date"},
-						}},
-					}},
-					{"items_sold", bson.D{
-						{"$sum", "$items.quantity"},
-					}},
-					{"revenue", bson.D{
-						{"$sum", bson.D{
-							{"$multiply", bson.A{"$items.quantity", "$items.price"}},
-						}},
-					}},
-				}},
-			},
-			{
-				{"$project", bson.D{
-					{"day", "$_id.day"},
-					{"revenue", 1},
-					{"items_sold", 1},
-					{"discount", bson.D{
-						{"$cond", bson.D{
-							{"if", bson.D{
-								{"$lte", bson.A{"$revenue", 250}},
-							}},
-							{"then", 25},
-							{"else", 0},
-						}},
-					}},
-				}},
-			},
-		}
-
-		cursor, err := salesColl.Aggregate(ctx, pipeline)
-
-		// End Aggregation Example 4
-
-		require.NoError(t, err)
-		defer cursor.Close(ctx)
-
-		ok := cursor.Next(ctx)
-
-		require.True(t, ok)
-	}
-	{
-		// Start Aggregation Example 5
-		docs := []interface{}{
+		airlines := []interface{}{
 			bson.D{
 				{"airline", 17},
 				{"name", "Air Canada"},
@@ -2435,17 +2299,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 				{"base", "CYS"},
 			},
 		}
-
-		result, err := airlinesColl.InsertMany(ctx, docs)
-
-		// End Aggregation Example 5
-
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 7)
-	}
-	{
-		// Start Aggregation Example 6
-		docs := []interface{}{
+		airAlliances := []interface{}{
 			bson.D{
 				{"name", "Star Alliance"},
 				{"airlines", bson.A{
@@ -2500,15 +2354,138 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := airAlliancesColl.InsertMany(ctx, docs)
+		salesResult, salesErr := salesColl.InsertMany(ctx, sales)
+		airlinesResult, airlinesErr := airlinesColl.InsertMany(ctx, airlines)
+		airAlliancesResult, airAlliancesErr := airAlliancesColl.InsertMany(ctx, airAlliances)
 
-		// End Aggregation Example 6
+		// End Aggregation Example 1
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 3)
+		require.NoError(t, salesErr)
+		require.Len(t, salesResult.InsertedIDs, 6)
+		require.NoError(t, airlinesErr)
+		require.Len(t, airlinesResult.InsertedIDs, 7)
+		require.NoError(t, airAlliancesErr)
+		require.Len(t, airAlliancesResult.InsertedIDs, 3)
 	}
 	{
-		// Start Aggregation Example 7
+		// Start Aggregation Example 2
+		pipeline := mongo.Pipeline{
+			{
+				{"$match", bson.D{
+					{"items.fruit", "banana"},
+				}},
+			},
+			{
+				{"$sort", bson.D{
+					{"date", 1},
+				}},
+			},
+		}
+
+		cursor, err := salesColl.Aggregate(ctx, pipeline)
+
+		// End Aggregation Example 2
+
+		require.NoError(t, err)
+		defer cursor.Close(ctx)
+		requireCursorLength(t, cursor, 5)
+	}
+	{
+		// Start Aggregation Example 3
+		pipeline := mongo.Pipeline{
+			{
+				{"$unwind", "$items"},
+			},
+			{
+				{"$match", bson.D{
+					{"items.fruit", "banana"},
+				}},
+			},
+			{
+				{"$group", bson.D{
+					{"_id", bson.D{
+						{"day", bson.D{
+							{"$dayOfWeek", "$date"},
+						}},
+					}},
+					{"count", bson.D{
+						{"$sum", "$items.quantity"},
+					}},
+				}},
+			},
+			{
+				{"$project", bson.D{
+					{"dayOfWeek", "$_id.day"},
+					{"numberSold", "$count"},
+					{"_id", 0},
+				}},
+			},
+			{
+				{"$sort", bson.D{
+					{"numberSold", 1},
+				}},
+			},
+		}
+
+		cursor, err := salesColl.Aggregate(ctx, pipeline)
+
+		// End Aggregation Example 3
+
+		require.NoError(t, err)
+		defer cursor.Close(ctx)
+		requireCursorLength(t, cursor, 4)
+	}
+	{
+		// Start Aggregation Example 4
+		pipeline := mongo.Pipeline{
+			{
+				{"$unwind", "$items"},
+			},
+			{
+				{"$group", bson.D{
+					{"_id", bson.D{
+						{"day", bson.D{
+							{"$dayOfWeek", "$date"},
+						}},
+					}},
+					{"items_sold", bson.D{
+						{"$sum", "$items.quantity"},
+					}},
+					{"revenue", bson.D{
+						{"$sum", bson.D{
+							{"$multiply", bson.A{"$items.quantity", "$items.price"}},
+						}},
+					}},
+				}},
+			},
+			{
+				{"$project", bson.D{
+					{"day", "$_id.day"},
+					{"revenue", 1},
+					{"items_sold", 1},
+					{"discount", bson.D{
+						{"$cond", bson.D{
+							{"if", bson.D{
+								{"$lte", bson.A{"$revenue", 250}},
+							}},
+							{"then", 25},
+							{"else", 0},
+						}},
+					}},
+				}},
+			},
+		}
+
+		cursor, err := salesColl.Aggregate(ctx, pipeline)
+
+		// End Aggregation Example 4
+
+		require.NoError(t, err)
+		defer cursor.Close(ctx)
+		requireCursorLength(t, cursor, 4)
+	}
+	{
+		// Start Aggregation Example 5
 		pipeline := mongo.Pipeline{
 			{
 				{"$lookup", bson.D{
@@ -2545,14 +2522,11 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		cursor, err := airAlliancesColl.Aggregate(ctx, pipeline)
 
-		// End Aggregation Example 7
+		// End Aggregation Example 5
 
 		require.NoError(t, err)
 		defer cursor.Close(ctx)
-
-		ok := cursor.Next(ctx)
-
-		require.True(t, ok)
+		requireCursorLength(t, cursor, 3)
 	}
 }
 
@@ -2567,7 +2541,7 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 
 	{
 		// Start RunCommand Example 1
-		docs := []interface{}{
+		restaurants := []interface{}{
 			bson.D{
 				{"name", "Chez Panisse"},
 				{"city", "Oakland"},
@@ -2603,7 +2577,7 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := coll.InsertMany(ctx, docs)
+		result, err := coll.InsertMany(ctx, restaurants)
 
 		// End RunCommand Example 1
 
@@ -2644,7 +2618,7 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 	{
 		// Start Index Example 1
-		docs := []interface{}{
+		records := []interface{}{
 			bson.D{
 				{"student", "Marty McFly"},
 				{"classYear", 1986},
@@ -2660,22 +2634,12 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 			},
 			bson.D{
 				{"student", "Reynard Muldoon"},
-				{"classYear", 1993},
+				{"classYear", 2007},
 				{"school", "Stonetown Middle"},
 				{"GPA", 4.0},
 			},
 		}
-
-		result, err := recordsColl.InsertMany(ctx, docs)
-
-		// End Index Example 1
-
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 3)
-	}
-	{
-		// Start Index Example 2
-		docs := []interface{}{
+		restaurants := []interface{}{
 			bson.D{
 				{"name", "Chez Panisse"},
 				{"cuisine", "American/French"},
@@ -2716,18 +2680,21 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := restaurantsColl.InsertMany(ctx, docs)
+		recordsResult, recordsErr := recordsColl.InsertMany(ctx, records)
+		restaurantsResult, restaurantsErr := restaurantsColl.InsertMany(ctx, restaurants)
 
-		// End Index Example 2
+		// End Index Example 1
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 5)
+		require.NoError(t, recordsErr)
+		require.Len(t, recordsResult.InsertedIDs, 3)
+		require.NoError(t, restaurantsErr)
+		require.Len(t, restaurantsResult.InsertedIDs, 5)
 	}
 	{
 		// Start Index Example 3
 		indexModel := mongo.IndexModel{
 			Keys: bson.D{
-				{"score", 1},
+				{"GPA", 1},
 			},
 		}
 		_, err := recordsColl.Indexes().CreateOne(ctx, indexModel)
