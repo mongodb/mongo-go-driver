@@ -2114,6 +2114,13 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	airlinesColl := db.Collection("airlines")
 	airAlliancesColl := db.Collection("air_alliances")
 
+	err := salesColl.Drop(ctx)
+	require.NoError(t, err)
+	err = airlinesColl.Drop(ctx)
+	require.NoError(t, err)
+	err = airAlliancesColl.Drop(ctx)
+	require.NoError(t, err)
+
 	{
 		date20180208 := parseDate(t, "2018-02-08T09:00:00.000Z")
 		date20180109 := parseDate(t, "2018-01-09T07:12:00.000Z")
@@ -2555,6 +2562,9 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 
 	coll := db.Collection("restaurants")
 
+	err := coll.Drop(ctx)
+	require.NoError(t, err)
+
 	{
 		// Start RunCommand Example 1
 		docs := []interface{}{
@@ -2626,6 +2636,12 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 	recordsColl := db.Collection("records")
 	restaurantsColl := db.Collection("restaurants")
+
+	err := recordsColl.Drop(ctx)
+	require.NoError(t, err)
+	err = restaurantsColl.Drop(ctx)
+	require.NoError(t, err)
+
 	{
 		// Start Index Example 1
 		docs := []interface{}{
