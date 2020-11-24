@@ -83,6 +83,8 @@ defer func() {
 }()
 ```
 
+For more advanced configuration and authentication, see the [documentation for mongo.Connect](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Connect).
+
 Calling `Connect` does not block for server discovery. If you wish to know if a MongoDB server has been found and connected to,
 use the `Ping` method:
 
