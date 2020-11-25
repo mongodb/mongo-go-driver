@@ -77,34 +77,45 @@ func TestCollection(t *testing.T) {
 
 		// Require 3.2 servers for bypassDocumentValidation support.
 		nilOptsOpts := mtest.NewOptions().MinServerVersion("3.2")
-		mt.RunOpts("nil opts", nilOptsOpts, func(mt *mtest.T) {
-			assertOptSet := func(expectSet bool) {
+		nilOptsTestCases := []struct {
+			name            string
+			opts            []*options.InsertOneOptions
+			expectOptionSet bool
+		}{
+			{
+				"only nil is passed",
+				[]*options.InsertOneOptions{nil},
+				false,
+			},
+			{
+				"non-nil options is passed before nil",
+				[]*options.InsertOneOptions{options.InsertOne().SetBypassDocumentValidation(true), nil},
+				true,
+			},
+			{
+				"non-nil options is passed after nil",
+				[]*options.InsertOneOptions{nil, options.InsertOne().SetBypassDocumentValidation(true)},
+				true,
+			},
+		}
+
+		for _, testCase := range nilOptsTestCases {
+			mt.RunOpts(testCase.name, nilOptsOpts, func(mt *mtest.T) {
+				doc := bson.D{{"x", 1}}
+				_, err := mt.Coll.InsertOne(mtest.Background, doc, testCase.opts...)
+				assert.Nil(mt, err, "InsertOne error: %v", err)
 				optName := "bypassDocumentValidation"
 				evt := mt.GetStartedEvent()
 
 				val, err := evt.Command.LookupErr(optName)
-				if expectSet {
+				if testCase.expectOptionSet {
 					assert.Nil(mt, err, "expected %v to be set but got: %v", optName, err)
 					assert.True(mt, val.Boolean(), "expected %v to be true but got: %v", optName, val.Boolean())
 				} else {
 					assert.NotNil(mt, err, "expected %v to be unset but got nil", optName)
 				}
-			}
-
-			doc := bson.D{{"x", 1}}
-			_, err := mt.Coll.InsertOne(mtest.Background, doc, nil)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
-			assertOptSet(false)
-
-			opts := options.InsertOne().SetBypassDocumentValidation(true)
-			_, err = mt.Coll.InsertOne(mtest.Background, doc, opts, nil)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
-			assertOptSet(true)
-
-			_, err = mt.Coll.InsertOne(mtest.Background, doc, nil, opts)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
-			assertOptSet(true)
-		})
+			})
+		}
 	})
 	mt.RunOpts("insert many", noClientOpts, func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {

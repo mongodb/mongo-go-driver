@@ -327,12 +327,12 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
 
 	ioOpts := options.MergeInsertOneOptions(opts...)
-	var imOpts options.InsertManyOptions
+	imOpts := options.InsertMany()
 
 	if ioOpts.BypassDocumentValidation != nil && *ioOpts.BypassDocumentValidation {
 		imOpts.SetBypassDocumentValidation(*ioOpts.BypassDocumentValidation)
 	}
-	res, err := coll.insert(ctx, []interface{}{document}, &imOpts)
+	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 
 	rr, err := processWriteError(err)
 	if rr&rrOne == 0 {
