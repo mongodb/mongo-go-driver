@@ -45,6 +45,26 @@ func TestDocumentationExamples(t *testing.T) {
 	documentation_examples.ProjectionExamples(t, db)
 	documentation_examples.UpdateExamples(t, db)
 	documentation_examples.DeleteExamples(t, db)
+	documentation_examples.RunCommandExamples(t, db)
+	documentation_examples.IndexExamples(t, db)
+}
+
+func TestAggregationExamples(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cs := testutil.ConnString(t)
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cs.String()))
+	require.NoError(t, err)
+	defer client.Disconnect(ctx)
+
+	db := client.Database("documentation_examples")
+
+	ver, err := getServerVersion(ctx, client)
+	if err != nil || testutil.CompareVersions(t, ver, "3.6") < 0 {
+		t.Skip("server does not support let in $lookup in aggregations")
+	}
+	documentation_examples.AggregationExamples(t, db)
 }
 
 func TestTransactionExamples(t *testing.T) {
