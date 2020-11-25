@@ -2121,254 +2121,250 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	err = airAlliancesColl.Drop(ctx)
 	require.NoError(t, err)
 
-	{
-		date20180208 := parseDate(t, "2018-02-08T09:00:00.000Z")
-		date20180109 := parseDate(t, "2018-01-09T07:12:00.000Z")
-		date20180127 := parseDate(t, "2018-01-27T09:13:00.000Z")
-		date20180203 := parseDate(t, "2018-02-03T07:58:00.000Z")
-		date20180205 := parseDate(t, "2018-02-05T06:03:00.000Z")
-		date20180111 := parseDate(t, "2018-01-11T07:15:00.000Z")
+	date20180208 := parseDate(t, "2018-02-08T09:00:00.000Z")
+	date20180109 := parseDate(t, "2018-01-09T07:12:00.000Z")
+	date20180127 := parseDate(t, "2018-01-27T09:13:00.000Z")
+	date20180203 := parseDate(t, "2018-02-03T07:58:00.000Z")
+	date20180205 := parseDate(t, "2018-02-05T06:03:00.000Z")
+	date20180111 := parseDate(t, "2018-01-11T07:15:00.000Z")
 
-		// Start Aggregation Example 1
-		sales := []interface{}{
-			bson.D{
-				{"date", date20180208}, // date objects are of type time.Time
-				{"items", bson.A{
-					bson.D{
-						{"fruit", "kiwi"},
-						{"quantity", 2},
-						{"price", 0.5},
-					},
-					bson.D{
-						{"fruit", "apple"},
-						{"quantity", 1},
-						{"price", 1.0},
-					},
-				}},
-			},
-			bson.D{
-				{"date", date20180109},
-				{"items", bson.A{
-					bson.D{
-						{"fruit", "banana"},
-						{"quantity", 8},
-						{"price", 1.0},
-					},
-					bson.D{
-						{"fruit", "apple"},
-						{"quantity", 1},
-						{"price", 1.0},
-					},
-					bson.D{
-						{"fruit", "papaya"},
-						{"quantity", 1},
-						{"price", 4.0},
-					},
-				}},
-			},
-			bson.D{
-				{"date", date20180127},
-				{"items", bson.A{
-					bson.D{
-						{"fruit", "banana"},
-						{"quantity", 1},
-						{"price", 1.0},
-					},
-				}},
-			},
-			bson.D{
-				{"date", date20180203},
-				{"items", bson.A{
-					bson.D{
-						{"fruit", "banana"},
-						{"quantity", 1},
-						{"price", 1.0},
-					},
-				}},
-			},
-			bson.D{
-				{"date", date20180205},
-				{"items", bson.A{
-					bson.D{
-						{"fruit", "banana"},
-						{"quantity", 1},
-						{"price", 1.0},
-					},
-					bson.D{
-						{"fruit", "mango"},
-						{"quantity", 2},
-						{"price", 2.0},
-					},
-					bson.D{
-						{"fruit", "apple"},
-						{"quantity", 1},
-						{"price", 1.0},
-					},
-				}},
-			},
-			bson.D{
-				{"date", date20180111},
-				{"items", bson.A{
-					bson.D{
-						{"fruit", "banana"},
-						{"quantity", 1},
-						{"price", 1.0},
-					},
-					bson.D{
-						{"fruit", "apple"},
-						{"quantity", 1},
-						{"price", 1.0},
-					},
-					bson.D{
-						{"fruit", "papaya"},
-						{"quantity", 3},
-						{"price", 4.0},
-					},
-				}},
-			},
-		}
-		airlines := []interface{}{
-			bson.D{
-				{"airline", 17},
-				{"name", "Air Canada"},
-				{"alias", "AC"},
-				{"iata", "ACA"},
-				{"icao", "AIR CANADA"},
-				{"active", "Y"},
-				{"country", "Canada"},
-				{"base", "TAL"},
-			},
-			bson.D{
-				{"airline", 18},
-				{"name", "Turkish Airlines"},
-				{"alias", "YK"},
-				{"iata", "TRK"},
-				{"icao", "TURKISH"},
-				{"active", "Y"},
-				{"country", "Turkey"},
-				{"base", "AET"},
-			},
-			bson.D{
-				{"airline", 22},
-				{"name", "Saudia"},
-				{"alias", "SV"},
-				{"iata", "SVA"},
-				{"icao", "SAUDIA"},
-				{"active", "Y"},
-				{"country", "Saudi Arabia"},
-				{"base", "JSU"},
-			},
-			bson.D{
-				{"airline", 29},
-				{"name", "Finnair"},
-				{"alias", "AY"},
-				{"iata", "FIN"},
-				{"icao", "FINNAIR"},
-				{"active", "Y"},
-				{"country", "Finland"},
-				{"base", "JMZ"},
-			},
-			bson.D{
-				{"airline", 34},
-				{"name", "Afric'air Express"},
-				{"alias", ""},
-				{"iata", "AAX"},
-				{"icao", "AFREX"},
-				{"active", "N"},
-				{"country", "Ivory Coast"},
-				{"base", "LOK"},
-			},
-			bson.D{
-				{"airline", 37},
-				{"name", "Artem-Avia"},
-				{"alias", ""},
-				{"iata", "ABA"},
-				{"icao", "ARTEM-AVIA"},
-				{"active", "N"},
-				{"country", "Ukraine"},
-				{"base", "JBR"},
-			},
-			bson.D{
-				{"airline", 38},
-				{"name", "Lufthansa"},
-				{"alias", "LH"},
-				{"iata", "DLH"},
-				{"icao", "LUFTHANSA"},
-				{"active", "Y"},
-				{"country", "Germany"},
-				{"base", "CYS"},
-			},
-		}
-		airAlliances := []interface{}{
-			bson.D{
-				{"name", "Star Alliance"},
-				{"airlines", bson.A{
-					"Air Canada",
-					"Avianca",
-					"Air China",
-					"Air New Zealand",
-					"Asiana Airlines",
-					"Brussels Airlines",
-					"Copa Airlines",
-					"Croatia Airlines",
-					"EgyptAir",
-					"TAP Portugal",
-					"United Airlines",
-					"Turkish Airlines",
-					"Swiss International Air Lines",
-					"Lufthansa",
-				}},
-			},
-			bson.D{
-				{"name", "SkyTeam"},
-				{"airlines", bson.A{
-					"Aerolinias Argentinas",
-					"Aeromexico",
-					"Air Europa",
-					"Air France",
-					"Alitalia",
-					"Delta Air Lines",
-					"Garuda Indonesia",
-					"Kenya Airways",
-					"KLM",
-					"Korean Air",
-					"Middle East Airlines",
-					"Saudia",
-				}},
-			},
-			bson.D{
-				{"name", "OneWorld"},
-				{"airlines", bson.A{
-					"Air Berlin",
-					"American Airlines",
-					"British Airways",
-					"Cathay Pacific",
-					"Finnair",
-					"Iberia Airlines",
-					"Japan Airlines",
-					"LATAM Chile",
-					"LATAM Brasil",
-					"Malasya Airlines",
-					"Canadian Airlines",
-				}},
-			},
-		}
-
-		salesResult, salesErr := salesColl.InsertMany(ctx, sales)
-		airlinesResult, airlinesErr := airlinesColl.InsertMany(ctx, airlines)
-		airAlliancesResult, airAlliancesErr := airAlliancesColl.InsertMany(ctx, airAlliances)
-
-		// End Aggregation Example 1
-
-		require.NoError(t, salesErr)
-		require.Len(t, salesResult.InsertedIDs, 6)
-		require.NoError(t, airlinesErr)
-		require.Len(t, airlinesResult.InsertedIDs, 7)
-		require.NoError(t, airAlliancesErr)
-		require.Len(t, airAlliancesResult.InsertedIDs, 3)
+	sales := []interface{}{
+		bson.D{
+			{"date", date20180208},
+			{"items", bson.A{
+				bson.D{
+					{"fruit", "kiwi"},
+					{"quantity", 2},
+					{"price", 0.5},
+				},
+				bson.D{
+					{"fruit", "apple"},
+					{"quantity", 1},
+					{"price", 1.0},
+				},
+			}},
+		},
+		bson.D{
+			{"date", date20180109},
+			{"items", bson.A{
+				bson.D{
+					{"fruit", "banana"},
+					{"quantity", 8},
+					{"price", 1.0},
+				},
+				bson.D{
+					{"fruit", "apple"},
+					{"quantity", 1},
+					{"price", 1.0},
+				},
+				bson.D{
+					{"fruit", "papaya"},
+					{"quantity", 1},
+					{"price", 4.0},
+				},
+			}},
+		},
+		bson.D{
+			{"date", date20180127},
+			{"items", bson.A{
+				bson.D{
+					{"fruit", "banana"},
+					{"quantity", 1},
+					{"price", 1.0},
+				},
+			}},
+		},
+		bson.D{
+			{"date", date20180203},
+			{"items", bson.A{
+				bson.D{
+					{"fruit", "banana"},
+					{"quantity", 1},
+					{"price", 1.0},
+				},
+			}},
+		},
+		bson.D{
+			{"date", date20180205},
+			{"items", bson.A{
+				bson.D{
+					{"fruit", "banana"},
+					{"quantity", 1},
+					{"price", 1.0},
+				},
+				bson.D{
+					{"fruit", "mango"},
+					{"quantity", 2},
+					{"price", 2.0},
+				},
+				bson.D{
+					{"fruit", "apple"},
+					{"quantity", 1},
+					{"price", 1.0},
+				},
+			}},
+		},
+		bson.D{
+			{"date", date20180111},
+			{"items", bson.A{
+				bson.D{
+					{"fruit", "banana"},
+					{"quantity", 1},
+					{"price", 1.0},
+				},
+				bson.D{
+					{"fruit", "apple"},
+					{"quantity", 1},
+					{"price", 1.0},
+				},
+				bson.D{
+					{"fruit", "papaya"},
+					{"quantity", 3},
+					{"price", 4.0},
+				},
+			}},
+		},
 	}
+	airlines := []interface{}{
+		bson.D{
+			{"airline", 17},
+			{"name", "Air Canada"},
+			{"alias", "AC"},
+			{"iata", "ACA"},
+			{"icao", "AIR CANADA"},
+			{"active", "Y"},
+			{"country", "Canada"},
+			{"base", "TAL"},
+		},
+		bson.D{
+			{"airline", 18},
+			{"name", "Turkish Airlines"},
+			{"alias", "YK"},
+			{"iata", "TRK"},
+			{"icao", "TURKISH"},
+			{"active", "Y"},
+			{"country", "Turkey"},
+			{"base", "AET"},
+		},
+		bson.D{
+			{"airline", 22},
+			{"name", "Saudia"},
+			{"alias", "SV"},
+			{"iata", "SVA"},
+			{"icao", "SAUDIA"},
+			{"active", "Y"},
+			{"country", "Saudi Arabia"},
+			{"base", "JSU"},
+		},
+		bson.D{
+			{"airline", 29},
+			{"name", "Finnair"},
+			{"alias", "AY"},
+			{"iata", "FIN"},
+			{"icao", "FINNAIR"},
+			{"active", "Y"},
+			{"country", "Finland"},
+			{"base", "JMZ"},
+		},
+		bson.D{
+			{"airline", 34},
+			{"name", "Afric'air Express"},
+			{"alias", ""},
+			{"iata", "AAX"},
+			{"icao", "AFREX"},
+			{"active", "N"},
+			{"country", "Ivory Coast"},
+			{"base", "LOK"},
+		},
+		bson.D{
+			{"airline", 37},
+			{"name", "Artem-Avia"},
+			{"alias", ""},
+			{"iata", "ABA"},
+			{"icao", "ARTEM-AVIA"},
+			{"active", "N"},
+			{"country", "Ukraine"},
+			{"base", "JBR"},
+		},
+		bson.D{
+			{"airline", 38},
+			{"name", "Lufthansa"},
+			{"alias", "LH"},
+			{"iata", "DLH"},
+			{"icao", "LUFTHANSA"},
+			{"active", "Y"},
+			{"country", "Germany"},
+			{"base", "CYS"},
+		},
+	}
+	airAlliances := []interface{}{
+		bson.D{
+			{"name", "Star Alliance"},
+			{"airlines", bson.A{
+				"Air Canada",
+				"Avianca",
+				"Air China",
+				"Air New Zealand",
+				"Asiana Airlines",
+				"Brussels Airlines",
+				"Copa Airlines",
+				"Croatia Airlines",
+				"EgyptAir",
+				"TAP Portugal",
+				"United Airlines",
+				"Turkish Airlines",
+				"Swiss International Air Lines",
+				"Lufthansa",
+			}},
+		},
+		bson.D{
+			{"name", "SkyTeam"},
+			{"airlines", bson.A{
+				"Aerolinias Argentinas",
+				"Aeromexico",
+				"Air Europa",
+				"Air France",
+				"Alitalia",
+				"Delta Air Lines",
+				"Garuda Indonesia",
+				"Kenya Airways",
+				"KLM",
+				"Korean Air",
+				"Middle East Airlines",
+				"Saudia",
+			}},
+		},
+		bson.D{
+			{"name", "OneWorld"},
+			{"airlines", bson.A{
+				"Air Berlin",
+				"American Airlines",
+				"British Airways",
+				"Cathay Pacific",
+				"Finnair",
+				"Iberia Airlines",
+				"Japan Airlines",
+				"LATAM Chile",
+				"LATAM Brasil",
+				"Malasya Airlines",
+				"Canadian Airlines",
+			}},
+		},
+	}
+
+	salesResult, salesErr := salesColl.InsertMany(ctx, sales)
+	airlinesResult, airlinesErr := airlinesColl.InsertMany(ctx, airlines)
+	airAlliancesResult, airAlliancesErr := airAlliancesColl.InsertMany(ctx, airAlliances)
+
+	require.NoError(t, salesErr)
+	require.Len(t, salesResult.InsertedIDs, 6)
+	require.NoError(t, airlinesErr)
+	require.Len(t, airlinesResult.InsertedIDs, 7)
+	require.NoError(t, airAlliancesErr)
+	require.Len(t, airAlliancesResult.InsertedIDs, 3)
+
 	{
-		// Start Aggregation Example 2
+		// Start Aggregation Example 1
 		pipeline := mongo.Pipeline{
 			{
 				{"$match", bson.D{
@@ -2384,14 +2380,14 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		cursor, err := salesColl.Aggregate(ctx, pipeline)
 
-		// End Aggregation Example 2
+		// End Aggregation Example 1
 
 		require.NoError(t, err)
 		defer cursor.Close(ctx)
 		requireCursorLength(t, cursor, 5)
 	}
 	{
-		// Start Aggregation Example 3
+		// Start Aggregation Example 2
 		pipeline := mongo.Pipeline{
 			{
 				{"$unwind", "$items"},
@@ -2429,14 +2425,14 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		cursor, err := salesColl.Aggregate(ctx, pipeline)
 
-		// End Aggregation Example 3
+		// End Aggregation Example 2
 
 		require.NoError(t, err)
 		defer cursor.Close(ctx)
 		requireCursorLength(t, cursor, 4)
 	}
 	{
-		// Start Aggregation Example 4
+		// Start Aggregation Example 3
 		pipeline := mongo.Pipeline{
 			{
 				{"$unwind", "$items"},
@@ -2478,14 +2474,14 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		cursor, err := salesColl.Aggregate(ctx, pipeline)
 
-		// End Aggregation Example 4
+		// End Aggregation Example 3
 
 		require.NoError(t, err)
 		defer cursor.Close(ctx)
 		requireCursorLength(t, cursor, 4)
 	}
 	{
-		// Start Aggregation Example 5
+		// Start Aggregation Example 4
 		pipeline := mongo.Pipeline{
 			{
 				{"$lookup", bson.D{
@@ -2522,7 +2518,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		cursor, err := airAlliancesColl.Aggregate(ctx, pipeline)
 
-		// End Aggregation Example 5
+		// End Aggregation Example 4
 
 		require.NoError(t, err)
 		defer cursor.Close(ctx)
@@ -2539,65 +2535,60 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 	err := coll.Drop(ctx)
 	require.NoError(t, err)
 
+	restaurants := []interface{}{
+		bson.D{
+			{"name", "Chez Panisse"},
+			{"city", "Oakland"},
+			{"state", "California"},
+			{"country", "United States"},
+			{"rating", 4.4},
+		},
+		bson.D{
+			{"name", "Central"},
+			{"city", "Lima"},
+			{"country", "Peru"},
+			{"rating", 4.8},
+		},
+		bson.D{
+			{"name", "Eleven Madison Park"},
+			{"city", "New York City"},
+			{"state", "New York"},
+			{"country", "United States"},
+			{"rating", 4.6},
+		},
+		bson.D{
+			{"name", "Gaggan"},
+			{"city", "Bangkok"},
+			{"country", "Thailand"},
+			{"rating", 4.3},
+		},
+		bson.D{
+			{"name", "Dad's Grill"},
+			{"city", "Oklahoma City"},
+			{"state", "Oklahoma"},
+			{"country", "United States"},
+			{"rating", 2.1},
+		},
+	}
+
+	result, err := coll.InsertMany(ctx, restaurants)
+	require.NoError(t, err)
+	require.Len(t, result.InsertedIDs, 5)
+
 	{
 		// Start RunCommand Example 1
-		restaurants := []interface{}{
-			bson.D{
-				{"name", "Chez Panisse"},
-				{"city", "Oakland"},
-				{"state", "California"},
-				{"country", "United States"},
-				{"rating", 4.4},
-			},
-			bson.D{
-				{"name", "Central"},
-				{"city", "Lima"},
-				{"country", "Peru"},
-				{"rating", 4.8},
-			},
-			bson.D{
-				{"name", "Eleven Madison Park"},
-				{"city", "New York City"},
-				{"state", "New York"},
-				{"country", "United States"},
-				{"rating", 4.6},
-			},
-			bson.D{
-				{"name", "Gaggan"},
-				{"city", "Bangkok"},
-				{"country", "Thailand"},
-				{"rating", 4.3},
-			},
-			bson.D{
-				{"name", "Dad's Grill"},
-				{"city", "Oklahoma City"},
-				{"state", "Oklahoma"},
-				{"country", "United States"},
-				{"rating", 2.1},
-			},
-		}
-
-		result, err := coll.InsertMany(ctx, restaurants)
-
-		// End RunCommand Example 1
-
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 5)
-	}
-	{
-		// Start RunCommand Example 2
 		res := db.RunCommand(ctx, bson.D{{"buildInfo", 1}})
 
-		// End RunCommand Example 2
+		// End RunCommand Example 1
 
 		err := res.Err()
 		require.NoError(t, err)
 	}
 	{
-		// Start RunCommand Example 3
+		// Start RunCommand Example 2
 		res := db.RunCommand(ctx, bson.D{{"collStats", "restaurants"}})
 
-		// End RunCommand Example 3
+		// End RunCommand Example 2
 
 		err := res.Err()
 		require.NoError(t, err)
@@ -2616,82 +2607,78 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 	err = restaurantsColl.Drop(ctx)
 	require.NoError(t, err)
 
+	records := []interface{}{
+		bson.D{
+			{"student", "Marty McFly"},
+			{"classYear", 1986},
+			{"school", "Hill Valley High"},
+			{"score", 56.5},
+		},
+		bson.D{
+			{"student", "Ferris F. Bueller"},
+			{"classYear", 1987},
+			{"school", "Glenbrook North High"},
+			{"status", "Suspended"},
+			{"score", 76.0},
+		},
+		bson.D{
+			{"student", "Reynard Muldoon"},
+			{"classYear", 2007},
+			{"school", "Stonetown Middle"},
+			{"score", 99.9},
+		},
+	}
+	restaurants := []interface{}{
+		bson.D{
+			{"name", "Chez Panisse"},
+			{"cuisine", "American/French"},
+			{"city", "Oakland"},
+			{"state", "California"},
+			{"country", "United States"},
+			{"rating", 4.9},
+		},
+		bson.D{
+			{"name", "Central"},
+			{"cuisine", "Peruvian"},
+			{"city", "Lima"},
+			{"country", "Peru"},
+			{"rating", 5.8},
+		},
+		bson.D{
+			{"name", "Eleven Madison Park"},
+			{"cuisine", "French"},
+			{"city", "New York City"},
+			{"state", "New York"},
+			{"country", "United States"},
+			{"rating", 7.1},
+		},
+		bson.D{
+			{"name", "Gaggan"},
+			{"cuisine", "Thai Fusion"},
+			{"city", "Bangkok"},
+			{"country", "Thailand"},
+			{"rating", 9.2},
+		},
+		bson.D{
+			{"name", "Dad's Grill"},
+			{"cuisine", "BBQ"},
+			{"city", "Oklahoma City"},
+			{"state", "Oklahoma"},
+			{"country", "United States"},
+			{"rating", 2.1},
+		},
+	}
+
+	recordsResult, recordsErr := recordsColl.InsertMany(ctx, records)
+	restaurantsResult, restaurantsErr := restaurantsColl.InsertMany(ctx, restaurants)
+
+	require.NoError(t, recordsErr)
+	require.Len(t, recordsResult.InsertedIDs, 3)
+	require.NoError(t, restaurantsErr)
+	require.Len(t, restaurantsResult.InsertedIDs, 5)
+
 	{
 		// Start Index Example 1
-		records := []interface{}{
-			bson.D{
-				{"student", "Marty McFly"},
-				{"classYear", 1986},
-				{"school", "Hill Valley High"},
-				{"score", 56.5},
-			},
-			bson.D{
-				{"student", "Ferris F. Bueller"},
-				{"classYear", 1987},
-				{"school", "Glenbrook North High"},
-				{"status", "Suspended"},
-				{"score", 76.0},
-			},
-			bson.D{
-				{"student", "Reynard Muldoon"},
-				{"classYear", 2007},
-				{"school", "Stonetown Middle"},
-				{"score", 99.9},
-			},
-		}
-		restaurants := []interface{}{
-			bson.D{
-				{"name", "Chez Panisse"},
-				{"cuisine", "American/French"},
-				{"city", "Oakland"},
-				{"state", "California"},
-				{"country", "United States"},
-				{"rating", 4.9},
-			},
-			bson.D{
-				{"name", "Central"},
-				{"cuisine", "Peruvian"},
-				{"city", "Lima"},
-				{"country", "Peru"},
-				{"rating", 5.8},
-			},
-			bson.D{
-				{"name", "Eleven Madison Park"},
-				{"cuisine", "French"},
-				{"city", "New York City"},
-				{"state", "New York"},
-				{"country", "United States"},
-				{"rating", 7.1},
-			},
-			bson.D{
-				{"name", "Gaggan"},
-				{"cuisine", "Thai Fusion"},
-				{"city", "Bangkok"},
-				{"country", "Thailand"},
-				{"rating", 9.2},
-			},
-			bson.D{
-				{"name", "Dad's Grill"},
-				{"cuisine", "BBQ"},
-				{"city", "Oklahoma City"},
-				{"state", "Oklahoma"},
-				{"country", "United States"},
-				{"rating", 2.1},
-			},
-		}
-
-		recordsResult, recordsErr := recordsColl.InsertMany(ctx, records)
-		restaurantsResult, restaurantsErr := restaurantsColl.InsertMany(ctx, restaurants)
-
-		// End Index Example 1
-
-		require.NoError(t, recordsErr)
-		require.Len(t, recordsResult.InsertedIDs, 3)
-		require.NoError(t, restaurantsErr)
-		require.Len(t, restaurantsResult.InsertedIDs, 5)
-	}
-	{
-		// Start Index Example 2
 		indexModel := mongo.IndexModel{
 			Keys: bson.D{
 				{"score", 1},
@@ -2699,12 +2686,12 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 		}
 		_, err := recordsColl.Indexes().CreateOne(ctx, indexModel)
 
-		// End Index Example 2
+		// End Index Example 1
 
 		require.NoError(t, err)
 	}
 	{
-		// Start Index Example 3
+		// Start Index Example 2
 		partialFilterExpression := bson.D{
 			{"rating", bson.D{
 				{"$gt", 5},
@@ -2720,7 +2707,7 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 		_, err := restaurantsColl.Indexes().CreateOne(ctx, indexModel)
 
-		// End Index Example 3
+		// End Index Example 2
 
 		require.NoError(t, err)
 	}
