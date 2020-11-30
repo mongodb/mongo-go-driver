@@ -485,6 +485,23 @@ func TestConnection(t *testing.T) {
 					}
 					listener.assertMethodsCalled(t, 1, 1)
 				})
+				t.Run("message too large errors", func(t *testing.T) {
+					errMsg := "length of read message too large"
+					buffer := []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}
+					tnc := &testNetConn{buf: make([]byte, len(buffer))}
+					copy(tnc.buf, buffer)
+					desc := description.Server{MaxMessageSize: 9}
+					conn := &connection{id: "foobar", nc: tnc, connected: connected, desc: desc}
+					listener := newTestCancellationListener(false)
+					conn.cancellationListener = listener
+
+					want := ConnectionError{ConnectionID: "foobar", Wrapped: nil, message: errMsg}
+					_, got := conn.readWireMessage(context.Background(), nil)
+					if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
+						t.Errorf("errors do not match. got %v; want %v", got, want)
+					}
+					listener.assertMethodsCalled(t, 1, 1)
+				})
 				t.Run("success", func(t *testing.T) {
 					want := []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}
 					tnc := &testNetConn{buf: make([]byte, len(want))}
