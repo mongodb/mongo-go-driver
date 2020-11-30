@@ -30,6 +30,8 @@ import (
 
 var globalConnectionID uint64 = 1
 
+var maxMessageSizeDefault uint32 = 48000000
+
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
 type connection struct {
@@ -374,17 +376,6 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 		}
 	}
 
-	// In the case of an isMaster response where MaxMessageSize has not yet been set, use a hard-coded
-	// 48000000 bytes instead.
-	maxMessageSize := c.desc.MaxMessageSize
-	if maxMessageSize == 0 {
-		maxMessageSize = 48000000
-	}
-	if uint32(len(dst)) > maxMessageSize {
-		c.close()
-		return nil, ConnectionError{ConnectionID: c.id, Wrapped: nil, message: "length of read message too large"}
-	}
-
 	c.bumpIdleDeadline()
 	return dst, nil
 }
@@ -416,6 +407,18 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 
 	// read the length as an int32
 	size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
+
+	// In the case of an isMaster response where MaxMessageSize has not yet been set, use the hard-coded
+	// maxMessageSizeDefault instead.
+	maxMessageSize := c.desc.MaxMessageSize
+	if maxMessageSize == 0 {
+		maxMessageSize = maxMessageSizeDefault
+	}
+	if uint32(size) > maxMessageSize {
+		c.close()
+		err := errors.New("length of read message too large")
+		return nil, err.Error(), err
+	}
 
 	if int(size) > cap(dst) {
 		// Since we can't grow this slice without allocating, just allocate an entirely new slice.
