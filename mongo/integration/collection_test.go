@@ -75,9 +75,9 @@ func TestCollection(t *testing.T) {
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", we)
 		})
 
-		mt.Run("options are converted", func(mt *mtest.T) {
-			// Require 3.2 servers for bypassDocumentValidation support.
-			nilOptsOpts := mtest.NewOptions().MinServerVersion("3.2")
+		// Require 3.2 servers for bypassDocumentValidation support.
+		convertedOptsOpts := mtest.NewOptions().MinServerVersion("3.2")
+		mt.RunOpts("options are converted", convertedOptsOpts, func(mt *mtest.T) {
 			nilOptsTestCases := []struct {
 				name            string
 				opts            []*options.InsertOneOptions
@@ -101,7 +101,7 @@ func TestCollection(t *testing.T) {
 			}
 
 			for _, testCase := range nilOptsTestCases {
-				mt.RunOpts(testCase.name, nilOptsOpts, func(mt *mtest.T) {
+				mt.Run(testCase.name, func(mt *mtest.T) {
 					doc := bson.D{{"x", 1}}
 					_, err := mt.Coll.InsertOne(mtest.Background, doc, testCase.opts...)
 					assert.Nil(mt, err, "InsertOne error: %v", err)
@@ -112,9 +112,9 @@ func TestCollection(t *testing.T) {
 					if testCase.expectOptionSet {
 						assert.Nil(mt, err, "expected %v to be set but got: %v", optName, err)
 						assert.True(mt, val.Boolean(), "expected %v to be true but got: %v", optName, val.Boolean())
-					} else {
-						assert.NotNil(mt, err, "expected %v to be unset but got nil", optName)
+						return
 					}
+					assert.NotNil(mt, err, "expected %v to be unset but got nil", optName)
 				})
 			}
 		})
