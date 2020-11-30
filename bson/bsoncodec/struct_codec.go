@@ -60,14 +60,14 @@ type Zeroer interface {
 
 // StructCodec is the Codec used for struct values.
 type StructCodec struct {
-	cache                         map[reflect.Type]*structDescription
-	l                             sync.RWMutex
-	parser                        StructTagParser
-	DecodeZeroStruct              bool
-	DecodeDeepZeroInline          bool
-	EncodeOmitDefaultStruct       bool
-	AllowUnexportedFields         bool
-	AllowOverwritingInlinedFields bool
+	cache                            map[reflect.Type]*structDescription
+	l                                sync.RWMutex
+	parser                           StructTagParser
+	DecodeZeroStruct                 bool
+	DecodeDeepZeroInline             bool
+	EncodeOmitDefaultStruct          bool
+	AllowUnexportedFields            bool
+	OverwriteDuplicatedInlinedFields bool
 }
 
 var _ ValueEncoder = &StructCodec{}
@@ -95,8 +95,8 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	if structOpt.EncodeOmitDefaultStruct != nil {
 		codec.EncodeOmitDefaultStruct = *structOpt.EncodeOmitDefaultStruct
 	}
-	if structOpt.AllowOverwritingInlinedFields != nil {
-		codec.AllowOverwritingInlinedFields = *structOpt.AllowOverwritingInlinedFields
+	if structOpt.OverwriteDuplicatedInlinedFields != nil {
+		codec.OverwriteDuplicatedInlinedFields = *structOpt.OverwriteDuplicatedInlinedFields
 	}
 	if structOpt.AllowUnexportedFields != nil {
 		codec.AllowUnexportedFields = *structOpt.AllowUnexportedFields
@@ -411,6 +411,7 @@ type fieldDescription struct {
 	inline    []int
 	encoder   ValueEncoder
 	decoder   ValueDecoder
+	tagged    bool
 }
 
 type byIndex []fieldDescription
@@ -459,6 +460,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 		inlineMap: -1,
 	}
 
+	var fields []fieldDescription
 	for i := 0; i < numFields; i++ {
 		sf := t.Field(i)
 		if sf.PkgPath != "" && (!sc.AllowUnexportedFields || !sf.Anonymous) {
@@ -495,6 +497,10 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 		description.minSize = stags.MinSize
 		description.truncate = stags.Truncate
 
+		if strings.ToLower(sf.Name) != stags.Name {
+			description.tagged = true
+		}
+
 		if stags.Inline {
 			sd.inline = true
 			switch sfType.Kind() {
@@ -523,16 +529,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 					} else {
 						fd.inline = append([]int{i}, fd.inline...)
 					}
-					if old, exists := sd.fm[fd.name]; exists {
-						compared := compareField(old, fd)
-						if compared == 0 || !sc.AllowOverwritingInlinedFields {
-							return nil, fmt.Errorf("struct %s) duplicated key %s", t.String(), fd.name)
-						}
-						if compared > 0 {
-							continue
-						}
-					}
-					sd.fm[fd.name] = fd
+					fields = append(fields, fd)
 
 				}
 			default:
@@ -540,24 +537,51 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 			}
 			continue
 		}
+		fields = append(fields, description)
+	}
 
-		if old, exists := sd.fm[description.name]; exists {
-			compared := compareField(old, description)
-			if compared == 0 || !sc.AllowOverwritingInlinedFields {
-				return nil, fmt.Errorf("(struct %s) duplicated key %s", t.String(), description.name)
-			}
-			if compared > 0 {
-				continue
+	//Sort fieldDescriptions by name and use dominance rules to determine which should be added for each name
+	sort.Slice(fields, func(i, j int) bool {
+		x := fields
+		// sort field by name, breaking ties with depth, then
+		// breaking ties with "name came from bson tag", then
+		// breaking ties with index sequence.
+		if x[i].name != x[j].name {
+			return x[i].name < x[j].name
+		}
+		if len(x[i].inline) != len(x[j].inline) {
+			return len(x[i].inline) < len(x[j].inline)
+		}
+		if x[i].tagged != x[j].tagged {
+			return x[i].tagged
+		}
+		return byIndex(x).Less(i, j)
+	})
+
+	for advance, i := 0, 0; i < len(fields); i += advance {
+		// One iteration per name.
+		// Find the sequence of fields with the name of this first field.
+		fi := fields[i]
+		name := fi.name
+		for advance = 1; i+advance < len(fields); advance++ {
+			fj := fields[i+advance]
+			if fj.name != name {
+				break
 			}
 		}
-
-		sd.fm[description.name] = description
+		if advance == 1 { // Only one field with this name
+			sd.fl = append(sd.fl, fi)
+			sd.fm[name] = fi
+			continue
+		}
+		dominant, ok := dominantField(fields[i : i+advance])
+		if !ok || !sc.OverwriteDuplicatedInlinedFields {
+			return nil, fmt.Errorf("struct %s) duplicated key %s", t.String(), name)
+		}
+		sd.fl = append(sd.fl, dominant)
+		sd.fm[name] = dominant
 	}
 
-	// Add all the fieldDescriptions and sort them so the final document is correctly ordered
-	for _, desc := range sd.fm {
-		sd.fl = append(sd.fl, desc)
-	}
 	sort.Sort(byIndex(sd.fl))
 
 	sc.l.Lock()
@@ -567,16 +591,22 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 	return sd, nil
 }
 
-// compareField compares two fieldDescriptions. Returns 1 if fd1 overwrites fd2, -1 if fd2 overwrites fd1, and 0 if
-// they are equally dominant
-func compareField(fd1, fd2 fieldDescription) int {
-	if len(fd1.inline) < len(fd2.inline) {
-		return 1
+// dominantField looks through the fields, all of which are known to
+// have the same name, to find the single field that dominates the
+// others using Go's embedding rules, modified by the presence of
+// BSON tags. If there are multiple top-level fields, the boolean
+// will be false: This condition is an error in Go and we skip all
+// the fields.
+func dominantField(fields []fieldDescription) (fieldDescription, bool) {
+	// The fields are sorted in increasing index-length order, then by presence of tag.
+	// That means that the first field is the dominant one. We need only check
+	// for error cases: two fields at top level, either both tagged or neither tagged.
+	if len(fields) > 1 &&
+		len(fields[0].inline) == len(fields[1].inline) &&
+		fields[0].tagged == fields[1].tagged {
+		return fieldDescription{}, false
 	}
-	if len(fd1.inline) > len(fd2.inline) {
-		return -1
-	}
-	return 0
+	return fields[0], true
 }
 
 func fieldByIndexErr(v reflect.Value, index []int) (result reflect.Value, err error) {
