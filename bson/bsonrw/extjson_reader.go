@@ -163,7 +163,12 @@ func (ejvr *extJSONValueReader) skipDocument() error {
 	// read entire document until ErrEOD (using readKey and readValue)
 	_, typ, err := ejvr.p.readKey()
 	for err == nil {
-		_, err = ejvr.p.readValue(typ)
+		if typ == bsontype.EmbeddedDocument {
+			_, _, err = ejvr.p.readObject(1, true)
+		} else {
+			_, err = ejvr.p.readValue(typ)
+		}
+
 		if err != nil {
 			break
 		}
