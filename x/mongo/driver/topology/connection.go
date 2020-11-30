@@ -375,10 +375,10 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	}
 
 	// In the case of an isMaster response where MaxMessageSize has not yet been set, use a hard-coded
-	// 48000 bytes instead.
+	// 48000000 bytes instead.
 	maxMessageSize := c.desc.MaxMessageSize
 	if maxMessageSize == 0 {
-		maxMessageSize = 48000
+		maxMessageSize = 48000000
 	}
 	if uint32(len(dst)) > maxMessageSize {
 		c.close()
