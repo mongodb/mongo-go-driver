@@ -220,7 +220,8 @@ func TestIndexView(t *testing.T) {
 				})
 			}
 		})
-		mt.Run("replace error", func(mt *mtest.T) {
+		// Needs to run on these versions for failpoints
+		mt.RunOpts("replace error", mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0"), func(mt *mtest.T) {
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
 				Mode:               "alwaysOn",
@@ -341,7 +342,8 @@ func TestIndexView(t *testing.T) {
 				})
 			}
 		})
-		mt.Run("replace error", func(mt *mtest.T) {
+		// Needs to run on these versions for failpoints
+		mt.RunOpts("replace error", mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0"), func(mt *mtest.T) {
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
 				Mode:               "alwaysOn",
