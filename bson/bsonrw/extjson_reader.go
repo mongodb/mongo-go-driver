@@ -230,7 +230,7 @@ func (ejvr *extJSONValueReader) Type() bsontype.Type {
 
 func (ejvr *extJSONValueReader) Skip() error {
 	switch ejvr.stack[ejvr.frame].mode {
-	case mElement, mValue:
+	case mElement, mValue, mArray:
 	default:
 		return ejvr.invalidTransitionErr(0, "Skip", []mode{mElement, mValue})
 	}

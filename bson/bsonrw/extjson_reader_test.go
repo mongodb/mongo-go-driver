@@ -167,7 +167,7 @@ func readAllDocuments(vr ValueReader) ([][]byte, error) {
 	return actual, nil
 }
 
-func TestExtJSONValueReader_Skip(t *testing.T) {
+func TestExtJSONValueReader_SkipEmbedded(t *testing.T) {
 	vr, err := NewExtJSONValueReader(strings.NewReader(`{"key": {"one": {"two": "three"}}}`), false)
 	if err != nil {
 		t.Fatalf("error creating vr: %v", err)
@@ -181,6 +181,28 @@ func TestExtJSONValueReader_Skip(t *testing.T) {
 	_, vr, err = dr.ReadElement()
 	if err != nil {
 		t.Fatalf("error reading element: %v", err)
+	}
+
+	err = vr.Skip()
+	if err != nil {
+		t.Fatalf("error skipping: %v", err)
+	}
+}
+
+func TestExtJSONValueReader_SkipArray(t *testing.T) {
+	vr, err := NewExtJSONValueReader(strings.NewReader(`[{"key": "value"}]`), false)
+	if err != nil {
+		t.Fatalf("error creating vr: %v", err)
+	}
+
+	ar, err := vr.ReadArray()
+	if err != nil {
+		t.Fatalf("error reading array: %v", err)
+	}
+
+	vr, err = ar.ReadValue()
+	if err != nil {
+		t.Fatalf("error reading value: %v", err)
 	}
 
 	err = vr.Skip()
