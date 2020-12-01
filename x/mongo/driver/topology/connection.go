@@ -30,8 +30,10 @@ import (
 
 var globalConnectionID uint64 = 1
 
-var defaultMaxMessageSize uint32 = 48000000
-var errResponseTooLarge error = errors.New("length of read message too large")
+var (
+	defaultMaxMessageSize uint32 = 48000000
+	errResponseTooLarge   error  = errors.New("length of read message too large")
+)
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
