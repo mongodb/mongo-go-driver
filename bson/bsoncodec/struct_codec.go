@@ -535,7 +535,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 		fields = append(fields, description)
 	}
 
-	//Sort fieldDescriptions by name and use dominance rules to determine which should be added for each name
+	// Sort fieldDescriptions by name and use dominance rules to determine which should be added for each name
 	sort.Slice(fields, func(i, j int) bool {
 		x := fields
 		// sort field by name, breaking ties with depth, then
@@ -584,7 +584,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 
 // dominantField looks through the fields, all of which are known to
 // have the same name, to find the single field that dominates the
-// others using Go's embedding rules. If there are multiple top-level
+// others using Go's inlining rules. If there are multiple top-level
 // fields, the boolean will be false: This condition is an error in Go
 // and we skip all the fields.
 func dominantField(fields []fieldDescription) (fieldDescription, bool) {
