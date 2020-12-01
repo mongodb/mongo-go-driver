@@ -2678,6 +2678,53 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
+				"inline overwrite",
+				struct {
+					Foo struct {
+						A int32
+						B string
+					} `bson:",inline"`
+					A int64
+				}{
+					Foo: struct {
+						A int32
+						B string
+					}{
+						A: 0,
+						B: "foo",
+					},
+					A: 54321,
+				},
+				buildDocument(func(doc []byte) []byte {
+					doc = bsoncore.AppendStringElement(doc, "b", "foo")
+					doc = bsoncore.AppendInt64Element(doc, "a", 54321)
+					return doc
+				}(nil)),
+				nil,
+			},
+			{
+				"inline overwrite with nested structs",
+				struct {
+					Foo struct {
+						A int32
+					} `bson:",inline"`
+					Bar struct {
+						A int32
+					} `bson:",inline"`
+					A int64
+				}{
+					Foo: struct {
+						A int32
+					}{},
+					Bar: struct {
+						A int32
+					}{},
+					A: 54321,
+				},
+				buildDocument(bsoncore.AppendInt64Element(nil, "a", 54321)),
+				nil,
+			},
+			{
 				"inline map",
 				struct {
 					Foo map[string]string `bson:",inline"`
@@ -3061,6 +3108,43 @@ func TestDefaultValueDecoders(t *testing.T) {
 				})
 			}
 		})
+	})
+	t.Run("error path", func(t *testing.T) {
+		testCases := []struct {
+			name  string
+			value interface{}
+			b     []byte
+			err   error
+		}{
+			{
+				"duplicate name struct",
+				struct {
+					A int64
+					B int64 `bson:"a"`
+				}{
+					A: 0,
+					B: 54321,
+				},
+				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
+				fmt.Errorf("duplicated key a"),
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				vr := bsonrw.NewBSONDocumentReader(tc.b)
+				reg := buildDefaultRegistry()
+				vtype := reflect.TypeOf(tc.value)
+				dec, err := reg.LookupDecoder(vtype)
+				noerr(t, err)
+
+				gotVal := reflect.New(reflect.TypeOf(tc.value)).Elem()
+				err = dec.DecodeValue(DecodeContext{Registry: reg}, vr, gotVal)
+				if err == nil || !strings.Contains(err.Error(), tc.err.Error()) {
+					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
+				}
+			})
+		}
 	})
 
 	t.Run("defaultEmptyInterfaceCodec.DecodeValue", func(t *testing.T) {
