@@ -30,7 +30,8 @@ import (
 
 var globalConnectionID uint64 = 1
 
-var maxMessageSizeDefault uint32 = 48000000
+var defaultMaxMessageSize uint32 = 48000000
+var errResponseTooLarge error = errors.New("length of read message too large")
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
@@ -409,15 +410,13 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 	size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
 
 	// In the case of an isMaster response where MaxMessageSize has not yet been set, use the hard-coded
-	// maxMessageSizeDefault instead.
+	// defaultMaxMessageSize instead.
 	maxMessageSize := c.desc.MaxMessageSize
 	if maxMessageSize == 0 {
-		maxMessageSize = maxMessageSizeDefault
+		maxMessageSize = defaultMaxMessageSize
 	}
 	if uint32(size) > maxMessageSize {
-		c.close()
-		err := errors.New("length of read message too large")
-		return nil, err.Error(), err
+		return nil, errResponseTooLarge.Error(), errResponseTooLarge
 	}
 
 	if int(size) > cap(dst) {
