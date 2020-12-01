@@ -411,7 +411,6 @@ type fieldDescription struct {
 	inline    []int
 	encoder   ValueEncoder
 	decoder   ValueDecoder
-	tagged    bool
 }
 
 type byIndex []fieldDescription
@@ -497,10 +496,6 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 		description.minSize = stags.MinSize
 		description.truncate = stags.Truncate
 
-		if strings.ToLower(sf.Name) != stags.Name {
-			description.tagged = true
-		}
-
 		if stags.Inline {
 			sd.inline = true
 			switch sfType.Kind() {
@@ -544,16 +539,12 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 	sort.Slice(fields, func(i, j int) bool {
 		x := fields
 		// sort field by name, breaking ties with depth, then
-		// breaking ties with "name came from bson tag", then
 		// breaking ties with index sequence.
 		if x[i].name != x[j].name {
 			return x[i].name < x[j].name
 		}
 		if len(x[i].inline) != len(x[j].inline) {
 			return len(x[i].inline) < len(x[j].inline)
-		}
-		if x[i].tagged != x[j].tagged {
-			return x[i].tagged
 		}
 		return byIndex(x).Less(i, j)
 	})
@@ -593,17 +584,15 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 
 // dominantField looks through the fields, all of which are known to
 // have the same name, to find the single field that dominates the
-// others using Go's embedding rules, modified by the presence of
-// BSON tags. If there are multiple top-level fields, the boolean
-// will be false: This condition is an error in Go and we skip all
-// the fields.
+// others using Go's embedding rules. If there are multiple top-level
+// fields, the boolean will be false: This condition is an error in Go
+// and we skip all the fields.
 func dominantField(fields []fieldDescription) (fieldDescription, bool) {
 	// The fields are sorted in increasing index-length order, then by presence of tag.
 	// That means that the first field is the dominant one. We need only check
-	// for error cases: two fields at top level, either both tagged or neither tagged.
+	// for error cases: two fields at top level.
 	if len(fields) > 1 &&
-		len(fields[0].inline) == len(fields[1].inline) &&
-		fields[0].tagged == fields[1].tagged {
+		len(fields[0].inline) == len(fields[1].inline) {
 		return fieldDescription{}, false
 	}
 	return fields[0], true

@@ -2725,18 +2725,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
-				"overwrite untagged with tagged name",
-				struct {
-					A int32
-					B int32 `bson:"a"`
-				}{
-					A: 0,
-					B: 54321,
-				},
-				buildDocument(bsoncore.AppendInt32Element(nil, "a", 54321)),
-				nil,
-			},
-			{
 				"inline map",
 				struct {
 					Foo map[string]string `bson:",inline"`
@@ -3131,14 +3119,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 			{
 				"duplicate name struct",
 				struct {
-					A int64 `bson:"foo"`
-					B int64 `bson:"foo"`
+					A int64
+					B int64 `bson:"a"`
 				}{
 					A: 0,
 					B: 54321,
 				},
-				buildDocument(bsoncore.AppendInt32Element(nil, "foo", 12345)),
-				fmt.Errorf("duplicated key foo"),
+				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
+				fmt.Errorf("duplicated key a"),
 			},
 		}
 
