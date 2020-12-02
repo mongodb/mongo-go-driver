@@ -112,6 +112,20 @@ func (e MongocryptdError) Unwrap() error {
 	return e.Wrapped
 }
 
+// ServerError is the interface implemented by errors returned from the server
+type ServerError interface {
+	error
+	HasErrorCode(int) bool
+	HasErrorLabel(string) bool
+	Unwrap() error
+
+	serverError()
+}
+
+var _ ServerError = CommandError{}
+var _ ServerError = WriteException{}
+var _ ServerError = BulkWriteException{}
+
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
 	Code    int32
@@ -134,6 +148,11 @@ func (e CommandError) Unwrap() error {
 	return e.Wrapped
 }
 
+// HasErrorCode returns true if the error has the specified code.
+func (e CommandError) HasErrorCode(code int) bool {
+	return int(e.Code) == code
+}
+
 // HasErrorLabel returns true if the error contains the specified label.
 func (e CommandError) HasErrorLabel(label string) bool {
 	if e.Labels != nil {
@@ -150,6 +169,9 @@ func (e CommandError) HasErrorLabel(label string) bool {
 func (e CommandError) IsMaxTimeMSExpiredError() bool {
 	return e.Code == 50 || e.Name == "MaxTimeMSExpired"
 }
+
+// serverError implements the ServerError interface.
+func (e CommandError) serverError() {}
 
 // WriteError is an error that occurred during execution of a write operation. This error type is only returned as part
 // of a WriteException or BulkWriteException.
@@ -227,6 +249,28 @@ func (mwe WriteException) Error() string {
 	return buf.String()
 }
 
+// Unwrap returns the underlying error.
+func (mwe WriteException) Unwrap() error {
+	if mwe.WriteConcernError != nil {
+		return mwe.WriteConcernError
+	}
+	// could also return one WriteError if there's only one
+	return mwe.WriteErrors
+}
+
+// HasErrorCode returns true if the error has the specified code.
+func (mwe WriteException) HasErrorCode(code int) bool {
+	if mwe.WriteConcernError.Code == code {
+		return true
+	}
+	for _, we := range mwe.WriteErrors {
+		if we.Code == code {
+			return true
+		}
+	}
+	return false
+}
+
 // HasErrorLabel returns true if the error contains the specified label.
 func (mwe WriteException) HasErrorLabel(label string) bool {
 	if mwe.Labels != nil {
@@ -238,6 +282,9 @@ func (mwe WriteException) HasErrorLabel(label string) bool {
 	}
 	return false
 }
+
+// serverError implements the ServerError interface.
+func (mwe WriteException) serverError() {}
 
 func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcernError {
 	if wce == nil {
@@ -266,13 +313,30 @@ func (bwe BulkWriteError) Error() string {
 	return buf.String()
 }
 
+// BulkWriteErrors is a group of write errors that occurred during execution of a write operation.
+type BulkWriteErrors []BulkWriteError
+
+// Error implements the error interface.
+func (bwe BulkWriteErrors) Error() string {
+	var buf bytes.Buffer
+	fmt.Fprint(&buf, "write errors: [")
+	for idx, err := range bwe {
+		if idx != 0 {
+			fmt.Fprintf(&buf, ", ")
+		}
+		fmt.Fprintf(&buf, "{%s}", err)
+	}
+	fmt.Fprint(&buf, "]")
+	return buf.String()
+}
+
 // BulkWriteException is the error type returned by BulkWrite and InsertMany operations.
 type BulkWriteException struct {
 	// The write concern error that occurred, or nil if there was none.
 	WriteConcernError *WriteConcernError
 
 	// The write errors that occurred during operation execution.
-	WriteErrors []BulkWriteError
+	WriteErrors BulkWriteErrors
 
 	// The categories to which the exception belongs.
 	Labels []string
@@ -287,6 +351,28 @@ func (bwe BulkWriteException) Error() string {
 	return buf.String()
 }
 
+// Unwrap returns the underlying error.
+func (bwe BulkWriteException) Unwrap() error {
+	if bwe.WriteConcernError != nil {
+		return bwe.WriteConcernError
+	}
+	// could also return one WriteError if there's only one
+	return bwe.WriteErrors
+}
+
+// HasErrorCode returns true if any of the errore have the specified code.
+func (bwe BulkWriteException) HasErrorCode(code int) bool {
+	if bwe.WriteConcernError.Code == code {
+		return true
+	}
+	for _, we := range bwe.WriteErrors {
+		if we.Code == code {
+			return true
+		}
+	}
+	return false
+}
+
 // HasErrorLabel returns true if the error contains the specified label.
 func (bwe BulkWriteException) HasErrorLabel(label string) bool {
 	if bwe.Labels != nil {
@@ -298,6 +384,9 @@ func (bwe BulkWriteException) HasErrorLabel(label string) bool {
 	}
 	return false
 }
+
+// serverError implements the ServerError interface.
+func (bwe BulkWriteException) serverError() {}
 
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different
