@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -165,4 +166,63 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, int32(-1), *second.X, "expected X value to be -1, got %v", *second.X)
 	})
+}
+
+type expectedResponse struct {
+	Status  int    `bson:"status"`
+	Message string `bson:"message"`
+}
+
+func unmarshalExtJSONHelper(extJSON string) (*expectedResponse, error) {
+	responseDoc := expectedResponse{}
+	err := UnmarshalExtJSON([]byte(extJSON), false, &responseDoc)
+	return &responseDoc, err
+}
+
+func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
+	testCases := []struct {
+		name     string
+		testJSON string
+	}{
+		{
+			"no array",
+			`{
+				"undefinedField": {"personalId": 2},
+				"message": "The operation was successful",
+				"status": 200
+			}`,
+		},
+		{
+			"outer array",
+			`{
+				"undefinedField": [{"personalId": 2}],
+				"message": "The operation was successful",
+				"status": 200
+			}`,
+		},
+		{
+			"embedded array",
+			`{
+				"undefinedField": {"personalIds": [2]},
+				"message": "The operation was successful",
+				"status": 200
+			}`,
+		},
+		{
+			"outer array and embedded array",
+			`{
+				"undefinedField": [{"personalIds": [2]}],
+				"message": "The operation was successful",
+				"status": 200
+			}`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			responseDoc, err := unmarshalExtJSONHelper(tc.testJSON)
+			require.NoError(t, err)
+			require.Equal(t, 200, responseDoc.Status)
+			require.Equal(t, "The operation was successful", responseDoc.Message)
+		})
+	}
 }
