@@ -30,6 +30,11 @@ import (
 
 var globalConnectionID uint64 = 1
 
+var (
+	defaultMaxMessageSize uint32 = 48000000
+	errResponseTooLarge   error  = errors.New("length of read message too large")
+)
+
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
 type connection struct {
@@ -405,6 +410,16 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 
 	// read the length as an int32
 	size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
+
+	// In the case of an isMaster response where MaxMessageSize has not yet been set, use the hard-coded
+	// defaultMaxMessageSize instead.
+	maxMessageSize := c.desc.MaxMessageSize
+	if maxMessageSize == 0 {
+		maxMessageSize = defaultMaxMessageSize
+	}
+	if uint32(size) > maxMessageSize {
+		return nil, errResponseTooLarge.Error(), errResponseTooLarge
+	}
 
 	if int(size) > cap(dst) {
 		// Since we can't grow this slice without allocating, just allocate an entirely new slice.

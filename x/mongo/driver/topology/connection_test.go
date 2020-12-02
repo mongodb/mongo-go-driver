@@ -485,6 +485,41 @@ func TestConnection(t *testing.T) {
 					}
 					listener.assertMethodsCalled(t, 1, 1)
 				})
+				t.Run("message too large errors", func(t *testing.T) {
+					testCases := []struct {
+						name   string
+						buffer []byte
+						desc   description.Server
+					}{
+						{
+							"message too large errors with small max message size",
+							[]byte{0x0A, 0x00, 0x00, 0x00}, // defines a message size of 10 in hex with the first four bytes.
+							description.Server{MaxMessageSize: 9},
+						},
+						{
+							"message too large errors with default max message size",
+							[]byte{0x01, 0x6C, 0xDC, 0x02}, // defines a message size of 48000001 in hex with the first four bytes.
+							description.Server{},
+						},
+					}
+					for _, tc := range testCases {
+						t.Run(tc.name, func(t *testing.T) {
+							err := errors.New("length of read message too large")
+							tnc := &testNetConn{buf: make([]byte, len(tc.buffer))}
+							copy(tnc.buf, tc.buffer)
+							conn := &connection{id: "foobar", nc: tnc, connected: connected, desc: tc.desc}
+							listener := newTestCancellationListener(false)
+							conn.cancellationListener = listener
+
+							want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: err.Error()}
+							_, got := conn.readWireMessage(context.Background(), nil)
+							if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
+								t.Errorf("errors do not match. got %v; want %v", got, want)
+							}
+							listener.assertMethodsCalled(t, 1, 1)
+						})
+					}
+				})
 				t.Run("success", func(t *testing.T) {
 					want := []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}
 					tnc := &testNetConn{buf: make([]byte, len(want))}
