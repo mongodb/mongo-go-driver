@@ -493,7 +493,7 @@ func TestConnection(t *testing.T) {
 					}{
 						{
 							"message too large errors with small max message size",
-							[]byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A},
+							[]byte{0x0A, 0x00, 0x00, 0x00}, // defines a message size of 10 in hex with the first four bytes.
 							description.Server{MaxMessageSize: 9},
 						},
 						{
