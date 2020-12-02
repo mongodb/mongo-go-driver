@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -165,4 +166,87 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, int32(-1), *second.X, "expected X value to be -1, got %v", *second.X)
 	})
+}
+
+type expectedResponse struct {
+	DefinedField string
+}
+
+func unmarshalExtJSONHelper(extJSON string) (*expectedResponse, error) {
+	responseDoc := expectedResponse{}
+	err := UnmarshalExtJSON([]byte(extJSON), false, &responseDoc)
+	return &responseDoc, err
+}
+
+func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
+	// When unmarshalling, fields that are undefined in the destination struct are skipped.
+	// This process must not skip other, defined fields and must not raise errors.
+	testCases := []struct {
+		name     string
+		testJSON string
+	}{
+		{
+			"no array",
+			`{
+				"UndefinedField": {"key": 1},
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"outer array",
+			`{
+				"UndefinedField": [{"key": 1}],
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"embedded array",
+			`{
+				"UndefinedField": {"keys": [2]},
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"outer array and embedded array",
+			`{
+				"UndefinedField": [{"keys": [2]}],
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"single embedded document",
+			`{
+				"UndefinedField": {"key": {"one": "two"}},
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"doubly embedded document",
+			`{
+				"UndefinedField": {"key": {"one": {"two": "three"}}},
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"embedded document and embedded array",
+			`{
+				"UndefinedField": {"key": {"one": {"two": [3]}}},
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"embedded document and embedded array in outer array",
+			`{
+				"UndefinedField": [{"key": {"one": [3]}}],
+				"DefinedField": "value"
+			}`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			responseDoc, err := unmarshalExtJSONHelper(tc.testJSON)
+			require.NoError(t, err)
+			require.Equal(t, "value", responseDoc.DefinedField)
+		})
+	}
 }

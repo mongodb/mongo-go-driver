@@ -163,16 +163,24 @@ func (ejvr *extJSONValueReader) skipDocument() error {
 	// read entire document until ErrEOD (using readKey and readValue)
 	_, typ, err := ejvr.p.readKey()
 	for err == nil {
-		if typ == bsontype.EmbeddedDocument {
-			_, _, err = ejvr.p.readObject(1, true)
-		} else {
+		switch typ {
+		case bsontype.EmbeddedDocument:
+			err = ejvr.skipDocument()
+			if err == ErrEOD {
+				err = nil
+			}
+		case bsontype.Array: // account for arrays embedded in documents
+			err = ejvr.skipArray()
+			if err == ErrEOA {
+				err = nil
+			}
+		default:
 			_, err = ejvr.p.readValue(typ)
 		}
 
 		if err != nil {
 			break
 		}
-
 		_, typ, err = ejvr.p.readKey()
 	}
 
@@ -181,9 +189,16 @@ func (ejvr *extJSONValueReader) skipDocument() error {
 
 func (ejvr *extJSONValueReader) skipArray() error {
 	// read entire array until ErrEOA (using peekType)
-	_, err := ejvr.p.peekType()
+	typ, err := ejvr.p.peekType()
 	for err == nil {
-		_, err = ejvr.p.peekType()
+		typ, err = ejvr.p.peekType()
+		// account for embedded arrays
+		if typ == bsontype.Array {
+			err = ejvr.skipArray()
+			if err == ErrEOA {
+				err = nil
+			}
+		}
 	}
 
 	return err
