@@ -337,7 +337,7 @@ func TestServerSelection(t *testing.T) {
 		serv, err := topo.FindServer(desc.Servers[0])
 		noerr(t, err)
 		atomic.StoreInt32(&serv.connectionstate, connected)
-		serv.ProcessError(driver.Error{Message: "not master"}, initConnection{})
+		_ = serv.ProcessError(driver.Error{Message: "not master"}, initConnection{})
 
 		resp := make(chan []description.Server)
 

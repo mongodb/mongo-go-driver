@@ -179,59 +179,137 @@ func TestServer(t *testing.T) {
 		wg.Wait()
 		close(cleanup)
 	})
-	t.Run("WriteConcernError", func(t *testing.T) {
-		s, err := NewServer(address.Address("localhost"), primitive.NewObjectID())
-		require.NoError(t, err)
+	t.Run("ProcessError", func(t *testing.T) {
+		processID := primitive.NewObjectID()
 
-		var desc *description.Server
-		descript := s.Description()
-		desc = &descript
-		require.Nil(t, desc.LastError)
-		s.connectionstate = connected
-		s.pool.connected = connected
+		// Declare "old" and "new" topology versions and a connection that reports the new version from its
+		// Description() method. This connection can be used to test that errors containing a stale topology version
+		// do not affect the state of the server.
+		oldTV := &description.TopologyVersion{
+			ProcessID: processID,
+			Counter:   0,
+		}
+		newTV := &description.TopologyVersion{
+			ProcessID: processID,
+			Counter:   1,
+		}
+		oldTVConn := newProcessErrorTestConn(false, oldTV)
+		newTVConn := newProcessErrorTestConn(false, newTV)
 
-		wce := driver.WriteCommandError{
+		staleNotMasterError := driver.Error{
+			Code:            10107, // NotMaster
+			TopologyVersion: oldTV,
+		}
+		newNotMasterError := driver.Error{
+			Code: 10107,
+		}
+		newShutdownError := driver.Error{
+			Code: 11600, // InterruptedAtShutdown
+		}
+		staleNotMasterWCError := driver.WriteCommandError{
 			WriteConcernError: &driver.WriteConcernError{
-				Name:            "",
 				Code:            10107,
-				Message:         "not master",
-				Details:         []byte{},
-				Labels:          []string{},
-				TopologyVersion: nil,
+				TopologyVersion: oldTV,
 			},
 		}
-		s.ProcessError(wce, initConnection{})
-
-		// should set ServerDescription to Unknown
-		resultDesc := s.Description()
-		require.Equal(t, resultDesc.Kind, (description.ServerKind)(description.Unknown))
-		require.Equal(t, resultDesc.LastError, wce)
-
-		// pool should be drained
-		if s.pool.generation < 1 {
-			t.Errorf("Expected pool to be drained once from a write concern error. got %d; want %d", s.pool.generation, 1)
+		newNotMasterWCError := driver.WriteCommandError{
+			WriteConcernError: &driver.WriteConcernError{
+				Code: 10107,
+			},
 		}
-	})
-	t.Run("no WriteConcernError", func(t *testing.T) {
-		s, err := NewServer(address.Address("localhost"), primitive.NewObjectID())
-		require.NoError(t, err)
+		newShutdownWCError := driver.WriteCommandError{
+			WriteConcernError: &driver.WriteConcernError{
+				Code: 11600,
+			},
+		}
+		nonStateChangeError := driver.Error{
+			Code: 1,
+		}
+		networkTimeoutError := driver.Error{
+			Labels: []string{driver.NetworkError},
+			Wrapped: ConnectionError{
+				// Use a net.Error implementation that can return true from its Timeout() function.
+				Wrapped: &net.DNSError{
+					IsTimeout: true,
+				},
+			},
+		}
+		contextCanceledError := driver.Error{
+			Labels: []string{driver.NetworkError},
+			Wrapped: ConnectionError{
+				Wrapped: context.Canceled,
+			},
+		}
+		nonTimeoutNetworkError := driver.Error{
+			Labels: []string{driver.NetworkError},
+			Wrapped: ConnectionError{
+				// Use a net.Error implementation that always returns false from its Timeout() function.
+				Wrapped: &net.AddrError{},
+			},
+		}
 
-		var desc *description.Server
-		descript := s.Description()
-		desc = &descript
-		require.Nil(t, desc.LastError)
-		s.connectionstate = connected
-		s.pool.connected = connected
+		testCases := []struct {
+			name   string
+			err    error
+			conn   driver.Connection
+			result driver.ProcessErrorResult
+		}{
+			{"nil error", nil, oldTVConn, driver.NoChange},
+			{"stale connection", errors.New("foo"), newProcessErrorTestConn(true, nil), driver.NoChange},
+			{"stale not master error", staleNotMasterError, newTVConn, driver.NoChange},
+			{"new not master error", newNotMasterError, oldTVConn, driver.ServerMarkedUnknown},
+			{"new shutdown error", newShutdownError, oldTVConn, driver.ConnectionPoolCleared},
+			{"stale not master write concern error", staleNotMasterWCError, newTVConn, driver.NoChange},
+			{"new not master write concern error", newNotMasterWCError, oldTVConn, driver.ServerMarkedUnknown},
+			{"new shutdown write concern error", newShutdownWCError, oldTVConn, driver.ConnectionPoolCleared},
+			{"non state change error", nonStateChangeError, oldTVConn, driver.NoChange},
+			{"network timeout error", networkTimeoutError, oldTVConn, driver.NoChange},
+			{"context canceled error", contextCanceledError, oldTVConn, driver.NoChange},
+			{"non-timeout network error", nonTimeoutNetworkError, oldTVConn, driver.ConnectionPoolCleared},
+		}
 
-		wce := driver.WriteConcernError{}
-		s.ProcessError(&wce, initConnection{})
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				server, err := NewServer(address.Address("localhost"), primitive.NewObjectID())
+				assert.Nil(t, err, "NewServer error: %v", err)
 
-		// should not be a LastError
-		require.Nil(t, s.Description().LastError)
+				server.connectionstate = connected
+				server.pool.connected = connected
+				originalDesc := description.Server{
+					// The actual Kind value does not matter as long as it's not Unknown so we can detect that it is
+					// properly changed to Unknown during the ProcessError call if needed.
+					Kind: description.RSPrimary,
+				}
+				server.desc.Store(originalDesc)
 
-		// pool should not be drained
-		if s.pool.generation != 0 {
-			t.Errorf("Expected pool to not be drained. got %d; want %d", s.pool.generation, 0)
+				result := server.ProcessError(tc.err, tc.conn)
+				assert.Equal(t, tc.result, result,
+					"expected ProcessError result %v, got %v", tc.result, result)
+
+				expectedKind := originalDesc.Kind
+				var expectedError error
+				var expectedPoolGeneration uint64
+				switch tc.result {
+				case driver.ConnectionPoolCleared:
+					expectedPoolGeneration = 1
+					// This case is a superset of ServerMarkedUnknown, so any logic there applies here as well.
+					fallthrough
+				case driver.ServerMarkedUnknown:
+					expectedKind = description.Unknown
+					expectedError = tc.err
+				case driver.NoChange:
+				default:
+					t.Fatalf("unrecognized ProcessErrorResult value %v", tc.result)
+				}
+
+				desc := server.Description()
+				assert.Equal(t, expectedKind, desc.Kind,
+					"expected server kind %q, got %q", expectedKind, desc.Kind)
+				assert.Equal(t, expectedError, desc.LastError,
+					"expected last error %v, got %v", expectedError, desc.LastError)
+				assert.Equal(t, expectedPoolGeneration, server.pool.generation,
+					"expected pool generation %d, got %d", expectedPoolGeneration, server.pool.generation)
+			})
 		}
 	})
 	t.Run("update topology", func(t *testing.T) {
@@ -451,4 +529,30 @@ func includesMetadata(t *testing.T, wm []byte) bool {
 		return true
 	}
 	return false
+}
+
+type processErrorTestConn struct {
+	driver.Connection
+	stale bool
+	tv    *description.TopologyVersion
+}
+
+func newProcessErrorTestConn(stale bool, tv *description.TopologyVersion) *processErrorTestConn {
+	return &processErrorTestConn{
+		tv:    tv,
+		stale: stale,
+	}
+}
+
+func (p *processErrorTestConn) Stale() bool {
+	return p.stale
+}
+
+func (p *processErrorTestConn) Description() description.Server {
+	return description.Server{
+		WireVersion: &description.VersionRange{
+			Max: supportedWireVersions.Max,
+		},
+		TopologyVersion: p.tv,
+	}
 }

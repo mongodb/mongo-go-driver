@@ -88,11 +88,24 @@ type Compressor interface {
 	CompressWireMessage(src, dst []byte) ([]byte, error)
 }
 
+// ProcessErrorResult represents the result of a ErrorProcessor.ProcessError() call.
+type ProcessErrorResult int
+
+const (
+	// NoChange indicates that the error did not affect the state of the server.
+	NoChange ProcessErrorResult = iota
+	// ServerMarkedUnknown indicates that the error only resulted in the server being marked as Unknown.
+	ServerMarkedUnknown
+	// ConnectionPoolCleared indicates that the error resulted in the server being marked as Unknown and its connection
+	// pool being cleared. This is a superset of ServerMarkedUnknown.
+	ConnectionPoolCleared
+)
+
 // ErrorProcessor implementations can handle processing errors, which may modify their internal state.
 // If this type is implemented by a Server, then Operation.Execute will call it's ProcessError
 // method after it decodes a wire message.
 type ErrorProcessor interface {
-	ProcessError(err error, conn Connection)
+	ProcessError(err error, conn Connection) ProcessErrorResult
 }
 
 // HandshakeInformation contains information extracted from a MongoDB connection handshake. This is a helper type that

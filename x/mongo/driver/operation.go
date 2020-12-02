@@ -367,7 +367,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 		res, err = roundTrip(ctx, conn, wm)
 		if ep, ok := srvr.(ErrorProcessor); ok {
-			ep.ProcessError(err, conn)
+			_ = ep.ProcessError(err, conn)
 		}
 
 		finishedInfo.response = res
