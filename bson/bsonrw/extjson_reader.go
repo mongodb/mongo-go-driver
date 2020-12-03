@@ -159,75 +159,33 @@ func (ejvr *extJSONValueReader) pop() {
 	}
 }
 
-func (ejvr *extJSONValueReader) skipCodeWithScope(embedded bool) error {
-	// skip inner $scope document of code with scope
-	_, _, err := ejvr.p.readKey() // skip to first field of embedded scope
-	if err != nil {
-		return err
-	}
-	err = ejvr.skipDocument() // skip the scope document
-	if err != ErrEOD {
-		return err
-	}
-	if embedded { // skip remaining } if embedded
-		_, _, err = ejvr.p.readKey()
-		if err != ErrEOD {
-			return err
-		}
-	}
-	return nil
-}
-
-func (ejvr *extJSONValueReader) skipDocument() error {
-	// read entire document until ErrEOD (using readKey and readValue)
-	if ejvr.p.k == "$scope" {
-		err := ejvr.skipCodeWithScope(false)
-		if err != nil {
-			return err
-		}
-	}
-	_, typ, err := ejvr.p.readKey()
-	for err == nil {
-		switch typ {
-		case bsontype.EmbeddedDocument:
-			err = ejvr.skipDocument()
-			if err == ErrEOD {
-				err = nil
-			}
-		case bsontype.Array: // account for arrays embedded in documents
-			err = ejvr.skipArray()
-			if err == ErrEOA {
-				err = nil
-			}
-		default:
-			if ejvr.p.k == "$scope" {
-				err = ejvr.skipCodeWithScope(true)
-				if err != nil {
-					return err
-				}
-			} else {
-				_, err = ejvr.p.readValue(typ)
-			}
-		}
-
-		if err != nil {
-			break
-		}
-		_, typ, err = ejvr.p.readKey()
-	}
-
-	return err
-}
-
-func (ejvr *extJSONValueReader) skipArray() error {
-	// read entire array until ErrEOA (using peekType)
+func (ejvr *extJSONValueReader) skipObject() error {
+	// Read entire array until ErrEOA (using peekType) and
+	// recurse through embedded arrays, documents, and CodeWithScopes.
 	typ, err := ejvr.p.peekType()
 	for err == nil {
 		typ, err = ejvr.p.peekType()
-		// account for embedded arrays
 		if typ == bsontype.Array {
-			err = ejvr.skipArray()
+			err = ejvr.skipObject()
 			if err == ErrEOA {
+				err = nil
+			}
+		} else if typ == bsontype.EmbeddedDocument {
+			err = ejvr.skipObject()
+			if err == ErrEOD {
+				err = nil
+			}
+		} else if ejvr.p.k == "$scope" {
+			_, err = ejvr.p.peekType() // look into scope document
+			if err != nil {
+				return err
+			}
+			err = ejvr.skipObject() // skip scope document
+			if err == ErrEOD {
+				err = nil
+			}
+			_, err = ejvr.p.peekType() // skip last } from parent document
+			if err == ErrEOD {
 				err = nil
 			}
 		}
@@ -288,25 +246,13 @@ func (ejvr *extJSONValueReader) Skip() error {
 	switch t {
 	case bsontype.Array:
 		// read entire array until ErrEOA
-		err := ejvr.skipArray()
+		err := ejvr.skipObject()
 		if err != ErrEOA {
 			return err
 		}
-	case bsontype.EmbeddedDocument:
+	case bsontype.EmbeddedDocument, bsontype.CodeWithScope:
 		// read entire doc until ErrEOD
-		err := ejvr.skipDocument()
-		if err != ErrEOD {
-			return err
-		}
-	case bsontype.CodeWithScope:
-		// read the code portion and set up parser in document mode
-		_, err := ejvr.p.readValue(t)
-		if err != nil {
-			return err
-		}
-
-		// read until ErrEOD
-		err = ejvr.skipDocument()
+		err := ejvr.skipObject()
 		if err != ErrEOD {
 			return err
 		}

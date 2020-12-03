@@ -244,13 +244,6 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 		{
 			"code with scope",
 			`{
-				"UndefinedField": {"$code": "foo", "$scope": {"bar": 1}},
-				"DefinedField": "value"
-			}`,
-		},
-		{
-			"embedded code with scope",
-			`{
 				"UndefinedField": {"logic": {"$code": "foo", "$scope": {"bar": 1}}},
 				"DefinedField": "value"
 			}`,
@@ -263,9 +256,9 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 			}`,
 		},
 		{
-			"code with scope with embedded code with scope",
+			"code with scope within code with scope",
 			`{
-				"UndefinedField": {"$code": "foo", "$scope": {"$code": "foo", "$scope": {"bar": 1}}},
+				"UndefinedField": {"$code": "zoo", "$scope": {"$code": "foo", "$scope": {"bar": 1}}},
 				"DefinedField": "value"
 			}`,
 		},
