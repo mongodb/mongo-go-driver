@@ -193,8 +193,8 @@ func TestServer(t *testing.T) {
 			ProcessID: processID,
 			Counter:   1,
 		}
-		oldTVConn := newProcessErrorTestConn(false, oldTV)
-		newTVConn := newProcessErrorTestConn(false, newTV)
+		oldTVConn := newProcessErrorTestConn(oldTV)
+		newTVConn := newProcessErrorTestConn(newTV)
 
 		staleNotMasterError := driver.Error{
 			Code:            10107, // NotMaster
@@ -254,15 +254,23 @@ func TestServer(t *testing.T) {
 			conn   driver.Connection
 			result driver.ProcessErrorResult
 		}{
+			// One-off tests for errors that should have no effect.
 			{"nil error", nil, oldTVConn, driver.NoChange},
-			{"stale connection", errors.New("foo"), newProcessErrorTestConn(true, nil), driver.NoChange},
+			{"stale connection", errors.New("foo"), newStaleProcessErrorTestConn(), driver.NoChange},
+			{"non state change error", nonStateChangeError, oldTVConn, driver.NoChange},
+
+			// Tests for top-level (ok: 0) errors. We test a NotMaster error and a Shutdown error because the former
+			// only causes the server to be marked Unknown and the latter causes the pool to be cleared.
 			{"stale not master error", staleNotMasterError, newTVConn, driver.NoChange},
 			{"new not master error", newNotMasterError, oldTVConn, driver.ServerMarkedUnknown},
 			{"new shutdown error", newShutdownError, oldTVConn, driver.ConnectionPoolCleared},
+
+			// Repeat ok:0 tests for write concern errors.
 			{"stale not master write concern error", staleNotMasterWCError, newTVConn, driver.NoChange},
 			{"new not master write concern error", newNotMasterWCError, oldTVConn, driver.ServerMarkedUnknown},
 			{"new shutdown write concern error", newShutdownWCError, oldTVConn, driver.ConnectionPoolCleared},
-			{"non state change error", nonStateChangeError, oldTVConn, driver.NoChange},
+
+			// Network/timeout error tests.
 			{"network timeout error", networkTimeoutError, oldTVConn, driver.NoChange},
 			{"context canceled error", contextCanceledError, oldTVConn, driver.NoChange},
 			{"non-timeout network error", nonTimeoutNetworkError, oldTVConn, driver.ConnectionPoolCleared},
@@ -531,16 +539,26 @@ func includesMetadata(t *testing.T, wm []byte) bool {
 	return false
 }
 
+// processErrorTestConn is a driver.Connection implementation used by tests
+// for Server.ProcessError. This type should not be used for other tests
+// because it does not implement all of the functions of the interface.
 type processErrorTestConn struct {
+	// Embed a driver.Connection to quickly implement the interface without
+	// implementing all methods.
 	driver.Connection
 	stale bool
 	tv    *description.TopologyVersion
 }
 
-func newProcessErrorTestConn(stale bool, tv *description.TopologyVersion) *processErrorTestConn {
+func newProcessErrorTestConn(tv *description.TopologyVersion) *processErrorTestConn {
 	return &processErrorTestConn{
-		tv:    tv,
-		stale: stale,
+		tv: tv,
+	}
+}
+
+func newStaleProcessErrorTestConn() *processErrorTestConn {
+	return &processErrorTestConn{
+		stale: true,
 	}
 }
 
