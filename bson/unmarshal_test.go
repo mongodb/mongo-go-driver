@@ -214,7 +214,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 			}`,
 		},
 		{
-			"single embedded document",
+			"embedded document",
 			`{
 				"UndefinedField": {"key": {"one": "two"}},
 				"DefinedField": "value"
@@ -238,6 +238,34 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 			"embedded document and embedded array in outer array",
 			`{
 				"UndefinedField": [{"key": {"one": [3]}}],
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"code with scope",
+			`{
+				"UndefinedField": {"$code": "foo", "$scope": {"bar": 1}},
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"embedded code with scope",
+			`{
+				"UndefinedField": {"logic": {"$code": "foo", "$scope": {"bar": 1}}},
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"embedded array of code with scope",
+			`{
+				"UndefinedField": {"logic": [{"$code": "foo", "$scope": {"bar": 1}}]},
+				"DefinedField": "value"
+			}`,
+		},
+		{
+			"code with scope with embedded code with scope",
+			`{
+				"UndefinedField": {"$code": "foo", "$scope": {"$code": "foo", "$scope": {"bar": 1}}},
 				"DefinedField": "value"
 			}`,
 		},

@@ -159,8 +159,33 @@ func (ejvr *extJSONValueReader) pop() {
 	}
 }
 
+func (ejvr *extJSONValueReader) skipCodeWithScope(embedded bool) error {
+	// skip inner $scope document of code with scope
+	_, _, err := ejvr.p.readKey() // skip to first field of embedded scope
+	if err != nil {
+		return err
+	}
+	err = ejvr.skipDocument() // skip the scope document
+	if err != ErrEOD {
+		return err
+	}
+	if embedded { // skip remaining } if embedded
+		_, _, err = ejvr.p.readKey()
+		if err != ErrEOD {
+			return err
+		}
+	}
+	return nil
+}
+
 func (ejvr *extJSONValueReader) skipDocument() error {
 	// read entire document until ErrEOD (using readKey and readValue)
+	if ejvr.p.k == "$scope" {
+		err := ejvr.skipCodeWithScope(false)
+		if err != nil {
+			return err
+		}
+	}
 	_, typ, err := ejvr.p.readKey()
 	for err == nil {
 		switch typ {
@@ -175,7 +200,14 @@ func (ejvr *extJSONValueReader) skipDocument() error {
 				err = nil
 			}
 		default:
-			_, err = ejvr.p.readValue(typ)
+			if ejvr.p.k == "$scope" {
+				err = ejvr.skipCodeWithScope(true)
+				if err != nil {
+					return err
+				}
+			} else {
+				_, err = ejvr.p.readValue(typ)
+			}
 		}
 
 		if err != nil {
