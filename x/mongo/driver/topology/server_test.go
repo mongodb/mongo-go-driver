@@ -294,13 +294,20 @@ func TestServer(t *testing.T) {
 				assert.Equal(t, tc.result, result,
 					"expected ProcessError result %v, got %v", tc.result, result)
 
+				// Test the ServerChanged() function.
+				expectedServerChanged := tc.result != driver.NoChange
+				serverChanged := result.ServerChanged()
+				assert.Equal(t, expectedServerChanged, serverChanged, "expected ServerChanged() to return %v, got %v",
+					expectedServerChanged, serverChanged)
+
+				// Test that the server description fields have been updated to match the ProcessError result.
 				expectedKind := originalDesc.Kind
 				var expectedError error
 				var expectedPoolGeneration uint64
 				switch tc.result {
 				case driver.ConnectionPoolCleared:
 					expectedPoolGeneration = 1
-					// This case is a superset of ServerMarkedUnknown, so any logic there applies here as well.
+					// This case also implies ServerMarkedUnknown, so any logic in the following case applies as well.
 					fallthrough
 				case driver.ServerMarkedUnknown:
 					expectedKind = description.Unknown

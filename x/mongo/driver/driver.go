@@ -88,7 +88,9 @@ type Compressor interface {
 	CompressWireMessage(src, dst []byte) ([]byte, error)
 }
 
-// ProcessErrorResult represents the result of a ErrorProcessor.ProcessError() call.
+// ProcessErrorResult represents the result of a ErrorProcessor.ProcessError() call. Exact values for this type can be
+// checked directly (e.g. res == ServerMarkedUnknown), but it is recommended that applications use the ServerChanged()
+// function instead.
 type ProcessErrorResult int
 
 const (
@@ -97,9 +99,15 @@ const (
 	// ServerMarkedUnknown indicates that the error only resulted in the server being marked as Unknown.
 	ServerMarkedUnknown
 	// ConnectionPoolCleared indicates that the error resulted in the server being marked as Unknown and its connection
-	// pool being cleared. This is a superset of ServerMarkedUnknown.
+	// pool being cleared.
 	ConnectionPoolCleared
 )
+
+// ServerChanged returns true if the ProcessErrorResult indicates that the server changed from an SDAM perspective
+// during a ProcessError() call.
+func (p ProcessErrorResult) ServerChanged() bool {
+	return p != NoChange
+}
 
 // ErrorProcessor implementations can handle processing errors, which may modify their internal state.
 // If this type is implemented by a Server, then Operation.Execute will call it's ProcessError
