@@ -256,9 +256,9 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 			}`,
 		},
 		{
-			"code with scope within code with scope",
+			"type definition embedded document",
 			`{
-				"UndefinedField": {"$code": "zoo", "$scope": {"$code": "foo", "$scope": {"bar": 1}}},
+				"UndefinedField": {"myDouble": {"$numberDouble": "1.24"}},
 				"DefinedField": "value"
 			}`,
 		},

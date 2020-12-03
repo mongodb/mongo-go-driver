@@ -160,33 +160,15 @@ func (ejvr *extJSONValueReader) pop() {
 }
 
 func (ejvr *extJSONValueReader) skipObject() error {
-	// Read entire array until ErrEOA (using peekType) and
-	// recurse through embedded arrays, documents, and CodeWithScopes.
-	typ, err := ejvr.p.peekType()
+	// read entire object until encountering EOA or EOD, and depth is one level below original
+	_, err := ejvr.p.peekType()
+	initialDepth := ejvr.p.depth
 	for err == nil {
-		typ, err = ejvr.p.peekType()
-		if typ == bsontype.Array {
-			err = ejvr.skipObject()
-			if err == ErrEOA {
-				err = nil
-			}
-		} else if typ == bsontype.EmbeddedDocument {
-			err = ejvr.skipObject()
-			if err == ErrEOD {
-				err = nil
-			}
-		} else if ejvr.p.k == "$scope" {
-			_, err = ejvr.p.peekType() // look into scope document
-			if err != nil {
-				return err
-			}
-			err = ejvr.skipObject() // skip scope document
-			if err == ErrEOD {
-				err = nil
-			}
-			_, err = ejvr.p.peekType() // skip last } from parent document
-			if err == ErrEOD {
-				err = nil
+		_, err = ejvr.p.peekType()
+		if err == ErrEOA || err == ErrEOD {
+			err = nil
+			if ejvr.p.depth == initialDepth-1 {
+				break
 			}
 		}
 	}
@@ -245,15 +227,15 @@ func (ejvr *extJSONValueReader) Skip() error {
 	t := ejvr.stack[ejvr.frame].vType
 	switch t {
 	case bsontype.Array:
-		// read entire array until ErrEOA
+		// read entire array
 		err := ejvr.skipObject()
-		if err != ErrEOA {
+		if err != nil {
 			return err
 		}
 	case bsontype.EmbeddedDocument, bsontype.CodeWithScope:
-		// read entire doc until ErrEOD
+		// read entire doc or CodeWithScope
 		err := ejvr.skipObject()
-		if err != ErrEOD {
+		if err != nil {
 			return err
 		}
 	default:
