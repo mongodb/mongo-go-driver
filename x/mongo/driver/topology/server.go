@@ -356,10 +356,10 @@ func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bo
 }
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
-func (s *Server) ProcessError(err error, conn driver.Connection) {
+func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {
 	// ignore nil error
 	if err == nil {
-		return
+		return driver.NoChange
 	}
 
 	s.processErrorLock.Lock()
@@ -367,7 +367,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 
 	// ignore stale error
 	if conn.Stale() {
-		return
+		return driver.NoChange
 	}
 	// Invalidate server description if not master or node recovering error occurs.
 	// These errors can be reported as a command error or a write concern error.
@@ -375,47 +375,51 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotMaster()) {
 		// ignore stale error
 		if desc.TopologyVersion.CompareToIncoming(cerr.TopologyVersion) >= 0 {
-			return
+			return driver.NoChange
 		}
 
 		// updates description to unknown
 		s.updateDescription(description.NewServerFromError(s.address, err, cerr.TopologyVersion))
 		s.RequestImmediateCheck()
 
+		res := driver.ServerMarkedUnknown
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
+			res = driver.ConnectionPoolCleared
 			s.pool.clear()
 		}
-		return
+		return res
 	}
 	if wcerr, ok := getWriteConcernErrorForProcessing(err); ok {
 		// ignore stale error
 		if desc.TopologyVersion.CompareToIncoming(wcerr.TopologyVersion) >= 0 {
-			return
+			return driver.NoChange
 		}
 
 		// updates description to unknown
 		s.updateDescription(description.NewServerFromError(s.address, err, wcerr.TopologyVersion))
 		s.RequestImmediateCheck()
 
+		res := driver.ServerMarkedUnknown
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
+			res = driver.ConnectionPoolCleared
 			s.pool.clear()
 		}
-		return
+		return res
 	}
 
 	wrappedConnErr := unwrapConnectionError(err)
 	if wrappedConnErr == nil {
-		return
+		return driver.NoChange
 	}
 
 	// Ignore transient timeout errors.
 	if netErr, ok := wrappedConnErr.(net.Error); ok && netErr.Timeout() {
-		return
+		return driver.NoChange
 	}
 	if wrappedConnErr == context.Canceled || wrappedConnErr == context.DeadlineExceeded {
-		return
+		return driver.NoChange
 	}
 
 	// For a non-timeout network error, we clear the pool, set the description to Unknown, and cancel the in-progress
@@ -424,6 +428,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 	s.updateDescription(description.NewServerFromError(s.address, err, nil))
 	s.pool.clear()
 	s.cancelCheck()
+	return driver.ConnectionPoolCleared
 }
 
 // update handles performing heartbeats and updating any subscribers of the

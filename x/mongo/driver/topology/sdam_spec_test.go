@@ -481,7 +481,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		case "beforeHandshakeCompletes":
 			server.ProcessHandshakeError(currError, generation)
 		case "afterHandshakeCompletes":
-			server.ProcessError(currError, &conn)
+			_ = server.ProcessError(currError, &conn)
 		default:
 			t.Fatalf("unrecognized applicationError.When value: %v", appErr.When)
 		}
