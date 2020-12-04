@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -117,6 +118,8 @@ type ServerError interface {
 	error
 	HasErrorCode(int) bool
 	HasErrorLabel(string) bool
+	HasErrorMessage(string) bool
+	HasErrorCodeWithMessage(int, string) bool
 	Unwrap() error
 
 	serverError()
@@ -163,6 +166,16 @@ func (e CommandError) HasErrorLabel(label string) bool {
 		}
 	}
 	return false
+}
+
+// HasErrorMessage returns true if the error Message contains the specified message.
+func (e CommandError) HasErrorMessage(message string) bool {
+	return strings.Contains(e.Message, message)
+}
+
+// HasErrorCodeWithMessage returns true if the error has the specified code and Message contains the specified message.
+func (e CommandError) HasErrorCodeWithMessage(code int, message string) bool {
+	return int(e.Code) == code && strings.Contains(e.Message, message)
 }
 
 // IsMaxTimeMSExpiredError returns true if the error is a MaxTimeMSExpired error.
@@ -249,18 +262,14 @@ func (mwe WriteException) Error() string {
 	return buf.String()
 }
 
-// Unwrap returns the underlying error.
+// Unwrap returns nil.
 func (mwe WriteException) Unwrap() error {
-	if mwe.WriteConcernError != nil {
-		return mwe.WriteConcernError
-	}
-	// could also return one WriteError if there's only one
-	return mwe.WriteErrors
+	return nil
 }
 
 // HasErrorCode returns true if the error has the specified code.
 func (mwe WriteException) HasErrorCode(code int) bool {
-	if mwe.WriteConcernError.Code == code {
+	if mwe.WriteConcernError != nil && mwe.WriteConcernError.Code == code {
 		return true
 	}
 	for _, we := range mwe.WriteErrors {
@@ -278,6 +287,33 @@ func (mwe WriteException) HasErrorLabel(label string) bool {
 			if l == label {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// HasErrorMessage returns true if the error Message contains the specified message.
+func (mwe WriteException) HasErrorMessage(message string) bool {
+	if mwe.WriteConcernError != nil && strings.Contains(mwe.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range mwe.WriteErrors {
+		if strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
+func (mwe WriteException) HasErrorCodeWithMessage(code int, message string) bool {
+	if mwe.WriteConcernError != nil &&
+		mwe.WriteConcernError.Code == code && strings.Contains(mwe.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range mwe.WriteErrors {
+		if we.Code == code && strings.Contains(we.Message, message) {
+			return true
 		}
 	}
 	return false
@@ -313,30 +349,13 @@ func (bwe BulkWriteError) Error() string {
 	return buf.String()
 }
 
-// BulkWriteErrors is a group of write errors that occurred during execution of a write operation.
-type BulkWriteErrors []BulkWriteError
-
-// Error implements the error interface.
-func (bwe BulkWriteErrors) Error() string {
-	var buf bytes.Buffer
-	fmt.Fprint(&buf, "write errors: [")
-	for idx, err := range bwe {
-		if idx != 0 {
-			fmt.Fprintf(&buf, ", ")
-		}
-		fmt.Fprintf(&buf, "{%s}", err)
-	}
-	fmt.Fprint(&buf, "]")
-	return buf.String()
-}
-
 // BulkWriteException is the error type returned by BulkWrite and InsertMany operations.
 type BulkWriteException struct {
 	// The write concern error that occurred, or nil if there was none.
 	WriteConcernError *WriteConcernError
 
 	// The write errors that occurred during operation execution.
-	WriteErrors BulkWriteErrors
+	WriteErrors []BulkWriteError
 
 	// The categories to which the exception belongs.
 	Labels []string
@@ -351,18 +370,14 @@ func (bwe BulkWriteException) Error() string {
 	return buf.String()
 }
 
-// Unwrap returns the underlying error.
+// Unwrap returns nil.
 func (bwe BulkWriteException) Unwrap() error {
-	if bwe.WriteConcernError != nil {
-		return bwe.WriteConcernError
-	}
-	// could also return one WriteError if there's only one
-	return bwe.WriteErrors
+	return nil
 }
 
 // HasErrorCode returns true if any of the errore have the specified code.
 func (bwe BulkWriteException) HasErrorCode(code int) bool {
-	if bwe.WriteConcernError.Code == code {
+	if bwe.WriteConcernError != nil && bwe.WriteConcernError.Code == code {
 		return true
 	}
 	for _, we := range bwe.WriteErrors {
@@ -380,6 +395,33 @@ func (bwe BulkWriteException) HasErrorLabel(label string) bool {
 			if l == label {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// HasErrorMessage returns true if the error Message contains the specified message.
+func (bwe BulkWriteException) HasErrorMessage(message string) bool {
+	if bwe.WriteConcernError != nil && strings.Contains(bwe.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range bwe.WriteErrors {
+		if strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
+func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) bool {
+	if bwe.WriteConcernError != nil &&
+		bwe.WriteConcernError.Code == code && strings.Contains(bwe.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range bwe.WriteErrors {
+		if we.Code == code && strings.Contains(we.Message, message) {
+			return true
 		}
 	}
 	return false
