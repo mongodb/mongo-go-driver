@@ -106,6 +106,9 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 		err = ErrEOA
 	case jpsSawEndObject:
 		if ejp.peekMode() == jpmObjectMode {
+			if ejp.emptyObject { // reset empty object state
+				ejp.emptyObject = false
+			}
 			err = ErrEOD
 		}
 	case jpsSawBeginObject:

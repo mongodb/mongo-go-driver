@@ -603,7 +603,7 @@ func (ejvr *extJSONValueReader) ReadElement() (string, ValueReader, error) {
 		if err == ErrEOD {
 			if ejvr.stack[ejvr.frame].mode == mCodeWithScope {
 				_, err := ejvr.p.peekType()
-				if err != nil {
+				if err != ErrEOD {
 					return "", nil, err
 				}
 			}

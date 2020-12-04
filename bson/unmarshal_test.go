@@ -262,6 +262,13 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"DefinedField": "value"
 			}`,
 		},
+		{
+			"empty embedded document",
+			`{
+				"UndefinedField": {"empty": {}},
+				"DefinedField": "value"
+			}`,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
