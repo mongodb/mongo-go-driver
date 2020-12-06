@@ -237,7 +237,15 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 		return err
 	}
 
-	if chunkIndex.Int32() != ds.expectedChunk {
+    var chunk32 int32
+    if chunkIndex.Type == bson.TypeInt32 {
+        chunk32 = chunkIndex.Int32()
+    } else if chunkIndex.Type == bson.TypeInt64 {
+        chunk32 = int32(chunkIndex.Int64())
+    } else {
+        return errNoMoreChunks
+    }
+	if chunk32 != ds.expectedChunk {
 		return ErrWrongIndex
 	}
 
