@@ -108,9 +108,11 @@ func TestErrors(t *testing.T) {
 		})
 	})
 	mt.Run("ServerError", func(mt *mtest.T) {
-		testWrapped := errors.New("wrapped err")
+		matchWrapped := errors.New("wrapped err")
 		otherWrapped := errors.New("other err")
-		label := "testError"
+		const matchCode = 100
+		const otherCode = 120
+		const label = "testError"
 		testCases := []struct {
 			name               string
 			err                mongo.ServerError
@@ -122,7 +124,7 @@ func TestErrors(t *testing.T) {
 		}{
 			{
 				"CommandError all true",
-				mongo.CommandError{100, "foo", []string{label}, "name", testWrapped},
+				mongo.CommandError{matchCode, "foo", []string{label}, "name", matchWrapped},
 				true,
 				true,
 				true,
@@ -131,7 +133,7 @@ func TestErrors(t *testing.T) {
 			},
 			{
 				"CommandError all false",
-				mongo.CommandError{120, "bar", []string{"otherError"}, "name", otherWrapped},
+				mongo.CommandError{otherCode, "bar", []string{"otherError"}, "name", otherWrapped},
 				false,
 				false,
 				false,
@@ -140,7 +142,7 @@ func TestErrors(t *testing.T) {
 			},
 			{
 				"CommandError has code not message",
-				mongo.CommandError{100, "bar", []string{}, "name", nil},
+				mongo.CommandError{matchCode, "bar", []string{}, "name", nil},
 				true,
 				false,
 				false,
@@ -150,7 +152,7 @@ func TestErrors(t *testing.T) {
 			{
 				"WriteException all in writeConcernError",
 				mongo.WriteException{
-					&mongo.WriteConcernError{"name", 100, "foo", nil},
+					&mongo.WriteConcernError{"name", matchCode, "foo", nil},
 					nil,
 					[]string{label},
 				},
@@ -165,8 +167,8 @@ func TestErrors(t *testing.T) {
 				mongo.WriteException{
 					nil,
 					mongo.WriteErrors{
-						mongo.WriteError{0, 120, "bar"},
-						mongo.WriteError{0, 100, "foo"},
+						mongo.WriteError{0, otherCode, "bar"},
+						mongo.WriteError{0, matchCode, "foo"},
 					},
 					[]string{"otherError"},
 				},
@@ -179,9 +181,9 @@ func TestErrors(t *testing.T) {
 			{
 				"WriteException all false",
 				mongo.WriteException{
-					&mongo.WriteConcernError{"name", 110, "bar", nil},
+					&mongo.WriteConcernError{"name", otherCode, "bar", nil},
 					mongo.WriteErrors{
-						mongo.WriteError{0, 120, "baz"},
+						mongo.WriteError{0, otherCode, "baz"},
 					},
 					[]string{"otherError"},
 				},
@@ -194,9 +196,9 @@ func TestErrors(t *testing.T) {
 			{
 				"WriteException HasErrorCodeAndMessage false",
 				mongo.WriteException{
-					&mongo.WriteConcernError{"name", 100, "bar", nil},
+					&mongo.WriteConcernError{"name", matchCode, "bar", nil},
 					mongo.WriteErrors{
-						mongo.WriteError{0, 120, "foo"},
+						mongo.WriteError{0, otherCode, "foo"},
 					},
 					[]string{"otherError"},
 				},
@@ -209,7 +211,7 @@ func TestErrors(t *testing.T) {
 			{
 				"BulkWriteException all in writeConcernError",
 				mongo.BulkWriteException{
-					&mongo.WriteConcernError{"name", 100, "foo", nil},
+					&mongo.WriteConcernError{"name", matchCode, "foo", nil},
 					nil,
 					[]string{label},
 				},
@@ -224,8 +226,8 @@ func TestErrors(t *testing.T) {
 				mongo.BulkWriteException{
 					nil,
 					[]mongo.BulkWriteError{
-						{mongo.WriteError{0, 100, "foo"}, &mongo.InsertOneModel{}},
-						{mongo.WriteError{0, 120, "bar"}, &mongo.InsertOneModel{}},
+						{mongo.WriteError{0, matchCode, "foo"}, &mongo.InsertOneModel{}},
+						{mongo.WriteError{0, otherCode, "bar"}, &mongo.InsertOneModel{}},
 					},
 					[]string{"otherError"},
 				},
@@ -238,9 +240,9 @@ func TestErrors(t *testing.T) {
 			{
 				"BulkWriteException all false",
 				mongo.BulkWriteException{
-					&mongo.WriteConcernError{"name", 110, "bar", nil},
+					&mongo.WriteConcernError{"name", otherCode, "bar", nil},
 					[]mongo.BulkWriteError{
-						{mongo.WriteError{0, 120, "baz"}, &mongo.InsertOneModel{}},
+						{mongo.WriteError{0, otherCode, "baz"}, &mongo.InsertOneModel{}},
 					},
 					[]string{"otherError"},
 				},
@@ -253,9 +255,9 @@ func TestErrors(t *testing.T) {
 			{
 				"BulkWriteException HasErrorCodeAndMessage false",
 				mongo.BulkWriteException{
-					&mongo.WriteConcernError{"name", 100, "bar", nil},
+					&mongo.WriteConcernError{"name", matchCode, "bar", nil},
 					[]mongo.BulkWriteError{
-						{mongo.WriteError{0, 120, "foo"}, &mongo.InsertOneModel{}},
+						{mongo.WriteError{0, otherCode, "foo"}, &mongo.InsertOneModel{}},
 					},
 					[]string{"otherError"},
 				},
@@ -268,22 +270,22 @@ func TestErrors(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				has := tc.err.HasErrorCode(100)
+				has := tc.err.HasErrorCode(matchCode)
 				assert.Equal(mt, has, tc.hasCode, "Expected HasErrorCode to return %v, got %v", tc.hasCode, has)
 				has = tc.err.HasErrorLabel(label)
-				assert.Equal(mt, has, tc.hasLabel, "Expected HasErrorLabel to return %v, got %v", tc.hasMessage, has)
+				assert.Equal(mt, has, tc.hasLabel, "Expected HasErrorLabel to return %v, got %v", tc.hasLabel, has)
 
 				// Check for full message and substring
 				has = tc.err.HasErrorMessage("foo")
 				assert.Equal(mt, has, tc.hasMessage, "Expected HasErrorMessage to return %v, got %v", tc.hasMessage, has)
 				has = tc.err.HasErrorMessage("fo")
 				assert.Equal(mt, has, tc.hasMessage, "Expected HasErrorMessage to return %v, got %v", tc.hasMessage, has)
-				has = tc.err.HasErrorCodeWithMessage(100, "foo")
+				has = tc.err.HasErrorCodeWithMessage(matchCode, "foo")
 				assert.Equal(mt, has, tc.hasCodeWithMessage, "Expected HasErrorCodeWithMessage to return %v, got %v", tc.hasCodeWithMessage, has)
-				has = tc.err.HasErrorCodeWithMessage(100, "fo")
+				has = tc.err.HasErrorCodeWithMessage(matchCode, "fo")
 				assert.Equal(mt, has, tc.hasCodeWithMessage, "Expected HasErrorCodeWithMessage to return %v, got %v", tc.hasCodeWithMessage, has)
 
-				assert.Equal(mt, errors.Is(tc.err, testWrapped), tc.isResult, "Expected errors.Is result to be %v", tc.isResult)
+				assert.Equal(mt, errors.Is(tc.err, matchWrapped), tc.isResult, "Expected errors.Is result to be %v", tc.isResult)
 			})
 		}
 	})

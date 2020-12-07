@@ -113,7 +113,8 @@ func (e MongocryptdError) Unwrap() error {
 	return e.Wrapped
 }
 
-// ServerError is the interface implemented by errors returned from the server
+// ServerError is the interface implemented by errors returned from the server. Custom implementations of this
+// interface should not be used in production.
 type ServerError interface {
 	error
 	HasErrorCode(int) bool
@@ -375,7 +376,7 @@ func (bwe BulkWriteException) Unwrap() error {
 	return nil
 }
 
-// HasErrorCode returns true if any of the errore have the specified code.
+// HasErrorCode returns true if any of the errors have the specified code.
 func (bwe BulkWriteException) HasErrorCode(code int) bool {
 	if bwe.WriteConcernError != nil && bwe.WriteConcernError.Code == code {
 		return true
