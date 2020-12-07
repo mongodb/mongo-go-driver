@@ -104,13 +104,6 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 	case jpsSawEndArray:
 		// this would only be a valid state if we were in array mode, so return end-of-array error
 		err = ErrEOA
-	case jpsSawEndObject:
-		if ejp.peekMode() == jpmObjectMode {
-			if ejp.emptyObject { // reset empty object state
-				ejp.emptyObject = false
-			}
-			err = ErrEOD
-		}
 	case jpsSawBeginObject:
 		// peek key to determine type
 		ejp.advanceState()

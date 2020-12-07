@@ -159,21 +159,18 @@ func (ejvr *extJSONValueReader) pop() {
 	}
 }
 
-func (ejvr *extJSONValueReader) skipObject() error {
-	// read entire object until encountering EOA or EOD, and depth is one level below original
-	_, err := ejvr.p.peekType()
-	initialDepth := ejvr.p.depth
-	for err == nil {
-		_, err = ejvr.p.peekType()
-		if err == ErrEOA || err == ErrEOD {
-			err = nil
-			if ejvr.p.depth == initialDepth-1 {
-				break
-			}
+func (ejvr *extJSONValueReader) skipObject() {
+	// read entire object until depth returns to 0 (last ending } or ] seen)
+	depth := 1
+	for depth > 0 {
+		ejvr.p.advanceState()
+		switch ejvr.p.s {
+		case jpsSawBeginObject, jpsSawBeginArray:
+			depth++
+		case jpsSawEndObject, jpsSawEndArray:
+			depth--
 		}
 	}
-
-	return err
 }
 
 func (ejvr *extJSONValueReader) invalidTransitionErr(destination mode, name string, modes []mode) error {
@@ -226,18 +223,9 @@ func (ejvr *extJSONValueReader) Skip() error {
 
 	t := ejvr.stack[ejvr.frame].vType
 	switch t {
-	case bsontype.Array:
-		// read entire array
-		err := ejvr.skipObject()
-		if err != nil {
-			return err
-		}
-	case bsontype.EmbeddedDocument, bsontype.CodeWithScope:
-		// read entire doc or CodeWithScope
-		err := ejvr.skipObject()
-		if err != nil {
-			return err
-		}
+	case bsontype.Array, bsontype.EmbeddedDocument, bsontype.CodeWithScope:
+		// read entire array, doc or CodeWithScope
+		ejvr.skipObject()
 	default:
 		_, err := ejvr.p.readValue(t)
 		if err != nil {
@@ -603,7 +591,7 @@ func (ejvr *extJSONValueReader) ReadElement() (string, ValueReader, error) {
 		if err == ErrEOD {
 			if ejvr.stack[ejvr.frame].mode == mCodeWithScope {
 				_, err := ejvr.p.peekType()
-				if err != ErrEOD {
+				if err != nil {
 					return "", nil, err
 				}
 			}
