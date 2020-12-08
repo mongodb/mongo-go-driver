@@ -121,7 +121,6 @@ type ServerError interface {
 	HasErrorLabel(string) bool
 	HasErrorMessage(string) bool
 	HasErrorCodeWithMessage(int, string) bool
-	Unwrap() error
 
 	serverError()
 }
@@ -263,11 +262,6 @@ func (mwe WriteException) Error() string {
 	return buf.String()
 }
 
-// Unwrap returns nil.
-func (mwe WriteException) Unwrap() error {
-	return nil
-}
-
 // HasErrorCode returns true if the error has the specified code.
 func (mwe WriteException) HasErrorCode(code int) bool {
 	if mwe.WriteConcernError != nil && mwe.WriteConcernError.Code == code {
@@ -369,11 +363,6 @@ func (bwe BulkWriteException) Error() string {
 	fmt.Fprintf(&buf, "{%s}, ", bwe.WriteErrors)
 	fmt.Fprintf(&buf, "{%s}]", bwe.WriteConcernError)
 	return buf.String()
-}
-
-// Unwrap returns nil.
-func (bwe BulkWriteException) Unwrap() error {
-	return nil
 }
 
 // HasErrorCode returns true if any of the errors have the specified code.
