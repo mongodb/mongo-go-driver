@@ -21,7 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 var (
@@ -667,33 +666,22 @@ func verifyTopologyConstraints(topologies []TopologyKind) error {
 	return fmt.Errorf("topology kind %q does not match any of the required kinds %q", testContext.topoKind, topologies)
 }
 
-func verifyServerParametersConstraints(t *T, sp *ServerParameters) error {
-	if sp == nil {
+func verifyServerParametersConstraints(serverParameters map[string]bool) error {
+	if serverParameters == nil {
 		return nil
 	}
 
-	db := GlobalClient().Database("admin")
-	cmd := bson.D{{"getParameter", "*"}}
-	var actualSp bsonx.Doc
-	err := db.RunCommand(Background, cmd).Decode(&actualSp)
-	if err != nil {
-		t.Fatalf("error decoding parameters from test server: %v", err)
-	}
-
-	enableTestCommands, enableTestCommandsExists := actualSp.Lookup("enableTestCommands").BooleanOK()
-	acceptAPIVersion2, acceptAPIVersion2Exists := actualSp.Lookup("acceptAPIVersion2").BooleanOK()
-
-	if !enableTestCommandsExists || enableTestCommands != sp.EnableTestCommands {
-		return fmt.Errorf("server parameter enableTestCommands does not match required value %v", sp.EnableTestCommands)
-	}
-	if !acceptAPIVersion2Exists || acceptAPIVersion2 != sp.AcceptAPIVersion2 {
-		return fmt.Errorf("server parameter acceptAPIVersion2 does not match required value %v", sp.AcceptAPIVersion2)
+	for param, expectedValue := range serverParameters {
+		actualValue, ok := testContext.serverParameters.Lookup(param).BooleanOK()
+		if !ok || expectedValue != actualValue {
+			return fmt.Errorf("server parameter %v does not match required value %v", param, actualValue)
+		}
 	}
 	return nil
 }
 
 // verifyRunOnBlockConstraint returns an error if the current environment does not match the provided RunOnBlock.
-func verifyRunOnBlockConstraint(t *T, rob RunOnBlock) error {
+func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyVersionConstraints(rob.MinServerVersion, rob.MaxServerVersion); err != nil {
 		return err
 	}
@@ -701,7 +689,7 @@ func verifyRunOnBlockConstraint(t *T, rob RunOnBlock) error {
 		return err
 	}
 
-	return verifyServerParametersConstraints(t, rob.ServerParameters)
+	return verifyServerParametersConstraints(rob.ServerParameters)
 }
 
 // verifyConstraints returns an error if the current environment does not match the constraints specified for the test.
@@ -738,7 +726,7 @@ func (t *T) verifyConstraints() error {
 	// don't find any matching blocks, we want to report the comparison errors for each block.
 	var runOnErrors []error
 	for _, runOn := range t.runOn {
-		err := verifyRunOnBlockConstraint(t, runOn)
+		err := verifyRunOnBlockConstraint(runOn)
 		if err == nil {
 			return nil
 		}
