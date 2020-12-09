@@ -23,10 +23,11 @@ type EntityOptions struct {
 	ID string `bson:"id"`
 
 	// Options for client entities.
-	URIOptions          bson.M   `bson:"uriOptions"`
-	UseMultipleMongoses *bool    `bson:"useMultipleMongoses"`
-	ObserveEvents       []string `bson:"observeEvents"`
-	IgnoredCommands     []string `bson:"ignoreCommandMonitoringEvents"`
+	URIOptions          bson.M            `bson:"uriOptions"`
+	UseMultipleMongoses *bool             `bson:"useMultipleMongoses"`
+	ObserveEvents       []string          `bson:"observeEvents"`
+	IgnoredCommands     []string          `bson:"ignoreCommandMonitoringEvents"`
+	ServerAPIOptions    *ServerAPIOptions `bson:"serverApi"`
 
 	// Options for database entities.
 	DatabaseName    string                 `bson:"databaseName"`

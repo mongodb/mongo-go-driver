@@ -48,21 +48,29 @@ var (
 	falseBool = false
 )
 
+// ServerParameters specifies the parameters that must be set on the test server to run the test.
+type ServerParameters struct {
+	EnableTestCommands bool
+	AcceptAPIVersion2  bool
+}
+
 // RunOnBlock describes a constraint for a test.
 type RunOnBlock struct {
-	MinServerVersion string         `bson:"minServerVersion"`
-	MaxServerVersion string         `bson:"maxServerVersion"`
-	Topology         []TopologyKind `bson:"topology"`
+	MinServerVersion string            `bson:"minServerVersion"`
+	MaxServerVersion string            `bson:"maxServerVersion"`
+	Topology         []TopologyKind    `bson:"topology"`
+	ServerParameters *ServerParameters `bson:"serverParameters"`
 }
 
 // UnmarshalBSON implements custom BSON unmarshalling behavior for RunOnBlock because some test formats use the
 // "topology" key while the unified test format uses "topologies".
 func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		MinServerVersion string         `bson:"minServerVersion"`
-		MaxServerVersion string         `bson:"maxServerVersion"`
-		Topology         []TopologyKind `bson:"topology"`
-		Topologies       []TopologyKind `bson:"topologies"`
+		MinServerVersion string            `bson:"minServerVersion"`
+		MaxServerVersion string            `bson:"maxServerVersion"`
+		Topology         []TopologyKind    `bson:"topology"`
+		Topologies       []TopologyKind    `bson:"topologies"`
+		ServerParameters *ServerParameters `bson:"serverParameters"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary RunOnBlock object: %v", err)
@@ -70,6 +78,7 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 
 	r.MinServerVersion = temp.MinServerVersion
 	r.MaxServerVersion = temp.MaxServerVersion
+	r.ServerParameters = temp.ServerParameters
 
 	if temp.Topology != nil {
 		r.Topology = temp.Topology

@@ -115,6 +115,7 @@ type ClientOptions struct {
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
+	ServerAPIOptions         *ServerAPIOptions
 	ServerSelectionTimeout   *time.Duration
 	SocketTimeout            *time.Duration
 	TLSConfig                *tls.Config
