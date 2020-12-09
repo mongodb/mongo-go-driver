@@ -18,17 +18,32 @@ import "fmt"
 // The user must specify a ServerAPIVersion if including ServerAPIOptions in their client. That version
 // must also be currently supported by the driver.
 type ServerAPIOptions struct {
-	// ServerAPIVersion is the version string of the declared API version
-	ServerAPIVersion ServerAPIVersion
-	// Strict determines whether the server should return errors for features that are not part of the API version
-	Strict bool
-	// DeprecationErrors determines whether the server should return errors for deprecated features
-	DeprecationErrors bool
+	ServerAPIVersion  ServerAPIVersion
+	Strict            *bool
+	DeprecationErrors *bool
 }
 
 // ServerAPI creates a new ServerAPIOptions configured with default values.
 func ServerAPI() *ServerAPIOptions {
-	return &ServerAPIOptions{ServerAPIVersion: ServerAPIVersion1}
+	return &ServerAPIOptions{}
+}
+
+// SetServerAPIVersion specifies the version string of the declared API version. This is required.
+func (s *ServerAPIOptions) SetServerAPIVersion(serverAPIVersion ServerAPIVersion) *ServerAPIOptions {
+	s.ServerAPIVersion = serverAPIVersion
+	return s
+}
+
+// SetStrict specifies whether the server should return errors for features that are not part of the API version.
+func (s *ServerAPIOptions) SetStrict(strict *bool) *ServerAPIOptions {
+	s.Strict = strict
+	return s
+}
+
+// SetDeprecationErrors specifies whether the server should return errors for deprecated features.
+func (s *ServerAPIOptions) SetDeprecationErrors(deprecationErrors *bool) *ServerAPIOptions {
+	s.DeprecationErrors = deprecationErrors
+	return s
 }
 
 // ServerAPIVersion represents an API version that can be used in ServerAPIOptions.
@@ -39,11 +54,11 @@ const (
 	ServerAPIVersion1 ServerAPIVersion = "1"
 )
 
-// CheckServerAPIVersion determines if the provided ServerAPIVersion is currently supported by the driver.
-func (version ServerAPIVersion) CheckServerAPIVersion() error {
-	switch version {
+// Validate determines if the provided ServerAPIVersion is currently supported by the driver.
+func (sav ServerAPIVersion) Validate() error {
+	switch sav {
 	case ServerAPIVersion1:
 		return nil
 	}
-	return fmt.Errorf("api version %v not supported by driver", version)
+	return fmt.Errorf("api version %q not supported by driver", sav)
 }

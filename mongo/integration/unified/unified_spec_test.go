@@ -80,7 +80,6 @@ type TestFile struct {
 	CreateEntities    []map[string]*EntityOptions `bson:"createEntities"`
 	InitialData       []*CollectionData           `bson:"initialData"`
 	TestCases         []*TestCase                 `bson:"tests"`
-	YamlAnchors       map[string]interface{}      `bson:"_yamlAnchors"`
 }
 
 func TestUnifiedSpec(t *testing.T) {

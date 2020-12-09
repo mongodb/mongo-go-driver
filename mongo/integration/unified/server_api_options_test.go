@@ -23,11 +23,11 @@ type ServerAPIVersion = options.ServerAPIVersion
 
 var _ bson.Unmarshaler = (*ServerAPIOptions)(nil)
 
-func (to *ServerAPIOptions) UnmarshalBSON(data []byte) error {
+func (s *ServerAPIOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
 		ServerAPIVersion  ServerAPIVersion       `bson:"version"`
-		DeprecationErrors bool                   `bson:"deprecationErrors"`
-		Strict            bool                   `bson:"strict"`
+		DeprecationErrors *bool                  `bson:"deprecationErrors"`
+		Strict            *bool                  `bson:"strict"`
 		Extra             map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
@@ -37,13 +37,14 @@ func (to *ServerAPIOptions) UnmarshalBSON(data []byte) error {
 		return fmt.Errorf("unrecognized fields for ServerAPIOptions: %v", MapKeys(temp.Extra))
 	}
 
-	to.ServerAPIOptions = options.ServerAPI()
-	if err := temp.ServerAPIVersion.CheckServerAPIVersion(); err != nil {
-		return err
+	s.ServerAPIOptions = options.ServerAPI()
+	s.SetServerAPIVersion(temp.ServerAPIVersion)
+	if temp.DeprecationErrors != nil {
+		s.SetDeprecationErrors(temp.DeprecationErrors)
 	}
-	to.ServerAPIVersion = temp.ServerAPIVersion
-	to.DeprecationErrors = temp.DeprecationErrors
-	to.Strict = temp.Strict
+	if temp.Strict != nil {
+		s.SetStrict(temp.Strict)
+	}
 
 	return nil
 }
