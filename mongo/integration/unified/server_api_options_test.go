@@ -38,6 +38,9 @@ func (s *ServerAPIOptions) UnmarshalBSON(data []byte) error {
 	}
 
 	s.ServerAPIOptions = options.ServerAPI()
+	if err := temp.ServerAPIVersion.Validate(); err != nil {
+		return err
+	}
 	s.SetServerAPIVersion(temp.ServerAPIVersion)
 	if temp.DeprecationErrors != nil {
 		s.SetDeprecationErrors(temp.DeprecationErrors)
