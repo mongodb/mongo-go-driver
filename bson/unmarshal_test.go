@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -168,19 +167,21 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 	})
 }
 
-type expectedResponse struct {
-	DefinedField string
-}
-
-func unmarshalExtJSONHelper(extJSON string) (*expectedResponse, error) {
-	responseDoc := expectedResponse{}
-	err := UnmarshalExtJSON([]byte(extJSON), false, &responseDoc)
-	return &responseDoc, err
-}
-
 func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 	// When unmarshalling, fields that are undefined in the destination struct are skipped.
 	// This process must not skip other, defined fields and must not raise errors.
+	type expectedResponse struct {
+		DefinedField string
+	}
+
+	unmarshalExpectedResponse := func(t *testing.T, extJSON string) *expectedResponse {
+		t.Helper()
+		responseDoc := expectedResponse{}
+		err := UnmarshalExtJSON([]byte(extJSON), false, &responseDoc)
+		assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
+		return &responseDoc
+	}
+
 	testCases := []struct {
 		name     string
 		testJSON string
@@ -272,9 +273,8 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			responseDoc, err := unmarshalExtJSONHelper(tc.testJSON)
-			require.NoError(t, err)
-			require.Equal(t, "value", responseDoc.DefinedField)
+			responseDoc := unmarshalExpectedResponse(t, tc.testJSON)
+			assert.Equal(t, "value", responseDoc.DefinedField, "expected DefinedField to be 'value', got %q", responseDoc.DefinedField)
 		})
 	}
 }
