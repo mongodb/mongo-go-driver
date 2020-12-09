@@ -49,6 +49,7 @@ var testContext struct {
 	sslEnabled        bool
 	enterpriseServer  bool
 	dataLake          bool
+	serverParameters  bson.Raw
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
@@ -175,6 +176,12 @@ func Setup() error {
 				break
 			}
 		}
+	}
+
+	db := testContext.client.Database("admin")
+	testContext.serverParameters, err = db.RunCommand(Background, bson.D{{"getParameter", "*"}}).DecodeBytes()
+	if err != nil {
+		return fmt.Errorf("error getting serverParameters: %v", err)
 	}
 	return nil
 }
