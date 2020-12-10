@@ -666,10 +666,10 @@ func verifyTopologyConstraints(topologies []TopologyKind) error {
 	return fmt.Errorf("topology kind %q does not match any of the required kinds %q", testContext.topoKind, topologies)
 }
 
-func verifyServerParametersConstraints(serverParameters map[string]bool) error {
+func verifyServerParametersConstraints(serverParameters map[string]bson.RawValue) error {
 	for param, expectedValue := range serverParameters {
-		actualValue, ok := testContext.serverParameters.Lookup(param).BooleanOK()
-		if !ok || expectedValue != actualValue {
+		actualValue := testContext.serverParameters.Lookup(param)
+		if !expectedValue.Equal(actualValue) {
 			return fmt.Errorf("server parameter %q does not match required value %v", param, actualValue)
 		}
 	}
