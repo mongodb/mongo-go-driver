@@ -286,19 +286,16 @@ func TestUnmarshalBSONWithUndefinedField(t *testing.T) {
 		DefinedField string `bson:"DefinedField"`
 	}
 
-	unmarshalExpectedResponse := func(t *testing.T, BSON []byte) *expectedResponse {
+	createExpectedResponse := func(t *testing.T, doc D) *expectedResponse {
 		t.Helper()
-		responseDoc := expectedResponse{}
-		err := Unmarshal(BSON, &responseDoc)
-		assert.Nil(t, err, "Error unmarshalling BSON: %v", err)
-		return &responseDoc
-	}
 
-	marshalBSON := func(t *testing.T, doc D) []byte {
-		t.Helper()
 		marshalledBSON, err := Marshal(doc)
-		assert.Nil(t, err, "Error marshalling BSON: %v", err)
-		return marshalledBSON
+		assert.Nil(t, err, "error marshalling BSON: %v", err)
+
+		responseDoc := expectedResponse{}
+		err = Unmarshal(marshalledBSON, &responseDoc)
+		assert.Nil(t, err, "error unmarshalling BSON: %v", err)
+		return &responseDoc
 	}
 
 	testCases := []struct {
@@ -427,8 +424,7 @@ func TestUnmarshalBSONWithUndefinedField(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			marshalledBSON := marshalBSON(t, tc.testBSON)
-			responseDoc := unmarshalExpectedResponse(t, marshalledBSON)
+			responseDoc := createExpectedResponse(t, tc.testBSON)
 			assert.Equal(t, "value", responseDoc.DefinedField, "expected DefinedField to be 'value', got %q", responseDoc.DefinedField)
 		})
 	}
