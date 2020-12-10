@@ -43,10 +43,10 @@ func (s *ServerAPIOptions) UnmarshalBSON(data []byte) error {
 	}
 	s.SetServerAPIVersion(temp.ServerAPIVersion)
 	if temp.DeprecationErrors != nil {
-		s.SetDeprecationErrors(temp.DeprecationErrors)
+		s.SetDeprecationErrors(*temp.DeprecationErrors)
 	}
 	if temp.Strict != nil {
-		s.SetStrict(temp.Strict)
+		s.SetStrict(*temp.Strict)
 	}
 
 	return nil
