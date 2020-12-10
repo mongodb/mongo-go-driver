@@ -35,14 +35,14 @@ func (s *ServerAPIOptions) SetServerAPIVersion(serverAPIVersion ServerAPIVersion
 }
 
 // SetStrict specifies whether the server should return errors for features that are not part of the API version.
-func (s *ServerAPIOptions) SetStrict(strict *bool) *ServerAPIOptions {
-	s.Strict = strict
+func (s *ServerAPIOptions) SetStrict(strict bool) *ServerAPIOptions {
+	s.Strict = &strict
 	return s
 }
 
 // SetDeprecationErrors specifies whether the server should return errors for deprecated features.
-func (s *ServerAPIOptions) SetDeprecationErrors(deprecationErrors *bool) *ServerAPIOptions {
-	s.DeprecationErrors = deprecationErrors
+func (s *ServerAPIOptions) SetDeprecationErrors(deprecationErrors bool) *ServerAPIOptions {
+	s.DeprecationErrors = &deprecationErrors
 	return s
 }
 
