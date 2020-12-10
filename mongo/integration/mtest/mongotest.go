@@ -667,10 +667,13 @@ func verifyTopologyConstraints(topologies []TopologyKind) error {
 }
 
 func verifyServerParametersConstraints(serverParameters map[string]bson.RawValue) error {
-	for param, expectedValue := range serverParameters {
-		actualValue := testContext.serverParameters.Lookup(param)
-		if !expectedValue.Equal(actualValue) {
-			return fmt.Errorf("server parameter %q does not match required value %v", param, actualValue)
+	for param, expected := range serverParameters {
+		actual, err := testContext.serverParameters.LookupErr(param)
+		if err != nil {
+			return fmt.Errorf("server does not support parameter %q", param)
+		}
+		if !expected.Equal(actual) {
+			return fmt.Errorf("mismatched values for server parameter %q; expected %s, got %s", param, expected, actual)
 		}
 	}
 	return nil
