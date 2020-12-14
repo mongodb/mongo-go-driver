@@ -63,6 +63,7 @@ type Client struct {
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
 	monitor         *event.CommandMonitor
+	serverAPI       options.ServerAPIOptions
 	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
 
@@ -605,6 +606,14 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			return errors.New("cannot specify topology or server options with a deployment")
 		}
 		c.deployment = opts.Deployment
+	}
+
+	// Server API options
+	if opts.ServerAPIOptions != nil {
+		if err := opts.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+			return err
+		}
+		c.serverAPI = *opts.ServerAPIOptions
 	}
 
 	return nil
