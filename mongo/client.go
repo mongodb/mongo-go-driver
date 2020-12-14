@@ -63,7 +63,7 @@ type Client struct {
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
 	monitor         *event.CommandMonitor
-	serverAPI       options.ServerAPIOptions
+	serverAPI       *options.ServerAPIOptions
 	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
 
@@ -613,14 +613,15 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		if err := opts.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
 			return err
 		}
-		serverAPI := options.ServerAPI().SetServerAPIVersion(opts.ServerAPIOptions.ServerAPIVersion)
+
+		// manually clone the passed in options to avoid future modifications of original ServerAPIOptions.
+		c.serverAPI = options.ServerAPI().SetServerAPIVersion(opts.ServerAPIOptions.ServerAPIVersion)
 		if opts.ServerAPIOptions.Strict != nil {
-			serverAPI = serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
+			c.serverAPI = c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
 		}
 		if opts.ServerAPIOptions.DeprecationErrors != nil {
-			serverAPI = serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
+			c.serverAPI = c.serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
 		}
-		c.serverAPI = *serverAPI
 	}
 
 	return nil
