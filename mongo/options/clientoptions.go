@@ -765,6 +765,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.Monitor != nil {
 			c.Monitor = opt.Monitor
 		}
+		if opt.ServerAPIOptions != nil {
+			c.ServerAPIOptions = opt.ServerAPIOptions
+		}
 		if opt.ServerMonitor != nil {
 			c.ServerMonitor = opt.ServerMonitor
 		}

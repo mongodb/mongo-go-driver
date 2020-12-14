@@ -344,4 +344,35 @@ func TestClient(t *testing.T) {
 			})
 		}
 	})
+	t.Run("serverAPI version", func(t *testing.T) {
+		t.Run("success", func(t *testing.T) {
+			ServerAPIOptions := options.ServerAPI().SetServerAPIVersion(options.ServerAPIVersion1)
+			client, err := NewClient(&options.ClientOptions{ServerAPIOptions: ServerAPIOptions})
+			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
+			assert.Equal(t, ServerAPIOptions, &client.serverAPI,
+				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, client.serverAPI)
+		})
+		t.Run("success with more options", func(t *testing.T) {
+			ServerAPIOptions := options.ServerAPI().SetServerAPIVersion(options.ServerAPIVersion1).
+				SetStrict(true).SetDeprecationErrors(true)
+			client, err := NewClient(&options.ClientOptions{ServerAPIOptions: ServerAPIOptions})
+			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
+			assert.Equal(t, ServerAPIOptions, &client.serverAPI,
+				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, client.serverAPI)
+		})
+		t.Run("failure with missing version", func(t *testing.T) {
+			ServerAPIOptions := options.ServerAPI().SetStrict(true).SetDeprecationErrors(true)
+			_, err := NewClient(&options.ClientOptions{ServerAPIOptions: ServerAPIOptions})
+			assert.NotNil(t, err, "expected error from NewClient, got nil")
+			errmsg := "api version \"\" not supported by driver"
+			assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
+		})
+		t.Run("failure with unsupported version", func(t *testing.T) {
+			ServerAPIOptions := options.ServerAPI().SetServerAPIVersion("badVersion")
+			_, err := NewClient(&options.ClientOptions{ServerAPIOptions: ServerAPIOptions})
+			assert.NotNil(t, err, "expected error from NewClient, got nil")
+			errmsg := "api version \"badVersion\" not supported by driver"
+			assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
+		})
+	})
 }
