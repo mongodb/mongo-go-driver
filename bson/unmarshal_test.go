@@ -168,7 +168,7 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 }
 
 func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
-	// When unmarshalling, fields that are undefined in the destination struct are skipped.
+	// When unmarshalling extJSON, fields that are undefined in the destination struct are skipped.
 	// This process must not skip other, defined fields and must not raise errors.
 	type expectedResponse struct {
 		DefinedField string
@@ -274,6 +274,157 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			responseDoc := unmarshalExpectedResponse(t, tc.testJSON)
+			assert.Equal(t, "value", responseDoc.DefinedField, "expected DefinedField to be 'value', got %q", responseDoc.DefinedField)
+		})
+	}
+}
+
+func TestUnmarshalBSONWithUndefinedField(t *testing.T) {
+	// When unmarshalling BSON, fields that are undefined in the destination struct are skipped.
+	// This process must not skip other, defined fields and must not raise errors.
+	type expectedResponse struct {
+		DefinedField string `bson:"DefinedField"`
+	}
+
+	createExpectedResponse := func(t *testing.T, doc D) *expectedResponse {
+		t.Helper()
+
+		marshalledBSON, err := Marshal(doc)
+		assert.Nil(t, err, "error marshalling BSON: %v", err)
+
+		responseDoc := expectedResponse{}
+		err = Unmarshal(marshalledBSON, &responseDoc)
+		assert.Nil(t, err, "error unmarshalling BSON: %v", err)
+		return &responseDoc
+	}
+
+	testCases := []struct {
+		name     string
+		testBSON D
+	}{
+		{
+			"no array",
+			D{
+				{"UndefinedField", D{
+					{"key", 1},
+				}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"outer array",
+			D{
+				{"UndefinedField", A{D{
+					{"key", 1},
+				}}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"embedded array",
+			D{
+				{"UndefinedField", D{
+					{"key", A{1}},
+				}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"outer array and embedded array",
+			D{
+				{"UndefinedField", A{D{
+					{"key", A{1}},
+				}}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"embedded document",
+			D{
+				{"UndefinedField", D{
+					{"key", D{
+						{"one", "two"},
+					}},
+				}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"doubly embedded document",
+			D{
+				{"UndefinedField", D{
+					{"key", D{
+						{"one", D{
+							{"two", "three"},
+						}},
+					}},
+				}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"embedded document and embedded array",
+			D{
+				{"UndefinedField", D{
+					{"key", D{
+						{"one", D{
+							{"two", A{3}},
+						}},
+					}},
+				}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"embedded document and embedded array in outer array",
+			D{
+				{"UndefinedField", A{D{
+					{"key", D{
+						{"one", A{3}},
+					}},
+				}}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"code with scope",
+			D{
+				{"UndefinedField", D{
+					{"logic", D{
+						{"$code", "foo"},
+						{"$scope", D{
+							{"bar", 1},
+						}},
+					}},
+				}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"embedded array of code with scope",
+			D{
+				{"UndefinedField", D{
+					{"logic", A{D{
+						{"$code", "foo"},
+						{"$scope", D{
+							{"bar", 1},
+						}},
+					}}},
+				}},
+				{"DefinedField", "value"},
+			},
+		},
+		{
+			"empty embedded document",
+			D{
+				{"UndefinedField", D{}},
+				{"DefinedField", "value"},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			responseDoc := createExpectedResponse(t, tc.testBSON)
 			assert.Equal(t, "value", responseDoc.DefinedField, "expected DefinedField to be 'value', got %q", responseDoc.DefinedField)
 		})
 	}
