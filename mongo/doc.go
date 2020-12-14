@@ -71,8 +71,10 @@
 // on the MongoDB website.
 //
 // Error Handling
-// Errors from the mongo server will implement the ServerError interface, which has functions to check for specific
-// error codes, labels, and message substrings. These can be used to check for and handle specific errors.
+// Errors from the MongoDB server will implement the ServerError interface, which has functions to check for specific
+// error codes, labels, and message substrings. These can be used to check for and handle specific errors. Some methods,
+// like InsertMany and BulkWrite, can return an error representing multiple errors, and in those cases the ServerError
+// functions will return true if any of the contained errors satisfy the check.
 //
 // Potential DNS Issues
 //

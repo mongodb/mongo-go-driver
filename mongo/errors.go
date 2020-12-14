@@ -121,7 +121,7 @@ type ServerError interface {
 	HasErrorCode(int) bool
 	// HasErrorLabel returns true if the error contains the specified label.
 	HasErrorLabel(string) bool
-	// HasErrorMessage returns true if the error Message contains the specified message.
+	// HasErrorMessage returns true if the error contains the specified message.
 	HasErrorMessage(string) bool
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 	HasErrorCodeWithMessage(int, string) bool
@@ -172,7 +172,7 @@ func (e CommandError) HasErrorLabel(label string) bool {
 	return false
 }
 
-// HasErrorMessage returns true if the error Message contains the specified message.
+// HasErrorMessage returns true if the error contains the specified message.
 func (e CommandError) HasErrorMessage(message string) bool {
 	return strings.Contains(e.Message, message)
 }
@@ -291,7 +291,7 @@ func (mwe WriteException) HasErrorLabel(label string) bool {
 	return false
 }
 
-// HasErrorMessage returns true if the error Message contains the specified message.
+// HasErrorMessage returns true if the error contains the specified message.
 func (mwe WriteException) HasErrorMessage(message string) bool {
 	if mwe.WriteConcernError != nil && strings.Contains(mwe.WriteConcernError.Message, message) {
 		return true
@@ -394,7 +394,7 @@ func (bwe BulkWriteException) HasErrorLabel(label string) bool {
 	return false
 }
 
-// HasErrorMessage returns true if the error Message contains the specified message.
+// HasErrorMessage returns true if the error contains the specified message.
 func (bwe BulkWriteException) HasErrorMessage(message string) bool {
 	if bwe.WriteConcernError != nil && strings.Contains(bwe.WriteConcernError.Message, message) {
 		return true
