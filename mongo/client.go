@@ -613,7 +613,14 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		if err := opts.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
 			return err
 		}
-		c.serverAPI = *opts.ServerAPIOptions
+		serverAPI := options.ServerAPI().SetServerAPIVersion(opts.ServerAPIOptions.ServerAPIVersion)
+		if opts.ServerAPIOptions.Strict != nil {
+			serverAPI = serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
+		}
+		if opts.ServerAPIOptions.DeprecationErrors != nil {
+			serverAPI = serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
+		}
+		c.serverAPI = *serverAPI
 	}
 
 	return nil

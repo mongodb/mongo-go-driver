@@ -350,7 +350,7 @@ func TestClient(t *testing.T) {
 			client, err := NewClient(&options.ClientOptions{ServerAPIOptions: ServerAPIOptions})
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
 			assert.Equal(t, ServerAPIOptions, &client.serverAPI,
-				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, client.serverAPI)
+				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, &client.serverAPI)
 		})
 		t.Run("success with more options", func(t *testing.T) {
 			ServerAPIOptions := options.ServerAPI().SetServerAPIVersion(options.ServerAPIVersion1).
@@ -358,7 +358,7 @@ func TestClient(t *testing.T) {
 			client, err := NewClient(&options.ClientOptions{ServerAPIOptions: ServerAPIOptions})
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
 			assert.Equal(t, ServerAPIOptions, &client.serverAPI,
-				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, client.serverAPI)
+				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, &client.serverAPI)
 		})
 		t.Run("failure with missing version", func(t *testing.T) {
 			ServerAPIOptions := options.ServerAPI().SetStrict(true).SetDeprecationErrors(true)
@@ -373,6 +373,19 @@ func TestClient(t *testing.T) {
 			assert.NotNil(t, err, "expected error from NewClient, got nil")
 			errmsg := "api version \"badVersion\" not supported by driver"
 			assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
+		})
+		t.Run("cannot modify options after client creation", func(t *testing.T) {
+			ServerAPIOptions := options.ServerAPI().SetServerAPIVersion(options.ServerAPIVersion1).
+				SetStrict(true).SetDeprecationErrors(true)
+			client, err := NewClient(&options.ClientOptions{ServerAPIOptions: ServerAPIOptions})
+			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
+
+			expectedServerAPIOptions := options.ServerAPI().SetServerAPIVersion(options.ServerAPIVersion1).
+				SetStrict(true).SetDeprecationErrors(true)
+			// modify passed-in options
+			ServerAPIOptions = ServerAPIOptions.SetServerAPIVersion("modifiedVersion")
+			assert.Equal(t, expectedServerAPIOptions, &client.serverAPI,
+				"unexpected modification to serverAPI; expected %v, got %v", expectedServerAPIOptions, &client.serverAPI)
 		})
 	})
 }
