@@ -378,7 +378,7 @@ func TestClient(t *testing.T) {
 
 			expectedServerAPIOptions := getServerAPIOptions()
 			// modify passed-in options
-			serverAPIOptions = serverAPIOptions.SetServerAPIVersion("modifiedVersion").SetStrict(true).
+			serverAPIOptions.SetServerAPIVersion("modifiedVersion").SetStrict(true).
 				SetDeprecationErrors(true)
 			assert.Equal(t, expectedServerAPIOptions, client.serverAPI,
 				"unexpected modification to serverAPI; expected %v, got %v", expectedServerAPIOptions, client.serverAPI)

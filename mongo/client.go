@@ -614,13 +614,13 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			return err
 		}
 
-		// manually clone the passed in options to avoid future modifications of original ServerAPIOptions.
+		// manually clone the passed in options so future modifications of the original ServerAPIOptions have no effect.
 		c.serverAPI = options.ServerAPI().SetServerAPIVersion(opts.ServerAPIOptions.ServerAPIVersion)
 		if opts.ServerAPIOptions.Strict != nil {
-			c.serverAPI = c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
+			c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
 		}
 		if opts.ServerAPIOptions.DeprecationErrors != nil {
-			c.serverAPI = c.serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
+			c.serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
 		}
 	}
 
