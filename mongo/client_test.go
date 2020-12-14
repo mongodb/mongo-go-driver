@@ -349,16 +349,16 @@ func TestClient(t *testing.T) {
 			ServerAPIOptions := options.ServerAPI().SetServerAPIVersion(options.ServerAPIVersion1)
 			client, err := NewClient(&options.ClientOptions{ServerAPIOptions: ServerAPIOptions})
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
-			assert.Equal(t, ServerAPIOptions, &client.serverAPI,
-				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, &client.serverAPI)
+			assert.Equal(t, ServerAPIOptions, client.serverAPI,
+				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, client.serverAPI)
 		})
 		t.Run("success with more options", func(t *testing.T) {
 			ServerAPIOptions := options.ServerAPI().SetServerAPIVersion(options.ServerAPIVersion1).
 				SetStrict(true).SetDeprecationErrors(true)
 			client, err := NewClient(&options.ClientOptions{ServerAPIOptions: ServerAPIOptions})
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
-			assert.Equal(t, ServerAPIOptions, &client.serverAPI,
-				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, &client.serverAPI)
+			assert.Equal(t, ServerAPIOptions, client.serverAPI,
+				"mismatch in serverAPI; expected %v, got %v", ServerAPIOptions, client.serverAPI)
 		})
 		t.Run("failure with missing version", func(t *testing.T) {
 			ServerAPIOptions := options.ServerAPI().SetStrict(true).SetDeprecationErrors(true)
@@ -383,9 +383,10 @@ func TestClient(t *testing.T) {
 			expectedServerAPIOptions := options.ServerAPI().SetServerAPIVersion(options.ServerAPIVersion1).
 				SetStrict(true).SetDeprecationErrors(true)
 			// modify passed-in options
-			ServerAPIOptions = ServerAPIOptions.SetServerAPIVersion("modifiedVersion")
-			assert.Equal(t, expectedServerAPIOptions, &client.serverAPI,
-				"unexpected modification to serverAPI; expected %v, got %v", expectedServerAPIOptions, &client.serverAPI)
+			ServerAPIOptions = ServerAPIOptions.SetServerAPIVersion("modifiedVersion").SetStrict(false).
+				SetDeprecationErrors(false)
+			assert.Equal(t, expectedServerAPIOptions, client.serverAPI,
+				"unexpected modification to serverAPI; expected %v, got %v", expectedServerAPIOptions, client.serverAPI)
 		})
 	})
 }
