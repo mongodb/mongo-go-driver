@@ -712,6 +712,14 @@ func (c *ClientOptions) SetDisableOCSPEndpointCheck(disableCheck bool) *ClientOp
 	return c
 }
 
+// SetServerAPIOptions specifies a ServerAPIOptions instance used to configure the API version sent to the server
+// when running commands. See the options.ServerAPIOptions documentation for more information about the supported
+// options.
+func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptions {
+	c.ServerAPIOptions = opts
+	return c
+}
+
 // MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
