@@ -271,21 +271,21 @@ func TestErrors(t *testing.T) {
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				has := tc.err.HasErrorCode(matchCode)
-				assert.Equal(mt, has, tc.hasCode, "Expected HasErrorCode to return %v, got %v", tc.hasCode, has)
+				assert.Equal(mt, has, tc.hasCode, "expected HasErrorCode to return %v, got %v", tc.hasCode, has)
 				has = tc.err.HasErrorLabel(label)
-				assert.Equal(mt, has, tc.hasLabel, "Expected HasErrorLabel to return %v, got %v", tc.hasLabel, has)
+				assert.Equal(mt, has, tc.hasLabel, "expected HasErrorLabel to return %v, got %v", tc.hasLabel, has)
 
 				// Check for full message and substring
 				has = tc.err.HasErrorMessage("foo")
-				assert.Equal(mt, has, tc.hasMessage, "Expected HasErrorMessage to return %v, got %v", tc.hasMessage, has)
+				assert.Equal(mt, has, tc.hasMessage, "expected HasErrorMessage to return %v, got %v", tc.hasMessage, has)
 				has = tc.err.HasErrorMessage("fo")
-				assert.Equal(mt, has, tc.hasMessage, "Expected HasErrorMessage to return %v, got %v", tc.hasMessage, has)
+				assert.Equal(mt, has, tc.hasMessage, "expected HasErrorMessage to return %v, got %v", tc.hasMessage, has)
 				has = tc.err.HasErrorCodeWithMessage(matchCode, "foo")
-				assert.Equal(mt, has, tc.hasCodeWithMessage, "Expected HasErrorCodeWithMessage to return %v, got %v", tc.hasCodeWithMessage, has)
+				assert.Equal(mt, has, tc.hasCodeWithMessage, "expected HasErrorCodeWithMessage to return %v, got %v", tc.hasCodeWithMessage, has)
 				has = tc.err.HasErrorCodeWithMessage(matchCode, "fo")
-				assert.Equal(mt, has, tc.hasCodeWithMessage, "Expected HasErrorCodeWithMessage to return %v, got %v", tc.hasCodeWithMessage, has)
+				assert.Equal(mt, has, tc.hasCodeWithMessage, "expected HasErrorCodeWithMessage to return %v, got %v", tc.hasCodeWithMessage, has)
 
-				assert.Equal(mt, errors.Is(tc.err, matchWrapped), tc.isResult, "Expected errors.Is result to be %v", tc.isResult)
+				assert.Equal(mt, errors.Is(tc.err, matchWrapped), tc.isResult, "expected errors.Is result to be %v", tc.isResult)
 			})
 		}
 	})
