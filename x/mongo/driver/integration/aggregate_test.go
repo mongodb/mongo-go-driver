@@ -65,8 +65,7 @@ func TestAggregate(t *testing.T) {
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
 		).Collection(collName).Database(dbName).
-			Deployment(top).ServerSelector(description.WriteSelector()).ServerAPI(driver.ServerAPI()).
-			Execute(context.Background())
+			Deployment(top).ServerSelector(description.WriteSelector()).Execute(context.Background())
 		noerr(t, err)
 
 		clearChannels(started, succeeded, failed)

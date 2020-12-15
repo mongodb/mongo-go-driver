@@ -105,7 +105,7 @@ func prep(ctx context.Context, c *topology.Topology) error {
 	}
 
 	err = operation.NewInsert(docs...).Collection(collection).Database(database).Deployment(c).
-		ServerSelector(description.WriteSelector()).ServerAPI(driver.ServerAPI()).Execute(ctx)
+		ServerSelector(description.WriteSelector()).Execute(ctx)
 	return err
 }
 

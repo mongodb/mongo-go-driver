@@ -34,7 +34,7 @@ func TestInsert(t *testing.T) {
 
 	doc := bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))
 
-	iop := operation.NewInsert(doc).Database("foo").Collection("bar").Deployment(topo).ServerAPI(driver.ServerAPI())
+	iop := operation.NewInsert(doc).Database("foo").Collection("bar").Deployment(topo)
 	err = iop.Execute(context.Background())
 	if err != nil {
 		t.Fatalf("Couldn't execute insert operation: %v", err)
