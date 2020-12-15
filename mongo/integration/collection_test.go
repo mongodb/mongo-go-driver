@@ -514,7 +514,7 @@ func TestCollection(t *testing.T) {
 					res, err := mt.Coll.UpdateByID(mtest.Background, tc.id, update)
 					assert.Nil(mt, err, "UpdateByID error: %v", err)
 					assert.Equal(mt, int64(1), res.MatchedCount, "expected matched count 1, got %v", res.MatchedCount)
-					assert.Equal(mt, int64(1), res.ModifiedCount, "expected matched count 1, got %v", res.ModifiedCount)
+					assert.Equal(mt, int64(1), res.ModifiedCount, "expected modified count 1, got %v", res.ModifiedCount)
 					assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
 				})
 			}
@@ -530,7 +530,7 @@ func TestCollection(t *testing.T) {
 			res, err := mt.Coll.UpdateByID(mtest.Background, 0, update)
 			assert.Nil(mt, err, "UpdateByID error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
-			assert.Equal(mt, int64(0), res.ModifiedCount, "expected matched count 0, got %v", res.ModifiedCount)
+			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
 			assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
 		})
 		mt.Run("upsert", func(mt *mtest.T) {
@@ -544,7 +544,7 @@ func TestCollection(t *testing.T) {
 			res, err := mt.Coll.UpdateByID(mtest.Background, id, update, options.Update().SetUpsert(true))
 			assert.Nil(mt, err, "UpdateByID error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
-			assert.Equal(mt, int64(0), res.ModifiedCount, "expected matched count 0, got %v", res.ModifiedCount)
+			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
 			assert.Equal(mt, res.UpsertedID, id, "expected upserted ID %v, got %v", id, res.UpsertedID)
 		})
 		mt.Run("write error", func(mt *mtest.T) {
@@ -554,12 +554,9 @@ func TestCollection(t *testing.T) {
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.UpdateByID(mtest.Background, id, update)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
-			numWriteErrors := len(we.WriteErrors)
-			assert.Equal(mt, 1, numWriteErrors, "expected 1 write error, got %v", numWriteErrors)
-			gotCode := we.WriteErrors[0].Code
-			assert.Equal(mt, errorModifiedID, gotCode, "expected error code %v, got %v", errorModifiedID, gotCode)
+			se, ok := err.(mongo.ServerError)
+			assert.True(mt, ok, "expected ServerError, got %v", err)
+			assert.True(mt, se.HasErrorCode(errorModifiedID), "expected error code %v, got %v", errorModifiedID, err)
 		})
 		mt.RunOpts("write concern error", mtest.NewOptions().Topologies(mtest.ReplicaSet), func(mt *mtest.T) {
 			// 2.6 returns right away if the document doesn't exist
@@ -570,11 +567,9 @@ func TestCollection(t *testing.T) {
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.UpdateByID(mtest.Background, id, update)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
-			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", err)
-			gotCode := we.WriteConcernError.Code
-			assert.Equal(mt, gotCode, errorUnsatisfiableWriteConcern, "expected error code %v, got %v", errorUnsatisfiableWriteConcern, gotCode)
+			se, ok := err.(mongo.ServerError)
+			assert.True(mt, ok, "expected ServerError, got %v", err)
+			assert.True(mt, se.HasErrorCode(errorUnsatisfiableWriteConcern), "expected error code %v, got %v", errorUnsatisfiableWriteConcern, err)
 		})
 	})
 	mt.RunOpts("update many", noClientOpts, func(mt *mtest.T) {
