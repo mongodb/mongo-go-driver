@@ -38,6 +38,7 @@ type Count struct {
 	selector       description.ServerSelector
 	retry          *driver.RetryMode
 	result         CountResult
+	serverAPI      *driver.ServerAPIOptions
 }
 
 type CountResult struct {
@@ -98,6 +99,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		ReadConcern:       c.readConcern,
 		ReadPreference:    c.readPreference,
 		Selector:          c.selector,
+		ServerAPI:         c.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -241,5 +243,15 @@ func (c *Count) Retry(retry driver.RetryMode) *Count {
 	}
 
 	c.retry = &retry
+	return c
+}
+
+// ServerAPI sets the server API version for this operation.
+func (c *Count) ServerAPI(serverAPI *driver.ServerAPIOptions) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.serverAPI = serverAPI
 	return c
 }

@@ -114,6 +114,10 @@ func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
 		return executeEstimatedDocumentCount(ctx, op)
 	case "find":
 		return executeFind(ctx, op)
+	case "findOneAndDelete":
+		return executeFindOneAndDelete(ctx, op)
+	case "findOneAndReplace":
+		return executeFindOneAndReplace(ctx, op)
 	case "findOneAndUpdate":
 		return executeFindOneAndUpdate(ctx, op)
 	case "insertMany":
