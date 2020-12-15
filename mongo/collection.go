@@ -279,7 +279,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Ordered(true)
+		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Ordered(true).
+		ServerAPI(coll.client.serverAPI)
 	imo := options.MergeInsertManyOptions(opts...)
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)

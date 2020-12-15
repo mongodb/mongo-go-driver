@@ -182,6 +182,9 @@ type Operation struct {
 
 	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
 	Crypt *Crypt
+
+	// ServerAPI specifies options used to configure the API version sent to the server.
+	ServerAPI *ServerAPIOptions
 }
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
@@ -771,6 +774,8 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 
 	dst = op.addClusterTime(dst, desc)
 
+	dst = op.addServerAPI(dst)
+
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 	// Command monitoring only reports the document inside $query
 	info.cmd = dst[idx:]
@@ -841,6 +846,8 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 		dst = bsoncore.AppendDocumentElement(dst, "$readPreference", rp)
 	}
 
+	dst = op.addServerAPI(dst)
+
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 	// The command document for monitoring shouldn't include the type 1 payload as a document sequence
 	info.cmd = dst[idx:]
@@ -897,6 +904,18 @@ func (op Operation) addCommandFields(ctx context.Context, dst []byte, desc descr
 	// append encrypted command to original destination, removing the first 4 bytes (length) and final byte (terminator)
 	dst = append(dst, encrypted[4:len(encrypted)-1]...)
 	return dst, nil
+}
+
+// addServerAPI adds the relevant fields for server API specification to the wire message in dst.
+func (op Operation) addServerAPI(dst []byte) []byte {
+	sa := op.ServerAPI
+	if sa == nil {
+		return dst
+	}
+
+	dst = bsoncore.AppendStringElement(dst, "apiVersion", sa.ServerAPIVersion)
+	dst = bsoncore.AppendBooleanElement(dst, "apiStrict", *sa.Strict)
+	return bsoncore.AppendBooleanElement(dst, "apiDeprecationErrors", *sa.DeprecationErrors)
 }
 
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
