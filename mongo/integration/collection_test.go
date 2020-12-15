@@ -492,7 +492,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.Run("nil id", func(mt *mtest.T) {
 			_, err := mt.Coll.UpdateByID(mtest.Background, nil, bson.D{{"$inc", bson.D{{"x", 1}}}})
-			assert.Equal(mt, err, mongo.ErrNilDocument, "expected %v, got %v", mongo.ErrNilDocument, err)
+			assert.Equal(mt, err, mongo.ErrNilValue, "expected %v, got %v", mongo.ErrNilValue, err)
 		})
 		mt.RunOpts("found", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {

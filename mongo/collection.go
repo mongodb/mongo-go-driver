@@ -597,7 +597,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 func (coll *Collection) UpdateByID(ctx context.Context, id interface{}, update interface{},
 	opts ...*options.UpdateOptions) (*UpdateResult, error) {
 	if id == nil {
-		return nil, ErrNilDocument
+		return nil, ErrNilValue
 	}
 	return coll.UpdateOne(ctx, bson.D{{"_id", id}}, update, opts...)
 }
