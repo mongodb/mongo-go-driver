@@ -914,8 +914,13 @@ func (op Operation) addServerAPI(dst []byte) []byte {
 	}
 
 	dst = bsoncore.AppendStringElement(dst, "apiVersion", sa.ServerAPIVersion)
-	dst = bsoncore.AppendBooleanElement(dst, "apiStrict", *sa.Strict)
-	return bsoncore.AppendBooleanElement(dst, "apiDeprecationErrors", *sa.DeprecationErrors)
+	if sa.Strict != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "apiStrict", *sa.Strict)
+	}
+	if sa.DeprecationErrors != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "apiDeprecationErrors", *sa.DeprecationErrors)
+	}
+	return dst
 }
 
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
