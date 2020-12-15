@@ -63,7 +63,7 @@ type Client struct {
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
 	monitor         *event.CommandMonitor
-	serverAPI       *options.ServerAPIOptions
+	serverAPI       *driver.ServerAPIOptions
 	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
 
@@ -615,7 +615,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		}
 
 		// manually clone the passed in options so future modifications of the original ServerAPIOptions have no effect.
-		c.serverAPI = options.ServerAPI().SetServerAPIVersion(opts.ServerAPIOptions.ServerAPIVersion)
+		c.serverAPI = driver.ServerAPI().SetServerAPIVersion(string(opts.ServerAPIOptions.ServerAPIVersion))
 		if opts.ServerAPIOptions.Strict != nil {
 			c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
 		}

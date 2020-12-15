@@ -350,12 +350,24 @@ func TestClient(t *testing.T) {
 				SetStrict(false).SetDeprecationErrors(false)
 		}
 
+		convertToDriverAPIOptions := func(opts *options.ServerAPIOptions) *driver.ServerAPIOptions {
+			driverOpts := driver.ServerAPI().SetServerAPIVersion(string(opts.ServerAPIVersion))
+			if opts.Strict != nil {
+				driverOpts.SetStrict(*opts.Strict)
+			}
+			if opts.DeprecationErrors != nil {
+				driverOpts.SetDeprecationErrors(*opts.DeprecationErrors)
+			}
+			return driverOpts
+		}
+
 		t.Run("success with all options", func(t *testing.T) {
 			serverAPIOptions := getServerAPIOptions()
 			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
-			assert.Equal(t, serverAPIOptions, client.serverAPI,
-				"mismatch in serverAPI; expected %v, got %v", serverAPIOptions, client.serverAPI)
+			convertedAPIOptions := convertToDriverAPIOptions(serverAPIOptions)
+			assert.Equal(t, convertedAPIOptions, client.serverAPI,
+				"mismatch in serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})
 		t.Run("failure with missing version", func(t *testing.T) {
 			serverAPIOptions := options.ServerAPI().SetStrict(false).SetDeprecationErrors(false)
@@ -380,8 +392,9 @@ func TestClient(t *testing.T) {
 			// modify passed-in options
 			serverAPIOptions.SetServerAPIVersion("modifiedVersion").SetStrict(true).
 				SetDeprecationErrors(true)
-			assert.Equal(t, expectedServerAPIOptions, client.serverAPI,
-				"unexpected modification to serverAPI; expected %v, got %v", expectedServerAPIOptions, client.serverAPI)
+			convertedAPIOptions := convertToDriverAPIOptions(expectedServerAPIOptions)
+			assert.Equal(t, convertedAPIOptions, client.serverAPI,
+				"unexpected modification to serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})
 	})
 }
