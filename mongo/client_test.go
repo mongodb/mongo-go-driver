@@ -351,7 +351,7 @@ func TestClient(t *testing.T) {
 		}
 
 		convertToDriverAPIOptions := func(opts *options.ServerAPIOptions) *driver.ServerAPIOptions {
-			driverOpts := driver.ServerAPI().SetServerAPIVersion(string(opts.ServerAPIVersion))
+			driverOpts := driver.NewServerAPIOptions().SetServerAPIVersion(string(opts.ServerAPIVersion))
 			if opts.Strict != nil {
 				driverOpts.SetStrict(*opts.Strict)
 			}
