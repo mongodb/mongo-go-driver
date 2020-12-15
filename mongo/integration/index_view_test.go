@@ -91,7 +91,6 @@ func TestIndexView(t *testing.T) {
 					SetBits(2).
 					SetMax(10).
 					SetMin(1).
-					SetBucketSize(1).
 					SetPartialFilterExpression(bson.D{}).
 					SetStorageEngine(bson.D{
 						{"wiredTiger", bson.D{
