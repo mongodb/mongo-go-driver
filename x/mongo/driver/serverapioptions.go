@@ -14,9 +14,10 @@ type ServerAPIOptions struct {
 	DeprecationErrors *bool
 }
 
-// ServerAPI creates a new ServerAPIOptions configured with default values.
+// ServerAPI creates a new ServerAPIOptions configured with default values. ServerAPIVersion is set
+// to latest stable version.
 func ServerAPI() *ServerAPIOptions {
-	return &ServerAPIOptions{}
+	return &ServerAPIOptions{ServerAPIVersion: "1"}
 }
 
 // SetServerAPIVersion specifies the version string of the declared API version. This is required.
