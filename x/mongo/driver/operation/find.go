@@ -58,6 +58,7 @@ type Find struct {
 	selector            description.ServerSelector
 	retry               *driver.RetryMode
 	result              driver.CursorResponse
+	serverAPI           *driver.ServerAPIOptions
 }
 
 // NewFind constructs and returns a new Find.
@@ -99,6 +100,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		ReadPreference:    f.readPreference,
 		Selector:          f.selector,
 		Legacy:            driver.LegacyFind,
+		ServerAPI:         f.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -508,5 +510,15 @@ func (f *Find) Retry(retry driver.RetryMode) *Find {
 	}
 
 	f.retry = &retry
+	return f
+}
+
+// ServerAPI sets the server API version for this operation.
+func (f *Find) ServerAPI(serverAPI *driver.ServerAPIOptions) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.serverAPI = serverAPI
 	return f
 }
