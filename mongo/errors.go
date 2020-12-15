@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -112,6 +113,26 @@ func (e MongocryptdError) Unwrap() error {
 	return e.Wrapped
 }
 
+// ServerError is the interface implemented by errors returned from the server. Custom implementations of this
+// interface should not be used in production.
+type ServerError interface {
+	error
+	// HasErrorCode returns true if the error has the specified code.
+	HasErrorCode(int) bool
+	// HasErrorLabel returns true if the error contains the specified label.
+	HasErrorLabel(string) bool
+	// HasErrorMessage returns true if the error contains the specified message.
+	HasErrorMessage(string) bool
+	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
+	HasErrorCodeWithMessage(int, string) bool
+
+	serverError()
+}
+
+var _ ServerError = CommandError{}
+var _ ServerError = WriteException{}
+var _ ServerError = BulkWriteException{}
+
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
 	Code    int32
@@ -134,6 +155,11 @@ func (e CommandError) Unwrap() error {
 	return e.Wrapped
 }
 
+// HasErrorCode returns true if the error has the specified code.
+func (e CommandError) HasErrorCode(code int) bool {
+	return int(e.Code) == code
+}
+
 // HasErrorLabel returns true if the error contains the specified label.
 func (e CommandError) HasErrorLabel(label string) bool {
 	if e.Labels != nil {
@@ -146,10 +172,23 @@ func (e CommandError) HasErrorLabel(label string) bool {
 	return false
 }
 
+// HasErrorMessage returns true if the error contains the specified message.
+func (e CommandError) HasErrorMessage(message string) bool {
+	return strings.Contains(e.Message, message)
+}
+
+// HasErrorCodeWithMessage returns true if the error has the specified code and Message contains the specified message.
+func (e CommandError) HasErrorCodeWithMessage(code int, message string) bool {
+	return int(e.Code) == code && strings.Contains(e.Message, message)
+}
+
 // IsMaxTimeMSExpiredError returns true if the error is a MaxTimeMSExpired error.
 func (e CommandError) IsMaxTimeMSExpiredError() bool {
 	return e.Code == 50 || e.Name == "MaxTimeMSExpired"
 }
+
+// serverError implements the ServerError interface.
+func (e CommandError) serverError() {}
 
 // WriteError is an error that occurred during execution of a write operation. This error type is only returned as part
 // of a WriteException or BulkWriteException.
@@ -227,6 +266,19 @@ func (mwe WriteException) Error() string {
 	return buf.String()
 }
 
+// HasErrorCode returns true if the error has the specified code.
+func (mwe WriteException) HasErrorCode(code int) bool {
+	if mwe.WriteConcernError != nil && mwe.WriteConcernError.Code == code {
+		return true
+	}
+	for _, we := range mwe.WriteErrors {
+		if we.Code == code {
+			return true
+		}
+	}
+	return false
+}
+
 // HasErrorLabel returns true if the error contains the specified label.
 func (mwe WriteException) HasErrorLabel(label string) bool {
 	if mwe.Labels != nil {
@@ -238,6 +290,36 @@ func (mwe WriteException) HasErrorLabel(label string) bool {
 	}
 	return false
 }
+
+// HasErrorMessage returns true if the error contains the specified message.
+func (mwe WriteException) HasErrorMessage(message string) bool {
+	if mwe.WriteConcernError != nil && strings.Contains(mwe.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range mwe.WriteErrors {
+		if strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
+func (mwe WriteException) HasErrorCodeWithMessage(code int, message string) bool {
+	if mwe.WriteConcernError != nil &&
+		mwe.WriteConcernError.Code == code && strings.Contains(mwe.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range mwe.WriteErrors {
+		if we.Code == code && strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
+// serverError implements the ServerError interface.
+func (mwe WriteException) serverError() {}
 
 func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcernError {
 	if wce == nil {
@@ -287,6 +369,19 @@ func (bwe BulkWriteException) Error() string {
 	return buf.String()
 }
 
+// HasErrorCode returns true if any of the errors have the specified code.
+func (bwe BulkWriteException) HasErrorCode(code int) bool {
+	if bwe.WriteConcernError != nil && bwe.WriteConcernError.Code == code {
+		return true
+	}
+	for _, we := range bwe.WriteErrors {
+		if we.Code == code {
+			return true
+		}
+	}
+	return false
+}
+
 // HasErrorLabel returns true if the error contains the specified label.
 func (bwe BulkWriteException) HasErrorLabel(label string) bool {
 	if bwe.Labels != nil {
@@ -298,6 +393,36 @@ func (bwe BulkWriteException) HasErrorLabel(label string) bool {
 	}
 	return false
 }
+
+// HasErrorMessage returns true if the error contains the specified message.
+func (bwe BulkWriteException) HasErrorMessage(message string) bool {
+	if bwe.WriteConcernError != nil && strings.Contains(bwe.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range bwe.WriteErrors {
+		if strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
+func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) bool {
+	if bwe.WriteConcernError != nil &&
+		bwe.WriteConcernError.Code == code && strings.Contains(bwe.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range bwe.WriteErrors {
+		if we.Code == code && strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
+// serverError implements the ServerError interface.
+func (bwe BulkWriteException) serverError() {}
 
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different

@@ -70,6 +70,13 @@
 // Additional examples can be found under the examples directory in the driver's repository and
 // on the MongoDB website.
 //
+// Error Handling
+//
+// Errors from the MongoDB server will implement the ServerError interface, which has functions to check for specific
+// error codes, labels, and message substrings. These can be used to check for and handle specific errors. Some methods,
+// like InsertMany and BulkWrite, can return an error representing multiple errors, and in those cases the ServerError
+// functions will return true if any of the contained errors satisfy the check.
+//
 // Potential DNS Issues
 //
 // Building with Go 1.11+ and using connection strings with the "mongodb+srv"[1] scheme is

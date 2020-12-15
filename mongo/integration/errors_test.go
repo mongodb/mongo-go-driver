@@ -107,4 +107,186 @@ func TestErrors(t *testing.T) {
 			assert.True(mt, netErr.Timeout(), "expected error %v to be a network timeout", err)
 		})
 	})
+	mt.Run("ServerError", func(mt *mtest.T) {
+		matchWrapped := errors.New("wrapped err")
+		otherWrapped := errors.New("other err")
+		const matchCode = 100
+		const otherCode = 120
+		const label = "testError"
+		testCases := []struct {
+			name               string
+			err                mongo.ServerError
+			hasCode            bool
+			hasLabel           bool
+			hasMessage         bool
+			hasCodeWithMessage bool
+			isResult           bool
+		}{
+			{
+				"CommandError all true",
+				mongo.CommandError{matchCode, "foo", []string{label}, "name", matchWrapped},
+				true,
+				true,
+				true,
+				true,
+				true,
+			},
+			{
+				"CommandError all false",
+				mongo.CommandError{otherCode, "bar", []string{"otherError"}, "name", otherWrapped},
+				false,
+				false,
+				false,
+				false,
+				false,
+			},
+			{
+				"CommandError has code not message",
+				mongo.CommandError{matchCode, "bar", []string{}, "name", nil},
+				true,
+				false,
+				false,
+				false,
+				false,
+			},
+			{
+				"WriteException all in writeConcernError",
+				mongo.WriteException{
+					&mongo.WriteConcernError{"name", matchCode, "foo", nil},
+					nil,
+					[]string{label},
+				},
+				true,
+				true,
+				true,
+				true,
+				false,
+			},
+			{
+				"WriteException all in writeError",
+				mongo.WriteException{
+					nil,
+					mongo.WriteErrors{
+						mongo.WriteError{0, otherCode, "bar"},
+						mongo.WriteError{0, matchCode, "foo"},
+					},
+					[]string{"otherError"},
+				},
+				true,
+				false,
+				true,
+				true,
+				false,
+			},
+			{
+				"WriteException all false",
+				mongo.WriteException{
+					&mongo.WriteConcernError{"name", otherCode, "bar", nil},
+					mongo.WriteErrors{
+						mongo.WriteError{0, otherCode, "baz"},
+					},
+					[]string{"otherError"},
+				},
+				false,
+				false,
+				false,
+				false,
+				false,
+			},
+			{
+				"WriteException HasErrorCodeAndMessage false",
+				mongo.WriteException{
+					&mongo.WriteConcernError{"name", matchCode, "bar", nil},
+					mongo.WriteErrors{
+						mongo.WriteError{0, otherCode, "foo"},
+					},
+					[]string{"otherError"},
+				},
+				true,
+				false,
+				true,
+				false,
+				false,
+			},
+			{
+				"BulkWriteException all in writeConcernError",
+				mongo.BulkWriteException{
+					&mongo.WriteConcernError{"name", matchCode, "foo", nil},
+					nil,
+					[]string{label},
+				},
+				true,
+				true,
+				true,
+				true,
+				false,
+			},
+			{
+				"BulkWriteException all in writeError",
+				mongo.BulkWriteException{
+					nil,
+					[]mongo.BulkWriteError{
+						{mongo.WriteError{0, matchCode, "foo"}, &mongo.InsertOneModel{}},
+						{mongo.WriteError{0, otherCode, "bar"}, &mongo.InsertOneModel{}},
+					},
+					[]string{"otherError"},
+				},
+				true,
+				false,
+				true,
+				true,
+				false,
+			},
+			{
+				"BulkWriteException all false",
+				mongo.BulkWriteException{
+					&mongo.WriteConcernError{"name", otherCode, "bar", nil},
+					[]mongo.BulkWriteError{
+						{mongo.WriteError{0, otherCode, "baz"}, &mongo.InsertOneModel{}},
+					},
+					[]string{"otherError"},
+				},
+				false,
+				false,
+				false,
+				false,
+				false,
+			},
+			{
+				"BulkWriteException HasErrorCodeAndMessage false",
+				mongo.BulkWriteException{
+					&mongo.WriteConcernError{"name", matchCode, "bar", nil},
+					[]mongo.BulkWriteError{
+						{mongo.WriteError{0, otherCode, "foo"}, &mongo.InsertOneModel{}},
+					},
+					[]string{"otherError"},
+				},
+				true,
+				false,
+				true,
+				false,
+				false,
+			},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				has := tc.err.HasErrorCode(matchCode)
+				assert.Equal(mt, has, tc.hasCode, "expected HasErrorCode to return %v, got %v", tc.hasCode, has)
+				has = tc.err.HasErrorLabel(label)
+				assert.Equal(mt, has, tc.hasLabel, "expected HasErrorLabel to return %v, got %v", tc.hasLabel, has)
+
+				// Check for full message and substring
+				has = tc.err.HasErrorMessage("foo")
+				assert.Equal(mt, has, tc.hasMessage, "expected HasErrorMessage to return %v, got %v", tc.hasMessage, has)
+				has = tc.err.HasErrorMessage("fo")
+				assert.Equal(mt, has, tc.hasMessage, "expected HasErrorMessage to return %v, got %v", tc.hasMessage, has)
+				has = tc.err.HasErrorCodeWithMessage(matchCode, "foo")
+				assert.Equal(mt, has, tc.hasCodeWithMessage, "expected HasErrorCodeWithMessage to return %v, got %v", tc.hasCodeWithMessage, has)
+				has = tc.err.HasErrorCodeWithMessage(matchCode, "fo")
+				assert.Equal(mt, has, tc.hasCodeWithMessage, "expected HasErrorCodeWithMessage to return %v, got %v", tc.hasCodeWithMessage, has)
+
+				assert.Equal(mt, errors.Is(tc.err, matchWrapped), tc.isResult, "expected errors.Is result to be %v", tc.isResult)
+			})
+		}
+	})
 }
