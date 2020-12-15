@@ -581,9 +581,10 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	return res, err
 }
 
-// UpdateByID executes an update command to update at most one document in the collection.
+// UpdateByID executes an update command to update the document whose _id value matches the provided ID in the collection.
+// This is equivalent to running UpdateOne(ctx, bson.D{{"_id", id}}, update, opts...).
 //
-// The id parameter is the id of the document to be replaced. It cannot be nil. If the id does not match any documents,
+// The id parameter is the _id of the document to be replaced. It cannot be nil. If the _id does not match any documents,
 // the operation will succeed and an UpdateResult with a MatchedCount of 0 will be returned.
 //
 // The update parameter must be a document containing update operators
