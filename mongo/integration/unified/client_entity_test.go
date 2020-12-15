@@ -25,12 +25,11 @@ import (
 type ClientEntity struct {
 	*mongo.Client
 
-	recordEvents     atomic.Value
-	started          []*event.CommandStartedEvent
-	succeeded        []*event.CommandSucceededEvent
-	failed           []*event.CommandFailedEvent
-	ignoredCommands  map[string]struct{}
-	serverAPIOptions *options.ServerAPIOptions
+	recordEvents    atomic.Value
+	started         []*event.CommandStartedEvent
+	succeeded       []*event.CommandSucceededEvent
+	failed          []*event.CommandFailedEvent
+	ignoredCommands map[string]struct{}
 }
 
 func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*ClientEntity, error) {
@@ -79,8 +78,7 @@ func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*Client
 		clientOpts.SetMonitor(monitor)
 	}
 	if entityOptions.ServerAPIOptions != nil {
-		entity.serverAPIOptions = entityOptions.ServerAPIOptions.ServerAPIOptions
-		clientOpts.SetServerAPIOptions(entity.serverAPIOptions)
+		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
 	}
 	for _, cmd := range entityOptions.IgnoredCommands {
 		entity.ignoredCommands[cmd] = struct{}{}

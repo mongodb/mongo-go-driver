@@ -615,7 +615,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		}
 
 		// manually clone the passed in options so future modifications of the original ServerAPIOptions have no effect.
-		c.serverAPI = driver.ServerAPI().SetServerAPIVersion(string(opts.ServerAPIOptions.ServerAPIVersion))
+		c.serverAPI = driver.NewServerAPIOptions().SetServerAPIVersion(string(opts.ServerAPIOptions.ServerAPIVersion))
 		if opts.ServerAPIOptions.Strict != nil {
 			c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
 		}
