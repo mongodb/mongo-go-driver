@@ -33,6 +33,7 @@ type DropCollection struct {
 	selector     description.ServerSelector
 	writeConcern *writeconcern.WriteConcern
 	result       DropCollectionResult
+	serverAPI    *driver.ServerAPIOptions
 }
 
 type DropCollectionResult struct {
@@ -98,6 +99,7 @@ func (dc *DropCollection) Execute(ctx context.Context) error {
 		Deployment:        dc.deployment,
 		Selector:          dc.selector,
 		WriteConcern:      dc.writeConcern,
+		ServerAPI:         dc.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -194,5 +196,15 @@ func (dc *DropCollection) WriteConcern(writeConcern *writeconcern.WriteConcern) 
 	}
 
 	dc.writeConcern = writeConcern
+	return dc
+}
+
+// ServerAPI sets the server API version for this operation.
+func (dc *DropCollection) ServerAPI(serverAPI *driver.ServerAPIOptions) *DropCollection {
+	if dc == nil {
+		dc = new(DropCollection)
+	}
+
+	dc.serverAPI = serverAPI
 	return dc
 }

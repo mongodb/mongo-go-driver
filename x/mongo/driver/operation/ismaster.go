@@ -27,6 +27,7 @@ type IsMaster struct {
 	speculativeAuth    bsoncore.Document
 	topologyVersion    *description.TopologyVersion
 	maxAwaitTimeMS     *int64
+	serverAPI          *driver.ServerAPIOptions
 
 	res bsoncore.Document
 }
@@ -86,6 +87,12 @@ func (im *IsMaster) TopologyVersion(tv *description.TopologyVersion) *IsMaster {
 // MaxAwaitTimeMS sets the maximum time for the sever to wait for topology changes during a heartbeat.
 func (im *IsMaster) MaxAwaitTimeMS(awaitTime int64) *IsMaster {
 	im.maxAwaitTimeMS = &awaitTime
+	return im
+}
+
+// ServerAPI sets the server API version for this operation.
+func (im *IsMaster) ServerAPI(serverAPI *driver.ServerAPIOptions) *IsMaster {
+	im.serverAPI = serverAPI
 	return im
 }
 
@@ -222,6 +229,7 @@ func (im *IsMaster) createOperation() driver.Operation {
 			im.res = response
 			return nil
 		},
+		ServerAPI: im.serverAPI,
 	}
 }
 
@@ -237,6 +245,7 @@ func (im *IsMaster) GetHandshakeInformation(ctx context.Context, _ address.Addre
 			im.res = response
 			return nil
 		},
+		ServerAPI: im.serverAPI,
 	}.Execute(ctx, nil)
 	if err != nil {
 		return driver.HandshakeInformation{}, err

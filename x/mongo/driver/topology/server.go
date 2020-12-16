@@ -577,7 +577,8 @@ func (s *Server) createConnection() (*connection, error) {
 		// We override whatever handshaker is currently attached to the options with a basic
 		// one because need to make sure we don't do auth.
 		WithHandshaker(func(h Handshaker) Handshaker {
-			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
+			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
+				ServerAPI(&driver.ServerAPIOptions{ServerAPIVersion: "1"}) // FIX HANDSHAKES 1705
 		}),
 		// Override any monitors specified in options with nil to avoid monitoring heartbeats.
 		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
@@ -636,7 +637,8 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.IsMaster
 	return operation.
 		NewIsMaster().
 		ClusterClock(s.cfg.clock).
-		Deployment(driver.SingleConnectionDeployment{conn})
+		Deployment(driver.SingleConnectionDeployment{conn}).
+		ServerAPI(&driver.ServerAPIOptions{ServerAPIVersion: "1"}) // FIX HANDSHAKES 1705
 }
 
 func (s *Server) check() (description.Server, error) {

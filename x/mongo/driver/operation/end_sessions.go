@@ -29,6 +29,7 @@ type EndSessions struct {
 	database   string
 	deployment driver.Deployment
 	selector   description.ServerSelector
+	serverAPI  *driver.ServerAPIOptions
 }
 
 // NewEndSessions constructs and returns a new EndSessions.
@@ -59,6 +60,7 @@ func (es *EndSessions) Execute(ctx context.Context) error {
 		Database:          es.database,
 		Deployment:        es.deployment,
 		Selector:          es.selector,
+		ServerAPI:         es.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -147,5 +149,15 @@ func (es *EndSessions) ServerSelector(selector description.ServerSelector) *EndS
 	}
 
 	es.selector = selector
+	return es
+}
+
+// ServerAPI sets the server API version for this operation.
+func (es *EndSessions) ServerAPI(serverAPI *driver.ServerAPIOptions) *EndSessions {
+	if es == nil {
+		es = new(EndSessions)
+	}
+
+	es.serverAPI = serverAPI
 	return es
 }

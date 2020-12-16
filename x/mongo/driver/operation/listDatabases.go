@@ -36,6 +36,7 @@ type ListDatabases struct {
 	retry               *driver.RetryMode
 	selector            description.ServerSelector
 	crypt               *driver.Crypt
+	serverAPI           *driver.ServerAPIOptions
 
 	result ListDatabasesResult
 }
@@ -171,6 +172,7 @@ func (ld *ListDatabases) Execute(ctx context.Context) error {
 		Type:           driver.Read,
 		Selector:       ld.selector,
 		Crypt:          ld.crypt,
+		ServerAPI:      ld.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -311,5 +313,15 @@ func (ld *ListDatabases) Crypt(crypt *driver.Crypt) *ListDatabases {
 	}
 
 	ld.crypt = crypt
+	return ld
+}
+
+// ServerAPI sets the server API version for this operation.
+func (ld *ListDatabases) ServerAPI(serverAPI *driver.ServerAPIOptions) *ListDatabases {
+	if ld == nil {
+		ld = new(ListDatabases)
+	}
+
+	ld.serverAPI = serverAPI
 	return ld
 }
