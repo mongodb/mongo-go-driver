@@ -45,6 +45,7 @@ func (c *Command) ResultCursor(opts driver.CursorOptions) (*driver.BatchCursor, 
 		return nil, err
 	}
 
+	// opts.ServerAPIOptions = c.serverAPI
 	return driver.NewBatchCursor(cursorRes, c.session, c.clock, opts)
 }
 

@@ -63,6 +63,7 @@ func (a *Aggregate) Result(opts driver.CursorOptions) (*driver.BatchCursor, erro
 	clientSession := a.session
 
 	clock := a.clock
+	opts.ServerAPIOptions = a.serverAPI
 	return driver.NewBatchCursor(a.result, clientSession, clock, opts)
 }
 
