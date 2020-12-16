@@ -70,6 +70,7 @@ func NewFind(filter bsoncore.Document) *Find {
 
 // Result returns the result of executing this operation.
 func (f *Find) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
+	opts.ServerAPIOptions = f.serverAPI
 	return driver.NewBatchCursor(f.result, f.session, f.clock, opts)
 }
 
