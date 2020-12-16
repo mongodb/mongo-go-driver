@@ -197,7 +197,8 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		} else {
 			// We need to add a non-auth Handshaker to the connection options
 			connOpts = append(connOpts, WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
-				return operation.NewIsMaster().AppName(cs.AppName).Compressors(cs.Compressors)
+				return operation.NewIsMaster().AppName(cs.AppName).Compressors(cs.Compressors).
+					ServerAPI(&driver.ServerAPIOptions{ServerAPIVersion: "1"}) // FIX HANDSHAKES 1705
 			}))
 		}
 

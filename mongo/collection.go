@@ -1641,7 +1641,8 @@ func (coll *Collection) Drop(ctx context.Context) error {
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+		Deployment(coll.client.deployment).Crypt(coll.client.crypt).
+		ServerAPI(coll.client.serverAPI)
 	err = op.Execute(ctx)
 
 	// ignore namespace not found erorrs
