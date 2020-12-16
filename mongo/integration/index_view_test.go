@@ -95,8 +95,8 @@ func TestIndexView(t *testing.T) {
 					}},
 				})
 
-			// Only check SetBucketSize if version is less than or equal to 4.4
-			if mtest.CompareServerVersions(mtest.ServerVersion(), "4.9") <= 0 {
+			// Only check SetBucketSize if version is less than 4.9
+			if mtest.CompareServerVersions(mtest.ServerVersion(), "4.9") < 0 {
 				opts.SetBucketSize(1)
 			}
 			// Omits collation option because it's incompatible with version option
