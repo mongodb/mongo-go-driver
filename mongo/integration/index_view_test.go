@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"fmt"
-
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -98,13 +96,12 @@ func TestIndexView(t *testing.T) {
 				})
 
 			// Only check SetBucketSize if version is less than or equal to 4.4
-			if mtest.CompareServerVersions(mtest.ServerVersion(), "4.4") <= 0 {
-				fmt.Println("yo")
+			if mtest.CompareServerVersions(mtest.ServerVersion(), "4.9") <= 0 {
 				opts.SetBucketSize(1)
 			}
 			// Omits collation option because it's incompatible with version option
 			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{
-				Keys: bson.D{{"foo", "text"}},
+				Keys:    bson.D{{"foo", "text"}},
 				Options: opts,
 			})
 			assert.Nil(mt, err, "CreateOne error: %v", err)
