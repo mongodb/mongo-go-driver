@@ -768,7 +768,7 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	}
 
 	// Add server API information before calling addSession() because it will modify
-	// transaction.state.
+	// transaction state.
 	if op.Client == nil || !op.Client.TransactionInProgress() {
 		dst = op.addServerAPI(dst)
 	}
@@ -835,7 +835,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 	}
 
 	// Add server API information before calling addSession() because it will modify
-	// transaction.state.
+	// transaction state.
 	if op.Client == nil || !op.Client.TransactionInProgress() {
 		dst = op.addServerAPI(dst)
 	}

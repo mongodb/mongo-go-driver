@@ -578,7 +578,7 @@ func executeFindOneAndReplace(ctx context.Context, operation *Operation) (*Opera
 	}
 
 	var filter bson.Raw
-	var replacement interface{}
+	var replacement bson.Raw
 	opts := options.FindOneAndReplace()
 
 	elems, _ := operation.Arguments.Elements()
@@ -608,10 +608,7 @@ func executeFindOneAndReplace(ctx context.Context, operation *Operation) (*Opera
 		case "projection":
 			opts.SetProjection(val.Document())
 		case "replacement":
-			replacement, err = createUpdateValue(val)
-			if err != nil {
-				return nil, fmt.Errorf("error processing update value: %q", err)
-			}
+			replacement = val.Document()
 		case "returnDocument":
 			switch rd := val.StringValue(); rd {
 			case "After":
