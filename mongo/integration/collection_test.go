@@ -26,12 +26,11 @@ import (
 )
 
 const (
-	errorDuplicateKey              = 11000
-	errorCappedCollDeleteLegacy    = 10101
-	errorCappedCollDelete          = 20
-	errorModifiedIDLegacy          = 16837
-	errorModifiedID                = 66
-	errorUnsatisfiableWriteConcern = 100
+	errorDuplicateKey           = 11000
+	errorCappedCollDeleteLegacy = 10101
+	errorCappedCollDelete       = 20
+	errorModifiedIDLegacy       = 16837
+	errorModifiedID             = 66
 )
 
 var (
@@ -567,9 +566,9 @@ func TestCollection(t *testing.T) {
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.UpdateByID(mtest.Background, id, update)
-			se, ok := err.(mongo.ServerError)
-			assert.True(mt, ok, "expected ServerError, got %v", err)
-			assert.True(mt, se.HasErrorCode(errorUnsatisfiableWriteConcern), "expected error code %v, got %v", errorUnsatisfiableWriteConcern, err)
+			we, ok := err.(mongo.WriteException)
+			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", we)
 		})
 	})
 	mt.RunOpts("update many", noClientOpts, func(mt *mtest.T) {
