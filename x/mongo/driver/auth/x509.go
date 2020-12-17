@@ -75,7 +75,7 @@ func (a *MongoDBX509Authenticator) Auth(ctx context.Context, cfg *Config) error 
 		Database("$external").
 		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
-		ServerAPI(&driver.ServerAPIOptions{ServerAPIVersion: "1"}) // FIX HANDSHAKES 1705
+		ServerAPI(cfg.ServerAPI)
 	err := authCmd.Execute(ctx)
 	if err != nil {
 		return newAuthError("round trip error", err)

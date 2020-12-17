@@ -187,6 +187,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 					AppName:       cs.AppName,
 					Authenticator: authenticator,
 					Compressors:   cs.Compressors,
+					ServerAPI:     &driver.ServerAPIOptions{ServerAPIVersion: "1"}, // FIX HANDSHAKES 1705
 				}
 				if cs.AuthMechanism == "" {
 					// Required for SASL mechanism negotiation during handshake

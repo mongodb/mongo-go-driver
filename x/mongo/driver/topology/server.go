@@ -578,7 +578,7 @@ func (s *Server) createConnection() (*connection, error) {
 		// one because need to make sure we don't do auth.
 		WithHandshaker(func(h Handshaker) Handshaker {
 			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
-				ServerAPI(&driver.ServerAPIOptions{ServerAPIVersion: "1"}) // FIX HANDSHAKES 1705
+				ServerAPI(s.cfg.serverAPI)
 		}),
 		// Override any monitors specified in options with nil to avoid monitoring heartbeats.
 		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
@@ -638,7 +638,7 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.IsMaster
 		NewIsMaster().
 		ClusterClock(s.cfg.clock).
 		Deployment(driver.SingleConnectionDeployment{conn}).
-		ServerAPI(&driver.ServerAPIOptions{ServerAPIVersion: "1"}) // FIX HANDSHAKES 1705
+		ServerAPI(s.cfg.serverAPI)
 }
 
 func (s *Server) check() (description.Server, error) {

@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -31,6 +32,7 @@ type serverConfig struct {
 	connectionPoolMaxIdleTime time.Duration
 	registry                  *bsoncodec.Registry
 	monitoringDisabled        bool
+	serverAPI                 *driver.ServerAPIOptions
 }
 
 func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
@@ -160,6 +162,14 @@ func WithClock(fn func(clock *session.ClusterClock) *session.ClusterClock) Serve
 func WithRegistry(fn func(*bsoncodec.Registry) *bsoncodec.Registry) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.registry = fn(cfg.registry)
+		return nil
+	}
+}
+
+// WithServerAPI configures the server API options for the server to use.
+func WithServerAPI(fn func(serverAPI *driver.ServerAPIOptions) *driver.ServerAPIOptions) ServerOption {
+	return func(cfg *serverConfig) error {
+		cfg.serverAPI = fn(cfg.serverAPI)
 		return nil
 	}
 }
