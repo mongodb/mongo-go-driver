@@ -136,7 +136,7 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 			Database(sc.source).
 			Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
 			ClusterClock(cfg.ClusterClock).
-			ServerAPI(&driver.ServerAPIOptions{ServerAPIVersion: "1"}) // FIX HANDSHAKES 1705
+			ServerAPI(cfg.ServerAPI)
 
 		err = saslContinueCmd.Execute(ctx)
 		if err != nil {
@@ -165,7 +165,7 @@ func ConductSaslConversation(ctx context.Context, cfg *Config, authSource string
 		Database(authSource).
 		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
-		ServerAPI(&driver.ServerAPIOptions{ServerAPIVersion: "1"}) // FIX HANDSHAKES 1705
+		ServerAPI(cfg.ServerAPI)
 	if err := saslStartCmd.Execute(ctx); err != nil {
 		return newError(err, conversation.mechanism)
 	}

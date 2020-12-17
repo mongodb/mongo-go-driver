@@ -59,6 +59,7 @@ type HandshakeOptions struct {
 	DBUser                string
 	PerformAuthentication func(description.Server) bool
 	ClusterClock          *session.ClusterClock
+	ServerAPI             *driver.ServerAPIOptions
 }
 
 type authHandshaker struct {
@@ -83,7 +84,7 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 		Compressors(ah.options.Compressors).
 		SASLSupportedMechs(ah.options.DBUser).
 		ClusterClock(ah.options.ClusterClock).
-		ServerAPI(&driver.ServerAPIOptions{ServerAPIVersion: "1"}) // FIX HANDSHAKES 1705
+		ServerAPI(ah.options.ServerAPI)
 
 	if ah.options.Authenticator != nil {
 		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {
@@ -127,6 +128,7 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 			Connection:    conn,
 			ClusterClock:  ah.options.ClusterClock,
 			HandshakeInfo: ah.handshakeInfo,
+			ServerAPI:     ah.options.ServerAPI,
 		}
 
 		if err := ah.authenticate(ctx, cfg); err != nil {
@@ -170,6 +172,7 @@ type Config struct {
 	Connection    driver.Connection
 	ClusterClock  *session.ClusterClock
 	HandshakeInfo driver.HandshakeInformation
+	ServerAPI     *driver.ServerAPIOptions
 }
 
 // Authenticator handles authenticating a connection.

@@ -408,6 +408,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			Authenticator: authenticator,
 			Compressors:   comps,
 			ClusterClock:  c.clock,
+			ServerAPI:     c.serverAPI,
 		}
 		if mechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
@@ -590,6 +591,26 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		)
 	}
 
+	// Server API options
+	if opts.ServerAPIOptions != nil {
+		if err := opts.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+			return err
+		}
+
+		// manually clone the passed in options so future modifications of the original ServerAPIOptions have no effect.
+		c.serverAPI = driver.NewServerAPIOptions().SetServerAPIVersion(string(opts.ServerAPIOptions.ServerAPIVersion))
+		if opts.ServerAPIOptions.Strict != nil {
+			c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
+		}
+		if opts.ServerAPIOptions.DeprecationErrors != nil {
+			c.serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
+		}
+
+		serverOpts = append(serverOpts, topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
+			return c.serverAPI
+		}))
+	}
+
 	serverOpts = append(
 		serverOpts,
 		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
@@ -607,22 +628,6 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			return errors.New("cannot specify topology or server options with a deployment")
 		}
 		c.deployment = opts.Deployment
-	}
-
-	// Server API options
-	if opts.ServerAPIOptions != nil {
-		if err := opts.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
-			return err
-		}
-
-		// manually clone the passed in options so future modifications of the original ServerAPIOptions have no effect.
-		c.serverAPI = driver.NewServerAPIOptions().SetServerAPIVersion(string(opts.ServerAPIOptions.ServerAPIVersion))
-		if opts.ServerAPIOptions.Strict != nil {
-			c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
-		}
-		if opts.ServerAPIOptions.DeprecationErrors != nil {
-			c.serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
-		}
 	}
 
 	return nil
