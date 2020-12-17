@@ -142,7 +142,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.cursorOptions.MaxTimeMS = int64(time.Duration(*cs.options.MaxAwaitTime) / time.Millisecond)
 	}
 	cs.cursorOptions.CommandMonitor = cs.client.monitor
-	cs.cursorOptions.ServerAPIOptions = cs.client.serverAPI
+	cs.cursorOptions.ServerAPI = cs.client.serverAPI
 
 	switch cs.streamType {
 	case ClientStream:

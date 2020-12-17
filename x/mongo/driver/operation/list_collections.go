@@ -47,7 +47,7 @@ func NewListCollections(filter bsoncore.Document) *ListCollections {
 
 // Result returns the result of executing this operation.
 func (lc *ListCollections) Result(opts driver.CursorOptions) (*driver.ListCollectionsBatchCursor, error) {
-	// opts.ServerAPIOptions = lc.serverAPI
+	opts.ServerAPI = lc.serverAPI
 	bc, err := driver.NewBatchCursor(lc.result, lc.session, lc.clock, opts)
 	if err != nil {
 		return nil, err

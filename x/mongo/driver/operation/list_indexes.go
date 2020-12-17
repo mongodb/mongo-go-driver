@@ -48,7 +48,7 @@ func (li *ListIndexes) Result(opts driver.CursorOptions) (*driver.BatchCursor, e
 	clientSession := li.session
 
 	clock := li.clock
-	// opts.ServerAPIOptions = li.serverAPI
+	opts.ServerAPI = li.serverAPI
 	return driver.NewBatchCursor(li.result, clientSession, clock, opts)
 }
 
