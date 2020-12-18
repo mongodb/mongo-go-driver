@@ -10,6 +10,7 @@
 package primitive
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -209,6 +210,22 @@ func (d Decimal128) IsInf() int {
 // IsZero returns true if d is the empty Decimal128.
 func (d Decimal128) IsZero() bool {
 	return d.h == 0 && d.l == 0
+}
+
+// MarshalJSON returns Decimal128 as a string.
+func (d Decimal128) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+// UnmarshalJSON creates a primitive.DateTime from a JSON string.
+func (d *Decimal128) UnmarshalJSON(b []byte) error {
+	var str string
+	err := json.Unmarshal(b, &str)
+	if err != nil {
+		return err
+	}
+	*d, err = ParseDecimal128(str)
+	return err
 }
 
 func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {

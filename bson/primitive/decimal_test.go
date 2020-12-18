@@ -1,9 +1,13 @@
 package primitive
 
 import (
-	"github.com/stretchr/testify/require"
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 type bigIntTestCase struct {
@@ -143,4 +147,43 @@ func TestParseDecimal128(t *testing.T) {
 			require.Equal(t, c.l, d128.l, "case %s", c.s, d128.h)
 		}
 	}
+}
+
+func TestDecimal128_JSON(t *testing.T) {
+	t.Run("roundTrip", func(t *testing.T) {
+		decimal := NewDecimal128(0x3040000000000000, 12345)
+		bytes, err := json.Marshal(decimal)
+		assert.Nil(t, err, "json.Marshal error: %v", err)
+		got := NewDecimal128(0, 0)
+		err = json.Unmarshal([]byte(bytes), &got)
+		assert.Nil(t, err, "json.Unmarshal error: %v", err)
+		assert.Equal(t, decimal.h, got.h, "expected h: %v got: %v", decimal.h, got.h)
+		assert.Equal(t, decimal.l, got.l, "expected l: %v got: %v", decimal.l, got.l)
+	})
+	t.Run("Unmarshal", func(t *testing.T) {
+		cases := append(bigIntTestCases,
+			[]bigIntTestCase{
+				{s: "-0001231.453454000000565600000000E-21", h: 0xafe6000003faa269, l: 0x81cfeceaabdb1800},
+				{s: "12345E+21", h: 0x306a000000000000, l: 12345},
+				{s: "0.10000000000000000000000000000000000000000001", remark: "parse fail"},
+				{s: ".125e1", h: 0x303c000000000000, l: 125},
+				{s: ".125", h: 0x303a000000000000, l: 125},
+				{s: "null", remark: "parse fail"},
+			}...)
+		for _, c := range cases {
+			input := fmt.Sprintf(`{"foo": %q}`, c.s)
+			var got map[string]Decimal128
+			err := json.Unmarshal([]byte(input), &got)
+
+			switch c.remark {
+			case "overflow", "parse fail":
+				assert.NotNil(t, err, "expected Unmarshal error, got nil")
+			case "", "rounding", "subnormal", "clamped", "NaN", "Infinity", "-Infinity":
+				assert.Nil(t, err, "Unmarshal error: %v", err)
+				gotDecimal := got["foo"]
+				assert.Equal(t, c.h, gotDecimal.h, "expected h: %v got: %v", c.h, gotDecimal.l)
+				assert.Equal(t, c.l, gotDecimal.l, "expected l: %v got: %v", c.l, gotDecimal.h)
+			}
+		}
+	})
 }
