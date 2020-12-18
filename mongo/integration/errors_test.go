@@ -370,7 +370,7 @@ func TestErrors(t *testing.T) {
 						},
 						[]string{"otherError"},
 					},
-					true,
+					false,
 				},
 				{"other error type", errors.New("foo"), false},
 			}
