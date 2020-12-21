@@ -578,7 +578,7 @@ func (s *Server) createConnection() (*connection, error) {
 		// one because need to make sure we don't do auth.
 		WithHandshaker(func(h Handshaker) Handshaker {
 			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
-				ServerAPI(s.cfg.serverAPI)
+				ServerAPI(driver.NewServerAPIOptions().SetServerAPIVersion(driver.LatestServerAPIVersion)) // FIX HANDSHAKES 1705
 		}),
 		// Override any monitors specified in options with nil to avoid monitoring heartbeats.
 		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
