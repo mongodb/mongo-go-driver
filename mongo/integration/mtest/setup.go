@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -49,11 +50,16 @@ var testContext struct {
 	sslEnabled        bool
 	enterpriseServer  bool
 	dataLake          bool
+	requireAPIVersion bool
 	serverParameters  bson.Raw
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
 	wcMajority := writeconcern.New(writeconcern.WMajority())
+	// set ServerAPIOptions to latest version if required
+	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
+		opts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+	}
 	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority))
 }
 
@@ -66,6 +72,7 @@ func Setup() error {
 		return fmt.Errorf("error getting connection string: %v", err)
 	}
 	testContext.dataLake = os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") == "true"
+	testContext.requireAPIVersion = os.Getenv("REQUIRE_API_VERSION") == "true"
 
 	connectionOpts := []topology.ConnectionOption{
 		topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {

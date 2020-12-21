@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 var (
@@ -544,6 +545,10 @@ func (t *T) createTestClient() {
 	if clientOpts == nil {
 		// default opts
 		clientOpts = options.Client().SetWriteConcern(MajorityWc).SetReadPreference(PrimaryRp)
+	}
+	// set ServerAPIOptions to latest version if required
+	if clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
+		clientOpts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 	}
 	// command monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{

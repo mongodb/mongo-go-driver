@@ -6,7 +6,8 @@
       "minServerVersion": "4.7",
       "serverParameters": {
         "enableTestCommands": true,
-        "acceptAPIVersion2": true
+        "acceptAPIVersion2": true,
+        "requireApiVersion": false
       }
     }
   ],

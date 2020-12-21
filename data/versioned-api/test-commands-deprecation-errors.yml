@@ -7,6 +7,7 @@ runOnRequirements:
     serverParameters:
       enableTestCommands: true
       acceptAPIVersion2: true
+      requireApiVersion: false
 
 createEntities:
   - client:

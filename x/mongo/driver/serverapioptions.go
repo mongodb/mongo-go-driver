@@ -6,6 +6,9 @@
 
 package driver
 
+// LatestServerAPIVersion is the most recent, stable variant of options.ServerAPIVersion
+const LatestServerAPIVersion = "1"
+
 // ServerAPIOptions represents options used to configure the API version sent to the server
 // when running commands.
 type ServerAPIOptions struct {
