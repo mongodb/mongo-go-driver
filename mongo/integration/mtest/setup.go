@@ -84,6 +84,14 @@ func Setup() error {
 			return append(opts, connectionOpts...)
 		}),
 	}
+	if testContext.requireAPIVersion {
+		serverOpts = append(serverOpts,
+			topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
+				return driver.NewServerAPIOptions().SetServerAPIVersion(driver.LatestServerAPIVersion)
+			}),
+		)
+	}
+
 	testContext.topo, err = topology.New(
 		topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
 			return testContext.connString

@@ -328,6 +328,26 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
 
+	// Server API options
+	if opts.ServerAPIOptions != nil {
+		if err := opts.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+			return err
+		}
+
+		// manually clone the passed in options so future modifications of the original ServerAPIOptions have no effect.
+		c.serverAPI = driver.NewServerAPIOptions().SetServerAPIVersion(string(opts.ServerAPIOptions.ServerAPIVersion))
+		if opts.ServerAPIOptions.Strict != nil {
+			c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
+		}
+		if opts.ServerAPIOptions.DeprecationErrors != nil {
+			c.serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
+		}
+
+		serverOpts = append(serverOpts, topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
+			return c.serverAPI
+		}))
+	}
+
 	// ClusterClock
 	c.clock = new(session.ClusterClock)
 
@@ -589,26 +609,6 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			connOpts,
 			topology.WithDisableOCSPEndpointCheck(func(bool) bool { return *opts.DisableOCSPEndpointCheck }),
 		)
-	}
-
-	// Server API options
-	if opts.ServerAPIOptions != nil {
-		if err := opts.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
-			return err
-		}
-
-		// manually clone the passed in options so future modifications of the original ServerAPIOptions have no effect.
-		c.serverAPI = driver.NewServerAPIOptions().SetServerAPIVersion(string(opts.ServerAPIOptions.ServerAPIVersion))
-		if opts.ServerAPIOptions.Strict != nil {
-			c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
-		}
-		if opts.ServerAPIOptions.DeprecationErrors != nil {
-			c.serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
-		}
-
-		serverOpts = append(serverOpts, topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
-			return c.serverAPI
-		}))
 	}
 
 	serverOpts = append(
