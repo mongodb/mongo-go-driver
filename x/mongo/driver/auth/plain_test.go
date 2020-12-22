@@ -142,7 +142,6 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		bsoncore.AppendInt32Element(nil, "saslStart", 1),
 		bsoncore.AppendStringElement(nil, "mechanism", "PLAIN"),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
-		bsoncore.AppendStringElement(nil, "apiVersion", "1"),
 	)
 	compareResponses(t, <-c.Written, expectedCmd, "$external")
 }

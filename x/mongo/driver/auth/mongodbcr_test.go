@@ -94,10 +94,7 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		t.Fatalf("expected 2 messages to be sent but had %d", len(c.Written))
 	}
 
-	want := bsoncore.BuildDocumentFromElements(nil,
-		bsoncore.AppendInt32Element(nil, "getnonce", 1),
-		bsoncore.AppendStringElement(nil, "apiVersion", "1"),
-	)
+	want := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "getnonce", 1))
 	compareResponses(t, <-c.Written, want, "source")
 
 	expectedAuthenticateDoc := bsoncore.BuildDocumentFromElements(nil,
