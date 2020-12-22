@@ -84,7 +84,7 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 		Compressors(ah.options.Compressors).
 		SASLSupportedMechs(ah.options.DBUser).
 		ClusterClock(ah.options.ClusterClock).
-		ServerAPI(ah.options.ServerAPI)
+		ServerAPI(driver.NewServerAPIOptions().SetServerAPIVersion(driver.LatestServerAPIVersion)) // FIX HANDSHAKES 1705
 
 	if ah.options.Authenticator != nil {
 		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {

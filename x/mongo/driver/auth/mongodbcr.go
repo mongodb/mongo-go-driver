@@ -56,7 +56,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 		Database(db).
 		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
-		ServerAPI(cfg.ServerAPI)
+		ServerAPI(driver.NewServerAPIOptions().SetServerAPIVersion(driver.LatestServerAPIVersion)) // FIX HANDSHAKES 1705
 	err := cmd.Execute(ctx)
 	if err != nil {
 		return newError(err, MONGODBCR)
