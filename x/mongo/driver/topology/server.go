@@ -638,7 +638,7 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.IsMaster
 		NewIsMaster().
 		ClusterClock(s.cfg.clock).
 		Deployment(driver.SingleConnectionDeployment{conn}).
-		ServerAPI(s.cfg.serverAPI)
+		ServerAPI(driver.NewServerAPIOptions().SetServerAPIVersion(driver.LatestServerAPIVersion)) // FIX HANDSHAKES 1705
 }
 
 func (s *Server) check() (description.Server, error) {
