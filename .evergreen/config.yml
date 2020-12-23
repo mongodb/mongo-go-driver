@@ -452,10 +452,10 @@ functions:
           ${PREPARE_SHELL}
           export GOFLAGS=-mod=vendor
           set +o xtrace
-          AUTH="auth" \
-          SSL="nossl" \
+          AUTH="${AUTH}" \
+          SSL="${SSL}" \
           MONGODB_URI="${MONGODB_URI}" \
-          TOPOLOGY="server" \
+          TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           BUILD_TAGS="-tags cse" \
           AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
@@ -1565,6 +1565,10 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
       - func: run-versioned-api-test
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
 
 axes:
   - id: version
