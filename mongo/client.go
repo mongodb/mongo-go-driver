@@ -328,7 +328,8 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
 
-	// Server API options
+	// ServerAPIOptions need to be handled early as other client and server options below reference
+	// c.serverAPI and serverOpts.serverAPI.
 	if opts.ServerAPIOptions != nil {
 		if err := opts.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
 			return err
