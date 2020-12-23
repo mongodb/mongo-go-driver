@@ -75,6 +75,7 @@ func replaceErrors(err error) error {
 
 // IsDuplicateKeyError returns true if err is a duplicate key error
 func IsDuplicateKeyError(err error) bool {
+	// handles SERVER-7164 and SERVER-11493
 	if e, ok := err.(ServerError); ok {
 		return e.HasErrorCode(11000) || e.HasErrorCode(11001) || e.HasErrorCode(12582) ||
 			e.HasErrorCodeWithMessage(16460, " E11000 ")
@@ -84,13 +85,6 @@ func IsDuplicateKeyError(err error) bool {
 
 // IsTimeout returns true if err is from a timeout
 func IsTimeout(err error) bool {
-	//timeout error labels
-	if se, ok := err.(ServerError); ok {
-		if se.HasErrorLabel("NetworkTimeoutError") || se.HasErrorLabel("ExceededTimeLimitError") {
-			return true
-		}
-	}
-
 	for ; err != nil; err = unwrap(err) {
 		// check unwrappable errors together
 		if err == context.DeadlineExceeded {
@@ -98,6 +92,12 @@ func IsTimeout(err error) bool {
 		}
 		if ne, ok := err.(net.Error); ok {
 			return ne.Timeout()
+		}
+		//timeout error labels
+		if se, ok := err.(ServerError); ok {
+			if se.HasErrorLabel("NetworkTimeoutError") || se.HasErrorLabel("ExceededTimeLimitError") {
+				return true
+			}
 		}
 	}
 
