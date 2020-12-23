@@ -161,8 +161,8 @@ evg-test-atlas-data-lake:
 
 .PHONY: evg-test-versioned-api
 evg-test-versioned-api:
-	for package in ("./mongo" "./mongo/integration" "./mongo/integration/unified"); do \
-		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$package >> test.suite
+	for TEST_PKG in ./mongo ./mongo/integration ./mongo/integration/unified; do \
+		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST_PKG >> test.suite ; \
 	done
 
 # benchmark specific targets and support
