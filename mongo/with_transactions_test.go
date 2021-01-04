@@ -211,7 +211,8 @@ func TestConvenientTransactions(t *testing.T) {
 		// Set up a new Client using the command monitor defined above get a handle to a collection. The collection
 		// needs to be explicitly created on the server because implicit collection creation is not allowed in
 		// transactions for server versions <= 4.2.
-		client := setupConvenientTransactions(t, options.Client().SetMonitor(monitor))
+		client := setupConvenientTransactions(t, options.Client().SetMonitor(monitor).
+			SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion)))
 		db := client.Database("foo")
 		coll := db.Collection("bar")
 		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
@@ -278,7 +279,8 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 		ApplyURI(cs.Original).
 		SetReadPreference(readpref.Primary()).
 		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).
-		SetPoolMonitor(poolMonitor)
+		SetPoolMonitor(poolMonitor).
+		SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 	fullClientOpts := []*options.ClientOptions{baseClientOpts}
 	fullClientOpts = append(fullClientOpts, extraClientOpts...)
 
@@ -298,7 +300,8 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 
 	// For sharded clusters, disconnect the previous Client and create a new one that's pinned to a single mongos.
 	_ = client.Disconnect(bgCtx)
-	fullClientOpts = append(fullClientOpts, options.Client().SetHosts([]string{cs.Hosts[0]}))
+	fullClientOpts = append(fullClientOpts, options.Client().SetHosts([]string{cs.Hosts[0]}).
+		SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion)))
 	client, err = Connect(bgCtx, fullClientOpts...)
 	assert.Nil(t, err, "Connect error: %v", err)
 	return client

@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // ClientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
@@ -79,6 +80,8 @@ func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*Client
 	}
 	if entityOptions.ServerAPIOptions != nil {
 		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
+	} else {
+		clientOpts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 	}
 	for _, cmd := range entityOptions.IgnoredCommands {
 		entity.ignoredCommands[cmd] = struct{}{}

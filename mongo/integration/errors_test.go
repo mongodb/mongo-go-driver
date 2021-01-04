@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 func TestErrors(t *testing.T) {
@@ -51,7 +52,8 @@ func TestErrors(t *testing.T) {
 				},
 			})
 
-			client, err := mongo.Connect(mtest.Background, options.Client().ApplyURI(mtest.ClusterURI()))
+			client, err := mongo.Connect(mtest.Background, options.Client().ApplyURI(mtest.ClusterURI()).
+				SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion)))
 			assert.Nil(mt, err, "Connect error: %v", err)
 			defer client.Disconnect(mtest.Background)
 

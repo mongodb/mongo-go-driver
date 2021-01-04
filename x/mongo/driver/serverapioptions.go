@@ -22,6 +22,11 @@ func NewServerAPIOptions() *ServerAPIOptions {
 	return &ServerAPIOptions{}
 }
 
+// NewLatestServerAPIOptions creates a new ServerAPIOptions configured with the latest server API version.
+func NewLatestServerAPIOptions() *ServerAPIOptions {
+	return NewServerAPIOptions().SetServerAPIVersion(LatestServerAPIVersion)
+}
+
 // SetServerAPIVersion specifies the version string of the declared API version. This is required.
 func (s *ServerAPIOptions) SetServerAPIVersion(serverAPIVersion string) *ServerAPIOptions {
 	s.ServerAPIVersion = serverAPIVersion

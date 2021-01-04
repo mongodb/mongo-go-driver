@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 const (
@@ -68,7 +69,8 @@ func PerformDistinctWorkaround(ctx context.Context) error {
 func RunCommandOnHost(ctx context.Context, host string, commandFn func(context.Context, *mongo.Client) error) error {
 	clientOpts := options.Client().
 		ApplyURI(mtest.ClusterURI()).
-		SetHosts([]string{host})
+		SetHosts([]string{host}).
+		SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {

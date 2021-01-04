@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"os"
 	"testing"
 	"time"
 
@@ -31,7 +32,8 @@ var bgCtx = context.Background()
 
 func setupClient(opts ...*options.ClientOptions) *Client {
 	if len(opts) == 0 {
-		opts = append(opts, options.Client().ApplyURI("mongodb://localhost:27017"))
+		opts = append(opts, options.Client().ApplyURI("mongodb://localhost:27017").
+			SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion)))
 	}
 	client, _ := NewClient(opts...)
 	return client
@@ -296,6 +298,9 @@ func TestClient(t *testing.T) {
 				}
 				clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
 					SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetMonitor(cmdMonitor)
+				if os.Getenv("REQUIRE_API_VERSION") == "true" {
+					clientOpts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+				}
 				client, err := Connect(bgCtx, clientOpts)
 				assert.Nil(t, err, "Connect error: %v", err)
 				defer func() {
