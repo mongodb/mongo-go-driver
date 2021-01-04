@@ -30,6 +30,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -421,7 +422,8 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		}
 
 		targetHost := clientSession.PinnedServer.Addr.String()
-		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost})
+		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost}).
+			SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 		client, err := mongo.Connect(mtest.Background, opts)
 		if err != nil {
 			return fmt.Errorf("Connect error for targeted client: %v", err)

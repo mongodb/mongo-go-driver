@@ -84,24 +84,25 @@ type T struct {
 	*testing.T
 
 	// members for only this T instance
-	createClient     *bool
-	createCollection *bool
-	runOn            []RunOnBlock
-	mockDeployment   *mockDeployment // nil if the test is not being run against a mock
-	mockResponses    []bson.D
-	createdColls     []*Collection // collections created in this test
-	proxyDialer      *proxyDialer
-	dbName, collName string
-	failPointNames   []string
-	minServerVersion string
-	maxServerVersion string
-	validTopologies  []TopologyKind
-	auth             *bool
-	enterprise       *bool
-	dataLake         *bool
-	ssl              *bool
-	collCreateOpts   bson.D
-	connsCheckedOut  int // net number of connections checked out during test execution
+	createClient      *bool
+	createCollection  *bool
+	runOn             []RunOnBlock
+	mockDeployment    *mockDeployment // nil if the test is not being run against a mock
+	mockResponses     []bson.D
+	createdColls      []*Collection // collections created in this test
+	proxyDialer       *proxyDialer
+	dbName, collName  string
+	failPointNames    []string
+	minServerVersion  string
+	maxServerVersion  string
+	validTopologies   []TopologyKind
+	auth              *bool
+	enterprise        *bool
+	dataLake          *bool
+	ssl               *bool
+	collCreateOpts    bson.D
+	connsCheckedOut   int // net number of connections checked out during test execution
+	requireAPIVersion *bool
 
 	// options copied to sub-tests
 	clientType  ClientType
@@ -547,7 +548,7 @@ func (t *T) createTestClient() {
 		clientOpts = options.Client().SetWriteConcern(MajorityWc).SetReadPreference(PrimaryRp)
 	}
 	// set ServerAPIOptions to latest version if required
-	if clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
+	if clientOpts.Deployment == nil && t.clientType != Mock && clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		clientOpts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 	}
 	// command monitor
@@ -718,6 +719,10 @@ func (t *T) verifyConstraints() error {
 	if t.dataLake != nil && *t.dataLake != testContext.dataLake {
 		return fmt.Errorf("test requires cluster to be data lake: %v, cluster is data lake: %v", *t.dataLake,
 			testContext.dataLake)
+	}
+	if t.requireAPIVersion != nil && *t.requireAPIVersion != testContext.requireAPIVersion {
+		return fmt.Errorf("test requires RequireAPIVersion value: %v, local RequireAPIVersion value: %v", *t.requireAPIVersion,
+			testContext.requireAPIVersion)
 	}
 
 	// Check runOn blocks. The test can be executed if there are no blocks or at least block matches the current test

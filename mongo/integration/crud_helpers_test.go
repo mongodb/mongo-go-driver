@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // Helper functions to execute and verify results from CRUD methods.
@@ -115,7 +116,8 @@ func killSessions(mt *mtest.T) {
 // replica sets, the command is run against the primary. sharded clusters, the command is run against each mongos.
 func runCommandOnAllServers(mt *mtest.T, commandFn func(client *mongo.Client) error) error {
 	opts := options.Client().
-		ApplyURI(mtest.ClusterURI())
+		ApplyURI(mtest.ClusterURI()).
+		SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 
 	if mtest.ClusterTopologyKind() != mtest.Sharded {
 		client, err := mongo.Connect(mtest.Background, opts)
@@ -1405,7 +1407,8 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 
 func executeAdminCommand(mt *mtest.T, op *operation) {
 	// Per the streamable isMaster test format description, a separate client must be used to execute this operation.
-	clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
+	clientOpts := options.Client().ApplyURI(mtest.ClusterURI()).
+		SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 	client, err := mongo.Connect(mtest.Background, clientOpts)
 	assert.Nil(mt, err, "Connect error: %v", err)
 	defer func() {

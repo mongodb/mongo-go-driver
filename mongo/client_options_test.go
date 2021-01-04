@@ -16,12 +16,14 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 func TestClientOptions_CustomDialer(t *testing.T) {
 	td := &testDialer{d: &net.Dialer{}}
 	cs := testutil.ConnString(t)
-	opts := options.Client().ApplyURI(cs.String()).SetDialer(td)
+	opts := options.Client().ApplyURI(cs.String()).SetDialer(td).
+		SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 	client, err := NewClient(opts)
 	require.NoError(t, err)
 	err = client.Connect(context.Background())

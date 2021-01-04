@@ -258,3 +258,11 @@ func (op *Options) AtlasDataLake(adl bool) *Options {
 	})
 	return op
 }
+
+// RequireAPIVersion specifies whether this test should only be run when REQUIRE_API_VERSION is true. Defaults to false.
+func (op *Options) RequireAPIVersion(rav bool) *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.requireAPIVersion = &rav
+	})
+	return op
+}
