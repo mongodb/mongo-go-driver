@@ -81,8 +81,10 @@ func TestGridFS(x *testing.T) {
 				assert.Nil(mt, err, "OpenUploadStream error: %v", err)
 
 				id := ustream.FileID
-				ustream.Write(data)
-				ustream.Close()
+				_, err = ustream.Write(data)
+				assert.Nil(mt, err, "Write error: %v", err)
+				err = ustream.Close()
+				assert.Nil(mt, err, "Close error: %v", err)
 
 				dstream, _ := bucket.OpenDownloadStream(id)
 				dst := make([]byte, tc.read)
