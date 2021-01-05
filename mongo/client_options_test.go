@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"net"
+	"os"
 	"sync/atomic"
 	"testing"
 
@@ -22,8 +23,10 @@ import (
 func TestClientOptions_CustomDialer(t *testing.T) {
 	td := &testDialer{d: &net.Dialer{}}
 	cs := testutil.ConnString(t)
-	opts := options.Client().ApplyURI(cs.String()).SetDialer(td).
-		SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+	opts := options.Client().ApplyURI(cs.String()).SetDialer(td)
+	if os.Getenv("REQUIRE_API_VERSION") == "true" {
+		opts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+	}
 	client, err := NewClient(opts)
 	require.NoError(t, err)
 	err = client.Connect(context.Background())
