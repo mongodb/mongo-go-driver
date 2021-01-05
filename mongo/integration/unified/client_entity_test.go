@@ -9,6 +9,7 @@ package unified
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -80,7 +81,7 @@ func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*Client
 	}
 	if entityOptions.ServerAPIOptions != nil {
 		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
-	} else {
+	} else if os.Getenv("REQUIRE_API_VERSION") == "true" {
 		clientOpts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
 	}
 	for _, cmd := range entityOptions.IgnoredCommands {
