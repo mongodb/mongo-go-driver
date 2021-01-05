@@ -193,29 +193,26 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 	var err error
 
 	for skipped < skip {
-		if ds.bufferStart == 0 {
+		if ds.bufferStart >= ds.bufferEnd {
+			// Buffer is empty and can load in data from new chunk.
 			err = ds.fillBuffer(ctx)
 			if err != nil {
 				if err == errNoMoreChunks {
 					return skipped, nil
 				}
-
 				return skipped, err
 			}
 		}
 
-		// try to skip whole chunk if possible
-		toSkip := 0
-		if skip-skipped >= int64(len(ds.buffer)) {
-			// can skip whole chunk
-			toSkip = len(ds.buffer)
-		} else {
-			// can only skip part of buffer
-			toSkip = int(skip - skipped)
+		toSkip := skip - skipped
+		// Cap the amount to skip to the remaining bytes in the buffer to be consumed.
+		bufferRemaining := ds.bufferEnd - ds.bufferStart
+		if toSkip > int64(bufferRemaining) {
+			toSkip = int64(bufferRemaining)
 		}
 
-		skipped += int64(toSkip)
-		ds.bufferStart = (ds.bufferStart + toSkip) % (int(ds.chunkSize))
+		skipped += toSkip
+		ds.bufferStart += int(toSkip)
 	}
 
 	return skip, nil
