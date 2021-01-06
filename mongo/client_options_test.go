@@ -14,7 +14,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/internal/testutil"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 )
@@ -23,7 +22,7 @@ func TestClientOptions_CustomDialer(t *testing.T) {
 	td := &testDialer{d: &net.Dialer{}}
 	cs := testutil.ConnString(t)
 	opts := options.Client().ApplyURI(cs.String()).SetDialer(td)
-	testhelpers.AddLatestServerAPIVersion(opts)
+	testutil.AddLatestServerAPIVersion(opts)
 	client, err := NewClient(opts)
 	require.NoError(t, err)
 	err = client.Connect(context.Background())

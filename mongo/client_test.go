@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -33,7 +32,7 @@ var bgCtx = context.Background()
 func setupClient(opts ...*options.ClientOptions) *Client {
 	if len(opts) == 0 {
 		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
-		testhelpers.AddLatestServerAPIVersion(clientOpts)
+		testutil.AddLatestServerAPIVersion(clientOpts)
 		opts = append(opts, clientOpts)
 	}
 	client, _ := NewClient(opts...)
@@ -299,7 +298,7 @@ func TestClient(t *testing.T) {
 				}
 				clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
 					SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetMonitor(cmdMonitor)
-				testhelpers.AddLatestServerAPIVersion(clientOpts)
+				testutil.AddLatestServerAPIVersion(clientOpts)
 				client, err := Connect(bgCtx, clientOpts)
 				assert.Nil(t, err, "Connect error: %v", err)
 				defer func() {
