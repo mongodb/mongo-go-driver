@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -112,8 +113,9 @@ func TestClient(t *testing.T) {
 			revisedConnString,
 			path.Join(certificatesDir, "client.pem"),
 		)
-		authClient, err := mongo.Connect(mtest.Background, options.Client().ApplyURI(cs).
-			SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion)))
+		authClientOpts := options.Client().ApplyURI(cs)
+		testhelpers.AddLatestServerAPIVersion(authClientOpts)
+		authClient, err := mongo.Connect(mtest.Background, authClientOpts)
 		assert.Nil(mt, err, "authClient Connect error: %v", err)
 		defer func() { _ = authClient.Disconnect(mtest.Background) }()
 
@@ -254,8 +256,8 @@ func TestClient(t *testing.T) {
 			// apply the correct URI.
 			invalidClientOpts := options.Client().
 				SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"}).
-				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond).
-				SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond)
+			testhelpers.AddLatestServerAPIVersion(invalidClientOpts)
 			client, err := mongo.Connect(mtest.Background, invalidClientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			err = client.Ping(mtest.Background, readpref.Primary())

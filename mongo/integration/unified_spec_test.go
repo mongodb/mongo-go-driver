@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
@@ -30,7 +31,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -422,8 +422,8 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		}
 
 		targetHost := clientSession.PinnedServer.Addr.String()
-		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost}).
-			SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost})
+		testhelpers.AddLatestServerAPIVersion(opts)
 		client, err := mongo.Connect(mtest.Background, opts)
 		if err != nil {
 			return fmt.Errorf("Connect error for targeted client: %v", err)

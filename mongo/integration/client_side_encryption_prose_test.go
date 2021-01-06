@@ -23,11 +23,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 var (
@@ -50,8 +50,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
 	defer mt.Close()
 
-	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI()).
-		SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
+	testhelpers.AddLatestServerAPIVersion(defaultKvClientOptions)
 	fullKmsProvidersMap := map[string]map[string]interface{}{
 		"aws": {
 			"accessKeyId":     awsAccessKeyID,
@@ -123,8 +123,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						startedEvents = append(startedEvents, evt)
 					},
 				}
-				kvClientOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetMonitor(monitor).
-					SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+				kvClientOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetMonitor(monitor)
+				testhelpers.AddLatestServerAPIVersion(kvClientOpts)
 				cpt := setup(mt, aeo, kvClientOpts, ceo)
 				defer cpt.teardown(mt)
 
@@ -216,7 +216,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					externalKvOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetAuth(options.Credential{
 						Username: "fake-user",
 						Password: "fake-password",
-					}).SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+					})
+					testhelpers.AddLatestServerAPIVersion(externalKvOpts)
 					aeo.SetKeyVaultClientOptions(externalKvOpts)
 					kvClientOpts = externalKvOpts
 				}
@@ -805,8 +806,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
 				mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").
-					SetServerSelectionTimeout(1 * time.Second).
-					SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+					SetServerSelectionTimeout(1 * time.Second)
+				testhelpers.AddLatestServerAPIVersion(mcryptOpts)
 				mcryptClient, err := mongo.Connect(mtest.Background, mcryptOpts)
 				assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
 
@@ -953,8 +954,8 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 			},
 		}
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc).
-			SetReadPreference(mtest.PrimaryRp).SetAutoEncryptionOptions(aeo).SetMonitor(cseMonitor).
-			SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+			SetReadPreference(mtest.PrimaryRp).SetAutoEncryptionOptions(aeo).SetMonitor(cseMonitor)
+		testhelpers.AddLatestServerAPIVersion(opts)
 		cpt.cseClient, err = mongo.Connect(mtest.Background, opts)
 		assert.Nil(mt, err, "Connect error for encrypted client: %v", err)
 		cpt.cseColl = cpt.cseClient.Database("db").Collection("coll")
