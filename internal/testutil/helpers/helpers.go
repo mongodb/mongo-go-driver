@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -22,6 +23,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
@@ -268,4 +271,11 @@ func GetIntFromInterface(i interface{}) *int64 {
 	}
 
 	return &out
+}
+
+// AddLatestServerAPIVersion adds the latest server API version in a ServerAPIOptions to passed-in opts.
+func AddLatestServerAPIVersion(opts *options.ClientOptions) {
+	if os.Getenv("REQUIRE_API_VERSION") == "true" {
+		opts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+	}
 }

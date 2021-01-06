@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"os"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -32,8 +32,9 @@ var bgCtx = context.Background()
 
 func setupClient(opts ...*options.ClientOptions) *Client {
 	if len(opts) == 0 {
-		opts = append(opts, options.Client().ApplyURI("mongodb://localhost:27017").
-			SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion)))
+		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
+		testhelpers.AddLatestServerAPIVersion(clientOpts)
+		opts = append(opts, clientOpts)
 	}
 	client, _ := NewClient(opts...)
 	return client
@@ -298,9 +299,7 @@ func TestClient(t *testing.T) {
 				}
 				clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
 					SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetMonitor(cmdMonitor)
-				if os.Getenv("REQUIRE_API_VERSION") == "true" {
-					clientOpts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
-				}
+				testhelpers.AddLatestServerAPIVersion(clientOpts)
 				client, err := Connect(bgCtx, clientOpts)
 				assert.Nil(t, err, "Connect error: %v", err)
 				defer func() {

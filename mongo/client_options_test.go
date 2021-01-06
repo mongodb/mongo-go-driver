@@ -9,24 +9,21 @@ package mongo
 import (
 	"context"
 	"net"
-	"os"
 	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/internal/testutil"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 func TestClientOptions_CustomDialer(t *testing.T) {
 	td := &testDialer{d: &net.Dialer{}}
 	cs := testutil.ConnString(t)
 	opts := options.Client().ApplyURI(cs.String()).SetDialer(td)
-	if os.Getenv("REQUIRE_API_VERSION") == "true" {
-		opts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
-	}
+	testhelpers.AddLatestServerAPIVersion(opts)
 	client, err := NewClient(opts)
 	require.NoError(t, err)
 	err = client.Connect(context.Background())
