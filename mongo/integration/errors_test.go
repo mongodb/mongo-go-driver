@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -53,7 +53,7 @@ func TestErrors(t *testing.T) {
 			})
 
 			clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
-			testhelpers.AddLatestServerAPIVersion(clientOpts)
+			testutil.AddLatestServerAPIVersion(clientOpts)
 			client, err := mongo.Connect(mtest.Background, clientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			defer client.Disconnect(mtest.Background)
