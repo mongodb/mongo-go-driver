@@ -331,10 +331,6 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	// ServerAPIOptions need to be handled early as other client and server options below reference
 	// c.serverAPI and serverOpts.serverAPI.
 	if opts.ServerAPIOptions != nil {
-		if err := opts.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
-			return err
-		}
-
 		// manually clone the passed in options so future modifications of the original ServerAPIOptions have no effect.
 		c.serverAPI = driver.NewServerAPIOptions().SetServerAPIVersion(string(opts.ServerAPIOptions.ServerAPIVersion))
 		if opts.ServerAPIOptions.Strict != nil {
