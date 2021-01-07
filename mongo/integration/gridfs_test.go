@@ -92,17 +92,17 @@ func TestGridFS(x *testing.T) {
 				assert.Nil(mt, err, "Read error: %v", err)
 
 				n, err := dstream.Skip(tc.skip)
-				assert.Equal(mt, tc.expectedSkipErr, err, "Expected error on Skip: %v, got %v", tc.expectedSkipErr, err)
-				assert.Equal(mt, tc.expectedSkipN, n, "Expected Skip to return: %v, got %v", tc.expectedSkipN, n)
+				assert.Equal(mt, tc.expectedSkipErr, err, "expected error on Skip: %v, got %v", tc.expectedSkipErr, err)
+				assert.Equal(mt, tc.expectedSkipN, n, "expected Skip to return: %v, got %v", tc.expectedSkipN, n)
 
 				// Read the rest.
 				dst = make([]byte, len(data))
 				n64, err := dstream.Read(dst)
 				if err != nil {
-					assert.Equal(mt, err, io.EOF, "Unexpected read error: %v", err)
+					assert.Equal(mt, err, io.EOF, "unexpected Read error: %v", err)
 				}
 				remaining := string(dst[0:n64])
-				assert.Equal(mt, tc.expectedRemaining, remaining, "Expected remaining data to be: %v, got %v", tc.expectedRemaining, remaining)
+				assert.Equal(mt, tc.expectedRemaining, remaining, "expected remaining data to be: %v, got %v", tc.expectedRemaining, remaining)
 			})
 		}
 	})
