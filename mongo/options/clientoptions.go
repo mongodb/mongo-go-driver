@@ -167,6 +167,11 @@ func (c *ClientOptions) validateAndSetError() {
 			return
 		}
 	}
+
+	// verify server API version if ServerAPIOptions are passed in.
+	if c.ServerAPIOptions != nil {
+		c.err = c.ServerAPIOptions.ServerAPIVersion.Validate()
+	}
 }
 
 // GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during

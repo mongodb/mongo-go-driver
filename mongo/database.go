@@ -180,6 +180,9 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 // If the command document contains a session ID or any transaction-specific fields, the behavior is undefined.
 //
 // The opts parameter can be used to specify options for this operation (see the options.RunCmdOptions documentation).
+//
+// Specifying API versioning options in the command document and declaring an API version on the client is not supported.
+// The behavior of RunCommand is undefined in this case.
 func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
