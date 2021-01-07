@@ -336,6 +336,24 @@ func TestCollection(t *testing.T) {
 			assert.True(mt, ok, "expected error type %T, got %T", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got nil")
 		})
+		mt.Run("single key map index", func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+			indexView := mt.Coll.Indexes()
+			_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
+				Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+			})
+			assert.Nil(mt, err, "CreateOne error: %v", err)
+
+			opts := options.Delete().SetHint(bson.M{"x": 1})
+			res, err := mt.Coll.DeleteOne(mtest.Background, bson.D{{"x", 1}}, opts)
+			assert.Nil(mt, err, "DeleteOne error: %v", err)
+			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
+		})
+		mt.Run("multikey map index", func(mt *mtest.T) {
+			opts := options.Delete().SetHint(bson.M{"x": 1, "y": 1})
+			_, err := mt.Coll.DeleteOne(mtest.Background, bson.D{{"x", 0}}, opts)
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+		})
 	})
 	mt.RunOpts("delete many", noClientOpts, func(mt *mtest.T) {
 		mt.Run("found", func(mt *mtest.T) {
@@ -384,6 +402,24 @@ func TestCollection(t *testing.T) {
 			we, ok := err.(mongo.WriteException)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", err)
+		})
+		mt.Run("single key map index", func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+			indexView := mt.Coll.Indexes()
+			_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
+				Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+			})
+			assert.Nil(mt, err, "index CreateOne error: %v", err)
+
+			opts := options.Delete().SetHint(bson.M{"x": 1})
+			res, err := mt.Coll.DeleteOne(mtest.Background, bson.D{{"x", 1}}, opts)
+			assert.Nil(mt, err, "DeleteOne error: %v", err)
+			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
+		})
+		mt.Run("multikey map index", func(mt *mtest.T) {
+			opts := options.Delete().SetHint(bson.M{"x": 1, "y": 1})
+			_, err := mt.Coll.DeleteMany(mtest.Background, bson.D{{"x", 0}}, opts)
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
 		})
 	})
 	mt.RunOpts("update one", noClientOpts, func(mt *mtest.T) {
@@ -732,6 +768,16 @@ func TestCollection(t *testing.T) {
 		mt.Run("options", func(mt *mtest.T) {
 			testAggregateWithOptions(mt, false, options.Aggregate().SetAllowDiskUse(true))
 		})
+		mt.Run("single key map hint", func(mt *mtest.T) {
+			hint := bson.M{"x": 1}
+			testAggregateWithOptions(mt, true, options.Aggregate().SetHint(hint))
+		})
+		mt.Run("multikey map hint", func(mt *mtest.T) {
+			pipeline := mongo.Pipeline{{{"$out", mt.Coll.Name()}}}
+			cursor, err := mt.Coll.Aggregate(mtest.Background, pipeline, options.Aggregate().SetHint(bson.M{"x": 1, "y": 1}))
+			assert.Nil(mt, cursor, "expected cursor nil, got %v", cursor)
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+		})
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("3.6").CollectionOptions(wcCollOpts)
 		mt.RunOpts("write concern error", wcTestOpts, func(mt *mtest.T) {
@@ -743,25 +789,39 @@ func TestCollection(t *testing.T) {
 		})
 	})
 	mt.RunOpts("count documents", noClientOpts, func(mt *mtest.T) {
-		testCases := []struct {
-			name   string
-			filter bson.D
-			opts   *options.CountOptions
-			count  int64
-		}{
-			{"no filter", bson.D{}, nil, 5},
-			{"filter", bson.D{{"x", bson.D{{"$gt", 2}}}}, nil, 3},
-			{"limit", bson.D{}, options.Count().SetLimit(3), 3},
-			{"skip", bson.D{}, options.Count().SetSkip(3), 2},
-		}
-		for _, tc := range testCases {
-			mt.Run(tc.name, func(mt *mtest.T) {
-				initCollection(mt, mt.Coll)
-				count, err := mt.Coll.CountDocuments(mtest.Background, tc.filter, tc.opts)
-				assert.Nil(mt, err, "CountDocuments error: %v", err)
-				assert.Equal(mt, tc.count, count, "expected count %v, got %v", tc.count, count)
-			})
-		}
+		mt.Run("success", func(mt *mtest.T) {
+			testCases := []struct {
+				name   string
+				filter bson.D
+				opts   *options.CountOptions
+				count  int64
+			}{
+				{"no filter", bson.D{}, nil, 5},
+				{"filter", bson.D{{"x", bson.D{{"$gt", 2}}}}, nil, 3},
+				{"limit", bson.D{}, options.Count().SetLimit(3), 3},
+				{"skip", bson.D{}, options.Count().SetSkip(3), 2},
+				{"single key map hint", bson.D{}, options.Count().SetHint(bson.M{"x": 1}), 5},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					initCollection(mt, mt.Coll)
+					indexView := mt.Coll.Indexes()
+					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
+						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+					})
+					assert.Nil(mt, err, "CreateOne error: %v", err)
+
+					count, err := mt.Coll.CountDocuments(mtest.Background, tc.filter, tc.opts)
+					assert.Nil(mt, err, "CountDocuments error: %v", err)
+					assert.Equal(mt, tc.count, count, "expected count %v, got %v", tc.count, count)
+				})
+			}
+		})
+		mt.Run("multikey map hint", func(mt *mtest.T) {
+			opts := options.Count().SetHint(bson.M{"x": 1, "y": 1})
+			_, err := mt.Coll.CountDocuments(mtest.Background, bson.D{}, opts)
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+		})
 	})
 	mt.RunOpts("estimated document count", noClientOpts, func(mt *mtest.T) {
 		testCases := []struct {
@@ -882,6 +942,19 @@ func TestCollection(t *testing.T) {
 			_, err = mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetHint("foobar"))
 			_, ok := err.(mongo.CommandError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.CommandError{}, err)
+
+			_, err = mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetHint(bson.M{"_id": 1}))
+			assert.Nil(mt, err, "Find error with single key map hint: %v", err)
+
+			_, err = mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetHint(bson.M{"_id": 1, "x": 1}))
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+		})
+		mt.Run("sort", func(mt *mtest.T) {
+			_, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetSort(bson.M{"_id": 1}))
+			assert.Nil(mt, err, "Find error with single key map sort: %v", err)
+
+			_, err = mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetSort(bson.M{"_id": 1, "x": 1}))
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
 		})
 		mt.Run("limit and batch size and skip", func(mt *mtest.T) {
 			testCases := []struct {
@@ -1077,6 +1150,42 @@ func TestCollection(t *testing.T) {
 			err := mt.Coll.FindOne(mtest.Background, bson.D{{"x", 6}}).Err()
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
 		})
+		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
+			testCases := []struct {
+				name    string
+				opts    *options.FindOneOptions
+				succeed bool
+			}{
+				{"single key hint", options.FindOne().SetHint(bson.M{"x": 1}), true},
+				{"multikey hint", options.FindOne().SetHint(bson.M{"x": 1, "y": 1}), false},
+				{"single key sort", options.FindOne().SetSort(bson.M{"x": 1}), true},
+				{"multikey sort", options.FindOne().SetSort(bson.M{"x": 1, "y": 1}), false},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					initCollection(mt, mt.Coll)
+					indexView := mt.Coll.Indexes()
+					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
+						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+					})
+					assert.Nil(mt, err, "CreateOne error: %v", err)
+
+					res, err := mt.Coll.FindOne(mtest.Background, bson.D{{"x", 1}}, tc.opts).DecodeBytes()
+
+					if !tc.succeed {
+						assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+						return
+					}
+
+					assert.Nil(mt, err, "FindOne error: %v", err)
+					x, err := res.LookupErr("x")
+					assert.Nil(mt, err, "x not found in document %v", res)
+					got, ok := x.Int32OK()
+					assert.True(mt, ok, "expected x type int32, got %v", x.Type)
+					assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
+				})
+			}
+		})
 	})
 	mt.RunOpts("find one and delete", noClientOpts, func(mt *mtest.T) {
 		mt.Run("found", func(mt *mtest.T) {
@@ -1099,6 +1208,42 @@ func TestCollection(t *testing.T) {
 			initCollection(mt, mt.Coll)
 			err := mt.Coll.FindOneAndDelete(mtest.Background, bson.D{{"x", 6}}).Err()
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
+		})
+		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
+			testCases := []struct {
+				name    string
+				opts    *options.FindOneAndDeleteOptions
+				succeed bool
+			}{
+				{"single key hint", options.FindOneAndDelete().SetHint(bson.M{"x": 1}), true},
+				{"multikey hint", options.FindOneAndDelete().SetHint(bson.M{"x": 1, "y": 1}), false},
+				{"single key sort", options.FindOneAndDelete().SetSort(bson.M{"x": 1}), true},
+				{"multikey hint", options.FindOneAndDelete().SetSort(bson.M{"x": 1, "y": 1}), false},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					initCollection(mt, mt.Coll)
+					indexView := mt.Coll.Indexes()
+					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
+						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+					})
+					assert.Nil(mt, err, "CreateOne error: %v", err)
+
+					res, err := mt.Coll.FindOneAndDelete(mtest.Background, bson.D{{"x", 1}}, tc.opts).DecodeBytes()
+
+					if !tc.succeed {
+						assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+						return
+					}
+
+					assert.Nil(mt, err, "FindOneAndDelete error: %v", err)
+					x, err := res.LookupErr("x")
+					assert.Nil(mt, err, "x not found in document %v", res)
+					got, ok := x.Int32OK()
+					assert.True(mt, ok, "expected x type int32, got %v", x.Type)
+					assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
+				})
+			}
 		})
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet).MinServerVersion("3.2")
@@ -1138,6 +1283,42 @@ func TestCollection(t *testing.T) {
 
 			err := mt.Coll.FindOneAndReplace(mtest.Background, filter, replacement).Err()
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
+		})
+		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
+			testCases := []struct {
+				name    string
+				opts    *options.FindOneAndReplaceOptions
+				succeed bool
+			}{
+				{"single key hint", options.FindOneAndReplace().SetHint(bson.M{"x": 1}), true},
+				{"multikey hint", options.FindOneAndReplace().SetHint(bson.M{"x": 1, "y": 1}), false},
+				{"single key sort", options.FindOneAndReplace().SetSort(bson.M{"x": 1}), true},
+				{"multikey hint", options.FindOneAndReplace().SetSort(bson.M{"x": 1, "y": 1}), false},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					initCollection(mt, mt.Coll)
+					indexView := mt.Coll.Indexes()
+					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
+						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+					})
+					assert.Nil(mt, err, "CreateOne error: %v", err)
+
+					res, err := mt.Coll.FindOneAndReplace(mtest.Background, bson.D{{"x", 1}}, bson.D{{"y", 3}}, tc.opts).DecodeBytes()
+
+					if !tc.succeed {
+						assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+						return
+					}
+
+					assert.Nil(mt, err, "FindOneAndReplace error: %v", err)
+					x, err := res.LookupErr("x")
+					assert.Nil(mt, err, "x not found in document %v", res)
+					got, ok := x.Int32OK()
+					assert.True(mt, ok, "expected x type int32, got %v", x.Type)
+					assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
+				})
+			}
 		})
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet).MinServerVersion("3.2")
@@ -1183,6 +1364,42 @@ func TestCollection(t *testing.T) {
 
 			err := mt.Coll.FindOneAndUpdate(mtest.Background, filter, update).Err()
 			assert.Equal(mt, mongo.ErrNoDocuments, err, "expected error %v, got %v", mongo.ErrNoDocuments, err)
+		})
+		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
+			testCases := []struct {
+				name    string
+				opts    *options.FindOneAndUpdateOptions
+				succeed bool
+			}{
+				{"single key hint", options.FindOneAndUpdate().SetHint(bson.M{"x": 1}), true},
+				{"multikey hint", options.FindOneAndUpdate().SetHint(bson.M{"x": 1, "y": 1}), false},
+				{"single key sort", options.FindOneAndUpdate().SetSort(bson.M{"x": 1}), true},
+				{"multikey hint", options.FindOneAndUpdate().SetSort(bson.M{"x": 1, "y": 1}), false},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					initCollection(mt, mt.Coll)
+					indexView := mt.Coll.Indexes()
+					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
+						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+					})
+					assert.Nil(mt, err, "CreateOne error: %v", err)
+
+					res, err := mt.Coll.FindOneAndUpdate(mtest.Background, bson.D{{"x", 1}}, bson.D{{"$set", bson.D{{"x", 6}}}}, tc.opts).DecodeBytes()
+
+					if !tc.succeed {
+						assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+						return
+					}
+
+					assert.Nil(mt, err, "FindOneAndUpdate error: %v", err)
+					x, err := res.LookupErr("x")
+					assert.Nil(mt, err, "x not found in document %v", res)
+					got, ok := x.Int32OK()
+					assert.True(mt, ok, "expected x type int32, got %v", x.Type)
+					assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
+				})
+			}
 		})
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet).MinServerVersion("3.2")
@@ -1537,6 +1754,39 @@ func TestCollection(t *testing.T) {
 			x, ok := doc.Lookup("x").Int32OK()
 			assert.True(mt, ok, "expected x to be an int32")
 			assert.Equal(mt, int32(1), x, "expected a value 1, got %v", x)
+		})
+		mt.RunOpts("map hint", noClientOpts, func(mt *mtest.T) {
+			filter := bson.D{{"_id", "foo"}}
+
+			testCases := []struct {
+				name   string
+				models []mongo.WriteModel
+				errors bool
+			}{
+				{"updateOne/multi key", []mongo.WriteModel{mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(bson.D{{"$set", bson.D{{"x", "fa"}}}}).SetHint(bson.M{"_id": 1, "x": 1})}, true},
+				{"updateMany/multi key", []mongo.WriteModel{mongo.NewUpdateManyModel().SetFilter(filter).SetUpdate(bson.D{{"$set", bson.D{{"x", "fa"}}}}).SetHint(bson.M{"_id": 1, "x": 1})}, true},
+				{"replaceOne/multi key", []mongo.WriteModel{mongo.NewReplaceOneModel().SetFilter(filter).SetReplacement(bson.D{{"x", "bar"}}).SetHint(bson.M{"_id": 1, "x": 1})}, true},
+				{"deleteOne/multi key", []mongo.WriteModel{mongo.NewDeleteOneModel().SetFilter(filter).SetHint(bson.M{"_id": 1, "x": 1})}, true},
+				{"deleteMany/multi key", []mongo.WriteModel{mongo.NewDeleteManyModel().SetFilter(filter).SetHint(bson.M{"_id": 1, "x": 1})}, true},
+
+				{"updateOne/one key", []mongo.WriteModel{mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(bson.D{{"$set", bson.D{{"x", "fa"}}}}).SetHint(bson.M{"_id": 1})}, false},
+				{"updateMany/one key", []mongo.WriteModel{mongo.NewUpdateManyModel().SetFilter(filter).SetUpdate(bson.D{{"$set", bson.D{{"x", "fa"}}}}).SetHint(bson.M{"_id": 1})}, false},
+				{"replaceOne/one key", []mongo.WriteModel{mongo.NewReplaceOneModel().SetFilter(filter).SetReplacement(bson.D{{"x", "bar"}}).SetHint(bson.M{"_id": 1})}, false},
+				{"deleteOne/one key", []mongo.WriteModel{mongo.NewDeleteOneModel().SetFilter(filter).SetHint(bson.M{"_id": 1})}, false},
+				{"deleteMany/one key", []mongo.WriteModel{mongo.NewDeleteManyModel().SetFilter(filter).SetHint(bson.M{"_id": 1})}, false},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					_, err := mt.Coll.InsertOne(mtest.Background, filter)
+					assert.Nil(mt, err, "InsertOne error: %v", err)
+					_, err = mt.Coll.BulkWrite(mtest.Background, tc.models)
+					if !tc.errors {
+						assert.Nil(mt, err, "expected nil error, got %v", err)
+						return
+					}
+					assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+				})
+			}
 		})
 	})
 }

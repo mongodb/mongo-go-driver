@@ -663,13 +663,13 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 	// convert schemas in SchemaMap to bsoncore documents
 	cryptSchemaMap := make(map[string]bsoncore.Document)
 	for k, v := range opts.SchemaMap {
-		schema, err := transformBsoncoreDocument(c.registry, v)
+		schema, err := transformBsoncoreDocument(c.registry, v, true)
 		if err != nil {
 			return err
 		}
 		cryptSchemaMap[k] = schema
 	}
-	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders)
+	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders, true)
 	if err != nil {
 		return fmt.Errorf("error creating KMS providers document: %v", err)
 	}
@@ -749,7 +749,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		return ListDatabasesResult{}, err
 	}
 
-	filterDoc, err := transformBsoncoreDocument(c.registry, filter)
+	filterDoc, err := transformBsoncoreDocument(c.registry, filter, true)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}

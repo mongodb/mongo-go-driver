@@ -295,7 +295,7 @@ func TestMongoHelpers(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				res, err := transformValue(nil, tc.value)
+				res, err := transformValue(nil, tc.value, true)
 				if tc.err != nil {
 					assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 					return

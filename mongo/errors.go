@@ -29,6 +29,9 @@ var ErrClientDisconnected = errors.New("client is disconnected")
 // ErrNilDocument is returned when a nil document is passed to a CRUD method.
 var ErrNilDocument = errors.New("document is nil")
 
+// ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
+var ErrMapForOrderedArgument = errors.New("multi-key map passed in for ordered parameter")
+
 // ErrNilValue is returned when a nil value is passed to a CRUD method.
 var ErrNilValue = errors.New("value is nil")
 
