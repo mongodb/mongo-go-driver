@@ -41,34 +41,34 @@ func TestGridFS(x *testing.T) {
 			skip              int64
 			expectedSkipN     int64
 			expectedSkipErr   error
-			expectedRemaining string
+			expectedRemaining int
 		}{
 			{
-				"read 0, skip 0", 0, 0, 0, nil, "abc.def.ghi",
+				"read 0, skip 0", 0, 0, 0, nil, 11,
 			},
 			{
-				"read 0, skip to end of chunk", 0, 4, 4, nil, "def.ghi",
+				"read 0, skip to end of chunk", 0, 4, 4, nil, 7,
 			},
 			{
-				"read 0, skip 1", 0, 1, 1, nil, "bc.def.ghi",
+				"read 0, skip 1", 0, 1, 1, nil, 10,
 			},
 			{
-				"read 1, skip to end of chunk", 1, 3, 3, nil, "def.ghi",
+				"read 1, skip to end of chunk", 1, 3, 3, nil, 7,
 			},
 			{
-				"read all, skip beyond", 11, 1, 0, nil, "",
+				"read all, skip beyond", 11, 1, 0, nil, 0,
 			},
 			{
-				"skip all", 0, 11, 11, nil, "",
+				"skip all", 0, 11, 11, nil, 0,
 			},
 			{
-				"read 1, skip to last chunk", 1, 8, 8, nil, "hi",
+				"read 1, skip to last chunk", 1, 8, 8, nil, 2,
 			},
 			{
-				"read to last chunk, skip to end", 9, 2, 2, nil, "",
+				"read to last chunk, skip to end", 9, 2, 2, nil, 0,
 			},
 			{
-				"read to last chunk, skip beyond", 9, 4, 2, nil, "",
+				"read to last chunk, skip beyond", 9, 4, 2, nil, 0,
 			},
 		}
 
@@ -86,7 +86,8 @@ func TestGridFS(x *testing.T) {
 				err = ustream.Close()
 				assert.Nil(mt, err, "Close error: %v", err)
 
-				dstream, _ := bucket.OpenDownloadStream(id)
+				dstream, err := bucket.OpenDownloadStream(id)
+				assert.Nil(mt, err, "OpenDownloadStream error")
 				dst := make([]byte, tc.read)
 				_, err = dstream.Read(dst)
 				assert.Nil(mt, err, "Read error: %v", err)
@@ -97,11 +98,10 @@ func TestGridFS(x *testing.T) {
 
 				// Read the rest.
 				dst = make([]byte, len(data))
-				n64, err := dstream.Read(dst)
+				remaining, err := dstream.Read(dst)
 				if err != nil {
 					assert.Equal(mt, err, io.EOF, "unexpected Read error: %v", err)
 				}
-				remaining := string(dst[0:n64])
 				assert.Equal(mt, tc.expectedRemaining, remaining, "expected remaining data to be: %v, got %v", tc.expectedRemaining, remaining)
 			})
 		}
