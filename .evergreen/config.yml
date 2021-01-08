@@ -1564,6 +1564,23 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "nossl"
+          REQUIRE_API_VERSION: true
+      - func: run-versioned-api-test
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+
+  - name: "test-standalone-versioned-api-test-commands"
+    tags: ["versioned-api"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+          ORCHESTRATION_FILE: "versioned-api-testing.json"
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -1673,14 +1690,6 @@ axes:
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           PYTHON3: python3
-
-  - id: api-version
-    display_name: API Version
-    values:
-      - id: "required"
-        display_name: "API Version Required"
-        variables:
-          REQUIRE_API_VERSION: true
 
 buildvariants:
   - name: static-analysis
@@ -1801,7 +1810,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "versioned-api-test"
-    matrix_spec: { api-version: "required", version: ["latest"], os-ssl-32: "*" }
-    display_name: "${api-version} ${os-ssl-32}"
+    matrix_spec: { version: ["latest"], os-ssl-32: "*" }
+    display_name: "API Version ${os-ssl-32}"
     tasks:
       - name: ".versioned-api"
