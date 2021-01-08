@@ -76,9 +76,11 @@ func replaceErrors(err error) error {
 // IsDuplicateKeyError returns true if err is a duplicate key error
 func IsDuplicateKeyError(err error) bool {
 	// handles SERVER-7164 and SERVER-11493
-	if e, ok := err.(ServerError); ok {
-		return e.HasErrorCode(11000) || e.HasErrorCode(11001) || e.HasErrorCode(12582) ||
-			e.HasErrorCodeWithMessage(16460, " E11000 ")
+	for ; err != nil; err = unwrap(err) {
+		if e, ok := err.(ServerError); ok {
+			return e.HasErrorCode(11000) || e.HasErrorCode(11001) || e.HasErrorCode(12582) ||
+				e.HasErrorCodeWithMessage(16460, " E11000 ")
+		}
 	}
 	return false
 }
@@ -117,8 +119,10 @@ func unwrap(err error) error {
 
 // IsNetworkError returns true if err is a network error
 func IsNetworkError(err error) bool {
-	if e, ok := err.(ServerError); ok {
-		return e.HasErrorLabel("NetworkError")
+	for ; err != nil; err = unwrap(err) {
+		if e, ok := err.(ServerError); ok {
+			return e.HasErrorLabel("NetworkError")
+		}
 	}
 	return false
 }

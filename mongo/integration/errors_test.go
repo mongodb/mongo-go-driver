@@ -41,6 +41,18 @@ func (n netErr) Temporary() bool {
 
 var _ net.Error = (*netErr)(nil)
 
+type wrappedError struct {
+	err error
+}
+
+func (we wrappedError) Error() string {
+	return we.err.Error()
+}
+
+func (we wrappedError) Unwrap() error {
+	return we.err
+}
+
 func TestErrors(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 	defer mt.Close()
@@ -372,6 +384,7 @@ func TestErrors(t *testing.T) {
 					},
 					false,
 				},
+				{"wrapped error", wrappedError{mongo.CommandError{11000, "", nil, "blah", nil}}, true},
 				{"other error type", errors.New("foo"), false},
 			}
 			for _, tc := range testCases {
@@ -392,6 +405,7 @@ func TestErrors(t *testing.T) {
 			}{
 				{"ServerError true", mongo.CommandError{100, "", []string{networkLabel}, "blah", nil}, true},
 				{"ServerError false", mongo.CommandError{100, "", []string{otherLabel}, "blah", nil}, false},
+				{"wrapped error", wrappedError{mongo.CommandError{100, "", []string{networkLabel}, "blah", nil}}, true},
 				{"other error type", errors.New("foo"), false},
 			}
 			for _, tc := range testCases {
@@ -414,6 +428,7 @@ func TestErrors(t *testing.T) {
 				{"ServerError false", mongo.CommandError{100, "", []string{"other"}, "blah", nil}, false},
 				{"net error true", mongo.CommandError{100, "", []string{"other"}, "blah", netErr{true}}, true},
 				{"net error false", netErr{false}, false},
+				{"wrapped error", wrappedError{mongo.CommandError{100, "", []string{"other"}, "blah", context.DeadlineExceeded}}, true},
 				{"other error", errors.New("foo"), false},
 			}
 			for _, tc := range testCases {
