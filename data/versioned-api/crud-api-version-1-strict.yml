@@ -213,9 +213,8 @@ tests:
                 key: x
                 <<: *expectedApiVersion
 
-  # estimatedDocumentCount will fail once count has been removed from version 1
-  # CRUD API will be updated to account for this, so this shouldn't ever fail
   - description: "estimatedDocumentCount appends declared API version"
+    skipReason: "DRIVERS-1437 count was removed from API version 1"
     operations:
       - name: estimatedDocumentCount
         object: *collection
