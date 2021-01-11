@@ -104,9 +104,9 @@ func RunCommand(t *testing.T, s *topology.Server, db string, cmd bsoncore.Docume
 	return res, err
 }
 
-// AddLatestServerAPIVersion adds the latest server API version in a ServerAPIOptions to passed-in opts.
-func AddLatestServerAPIVersion(opts *options.ClientOptions) {
+// AddTestServerAPIVersion adds the latest server API version in a ServerAPIOptions to passed-in opts.
+func AddTestServerAPIVersion(opts *options.ClientOptions) {
 	if os.Getenv("REQUIRE_API_VERSION") == "true" {
-		opts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+		opts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.TestServerAPIVersion))
 	}
 }

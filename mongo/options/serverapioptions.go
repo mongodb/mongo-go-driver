@@ -6,7 +6,11 @@
 
 package options
 
-import "fmt"
+import (
+	"fmt"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+)
 
 // ServerAPIOptions represents options used to configure the API version sent to the server
 // when running commands.
@@ -61,4 +65,16 @@ func (sav ServerAPIVersion) Validate() error {
 		return nil
 	}
 	return fmt.Errorf("api version %q not supported by driver", sav)
+}
+
+// ConvertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
+func (s *ServerAPIOptions) ConvertToDriverAPIOptions() *driver.ServerAPIOptions {
+	driverOpts := driver.NewServerAPIOptions().SetServerAPIVersion(string(s.ServerAPIVersion))
+	if s.Strict != nil {
+		driverOpts.SetStrict(*s.Strict)
+	}
+	if s.DeprecationErrors != nil {
+		driverOpts.SetDeprecationErrors(*s.DeprecationErrors)
+	}
+	return driverOpts
 }

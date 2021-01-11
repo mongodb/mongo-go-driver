@@ -116,7 +116,7 @@ func killSessions(mt *mtest.T) {
 // replica sets, the command is run against the primary. sharded clusters, the command is run against each mongos.
 func runCommandOnAllServers(mt *mtest.T, commandFn func(client *mongo.Client) error) error {
 	opts := options.Client().ApplyURI(mtest.ClusterURI())
-	testutil.AddLatestServerAPIVersion(opts)
+	testutil.AddTestServerAPIVersion(opts)
 
 	if mtest.ClusterTopologyKind() != mtest.Sharded {
 		client, err := mongo.Connect(mtest.Background, opts)
@@ -1407,7 +1407,7 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 func executeAdminCommand(mt *mtest.T, op *operation) {
 	// Per the streamable isMaster test format description, a separate client must be used to execute this operation.
 	clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
-	testutil.AddLatestServerAPIVersion(clientOpts)
+	testutil.AddTestServerAPIVersion(clientOpts)
 	client, err := mongo.Connect(mtest.Background, clientOpts)
 	assert.Nil(mt, err, "Connect error: %v", err)
 	defer func() {

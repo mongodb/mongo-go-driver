@@ -81,7 +81,7 @@ func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*Client
 	if entityOptions.ServerAPIOptions != nil {
 		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
 	} else {
-		testutil.AddLatestServerAPIVersion(clientOpts)
+		testutil.AddTestServerAPIVersion(clientOpts)
 	}
 	for _, cmd := range entityOptions.IgnoredCommands {
 		entity.ignoredCommands[cmd] = struct{}{}

@@ -549,7 +549,7 @@ func (t *T) createTestClient() {
 	}
 	// set ServerAPIOptions to latest version if required
 	if clientOpts.Deployment == nil && t.clientType != Mock && clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
-		clientOpts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.LatestServerAPIVersion))
+		clientOpts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.TestServerAPIVersion))
 	}
 	// command monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{

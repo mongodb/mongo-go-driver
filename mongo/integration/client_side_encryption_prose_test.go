@@ -51,7 +51,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	defer mt.Close()
 
 	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
-	testutil.AddLatestServerAPIVersion(defaultKvClientOptions)
+	testutil.AddTestServerAPIVersion(defaultKvClientOptions)
 	fullKmsProvidersMap := map[string]map[string]interface{}{
 		"aws": {
 			"accessKeyId":     awsAccessKeyID,
@@ -124,7 +124,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					},
 				}
 				kvClientOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetMonitor(monitor)
-				testutil.AddLatestServerAPIVersion(kvClientOpts)
+				testutil.AddTestServerAPIVersion(kvClientOpts)
 				cpt := setup(mt, aeo, kvClientOpts, ceo)
 				defer cpt.teardown(mt)
 
@@ -217,7 +217,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						Username: "fake-user",
 						Password: "fake-password",
 					})
-					testutil.AddLatestServerAPIVersion(externalKvOpts)
+					testutil.AddTestServerAPIVersion(externalKvOpts)
 					aeo.SetKeyVaultClientOptions(externalKvOpts)
 					kvClientOpts = externalKvOpts
 				}
@@ -807,7 +807,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").
 					SetServerSelectionTimeout(1 * time.Second)
-				testutil.AddLatestServerAPIVersion(mcryptOpts)
+				testutil.AddTestServerAPIVersion(mcryptOpts)
 				mcryptClient, err := mongo.Connect(mtest.Background, mcryptOpts)
 				assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
 
@@ -955,7 +955,7 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 		}
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc).
 			SetReadPreference(mtest.PrimaryRp).SetAutoEncryptionOptions(aeo).SetMonitor(cseMonitor)
-		testutil.AddLatestServerAPIVersion(opts)
+		testutil.AddTestServerAPIVersion(opts)
 		cpt.cseClient, err = mongo.Connect(mtest.Background, opts)
 		assert.Nil(mt, err, "Connect error for encrypted client: %v", err)
 		cpt.cseColl = cpt.cseClient.Database("db").Collection("coll")

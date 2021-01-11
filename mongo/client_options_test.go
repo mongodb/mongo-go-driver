@@ -22,7 +22,7 @@ func TestClientOptions_CustomDialer(t *testing.T) {
 	td := &testDialer{d: &net.Dialer{}}
 	cs := testutil.ConnString(t)
 	opts := options.Client().ApplyURI(cs.String()).SetDialer(td)
-	testutil.AddLatestServerAPIVersion(opts)
+	testutil.AddTestServerAPIVersion(opts)
 	client, err := NewClient(opts)
 	require.NoError(t, err)
 	err = client.Connect(context.Background())

@@ -114,7 +114,7 @@ func TestClient(t *testing.T) {
 			path.Join(certificatesDir, "client.pem"),
 		)
 		authClientOpts := options.Client().ApplyURI(cs)
-		testutil.AddLatestServerAPIVersion(authClientOpts)
+		testutil.AddTestServerAPIVersion(authClientOpts)
 		authClient, err := mongo.Connect(mtest.Background, authClientOpts)
 		assert.Nil(mt, err, "authClient Connect error: %v", err)
 		defer func() { _ = authClient.Disconnect(mtest.Background) }()
@@ -257,7 +257,7 @@ func TestClient(t *testing.T) {
 			invalidClientOpts := options.Client().
 				SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"}).
 				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond)
-			testutil.AddLatestServerAPIVersion(invalidClientOpts)
+			testutil.AddTestServerAPIVersion(invalidClientOpts)
 			client, err := mongo.Connect(mtest.Background, invalidClientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			err = client.Ping(mtest.Background, readpref.Primary())

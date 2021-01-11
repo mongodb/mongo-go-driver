@@ -70,7 +70,7 @@ func RunCommandOnHost(ctx context.Context, host string, commandFn func(context.C
 	clientOpts := options.Client().
 		ApplyURI(mtest.ClusterURI()).
 		SetHosts([]string{host})
-	testutil.AddLatestServerAPIVersion(clientOpts)
+	testutil.AddTestServerAPIVersion(clientOpts)
 
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {

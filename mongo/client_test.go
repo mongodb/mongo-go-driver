@@ -32,7 +32,7 @@ var bgCtx = context.Background()
 func setupClient(opts ...*options.ClientOptions) *Client {
 	if len(opts) == 0 {
 		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
-		testutil.AddLatestServerAPIVersion(clientOpts)
+		testutil.AddTestServerAPIVersion(clientOpts)
 		opts = append(opts, clientOpts)
 	}
 	client, _ := NewClient(opts...)
@@ -298,7 +298,7 @@ func TestClient(t *testing.T) {
 				}
 				clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
 					SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetMonitor(cmdMonitor)
-				testutil.AddLatestServerAPIVersion(clientOpts)
+				testutil.AddTestServerAPIVersion(clientOpts)
 				client, err := Connect(bgCtx, clientOpts)
 				assert.Nil(t, err, "Connect error: %v", err)
 				defer func() {
@@ -353,22 +353,11 @@ func TestClient(t *testing.T) {
 				SetStrict(false).SetDeprecationErrors(false)
 		}
 
-		convertToDriverAPIOptions := func(opts *options.ServerAPIOptions) *driver.ServerAPIOptions {
-			driverOpts := driver.NewServerAPIOptions().SetServerAPIVersion(string(opts.ServerAPIVersion))
-			if opts.Strict != nil {
-				driverOpts.SetStrict(*opts.Strict)
-			}
-			if opts.DeprecationErrors != nil {
-				driverOpts.SetDeprecationErrors(*opts.DeprecationErrors)
-			}
-			return driverOpts
-		}
-
 		t.Run("success with all options", func(t *testing.T) {
 			serverAPIOptions := getServerAPIOptions()
 			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
-			convertedAPIOptions := convertToDriverAPIOptions(serverAPIOptions)
+			convertedAPIOptions := serverAPIOptions.ConvertToDriverAPIOptions()
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
 				"mismatch in serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})
@@ -395,7 +384,7 @@ func TestClient(t *testing.T) {
 			// modify passed-in options
 			serverAPIOptions.SetServerAPIVersion("modifiedVersion").SetStrict(true).
 				SetDeprecationErrors(true)
-			convertedAPIOptions := convertToDriverAPIOptions(expectedServerAPIOptions)
+			convertedAPIOptions := expectedServerAPIOptions.ConvertToDriverAPIOptions()
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
 				"unexpected modification to serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})

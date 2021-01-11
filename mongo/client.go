@@ -331,14 +331,8 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	// ServerAPIOptions need to be handled early as other client and server options below reference
 	// c.serverAPI and serverOpts.serverAPI.
 	if opts.ServerAPIOptions != nil {
-		// manually clone the passed in options so future modifications of the original ServerAPIOptions have no effect.
-		c.serverAPI = driver.NewServerAPIOptions().SetServerAPIVersion(string(opts.ServerAPIOptions.ServerAPIVersion))
-		if opts.ServerAPIOptions.Strict != nil {
-			c.serverAPI.SetStrict(*opts.ServerAPIOptions.Strict)
-		}
-		if opts.ServerAPIOptions.DeprecationErrors != nil {
-			c.serverAPI.SetDeprecationErrors(*opts.ServerAPIOptions.DeprecationErrors)
-		}
+		// convert passed in options to driver form for client.
+		c.serverAPI = opts.ServerAPIOptions.ConvertToDriverAPIOptions()
 
 		serverOpts = append(serverOpts, topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
 			return c.serverAPI

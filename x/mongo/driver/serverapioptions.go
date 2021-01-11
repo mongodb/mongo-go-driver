@@ -6,8 +6,9 @@
 
 package driver
 
-// LatestServerAPIVersion is the most recent, stable variant of options.ServerAPIVersion
-const LatestServerAPIVersion = "1"
+// TestServerAPIVersion is the most recent, stable variant of options.ServerAPIVersion.
+// Only to be used in testing.
+const TestServerAPIVersion = "1"
 
 // ServerAPIOptions represents options used to configure the API version sent to the server
 // when running commands.
@@ -20,11 +21,6 @@ type ServerAPIOptions struct {
 // NewServerAPIOptions creates a new ServerAPIOptions configured with default values
 func NewServerAPIOptions() *ServerAPIOptions {
 	return &ServerAPIOptions{}
-}
-
-// NewLatestServerAPIOptions creates a new ServerAPIOptions configured with the latest server API version.
-func NewLatestServerAPIOptions() *ServerAPIOptions {
-	return NewServerAPIOptions().SetServerAPIVersion(LatestServerAPIVersion)
 }
 
 // SetServerAPIVersion specifies the version string of the declared API version. This is required.
