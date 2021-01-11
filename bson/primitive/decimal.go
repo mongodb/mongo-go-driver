@@ -217,13 +217,31 @@ func (d Decimal128) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
 }
 
-// UnmarshalJSON creates a primitive.DateTime from a JSON string.
+// UnmarshalJSON creates a primitive.Decimal128 from a JSON string.
 func (d *Decimal128) UnmarshalJSON(b []byte) error {
-	var str string
-	err := json.Unmarshal(b, &str)
+	var res interface{}
+	err := json.Unmarshal(b, &res)
 	if err != nil {
 		return err
 	}
+	str, ok := res.(string)
+
+	// Extended JSON
+	if !ok {
+		m, ok := res.(map[string]interface{})
+		if !ok {
+			return errors.New("not an extended JSON Decimal128")
+		}
+		d128, ok := m["$numberDecimal"]
+		if !ok {
+			return errors.New("not an extended JSON Decimal128")
+		}
+		str, ok = d128.(string)
+		if !ok {
+			return errors.New("not an extended JSON Decimal128")
+		}
+	}
+
 	*d, err = ParseDecimal128(str)
 	return err
 }
