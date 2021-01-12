@@ -84,6 +84,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				defer cancel()
 				_, err := mt.Coll.InsertOne(timeoutCtx, bson.D{{"test", 1}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
+				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
 			})
 			mt.RunOpts("pool cleared on non-timeout network error", noClientOpts, func(mt *mtest.T) {
@@ -139,6 +140,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 
 					_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
 					assert.NotNil(mt, err, "expected InsertOne error, got nil")
+					assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 					assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
 				})
 			})
@@ -161,6 +163,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 
 				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"test", 1}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
+				assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 				assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
 			})
 			mt.Run("pool not cleared on timeout network error", func(mt *mtest.T) {
@@ -176,6 +179,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				defer cancel()
 				_, err = mt.Coll.Find(timeoutCtx, filter)
 				assert.NotNil(mt, err, "expected Find error, got %v", err)
+				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 
 				assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
 			})
@@ -196,9 +200,8 @@ func TestSDAMErrorHandling(t *testing.T) {
 				}
 				_, err = mt.Coll.Find(findCtx, filter)
 				assert.NotNil(mt, err, "expected Find error, got nil")
-				cmdErr, ok := err.(mongo.CommandError)
-				assert.True(mt, ok, "expected error of type %T, got %v of type %T", mongo.CommandError{}, err, err)
-				assert.True(mt, cmdErr.HasErrorLabel("NetworkError"), "expected error %v to have 'NetworkError' label", cmdErr)
+				assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
+				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
 				assert.True(mt, errors.Is(err, context.Canceled), "expected error %v to be context.Canceled", err)
 
 				assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
