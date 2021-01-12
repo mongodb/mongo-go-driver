@@ -1223,7 +1223,7 @@ func TestCollection(t *testing.T) {
 				{"multikey hint", options.FindOneAndDelete().SetSort(bson.M{"x": 1, "y": 1}), false},
 			}
 			for _, tc := range testCases {
-				mt.Run(tc.name, func(mt *mtest.T) {
+				mt.RunOpts(tc.name, mt.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
 					initCollection(mt, mt.Coll)
 					indexView := mt.Coll.Indexes()
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
