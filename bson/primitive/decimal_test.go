@@ -160,7 +160,7 @@ func TestDecimal128_JSON(t *testing.T) {
 		assert.Equal(t, decimal.h, got.h, "expected h: %v got: %v", decimal.h, got.h)
 		assert.Equal(t, decimal.l, got.l, "expected l: %v got: %v", decimal.l, got.l)
 	})
-	t.Run("unmarsal extendedJSON", func(t *testing.T) {
+	t.Run("unmarshal extendedJSON", func(t *testing.T) {
 		want := NewDecimal128(0x3040000000000000, 12345)
 		extJSON := fmt.Sprintf(`{"$numberDecimal": %q}`, want.String())
 
@@ -170,7 +170,7 @@ func TestDecimal128_JSON(t *testing.T) {
 		assert.Equal(t, want.h, got.h, "expected h: %v got: %v", want.h, got.h)
 		assert.Equal(t, want.l, got.l, "expected l: %v got: %v", want.l, got.l)
 	})
-	t.Run("unmarsal null", func(t *testing.T) {
+	t.Run("unmarshal null", func(t *testing.T) {
 		want := NewDecimal128(0, 0)
 		extJSON := `{"$numberDecimal": null}`
 
@@ -180,7 +180,7 @@ func TestDecimal128_JSON(t *testing.T) {
 		assert.Equal(t, want.h, got.h, "expected h: %v got: %v", want.h, got.h)
 		assert.Equal(t, want.l, got.l, "expected l: %v got: %v", want.l, got.l)
 	})
-	t.Run("Unmarshal", func(t *testing.T) {
+	t.Run("unmarshal", func(t *testing.T) {
 		cases := append(bigIntTestCases,
 			[]bigIntTestCase{
 				{s: "-0001231.453454000000565600000000E-21", h: 0xafe6000003faa269, l: 0x81cfeceaabdb1800},
