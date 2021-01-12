@@ -219,6 +219,13 @@ func (d Decimal128) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON creates a primitive.Decimal128 from a JSON string.
 func (d *Decimal128) UnmarshalJSON(b []byte) error {
+	// Ignore "null" to keep parity with the standard library. Decoding a JSON null into a non-pointer Decimal128 field
+	// will leave the field unchanged. For pointer values, encoding/json will set the pointer to nil and will not
+	// enter the UnmarshalJSON hook.
+	if string(b) == "null" {
+		return nil
+	}
+
 	var res interface{}
 	err := json.Unmarshal(b, &res)
 	if err != nil {

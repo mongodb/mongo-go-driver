@@ -170,6 +170,16 @@ func TestDecimal128_JSON(t *testing.T) {
 		assert.Equal(t, want.h, got.h, "expected h: %v got: %v", want.h, got.h)
 		assert.Equal(t, want.l, got.l, "expected l: %v got: %v", want.l, got.l)
 	})
+	t.Run("unmarsal null", func(t *testing.T) {
+		want := NewDecimal128(0, 0)
+		extJSON := `{"$numberDecimal": null}`
+
+		got := NewDecimal128(0, 0)
+		err := json.Unmarshal([]byte(extJSON), &got)
+		assert.Nil(t, err, "json.Unmarshal error: %v", err)
+		assert.Equal(t, want.h, got.h, "expected h: %v got: %v", want.h, got.h)
+		assert.Equal(t, want.l, got.l, "expected l: %v got: %v", want.l, got.l)
+	})
 	t.Run("Unmarshal", func(t *testing.T) {
 		cases := append(bigIntTestCases,
 			[]bigIntTestCase{
@@ -178,7 +188,6 @@ func TestDecimal128_JSON(t *testing.T) {
 				{s: "0.10000000000000000000000000000000000000000001", remark: "parse fail"},
 				{s: ".125e1", h: 0x303c000000000000, l: 125},
 				{s: ".125", h: 0x303a000000000000, l: 125},
-				{s: "null", remark: "parse fail"},
 			}...)
 		for _, c := range cases {
 			input := fmt.Sprintf(`{"foo": %q}`, c.s)
