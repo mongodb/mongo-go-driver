@@ -358,7 +358,7 @@ func runTest(t *testing.T, file string) {
 					}
 
 					switch test.BsonType {
-					case "0x00":
+					case "0x00", "0x05":
 						var doc D
 						err := UnmarshalExtJSON([]byte(s), true, &doc)
 						expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
