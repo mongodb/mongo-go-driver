@@ -237,15 +237,15 @@ func (d *Decimal128) UnmarshalJSON(b []byte) error {
 	if !ok {
 		m, ok := res.(map[string]interface{})
 		if !ok {
-			return errors.New("not an extended JSON Decimal128")
+			return errors.New("not an extended JSON Decimal128: expected document")
 		}
 		d128, ok := m["$numberDecimal"]
 		if !ok {
-			return errors.New("not an extended JSON Decimal128")
+			return errors.New("not an extended JSON Decimal128: expected key $numberDecimal")
 		}
 		str, ok = d128.(string)
 		if !ok {
-			return errors.New("not an extended JSON Decimal128")
+			return errors.New("not an extended JSON Decimal128: expected decimal to be string")
 		}
 	}
 
