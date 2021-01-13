@@ -357,7 +357,7 @@ func TestClient(t *testing.T) {
 			serverAPIOptions := getServerAPIOptions()
 			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
-			convertedAPIOptions := serverAPIOptions.ConvertToDriverAPIOptions()
+			convertedAPIOptions := convertToDriverAPIOptions(serverAPIOptions)
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
 				"mismatch in serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})
@@ -384,7 +384,7 @@ func TestClient(t *testing.T) {
 			// modify passed-in options
 			serverAPIOptions.SetServerAPIVersion("modifiedVersion").SetStrict(true).
 				SetDeprecationErrors(true)
-			convertedAPIOptions := expectedServerAPIOptions.ConvertToDriverAPIOptions()
+			convertedAPIOptions := convertToDriverAPIOptions(expectedServerAPIOptions)
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
 				"unexpected modification to serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})

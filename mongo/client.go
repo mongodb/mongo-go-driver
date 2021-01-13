@@ -332,7 +332,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	// c.serverAPI and serverOpts.serverAPI.
 	if opts.ServerAPIOptions != nil {
 		// convert passed in options to driver form for client.
-		c.serverAPI = opts.ServerAPIOptions.ConvertToDriverAPIOptions()
+		c.serverAPI = convertToDriverAPIOptions(opts.ServerAPIOptions)
 
 		serverOpts = append(serverOpts, topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
 			return c.serverAPI
@@ -700,6 +700,18 @@ func (c *Client) validSession(sess *session.Client) error {
 		return ErrWrongClient
 	}
 	return nil
+}
+
+// convertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
+func convertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOptions {
+	driverOpts := driver.NewServerAPIOptions().SetServerAPIVersion(string(s.ServerAPIVersion))
+	if s.Strict != nil {
+		driverOpts.SetStrict(*s.Strict)
+	}
+	if s.DeprecationErrors != nil {
+		driverOpts.SetDeprecationErrors(*s.DeprecationErrors)
+	}
+	return driverOpts
 }
 
 // Database returns a handle for a database with the given name configured with the given DatabaseOptions.
