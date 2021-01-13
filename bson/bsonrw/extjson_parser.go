@@ -68,8 +68,8 @@ type extJSONParser struct {
 	depth     int
 	maxDepth  int
 
-	emptyObject    bool
-	deprecatedUUID bool
+	emptyObject bool
+	relaxedUUID bool
 }
 
 // newExtJSONParser returns a new extended JSON parser, ready to to begin
@@ -125,7 +125,7 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 
 			// if $uuid is encountered, parse as binary subtype 4
 			if ejp.k == "$uuid" {
-				ejp.deprecatedUUID = true
+				ejp.relaxedUUID = true
 				t = bsontype.Binary
 			}
 
@@ -283,8 +283,8 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 
 		ejp.advanceState()
 		if t == bsontype.Binary && ejp.s == jpsSawValue {
-			// convert legacy $uuid format
-			if ejp.deprecatedUUID {
+			// convert relaxed $uuid format
+			if ejp.relaxedUUID {
 				uuid, err := ejp.v.parseSymbol()
 				if err != nil {
 					return nil, err
@@ -334,7 +334,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 					},
 				}
 
-				ejp.deprecatedUUID = false
+				ejp.relaxedUUID = false
 				break
 			}
 
