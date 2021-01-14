@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"io"
 	"math/rand"
 	"runtime"
 	"testing"
@@ -28,6 +29,83 @@ import (
 func TestGridFS(x *testing.T) {
 	mt := mtest.New(x, noClientOpts)
 	defer mt.Close()
+
+	mt.Run("skipping download", func(mt *mtest.T) {
+		data := []byte("abc.def.ghi")
+		var chunkSize int32 = 4
+
+		testcases := []struct {
+			name string
+
+			read              int
+			skip              int64
+			expectedSkipN     int64
+			expectedSkipErr   error
+			expectedRemaining int
+		}{
+			{
+				"read 0, skip 0", 0, 0, 0, nil, 11,
+			},
+			{
+				"read 0, skip to end of chunk", 0, 4, 4, nil, 7,
+			},
+			{
+				"read 0, skip 1", 0, 1, 1, nil, 10,
+			},
+			{
+				"read 1, skip to end of chunk", 1, 3, 3, nil, 7,
+			},
+			{
+				"read all, skip beyond", 11, 1, 0, nil, 0,
+			},
+			{
+				"skip all", 0, 11, 11, nil, 0,
+			},
+			{
+				"read 1, skip to last chunk", 1, 8, 8, nil, 2,
+			},
+			{
+				"read to last chunk, skip to end", 9, 2, 2, nil, 0,
+			},
+			{
+				"read to last chunk, skip beyond", 9, 4, 2, nil, 0,
+			},
+		}
+
+		for _, tc := range testcases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				bucket, err := gridfs.NewBucket(mt.DB, options.GridFSBucket().SetChunkSizeBytes(chunkSize))
+				assert.Nil(mt, err, "NewBucket error: %v", err)
+
+				ustream, err := bucket.OpenUploadStream("foo")
+				assert.Nil(mt, err, "OpenUploadStream error: %v", err)
+
+				id := ustream.FileID
+				_, err = ustream.Write(data)
+				assert.Nil(mt, err, "Write error: %v", err)
+				err = ustream.Close()
+				assert.Nil(mt, err, "Close error: %v", err)
+
+				dstream, err := bucket.OpenDownloadStream(id)
+				assert.Nil(mt, err, "OpenDownloadStream error")
+				dst := make([]byte, tc.read)
+				_, err = dstream.Read(dst)
+				assert.Nil(mt, err, "Read error: %v", err)
+
+				n, err := dstream.Skip(tc.skip)
+				assert.Equal(mt, tc.expectedSkipErr, err, "expected error on Skip: %v, got %v", tc.expectedSkipErr, err)
+				assert.Equal(mt, tc.expectedSkipN, n, "expected Skip to return: %v, got %v", tc.expectedSkipN, n)
+
+				// Read the rest.
+				dst = make([]byte, len(data))
+				remaining, err := dstream.Read(dst)
+				if err != nil {
+					assert.Equal(mt, err, io.EOF, "unexpected Read error: %v", err)
+				}
+				assert.Equal(mt, tc.expectedRemaining, remaining, "expected remaining data to be: %v, got %v", tc.expectedRemaining, remaining)
+			})
+		}
+	})
 
 	mt.Run("index creation", func(mt *mtest.T) {
 		// Unit tests showing that UploadFromStream creates indexes on the chunks and files collections.
