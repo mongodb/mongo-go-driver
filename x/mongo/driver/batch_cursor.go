@@ -233,6 +233,13 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 	}.Execute(ctx, nil)
 }
 
+func minInt32(a, b int32) int32 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func (bc *BatchCursor) getMore(ctx context.Context) {
 	bc.clearBatch()
 	if bc.id == 0 {
@@ -241,7 +248,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 
 	// Required for legacy operations which don't support limit.
 	numToReturn := bc.batchSize
-	if bc.limit != 0 && bc.numReturned+bc.batchSize > bc.limit {
+	if bc.limit != 0 {
 		numToReturn = bc.limit - bc.numReturned
 		if numToReturn <= 0 {
 			err := bc.Close(ctx)
@@ -250,6 +257,9 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			}
 			return
 		}
+	}
+	if bc.batchSize != 0 {
+		numToReturn = minInt32(numToReturn, bc.batchSize)
 	}
 
 	bc.err = Operation{
