@@ -69,6 +69,8 @@ tests:
           pipeline: &pipeline
             - $listLocalSessions: {}
             - $limit: 1
+        expectError:
+          errorCodeName: "APIStrictError"
     expectEvents:
       - client: *client
         events:
