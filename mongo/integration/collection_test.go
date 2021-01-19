@@ -883,6 +883,20 @@ func TestCollection(t *testing.T) {
 			_, ok := err.(mongo.CommandError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.CommandError{}, err)
 		})
+		mt.Run("unset batch size does not surpass limit", func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+			for _, limit := range []int64{2, 3, 4} {
+				opts := options.Find().SetSkip(0).SetLimit(limit)
+				cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, opts)
+				assert.Nil(mt, err, "Find error with limit: %v", err)
+
+				var docs []interface{}
+				err = cursor.All(mtest.Background, &docs)
+				assert.Nil(mt, err, "All error with limit: %v", err)
+
+				assert.Equal(mt, int(limit), len(docs), "expected number of docs to be %v, got %v", limit, len(docs))
+			}
+		})
 	})
 	mt.RunOpts("find one", noClientOpts, func(mt *mtest.T) {
 		mt.Run("limit", func(mt *mtest.T) {
