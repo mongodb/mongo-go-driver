@@ -70,7 +70,7 @@ func TestIndexView(t *testing.T) {
 				Name: indexName,
 			})
 		})
-		mt.Run("all options", func(mt *mtest.T) {
+		mt.RunOpts("all options", mtest.NewOptions().MinServerVersion("4.9"), func(mt *mtest.T) {
 			opts := options.Index().
 				SetBackground(false).
 				SetExpireAfterSeconds(10).
@@ -93,10 +93,37 @@ func TestIndexView(t *testing.T) {
 					}},
 				})
 
-			// Only check SetBucketSize if version is less than 4.9
-			if mtest.CompareServerVersions(mtest.ServerVersion(), "4.9") < 0 {
-				opts.SetBucketSize(1)
-			}
+			// Omits collation option because it's incompatible with version option
+			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{
+				Keys:    bson.D{{"foo", "text"}},
+				Options: opts,
+			})
+			assert.Nil(mt, err, "CreateOne error: %v", err)
+		})
+		mt.RunOpts("all options including bucketSize", mtest.NewOptions().MaxServerVersion("4.8"), func(mt *mtest.T) {
+			opts := options.Index().
+				SetBackground(false).
+				SetExpireAfterSeconds(10).
+				SetName("a").
+				SetSparse(false).
+				SetUnique(false).
+				SetVersion(1).
+				SetDefaultLanguage("english").
+				SetLanguageOverride("english").
+				SetTextVersion(1).
+				SetWeights(bson.D{}).
+				SetSphereVersion(1).
+				SetBits(2).
+				SetMax(10).
+				SetMin(1).
+				SetPartialFilterExpression(bson.D{}).
+				SetStorageEngine(bson.D{
+					{"wiredTiger", bson.D{
+						{"configString", "block_compressor=zlib"},
+					}},
+				}).
+				SetBucketSize(1)
+
 			// Omits collation option because it's incompatible with version option
 			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{
 				Keys:    bson.D{{"foo", "text"}},
