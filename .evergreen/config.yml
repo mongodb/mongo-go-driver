@@ -1561,13 +1561,13 @@ tasks:
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
-          TOPOLOGY: "server"
+          TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
       - func: run-versioned-api-test
         vars:
-          TOPOLOGY: "server"
+          TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
