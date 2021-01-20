@@ -96,7 +96,8 @@ type FindOptions struct {
 	// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
 	Snapshot *bool
 
-	// A document specifying the order in which documents should be returned.
+	// A document specifying the order in which documents should be returned.  The driver will return an error if the
+	// sort parameter is a multi-key map.
 	Sort interface{}
 }
 
@@ -374,7 +375,7 @@ type FindOneOptions struct {
 	Snapshot *bool
 
 	// A document specifying the sort order to apply to the query. The first document in the sorted order will be
-	// returned.
+	// returned. The driver will return an error if the sort parameter is a multi-key map.
 	Sort interface{}
 }
 
@@ -586,8 +587,8 @@ type FindOneAndReplaceOptions struct {
 	ReturnDocument *ReturnDocument
 
 	// A document specifying which document should be replaced if the filter used by the operation matches multiple
-	// documents in the collection. If set, the first document in the sorted order will be replaced.
-	// The default value is nil.
+	// documents in the collection. If set, the first document in the sorted order will be replaced. The driver will
+	// return an error if the sort parameter is a multi-key map. The default value is nil.
 	Sort interface{}
 
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
@@ -724,8 +725,8 @@ type FindOneAndUpdateOptions struct {
 	ReturnDocument *ReturnDocument
 
 	// A document specifying which document should be updated if the filter used by the operation matches multiple
-	// documents in the collection. If set, the first document in the sorted order will be updated.
-	// The default value is nil.
+	// documents in the collection. If set, the first document in the sorted order will be updated. The driver will
+	// return an error if the sort parameter is a multi-key map. The default value is nil.
 	Sort interface{}
 
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
@@ -857,7 +858,7 @@ type FindOneAndDeleteOptions struct {
 
 	// A document specifying which document should be replaced if the filter used by the operation matches multiple
 	// documents in the collection. If set, the first document in the sorted order will be selected for replacement.
-	// The default value is nil.
+	// The driver will return an error if the sort parameter is a multi-key map. The default value is nil.
 	Sort interface{}
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification
