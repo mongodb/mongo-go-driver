@@ -59,7 +59,7 @@ type parseErrorTestCase struct {
 	String      string `json:"string"`
 }
 
-const dataDir = "../data"
+const dataDir = "../data/bson-corpus/"
 
 var dvd bsoncodec.DefaultValueDecoders
 var dve bsoncodec.DefaultValueEncoders
