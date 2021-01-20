@@ -45,7 +45,7 @@ dep ensure -add "go.mongodb.org/mongo-driver/mongo"
 -------------------------
 ## Usage
 
-To get started with the driver, import the `mongo` package, create a `mongo.Client`:
+To get started with the driver, import the `mongo` package and create a `mongo.Client` with the `Connect` function:
 
 ```go
 import (
@@ -54,20 +54,6 @@ import (
     "go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-```
-
-And connect it to your running MongoDB server:
-
-```go
-ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-defer cancel()
-err = client.Connect(ctx)
-```
-
-To do this in a single step, you can use the `Connect` function:
-
-```go
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 defer cancel()
 client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
