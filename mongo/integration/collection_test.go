@@ -909,6 +909,9 @@ func TestCollection(t *testing.T) {
 				{
 					201, 201, 0,
 				},
+				{
+					100, 200, 120,
+				},
 			}
 
 			for _, tc := range testCases {
@@ -920,7 +923,11 @@ func TestCollection(t *testing.T) {
 				var docs []interface{}
 				err = cursor.All(mtest.Background, &docs)
 				assert.Nil(mt, err, "All error: %v", err)
-				assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
+				if (201 - tc.skip) < tc.limit {
+					assert.Equal(mt, int(201-tc.skip), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
+				} else {
+					assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
+				}
 			}
 		})
 		mt.Run("unset batch size does not surpass limit", func(mt *mtest.T) {
