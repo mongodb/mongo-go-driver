@@ -1556,7 +1556,7 @@ tasks:
       - func: run-aws-auth-test-with-aws-EC2-credentials
       - func: run-aws-ECS-auth-test
 
-  - name: "test-standalone-versioned-api"
+  - name: "test-replicaset-versioned-api"
     tags: ["versioned-api"]
     commands:
       - func: bootstrap-mongo-orchestration

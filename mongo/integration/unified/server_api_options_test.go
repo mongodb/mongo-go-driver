@@ -37,11 +37,10 @@ func (s *ServerAPIOptions) UnmarshalBSON(data []byte) error {
 		return fmt.Errorf("unrecognized fields for ServerAPIOptions: %v", MapKeys(temp.Extra))
 	}
 
-	s.ServerAPIOptions = options.ServerAPI()
 	if err := temp.ServerAPIVersion.Validate(); err != nil {
 		return err
 	}
-	s.SetServerAPIVersion(temp.ServerAPIVersion)
+	s.ServerAPIOptions = options.ServerAPI(temp.ServerAPIVersion)
 	if temp.DeprecationErrors != nil {
 		s.SetDeprecationErrors(*temp.DeprecationErrors)
 	}

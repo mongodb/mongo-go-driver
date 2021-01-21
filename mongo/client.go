@@ -704,7 +704,7 @@ func (c *Client) validSession(sess *session.Client) error {
 
 // convertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
 func convertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOptions {
-	driverOpts := driver.NewServerAPIOptions().SetServerAPIVersion(string(s.ServerAPIVersion))
+	driverOpts := driver.NewServerAPIOptions(string(s.ServerAPIVersion))
 	if s.Strict != nil {
 		driverOpts.SetStrict(*s.Strict)
 	}

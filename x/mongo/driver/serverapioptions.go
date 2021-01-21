@@ -18,15 +18,9 @@ type ServerAPIOptions struct {
 	DeprecationErrors *bool
 }
 
-// NewServerAPIOptions creates a new ServerAPIOptions configured with default values
-func NewServerAPIOptions() *ServerAPIOptions {
-	return &ServerAPIOptions{}
-}
-
-// SetServerAPIVersion specifies the version string of the declared API version. This is required.
-func (s *ServerAPIOptions) SetServerAPIVersion(serverAPIVersion string) *ServerAPIOptions {
-	s.ServerAPIVersion = serverAPIVersion
-	return s
+// NewServerAPIOptions creates a new ServerAPIOptions configured with the provided serverAPIVersion.
+func NewServerAPIOptions(serverAPIVersion string) *ServerAPIOptions {
+	return &ServerAPIOptions{ServerAPIVersion: serverAPIVersion}
 }
 
 // SetStrict specifies whether the server should return errors for features that are not part of the API version.

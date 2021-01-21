@@ -25,15 +25,9 @@ type ServerAPIOptions struct {
 	DeprecationErrors *bool
 }
 
-// ServerAPI creates a new ServerAPIOptions configured with default values.
-func ServerAPI() *ServerAPIOptions {
-	return &ServerAPIOptions{}
-}
-
-// SetServerAPIVersion specifies the version string of the declared API version. This is required.
-func (s *ServerAPIOptions) SetServerAPIVersion(serverAPIVersion ServerAPIVersion) *ServerAPIOptions {
-	s.ServerAPIVersion = serverAPIVersion
-	return s
+// ServerAPI creates a new ServerAPIOptions configured with the provided serverAPIversion.
+func ServerAPI(serverAPIVersion ServerAPIVersion) *ServerAPIOptions {
+	return &ServerAPIOptions{ServerAPIVersion: serverAPIVersion}
 }
 
 // SetStrict specifies whether the server should return errors for features that are not part of the API version.
@@ -62,5 +56,5 @@ func (sav ServerAPIVersion) Validate() error {
 	case ServerAPIVersion1:
 		return nil
 	}
-	return fmt.Errorf("api version %q not supported by driver", sav)
+	return fmt.Errorf("api version %q not supported; this driver version only supports API version \"1\"", sav)
 }

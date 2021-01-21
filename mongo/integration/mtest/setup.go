@@ -58,7 +58,7 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 	wcMajority := writeconcern.New(writeconcern.WMajority())
 	// set ServerAPIOptions to latest version if required
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
-		opts.SetServerAPIOptions(options.ServerAPI().SetServerAPIVersion(driver.TestServerAPIVersion))
+		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
 	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority))
 }
@@ -87,7 +87,7 @@ func Setup() error {
 	if testContext.requireAPIVersion {
 		serverOpts = append(serverOpts,
 			topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
-				return driver.NewServerAPIOptions().SetServerAPIVersion(driver.TestServerAPIVersion)
+				return driver.NewServerAPIOptions(driver.TestServerAPIVersion)
 			}),
 		)
 	}
