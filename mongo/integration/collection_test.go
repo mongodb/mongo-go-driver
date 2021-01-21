@@ -883,9 +883,56 @@ func TestCollection(t *testing.T) {
 			_, ok := err.(mongo.CommandError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.CommandError{}, err)
 		})
+		mt.Run("limit and batch size and skip", func(mt *mtest.T) {
+			var docs []interface{}
+			for i := 1; i <= 201; i++ {
+				docs = append(docs, bson.D{{"x", int32(i)}})
+			}
+
+			_, err := mt.Coll.InsertMany(mtest.Background, docs)
+			assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+
+			testCases := []struct {
+				limit     int64
+				batchSize int32
+				skip      int64
+			}{
+				{
+					99, 100, 10,
+				},
+				{
+					100, 100, 20,
+				},
+				{
+					80, 20, 90,
+				},
+				{
+					201, 201, 0,
+				},
+			}
+
+			for _, tc := range testCases {
+				findOptions := options.Find().SetLimit(tc.limit).SetBatchSize(tc.batchSize).
+					SetSkip(tc.skip)
+				cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, findOptions)
+				assert.Nil(mt, err, "Find error: %v", err)
+
+				var docs []interface{}
+				err = cursor.All(mtest.Background, &docs)
+				assert.Nil(mt, err, "All error: %v", err)
+				assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
+			}
+		})
 		mt.Run("unset batch size does not surpass limit", func(mt *mtest.T) {
-			initCollection(mt, mt.Coll)
-			for _, limit := range []int64{2, 3, 4} {
+			var docs []interface{}
+			for i := 1; i <= 201; i++ {
+				docs = append(docs, bson.D{{"x", int32(i)}})
+			}
+
+			_, err := mt.Coll.InsertMany(mtest.Background, docs)
+			assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+
+			for _, limit := range []int64{99, 100, 101, 200} {
 				opts := options.Find().SetSkip(0).SetLimit(limit)
 				cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, opts)
 				assert.Nil(mt, err, "Find error with limit: %v", err)
