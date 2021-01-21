@@ -172,7 +172,7 @@ func TestDecimal128_JSON(t *testing.T) {
 	})
 	t.Run("unmarshal null", func(t *testing.T) {
 		want := NewDecimal128(0, 0)
-		extJSON := `{"$numberDecimal": null}`
+		extJSON := `null`
 
 		got := NewDecimal128(0, 0)
 		err := json.Unmarshal([]byte(extJSON), &got)
