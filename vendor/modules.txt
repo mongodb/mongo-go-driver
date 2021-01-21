@@ -97,9 +97,12 @@ github.com/tidwall/pretty
 github.com/xdg/scram
 # github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
 github.com/xdg/stringprep
+# github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
+github.com/youmark/pkcs8
 # golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 golang.org/x/sync/errgroup
