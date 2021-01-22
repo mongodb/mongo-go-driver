@@ -42,6 +42,7 @@ type Create struct {
 	deployment          driver.Deployment
 	selector            description.ServerSelector
 	writeConcern        *writeconcern.WriteConcern
+	serverAPI           *driver.ServerAPIOptions
 }
 
 // NewCreate constructs and returns a new Create.
@@ -73,6 +74,7 @@ func (c *Create) Execute(ctx context.Context) error {
 		Deployment:        c.deployment,
 		Selector:          c.selector,
 		WriteConcern:      c.writeConcern,
+		ServerAPI:         c.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -317,5 +319,15 @@ func (c *Create) WriteConcern(writeConcern *writeconcern.WriteConcern) *Create {
 	}
 
 	c.writeConcern = writeConcern
+	return c
+}
+
+// ServerAPI sets the server API version for this operation.
+func (c *Create) ServerAPI(serverAPI *driver.ServerAPIOptions) *Create {
+	if c == nil {
+		c = new(Create)
+	}
+
+	c.serverAPI = serverAPI
 	return c
 }

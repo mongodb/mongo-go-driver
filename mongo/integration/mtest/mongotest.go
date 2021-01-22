@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 var (
@@ -83,24 +84,25 @@ type T struct {
 	*testing.T
 
 	// members for only this T instance
-	createClient     *bool
-	createCollection *bool
-	runOn            []RunOnBlock
-	mockDeployment   *mockDeployment // nil if the test is not being run against a mock
-	mockResponses    []bson.D
-	createdColls     []*Collection // collections created in this test
-	proxyDialer      *proxyDialer
-	dbName, collName string
-	failPointNames   []string
-	minServerVersion string
-	maxServerVersion string
-	validTopologies  []TopologyKind
-	auth             *bool
-	enterprise       *bool
-	dataLake         *bool
-	ssl              *bool
-	collCreateOpts   bson.D
-	connsCheckedOut  int // net number of connections checked out during test execution
+	createClient      *bool
+	createCollection  *bool
+	runOn             []RunOnBlock
+	mockDeployment    *mockDeployment // nil if the test is not being run against a mock
+	mockResponses     []bson.D
+	createdColls      []*Collection // collections created in this test
+	proxyDialer       *proxyDialer
+	dbName, collName  string
+	failPointNames    []string
+	minServerVersion  string
+	maxServerVersion  string
+	validTopologies   []TopologyKind
+	auth              *bool
+	enterprise        *bool
+	dataLake          *bool
+	ssl               *bool
+	collCreateOpts    bson.D
+	connsCheckedOut   int // net number of connections checked out during test execution
+	requireAPIVersion *bool
 
 	// options copied to sub-tests
 	clientType  ClientType
@@ -545,6 +547,10 @@ func (t *T) createTestClient() {
 		// default opts
 		clientOpts = options.Client().SetWriteConcern(MajorityWc).SetReadPreference(PrimaryRp)
 	}
+	// set ServerAPIOptions to latest version if required
+	if clientOpts.Deployment == nil && t.clientType != Mock && clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
+		clientOpts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
+	}
 	// command monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
@@ -666,13 +672,29 @@ func verifyTopologyConstraints(topologies []TopologyKind) error {
 	return fmt.Errorf("topology kind %q does not match any of the required kinds %q", testContext.topoKind, topologies)
 }
 
+func verifyServerParametersConstraints(serverParameters map[string]bson.RawValue) error {
+	for param, expected := range serverParameters {
+		actual, err := testContext.serverParameters.LookupErr(param)
+		if err != nil {
+			return fmt.Errorf("server does not support parameter %q", param)
+		}
+		if !expected.Equal(actual) {
+			return fmt.Errorf("mismatched values for server parameter %q; expected %s, got %s", param, expected, actual)
+		}
+	}
+	return nil
+}
+
 // verifyRunOnBlockConstraint returns an error if the current environment does not match the provided RunOnBlock.
 func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyVersionConstraints(rob.MinServerVersion, rob.MaxServerVersion); err != nil {
 		return err
 	}
+	if err := verifyTopologyConstraints(rob.Topology); err != nil {
+		return err
+	}
 
-	return verifyTopologyConstraints(rob.Topology)
+	return verifyServerParametersConstraints(rob.ServerParameters)
 }
 
 // verifyConstraints returns an error if the current environment does not match the constraints specified for the test.
@@ -697,6 +719,10 @@ func (t *T) verifyConstraints() error {
 	if t.dataLake != nil && *t.dataLake != testContext.dataLake {
 		return fmt.Errorf("test requires cluster to be data lake: %v, cluster is data lake: %v", *t.dataLake,
 			testContext.dataLake)
+	}
+	if t.requireAPIVersion != nil && *t.requireAPIVersion != testContext.requireAPIVersion {
+		return fmt.Errorf("test requires RequireAPIVersion value: %v, local RequireAPIVersion value: %v", *t.requireAPIVersion,
+			testContext.requireAPIVersion)
 	}
 
 	// Check runOn blocks. The test can be executed if there are no blocks or at least block matches the current test

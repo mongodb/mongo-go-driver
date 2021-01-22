@@ -8,11 +8,13 @@ package testutil // import "go.mongodb.org/mongo-driver/internal/testutil"
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -100,4 +102,11 @@ func RunCommand(t *testing.T, s *topology.Server, db string, cmd bsoncore.Docume
 	err := op.Execute(context.Background())
 	res := op.Result()
 	return res, err
+}
+
+// AddTestServerAPIVersion adds the latest server API version in a ServerAPIOptions to passed-in opts.
+func AddTestServerAPIVersion(opts *options.ClientOptions) {
+	if os.Getenv("REQUIRE_API_VERSION") == "true" {
+		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
+	}
 }

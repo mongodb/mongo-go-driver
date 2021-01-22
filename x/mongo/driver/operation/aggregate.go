@@ -45,6 +45,7 @@ type Aggregate struct {
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	crypt                    *driver.Crypt
+	serverAPI                *driver.ServerAPIOptions
 
 	result driver.CursorResponse
 }
@@ -62,6 +63,7 @@ func (a *Aggregate) Result(opts driver.CursorOptions) (*driver.BatchCursor, erro
 	clientSession := a.session
 
 	clock := a.clock
+	opts.ServerAPI = a.serverAPI
 	return driver.NewBatchCursor(a.result, clientSession, clock, opts)
 }
 
@@ -100,6 +102,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		WriteConcern:                   a.writeConcern,
 		Crypt:                          a.crypt,
 		MinimumWriteConcernWireVersion: 5,
+		ServerAPI:                      a.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -351,5 +354,15 @@ func (a *Aggregate) Crypt(crypt *driver.Crypt) *Aggregate {
 	}
 
 	a.crypt = crypt
+	return a
+}
+
+// ServerAPI sets the server API version for this operation.
+func (a *Aggregate) ServerAPI(serverAPI *driver.ServerAPIOptions) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.serverAPI = serverAPI
 	return a
 }

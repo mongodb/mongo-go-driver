@@ -30,6 +30,7 @@ type BatchCursor struct {
 	cmdMonitor           *event.CommandMonitor
 	postBatchResumeToken bsoncore.Document
 	crypt                *Crypt
+	serverAPI            *ServerAPIOptions
 
 	// legacy server (< 3.2) fields
 	legacy      bool // This field is provided for ListCollectionsBatchCursor.
@@ -103,6 +104,7 @@ type CursorOptions struct {
 	Limit          int32
 	CommandMonitor *event.CommandMonitor
 	Crypt          *Crypt
+	ServerAPI      *ServerAPIOptions
 }
 
 // NewBatchCursor creates a new BatchCursor from the provided parameters.
@@ -121,6 +123,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		firstBatch:           true,
 		postBatchResumeToken: cr.postBatchResumeToken,
 		crypt:                opts.Crypt,
+		serverAPI:            opts.ServerAPI,
 	}
 
 	if ds != nil {
@@ -230,6 +233,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 		Clock:          bc.clock,
 		Legacy:         LegacyKillCursors,
 		CommandMonitor: bc.cmdMonitor,
+		ServerAPI:      bc.serverAPI,
 	}.Execute(ctx, nil)
 }
 

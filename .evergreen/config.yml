@@ -201,6 +201,7 @@ functions:
           AUTH=${AUTH} \
           SSL=${SSL} \
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
+          REQUIRE_API_VERSION=${REQUIRE_API_VERSION} \
           sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
@@ -222,7 +223,7 @@ functions:
     - command: expansions.update
       params:
         file: mo-expansion.yml
-  
+
   cleanup:
     - command: shell.exec
       params:
@@ -441,6 +442,33 @@ functions:
           MONGODB_URI="${MONGODB_URI}" \
           OCSP_TLS_SHOULD_SUCCEED="${OCSP_TLS_SHOULD_SUCCEED}" \
           make evg-test-ocsp
+
+  run-versioned-api-test:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          export GOFLAGS=-mod=vendor
+          set +o xtrace
+          AUTH="${AUTH}" \
+          SSL="${SSL}" \
+          MONGODB_URI="${MONGODB_URI}" \
+          TOPOLOGY="${TOPOLOGY}" \
+          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
+          BUILD_TAGS="-tags cse" \
+          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
+          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
+          AZURE_TENANT_ID="${cse_azure_tenant_id}" \
+          AZURE_CLIENT_ID="${cse_azure_client_id}" \
+          AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
+          GCP_EMAIL="${cse_gcp_email}" \
+          GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
+          REQUIRE_API_VERSION="${REQUIRE_API_VERSION}" \
+          make evg-test-versioned-api \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
   run-atlas-data-lake-test:
     - command: shell.exec
@@ -1528,6 +1556,37 @@ tasks:
       - func: run-aws-auth-test-with-aws-EC2-credentials
       - func: run-aws-ECS-auth-test
 
+  - name: "test-replicaset-versioned-api"
+    tags: ["versioned-api"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+      - func: run-versioned-api-test
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+
+  - name: "test-standalone-versioned-api-test-commands"
+    tags: ["versioned-api"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+          ORCHESTRATION_FILE: "versioned-api-testing.json"
+      - func: run-versioned-api-test
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -1749,3 +1808,9 @@ buildvariants:
     tasks:
       # macos MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
+
+  - matrix_name: "versioned-api-test"
+    matrix_spec: { version: ["latest"], os-ssl-32: "*" }
+    display_name: "API Version ${os-ssl-32}"
+    tasks:
+      - name: ".versioned-api"

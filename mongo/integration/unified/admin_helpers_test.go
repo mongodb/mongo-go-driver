@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -69,6 +70,7 @@ func RunCommandOnHost(ctx context.Context, host string, commandFn func(context.C
 	clientOpts := options.Client().
 		ApplyURI(mtest.ClusterURI()).
 		SetHosts([]string{host})
+	testutil.AddTestServerAPIVersion(clientOpts)
 
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {

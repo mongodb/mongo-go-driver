@@ -182,6 +182,9 @@ type Operation struct {
 
 	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
 	Crypt *Crypt
+
+	// ServerAPI specifies options used to configure the API version sent to the server.
+	ServerAPI *ServerAPIOptions
 }
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
@@ -764,6 +767,12 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 		return dst, info, err
 	}
 
+	// Add server API information before calling addSession() because it will modify
+	// transaction state.
+	if op.Client == nil || !op.Client.TransactionInProgress() {
+		dst = op.addServerAPI(dst)
+	}
+
 	dst, err = op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
@@ -823,6 +832,12 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 	dst, err = op.addWriteConcern(dst, desc)
 	if err != nil {
 		return dst, info, err
+	}
+
+	// Add server API information before calling addSession() because it will modify
+	// transaction state.
+	if op.Client == nil || !op.Client.TransactionInProgress() {
+		dst = op.addServerAPI(dst)
 	}
 
 	dst, err = op.addSession(dst, desc)
@@ -897,6 +912,23 @@ func (op Operation) addCommandFields(ctx context.Context, dst []byte, desc descr
 	// append encrypted command to original destination, removing the first 4 bytes (length) and final byte (terminator)
 	dst = append(dst, encrypted[4:len(encrypted)-1]...)
 	return dst, nil
+}
+
+// addServerAPI adds the relevant fields for server API specification to the wire message in dst.
+func (op Operation) addServerAPI(dst []byte) []byte {
+	sa := op.ServerAPI
+	if sa == nil {
+		return dst
+	}
+
+	dst = bsoncore.AppendStringElement(dst, "apiVersion", sa.ServerAPIVersion)
+	if sa.Strict != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "apiStrict", *sa.Strict)
+	}
+	if sa.DeprecationErrors != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "apiDeprecationErrors", *sa.DeprecationErrors)
+	}
+	return dst
 }
 
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {

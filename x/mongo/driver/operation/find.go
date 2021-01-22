@@ -58,6 +58,7 @@ type Find struct {
 	selector            description.ServerSelector
 	retry               *driver.RetryMode
 	result              driver.CursorResponse
+	serverAPI           *driver.ServerAPIOptions
 }
 
 // NewFind constructs and returns a new Find.
@@ -69,6 +70,7 @@ func NewFind(filter bsoncore.Document) *Find {
 
 // Result returns the result of executing this operation.
 func (f *Find) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
+	opts.ServerAPI = f.serverAPI
 	return driver.NewBatchCursor(f.result, f.session, f.clock, opts)
 }
 
@@ -99,6 +101,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		ReadPreference:    f.readPreference,
 		Selector:          f.selector,
 		Legacy:            driver.LegacyFind,
+		ServerAPI:         f.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -508,5 +511,15 @@ func (f *Find) Retry(retry driver.RetryMode) *Find {
 	}
 
 	f.retry = &retry
+	return f
+}
+
+// ServerAPI sets the server API version for this operation.
+func (f *Find) ServerAPI(serverAPI *driver.ServerAPIOptions) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.serverAPI = serverAPI
 	return f
 }

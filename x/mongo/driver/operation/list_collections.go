@@ -35,6 +35,7 @@ type ListCollections struct {
 	retry          *driver.RetryMode
 	result         driver.CursorResponse
 	batchSize      *int32
+	serverAPI      *driver.ServerAPIOptions
 }
 
 // NewListCollections constructs and returns a new ListCollections.
@@ -46,6 +47,7 @@ func NewListCollections(filter bsoncore.Document) *ListCollections {
 
 // Result returns the result of executing this operation.
 func (lc *ListCollections) Result(opts driver.CursorOptions) (*driver.ListCollectionsBatchCursor, error) {
+	opts.ServerAPI = lc.serverAPI
 	bc, err := driver.NewBatchCursor(lc.result, lc.session, lc.clock, opts)
 	if err != nil {
 		return nil, err
@@ -83,6 +85,7 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 		ReadPreference:    lc.readPreference,
 		Selector:          lc.selector,
 		Legacy:            driver.LegacyListCollections,
+		ServerAPI:         lc.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -223,5 +226,15 @@ func (lc *ListCollections) BatchSize(batchSize int32) *ListCollections {
 	}
 
 	lc.batchSize = &batchSize
+	return lc
+}
+
+// ServerAPI sets the server API version for this operation.
+func (lc *ListCollections) ServerAPI(serverAPI *driver.ServerAPIOptions) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.serverAPI = serverAPI
 	return lc
 }

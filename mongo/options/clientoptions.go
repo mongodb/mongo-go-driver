@@ -115,6 +115,7 @@ type ClientOptions struct {
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
+	ServerAPIOptions         *ServerAPIOptions
 	ServerSelectionTimeout   *time.Duration
 	SocketTimeout            *time.Duration
 	TLSConfig                *tls.Config
@@ -165,6 +166,11 @@ func (c *ClientOptions) validateAndSetError() {
 			c.err = errors.New("a direct connection cannot be made if an SRV URI is used")
 			return
 		}
+	}
+
+	// verify server API version if ServerAPIOptions are passed in.
+	if c.ServerAPIOptions != nil {
+		c.err = c.ServerAPIOptions.ServerAPIVersion.Validate()
 	}
 }
 
@@ -711,6 +717,14 @@ func (c *ClientOptions) SetDisableOCSPEndpointCheck(disableCheck bool) *ClientOp
 	return c
 }
 
+// SetServerAPIOptions specifies a ServerAPIOptions instance used to configure the API version sent to the server
+// when running commands. See the options.ServerAPIOptions documentation for more information about the supported
+// options.
+func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptions {
+	c.ServerAPIOptions = opts
+	return c
+}
+
 // MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
@@ -763,6 +777,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Monitor != nil {
 			c.Monitor = opt.Monitor
+		}
+		if opt.ServerAPIOptions != nil {
+			c.ServerAPIOptions = opt.ServerAPIOptions
 		}
 		if opt.ServerMonitor != nil {
 			c.ServerMonitor = opt.ServerMonitor

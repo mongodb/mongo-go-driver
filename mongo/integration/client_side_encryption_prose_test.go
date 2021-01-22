@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -50,6 +51,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	defer mt.Close()
 
 	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
+	testutil.AddTestServerAPIVersion(defaultKvClientOptions)
 	fullKmsProvidersMap := map[string]map[string]interface{}{
 		"aws": {
 			"accessKeyId":     awsAccessKeyID,
@@ -122,6 +124,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					},
 				}
 				kvClientOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetMonitor(monitor)
+				testutil.AddTestServerAPIVersion(kvClientOpts)
 				cpt := setup(mt, aeo, kvClientOpts, ceo)
 				defer cpt.teardown(mt)
 
@@ -214,6 +217,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						Username: "fake-user",
 						Password: "fake-password",
 					})
+					testutil.AddTestServerAPIVersion(externalKvOpts)
 					aeo.SetKeyVaultClientOptions(externalKvOpts)
 					kvClientOpts = externalKvOpts
 				}
@@ -803,6 +807,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").
 					SetServerSelectionTimeout(1 * time.Second)
+				testutil.AddTestServerAPIVersion(mcryptOpts)
 				mcryptClient, err := mongo.Connect(mtest.Background, mcryptOpts)
 				assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
 
@@ -950,6 +955,7 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 		}
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc).
 			SetReadPreference(mtest.PrimaryRp).SetAutoEncryptionOptions(aeo).SetMonitor(cseMonitor)
+		testutil.AddTestServerAPIVersion(opts)
 		cpt.cseClient, err = mongo.Connect(mtest.Background, opts)
 		assert.Nil(mt, err, "Connect error for encrypted client: %v", err)
 		cpt.cseColl = cpt.cseClient.Database("db").Collection("coll")

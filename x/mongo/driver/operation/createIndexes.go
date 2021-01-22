@@ -37,6 +37,7 @@ type CreateIndexes struct {
 	selector     description.ServerSelector
 	writeConcern *writeconcern.WriteConcern
 	result       CreateIndexesResult
+	serverAPI    *driver.ServerAPIOptions
 }
 
 type CreateIndexesResult struct {
@@ -112,6 +113,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Deployment:        ci.deployment,
 		Selector:          ci.selector,
 		WriteConcern:      ci.writeConcern,
+		ServerAPI:         ci.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -252,5 +254,15 @@ func (ci *CreateIndexes) WriteConcern(writeConcern *writeconcern.WriteConcern) *
 	}
 
 	ci.writeConcern = writeConcern
+	return ci
+}
+
+// ServerAPI sets the server API version for this operation.
+func (ci *CreateIndexes) ServerAPI(serverAPI *driver.ServerAPIOptions) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.serverAPI = serverAPI
 	return ci
 }

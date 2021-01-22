@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -76,6 +77,11 @@ func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*Client
 			}
 		}
 		clientOpts.SetMonitor(monitor)
+	}
+	if entityOptions.ServerAPIOptions != nil {
+		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
+	} else {
+		testutil.AddTestServerAPIVersion(clientOpts)
 	}
 	for _, cmd := range entityOptions.IgnoredCommands {
 		entity.ignoredCommands[cmd] = struct{}{}

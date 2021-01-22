@@ -32,6 +32,7 @@ type ListIndexes struct {
 	selector   description.ServerSelector
 	retry      *driver.RetryMode
 	crypt      *driver.Crypt
+	serverAPI  *driver.ServerAPIOptions
 
 	result driver.CursorResponse
 }
@@ -47,6 +48,7 @@ func (li *ListIndexes) Result(opts driver.CursorOptions) (*driver.BatchCursor, e
 	clientSession := li.session
 
 	clock := li.clock
+	opts.ServerAPI = li.serverAPI
 	return driver.NewBatchCursor(li.result, clientSession, clock, opts)
 }
 
@@ -78,6 +80,7 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		Legacy:         driver.LegacyListIndexes,
 		RetryMode:      li.retry,
 		Type:           driver.Read,
+		ServerAPI:      li.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -208,5 +211,15 @@ func (li *ListIndexes) Crypt(crypt *driver.Crypt) *ListIndexes {
 	}
 
 	li.crypt = crypt
+	return li
+}
+
+// ServerAPI sets the server API version for this operation.
+func (li *ListIndexes) ServerAPI(serverAPI *driver.ServerAPIOptions) *ListIndexes {
+	if li == nil {
+		li = new(ListIndexes)
+	}
+
+	li.serverAPI = serverAPI
 	return li
 }

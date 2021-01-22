@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -49,10 +50,16 @@ var testContext struct {
 	sslEnabled        bool
 	enterpriseServer  bool
 	dataLake          bool
+	requireAPIVersion bool
+	serverParameters  bson.Raw
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
 	wcMajority := writeconcern.New(writeconcern.WMajority())
+	// set ServerAPIOptions to latest version if required
+	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
+		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
+	}
 	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority))
 }
 
@@ -65,6 +72,7 @@ func Setup() error {
 		return fmt.Errorf("error getting connection string: %v", err)
 	}
 	testContext.dataLake = os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") == "true"
+	testContext.requireAPIVersion = os.Getenv("REQUIRE_API_VERSION") == "true"
 
 	connectionOpts := []topology.ConnectionOption{
 		topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
@@ -76,6 +84,14 @@ func Setup() error {
 			return append(opts, connectionOpts...)
 		}),
 	}
+	if testContext.requireAPIVersion {
+		serverOpts = append(serverOpts,
+			topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
+				return driver.NewServerAPIOptions(driver.TestServerAPIVersion)
+			}),
+		)
+	}
+
 	testContext.topo, err = topology.New(
 		topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
 			return testContext.connString
@@ -175,6 +191,12 @@ func Setup() error {
 				break
 			}
 		}
+	}
+
+	db := testContext.client.Database("admin")
+	testContext.serverParameters, err = db.RunCommand(Background, bson.D{{"getParameter", "*"}}).DecodeBytes()
+	if err != nil {
+		return fmt.Errorf("error getting serverParameters: %v", err)
 	}
 	return nil
 }

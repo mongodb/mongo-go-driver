@@ -23,6 +23,7 @@ import (
 var (
 	directories = []string{
 		"unified-test-format/valid-pass",
+		"versioned-api",
 	}
 
 	skippedTestDescriptions = map[string]struct{}{

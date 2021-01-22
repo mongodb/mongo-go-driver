@@ -126,7 +126,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
-		Crypt(config.crypt)
+		ServerAPI(cs.client.serverAPI).Crypt(config.crypt)
 
 	if config.crypt != nil {
 		cs.cursorOptions.Crypt = config.crypt
@@ -142,6 +142,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.cursorOptions.MaxTimeMS = int64(time.Duration(*cs.options.MaxAwaitTime) / time.Millisecond)
 	}
 	cs.cursorOptions.CommandMonitor = cs.client.monitor
+	cs.cursorOptions.ServerAPI = cs.client.serverAPI
 
 	switch cs.streamType {
 	case ClientStream:

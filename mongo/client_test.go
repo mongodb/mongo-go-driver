@@ -31,7 +31,9 @@ var bgCtx = context.Background()
 
 func setupClient(opts ...*options.ClientOptions) *Client {
 	if len(opts) == 0 {
-		opts = append(opts, options.Client().ApplyURI("mongodb://localhost:27017"))
+		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
+		testutil.AddTestServerAPIVersion(clientOpts)
+		opts = append(opts, clientOpts)
 	}
 	client, _ := NewClient(opts...)
 	return client
@@ -296,6 +298,7 @@ func TestClient(t *testing.T) {
 				}
 				clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
 					SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetMonitor(cmdMonitor)
+				testutil.AddTestServerAPIVersion(clientOpts)
 				client, err := Connect(bgCtx, clientOpts)
 				assert.Nil(t, err, "Connect error: %v", err)
 				defer func() {
@@ -343,5 +346,39 @@ func TestClient(t *testing.T) {
 				}
 			})
 		}
+	})
+	t.Run("serverAPI version", func(t *testing.T) {
+		getServerAPIOptions := func() *options.ServerAPIOptions {
+			return options.ServerAPI(options.ServerAPIVersion1).
+				SetStrict(false).SetDeprecationErrors(false)
+		}
+
+		t.Run("success with all options", func(t *testing.T) {
+			serverAPIOptions := getServerAPIOptions()
+			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
+			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
+			convertedAPIOptions := convertToDriverAPIOptions(serverAPIOptions)
+			assert.Equal(t, convertedAPIOptions, client.serverAPI,
+				"mismatch in serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
+		})
+		t.Run("failure with unsupported version", func(t *testing.T) {
+			serverAPIOptions := options.ServerAPI("badVersion")
+			_, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
+			assert.NotNil(t, err, "expected error from NewClient, got nil")
+			errmsg := `api version "badVersion" not supported; this driver version only supports API version "1"`
+			assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
+		})
+		t.Run("cannot modify options after client creation", func(t *testing.T) {
+			serverAPIOptions := getServerAPIOptions()
+			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
+			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
+
+			expectedServerAPIOptions := getServerAPIOptions()
+			// modify passed-in options
+			serverAPIOptions.SetStrict(true).SetDeprecationErrors(true)
+			convertedAPIOptions := convertToDriverAPIOptions(expectedServerAPIOptions)
+			assert.Equal(t, convertedAPIOptions, client.serverAPI,
+				"unexpected modification to serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
+		})
 	})
 }

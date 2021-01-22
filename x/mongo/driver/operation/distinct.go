@@ -39,6 +39,7 @@ type Distinct struct {
 	selector       description.ServerSelector
 	retry          *driver.RetryMode
 	result         DistinctResult
+	serverAPI      *driver.ServerAPIOptions
 }
 
 type DistinctResult struct {
@@ -98,6 +99,7 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		ReadConcern:       d.readConcern,
 		ReadPreference:    d.readPreference,
 		Selector:          d.selector,
+		ServerAPI:         d.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -270,5 +272,15 @@ func (d *Distinct) Retry(retry driver.RetryMode) *Distinct {
 	}
 
 	d.retry = &retry
+	return d
+}
+
+// ServerAPI sets the server API version for this operation.
+func (d *Distinct) ServerAPI(serverAPI *driver.ServerAPIOptions) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.serverAPI = serverAPI
 	return d
 }

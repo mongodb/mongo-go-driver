@@ -27,8 +27,9 @@ func TestCursor(t *testing.T) {
 	defer mt.Close()
 	cappedCollectionOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
 
-	// server versions 2.6 and 3.0 use OP_GET_MORE so this works on >= 3.2
-	mt.RunOpts("cursor is killed on server", mtest.NewOptions().MinServerVersion("3.2"), func(mt *mtest.T) {
+	// Server versions 2.6 and 3.0 use OP_GET_MORE so this works on >= 3.2 and when RequireAPIVersion is false;
+	// getMore cannot be sent with RunCommand as server API options will be attached when they should not be.
+	mt.RunOpts("cursor is killed on server", mtest.NewOptions().MinServerVersion("3.2").RequireAPIVersion(false), func(mt *mtest.T) {
 		initCollection(mt, mt.Coll)
 		c, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(2))
 		assert.Nil(mt, err, "Find error: %v", err)
