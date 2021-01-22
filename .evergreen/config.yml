@@ -1556,18 +1556,18 @@ tasks:
       - func: run-aws-auth-test-with-aws-EC2-credentials
       - func: run-aws-ECS-auth-test
 
-  - name: "test-replicaset-versioned-api"
+  - name: "test-standalone-versioned-api"
     tags: ["versioned-api"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
-          TOPOLOGY: "replica_set"
+          TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
       - func: run-versioned-api-test
         vars:
-          TOPOLOGY: "replica_set"
+          TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
@@ -1578,13 +1578,13 @@ tasks:
       - func: bootstrap-mongo-orchestration
         vars:
           TOPOLOGY: "server"
-          AUTH: "auth"
+          AUTH: "noauth"
           SSL: "nossl"
           ORCHESTRATION_FILE: "versioned-api-testing.json"
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
-          AUTH: "auth"
+          AUTH: "noauth"
           SSL: "nossl"
 
 axes:
