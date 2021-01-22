@@ -178,11 +178,10 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 // The runCommand parameter must be a document for the command to be executed. It cannot be nil.
 // This must be an order-preserving type such as bson.D. Map types such as bson.M are not valid.
 // If the command document contains a session ID or any transaction-specific fields, the behavior is undefined.
-//
-// The opts parameter can be used to specify options for this operation (see the options.RunCmdOptions documentation).
-//
 // Specifying API versioning options in the command document and declaring an API version on the client is not supported.
 // The behavior of RunCommand is undefined in this case.
+//
+// The opts parameter can be used to specify options for this operation (see the options.RunCmdOptions documentation).
 func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()

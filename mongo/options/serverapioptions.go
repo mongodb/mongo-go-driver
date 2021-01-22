@@ -18,7 +18,7 @@ import (
 // of the release when the driver first started to support the specified server API version.
 //
 // The user must specify a ServerAPIVersion if including ServerAPIOptions in their client. That version
-// must also be currently supported by the driver.
+// must also be currently supported by the driver. This version of the driver supports API version "1".
 type ServerAPIOptions struct {
 	ServerAPIVersion  ServerAPIVersion
 	Strict            *bool
