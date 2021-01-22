@@ -91,11 +91,11 @@ The `Collection` instance can then be used to insert documents:
 ```go
 ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
-res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
+res, err := collection.InsertOne(ctx, bson.D{{"name", "pi"}, {"value", 3.14159}})
 id := res.InsertedID
 ```
 
-To use `bson.M`, you will need to add `"go.mongodb.org/mongo-driver/bson"` to your imports.
+To use `bson.D`, you will need to add `"go.mongodb.org/mongo-driver/bson"` to your imports.
 
 Your import statement should now look like this:
 
@@ -117,7 +117,7 @@ cur, err := collection.Find(ctx, bson.D{})
 if err != nil { log.Fatal(err) }
 defer cur.Close(ctx)
 for cur.Next(ctx) {
-   var result bson.M
+   var result bson.D
    err := cur.Decode(&result)
    if err != nil { log.Fatal(err) }
    // do something with result....
@@ -133,7 +133,7 @@ For methods that return a single item, a `SingleResult` instance is returned:
 var result struct {
     Value float64
 }
-filter := bson.M{"name": "pi"}
+filter := bson.D{{"name", "pi"}}
 ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
 err = collection.FindOne(ctx, filter).Decode(&result)
@@ -146,9 +146,11 @@ if err != nil {
 Additional examples and documentation can be found under the examples directory and [on the MongoDB Documentation website](https://docs.mongodb.com/drivers/go/).
 
 -------------------------
-## Bugs / Feature Reporting
+## Feedback
 
-New Features and bugs can be reported on jira: https://jira.mongodb.org/browse/GODRIVER
+For help with the driver, please post in the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tag/golang/).
+
+New features and bugs can be reported on jira: https://jira.mongodb.org/browse/GODRIVER
 
 -------------------------
 ## Testing / Development
@@ -164,27 +166,27 @@ For example, for a local replica set named `rs1` comprised of three nodes on por
 MONGODB_URI="mongodb://localhost:27017,localhost:27018,localhost:27018/?replicaSet=rs1" make
 ```
 
-### Testing Auth and SSL
+### Testing Auth and TLS
 
-To test authentication and SSL, first set up a MongoDB cluster with auth and SSL configured. Testing authentication requires a user with the `root` role on the `admin` database. The Go Driver repository comes with example certificates in the `data/certificates` directory. These certs can be used for testing. Here is an example command that would run a mongod with SSL correctly configured for tests:
+To test authentication and TLS, first set up a MongoDB cluster with auth and TLS configured. Testing authentication requires a user with the `root` role on the `admin` database. The Go Driver repository comes with example certificates in the `data/certificates` directory. These certs can be used for testing. Here is an example command that would run a mongod with TLS correctly configured for tests:
 
 ```
 mongod \
 --auth \
---sslMode requireSSL \
---sslPEMKeyFile $(pwd)/data/certificates/server.pem \
---sslCAFile $(pwd)/data/certificates/ca.pem \
---sslWeakCertificateValidation
+--tlsMode requireTLS \
+--tlsCertificateKeyFile $(pwd)/data/certificates/server.pem \
+--tlsCAFile $(pwd)/data/certificates/ca.pem \
+--tlsAllowInvalidCertificates
 ```
 
-To run the tests with `make`, set `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database, set `MONGODB_URI` to the connection string of the server, set `AUTH=auth`, and set `SSL=ssl`. For example:
+To run the tests with `make`, set `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database, set `MONGODB_URI` to the connection string of the server, set `AUTH=auth`, and set `TLS=tls`. For example:
 
 ```
-AUTH=auth SSL=ssl MONGO_GO_DRIVER_CA_FILE=$(pwd)/data/certificates/ca.pem  MONGODB_URI="mongodb://user:password@localhost:27017/?authSource=admin" make
+AUTH=auth TLS=tls MONGO_GO_DRIVER_CA_FILE=$(pwd)/data/certificates/ca.pem  MONGODB_URI="mongodb://user:password@localhost:27017/?authSource=admin" make
 ```
 
 Notes:
-- The `--sslWeakCertificateValidation` flag is required on the server for the test suite to work correctly.
+- The `--tlsAllowInvalidCertificates` flag is required on the server for the test suite to work correctly.
 - The test suite requires the auth database to be set with `?authSource=admin`, not `/admin`.
 
 ### Testing Compression
@@ -198,10 +200,9 @@ MONGO_GO_DRIVER_COMPRESSOR=snappy make
 Ensure the [`--networkMessageCompressors` flag](https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors) on mongod or mongos includes `zlib` if testing zLib compression.
 
 -------------------------
-## Feedback
+## Contribution
 
-The MongoDB Go Driver is not feature complete, so any help is appreciated. Check out the [project page](https://jira.mongodb.org/browse/GODRIVER)
-for tickets that need completing. See our [contribution guidelines](CONTRIBUTING.md) for details.
+Check out the [project page](https://jira.mongodb.org/browse/GODRIVER) for tickets that need completing. See our [contribution guidelines](CONTRIBUTING.md) for details.
 
 -------------------------
 ## Continuous Integration
