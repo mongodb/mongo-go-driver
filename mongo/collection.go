@@ -279,7 +279,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Ordered(true).
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI)
 	imo := options.MergeInsertManyOptions(opts...)
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
@@ -453,7 +453,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Ordered(true).
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI)
 	if do.Hint != nil {
 		op = op.Hint(true)
@@ -550,7 +550,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt).Hint(uo.Hint != nil).
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(uo.Hint != nil).
 		ArrayFilters(uo.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI)
 
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
@@ -784,7 +784,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	ao := options.MergeAggregateOptions(a.opts...)
 	cursorOpts := driver.CursorOptions{
 		CommandMonitor: a.client.monitor,
-		Crypt:          a.client.crypt,
+		Crypt:          a.client.cryptFLE,
 	}
 
 	op := operation.NewAggregate(pipelineArr).
@@ -797,7 +797,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		Database(a.db).
 		Collection(a.col).
 		Deployment(a.client.deployment).
-		Crypt(a.client.crypt).
+		Crypt(a.client.cryptFLE).
 		ServerAPI(a.client.serverAPI)
 	if !hasOutputStage {
 		// Only pass the user-specified read preference if the aggregation doesn't have a $out or $merge stage.
@@ -904,7 +904,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
-		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.crypt).ServerAPI(coll.client.serverAPI)
+		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 	if countOpts.Collation != nil {
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
@@ -986,7 +986,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector).Crypt(coll.client.crypt).ServerAPI(coll.client.serverAPI)
+		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 
 	co := options.MergeEstimatedDocumentCountOptions(opts...)
 	if co.MaxTime != nil {
@@ -1052,7 +1052,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector).Crypt(coll.client.crypt).ServerAPI(coll.client.serverAPI)
+		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 
 	if option.Collation != nil {
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
@@ -1139,12 +1139,12 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt).ServerAPI(coll.client.serverAPI)
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 
 	fo := options.MergeFindOptions(opts...)
 	cursorOpts := driver.CursorOptions{
 		CommandMonitor: coll.client.monitor,
-		Crypt:          coll.client.crypt,
+		Crypt:          coll.client.cryptFLE,
 	}
 
 	if fo.AllowDiskUse != nil {
@@ -1355,7 +1355,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		Collection(coll.name).
 		Deployment(coll.client.deployment).
 		Retry(retry).
-		Crypt(coll.client.crypt)
+		Crypt(coll.client.cryptFLE)
 
 	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
@@ -1595,7 +1595,7 @@ func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
 		streamType:     CollectionStream,
 		collectionName: coll.Name(),
 		databaseName:   coll.db.Name(),
-		crypt:          coll.client.crypt,
+		crypt:          coll.client.cryptFLE,
 	}
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
@@ -1641,7 +1641,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.crypt).
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).
 		ServerAPI(coll.client.serverAPI)
 	err = op.Execute(ctx)
 
