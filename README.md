@@ -179,10 +179,10 @@ mongod \
 --tlsAllowInvalidCertificates
 ```
 
-To run the tests with `make`, set `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database, set `MONGODB_URI` to the connection string of the server, set `AUTH=auth`, and set `TLS=tls`. For example:
+To run the tests with `make`, set `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database, set `MONGODB_URI` to the connection string of the server, set `AUTH=auth`, and set `SSL=ssl`. For example:
 
 ```
-AUTH=auth TLS=tls MONGO_GO_DRIVER_CA_FILE=$(pwd)/data/certificates/ca.pem  MONGODB_URI="mongodb://user:password@localhost:27017/?authSource=admin" make
+AUTH=auth SSL=ssl MONGO_GO_DRIVER_CA_FILE=$(pwd)/data/certificates/ca.pem  MONGODB_URI="mongodb://user:password@localhost:27017/?authSource=admin" make
 ```
 
 Notes:
