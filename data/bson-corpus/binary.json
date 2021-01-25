@@ -94,8 +94,20 @@
             "string": "{\"x\" : { \"$uuid\" : { \"data\" : \"73ffd264-44b3-4c69-90e8-e7d1dfc035d4\"}}}"
         },
         {
-            "description": "$uuid invalid value",
+            "description": "$uuid invalid value--too short",
             "string": "{\"x\" : { \"$uuid\" : \"73ffd264-44b3-90e8-e7d1dfc035d4\"}}"
+        },
+        {
+            "description": "$uuid invalid value--too long",
+            "string": "{\"x\" : { \"$uuid\" : \"73ffd264-44b3-4c69-90e8-e7d1dfc035d4-789e4\"}}"
+        },
+        {
+            "description": "$uuid invalid value--misplaced hyphens",
+            "string": "{\"x\" : { \"$uuid\" : \"73ff-d26444b-34c6-990e8e-7d1dfc035d4\"}}"
+        },
+        {
+            "description": "$uuid invalid value--too many hyphens",
+            "string": "{\"x\" : { \"$uuid\" : \"----d264-44b3-4--9-90e8-e7d1dfc0----\"}}"
         }
     ]
 }
