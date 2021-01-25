@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/pretty"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
@@ -355,18 +354,13 @@ func runTest(t *testing.T, file string) {
 
 					s := unescapeUnicode(p.String, test.BsonType)
 					if test.BsonType == "0x13" {
-						s = fmt.Sprintf(`{"$numberDecimal": "%s"}`, s)
+						s = fmt.Sprintf(`{"decimal128": {"$numberDecimal": "%s"}}`, s)
 					}
 
 					switch test.BsonType {
-					case "0x00", "0x05":
+					case "0x00", "0x05", "0x13":
 						var doc D
 						err := UnmarshalExtJSON([]byte(s), true, &doc)
-						expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
-					case "0x13":
-						ejvr, err := bsonrw.NewExtJSONValueReader(strings.NewReader(s), true)
-						expectNoError(t, err, fmt.Sprintf("error creating value reader: %s", err))
-						_, err = ejvr.ReadDecimal128()
 						expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
 					default:
 						t.Errorf("Update test to check for parse errors for type %s", test.BsonType)
