@@ -924,7 +924,7 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 					if err != nil {
 						return "", err
 					}
-					keyBytes, err = x509.MarshalPKCS8PrivateKey(decrypted)
+					keyBytes, err = x509MarshalPKCS8PrivateKey(decrypted)
 					if err != nil {
 						return "", err
 					}
