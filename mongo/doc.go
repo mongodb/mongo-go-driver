@@ -86,6 +86,11 @@
 // like InsertMany and BulkWrite, can return an error representing multiple errors, and in those cases the ServerError
 // functions will return true if any of the contained errors satisfy the check.
 //
+// There are also helper functions to check for certain specific types of errors:
+//    IsDuplicateKeyError(error)
+//    IsNetworkError(error)
+//    IsTimeout(error)
+//
 // Potential DNS Issues
 //
 // Building with Go 1.11+ and using connection strings with the "mongodb+srv"[1] scheme is

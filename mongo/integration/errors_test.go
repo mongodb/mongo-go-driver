@@ -23,6 +23,36 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type netErr struct {
+	timeout bool
+}
+
+func (n netErr) Error() string {
+	return "error"
+}
+
+func (n netErr) Timeout() bool {
+	return n.timeout
+}
+
+func (n netErr) Temporary() bool {
+	return false
+}
+
+var _ net.Error = (*netErr)(nil)
+
+type wrappedError struct {
+	err error
+}
+
+func (we wrappedError) Error() string {
+	return we.err.Error()
+}
+
+func (we wrappedError) Unwrap() error {
+	return we.err
+}
+
 func TestErrors(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 	defer mt.Close()
@@ -288,5 +318,125 @@ func TestErrors(t *testing.T) {
 				assert.Equal(mt, errors.Is(tc.err, matchWrapped), tc.isResult, "expected errors.Is result to be %v", tc.isResult)
 			})
 		}
+	})
+	mt.Run("error helpers", func(mt *mtest.T) {
+		//IsDuplicateKeyError
+		mt.Run("IsDuplicateKeyError", func(mt *mtest.T) {
+			testCases := []struct {
+				name   string
+				err    error
+				result bool
+			}{
+				{"CommandError true", mongo.CommandError{11000, "", nil, "blah", nil}, true},
+				{"CommandError false", mongo.CommandError{100, "", nil, "blah", nil}, false},
+				{
+					"WriteException true in writeConcernError",
+					mongo.WriteException{
+						&mongo.WriteConcernError{"name", 11001, "bar", nil},
+						mongo.WriteErrors{
+							mongo.WriteError{0, 100, "baz"},
+						},
+						nil,
+					},
+					true,
+				},
+				{
+					"WriteException true in writeErrors",
+					mongo.WriteException{
+						&mongo.WriteConcernError{"name", 100, "bar", nil},
+						mongo.WriteErrors{
+							mongo.WriteError{0, 12582, "baz"},
+						},
+						nil,
+					},
+					true,
+				},
+				{
+					"WriteException false",
+					mongo.WriteException{
+						&mongo.WriteConcernError{"name", 16460, "bar", nil},
+						mongo.WriteErrors{
+							mongo.WriteError{0, 100, "blah  E11000 blah"},
+						},
+						nil,
+					},
+					false,
+				},
+				{
+					"BulkWriteException true",
+					mongo.BulkWriteException{
+						&mongo.WriteConcernError{"name", 100, "bar", nil},
+						[]mongo.BulkWriteError{
+							{mongo.WriteError{0, 16460, "blah  E11000 blah"}, &mongo.InsertOneModel{}},
+						},
+						[]string{"otherError"},
+					},
+					true,
+				},
+				{
+					"BulkWriteException false",
+					mongo.BulkWriteException{
+						&mongo.WriteConcernError{"name", 100, "bar", nil},
+						[]mongo.BulkWriteError{
+							{mongo.WriteError{0, 110, "blah"}, &mongo.InsertOneModel{}},
+						},
+						[]string{"otherError"},
+					},
+					false,
+				},
+				{"wrapped error", wrappedError{mongo.CommandError{11000, "", nil, "blah", nil}}, true},
+				{"other error type", errors.New("foo"), false},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					res := mongo.IsDuplicateKeyError(tc.err)
+					assert.Equal(mt, res, tc.result, "expected IsDuplicateKeyError %v, got %v", tc.result, res)
+				})
+			}
+		})
+		//IsNetworkError
+		mt.Run("IsNetworkError", func(mt *mtest.T) {
+			const networkLabel = "NetworkError"
+			const otherLabel = "other"
+			testCases := []struct {
+				name   string
+				err    error
+				result bool
+			}{
+				{"ServerError true", mongo.CommandError{100, "", []string{networkLabel}, "blah", nil}, true},
+				{"ServerError false", mongo.CommandError{100, "", []string{otherLabel}, "blah", nil}, false},
+				{"wrapped error", wrappedError{mongo.CommandError{100, "", []string{networkLabel}, "blah", nil}}, true},
+				{"other error type", errors.New("foo"), false},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					res := mongo.IsNetworkError(tc.err)
+					assert.Equal(mt, res, tc.result, "expected IsNetworkError %v, got %v", tc.result, res)
+				})
+			}
+		})
+		//IsTimeout
+		mt.Run("IsTimeout", func(mt *mtest.T) {
+			testCases := []struct {
+				name   string
+				err    error
+				result bool
+			}{
+				{"context timeout", mongo.CommandError{100, "", []string{"other"}, "blah", context.DeadlineExceeded}, true},
+				{"ServerError NetworkTimeoutError", mongo.CommandError{100, "", []string{"NetworkTimeoutError"}, "blah", nil}, true},
+				{"ServerError ExceededTimeLimitError", mongo.CommandError{100, "", []string{"ExceededTimeLimitError"}, "blah", nil}, true},
+				{"ServerError false", mongo.CommandError{100, "", []string{"other"}, "blah", nil}, false},
+				{"net error true", mongo.CommandError{100, "", []string{"other"}, "blah", netErr{true}}, true},
+				{"net error false", netErr{false}, false},
+				{"wrapped error", wrappedError{mongo.CommandError{100, "", []string{"other"}, "blah", context.DeadlineExceeded}}, true},
+				{"other error", errors.New("foo"), false},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					res := mongo.IsTimeout(tc.err)
+					assert.Equal(mt, res, tc.result, "expected IsTimeout %v, got %v", tc.result, res)
+				})
+			}
+		})
 	})
 }
