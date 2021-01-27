@@ -884,71 +884,100 @@ func TestCollection(t *testing.T) {
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.CommandError{}, err)
 		})
 		mt.Run("limit and batch size and skip", func(mt *mtest.T) {
-			var docs []interface{}
-			for i := 1; i <= 201; i++ {
-				docs = append(docs, bson.D{{"x", int32(i)}})
-			}
-
-			_, err := mt.Coll.InsertMany(mtest.Background, docs)
-			assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
-
 			testCases := []struct {
 				limit     int64
 				batchSize int32
 				skip      int64
+				name      string
 			}{
 				{
 					99, 100, 10,
+					"case 1",
 				},
 				{
 					100, 100, 20,
+					"case 2",
 				},
 				{
 					80, 20, 90,
+					"case 3",
 				},
 				{
 					201, 201, 0,
+					"case 4",
 				},
 				{
 					100, 200, 120,
+					"case 5",
 				},
 			}
-
 			for _, tc := range testCases {
-				findOptions := options.Find().SetLimit(tc.limit).SetBatchSize(tc.batchSize).
-					SetSkip(tc.skip)
-				cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, findOptions)
-				assert.Nil(mt, err, "Find error: %v", err)
+				mt.Run(tc.name, func(mt *mtest.T) {
+					var insertDocs []interface{}
+					for i := 1; i <= 201; i++ {
+						insertDocs = append(insertDocs, bson.D{{"x", int32(i)}})
+					}
 
-				var docs []interface{}
-				err = cursor.All(mtest.Background, &docs)
-				assert.Nil(mt, err, "All error: %v", err)
-				if (201 - tc.skip) < tc.limit {
-					assert.Equal(mt, int(201-tc.skip), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
-				} else {
-					assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
-				}
+					_, err := mt.Coll.InsertMany(mtest.Background, insertDocs)
+					assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+
+					findOptions := options.Find().SetLimit(tc.limit).SetBatchSize(tc.batchSize).
+						SetSkip(tc.skip)
+					cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, findOptions)
+					assert.Nil(mt, err, "Find error: %v", err)
+
+					var docs []interface{}
+					err = cursor.All(mtest.Background, &docs)
+					assert.Nil(mt, err, "All error: %v", err)
+					if (201 - tc.skip) < tc.limit {
+						assert.Equal(mt, int(201-tc.skip), len(docs), "expected number of docs to be %v, got %v", int(201-tc.skip), len(docs))
+					} else {
+						assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
+					}
+				})
 			}
 		})
 		mt.Run("unset batch size does not surpass limit", func(mt *mtest.T) {
-			var docs []interface{}
-			for i := 1; i <= 201; i++ {
-				docs = append(docs, bson.D{{"x", int32(i)}})
+			testCases := []struct {
+				limit int64
+				name  string
+			}{
+				{
+					99,
+					"99",
+				},
+				{
+					100,
+					"100",
+				},
+				{
+					101,
+					"101",
+				},
+				{
+					200,
+					"200",
+				},
 			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					var insertDocs []interface{}
+					for i := 1; i <= 201; i++ {
+						insertDocs = append(insertDocs, bson.D{{"x", int32(i)}})
+					}
 
-			_, err := mt.Coll.InsertMany(mtest.Background, docs)
-			assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+					_, err := mt.Coll.InsertMany(mtest.Background, insertDocs)
+					assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+					opts := options.Find().SetSkip(0).SetLimit(tc.limit)
+					cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, opts)
+					assert.Nil(mt, err, "Find error with limit %v: %v", tc.limit, err)
 
-			for _, limit := range []int64{99, 100, 101, 200} {
-				opts := options.Find().SetSkip(0).SetLimit(limit)
-				cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, opts)
-				assert.Nil(mt, err, "Find error with limit: %v", err)
+					var docs []interface{}
+					err = cursor.All(mtest.Background, &docs)
+					assert.Nil(mt, err, "All error with limit %v: %v", tc.limit, err)
 
-				var docs []interface{}
-				err = cursor.All(mtest.Background, &docs)
-				assert.Nil(mt, err, "All error with limit: %v", err)
-
-				assert.Equal(mt, int(limit), len(docs), "expected number of docs to be %v, got %v", limit, len(docs))
+					assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
+				})
 			}
 		})
 	})
