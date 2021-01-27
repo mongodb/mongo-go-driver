@@ -285,9 +285,9 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 		if t == bsontype.Binary && ejp.s == jpsSawValue {
 			// convert relaxed $uuid format
 			if ejp.relaxedUUID {
+				defer func() { ejp.relaxedUUID = false }()
 				uuid, err := ejp.v.parseSymbol()
 				if err != nil {
-					ejp.relaxedUUID = false
 					return nil, err
 				}
 
@@ -301,27 +301,23 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 					string(uuid[18]) == "-" &&
 					string(uuid[23]) == "-"
 				if !valid {
-					ejp.relaxedUUID = false
 					return nil, fmt.Errorf("$uuid value does not follow RFC 4122 format regarding length and hyphens")
 				}
 
 				// remove hyphens
 				uuidNoHyphens := strings.Replace(uuid, "-", "", -1)
 				if len(uuidNoHyphens) != 32 {
-					ejp.relaxedUUID = false
 					return nil, fmt.Errorf("$uuid value does not follow RFC 4122 format regarding length and hyphens")
 				}
 
 				// convert hex to bytes
 				bytes, err := hex.DecodeString(uuidNoHyphens)
 				if err != nil {
-					ejp.relaxedUUID = false
 					return nil, fmt.Errorf("$uuid value does not follow RFC 4122 format regarding hex bytes: %v", err)
 				}
 
 				ejp.advanceState()
 				if ejp.s != jpsSawEndObject {
-					ejp.relaxedUUID = false
 					return nil, invalidJSONErrorForType("$uuid and value and then }", bsontype.Binary)
 				}
 
@@ -342,7 +338,6 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 					},
 				}
 
-				ejp.relaxedUUID = false
 				break
 			}
 

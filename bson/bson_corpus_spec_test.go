@@ -440,7 +440,7 @@ func TestRelaxedUUIDValidation(t *testing.T) {
 			err := UnmarshalExtJSON([]byte(dEJ), true, &doc)
 
 			if tc.expectedErr != "" {
-				assert.Equal(t, tc.expectedErr, err.Error(), "expected error %v, got %v", tc.expectedErr, err.Error())
+				assert.Equal(t, tc.expectedErr, err.Error(), "expected error %v, got %v", tc.expectedErr, err)
 			} else {
 				assert.Nil(t, err, "expected no error, got error: %v", err)
 
