@@ -110,7 +110,7 @@ func TestClient(t *testing.T) {
 
 		certificates := [3]string{"client.pem", "client-pkcs8-encrypted.pem", "client-pkcs8-unencrypted.pem"}
 		for _, certificate := range certificates {
-			keyFilePassword := ""
+			var keyFilePassword string
 			// add password if encrypted
 			if certificate == "client-pkcs8-encrypted.pem" {
 				keyFilePassword = "&sslClientCertificateKeyPassword=password"
