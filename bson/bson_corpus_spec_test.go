@@ -23,8 +23,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/pretty"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 type testCase struct {
@@ -59,7 +59,7 @@ type parseErrorTestCase struct {
 	String      string `json:"string"`
 }
 
-const dataDir = "../data"
+const dataDir = "../data/bson-corpus/"
 
 var dvd bsoncodec.DefaultValueDecoders
 var dve bsoncodec.DefaultValueEncoders
@@ -354,18 +354,13 @@ func runTest(t *testing.T, file string) {
 
 					s := unescapeUnicode(p.String, test.BsonType)
 					if test.BsonType == "0x13" {
-						s = fmt.Sprintf(`{"$numberDecimal": "%s"}`, s)
+						s = fmt.Sprintf(`{"decimal128": {"$numberDecimal": "%s"}}`, s)
 					}
 
 					switch test.BsonType {
-					case "0x00":
+					case "0x00", "0x05", "0x13":
 						var doc D
 						err := UnmarshalExtJSON([]byte(s), true, &doc)
-						expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
-					case "0x13":
-						ejvr, err := bsonrw.NewExtJSONValueReader(strings.NewReader(s), true)
-						expectNoError(t, err, fmt.Sprintf("error creating value reader: %s", err))
-						_, err = ejvr.ReadDecimal128()
 						expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
 					default:
 						t.Errorf("Update test to check for parse errors for type %s", test.BsonType)
@@ -397,4 +392,62 @@ func expectError(t *testing.T, err error, desc string) {
 		t.Errorf("%s: Expected error", desc)
 		t.FailNow()
 	}
+}
+
+func TestRelaxedUUIDValidation(t *testing.T) {
+	testCases := []struct {
+		description       string
+		canonicalExtJSON  string
+		degenerateExtJSON string
+		expectedErr       string
+	}{
+		{
+			"valid uuid",
+			"{\"x\" : { \"$binary\" : {\"base64\" : \"c//SZESzTGmQ6OfR38A11A==\", \"subType\" : \"04\"}}}",
+			"{\"x\" : { \"$uuid\" : \"73ffd264-44b3-4c69-90e8-e7d1dfc035d4\"}}",
+			"",
+		},
+		{
+			"invalid uuid--no hyphens",
+			"",
+			"{\"x\" : { \"$uuid\" : \"73ffd26444b34c6990e8e7d1dfc035d4\"}}",
+			"$uuid value does not follow RFC 4122 format regarding length and hyphens",
+		},
+		{
+			"invalid uuid--trailing hyphens",
+			"",
+			"{\"x\" : { \"$uuid\" : \"73ffd264-44b3-4c69-90e8-e7d1dfc035--\"}}",
+			"$uuid value does not follow RFC 4122 format regarding length and hyphens",
+		},
+		{
+			"invalid uuid--malformed hex",
+			"",
+			"{\"x\" : { \"$uuid\" : \"q3@fd26l-44b3-4c69-90e8-e7d1dfc035d4\"}}",
+			"$uuid value does not follow RFC 4122 format regarding hex bytes: encoding/hex: invalid byte: U+0071 'q'",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			// get canonical extended JSON
+			cEJ := unescapeUnicode(string(pretty.Ugly([]byte(tc.canonicalExtJSON))), "0x05")
+
+			// get degenerate extended JSON
+			dEJ := unescapeUnicode(string(pretty.Ugly([]byte(tc.degenerateExtJSON))), "0x05")
+
+			// convert dEJ to native doc
+			var doc D
+			err := UnmarshalExtJSON([]byte(dEJ), true, &doc)
+
+			if tc.expectedErr != "" {
+				assert.Equal(t, tc.expectedErr, err.Error(), "expected error %v, got %v", tc.expectedErr, err)
+			} else {
+				assert.Nil(t, err, "expected no error, got error: %v", err)
+
+				// Marshal doc into extended JSON and compare with cEJ
+				nativeToJSON(t, cEJ, doc, tc.description, "degenerate canonical", "cEJ", "json_to_native(dEJ)")
+			}
+		})
+	}
+
 }

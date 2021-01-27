@@ -40,6 +40,12 @@
             "canonical_extjson": "{\"x\" : { \"$binary\" : {\"base64\" : \"c//SZESzTGmQ6OfR38A11A==\", \"subType\" : \"04\"}}}"
         },
         {
+            "description": "subtype 0x04 UUID",
+            "canonical_bson": "1D000000057800100000000473FFD26444B34C6990E8E7D1DFC035D400",
+            "canonical_extjson": "{\"x\" : { \"$binary\" : {\"base64\" : \"c//SZESzTGmQ6OfR38A11A==\", \"subType\" : \"04\"}}}",
+            "degenerate_extjson": "{\"x\" : { \"$uuid\" : \"73ffd264-44b3-4c69-90e8-e7d1dfc035d4\"}}"
+        },
+        {
             "description": "subtype 0x05",
             "canonical_bson": "1D000000057800100000000573FFD26444B34C6990E8E7D1DFC035D400",
             "canonical_extjson": "{\"x\" : { \"$binary\" : {\"base64\" : \"c//SZESzTGmQ6OfR38A11A==\", \"subType\" : \"05\"}}}"
@@ -80,6 +86,28 @@
         {
             "description": "subtype 0x02 length negative one",
             "bson": "130000000578000600000002FFFFFFFFFFFF00"
+        }
+    ],
+    "parseErrors": [
+        {
+            "description": "$uuid wrong type",
+            "string": "{\"x\" : { \"$uuid\" : { \"data\" : \"73ffd264-44b3-4c69-90e8-e7d1dfc035d4\"}}}"
+        },
+        {
+            "description": "$uuid invalid value--too short",
+            "string": "{\"x\" : { \"$uuid\" : \"73ffd264-44b3-90e8-e7d1dfc035d4\"}}"
+        },
+        {
+            "description": "$uuid invalid value--too long",
+            "string": "{\"x\" : { \"$uuid\" : \"73ffd264-44b3-4c69-90e8-e7d1dfc035d4-789e4\"}}"
+        },
+        {
+            "description": "$uuid invalid value--misplaced hyphens",
+            "string": "{\"x\" : { \"$uuid\" : \"73ff-d26444b-34c6-990e8e-7d1dfc035d4\"}}"
+        },
+        {
+            "description": "$uuid invalid value--too many hyphens",
+            "string": "{\"x\" : { \"$uuid\" : \"----d264-44b3-4--9-90e8-e7d1dfc0----\"}}"
         }
     ]
 }
