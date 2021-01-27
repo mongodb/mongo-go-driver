@@ -8,8 +8,10 @@ package mongo
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -69,6 +71,60 @@ func replaceErrors(err error) error {
 	}
 
 	return err
+}
+
+// IsDuplicateKeyError returns true if err is a duplicate key error
+func IsDuplicateKeyError(err error) bool {
+	// handles SERVER-7164 and SERVER-11493
+	for ; err != nil; err = unwrap(err) {
+		if e, ok := err.(ServerError); ok {
+			return e.HasErrorCode(11000) || e.HasErrorCode(11001) || e.HasErrorCode(12582) ||
+				e.HasErrorCodeWithMessage(16460, " E11000 ")
+		}
+	}
+	return false
+}
+
+// IsTimeout returns true if err is from a timeout
+func IsTimeout(err error) bool {
+	for ; err != nil; err = unwrap(err) {
+		// check unwrappable errors together
+		if err == context.DeadlineExceeded {
+			return true
+		}
+		if ne, ok := err.(net.Error); ok {
+			return ne.Timeout()
+		}
+		//timeout error labels
+		if se, ok := err.(ServerError); ok {
+			if se.HasErrorLabel("NetworkTimeoutError") || se.HasErrorLabel("ExceededTimeLimitError") {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// unwrap returns the inner error if err implements Unwrap(), otherwise it returns nil.
+func unwrap(err error) error {
+	u, ok := err.(interface {
+		Unwrap() error
+	})
+	if !ok {
+		return nil
+	}
+	return u.Unwrap()
+}
+
+// IsNetworkError returns true if err is a network error
+func IsNetworkError(err error) bool {
+	for ; err != nil; err = unwrap(err) {
+		if e, ok := err.(ServerError); ok {
+			return e.HasErrorLabel("NetworkError")
+		}
+	}
+	return false
 }
 
 // MongocryptError represents an libmongocrypt error during client-side encryption.
