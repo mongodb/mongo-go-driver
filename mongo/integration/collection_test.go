@@ -883,6 +883,103 @@ func TestCollection(t *testing.T) {
 			_, ok := err.(mongo.CommandError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.CommandError{}, err)
 		})
+		mt.Run("limit and batch size and skip", func(mt *mtest.T) {
+			testCases := []struct {
+				limit     int64
+				batchSize int32
+				skip      int64
+				name      string
+			}{
+				{
+					99, 100, 10,
+					"case 1",
+				},
+				{
+					100, 100, 20,
+					"case 2",
+				},
+				{
+					80, 20, 90,
+					"case 3",
+				},
+				{
+					201, 201, 0,
+					"case 4",
+				},
+				{
+					100, 200, 120,
+					"case 5",
+				},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					var insertDocs []interface{}
+					for i := 1; i <= 201; i++ {
+						insertDocs = append(insertDocs, bson.D{{"x", int32(i)}})
+					}
+
+					_, err := mt.Coll.InsertMany(mtest.Background, insertDocs)
+					assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+
+					findOptions := options.Find().SetLimit(tc.limit).SetBatchSize(tc.batchSize).
+						SetSkip(tc.skip)
+					cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, findOptions)
+					assert.Nil(mt, err, "Find error: %v", err)
+
+					var docs []interface{}
+					err = cursor.All(mtest.Background, &docs)
+					assert.Nil(mt, err, "All error: %v", err)
+					if (201 - tc.skip) < tc.limit {
+						assert.Equal(mt, int(201-tc.skip), len(docs), "expected number of docs to be %v, got %v", int(201-tc.skip), len(docs))
+					} else {
+						assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
+					}
+				})
+			}
+		})
+		mt.Run("unset batch size does not surpass limit", func(mt *mtest.T) {
+			testCases := []struct {
+				limit int64
+				name  string
+			}{
+				{
+					99,
+					"99",
+				},
+				{
+					100,
+					"100",
+				},
+				{
+					101,
+					"101",
+				},
+				{
+					200,
+					"200",
+				},
+			}
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					var insertDocs []interface{}
+					for i := 1; i <= 201; i++ {
+						insertDocs = append(insertDocs, bson.D{{"x", int32(i)}})
+					}
+
+					_, err := mt.Coll.InsertMany(mtest.Background, insertDocs)
+					assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+					opts := options.Find().SetSkip(0).SetLimit(tc.limit)
+					cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, opts)
+					assert.Nil(mt, err, "Find error with limit %v: %v", tc.limit, err)
+
+					var docs []interface{}
+					err = cursor.All(mtest.Background, &docs)
+					assert.Nil(mt, err, "All error with limit %v: %v", tc.limit, err)
+
+					assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
+				})
+			}
+		})
 	})
 	mt.RunOpts("find one", noClientOpts, func(mt *mtest.T) {
 		mt.Run("limit", func(mt *mtest.T) {
