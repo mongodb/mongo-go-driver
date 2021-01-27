@@ -197,7 +197,7 @@ func TestDecimal128_JSON(t *testing.T) {
 			switch c.remark {
 			case "overflow", "parse fail":
 				assert.NotNil(t, err, "expected Unmarshal error, got nil")
-			case "", "rounding", "subnormal", "clamped", "NaN", "Infinity", "-Infinity":
+			default:
 				assert.Nil(t, err, "Unmarshal error: %v", err)
 				gotDecimal := got["foo"]
 				assert.Equal(t, c.h, gotDecimal.h, "expected h: %v got: %v", c.h, gotDecimal.l)
