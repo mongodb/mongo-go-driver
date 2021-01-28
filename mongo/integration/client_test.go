@@ -82,75 +82,88 @@ func TestClient(t *testing.T) {
 		assert.Nil(mt, found, "SSLServerHasCertificateAuthority not found in result")
 	})
 	mt.RunOpts("x509", mtest.NewOptions().Auth(true).SSL(true), func(mt *mtest.T) {
-		const user = "C=US,ST=New York,L=New York City,O=MongoDB,OU=other,CN=external"
-		db := mt.Client.Database("$external")
-
-		// We don't care if the user doesn't already exist.
-		_ = db.RunCommand(
-			mtest.Background,
-			bson.D{{"dropUser", user}},
-		)
-		err := db.RunCommand(
-			mtest.Background,
-			bson.D{
-				{"createUser", user},
-				{"roles", bson.A{
-					bson.D{{"role", "readWrite"}, {"db", "test"}},
-				}},
+		testCases := []struct {
+			certificate string
+			password    string
+		}{
+			{
+				"client.pem",
+				"",
 			},
-		).Err()
-		assert.Nil(mt, err, "createUser error: %v", err)
+			{
+				"client-pkcs8-encrypted.pem",
+				"&sslClientCertificateKeyPassword=password",
+			},
+			{
+				"client-pkcs8-unencrypted.pem",
+				"",
+			},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.certificate, func(mt *mtest.T) {
+				const user = "C=US,ST=New York,L=New York City,O=MongoDB,OU=other,CN=external"
+				db := mt.Client.Database("$external")
 
-		baseConnString := mtest.ClusterURI()
-		// remove username/password from base conn string
-		revisedConnString := "mongodb://"
-		split := strings.Split(baseConnString, "@")
-		assert.Equal(t, 2, len(split), "expected 2 parts after split, got %v (connstring %v)", split, baseConnString)
-		revisedConnString += split[1]
+				// We don't care if the user doesn't already exist.
+				_ = db.RunCommand(
+					mtest.Background,
+					bson.D{{"dropUser", user}},
+				)
+				err := db.RunCommand(
+					mtest.Background,
+					bson.D{
+						{"createUser", user},
+						{"roles", bson.A{
+							bson.D{{"role", "readWrite"}, {"db", "test"}},
+						}},
+					},
+				).Err()
+				assert.Nil(mt, err, "createUser error: %v", err)
 
-		certificates := [3]string{"client.pem", "client-pkcs8-encrypted.pem", "client-pkcs8-unencrypted.pem"}
-		for _, certificate := range certificates {
-			var keyFilePassword string
-			// add password if encrypted
-			if certificate == "client-pkcs8-encrypted.pem" {
-				keyFilePassword = "&sslClientCertificateKeyPassword=password"
-			}
-			cs := fmt.Sprintf(
-				"%s&sslClientCertificateKeyFile=%s&authMechanism=MONGODB-X509&authSource=$external%s",
-				revisedConnString,
-				path.Join(certificatesDir, certificate),
-				keyFilePassword,
-			)
-			authClientOpts := options.Client().ApplyURI(cs)
-			testutil.AddTestServerAPIVersion(authClientOpts)
-			authClient, err := mongo.Connect(mtest.Background, authClientOpts)
-			assert.Nil(mt, err, "authClient Connect error: %v", err)
-			defer func() { _ = authClient.Disconnect(mtest.Background) }()
+				baseConnString := mtest.ClusterURI()
+				// remove username/password from base conn string
+				revisedConnString := "mongodb://"
+				split := strings.Split(baseConnString, "@")
+				assert.Equal(t, 2, len(split), "expected 2 parts after split, got %v (connstring %v)", split, baseConnString)
+				revisedConnString += split[1]
 
-			rdr, err := authClient.Database("test").RunCommand(mtest.Background, bson.D{
-				{"connectionStatus", 1},
-			}).DecodeBytes()
-			assert.Nil(mt, err, "connectionStatus error: %v", err)
-			users, err := rdr.LookupErr("authInfo", "authenticatedUsers")
-			assert.Nil(mt, err, "authenticatedUsers not found in response")
-			elems, err := users.Array().Elements()
-			assert.Nil(mt, err, "error getting users elements: %v", err)
+				cs := fmt.Sprintf(
+					"%s&sslClientCertificateKeyFile=%s&authMechanism=MONGODB-X509&authSource=$external%s",
+					revisedConnString,
+					path.Join(certificatesDir, tc.certificate),
+					tc.password,
+				)
+				authClientOpts := options.Client().ApplyURI(cs)
+				testutil.AddTestServerAPIVersion(authClientOpts)
+				authClient, err := mongo.Connect(mtest.Background, authClientOpts)
+				assert.Nil(mt, err, "authClient Connect error: %v", err)
+				defer func() { _ = authClient.Disconnect(mtest.Background) }()
 
-			for _, userElem := range elems {
-				rdr := userElem.Value().Document()
-				var u struct {
-					User string
-					DB   string
+				rdr, err := authClient.Database("test").RunCommand(mtest.Background, bson.D{
+					{"connectionStatus", 1},
+				}).DecodeBytes()
+				assert.Nil(mt, err, "connectionStatus error: %v", err)
+				users, err := rdr.LookupErr("authInfo", "authenticatedUsers")
+				assert.Nil(mt, err, "authenticatedUsers not found in response")
+				elems, err := users.Array().Elements()
+				assert.Nil(mt, err, "error getting users elements: %v", err)
+
+				for _, userElem := range elems {
+					rdr := userElem.Value().Document()
+					var u struct {
+						User string
+						DB   string
+					}
+
+					if err := bson.Unmarshal(rdr, &u); err != nil {
+						continue
+					}
+					if u.User == user && u.DB == "$external" {
+						return
+					}
 				}
-
-				if err := bson.Unmarshal(rdr, &u); err != nil {
-					continue
-				}
-				if u.User == user && u.DB == "$external" {
-					return
-				}
-			}
-			mt.Fatal("unable to find authenticated user")
+				mt.Fatal("unable to find authenticated user")
+			})
 		}
 	})
 	mt.RunOpts("list databases", noClientOpts, func(mt *mtest.T) {
