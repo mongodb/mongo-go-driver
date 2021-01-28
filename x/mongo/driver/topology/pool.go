@@ -31,9 +31,6 @@ var ErrConnectionClosed = ConnectionError{ConnectionID: "<closed>", message: "co
 // ErrWrongPool is return when a connection is returned to a pool it doesn't belong to.
 var ErrWrongPool = PoolError("connection does not belong to this pool")
 
-// ErrWaitQueueTimeout is returned when the request to get a connection from the pool timesout when on the wait queue
-var ErrWaitQueueTimeout = PoolError("timed out while checking out a connection from connection pool")
-
 // PoolError is an error returned from a Pool method.
 type PoolError string
 
@@ -342,6 +339,10 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				Address: p.address.String(),
 				Reason:  event.ReasonTimedOut,
 			})
+		}
+		ErrWaitQueueTimeout := WaitQueueTimeoutError{
+			Message: "timed out while checking out a connection from connection pool",
+			Wrapped: ctx.Err(),
 		}
 		return nil, ErrWaitQueueTimeout
 	}
