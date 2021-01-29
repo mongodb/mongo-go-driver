@@ -307,6 +307,9 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 	}
 
 	err = op.Execute(ctx)
+	if err != nil && IsTimeout(err) {
+		return replaceErrors(err)
+	}
 	s.clientSession.Committing = false
 	commitErr := s.clientSession.CommitTransaction()
 

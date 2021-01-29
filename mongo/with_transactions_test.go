@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -258,6 +259,41 @@ func TestConvenientTransactions(t *testing.T) {
 		ctxValue, ok := abortCtx.Value(ctxKey{}).(string)
 		assert.True(t, ok, "expected context for abortTransaction to contain ctxKey")
 		assert.Equal(t, "foobar", ctxValue, "expected value for ctxKey to be 'world', got %s", ctxValue)
+	})
+	t.Run("commitTransaction timeout allows abortTransaction", func(t *testing.T) {
+		coll := db.Collection("test")
+
+		session, err := client.StartSession()
+		assert.Nil(t, err, "StartSession error: %v", err)
+		defer session.EndSession(context.Background())
+
+		err = WithSession(context.Background(), session, func(sessionContext SessionContext) error {
+			// Start transaction
+			err = session.StartTransaction()
+			assert.Nil(t, err, "StartTransaction error: %v", err)
+
+			// Insert a document
+			_, err := coll.InsertOne(sessionContext, bson.D{
+				{"ID", primitive.NewObjectID()},
+				{"val", 17},
+			})
+			assert.Nil(t, err, "InsertOne error: %v", err)
+
+			// Set a timeout of 0 for commitTransaction
+			commitTimeoutCtx, commitCancel := context.WithTimeout(sessionContext, 0)
+			defer commitCancel()
+
+			// commitTransaction results in context.DeadlineExceeded
+			commitErr := session.CommitTransaction(commitTimeoutCtx)
+			assert.True(t, errors.Is(commitErr, context.DeadlineExceeded),
+				"expected context.DeadlineExceeded error; got %v", commitErr)
+
+			// abortTransaction without error
+			abortErr := session.AbortTransaction(context.Background())
+			assert.Nil(t, abortErr, "AbortTransaction error: %v", abortErr)
+
+			return nil
+		})
 	})
 }
 
