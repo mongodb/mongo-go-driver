@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -262,21 +261,26 @@ func TestConvenientTransactions(t *testing.T) {
 	})
 	t.Run("commitTransaction timeout allows abortTransaction", func(t *testing.T) {
 		coll := db.Collection("test")
+		// Explicitly create the collection on server because implicit collection creation is now allowed in
+		// transactions for server versions <= 4.2.
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v\n", err)
 
 		session, err := client.StartSession()
 		assert.Nil(t, err, "StartSession error: %v", err)
-		defer session.EndSession(context.Background())
 
-		err = WithSession(context.Background(), session, func(sessionContext SessionContext) error {
+		defer func() {
+			session.EndSession(bgCtx)
+			_ = coll.Drop(bgCtx)
+		}()
+
+		err = WithSession(bgCtx, session, func(sessionContext SessionContext) error {
 			// Start transaction
 			err = session.StartTransaction()
 			assert.Nil(t, err, "StartTransaction error: %v", err)
 
 			// Insert a document
-			_, err := coll.InsertOne(sessionContext, bson.D{
-				{"ID", primitive.NewObjectID()},
-				{"val", 17},
-			})
+			_, err := coll.InsertOne(sessionContext, bson.D{{"val", 17}})
 			assert.Nil(t, err, "InsertOne error: %v", err)
 
 			// Set a timeout of 0 for commitTransaction
@@ -285,8 +289,8 @@ func TestConvenientTransactions(t *testing.T) {
 
 			// commitTransaction results in context.DeadlineExceeded
 			commitErr := session.CommitTransaction(commitTimeoutCtx)
-			assert.True(t, errors.Is(commitErr, context.DeadlineExceeded),
-				"expected context.DeadlineExceeded error; got %v", commitErr)
+			assert.True(t, IsTimeout(commitErr),
+				"expected timeout error error; got %v", commitErr)
 
 			// abortTransaction without error
 			abortErr := session.AbortTransaction(context.Background())
