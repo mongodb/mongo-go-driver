@@ -261,7 +261,7 @@ func TestConvenientTransactions(t *testing.T) {
 	})
 	t.Run("commitTransaction timeout allows abortTransaction", func(t *testing.T) {
 		coll := db.Collection("test")
-		// Explicitly create the collection on server because implicit collection creation is now allowed in
+		// Explicitly create the collection on server because implicit collection creation is not allowed in
 		// transactions for server versions <= 4.2.
 		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
 		assert.Nil(t, err, "error creating collection on server: %v\n", err)
@@ -298,6 +298,59 @@ func TestConvenientTransactions(t *testing.T) {
 
 			return nil
 		})
+	})
+	t.Run("commitTransaction timeout does not retry", func(t *testing.T) {
+		// Set high withTransactionTimeout so infinite CommitLoop will result in test timeout
+		withTransactionTimeout = 10 * time.Minute
+
+		coll := db.Collection("test")
+		// Explicitly create the collection on server because implicit collection creation is not allowed in
+		// transactions for server versions <= 4.2.
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v\n", err)
+		defer func() {
+			_ = coll.Drop(bgCtx)
+		}()
+
+		// Set failpoint
+		failpoint := bson.D{{"configureFailPoint", "failCommand"},
+			{"mode", "alwaysOn"},
+			{"data", bson.D{
+				{"failCommands", bson.A{"commitTransaction"}},
+				{"blockConnection", true},
+				{"blockTimeMS", 100},
+			}},
+		}
+		err = dbAdmin.RunCommand(bgCtx, failpoint).Err()
+		assert.Nil(t, err, "error setting failpoint: %v", err)
+		defer func() {
+			err = dbAdmin.RunCommand(bgCtx, bson.D{
+				{"configureFailPoint", "failCommand"},
+				{"mode", "off"},
+			}).Err()
+			assert.Nil(t, err, "error turning off failpoint: %v", err)
+		}()
+
+		// Start session
+		sess, err := client.StartSession()
+		assert.Nil(t, err, "StartSession error: %v", err)
+		defer sess.EndSession(context.Background())
+
+		// Set context timeout of 10ms
+		timeoutCtx, timeoutCancel := context.WithTimeout(bgCtx, 10*time.Millisecond)
+		defer timeoutCancel()
+
+		// Run transaction with 10ms timeout
+		_, err = sess.WithTransaction(timeoutCtx, func(sessCtx SessionContext) (interface{}, error) {
+			_, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+			return nil, err
+		})
+		assert.NotNil(t, err, "expected WithTransaction error, got nil")
+		assert.True(t, IsTimeout(err), "expected timeout error, got %v", err)
+		cmdErr, ok := err.(CommandError)
+		assert.True(t, ok, "expected error type %T, got %T", CommandError{}, err)
+		assert.True(t, cmdErr.HasErrorLabel(driver.UnknownTransactionCommitResult),
+			"expected error with label %v, got %v", driver.UnknownTransactionCommitResult, cmdErr)
 	})
 }
 

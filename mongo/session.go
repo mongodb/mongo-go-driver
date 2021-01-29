@@ -209,8 +209,8 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 	CommitLoop:
 		for {
 			err = s.CommitTransaction(ctx)
-			if err == nil {
-				return res, nil
+			if err == nil || IsTimeout(err) {
+				return res, err
 			}
 
 			select {
