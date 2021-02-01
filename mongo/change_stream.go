@@ -344,7 +344,7 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 
 	for i := 0; i < val.Len(); i++ {
 		var elem []byte
-		elem, cs.err = transformBsoncoreDocument(cs.registry, val.Index(i).Interface(), true, "")
+		elem, cs.err = transformBsoncoreDocument(cs.registry, val.Index(i).Interface(), true, "pipeline")
 		if cs.err != nil {
 			return cs.err
 		}
@@ -368,7 +368,7 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 
 	if cs.options.ResumeAfter != nil {
 		var raDoc bsoncore.Document
-		raDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.ResumeAfter, true, "")
+		raDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.ResumeAfter, true, "resumeAfter")
 		if cs.err != nil {
 			return nil
 		}
@@ -378,7 +378,7 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 
 	if cs.options.StartAfter != nil {
 		var saDoc bsoncore.Document
-		saDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.StartAfter, true, "")
+		saDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.StartAfter, true, "startAfter")
 		if cs.err != nil {
 			return nil
 		}

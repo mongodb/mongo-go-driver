@@ -262,7 +262,7 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
 	}
 	if option.CommitQuorum != nil {
-		commitQuorum, err := transformValue(iv.coll.registry, option.CommitQuorum, true, "")
+		commitQuorum, err := transformValue(iv.coll.registry, option.CommitQuorum, true, "commitQuorum")
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +293,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "sparse", *opts.Sparse)
 	}
 	if opts.StorageEngine != nil {
-		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.StorageEngine, true, "")
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.StorageEngine, true, "storageEngine")
 		if err != nil {
 			return nil, err
 		}
@@ -316,7 +316,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 		optsDoc = bsoncore.AppendInt32Element(optsDoc, "textIndexVersion", *opts.TextVersion)
 	}
 	if opts.Weights != nil {
-		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.Weights, true, "")
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.Weights, true, "weights")
 		if err != nil {
 			return nil, err
 		}
@@ -339,7 +339,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 		optsDoc = bsoncore.AppendInt32Element(optsDoc, "bucketSize", *opts.BucketSize)
 	}
 	if opts.PartialFilterExpression != nil {
-		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.PartialFilterExpression, true, "")
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.PartialFilterExpression, true, "partialFilterExpression")
 		if err != nil {
 			return nil, err
 		}
@@ -350,7 +350,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "collation", bsoncore.Document(opts.Collation.ToDocument()))
 	}
 	if opts.WildcardProjection != nil {
-		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.WildcardProjection, true, "")
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.WildcardProjection, true, "wildcardProjection")
 		if err != nil {
 			return nil, err
 		}

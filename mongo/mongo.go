@@ -188,7 +188,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc
 	if doc, ok := val.(bsonx.Doc); ok {
 		return doc.Copy(), nil
 	}
-	b, err := transformBsoncoreDocument(registry, val, true, "")
+	b, err := transformBsoncoreDocument(registry, val, true, "document")
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +332,7 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 		var hasOutputStage bool
 		valLen := val.Len()
 		for idx := 0; idx < valLen; idx++ {
-			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, "")
+			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, "pipeline")
 			if err != nil {
 				return nil, false, err
 			}
@@ -362,7 +362,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, doll
 		return u, ErrNilDocument
 	case primitive.D, bsonx.Doc:
 		u.Type = bsontype.EmbeddedDocument
-		u.Data, err = transformBsoncoreDocument(registry, update, true, "")
+		u.Data, err = transformBsoncoreDocument(registry, update, true, "update")
 		if err != nil {
 			return u, err
 		}
@@ -404,7 +404,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, doll
 		}
 		if val.Kind() != reflect.Slice && val.Kind() != reflect.Array {
 			u.Type = bsontype.EmbeddedDocument
-			u.Data, err = transformBsoncoreDocument(registry, update, true, "")
+			u.Data, err = transformBsoncoreDocument(registry, update, true, "update")
 			if err != nil {
 				return u, err
 			}
@@ -416,7 +416,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, doll
 		aidx, arr := bsoncore.AppendArrayStart(nil)
 		valLen := val.Len()
 		for idx := 0; idx < valLen; idx++ {
-			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, "")
+			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, "update")
 			if err != nil {
 				return u, err
 			}
@@ -458,7 +458,7 @@ func transformValue(registry *bsoncodec.Registry, val interface{}, mapAllowed bo
 
 // Build the aggregation pipeline for the CountDocument command.
 func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interface{}, opts *options.CountOptions) (bsoncore.Document, error) {
-	filterDoc, err := transformBsoncoreDocument(registry, filter, true, "")
+	filterDoc, err := transformBsoncoreDocument(registry, filter, true, "filter")
 	if err != nil {
 		return nil, err
 	}
