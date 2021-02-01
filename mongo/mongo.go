@@ -188,15 +188,11 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc
 	if doc, ok := val.(bsonx.Doc); ok {
 		return doc.Copy(), nil
 	}
-	b, err := transformBsoncoreDocumentMapAllowed(registry, val)
+	b, err := transformBsoncoreDocument(registry, val, true, "")
 	if err != nil {
 		return nil, err
 	}
 	return bsonx.ReadDoc(b)
-}
-
-func transformBsoncoreDocumentMapAllowed(registry *bsoncodec.Registry, val interface{}) (bsoncore.Document, error) {
-	return transformBsoncoreDocument(registry, val, true, "")
 }
 
 func transformBsoncoreDocument(registry *bsoncodec.Registry, val interface{}, mapAllowed bool, paramName string) (bsoncore.Document, error) {
@@ -336,7 +332,7 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 		var hasOutputStage bool
 		valLen := val.Len()
 		for idx := 0; idx < valLen; idx++ {
-			doc, err := transformBsoncoreDocumentMapAllowed(registry, val.Index(idx).Interface())
+			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, "")
 			if err != nil {
 				return nil, false, err
 			}
@@ -366,7 +362,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, doll
 		return u, ErrNilDocument
 	case primitive.D, bsonx.Doc:
 		u.Type = bsontype.EmbeddedDocument
-		u.Data, err = transformBsoncoreDocumentMapAllowed(registry, update)
+		u.Data, err = transformBsoncoreDocument(registry, update, true, "")
 		if err != nil {
 			return u, err
 		}
@@ -408,7 +404,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, doll
 		}
 		if val.Kind() != reflect.Slice && val.Kind() != reflect.Array {
 			u.Type = bsontype.EmbeddedDocument
-			u.Data, err = transformBsoncoreDocumentMapAllowed(registry, update)
+			u.Data, err = transformBsoncoreDocument(registry, update, true, "")
 			if err != nil {
 				return u, err
 			}
@@ -420,7 +416,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, doll
 		aidx, arr := bsoncore.AppendArrayStart(nil)
 		valLen := val.Len()
 		for idx := 0; idx < valLen; idx++ {
-			doc, err := transformBsoncoreDocumentMapAllowed(registry, val.Index(idx).Interface())
+			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, "")
 			if err != nil {
 				return u, err
 			}
@@ -462,7 +458,7 @@ func transformValue(registry *bsoncodec.Registry, val interface{}, mapAllowed bo
 
 // Build the aggregation pipeline for the CountDocument command.
 func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interface{}, opts *options.CountOptions) (bsoncore.Document, error) {
-	filterDoc, err := transformBsoncoreDocumentMapAllowed(registry, filter)
+	filterDoc, err := transformBsoncoreDocument(registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}

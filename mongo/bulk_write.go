@@ -250,7 +250,7 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 func createDeleteDoc(filter interface{}, collation *options.Collation, hint interface{}, deleteOne bool,
 	registry *bsoncodec.Registry) (bsoncore.Document, error) {
 
-	f, err := transformBsoncoreDocumentMapAllowed(registry, filter)
+	f, err := transformBsoncoreDocument(registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +341,7 @@ func createUpdateDoc(
 	checkDollarKey bool,
 	registry *bsoncodec.Registry,
 ) (bsoncore.Document, error) {
-	f, err := transformBsoncoreDocumentMapAllowed(registry, filter)
+	f, err := transformBsoncoreDocument(registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}

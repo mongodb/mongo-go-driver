@@ -335,7 +335,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		ctx = context.Background()
 	}
 
-	filterDoc, err := transformBsoncoreDocumentMapAllowed(db.registry, filter)
+	filterDoc, err := transformBsoncoreDocument(db.registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}
@@ -502,7 +502,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 	if cco.DefaultIndexOptions != nil {
 		idx, doc := bsoncore.AppendDocumentStart(nil)
 		if cco.DefaultIndexOptions.StorageEngine != nil {
-			storageEngine, err := transformBsoncoreDocumentMapAllowed(db.registry, cco.DefaultIndexOptions.StorageEngine)
+			storageEngine, err := transformBsoncoreDocument(db.registry, cco.DefaultIndexOptions.StorageEngine, true, "")
 			if err != nil {
 				return err
 			}
@@ -523,7 +523,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 		op.Size(*cco.SizeInBytes)
 	}
 	if cco.StorageEngine != nil {
-		storageEngine, err := transformBsoncoreDocumentMapAllowed(db.registry, cco.StorageEngine)
+		storageEngine, err := transformBsoncoreDocument(db.registry, cco.StorageEngine, true, "")
 		if err != nil {
 			return err
 		}
@@ -536,7 +536,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 		op.ValidationLevel(*cco.ValidationLevel)
 	}
 	if cco.Validator != nil {
-		validator, err := transformBsoncoreDocumentMapAllowed(db.registry, cco.Validator)
+		validator, err := transformBsoncoreDocument(db.registry, cco.Validator, true, "")
 		if err != nil {
 			return err
 		}

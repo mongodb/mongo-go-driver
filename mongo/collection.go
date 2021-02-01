@@ -399,7 +399,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		ctx = context.Background()
 	}
 
-	f, err := transformBsoncoreDocumentMapAllowed(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}
@@ -625,7 +625,7 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		ctx = context.Background()
 	}
 
-	f, err := transformBsoncoreDocumentMapAllowed(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}
@@ -653,7 +653,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		ctx = context.Background()
 	}
 
-	f, err := transformBsoncoreDocumentMapAllowed(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}
@@ -681,12 +681,12 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformBsoncoreDocumentMapAllowed(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := transformBsoncoreDocumentMapAllowed(coll.registry, replacement)
+	r, err := transformBsoncoreDocument(coll.registry, replacement, true, "")
 	if err != nil {
 		return nil, err
 	}
@@ -1020,7 +1020,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		ctx = context.Background()
 	}
 
-	f, err := transformBsoncoreDocumentMapAllowed(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}
@@ -1109,7 +1109,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformBsoncoreDocumentMapAllowed(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter, true, "")
 	if err != nil {
 		return nil, err
 	}
@@ -1190,7 +1190,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		op.Limit(limit)
 	}
 	if fo.Max != nil {
-		max, err := transformBsoncoreDocumentMapAllowed(coll.registry, fo.Max)
+		max, err := transformBsoncoreDocument(coll.registry, fo.Max, true, "")
 		if err != nil {
 			closeImplicitSession(sess)
 			return nil, err
@@ -1204,7 +1204,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
 	}
 	if fo.Min != nil {
-		min, err := transformBsoncoreDocumentMapAllowed(coll.registry, fo.Min)
+		min, err := transformBsoncoreDocument(coll.registry, fo.Min, true, "")
 		if err != nil {
 			closeImplicitSession(sess)
 			return nil, err
@@ -1218,7 +1218,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		op.OplogReplay(*fo.OplogReplay)
 	}
 	if fo.Projection != nil {
-		proj, err := transformBsoncoreDocumentMapAllowed(coll.registry, fo.Projection)
+		proj, err := transformBsoncoreDocument(coll.registry, fo.Projection, true, "")
 		if err != nil {
 			closeImplicitSession(sess)
 			return nil, err
@@ -1379,7 +1379,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
 	opts ...*options.FindOneAndDeleteOptions) *SingleResult {
 
-	f, err := transformBsoncoreDocumentMapAllowed(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter, true, "")
 	if err != nil {
 		return &SingleResult{err: err}
 	}
@@ -1392,7 +1392,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		op = op.MaxTimeMS(int64(*fod.MaxTime / time.Millisecond))
 	}
 	if fod.Projection != nil {
-		proj, err := transformBsoncoreDocumentMapAllowed(coll.registry, fod.Projection)
+		proj, err := transformBsoncoreDocument(coll.registry, fod.Projection, true, "")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1433,11 +1433,11 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
 	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *SingleResult {
 
-	f, err := transformBsoncoreDocumentMapAllowed(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter, true, "")
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-	r, err := transformBsoncoreDocumentMapAllowed(coll.registry, replacement)
+	r, err := transformBsoncoreDocument(coll.registry, replacement, true, "")
 	if err != nil {
 		return &SingleResult{err: err}
 	}
@@ -1458,7 +1458,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
 	}
 	if fo.Projection != nil {
-		proj, err := transformBsoncoreDocumentMapAllowed(coll.registry, fo.Projection)
+		proj, err := transformBsoncoreDocument(coll.registry, fo.Projection, true, "")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1510,7 +1510,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		ctx = context.Background()
 	}
 
-	f, err := transformBsoncoreDocumentMapAllowed(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter, true, "")
 	if err != nil {
 		return &SingleResult{err: err}
 	}
@@ -1541,7 +1541,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
 	}
 	if fo.Projection != nil {
-		proj, err := transformBsoncoreDocumentMapAllowed(coll.registry, fo.Projection)
+		proj, err := transformBsoncoreDocument(coll.registry, fo.Projection, true, "")
 		if err != nil {
 			return &SingleResult{err: err}
 		}

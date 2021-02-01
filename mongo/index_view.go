@@ -293,7 +293,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "sparse", *opts.Sparse)
 	}
 	if opts.StorageEngine != nil {
-		doc, err := transformBsoncoreDocumentMapAllowed(iv.coll.registry, opts.StorageEngine)
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.StorageEngine, true, "")
 		if err != nil {
 			return nil, err
 		}
@@ -316,7 +316,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 		optsDoc = bsoncore.AppendInt32Element(optsDoc, "textIndexVersion", *opts.TextVersion)
 	}
 	if opts.Weights != nil {
-		doc, err := transformBsoncoreDocumentMapAllowed(iv.coll.registry, opts.Weights)
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.Weights, true, "")
 		if err != nil {
 			return nil, err
 		}
@@ -339,7 +339,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 		optsDoc = bsoncore.AppendInt32Element(optsDoc, "bucketSize", *opts.BucketSize)
 	}
 	if opts.PartialFilterExpression != nil {
-		doc, err := transformBsoncoreDocumentMapAllowed(iv.coll.registry, opts.PartialFilterExpression)
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.PartialFilterExpression, true, "")
 		if err != nil {
 			return nil, err
 		}
@@ -350,7 +350,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "collation", bsoncore.Document(opts.Collation.ToDocument()))
 	}
 	if opts.WildcardProjection != nil {
-		doc, err := transformBsoncoreDocumentMapAllowed(iv.coll.registry, opts.WildcardProjection)
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.WildcardProjection, true, "")
 		if err != nil {
 			return nil, err
 		}
