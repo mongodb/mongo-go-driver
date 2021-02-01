@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/youmark/pkcs8"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -885,14 +886,34 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 			certDecodedBlock = currentBlock.Bytes
 			start += len(certBlock)
 		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
-			if keyPasswd != "" && x509.IsEncryptedPEMBlock(currentBlock) {
-				var encoded bytes.Buffer
-				buf, err := x509.DecryptPEMBlock(currentBlock, []byte(keyPasswd))
-				if err != nil {
-					return "", err
+			isEncrypted := x509.IsEncryptedPEMBlock(currentBlock) || strings.Contains(currentBlock.Type, "ENCRYPTED PRIVATE KEY")
+			if isEncrypted {
+				if keyPasswd == "" {
+					return "", fmt.Errorf("no password provided to decrypt private key")
 				}
 
-				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: buf})
+				var keyBytes []byte
+				var err error
+				// Process the X.509-encrypted or PKCS-encrypted PEM block.
+				if x509.IsEncryptedPEMBlock(currentBlock) {
+					// Only covers encrypted PEM data with a DEK-Info header.
+					keyBytes, err = x509.DecryptPEMBlock(currentBlock, []byte(keyPasswd))
+					if err != nil {
+						return "", err
+					}
+				} else if strings.Contains(currentBlock.Type, "ENCRYPTED") {
+					// The pkcs8 package only handles the PKCS #5 v2.0 scheme.
+					decrypted, err := pkcs8.ParsePKCS8PrivateKey(currentBlock.Bytes, []byte(keyPasswd))
+					if err != nil {
+						return "", err
+					}
+					keyBytes, err = x509MarshalPKCS8PrivateKey(decrypted)
+					if err != nil {
+						return "", err
+					}
+				}
+				var encoded bytes.Buffer
+				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
 				keyBlock = encoded.Bytes()
 				start = len(data) - len(remaining)
 			} else {

@@ -21,7 +21,8 @@ require (
 	github.com/tidwall/pretty v1.0.0
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
 	github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
-	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
+	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
+	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20190531175056-4c3a928424d2 // indirect
 	golang.org/x/text v0.3.3 // indirect
