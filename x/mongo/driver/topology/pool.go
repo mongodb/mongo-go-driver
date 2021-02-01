@@ -341,7 +341,6 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 			})
 		}
 		ErrWaitQueueTimeout := WaitQueueTimeoutError{
-			Message: "timed out while checking out a connection from connection pool",
 			Wrapped: ctx.Err(),
 		}
 		return nil, ErrWaitQueueTimeout

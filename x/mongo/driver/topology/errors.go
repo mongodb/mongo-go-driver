@@ -62,15 +62,15 @@ func (e ServerSelectionError) Unwrap() error {
 
 // WaitQueueTimeoutError represents a timeout when requesting a connection from the pool
 type WaitQueueTimeoutError struct {
-	Message string
 	Wrapped error
 }
 
 func (w WaitQueueTimeoutError) Error() string {
+	errorMsg := "timed out while checking out a connection from connection pool"
 	if w.Wrapped != nil {
-		return fmt.Sprintf("%s: %s", w.Message, w.Wrapped.Error())
+		return fmt.Sprintf("%s: %s", errorMsg, w.Wrapped.Error())
 	}
-	return w.Message
+	return errorMsg
 }
 
 func (w WaitQueueTimeoutError) Unwrap() error {
