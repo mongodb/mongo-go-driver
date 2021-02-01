@@ -86,6 +86,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterTypeEncoder(tMinKey, ValueEncoderFunc(dve.MinKeyEncodeValue)).
 		RegisterTypeEncoder(tMaxKey, ValueEncoderFunc(dve.MaxKeyEncodeValue)).
 		RegisterTypeEncoder(tCoreDocument, ValueEncoderFunc(dve.CoreDocumentEncodeValue)).
+		RegisterTypeEncoder(tCoreArray, ValueEncoderFunc(dve.CoreArrayEncodeValue)).
 		RegisterTypeEncoder(tCodeWithScope, ValueEncoderFunc(dve.CodeWithScopeEncodeValue)).
 		RegisterDefaultEncoder(reflect.Bool, ValueEncoderFunc(dve.BooleanEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int, ValueEncoderFunc(dve.IntEncodeValue)).
@@ -723,6 +724,17 @@ func (DefaultValueEncoders) CoreDocumentEncodeValue(ec EncodeContext, vw bsonrw.
 	cdoc := val.Interface().(bsoncore.Document)
 
 	return bsonrw.Copier{}.CopyDocumentFromBytes(vw, cdoc)
+}
+
+// CoreArrayEncodeValue is the ValueEncoderFunc for bsoncore.Array.
+func (DefaultValueEncoders) CoreArrayEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tCoreArray {
+		return ValueEncoderError{Name: "CoreArrayEncodeValue", Types: []reflect.Type{tCoreArray}, Received: val}
+	}
+
+	arr := val.Interface().(bsoncore.Array)
+
+	return bsonrw.Copier{}.CopyArrayFromBytes(vw, arr)
 }
 
 // CodeWithScopeEncodeValue is the ValueEncoderFunc for CodeWithScope.

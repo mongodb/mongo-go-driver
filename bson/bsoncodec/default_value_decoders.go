@@ -85,6 +85,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeDecoder(tJSONNumber, decodeAdapter{dvd.JSONNumberDecodeValue, dvd.jsonNumberDecodeType}).
 		RegisterTypeDecoder(tURL, decodeAdapter{dvd.URLDecodeValue, dvd.urlDecodeType}).
 		RegisterTypeDecoder(tCoreDocument, ValueDecoderFunc(dvd.CoreDocumentDecodeValue)).
+		RegisterTypeDecoder(tCoreArray, ValueDecoderFunc(dvd.CoreArrayDecodeValue)).
 		RegisterTypeDecoder(tCodeWithScope, decodeAdapter{dvd.CodeWithScopeDecodeValue, dvd.codeWithScopeDecodeType}).
 		RegisterDefaultDecoder(reflect.Bool, decodeAdapter{dvd.BooleanDecodeValue, dvd.booleanDecodeType}).
 		RegisterDefaultDecoder(reflect.Int, intDecoder).
@@ -1561,6 +1562,23 @@ func (DefaultValueDecoders) CoreDocumentDecodeValue(dc DecodeContext, vr bsonrw.
 
 	cdoc, err := bsonrw.Copier{}.AppendDocumentBytes(val.Interface().(bsoncore.Document), vr)
 	val.Set(reflect.ValueOf(cdoc))
+	return err
+}
+
+// CoreArrayDecodeValue is the ValueDecoderFunc for bsoncore.Array.
+func (DefaultValueDecoders) CoreArrayDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.CanSet() || val.Type() != tCoreArray {
+		return ValueDecoderError{Name: "CoreArrayDecodeValue", Types: []reflect.Type{tCoreArray}, Received: val}
+	}
+
+	if val.IsNil() {
+		val.Set(reflect.MakeSlice(val.Type(), 0, 0))
+	}
+
+	val.SetLen(0)
+
+	_, arr, err := bsonrw.Copier{}.AppendValueBytes(val.Interface().(bsoncore.Array), vr)
+	val.Set(reflect.ValueOf(arr))
 	return err
 }
 
