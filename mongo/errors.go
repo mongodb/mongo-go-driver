@@ -116,6 +116,16 @@ func IsTimeout(err error) bool {
 	return false
 }
 
+// IsDeadlineExceededError returns true if err is context deadline exceeded
+func IsDeadlineExceededError(err error) bool {
+	for ; err != nil; err = unwrap(err) {
+		if err == context.DeadlineExceeded {
+			return true
+		}
+	}
+	return false
+}
+
 // unwrap returns the inner error if err implements Unwrap(), otherwise it returns nil.
 func unwrap(err error) error {
 	u, ok := err.(interface {

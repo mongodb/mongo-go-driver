@@ -209,7 +209,9 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 	CommitLoop:
 		for {
 			err = s.CommitTransaction(ctx)
-			if err == nil || IsTimeout(err) {
+			// End when error is nil (transaction has been committed), or when context deadline is exceeded as retrying
+			// has no chance of success.
+			if err == nil || IsDeadlineExceededError(err) {
 				return res, err
 			}
 
