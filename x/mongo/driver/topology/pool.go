@@ -340,10 +340,10 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				Reason:  event.ReasonTimedOut,
 			})
 		}
-		ErrWaitQueueTimeout := WaitQueueTimeoutError{
+		errWaitQueueTimeout := WaitQueueTimeoutError{
 			Wrapped: ctx.Err(),
 		}
-		return nil, ErrWaitQueueTimeout
+		return nil, errWaitQueueTimeout
 	}
 
 	// This loop is so that we don't end up with more than maxPoolSize connections if p.conns.Maintain runs between
