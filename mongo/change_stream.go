@@ -344,7 +344,7 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 
 	for i := 0; i < val.Len(); i++ {
 		var elem []byte
-		elem, cs.err = transformBsoncoreDocument(cs.registry, val.Index(i).Interface(), true, "pipeline")
+		elem, cs.err = transformBsoncoreDocument(cs.registry, val.Index(i).Interface(), true, fmt.Sprintf("pipeline stage :%v", i))
 		if cs.err != nil {
 			return cs.err
 		}

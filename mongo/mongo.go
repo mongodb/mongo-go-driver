@@ -332,7 +332,7 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 		var hasOutputStage bool
 		valLen := val.Len()
 		for idx := 0; idx < valLen; idx++ {
-			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, "pipeline")
+			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, fmt.Sprintf("pipeline stage :%v", idx))
 			if err != nil {
 				return nil, false, err
 			}
