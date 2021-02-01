@@ -8,7 +8,7 @@ import (
 )
 
 // We don't support Go versions less than 1.10, but Evergreen needs to be able to compile the driver
-// using version 1.8 and cert.Subject
+// using version 1.9 and cert.Subject
 func x509CertSubject(cert *x509.Certificate) string {
 	return ""
 }
