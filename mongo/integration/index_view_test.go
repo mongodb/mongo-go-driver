@@ -250,7 +250,7 @@ func TestIndexView(t *testing.T) {
 				Keys: bson.M{"foo": 1, "bar": -1},
 			})
 			assert.NotNil(mt, err, "expected CreateOne error, got nil")
-			assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"keys"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"key"}, err)
 		})
 		mt.Run("single key map", func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
@@ -407,7 +407,7 @@ func TestIndexView(t *testing.T) {
 				},
 			})
 			assert.NotNil(mt, err, "expected CreateOne error, got nil")
-			assert.Equal(mt, mongo.ErrMapForOrderedArgument, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument, err)
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"keys"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"keys"}, err)
 		})
 		mt.Run("single key map", func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()

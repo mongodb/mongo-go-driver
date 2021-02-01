@@ -29,14 +29,21 @@ var ErrClientDisconnected = errors.New("client is disconnected")
 // ErrNilDocument is returned when a nil document is passed to a CRUD method.
 var ErrNilDocument = errors.New("document is nil")
 
-// ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
-var ErrMapForOrderedArgument = errors.New("multi-key map passed in for ordered parameter")
-
 // ErrNilValue is returned when a nil value is passed to a CRUD method.
 var ErrNilValue = errors.New("value is nil")
 
 // ErrEmptySlice is returned when an empty slice is passed to a CRUD method that requires a non-empty slice.
 var ErrEmptySlice = errors.New("must provide at least one element in input slice")
+
+// ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
+type ErrMapForOrderedArgument struct {
+	ParamName string
+}
+
+// Error implements the error interface.
+func (e ErrMapForOrderedArgument) Error() string {
+	return fmt.Sprintf("multi-key map passed in for ordered parameter %v", e.ParamName)
+}
 
 func replaceErrors(err error) error {
 	if err == topology.ErrTopologyClosed {
