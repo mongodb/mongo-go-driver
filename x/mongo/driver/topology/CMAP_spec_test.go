@@ -160,7 +160,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 			for len(testInfo.backgroundThreadErrors) > 0 {
 				bgErr := <-testInfo.backgroundThreadErrors
 				errs = append(errs, bgErr)
-				if bgErr != nil && strings.ToLower(test.Error.Message) == bgErr.Error() {
+				if bgErr != nil && strings.Contains(bgErr.Error(), strings.ToLower(test.Error.Message)) {
 					erroredCorrectly = true
 					break
 				}

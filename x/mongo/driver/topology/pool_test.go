@@ -689,6 +689,40 @@ func TestPool(t *testing.T) {
 			noerr(t, err)
 		})
 	})
+	t.Run("wait queue timeout error", func(t *testing.T) {
+		cleanup := make(chan struct{})
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			<-cleanup
+			_ = nc.Close()
+		})
+		d := newdialer(&net.Dialer{})
+		pc := poolConfig{
+			Address:     address.Address(addr.String()),
+			MaxPoolSize: 1,
+		}
+		p, err := newPool(pc, WithDialer(func(Dialer) Dialer { return d }))
+		noerr(t, err)
+		err = p.connect()
+		noerr(t, err)
+
+		// get first connection.
+		_, err = p.get(context.Background())
+		noerr(t, err)
+
+		// Set a short timeout and get again.
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+		defer cancel()
+		_, err = p.get(ctx)
+		assert.NotNil(t, err, "expected a WaitQueueTimeout; got nil")
+
+		// Assert that error received is WaitQueueTimeoutError with context deadline exceeded.
+		wqtErr, ok := err.(WaitQueueTimeoutError)
+		assert.True(t, ok, "expected a WaitQueueTimeoutError; got %v", err)
+		assert.True(t, wqtErr.Unwrap() == context.DeadlineExceeded,
+			"expected a timeout error; got %v", wqtErr)
+
+		close(cleanup)
+	})
 }
 
 type sleepDialer struct {
