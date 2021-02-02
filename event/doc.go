@@ -5,13 +5,14 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 // Package event is a library for monitoring events from the MongoDB Go
-// driver. Monitors can be set for commands sent to the MongoDB server and/or
-// changes on the MongoDB server.
+// driver. Monitors can be set for commands sent to the MongoDB cluster,
+// connection pool changes, or changes on the MongoDB cluster.
 //
-// Monitoring commands requires setting a CommandMonitor object on the
-// mongo.Client. A CommandMonitor can be set to monitor started, succeeded,
-// and/or failed events. For example, the following code collects the names of
-// started events:
+// Monitoring commands requires specifying a CommandMonitor when constructing
+// a mongo.Client. A CommandMonitor can be set to monitor started, succeeded,
+// and/or failed events. A CommandStartedEvent can be correlated to its matching
+// CommandSucceededEvent or CommandFailedEvent though the RequestID field. For
+// example, the following code collects the names of started events:
 //
 //    var commandStarted []string
 //    cmdMonitor := &event.CommandMonitor{
@@ -22,15 +23,32 @@
 //    clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(cmdMonitor)
 //    client, err := mongo.Connect(context.Background(), clientOpts)
 //
-// Monitoring server changes requires setting a ServerMonitor object on
-// the mongo.Client. Different functions can be set on the ServerMonitor to
+// Monitoring the connection pool requires specifying a PoolMonitor when constructing
+// a mongo.Client. The following code tracks the number of checked out connections:
+//
+//    var int connsCheckedOut
+//    poolMonitor := &event.PoolMonitor{
+//      Event: func(evt *event.PoolEvent) {
+//        switch evt.Type {
+//        case event.GetSucceeded:
+//          connsCheckedOut++
+//        case event.ConnectionReturned:
+//          connsCheckedOut--
+//        }
+//      },
+//    }
+//    clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").SetPoolMonitor(poolMonitor)
+//    client, err := mongo.Connect(context.Background(), clientOpts)
+//
+// Monitoring server changes specifying a ServerMonitor object when constructing
+// a mongo.Client. Different functions can be set on the ServerMonitor to
 // monitor different kinds of events. See ServerMonitor for more details.
 // The following code appends ServerHeartbeatStartedEvents to a slice:
 //
 //    var heartbeatStarted []*event.ServerHeartbeatStartedEvent
 //    svrMonitor := &event.ServerMonitor{
 //      ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
-//	      heartbeatStarted = append(heartbeatStarted, *e)
+//	      heartbeatStarted = append(heartbeatStarted, e)
 //      }
 //    }
 //    clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").SetServerMonitor(svrMonitor)
