@@ -117,6 +117,10 @@ func TestDatabase(t *testing.T) {
 			assert.NotNil(mt, writeExcept.WriteConcernError, "expected WriteConcernError to be non-nil")
 			assert.Equal(mt, writeExcept.WriteConcernError.Code, 100, "expeced error code 100, got %v", writeExcept.WriteConcernError.Code)
 		})
+		mt.Run("multi key map command", func(mt *mtest.T) {
+			err := mt.DB.RunCommand(mtest.Background, bson.M{"insert": "test", "documents": bson.A{bson.D{{"a", 1}}}}).Err()
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"cmd"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"cmd"}, err)
+		})
 	})
 
 	dropOpts := mtest.NewOptions().DatabaseName("dropDb")

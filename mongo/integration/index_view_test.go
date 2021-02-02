@@ -243,6 +243,30 @@ func TestIndexView(t *testing.T) {
 			assert.Equal(mt, int32(100), cmdErr.Code, "expected error code 100, got %v", cmdErr.Code)
 
 		})
+		mt.Run("multi-key map", func(mt *mtest.T) {
+			iv := mt.Coll.Indexes()
+
+			_, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+				Keys: bson.M{"foo": 1, "bar": -1},
+			})
+			assert.NotNil(mt, err, "expected CreateOne error, got nil")
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"keys"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"key"}, err)
+		})
+		mt.Run("single key map", func(mt *mtest.T) {
+			iv := mt.Coll.Indexes()
+			expectedName := "foo_1"
+
+			indexName, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+				Keys: bson.M{"foo": 1},
+			})
+			assert.Nil(mt, err, "CreateOne error: %v", err)
+			assert.Equal(mt, expectedName, indexName, "expected name %q, got %q", expectedName, indexName)
+
+			verifyIndexExists(mt, iv, index{
+				Key:  bson.D{{"foo", int32(1)}},
+				Name: indexName,
+			})
+		})
 	})
 	mt.Run("create many", func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {
@@ -371,6 +395,44 @@ func TestIndexView(t *testing.T) {
 			assert.True(mt, ok, "expected mongo.CommandError, got %T", err)
 			assert.Equal(mt, int32(100), cmdErr.Code, "expected error code 100, got %v", cmdErr.Code)
 
+		})
+		mt.Run("multi-key map", func(mt *mtest.T) {
+			iv := mt.Coll.Indexes()
+			_, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+				{
+					Keys: bson.M{"foo": 1, "bar": -1},
+				},
+				{
+					Keys: bson.D{{"bar", int32(1)}, {"baz", int32(-1)}},
+				},
+			})
+			assert.NotNil(mt, err, "expected CreateOne error, got nil")
+			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"keys"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"keys"}, err)
+		})
+		mt.Run("single key map", func(mt *mtest.T) {
+			iv := mt.Coll.Indexes()
+			firstKeysDoc := bson.M{"foo": -1}
+			secondKeysDoc := bson.D{{"bar", int32(1)}, {"baz", int32(-1)}}
+			expectedNames := []string{"foo_-1", "bar_1_baz_-1"}
+			indexNames, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+				{
+					Keys: firstKeysDoc,
+				},
+				{
+					Keys: secondKeysDoc,
+				},
+			})
+			assert.Nil(mt, err, "CreateMany error: %v", err)
+			assert.Equal(mt, expectedNames, indexNames, "expected returned names %v, got %v", expectedNames, indexNames)
+
+			verifyIndexExists(mt, iv, index{
+				Key:  bson.D{{"foo", int32(-1)}},
+				Name: indexNames[0],
+			})
+			verifyIndexExists(mt, iv, index{
+				Key:  secondKeysDoc,
+				Name: indexNames[1],
+			})
 		})
 	})
 	mt.RunOpts("list specifications", noClientOpts, func(mt *mtest.T) {

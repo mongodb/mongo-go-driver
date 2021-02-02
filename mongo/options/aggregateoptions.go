@@ -41,8 +41,8 @@ type AggregateOptions struct {
 	Comment *string
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
-	// as a document. The hint does not apply to $lookup and $graphLookup aggregation stages. The default value is nil,
-	// which means that no hint will be sent.
+	// as a document. The hint does not apply to $lookup and $graphLookup aggregation stages. The driver will return an
+	// error if the hint parameter is a multi-key map. The default value is nil, which means that no hint will be sent.
 	Hint interface{}
 }
 

@@ -39,7 +39,8 @@ type FindOptions struct {
 	CursorType *CursorType
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. The default value is nil, which means that no hint will be sent.
+	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
+	// which means that no hint will be sent.
 	Hint interface{}
 
 	// The maximum number of documents to return. The default value is 0, which means that all documents matching the
@@ -95,7 +96,8 @@ type FindOptions struct {
 	// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
 	Snapshot *bool
 
-	// A document specifying the order in which documents should be returned.
+	// A document specifying the order in which documents should be returned.  The driver will return an error if the
+	// sort parameter is a multi-key map.
 	Sort interface{}
 }
 
@@ -323,7 +325,8 @@ type FindOneOptions struct {
 	CursorType *CursorType
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
-	// as a document. The default value is nil, which means that no hint will be sent.
+	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
+	// which means that no hint will be sent.
 	Hint interface{}
 
 	// A document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
@@ -372,7 +375,7 @@ type FindOneOptions struct {
 	Snapshot *bool
 
 	// A document specifying the sort order to apply to the query. The first document in the sorted order will be
-	// returned.
+	// returned. The driver will return an error if the sort parameter is a multi-key map.
 	Sort interface{}
 }
 
@@ -584,8 +587,8 @@ type FindOneAndReplaceOptions struct {
 	ReturnDocument *ReturnDocument
 
 	// A document specifying which document should be replaced if the filter used by the operation matches multiple
-	// documents in the collection. If set, the first document in the sorted order will be replaced.
-	// The default value is nil.
+	// documents in the collection. If set, the first document in the sorted order will be replaced. The driver will
+	// return an error if the sort parameter is a multi-key map. The default value is nil.
 	Sort interface{}
 
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
@@ -595,8 +598,9 @@ type FindOneAndReplaceOptions struct {
 	// The index to use for the operation. This should either be the index name as a string or the index specification
 	// as a document. This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if
 	// this option is specified. For server versions < 4.2, the driver will return an error if this option is specified.
-	// The driver will return an error if this option is used with during an unacknowledged write operation. The default
-	// value is nil, which means that no hint will be sent.
+	// The driver will return an error if this option is used with during an unacknowledged write operation. The driver
+	// will return an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
+	// will be sent.
 	Hint interface{}
 }
 
@@ -721,8 +725,8 @@ type FindOneAndUpdateOptions struct {
 	ReturnDocument *ReturnDocument
 
 	// A document specifying which document should be updated if the filter used by the operation matches multiple
-	// documents in the collection. If set, the first document in the sorted order will be updated.
-	// The default value is nil.
+	// documents in the collection. If set, the first document in the sorted order will be updated. The driver will
+	// return an error if the sort parameter is a multi-key map. The default value is nil.
 	Sort interface{}
 
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
@@ -732,8 +736,9 @@ type FindOneAndUpdateOptions struct {
 	// The index to use for the operation. This should either be the index name as a string or the index specification
 	// as a document. This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if
 	// this option is specified. For server versions < 4.2, the driver will return an error if this option is specified.
-	// The driver will return an error if this option is used with during an unacknowledged write operation. The default
-	// value is nil, which means that no hint will be sent.
+	// The driver will return an error if this option is used with during an unacknowledged write operation. The driver
+	// will return an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
+	// will be sent.
 	Hint interface{}
 }
 
@@ -853,14 +858,15 @@ type FindOneAndDeleteOptions struct {
 
 	// A document specifying which document should be replaced if the filter used by the operation matches multiple
 	// documents in the collection. If set, the first document in the sorted order will be selected for replacement.
-	// The default value is nil.
+	// The driver will return an error if the sort parameter is a multi-key map. The default value is nil.
 	Sort interface{}
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification
 	// as a document. This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if
 	// this option is specified. For server versions < 4.2, the driver will return an error if this option is specified.
-	// The driver will return an error if this option is used with during an unacknowledged write operation. The default
-	// value is nil, which means that no hint will be sent.
+	// The driver will return an error if this option is used with during an unacknowledged write operation. The driver
+	// will return an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
+	// will be sent.
 	Hint interface{}
 }
 
