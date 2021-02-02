@@ -248,7 +248,7 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 func createDeleteDoc(filter interface{}, collation *options.Collation, hint interface{}, deleteOne bool,
 	registry *bsoncodec.Registry) (bsoncore.Document, error) {
 
-	f, err := transformBsoncoreDocument(registry, filter)
+	f, err := transformBsoncoreDocument(registry, filter, true, "filter")
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +264,7 @@ func createDeleteDoc(filter interface{}, collation *options.Collation, hint inte
 		doc = bsoncore.AppendDocumentElement(doc, "collation", collation.ToDocument())
 	}
 	if hint != nil {
-		hintVal, err := transformValue(registry, hint)
+		hintVal, err := transformValue(registry, hint, false, "hint")
 		if err != nil {
 			return nil, err
 		}
@@ -339,7 +339,7 @@ func createUpdateDoc(
 	checkDollarKey bool,
 	registry *bsoncodec.Registry,
 ) (bsoncore.Document, error) {
-	f, err := transformBsoncoreDocument(registry, filter)
+	f, err := transformBsoncoreDocument(registry, filter, true, "filter")
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +375,7 @@ func createUpdateDoc(
 	}
 
 	if hint != nil {
-		hintVal, err := transformValue(registry, hint)
+		hintVal, err := transformValue(registry, hint, false, "hint")
 		if err != nil {
 			return nil, err
 		}

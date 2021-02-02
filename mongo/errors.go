@@ -35,6 +35,16 @@ var ErrNilValue = errors.New("value is nil")
 // ErrEmptySlice is returned when an empty slice is passed to a CRUD method that requires a non-empty slice.
 var ErrEmptySlice = errors.New("must provide at least one element in input slice")
 
+// ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
+type ErrMapForOrderedArgument struct {
+	ParamName string
+}
+
+// Error implements the error interface.
+func (e ErrMapForOrderedArgument) Error() string {
+	return fmt.Sprintf("multi-key map passed in for ordered parameter %v", e.ParamName)
+}
+
 func replaceErrors(err error) error {
 	if err == topology.ErrTopologyClosed {
 		return ErrClientDisconnected
