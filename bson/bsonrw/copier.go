@@ -172,6 +172,23 @@ func (c Copier) AppendDocumentBytes(dst []byte, src ValueReader) ([]byte, error)
 	return dst, err
 }
 
+// AppendArrayBytes copies an array from the ValueReader to dst.
+func (c Copier) AppendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
+	if br, ok := src.(BytesReader); ok {
+		_, dst, err := br.ReadValueBytes(dst)
+		return dst, err
+	}
+
+	vw := vwPool.Get().(*valueWriter)
+	defer vwPool.Put(vw)
+
+	vw.reset(dst)
+
+	err := c.copyArray(vw, src)
+	dst = vw.buf
+	return dst, err
+}
+
 // CopyValueFromBytes will write the value represtend by t and src to dst.
 func (c Copier) CopyValueFromBytes(dst ValueWriter, t bsontype.Type, src []byte) error {
 	if wvb, ok := dst.(BytesWriter); ok {

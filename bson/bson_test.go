@@ -203,15 +203,15 @@ func TestExtJSONEscapeKey(t *testing.T) {
 	}
 }
 
-type BSONDocumentArray struct {
-	Array []D `bson:"array"`
-}
-
-type BSONArray struct {
-	Array bsoncore.Array `bson:"array"`
-}
-
 func TestBsoncoreArray(t *testing.T) {
+	type BSONDocumentArray struct {
+		Array []D `bson:"array"`
+	}
+
+	type BSONArray struct {
+		Array bsoncore.Array `bson:"array"`
+	}
+
 	bda := BSONDocumentArray{
 		Array: []D{
 			{{"x", 1}},

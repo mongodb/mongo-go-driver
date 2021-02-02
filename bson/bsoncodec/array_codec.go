@@ -44,7 +44,7 @@ func (ac *ArrayCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val r
 	}
 
 	val.SetLen(0)
-	_, arr, err := bsonrw.Copier{}.AppendValueBytes(val.Interface().(bsoncore.Array), vr)
+	arr, err := bsonrw.Copier{}.AppendArrayBytes(val.Interface().(bsoncore.Array), vr)
 	val.Set(reflect.ValueOf(arr))
 	return err
 }
