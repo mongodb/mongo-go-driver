@@ -30,7 +30,6 @@ func (ac *ArrayCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val r
 	}
 
 	arr := val.Interface().(bsoncore.Array)
-
 	return bsonrw.Copier{}.CopyArrayFromBytes(vw, arr)
 }
 
@@ -45,7 +44,6 @@ func (ac *ArrayCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val r
 	}
 
 	val.SetLen(0)
-
 	_, arr, err := bsonrw.Copier{}.AppendValueBytes(val.Interface().(bsoncore.Array), vr)
 	val.Set(reflect.ValueOf(arr))
 	return err

@@ -77,19 +77,29 @@ func (c Copier) CopyDocumentFromBytes(dst ValueWriter, src []byte) error {
 	return dw.WriteDocumentEnd()
 }
 
+type writeElementFn func(key string) (ValueWriter, error)
+
 // CopyBytesToArrayWriter copies the values from a BSON Array represented as a []byte to an
 // ArrayWriter.
 func (c Copier) CopyBytesToArrayWriter(dst ArrayWriter, src []byte) error {
-	return c.copyBytesToValueWriter(dst.(ValueWriter), src, true)
+	wef := func(_ string) (ValueWriter, error) {
+		return dst.WriteArrayElement()
+	}
+
+	return c.copyBytesToValueWriter(src, wef)
 }
 
 // CopyBytesToDocumentWriter copies the values from a BSON document represented as a []byte to a
 // DocumentWriter.
 func (c Copier) CopyBytesToDocumentWriter(dst DocumentWriter, src []byte) error {
-	return c.copyBytesToValueWriter(dst.(ValueWriter), src, false)
+	wef := func(key string) (ValueWriter, error) {
+		return dst.WriteDocumentElement(key)
+	}
+
+	return c.copyBytesToValueWriter(src, wef)
 }
 
-func (c Copier) copyBytesToValueWriter(dst ValueWriter, src []byte, isArray bool) error {
+func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 	// TODO(skriptble): Create errors types here. Anything thats a tag should be a property.
 	length, rem, ok := bsoncore.ReadLength(src)
 	if !ok {
@@ -120,18 +130,8 @@ func (c Copier) copyBytesToValueWriter(dst ValueWriter, src []byte, isArray bool
 			return fmt.Errorf("invalid key found. remaining bytes=%v", rem)
 		}
 
-		// write as either array element or document element
-		var (
-			vw  ValueWriter
-			err error
-		)
-		if isArray {
-			aw := dst.(ArrayWriter)
-			vw, err = aw.WriteArrayElement()
-		} else {
-			dw := dst.(DocumentWriter)
-			vw, err = dw.WriteDocumentElement(key)
-		}
+		// write as either array element or document element using writeElementFn
+		vw, err := wef(key)
 		if err != nil {
 			return err
 		}

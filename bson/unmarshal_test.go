@@ -429,34 +429,3 @@ func TestUnmarshalBSONWithUndefinedField(t *testing.T) {
 		})
 	}
 }
-
-type BSONDocumentArray struct {
-	Array []D `bson:"array"`
-}
-
-type BSONArray struct {
-	Array bsoncore.Array `bson:"array"`
-}
-
-func TestBsoncoreArrayMarshal(t *testing.T) {
-	bda := BSONDocumentArray{
-		Array: []D{
-			D{{"x", 1}},
-			D{{"x", 2}},
-			D{{"x", 3}},
-		},
-	}
-
-	expectedBSON, err := Marshal(bda)
-	assert.Nil(t, err, "Marshal bsoncore.Document array error: %v", err)
-
-	var ba BSONArray
-	err = Unmarshal(expectedBSON, &ba)
-	assert.Nil(t, err, "Unmarshal error: %v", err)
-
-	actualBSON, err := Marshal(ba)
-	assert.Nil(t, err, "Marshal bsoncore.Array error: %v", err)
-
-	assert.Equal(t, expectedBSON, actualBSON,
-		"expected BSON to be %v after Marshalling again; got %v", expectedBSON, actualBSON)
-}

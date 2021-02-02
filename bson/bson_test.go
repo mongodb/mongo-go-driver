@@ -202,3 +202,34 @@ func TestExtJSONEscapeKey(t *testing.T) {
 		t.Errorf("Unmarshaled documents do not match. got %v; want %v", got, doc)
 	}
 }
+
+type BSONDocumentArray struct {
+	Array []D `bson:"array"`
+}
+
+type BSONArray struct {
+	Array bsoncore.Array `bson:"array"`
+}
+
+func TestBsoncoreArray(t *testing.T) {
+	bda := BSONDocumentArray{
+		Array: []D{
+			{{"x", 1}},
+			{{"x", 2}},
+			{{"x", 3}},
+		},
+	}
+
+	expectedBSON, err := Marshal(bda)
+	assert.Nil(t, err, "Marshal bsoncore.Document array error: %v", err)
+
+	var ba BSONArray
+	err = Unmarshal(expectedBSON, &ba)
+	assert.Nil(t, err, "Unmarshal error: %v", err)
+
+	actualBSON, err := Marshal(ba)
+	assert.Nil(t, err, "Marshal bsoncore.Array error: %v", err)
+
+	assert.Equal(t, expectedBSON, actualBSON,
+		"expected BSON to be %v after Marshalling again; got %v", expectedBSON, actualBSON)
+}
