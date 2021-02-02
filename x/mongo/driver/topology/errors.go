@@ -33,6 +33,7 @@ type WaitQueueTimeoutError struct {
 	Wrapped error
 }
 
+// Error implements the error interface.
 func (w WaitQueueTimeoutError) Error() string {
 	errorMsg := "timed out while checking out a connection from connection pool"
 	if w.Wrapped != nil {
@@ -41,6 +42,7 @@ func (w WaitQueueTimeoutError) Error() string {
 	return errorMsg
 }
 
+// Unwrap returns the underlying error.
 func (w WaitQueueTimeoutError) Unwrap() error {
 	return w.Wrapped
 }
