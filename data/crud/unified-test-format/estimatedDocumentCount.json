@@ -1,0 +1,135 @@
+{
+    "description": "estimatedDocumentCount",
+    "schemaVersion": "1.1",
+    "createEntities": [
+        {
+            "client": {
+                "id": "client0",
+                "observeEvents": [
+                    "commandStartedEvent"
+                ]
+            }
+        },
+        {
+            "database": {
+                "id": "database0",
+                "client": "client0",
+                "databaseName": "edc-tests"
+            }
+        },
+        {
+            "collection": {
+                "id": "collection0",
+                "database": "database0",
+                "collectionName": "coll0"
+            }
+        }
+    ],
+    "initialData": [
+        {
+            "collectionName": "coll0",
+            "databaseName": "edc-tests",
+            "documents": [
+                {
+                    "_id": 1,
+                    "x": 11
+                },
+                {
+                    "_id": 2,
+                    "x": 22
+                },
+                {
+                    "_id": 3,
+                    "x": 33
+                }
+            ]
+        }
+    ],
+    "tests": [
+        {
+            "description": "estimatedDocumentCount uses $collStats on 4.9.0 or greater",
+            "runOnRequirements": [
+                {
+                    "minServerVersion": "4.9.0"
+                }
+            ],
+            "operations": [
+                {
+                    "name": "estimatedDocumentCount",
+                    "object": "collection0",
+                    "expectResult": {
+                        "$numberLong": "3"
+                    }
+                }
+            ],
+            "expectEvents": [
+                {
+                    "client": "client0",
+                    "events": [
+                        {
+                            "commandStartedEvent": {
+                                "command": {
+                                    "aggregate": "coll0",
+                                    "pipeline": [
+                                        {
+                                            "$collStats": {
+                                                "count": {
+                                                    "": null
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$group": {
+                                                "_id": {
+                                                    "$const": "total"
+                                                },
+                                                "count": {
+                                                    "$sum": "$count"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "commandName": "aggregate",
+                                "databaseName": "edc-tests"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "description": "estimatedDocumentCount uses count on less than 4.9.0",
+            "runOnRequirements": [
+                {
+                    "maxServerVersion": "4.9.0"
+                }
+            ],
+            "operations": [
+                {
+                    "name": "estimatedDocumentCount",
+                    "object": "collection0",
+                    "expectResult": {
+                        "$numberLong": "3"
+                    }
+                }
+            ],
+            "expectEvents": [
+                {
+                    "client": "client0",
+                    "events": [
+                        {
+                            "commandStartedEvent": {
+                                "command": {
+                                    "count": "coll0"
+                                },
+                                "commandName": "count",
+                                "databaseName": "edc-tests"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

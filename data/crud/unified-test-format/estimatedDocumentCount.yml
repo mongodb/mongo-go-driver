@@ -1,0 +1,63 @@
+description: "estimatedDocumentCount"
+
+schemaVersion: "1.1"
+
+createEntities:
+  - client:
+      id: &client0 client0
+      observeEvents: [ commandStartedEvent ]
+  - database:
+      id: &database0 database0
+      client: *client0
+      databaseName: &database0Name edc-tests
+  - collection:
+      id: &collection0 collection0
+      database: *database0
+      collectionName: &collection0Name coll0
+
+initialData:
+  - collectionName: *collection0Name
+    databaseName: *database0Name
+    documents:
+      - { _id: 1, x: 11 }
+      - { _id: 2, x: 22 }
+      - { _id: 3, x: 33 }
+
+tests:
+ - description: "estimatedDocumentCount uses $collStats on 4.9.0 or greater"
+    runOnRequirements:
+      - minServerVersion: "4.9.0"
+    operations:
+      - name: estimatedDocumentCount
+        object: *collection0
+        result: { $numberLong: 3 }
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                aggregate: *collection0Name
+                pipeline: &pipeline
+                  - $collStats: { count : { } }
+                  - $group: {
+                    _id: { $const: total },
+                    count: { $sum: $count },
+                  }
+              commandName: aggregate
+              databaseName: *database0Name
+
+  - description: "estimatedDocumentCount uses count on less than 4.9.0"
+    runOnRequirements:
+      - maxServerVersion: "4.9.0"
+    operations:
+      - name: estimatedDocumentCount
+        object: *collection0
+        result: { $numberLong: 3 }
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                count: *collection0Name
+              commandName: count
+              databaseName: *database0Name

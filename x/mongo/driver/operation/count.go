@@ -13,6 +13,8 @@ import (
 	"errors"
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -54,15 +56,38 @@ func buildCountResult(response bsoncore.Document, srvr driver.Server) (CountResu
 	cr := CountResult{}
 	for _, element := range elements {
 		switch element.Key() {
-		case "n":
+		case "n": // for count using original command
 			var ok bool
 			cr.N, ok = element.Value().AsInt64OK()
 			if !ok {
-				err = fmt.Errorf("response field 'n' is type int64, but received BSON type %s", element.Value().Type)
+				err = fmt.Errorf("response field %s is type int64, but received BSON type %s",
+					element.Key(), element.Value().Type)
+				break
+			}
+		case "cursor": // for count using aggregate with $collStats
+			firstBatch, err := element.Value().Document().LookupErr("firstBatch")
+			if err != nil {
+				break
+			}
+
+			// get count value from first batch
+			element = firstBatch.Array().Index(0)
+			count, err := element.Value().Document().LookupErr("count")
+			if err != nil {
+				break
+			}
+
+			// use count as Int64 for result
+			var ok bool
+			cr.N, ok = count.AsInt64OK()
+			if !ok {
+				err = fmt.Errorf("response field %s is type int64, but received BSON type %s",
+					element.Key(), element.Value().Type)
+				break
 			}
 		}
 	}
-	return cr, nil
+	return cr, err
 }
 
 // NewCount constructs and returns a new Count.
@@ -105,13 +130,54 @@ func (c *Count) Execute(ctx context.Context) error {
 }
 
 func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
-	dst = bsoncore.AppendStringElement(dst, "count", c.collection)
+	// If wire version < 12 (4.9.0), use count command
+	if desc.WireVersion.Max < 12 {
+		dst = bsoncore.AppendStringElement(dst, "count", c.collection)
+		if c.maxTimeMS != nil {
+			dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *c.maxTimeMS)
+		}
+		if c.query != nil {
+			dst = bsoncore.AppendDocumentElement(dst, "query", c.query)
+		}
+		return dst, nil
+	}
+	// If wire version >= 12 (4.9.0), use aggregate with $collStats
+	header := bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, c.collection)}
+	if c.collection == "" {
+		header = bsoncore.Value{Type: bsontype.Int32, Data: []byte{0x01, 0x00, 0x00, 0x00}}
+	}
+
+	dst = bsoncore.AppendValueElement(dst, "aggregate", header)
+	cursorIdx, cursorDoc := bsoncore.AppendDocumentStart(nil)
 	if c.maxTimeMS != nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *c.maxTimeMS)
 	}
 	if c.query != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "query", c.query)
 	}
+
+	countPipeline := bson.A{
+		bson.D{
+			{"$collStats", bson.D{
+				{"count", bson.D{{}}},
+			}},
+		},
+		bson.D{
+			{"$group", bson.D{
+				{"_id", bson.D{
+					{"$const", "total"},
+				}},
+				{"count", bson.D{
+					{"$sum", "$count"},
+				}},
+			}},
+		},
+	}
+	_, countPipelineBSON, _ := bson.MarshalValue(countPipeline)
+	dst = bsoncore.AppendArrayElement(dst, "pipeline", bsoncore.Document(countPipelineBSON))
+
+	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
+	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc)
 	return dst, nil
 }
 
