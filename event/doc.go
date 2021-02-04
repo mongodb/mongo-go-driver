@@ -11,7 +11,7 @@
 // Monitoring commands requires specifying a CommandMonitor when constructing
 // a mongo.Client. A CommandMonitor can be set to monitor started, succeeded,
 // and/or failed events. A CommandStartedEvent can be correlated to its matching
-// CommandSucceededEvent or CommandFailedEvent though the RequestID field. For
+// CommandSucceededEvent or CommandFailedEvent through the RequestID field. For
 // example, the following code collects the names of started events:
 //
 //    var commandStarted []string
