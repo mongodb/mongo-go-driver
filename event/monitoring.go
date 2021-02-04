@@ -45,31 +45,6 @@ type CommandFailedEvent struct {
 }
 
 // CommandMonitor represents a monitor that is triggered for different events.
-//
-// For an example, the following code will match up started events with their
-// failed or succeeded responses and log the command and the result:
-//
-//    startedCommands := make(map[int64]bson.Raw)
-//    cmdMonitor := &event.CommandMonitor{
-//      Started: func(_ context.Context, evt *event.CommandStartedEvent) {
-//        startedCommands[evt.RequestID] = evt.Command
-//      },
-//      Succeeded: func(_ context.Context, evt *event.CommandSucceededEvent) {
-//	      log.Printf("Command: %v Reply: %v\n",
-//          startedCommands[evt.RequestID],
-//          evt.Reply,
-//        )
-//      },
-//		Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
-//	      log.Printf("Command: %v Failure: %v\n",
-//          startedCommands[evt.RequestID],
-//          evt.Failure,
-//        )
-//      },
-//    }
-//    clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(cmdMonitor)
-//    client, err := mongo.Connect(context.Background(), clientOpts)
-//
 type CommandMonitor struct {
 	Started   func(context.Context, *CommandStartedEvent)
 	Succeeded func(context.Context, *CommandSucceededEvent)

@@ -18,7 +18,10 @@ import (
 
 // Event examples
 
+// CommandMonitor represents a monitor that is triggered for different events.
 func ExampleCommandMonitor() {
+	// If the application makes multiple concurrent requests, it would have to
+	// use a concurrent map like sync.Map
 	startedCommands := make(map[int64]bson.Raw)
 	cmdMonitor := &event.CommandMonitor{
 		Started: func(_ context.Context, evt *event.CommandStartedEvent) {
