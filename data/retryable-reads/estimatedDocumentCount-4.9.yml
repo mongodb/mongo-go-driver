@@ -1,11 +1,9 @@
 runOn:
     -
-        minServerVersion: "4.0"
-        maxServerVersion: "4.9.0"
+        minServerVersion: "4.9.0"
         topology: ["single", "replicaset"]
     -
-        minServerVersion: "4.1.7"
-        maxServerVersion: "4.9.0"
+        minServerVersion: "4.9.0"
         topology: ["sharded"]
 
 database_name: &database_name "retryable-reads-tests"
@@ -28,7 +26,13 @@ tests:
             - &retryable_command_started_event
                 command_started_event:
                     command:
-                        count: *collection_name
+                        aggregate: *collection_name
+                        pipeline: &pipeline
+                          - $collStats: { count: { } }
+                          - $group: {
+                              _id: { $const: total },
+                              count: { $sum: $count },
+                            }
                     database_name: *database_name
     -
         description: "EstimatedDocumentCount succeeds on second attempt"
@@ -36,7 +40,7 @@ tests:
             configureFailPoint: failCommand
             mode: { times: 1 }
             data:
-                failCommands: [count]
+                failCommands: [aggregate]
                 closeConnection: true
         operations: [*retryable_operation_succeeds]
         expectations:

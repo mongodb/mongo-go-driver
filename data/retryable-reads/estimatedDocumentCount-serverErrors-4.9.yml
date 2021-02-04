@@ -1,11 +1,9 @@
 runOn:
     -
-        minServerVersion: "4.0"
-        maxServerVersion: "4.9.0"
+        minServerVersion: "4.9.0"
         topology: ["single", "replicaset"]
     -
-        minServerVersion: "4.1.7"
-        maxServerVersion: "4.9.0"
+        minServerVersion: "4.9.0"
         topology: ["sharded"]
 
 database_name: &database_name "retryable-reads-tests"
@@ -21,7 +19,7 @@ tests:
         failPoint: &failCommand_failPoint
             configureFailPoint: failCommand
             mode: { times: 1 }
-            data: { failCommands: [count], errorCode: 11600 }
+            data: { failCommands: [aggregate], errorCode: 11600 }
         operations:
             - &retryable_operation_succeeds
                 <<: &retryable_operation
@@ -32,14 +30,20 @@ tests:
             - &retryable_command_started_event
                 command_started_event:
                     command:
-                        count: *collection_name
+                      aggregate: *collection_name
+                      pipeline: &pipeline
+                        - $collStats: { count: { } }
+                        - $group: {
+                          _id: { $const: total },
+                          count: { $sum: $count },
+                        }
                     database_name: *database_name
             - *retryable_command_started_event
     -
         description: "EstimatedDocumentCount succeeds after InterruptedDueToReplStateChange"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 11602 }
+            data: { failCommands: [aggregate], errorCode: 11602 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -48,7 +52,7 @@ tests:
         description: "EstimatedDocumentCount succeeds after NotMaster"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 10107 }
+            data: { failCommands: [aggregate], errorCode: 10107 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -57,7 +61,7 @@ tests:
         description: "EstimatedDocumentCount succeeds after NotMasterNoSlaveOk"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 13435 }
+            data: { failCommands: [aggregate], errorCode: 13435 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -66,7 +70,7 @@ tests:
         description: "EstimatedDocumentCount succeeds after NotMasterOrSecondary"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 13436 }
+            data: { failCommands: [aggregate], errorCode: 13436 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -75,7 +79,7 @@ tests:
         description: "EstimatedDocumentCount succeeds after PrimarySteppedDown"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 189 }
+            data: { failCommands: [aggregate], errorCode: 189 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -84,7 +88,7 @@ tests:
         description: "EstimatedDocumentCount succeeds after ShutdownInProgress"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 91 }
+            data: { failCommands: [aggregate], errorCode: 91 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -93,7 +97,7 @@ tests:
         description: "EstimatedDocumentCount succeeds after HostNotFound"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 7 }
+            data: { failCommands: [aggregate], errorCode: 7 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -102,7 +106,7 @@ tests:
         description: "EstimatedDocumentCount succeeds after HostUnreachable"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 6 }
+            data: { failCommands: [aggregate], errorCode: 6 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -111,7 +115,7 @@ tests:
         description: "EstimatedDocumentCount succeeds after NetworkTimeout"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 89 }
+            data: { failCommands: [aggregate], errorCode: 89 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -120,7 +124,7 @@ tests:
         description: "EstimatedDocumentCount succeeds after SocketException"
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 9001 }
+            data: { failCommands: [aggregate], errorCode: 9001 }
         operations: [*retryable_operation_succeeds]
         expectations:
              - *retryable_command_started_event
@@ -130,7 +134,7 @@ tests:
         failPoint:
             <<: *failCommand_failPoint
             mode: { times: 2 }
-            data: { failCommands: [count], errorCode: 10107 }
+            data: { failCommands: [aggregate], errorCode: 10107 }
         operations:
             - &retryable_operation_fails
                 <<: *retryable_operation
@@ -144,7 +148,7 @@ tests:
             retryReads: false
         failPoint:
             <<: *failCommand_failPoint
-            data: { failCommands: [count], errorCode: 10107 }
+            data: { failCommands: [aggregate], errorCode: 10107 }
         operations: [*retryable_operation_fails]
         expectations:
              - *retryable_command_started_event
