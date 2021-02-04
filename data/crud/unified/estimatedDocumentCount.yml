@@ -24,13 +24,13 @@ initialData:
       - { _id: 3, x: 33 }
 
 tests:
- - description: "estimatedDocumentCount uses $collStats on 4.9.0 or greater"
+  - description: "estimatedDocumentCount uses $collStats on 4.9.0 or greater"
     runOnRequirements:
       - minServerVersion: "4.9.0"
     operations:
       - name: estimatedDocumentCount
         object: *collection0
-        result: { $numberLong: 3 }
+        expectResult: { $numberLong: 3 }
     expectEvents:
       - client: *client0
         events:
@@ -38,7 +38,7 @@ tests:
               command:
                 aggregate: *collection0Name
                 pipeline: &pipeline
-                  - $collStats: { count : { } }
+                  - $collStats: { count: { } }
                   - $group: {
                     _id: { $const: total },
                     count: { $sum: $count },
@@ -52,7 +52,7 @@ tests:
     operations:
       - name: estimatedDocumentCount
         object: *collection0
-        result: { $numberLong: 3 }
+        expectResult: { $numberLong: 3 }
     expectEvents:
       - client: *client0
         events:
