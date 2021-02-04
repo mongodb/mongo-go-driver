@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -232,4 +233,8 @@ func TestBsoncoreArray(t *testing.T) {
 
 	assert.Equal(t, expectedBSON, actualBSON,
 		"expected BSON to be %v after Marshalling again; got %v", expectedBSON, actualBSON)
+
+	doc := bsoncore.Document(actualBSON)
+	v := doc.Lookup("array")
+	assert.Equal(t, bsontype.Array, v.Type, "expected type array, got %v", v.Type)
 }
