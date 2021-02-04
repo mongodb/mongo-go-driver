@@ -309,6 +309,8 @@ type FindOneOptions struct {
 	AllowPartialResults *bool
 
 	// The maximum number of documents to be included in each batch returned by the server.
+	//
+	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 	BatchSize *int32
 
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
@@ -322,6 +324,8 @@ type FindOneOptions struct {
 
 	// Specifies the type of cursor that should be created for the operation. The default is NonTailable, which means
 	// that the cursor will be closed by the server when the last batch of documents is retrieved.
+	//
+	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 	CursorType *CursorType
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
@@ -348,6 +352,8 @@ type FindOneOptions struct {
 
 	// If true, the cursor created by the operation will not timeout after a period of inactivity. The default value
 	// is false.
+	//
+	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 	NoCursorTimeout *bool
 
 	// This option is for internal replication use only and should not be set.
@@ -391,6 +397,8 @@ func (f *FindOneOptions) SetAllowPartialResults(b bool) *FindOneOptions {
 }
 
 // SetBatchSize sets the value for the BatchSize field.
+//
+// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 func (f *FindOneOptions) SetBatchSize(i int32) *FindOneOptions {
 	f.BatchSize = &i
 	return f
@@ -409,6 +417,8 @@ func (f *FindOneOptions) SetComment(comment string) *FindOneOptions {
 }
 
 // SetCursorType sets the value for the CursorType field.
+//
+// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 func (f *FindOneOptions) SetCursorType(ct CursorType) *FindOneOptions {
 	f.CursorType = &ct
 	return f
@@ -445,6 +455,8 @@ func (f *FindOneOptions) SetMin(min interface{}) *FindOneOptions {
 }
 
 // SetNoCursorTimeout sets the value for the NoCursorTimeout field.
+//
+// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 func (f *FindOneOptions) SetNoCursorTimeout(b bool) *FindOneOptions {
 	f.NoCursorTimeout = &b
 	return f
