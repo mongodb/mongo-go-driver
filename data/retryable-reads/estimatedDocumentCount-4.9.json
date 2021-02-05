@@ -1,17 +1,7 @@
 {
     "runOn": [
         {
-            "minServerVersion": "4.9.0",
-            "topology": [
-                "single",
-                "replicaset"
-            ]
-        },
-        {
-            "minServerVersion": "4.9.0",
-            "topology": [
-                "sharded"
-            ]
+            "minServerVersion": "4.9.0"
         }
     ],
     "database_name": "retryable-reads-tests",
@@ -51,10 +41,8 @@
                                 },
                                 {
                                     "$group": {
-                                        "_id": {
-                                            "$const": "total"
-                                        },
-                                        "count": {
+                                        "_id": 1,
+                                        "n": {
                                             "$sum": "$count"
                                         }
                                     }
@@ -102,10 +90,8 @@
                                 },
                                 {
                                     "$group": {
-                                        "_id": {
-                                            "$const": "total"
-                                        },
-                                        "count": {
+                                        "_id": 1,
+                                        "n": {
                                             "$sum": "$count"
                                         }
                                     }
@@ -129,10 +115,8 @@
                                 },
                                 {
                                     "$group": {
-                                        "_id": {
-                                            "$const": "total"
-                                        },
-                                        "count": {
+                                        "_id": 1,
+                                        "n": {
                                             "$sum": "$count"
                                         }
                                     }
@@ -183,10 +167,8 @@
                                 },
                                 {
                                     "$group": {
-                                        "_id": {
-                                            "$const": "total"
-                                        },
-                                        "count": {
+                                        "_id": 1,
+                                        "n": {
                                             "$sum": "$count"
                                         }
                                     }
@@ -234,10 +216,8 @@
                                 },
                                 {
                                     "$group": {
-                                        "_id": {
-                                            "$const": "total"
-                                        },
-                                        "count": {
+                                        "_id": 1,
+                                        "n": {
                                             "$sum": "$count"
                                         }
                                     }
@@ -261,10 +241,8 @@
                                 },
                                 {
                                     "$group": {
-                                        "_id": {
-                                            "$const": "total"
-                                        },
-                                        "count": {
+                                        "_id": 1,
+                                        "n": {
                                             "$sum": "$count"
                                         }
                                     }

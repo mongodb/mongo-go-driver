@@ -30,7 +30,7 @@ tests:
     operations:
       - name: estimatedDocumentCount
         object: *collection0
-        expectResult: { $numberLong: 3 }
+        expectResult: 3
     expectEvents:
       - client: *client0
         events:
@@ -40,24 +40,68 @@ tests:
                 pipeline: &pipeline
                   - $collStats: { count: { } }
                   - $group: {
-                    _id: { $const: total },
-                    count: { $sum: $count },
+                    _id: 1,
+                    n: { $sum: $count },
                   }
+              commandName: aggregate
+              databaseName: *database0Name
+
+  - description: "estimatedDocumentCount with maxTimeMS on 4.9.0 or greater"
+    runOnRequirements:
+      - minServerVersion: "4.9.0"
+    operations:
+      - name: estimatedDocumentCount
+        object: *collection0
+        arguments:
+          maxTimeMS: 6000
+        expectResult: 3
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                aggregate: *collection0Name
+                pipeline: &pipeline
+                  - $collStats: { count: { } }
+                  - $group: {
+                    _id: 1,
+                    n: { $sum: $count },
+                  }
+                maxTimeMS: 6000
               commandName: aggregate
               databaseName: *database0Name
 
   - description: "estimatedDocumentCount uses count on less than 4.9.0"
     runOnRequirements:
-      - maxServerVersion: "4.9.0"
+      - maxServerVersion: "4.8.99"
     operations:
       - name: estimatedDocumentCount
         object: *collection0
-        expectResult: { $numberLong: 3 }
+        expectResult: 3
     expectEvents:
       - client: *client0
         events:
           - commandStartedEvent:
               command:
                 count: *collection0Name
+              commandName: count
+              databaseName: *database0Name
+
+  - description: "estimatedDocumentCount with maxTimeMS on less than 4.9.0"
+    runOnRequirements:
+      - maxServerVersion: "4.8.99"
+    operations:
+      - name: estimatedDocumentCount
+        object: *collection0
+        arguments:
+          maxTimeMS: 6000
+        expectResult: 3
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                count: *collection0Name
+                maxTimeMS: 6000
               commandName: count
               databaseName: *database0Name

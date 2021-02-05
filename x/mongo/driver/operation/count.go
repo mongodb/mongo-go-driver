@@ -72,7 +72,7 @@ func buildCountResult(response bsoncore.Document, srvr driver.Server) (CountResu
 
 			// get count value from first batch
 			element = firstBatch.Array().Index(0)
-			count, err := element.Value().Document().LookupErr("count")
+			count, err := element.Value().Document().LookupErr("n")
 			if err != nil {
 				break
 			}
@@ -164,10 +164,8 @@ func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, er
 		},
 		bson.D{
 			{"$group", bson.D{
-				{"_id", bson.D{
-					{"$const", "total"},
-				}},
-				{"count", bson.D{
+				{"_id", 1},
+				{"n", bson.D{
 					{"$sum", "$count"},
 				}},
 			}},

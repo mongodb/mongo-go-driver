@@ -1,10 +1,6 @@
 runOn:
     -
         minServerVersion: "4.9.0"
-        topology: ["single", "replicaset"]
-    -
-        minServerVersion: "4.9.0"
-        topology: ["sharded"]
 
 database_name: &database_name "retryable-reads-tests"
 collection_name: &collection_name "coll"
@@ -34,8 +30,8 @@ tests:
                       pipeline: &pipeline
                         - $collStats: { count: { } }
                         - $group: {
-                          _id: { $const: total },
-                          count: { $sum: $count },
+                          _id: 1,
+                          n: { $sum: $count },
                         }
                     database_name: *database_name
             - *retryable_command_started_event

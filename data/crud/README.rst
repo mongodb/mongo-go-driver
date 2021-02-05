@@ -34,7 +34,7 @@ in all three formats, segregating tests in this manner will make it easier for
 drivers to sync and feed test files to different test runners.
 
 Legacy-v2 Test Format
-===========
+=====================
 
 *Note: this section pertains to test files in the "v2" directory.*
 
@@ -132,7 +132,7 @@ Each YAML file has the following keys:
         operation has been run, sorted by "_id".
 
 Legacy-v1 Test Format for Single Operations
-----------------------------------------
+-------------------------------------------
 
 *Note: this section pertains to test files in the "v1" directory.*
 
