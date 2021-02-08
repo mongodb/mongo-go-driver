@@ -199,7 +199,74 @@
             ]
         },
         {
-            "description": "estimatedDocumentCount errors correctly on 4.9.0 or greater",
+            "description": "estimatedDocumentCount errors correctly on 4.9.0 or greater--command error",
+            "runOnRequirements": [
+                {
+                    "minServerVersion": "4.9.0"
+                }
+            ],
+            "operations": [
+                {
+                    "name": "failPoint",
+                    "object": "testRunner",
+                    "arguments": {
+                        "client": "client0",
+                        "failPoint": {
+                            "configureFailPoint": "failCommand",
+                            "mode": {
+                                "times": 1
+                            },
+                            "data": {
+                                "failCommands": [
+                                    "aggregate"
+                                ],
+                                "errorCode": 11000
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "estimatedDocumentCount",
+                    "object": "collection0",
+                    "expectError": {
+                        "isError": true
+                    }
+                }
+            ],
+            "expectEvents": [
+                {
+                    "client": "client0",
+                    "events": [
+                        {
+                            "commandStartedEvent": {
+                                "command": {
+                                    "aggregate": "coll0",
+                                    "pipeline": [
+                                        {
+                                            "$collStats": {
+                                                "count": {}
+                                            }
+                                        },
+                                        {
+                                            "$group": {
+                                                "_id": 1,
+                                                "n": {
+                                                    "$sum": "$count"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "commandName": "aggregate",
+                                "databaseName": "edc-tests"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "description": "estimatedDocumentCount errors correctly on 4.9.0 or greater--socket error",
             "runOnRequirements": [
                 {
                     "minServerVersion": "4.9.0"
@@ -363,7 +430,71 @@
             ]
         },
         {
-            "description": "estimatedDocumentCount errors correctly on less than 4.9.0",
+            "description": "estimatedDocumentCount errors correctly on less than 4.9.0--command error",
+            "runOnRequirements": [
+                {
+                    "minServerVersion": "4.0.0",
+                    "maxServerVersion": "4.8.99",
+                    "topologies": [
+                        "single",
+                        "replicaset"
+                    ]
+                },
+                {
+                    "minServerVersion": "4.2.0",
+                    "maxServerVersion": "4.8.99",
+                    "topologies": [
+                        "sharded"
+                    ]
+                }
+            ],
+            "operations": [
+                {
+                    "name": "failPoint",
+                    "object": "testRunner",
+                    "arguments": {
+                        "client": "client0",
+                        "failPoint": {
+                            "configureFailPoint": "failCommand",
+                            "mode": {
+                                "times": 1
+                            },
+                            "data": {
+                                "failCommands": [
+                                    "count"
+                                ],
+                                "errorCode": 11000
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "estimatedDocumentCount",
+                    "object": "collection0",
+                    "expectError": {
+                        "isError": true
+                    }
+                }
+            ],
+            "expectEvents": [
+                {
+                    "client": "client0",
+                    "events": [
+                        {
+                            "commandStartedEvent": {
+                                "command": {
+                                    "count": "coll0"
+                                },
+                                "commandName": "count",
+                                "databaseName": "edc-tests"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "description": "estimatedDocumentCount errors correctly on less than 4.9.0--socket error",
             "runOnRequirements": [
                 {
                     "minServerVersion": "4.0.0",
