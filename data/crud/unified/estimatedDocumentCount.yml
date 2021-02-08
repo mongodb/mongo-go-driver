@@ -5,6 +5,7 @@ schemaVersion: "1.0"
 createEntities:
   - client:
       id: &client0 client0
+      uriOptions: { retryReads: false } # needed to set failPoint
       observeEvents: [ commandStartedEvent ]
   - database:
       id: &database0 database0
@@ -97,6 +98,38 @@ tests:
               commandName: aggregate
               databaseName: *database0Name
 
+  - description: "estimatedDocumentCount errors correctly on 4.9.0 or greater"
+    runOnRequirements:
+      - minServerVersion: "4.9.0"
+    operations:
+      - name: failPoint
+        object: testRunner
+        arguments:
+          client: *client0
+          failPoint:
+            configureFailPoint: failCommand
+            mode: { times: 1 }
+            data:
+              failCommands: [ aggregate ]
+              closeConnection: true
+      - name: estimatedDocumentCount
+        object: *collection0
+        expectError: { isError: true }
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                aggregate: *collection0Name
+                pipeline: &pipeline
+                  - $collStats: { count: {} }
+                  - $group: {
+                    _id: 1,
+                    n: { $sum: $count },
+                  }
+              commandName: aggregate
+              databaseName: *database0Name
+
   - description: "estimatedDocumentCount uses count on less than 4.9.0"
     runOnRequirements:
       - maxServerVersion: "4.8.99"
@@ -145,5 +178,36 @@ tests:
           - commandStartedEvent:
               command:
                 count: *collection1Name
+              commandName: count
+              databaseName: *database0Name
+
+  - description: "estimatedDocumentCount errors correctly on less than 4.9.0"
+    runOnRequirements:
+      - minServerVersion: "4.0.0"
+        maxServerVersion: "4.8.99"
+        topologies: [ single, replicaset ]
+      - minServerVersion: "4.2.0"
+        maxServerVersion: "4.8.99"
+        topologies: [ sharded ]
+    operations:
+      - name: failPoint
+        object: testRunner
+        arguments:
+          client: *client0
+          failPoint:
+            configureFailPoint: failCommand
+            mode: { times: 1 }
+            data:
+              failCommands: [ count ]
+              closeConnection: true
+      - name: estimatedDocumentCount
+        object: *collection0
+        expectError: { isError: true }
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                count: *collection0Name
               commandName: count
               databaseName: *database0Name
