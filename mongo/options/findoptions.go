@@ -309,6 +309,8 @@ type FindOneOptions struct {
 	AllowPartialResults *bool
 
 	// The maximum number of documents to be included in each batch returned by the server.
+	//
+	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 	BatchSize *int32
 
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
@@ -322,6 +324,8 @@ type FindOneOptions struct {
 
 	// Specifies the type of cursor that should be created for the operation. The default is NonTailable, which means
 	// that the cursor will be closed by the server when the last batch of documents is retrieved.
+	//
+	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 	CursorType *CursorType
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
@@ -336,6 +340,8 @@ type FindOneOptions struct {
 	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
 	// This option is only valid for tailable await cursors (see the CursorType option for more information) and
 	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
+	//
+	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 	MaxAwaitTime *time.Duration
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
@@ -348,9 +354,14 @@ type FindOneOptions struct {
 
 	// If true, the cursor created by the operation will not timeout after a period of inactivity. The default value
 	// is false.
+	//
+	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 	NoCursorTimeout *bool
 
 	// This option is for internal replication use only and should not be set.
+	//
+	// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is
+	// set.
 	OplogReplay *bool
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
@@ -391,6 +402,8 @@ func (f *FindOneOptions) SetAllowPartialResults(b bool) *FindOneOptions {
 }
 
 // SetBatchSize sets the value for the BatchSize field.
+//
+// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 func (f *FindOneOptions) SetBatchSize(i int32) *FindOneOptions {
 	f.BatchSize = &i
 	return f
@@ -409,6 +422,8 @@ func (f *FindOneOptions) SetComment(comment string) *FindOneOptions {
 }
 
 // SetCursorType sets the value for the CursorType field.
+//
+// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 func (f *FindOneOptions) SetCursorType(ct CursorType) *FindOneOptions {
 	f.CursorType = &ct
 	return f
@@ -427,6 +442,8 @@ func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
+//
+// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 func (f *FindOneOptions) SetMaxAwaitTime(d time.Duration) *FindOneOptions {
 	f.MaxAwaitTime = &d
 	return f
@@ -445,12 +462,17 @@ func (f *FindOneOptions) SetMin(min interface{}) *FindOneOptions {
 }
 
 // SetNoCursorTimeout sets the value for the NoCursorTimeout field.
+//
+// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 func (f *FindOneOptions) SetNoCursorTimeout(b bool) *FindOneOptions {
 	f.NoCursorTimeout = &b
 	return f
 }
 
 // SetOplogReplay sets the value for the OplogReplay field.
+//
+// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is
+// set.
 func (f *FindOneOptions) SetOplogReplay(b bool) *FindOneOptions {
 	f.OplogReplay = &b
 	return f
