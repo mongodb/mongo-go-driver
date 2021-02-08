@@ -360,7 +360,8 @@ type FindOneOptions struct {
 
 	// This option is for internal replication use only and should not be set.
 	//
-	// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by servers at or above 4.4.
+	// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is
+	// set.
 	OplogReplay *bool
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
@@ -470,7 +471,8 @@ func (f *FindOneOptions) SetNoCursorTimeout(b bool) *FindOneOptions {
 
 // SetOplogReplay sets the value for the OplogReplay field.
 //
-// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by servers at or above 4.4.
+// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is
+// set.
 func (f *FindOneOptions) SetOplogReplay(b bool) *FindOneOptions {
 	f.OplogReplay = &b
 	return f
