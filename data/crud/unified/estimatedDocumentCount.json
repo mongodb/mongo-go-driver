@@ -78,9 +78,7 @@
                                     "pipeline": [
                                         {
                                             "$collStats": {
-                                                "count": {
-                                                    "": null
-                                                }
+                                                "count": {}
                                             }
                                         },
                                         {
@@ -129,9 +127,7 @@
                                     "pipeline": [
                                         {
                                             "$collStats": {
-                                                "count": {
-                                                    "": null
-                                                }
+                                                "count": {}
                                             }
                                         },
                                         {
@@ -178,9 +174,7 @@
                                     "pipeline": [
                                         {
                                             "$collStats": {
-                                                "count": {
-                                                    "": null
-                                                }
+                                                "count": {}
                                             }
                                         },
                                         {

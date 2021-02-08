@@ -645,9 +645,7 @@
                   "pipeline": [
                     {
                       "$collStats": {
-                        "count": {
-                          "": null
-                        }
+                        "count": {}
                       }
                     },
                     {

@@ -238,7 +238,7 @@ tests:
               command:
                 aggregate: *collectionName
                 pipeline: &pipeline
-                  - $collStats: { count: { } }
+                  - $collStats: { count: {} }
                   - $group: {
                     _id: 1,
                     n: { $sum: $count },

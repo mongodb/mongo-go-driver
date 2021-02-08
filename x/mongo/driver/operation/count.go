@@ -165,7 +165,7 @@ func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, er
 	countPipeline := bson.A{
 		bson.D{
 			{"$collStats", bson.D{
-				{"count", bson.D{{}}},
+				{"count", bson.D{}},
 			}},
 		},
 		bson.D{
