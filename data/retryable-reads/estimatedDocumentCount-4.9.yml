@@ -1,6 +1,5 @@
 runOn:
-    -
-        minServerVersion: "4.9.0"
+    - minServerVersion: "4.9.0"
 
 database_name: &database_name "retryable-reads-tests"
 collection_name: &collection_name "coll"

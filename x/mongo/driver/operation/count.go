@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -110,7 +111,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		return errors.New("the Count operation must have a Deployment set before Execute can be called")
 	}
 
-	return driver.Operation{
+	err := driver.Operation{
 		CommandFn:         c.command,
 		ProcessResponseFn: c.processResponse,
 		RetryMode:         c.retry,
@@ -127,6 +128,11 @@ func (c *Count) Execute(ctx context.Context) error {
 		ServerAPI:         c.serverAPI,
 	}.Execute(ctx, nil)
 
+	// Swallow error if NamespaceNotFound is returned from aggregate on non-existent namespace
+	if err != nil && strings.Contains(err.Error(), "NamespaceNotFound") {
+		err = nil
+	}
+	return err
 }
 
 func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, error) {

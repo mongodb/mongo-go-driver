@@ -14,6 +14,10 @@ createEntities:
       id: &collection0 collection0
       database: *database0
       collectionName: &collection0Name coll0
+  - collection:
+      id: &collection1 collection1
+      database: *database0
+      collectionName: &collection1Name coll1
 
 initialData:
   - collectionName: *collection0Name
@@ -71,6 +75,28 @@ tests:
               commandName: aggregate
               databaseName: *database0Name
 
+  - description: "estimatedDocumentCount on non-existent collection on 4.9.0 or greater"
+    runOnRequirements:
+      - minServerVersion: "4.9.0"
+    operations:
+      - name: estimatedDocumentCount
+        object: *collection1
+        expectResult: 0
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                aggregate: *collection1Name
+                pipeline: &pipeline
+                  - $collStats: { count: { } }
+                  - $group: {
+                    _id: 1,
+                    n: { $sum: $count },
+                  }
+              commandName: aggregate
+              databaseName: *database0Name
+
   - description: "estimatedDocumentCount uses count on less than 4.9.0"
     runOnRequirements:
       - maxServerVersion: "4.8.99"
@@ -103,5 +129,21 @@ tests:
               command:
                 count: *collection0Name
                 maxTimeMS: 6000
+              commandName: count
+              databaseName: *database0Name
+
+  - description: "estimatedDocumentCount on non-existent collection on less than 4.9.0"
+    runOnRequirements:
+      - maxServerVersion: "4.8.99"
+    operations:
+      - name: estimatedDocumentCount
+        object: *collection1
+        expectResult: 0
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                count: *collection1Name
               commandName: count
               databaseName: *database0Name
