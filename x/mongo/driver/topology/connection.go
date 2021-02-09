@@ -116,7 +116,7 @@ func (c *connection) connect(ctx context.Context) {
 	defer close(c.connectDone)
 
 	c.connectContextMutex.Lock()
-	ctx, c.cancelConnectContext = context.WithCancel(ctx)
+	ctx, c.cancelConnectContext = context.WithTimeout(ctx, c.config.connectTimeout)
 	c.connectContextMutex.Unlock()
 
 	defer func() {
