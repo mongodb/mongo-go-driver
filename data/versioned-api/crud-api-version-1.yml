@@ -239,10 +239,7 @@ tests:
                 aggregate: *collectionName
                 pipeline: &pipeline
                   - $collStats: { count: {} }
-                  - $group: {
-                    _id: 1,
-                    n: { $sum: $count },
-                  }
+                  - $group: { _id: 1, n: { $sum: $count }}
                 <<: *expectedApiVersion
 
   - description: "find command with declared API version appends to the command, but getMore does not"

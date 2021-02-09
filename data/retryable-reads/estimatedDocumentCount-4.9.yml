@@ -24,10 +24,7 @@ tests:
                         aggregate: *collection_name
                         pipeline: &pipeline
                           - $collStats: { count: {} }
-                          - $group: {
-                              _id: 1,
-                              n: { $sum: $count },
-                            }
+                          - $group: { _id: 1, n: { $sum: $count }}
                     database_name: *database_name
     -
         description: "EstimatedDocumentCount succeeds on second attempt"

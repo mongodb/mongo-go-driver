@@ -5,7 +5,7 @@ schemaVersion: "1.0"
 createEntities:
   - client:
       id: &client0 client0
-      uriOptions: { retryReads: false } # needed to set failPoint
+      uriOptions: { retryReads: false } # Avoid retrying fail points with closeConnection
       observeEvents: [ commandStartedEvent ]
   - database:
       id: &database0 database0
@@ -16,6 +16,7 @@ createEntities:
       database: *database0
       collectionName: &collection0Name coll0
   - collection:
+      # Nonexistent collection intentionally omitted from initialData
       id: &collection1 collection1
       database: *database0
       collectionName: &collection1Name coll1
@@ -44,10 +45,7 @@ tests:
                 aggregate: *collection0Name
                 pipeline: &pipeline
                   - $collStats: { count: {} }
-                  - $group: {
-                    _id: 1,
-                    n: { $sum: $count },
-                  }
+                  - $group: { _id: 1, n: { $sum: $count }}
               commandName: aggregate
               databaseName: *database0Name
 
@@ -68,10 +66,7 @@ tests:
                 aggregate: *collection0Name
                 pipeline: &pipeline
                   - $collStats: { count: {} }
-                  - $group: {
-                    _id: 1,
-                    n: { $sum: $count },
-                  }
+                  - $group: { _id: 1, n: { $sum: $count }}
                 maxTimeMS: 6000
               commandName: aggregate
               databaseName: *database0Name
@@ -91,10 +86,7 @@ tests:
                 aggregate: *collection1Name
                 pipeline: &pipeline
                   - $collStats: { count: {} }
-                  - $group: {
-                    _id: 1,
-                    n: { $sum: $count },
-                  }
+                  - $group: { _id: 1, n: { $sum: $count }}
               commandName: aggregate
               databaseName: *database0Name
 
@@ -111,10 +103,11 @@ tests:
             mode: { times: 1 }
             data:
               failCommands: [ aggregate ]
-              errorCode: 11000
+              errorCode: 8 # UnknownError
       - name: estimatedDocumentCount
         object: *collection0
-        expectError: { isError: true }
+        expectError:
+          errorCode: 8 # UnknownError
     expectEvents:
       - client: *client0
         events:
@@ -123,10 +116,7 @@ tests:
                 aggregate: *collection0Name
                 pipeline: &pipeline
                   - $collStats: { count: {} }
-                  - $group: {
-                    _id: 1,
-                    n: { $sum: $count },
-                  }
+                  - $group: { _id: 1, n: { $sum: $count }}
               commandName: aggregate
               databaseName: *database0Name
 
@@ -146,7 +136,8 @@ tests:
               closeConnection: true
       - name: estimatedDocumentCount
         object: *collection0
-        expectError: { isError: true }
+        expectError:
+          isError: true
     expectEvents:
       - client: *client0
         events:
@@ -155,10 +146,7 @@ tests:
                 aggregate: *collection0Name
                 pipeline: &pipeline
                   - $collStats: { count: {} }
-                  - $group: {
-                    _id: 1,
-                    n: { $sum: $count },
-                  }
+                  - $group: { _id: 1, n: { $sum: $count }}
               commandName: aggregate
               databaseName: *database0Name
 
@@ -231,10 +219,11 @@ tests:
             mode: { times: 1 }
             data:
               failCommands: [ count ]
-              errorCode: 11000
+              errorCode: 8 # UnknownError
       - name: estimatedDocumentCount
         object: *collection0
-        expectError: { isError: true }
+        expectError:
+          errorCode: 8 # UnknownError
     expectEvents:
       - client: *client0
         events:
@@ -265,7 +254,8 @@ tests:
               closeConnection: true
       - name: estimatedDocumentCount
         object: *collection0
-        expectError: { isError: true }
+        expectError:
+          isError: true
     expectEvents:
       - client: *client0
         events:

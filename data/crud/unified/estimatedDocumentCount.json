@@ -220,7 +220,7 @@
                                 "failCommands": [
                                     "aggregate"
                                 ],
-                                "errorCode": 11000
+                                "errorCode": 8
                             }
                         }
                     }
@@ -229,7 +229,7 @@
                     "name": "estimatedDocumentCount",
                     "object": "collection0",
                     "expectError": {
-                        "isError": true
+                        "errorCode": 8
                     }
                 }
             ],
@@ -463,7 +463,7 @@
                                 "failCommands": [
                                     "count"
                                 ],
-                                "errorCode": 11000
+                                "errorCode": 8
                             }
                         }
                     }
@@ -472,7 +472,7 @@
                     "name": "estimatedDocumentCount",
                     "object": "collection0",
                     "expectError": {
-                        "isError": true
+                        "errorCode": 8
                     }
                 }
             ],
