@@ -13,6 +13,12 @@ import (
 	"strconv"
 )
 
+// NewArrayLengthError creates and returns an error for when the length of an array exceeds the
+// bytes available.
+func NewArrayLengthError(length, rem int) error {
+	return lengthError("array", length, rem)
+}
+
 // Array is a raw bytes representation of a BSON array.
 type Array []byte
 
@@ -113,7 +119,7 @@ func (a Array) Validate() error {
 		return NewInsufficientBytesError(a, rem)
 	}
 	if int(length) > len(a) {
-		return lengthError("array", int(length), len(a))
+		return NewArrayLengthError(int(length), len(a))
 	}
 	if a[length-1] != 0x00 {
 		return ErrMissingNull
@@ -122,16 +128,25 @@ func (a Array) Validate() error {
 	length -= 4
 	var elem Element
 
+	var keyNum int64
 	for length > 1 {
 		elem, rem, ok = ReadElement(rem)
 		length -= int32(len(elem))
 		if !ok {
 			return NewInsufficientBytesError(a, rem)
 		}
+
+		// validate element
 		err := elem.Validate()
 		if err != nil {
 			return err
 		}
+
+		// validate keys increase numerically
+		if fmt.Sprint(keyNum) != elem.Key() {
+			return fmt.Errorf("array key %q is out of order or invalid", elem.Key())
+		}
+		keyNum++
 	}
 
 	if len(rem) < 1 || rem[0] != 0x00 {

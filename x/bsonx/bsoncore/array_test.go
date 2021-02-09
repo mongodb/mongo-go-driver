@@ -9,6 +9,7 @@ package bsoncore
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 	"testing"
 
@@ -25,7 +26,7 @@ func TestArray(t *testing.T) {
 			}
 		})
 		t.Run("InvalidLength", func(t *testing.T) {
-			want := lengthError("array", 200, 5)
+			want := NewArrayLengthError(200, 5)
 			r := make(Array, 5)
 			binary.LittleEndian.PutUint32(r[0:4], 200)
 			got := r.Validate()
@@ -35,9 +36,9 @@ func TestArray(t *testing.T) {
 		})
 		t.Run("Invalid Element", func(t *testing.T) {
 			want := NewInsufficientBytesError(nil, nil)
-			r := make(Array, 9)
-			binary.LittleEndian.PutUint32(r[0:4], 9)
-			r[4], r[5], r[6], r[7], r[8] = 0x02, 'f', 'o', 'o', 0x00
+			r := make(Array, 7)
+			binary.LittleEndian.PutUint32(r[0:4], 7)
+			r[4], r[5], r[6] = 0x02, 'f', 0x00
 			got := r.Validate()
 			if !compareErrors(got, want) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -45,9 +46,9 @@ func TestArray(t *testing.T) {
 		})
 		t.Run("Missing Null Terminator", func(t *testing.T) {
 			want := ErrMissingNull
-			r := make(Array, 8)
-			binary.LittleEndian.PutUint32(r[0:4], 8)
-			r[4], r[5], r[6], r[7] = 0x0A, 'f', 'o', 'o'
+			r := make(Array, 6)
+			binary.LittleEndian.PutUint32(r[0:4], 6)
+			r[4], r[5] = 0x0A, '0'
 			got := r.Validate()
 			if !compareErrors(got, want) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -58,26 +59,45 @@ func TestArray(t *testing.T) {
 			r    Array
 			want error
 		}{
-			{"null", Array{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}, nil},
-			{"subarray",
+			{"array null", Array{'\x08', '\x00', '\x00', '\x00', '\x0A', '0', '\x00', '\x00'}, nil},
+			{"array",
 				Array{
-					'\x15', '\x00', '\x00', '\x00',
-					'\x03',
-					'f', 'o', 'o', '\x00',
-					'\x0B', '\x00', '\x00', '\x00', '\x0A', 'a', '\x00',
-					'\x0A', 'b', '\x00', '\x00', '\x00',
+					'\x1B', '\x00', '\x00', '\x00',
+					'\x02',
+					'0', '\x00',
+					'\x04', '\x00', '\x00', '\x00',
+					'\x62', '\x61', '\x72', '\x00',
+					'\x02',
+					'1', '\x00',
+					'\x04', '\x00', '\x00', '\x00',
+					'\x62', '\x61', '\x7a', '\x00',
+					'\x00',
 				},
 				nil,
 			},
-			{"array",
+			{"subarray",
 				Array{
-					'\x15', '\x00', '\x00', '\x00',
+					'\x13', '\x00', '\x00', '\x00',
 					'\x04',
-					'f', 'o', 'o', '\x00',
-					'\x0B', '\x00', '\x00', '\x00', '\x0A', '1', '\x00',
-					'\x0A', '2', '\x00', '\x00', '\x00',
+					'0', '\x00',
+					'\x0B', '\x00', '\x00', '\x00', '\x0A', '0', '\x00',
+					'\x0A', '1', '\x00', '\x00', '\x00',
 				},
 				nil,
+			},
+			{"invalid key order",
+				Array{
+					'\x0B', '\x00', '\x00', '\x00', '\x0A', '2', '\x00',
+					'\x0A', '0', '\x00', '\x00', '\x00',
+				},
+				errors.New(`array key "2" is out of order or invalid`),
+			},
+			{"invalid key type",
+				Array{
+					'\x0B', '\x00', '\x00', '\x00', '\x0A', 'p', '\x00',
+					'\x0A', 'q', '\x00', '\x00', '\x00',
+				},
+				errors.New(`array key "p" is out of order or invalid`),
 			},
 		}
 
@@ -179,46 +199,28 @@ func TestArray(t *testing.T) {
 			{
 				"non-empty Array",
 				bytes.NewBuffer([]byte{
-					// length
-					0x17, 0x0, 0x0, 0x0,
-
-					// type - string
-					0x2,
-					// key - "foo"
-					0x66, 0x6f, 0x6f, 0x0,
-					// value - string length
-					0x4, 0x0, 0x0, 0x0,
-					// value - string "bar"
-					0x62, 0x61, 0x72, 0x0,
-
-					// type - null
-					0xa,
-					// key - "baz"
-					0x62, 0x61, 0x7a, 0x0,
-
-					// null terminator
-					0x0,
+					'\x1B', '\x00', '\x00', '\x00',
+					'\x02',
+					'0', '\x00',
+					'\x04', '\x00', '\x00', '\x00',
+					'\x62', '\x61', '\x72', '\x00',
+					'\x02',
+					'1', '\x00',
+					'\x04', '\x00', '\x00', '\x00',
+					'\x62', '\x61', '\x7a', '\x00',
+					'\x00',
 				}),
 				[]byte{
-					// length
-					0x17, 0x0, 0x0, 0x0,
-
-					// type - string
-					0x2,
-					// key - "foo"
-					0x66, 0x6f, 0x6f, 0x0,
-					// value - string length
-					0x4, 0x0, 0x0, 0x0,
-					// value - string "bar"
-					0x62, 0x61, 0x72, 0x0,
-
-					// type - null
-					0xa,
-					// key - "baz"
-					0x62, 0x61, 0x7a, 0x0,
-
-					// null terminator
-					0x0,
+					'\x1B', '\x00', '\x00', '\x00',
+					'\x02',
+					'0', '\x00',
+					'\x04', '\x00', '\x00', '\x00',
+					'\x62', '\x61', '\x72', '\x00',
+					'\x02',
+					'1', '\x00',
+					'\x04', '\x00', '\x00', '\x00',
+					'\x62', '\x61', '\x7a', '\x00',
+					'\x00',
 				},
 				nil,
 			},
@@ -232,6 +234,71 @@ func TestArray(t *testing.T) {
 				}
 				if !bytes.Equal(tc.arr, arr) {
 					t.Errorf("Arrays differ. got %v; want %v", tc.arr, arr)
+				}
+			})
+		}
+	})
+	t.Run("DebugString", func(t *testing.T) {
+		testCases := []struct {
+			name             string
+			arr              Array
+			arrayString      string
+			arrayDebugString string
+		}{
+			{
+				"array",
+				Array{
+					'\x1B', '\x00', '\x00', '\x00',
+					'\x02',
+					'0', '\x00',
+					'\x04', '\x00', '\x00', '\x00',
+					'\x62', '\x61', '\x72', '\x00',
+					'\x02',
+					'1', '\x00',
+					'\x04', '\x00', '\x00', '\x00',
+					'\x62', '\x61', '\x7a', '\x00',
+					'\x00',
+				},
+				`["0": "bar","1": "baz"]`,
+				`Array(27)[bson.Element{[string]"0": "bar"} bson.Element{[string]"1": "baz"} ]`,
+			},
+			{
+				"subarray",
+				Array{
+					'\x13', '\x00', '\x00', '\x00',
+					'\x04',
+					'0', '\x00',
+					'\x0B', '\x00', '\x00', '\x00',
+					'\x0A', '0', '\x00',
+					'\x0A', '1', '\x00',
+					'\x00', '\x00',
+				},
+				`["0": [null,null]]`,
+				`Array(19)[bson.Element{[array]"0": [null,null]} ]`,
+			},
+			{
+				"malformed",
+				Array{
+					'\x13', '\x00', '\x00', '\x00',
+					'\x00',
+				},
+				``,
+				`Array(19)[<malformed (15)>]`,
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				arrayString := tc.arr.String()
+				if arrayString != tc.arrayString {
+					t.Errorf("array strings do not match. got %q; want %q",
+						arrayString, tc.arrayString)
+				}
+
+				arrayDebugString := tc.arr.DebugString()
+				if arrayDebugString != tc.arrayDebugString {
+					t.Errorf("array debug strings do not match. got %q; want %q",
+						arrayDebugString, tc.arrayDebugString)
 				}
 			})
 		}

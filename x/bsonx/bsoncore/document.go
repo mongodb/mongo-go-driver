@@ -25,9 +25,12 @@ func (ve ValidationError) Error() string { return string(ve) }
 // NewDocumentLengthError creates and returns an error for when the length of a document exceeds the
 // bytes available.
 func NewDocumentLengthError(length, rem int) error {
-	return ValidationError(
-		fmt.Sprintf("document length exceeds available bytes. length=%d remainingBytes=%d", length, rem),
-	)
+	return lengthError("document", length, rem)
+}
+
+func lengthError(bufferType string, length, rem int) error {
+	return ValidationError(fmt.Sprintf("%v length exceeds available bytes. length=%d remainingBytes=%d",
+		bufferType, length, rem))
 }
 
 // InsufficientBytesError indicates that there were not enough bytes to read the next component.
@@ -94,14 +97,15 @@ func (idte InvalidDepthTraversalError) Error() string {
 	)
 }
 
-// ErrMissingNull is returned when a document's last byte is not null.
-const ErrMissingNull ValidationError = "document end is missing null byte"
+// ErrMissingNull is returned when a document or array's last byte is not null.
+const ErrMissingNull ValidationError = "document or array end is missing null byte"
+
+// ErrInvalidLength indicates that a length in a binary representation of a BSON document or array
+// is invalid.
+const ErrInvalidLength ValidationError = "document or array length is invalid"
 
 // ErrNilReader indicates that an operation was attempted on a nil io.Reader.
 var ErrNilReader = errors.New("nil reader")
-
-// ErrInvalidLength indicates that a length in a binary representation of a BSON document is invalid.
-var ErrInvalidLength = errors.New("document length is invalid")
 
 // ErrEmptyKey indicates that no key was provided to a Lookup method.
 var ErrEmptyKey = errors.New("empty key provided")
@@ -377,7 +381,7 @@ func (d Document) Validate() error {
 		return NewInsufficientBytesError(d, rem)
 	}
 	if int(length) > len(d) {
-		return lengthError("document", int(length), len(d))
+		return NewDocumentLengthError(int(length), len(d))
 	}
 	if d[length-1] != 0x00 {
 		return ErrMissingNull
@@ -402,9 +406,4 @@ func (d Document) Validate() error {
 		return ErrMissingNull
 	}
 	return nil
-}
-
-func lengthError(bufferType string, length, rem int) error {
-	return ValidationError(fmt.Sprintf("%v length exceeds available bytes. length=%d remainingBytes=%d",
-		bufferType, length, rem))
 }
