@@ -25,7 +25,7 @@ func TestArray(t *testing.T) {
 			}
 		})
 		t.Run("InvalidLength", func(t *testing.T) {
-			want := Array{}.lengtherror(200, 5)
+			want := lengthError("array", 200, 5)
 			r := make(Array, 5)
 			binary.LittleEndian.PutUint32(r[0:4], 200)
 			got := r.Validate()
