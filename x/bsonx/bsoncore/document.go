@@ -217,7 +217,7 @@ func (d Document) LookupErr(key ...string) (Value, error) {
 // Index searches for and retrieves the element at the given index. This method will panic if
 // the document is invalid or if the index is out of bounds.
 func (d Document) Index(index uint) Element {
-	elem, err := indexErr(d, index)
+	elem, err := d.IndexErr(index)
 	if err != nil {
 		panic(err)
 	}

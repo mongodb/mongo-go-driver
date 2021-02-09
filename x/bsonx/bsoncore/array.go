@@ -28,19 +28,20 @@ func NewArrayFromReader(r io.Reader) (Array, error) {
 	return newBufferFromReader(r)
 }
 
-// Index searches for and retrieves the element at the given index. This method will panic if
+// Index searches for and retrieves the value at the given index. This method will panic if
 // the array is invalid or if the index is out of bounds.
-func (a Array) Index(index uint) Element {
-	elem, err := indexErr(a, index)
+func (a Array) Index(index uint) Value {
+	value, err := a.IndexErr(index)
 	if err != nil {
 		panic(err)
 	}
-	return elem
+	return value
 }
 
-// IndexErr searches for and retrieves the element at the given index.
-func (a Array) IndexErr(index uint) (Element, error) {
-	return indexErr(a, index)
+// IndexErr searches for and retrieves the value at the given index.
+func (a Array) IndexErr(index uint) (Value, error) {
+	elem, err := indexErr(a, index)
+	return elem.Value(), err
 }
 
 // DebugString outputs a human readable version of Array. It will attempt to stringify the
@@ -65,7 +66,10 @@ func (a Array) DebugString() string {
 			buf.WriteString(fmt.Sprintf("<malformed (%d)>", length))
 			break
 		}
-		fmt.Fprintf(&buf, "%s ", elem.DebugString())
+		fmt.Fprintf(&buf, "%s", elem.Value().DebugString())
+		if length != 1 {
+			buf.WriteByte(',')
+		}
 	}
 	buf.WriteByte(']')
 
@@ -87,18 +91,16 @@ func (a Array) String() string {
 
 	var elem Element
 	var ok bool
-	first := true
 	for length > 1 {
-		if !first {
-			buf.WriteByte(',')
-		}
 		elem, rem, ok = ReadElement(rem)
 		length -= int32(len(elem))
 		if !ok {
 			return ""
 		}
-		fmt.Fprintf(&buf, "%s", elem.String())
-		first = false
+		fmt.Fprintf(&buf, "%s", elem.Value().String())
+		if length != 1 {
+			buf.WriteByte(',')
+		}
 	}
 	buf.WriteByte(']')
 

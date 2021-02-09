@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 func TestArray(t *testing.T) {
@@ -112,7 +113,7 @@ func TestArray(t *testing.T) {
 	})
 	t.Run("Index", func(t *testing.T) {
 		t.Run("Out of bounds", func(t *testing.T) {
-			rdr := Array{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0}
+			rdr := Array{0xe, 0x0, 0x0, 0x0, 0xa, '0', 0x0, 0xa, '1', 0x0, 0xa, 0x7a, 0x0, 0x0}
 			_, err := rdr.IndexErr(3)
 			if err != ErrOutOfBounds {
 				t.Errorf("Out of bounds should be returned when accessing element beyond end of Array. got %v; want %v", err, ErrOutOfBounds)
@@ -126,30 +127,54 @@ func TestArray(t *testing.T) {
 				t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 			}
 		})
+		testArray := Array{
+			'\x26', '\x00', '\x00', '\x00',
+			'\x02',
+			'0', '\x00',
+			'\x04', '\x00', '\x00', '\x00',
+			'\x62', '\x61', '\x72', '\x00',
+			'\x02',
+			'1', '\x00',
+			'\x04', '\x00', '\x00', '\x00',
+			'\x62', '\x61', '\x7a', '\x00',
+			'\x02',
+			'2', '\x00',
+			'\x04', '\x00', '\x00', '\x00',
+			'\x71', '\x75', '\x78', '\x00',
+			'\x00',
+		}
 		testCases := []struct {
 			name  string
-			rdr   Array
 			index uint
-			want  Element
+			want  Value
 		}{
 			{"first",
-				Array{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				0, Element{0x0a, 0x78, 0x00},
+				0,
+				Value{
+					Type: bsontype.String,
+					Data: []byte{0x04, 0x00, 0x00, 0x00, 0x62, 0x61, 0x72, 0x00},
+				},
 			},
 			{"second",
-				Array{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				1, Element{0x0a, 0x79, 0x00},
+				1,
+				Value{
+					Type: bsontype.String,
+					Data: []byte{0x04, 0x00, 0x00, 0x00, 0x62, 0x61, 0x7a, 0x00},
+				},
 			},
 			{"third",
-				Array{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				2, Element{0x0a, 0x7a, 0x00},
+				2,
+				Value{
+					Type: bsontype.String,
+					Data: []byte{0x04, 0x00, 0x00, 0x00, 0x71, 0x75, 0x78, 0x00},
+				},
 			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Run("IndexErr", func(t *testing.T) {
-					got, err := tc.rdr.IndexErr(tc.index)
+					got, err := testArray.IndexErr(tc.index)
 					if err != nil {
 						t.Errorf("Unexpected error from IndexErr: %s", err)
 					}
@@ -163,7 +188,7 @@ func TestArray(t *testing.T) {
 							t.Errorf("Unexpected error: %v", err)
 						}
 					}()
-					got := tc.rdr.Index(tc.index)
+					got := testArray.Index(tc.index)
 					if diff := cmp.Diff(got, tc.want); diff != "" {
 						t.Errorf("Arrays differ: (-got +want)\n%s", diff)
 					}
@@ -259,8 +284,8 @@ func TestArray(t *testing.T) {
 					'\x62', '\x61', '\x7a', '\x00',
 					'\x00',
 				},
-				`["0": "bar","1": "baz"]`,
-				`Array(27)[bson.Element{[string]"0": "bar"} bson.Element{[string]"1": "baz"} ]`,
+				`["bar","baz"]`,
+				`Array(27)["bar","baz"]`,
 			},
 			{
 				"subarray",
@@ -273,8 +298,8 @@ func TestArray(t *testing.T) {
 					'\x0A', '1', '\x00',
 					'\x00', '\x00',
 				},
-				`["0": [null,null]]`,
-				`Array(19)[bson.Element{[array]"0": [null,null]} ]`,
+				`[[null,null]]`,
+				`Array(19)[[null ,null ]]`,
 			},
 			{
 				"malformed",
