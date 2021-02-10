@@ -193,7 +193,7 @@ func Setup() error {
 		}
 	}
 
-	// Get server parameters if test is not adl integration; ADL does not have "getParameter" command.
+	// Get server parameters if test is not running against ADL; ADL does not have "getParameter" command.
 	if !testContext.dataLake {
 		db := testContext.client.Database("admin")
 		testContext.serverParameters, err = db.RunCommand(Background, bson.D{{"getParameter", "*"}}).DecodeBytes()
