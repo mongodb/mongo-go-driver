@@ -10,7 +10,8 @@
                 ],
                 "uriOptions": {
                     "retryReads": false
-                }
+                },
+                "useMultipleMongoses": false
             }
         },
         {

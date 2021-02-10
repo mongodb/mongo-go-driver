@@ -5,6 +5,7 @@ schemaVersion: "1.0"
 createEntities:
   - client:
       id: &client0 client0
+      useMultipleMongoses: false # Avoid setting fail points with multiple mongoses
       uriOptions: { retryReads: false } # Avoid retrying fail points with closeConnection
       observeEvents: [ commandStartedEvent ]
   - database:
