@@ -41,6 +41,9 @@ func (a Array) Index(index uint) Value {
 // IndexErr searches for and retrieves the value at the given index.
 func (a Array) IndexErr(index uint) (Value, error) {
 	elem, err := indexErr(a, index)
+	if err != nil {
+		return Value{}, err
+	}
 	return elem.Value(), err
 }
 
