@@ -101,11 +101,7 @@ func (a Array) String() string {
 			return ""
 		}
 		fmt.Fprintf(&buf, "%s", elem.Value().String())
-		if length < 1 {
-			return ""
-		} else if length == 1 {
-			break
-		} else {
+		if length > 1 {
 			buf.WriteByte(',')
 		}
 	}
