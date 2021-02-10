@@ -169,7 +169,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
-		Crypt(db.client.crypt).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI), sess, nil
+		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI), sess, nil
 }
 
 // RunCommand executes the given command against the database. This function does not obey the Database's read
@@ -273,7 +273,7 @@ func (db *Database) Drop(ctx context.Context) error {
 	op := operation.NewDropDatabase().
 		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.crypt).
+		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
 		ServerAPI(db.client.serverAPI)
 
 	err = op.Execute(ctx)
@@ -364,7 +364,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.crypt).
+		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
 		ServerAPI(db.client.serverAPI)
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)
@@ -385,7 +385,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, replaceErrors(err)
 	}
 
-	bc, err := op.Result(driver.CursorOptions{Crypt: db.client.crypt})
+	bc, err := op.Result(driver.CursorOptions{Crypt: db.client.cryptFLE})
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
@@ -478,7 +478,7 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 		registry:       db.registry,
 		streamType:     DatabaseStream,
 		databaseName:   db.Name(),
-		crypt:          db.client.crypt,
+		crypt:          db.client.cryptFLE,
 	}
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
@@ -611,7 +611,7 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 		ClusterClock(db.client.clock).
 		Database(db.name).
 		Deployment(db.client.deployment).
-		Crypt(db.client.crypt)
+		Crypt(db.client.cryptFLE)
 
 	return replaceErrors(op.Execute(ctx))
 }

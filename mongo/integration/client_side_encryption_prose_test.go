@@ -901,6 +901,138 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 		})
 	})
+
+	mt.RunOpts("deadlock tests", noClientOpts, func(mt *mtest.T) {
+		testcases := []struct {
+			description                            string
+			maxPoolSize                            uint64
+			bypassAutoEncryption                   bool
+			keyVaultClientSet                      bool
+			clientEncryptedTopologyOpeningExpected int
+			clientEncryptedCommandStartedExpected  []startedEvent
+			clientKeyVaultCommandStartedExpected   []startedEvent
+		}{
+			// In the following comments, "special auto encryption options" refers to the "bypassAutoEncryption" and
+			// "keyVaultClient" options
+			{
+				// If the client has a limited maxPoolSize, and no special auto-encryption options are set, the
+				// driver should create an internal Client for metadata/keyVault operations.
+				"deadlock case 1", 1, false, false, 2,
+				[]startedEvent{{"listCollections", "db"}, {"find", "keyvault"}, {"insert", "db"}, {"find", "db"}},
+				nil,
+			},
+			{
+				// If the client has a limited maxPoolSize, and a keyVaultClient is set, the driver should create
+				// an internal Client for metadata operations.
+				"deadlock case 2", 1, false, true, 2,
+				[]startedEvent{{"listCollections", "db"}, {"insert", "db"}, {"find", "db"}},
+				[]startedEvent{{"find", "keyvault"}},
+			},
+			{
+				// If the client has a limited maxPoolSize, and a bypassAutomaticEncryption=true, the driver should
+				// create an internal Client for keyVault operations.
+				"deadlock case 3", 1, true, false, 2,
+				[]startedEvent{{"find", "db"}, {"find", "keyvault"}},
+				nil,
+			},
+			{
+				// If the client has a limited maxPoolSize, bypassAutomaticEncryption=true, and a keyVaultClient is set,
+				// the driver should not create an internal Client.
+				"deadlock case 4", 1, true, true, 1,
+				[]startedEvent{{"find", "db"}},
+				[]startedEvent{{"find", "keyvault"}},
+			},
+			{
+				// If the client has an unlimited maxPoolSize, and no special auto-encryption options are set,  the
+				// driver should reuse the client for metadata/keyVault operations
+				"deadlock case 5", 0, false, false, 1,
+				[]startedEvent{{"listCollections", "db"}, {"listCollections", "keyvault"}, {"find", "keyvault"}, {"insert", "db"}, {"find", "db"}},
+				nil,
+			},
+			{
+				// If the client has an unlimited maxPoolSize, and a keyVaultClient is set, the driver should reuse the
+				// client for metadata operations.
+				"deadlock case 6", 0, false, true, 1,
+				[]startedEvent{{"listCollections", "db"}, {"insert", "db"}, {"find", "db"}},
+				[]startedEvent{{"find", "keyvault"}},
+			},
+			{
+				// If the client has an unlimited maxPoolSize, and bypassAutomaticEncryption=true, the driver should
+				// reuse the client for keyVault operations
+				"deadlock case 7", 0, true, false, 1,
+				[]startedEvent{{"find", "db"}, {"find", "keyvault"}},
+				nil,
+			},
+			{
+				// If the client has an unlimited maxPoolSize, bypassAutomaticEncryption=true, and a keyVaultClient is
+				// set, the driver should not create an internal Client.
+				"deadlock case 8", 0, true, true, 1,
+				[]startedEvent{{"find", "db"}},
+				[]startedEvent{{"find", "keyvault"}},
+			},
+		}
+
+		for _, tc := range testcases {
+			mt.Run(tc.description, func(mt *mtest.T) {
+				var clientEncryptedEvents []startedEvent
+				var clientEncryptedTopologyOpening int
+
+				d := newDeadlockTest(mt)
+				defer d.disconnect(mt)
+
+				kmsProviders := map[string]map[string]interface{}{
+					"local": {"key": localMasterKey},
+				}
+				aeOpts := options.AutoEncryption()
+				aeOpts.SetKeyVaultNamespace("keyvault.datakeys").
+					SetKmsProviders(kmsProviders).
+					SetBypassAutoEncryption(tc.bypassAutoEncryption)
+				if tc.keyVaultClientSet {
+					aeOpts.SetKeyVaultClientOptions(d.clientKeyVaultOpts)
+				}
+
+				ceOpts := options.Client().ApplyURI(mtest.ClusterURI()).
+					SetMonitor(&event.CommandMonitor{
+						Started: func(ctx context.Context, event *event.CommandStartedEvent) {
+							clientEncryptedEvents = append(clientEncryptedEvents, startedEvent{event.CommandName, event.DatabaseName})
+						},
+					}).
+					SetServerMonitor(&event.ServerMonitor{
+						TopologyOpening: func(event *event.TopologyOpeningEvent) {
+							clientEncryptedTopologyOpening++
+						},
+					}).
+					SetMaxPoolSize(tc.maxPoolSize).
+					SetAutoEncryptionOptions(aeOpts)
+
+				clientEncrypted, err := mongo.Connect(mtest.Background, ceOpts)
+				defer clientEncrypted.Disconnect(mtest.Background)
+				assert.Nil(mt, err, "Connect error: %v", err)
+
+				coll := clientEncrypted.Database("db").Collection("coll")
+				if !tc.bypassAutoEncryption {
+					_, err = coll.InsertOne(mtest.Background, bson.M{"_id": 0, "encrypted": "string0"})
+				} else {
+					unencryptedColl := d.clientTest.Database("db").Collection("coll")
+					_, err = unencryptedColl.InsertOne(mtest.Background, bson.M{"_id": 0, "encrypted": d.ciphertext})
+				}
+				assert.Nil(mt, err, "InsertOne error: %v", err)
+
+				raw, err := coll.FindOne(mtest.Background, bson.M{"_id": 0}).DecodeBytes()
+				assert.Nil(mt, err, "FindOne error: %v", err)
+
+				expected := bsoncore.NewDocumentBuilder().
+					AppendInt32("_id", 0).
+					AppendString("encrypted", "string0").
+					Build()
+				assert.Equal(mt, bson.Raw(expected), raw, "returned value unequal, expected: %v, got: %v", expected, raw)
+
+				assert.Equal(mt, clientEncryptedEvents, tc.clientEncryptedCommandStartedExpected, "mismatched events for clientEncrypted. Expected %v, got %v", clientEncryptedEvents, tc.clientEncryptedCommandStartedExpected)
+				assert.Equal(mt, d.clientKeyVaultEvents, tc.clientKeyVaultCommandStartedExpected, "mismatched events for clientKeyVault. Expected %v, got %v", d.clientKeyVaultEvents, tc.clientKeyVaultCommandStartedExpected)
+				assert.Equal(mt, clientEncryptedTopologyOpening, tc.clientEncryptedTopologyOpeningExpected, "wrong number of TopologyOpening events. Expected %v, got %v", tc.clientEncryptedTopologyOpeningExpected, clientEncryptedTopologyOpening)
+			})
+		}
+	})
 }
 
 func getWatcher(mt *mtest.T, streamType mongo.StreamType, cpt *cseProseTest) watcher {
@@ -1006,4 +1138,80 @@ func decodeJSONFile(mt *mtest.T, file string, val interface{}) bson.Raw {
 
 func rawValueToCoreValue(rv bson.RawValue) bsoncore.Value {
 	return bsoncore.Value{Type: rv.Type, Data: rv.Value}
+}
+
+type deadlockTest struct {
+	clientTest           *mongo.Client
+	clientKeyVaultOpts   *options.ClientOptions
+	clientKeyVaultEvents []startedEvent
+	clientEncryption     *mongo.ClientEncryption
+	ciphertext           primitive.Binary
+}
+
+type startedEvent struct {
+	Command  string
+	Database string
+}
+
+func newDeadlockTest(mt *mtest.T) *deadlockTest {
+	mt.Helper()
+
+	var d deadlockTest
+	var err error
+
+	clientTestOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc)
+	if d.clientTest, err = mongo.Connect(mtest.Background, clientTestOpts); err != nil {
+		mt.Fatalf("Connect error: %v", err)
+	}
+
+	clientKeyVaultMonitor := &event.CommandMonitor{
+		Started: func(ctx context.Context, event *event.CommandStartedEvent) {
+			startedEvent := startedEvent{event.CommandName, event.DatabaseName}
+			d.clientKeyVaultEvents = append(d.clientKeyVaultEvents, startedEvent)
+		},
+	}
+
+	d.clientKeyVaultOpts = options.Client().ApplyURI(mtest.ClusterURI()).
+		SetMaxPoolSize(1).SetMonitor(clientKeyVaultMonitor)
+
+	keyvaultColl := d.clientTest.Database("keyvault").Collection("datakeys")
+	dataColl := d.clientTest.Database("db").Collection("coll")
+	err = dataColl.Drop(mtest.Background)
+	assert.Nil(mt, err, "Drop error for collection db.coll: %v", err)
+
+	err = keyvaultColl.Drop(mtest.Background)
+	assert.Nil(mt, err, "Drop error for key vault collection: %v", err)
+
+	keyDoc := readJSONFile(mt, "external-key.json")
+	_, err = keyvaultColl.InsertOne(mtest.Background, keyDoc)
+	assert.Nil(mt, err, "InsertOne error into key vault collection: %v", err)
+
+	schemaDoc := readJSONFile(mt, "external-schema.json")
+	createOpts := options.CreateCollection().SetValidator(bson.M{"$jsonSchema": schemaDoc})
+	err = d.clientTest.Database("db").CreateCollection(mtest.Background, "coll", createOpts)
+	assert.Nil(mt, err, "CreateCollection error: %v", err)
+
+	kmsProviders := map[string]map[string]interface{}{
+		"local": {"key": localMasterKey},
+	}
+	ceOpts := options.ClientEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace("keyvault.datakeys")
+	d.clientEncryption, err = mongo.NewClientEncryption(d.clientTest, ceOpts)
+	assert.Nil(mt, err, "NewClientEncryption error: %v", err)
+
+	t, value, err := bson.MarshalValue("string0")
+	assert.Nil(mt, err, "MarshalValue error: %v", err)
+	in := bson.RawValue{Type: t, Value: value}
+	eopts := options.Encrypt().SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic").SetKeyAltName("local")
+	d.ciphertext, err = d.clientEncryption.Encrypt(mtest.Background, in, eopts)
+	assert.Nil(mt, err, "Encrypt error: %v", err)
+
+	return &d
+}
+
+func (d *deadlockTest) disconnect(mt *mtest.T) {
+	mt.Helper()
+	err := d.clientEncryption.Close(mtest.Background)
+	assert.Nil(mt, err, "clientEncryption Close error: %v", err)
+	d.clientTest.Disconnect(mtest.Background)
+	assert.Nil(mt, err, "clientTest Disconnect error: %v", err)
 }
