@@ -193,10 +193,13 @@ func Setup() error {
 		}
 	}
 
-	db := testContext.client.Database("admin")
-	testContext.serverParameters, err = db.RunCommand(Background, bson.D{{"getParameter", "*"}}).DecodeBytes()
-	if err != nil {
-		return fmt.Errorf("error getting serverParameters: %v", err)
+	// Get server parameters if test is not adl integration; ADL does not have "getParameter" command.
+	if !testContext.dataLake {
+		db := testContext.client.Database("admin")
+		testContext.serverParameters, err = db.RunCommand(Background, bson.D{{"getParameter", "*"}}).DecodeBytes()
+		if err != nil {
+			return fmt.Errorf("error getting serverParameters: %v", err)
+		}
 	}
 	return nil
 }
