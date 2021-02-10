@@ -176,17 +176,7 @@ func ensureID(d bsonx.Doc) (bsonx.Doc, interface{}) {
 	return d, id
 }
 
-func ensureDollarKey(doc bsonx.Doc) error {
-	if len(doc) == 0 {
-		return errors.New("update document must have at least one element")
-	}
-	if !strings.HasPrefix(doc[0].Key, "$") {
-		return errors.New("update document must contain key beginning with '$'")
-	}
-	return nil
-}
-
-func ensureDollarKeyv2(doc bsoncore.Document) error {
+func ensureDollarKey(doc bsoncore.Document) error {
 	firstElem, err := doc.IndexErr(0)
 	if err != nil {
 		return errors.New("update document must have at least one element")
@@ -289,7 +279,7 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 }
 
 func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, dollarKeysAllowed bool) (bsoncore.Value, error) {
-	documentCheckerFunc := ensureDollarKeyv2
+	documentCheckerFunc := ensureDollarKey
 	if !dollarKeysAllowed {
 		documentCheckerFunc = ensureNoDollarKey
 	}
