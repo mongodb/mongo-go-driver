@@ -101,12 +101,19 @@ func (a Array) String() string {
 			return ""
 		}
 		fmt.Fprintf(&buf, "%s", elem.Value().String())
-		if length != 1 {
+		if length < 1 {
+			return ""
+		} else if length == 1 {
+			break
+		} else {
 			buf.WriteByte(',')
 		}
 	}
-	buf.WriteByte(']')
+	if length != 1 { // Missing final null byte or inaccurate length
+		return ""
+	}
 
+	buf.WriteByte(']')
 	return buf.String()
 }
 

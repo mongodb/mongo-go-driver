@@ -302,13 +302,31 @@ func TestArray(t *testing.T) {
 				`Array(19)[[null ,null ]]`,
 			},
 			{
-				"malformed",
+				"malformed--length too small",
+				Array{
+					'\x04', '\x00', '\x00', '\x00',
+					'\x00',
+				},
+				``,
+				`Array(4)[]`,
+			},
+			{
+				"malformed--length too large",
 				Array{
 					'\x13', '\x00', '\x00', '\x00',
 					'\x00',
 				},
 				``,
 				`Array(19)[<malformed (15)>]`,
+			},
+			{
+				"malformed--missing null byte",
+				Array{
+					'\x06', '\x00', '\x00', '\x00',
+					'\x02', '0',
+				},
+				``,
+				`Array(6)[<malformed (2)>]`,
 			},
 		}
 
