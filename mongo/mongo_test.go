@@ -72,52 +72,45 @@ func TestMongoHelpers(t *testing.T) {
 	t.Run("transform and ensure ID", func(t *testing.T) {
 		t.Run("newly added _id should be first element", func(t *testing.T) {
 			doc := bson.D{{"foo", "bar"}, {"baz", "qux"}, {"hello", "world"}}
-			want := bsonx.Doc{
-				{"_id", bsonx.Null()}, {"foo", bsonx.String("bar")},
-				{"baz", bsonx.String("qux")}, {"hello", bsonx.String("world")},
-			}
 			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			oid, ok := id.(primitive.ObjectID)
 			assert.True(t, ok, "expected returned id type %T, got %T", primitive.ObjectID{}, id)
-			want[0] = bsonx.Elem{"_id", bsonx.ObjectID(oid)}
-			assert.Equal(t, got, want, "expected document %v, got %v", got, want)
-		})
-		t.Run("existing _id should be first element", func(t *testing.T) {
-			doc := bson.D{{"foo", "bar"}, {"baz", "qux"}, {"_id", 3.14159}, {"hello", "world"}}
-			want := bsonx.Doc{
-				{"_id", bsonx.Double(3.14159)}, {"foo", bsonx.String("bar")},
-				{"baz", bsonx.String("qux")}, {"hello", bsonx.String("world")},
+			wantDoc := bson.D{
+				{"_id", oid}, {"foo", "bar"},
+				{"baz", "qux"}, {"hello", "world"},
 			}
-			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
-			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
-			_, ok := id.(float64)
-			assert.True(t, ok, "expected returned id type %T, got %T", float64(0), id)
-			assert.Equal(t, got, want, "expected document %v, got %v", got, want)
+			_, wantBSON, _ := bson.MarshalValue(wantDoc)
+			want := bsoncore.Document(wantBSON)
+			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
 		t.Run("existing _id as first element should remain first element", func(t *testing.T) {
 			doc := bson.D{{"_id", 3.14159}, {"foo", "bar"}, {"baz", "qux"}, {"hello", "world"}}
-			want := bsonx.Doc{
-				{"_id", bsonx.Double(3.14159)}, {"foo", bsonx.String("bar")},
-				{"baz", bsonx.String("qux")}, {"hello", bsonx.String("world")},
-			}
 			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(float64)
 			assert.True(t, ok, "expected returned id type %T, got %T", float64(0), id)
-			assert.Equal(t, got, want, "expected document %v, got %v", got, want)
+			wantDoc := bson.D{
+				{"_id", 3.14159}, {"foo", "bar"},
+				{"baz", "qux"}, {"hello", "world"},
+			}
+			_, wantBSON, _ := bson.MarshalValue(wantDoc)
+			want := bsoncore.Document(wantBSON)
+			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
 		t.Run("existing _id should not overwrite a first binary field", func(t *testing.T) {
 			doc := bson.D{{"bin", []byte{0, 0, 0}}, {"_id", "LongEnoughIdentifier"}}
-			want := bsonx.Doc{
-				{"_id", bsonx.String("LongEnoughIdentifier")},
-				{"bin", bsonx.Binary(0x00, []byte{0x00, 0x00, 0x00})},
-			}
 			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(string)
 			assert.True(t, ok, "expected returned id type string, got %T", id)
-			assert.Equal(t, got, want, "expected document %v, got %v", got, want)
+			wantDoc := bson.D{
+				{"bin", []byte{0x00, 0x00, 0x00}},
+				{"_id", "LongEnoughIdentifier"},
+			}
+			_, wantBSON, _ := bson.MarshalValue(wantDoc)
+			want := bsoncore.Document(wantBSON)
+			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
 	})
 	t.Run("transform aggregate pipeline", func(t *testing.T) {

@@ -244,7 +244,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 
 	for i, doc := range documents {
 		var err error
-		docs[i], result[i], err = transformAndEnsureIDv2(coll.registry, doc)
+		docs[i], result[i], err = transformAndEnsureID(coll.registry, doc)
 		if err != nil {
 			return nil, err
 		}

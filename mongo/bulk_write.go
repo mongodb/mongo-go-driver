@@ -168,7 +168,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 	var i int
 	for _, model := range batch.models {
 		converted := model.(*InsertOneModel)
-		doc, _, err := transformAndEnsureIDv2(bw.collection.registry, converted.Document)
+		doc, _, err := transformAndEnsureID(bw.collection.registry, converted.Document)
 		if err != nil {
 			return operation.InsertResult{}, err
 		}
