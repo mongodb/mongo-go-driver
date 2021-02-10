@@ -44,7 +44,7 @@ func TestDocument(t *testing.T) {
 			}
 		})
 		t.Run("InvalidLength", func(t *testing.T) {
-			want := Document{}.lengtherror(200, 5)
+			want := NewDocumentLengthError(200, 5)
 			r := make(Document, 5)
 			binary.LittleEndian.PutUint32(r[0:4], 200)
 			got := r.Validate()

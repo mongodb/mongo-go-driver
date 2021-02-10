@@ -47,7 +47,7 @@ func TestRaw(t *testing.T) {
 			}
 		})
 		t.Run("InvalidLength", func(t *testing.T) {
-			want := bsoncore.DocumentValidationError("document length exceeds available bytes. length=200 remainingBytes=5")
+			want := bsoncore.ValidationError("document length exceeds available bytes. length=200 remainingBytes=5")
 			r := make(Raw, 5)
 			binary.LittleEndian.PutUint32(r[0:4], 200)
 			got := r.Validate()
