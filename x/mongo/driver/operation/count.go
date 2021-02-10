@@ -12,7 +12,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -128,9 +127,12 @@ func (c *Count) Execute(ctx context.Context) error {
 		ServerAPI:         c.serverAPI,
 	}.Execute(ctx, nil)
 
-	// Swallow error if NamespaceNotFound is returned from aggregate on non-existent namespace
-	if err != nil && strings.Contains(err.Error(), "NamespaceNotFound") {
-		err = nil
+	// Swallow error if NamespaceNotFound(26) is returned from aggregate on non-existent namespace
+	if err != nil {
+		dErr, ok := err.(driver.Error)
+		if ok && dErr.Code == 26 {
+			err = nil
+		}
 	}
 	return err
 }
