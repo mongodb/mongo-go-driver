@@ -2290,6 +2290,36 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 			},
 		},
+		{
+			"CoreArrayDecodeValue",
+			defaultArrayCodec,
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					&bsonrwtest.ValueReaderWriter{},
+					bsonrwtest.Nothing,
+					ValueDecoderError{
+						Name:     "CoreArrayDecodeValue",
+						Types:    []reflect.Type{tCoreArray},
+						Received: reflect.ValueOf(wrong),
+					},
+				},
+				{
+					"*bsoncore.Array is nil",
+					(*bsoncore.Array)(nil),
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueDecoderError{
+						Name:     "CoreArrayDecodeValue",
+						Types:    []reflect.Type{tCoreArray},
+						Received: reflect.ValueOf((*bsoncore.Array)(nil)),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

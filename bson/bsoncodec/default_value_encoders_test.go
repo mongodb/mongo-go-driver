@@ -1140,6 +1140,53 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 			},
 		},
+		{
+			"CoreArrayEncodeValue",
+			defaultArrayCodec,
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{
+						Name:     "CoreArrayEncodeValue",
+						Types:    []reflect.Type{tCoreArray},
+						Received: reflect.ValueOf(wrong),
+					},
+				},
+
+				{
+					"WriteArray Error",
+					bsoncore.Array{},
+					nil,
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("wa error"), ErrAfter: bsonrwtest.WriteArray},
+					bsonrwtest.WriteArray,
+					errors.New("wa error"),
+				},
+				{
+					"WriteArrayElement Error",
+					bsoncore.Array(buildDocumentArray(func(doc []byte) []byte {
+						return bsoncore.AppendNullElement(nil, "foo")
+					})),
+					nil,
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("wae error"), ErrAfter: bsonrwtest.WriteArrayElement},
+					bsonrwtest.WriteArrayElement,
+					errors.New("wae error"),
+				},
+				{
+					"encodeValue error",
+					bsoncore.Array(buildDocumentArray(func(doc []byte) []byte {
+						return bsoncore.AppendNullElement(nil, "foo")
+					})),
+					nil,
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("ev error"), ErrAfter: bsonrwtest.WriteNull},
+					bsonrwtest.WriteNull,
+					errors.New("ev error"),
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

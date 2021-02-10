@@ -80,6 +80,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeDecoder(tByteSlice, defaultByteSliceCodec).
 		RegisterTypeDecoder(tTime, defaultTimeCodec).
 		RegisterTypeDecoder(tEmpty, defaultEmptyInterfaceCodec).
+		RegisterTypeDecoder(tCoreArray, defaultArrayCodec).
 		RegisterTypeDecoder(tOID, decodeAdapter{dvd.ObjectIDDecodeValue, dvd.objectIDDecodeType}).
 		RegisterTypeDecoder(tDecimal, decodeAdapter{dvd.Decimal128DecodeValue, dvd.decimal128DecodeType}).
 		RegisterTypeDecoder(tJSONNumber, decodeAdapter{dvd.JSONNumberDecodeValue, dvd.jsonNumberDecodeType}).
