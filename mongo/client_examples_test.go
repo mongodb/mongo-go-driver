@@ -314,3 +314,50 @@ func ExampleConnect_aWS() {
 	}
 	_ = ecClient
 }
+
+func ExampleConnect_versionedAPI() {
+	// Configure a Client with versioned API.
+	//
+	// Versioned API is a new feature in MongoDB 5.0 that allows user-selectable API versions, subsets of MongoDB
+	// server semantics, to be declared on a Client. During communication with a server, Clients with a declared
+	// API version will force that server to behave in a manner compatible with the API version. Declaring an API
+	// version on your Client can be used to ensure consistent responses from a server, providing long term API
+	// stability for an application.
+	//
+	// The declared API version is applied to all commands run through the Client, including those sent through
+	// the generic RunCommand helper. Specifying versioned API options in the command document AND declaring an API
+	// version on the Client is not supported and will lead to undefined behavior. To run any command with a different
+	// API version or without declaring one, create a separate Client that declares the appropriate API version.
+
+	// ServerAPIOptions must be declared with an API version. ServerAPIVersion1 is a constant equal to "1".
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	serverAPIClient, err := mongo.Connect(context.TODO(), options.Client().SetServerAPIOptions(serverAPI))
+	if err != nil {
+		panic(err)
+	}
+	_ = serverAPIClient
+
+	// ServerAPIOptions can be declared with a Strict option. Declaring a strict API version will cause the MongoDB server
+	// to reject all commands that are not part of the declared API version. This includes command options and
+	// aggregation pipeline stages. For example, the following Distinct call would fail because the distinct command is
+	// not part of API version 1:
+	serverAPIStrict := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
+	serverAPIStrictClient, err := mongo.Connect(context.TODO(), options.Client().SetServerAPIOptions(serverAPIStrict))
+	if err != nil {
+		panic(err)
+	}
+
+	coll := serverAPIStrictClient.Database("db").Collection("coll")
+	// Fails with error: (APIStrictError) Provided apiStrict:true, but the command distinct is not in API Version 1
+	_, err = coll.Distinct(context.TODO(), "distinct", bson.D{})
+
+	// ServerAPIOptions can be declared with a DeprecationErrors option. DeprecationErrors can be used to enable command
+	// failures when using functionality that is deprecated in the declared API version. Note that at the time of this writing,
+	// no deprecations in API version 1 exist.
+	serverAPIDeprecation := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
+	serverAPIDeprecationClient, err := mongo.Connect(context.TODO(), options.Client().SetServerAPIOptions(serverAPIDeprecation))
+	if err != nil {
+		panic(err)
+	}
+	_ = serverAPIDeprecationClient
+}
