@@ -326,7 +326,7 @@ func ExampleConnect_versionedAPI() {
 	//
 	// The declared API version is applied to all commands run through the Client, including those sent through
 	// the generic RunCommand helper. Specifying versioned API options in the command document AND declaring an API
-	// version on the Client is not supported and will lead to undefined behaviour. To run any command with a different
+	// version on the Client is not supported and will lead to undefined behavior. To run any command with a different
 	// API version or without declaring one, create a separate Client that declares the appropriate API version.
 
 	// ServerAPIOptions must be declared with an API version. ServerAPIVersion1 is a constant equal to "1".
