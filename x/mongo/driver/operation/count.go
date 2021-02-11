@@ -13,8 +13,6 @@ import (
 	"errors"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -54,36 +52,37 @@ func buildCountResult(response bsoncore.Document, srvr driver.Server) (CountResu
 		return CountResult{}, err
 	}
 	cr := CountResult{}
+elementLoop:
 	for _, element := range elements {
 		switch element.Key() {
 		case "n": // for count using original command
 			var ok bool
 			cr.N, ok = element.Value().AsInt64OK()
 			if !ok {
-				err = fmt.Errorf("response field %s is type int64, but received BSON type %s",
-					element.Key(), element.Value().Type)
-				break
+				err = fmt.Errorf("response field 'n' is type int64, but received BSON type %s",
+					element.Value().Type)
+				break elementLoop
 			}
 		case "cursor": // for count using aggregate with $collStats
 			firstBatch, err := element.Value().Document().LookupErr("firstBatch")
 			if err != nil {
-				break
+				break elementLoop
 			}
 
 			// get count value from first batch
 			element = firstBatch.Array().Index(0)
 			count, err := element.Value().Document().LookupErr("n")
 			if err != nil {
-				break
+				break elementLoop
 			}
 
 			// use count as Int64 for result
 			var ok bool
 			cr.N, ok = count.AsInt64OK()
 			if !ok {
-				err = fmt.Errorf("response field %s is type int64, but received BSON type %s",
-					element.Key(), element.Value().Type)
-				break
+				err = fmt.Errorf("response field 'n' is type int64, but received BSON type %s",
+					element.Value().Type)
+				break elementLoop
 			}
 		}
 	}
@@ -150,40 +149,33 @@ func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, er
 		return dst, nil
 	}
 	// If wire version >= 12 (4.9.0), use aggregate with $collStats
-	header := bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, c.collection)}
-	if c.collection == "" {
-		header = bsoncore.Value{Type: bsontype.Int32, Data: []byte{0x01, 0x00, 0x00, 0x00}}
-	}
-
-	dst = bsoncore.AppendValueElement(dst, "aggregate", header)
-	cursorIdx, cursorDoc := bsoncore.AppendDocumentStart(nil)
+	dst = bsoncore.AppendStringElement(dst, "aggregate", c.collection)
+	idx, dst := bsoncore.AppendDocumentElementStart(dst, "cursor")
+	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 	if c.maxTimeMS != nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *c.maxTimeMS)
 	}
 	if c.query != nil {
-		dst = bsoncore.AppendDocumentElement(dst, "query", c.query)
+		return nil, fmt.Errorf("'query' cannot be set on Count against servers at or above 4.9.0")
 	}
 
-	countPipeline := bson.A{
-		bson.D{
-			{"$collStats", bson.D{
-				{"count", bson.D{}},
-			}},
-		},
-		bson.D{
-			{"$group", bson.D{
-				{"_id", 1},
-				{"n", bson.D{
-					{"$sum", "$count"},
-				}},
-			}},
-		},
-	}
-	_, countPipelineBSON, _ := bson.MarshalValue(countPipeline)
-	dst = bsoncore.AppendArrayElement(dst, "pipeline", bsoncore.Document(countPipelineBSON))
-
-	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
-	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc)
+	collStatsStage := bsoncore.NewDocumentBuilder().
+		AppendDocument("$collStats", bsoncore.NewDocumentBuilder().
+			AppendDocument("count", bsoncore.NewDocumentBuilder().Build()).
+			Build()).
+		Build()
+	groupStage := bsoncore.NewDocumentBuilder().
+		AppendDocument("$group", bsoncore.NewDocumentBuilder().
+			AppendInt64("_id", 1).
+			AppendDocument("n", bsoncore.NewDocumentBuilder().
+				AppendString("$sum", "$count").Build()).
+			Build()).
+		Build()
+	countPipeline := bsoncore.NewArrayBuilder().
+		AppendDocument(collStatsStage).
+		AppendDocument(groupStage).
+		Build()
+	dst = bsoncore.AppendArrayElement(dst, "pipeline", countPipeline)
 	return dst, nil
 }
 
