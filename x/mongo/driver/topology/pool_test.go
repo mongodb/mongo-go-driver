@@ -216,7 +216,7 @@ func TestPool(t *testing.T) {
 			disconnectDone := make(chan struct{})
 			_, err = p.get(context.Background())
 			noerr(t, err)
-			getCtx, getCancel := context.WithCancel(context.Background())
+			getCtx, getCancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer getCancel()
 			go func() {
 				defer close(getDone)
@@ -233,13 +233,18 @@ func TestPool(t *testing.T) {
 				}
 			}()
 			go func() {
-				_, err := p.get(getCtx)
+				defer close(disconnectDone)
+				for getCtx.Err() == nil {
+					_, err := p.get(getCtx)
+					if err == nil {
+						break
+					}
+				}
 				noerr(t, err)
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Microsecond)
 				defer cancel()
 				err = p.disconnect(ctx)
 				noerr(t, err)
-				close(disconnectDone)
 			}()
 			<-getDone
 			close(cleanup)
