@@ -572,7 +572,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline interface{},
 	opts ...*options.CreateViewOptions) error {
 
-	pipelineArray, _, err := transformAggregatePipelinev2(db.registry, pipeline)
+	pipelineArray, _, err := transformAggregatePipeline(db.registry, pipeline)
 	if err != nil {
 		return err
 	}

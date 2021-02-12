@@ -746,7 +746,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		a.ctx = context.Background()
 	}
 
-	pipelineArr, hasOutputStage, err := transformAggregatePipelinev2(a.registry, a.pipeline)
+	pipelineArr, hasOutputStage, err := transformAggregatePipeline(a.registry, a.pipeline)
 	if err != nil {
 		return nil, err
 	}
