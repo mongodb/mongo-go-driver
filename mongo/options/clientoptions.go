@@ -713,7 +713,7 @@ func (c *ClientOptions) SetDisableOCSPEndpointCheck(disableCheck bool) *ClientOp
 }
 
 // MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
-// The specified options are merged with the existing options on the collection, with the specified options taking
+// The specified options are merged with the existing options on the client, with the specified options taking
 // precedence.
 func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 	c := Client()
