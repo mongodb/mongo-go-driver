@@ -988,6 +988,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					SetKmsProviders(kmsProviders).
 					SetBypassAutoEncryption(tc.bypassAutoEncryption)
 				if tc.keyVaultClientSet {
+					testutil.AddTestServerAPIVersion(d.clientKeyVaultOpts)
 					aeOpts.SetKeyVaultClientOptions(d.clientKeyVaultOpts)
 				}
 
@@ -1005,6 +1006,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					SetMaxPoolSize(tc.maxPoolSize).
 					SetAutoEncryptionOptions(aeOpts)
 
+				testutil.AddTestServerAPIVersion(ceOpts)
 				clientEncrypted, err := mongo.Connect(mtest.Background, ceOpts)
 				defer clientEncrypted.Disconnect(mtest.Background)
 				assert.Nil(mt, err, "Connect error: %v", err)
@@ -1160,6 +1162,7 @@ func newDeadlockTest(mt *mtest.T) *deadlockTest {
 	var err error
 
 	clientTestOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc)
+	testutil.AddTestServerAPIVersion(clientTestOpts)
 	if d.clientTest, err = mongo.Connect(mtest.Background, clientTestOpts); err != nil {
 		mt.Fatalf("Connect error: %v", err)
 	}
