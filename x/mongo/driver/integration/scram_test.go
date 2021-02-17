@@ -11,8 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 type scramTestCase struct {
@@ -27,10 +27,12 @@ func TestSCRAM(t *testing.T) {
 		t.Skip("Skipping because authentication is required")
 	}
 
-	server, err := testutil.Topology(t).SelectServerLegacy(context.Background(), description.WriteSelector())
+	server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	noerr(t, err)
+	serverConnection, err := server.Connection(context.Background())
 	noerr(t, err)
 
-	if !server.Description().WireVersion.Includes(7) {
+	if !serverConnection.Description().WireVersion.Includes(7) {
 		t.Skip("Skipping because MongoDB 4.0 is needed for SCRAM-SHA-256")
 	}
 
@@ -58,7 +60,7 @@ func TestSCRAM(t *testing.T) {
 	)
 
 	// Test step 1: Create users for test cases
-	err = createScramUsers(t, server.Server, testUsers)
+	err = createScramUsers(t, server, testUsers)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,15 +135,15 @@ func testScramUserAuthWithMech(t *testing.T, c scramTestCase, mech string) error
 func runScramAuthTest(t *testing.T, cs connstring.ConnString) error {
 	t.Helper()
 	topology := testutil.TopologyWithConnString(t, cs)
-	ss, err := topology.SelectServerLegacy(context.Background(), description.WriteSelector())
+	ss, err := topology.SelectServer(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
 	cmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dbstats", 1))
-	_, err = testutil.RunCommand(t, ss.Server, testutil.DBName(t), cmd)
+	_, err = testutil.RunCommand(t, ss, testutil.DBName(t), cmd)
 	return err
 }
 
-func createScramUsers(t *testing.T, s *topology.Server, cases []scramTestCase) error {
+func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) error {
 	db := testutil.DBName(t)
 	for _, c := range cases {
 		var values []bsoncore.Value
