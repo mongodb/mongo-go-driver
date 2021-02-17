@@ -90,11 +90,7 @@ func TestMongoHelpers(t *testing.T) {
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(float64)
 			assert.True(t, ok, "expected returned id type %T, got %T", float64(0), id)
-			wantDoc := bson.D{
-				{"_id", 3.14159}, {"foo", "bar"},
-				{"baz", "qux"}, {"hello", "world"},
-			}
-			_, wantBSON, _ := bson.MarshalValue(wantDoc)
+			_, wantBSON, _ := bson.MarshalValue(doc)
 			want := bsoncore.Document(wantBSON)
 			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
@@ -104,11 +100,7 @@ func TestMongoHelpers(t *testing.T) {
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(string)
 			assert.True(t, ok, "expected returned id type string, got %T", id)
-			wantDoc := bson.D{
-				{"bin", []byte{0x00, 0x00, 0x00}},
-				{"_id", "LongEnoughIdentifier"},
-			}
-			_, wantBSON, _ := bson.MarshalValue(wantDoc)
+			_, wantBSON, _ := bson.MarshalValue(doc)
 			want := bsoncore.Document(wantBSON)
 			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
@@ -121,15 +113,17 @@ func TestMongoHelpers(t *testing.T) {
 		arr, _ = bsoncore.AppendArrayEnd(arr, index)
 
 		testCases := []struct {
-			name     string
-			pipeline interface{}
-			arr      bson.A
-			err      error
+			name           string
+			pipeline       interface{}
+			arr            bson.A
+			hasOutputStage bool
+			err            error
 		}{
 			{
 				"Pipeline/error",
 				Pipeline{{{"hello", func() {}}}},
 				nil,
+				false,
 				MarshalError{Value: primitive.D{}, Err: errors.New("no encoder found for func()")},
 			},
 			{
@@ -139,6 +133,7 @@ func TestMongoHelpers(t *testing.T) {
 					bson.D{{"hello", "world"}},
 					bson.D{{"pi", 3.14159}},
 				},
+				false,
 				nil,
 			},
 			{
@@ -149,6 +144,7 @@ func TestMongoHelpers(t *testing.T) {
 				bson.A{
 					bson.D{{"$limit", 12345}},
 				},
+				false,
 				nil,
 			},
 			{
@@ -157,12 +153,14 @@ func TestMongoHelpers(t *testing.T) {
 				bson.A{
 					bson.D{{"$limit", 12345}},
 				},
+				false,
 				nil,
 			},
 			{
 				"primitive.A/error",
 				primitive.A{"5"},
 				nil,
+				false,
 				MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
@@ -172,12 +170,14 @@ func TestMongoHelpers(t *testing.T) {
 					bson.D{{"$limit", int(12345)}},
 					bson.D{{"$count", "foobar"}},
 				},
+				false,
 				nil,
 			},
 			{
 				"bson.A/error",
 				bson.A{"5"},
 				nil,
+				false,
 				MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
@@ -187,12 +187,14 @@ func TestMongoHelpers(t *testing.T) {
 					bson.D{{"$limit", int32(12345)}},
 					bson.D{{"$count", "foobar"}},
 				},
+				false,
 				nil,
 			},
 			{
 				"[]interface{}/error",
 				[]interface{}{"5"},
 				nil,
+				false,
 				MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
@@ -202,24 +204,28 @@ func TestMongoHelpers(t *testing.T) {
 					bson.D{{"$limit", int32(12345)}},
 					bson.D{{"$count", "foobar"}},
 				},
+				false,
 				nil,
 			},
 			{
 				"bsoncodec.ValueMarshaler/MarshalBSONValue error",
 				bvMarsh{err: errors.New("MarshalBSONValue error")},
 				nil,
+				false,
 				errors.New("MarshalBSONValue error"),
 			},
 			{
 				"bsoncodec.ValueMarshaler/not array",
 				bvMarsh{t: bsontype.String},
 				nil,
+				false,
 				fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", bsontype.String, bsontype.Array),
 			},
 			{
 				"bsoncodec.ValueMarshaler/UnmarshalBSONValue error",
 				bvMarsh{t: bsontype.Array, err: bsoncore.NewInsufficientBytesError(nil, nil)},
 				nil,
+				false,
 				bsoncore.NewInsufficientBytesError(nil, nil),
 			},
 			{
@@ -228,24 +234,28 @@ func TestMongoHelpers(t *testing.T) {
 				bson.A{
 					bson.D{{"$limit", int32(12345)}},
 				},
+				false,
 				nil,
 			},
 			{
 				"nil",
 				nil,
 				nil,
+				false,
 				errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"),
 			},
 			{
 				"not array or slice",
 				int64(42),
 				nil,
+				false,
 				errors.New("can only transform slices and arrays into aggregation pipelines, but got int64"),
 			},
 			{
 				"array/error",
 				[1]interface{}{int64(42)},
 				nil,
+				false,
 				MarshalError{Value: int64(0), Err: errors.New("WriteInt64 can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
@@ -254,12 +264,14 @@ func TestMongoHelpers(t *testing.T) {
 				bson.A{
 					bson.D{{"$limit", int64(12345)}},
 				},
+				false,
 				nil,
 			},
 			{
 				"slice/error",
 				[]interface{}{int64(42)},
 				nil,
+				false,
 				MarshalError{Value: int64(0), Err: errors.New("WriteInt64 can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
@@ -268,13 +280,54 @@ func TestMongoHelpers(t *testing.T) {
 				bson.A{
 					bson.D{{"$limit", int64(12345)}},
 				},
+				false,
+				nil,
+			},
+			{
+				"hasOutputStage/out",
+				bson.A{
+					bson.D{{"$out", bson.D{
+						{"db", "output-db"},
+						{"coll", "output-collection"},
+					}}},
+				},
+				bson.A{
+					bson.D{{"$out", bson.D{
+						{"db", "output-db"},
+						{"coll", "output-collection"},
+					}}},
+				},
+				true,
+				nil,
+			},
+			{
+				"hasOutputStage/merge",
+				bson.A{
+					bson.D{{"$merge", bson.D{
+						{"into", bson.D{
+							{"db", "output-db"},
+							{"coll", "output-collection"},
+						}},
+					}}},
+				},
+				bson.A{
+					bson.D{{"$merge", bson.D{
+						{"into", bson.D{
+							{"db", "output-db"},
+							{"coll", "output-collection"},
+						}},
+					}}},
+				},
+				true,
 				nil,
 			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				arr, _, err := transformAggregatePipeline(bson.NewRegistryBuilder().Build(), tc.pipeline)
+				arr, hasOutputStage, err := transformAggregatePipeline(bson.NewRegistryBuilder().Build(), tc.pipeline)
+				assert.Equal(t, tc.hasOutputStage, hasOutputStage, "expected hasOutputStage %v, got %v",
+					tc.hasOutputStage, hasOutputStage)
 				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 
 				var expected bsoncore.Document
