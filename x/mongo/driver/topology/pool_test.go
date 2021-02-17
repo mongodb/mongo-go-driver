@@ -226,20 +226,18 @@ func TestPool(t *testing.T) {
 						return
 					default:
 						loopCtx, loopCancel := context.WithTimeout(getCtx, 3*time.Second)
-						_, _ = p.get(loopCtx)
+						c, err := p.get(loopCtx)
 						loopCancel()
+						if err == nil {
+							_ = p.put(c)
+						}
 						time.Sleep(time.Microsecond)
 					}
 				}
 			}()
 			go func() {
 				defer close(disconnectDone)
-				for getCtx.Err() == nil {
-					_, err := p.get(getCtx)
-					if err == nil {
-						break
-					}
-				}
+				_, err := p.get(getCtx)
 				noerr(t, err)
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Microsecond)
 				defer cancel()
