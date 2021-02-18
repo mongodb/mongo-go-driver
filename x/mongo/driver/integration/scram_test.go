@@ -31,6 +31,7 @@ func TestSCRAM(t *testing.T) {
 	noerr(t, err)
 	serverConnection, err := server.Connection(context.Background())
 	noerr(t, err)
+	defer serverConnection.Close()
 
 	if !serverConnection.Description().WireVersion.Includes(7) {
 		t.Skip("Skipping because MongoDB 4.0 is needed for SCRAM-SHA-256")
@@ -135,11 +136,11 @@ func testScramUserAuthWithMech(t *testing.T, c scramTestCase, mech string) error
 func runScramAuthTest(t *testing.T, cs connstring.ConnString) error {
 	t.Helper()
 	topology := testutil.TopologyWithConnString(t, cs)
-	ss, err := topology.SelectServer(context.Background(), description.WriteSelector())
+	server, err := topology.SelectServer(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
 	cmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dbstats", 1))
-	_, err = testutil.RunCommand(t, ss, testutil.DBName(t), cmd)
+	_, err = testutil.RunCommand(t, server, testutil.DBName(t), cmd)
 	return err
 }
 

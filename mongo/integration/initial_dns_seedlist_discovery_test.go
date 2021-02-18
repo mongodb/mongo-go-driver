@@ -180,5 +180,6 @@ func getServerByAddress(address string, topo *topology.Topology) (description.Se
 	if err != nil {
 		return description.Server{}, err
 	}
+	defer selectedServerConnection.Close()
 	return selectedServerConnection.Description(), nil
 }
