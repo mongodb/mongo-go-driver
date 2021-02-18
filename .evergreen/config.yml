@@ -293,13 +293,15 @@ functions:
               fi
           fi
 
-          # Set credentials for AWS.
-          export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
-          export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
-          export AWS_DEFAULT_REGION="us-east-1"
-          ${PYTHON3_BINARY} -m venv ./venv
-          ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
-          . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
+          # Set temp credentials for AWS if python3 is available (mdb >= 3.2).
+          if [ ! -z ${PYTHON3_BINARY} ]; then
+            export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
+            export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
+            export AWS_DEFAULT_REGION="us-east-1"
+            ${PYTHON3_BINARY} -m venv ./venv
+            ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
+            . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
+          fi
 
           export GOFLAGS=-mod=vendor
           set +o xtrace
@@ -463,7 +465,7 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
-          # Set credentials for AWS.
+          # Set temp credentials for AWS.
           export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
           export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
           export AWS_DEFAULT_REGION="us-east-1"
