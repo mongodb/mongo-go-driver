@@ -24,6 +24,7 @@ var (
 	directories = []string{
 		"unified-test-format/valid-pass",
 		"versioned-api",
+		"crud/unified",
 	}
 
 	skippedTestDescriptions = map[string]struct{}{

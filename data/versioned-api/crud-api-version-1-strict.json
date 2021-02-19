@@ -596,7 +596,12 @@
     },
     {
       "description": "estimatedDocumentCount appends declared API version",
-      "skipReason": "DRIVERS-1437 count was removed from API version 1",
+      "skipReason": "DRIVERS-1561 collStats is not in API version 1",
+      "runOnRequirements": [
+        {
+          "minServerVersion": "4.9.0"
+        }
+      ],
       "operations": [
         {
           "name": "estimatedDocumentCount",
@@ -611,7 +616,22 @@
             {
               "commandStartedEvent": {
                 "command": {
-                  "count": "test",
+                  "aggregate": "test",
+                  "pipeline": [
+                    {
+                      "$collStats": {
+                        "count": {}
+                      }
+                    },
+                    {
+                      "$group": {
+                        "_id": 1,
+                        "n": {
+                          "$sum": "$count"
+                        }
+                      }
+                    }
+                  ],
                   "apiVersion": "1",
                   "apiStrict": true,
                   "apiDeprecationErrors": {

@@ -19,21 +19,22 @@ version requirements as noted by the ``runOn`` section, if provided.
 Subdirectories for Test Formats
 -------------------------------
 
-This document describes a current test format, which should be used for any new
-CRUD tests. Additionally, it refers to a "legacy" format, which dates back to
-the initial version of the CRUD specification. Until such time that all original
-tests have been ported to the current format, tests in each format will be
-grouped in their own subdirectory:
+This document describes two legacy formats for CRUD tests: legacy-v1, which dates back
+to the first version of the CRUD specification, and legacy-v2, which was an update to
+the initial format. New CRUD tests should be written in the `unified test format <../../../../unified-test-format/unified-test-format.rst>`_
+and placed under ``unified/``. Until such time that all original tests have been ported
+to the unified test format, tests in each format will be grouped in their own subdirectory:
 
-- ``v1/``: Legacy format tests
-- ``v2/``: Current format tests
+- ``v1/``: Legacy-v1 format tests
+- ``v2/``: Legacy-v2 format tests
+- ``unified/``: Tests using the `unified test format <../../../../unified-test-format/unified-test-format.rst>`_
 
 Since some drivers may not have a unified test runner capable of executing tests
-in both formats, segregating tests in this manner will make it easier for
+in all three formats, segregating tests in this manner will make it easier for
 drivers to sync and feed test files to different test runners.
 
-Test Format
-===========
+Legacy-v2 Test Format
+=====================
 
 *Note: this section pertains to test files in the "v2" directory.*
 
@@ -130,15 +131,15 @@ Each YAML file has the following keys:
       - ``data``: The data that should exist in the collection after the
         operation has been run, sorted by "_id".
 
-Legacy Test Format for Single Operations
-----------------------------------------
+Legacy-v1 Test Format for Single Operations
+-------------------------------------------
 
 *Note: this section pertains to test files in the "v1" directory.*
 
 The test format above supports both multiple operations and APM expectations,
 and is consistent with the formats used by other specifications. Previously, the
 CRUD spec tests used a simplified format that only allowed for executing a
-single operation. Notable differences from the current format are as follows:
+single operation. Notable differences from the legacy-v2 format are as follows:
 
 - Instead of a ``tests[i].operations`` array, a single operation was defined as
   a document in ``tests[i].operation``. That document consisted of only the
@@ -156,9 +157,9 @@ single operation. Notable differences from the current format are as follows:
   field is not present, it should be assumed that there is no corresponding bound
   on the required server version.
 
-The legacy format should not conflict with the newer, multi-operation format
+The legacy-v1 format should not conflict with the newer, multi-operation format
 used by other specs (e.g. Transactions). It is possible to create a unified test
-runner capable of executing both formats (as some drivers do).
+runner capable of executing both legacy formats (as some drivers do).
 
 Error Assertions for Bulk Write Operations
 ==========================================
@@ -172,7 +173,9 @@ messages into the bulk write exception's top-level message.
 Test Runner Implementation
 ==========================
 
-This section provides guidance for implementing a test runner.
+This section provides guidance for implementing a test runner for legacy-v1 and
+legacy-v2 tests. See the `unified test format spec <../../../../unified-test-format/unified-test-format.rst>`_ for how to run tests under
+``unified/``.
 
 Before running the tests:
 

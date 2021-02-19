@@ -209,7 +209,9 @@ tests:
                 key: x
                 <<: *expectedApiVersion
 
-  - description: "estimatedDocumentCount appends declared API version"
+  - description: "estimatedDocumentCount appends declared API version on less than 4.9.0"
+    runOnRequirements:
+      - maxServerVersion: "4.8.99"
     operations:
       - name: estimatedDocumentCount
         object: *collection
@@ -220,6 +222,24 @@ tests:
           - commandStartedEvent:
               command:
                 count: *collectionName
+                <<: *expectedApiVersion
+
+  - description: "estimatedDocumentCount appends declared API version on 4.9.0 or greater"
+    runOnRequirements:
+      - minServerVersion: "4.9.0"
+    operations:
+      - name: estimatedDocumentCount
+        object: *collection
+        arguments: {}
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              command:
+                aggregate: *collectionName
+                pipeline: &pipeline
+                  - $collStats: { count: {} }
+                  - $group: { _id: 1, n: { $sum: $count }}
                 <<: *expectedApiVersion
 
   - description: "find command with declared API version appends to the command, but getMore does not"
