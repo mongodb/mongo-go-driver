@@ -1354,9 +1354,10 @@ func TestCollection(t *testing.T) {
 				mt.Fatalf("expected BulkWrite error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
 			}
 		})
-		mt.Run("insert and delete with batches", func(mt *mtest.T) {
+		mt.RunOpts("insert and delete with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			// grouped together because delete requires the documents to be inserted
-			numDocs := 100050
+			maxBatchCount := int(mtest.MockDescription.MaxBatchCount)
+			numDocs := maxBatchCount + 50
 			var insertModels []mongo.WriteModel
 			var deleteModels []mongo.WriteModel
 			for i := 0; i < numDocs; i++ {
@@ -1368,6 +1369,21 @@ func TestCollection(t *testing.T) {
 				insertModels = append(insertModels, mongo.NewInsertOneModel().SetDocument(d))
 				deleteModels = append(deleteModels, mongo.NewDeleteOneModel().SetFilter(bson.D{}))
 			}
+
+			// Seed mock responses. Both insert and delete respones look like {ok: 1, n: <inserted/deleted count>}.
+			// This loop only creates one set of responses, but the sets for insert and delete should be equivalent,
+			// so we can duplicate the generated set before calling mt.AddMockResponses().
+			var responses []bson.D
+			for i := numDocs; i > 0; i -= maxBatchCount {
+				count := maxBatchCount
+				if i < maxBatchCount {
+					count = i
+				}
+				res := mtest.CreateSuccessResponse(bson.E{"n", count})
+				responses = append(responses, res)
+			}
+			mt.AddMockResponses(append(responses, responses...)...)
+
 			mt.ClearEvents()
 			res, err := mt.Coll.BulkWrite(mtest.Background, insertModels)
 			assert.Nil(mt, err, "BulkWrite error: %v", err)
