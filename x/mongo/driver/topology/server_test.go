@@ -576,7 +576,7 @@ func (p *processErrorTestConn) Stale() bool {
 func (p *processErrorTestConn) Description() description.Server {
 	return description.Server{
 		WireVersion: &description.VersionRange{
-			Max: supportedWireVersions.Max,
+			Max: SupportedWireVersions.Max,
 		},
 		TopologyVersion: p.tv,
 	}

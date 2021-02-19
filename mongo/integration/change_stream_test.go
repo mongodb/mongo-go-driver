@@ -236,6 +236,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			Code:    errorHostUnreachable,
 			Name:    "foo",
 			Message: "bar",
+			Labels:  []string{"ResumableChangeStreamError"},
 		})
 		killCursorsRes := mtest.CreateCommandErrorResponse(mtest.CommandError{
 			Code:    errorInterrupted,

@@ -100,7 +100,7 @@ func TestServerSelection(t *testing.T) {
 			"server at %s requires wire version %d, but this version of the Go driver only supports up to %d",
 			desc.Servers[0].Addr.String(),
 			desc.Servers[0].WireVersion.Min,
-			supportedWireVersions.Max,
+			SupportedWireVersions.Max,
 		)
 		desc.CompatibilityErr = want
 		atomic.StoreInt32(&topo.connectionstate, connected)
@@ -124,8 +124,8 @@ func TestServerSelection(t *testing.T) {
 				"at least %d (MongoDB %s)",
 			desc.Servers[0].Addr.String(),
 			desc.Servers[0].WireVersion.Max,
-			supportedWireVersions.Min,
-			minSupportedMongoDBVersion,
+			SupportedWireVersions.Min,
+			MinSupportedMongoDBVersion,
 		)
 		desc.CompatibilityErr = want
 		atomic.StoreInt32(&topo.connectionstate, connected)
