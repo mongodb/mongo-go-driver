@@ -387,7 +387,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
-			inTransaction := !(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+			inTransaction := op.Client != nil &&
+				!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
 			// If retry is enabled and the operation isn't in a transaction, add a RetryableWriteError label for
 			// retryable errors from pre-4.4 servers
 			if retryableErr && preRetryWriteLabelVersion && retryEnabled && !inTransaction {
@@ -457,7 +458,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			operationErr.Labels = tt.Labels
 		case Error:
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
-				op.Client.ClearPinnedServer()
+				if op.Client != nil {
+					op.Client.ClearPinnedServer()
+				}
 			}
 			if e := err.(Error); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
@@ -468,7 +471,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if op.Type == Write {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
 				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
-				inTransaction := !(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+				inTransaction := op.Client != nil &&
+					!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
 				// If retryWrites is enabled and the operation isn't in a transaction, add a RetryableWriteError label
 				// for network errors and retryable errors from pre-4.4 servers
 				if retryEnabled && !inTransaction &&
@@ -634,7 +638,9 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 	// everything.
 	op.updateClusterTimes(res)
 	op.updateOperationTime(res)
-	op.Client.UpdateRecoveryToken(bson.Raw(res))
+	if op.Client != nil {
+		op.Client.UpdateRecoveryToken(bson.Raw(res))
+	}
 
 	if err != nil {
 		return res, err
