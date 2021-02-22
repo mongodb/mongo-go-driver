@@ -260,101 +260,116 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Equal(t, "foobar", ctxValue, "expected value for ctxKey to be 'world', got %s", ctxValue)
 	})
 	t.Run("commitTransaction timeout allows abortTransaction", func(t *testing.T) {
-		coll := db.Collection("test")
-		// Explicitly create the collection on server because implicit collection creation is not allowed in
-		// transactions for server versions <= 4.2.
-		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
-		assert.Nil(t, err, "error creating collection on server: %v\n", err)
+		// Create a special CommandMonitor that only records information about abortTransaction events and also
+		// records the Context used in the CommandStartedEvent listener.
+		var abortStarted []*event.CommandStartedEvent
+		var abortSucceeded []*event.CommandSucceededEvent
+		var abortFailed []*event.CommandFailedEvent
+		var abortCtx context.Context
+		monitor := &event.CommandMonitor{
+			Started: func(ctx context.Context, evt *event.CommandStartedEvent) {
+				if evt.CommandName == "abortTransaction" {
+					abortStarted = append(abortStarted, evt)
+					if abortCtx == nil {
+						abortCtx = ctx
+					}
+				}
+			},
+			Succeeded: func(_ context.Context, evt *event.CommandSucceededEvent) {
+				if evt.CommandName == "abortTransaction" {
+					abortSucceeded = append(abortSucceeded, evt)
+				}
+			},
+			Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
+				if evt.CommandName == "abortTransaction" {
+					abortFailed = append(abortFailed, evt)
+				}
+			},
+		}
 
+		// Set up a new Client using the command monitor defined above get a handle to a collection. The collection
+		// needs to be explicitly created on the server because implicit collection creation is not allowed in
+		// transactions for server versions <= 4.2.
+		client := setupConvenientTransactions(t, options.Client().SetMonitor(monitor))
+		db := client.Database("foo")
+		coll := db.Collection("test")
+		defer coll.Drop(bgCtx)
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v", err)
+
+		// Start session.
 		session, err := client.StartSession()
+		defer session.EndSession(bgCtx)
 		assert.Nil(t, err, "StartSession error: %v", err)
 
-		defer func() {
-			session.EndSession(bgCtx)
-			_ = coll.Drop(bgCtx)
-		}()
-
-		err = WithSession(bgCtx, session, func(sessionContext SessionContext) error {
-			// Start transaction
+		_ = WithSession(bgCtx, session, func(sessionContext SessionContext) error {
+			// Start transaction.
 			err = session.StartTransaction()
 			assert.Nil(t, err, "StartTransaction error: %v", err)
 
-			// Insert a document
+			// Insert a document.
 			_, err := coll.InsertOne(sessionContext, bson.D{{"val", 17}})
 			assert.Nil(t, err, "InsertOne error: %v", err)
 
-			// Set a timeout of 0 for commitTransaction
+			// Set a timeout of 0 for commitTransaction.
 			commitTimeoutCtx, commitCancel := context.WithTimeout(sessionContext, 0)
 			defer commitCancel()
 
-			// commitTransaction results in context.DeadlineExceeded
+			// CommitTransaction results in context.DeadlineExceeded.
 			commitErr := session.CommitTransaction(commitTimeoutCtx)
 			assert.True(t, IsTimeout(commitErr),
 				"expected timeout error error; got %v", commitErr)
 
-			// assert session state is not Committed
+			// Assert session state is not Committed.
 			clientSession := session.(XSession).ClientSession()
 			assert.False(t, clientSession.TransactionCommitted(), "expected session state to not be Committed")
 
-			// abortTransaction without error
+			// AbortTransaction without error.
 			abortErr := session.AbortTransaction(context.Background())
 			assert.Nil(t, abortErr, "AbortTransaction error: %v", abortErr)
+
+			// Assert that AbortTransaction was started once and succeeded.
+			assert.Equal(t, 1, len(abortStarted), "expected 1 abortTransaction started event, got %d", len(abortStarted))
+			assert.Equal(t, 1, len(abortSucceeded), "expected 1 abortTransaction succeeded event, got %d",
+				len(abortSucceeded))
+			assert.Equal(t, 0, len(abortFailed), "expected 0 abortTransaction failed events, got %d", len(abortFailed))
 
 			return nil
 		})
 	})
 	t.Run("commitTransaction timeout does not retry", func(t *testing.T) {
-		// Set high withTransactionTimeout so infinite CommitLoop will result in test timeout
-		withTransactionTimeout = 10 * time.Minute
+		withTransactionTimeout = 2 * time.Second
 
 		coll := db.Collection("test")
 		// Explicitly create the collection on server because implicit collection creation is not allowed in
 		// transactions for server versions <= 4.2.
 		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
-		assert.Nil(t, err, "error creating collection on server: %v\n", err)
+		assert.Nil(t, err, "error creating collection on server: %v", err)
 		defer func() {
 			_ = coll.Drop(bgCtx)
 		}()
 
-		// Set failpoint
-		failpoint := bson.D{{"configureFailPoint", "failCommand"},
-			{"mode", "alwaysOn"},
-			{"data", bson.D{
-				{"failCommands", bson.A{"commitTransaction"}},
-				{"blockConnection", true},
-				{"blockTimeMS", 100},
-			}},
-		}
-		err = dbAdmin.RunCommand(bgCtx, failpoint).Err()
-		assert.Nil(t, err, "error setting failpoint: %v", err)
-		defer func() {
-			err = dbAdmin.RunCommand(bgCtx, bson.D{
-				{"configureFailPoint", "failCommand"},
-				{"mode", "off"},
-			}).Err()
-			assert.Nil(t, err, "error turning off failpoint: %v", err)
-		}()
-
-		// Start session
+		// Start session.
 		sess, err := client.StartSession()
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		// Set context timeout of 10ms
-		timeoutCtx, timeoutCancel := context.WithTimeout(bgCtx, 10*time.Millisecond)
-		defer timeoutCancel()
+		// Create context to manually cancel in callback.
+		cancelCtx, cancel := context.WithCancel(bgCtx)
+		defer cancel()
 
-		// Run transaction with 10ms timeout
-		_, err = sess.WithTransaction(timeoutCtx, func(sessCtx SessionContext) (interface{}, error) {
-			_, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
-			return nil, err
-		})
-		assert.NotNil(t, err, "expected WithTransaction error, got nil")
-		assert.True(t, IsTimeout(err), "expected timeout error, got %v", err)
-		cmdErr, ok := err.(CommandError)
-		assert.True(t, ok, "expected error type %T, got %T", CommandError{}, err)
-		assert.True(t, cmdErr.HasErrorLabel(driver.UnknownTransactionCommitResult),
-			"expected error with label %v, got %v", driver.UnknownTransactionCommitResult, cmdErr)
+		// Insert a document within a session and manually cancel context.
+		callback := func() {
+			_, _ = sess.WithTransaction(cancelCtx, func(sessCtx SessionContext) (interface{}, error) {
+				_, err := coll.InsertOne(sessCtx, bson.M{"x": 1})
+				assert.Nil(t, err, "InsertOne error: %v", err)
+				cancel()
+				return nil, nil
+			})
+		}
+
+		// Assert that transaction is canceled within 500ms and not 2 seconds.
+		assert.Soon(t, callback, 500*time.Millisecond)
 	})
 }
 
