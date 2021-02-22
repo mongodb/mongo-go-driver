@@ -260,19 +260,14 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Equal(t, "foobar", ctxValue, "expected value for ctxKey to be 'world', got %s", ctxValue)
 	})
 	t.Run("commitTransaction timeout allows abortTransaction", func(t *testing.T) {
-		// Create a special CommandMonitor that only records information about abortTransaction events and also
-		// records the Context used in the CommandStartedEvent listener.
+		// Create a special CommandMonitor that only records information about abortTransaction events.
 		var abortStarted []*event.CommandStartedEvent
 		var abortSucceeded []*event.CommandSucceededEvent
 		var abortFailed []*event.CommandFailedEvent
-		var abortCtx context.Context
 		monitor := &event.CommandMonitor{
 			Started: func(ctx context.Context, evt *event.CommandStartedEvent) {
 				if evt.CommandName == "abortTransaction" {
 					abortStarted = append(abortStarted, evt)
-					if abortCtx == nil {
-						abortCtx = ctx
-					}
 				}
 			},
 			Succeeded: func(_ context.Context, evt *event.CommandSucceededEvent) {
@@ -353,6 +348,18 @@ func TestConvenientTransactions(t *testing.T) {
 		sess, err := client.StartSession()
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
+
+		// Defer running killAllSessions to manually close open transaction.
+		defer func() {
+			err := dbAdmin.RunCommand(bgCtx, bson.D{
+				{"killAllSessions", bson.A{}},
+			}).Err()
+			if err != nil {
+				if ce, ok := err.(CommandError); !ok || ce.Code != errorInterrupted {
+					t.Fatalf("killAllSessions error: %v", err)
+				}
+			}
+		}()
 
 		// Create context to manually cancel in callback.
 		cancelCtx, cancel := context.WithCancel(bgCtx)
