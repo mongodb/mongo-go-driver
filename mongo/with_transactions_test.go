@@ -288,7 +288,10 @@ func TestConvenientTransactions(t *testing.T) {
 		client := setupConvenientTransactions(t, options.Client().SetMonitor(monitor))
 		db := client.Database("foo")
 		coll := db.Collection("test")
-		defer coll.Drop(bgCtx)
+		defer func() {
+			_ = coll.Drop(bgCtx)
+		}()
+
 		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
 		assert.Nil(t, err, "error creating collection on server: %v", err)
 
