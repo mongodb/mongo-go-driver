@@ -309,6 +309,8 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 	}
 
 	err = op.Execute(ctx)
+	// Return error without updating transaction state if it is a timeout, as the transaction has not
+	// actually been committed.
 	if IsTimeout(err) {
 		return replaceErrors(err)
 	}
