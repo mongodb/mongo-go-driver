@@ -163,7 +163,7 @@ To test a **replica set** or **sharded cluster**, set `MONGODB_URI="<connection-
 For example, for a local replica set named `rs1` comprised of three nodes on ports 27017, 27018, and 27019:
 
 ```
-MONGODB_URI="mongodb://localhost:27017,localhost:27018,localhost:27018/?replicaSet=rs1" make
+MONGODB_URI="mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=rs1" make
 ```
 
 ### Testing Auth and TLS
