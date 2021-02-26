@@ -219,7 +219,7 @@ func TestConnection(t *testing.T) {
 					for _, tc := range testCases {
 						t.Run(tc.name, func(t *testing.T) {
 							var sentCfg *tls.Config
-							var testTLSConnectionSource tlsConnectionSourceFn = func(nc net.Conn, cfg *tls.Config) *tls.Conn {
+							var testTLSConnectionSource tlsConnectionSourceFn = func(nc net.Conn, cfg *tls.Config) tlsConn {
 								sentCfg = cfg
 								return tls.Client(nc, cfg)
 							}
@@ -251,6 +251,140 @@ func TestConnection(t *testing.T) {
 						})
 					}
 				})
+			})
+			t.Run("connectTimeout is applied correctly", func(t *testing.T) {
+				testCases := []struct {
+					name           string
+					contextTimeout time.Duration
+					connectTimeout time.Duration
+					maxConnectTime time.Duration
+				}{
+					// The timeout to dial a connection should be min(context timeout, connectTimeoutMS), so 1ms for
+					// both of the tests declared below. Both tests also specify a 10ms max connect time to provide
+					// a large buffer for lag and avoid test flakiness.
+
+					{"context timeout is lower", 1 * time.Millisecond, 100 * time.Millisecond, 10 * time.Millisecond},
+					{"connect timeout is lower", 100 * time.Millisecond, 1 * time.Millisecond, 10 * time.Millisecond},
+				}
+
+				for _, tc := range testCases {
+					t.Run("timeout applied to socket establishment: "+tc.name, func(t *testing.T) {
+						// Ensure the initial connection dial can be timed out and the connection propagates the error
+						// from the dialer in this case.
+
+						connOpts := []ConnectionOption{
+							WithDialer(func(Dialer) Dialer {
+								return DialerFunc(func(ctx context.Context, _, _ string) (net.Conn, error) {
+									<-ctx.Done()
+									return nil, ctx.Err()
+								})
+							}),
+							WithConnectTimeout(func(time.Duration) time.Duration {
+								return tc.connectTimeout
+							}),
+						}
+						conn, err := newConnection("", connOpts...)
+						assert.Nil(t, err, "newConnection error: %v", err)
+
+						ctx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
+						defer cancel()
+						var connectErr error
+						callback := func() {
+							conn.connect(ctx)
+							connectErr = conn.wait()
+						}
+						assert.Soon(t, callback, tc.maxConnectTime)
+
+						ce, ok := connectErr.(ConnectionError)
+						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
+						assert.Equal(t, context.DeadlineExceeded, ce.Unwrap(), "expected wrapped error to be %v, got %v",
+							context.DeadlineExceeded, ce.Unwrap())
+					})
+					t.Run("timeout applied to TLS handshake: "+tc.name, func(t *testing.T) {
+						// Ensure the TLS handshake can be timed out and the connection propagates the error from the
+						// tlsConn in this case.
+
+						var hangingTLSConnectionSource tlsConnectionSourceFn = func(nc net.Conn, cfg *tls.Config) tlsConn {
+							tlsConn := tls.Client(nc, cfg)
+							return newHangingTLSConn(tlsConn, tc.maxConnectTime)
+						}
+
+						connOpts := []ConnectionOption{
+							WithConnectTimeout(func(time.Duration) time.Duration {
+								return tc.connectTimeout
+							}),
+							WithDialer(func(Dialer) Dialer {
+								return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+									return &net.TCPConn{}, nil
+								})
+							}),
+							WithTLSConfig(func(*tls.Config) *tls.Config {
+								return &tls.Config{}
+							}),
+							withTLSConnectionSource(func(tlsConnectionSource) tlsConnectionSource {
+								return hangingTLSConnectionSource
+							}),
+						}
+						conn, err := newConnection("", connOpts...)
+						assert.Nil(t, err, "newConnection error: %v", err)
+
+						ctx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
+						defer cancel()
+						var connectErr error
+						callback := func() {
+							conn.connect(ctx)
+							connectErr = conn.wait()
+						}
+						assert.Soon(t, callback, tc.maxConnectTime)
+
+						ce, ok := connectErr.(ConnectionError)
+						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
+						assert.Equal(t, context.DeadlineExceeded, ce.Unwrap(), "expected wrapped error to be %v, got %v",
+							context.DeadlineExceeded, ce.Unwrap())
+					})
+					t.Run("timeout is not applied to handshaker: "+tc.name, func(t *testing.T) {
+						// Ensure that no additional timeout is applied to the handshake after the connection has been
+						// established.
+
+						var getInfoCtx, finishCtx context.Context
+						handshaker := &testHandshaker{
+							getHandshakeInformation: func(ctx context.Context, _ address.Address, _ driver.Connection) (driver.HandshakeInformation, error) {
+								getInfoCtx = ctx
+								return driver.HandshakeInformation{}, nil
+							},
+							finishHandshake: func(ctx context.Context, _ driver.Connection) error {
+								finishCtx = ctx
+								return nil
+							},
+						}
+
+						connOpts := []ConnectionOption{
+							WithDialer(func(Dialer) Dialer {
+								return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+									return &net.TCPConn{}, nil
+								})
+							}),
+							WithHandshaker(func(Handshaker) Handshaker {
+								return handshaker
+							}),
+						}
+						conn, err := newConnection("", connOpts...)
+						assert.Nil(t, err, "newConnection error: %v", err)
+
+						bgCtx := context.Background()
+						conn.connect(bgCtx)
+						err = conn.wait()
+						assert.Nil(t, err, "connect error: %v", err)
+
+						assertNoContextTimeout := func(t *testing.T, ctx context.Context) {
+							t.Helper()
+							dl, ok := ctx.Deadline()
+							assert.False(t, ok, "expected context to have no deadline, but got deadline %v", dl)
+						}
+						assertNoContextTimeout(t, getInfoCtx)
+						assertNoContextTimeout(t, finishCtx)
+					})
+				}
 			})
 		})
 		t.Run("writeWireMessage", func(t *testing.T) {
@@ -992,4 +1126,25 @@ func (t *testCancellationListener) assertMethodsCalled(testingT *testing.T, numL
 	assert.Equal(testingT, numListen, t.numListen, "expected Listen to be called %d times, got %d", numListen, t.numListen)
 	assert.Equal(testingT, numStopListening, t.numStopListening, "expected StopListening to be called %d times, got %d",
 		numListen, t.numListen)
+}
+
+// hangingTLSConn is an implementation of tlsConn that wraps the tls.Conn type and overrides the Handshake function to
+// sleep for a fixed amount of time.
+type hangingTLSConn struct {
+	*tls.Conn
+	sleepTime time.Duration
+}
+
+var _ tlsConn = (*hangingTLSConn)(nil)
+
+func newHangingTLSConn(conn *tls.Conn, sleepTime time.Duration) *hangingTLSConn {
+	return &hangingTLSConn{
+		Conn:      conn,
+		sleepTime: sleepTime,
+	}
+}
+
+func (h *hangingTLSConn) Handshake() error {
+	time.Sleep(h.sleepTime)
+	return h.Conn.Handshake()
 }
