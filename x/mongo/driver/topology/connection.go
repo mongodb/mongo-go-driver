@@ -121,15 +121,21 @@ func (c *connection) connect(ctx context.Context) {
 	// to the full handshake. The cancellation allows consumers to bail out early when dialing a connection if it's no
 	// longer required. This is done in lock because it accesses the shared cancelConnectContext field.
 	//
-	// dialCtx is derived from handshakeCtx so the cancellation still applies but with an added timeout to ensure the
-	// connectTimeoutMS option is applied to socket establishment and the TLS handshake as a whole. This is created
-	// outside of the connectContextMutex lock to avoid holding the lock longer than necessary.
+	// dialCtx is equal to handshakeCtx if connectTimeoutMS=0. Otherwise, it is derived from handshakeCtx so the
+	// cancellation still applies but with an added timeout to ensure the connectTimeoutMS option is applied to socket
+	// establishment and the TLS handshake as a whole. This is created outside of the connectContextMutex lock to avoid
+	// holding the lock longer than necessary.
 	c.connectContextMutex.Lock()
 	var handshakeCtx context.Context
 	handshakeCtx, c.cancelConnectContext = context.WithCancel(ctx)
 	c.connectContextMutex.Unlock()
-	dialCtx, dialCancel := context.WithTimeout(handshakeCtx, c.config.connectTimeout)
-	defer dialCancel()
+
+	dialCtx := handshakeCtx
+	var dialCancel context.CancelFunc
+	if c.config.connectTimeout != 0 {
+		dialCtx, dialCancel = context.WithTimeout(handshakeCtx, c.config.connectTimeout)
+		defer dialCancel()
+	}
 
 	defer func() {
 		var cancelFn context.CancelFunc
