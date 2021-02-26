@@ -458,9 +458,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			operationErr.Labels = tt.Labels
 		case Error:
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
-				if op.Client != nil {
-					op.Client.ClearPinnedServer()
-				}
+				op.Client.ClearPinnedServer()
 			}
 			if e := err.(Error); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
@@ -638,9 +636,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 	// everything.
 	op.updateClusterTimes(res)
 	op.updateOperationTime(res)
-	if op.Client != nil {
-		op.Client.UpdateRecoveryToken(bson.Raw(res))
-	}
+	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
 	if err != nil {
 		return res, err
