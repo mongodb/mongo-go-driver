@@ -133,7 +133,7 @@ func New(opts ...Option) (*Topology, error) {
 	}
 
 	if t.cfg.uri != "" {
-		t.pollingRequired = strings.HasPrefix(t.cfg.uri, "mongodb+srv://")
+		t.pollingRequired = strings.HasPrefix(t.cfg.uri, "mongodb+srv://") && !t.cfg.loadBalanced
 	}
 
 	t.publishTopologyOpeningEvent()

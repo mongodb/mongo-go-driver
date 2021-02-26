@@ -53,6 +53,7 @@ type connectionConfig struct {
 	disableOCSPEndpointCheck bool
 	errorHandlingCallback    func(error, uint64)
 	tlsConnectionSource      tlsConnectionSource
+	loadBalanced             bool
 }
 
 func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
@@ -205,6 +206,14 @@ func WithOCSPCache(fn func(ocsp.Cache) ocsp.Cache) ConnectionOption {
 func WithDisableOCSPEndpointCheck(fn func(bool) bool) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.disableOCSPEndpointCheck = fn(c.disableOCSPEndpointCheck)
+		return nil
+	}
+}
+
+// WithConnectionLoadBalanced specifies whether or not the connection is to a server behind a load balancer.
+func WithConnectionLoadBalanced(fn func(bool) bool) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.loadBalanced = fn(c.loadBalanced)
 		return nil
 	}
 }
