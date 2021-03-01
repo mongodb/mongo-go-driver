@@ -359,6 +359,9 @@ func TestConnection(t *testing.T) {
 						}
 
 						connOpts := []ConnectionOption{
+							WithConnectTimeout(func(time.Duration) time.Duration {
+								return tc.connectTimeout
+							}),
 							WithDialer(func(Dialer) Dialer {
 								return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
 									return &net.TCPConn{}, nil
