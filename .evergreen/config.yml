@@ -533,6 +533,7 @@ functions:
         script: |
           ${PREPARE_SHELL}
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          . ./activate_venv.sh
           mongo aws_e2e_regular_aws.js
     - command: shell.exec
       type: test
@@ -561,15 +562,8 @@ functions:
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
-          # The aws_e2e_assume_role script requires python3 with boto3.
-          virtualenv -p ${PYTHON3} mongovenv
-          if [ "Windows_NT" = "$OS" ]; then
-            . mongovenv/Scripts/activate
-          else
-            . mongovenv/bin/activate
-          fi
-          pip install boto3
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          . ./activate_venv.sh
           mongo aws_e2e_assume_role.js
     - command: shell.exec
       type: test
@@ -604,17 +598,12 @@ functions:
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
-          if [ "${SKIP_EC2_AUTH_TEST}" == "true" ]; then
+          if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
             echo "This platform does not support the EC2 auth test, skipping..."
             exit 0
           fi
-          # The mongovenv was created earlier in run-aws-auth-test-with-assume-role-credentials.
-          if [ "Windows_NT" = "$OS" ]; then
-            . mongovenv/Scripts/activate
-          else
-            . mongovenv/bin/activate
-          fi
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          . ./activate_venv.sh
           mongo aws_e2e_ec2.js
     - command: shell.exec
       type: test
@@ -622,7 +611,7 @@ functions:
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
-          if [ "${SKIP_EC2_AUTH_TEST}" == "true" ]; then
+          if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
             exit 0
           fi
           ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
@@ -676,7 +665,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          if [ "${SKIP_ECS_AUTH_TEST}" == "true" ]; then
+          if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
             echo "This platform does not support the ECS auth test, skipping..."
             exit 0
           fi
@@ -687,7 +676,7 @@ functions:
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
-          if [ "${SKIP_ECS_AUTH_TEST}" == "true" ]; then
+          if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
             exit 0
           fi
           AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
@@ -698,6 +687,7 @@ functions:
           cp ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-ecs-test.sh $ECS_SRC_DIR/.evergreen
           tar -czf $ECS_SRC_DIR/src.tgz -C $PROJECT_DIRECTORY .
           cd $AUTH_AWS_DIR
+          . ./activate_venv.sh
           cat <<EOF > setup.js
             const mongo_binaries = "$MONGODB_BINARIES";
             const project_dir = "$ECS_SRC_DIR";
