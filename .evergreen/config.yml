@@ -293,7 +293,10 @@ functions:
               fi
           fi
 
-          # Set temp credentials for AWS if python3 is available (mdb >= 3.2).
+          # Set temp credentials for AWS if python3 is available. Using python3-venv in
+          # Ubuntu sometimes requires the use of apt-get, which we wish to avoid. We do
+          # not set a python3 binary when this is the case, and setting AWS temp credentials
+          # is unneccesary.
           if [ ! -z ${PYTHON3_BINARY} ]; then
             export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
             export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"

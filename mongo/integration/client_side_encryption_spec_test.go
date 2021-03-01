@@ -20,6 +20,10 @@ const (
 func verifyClientSideEncryptionVarsSet(t *testing.T) {
 	t.Helper()
 
+	// Existence of temporary AWS credentials (awsTempAccessKeyID, awsTempSessionToken and
+	// awsTempSessionToken) is verified when the variables are used in json_helpers_test
+	// because temporary AWS credentials are not always set.
+
 	if awsAccessKeyID == "" {
 		t.Fatal("AWS access key ID not set")
 	}

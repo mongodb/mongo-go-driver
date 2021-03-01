@@ -188,6 +188,15 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 			}
 			kmsMap["local"] = localMap
 		case "awsTemporary":
+			if awsTempAccessKeyID == "" {
+				t.Fatal("AWS temp access key ID not set")
+			}
+			if awsTempSecretAccessKey == "" {
+				t.Fatal("AWS temp secret access key not set")
+			}
+			if awsTempSessionToken == "" {
+				t.Fatal("AWS temp session token not set")
+			}
 			awsMap := map[string]interface{}{
 				"accessKeyId":     awsTempAccessKeyID,
 				"secretAccessKey": awsTempSecretAccessKey,
@@ -195,6 +204,12 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 			}
 			kmsMap["aws"] = awsMap
 		case "awsTemporaryNoSessionToken":
+			if awsTempAccessKeyID == "" {
+				t.Fatal("AWS temp access key ID not set")
+			}
+			if awsTempSecretAccessKey == "" {
+				t.Fatal("AWS temp secret access key not set")
+			}
 			awsMap := map[string]interface{}{
 				"accessKeyId":     awsTempAccessKeyID,
 				"secretAccessKey": awsTempSecretAccessKey,
