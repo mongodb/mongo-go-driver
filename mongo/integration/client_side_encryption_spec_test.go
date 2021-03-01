@@ -26,15 +26,6 @@ func verifyClientSideEncryptionVarsSet(t *testing.T) {
 	if awsSecretAccessKey == "" {
 		t.Fatal("AWS secret access key not set")
 	}
-	if awsTempAccessKeyID == "" {
-		t.Fatal("AWS temp access key ID not set")
-	}
-	if awsTempSecretAccessKey == "" {
-		t.Fatal("AWS temp secret access key not set")
-	}
-	if awsTempSessionToken == "" {
-		t.Fatal("AWS temp session token not set")
-	}
 	if azureTenantID == "" {
 		t.Fatal("azure tenant ID not set")
 	}
