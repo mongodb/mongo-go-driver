@@ -387,7 +387,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
-			inTransaction := !(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+			inTransaction := op.Client != nil &&
+				!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
 			// If retry is enabled and the operation isn't in a transaction, add a RetryableWriteError label for
 			// retryable errors from pre-4.4 servers
 			if retryableErr && preRetryWriteLabelVersion && retryEnabled && !inTransaction {
@@ -468,7 +469,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if op.Type == Write {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
 				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
-				inTransaction := !(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+				inTransaction := op.Client != nil &&
+					!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
 				// If retryWrites is enabled and the operation isn't in a transaction, add a RetryableWriteError label
 				// for network errors and retryable errors from pre-4.4 servers
 				if retryEnabled && !inTransaction &&
