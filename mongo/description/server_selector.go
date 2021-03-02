@@ -72,6 +72,10 @@ func (ls *latencySelector) SelectServer(t Topology, candidates []Server) ([]Serv
 	if ls.latency < 0 {
 		return candidates, nil
 	}
+	if t.Kind == LoadBalanced {
+		// In LoadBalanced mode, there should only be one server in the topology and it must be selected.
+		return candidates, nil
+	}
 
 	switch len(candidates) {
 	case 0, 1:
@@ -109,7 +113,7 @@ func (ls *latencySelector) SelectServer(t Topology, candidates []Server) ([]Serv
 func WriteSelector() ServerSelector {
 	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
 		switch t.Kind {
-		case Single:
+		case Single, LoadBalanced:
 			return candidates, nil
 		default:
 			result := []Server{}
@@ -127,6 +131,13 @@ func WriteSelector() ServerSelector {
 // ReadPrefSelector selects servers based on the provided read preference.
 func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
+		if t.Kind == LoadBalanced {
+			// In LoadBalanced mode, there should only be one server in the topology and it must be selected. We check
+			// this before checking MaxStaleness support becuase there's no monitoring in this mode, so the candidate
+			// server wouldn't have a wire version set, which would result in an error.
+			return candidates, nil
+		}
+
 		if _, set := rp.MaxStaleness(); set {
 			for _, s := range candidates {
 				if s.Kind != Unknown {

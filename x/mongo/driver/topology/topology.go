@@ -169,23 +169,56 @@ func (t *Topology) Connect() error {
 		t.fsm.Servers = append(t.fsm.Servers, description.NewDefaultServer(addr))
 	}
 
-	// store new description
-	newDesc := description.Topology{
-		Kind:                  t.fsm.Kind,
-		Servers:               t.fsm.Servers,
-		SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
-	}
-	t.desc.Store(newDesc)
-	t.publishTopologyDescriptionChangedEvent(description.Topology{}, t.fsm.Topology)
-	for _, a := range t.cfg.seedList {
-		addr := address.Address(a).Canonicalize()
-		err = t.addServer(addr)
-		if err != nil {
+	switch {
+	case t.cfg.loadBalanced:
+		// In LoadBalanced mode, we mock a series of events: TopologyDescriptionChanged from Unknown to LoadBalanced,
+		// ServerDescriptionChanged from Unknown to LoadBalancer, and then TopologyDescriptionChanged to reflect the
+		// previous ServerDescriptionChanged event. We publish all of these events here because we don't start server
+		// monitoring routines in this mode, so we have to mock state changes.
+
+		// Transition from Unknown with no servers to LoadBalanced with a single Unknown server.
+		t.fsm.Kind = description.LoadBalanced
+		t.publishTopologyDescriptionChangedEvent(description.Topology{}, t.fsm.Topology)
+
+		addr := address.Address(t.cfg.seedList[0]).Canonicalize()
+		if err := t.addServer(addr); err != nil {
+			t.serversLock.Unlock()
 			return err
 		}
-	}
-	t.serversLock.Unlock()
 
+		// Transition the server from Unknown to LoadBalancer.
+		newServerDesc := t.servers[addr].Description()
+		t.publishServerDescriptionChangedEvent(t.fsm.Servers[0], newServerDesc)
+
+		// Transition from LoadBalanced with an Unknown server to LoadBalanced with a LoadBalancer.
+		oldDesc := t.fsm.Topology
+		t.fsm.Servers = []description.Server{newServerDesc}
+		t.desc.Store(t.fsm.Topology)
+		t.publishTopologyDescriptionChangedEvent(oldDesc, t.fsm.Topology)
+	default:
+		// In non-LB mode, we only publish an initial TopologyDescriptionChanged event from Unknown with no servers to
+		// the current state (e.g. Unknown with one or more servers if we're discovering or Single with one server if
+		// we're connecting directly). Other events are published when state changes occur due to responses in the
+		// server monitoring goroutines.
+
+		newDesc := description.Topology{
+			Kind:                  t.fsm.Kind,
+			Servers:               t.fsm.Servers,
+			SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
+		}
+		t.desc.Store(newDesc)
+		t.publishTopologyDescriptionChangedEvent(description.Topology{}, t.fsm.Topology)
+		for _, a := range t.cfg.seedList {
+			addr := address.Address(a).Canonicalize()
+			err = t.addServer(addr)
+			if err != nil {
+				t.serversLock.Unlock()
+				return err
+			}
+		}
+	}
+
+	t.serversLock.Unlock()
 	if t.pollingRequired {
 		go t.pollSRVRecords()
 		t.pollingwg.Add(1)
@@ -479,6 +512,13 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 
 	if desc.CompatibilityErr != nil {
 		return nil, desc.CompatibilityErr
+	}
+
+	// If the topology kind is LoadBalanced, the LB is the only server and it is always considered selectable. The
+	// selectors exported by the driver should already return the LB as a candidate, so this but this check ensures that
+	// the LB is always selectable even if a user of the low-level driver provides a custom selector.
+	if desc.Kind == description.LoadBalanced {
+		return desc.Servers, nil
 	}
 
 	var allowed []description.Server

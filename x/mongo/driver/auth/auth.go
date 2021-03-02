@@ -60,6 +60,7 @@ type HandshakeOptions struct {
 	PerformAuthentication func(description.Server) bool
 	ClusterClock          *session.ClusterClock
 	ServerAPI             *driver.ServerAPIOptions
+	LoadBalanced          bool
 }
 
 type authHandshaker struct {
@@ -84,7 +85,8 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 		Compressors(ah.options.Compressors).
 		SASLSupportedMechs(ah.options.DBUser).
 		ClusterClock(ah.options.ClusterClock).
-		ServerAPI(ah.options.ServerAPI)
+		ServerAPI(ah.options.ServerAPI).
+		LoadBalanced(ah.options.LoadBalanced)
 
 	if ah.options.Authenticator != nil {
 		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {

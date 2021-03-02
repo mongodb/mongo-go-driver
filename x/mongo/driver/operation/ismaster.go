@@ -28,6 +28,7 @@ type IsMaster struct {
 	topologyVersion    *description.TopologyVersion
 	maxAwaitTimeMS     *int64
 	serverAPI          *driver.ServerAPIOptions
+	loadBalanced       bool
 
 	res bsoncore.Document
 }
@@ -93,6 +94,12 @@ func (im *IsMaster) MaxAwaitTimeMS(awaitTime int64) *IsMaster {
 // ServerAPI sets the server API version for this operation.
 func (im *IsMaster) ServerAPI(serverAPI *driver.ServerAPIOptions) *IsMaster {
 	im.serverAPI = serverAPI
+	return im
+}
+
+// LoadBalanced specifies whether or not this operation is being sent over a connection to a load balanced cluster.
+func (im *IsMaster) LoadBalanced(lb bool) *IsMaster {
+	im.loadBalanced = lb
 	return im
 }
 
@@ -200,6 +207,11 @@ func (im *IsMaster) command(dst []byte, _ description.SelectedServer) ([]byte, e
 	}
 	if im.maxAwaitTimeMS != nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxAwaitTimeMS", *im.maxAwaitTimeMS)
+	}
+	if im.loadBalanced {
+		// The loadBalanced parameter should only be added if it's true. We should never explicitly send
+		// loadBalanced=false per the load balancing spec.
+		dst = bsoncore.AppendBooleanElement(dst, "loadBalanced", true)
 	}
 
 	return dst, nil
