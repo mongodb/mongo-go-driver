@@ -63,7 +63,7 @@ func TestIsValidObjectID(t *testing.T) {
 
 	for _, testcase := range testCases {
 		got := IsValidObjectID(testcase.givenID)
-		require.Equal(t, testcase.expected, got)
+		assert.Equal(t, testcase.expected, got, "expected hex string to be valid ObjectID: %v, got %v", testcase.expected, got)
 	}
 }
 

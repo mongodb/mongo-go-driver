@@ -88,14 +88,10 @@ func ObjectIDFromHex(s string) (ObjectID, error) {
 	return oid, nil
 }
 
-// IsValidObjectID judges given string format is valid or invalid for ObjectID.
+// IsValidObjectID returns true if the provided hex string represents a valid ObjectID and false if not.
 func IsValidObjectID(s string) bool {
 	_, err := ObjectIDFromHex(s)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // MarshalJSON returns the ObjectID as a string
