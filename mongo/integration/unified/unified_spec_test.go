@@ -25,6 +25,7 @@ var (
 		"unified-test-format/valid-pass",
 		"versioned-api",
 		"crud/unified",
+		"change-streams/unified",
 	}
 
 	skippedTestDescriptions = map[string]struct{}{
