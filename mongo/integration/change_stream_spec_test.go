@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	changeStreamsTestsDir = "../../data/change-streams"
+	changeStreamsTestsDir = "../../data/change-streams/legacy"
 )
 
 type changeStreamTestFile struct {
