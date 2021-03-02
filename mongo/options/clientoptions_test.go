@@ -576,14 +576,13 @@ func TestClientOptions(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				// The loadBalanced option should not be validated if it is false or unset.
-				tc.opts.SetLoadBalanced(false)
+				// The loadBalanced option should not be validated if it is unset or false.
 				err := tc.opts.Validate()
-				assert.Nil(t, err, "Validate error when loadBalanced=false: %v", err)
-
-				tc.opts.LoadBalanced = nil
-				err = tc.opts.Validate()
 				assert.Nil(t, err, "Validate error when loadBalanced is unset: %v", err)
+
+				tc.opts.SetLoadBalanced(false)
+				err = tc.opts.Validate()
+				assert.Nil(t, err, "Validate error when loadBalanced=false: %v", err)
 
 				tc.opts.SetLoadBalanced(true)
 				err = tc.opts.Validate()
