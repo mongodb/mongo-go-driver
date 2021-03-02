@@ -86,7 +86,7 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 	}{
 		{"loadBalanced=true", "loadBalanced=true", true},
 		{"loadBalanced=false", "loadBalanced=false", false},
-		{"loadBalanced", "", false},
+		{"loadBalanced unset", "", false},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
