@@ -36,8 +36,6 @@ type seedlistTest struct {
 }
 
 func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
-	t.Skip("skipping in continuous matrix testing project due to known failures on Ubuntu 18.04")
-
 	mtOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
