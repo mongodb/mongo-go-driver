@@ -126,7 +126,7 @@ functions:
             # If this was a patch build, doing a fresh clone would not actually test the patch
             cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
           else
-            git clone git://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+            git clone -b addKmsMockServer.1791 git@github.com:benjirewis/drivers-evergreen-tools.git $DRIVERS_TOOLS
           fi
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
@@ -807,6 +807,52 @@ functions:
           EOF
           cat setup.js
           mongo --nodb setup.js aws_e2e_ecs.js
+
+  start-kms-mock-server:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        background: true
+        script: |
+          ${PREPARE_SHELL}
+          cd ${DRIVERS_TOOLS}/.evergreen/csfle
+          cat <<EOF > kms_setup.json
+          {
+              "kms_ca_file": "${KMS_CA_FILE}",
+              "kms_cert_file": "${KMS_CERT_FILE}"
+          }
+          EOF
+          mongo --nodb mock_kms.js
+
+  run-kms-tls-test:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          export KMS_TLS_INVALID_CERT="${KMS_TLS_INVALID_CERT}"
+          export KMS_TLS_INVALID_HOSTNAME="${KMS_TLS_INVALID_HOSTNAME}"
+
+          export GOFLAGS=-mod=vendor
+          set +o xtrace
+          AUTH="${AUTH}" \
+          SSL="${SSL}" \
+          MONGODB_URI="${MONGODB_URI}" \
+          TOPOLOGY="${TOPOLOGY}" \
+          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
+          BUILD_TAGS="-tags cse" \
+          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
+          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
+          AZURE_TENANT_ID="${cse_azure_tenant_id}" \
+          AZURE_CLIENT_ID="${cse_azure_client_id}" \
+          AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
+          GCP_EMAIL="${cse_gcp_email}" \
+          GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
+          make evg-test-kms \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
 pre:
   - func: fetch-source
@@ -1625,6 +1671,46 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
 
+  - name: "test-kms-tls-invalid-cert"
+    tags: ["kms-tls"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-kms-mock-server
+        vars:
+          KMS_CA_FILE: "ca.pem"
+          KMS_CERT_FILE: "expired.pem"
+      - func: run-kms-tls-test
+        vars:
+          KMS_TLS_INVALID_CERT: "true"
+          KMS_TLS_INVALID_HOSTNAME: "false"
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+
+  - name: "test-kms-tls-invalid-hostname"
+    tags: ["kms-tls"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-kms-mock-server
+        vars:
+          KMS_CA_FILE: "ca.pem"
+          KMS_CERT_FILE: "wrong-host.pem"
+      - func: run-kms-tls-test
+        vars:
+          KMS_TLS_INVALID_CERT: "false"
+          KMS_TLS_INVALID_HOSTNAME: "true"
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -1852,3 +1938,9 @@ buildvariants:
     display_name: "API Version ${os-ssl-32}"
     tasks:
       - name: ".versioned-api"
+
+  - matrix_name: "kms-tls-test"
+    matrix_spec: { version: ["4.2", "4.4", "latest"], os-ssl-32: ["ubuntu1604-64-go-1-15"] }
+    display_name: "KMS TLS ${version} ${os-ssl-32}"
+    tasks:
+      - name: ".kms-tls"

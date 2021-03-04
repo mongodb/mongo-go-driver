@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -1032,6 +1033,50 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.Equal(mt, clientEncryptedEvents, tc.clientEncryptedCommandStartedExpected, "mismatched events for clientEncrypted. Expected %v, got %v", clientEncryptedEvents, tc.clientEncryptedCommandStartedExpected)
 				assert.Equal(mt, d.clientKeyVaultEvents, tc.clientKeyVaultCommandStartedExpected, "mismatched events for clientKeyVault. Expected %v, got %v", d.clientKeyVaultEvents, tc.clientKeyVaultCommandStartedExpected)
 				assert.Equal(mt, clientEncryptedTopologyOpening, tc.clientEncryptedTopologyOpeningExpected, "wrong number of TopologyOpening events. Expected %v, got %v", tc.clientEncryptedTopologyOpeningExpected, clientEncryptedTopologyOpening)
+			})
+		}
+	})
+
+	// These tests only run when a KMS mock server is running on localhost:8000.
+	mt.RunOpts("kms tls tests", noClientOpts, func(mt *mtest.T) {
+		testcases := []struct {
+			name             string
+			runOnEnvVariable string
+			errMessage       string
+		}{
+			{
+				"invalid certificate",
+				"KMS_TLS_INVALID_CERT",
+				"expired",
+			},
+			{
+				"invalid hostname",
+				"KMS_TLS_INVALID_HOSTNAME",
+				"SANs",
+			},
+		}
+
+		for _, tc := range testcases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				// Only run test if correct KMS mock server is running.
+				if os.Getenv(tc.runOnEnvVariable) == "true" {
+					ceo := options.ClientEncryption().
+						SetKmsProviders(fullKmsProvidersMap).
+						SetKeyVaultNamespace(kvNamespace)
+					cpt := setup(mt, nil, nil, ceo)
+
+					_, err := cpt.clientEnc.CreateDataKey(context.Background(), "aws", options.DataKey().SetMasterKey(
+						bson.D{
+							{"region", "us-east-1"},
+							{"key", "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0"},
+							{"endpoint", "mongodb://127.0.0.1:8000"},
+						},
+					))
+					assert.True(mt, strings.Contains(err.Error(), tc.errMessage),
+						"expected CreateDataKey error to contain %v, got %v", tc.errMessage, err.Error())
+				} else {
+					mt.Skipf("Skipping test as %v is set to %q, expected true", tc.runOnEnvVariable, os.Getenv(tc.runOnEnvVariable))
+				}
 			})
 		}
 	})
