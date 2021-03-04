@@ -1168,7 +1168,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: string("not-valid-%%%%://")},
 					bsonrwtest.ReadString,
-					errors.New("parse not-valid-%%%%://: first path segment in URL cannot contain colon"),
+					&url.Error{
+						Op:  "parse",
+						URL: "not-valid-%%%%://",
+						Err: errors.New("first path segment in URL cannot contain colon"),
+					},
 				},
 				{
 					"can set false",

@@ -40,7 +40,7 @@ func LoadRawData(raw interface{}) (f Float64Data) {
 		return s
 	case []bool:
 		for _, v := range t {
-			if v == true {
+			if v {
 				s = append(s, 1.0)
 			} else {
 				s = append(s, 0.0)
@@ -138,7 +138,7 @@ func LoadRawData(raw interface{}) (f Float64Data) {
 		return s
 	case map[int]bool:
 		for i := 0; i < len(t); i++ {
-			if t[i] == true {
+			if t[i] {
 				s = append(s, 1.0)
 			} else {
 				s = append(s, 0.0)
@@ -171,7 +171,7 @@ func LoadRawData(raw interface{}) (f Float64Data) {
 				f = append(f, fl)
 			}
 		case bool:
-			if t == true {
+			if t {
 				f = append(f, 1.0)
 			} else {
 				f = append(f, 0.0)

@@ -10,7 +10,7 @@ func MedianAbsoluteDeviation(input Float64Data) (mad float64, err error) {
 // MedianAbsoluteDeviationPopulation finds the median of the absolute deviations from the population median
 func MedianAbsoluteDeviationPopulation(input Float64Data) (mad float64, err error) {
 	if input.Len() == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	i := copyslice(input)
@@ -32,7 +32,7 @@ func StandardDeviation(input Float64Data) (sdev float64, err error) {
 func StandardDeviationPopulation(input Float64Data) (sdev float64, err error) {
 
 	if input.Len() == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	// Get the population variance
@@ -46,7 +46,7 @@ func StandardDeviationPopulation(input Float64Data) (sdev float64, err error) {
 func StandardDeviationSample(input Float64Data) (sdev float64, err error) {
 
 	if input.Len() == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	// Get the sample variance

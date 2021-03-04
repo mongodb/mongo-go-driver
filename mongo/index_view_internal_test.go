@@ -50,6 +50,25 @@ func getIndexableCollection(t *testing.T) (string, *Collection) {
 	return dbName, db.Collection(dbName)
 }
 
+// Helper utility added in scope of continuous matrix testing work to wrap
+// getServerVersion() and compareVersions().
+func getAndCompareVersion(t *testing.T, targetVersion string) int {
+	t.Helper()
+
+	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
+	require.NoError(t, err)
+	return compareVersions(t, serverVersion, targetVersion)
+}
+
+func assertIndexNSMatch(t *testing.T, expected, actual string) {
+	t.Helper()
+
+	// 4.4+ servers do not return an "ns" field in index specifications.
+	if getAndCompareVersion(t, "4.2") <= 0 {
+		require.Equal(t, expected, actual)
+	}
+}
+
 func TestIndexView_List(t *testing.T) {
 	t.Parallel()
 
@@ -71,7 +90,7 @@ func TestIndexView_List(t *testing.T) {
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNS, idx.NS)
+		assertIndexNSMatch(t, expectedNS, idx.NS)
 
 		if idx.Name == "_id_" {
 			require.Len(t, idx.Key, 1)
@@ -112,7 +131,7 @@ func TestIndexView_CreateOne(t *testing.T) {
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNS, idx.NS)
+		assertIndexNSMatch(t, expectedNS, idx.NS)
 
 		if idx.Name == indexName {
 			require.Len(t, idx.Key, 1)
@@ -155,7 +174,7 @@ func TestIndexView_CreateOneWithNameOption(t *testing.T) {
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNS, idx.NS)
+		assertIndexNSMatch(t, expectedNS, idx.NS)
 
 		if idx.Name == indexName {
 			require.Len(t, idx.Key, 1)
@@ -178,32 +197,37 @@ func TestIndexView_CreateOneWithAllOptions(t *testing.T) {
 	_, coll := getIndexableCollection(t)
 	indexView := coll.Indexes()
 
+	indexOpts := options.Index().
+		SetBackground(false).
+		SetExpireAfterSeconds(10).
+		SetName("a").
+		SetSparse(false).
+		SetUnique(false).
+		SetVersion(1).
+		SetDefaultLanguage("english").
+		SetLanguageOverride("english").
+		SetTextVersion(1).
+		SetWeights(bsonx.Doc{}).
+		SetSphereVersion(1).
+		SetBits(2).
+		SetMax(10).
+		SetMin(1).
+		SetPartialFilterExpression(bsonx.Doc{}).
+		SetStorageEngine(bsonx.Doc{
+			{"wiredTiger", bsonx.Document(bsonx.Doc{
+				{"configString", bsonx.String("block_compressor=zlib")},
+			})},
+		})
+	// 4.9+ servers reject bucket size because they do not support geoHaystack indexes.
+	if getAndCompareVersion(t, "4.9") < 0 {
+		indexOpts.SetBucketSize(1)
+	}
+
 	_, err := indexView.CreateOne(
 		context.Background(),
 		IndexModel{
-			Keys: bsonx.Doc{{"foo", bsonx.String("text")}},
-			Options: options.Index().
-				SetBackground(false).
-				SetExpireAfterSeconds(10).
-				SetName("a").
-				SetSparse(false).
-				SetUnique(false).
-				SetVersion(1).
-				SetDefaultLanguage("english").
-				SetLanguageOverride("english").
-				SetTextVersion(1).
-				SetWeights(bsonx.Doc{}).
-				SetSphereVersion(1).
-				SetBits(2).
-				SetMax(10).
-				SetMin(1).
-				SetBucketSize(1).
-				SetPartialFilterExpression(bsonx.Doc{}).
-				SetStorageEngine(bsonx.Doc{
-					{"wiredTiger", bsonx.Document(bsonx.Doc{
-						{"configString", bsonx.String("block_compressor=zlib")},
-					})},
-				}),
+			Keys:    bsonx.Doc{{"foo", bsonx.String("text")}},
+			Options: indexOpts,
 		},
 	)
 	require.NoError(t, err)
@@ -294,7 +318,7 @@ func TestIndexView_CreateMany(t *testing.T) {
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNS, idx.NS)
+		assertIndexNSMatch(t, expectedNS, idx.NS)
 
 		if idx.Name == fooName {
 			require.Len(t, idx.Key, 1)
@@ -358,7 +382,7 @@ func TestIndexView_DropOne(t *testing.T) {
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNS, idx.NS)
+		assertIndexNSMatch(t, expectedNS, idx.NS)
 		require.NotEqual(t, indexNames[1], idx.Name)
 	}
 	require.NoError(t, cursor.Err())
@@ -407,7 +431,7 @@ func TestIndexView_DropAll(t *testing.T) {
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNS, idx.NS)
+		assertIndexNSMatch(t, expectedNS, idx.NS)
 		require.NotEqual(t, indexNames[0], idx.Name)
 		require.NotEqual(t, indexNames[1], idx.Name)
 	}
@@ -460,7 +484,7 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNS, idx.NS)
+		assertIndexNSMatch(t, expectedNS, idx.NS)
 
 		if idx.Name == fooName {
 			require.Len(t, idx.Key, 1)
@@ -527,7 +551,7 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 		var idx index
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
-		require.Equal(t, expectedNS, idx.NS)
+		assertIndexNSMatch(t, expectedNS, idx.NS)
 		require.NotEqual(t, indexNames[0], idx.Name)
 		require.NotEqual(t, indexNames[1], idx.Name)
 	}

@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"reflect"
 	"testing"
 	"time"
@@ -185,7 +184,7 @@ func TestClient_X509Auth(t *testing.T) {
 		t.Skip()
 	}
 
-	const user = "C=US,ST=New York,L=New York City,O=MongoDB,OU=other,CN=external"
+	const user = "C=US,ST=New York,L=New York City,O=MDB,OU=Drivers,CN=client"
 
 	c := createTestClient(t)
 	db := c.Database("$external")
@@ -207,12 +206,11 @@ func TestClient_X509Auth(t *testing.T) {
 	).Err()
 	require.NoError(t, err)
 
-	basePath := path.Join("..", "data", "certificates")
 	baseConnString := testutil.ConnString(t)
 	cs := fmt.Sprintf(
 		"%s&sslClientCertificateKeyFile=%s&authMechanism=MONGODB-X509",
 		baseConnString.String(),
-		path.Join(basePath, "client.pem"),
+		os.Getenv("MONGO_GO_DRIVER_KEY_FILE"),
 	)
 
 	authClient, err := NewClient(options.Client().ApplyURI(cs))

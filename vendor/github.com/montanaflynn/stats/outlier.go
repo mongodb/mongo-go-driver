@@ -9,7 +9,7 @@ type Outliers struct {
 // QuartileOutliers finds the mild and extreme outliers
 func QuartileOutliers(input Float64Data) (Outliers, error) {
 	if input.Len() == 0 {
-		return Outliers{}, EmptyInput
+		return Outliers{}, EmptyInputErr
 	}
 
 	// Start by sorting a copy of the slice

@@ -6,14 +6,14 @@ import "math"
 func _variance(input Float64Data, sample int) (variance float64, err error) {
 
 	if input.Len() == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	// Sum the square of the mean subtracted from each number
 	m, _ := Mean(input)
 
 	for _, n := range input {
-		variance += (float64(n) - m) * (float64(n) - m)
+		variance += (n - m) * (n - m)
 	}
 
 	// When getting the mean of the squared differences
@@ -56,7 +56,7 @@ func Covariance(data1, data2 Float64Data) (float64, error) {
 	l2 := data2.Len()
 
 	if l1 == 0 || l2 == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	if l1 != l2 {
@@ -84,7 +84,7 @@ func CovariancePopulation(data1, data2 Float64Data) (float64, error) {
 	l2 := data2.Len()
 
 	if l1 == 0 || l2 == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	if l1 != l2 {

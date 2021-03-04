@@ -7,7 +7,7 @@ func Mode(input Float64Data) (mode []float64, err error) {
 	if l == 1 {
 		return input, nil
 	} else if l == 0 {
-		return nil, EmptyInput
+		return nil, EmptyInputErr
 	}
 
 	c := sortedCopyDif(input)
@@ -39,7 +39,7 @@ func Mode(input Float64Data) (mode []float64, err error) {
 
 	// Since length must be greater than 1,
 	// check for slices of distinct values
-	if maxCnt == 1 {
+	if maxCnt == 1 || len(mode)*maxCnt == l && maxCnt != l {
 		return Float64Data{}, nil
 	}
 

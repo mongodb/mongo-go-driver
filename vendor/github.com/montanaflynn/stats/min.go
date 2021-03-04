@@ -10,7 +10,7 @@ func Min(input Float64Data) (min float64, err error) {
 
 	// Return an error if there are no numbers
 	if l == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	// Get the first value as the starting point

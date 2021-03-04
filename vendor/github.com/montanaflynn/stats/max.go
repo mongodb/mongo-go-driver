@@ -1,13 +1,15 @@
 package stats
 
-import "math"
+import (
+	"math"
+)
 
 // Max finds the highest number in a slice
 func Max(input Float64Data) (max float64, err error) {
 
 	// Return an error if there are no numbers
 	if input.Len() == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	// Get the first value as the starting point

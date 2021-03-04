@@ -14,7 +14,7 @@ func Quartile(input Float64Data) (Quartiles, error) {
 
 	il := input.Len()
 	if il == 0 {
-		return Quartiles{}, EmptyInput
+		return Quartiles{}, EmptyInputErr
 	}
 
 	// Start by sorting a copy of the slice
@@ -44,7 +44,7 @@ func Quartile(input Float64Data) (Quartiles, error) {
 // InterQuartileRange finds the range between Q1 and Q3
 func InterQuartileRange(input Float64Data) (float64, error) {
 	if input.Len() == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 	qs, _ := Quartile(input)
 	iqr := qs.Q3 - qs.Q1
@@ -54,7 +54,7 @@ func InterQuartileRange(input Float64Data) (float64, error) {
 // Midhinge finds the average of the first and third quartiles
 func Midhinge(input Float64Data) (float64, error) {
 	if input.Len() == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 	qs, _ := Quartile(input)
 	mh := (qs.Q1 + qs.Q3) / 2
@@ -64,7 +64,7 @@ func Midhinge(input Float64Data) (float64, error) {
 // Trimean finds the average of the median and the midhinge
 func Trimean(input Float64Data) (float64, error) {
 	if input.Len() == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	c := sortedCopy(input)

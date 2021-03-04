@@ -118,21 +118,27 @@ type pair struct {
 	vstart, vend int
 }
 
-type byKey struct {
+type byKeyVal struct {
 	sorted bool
 	json   []byte
 	pairs  []pair
 }
 
-func (arr *byKey) Len() int {
+func (arr *byKeyVal) Len() int {
 	return len(arr.pairs)
 }
-func (arr *byKey) Less(i, j int) bool {
+func (arr *byKeyVal) Less(i, j int) bool {
 	key1 := arr.json[arr.pairs[i].kstart+1 : arr.pairs[i].kend-1]
 	key2 := arr.json[arr.pairs[j].kstart+1 : arr.pairs[j].kend-1]
-	return string(key1) < string(key2)
+	if string(key1) < string(key2) {
+		return true
+	}
+	if string(key1) > string(key2) {
+		return false
+	}
+	return arr.pairs[i].vstart < arr.pairs[j].vstart
 }
-func (arr *byKey) Swap(i, j int) {
+func (arr *byKeyVal) Swap(i, j int) {
 	arr.pairs[i], arr.pairs[j] = arr.pairs[j], arr.pairs[i]
 	arr.sorted = true
 }
@@ -174,7 +180,11 @@ func appendPrettyObject(buf, json []byte, i int, open, close byte, pretty bool, 
 				}
 				if n > 0 {
 					nl = len(buf)
-					buf = append(buf, '\n')
+					if buf[nl-1] == ' ' {
+						buf[nl-1] = '\n'
+					} else {
+						buf = append(buf, '\n')
+					}
 				}
 				if buf[len(buf)-1] != open {
 					buf = appendTabs(buf, prefix, indent, tabs)
@@ -186,14 +196,18 @@ func appendPrettyObject(buf, json []byte, i int, open, close byte, pretty bool, 
 		if open == '[' || json[i] == '"' {
 			if n > 0 {
 				buf = append(buf, ',')
-				if width != -1 {
+				if width != -1 && open == '[' {
 					buf = append(buf, ' ')
 				}
 			}
 			var p pair
 			if pretty {
 				nl = len(buf)
-				buf = append(buf, '\n')
+				if buf[nl-1] == ' ' {
+					buf[nl-1] = '\n'
+				} else {
+					buf = append(buf, '\n')
+				}
 				if open == '{' && sortkeys {
 					p.kstart = i
 					p.vstart = len(buf)
@@ -235,8 +249,8 @@ func sortPairs(json, buf []byte, pairs []pair) []byte {
 	}
 	vstart := pairs[0].vstart
 	vend := pairs[len(pairs)-1].vend
-	arr := byKey{false, json, pairs}
-	sort.Sort(&arr)
+	arr := byKeyVal{false, json, pairs}
+	sort.Stable(&arr)
 	if !arr.sorted {
 		return buf
 	}
@@ -305,6 +319,7 @@ func appendTabs(buf []byte, prefix, indent string, tabs int) []byte {
 type Style struct {
 	Key, String, Number [2]string
 	True, False, Null   [2]string
+	Escape              [2]string
 	Append              func(dst []byte, c byte) []byte
 }
 
@@ -318,21 +333,26 @@ func hexp(p byte) byte {
 }
 
 // TerminalStyle is for terminals
-var TerminalStyle = &Style{
-	Key:    [2]string{"\x1B[94m", "\x1B[0m"},
-	String: [2]string{"\x1B[92m", "\x1B[0m"},
-	Number: [2]string{"\x1B[93m", "\x1B[0m"},
-	True:   [2]string{"\x1B[96m", "\x1B[0m"},
-	False:  [2]string{"\x1B[96m", "\x1B[0m"},
-	Null:   [2]string{"\x1B[91m", "\x1B[0m"},
-	Append: func(dst []byte, c byte) []byte {
-		if c < ' ' && (c != '\r' && c != '\n' && c != '\t' && c != '\v') {
-			dst = append(dst, "\\u00"...)
-			dst = append(dst, hexp((c>>4)&0xF))
-			return append(dst, hexp((c)&0xF))
-		}
-		return append(dst, c)
-	},
+var TerminalStyle *Style
+
+func init() {
+	TerminalStyle = &Style{
+		Key:    [2]string{"\x1B[94m", "\x1B[0m"},
+		String: [2]string{"\x1B[92m", "\x1B[0m"},
+		Number: [2]string{"\x1B[93m", "\x1B[0m"},
+		True:   [2]string{"\x1B[96m", "\x1B[0m"},
+		False:  [2]string{"\x1B[96m", "\x1B[0m"},
+		Null:   [2]string{"\x1B[91m", "\x1B[0m"},
+		Escape: [2]string{"\x1B[35m", "\x1B[0m"},
+		Append: func(dst []byte, c byte) []byte {
+			if c < ' ' && (c != '\r' && c != '\n' && c != '\t' && c != '\v') {
+				dst = append(dst, "\\u00"...)
+				dst = append(dst, hexp((c>>4)&0xF))
+				return append(dst, hexp((c)&0xF))
+			}
+			return append(dst, c)
+		},
+	}
 }
 
 // Color will colorize the json. The style parma is used for customizing
@@ -363,8 +383,39 @@ func Color(src []byte, style *Style) []byte {
 				dst = append(dst, style.String[0]...)
 			}
 			dst = apnd(dst, '"')
+			esc := false
+			uesc := 0
 			for i = i + 1; i < len(src); i++ {
-				dst = apnd(dst, src[i])
+				if src[i] == '\\' {
+					if key {
+						dst = append(dst, style.Key[1]...)
+					} else {
+						dst = append(dst, style.String[1]...)
+					}
+					dst = append(dst, style.Escape[0]...)
+					dst = apnd(dst, src[i])
+					esc = true
+					if i+1 < len(src) && src[i+1] == 'u' {
+						uesc = 5
+					} else {
+						uesc = 1
+					}
+				} else if esc {
+					dst = apnd(dst, src[i])
+					if uesc == 1 {
+						esc = false
+						dst = append(dst, style.Escape[1]...)
+						if key {
+							dst = append(dst, style.Key[0]...)
+						} else {
+							dst = append(dst, style.String[0]...)
+						}
+					} else {
+						uesc--
+					}
+				} else {
+					dst = apnd(dst, src[i])
+				}
 				if src[i] == '"' {
 					j := i - 1
 					for ; ; j-- {
@@ -377,7 +428,9 @@ func Color(src []byte, style *Style) []byte {
 					}
 				}
 			}
-			if key {
+			if esc {
+				dst = append(dst, style.Escape[1]...)
+			} else if key {
 				dst = append(dst, style.Key[1]...)
 			} else {
 				dst = append(dst, style.String[1]...)

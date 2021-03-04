@@ -16,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
@@ -171,6 +171,18 @@ func comparePipelines(t *testing.T, expectedraw, actualraw bson.Raw) {
 			t.Fatalf("pipelines do not match")
 		}
 	}
+}
+
+// On some 4.0 driver tests running against more recent server versions, calls to ChangeStream.Next() loop indefinitely
+// because the server returns an empty batch of events for each getMore. This function inserts a document to the given
+// Collection to create an event for the stream to capture.
+func createEvent(t *testing.T, coll *Collection, stream *ChangeStream) {
+	t.Helper()
+
+	cloned, err := coll.Clone(options.Collection().SetWriteConcern(wcMajority))
+	testhelpers.RequireNil(t, err, "Clone error: %v", err)
+	_, err = cloned.InsertOne(ctx, bson.D{{"x", 1}})
+	testhelpers.RequireNil(t, err, "InsertOne error: %v", err)
 }
 
 func TestChangeStream(t *testing.T) {
@@ -500,6 +512,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		testhelpers.RequireNil(t, err, "error creating fail point: %s", result.err)
 
+		createEvent(t, coll, stream)
 		if !stream.Next(ctx) {
 			t.Fatal("stream Next() returned false, expected true")
 		}
@@ -516,12 +529,13 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			t.Skip("skipping for version < 4.0")
 		}
 
-		_, stream := createMonitoredStream(t, "IncludeTimeDB", "IncludeTimeColl", nil)
+		coll, stream := createMonitoredStream(t, "IncludeTimeDB", "IncludeTimeColl", nil)
 		defer closeCursor(stream)
 		cs := stream
 
 		// kill cursor to force a resumable error
 		killChangeStreamCursor(t, cs)
+		createEvent(t, coll, stream)
 		drainChannels()
 		stream.Next(ctx)
 
