@@ -143,7 +143,7 @@ func TestTransformAndEnsureID(t *testing.T) {
 		noerr(t, err)
 		_, ok := id.(string)
 		if !ok {
-			t.Fatalf("Expected returned id to be a %T, but was %T", string(0), id)
+			t.Fatalf("Expected returned id to be a %T, but was %T", string(""), id)
 		}
 		if diff := cmp.Diff(got, want, cmp.AllowUnexported(bsonx.Elem{}, bsonx.Val{})); diff != "" {
 			t.Errorf("Returned documents differ: (-got +want)\n%s", diff)

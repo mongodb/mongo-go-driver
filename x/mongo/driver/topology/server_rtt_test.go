@@ -14,14 +14,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 )
 
 // Test case for all server selection rtt spec tests.
 func TestServerSelectionRTTSpec(t *testing.T) {
 
 	type testCase struct {
-		AvgRttMs  json.Number `json:"avg_rtt_ms"`
+		// AvgRttMs is either "NULL" or a float64.
+		AvgRttMs  interface{} `json:"avg_rtt_ms"`
 		NewRttMs  float64     `json:"new_rtt_ms"`
 		NewAvgRtt float64     `json:"new_avg_rtt"`
 	}
@@ -44,8 +45,8 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 				var server Server
 
 				if test.AvgRttMs != "NULL" {
-					avg, err := test.AvgRttMs.Float64()
-					require.NoError(t, err)
+					avg, ok := test.AvgRttMs.(float64)
+					require.True(t, ok, "expected non-NULL value to be float64, but is a %T", avg)
 
 					server.averageRTT = time.Duration(avg * float64(time.Millisecond))
 					server.averageRTTSet = true
