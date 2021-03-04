@@ -22,7 +22,7 @@ else
     ./libmongocrypt/.evergreen/compile.sh
 fi
 
-export GOROOT="${GOLANG_LOCATION}"
+export GOROOT="${GOROOT}"
 export PATH="${GOROOT}/bin:${GCC_PATH}:$GOPATH/bin:$PATH"
 export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
 export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
