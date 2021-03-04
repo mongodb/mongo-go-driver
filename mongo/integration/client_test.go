@@ -8,7 +8,7 @@ package integration
 
 import (
 	"fmt"
-	"path"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -81,7 +81,7 @@ func TestClient(t *testing.T) {
 		assert.Nil(mt, found, "SSLServerHasCertificateAuthority not found in result")
 	})
 	mt.RunOpts("x509", mtest.NewOptions().Auth(true).SSL(true), func(mt *mtest.T) {
-		const user = "C=US,ST=New York,L=New York City,O=MongoDB,OU=other,CN=external"
+		const user = "C=US,ST=New York,L=New York City,O=MDB,OU=Drivers,CN=client"
 		db := mt.Client.Database("$external")
 
 		// We don't care if the user doesn't already exist.
@@ -110,7 +110,7 @@ func TestClient(t *testing.T) {
 		cs := fmt.Sprintf(
 			"%s&sslClientCertificateKeyFile=%s&authMechanism=MONGODB-X509&authSource=$external",
 			revisedConnString,
-			path.Join(certificatesDir, "client.pem"),
+			os.Getenv("MONGO_GO_DRIVER_KEY_FILE"),
 		)
 		authClient, err := mongo.Connect(mtest.Background, options.Client().ApplyURI(cs))
 		assert.Nil(mt, err, "authClient Connect error: %v", err)
