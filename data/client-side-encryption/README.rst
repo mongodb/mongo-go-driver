@@ -134,7 +134,7 @@ Then for each element in ``tests``:
 #. Create a MongoClient.
 
 #. Create a collection object from the MongoClient, using the ``database_name``
-   and ``collection_name`` fields from the YAML file. Drop the collection 
+   and ``collection_name`` fields from the YAML file. Drop the collection
    with writeConcern "majority". If a ``json_schema`` is defined in the test,
    use the ``createCollection`` command to explicitly create the collection:
 
@@ -147,8 +147,60 @@ Then for each element in ``tests``:
 
 #. Create a **new** MongoClient using ``clientOptions``.
 
-   #. If ``autoEncryptOpts`` includes ``aws``, ``azure``, and/or ``gcp`` as a KMS provider, pass in credentials from the environment.
-   #. If ``autoEncryptOpts`` does not include ``keyVaultNamespace``, default it to ``keyvault.datakeys``.
+   #. If ``autoEncryptOpts`` includes ``aws``, ``awsTemporary``, ``awsTemporaryNoSessionToken``,
+   ``azure``, and/or ``gcp`` as a KMS provider, pass in credentials from the environment.
+
+      - ``awsTemporary``, and ``awsTemporaryNoSessionToken`` require temporary
+         AWS credentials. These can be retrieved using the csfle `set-temp-creds.sh
+         <https://github.com/mongodb-labs/drivers-evergreen-tools/tree/master/.evergreen/csfle>`_
+         script.
+
+      - ``aws``, ``awsTemporary``, and ``awsTemporaryNoSessionToken`` are
+         mutually exclusive.
+
+         ``aws`` should be substituted with:
+
+         .. code:: javascript
+            "aws": {
+                  "accessKeyId": <set from environment>,
+                  "secretAccessKey": <set from environment>
+            }
+         ``awsTemporary`` should be substituted with:
+
+         .. code:: javascript
+            "aws": {
+                  "accessKeyId": <set from environment>,
+                  "secretAccessKey": <set from environment>
+                  "sessionToken": <set from environment>
+            }
+         ``awsTemporaryNoSessionToken`` should be substituted with:
+
+         .. code:: javascript
+            "aws": {
+               "accessKeyId": <set from environment>,
+               "secretAccessKey": <set from environment>
+            }
+         ``gcp`` should be substituted with:
+
+         .. code:: javascript
+            "gcp": {
+               "email": <set from environment>,
+               "privateKey": <set from environment>,
+            }
+         ``azure`` should be substituted with:
+
+         .. code:: javascript
+            "azure": {
+               "tenantId": <set from environment>,
+               "clientId": <set from environment>,
+               "clientSecret": <set from environment>,
+            }
+         ``local`` should be substituted with:
+
+         .. code:: javascript
+            "local": { "key": <base64 decoding of LOCAL_MASTERKEY> }
+   #. If ``autoEncryptOpts`` does not include ``keyVaultNamespace``, default it
+      to ``keyvault.datakeys``.
 
 #. For each element in ``operations``:
 
@@ -194,7 +246,7 @@ Then for each element in ``tests``:
 #. For each element in ``outcome``:
 
    - If ``name`` is "collection", create a new MongoClient *without encryption*
-     and verify that the test collection contains exactly the documents in the 
+     and verify that the test collection contains exactly the documents in the
      ``data`` array. Ensure this find reads the latest data by using
      **primary read preference** with **local read concern** even when the
      MongoClient is configured with another read preference or read concern.
@@ -767,6 +819,6 @@ The following tests that setting ``bypassAutoEncryption=true`` really does bypas
 
    Drivers MAY pass a different value to ``--port`` if they expect their testing infrastructure to be using port 27021. Pass a port that should be free.
 
-#. Use ``client_encrypted`` to insert the document ``{"unencrypted": "test"}`` into ``db.coll``. Expect this to succeed. 
+#. Use ``client_encrypted`` to insert the document ``{"unencrypted": "test"}`` into ``db.coll``. Expect this to succeed.
 
 #. Validate that mongocryptd was not spawned. Create a MongoClient to localhost:27021 (or whatever was passed via ``--port``) with serverSelectionTimeoutMS=1000. Run an ``isMaster`` command and ensure it fails with a server selection timeout.
