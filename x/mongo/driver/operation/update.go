@@ -122,14 +122,14 @@ func NewUpdate(updates ...bsoncore.Document) *Update {
 // Result returns the result of executing this operation.
 func (u *Update) Result() UpdateResult { return u.result }
 
-func (u *Update) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, currIndex int) error {
-	ur, err := buildUpdateResult(response, srvr)
+func (u *Update) processResponse(info driver.ResponseInfo) error {
+	ur, err := buildUpdateResult(info.ServerResponse, info.Server)
 
 	u.result.N += ur.N
 	u.result.NModified += ur.NModified
-	if currIndex > 0 {
+	if info.CurrentIndex > 0 {
 		for ind := range ur.Upserted {
-			ur.Upserted[ind].Index += int64(currIndex)
+			ur.Upserted[ind].Index += int64(info.CurrentIndex)
 		}
 	}
 	u.result.Upserted = append(u.result.Upserted, ur.Upserted...)

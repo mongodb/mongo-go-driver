@@ -71,10 +71,10 @@ func (a *Aggregate) ResultCursorResponse() driver.CursorResponse {
 	return a.result
 }
 
-func (a *Aggregate) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, currIndex int) error {
+func (a *Aggregate) processResponse(info driver.ResponseInfo) error {
 	var err error
 
-	a.result, err = driver.NewCursorResponse(response, srvr, desc)
+	a.result, err = driver.NewCursorResponse(info.ServerResponse, info.Server, info.ConnectionDescription)
 	return err
 
 }

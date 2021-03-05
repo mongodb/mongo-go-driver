@@ -55,7 +55,14 @@ func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, con
 	}
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server, 0)
+		// CurrentIndex is always 0 in this mode.
+		info := ResponseInfo{
+			ServerResponse:        finishedInfo.response,
+			Server:                srvr,
+			Connection:            conn,
+			ConnectionDescription: desc.Server,
+		}
+		return op.ProcessResponseFn(info)
 	}
 	return nil
 }
@@ -225,7 +232,14 @@ func (op Operation) legacyGetMore(ctx context.Context, dst []byte, srvr Server, 
 	}
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server, 0)
+		// CurrentIndex is always 0 in this mode.
+		info := ResponseInfo{
+			ServerResponse:        finishedInfo.response,
+			Server:                srvr,
+			Connection:            conn,
+			ConnectionDescription: desc.Server,
+		}
+		return op.ProcessResponseFn(info)
 	}
 	return nil
 }
@@ -393,7 +407,14 @@ func (op Operation) legacyListCollections(ctx context.Context, dst []byte, srvr 
 	}
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server, 0)
+		// CurrentIndex is always 0 in this mode.
+		info := ResponseInfo{
+			ServerResponse:        finishedInfo.response,
+			Server:                srvr,
+			Connection:            conn,
+			ConnectionDescription: desc.Server,
+		}
+		return op.ProcessResponseFn(info)
 	}
 	return nil
 }
@@ -520,7 +541,14 @@ func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Serv
 	}
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server, 0)
+		// CurrentIndex is always 0 in this mode.
+		info := ResponseInfo{
+			ServerResponse:        finishedInfo.response,
+			Server:                srvr,
+			Connection:            conn,
+			ConnectionDescription: desc.Server,
+		}
+		return op.ProcessResponseFn(info)
 	}
 	return nil
 }
