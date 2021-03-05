@@ -71,6 +71,7 @@ type startedInformation struct {
 	documentSequenceIncluded bool
 	connID                   string
 	redacted                 bool
+	serverID                 *primitive.ObjectID
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
@@ -82,6 +83,7 @@ type finishedInformation struct {
 	connID    string
 	startTime time.Time
 	redacted  bool
+	serverID  *primitive.ObjectID
 }
 
 // Operation is used to execute an operation. It contains all of the common code required to
@@ -341,6 +343,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		startedInfo.connID = conn.ID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
+		startedInfo.serverID = conn.Description().ServerID
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
@@ -360,6 +363,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			startTime: time.Now(),
 			connID:    startedInfo.connID,
 			redacted:  startedInfo.redacted,
+			serverID:  startedInfo.serverID,
 		}
 
 		// roundtrip using either the full roundTripper or a special one for when the moreToCome
