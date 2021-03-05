@@ -26,13 +26,16 @@ import (
 )
 
 var (
-	awsAccessKeyID     = os.Getenv("AWS_ACCESS_KEY_ID")
-	awsSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	azureTenantID      = os.Getenv("AZURE_TENANT_ID")
-	azureClientID      = os.Getenv("AZURE_CLIENT_ID")
-	azureClientSecret  = os.Getenv("AZURE_CLIENT_SECRET")
-	gcpEmail           = os.Getenv("GCP_EMAIL")
-	gcpPrivateKey      = os.Getenv("GCP_PRIVATE_KEY")
+	awsAccessKeyID         = os.Getenv("AWS_ACCESS_KEY_ID")
+	awsSecretAccessKey     = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	awsTempAccessKeyID     = os.Getenv("CSFLE_AWS_TEMP_ACCESS_KEY_ID")
+	awsTempSecretAccessKey = os.Getenv("CSFLE_AWS_TEMP_SECRET_ACCESS_KEY")
+	awsTempSessionToken    = os.Getenv("CSFLE_AWS_TEMP_SESSION_TOKEN")
+	azureTenantID          = os.Getenv("AZURE_TENANT_ID")
+	azureClientID          = os.Getenv("AZURE_CLIENT_ID")
+	azureClientSecret      = os.Getenv("AZURE_CLIENT_SECRET")
+	gcpEmail               = os.Getenv("GCP_EMAIL")
+	gcpPrivateKey          = os.Getenv("GCP_PRIVATE_KEY")
 )
 
 // Helper functions to do read JSON spec test files and convert JSON objects into the appropriate driver types.
@@ -184,6 +187,34 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 				"key": key,
 			}
 			kmsMap["local"] = localMap
+		case "awsTemporary":
+			if awsTempAccessKeyID == "" {
+				t.Fatal("AWS temp access key ID not set")
+			}
+			if awsTempSecretAccessKey == "" {
+				t.Fatal("AWS temp secret access key not set")
+			}
+			if awsTempSessionToken == "" {
+				t.Fatal("AWS temp session token not set")
+			}
+			awsMap := map[string]interface{}{
+				"accessKeyId":     awsTempAccessKeyID,
+				"secretAccessKey": awsTempSecretAccessKey,
+				"sessionToken":    awsTempSessionToken,
+			}
+			kmsMap["aws"] = awsMap
+		case "awsTemporaryNoSessionToken":
+			if awsTempAccessKeyID == "" {
+				t.Fatal("AWS temp access key ID not set")
+			}
+			if awsTempSecretAccessKey == "" {
+				t.Fatal("AWS temp secret access key not set")
+			}
+			awsMap := map[string]interface{}{
+				"accessKeyId":     awsTempAccessKeyID,
+				"secretAccessKey": awsTempSecretAccessKey,
+			}
+			kmsMap["aws"] = awsMap
 		default:
 			t.Fatalf("unrecognized KMS provider: %v", provider)
 		}
