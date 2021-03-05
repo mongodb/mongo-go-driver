@@ -7,6 +7,7 @@
 package topology
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -73,6 +74,37 @@ func TestDirectConnectionFromConnString(t *testing.T) {
 			topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return tc.cs }))
 			assert.Nil(t, err, "topology.New error: %v", err)
 			assert.Equal(t, tc.mode, topo.cfg.mode, "expected mode %v, got %v", tc.mode, topo.cfg.mode)
+		})
+	}
+}
+
+func TestLoadBalancedFromConnString(t *testing.T) {
+	testCases := []struct {
+		name         string
+		uriOptions   string
+		loadBalanced bool
+	}{
+		{"loadBalanced=true", "loadBalanced=true", true},
+		{"loadBalanced=false", "loadBalanced=false", false},
+		{"loadBalanced unset", "", false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			uri := fmt.Sprintf("mongodb://localhost/?%s", tc.uriOptions)
+			cs, err := connstring.ParseAndValidate(uri)
+			assert.Nil(t, err, "connstring.ParseAndValidate error: %v", err)
+
+			topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+			assert.Nil(t, err, "topology.New error: %v", err)
+			assert.Equal(t, tc.loadBalanced, topo.cfg.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, topo.cfg.loadBalanced)
+
+			srvr, err := NewServer("", topo.id, topo.cfg.serverOpts...)
+			assert.Nil(t, err, "NewServer error: %v", err)
+			assert.Equal(t, tc.loadBalanced, srvr.cfg.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, srvr.cfg.loadBalanced)
+
+			conn, err := newConnection("", srvr.cfg.connectionOpts...)
+			assert.Nil(t, err, "newConnection error: %v", err)
+			assert.Equal(t, tc.loadBalanced, conn.config.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, conn.config.loadBalanced)
 		})
 	}
 }

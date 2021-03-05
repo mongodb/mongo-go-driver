@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
@@ -279,5 +280,17 @@ func TestPollSRVRecords(t *testing.T) {
 			}
 		}
 		_ = topo.Disconnect(context.Background())
+	})
+	t.Run("polling is not required for load balanced clusters", func(t *testing.T) {
+		cs, err := connstring.ParseAndValidate("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
+		assert.Nil(t, err, "connstring.ParseAndValidate error: %v", err)
+
+		topo, err := New(
+			WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
+			WithURI(func(string) string { return cs.Original }),
+			WithLoadBalanced(func(bool) bool { return true }),
+		)
+		assert.Nil(t, err, "topology.New error: %v", err)
+		assert.False(t, topo.pollingRequired, "expected SRV polling to not be required, but it is")
 	})
 }

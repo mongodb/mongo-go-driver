@@ -70,6 +70,8 @@ type ConnString struct {
 	Hosts                              []string
 	J                                  bool
 	JSet                               bool
+	LoadBalanced                       bool
+	LoadBalancedSet                    bool
 	LocalThreshold                     time.Duration
 	LocalThresholdSet                  bool
 	MaxConnIdleTime                    time.Duration
@@ -337,6 +339,19 @@ func (p *parser) validate() error {
 		}
 		if p.Scheme == SchemeMongoDBSRV {
 			return errors.New("a direct connection cannot be made if an SRV URI is used")
+		}
+	}
+
+	// Validation for load-balanced mode.
+	if p.LoadBalancedSet && p.LoadBalanced {
+		if len(p.Hosts) > 1 {
+			return internal.ErrLoadBalancedWithMultipleHosts
+		}
+		if p.ReplicaSet != "" {
+			return internal.ErrLoadBalancedWithReplicaSet
+		}
+		if p.ConnectSet || p.DirectConnectionSet {
+			return internal.ErrLoadBalancedWithDirectConnection
 		}
 	}
 
@@ -643,6 +658,17 @@ func (p *parser) addOption(pair string) error {
 		}
 
 		p.JSet = true
+	case "loadbalanced":
+		switch value {
+		case "true":
+			p.LoadBalanced = true
+		case "false":
+			p.LoadBalanced = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+
+		p.LoadBalancedSet = true
 	case "localthresholdms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {

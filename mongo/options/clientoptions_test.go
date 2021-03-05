@@ -83,6 +83,7 @@ func TestClientOptions(t *testing.T) {
 			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.New(writeconcern.WMajority()), "WriteConcern", false},
 			{"ZlibLevel", (*ClientOptions).SetZlibLevel, 6, "ZlibLevel", true},
 			{"DisableOCSPEndpointCheck", (*ClientOptions).SetDisableOCSPEndpointCheck, true, "DisableOCSPEndpointCheck", true},
+			{"LoadBalanced", (*ClientOptions).SetLoadBalanced, true, "LoadBalanced", true},
 		}
 
 		opt1, opt2, optResult := Client(), Client(), Client()
@@ -494,6 +495,16 @@ func TestClientOptions(t *testing.T) {
 					err:   errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},
+			{
+				"loadBalanced=true",
+				"mongodb://localhost/?loadBalanced=true",
+				baseClient().SetLoadBalanced(true),
+			},
+			{
+				"loadBalanced=false",
+				"mongodb://localhost/?loadBalanced=false",
+				baseClient().SetLoadBalanced(false),
+			},
 		}
 
 		for _, tc := range testCases {
@@ -550,6 +561,34 @@ func TestClientOptions(t *testing.T) {
 			assert.NotNil(t, err, "expected errror, got nil")
 			assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
 		})
+	})
+	t.Run("loadBalanced validation", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			opts *ClientOptions
+			err  error
+		}{
+			{"multiple hosts in URI", Client().ApplyURI("mongodb://foo,bar"), internal.ErrLoadBalancedWithMultipleHosts},
+			{"multiple hosts in options", Client().SetHosts([]string{"foo", "bar"}), internal.ErrLoadBalancedWithMultipleHosts},
+			{"replica set name", Client().SetReplicaSet("foo"), internal.ErrLoadBalancedWithReplicaSet},
+			{"directConnection=true", Client().SetDirect(true), internal.ErrLoadBalancedWithDirectConnection},
+			{"directConnection=false", Client().SetDirect(false), internal.ErrLoadBalancedWithDirectConnection},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				// The loadBalanced option should not be validated if it is unset or false.
+				err := tc.opts.Validate()
+				assert.Nil(t, err, "Validate error when loadBalanced is unset: %v", err)
+
+				tc.opts.SetLoadBalanced(false)
+				err = tc.opts.Validate()
+				assert.Nil(t, err, "Validate error when loadBalanced=false: %v", err)
+
+				tc.opts.SetLoadBalanced(true)
+				err = tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "expected error %v when loadBalanced=true, got %v", tc.err, err)
+			})
+		}
 	})
 }
 

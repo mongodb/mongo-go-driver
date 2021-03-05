@@ -22,6 +22,7 @@ import (
 	"github.com/youmark/pkcs8"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -103,6 +104,7 @@ type ClientOptions struct {
 	DisableOCSPEndpointCheck *bool
 	HeartbeatInterval        *time.Duration
 	Hosts                    []string
+	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
@@ -172,6 +174,19 @@ func (c *ClientOptions) validateAndSetError() {
 	// verify server API version if ServerAPIOptions are passed in.
 	if c.ServerAPIOptions != nil {
 		c.err = c.ServerAPIOptions.ServerAPIVersion.Validate()
+	}
+
+	// Validation for load-balanced mode.
+	if c.LoadBalanced != nil && *c.LoadBalanced {
+		if len(c.Hosts) > 1 {
+			c.err = internal.ErrLoadBalancedWithMultipleHosts
+		}
+		if c.ReplicaSet != nil {
+			c.err = internal.ErrLoadBalancedWithReplicaSet
+		}
+		if c.Direct != nil {
+			c.err = internal.ErrLoadBalancedWithDirectConnection
+		}
 	}
 }
 
@@ -254,6 +269,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	c.Hosts = cs.Hosts
+
+	if cs.LoadBalancedSet {
+		c.LoadBalanced = &cs.LoadBalanced
+	}
 
 	if cs.LocalThresholdSet {
 		c.LocalThreshold = &cs.LocalThreshold
@@ -483,6 +502,21 @@ func (c *ClientOptions) SetHeartbeatInterval(d time.Duration) *ClientOptions {
 // "localhost:27018", a URI could be "mongodb://localhost:27017,localhost:27018". The default is ["localhost:27017"]
 func (c *ClientOptions) SetHosts(s []string) *ClientOptions {
 	c.Hosts = s
+	return c
+}
+
+// SetLoadBalanced specifies whether or not the MongoDB deployment is hosted behind a load balancer. This can also be
+// set through the "loadBalanced" URI option. The driver will error during Client configuration if this option is set
+// to true and one of the following conditions are met:
+//
+// 1. Multiple hosts are specified, either via the ApplyURI or SetHosts methods. This includes the case where an SRV
+// URI is used and the SRV record resolves to multiple hostnames.
+// 2. A replica set name is specified, either via the URI or the SetReplicaSet method.
+// 3. The options specify whether or not a direct connection should be made, either via the URI or the SetDirect method.
+//
+// The default value is false.
+func (c *ClientOptions) SetLoadBalanced(lb bool) *ClientOptions {
+	c.LoadBalanced = &lb
 	return c
 }
 
@@ -760,6 +794,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if len(opt.Hosts) > 0 {
 			c.Hosts = opt.Hosts
+		}
+		if opt.LoadBalanced != nil {
+			c.LoadBalanced = opt.LoadBalanced
 		}
 		if opt.LocalThreshold != nil {
 			c.LocalThreshold = opt.LocalThreshold

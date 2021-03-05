@@ -33,6 +33,7 @@ type serverConfig struct {
 	registry                  *bsoncodec.Registry
 	monitoringDisabled        bool
 	serverAPI                 *driver.ServerAPIOptions
+	loadBalanced              bool
 }
 
 func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
@@ -170,6 +171,14 @@ func WithRegistry(fn func(*bsoncodec.Registry) *bsoncodec.Registry) ServerOption
 func WithServerAPI(fn func(serverAPI *driver.ServerAPIOptions) *driver.ServerAPIOptions) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.serverAPI = fn(cfg.serverAPI)
+		return nil
+	}
+}
+
+// WithServerLoadBalanced specifies whether or not the server is behind a load balancer.
+func WithServerLoadBalanced(fn func(bool) bool) ServerOption {
+	return func(cfg *serverConfig) error {
+		cfg.loadBalanced = fn(cfg.loadBalanced)
 		return nil
 	}
 }

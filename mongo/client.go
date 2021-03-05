@@ -629,6 +629,22 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		)
 	}
 
+	// LoadBalanced
+	if opts.LoadBalanced != nil {
+		topologyOpts = append(
+			topologyOpts,
+			topology.WithLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
+		)
+		serverOpts = append(
+			serverOpts,
+			topology.WithServerLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
+		)
+		connOpts = append(
+			connOpts,
+			topology.WithConnectionLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
+		)
+	}
+
 	serverOpts = append(
 		serverOpts,
 		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
