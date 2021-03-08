@@ -31,8 +31,9 @@ import (
 var globalConnectionID uint64 = 1
 
 var (
-	defaultMaxMessageSize uint32 = 48000000
-	errResponseTooLarge   error  = errors.New("length of read message too large")
+	defaultMaxMessageSize        uint32 = 48000000
+	errResponseTooLarge          error  = errors.New("length of read message too large")
+	errLoadBalancedStateMismatch        = errors.New("driver attempted to initialize in load balancing mode, but the server does not support this mode")
 )
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
@@ -203,6 +204,16 @@ func (c *connection) connect(ctx context.Context) {
 		// fields in handshakeInfo are tracked by the handshaker if necessary.
 		c.desc = handshakeInfo.Description
 		c.isMasterRTT = time.Since(handshakeStartTime)
+
+		// If the application has indicated that the cluster is load balanced, ensure the server has included serverId
+		// in its handshake response to signal that it knows it's behind an LB as well.
+		if c.config.loadBalanced && c.desc.ServerID == nil {
+			err = errLoadBalancedStateMismatch
+		}
+	}
+	if err == nil {
+		// If we successfully finished the first part of the handshake and verified LB state, continue with the rest of
+		// the handshake.
 		err = handshaker.FinishHandshake(handshakeCtx, handshakeConn)
 	}
 

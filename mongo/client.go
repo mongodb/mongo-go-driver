@@ -411,10 +411,16 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			func(opts ...string) []string { return append(opts, comps...) },
 		))
 	}
+
+	var loadBalanced bool
+	if opts.LoadBalanced != nil {
+		loadBalanced = *opts.LoadBalanced
+	}
+
 	// Handshaker
 	var handshaker = func(driver.Handshaker) driver.Handshaker {
 		return operation.NewIsMaster().AppName(appName).Compressors(comps).ClusterClock(c.clock).
-			ServerAPI(c.serverAPI)
+			ServerAPI(c.serverAPI).LoadBalanced(loadBalanced)
 	}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
@@ -447,6 +453,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			Compressors:   comps,
 			ClusterClock:  c.clock,
 			ServerAPI:     c.serverAPI,
+			LoadBalanced:  loadBalanced,
 		}
 		if mechanism == "" {
 			// Required for SASL mechanism negotiation during handshake

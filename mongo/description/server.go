@@ -25,7 +25,9 @@ type SelectedServer struct {
 	Kind TopologyKind
 }
 
-// Server contains information about a node in a cluster. This is created from isMaster command responses.
+// Server contains information about a node in a cluster. This is created from isMaster command responses. If the value
+// of the Kind field is LoadBalancer, only the Addr and Kind fields will be set. All other fields will be set to the
+// zero value of the field's type.
 type Server struct {
 	Addr address.Address
 
@@ -47,6 +49,7 @@ type Server struct {
 	Passives              []string
 	Primary               address.Address
 	ReadOnly              bool
+	ServerID              *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
 	SessionTimeoutMinutes uint32
 	SetName               string
 	SetVersion            uint32
@@ -225,6 +228,12 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				desc.LastError = fmt.Errorf("expected 'secondary' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
+		case "serverId":
+			oid, ok := element.Value().ObjectIDOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'serverId' to be an ObjectId but it's a BSON %s", element.Value().Type)
+			}
+			desc.ServerID = &oid
 		case "setName":
 			desc.SetName, ok = element.Value().StringValueOK()
 			if !ok {
@@ -335,7 +344,9 @@ func (s Server) String() string {
 		str += fmt.Sprintf(", Tag sets: %s", s.Tags)
 	}
 
-	str += fmt.Sprintf(", Average RTT: %d", s.AverageRTT)
+	if s.AverageRTTSet {
+		str += fmt.Sprintf(", Average RTT: %d", s.AverageRTT)
+	}
 
 	if s.LastError != nil {
 		str += fmt.Sprintf(", Last error: %s", s.LastError)
