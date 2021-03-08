@@ -22,6 +22,7 @@ type CommandStartedEvent struct {
 	CommandName  string
 	RequestID    int64
 	ConnectionID string
+	ServerID     *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
 }
 
 // CommandFinishedEvent represents a generic command finishing.
@@ -30,6 +31,7 @@ type CommandFinishedEvent struct {
 	CommandName   string
 	RequestID     int64
 	ConnectionID  string
+	ServerID      *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
 }
 
 // CommandSucceededEvent represents an event generated when a command's execution succeeds.
