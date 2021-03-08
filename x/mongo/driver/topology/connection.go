@@ -104,9 +104,27 @@ func (c *connection) connect(ctx context.Context) {
 	}
 	defer close(c.connectDone)
 
+	// Create separate contexts for dialing a connection and doing the MongoDB/auth handshakes.
+	//
+	// handshakeCtx is simply a cancellable version of ctx because there's no default timeout that needs to be applied
+	// to the full handshake. The cancellation allows consumers to bail out early when dialing a connection if it's no
+	// longer required. This is done in lock because it accesses the shared cancelConnectContext field.
+	//
+	// dialCtx is equal to handshakeCtx if connectTimeoutMS=0. Otherwise, it is derived from handshakeCtx so the
+	// cancellation still applies but with an added timeout to ensure the connectTimeoutMS option is applied to socket
+	// establishment and the TLS handshake as a whole. This is created outside of the connectContextMutex lock to avoid
+	// holding the lock longer than necessary.
 	c.connectContextMutex.Lock()
-	ctx, c.cancelConnectContext = context.WithCancel(ctx)
+	var handshakeCtx context.Context
+	handshakeCtx, c.cancelConnectContext = context.WithCancel(ctx)
 	c.connectContextMutex.Unlock()
+
+	dialCtx := handshakeCtx
+	var dialCancel context.CancelFunc
+	if c.config.connectTimeout != 0 {
+		dialCtx, dialCancel = context.WithTimeout(handshakeCtx, c.config.connectTimeout)
+		defer dialCancel()
+	}
 
 	defer func() {
 		var cancelFn context.CancelFunc
@@ -126,7 +144,7 @@ func (c *connection) connect(ctx context.Context) {
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
 	var err error
 	var tempNc net.Conn
-	tempNc, err = c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
+	tempNc, err = c.config.dialer.DialContext(dialCtx, c.addr.Network(), c.addr.String())
 	if err != nil {
 		c.processInitializationError(err)
 		return
@@ -142,7 +160,7 @@ func (c *connection) connect(ctx context.Context) {
 			Cache:                   c.config.ocspCache,
 			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
 		}
-		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+		tlsNc, err := configureTLS(dialCtx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
 			c.processInitializationError(err)
 			return
@@ -160,10 +178,10 @@ func (c *connection) connect(ctx context.Context) {
 
 	handshakeStartTime := time.Now()
 	handshakeConn := initConnection{c}
-	c.desc, err = handshaker.GetDescription(ctx, c.addr, handshakeConn)
+	c.desc, err = handshaker.GetDescription(handshakeCtx, c.addr, handshakeConn)
 	if err == nil {
 		c.isMasterRTT = time.Since(handshakeStartTime)
-		err = handshaker.FinishHandshake(ctx, handshakeConn)
+		err = handshaker.FinishHandshake(handshakeCtx, handshakeConn)
 	}
 	if err != nil {
 		c.processInitializationError(err)
