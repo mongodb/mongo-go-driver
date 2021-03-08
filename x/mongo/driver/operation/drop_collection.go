@@ -76,9 +76,9 @@ func NewDropCollection() *DropCollection {
 // Result returns the result of executing this operation.
 func (dc *DropCollection) Result() DropCollectionResult { return dc.result }
 
-func (dc *DropCollection) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
+func (dc *DropCollection) processResponse(info driver.ResponseInfo) error {
 	var err error
-	dc.result, err = buildDropCollectionResult(response, srvr)
+	dc.result, err = buildDropCollectionResult(info.ServerResponse, info.Server)
 	return err
 }
 

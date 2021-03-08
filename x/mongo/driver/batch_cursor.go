@@ -270,7 +270,8 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		},
 		Database:   bc.database,
 		Deployment: SingleServerDeployment{Server: bc.server},
-		ProcessResponseFn: func(response bsoncore.Document, srvr Server, desc description.Server, currIndex int) error {
+		ProcessResponseFn: func(info ResponseInfo) error {
+			response := info.ServerResponse
 			id, ok := response.Lookup("cursor", "id").Int64OK()
 			if !ok {
 				return fmt.Errorf("cursor.id should be an int64 but is a BSON %s", response.Lookup("cursor", "id").Type)

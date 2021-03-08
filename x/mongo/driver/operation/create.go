@@ -52,7 +52,7 @@ func NewCreate(collectionName string) *Create {
 	}
 }
 
-func (c *Create) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
+func (c *Create) processResponse(driver.ResponseInfo) error {
 	var err error
 	return err
 }

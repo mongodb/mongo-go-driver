@@ -72,9 +72,9 @@ func NewDropIndexes(index string) *DropIndexes {
 // Result returns the result of executing this operation.
 func (di *DropIndexes) Result() DropIndexesResult { return di.result }
 
-func (di *DropIndexes) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
+func (di *DropIndexes) processResponse(info driver.ResponseInfo) error {
 	var err error
-	di.result, err = buildDropIndexesResult(response, srvr)
+	di.result, err = buildDropIndexesResult(info.ServerResponse, info.Server)
 	return err
 }
 

@@ -86,6 +86,15 @@ type finishedInformation struct {
 	serverID  *primitive.ObjectID
 }
 
+// ResponseInfo contains the context required to parse a server response.
+type ResponseInfo struct {
+	ServerResponse        bsoncore.Document
+	Server                Server
+	Connection            Connection
+	ConnectionDescription description.Server
+	CurrentIndex          int
+}
+
 // Operation is used to execute an operation. It contains all of the common code required to
 // select a server, transform an operation into a command, write the command to a connection from
 // the selected server, read a response from that connection, process the response, and potentially
@@ -115,7 +124,7 @@ type Operation struct {
 	// ProcessResponseFn is called after a response to the command is returned. The server is
 	// provided for types like Cursor that are required to run subsequent commands using the same
 	// server.
-	ProcessResponseFn func(response bsoncore.Document, srvr Server, desc description.Server, currIndex int) error
+	ProcessResponseFn func(ResponseInfo) error
 
 	// Selector is the server selector that's used during both initial server selection and
 	// subsequent selection for retries. Depending on the Deployment implementation, the
@@ -425,7 +434,14 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
-				perr = op.ProcessResponseFn(res, srvr, desc.Server, currIndex)
+				info := ResponseInfo{
+					ServerResponse:        res,
+					Server:                srvr,
+					Connection:            conn,
+					ConnectionDescription: desc.Server,
+					CurrentIndex:          currIndex,
+				}
+				perr = op.ProcessResponseFn(info)
 			}
 
 			if batching && len(tt.WriteErrors) > 0 && currIndex > 0 {
@@ -511,7 +527,14 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
-				perr = op.ProcessResponseFn(res, srvr, desc.Server, currIndex)
+				info := ResponseInfo{
+					ServerResponse:        res,
+					Server:                srvr,
+					Connection:            conn,
+					ConnectionDescription: desc.Server,
+					CurrentIndex:          currIndex,
+				}
+				perr = op.ProcessResponseFn(info)
 			}
 
 			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
@@ -524,14 +547,28 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				return ErrUnacknowledgedWrite
 			}
 			if op.ProcessResponseFn != nil {
-				perr = op.ProcessResponseFn(res, srvr, desc.Server, currIndex)
+				info := ResponseInfo{
+					ServerResponse:        res,
+					Server:                srvr,
+					Connection:            conn,
+					ConnectionDescription: desc.Server,
+					CurrentIndex:          currIndex,
+				}
+				perr = op.ProcessResponseFn(info)
 			}
 			if perr != nil {
 				return perr
 			}
 		default:
 			if op.ProcessResponseFn != nil {
-				perr = op.ProcessResponseFn(res, srvr, desc.Server, currIndex)
+				info := ResponseInfo{
+					ServerResponse:        res,
+					Server:                srvr,
+					Connection:            conn,
+					ConnectionDescription: desc.Server,
+					CurrentIndex:          currIndex,
+				}
+				perr = op.ProcessResponseFn(info)
 			}
 			return err
 		}

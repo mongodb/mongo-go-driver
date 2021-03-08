@@ -108,10 +108,10 @@ func NewFindAndModify(query bsoncore.Document) *FindAndModify {
 // Result returns the result of executing this operation.
 func (fam *FindAndModify) Result() FindAndModifyResult { return fam.result }
 
-func (fam *FindAndModify) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
+func (fam *FindAndModify) processResponse(info driver.ResponseInfo) error {
 	var err error
 
-	fam.result, err = buildFindAndModifyResult(response, srvr)
+	fam.result, err = buildFindAndModifyResult(info.ServerResponse, info.Server)
 	return err
 
 }

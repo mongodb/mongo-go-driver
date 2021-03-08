@@ -67,9 +67,9 @@ func NewDropDatabase() *DropDatabase {
 // Result returns the result of executing this operation.
 func (dd *DropDatabase) Result() DropDatabaseResult { return dd.result }
 
-func (dd *DropDatabase) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
+func (dd *DropDatabase) processResponse(info driver.ResponseInfo) error {
 	var err error
-	dd.result, err = buildDropDatabaseResult(response, srvr)
+	dd.result, err = buildDropDatabaseResult(info.ServerResponse, info.Server)
 	return err
 }
 
