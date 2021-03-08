@@ -71,7 +71,7 @@ func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 	}
 
 	if cfg.dialer == nil {
-		cfg.dialer = &net.Dialer{Timeout: cfg.connectTimeout}
+		cfg.dialer = &net.Dialer{}
 	}
 
 	return cfg, nil
