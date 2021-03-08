@@ -172,9 +172,14 @@ func getServerByAddress(address string, topo *topology.Topology) (description.Se
 		return []description.Server{}, nil
 	})
 
-	selectedServer, err := topo.SelectServerLegacy(context.Background(), selectByName)
+	selectedServer, err := topo.SelectServer(context.Background(), selectByName)
 	if err != nil {
 		return description.Server{}, err
 	}
-	return selectedServer.Server.Description(), nil
+	selectedServerConnection, err := selectedServer.Connection(context.Background())
+	if err != nil {
+		return description.Server{}, err
+	}
+	defer selectedServerConnection.Close()
+	return selectedServerConnection.Description(), nil
 }

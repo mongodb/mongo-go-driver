@@ -411,50 +411,6 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 	}
 }
 
-// SelectServerLegacy selects a server with given a selector. SelectServerLegacy complies with the
-// server selection spec, and will time out after severSelectionTimeout or when the
-// parent context is done.
-func (t *Topology) SelectServerLegacy(ctx context.Context, ss description.ServerSelector) (*SelectedServer, error) {
-	if atomic.LoadInt32(&t.connectionstate) != connected {
-		return nil, ErrTopologyClosed
-	}
-	var ssTimeoutCh <-chan time.Time
-
-	if t.cfg.serverSelectionTimeout > 0 {
-		ssTimeout := time.NewTimer(t.cfg.serverSelectionTimeout)
-		ssTimeoutCh = ssTimeout.C
-		defer ssTimeout.Stop()
-	}
-
-	sub, err := t.Subscribe()
-	if err != nil {
-		return nil, err
-	}
-	defer t.Unsubscribe(sub)
-
-	selectionState := newServerSelectionState(ss, ssTimeoutCh)
-	for {
-		suitable, err := t.selectServerFromSubscription(ctx, sub.Updates, selectionState)
-		if err != nil {
-			return nil, err
-		}
-
-		selected := suitable[rand.Intn(len(suitable))]
-		selectedS, err := t.FindServer(selected)
-		switch {
-		case err != nil:
-			return nil, err
-		case selectedS != nil:
-			return selectedS, nil
-		default:
-			// We don't have an actual server for the provided description.
-			// This could happen for a number of reasons, including that the
-			// server has since stopped being a part of this topology, or that
-			// the server selector returned no suitable servers.
-		}
-	}
-}
-
 // FindServer will attempt to find a server that fits the given server description.
 // This method will return nil, nil if a matching server could not be found.
 func (t *Topology) FindServer(selected description.Server) (*SelectedServer, error) {

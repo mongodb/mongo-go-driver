@@ -96,7 +96,7 @@ func DisableMaxTimeFailPoint(t *testing.T, s *topology.Server) {
 }
 
 // RunCommand runs an arbitrary command on a given database of target server
-func RunCommand(t *testing.T, s *topology.Server, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+func RunCommand(t *testing.T, s driver.Server, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
 	op := operation.NewCommand(cmd).
 		Database(db).Deployment(driver.SingleServerDeployment{Server: s})
 	err := op.Execute(context.Background())
