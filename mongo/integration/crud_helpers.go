@@ -29,6 +29,13 @@ import (
 
 // Helper functions to execute and verify results from CRUD methods.
 
+const (
+	errorInterrupted     int32 = 11601
+	errorHostUnreachable int32 = 6
+
+	resumableChangeStreamError = "ResumableChangeStreamError"
+)
+
 var (
 	emptyDoc                        = []byte{5, 0, 0, 0, 0}
 	errorCommandNotFound      int32 = 59

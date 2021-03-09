@@ -34,11 +34,6 @@ const (
 	client streamType = iota
 	database
 	collection
-
-	errorInterrupted     int32 = 11601
-	errorHostUnreachable int32 = 6
-
-	resumableChangeStreamError = "ResumableChangeStreamError"
 )
 
 func TestChangeStream_Standalone(t *testing.T) {
