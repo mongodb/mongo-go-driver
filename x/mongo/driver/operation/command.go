@@ -26,28 +26,43 @@ type Command struct {
 	clock          *session.ClusterClock
 	session        *session.Client
 	monitor        *event.CommandMonitor
-	result         bsoncore.Document
+	resultResponse bsoncore.Document
+	resultCursor   *driver.BatchCursor
 	srvr           driver.Server
 	desc           description.Server
 	crypt          *driver.Crypt
 	serverAPI      *driver.ServerAPIOptions
+	createCursor   bool
 }
 
-// NewCommand constructs and returns a new Command.
-func NewCommand(command bsoncore.Document) *Command { return &Command{command: command} }
+// NewCommand constructs and returns a new Command. Once the operation is executed, the result may only be accessed via
+// the Result() function.
+func NewCommand(command bsoncore.Document) *Command {
+	return &Command{
+		command: command,
+	}
+}
+
+// NewCursorCommand constructs a new Command. Once the operation is executed, the server response will be used to
+// construct a cursor, which can be accessed via the ResultCursor() function.
+func NewCursorCommand(command bsoncore.Document) *Command {
+	return &Command{
+		command:      command,
+		createCursor: true,
+	}
+}
 
 // Result returns the result of executing this operation.
-func (c *Command) Result() bsoncore.Document { return c.result }
+func (c *Command) Result() bsoncore.Document { return c.resultResponse }
 
-// ResultCursor parses the command response as a cursor and returns the resulting BatchCursor.
-func (c *Command) ResultCursor(opts driver.CursorOptions) (*driver.BatchCursor, error) {
-	cursorRes, err := driver.NewCursorResponse(c.result, c.srvr, c.desc)
-	if err != nil {
-		return nil, err
+// ResultCursor returns the BatchCursor that was constructed using the command response. If the operation was not
+// configured to create a cursor (i.e. it was created using NewCommand rather than NewCursorCommand), this function
+// will return nil and an error.
+func (c *Command) ResultCursor() (*driver.BatchCursor, error) {
+	if !c.createCursor {
+		return nil, errors.New("command operation was not configured to create a cursor, but a result cursor was requested")
 	}
-
-	opts.ServerAPI = c.serverAPI
-	return driver.NewBatchCursor(cursorRes, c.session, c.clock, opts)
+	return c.resultCursor, nil
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
@@ -61,9 +76,21 @@ func (c *Command) Execute(ctx context.Context) error {
 			return append(dst, c.command[4:len(c.command)-1]...), nil
 		},
 		ProcessResponseFn: func(info driver.ResponseInfo) error {
-			c.result = info.ServerResponse
-			c.srvr = info.Server
-			c.desc = info.ConnectionDescription
+			c.resultResponse = info.ServerResponse
+
+			if c.createCursor {
+				cursorRes, err := driver.NewCursorResponse(info)
+				if err != nil {
+					return err
+				}
+
+				opts := driver.CursorOptions{
+					ServerAPI: c.serverAPI,
+				}
+				c.resultCursor, err = driver.NewBatchCursor(cursorRes, c.session, c.clock, opts)
+				return err
+			}
+
 			return nil
 		},
 		Client:         c.session,
@@ -76,16 +103,6 @@ func (c *Command) Execute(ctx context.Context) error {
 		Crypt:          c.crypt,
 		ServerAPI:      c.serverAPI,
 	}.Execute(ctx, nil)
-}
-
-// Command sets the command to be run.
-func (c *Command) Command(command bsoncore.Document) *Command {
-	if c == nil {
-		c = new(Command)
-	}
-
-	c.command = command
-	return c
 }
 
 // Session sets the session for this operation.

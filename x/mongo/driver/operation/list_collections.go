@@ -61,7 +61,7 @@ func (lc *ListCollections) Result(opts driver.CursorOptions) (*driver.ListCollec
 
 func (lc *ListCollections) processResponse(info driver.ResponseInfo) error {
 	var err error
-	lc.result, err = driver.NewCursorResponse(info.ServerResponse, info.Server, info.ConnectionDescription)
+	lc.result, err = driver.NewCursorResponse(info)
 	return err
 }
 

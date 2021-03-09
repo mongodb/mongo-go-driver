@@ -572,12 +572,14 @@ func (c initConnection) SupportsStreaming() bool {
 // messages and the driver.Expirable interface to allow expiring.
 type Connection struct {
 	*connection
+	refCount int
 
 	mu sync.RWMutex
 }
 
 var _ driver.Connection = (*Connection)(nil)
 var _ driver.Expirable = (*Connection)(nil)
+var _ driver.PinnedConnection = (*Connection)(nil)
 
 // WriteWireMessage handles writing a wire message to the underlying connection.
 func (c *Connection) WriteWireMessage(ctx context.Context, wm []byte) error {
@@ -648,7 +650,7 @@ func (c *Connection) Description() description.Server {
 func (c *Connection) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.connection == nil {
+	if c.connection == nil || c.refCount > 0 {
 		return nil
 	}
 
@@ -711,6 +713,52 @@ func (c *Connection) LocalAddress() address.Address {
 		return address.Address("0.0.0.0")
 	}
 	return address.Address(c.nc.LocalAddr().String())
+}
+
+// PinToCursor updates this connection to reflect that it is pinned to a cursor.
+func (c *Connection) PinToCursor() error {
+	return c.pin("cursor")
+}
+
+// PinToTransaction updates this connection to reflect that it is pinned to a transaction.
+func (c *Connection) PinToTransaction() error {
+	return c.pin("transaction")
+}
+
+func (c *Connection) pin(reason string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.connection == nil {
+		return fmt.Errorf("attempted to pin a connection for a %s, but the connection has already been returned to the pool", reason)
+	}
+
+	c.refCount++
+	return nil
+}
+
+// UnpinFromCursor updates this connection to reflect that it is no longer pinned to a cursor.
+func (c *Connection) UnpinFromCursor() error {
+	return c.unpin("cursor")
+}
+
+// UnpinFromTransaction updates this connection to reflect that it is no longer pinned to a transaction.
+func (c *Connection) UnpinFromTransaction() error {
+	return c.unpin("transaction")
+}
+
+func (c *Connection) unpin(reason string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.connection == nil {
+		// We don't error here because the resource could have been forcefully closed via Expire.
+		return nil
+	}
+	if c.refCount == 0 {
+		return fmt.Errorf("attempted to unpin a connection from a %s, but the connection is not pinned by any resources", reason)
+	}
+
+	c.refCount--
+	return nil
 }
 
 var notMasterCodes = []int32{10107, 13435}

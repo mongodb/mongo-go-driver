@@ -23,6 +23,8 @@ type BatchCursor struct {
 	id                   int64
 	err                  error
 	server               Server
+	errorProcessor       ErrorProcessor
+	connection           PinnedConnection
 	batchSize            int32
 	maxTimeMS            int64
 	currentBatch         *bsoncore.DocumentSequence
@@ -42,6 +44,8 @@ type BatchCursor struct {
 // be constructed from a CursorResponse.
 type CursorResponse struct {
 	Server               Server
+	ErrorProcessor       ErrorProcessor
+	Connection           PinnedConnection
 	Desc                 description.Server
 	FirstBatch           *bsoncore.DocumentSequence
 	Database             string
@@ -52,7 +56,8 @@ type CursorResponse struct {
 
 // NewCursorResponse constructs a cursor response from the given response and server. This method
 // can be used within the ProcessResponse method for an operation.
-func NewCursorResponse(response bsoncore.Document, server Server, desc description.Server) (CursorResponse, error) {
+func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
+	response := info.ServerResponse
 	cur, ok := response.Lookup("cursor").DocumentOK()
 	if !ok {
 		return CursorResponse{}, fmt.Errorf("cursor should be an embedded document but is of BSON type %s", response.Lookup("cursor").Type)
@@ -61,7 +66,14 @@ func NewCursorResponse(response bsoncore.Document, server Server, desc descripti
 	if err != nil {
 		return CursorResponse{}, err
 	}
-	curresp := CursorResponse{Server: server, Desc: desc}
+	curresp := CursorResponse{Server: info.Server, Desc: info.ConnectionDescription}
+
+	// Cache the server as an ErrorProcessor to use when constructing deployments for cursor commands.
+	ep, ok := curresp.Server.(ErrorProcessor)
+	if !ok {
+		return CursorResponse{}, fmt.Errorf("expected Server used to establish a cursor to implement ErrorProcessor, but got %T", curresp.Server)
+	}
+	curresp.ErrorProcessor = ep
 
 	for _, elem := range elems {
 		switch elem.Key() {
@@ -94,6 +106,20 @@ func NewCursorResponse(response bsoncore.Document, server Server, desc descripti
 			}
 		}
 	}
+
+	// If the deployment is behind a load balancer and the cursor has a non-zero ID, pin the cursor to a connection and
+	// use the same connection to execute getMore and killCursors commands.
+	if curresp.Desc.ServerID != nil && curresp.ID != 0 {
+		refConn, ok := info.Connection.(PinnedConnection)
+		if !ok {
+			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement ReferencedConnection, but got %T", info.Connection)
+		}
+		if err := refConn.PinToCursor(); err != nil {
+			return CursorResponse{}, fmt.Errorf("error incrementing connection reference count when creating a cursor: %v", err)
+		}
+		curresp.Connection = refConn
+	}
+
 	return curresp, nil
 }
 
@@ -117,6 +143,8 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		collection:           cr.Collection,
 		id:                   cr.ID,
 		server:               cr.Server,
+		connection:           cr.Connection,
+		errorProcessor:       cr.ErrorProcessor,
 		batchSize:            opts.BatchSize,
 		maxTimeMS:            opts.MaxTimeMS,
 		cmdMonitor:           opts.CommandMonitor,
@@ -203,6 +231,24 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 	bc.currentBatch.Style = 0
 	bc.currentBatch.ResetIterator()
 
+	connErr := bc.unpinConnection()
+	if err == nil {
+		err = connErr
+	}
+	return err
+}
+
+func (bc *BatchCursor) unpinConnection() error {
+	if bc.connection == nil {
+		return nil
+	}
+
+	err := bc.connection.UnpinFromCursor()
+	closeErr := bc.connection.Close()
+	if err == nil && closeErr != nil {
+		err = closeErr
+	}
+	bc.connection = nil
 	return err
 }
 
@@ -228,7 +274,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 			return dst, nil
 		},
 		Database:       bc.database,
-		Deployment:     SingleServerDeployment{Server: bc.server},
+		Deployment:     bc.getOperationDeployment(),
 		Client:         bc.clientSession,
 		Clock:          bc.clock,
 		Legacy:         LegacyKillCursors,
@@ -269,7 +315,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			return dst, nil
 		},
 		Database:   bc.database,
-		Deployment: SingleServerDeployment{Server: bc.server},
+		Deployment: bc.getOperationDeployment(),
 		ProcessResponseFn: func(info ResponseInfo) error {
 			response := info.ServerResponse
 			id, ok := response.Lookup("cursor", "id").Int64OK()
@@ -310,6 +356,28 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		Crypt:          bc.crypt,
 	}.Execute(ctx, nil)
 
+	// Once the cursor has been drained, we can unpin the connection if one is currently pinned.
+	if bc.id == 0 {
+		err := bc.unpinConnection()
+		if err != nil && bc.err == nil {
+			bc.err = err
+		}
+	}
+
+	// If we're in load balanced mode and the pinned connection encounters a network error, it should be unpinned. In
+	// this case, we call Expire on the connection to ensure it's closed and the cursor will be reaped by the server.
+	if driverErr, ok := bc.err.(Error); ok && driverErr.NetworkError() && bc.connection != nil {
+		err := bc.connection.Expire()
+		if err != nil && bc.err == nil {
+			bc.err = err
+		}
+
+		// Also unset the connection and set the cursor ID to 0 because the cursor is no longer valid, so we shouldn't
+		// send any more commands for it.
+		bc.connection = nil
+		bc.id = 0
+	}
+
 	// Required for legacy operations which don't support limit.
 	if bc.limit != 0 && bc.numReturned >= bc.limit {
 		// call KillCursor instead of Close because Close will clear out the data for the current batch.
@@ -324,4 +392,39 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 // PostBatchResumeToken returns the latest seen post batch resume token.
 func (bc *BatchCursor) PostBatchResumeToken() bsoncore.Document {
 	return bc.postBatchResumeToken
+}
+
+func (bc *BatchCursor) getOperationDeployment() Deployment {
+	if bc.connection != nil {
+		return &loadBalancedCursorDeployment{
+			errorProcessor: bc.errorProcessor,
+			conn:           bc.connection,
+		}
+	}
+	return SingleServerDeployment{bc.server}
+}
+
+type loadBalancedCursorDeployment struct {
+	errorProcessor ErrorProcessor
+	conn           PinnedConnection
+}
+
+var _ Deployment = (*loadBalancedCursorDeployment)(nil)
+var _ Server = (*loadBalancedCursorDeployment)(nil)
+var _ ErrorProcessor = (*loadBalancedCursorDeployment)(nil)
+
+func (lbcd *loadBalancedCursorDeployment) SelectServer(_ context.Context, _ description.ServerSelector) (Server, error) {
+	return lbcd, nil
+}
+
+func (lbcd *loadBalancedCursorDeployment) Kind() description.TopologyKind {
+	return description.LoadBalanced
+}
+
+func (lbcd *loadBalancedCursorDeployment) Connection(_ context.Context) (Connection, error) {
+	return lbcd.conn, nil
+}
+
+func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {
+	return lbcd.errorProcessor.ProcessError(err, conn)
 }

@@ -55,7 +55,7 @@ func (li *ListIndexes) Result(opts driver.CursorOptions) (*driver.BatchCursor, e
 func (li *ListIndexes) processResponse(info driver.ResponseInfo) error {
 	var err error
 
-	li.result, err = driver.NewCursorResponse(info.ServerResponse, info.Server, info.ConnectionDescription)
+	li.result, err = driver.NewCursorResponse(info)
 	return err
 
 }

@@ -133,7 +133,7 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 }
 
 func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
-	opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
+	createCursor bool, opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
 		var err error
@@ -165,7 +165,11 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
-	return operation.NewCommand(runCmdDoc).
+	createCmdFn := operation.NewCommand
+	if createCursor {
+		createCmdFn = operation.NewCursorCommand
+	}
+	return createCmdFn(runCmdDoc).
 		Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
@@ -187,7 +191,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		ctx = context.Background()
 	}
 
-	op, sess, err := db.processRunCommand(ctx, runCommand, opts...)
+	op, sess, err := db.processRunCommand(ctx, runCommand, false, opts...)
 	defer closeImplicitSession(sess)
 	if err != nil {
 		return &SingleResult{err: err}
@@ -218,7 +222,7 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 		ctx = context.Background()
 	}
 
-	op, sess, err := db.processRunCommand(ctx, runCommand, opts...)
+	op, sess, err := db.processRunCommand(ctx, runCommand, true, opts...)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
@@ -229,7 +233,7 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 		return nil, replaceErrors(err)
 	}
 
-	bc, err := op.ResultCursor(driver.CursorOptions{})
+	bc, err := op.ResultCursor()
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
