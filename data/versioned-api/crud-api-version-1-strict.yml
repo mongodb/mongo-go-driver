@@ -3,7 +3,7 @@ description: "CRUD Api Version 1 (strict)"
 schemaVersion: "1.1"
 
 runOnRequirements:
-  - minServerVersion: "4.7"
+  - minServerVersion: "4.9"
 
 createEntities:
   - client:
@@ -116,7 +116,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: 2 }, u: { $inc: { x: 1 } } }
+                  - q: { _id: 2 }
+                    u: { $inc: { x: 1 } }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: { $$unsetOrMatches: false }
                 <<: *expectedApiVersion
           - commandStartedEvent:
               command:
@@ -128,7 +131,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: { $gt: 1 } }, u: { $inc: { x: 1 } }, multi: true }
+                  - q: { _id: { $gt: 1 } }
+                    u: { $inc: { x: 1 } }
+                    multi: true
+                    upsert: { $$unsetOrMatches: false }
                 <<: *expectedApiVersion
           - commandStartedEvent:
               command:
@@ -140,7 +146,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: 4 }, u: { _id: 4, x: 44 }, upsert: true }
+                  - q: { _id: 4 }
+                    u: { _id: 4, x: 44 }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: true
                 <<: *expectedApiVersion
 
   - description: "countDocuments appends declared API version"
@@ -217,8 +226,6 @@ tests:
 
   - description: "estimatedDocumentCount appends declared API version"
     skipReason: "DRIVERS-1561 collStats is not in API version 1"
-    runOnRequirements:
-      - minServerVersion: "4.9.0" # $collStats is not used in estimatedDocumentCount on < 4.9
     operations:
       - name: estimatedDocumentCount
         object: *collection
@@ -362,7 +369,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: 4 }, u: { _id: 4, x: 44 }, upsert: true }
+                  - q: { _id: 4 }
+                    u: { _id: 4, x: 44 }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: true
                 <<: *expectedApiVersion
 
   - description: "updateMany appends declared API version"
@@ -379,7 +389,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: { $gt: 1 } }, u: { $inc: { x: 1 } }, multi: true }
+                  - q: { _id: { $gt: 1 } }
+                    u: { $inc: { x: 1 } }
+                    multi: true
+                    upsert: { $$unsetOrMatches: false }
                 <<: *expectedApiVersion
 
   - description: "updateOne appends declared API version"
@@ -396,5 +409,8 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: 2 }, u: { $inc: { x: 1 } } }
+                  - q: { _id: 2 }
+                    u: { $inc: { x: 1 } }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: { $$unsetOrMatches: false }
                 <<: *expectedApiVersion

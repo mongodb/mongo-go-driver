@@ -3,7 +3,7 @@ description: "CRUD Api Version 1"
 schemaVersion: "1.1"
 
 runOnRequirements:
-  - minServerVersion: "4.7"
+  - minServerVersion: "4.9"
 
 createEntities:
   - client:
@@ -116,7 +116,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: 2 }, u: { $inc: { x: 1 } } }
+                  - q: { _id: 2 }
+                    u: { $inc: { x: 1 } }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: { $$unsetOrMatches: false }
                 <<: *expectedApiVersion
           - commandStartedEvent:
               command:
@@ -128,7 +131,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: { $gt: 1 } }, u: { $inc: { x: 1 } }, multi: true }
+                  - q: { _id: { $gt: 1 } }
+                    u: { $inc: { x: 1 } }
+                    multi: true
+                    upsert: { $$unsetOrMatches: false }
                 <<: *expectedApiVersion
           - commandStartedEvent:
               command:
@@ -140,7 +146,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: 4 }, u: { _id: 4, x: 44 }, upsert: true }
+                  - q: { _id: 4 }
+                    u: { _id: 4, x: 44 }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: true
                 <<: *expectedApiVersion
 
   - description: "countDocuments appends declared API version"
@@ -209,24 +218,7 @@ tests:
                 key: x
                 <<: *expectedApiVersion
 
-  - description: "estimatedDocumentCount appends declared API version on less than 4.9.0"
-    runOnRequirements:
-      - maxServerVersion: "4.8.99"
-    operations:
-      - name: estimatedDocumentCount
-        object: *collection
-        arguments: {}
-    expectEvents:
-      - client: *client
-        events:
-          - commandStartedEvent:
-              command:
-                count: *collectionName
-                <<: *expectedApiVersion
-
   - description: "estimatedDocumentCount appends declared API version on 4.9.0 or greater"
-    runOnRequirements:
-      - minServerVersion: "4.9.0"
     operations:
       - name: estimatedDocumentCount
         object: *collection
@@ -370,7 +362,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: 4 }, u: { _id: 4, x: 44 }, upsert: true }
+                  - q: { _id: 4 }
+                    u: { _id: 4, x: 44 }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: true
                 <<: *expectedApiVersion
 
   - description: "updateMany appends declared API version"
@@ -387,7 +382,10 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: { $gt: 1 } }, u: { $inc: { x: 1 } }, multi: true }
+                  - q: { _id: { $gt: 1 } }
+                    u: { $inc: { x: 1 } }
+                    multi: true
+                    upsert: { $$unsetOrMatches: false }
                 <<: *expectedApiVersion
 
   - description: "updateOne appends declared API version"
@@ -404,5 +402,8 @@ tests:
               command:
                 update: *collectionName
                 updates:
-                  - { q: { _id: 2 }, u: { $inc: { x: 1 } } }
+                  - q: { _id: 2 }
+                    u: { $inc: { x: 1 } }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: { $$unsetOrMatches: false }
                 <<: *expectedApiVersion
