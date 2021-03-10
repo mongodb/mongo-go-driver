@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type CommandMonitoringEvent struct {
+type commandMonitoringEvent struct {
 	CommandStartedEvent *struct {
 		Command      bson.Raw `bson:"command"`
 		CommandName  *string  `bson:"commandName"`
@@ -31,13 +31,13 @@ type CommandMonitoringEvent struct {
 	} `bson:"commandFailedEvent"`
 }
 
-type ExpectedEvents struct {
+type expectedEvents struct {
 	ClientID string                   `bson:"client"`
-	Events   []CommandMonitoringEvent `bson:"events"`
+	Events   []commandMonitoringEvent `bson:"events"`
 }
 
-func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
-	client, err := Entities(ctx).Client(expectedEvents.ClientID)
+func verifyEvents(ctx context.Context, expectedEvents *expectedEvents) error {
+	client, err := entities(ctx).client(expectedEvents.ClientID)
 	if err != nil {
 		return err
 	}
@@ -46,9 +46,9 @@ func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
 		return nil
 	}
 
-	started := client.StartedEvents()
-	succeeded := client.SucceededEvents()
-	failed := client.FailedEvents()
+	started := client.startedEvents()
+	succeeded := client.succeededEvents()
+	failed := client.failedEvents()
 
 	// If the Events array is nil, verify that no events were sent.
 	if len(expectedEvents.Events) == 0 && (len(started)+len(succeeded)+len(failed) != 0) {
@@ -75,9 +75,9 @@ func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
 					actual.DatabaseName)
 			}
 			if expected.Command != nil {
-				expectedDoc := DocumentToRawValue(expected.Command)
-				actualDoc := DocumentToRawValue(actual.Command)
-				if err := VerifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
+				expectedDoc := documentToRawValue(expected.Command)
+				actualDoc := documentToRawValue(actual.Command)
+				if err := verifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
 					return newEventVerificationError(idx, client, "error comparing command documents: %v", err)
 				}
 			}
@@ -95,9 +95,9 @@ func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
 					actual.CommandName)
 			}
 			if expected.Reply != nil {
-				expectedDoc := DocumentToRawValue(expected.Reply)
-				actualDoc := DocumentToRawValue(actual.Reply)
-				if err := VerifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
+				expectedDoc := documentToRawValue(expected.Reply)
+				actualDoc := documentToRawValue(actual.Reply)
+				if err := verifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
 					return newEventVerificationError(idx, client, "error comparing reply documents: %v", err)
 				}
 			}
@@ -115,7 +115,7 @@ func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
 					actual.CommandName)
 			}
 		default:
-			return newEventVerificationError(idx, client, "no expected event set on CommandMonitoringEvent instance")
+			return newEventVerificationError(idx, client, "no expected event set on commandMonitoringEvent instance")
 		}
 	}
 
@@ -126,27 +126,27 @@ func VerifyEvents(ctx context.Context, expectedEvents *ExpectedEvents) error {
 	return nil
 }
 
-func newEventVerificationError(idx int, client *ClientEntity, msg string, args ...interface{}) error {
+func newEventVerificationError(idx int, client *clientEntity, msg string, args ...interface{}) error {
 	fullMsg := fmt.Sprintf(msg, args...)
 	return fmt.Errorf("event comparison failed at index %d: %s; all events found for client: %s", idx, fullMsg,
 		stringifyEventsForClient(client))
 }
 
-func stringifyEventsForClient(client *ClientEntity) string {
+func stringifyEventsForClient(client *clientEntity) string {
 	str := bytes.NewBuffer(nil)
 
 	str.WriteString("\n\nStarted Events\n\n")
-	for _, evt := range client.StartedEvents() {
+	for _, evt := range client.startedEvents() {
 		str.WriteString(fmt.Sprintf("[%s] %s\n", evt.ConnectionID, evt.Command))
 	}
 
 	str.WriteString("\nSucceeded Events\n\n")
-	for _, evt := range client.SucceededEvents() {
+	for _, evt := range client.succeededEvents() {
 		str.WriteString(fmt.Sprintf("[%s] CommandName: %s, Reply: %s\n", evt.ConnectionID, evt.CommandName, evt.Reply))
 	}
 
 	str.WriteString("\nFailed Events\n\n")
-	for _, evt := range client.FailedEvents() {
+	for _, evt := range client.failedEvents() {
 		str.WriteString(fmt.Sprintf("[%s] CommandName: %s, Failure: %s\n", evt.ConnectionID, evt.CommandName, evt.Failure))
 	}
 

@@ -20,14 +20,14 @@ var (
 	emptyRawValue     = bson.RawValue{}
 )
 
-func DocumentToRawValue(doc bson.Raw) bson.RawValue {
+func documentToRawValue(doc bson.Raw) bson.RawValue {
 	return bson.RawValue{
 		Type:  bsontype.EmbeddedDocument,
 		Value: doc,
 	}
 }
 
-func RemoveFieldsFromDocument(doc bson.Raw, keys ...string) bson.Raw {
+func removeFieldsFromDocument(doc bson.Raw, keys ...string) bson.Raw {
 	newDoc := bsoncore.NewDocumentBuilder()
 	elems, _ := doc.Elements()
 
@@ -47,7 +47,7 @@ func RemoveFieldsFromDocument(doc bson.Raw, keys ...string) bson.Raw {
 	return bson.Raw(newDoc.Build())
 }
 
-func SortDocument(doc bson.Raw) bson.Raw {
+func sortDocument(doc bson.Raw) bson.Raw {
 	elems, _ := doc.Elements()
 	keys := make([]string, 0, len(elems))
 	valuesMap := make(map[string]bson.RawValue)
@@ -66,11 +66,11 @@ func SortDocument(doc bson.Raw) bson.Raw {
 	return bson.Raw(sorted.Build())
 }
 
-func LookupString(doc bson.Raw, key string) string {
+func lookupString(doc bson.Raw, key string) string {
 	return doc.Lookup(key).StringValue()
 }
 
-func MapKeys(m map[string]interface{}) []string {
+func mapKeys(m map[string]interface{}) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

@@ -17,8 +17,8 @@ import (
 
 // This file contains helpers to execute database operations.
 
-func executeCreateCollection(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	db, err := Entities(ctx).Database(operation.Object)
+func executeCreateCollection(ctx context.Context, operation *operation) (*operationResult, error) {
+	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -41,11 +41,11 @@ func executeCreateCollection(ctx context.Context, operation *Operation) (*Operat
 	}
 
 	err = db.CreateCollection(ctx, collName)
-	return NewErrorResult(err), nil
+	return newErrorResult(err), nil
 }
 
-func executeDropCollection(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	db, err := Entities(ctx).Database(operation.Object)
+func executeDropCollection(ctx context.Context, operation *operation) (*operationResult, error) {
+	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -68,11 +68,11 @@ func executeDropCollection(ctx context.Context, operation *Operation) (*Operatio
 	}
 
 	err = db.Collection(collName).Drop(ctx)
-	return NewErrorResult(err), nil
+	return newErrorResult(err), nil
 }
 
-func executeListCollections(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	db, err := Entities(ctx).Database(operation.Object)
+func executeListCollections(ctx context.Context, operation *operation) (*operationResult, error) {
+	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -84,19 +84,19 @@ func executeListCollections(ctx context.Context, operation *Operation) (*Operati
 
 	cursor, err := db.ListCollections(ctx, listCollArgs.filter, listCollArgs.opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 	defer cursor.Close(ctx)
 
 	var docs []bson.Raw
 	if err := cursor.All(ctx, &cursor); err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
-	return NewCursorResult(docs), nil
+	return newCursorResult(docs), nil
 }
 
-func executeListCollectionNames(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	db, err := Entities(ctx).Database(operation.Object)
+func executeListCollectionNames(ctx context.Context, operation *operation) (*operationResult, error) {
+	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -108,17 +108,17 @@ func executeListCollectionNames(ctx context.Context, operation *Operation) (*Ope
 
 	names, err := db.ListCollectionNames(ctx, listCollArgs.filter, listCollArgs.opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 	_, data, err := bson.MarshalValue(names)
 	if err != nil {
 		return nil, fmt.Errorf("error converting collection names slice to BSON: %v", err)
 	}
-	return NewValueResult(bsontype.Array, data, nil), nil
+	return newValueResult(bsontype.Array, data, nil), nil
 }
 
-func executeRunCommand(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	db, err := Entities(ctx).Database(operation.Object)
+func executeRunCommand(ctx context.Context, operation *operation) (*operationResult, error) {
+	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -163,5 +163,5 @@ func executeRunCommand(ctx context.Context, operation *Operation) (*OperationRes
 	}
 
 	res, err := db.RunCommand(ctx, command, opts).DecodeBytes()
-	return NewDocumentResult(res, err), nil
+	return newDocumentResult(res, err), nil
 }

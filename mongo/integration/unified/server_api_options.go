@@ -13,34 +13,34 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// ServerAPIOptions is a wrapper for *options.ServerAPIOptions. This type implements the bson.Unmarshaler interface
-// to convert BSON documents to a ServerAPIOptions instance.
-type ServerAPIOptions struct {
+// serverAPIOptions is a wrapper for *options.ServerAPIOptions. This type implements the bson.Unmarshaler interface
+// to convert BSON documents to a serverAPIOptions instance.
+type serverAPIOptions struct {
 	*options.ServerAPIOptions
 }
 
-type ServerAPIVersion = options.ServerAPIVersion
+type serverAPIVersion = options.ServerAPIVersion
 
-var _ bson.Unmarshaler = (*ServerAPIOptions)(nil)
+var _ bson.Unmarshaler = (*serverAPIOptions)(nil)
 
-func (s *ServerAPIOptions) UnmarshalBSON(data []byte) error {
+func (s *serverAPIOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		ServerAPIVersion  ServerAPIVersion       `bson:"version"`
+		serverAPIVersion  serverAPIVersion       `bson:"version"`
 		DeprecationErrors *bool                  `bson:"deprecationErrors"`
 		Strict            *bool                  `bson:"strict"`
 		Extra             map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
-		return fmt.Errorf("error unmarshalling to temporary ServerAPIOptions object: %v", err)
+		return fmt.Errorf("error unmarshalling to temporary serverAPIOptions object: %v", err)
 	}
 	if len(temp.Extra) > 0 {
-		return fmt.Errorf("unrecognized fields for ServerAPIOptions: %v", MapKeys(temp.Extra))
+		return fmt.Errorf("unrecognized fields for serverAPIOptions: %v", mapKeys(temp.Extra))
 	}
 
-	if err := temp.ServerAPIVersion.Validate(); err != nil {
+	if err := temp.serverAPIVersion.Validate(); err != nil {
 		return err
 	}
-	s.ServerAPIOptions = options.ServerAPI(temp.ServerAPIVersion)
+	s.ServerAPIOptions = options.ServerAPI(temp.serverAPIVersion)
 	if temp.DeprecationErrors != nil {
 		s.SetDeprecationErrors(*temp.DeprecationErrors)
 	}

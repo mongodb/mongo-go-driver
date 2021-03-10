@@ -16,13 +16,13 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-func executeTestRunnerOperation(ctx context.Context, operation *Operation) error {
+func executeTestRunnerOperation(ctx context.Context, operation *operation) error {
 	args := operation.Arguments
 
 	switch operation.Name {
 	case "failPoint":
-		clientID := LookupString(args, "client")
-		client, err := Entities(ctx).Client(clientID)
+		clientID := lookupString(args, "client")
+		client, err := entities(ctx).client(clientID)
 		if err != nil {
 			return err
 		}
@@ -31,10 +31,10 @@ func executeTestRunnerOperation(ctx context.Context, operation *Operation) error
 		if err := mtest.SetRawFailPoint(fpDoc, client.Client); err != nil {
 			return err
 		}
-		return AddFailPoint(ctx, fpDoc.Index(0).Value().StringValue(), client.Client)
+		return addFailPoint(ctx, fpDoc.Index(0).Value().StringValue(), client.Client)
 	case "targetedFailPoint":
-		sessID := LookupString(args, "session")
-		sess, err := Entities(ctx).Session(sessID)
+		sessID := lookupString(args, "session")
+		sess, err := entities(ctx).session(sessID)
 		if err != nil {
 			return err
 		}
@@ -50,19 +50,19 @@ func executeTestRunnerOperation(ctx context.Context, operation *Operation) error
 			return mtest.SetRawFailPoint(fpDoc, client)
 		}
 
-		if err := RunCommandOnHost(ctx, targetHost, commandFn); err != nil {
+		if err := runCommandOnHost(ctx, targetHost, commandFn); err != nil {
 			return err
 		}
-		return AddTargetedFailPoint(ctx, fpDoc.Index(0).Value().StringValue(), targetHost)
+		return addTargetedFailPoint(ctx, fpDoc.Index(0).Value().StringValue(), targetHost)
 	case "assertSessionTransactionState":
-		sessID := LookupString(args, "session")
-		sess, err := Entities(ctx).Session(sessID)
+		sessID := lookupString(args, "session")
+		sess, err := entities(ctx).session(sessID)
 		if err != nil {
 			return err
 		}
 
 		var expectedState session.TransactionState
-		switch stateStr := LookupString(args, "state"); stateStr {
+		switch stateStr := lookupString(args, "state"); stateStr {
 		case "none":
 			expectedState = session.None
 		case "starting":
@@ -82,34 +82,34 @@ func executeTestRunnerOperation(ctx context.Context, operation *Operation) error
 		}
 		return nil
 	case "assertSessionPinned":
-		return verifySessionPinnedState(ctx, LookupString(args, "session"), true)
+		return verifySessionPinnedState(ctx, lookupString(args, "session"), true)
 	case "assertSessionUnpinned":
-		return verifySessionPinnedState(ctx, LookupString(args, "session"), false)
+		return verifySessionPinnedState(ctx, lookupString(args, "session"), false)
 	case "assertSameLsidOnLastTwoCommands":
-		return verifyLastTwoLsidsEqual(ctx, LookupString(args, "client"), true)
+		return verifyLastTwoLsidsEqual(ctx, lookupString(args, "client"), true)
 	case "assertDifferentLsidOnLastTwoCommands":
-		return verifyLastTwoLsidsEqual(ctx, LookupString(args, "client"), false)
+		return verifyLastTwoLsidsEqual(ctx, lookupString(args, "client"), false)
 	case "assertSessionDirty":
-		return verifySessionDirtyState(ctx, LookupString(args, "session"), true)
+		return verifySessionDirtyState(ctx, lookupString(args, "session"), true)
 	case "assertSessionNotDirty":
-		return verifySessionDirtyState(ctx, LookupString(args, "session"), false)
+		return verifySessionDirtyState(ctx, lookupString(args, "session"), false)
 	case "assertCollectionExists":
-		db := LookupString(args, "databaseName")
-		coll := LookupString(args, "collectionName")
+		db := lookupString(args, "databaseName")
+		coll := lookupString(args, "collectionName")
 		return verifyCollectionExists(ctx, db, coll, true)
 	case "assertCollectionNotExists":
-		db := LookupString(args, "databaseName")
-		coll := LookupString(args, "collectionName")
+		db := lookupString(args, "databaseName")
+		coll := lookupString(args, "collectionName")
 		return verifyCollectionExists(ctx, db, coll, false)
 	case "assertIndexExists":
-		db := LookupString(args, "databaseName")
-		coll := LookupString(args, "collectionName")
-		index := LookupString(args, "indexName")
+		db := lookupString(args, "databaseName")
+		coll := lookupString(args, "collectionName")
+		index := lookupString(args, "indexName")
 		return verifyIndexExists(ctx, db, coll, index, true)
 	case "assertIndexNotExists":
-		db := LookupString(args, "databaseName")
-		coll := LookupString(args, "collectionName")
-		index := LookupString(args, "indexName")
+		db := lookupString(args, "databaseName")
+		coll := lookupString(args, "collectionName")
+		index := lookupString(args, "indexName")
 		return verifyIndexExists(ctx, db, coll, index, false)
 	default:
 		return fmt.Errorf("unrecognized testRunner operation %q", operation.Name)
@@ -121,7 +121,7 @@ func extractClientSession(sess mongo.Session) *session.Client {
 }
 
 func verifySessionPinnedState(ctx context.Context, sessionID string, expectedPinned bool) error {
-	sess, err := Entities(ctx).Session(sessionID)
+	sess, err := entities(ctx).session(sessionID)
 	if err != nil {
 		return err
 	}
@@ -133,12 +133,12 @@ func verifySessionPinnedState(ctx context.Context, sessionID string, expectedPin
 }
 
 func verifyLastTwoLsidsEqual(ctx context.Context, clientID string, expectedEqual bool) error {
-	client, err := Entities(ctx).Client(clientID)
+	client, err := entities(ctx).client(clientID)
 	if err != nil {
 		return err
 	}
 
-	allEvents := client.StartedEvents()
+	allEvents := client.startedEvents()
 	if len(allEvents) < 2 {
 		return fmt.Errorf("client has recorded fewer than two command started events")
 	}
@@ -164,7 +164,7 @@ func verifyLastTwoLsidsEqual(ctx context.Context, clientID string, expectedEqual
 }
 
 func verifySessionDirtyState(ctx context.Context, sessionID string, expectedDirty bool) error {
-	sess, err := Entities(ctx).Session(sessionID)
+	sess, err := entities(ctx).session(sessionID)
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func verifyIndexExists(ctx context.Context, dbName, collName, indexName string, 
 
 	var exists bool
 	for cursor.Next(ctx) {
-		if LookupString(cursor.Current, "name") == indexName {
+		if lookupString(cursor.Current, "name") == indexName {
 			exists = true
 			break
 		}

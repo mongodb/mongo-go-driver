@@ -14,8 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-// OperationResult holds the result and/or error returned by an op.
-type OperationResult struct {
+// operationResult holds the result and/or error returned by an op.
+type operationResult struct {
 	// For operations that return a single result, this field holds a BSON representation.
 	Result bson.RawValue
 
@@ -27,29 +27,29 @@ type OperationResult struct {
 	Err error
 }
 
-// NewEmptyResult returns an OperationResult with no fields set. This should be used if the operation does not check
+// newEmptyResult returns an operationResult with no fields set. This should be used if the operation does not check
 // results or errors.
-func NewEmptyResult() *OperationResult {
-	return &OperationResult{}
+func newEmptyResult() *operationResult {
+	return &operationResult{}
 }
 
-// NewDocumentResult is a helper to create a value result where the value is a BSON document.
-func NewDocumentResult(result []byte, err error) *OperationResult {
-	return NewValueResult(bsontype.EmbeddedDocument, result, err)
+// newDocumentResult is a helper to create a value result where the value is a BSON document.
+func newDocumentResult(result []byte, err error) *operationResult {
+	return newValueResult(bsontype.EmbeddedDocument, result, err)
 }
 
-// NewValueResult creates an OperationResult where the result is a BSON value of an arbitrary type. Because some
+// newValueResult creates an operationResult where the result is a BSON value of an arbitrary type. Because some
 // operations can return both a result and an error (e.g. bulkWrite), the err parameter should be the error returned
 // by the op, if any.
-func NewValueResult(valueType bsontype.Type, data []byte, err error) *OperationResult {
-	return &OperationResult{
+func newValueResult(valueType bsontype.Type, data []byte, err error) *operationResult {
+	return &operationResult{
 		Result: bson.RawValue{Type: valueType, Value: data},
 		Err:    err,
 	}
 }
 
-// NewCursorResult creates an OperationResult that contains documents retrieved by fully iterating a cursor.
-func NewCursorResult(arr []bson.Raw) *OperationResult {
+// newCursorResult creates an operationResult that contains documents retrieved by fully iterating a cursor.
+func newCursorResult(arr []bson.Raw) *operationResult {
 	// If the operation returned no documents, the array might be nil. It isn't possible to distinguish between this
 	// case and the case where there is no cursor result, so we overwrite the result with an non-nil empty slice.
 	result := arr
@@ -57,20 +57,21 @@ func NewCursorResult(arr []bson.Raw) *OperationResult {
 		result = make([]bson.Raw, 0)
 	}
 
-	return &OperationResult{
+	return &operationResult{
 		CursorResult: result,
 	}
 }
 
-// NewErrorResult creates an OperationResult that only holds an error. This should only be used when executing an
+// newErrorResult creates an operationResult that only holds an error. This should only be used when executing an
 // operation that can return a result or an error, but not both.
-func NewErrorResult(err error) *OperationResult {
-	return &OperationResult{
+func newErrorResult(err error) *operationResult {
+	return &operationResult{
 		Err: err,
 	}
 }
 
-func VerifyOperationResult(ctx context.Context, expected bson.RawValue, actual *OperationResult) error {
+// verifyOperationResult checks that the actual and expected results match
+func verifyOperationResult(ctx context.Context, expected bson.RawValue, actual *operationResult) error {
 	actualVal := actual.Result
 	if actual.CursorResult != nil {
 		_, data, err := bson.MarshalValue(actual.CursorResult)
@@ -88,5 +89,5 @@ func VerifyOperationResult(ctx context.Context, expected bson.RawValue, actual *
 	// top-level keys. Single-value array results (e.g. from distinct) must match exactly, so we set extraKeysAllowed to
 	// false only for that case.
 	extraKeysAllowed := actual.Result.Type != bsontype.Array
-	return VerifyValuesMatch(ctx, expected, actualVal, extraKeysAllowed)
+	return verifyValuesMatch(ctx, expected, actualVal, extraKeysAllowed)
 }

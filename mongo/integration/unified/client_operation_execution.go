@@ -20,18 +20,18 @@ import (
 
 // This file contains helpers to execute client operations.
 
-func executeCreateChangeStream(ctx context.Context, operation *Operation) (*OperationResult, error) {
+func executeCreateChangeStream(ctx context.Context, operation *operation) (*operationResult, error) {
 	var watcher interface {
 		Watch(context.Context, interface{}, ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error)
 	}
 	var err error
 
-	watcher, err = Entities(ctx).Client(operation.Object)
+	watcher, err = entities(ctx).client(operation.Object)
 	if err != nil {
-		watcher, err = Entities(ctx).Database(operation.Object)
+		watcher, err = entities(ctx).database(operation.Object)
 	}
 	if err != nil {
-		watcher, err = Entities(ctx).Collection(operation.Object)
+		watcher, err = entities(ctx).collection(operation.Object)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("no client, database, or collection entity found with ID %q", operation.Object)
@@ -84,20 +84,20 @@ func executeCreateChangeStream(ctx context.Context, operation *Operation) (*Oper
 
 	stream, err := watcher.Watch(ctx, pipeline, opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 
 	if operation.ResultEntityID == nil {
 		return nil, fmt.Errorf("no entity name provided to store executeChangeStream result")
 	}
-	if err := Entities(ctx).AddChangeStreamEntity(*operation.ResultEntityID, stream); err != nil {
+	if err := entities(ctx).addChangeStreamEntity(*operation.ResultEntityID, stream); err != nil {
 		return nil, fmt.Errorf("error storing result as changeStream entity: %v", err)
 	}
-	return NewEmptyResult(), nil
+	return newEmptyResult(), nil
 }
 
-func executeListDatabases(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	client, err := Entities(ctx).Client(operation.Object)
+func executeListDatabases(ctx context.Context, operation *operation) (*operationResult, error) {
+	client, err := entities(ctx).client(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func executeListDatabases(ctx context.Context, operation *Operation) (*Operation
 
 	res, err := client.ListDatabases(ctx, filter, opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 
 	specsArray := bsoncore.NewArrayBuilder()
@@ -143,5 +143,5 @@ func executeListDatabases(ctx context.Context, operation *Operation) (*Operation
 		AppendArray("databases", specsArray.Build()).
 		AppendInt64("totalSize", res.TotalSize).
 		Build()
-	return NewDocumentResult(raw, nil), nil
+	return newDocumentResult(raw, nil), nil
 }
