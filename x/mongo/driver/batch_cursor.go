@@ -23,7 +23,7 @@ type BatchCursor struct {
 	id                   int64
 	err                  error
 	server               Server
-	errorProcessor       ErrorProcessor
+	errorProcessor       ErrorProcessor // This will only be set when pinning to a connection.
 	connection           PinnedConnection
 	batchSize            int32
 	maxTimeMS            int64
@@ -44,7 +44,7 @@ type BatchCursor struct {
 // be constructed from a CursorResponse.
 type CursorResponse struct {
 	Server               Server
-	ErrorProcessor       ErrorProcessor
+	ErrorProcessor       ErrorProcessor // This will only be set when pinning to a connection.
 	Connection           PinnedConnection
 	Desc                 description.Server
 	FirstBatch           *bsoncore.DocumentSequence
@@ -67,13 +67,6 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 		return CursorResponse{}, err
 	}
 	curresp := CursorResponse{Server: info.Server, Desc: info.ConnectionDescription}
-
-	// Cache the server as an ErrorProcessor to use when constructing deployments for cursor commands.
-	ep, ok := curresp.Server.(ErrorProcessor)
-	if !ok {
-		return CursorResponse{}, fmt.Errorf("expected Server used to establish a cursor to implement ErrorProcessor, but got %T", curresp.Server)
-	}
-	curresp.ErrorProcessor = ep
 
 	for _, elem := range elems {
 		switch elem.Key() {
@@ -110,6 +103,13 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 	// If the deployment is behind a load balancer and the cursor has a non-zero ID, pin the cursor to a connection and
 	// use the same connection to execute getMore and killCursors commands.
 	if curresp.Desc.ServerID != nil && curresp.ID != 0 {
+		// Cache the server as an ErrorProcessor to use when constructing deployments for cursor commands.
+		ep, ok := curresp.Server.(ErrorProcessor)
+		if !ok {
+			return CursorResponse{}, fmt.Errorf("expected Server used to establish a cursor to implement ErrorProcessor, but got %T", curresp.Server)
+		}
+		curresp.ErrorProcessor = ep
+
 		refConn, ok := info.Connection.(PinnedConnection)
 		if !ok {
 			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement ReferencedConnection, but got %T", info.Connection)
@@ -404,6 +404,9 @@ func (bc *BatchCursor) getOperationDeployment() Deployment {
 	return SingleServerDeployment{bc.server}
 }
 
+// loadBalancedCursorDeployment is used as a Deployment for getMore and killCursors commands when pinning to a
+// connection in load balanced mode. This type also functions as an ErrorProcessor to ensure that SDAM errors are
+// handled for these commands in this mode.
 type loadBalancedCursorDeployment struct {
 	errorProcessor ErrorProcessor
 	conn           PinnedConnection
