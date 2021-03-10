@@ -76,7 +76,7 @@ func (f *Find) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
 
 func (f *Find) processResponse(info driver.ResponseInfo) error {
 	var err error
-	f.result, err = driver.NewCursorResponse(info.ServerResponse, info.Server, info.ConnectionDescription)
+	f.result, err = driver.NewCursorResponse(info)
 	return err
 }
 

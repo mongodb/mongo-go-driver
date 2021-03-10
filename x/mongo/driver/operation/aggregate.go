@@ -74,7 +74,7 @@ func (a *Aggregate) ResultCursorResponse() driver.CursorResponse {
 func (a *Aggregate) processResponse(info driver.ResponseInfo) error {
 	var err error
 
-	a.result, err = driver.NewCursorResponse(info.ServerResponse, info.Server, info.ConnectionDescription)
+	a.result, err = driver.NewCursorResponse(info)
 	return err
 
 }

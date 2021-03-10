@@ -55,6 +55,24 @@ type Connection interface {
 	Stale() bool
 }
 
+// PinnedConnection represents a Connection that can be pinned by one or more cursors or transactions. Implementations
+// of this interface should maintain the following invariants:
+//
+// 1. Each Pin* call should increment the number of references for the connection.
+// 2. Each Unpin* call should decrement the number of references for the connection.
+// 3. Calls to Close() should be ignored until all resources have unpinned the connection.
+// 4. Calls to Expire() should forcefully close the connection even if there are references that have not been unpinned.
+// This method should be used to indicate that a PinnedConnection is no longer valid. Unpin* calls after Expire has
+// been called should be ignored.
+type PinnedConnection interface {
+	Connection
+	Expirable
+	PinToCursor() error
+	PinToTransaction() error
+	UnpinFromCursor() error
+	UnpinFromTransaction() error
+}
+
 // LocalAddresser is a type that is able to supply its local address
 type LocalAddresser interface {
 	LocalAddress() address.Address
