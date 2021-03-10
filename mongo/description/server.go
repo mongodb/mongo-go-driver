@@ -336,6 +336,11 @@ func (s Server) DataBearing() bool {
 		s.Kind == Standalone
 }
 
+// LoadBalanced returns true if the server is a load balancer or is behind a load balancer.
+func (s Server) LoadBalanced() bool {
+	return s.Kind == LoadBalancer || s.ServerID != nil
+}
+
 // String implements the Stringer interface
 func (s Server) String() string {
 	str := fmt.Sprintf("Addr: %s, Type: %s",

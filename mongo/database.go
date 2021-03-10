@@ -133,7 +133,7 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 }
 
 func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
-	createCursor bool, opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
+	cursorCommand bool, opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
 		var err error
@@ -166,7 +166,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	}
 
 	createCmdFn := operation.NewCommand
-	if createCursor {
+	if cursorCommand {
 		createCmdFn = operation.NewCursorCommand
 	}
 	return createCmdFn(runCmdDoc).

@@ -102,7 +102,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 
 	// If the deployment is behind a load balancer and the cursor has a non-zero ID, pin the cursor to a connection and
 	// use the same connection to execute getMore and killCursors commands.
-	if curresp.Desc.ServerID != nil && curresp.ID != 0 {
+	if curresp.Desc.LoadBalanced() && curresp.ID != 0 {
 		// Cache the server as an ErrorProcessor to use when constructing deployments for cursor commands.
 		ep, ok := curresp.Server.(ErrorProcessor)
 		if !ok {
@@ -112,7 +112,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 
 		refConn, ok := info.Connection.(PinnedConnection)
 		if !ok {
-			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement ReferencedConnection, but got %T", info.Connection)
+			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement PinnedConnection, but got %T", info.Connection)
 		}
 		if err := refConn.PinToCursor(); err != nil {
 			return CursorResponse{}, fmt.Errorf("error incrementing connection reference count when creating a cursor: %v", err)
