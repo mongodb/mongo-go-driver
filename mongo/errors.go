@@ -85,12 +85,10 @@ func replaceErrors(err error) error {
 
 // IsDuplicateKeyError returns true if err is a duplicate key error
 func IsDuplicateKeyError(err error) bool {
-	// handles SERVER-7164 and SERVER-11493
+	// handles SERVER-7164
 	for ; err != nil; err = unwrap(err) {
 		if e, ok := err.(ServerError); ok {
-			noCode := e.HasErrorCode(0)
-			return e.HasErrorCode(11000) || e.HasErrorCode(11001) || e.HasErrorCode(12582) ||
-				noCode && e.HasErrorMessage(" E11000 ")
+			return e.HasErrorCode(11000) || e.HasErrorCode(11001) || e.HasErrorCode(12582)
 		}
 	}
 	return false
