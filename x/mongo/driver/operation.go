@@ -224,6 +224,44 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 	return op.Deployment.SelectServer(ctx, selector)
 }
 
+// getServerAndConnection should be used to retrieve a Server and Connection to execute an operation.
+func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connection, error) {
+	server, err := op.selectServer(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// If the provided client session has a pinned connection, it should be used for the operation because this
+	// indicates that we're in a transaction and the target server is behind a load balancer.
+	if op.Client != nil && op.Client.PinnedConnection != nil {
+		return server, op.Client.PinnedConnection, nil
+	}
+
+	// Otherwise, default to checking out a connection from the server's pool.
+	conn, err := server.Connection(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// If we're in load balanced mode and this is the first operation in a transaction, pin the session to a connection.
+	if conn.Description().LoadBalanced() && op.Client != nil && op.Client.TransactionStarting() {
+		pinnedConn, ok := conn.(PinnedConnection)
+		if !ok {
+			// Close the original connection to avoid a leak.
+			_ = conn.Close()
+			return nil, nil, fmt.Errorf("expected Connection used to start a transaction to be a PinnedConnection, but got %T", conn)
+		}
+		if err := pinnedConn.PinToTransaction(); err != nil {
+			// Close the original connection to avoid a leak.
+			_ = conn.Close()
+			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %v", err)
+		}
+		op.Client.PinnedConnection = pinnedConn
+	}
+
+	return server, conn, nil
+}
+
 // Validate validates this operation, ensuring the fields are set properly.
 func (op Operation) Validate() error {
 	if op.CommandFn == nil {
@@ -249,12 +287,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		return err
 	}
 
-	srvr, err := op.selectServer(ctx)
-	if err != nil {
-		return err
-	}
-
-	conn, err := srvr.Connection(ctx)
+	srvr, conn, err := op.getServerAndConnection(ctx)
 	if err != nil {
 		return err
 	}
@@ -386,6 +419,26 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			_ = ep.ProcessError(err, conn)
 		}
 
+		// If we're executing a load-balanced transcation and encountered a network error, the pinned connection should
+		// be unpinned. We call ExpirePinnedConnection to ensure that the connection is closed and returned to the
+		// pool for bookkeeping. Future AbortTransaction calls will check out a new connection, which is desired. We
+		// do this before any other checks to make sure we release the invalidated connection even though other
+		// resources may be holding references to it.
+		if op.Client != nil && op.Client.PinnedConnection != nil {
+			if driverErr, ok := err.(Error); ok && driverErr.NetworkError() {
+				_ = op.Client.ExpirePinnedConnection()
+			}
+		}
+
+		// If we're executing a load-balanced transaction and are committing/aborting, unpin the session's connection.
+		// This has to be done before entering the retryability logic because commit/abort attempts are retryable on a
+		// different mongos, so we want to allow for the possibility of checking out a new connection for the retry.
+		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) && op.Client.PinnedConnection != nil {
+			if err := op.Client.UnpinConnection(); err != nil {
+				return err
+			}
+		}
+
 		finishedInfo.response = res
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
@@ -412,11 +465,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
-				srvr, err = op.selectServer(ctx)
-				if err != nil {
-					return original
-				}
-				conn, err = srvr.Connection(ctx)
+				srvr, conn, err = op.getServerAndConnection(ctx)
 				if err != nil || conn == nil || !op.retryable(conn.Description()) {
 					if conn != nil {
 						conn.Close()
@@ -505,11 +554,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				retries--
 				original, err = err, nil
 				conn.Close() // Avoid leaking the connection.
-				srvr, err = op.selectServer(ctx)
-				if err != nil {
-					return original
-				}
-				conn, err = srvr.Connection(ctx)
+				srvr, conn, err = op.getServerAndConnection(ctx)
 				if err != nil || conn == nil || !op.retryable(conn.Description()) {
 					if conn != nil {
 						conn.Close()
