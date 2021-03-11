@@ -370,7 +370,7 @@ func TestErrors(t *testing.T) {
 					mongo.BulkWriteException{
 						&mongo.WriteConcernError{"name", 100, "bar", nil},
 						[]mongo.BulkWriteError{
-							{mongo.WriteError{0, 16460, "blah  E11000 blah"}, &mongo.InsertOneModel{}},
+							{mongo.WriteError{0, 0, "blah  E11000 blah"}, &mongo.InsertOneModel{}},
 						},
 						[]string{"otherError"},
 					},

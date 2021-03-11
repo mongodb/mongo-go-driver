@@ -14,7 +14,7 @@ import (
 var (
 	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001, 262}
 	nodeIsRecoveringCodes   = []int32{11600, 11602, 13436, 189, 91}
-	notMasterCodes          = []int32{10107, 13435}
+	notMasterCodes          = []int32{10107, 13435, 10058}
 	nodeIsShuttingDownCodes = []int32{11600, 91}
 
 	unknownReplWriteConcernCode   = int32(79)
@@ -87,7 +87,9 @@ type WriteCommandError struct {
 // against a server that has a storage engine where they are not supported
 func (wce WriteCommandError) UnsupportedStorageEngine() bool {
 	for _, writeError := range wce.WriteErrors {
-		if writeError.Code == 20 && strings.HasPrefix(strings.ToLower(writeError.Message), "transaction numbers") {
+		noCode := writeError.Code == 0
+		if writeError.Code == 20 ||
+			noCode && strings.HasPrefix(strings.ToLower(writeError.Message), "transaction numbers") {
 			return true
 		}
 	}
@@ -155,7 +157,8 @@ func (wce WriteConcernError) NodeIsRecovering() bool {
 			return true
 		}
 	}
-	return strings.Contains(wce.Message, "node is recovering")
+	noCode := wce.Code == 0
+	return noCode && strings.Contains(wce.Message, "node is recovering")
 }
 
 // NodeIsShuttingDown returns true if this error is a node is shutting down error.
@@ -165,7 +168,8 @@ func (wce WriteConcernError) NodeIsShuttingDown() bool {
 			return true
 		}
 	}
-	return strings.Contains(wce.Message, "node is shutting down")
+	noCode := wce.Code == 0
+	return noCode && strings.Contains(wce.Message, "node is shutting down")
 }
 
 // NotMaster returns true if this error is a not master error.
@@ -175,7 +179,8 @@ func (wce WriteConcernError) NotMaster() bool {
 			return true
 		}
 	}
-	return strings.Contains(wce.Message, "not master")
+	noCode := wce.Code == 0
+	return noCode && strings.Contains(wce.Message, "not master")
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -217,7 +222,8 @@ type Error struct {
 
 // UnsupportedStorageEngine returns whether e came as a result of an unsupported storage engine
 func (e Error) UnsupportedStorageEngine() bool {
-	return e.Code == 20 && strings.HasPrefix(strings.ToLower(e.Message), "transaction numbers")
+	noCode := e.Code == 0
+	return e.Code == 20 || noCode && strings.HasPrefix(strings.ToLower(e.Message), "transaction numbers")
 }
 
 // Error implements the error interface.
@@ -297,7 +303,8 @@ func (e Error) NodeIsRecovering() bool {
 			return true
 		}
 	}
-	return strings.Contains(e.Message, "node is recovering")
+	noCode := e.Code == 0
+	return noCode && strings.Contains(e.Message, "node is recovering")
 }
 
 // NodeIsShuttingDown returns true if this error is a node is shutting down error.
@@ -307,7 +314,8 @@ func (e Error) NodeIsShuttingDown() bool {
 			return true
 		}
 	}
-	return strings.Contains(e.Message, "node is shutting down")
+	noCode := e.Code == 0
+	return noCode && strings.Contains(e.Message, "node is shutting down")
 }
 
 // NotMaster returns true if this error is a not master error.
@@ -317,12 +325,14 @@ func (e Error) NotMaster() bool {
 			return true
 		}
 	}
-	return strings.Contains(e.Message, "not master")
+	noCode := e.Code == 0
+	return noCode && strings.Contains(e.Message, "not master")
 }
 
 // NamespaceNotFound returns true if this errors is a NamespaceNotFound error.
 func (e Error) NamespaceNotFound() bool {
-	return e.Code == 26 || e.Message == "ns not found"
+	noCode := e.Code == 0
+	return e.Code == 26 || noCode && e.Message == "ns not found"
 }
 
 // helper method to extract an error from a reader if there is one; first returned item is the
