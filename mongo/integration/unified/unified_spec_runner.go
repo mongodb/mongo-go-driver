@@ -130,10 +130,10 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *testCase) {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
 		// failed and that failure should be preserved.
 
-		for _, err := range DisableUntargetedFailPoints(testCtx) {
+		for _, err := range disableUntargetedFailPoints(testCtx) {
 			mt.Log(err)
 		}
-		for _, err := range DisableTargetedFailPoints(testCtx) {
+		for _, err := range disableTargetedFailPoints(testCtx) {
 			mt.Log(err)
 		}
 		for _, err := range entities(testCtx).close(testCtx) {
@@ -206,8 +206,7 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *testCase) {
 	}
 }
 
-// DisableUntargetedFailPoints turns off untargeted fail points
-func DisableUntargetedFailPoints(ctx context.Context) []error {
+func disableUntargetedFailPoints(ctx context.Context) []error {
 	var errs []error
 	for fpName, client := range failPoints(ctx) {
 		if err := disableFailPointWithClient(ctx, fpName, client); err != nil {
@@ -217,8 +216,7 @@ func DisableUntargetedFailPoints(ctx context.Context) []error {
 	return errs
 }
 
-// DisableTargetedFailPoints turns off Targeted fail points
-func DisableTargetedFailPoints(ctx context.Context) []error {
+func disableTargetedFailPoints(ctx context.Context) []error {
 	var errs []error
 	for fpName, host := range targetedFailPoints(ctx) {
 		commandFn := func(ctx context.Context, client *mongo.Client) error {

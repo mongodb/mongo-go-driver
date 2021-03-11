@@ -78,8 +78,8 @@ func newClientEntity(ctx context.Context, entityOptions *entityOptions) (*client
 		}
 		clientOpts.SetMonitor(monitor)
 	}
-	if entityOptions.serverAPIOptions != nil {
-		clientOpts.SetServerAPIOptions(entityOptions.serverAPIOptions.ServerAPIOptions)
+	if entityOptions.ServerAPIOptions != nil {
+		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
 	} else {
 		testutil.AddTestServerAPIVersion(clientOpts)
 	}

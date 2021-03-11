@@ -27,7 +27,7 @@ type entityOptions struct {
 	UseMultipleMongoses *bool             `bson:"useMultipleMongoses"`
 	ObserveEvents       []string          `bson:"observeEvents"`
 	IgnoredCommands     []string          `bson:"ignoreCommandMonitoringEvents"`
-	serverAPIOptions    *serverAPIOptions `bson:"serverApi"`
+	ServerAPIOptions    *serverAPIOptions `bson:"serverApi"`
 
 	// Options for database entities.
 	DatabaseName    string                 `bson:"databaseName"`
@@ -38,10 +38,10 @@ type entityOptions struct {
 	CollectionOptions *dbOrCollectionOptions `bson:"collectionOptions"`
 
 	// Options for session entities.
-	sessionOptions *sessionOptions `bson:"sessionOptions"`
+	SessionOptions *sessionOptions `bson:"sessionOptions"`
 
 	// Options for GridFS bucket entities.
-	gridFSBucketOptions *gridFSBucketOptions `bson:"bucketOptions"`
+	GridFSBucketOptions *gridFSBucketOptions `bson:"bucketOptions"`
 
 	// Options that reference other entities.
 	ClientID   string `bson:"client"`
@@ -250,8 +250,8 @@ func (em *entityMap) addSessionEntity(entityOptions *entityOptions) error {
 	}
 
 	sessionOpts := options.Session()
-	if entityOptions.sessionOptions != nil {
-		sessionOpts = entityOptions.sessionOptions.SessionOptions
+	if entityOptions.SessionOptions != nil {
+		sessionOpts = entityOptions.SessionOptions.SessionOptions
 	}
 
 	sess, err := client.StartSession(sessionOpts)
@@ -270,8 +270,8 @@ func (em *entityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
 	}
 
 	bucketOpts := options.GridFSBucket()
-	if entityOptions.gridFSBucketOptions != nil {
-		bucketOpts = entityOptions.gridFSBucketOptions.BucketOptions
+	if entityOptions.GridFSBucketOptions != nil {
+		bucketOpts = entityOptions.GridFSBucketOptions.BucketOptions
 	}
 
 	bucket, err := gridfs.NewBucket(db, bucketOpts)
