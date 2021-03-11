@@ -87,9 +87,7 @@ type WriteCommandError struct {
 // against a server that has a storage engine where they are not supported
 func (wce WriteCommandError) UnsupportedStorageEngine() bool {
 	for _, writeError := range wce.WriteErrors {
-		noCode := writeError.Code == 0
-		if writeError.Code == 20 ||
-			noCode && strings.HasPrefix(strings.ToLower(writeError.Message), "transaction numbers") {
+		if writeError.Code == 20 && strings.HasPrefix(strings.ToLower(writeError.Message), "transaction numbers") {
 			return true
 		}
 	}
@@ -222,8 +220,7 @@ type Error struct {
 
 // UnsupportedStorageEngine returns whether e came as a result of an unsupported storage engine
 func (e Error) UnsupportedStorageEngine() bool {
-	noCode := e.Code == 0
-	return e.Code == 20 || noCode && strings.HasPrefix(strings.ToLower(e.Message), "transaction numbers")
+	return e.Code == 20 && strings.HasPrefix(strings.ToLower(e.Message), "transaction numbers")
 }
 
 // Error implements the error interface.
