@@ -419,7 +419,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			_ = ep.ProcessError(err, conn)
 		}
 
-		// If we're executing a load-balanced transcation and encountered a network error, the pinned connection should
+		// If we're executing a load-balanced transaction and encounter a network error, the pinned connection should
 		// be unpinned. We call ExpirePinnedConnection to ensure that the connection is closed and returned to the
 		// pool for bookkeeping. Future AbortTransaction calls will check out a new connection, which is desired. We
 		// do this before any other checks to make sure we release the invalidated connection even though other
