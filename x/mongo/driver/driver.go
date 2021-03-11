@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
 // Deployment is implemented by types that can select a server from a deployment.
@@ -72,6 +73,11 @@ type PinnedConnection interface {
 	UnpinFromCursor() error
 	UnpinFromTransaction() error
 }
+
+// The session.LoadBalancedTransactionConnection type is a copy of PinnedConnection that was introduced to avoid
+// import cycles. This compile-time assertion ensures that these types remain in sync if the PinnedConnection interface
+// is changed in the future.
+var _ PinnedConnection = (session.LoadBalancedTransactionConnection)(nil)
 
 // LocalAddresser is a type that is able to supply its local address
 type LocalAddresser interface {
