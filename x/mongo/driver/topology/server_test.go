@@ -71,6 +71,7 @@ func TestServer(t *testing.T) {
 	netErr := ConnectionError{Wrapped: &net.AddrError{}, init: true}
 	for _, tt := range serverTestTable {
 		t.Run(tt.name, func(t *testing.T) {
+			var returnConnectionError bool
 			s, err := NewServer(
 				address.Address("localhost"),
 				primitive.NewObjectID(),
@@ -80,7 +81,7 @@ func TestServer(t *testing.T) {
 							return &testHandshaker{
 								finishHandshake: func(context.Context, driver.Connection) error {
 									var err error
-									if tt.connectionError {
+									if tt.connectionError && returnConnectionError {
 										err = authErr.Wrapped
 									}
 									return err
@@ -90,7 +91,7 @@ func TestServer(t *testing.T) {
 						WithDialer(func(Dialer) Dialer {
 							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
 								var err error
-								if tt.networkError {
+								if tt.networkError && returnConnectionError {
 									err = netErr.Wrapped
 								}
 								return &net.TCPConn{}, err
@@ -111,6 +112,13 @@ func TestServer(t *testing.T) {
 			require.NoError(t, err, "unable to connect to pool")
 			s.connectionstate = connected
 
+			// The internal connection pool resets the generation number once the number of connections in a generation
+			// reaches zero, which will cause some of these tests to fail because they assert that the generation
+			// number after a connection failure is 1. To workaround this, we call Connection() twice: once to
+			// successfully establish a connection and once to actually do the behavior described in the test case.
+			_, err = s.Connection(context.Background())
+			assert.Nil(t, err, "error getting initial connection: %v", err)
+			returnConnectionError = true
 			_, err = s.Connection(context.Background())
 
 			switch {
@@ -127,11 +135,117 @@ func TestServer(t *testing.T) {
 				require.NotNil(t, s.Description().LastError)
 			}
 
-			if (tt.connectionError || tt.networkError) && atomic.LoadUint64(&s.pool.generation) != 1 {
-				t.Errorf("Expected pool to be drained once on connection or network error. got %d; want %d", s.pool.generation, 1)
+			generation := s.pool.generation.getGeneration(nil)
+			if (tt.connectionError || tt.networkError) && generation != 1 {
+				t.Errorf("Expected pool to be drained once on connection or network error. got %d; want %d", generation, 1)
 			}
 		})
 	}
+
+	t.Run("multiple connection initialization errors are processed correctly", func(t *testing.T) {
+		assertGenerationStats := func(t *testing.T, server *Server, serverID primitive.ObjectID, generation, numConns uint64) {
+			t.Helper()
+
+			stats, ok := server.pool.generation.generationMap[serverID]
+			assert.True(t, ok, "entry for serverID not found")
+			assert.Equal(t, generation, stats.generation, "expected generation number %d, got %d", generation, stats.generation)
+			assert.Equal(t, numConns, stats.numConns, "expected connection count %d, got %d", numConns, stats.numConns)
+		}
+
+		testCases := []struct {
+			name               string
+			loadBalanced       bool
+			dialErr            error
+			getInfoErr         error
+			finishHandshakeErr error
+			finalGeneration    uint64
+			numNewConns        uint64
+		}{
+			// For LB clusters, errors for dialing and the initial handshake are ignored.
+			{"dial errors are ignored for load balancers", true, netErr.Wrapped, nil, nil, 0, 0},
+			{"initial handshake errors are ignored for load balancers", true, nil, netErr.Wrapped, nil, 0, 0},
+			{"post-handshake errors are not ignored for load balancers", true, nil, nil, netErr.Wrapped, 2, 0},
+
+			// For non-LB clusters, all errors are processed.
+			{"dial errors are ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 2, 0},
+			{"initial handshake errors are ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 2, 0},
+			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, netErr.Wrapped, 2, 0},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				var returnConnectionError bool
+				var serverID primitive.ObjectID
+				if tc.loadBalanced {
+					serverID = primitive.NewObjectID()
+				}
+
+				handshaker := &testHandshaker{
+					getHandshakeInformation: func(_ context.Context, addr address.Address, _ driver.Connection) (driver.HandshakeInformation, error) {
+						if tc.getInfoErr != nil && returnConnectionError {
+							return driver.HandshakeInformation{}, tc.getInfoErr
+						}
+
+						desc := description.NewDefaultServer(addr)
+						if tc.loadBalanced {
+							desc.ServerID = &serverID
+						}
+						return driver.HandshakeInformation{Description: desc}, nil
+					},
+					finishHandshake: func(context.Context, driver.Connection) error {
+						if tc.finishHandshakeErr != nil && returnConnectionError {
+							return tc.finishHandshakeErr
+						}
+						return nil
+					},
+				}
+				connOpts := []ConnectionOption{
+					WithDialer(func(Dialer) Dialer {
+						return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+							var err error
+							if returnConnectionError && tc.dialErr != nil {
+								err = tc.dialErr
+							}
+							return &net.TCPConn{}, err
+						})
+					}),
+					WithHandshaker(func(Handshaker) Handshaker {
+						return handshaker
+					}),
+					WithConnectionLoadBalanced(func(bool) bool {
+						return tc.loadBalanced
+					}),
+				}
+				serverOpts := []ServerOption{
+					WithServerLoadBalanced(func(bool) bool {
+						return tc.loadBalanced
+					}),
+					WithConnectionOptions(func(...ConnectionOption) []ConnectionOption {
+						return connOpts
+					}),
+				}
+
+				server, err := ConnectServer(address.Address("localhost:27017"), nil, primitive.NewObjectID(), serverOpts...)
+				assert.Nil(t, err, "ConnectServer error: %v", err)
+
+				_, err = server.Connection(context.Background())
+				assert.Nil(t, err, "Connection error: %v", err)
+				assertGenerationStats(t, server, serverID, 0, 1)
+
+				returnConnectionError = true
+				for i := 0; i < 2; i++ {
+					_, err = server.Connection(context.Background())
+					switch {
+					case tc.dialErr != nil || tc.getInfoErr != nil || tc.finishHandshakeErr != nil:
+						assert.NotNil(t, err, "expected Connection error at iteration %d, got nil", i)
+					default:
+						assert.Nil(t, err, "Connection error at iteration %d: %v", i, err)
+					}
+				}
+				// The final number of connections should be numNewConns+1 to account for the extra one we create above.
+				assertGenerationStats(t, server, serverID, tc.finalGeneration, tc.numNewConns+1)
+			})
+		}
+	})
 
 	t.Run("Cannot starve connection request", func(t *testing.T) {
 		cleanup := make(chan struct{})
@@ -322,8 +436,9 @@ func TestServer(t *testing.T) {
 					"expected server kind %q, got %q", expectedKind, desc.Kind)
 				assert.Equal(t, expectedError, desc.LastError,
 					"expected last error %v, got %v", expectedError, desc.LastError)
-				assert.Equal(t, expectedPoolGeneration, server.pool.generation,
-					"expected pool generation %d, got %d", expectedPoolGeneration, server.pool.generation)
+				generation := server.pool.generation.getGeneration(nil)
+				assert.Equal(t, expectedPoolGeneration, generation,
+					"expected pool generation %d, got %d", expectedPoolGeneration, generation)
 			})
 		}
 	})

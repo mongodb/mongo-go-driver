@@ -273,9 +273,15 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection finishes handshaking.
-func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64) {
-	// ignore nil or stale error
-	if err == nil || startingGenerationNumber < atomic.LoadUint64(&s.pool.generation) {
+func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64, serverID *primitive.ObjectID) {
+	// Ignore the error if the server is behind a load balancer but the server ID is unknown. This indicates that the
+	// error happened when dialing the connection or during the MongoDB handshake, so we don't know the server ID to use
+	// for clearing the pool.
+	if err == nil || s.cfg.loadBalanced && serverID == nil {
+		return
+	}
+	// Ignore the error if the connection is stale.
+	if startingGenerationNumber < s.pool.generation.getGeneration(serverID) {
 		return
 	}
 
@@ -288,7 +294,7 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	// the description.Server appropriately. The description should not have a TopologyVersion because the staleness
 	// checking logic above has already determined that this description is not stale.
 	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, nil))
-	s.pool.clear()
+	s.pool.clear(serverID)
 	s.cancelCheck()
 }
 
@@ -392,7 +398,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			res = driver.ConnectionPoolCleared
-			s.pool.clear()
+			s.pool.clear(desc.ServerID)
 		}
 		return res
 	}
@@ -410,7 +416,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			res = driver.ConnectionPoolCleared
-			s.pool.clear()
+			s.pool.clear(desc.ServerID)
 		}
 		return res
 	}
@@ -432,7 +438,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	// monitoring check. The check is cancelled last to avoid a post-cancellation reconnect racing with
 	// updateDescription.
 	s.updateDescription(description.NewServerFromError(s.address, err, nil))
-	s.pool.clear()
+	s.pool.clear(desc.ServerID)
 	s.cancelCheck()
 	return driver.ConnectionPoolCleared
 }
@@ -522,8 +528,9 @@ func (s *Server) update() {
 
 		s.updateDescription(desc)
 		if desc.LastError != nil {
-			// Clear the pool once the description has been updated to Unknown.
-			s.pool.clear()
+			// Clear the pool once the description has been updated to Unknown. Pass in a nil server ID to clear because
+			// the monitoring routine only runs for non-load balanced deployments in which servers don't return IDs.
+			s.pool.clear(nil)
 		}
 
 		// If the server supports streaming or we're already streaming, we want to move to streaming the next response

@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"golang.org/x/sync/semaphore"
@@ -60,7 +61,7 @@ type pool struct {
 	address    address.Address
 	opts       []ConnectionOption
 	conns      *resourcePool // pool for non-checked out connections
-	generation uint64        // must be accessed using atomic package
+	generation *poolGenerationMap
 	monitor    *event.PoolMonitor
 
 	connected int32 // Must be accessed using the sync/atomic package.
@@ -148,13 +149,15 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 	}
 
 	pool := &pool{
-		address:   config.Address,
-		monitor:   config.PoolMonitor,
-		connected: disconnected,
-		opened:    make(map[uint64]*connection),
-		opts:      opts,
-		sem:       semaphore.NewWeighted(int64(maxConns)),
+		address:    config.Address,
+		monitor:    config.PoolMonitor,
+		connected:  disconnected,
+		opened:     make(map[uint64]*connection),
+		opts:       opts,
+		sem:        semaphore.NewWeighted(int64(maxConns)),
+		generation: newPoolGenerationMap(),
 	}
+	pool.opts = append(pool.opts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
 	// we do not pass in config.MaxPoolSize because we manage the max size at this level rather than the resource pool level
 	rpc := resourcePoolConfig{
@@ -189,7 +192,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 
 // stale checks if a given connection's generation is below the generation of the pool
 func (p *pool) stale(c *connection) bool {
-	return c == nil || c.generation < atomic.LoadUint64(&p.generation)
+	return c == nil || p.generation.stale(c.desc.ServerID, c.generation)
 }
 
 // connect puts the pool into the connected state, allowing it to be used and will allow items to begin being processed from the wait queue
@@ -197,6 +200,7 @@ func (p *pool) connect() error {
 	if !atomic.CompareAndSwapInt32(&p.connected, disconnected, connected) {
 		return ErrPoolConnected
 	}
+	p.generation.connect()
 	p.conns.initialize()
 	return nil
 }
@@ -212,7 +216,7 @@ func (p *pool) disconnect(ctx context.Context) error {
 	}
 
 	p.conns.Close()
-	atomic.AddUint64(&p.generation, 1)
+	p.generation.disconnect()
 
 	var err error
 	if dl, ok := ctx.Deadline(); ok {
@@ -277,7 +281,6 @@ func (p *pool) makeNewConnection() (*connection, string, error) {
 
 	c.pool = p
 	c.poolID = atomic.AddUint64(&p.nextid, 1)
-	c.generation = atomic.LoadUint64(&p.generation)
 
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
@@ -308,10 +311,6 @@ func (p *pool) makeNewConnection() (*connection, string, error) {
 
 	return c, "", nil
 
-}
-
-func (p *pool) getGeneration() uint64 {
-	return atomic.LoadUint64(&p.generation)
 }
 
 // Checkout returns a connection from the pool
@@ -487,6 +486,10 @@ func (p *pool) closeConnection(c *connection) error {
 	return nil
 }
 
+func (p *pool) getGenerationForNewConnection(serverID *primitive.ObjectID) uint64 {
+	return p.generation.addConnection(serverID)
+}
+
 // removeConnection removes a connection from the pool.
 func (p *pool) removeConnection(c *connection, reason string) error {
 	if c.pool != p {
@@ -500,6 +503,12 @@ func (p *pool) removeConnection(c *connection, reason string) error {
 		delete(p.opened, c.poolID)
 	}
 	p.Unlock()
+
+	// Only update the generation numbers map if the connection has retrieved its generation number. Otherwise, we'd
+	// decrement the count for the generation even though it had never been incremented.
+	if c.hasGenerationNumber() {
+		p.generation.removeConnection(c.desc.ServerID)
+	}
 
 	if publishEvent && p.monitor != nil {
 		c.pool.monitor.Event(&event.PoolEvent{
@@ -545,12 +554,13 @@ func (p *pool) put(c *connection) error {
 }
 
 // clear clears the pool by incrementing the generation
-func (p *pool) clear() {
+func (p *pool) clear(serverID *primitive.ObjectID) {
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
-			Type:    event.PoolCleared,
-			Address: p.address.String(),
+			Type:     event.PoolCleared,
+			Address:  p.address.String(),
+			ServerID: serverID,
 		})
 	}
-	atomic.AddUint64(&p.generation, 1)
+	p.generation.clear(serverID)
 }

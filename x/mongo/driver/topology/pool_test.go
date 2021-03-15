@@ -296,10 +296,6 @@ func TestPool(t *testing.T) {
 
 			c, err = p.get(context.Background())
 			noerr(t, err)
-			gen = atomic.LoadUint64(&c.generation)
-			if gen != 1 {
-				t.Errorf("Connection should have a newer generation. got %d; want %d", gen, 1)
-			}
 			err = p.put(c)
 			noerr(t, err)
 			if d.lenopened() != 2 {
@@ -687,7 +683,7 @@ func TestPool(t *testing.T) {
 
 			// Increment the pool's generation number so the connection will be considered stale and will be closed by
 			// get().
-			p.clear()
+			p.clear(nil)
 			_, err = p.get(context.Background())
 			noerr(t, err)
 		})
