@@ -155,8 +155,8 @@ func (wce WriteConcernError) NodeIsRecovering() bool {
 			return true
 		}
 	}
-	noCode := wce.Code == 0
-	return noCode && strings.Contains(wce.Message, "node is recovering")
+	hasNoCode := wce.Code == 0
+	return hasNoCode && strings.Contains(wce.Message, "node is recovering")
 }
 
 // NodeIsShuttingDown returns true if this error is a node is shutting down error.
@@ -166,8 +166,8 @@ func (wce WriteConcernError) NodeIsShuttingDown() bool {
 			return true
 		}
 	}
-	noCode := wce.Code == 0
-	return noCode && strings.Contains(wce.Message, "node is shutting down")
+	hasNoCode := wce.Code == 0
+	return hasNoCode && strings.Contains(wce.Message, "node is shutting down")
 }
 
 // NotMaster returns true if this error is a not master error.
@@ -177,8 +177,8 @@ func (wce WriteConcernError) NotMaster() bool {
 			return true
 		}
 	}
-	noCode := wce.Code == 0
-	return noCode && strings.Contains(wce.Message, "not master")
+	hasNoCode := wce.Code == 0
+	return hasNoCode && strings.Contains(wce.Message, "not master")
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -300,8 +300,8 @@ func (e Error) NodeIsRecovering() bool {
 			return true
 		}
 	}
-	noCode := e.Code == 0
-	return noCode && strings.Contains(e.Message, "node is recovering")
+	hasNoCode := e.Code == 0
+	return hasNoCode && strings.Contains(e.Message, "node is recovering")
 }
 
 // NodeIsShuttingDown returns true if this error is a node is shutting down error.
@@ -311,8 +311,8 @@ func (e Error) NodeIsShuttingDown() bool {
 			return true
 		}
 	}
-	noCode := e.Code == 0
-	return noCode && strings.Contains(e.Message, "node is shutting down")
+	hasNoCode := e.Code == 0
+	return hasNoCode && strings.Contains(e.Message, "node is shutting down")
 }
 
 // NotMaster returns true if this error is a not master error.
@@ -322,14 +322,14 @@ func (e Error) NotMaster() bool {
 			return true
 		}
 	}
-	noCode := e.Code == 0
-	return noCode && strings.Contains(e.Message, "not master")
+	hasNoCode := e.Code == 0
+	return hasNoCode && strings.Contains(e.Message, "not master")
 }
 
 // NamespaceNotFound returns true if this errors is a NamespaceNotFound error.
 func (e Error) NamespaceNotFound() bool {
-	noCode := e.Code == 0
-	return e.Code == 26 || noCode && e.Message == "ns not found"
+	hasNoCode := e.Code == 0
+	return e.Code == 26 || (hasNoCode && e.Message == "ns not found")
 }
 
 // helper method to extract an error from a reader if there is one; first returned item is the

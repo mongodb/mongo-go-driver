@@ -249,8 +249,8 @@ func (e CommandError) HasErrorCodeWithMessage(code int, message string) bool {
 
 // IsMaxTimeMSExpiredError returns true if the error is a MaxTimeMSExpired error.
 func (e CommandError) IsMaxTimeMSExpiredError() bool {
-	noCode := e.Code == 0
-	return e.Code == 50 || noCode && e.Name == "MaxTimeMSExpired"
+	hasNoCode := e.Code == 0
+	return e.Code == 50 || (hasNoCode && e.Name == "MaxTimeMSExpired")
 }
 
 // serverError implements the ServerError interface.
