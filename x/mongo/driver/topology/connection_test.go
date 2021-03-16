@@ -834,6 +834,81 @@ func TestConnection(t *testing.T) {
 				t.Errorf("LocalAddresses do not match. got %v; want %v", got, want)
 			}
 		})
+
+		t.Run("pinning", func(t *testing.T) {
+			makeConnection := func(t *testing.T) (*pool, *Connection) {
+				t.Helper()
+
+				addr := address.Address("")
+				conn, err := newConnection(addr)
+				assert.Nil(t, err, "newConnection error: %v", err)
+
+				pool, err := newPool(poolConfig{Address: addr})
+				assert.Nil(t, err, "newPool error: %v", err)
+				conn.pool = pool
+				err = pool.sem.Acquire(context.Background(), 1)
+				assert.Nil(t, err, "error acquring semaphore: %v", err)
+
+				return pool, &Connection{connection: conn}
+			}
+			assertPoolPinnedStats := func(t *testing.T, p *pool, cursorConns, txnConns uint64) {
+				t.Helper()
+
+				assert.Equal(t, cursorConns, p.pinnedCursorConnections, "expected %d connections to be pinned to cursors, got %d",
+					cursorConns, p.pinnedCursorConnections)
+				assert.Equal(t, txnConns, p.pinnedTransactionConnections, "expected %d connections to be pinned to transactions, got %d",
+					txnConns, p.pinnedTransactionConnections)
+			}
+
+			t.Run("cursors", func(t *testing.T) {
+				pool, conn := makeConnection(t)
+				err := conn.PinToCursor()
+				assert.Nil(t, err, "PinToCursor error: %v", err)
+				assertPoolPinnedStats(t, pool, 1, 0)
+
+				err = conn.UnpinFromCursor()
+				assert.Nil(t, err, "UnpinFromCursor error: %v", err)
+
+				err = conn.Close()
+				assert.Nil(t, err, "Close error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 0)
+			})
+			t.Run("transactions", func(t *testing.T) {
+				pool, conn := makeConnection(t)
+				err := conn.PinToTransaction()
+				assert.Nil(t, err, "PinToTransaction error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 1)
+
+				err = conn.UnpinFromTransaction()
+				assert.Nil(t, err, "UnpinFromTransaction error: %v", err)
+
+				err = conn.Close()
+				assert.Nil(t, err, "Close error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 0)
+			})
+			t.Run("pool is only updated for first reference", func(t *testing.T) {
+				pool, conn := makeConnection(t)
+				err := conn.PinToTransaction()
+				assert.Nil(t, err, "PinToTransaction error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 1)
+
+				err = conn.PinToCursor()
+				assert.Nil(t, err, "PinToCursor error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 1)
+
+				err = conn.UnpinFromCursor()
+				assert.Nil(t, err, "UnpinFromCursor error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 1)
+
+				err = conn.UnpinFromTransaction()
+				assert.Nil(t, err, "UnpinFromTransaction error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 1)
+
+				err = conn.Close()
+				assert.Nil(t, err, "Close error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 0)
+			})
+		})
 	})
 }
 

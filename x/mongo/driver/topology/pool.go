@@ -64,10 +64,14 @@ type pool struct {
 	generation *poolGenerationMap
 	monitor    *event.PoolMonitor
 
-	connected int32 // Must be accessed using the sync/atomic package.
-	nextid    uint64
-	opened    map[uint64]*connection // opened holds all of the currently open connections.
-	sem       *semaphore.Weighted
+	// Must be accessed using the atomic package.
+	connected                    int32
+	pinnedCursorConnections      uint64
+	pinnedTransactionConnections uint64
+
+	nextid uint64
+	opened map[uint64]*connection // opened holds all of the currently open connections.
+	sem    *semaphore.Weighted
 	sync.Mutex
 }
 
@@ -313,6 +317,24 @@ func (p *pool) makeNewConnection() (*connection, string, error) {
 
 }
 
+func (p *pool) pinConnectionToCursor() {
+	atomic.AddUint64(&p.pinnedCursorConnections, 1)
+}
+
+func (p *pool) unpinConnectionFromCursor() {
+	// See https://golang.org/pkg/sync/atomic/#AddUint64 for an explanation of the ^uint64(0) syntax.
+	atomic.AddUint64(&p.pinnedCursorConnections, ^uint64(0))
+}
+
+func (p *pool) pinConnectionToTransaction() {
+	atomic.AddUint64(&p.pinnedTransactionConnections, 1)
+}
+
+func (p *pool) unpinConnectionFromTransaction() {
+	// See https://golang.org/pkg/sync/atomic/#AddUint64 for an explanation of the ^uint64(0) syntax.
+	atomic.AddUint64(&p.pinnedTransactionConnections, ^uint64(0))
+}
+
 // Checkout returns a connection from the pool
 func (p *pool) get(ctx context.Context) (*connection, error) {
 	if ctx == nil {
@@ -340,7 +362,10 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 			})
 		}
 		errWaitQueueTimeout := WaitQueueTimeoutError{
-			Wrapped: ctx.Err(),
+			Wrapped:                      ctx.Err(),
+			PinnedCursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
+			PinnedTransactionConnections: atomic.LoadUint64(&p.pinnedTransactionConnections),
+			maxPoolSize:                  p.conns.maxSize,
 		}
 		return nil, errWaitQueueTimeout
 	}

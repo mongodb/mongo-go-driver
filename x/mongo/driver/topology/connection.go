@@ -605,7 +605,8 @@ func (c initConnection) SupportsStreaming() bool {
 // messages and the driver.Expirable interface to allow expiring.
 type Connection struct {
 	*connection
-	refCount int
+	refCount      int
+	cleanupPoolFn func()
 
 	mu sync.RWMutex
 }
@@ -687,9 +688,7 @@ func (c *Connection) Close() error {
 		return nil
 	}
 
-	err := c.pool.put(c.connection)
-	c.connection = nil
-	return err
+	return c.cleanupReferences()
 }
 
 // Expire closes this connection and will closeConnection the underlying socket.
@@ -701,7 +700,15 @@ func (c *Connection) Expire() error {
 	}
 
 	_ = c.close()
+	return c.cleanupReferences()
+}
+
+func (c *Connection) cleanupReferences() error {
 	err := c.pool.put(c.connection)
+	if c.cleanupPoolFn != nil {
+		c.cleanupPoolFn()
+		c.cleanupPoolFn = nil
+	}
 	c.connection = nil
 	return err
 }
@@ -750,21 +757,27 @@ func (c *Connection) LocalAddress() address.Address {
 
 // PinToCursor updates this connection to reflect that it is pinned to a cursor.
 func (c *Connection) PinToCursor() error {
-	return c.pin("cursor")
+	return c.pin("cursor", c.pool.pinConnectionToCursor, c.pool.unpinConnectionFromCursor)
 }
 
 // PinToTransaction updates this connection to reflect that it is pinned to a transaction.
 func (c *Connection) PinToTransaction() error {
-	return c.pin("transaction")
+	return c.pin("transaction", c.pool.pinConnectionToTransaction, c.pool.unpinConnectionFromTransaction)
 }
 
-func (c *Connection) pin(reason string) error {
+func (c *Connection) pin(reason string, updatePoolFn, cleanupPoolFn func()) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.connection == nil {
 		return fmt.Errorf("attempted to pin a connection for a %s, but the connection has already been returned to the pool", reason)
 	}
 
+	// Only use the provided callbacks for the first reference to avoid double-counting pinned connection statistics
+	// in the pool.
+	if c.refCount == 0 {
+		updatePoolFn()
+		c.cleanupPoolFn = cleanupPoolFn
+	}
 	c.refCount++
 	return nil
 }
