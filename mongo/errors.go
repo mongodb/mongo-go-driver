@@ -85,10 +85,11 @@ func replaceErrors(err error) error {
 
 // IsDuplicateKeyError returns true if err is a duplicate key error
 func IsDuplicateKeyError(err error) bool {
-	// handles SERVER-7164
+	// handles SERVER-7164 and SERVER-11493
 	for ; err != nil; err = unwrap(err) {
 		if e, ok := err.(ServerError); ok {
-			return e.HasErrorCode(11000) || e.HasErrorCode(11001) || e.HasErrorCode(12582)
+			return e.HasErrorCode(11000) || e.HasErrorCode(11001) || e.HasErrorCode(12582) ||
+				e.HasErrorCodeWithMessage(16460, " E11000 ")
 		}
 	}
 	return false
@@ -249,8 +250,7 @@ func (e CommandError) HasErrorCodeWithMessage(code int, message string) bool {
 
 // IsMaxTimeMSExpiredError returns true if the error is a MaxTimeMSExpired error.
 func (e CommandError) IsMaxTimeMSExpiredError() bool {
-	hasNoCode := e.Code == 0
-	return e.Code == 50 || (hasNoCode && e.Name == "MaxTimeMSExpired")
+	return e.Code == 50 || e.Name == "MaxTimeMSExpired"
 }
 
 // serverError implements the ServerError interface.
