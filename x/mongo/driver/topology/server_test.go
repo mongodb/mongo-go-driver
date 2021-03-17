@@ -167,8 +167,8 @@ func TestServer(t *testing.T) {
 			{"post-handshake errors are not ignored for load balancers", true, nil, nil, netErr.Wrapped, 2, 0},
 
 			// For non-LB clusters, all errors are processed.
-			{"dial errors are ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 2, 0},
-			{"initial handshake errors are ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 2, 0},
+			{"dial errors are not ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 2, 0},
+			{"initial handshake errors are not ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 2, 0},
 			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, netErr.Wrapped, 2, 0},
 		}
 		for _, tc := range testCases {
@@ -221,6 +221,11 @@ func TestServer(t *testing.T) {
 					}),
 					WithConnectionOptions(func(...ConnectionOption) []ConnectionOption {
 						return connOpts
+					}),
+					// Disable the monitoring routine because we're only testing pooled connections and we don't want
+					// errors in monitoring to clear the pool and make this test flaky.
+					withMonitoringDisabled(func(bool) bool {
+						return true
 					}),
 				}
 

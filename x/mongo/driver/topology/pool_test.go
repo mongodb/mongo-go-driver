@@ -250,6 +250,13 @@ func TestPool(t *testing.T) {
 	})
 	t.Run("connect", func(t *testing.T) {
 		t.Run("can reconnect a disconnected pool", func(t *testing.T) {
+			assertGenerationMapState := func(t *testing.T, p *pool, expectedState int32) {
+				t.Helper()
+
+				actualState := atomic.LoadInt32(&p.generation.state)
+				assert.Equal(t, expectedState, actualState, "expected generation map state %d, got %d", expectedState, actualState)
+			}
+
 			cleanup := make(chan struct{})
 			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
@@ -263,6 +270,7 @@ func TestPool(t *testing.T) {
 			noerr(t, err)
 			err = p.connect()
 			noerr(t, err)
+			assertGenerationMapState(t, p, connected)
 			c, err := p.get(context.Background())
 			noerr(t, err)
 			gen := c.generation
@@ -281,6 +289,7 @@ func TestPool(t *testing.T) {
 			defer cancel()
 			err = p.disconnect(ctx)
 			noerr(t, err)
+			assertGenerationMapState(t, p, disconnected)
 
 			assertConnectionsClosed(t, d, 1)
 			if p.conns.totalSize != 0 {
@@ -293,6 +302,7 @@ func TestPool(t *testing.T) {
 			}
 			err = p.connect()
 			noerr(t, err)
+			assertGenerationMapState(t, p, connected)
 
 			c, err = p.get(context.Background())
 			noerr(t, err)
