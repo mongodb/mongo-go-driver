@@ -21,9 +21,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 )
 
-// ClientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
+// clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
 // execution.
-type ClientEntity struct {
+type clientEntity struct {
 	*mongo.Client
 
 	recordEvents    atomic.Value
@@ -33,8 +33,8 @@ type ClientEntity struct {
 	ignoredCommands map[string]struct{}
 }
 
-func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*ClientEntity, error) {
-	entity := &ClientEntity{
+func newClientEntity(ctx context.Context, entityOptions *entityOptions) (*clientEntity, error) {
+	entity := &clientEntity{
 		// The "configureFailPoint" command should always be ignored.
 		ignoredCommands: map[string]struct{}{
 			"configureFailPoint": {},
@@ -96,11 +96,11 @@ func NewClientEntity(ctx context.Context, entityOptions *EntityOptions) (*Client
 	return entity, nil
 }
 
-func (c *ClientEntity) StopListeningForEvents() {
+func (c *clientEntity) StopListeningForEvents() {
 	c.setRecordEvents(false)
 }
 
-func (c *ClientEntity) StartedEvents() []*event.CommandStartedEvent {
+func (c *clientEntity) startedEvents() []*event.CommandStartedEvent {
 	var events []*event.CommandStartedEvent
 	for _, evt := range c.started {
 		if _, ok := c.ignoredCommands[evt.CommandName]; !ok {
@@ -111,7 +111,7 @@ func (c *ClientEntity) StartedEvents() []*event.CommandStartedEvent {
 	return events
 }
 
-func (c *ClientEntity) SucceededEvents() []*event.CommandSucceededEvent {
+func (c *clientEntity) succeededEvents() []*event.CommandSucceededEvent {
 	var events []*event.CommandSucceededEvent
 	for _, evt := range c.succeeded {
 		if _, ok := c.ignoredCommands[evt.CommandName]; !ok {
@@ -122,7 +122,7 @@ func (c *ClientEntity) SucceededEvents() []*event.CommandSucceededEvent {
 	return events
 }
 
-func (c *ClientEntity) FailedEvents() []*event.CommandFailedEvent {
+func (c *clientEntity) failedEvents() []*event.CommandFailedEvent {
 	var events []*event.CommandFailedEvent
 	for _, evt := range c.failed {
 		if _, ok := c.ignoredCommands[evt.CommandName]; !ok {
@@ -133,29 +133,29 @@ func (c *ClientEntity) FailedEvents() []*event.CommandFailedEvent {
 	return events
 }
 
-func (c *ClientEntity) processStartedEvent(_ context.Context, evt *event.CommandStartedEvent) {
+func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.CommandStartedEvent) {
 	if c.getRecordEvents() {
 		c.started = append(c.started, evt)
 	}
 }
 
-func (c *ClientEntity) processSucceededEvent(_ context.Context, evt *event.CommandSucceededEvent) {
+func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.CommandSucceededEvent) {
 	if c.getRecordEvents() {
 		c.succeeded = append(c.succeeded, evt)
 	}
 }
 
-func (c *ClientEntity) processFailedEvent(_ context.Context, evt *event.CommandFailedEvent) {
+func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandFailedEvent) {
 	if c.getRecordEvents() {
 		c.failed = append(c.failed, evt)
 	}
 }
 
-func (c *ClientEntity) setRecordEvents(record bool) {
+func (c *clientEntity) setRecordEvents(record bool) {
 	c.recordEvents.Store(record)
 }
 
-func (c *ClientEntity) getRecordEvents() bool {
+func (c *clientEntity) getRecordEvents() bool {
 	return c.recordEvents.Load().(bool)
 }
 

@@ -8,18 +8,18 @@ package unified
 
 import "context"
 
-func executeIterateUntilDocumentOrError(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	stream, err := Entities(ctx).ChangeStream(operation.Object)
+func executeIterateUntilDocumentOrError(ctx context.Context, operation *operation) (*operationResult, error) {
+	stream, err := entities(ctx).changeStream(operation.Object)
 	if err != nil {
 		return nil, err
 	}
 
 	for {
 		if stream.TryNext(ctx) {
-			return NewDocumentResult(stream.Current, nil), nil
+			return newDocumentResult(stream.Current, nil), nil
 		}
 		if stream.Err() != nil {
-			return NewErrorResult(stream.Err()), nil
+			return newErrorResult(stream.Err()), nil
 		}
 	}
 }

@@ -17,7 +17,7 @@ import (
 type ctxKey string
 
 const (
-	// entitiesKey is used to store an EntityMap instance in a Context.
+	// entitiesKey is used to store an entityMap instance in a Context.
 	entitiesKey ctxKey = "test-entities"
 	// failPointsKey is used to store a map from a fail point name to the Client instance used to configure it.
 	failPointsKey ctxKey = "test-failpoints"
@@ -25,16 +25,16 @@ const (
 	targetedFailPointsKey ctxKey = "test-targeted-failpoints"
 )
 
-// NewTestContext creates a new Context derived from ctx with values initialized to store the state required for test
+// newTestContext creates a new Context derived from ctx with values initialized to store the state required for test
 // execution.
-func NewTestContext(ctx context.Context) context.Context {
-	ctx = context.WithValue(ctx, entitiesKey, NewEntityMap())
+func newTestContext(ctx context.Context) context.Context {
+	ctx = context.WithValue(ctx, entitiesKey, newEntityMap())
 	ctx = context.WithValue(ctx, failPointsKey, make(map[string]*mongo.Client))
 	ctx = context.WithValue(ctx, targetedFailPointsKey, make(map[string]string))
 	return ctx
 }
 
-func AddFailPoint(ctx context.Context, failPoint string, client *mongo.Client) error {
+func addFailPoint(ctx context.Context, failPoint string, client *mongo.Client) error {
 	failPoints := ctx.Value(failPointsKey).(map[string]*mongo.Client)
 	if _, ok := failPoints[failPoint]; ok {
 		return fmt.Errorf("fail point %q already exists in tracked fail points map", failPoint)
@@ -44,7 +44,7 @@ func AddFailPoint(ctx context.Context, failPoint string, client *mongo.Client) e
 	return nil
 }
 
-func AddTargetedFailPoint(ctx context.Context, failPoint string, host string) error {
+func addTargetedFailPoint(ctx context.Context, failPoint string, host string) error {
 	failPoints := ctx.Value(targetedFailPointsKey).(map[string]string)
 	if _, ok := failPoints[failPoint]; ok {
 		return fmt.Errorf("fail point %q already exists in tracked targeted fail points map", failPoint)
@@ -54,14 +54,14 @@ func AddTargetedFailPoint(ctx context.Context, failPoint string, host string) er
 	return nil
 }
 
-func FailPoints(ctx context.Context) map[string]*mongo.Client {
+func failPoints(ctx context.Context) map[string]*mongo.Client {
 	return ctx.Value(failPointsKey).(map[string]*mongo.Client)
 }
 
-func TargetedFailPoints(ctx context.Context) map[string]string {
+func targetedFailPoints(ctx context.Context) map[string]string {
 	return ctx.Value(targetedFailPointsKey).(map[string]string)
 }
 
-func Entities(ctx context.Context) *EntityMap {
-	return ctx.Value(entitiesKey).(*EntityMap)
+func entities(ctx context.Context) *entityMap {
+	return ctx.Value(entitiesKey).(*entityMap)
 }

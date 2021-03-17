@@ -13,14 +13,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type DBOrCollectionOptions struct {
+type dbOrCollectionOptions struct {
 	DBOptions         *options.DatabaseOptions
 	CollectionOptions *options.CollectionOptions
 }
 
 // UnmarshalBSON specifies custom BSON unmarshalling behavior to convert db/collection options from BSON/JSON documents
 // to their corresponding Go objects.
-func (d *DBOrCollectionOptions) UnmarshalBSON(data []byte) error {
+func (d dbOrCollectionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
 		RC    *readConcern           `bson:"readConcern"`
 		RP    *readPreference        `bson:"readPreference"`
@@ -28,10 +28,10 @@ func (d *DBOrCollectionOptions) UnmarshalBSON(data []byte) error {
 		Extra map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
-		return fmt.Errorf("error unmarshalling to temporary DBOrCollectionOptions object: %v", err)
+		return fmt.Errorf("error unmarshalling to temporary dbOrCollectionOptions object: %v", err)
 	}
 	if len(temp.Extra) > 0 {
-		return fmt.Errorf("unrecognized fields for DBOrCollectionOptions: %v", MapKeys(temp.Extra))
+		return fmt.Errorf("unrecognized fields for dbOrCollectionOptions: %v", mapKeys(temp.Extra))
 	}
 
 	d.DBOptions = options.Database()

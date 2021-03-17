@@ -14,15 +14,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// TransactionOptions is a wrapper for *options.TransactionOptions. This type implements the bson.Unmarshaler interface
-// to convert BSON documents to a TransactionOptions instance.
-type TransactionOptions struct {
+// transactionOptions is a wrapper for *options.transactionOptions. This type implements the bson.Unmarshaler interface
+// to convert BSON documents to a transactionOptions instance.
+type transactionOptions struct {
 	*options.TransactionOptions
 }
 
-var _ bson.Unmarshaler = (*TransactionOptions)(nil)
+var _ bson.Unmarshaler = (*transactionOptions)(nil)
 
-func (to *TransactionOptions) UnmarshalBSON(data []byte) error {
+func (to *transactionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
 		RC              *readConcern           `bson:"readConcern"`
 		RP              *readPreference        `bson:"readPreference"`
@@ -31,10 +31,10 @@ func (to *TransactionOptions) UnmarshalBSON(data []byte) error {
 		Extra           map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
-		return fmt.Errorf("error unmarshalling to temporary TransactionOptions object: %v", err)
+		return fmt.Errorf("error unmarshalling to temporary transactionOptions object: %v", err)
 	}
 	if len(temp.Extra) > 0 {
-		return fmt.Errorf("unrecognized fields for TransactionOptions: %v", MapKeys(temp.Extra))
+		return fmt.Errorf("unrecognized fields for transactionOptions: %v", mapKeys(temp.Extra))
 	}
 
 	to.TransactionOptions = options.Transaction()
@@ -62,26 +62,26 @@ func (to *TransactionOptions) UnmarshalBSON(data []byte) error {
 	return nil
 }
 
-// SessionOptions is a wrapper for *options.SessionOptions. This type implements the bson.Unmarshaler interface to
-// convert BSON documents to a SessionOptions instance.
-type SessionOptions struct {
+// sessionOptions is a wrapper for *options.sessionOptions. This type implements the bson.Unmarshaler interface to
+// convert BSON documents to a sessionOptions instance.
+type sessionOptions struct {
 	*options.SessionOptions
 }
 
-var _ bson.Unmarshaler = (*SessionOptions)(nil)
+var _ bson.Unmarshaler = (*sessionOptions)(nil)
 
-func (so *SessionOptions) UnmarshalBSON(data []byte) error {
+func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
 		Causal          *bool                  `bson:"causalConsistency"`
 		MaxCommitTimeMS *int64                 `bson:"maxCommitTimeMS"`
-		TxnOptions      *TransactionOptions    `bson:"defaultTransactionOptions"`
+		TxnOptions      *transactionOptions    `bson:"defaultTransactionOptions"`
 		Extra           map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
-		return fmt.Errorf("error unmarshalling to temporary SessionOptions object: %v", err)
+		return fmt.Errorf("error unmarshalling to temporary sessionOptions object: %v", err)
 	}
 	if len(temp.Extra) > 0 {
-		return fmt.Errorf("unrecognized fields for SessionOptions: %v", MapKeys(temp.Extra))
+		return fmt.Errorf("unrecognized fields for sessionOptions: %v", mapKeys(temp.Extra))
 	}
 
 	so.SessionOptions = options.Session()

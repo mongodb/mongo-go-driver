@@ -21,15 +21,15 @@ import (
 
 // This file contains helpers to execute collection operations.
 
-func executeAggregate(ctx context.Context, operation *Operation) (*OperationResult, error) {
+func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
 		Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*mongo.Cursor, error)
 	}
 	var err error
 
-	aggregator, err = Entities(ctx).Collection(operation.Object)
+	aggregator, err = entities(ctx).collection(operation.Object)
 	if err != nil {
-		aggregator, err = Entities(ctx).Database(operation.Object)
+		aggregator, err = entities(ctx).database(operation.Object)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("no database or collection entity found with ID %q", operation.Object)
@@ -80,19 +80,19 @@ func executeAggregate(ctx context.Context, operation *Operation) (*OperationResu
 
 	cursor, err := aggregator.Aggregate(ctx, pipeline, opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 	defer cursor.Close(ctx)
 
 	var docs []bson.Raw
 	if err := cursor.All(ctx, &docs); err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
-	return NewCursorResult(docs), nil
+	return newCursorResult(docs), nil
 }
 
-func executeBulkWrite(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeBulkWrite(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -141,11 +141,11 @@ func executeBulkWrite(ctx context.Context, operation *Operation) (*OperationResu
 			AppendDocument("upsertedIds", rawUpsertedIDs).
 			Build()
 	}
-	return NewDocumentResult(raw, err), nil
+	return newDocumentResult(raw, err), nil
 }
 
-func executeCountDocuments(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeCountDocuments(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -189,13 +189,13 @@ func executeCountDocuments(ctx context.Context, operation *Operation) (*Operatio
 
 	count, err := coll.CountDocuments(ctx, filter, opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
-	return NewValueResult(bsontype.Int64, bsoncore.AppendInt64(nil, count), nil), nil
+	return newValueResult(bsontype.Int64, bsoncore.AppendInt64(nil, count), nil), nil
 }
 
-func executeCreateIndex(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeCreateIndex(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -268,11 +268,11 @@ func executeCreateIndex(ctx context.Context, operation *Operation) (*OperationRe
 		Options: indexOpts,
 	}
 	name, err := coll.Indexes().CreateOne(ctx, model)
-	return NewValueResult(bsontype.String, bsoncore.AppendString(nil, name), nil), nil
+	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), nil), nil
 }
 
-func executeDeleteOne(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeDeleteOne(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -315,11 +315,11 @@ func executeDeleteOne(ctx context.Context, operation *Operation) (*OperationResu
 			AppendInt64("deletedCount", res.DeletedCount).
 			Build()
 	}
-	return NewDocumentResult(raw, err), nil
+	return newDocumentResult(raw, err), nil
 }
 
-func executeDeleteMany(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeDeleteMany(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -362,11 +362,11 @@ func executeDeleteMany(ctx context.Context, operation *Operation) (*OperationRes
 			AppendInt64("deletedCount", res.DeletedCount).
 			Build()
 	}
-	return NewDocumentResult(raw, err), nil
+	return newDocumentResult(raw, err), nil
 }
 
-func executeDistinct(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeDistinct(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -406,17 +406,17 @@ func executeDistinct(ctx context.Context, operation *Operation) (*OperationResul
 
 	res, err := coll.Distinct(ctx, fieldName, filter, opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 	_, rawRes, err := bson.MarshalValue(res)
 	if err != nil {
 		return nil, fmt.Errorf("error converting Distinct result to raw BSON: %v", err)
 	}
-	return NewValueResult(bsontype.Array, rawRes, nil), nil
+	return newValueResult(bsontype.Array, rawRes, nil), nil
 }
 
-func executeEstimatedDocumentCount(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -437,13 +437,13 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *Operation) (*
 
 	count, err := coll.EstimatedDocumentCount(ctx, opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
-	return NewValueResult(bsontype.Int64, bsoncore.AppendInt64(nil, count), nil), nil
+	return newValueResult(bsontype.Int64, bsoncore.AppendInt64(nil, count), nil), nil
 }
 
-func executeFind(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeFind(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -513,19 +513,19 @@ func executeFind(ctx context.Context, operation *Operation) (*OperationResult, e
 
 	cursor, err := coll.Find(ctx, filter, opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 	defer cursor.Close(ctx)
 
 	var docs []bson.Raw
 	if err := cursor.All(ctx, &docs); err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
-	return NewCursorResult(docs), nil
+	return newCursorResult(docs), nil
 }
 
-func executeFindOneAndDelete(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -568,11 +568,11 @@ func executeFindOneAndDelete(ctx context.Context, operation *Operation) (*Operat
 	}
 
 	res, err := coll.FindOneAndDelete(ctx, filter, opts).DecodeBytes()
-	return NewDocumentResult(res, err), nil
+	return newDocumentResult(res, err), nil
 }
 
-func executeFindOneAndReplace(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeFindOneAndReplace(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -634,11 +634,11 @@ func executeFindOneAndReplace(ctx context.Context, operation *Operation) (*Opera
 	}
 
 	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).DecodeBytes()
-	return NewDocumentResult(res, err), nil
+	return newDocumentResult(res, err), nil
 }
 
-func executeFindOneAndUpdate(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -707,11 +707,11 @@ func executeFindOneAndUpdate(ctx context.Context, operation *Operation) (*Operat
 	}
 
 	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).DecodeBytes()
-	return NewDocumentResult(res, err), nil
+	return newDocumentResult(res, err), nil
 }
 
-func executeInsertMany(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeInsertMany(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -752,11 +752,11 @@ func executeInsertMany(ctx context.Context, operation *Operation) (*OperationRes
 			AppendDocument("upsertedIds", bsoncore.NewDocumentBuilder().Build()).
 			Build()
 	}
-	return NewDocumentResult(raw, err), nil
+	return newDocumentResult(raw, err), nil
 }
 
-func executeInsertOne(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeInsertOne(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -793,11 +793,11 @@ func executeInsertOne(ctx context.Context, operation *Operation) (*OperationResu
 			AppendValue("insertedId", bsoncore.Value{Type: t, Data: data}).
 			Build()
 	}
-	return NewDocumentResult(raw, err), nil
+	return newDocumentResult(raw, err), nil
 }
 
-func executeReplaceOne(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeReplaceOne(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -842,11 +842,11 @@ func executeReplaceOne(ctx context.Context, operation *Operation) (*OperationRes
 	if buildErr != nil {
 		return nil, buildErr
 	}
-	return NewDocumentResult(raw, err), nil
+	return newDocumentResult(raw, err), nil
 }
 
-func executeUpdateOne(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeUpdateOne(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -861,11 +861,11 @@ func executeUpdateOne(ctx context.Context, operation *Operation) (*OperationResu
 	if buildErr != nil {
 		return nil, buildErr
 	}
-	return NewDocumentResult(raw, err), nil
+	return newDocumentResult(raw, err), nil
 }
 
-func executeUpdateMany(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	coll, err := Entities(ctx).Collection(operation.Object)
+func executeUpdateMany(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -880,7 +880,7 @@ func executeUpdateMany(ctx context.Context, operation *Operation) (*OperationRes
 	if buildErr != nil {
 		return nil, buildErr
 	}
-	return NewDocumentResult(raw, err), nil
+	return newDocumentResult(raw, err), nil
 }
 
 func buildUpdateResultDocument(res *mongo.UpdateResult) (bsoncore.Document, error) {

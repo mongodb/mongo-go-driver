@@ -14,44 +14,44 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type Operation struct {
+type operation struct {
 	Name           string         `bson:"name"`
 	Object         string         `bson:"object"`
 	Arguments      bson.Raw       `bson:"arguments"`
-	ExpectedError  *ExpectedError `bson:"expectError"`
+	ExpectedError  *expectedError `bson:"expectError"`
 	ExpectedResult *bson.RawValue `bson:"expectResult"`
 	ResultEntityID *string        `bson:"saveResultAsEntity"`
 }
 
-// Execute runs the operation and verifies the returned result and/or error. If the result needs to be saved as
-// an entity, it also updates the EntityMap associated with ctx to do so.
-func (op *Operation) Execute(ctx context.Context) error {
+// execute runs the operation and verifies the returned result and/or error. If the result needs to be saved as
+// an entity, it also updates the entityMap associated with ctx to do so.
+func (op *operation) execute(ctx context.Context) error {
 	res, err := op.run(ctx)
 	if err != nil {
 		return fmt.Errorf("execution failed: %v", err)
 	}
 
-	if err := VerifyOperationError(ctx, op.ExpectedError, res); err != nil {
+	if err := verifyOperationError(ctx, op.ExpectedError, res); err != nil {
 		return fmt.Errorf("error verification failed: %v", err)
 	}
 
 	if op.ExpectedResult != nil {
-		if err := VerifyOperationResult(ctx, *op.ExpectedResult, res); err != nil {
+		if err := verifyOperationResult(ctx, *op.ExpectedResult, res); err != nil {
 			return fmt.Errorf("result verification failed: %v", err)
 		}
 	}
 	return nil
 }
 
-func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
+func (op *operation) run(ctx context.Context) (*operationResult, error) {
 	if op.Object == "testRunner" {
-		// testRunner operations don't have results or expected errors, so we use NewEmptyResult to fake a result.
-		return NewEmptyResult(), executeTestRunnerOperation(ctx, op)
+		// testRunner operations don't have results or expected errors, so we use newEmptyResult to fake a result.
+		return newEmptyResult(), executeTestRunnerOperation(ctx, op)
 	}
 
 	// Special handling for the "session" field because it applies to all operations.
 	if id, ok := op.Arguments.Lookup("session").StringValueOK(); ok {
-		sess, err := Entities(ctx).Session(id)
+		sess, err := entities(ctx).session(id)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +59,7 @@ func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
 
 		// Set op.Arguments to a new document that has the "session" field removed so individual operations do
 		// not have to account for it.
-		op.Arguments = RemoveFieldsFromDocument(op.Arguments, "session")
+		op.Arguments = removeFieldsFromDocument(op.Arguments, "session")
 	}
 
 	switch op.Name {
@@ -70,12 +70,12 @@ func (op *Operation) run(ctx context.Context) (*OperationResult, error) {
 		return executeCommitTransaction(ctx, op)
 	case "endSession":
 		// The EndSession() method doesn't return a result, so we return a non-nil empty result.
-		return NewEmptyResult(), executeEndSession(ctx, op)
+		return newEmptyResult(), executeEndSession(ctx, op)
 	case "startTransaction":
 		return executeStartTransaction(ctx, op)
 	case "withTransaction":
 		// executeWithTransaction internally verifies results/errors for each operation, so it doesn't return a result.
-		return NewEmptyResult(), executeWithTransaction(ctx, op)
+		return newEmptyResult(), executeWithTransaction(ctx, op)
 
 	// Client operations
 	case "createChangeStream":

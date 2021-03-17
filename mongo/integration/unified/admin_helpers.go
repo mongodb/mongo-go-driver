@@ -21,9 +21,9 @@ const (
 	errorInterrupted int32 = 11601
 )
 
-// TerminateOpenSessions executes a killAllSessions command to ensure that sesssions left open on the server by a test
+// terminateOpenSessions executes a killAllSessions command to ensure that sesssions left open on the server by a test
 // do not cause future tests to hang.
-func TerminateOpenSessions(ctx context.Context) error {
+func terminateOpenSessions(ctx context.Context) error {
 	if mtest.CompareServerVersions(mtest.ServerVersion(), "3.6") < 0 {
 		return nil
 	}
@@ -48,10 +48,10 @@ func TerminateOpenSessions(ctx context.Context) error {
 	return runAgainstAllMongoses(ctx, commandFn)
 }
 
-// PerformDistinctWorkaround executes a non-transactional "distinct" command against each mongos in a sharded cluster.
-func PerformDistinctWorkaround(ctx context.Context) error {
+// performDistinctWorkaround executes a non-transactional "distinct" command against each mongos in a sharded cluster.
+func performDistinctWorkaround(ctx context.Context) error {
 	commandFn := func(ctx context.Context, client *mongo.Client) error {
-		for _, coll := range Entities(ctx).Collections() {
+		for _, coll := range entities(ctx).collections() {
 			newColl := client.Database(coll.Database().Name()).Collection(coll.Name())
 			_, err := newColl.Distinct(ctx, "x", bson.D{})
 			if err != nil {
@@ -66,7 +66,7 @@ func PerformDistinctWorkaround(ctx context.Context) error {
 	return runAgainstAllMongoses(ctx, commandFn)
 }
 
-func RunCommandOnHost(ctx context.Context, host string, commandFn func(context.Context, *mongo.Client) error) error {
+func runCommandOnHost(ctx context.Context, host string, commandFn func(context.Context, *mongo.Client) error) error {
 	clientOpts := options.Client().
 		ApplyURI(mtest.ClusterURI()).
 		SetHosts([]string{host})
@@ -83,7 +83,7 @@ func RunCommandOnHost(ctx context.Context, host string, commandFn func(context.C
 
 func runAgainstAllMongoses(ctx context.Context, commandFn func(context.Context, *mongo.Client) error) error {
 	for _, host := range mtest.ClusterConnString().Hosts {
-		if err := RunCommandOnHost(ctx, host, commandFn); err != nil {
+		if err := runCommandOnHost(ctx, host, commandFn); err != nil {
 			return fmt.Errorf("error executing callback against host %q: %v", host, err)
 		}
 	}

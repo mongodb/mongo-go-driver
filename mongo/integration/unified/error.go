@@ -15,9 +15,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// ExpectedError represents an error that is expected to occur during a test. This type ignores the "isError" field in
+// expectedError represents an error that is expected to occur during a test. This type ignores the "isError" field in
 // test files because it is always true if it is specified, so the runner can simply assert that an error occurred.
-type ExpectedError struct {
+type expectedError struct {
 	IsClientError  *bool          `bson:"isClientError"`
 	ErrorSubstring *string        `bson:"errorContains"`
 	Code           *int32         `bson:"errorCode"`
@@ -27,10 +27,10 @@ type ExpectedError struct {
 	ExpectedResult *bson.RawValue `bson:"expectResult"`
 }
 
-// VerifyOperationError compares the expected error to the actual operation result. If the expected parameter is nil,
+// verifyOperationError compares the expected error to the actual operation result. If the expected parameter is nil,
 // this function will only check that result.Err is also nil. Otherwise, it will check that result.Err is non-nil and
-// will perform any other assertions required by the ExpectedError object. An error is returned if any checks fail.
-func VerifyOperationError(ctx context.Context, expected *ExpectedError, result *OperationResult) error {
+// will perform any other assertions required by the expectedError object. An error is returned if any checks fail.
+func verifyOperationError(ctx context.Context, expected *expectedError, result *operationResult) error {
 	if expected == nil {
 		if result.Err != nil {
 			return fmt.Errorf("expected no error, but got %v", result.Err)
@@ -101,7 +101,7 @@ func VerifyOperationError(ctx context.Context, expected *ExpectedError, result *
 	}
 
 	if expected.ExpectedResult != nil {
-		if err := VerifyOperationResult(ctx, *expected.ExpectedResult, result); err != nil {
+		if err := verifyOperationResult(ctx, *expected.ExpectedResult, result); err != nil {
 			return fmt.Errorf("result comparison error: %v", err)
 		}
 	}

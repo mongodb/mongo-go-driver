@@ -19,15 +19,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-type CollectionData struct {
+type collectionData struct {
 	DatabaseName   string     `bson:"databaseName"`
 	CollectionName string     `bson:"collectionName"`
 	Documents      []bson.Raw `bson:"documents"`
 }
 
-// CreateCollection configures the collection represented by the receiver using the internal client. This function
+// createCollection configures the collection represented by the receiver using the internal client. This function
 // first drops the collection and then creates it and inserts the seed data if needed.
-func (c *CollectionData) CreateCollection(ctx context.Context) error {
+func (c *collectionData) createCollection(ctx context.Context) error {
 	db := mtest.GlobalClient().Database(c.DatabaseName)
 	coll := db.Collection(c.CollectionName, options.Collection().SetWriteConcern(mtest.MajorityWc))
 	if err := coll.Drop(ctx); err != nil {
@@ -57,9 +57,9 @@ func (c *CollectionData) CreateCollection(ctx context.Context) error {
 	return nil
 }
 
-// VerifyContents asserts that the collection on the server represented by this CollectionData instance contains the
+// verifyContents asserts that the collection on the server represented by this collectionData instance contains the
 // expected documents.
-func (c *CollectionData) VerifyContents(ctx context.Context) error {
+func (c *collectionData) verifyContents(ctx context.Context) error {
 	collOpts := options.Collection().
 		SetReadPreference(readpref.Primary()).
 		SetReadConcern(readconcern.Local())
@@ -82,12 +82,12 @@ func (c *CollectionData) VerifyContents(ctx context.Context) error {
 		return fmt.Errorf("expected %d documents but found %d: %v", len(c.Documents), len(docs), docs)
 	}
 
-	// We can't use VerifyValuesMatch here because the rules for evaluating matches (e.g. flexible numeric comparisons
+	// We can't use verifyValuesMatch here because the rules for evaluating matches (e.g. flexible numeric comparisons
 	// and special $$ operators) do not apply when verifying collection outcomes. We have to permit variations in key
 	// order, though, so we sort documents before doing a byte-wise comparison.
 	for idx, expected := range c.Documents {
-		expected = SortDocument(expected)
-		actual := SortDocument(docs[idx])
+		expected = sortDocument(expected)
+		actual := sortDocument(docs[idx])
 
 		if !bytes.Equal(expected, actual) {
 			return fmt.Errorf("document comparison error at index %d: expected %s, got %s", idx, expected, actual)
@@ -96,6 +96,6 @@ func (c *CollectionData) VerifyContents(ctx context.Context) error {
 	return nil
 }
 
-func (c *CollectionData) Namespace() string {
+func (c *collectionData) namespace() string {
 	return fmt.Sprintf("%s.%s", c.DatabaseName, c.CollectionName)
 }

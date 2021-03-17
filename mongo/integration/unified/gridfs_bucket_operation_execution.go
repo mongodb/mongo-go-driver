@@ -19,8 +19,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-func executeBucketDelete(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	bucket, err := Entities(ctx).GridFSBucket(operation.Object)
+func executeBucketDelete(ctx context.Context, operation *operation) (*operationResult, error) {
+	bucket, err := entities(ctx).gridFSBucket(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -42,11 +42,11 @@ func executeBucketDelete(ctx context.Context, operation *Operation) (*OperationR
 		return nil, newMissingArgumentError("id")
 	}
 
-	return NewErrorResult(bucket.Delete(*id)), nil
+	return newErrorResult(bucket.Delete(*id)), nil
 }
 
-func executeBucketDownload(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	bucket, err := Entities(ctx).GridFSBucket(operation.Object)
+func executeBucketDownload(ctx context.Context, operation *operation) (*operationResult, error) {
+	bucket, err := entities(ctx).gridFSBucket(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -70,19 +70,19 @@ func executeBucketDownload(ctx context.Context, operation *Operation) (*Operatio
 
 	stream, err := bucket.OpenDownloadStream(*id)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 
 	var buffer bytes.Buffer
 	if _, err := io.Copy(&buffer, stream); err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 
-	return NewValueResult(bsontype.Binary, bsoncore.AppendBinary(nil, 0, buffer.Bytes()), nil), nil
+	return newValueResult(bsontype.Binary, bsoncore.AppendBinary(nil, 0, buffer.Bytes()), nil), nil
 }
 
-func executeBucketUpload(ctx context.Context, operation *Operation) (*OperationResult, error) {
-	bucket, err := Entities(ctx).GridFSBucket(operation.Object)
+func executeBucketUpload(ctx context.Context, operation *operation) (*operationResult, error) {
+	bucket, err := entities(ctx).gridFSBucket(operation.Object)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func executeBucketUpload(ctx context.Context, operation *Operation) (*OperationR
 
 	fileID, err := bucket.UploadFromStream(filename, bytes.NewReader(fileBytes), opts)
 	if err != nil {
-		return NewErrorResult(err), nil
+		return newErrorResult(err), nil
 	}
 
 	if operation.ResultEntityID != nil {
@@ -129,10 +129,10 @@ func executeBucketUpload(ctx context.Context, operation *Operation) (*OperationR
 			Type:  bsontype.ObjectID,
 			Value: fileID[:],
 		}
-		if err := Entities(ctx).AddBSONEntity(*operation.ResultEntityID, fileIDValue); err != nil {
+		if err := entities(ctx).addBSONEntity(*operation.ResultEntityID, fileIDValue); err != nil {
 			return nil, fmt.Errorf("error storing result as BSON entity: %v", err)
 		}
 	}
 
-	return NewValueResult(bsontype.ObjectID, fileID[:], nil), nil
+	return newValueResult(bsontype.ObjectID, fileID[:], nil), nil
 }

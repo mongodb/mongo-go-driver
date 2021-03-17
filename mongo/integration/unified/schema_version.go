@@ -20,8 +20,8 @@ var (
 	}
 )
 
-// CheckSchemaVersion determines if the provided schema version is supported and returns an error if it is not.
-func CheckSchemaVersion(version string) error {
+// checkSchemaVersion determines if the provided schema version is supported and returns an error if it is not.
+func checkSchemaVersion(version string) error {
 	// First get the major version number from the schema. The schema version string should be in the format
 	// "major.minor.patch", "major.minor", or "major".
 
