@@ -34,7 +34,7 @@ func TestUnifiedSpec(t *testing.T) {
 
 	for _, testDir := range directories {
 		t.Run(testDir, func(t *testing.T) {
-			RunTestDirectory(t, path.Join(dataDirectory, testDir))
+			runTestDirectory(t, path.Join(dataDirectory, testDir))
 		})
 	}
 }
