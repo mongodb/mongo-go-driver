@@ -836,21 +836,32 @@ func TestConnection(t *testing.T) {
 		})
 
 		t.Run("pinning", func(t *testing.T) {
-			makeConnection := func(t *testing.T) (*pool, *Connection) {
+			makeMultipleConnections := func(t *testing.T, numConns int) (*pool, []*Connection) {
 				t.Helper()
 
 				addr := address.Address("")
-				conn, err := newConnection(addr)
-				assert.Nil(t, err, "newConnection error: %v", err)
-
 				pool, err := newPool(poolConfig{Address: addr})
 				assert.Nil(t, err, "newPool error: %v", err)
-				conn.pool = pool
-				err = pool.sem.Acquire(context.Background(), 1)
-				assert.Nil(t, err, "error acquring semaphore: %v", err)
 
-				return pool, &Connection{connection: conn}
+				err = pool.sem.Acquire(context.Background(), int64(numConns))
+				assert.Nil(t, err, "error acquiring semaphore: %v", err)
+
+				conns := make([]*Connection, 0, numConns)
+				for i := 0; i < numConns; i++ {
+					conn, err := newConnection(addr)
+					assert.Nil(t, err, "newConnection error: %v", err)
+					conn.pool = pool
+					conns = append(conns, &Connection{connection: conn})
+				}
+				return pool, conns
 			}
+			makeOneConnection := func(t *testing.T) (*pool, *Connection) {
+				t.Helper()
+
+				pool, conns := makeMultipleConnections(t, 1)
+				return pool, conns[0]
+			}
+
 			assertPoolPinnedStats := func(t *testing.T, p *pool, cursorConns, txnConns uint64) {
 				t.Helper()
 
@@ -861,7 +872,7 @@ func TestConnection(t *testing.T) {
 			}
 
 			t.Run("cursors", func(t *testing.T) {
-				pool, conn := makeConnection(t)
+				pool, conn := makeOneConnection(t)
 				err := conn.PinToCursor()
 				assert.Nil(t, err, "PinToCursor error: %v", err)
 				assertPoolPinnedStats(t, pool, 1, 0)
@@ -874,7 +885,7 @@ func TestConnection(t *testing.T) {
 				assertPoolPinnedStats(t, pool, 0, 0)
 			})
 			t.Run("transactions", func(t *testing.T) {
-				pool, conn := makeConnection(t)
+				pool, conn := makeOneConnection(t)
 				err := conn.PinToTransaction()
 				assert.Nil(t, err, "PinToTransaction error: %v", err)
 				assertPoolPinnedStats(t, pool, 0, 1)
@@ -887,7 +898,7 @@ func TestConnection(t *testing.T) {
 				assertPoolPinnedStats(t, pool, 0, 0)
 			})
 			t.Run("pool is only updated for first reference", func(t *testing.T) {
-				pool, conn := makeConnection(t)
+				pool, conn := makeOneConnection(t)
 				err := conn.PinToTransaction()
 				assert.Nil(t, err, "PinToTransaction error: %v", err)
 				assertPoolPinnedStats(t, pool, 0, 1)
@@ -906,6 +917,48 @@ func TestConnection(t *testing.T) {
 
 				err = conn.Close()
 				assert.Nil(t, err, "Close error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 0)
+			})
+			t.Run("multiple connections from a pool", func(t *testing.T) {
+				pool, conns := makeMultipleConnections(t, 2)
+				first, second := conns[0], conns[1]
+
+				err := first.PinToTransaction()
+				assert.Nil(t, err, "PinToTransaction error: %v", err)
+				err = second.PinToCursor()
+				assert.Nil(t, err, "PinToCursor error: %v", err)
+				assertPoolPinnedStats(t, pool, 1, 1)
+
+				err = first.UnpinFromTransaction()
+				assert.Nil(t, err, "UnpinFromTransaction error: %v", err)
+				err = first.Close()
+				assert.Nil(t, err, "Close error: %v", err)
+				assertPoolPinnedStats(t, pool, 1, 0)
+
+				err = second.UnpinFromCursor()
+				assert.Nil(t, err, "UnpinFromCursor error: %v", err)
+				err = second.Close()
+				assert.Nil(t, err, "Close error: %v", err)
+				assertPoolPinnedStats(t, pool, 0, 0)
+			})
+			t.Run("close is ignored if connection is pinned", func(t *testing.T) {
+				pool, conn := makeOneConnection(t)
+				err := conn.PinToCursor()
+				assert.Nil(t, err, "PinToCursor error: %v", err)
+
+				err = conn.Close()
+				assert.Nil(t, err, "Close error")
+				assert.NotNil(t, conn.connection, "expected connection to be pinned but it was released to the pool")
+				assertPoolPinnedStats(t, pool, 1, 0)
+			})
+			t.Run("expire forcefully returns connection to pool", func(t *testing.T) {
+				pool, conn := makeOneConnection(t)
+				err := conn.PinToCursor()
+				assert.Nil(t, err, "PinToCursor error: %v", err)
+
+				err = conn.Expire()
+				assert.Nil(t, err, "Expire error")
+				assert.Nil(t, conn.connection, "expected connection to be released to the pool but was not")
 				assertPoolPinnedStats(t, pool, 0, 0)
 			})
 		})
