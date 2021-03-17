@@ -718,6 +718,7 @@ func (dvd DefaultValueDecoders) UndefinedDecodeValue(dc DecodeContext, vr bsonrw
 	return nil
 }
 
+// Accept both 12-byte string and pretty-printed 24-byte hex string formats.
 func (dvd DefaultValueDecoders) objectIDDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tOID {
 		return emptyValue, ValueDecoderError{
@@ -739,6 +740,9 @@ func (dvd DefaultValueDecoders) objectIDDecodeType(dc DecodeContext, vr bsonrw.V
 		str, err := vr.ReadString()
 		if err != nil {
 			return emptyValue, err
+		}
+		if oid, err = primitive.ObjectIDFromHex(str); err == nil {
+			break
 		}
 		if len(str) != 12 {
 			return emptyValue, fmt.Errorf("an ObjectID string must be exactly 12 bytes long (got %v)", len(str))

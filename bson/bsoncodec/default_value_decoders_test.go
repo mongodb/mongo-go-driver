@@ -1119,6 +1119,17 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
+					"success/string-hex",
+					primitive.ObjectID{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62},
+					nil,
+					&bsonrwtest.ValueReaderWriter{
+						BSONType: bsontype.String,
+						Return:   "303132333435363738396162",
+					},
+					bsonrwtest.ReadString,
+					nil,
+				},
+				{
 					"decode null",
 					primitive.ObjectID{},
 					nil,
