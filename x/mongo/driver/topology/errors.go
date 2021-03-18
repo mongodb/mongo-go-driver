@@ -77,7 +77,7 @@ func (w WaitQueueTimeoutError) Error() string {
 
 	errorMsg = fmt.Sprintf("%s; maxPoolSize: %d, connections in use by cursors: %d, connections in use by transactions: %d",
 		errorMsg, w.maxPoolSize, w.PinnedCursorConnections, w.PinnedTransactionConnections)
-	return fmt.Sprintf("%s, connections in use by regular operations: %d", errorMsg,
+	return fmt.Sprintf("%s, connections in use by other operations: %d", errorMsg,
 		w.maxPoolSize-(w.PinnedCursorConnections+w.PinnedTransactionConnections))
 }
 
