@@ -18,9 +18,11 @@ type dbOrCollectionOptions struct {
 	CollectionOptions *options.CollectionOptions
 }
 
+var _ bson.Unmarshaler = (*dbOrCollectionOptions)(nil)
+
 // UnmarshalBSON specifies custom BSON unmarshalling behavior to convert db/collection options from BSON/JSON documents
 // to their corresponding Go objects.
-func (d dbOrCollectionOptions) UnmarshalBSON(data []byte) error {
+func (d *dbOrCollectionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
 		RC    *readConcern           `bson:"readConcern"`
 		RP    *readPreference        `bson:"readPreference"`
