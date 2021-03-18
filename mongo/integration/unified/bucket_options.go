@@ -21,7 +21,7 @@ type gridFSBucketOptions struct {
 
 var _ bson.Unmarshaler = (*gridFSBucketOptions)(nil)
 
-func (bo gridFSBucketOptions) UnmarshalBSON(data []byte) error {
+func (bo *gridFSBucketOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
 		Name      *string                `bson:"name"`
 		ChunkSize *int32                 `bson:"chunkSizeBytes"`

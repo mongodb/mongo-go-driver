@@ -42,7 +42,7 @@ type testCase struct {
 	RunOnRequirements []mtest.RunOnBlock `bson:"runOnRequirements"`
 	SkipReason        *string            `bson:"skipReason"`
 	Operations        []*operation       `bson:"operations"`
-	expectedEvents    []*expectedEvents  `bson:"expectEvents"`
+	ExpectedEvents    []*expectedEvents  `bson:"expectEvents"`
 	Outcome           []*collectionData  `bson:"outcome"`
 }
 
@@ -194,7 +194,7 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *testCase) {
 		client.StopListeningForEvents()
 	}
 
-	for idx, expectedEvents := range testCase.expectedEvents {
+	for idx, expectedEvents := range testCase.ExpectedEvents {
 		err := verifyEvents(testCtx, expectedEvents)
 		assert.Nil(mt, err, "events verification failed at index %d: %v", idx, err)
 	}
