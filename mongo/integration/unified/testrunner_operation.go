@@ -9,6 +9,8 @@ package unified
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,7 +18,15 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-func executeTestRunnerOperation(ctx context.Context, operation *operation) error {
+type loopArgs struct {
+	Operations      []*operation `bson:"operations"`
+	StoreErrors     string       `bson:"storeErrorsAsEntity"`
+	StoreFailures   string       `bson:"storeFailuresAsEntity"`
+	StoreSuccesses  string       `bson:"storeSuccessesAsEntity"`
+	StoreIterations string       `bson:"storeIterationsAsEntity"`
+}
+
+func executeTestRunnerOperation(ctx context.Context, operation *operation, r *Runner) error {
 	args := operation.Arguments
 
 	switch operation.Name {
@@ -111,8 +121,93 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation) error
 		coll := lookupString(args, "collectionName")
 		index := lookupString(args, "indexName")
 		return verifyIndexExists(ctx, db, coll, index, false)
+	case "loop":
+		unmarshaledArgs := &loopArgs{}
+		if err := bson.Unmarshal(args, unmarshaledArgs); err != nil {
+			return err
+		}
+		return loop(ctx, unmarshaledArgs, r)
 	default:
 		return fmt.Errorf("unrecognized testRunner operation %q", operation.Name)
+	}
+}
+
+func loop(ctx context.Context, args *loopArgs, r *Runner) error {
+	if r == nil {
+		return fmt.Errorf("Runner should be set for looping operation")
+	}
+
+	// setup entities
+	entityMap := entities(ctx)
+	if args.StoreErrors != "" {
+		if err := entityMap.addErrorsEntityIfDoesntExist(args.StoreErrors); err != nil {
+			return err
+		}
+	}
+	if args.StoreFailures != "" {
+		if err := entityMap.addFailuresEntityIfDoesntExist(args.StoreFailures); err != nil {
+			return err
+		}
+	}
+	if args.StoreSuccesses != "" {
+		if err := entityMap.addSuccessesEntity(args.StoreSuccesses); err != nil {
+			return err
+		}
+	}
+	if args.StoreIterations != "" {
+		if err := entityMap.addIterationsEntity(args.StoreIterations); err != nil {
+			return err
+		}
+	}
+
+	for {
+		select {
+		case <-r.loopDone:
+			return nil
+		default:
+			var loopErr error
+			for _, operation := range args.Operations {
+				if operation.Name == "loop" {
+					return fmt.Errorf("Loop sub-operations should not include loop")
+				}
+				loopErr = operation.execute(ctx, r)
+
+				// if the operation errors, stop this loop
+				if loopErr != nil {
+					if args.StoreErrors == "" && args.StoreFailures == "" {
+						break
+					}
+					record := bson.D{
+						{"error", loopErr.Error()},
+						{"time", time.Now().Unix()},
+					}
+					errDoc, _ := bson.Marshal(record)
+					switch {
+					case args.StoreErrors == "":
+						entityMap.appendFailuresEntity(args.StoreFailures, errDoc)
+					case args.StoreFailures == "":
+						entityMap.appendErrorsEntity(args.StoreErrors, errDoc)
+					// errors are test runner errors
+					case strings.Contains(loopErr.Error(), "execution failed: "):
+						entityMap.appendErrorsEntity(args.StoreErrors, errDoc)
+					// failures are if an operation returns an incorrect result or error
+					default:
+						entityMap.appendFailuresEntity(args.StoreFailures, errDoc)
+					}
+					break
+				}
+				if args.StoreSuccesses != "" {
+					entityMap.incrementSuccesses(args.StoreSuccesses)
+				}
+			}
+			if args.StoreIterations != "" {
+				entityMap.incrementIterations(args.StoreIterations)
+			}
+			// If StoreFailures or StoreErrors is set, continue looping, otherwise break
+			if args.StoreErrors == "" && args.StoreFailures == "" {
+				return loopErr
+			}
+		}
 	}
 }
 

@@ -27,8 +27,8 @@ const (
 
 // newTestContext creates a new Context derived from ctx with values initialized to store the state required for test
 // execution.
-func newTestContext(ctx context.Context) context.Context {
-	ctx = context.WithValue(ctx, entitiesKey, newEntityMap())
+func newTestContext(ctx context.Context, entityMap *EntityMap) context.Context {
+	ctx = context.WithValue(ctx, entitiesKey, entityMap)
 	ctx = context.WithValue(ctx, failPointsKey, make(map[string]*mongo.Client))
 	ctx = context.WithValue(ctx, targetedFailPointsKey, make(map[string]string))
 	return ctx
@@ -62,6 +62,6 @@ func targetedFailPoints(ctx context.Context) map[string]string {
 	return ctx.Value(targetedFailPointsKey).(map[string]string)
 }
 
-func entities(ctx context.Context) *entityMap {
-	return ctx.Value(entitiesKey).(*entityMap)
+func entities(ctx context.Context) *EntityMap {
+	return ctx.Value(entitiesKey).(*EntityMap)
 }
