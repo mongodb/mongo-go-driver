@@ -1475,6 +1475,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		CommandName:  info.cmdName,
 		RequestID:    int64(info.requestID),
 		ConnectionID: info.connID,
+		ServerID:     info.serverID,
 	}
 	op.CommandMonitor.Started(ctx, started)
 }
@@ -1501,6 +1502,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		RequestID:     int64(info.requestID),
 		ConnectionID:  info.connID,
 		DurationNanos: durationNanos,
+		ServerID:      info.serverID,
 	}
 
 	if success {
