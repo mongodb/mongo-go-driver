@@ -205,7 +205,7 @@ func (c *ClientOptions) GetURI() string {
 // parameters are specified. If an option is set on ClientOptions after this method is called, that option will override
 // any option applied via the connection string.
 //
-// If the URI format is incorrect or there are conflicing options specified in the URI an error will be recorded and
+// If the URI format is incorrect or there are conflicting options specified in the URI an error will be recorded and
 // can be retrieved by calling Validate.
 //
 // For more information about the URI format, see https://docs.mongodb.com/manual/reference/connection-string/. See
@@ -585,7 +585,7 @@ func (c *ClientOptions) SetReadConcern(rc *readconcern.ReadConcern) *ClientOptio
 // SetReadPreference specifies the read preference to use for read operations. This can also be set through the
 // following URI options:
 //
-// 1. "readPreference" - Specifiy the read preference mode (e.g. "readPreference=primary").
+// 1. "readPreference" - Specify the read preference mode (e.g. "readPreference=primary").
 //
 // 2. "readPreferenceTags": Specify one or more read preference tags
 // (e.g. "readPreferenceTags=region:south,datacenter:A").

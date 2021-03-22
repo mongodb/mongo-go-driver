@@ -243,7 +243,7 @@ func (c *Client) Disconnect(ctx context.Context) error {
 
 // Ping sends a ping command to verify that the client can connect to the deployment.
 //
-// The rp paramter is used to determine which server is selected for the operation.
+// The rp parameter is used to determine which server is selected for the operation.
 // If it is nil, the client's read preference is used.
 //
 // If the server is down, Ping will try to select a server until the client's server selection timeout expires.

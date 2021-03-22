@@ -78,7 +78,7 @@
 //     1. Only exported fields in structs will be marshalled or unmarshalled.
 //
 //     2. When marshalling a struct, each field will be lowercased to generate the key for the corresponding BSON element.
-//     For example, a struct field named "Foo" will generate key "foo". This can be overriden via a struct tag (e.g.
+//     For example, a struct field named "Foo" will generate key "foo". This can be overridden via a struct tag (e.g.
 //     `bson:"fooField"` to generate key "fooField" instead).
 //
 //     3. An embedded struct field is marshalled as a subdocument. The key will be the lowercased name of the field's type.

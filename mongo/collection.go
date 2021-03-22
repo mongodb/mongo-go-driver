@@ -348,7 +348,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // The documents parameter must be a slice of documents to insert. The slice cannot be nil or empty. The elements must
 // all be non-nil. For any document that does not have an _id field when transformed into BSON, one will be added
 // automatically to the marshalled document. The original document will not be modified. The _id values for the inserted
-// documents can be retrieved from the InsertedIDs field of the returnd InsertManyResult.
+// documents can be retrieved from the InsertedIDs field of the returned InsertManyResult.
 //
 // The opts parameter can be used to specify options for the operation (see the options.InsertManyOptions documentation.)
 //
