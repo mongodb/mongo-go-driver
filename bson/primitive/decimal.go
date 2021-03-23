@@ -127,7 +127,10 @@ Loop:
 		return string(repr[last+posSign:]) + "E+" + strconv.Itoa(exp)
 	}
 	if exp < 0 {
-		return string(repr[last+posSign:]) + "E" + strconv.Itoa(exp)
+		// If exponent is still -6176 decimal value could just be 0.
+		if !(exp == MinDecimal128Exp && low == 0 && high == 0) {
+			return string(repr[last+posSign:]) + "E" + strconv.Itoa(exp)
+		}
 	}
 	return string(repr[last+posSign:])
 }
