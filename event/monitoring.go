@@ -89,6 +89,9 @@ type PoolEvent struct {
 	ConnectionID uint64              `json:"connectionId"`
 	PoolOptions  *MonitorPoolOptions `json:"options"`
 	Reason       string              `json:"reason"`
+	// ServerID is only set if the Type is PoolCleared and the server is deployed behind a load balancer. This field
+	// can be used to distinguish between individual servers in a load balanced deployment.
+	ServerID *primitive.ObjectID `json:"serverId"`
 }
 
 // PoolMonitor is a function that allows the user to gain access to events occurring in the pool

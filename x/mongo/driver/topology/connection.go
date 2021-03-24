@@ -91,6 +91,11 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 		cancellationListener: internal.NewCancellationListener(),
 		poolMonitor:          cfg.poolMonitor,
 	}
+	// Connections to non-load balanced deployments should eagerly set the generation numbers so errors encountered
+	// at any point during connection establishment can be processed without the connection being considered stale.
+	if !c.config.loadBalanced {
+		c.setGenerationNumber()
+	}
 	atomic.StoreInt32(&c.connected, initialized)
 
 	return c, nil
@@ -104,8 +109,29 @@ func (c *connection) processInitializationError(err error) {
 
 	c.connectErr = ConnectionError{Wrapped: err, init: true}
 	if c.config.errorHandlingCallback != nil {
-		c.config.errorHandlingCallback(c.connectErr, c.generation)
+		c.config.errorHandlingCallback(c.connectErr, c.generation, c.desc.ServerID)
 	}
+}
+
+// setGenerationNumber sets the connection's generation number if a callback has been provided to do so in connection
+// configuration.
+func (c *connection) setGenerationNumber() {
+	if c.config.getGenerationFn != nil {
+		c.generation = c.config.getGenerationFn(c.desc.ServerID)
+	}
+}
+
+// hasGenerationNumber returns true if the connection has set its generation number. If so, this indicates that the
+// generationNumberFn provided via the connection options has been called exactly once.
+func (c *connection) hasGenerationNumber() bool {
+	if !c.config.loadBalanced {
+		// The generation is known for all non-LB clusters once the connection object has been created.
+		return true
+	}
+
+	// For LB clusters, we set the generation after the initial handshake, so we know it's set if the connection
+	// description has been updated to reflect that it's behind an LB.
+	return c.desc.LoadBalanced()
 }
 
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform
@@ -212,6 +238,13 @@ func (c *connection) connect(ctx context.Context) {
 		}
 	}
 	if err == nil {
+		// For load-balanced connections, the generation number depends on the server ID, which isn't known until the
+		// initial MongoDB handshake is done. To account for this, we don't attempt to set the connection's generation
+		// number unless GetHandshakeInformation succeeds.
+		if c.config.loadBalanced {
+			c.setGenerationNumber()
+		}
+
 		// If we successfully finished the first part of the handshake and verified LB state, continue with the rest of
 		// the handshake.
 		err = handshaker.FinishHandshake(handshakeCtx, handshakeConn)

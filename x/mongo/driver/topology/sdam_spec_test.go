@@ -13,7 +13,6 @@ import (
 	"net"
 	"path"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -465,7 +464,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		versionRange := description.NewVersionRange(0, *appErr.MaxWireVersion)
 		desc.WireVersion = &versionRange
 
-		generation := atomic.LoadUint64(&server.pool.generation)
+		generation := server.pool.generation.getGeneration(nil)
 		if appErr.Generation != nil {
 			generation = uint64(*appErr.Generation)
 		}
@@ -479,7 +478,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 
 		switch appErr.When {
 		case "beforeHandshakeCompletes":
-			server.ProcessHandshakeError(currError, generation)
+			server.ProcessHandshakeError(currError, generation, nil)
 		case "afterHandshakeCompletes":
 			_ = server.ProcessError(currError, &conn)
 		default:
@@ -693,7 +692,7 @@ func runTest(t *testing.T, directory string, filename string) {
 					topo.serversLock.Lock()
 					actualServer := topo.servers[address.Address(addr)]
 					topo.serversLock.Unlock()
-					actualGeneration := atomic.LoadUint64(&actualServer.pool.generation)
+					actualGeneration := actualServer.pool.generation.getGeneration(nil)
 					assert.Equal(t, server.Pool.Generation, actualGeneration,
 						"expected server pool generation to be %v, got %v", server.Pool.Generation, actualGeneration)
 				}

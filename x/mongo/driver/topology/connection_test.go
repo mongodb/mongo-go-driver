@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -128,7 +129,7 @@ func TestConnection(t *testing.T) {
 							return &net.TCPConn{}, nil
 						})
 					}),
-					withErrorHandlingCallback(func(err error, _ uint64) {
+					withErrorHandlingCallback(func(err error, _ uint64, _ *primitive.ObjectID) {
 						got = err
 					}),
 				)

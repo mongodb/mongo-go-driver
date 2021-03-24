@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
@@ -35,6 +36,9 @@ var DefaultDialer Dialer = &net.Dialer{}
 // initialization. Implementations must be goroutine safe.
 type Handshaker = driver.Handshaker
 
+// generationNumberFn is a callback type used by a connection to fetch its generation number given its server ID.
+type generationNumberFn func(serverID *primitive.ObjectID) uint64
+
 type connectionConfig struct {
 	appName                  string
 	connectTimeout           time.Duration
@@ -51,9 +55,10 @@ type connectionConfig struct {
 	zstdLevel                *int
 	ocspCache                ocsp.Cache
 	disableOCSPEndpointCheck bool
-	errorHandlingCallback    func(error, uint64)
+	errorHandlingCallback    func(error, uint64, *primitive.ObjectID)
 	tlsConnectionSource      tlsConnectionSource
 	loadBalanced             bool
+	getGenerationFn          generationNumberFn
 }
 
 func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
@@ -87,7 +92,7 @@ func withTLSConnectionSource(fn func(tlsConnectionSource) tlsConnectionSource) C
 	}
 }
 
-func withErrorHandlingCallback(fn func(error, uint64)) ConnectionOption {
+func withErrorHandlingCallback(fn func(error, uint64, *primitive.ObjectID)) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.errorHandlingCallback = fn
 		return nil
@@ -214,6 +219,13 @@ func WithDisableOCSPEndpointCheck(fn func(bool) bool) ConnectionOption {
 func WithConnectionLoadBalanced(fn func(bool) bool) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.loadBalanced = fn(c.loadBalanced)
+		return nil
+	}
+}
+
+func withGenerationNumberFn(fn func(generationNumberFn) generationNumberFn) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.getGenerationFn = fn(c.getGenerationFn)
 		return nil
 	}
 }
