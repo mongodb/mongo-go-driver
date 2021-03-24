@@ -129,7 +129,7 @@ func (c *connection) hasGenerationNumber() bool {
 		return true
 	}
 
-	// For LB clusters, we set the generation after the initial handshake, so we know its set if the connection
+	// For LB clusters, we set the generation after the initial handshake, so we know it's set if the connection
 	// description has been updated to reflect that it's behind an LB.
 	return c.desc.LoadBalanced()
 }
