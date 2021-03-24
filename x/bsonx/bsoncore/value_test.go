@@ -110,6 +110,11 @@ func TestValue(t *testing.T) {
 			nil,
 		},
 		{
+			"StringValue/Zero Length", Value.StringValue, Value{Type: bsontype.String, Data: []byte{0x00, 0x00, 0x00, 0x00}},
+			NewInsufficientBytesError([]byte{0x00, 0x00, 0x00, 0x00}, []byte{0x00, 0x00, 0x00, 0x00}),
+			nil,
+		},
+		{
 			"StringValue/Success", Value.StringValue, Value{Type: bsontype.String, Data: AppendString(nil, "hello, world!")},
 			nil,
 			[]interface{}{string("hello, world!")},
@@ -121,6 +126,11 @@ func TestValue(t *testing.T) {
 		},
 		{
 			"StringValueOK/Insufficient Bytes", Value.StringValueOK, Value{Type: bsontype.String, Data: []byte{0x01, 0x02, 0x03, 0x04}},
+			nil,
+			[]interface{}{string(""), false},
+		},
+		{
+			"StringValueOK/Zero Length", Value.StringValueOK, Value{Type: bsontype.String, Data: []byte{0x00, 0x00, 0x00, 0x00}},
 			nil,
 			[]interface{}{string(""), false},
 		},

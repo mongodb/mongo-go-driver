@@ -818,7 +818,7 @@ func readstring(src []byte) (string, []byte, bool) {
 	if !ok {
 		return "", src, false
 	}
-	if len(src[4:]) < int(l) {
+	if len(src[4:]) < int(l) || l == 0 {
 		return "", src, false
 	}
 
