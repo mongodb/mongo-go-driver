@@ -119,7 +119,12 @@ defer cur.Close(ctx)
 for cur.Next(ctx) {
    var result bson.D
    err := cur.Decode(&result)
-   if err != nil { log.Fatal(err) }
+    if err == mongo.ErrNoDocuments {
+        // Do something when no record was found
+        fmt.Println("record does not exist")
+    } else {
+        log.Fatal(err)
+    }
    // do something with result....
 }
 if err := cur.Err(); err != nil {
