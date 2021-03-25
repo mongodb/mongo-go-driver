@@ -45,3 +45,11 @@ func TestExtJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestExtJSONNullBytes(t *testing.T) {
+	t.Run("element keys", func(t *testing.T) {
+		doc := D{{"a\x00", "foo"}}
+		res, err := MarshalExtJSON(doc, false, false)
+		assert.NotNil(t, err, "expected MarshalExtJSON error but got nil with result %v", string(res))
+	})
+}
