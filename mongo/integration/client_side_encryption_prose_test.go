@@ -1040,18 +1040,18 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	// These tests only run when a KMS mock server is running on localhost:8000.
 	mt.RunOpts("kms tls tests", noClientOpts, func(mt *mtest.T) {
 		testcases := []struct {
-			name             string
-			runOnEnvVariable string
-			errMessage       string
+			name       string
+			envValue   string
+			errMessage string
 		}{
 			{
 				"invalid certificate",
-				"KMS_TLS_INVALID_CERT",
+				"INVALID_CERT",
 				"expired",
 			},
 			{
 				"invalid hostname",
-				"KMS_TLS_INVALID_HOSTNAME",
+				"INVALID_HOSTNAME",
 				"SANs",
 			},
 		}
@@ -1059,7 +1059,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		for _, tc := range testcases {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				// Only run test if correct KMS mock server is running.
-				if os.Getenv(tc.runOnEnvVariable) == "true" {
+				if os.Getenv("KMS_TLS_TESTCASE") == tc.envValue {
 					ceo := options.ClientEncryption().
 						SetKmsProviders(fullKmsProvidersMap).
 						SetKeyVaultNamespace(kvNamespace)
@@ -1075,7 +1075,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					assert.True(mt, strings.Contains(err.Error(), tc.errMessage),
 						"expected CreateDataKey error to contain %v, got %v", tc.errMessage, err.Error())
 				} else {
-					mt.Skipf("Skipping test as %v is set to %q, expected true", tc.runOnEnvVariable, os.Getenv(tc.runOnEnvVariable))
+					mt.Skipf("Skipping test as KMS_TLS_TESTCASE is set to %q, expected %v", os.Getenv("KMS_TLS_TESTCASE"), tc.envValue)
 				}
 			})
 		}
