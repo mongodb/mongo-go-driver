@@ -903,7 +903,7 @@ func TestBuild(t *testing.T) {
 func TestNullBytes(t *testing.T) {
 	// Helper function to execute the provided callback and assert that it panics with the expected message. The
 	// createBSONFn callback should create a BSON document/array/value and return the stringified version.
-	assertDocumentCreationPanics := func(t *testing.T, createBSONFn func() string, expected string) {
+	assertBSONCreationPanics := func(t *testing.T, createBSONFn func() string, expected string) {
 		t.Helper()
 
 		var res string
@@ -918,7 +918,7 @@ func TestNullBytes(t *testing.T) {
 		createDocFn := func() string {
 			return NewDocumentBuilder().AppendString("a\x00", "foo").Build().String()
 		}
-		assertDocumentCreationPanics(t, createDocFn, invalidKeyPanicMsg)
+		assertBSONCreationPanics(t, createDocFn, invalidKeyPanicMsg)
 	})
 	t.Run("regex values", func(t *testing.T) {
 		testCases := []struct {
@@ -938,7 +938,7 @@ func TestNullBytes(t *testing.T) {
 					)
 					return Document(docBytes).String()
 				}
-				assertDocumentCreationPanics(t, createDocFn, invalidRegexPanicMsg)
+				assertBSONCreationPanics(t, createDocFn, invalidRegexPanicMsg)
 			})
 			t.Run(tc.name+"-AppendRegex", func(t *testing.T) {
 				createValFn := func() string {
@@ -948,7 +948,7 @@ func TestNullBytes(t *testing.T) {
 					}
 					return Value(valBytes).String()
 				}
-				assertDocumentCreationPanics(t, createValFn, invalidRegexPanicMsg)
+				assertBSONCreationPanics(t, createValFn, invalidRegexPanicMsg)
 			})
 		}
 	})
