@@ -25,8 +25,7 @@ type Zeroer interface {
 // D is an ordered representation of a BSON document. This type should be used when the order of the elements matters,
 // such as MongoDB command documents. If the order of the elements does not matter, an M should be used instead.
 //
-// Note that a D can be constructed with duplicate key names which should be avoided as they can cause undefined behavior
-// from the server.
+// A D should not be constructed with duplicate key names, as that can cause undefined server behavior.
 //
 // Example usage:
 //
