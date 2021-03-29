@@ -44,6 +44,13 @@ func TestIndexView(t *testing.T) {
 			assert.Nil(mt, err, "CreateMany error: %v", err)
 		}
 
+		// For server versions below 3.0, we internally execute List() as a legacy OP_QUERY against the system.indexes
+		// collection. Command monitoring upconversions translate this to a "find" command rather than "listIndexes".
+		cmdName := "listIndexes"
+		if mtest.CompareServerVersions(mtest.ServerVersion(), "3.0") < 0 {
+			cmdName = "find"
+		}
+
 		mt.Run("_id index is always listed", func(mt *mtest.T) {
 			verifyIndexExists(mt, mt.Coll.Indexes(), index{
 				Key:  bson.D{{"_id", int32(1)}},
@@ -52,13 +59,13 @@ func TestIndexView(t *testing.T) {
 		})
 		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
 			createIndexes(mt, 2)
-			assertGetMoreCommandsAreMonitored(mt, "listIndexes", func() (*mongo.Cursor, error) {
+			assertGetMoreCommandsAreMonitored(mt, cmdName, func() (*mongo.Cursor, error) {
 				return mt.Coll.Indexes().List(mtest.Background, options.ListIndexes().SetBatchSize(2))
 			})
 		})
 		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
 			createIndexes(mt, 2)
-			assertKillCursorsCommandsAreMonitored(mt, "listIndexes", func() (*mongo.Cursor, error) {
+			assertKillCursorsCommandsAreMonitored(mt, cmdName, func() (*mongo.Cursor, error) {
 				return mt.Coll.Indexes().List(mtest.Background, options.ListIndexes().SetBatchSize(2))
 			})
 		})
