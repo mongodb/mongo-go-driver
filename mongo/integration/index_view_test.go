@@ -30,9 +30,37 @@ func TestIndexView(t *testing.T) {
 	defer mt.Close()
 
 	mt.Run("list", func(mt *mtest.T) {
-		verifyIndexExists(mt, mt.Coll.Indexes(), index{
-			Key:  bson.D{{"_id", int32(1)}},
-			Name: "_id_",
+		createIndexes := func(mt *mtest.T, numIndexes int) {
+			mt.Helper()
+
+			models := make([]mongo.IndexModel, 0, numIndexes)
+			for i, key := 0, 'a'; i < numIndexes; i, key = i+1, key+1 {
+				models = append(models, mongo.IndexModel{
+					Keys: bson.M{string(key): 1},
+				})
+			}
+
+			_, err := mt.Coll.Indexes().CreateMany(mtest.Background, models)
+			assert.Nil(mt, err, "CreateMany error: %v", err)
+		}
+
+		mt.Run("_id index is always listed", func(mt *mtest.T) {
+			verifyIndexExists(mt, mt.Coll.Indexes(), index{
+				Key:  bson.D{{"_id", int32(1)}},
+				Name: "_id_",
+			})
+		})
+		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
+			createIndexes(mt, 2)
+			assertGetMoreCommandsAreMonitored(mt, "listIndexes", func() (*mongo.Cursor, error) {
+				return mt.Coll.Indexes().List(mtest.Background, options.ListIndexes().SetBatchSize(2))
+			})
+		})
+		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
+			createIndexes(mt, 2)
+			assertKillCursorsCommandsAreMonitored(mt, "listIndexes", func() (*mongo.Cursor, error) {
+				return mt.Coll.Indexes().List(mtest.Background, options.ListIndexes().SetBatchSize(2))
+			})
 		})
 	})
 	mt.RunOpts("create one", noClientOpts, func(mt *mtest.T) {
