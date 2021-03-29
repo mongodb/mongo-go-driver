@@ -299,7 +299,7 @@ func TestArray(t *testing.T) {
 					'\x00', '\x00',
 				},
 				`[[null,null]]`,
-				`Array(19)[[null ,null ]]`,
+				`Array(19)[Array(11)[null,null]]`,
 			},
 			{
 				"malformed--length too small",
