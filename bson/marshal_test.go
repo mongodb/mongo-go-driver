@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -265,5 +266,37 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 		verifyResults(t, M{
 			"x": &i32,
 		})
+	})
+}
+
+func TestNullBytes(t *testing.T) {
+	t.Run("element keys", func(t *testing.T) {
+		doc := D{{"a\x00", "foobar"}}
+		res, err := Marshal(doc)
+		want := errors.New("BSON element key cannot contain null bytes")
+		assert.Equal(t, want, err, "expected Marshal error %v, got error %v with result %q", want, err, Raw(res))
+	})
+
+	t.Run("regex values", func(t *testing.T) {
+		wantErr := errors.New("BSON regex values cannot contain null bytes")
+
+		testCases := []struct {
+			name    string
+			pattern string
+			options string
+		}{
+			{"null bytes in pattern", "a\x00", "i"},
+			{"null bytes in options", "pattern", "i\x00"},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				regex := primitive.Regex{
+					Pattern: tc.pattern,
+					Options: tc.options,
+				}
+				res, err := Marshal(D{{"foo", regex}})
+				assert.Equal(t, wantErr, err, "expected Marshal error %v, got error %v with result %q", wantErr, err, Raw(res))
+			})
+		}
 	})
 }

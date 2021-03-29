@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 func noerr(t *testing.T, err error) {
@@ -897,6 +898,51 @@ func TestBuild(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestNullBytes(t *testing.T) {
+	// Helper function to execute the provided callback and assert that it panics with the expected message. The
+	// createBSONFn callback should create a BSON document/array/value and return the stringified version.
+	assertBSONCreationPanics := func(t *testing.T, createBSONFn func(), expected string) {
+		t.Helper()
+
+		defer func() {
+			got := recover()
+			assert.Equal(t, expected, got, "expected panic with error %v, got error %v", expected, got)
+		}()
+		createBSONFn()
+	}
+
+	t.Run("element keys", func(t *testing.T) {
+		createDocFn := func() {
+			NewDocumentBuilder().AppendString("a\x00", "foo")
+		}
+		assertBSONCreationPanics(t, createDocFn, invalidKeyPanicMsg)
+	})
+	t.Run("regex values", func(t *testing.T) {
+		testCases := []struct {
+			name    string
+			pattern string
+			options string
+		}{
+			{"null bytes in pattern", "a\x00", "i"},
+			{"null bytes in options", "pattern", "i\x00"},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name+"-AppendRegexElement", func(t *testing.T) {
+				createDocFn := func() {
+					AppendRegexElement(nil, "foo", tc.pattern, tc.options)
+				}
+				assertBSONCreationPanics(t, createDocFn, invalidRegexPanicMsg)
+			})
+			t.Run(tc.name+"-AppendRegex", func(t *testing.T) {
+				createValFn := func() {
+					AppendRegex(nil, tc.pattern, tc.options)
+				}
+				assertBSONCreationPanics(t, createValFn, invalidRegexPanicMsg)
+			})
+		}
+	})
 }
 
 func compareDecimal128(d1, d2 primitive.Decimal128) bool {
