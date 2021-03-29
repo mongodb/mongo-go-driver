@@ -903,20 +903,19 @@ func TestBuild(t *testing.T) {
 func TestNullBytes(t *testing.T) {
 	// Helper function to execute the provided callback and assert that it panics with the expected message. The
 	// createBSONFn callback should create a BSON document/array/value and return the stringified version.
-	assertBSONCreationPanics := func(t *testing.T, createBSONFn func() string, expected string) {
+	assertBSONCreationPanics := func(t *testing.T, createBSONFn func(), expected string) {
 		t.Helper()
 
-		var res string
 		defer func() {
 			got := recover()
-			assert.Equal(t, expected, got, "expected panic with error %v, got error %v with result %q", expected, got, res)
+			assert.Equal(t, expected, got, "expected panic with error %v, got error %v", expected, got)
 		}()
-		res = createBSONFn()
+		createBSONFn()
 	}
 
 	t.Run("element keys", func(t *testing.T) {
-		createDocFn := func() string {
-			return NewDocumentBuilder().AppendString("a\x00", "foo").Build().String()
+		createDocFn := func() {
+			NewDocumentBuilder().AppendString("a\x00", "foo")
 		}
 		assertBSONCreationPanics(t, createDocFn, invalidKeyPanicMsg)
 	})
@@ -931,22 +930,14 @@ func TestNullBytes(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name+"-AppendRegexElement", func(t *testing.T) {
-				createDocFn := func() string {
-					docBytes := BuildDocumentFromElements(
-						nil,
-						AppendRegexElement(nil, "foo", tc.pattern, tc.options),
-					)
-					return Document(docBytes).String()
+				createDocFn := func() {
+					AppendRegexElement(nil, "foo", tc.pattern, tc.options)
 				}
 				assertBSONCreationPanics(t, createDocFn, invalidRegexPanicMsg)
 			})
 			t.Run(tc.name+"-AppendRegex", func(t *testing.T) {
-				createValFn := func() string {
-					valBytes := Value{
-						Type: bsontype.Regex,
-						Data: AppendRegex(nil, tc.pattern, tc.options),
-					}
-					return Value(valBytes).String()
+				createValFn := func() {
+					AppendRegex(nil, tc.pattern, tc.options)
 				}
 				assertBSONCreationPanics(t, createValFn, invalidRegexPanicMsg)
 			})
