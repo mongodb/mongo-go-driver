@@ -331,9 +331,9 @@ func (e Error) NamespaceNotFound() bool {
 	return e.Code == 26 || e.Message == "ns not found"
 }
 
-// ExtractErrorFromBsoncoreDoc extracts an error from a bsoncore.Document if there is one.
-// Also used in testing for SDAM.
-func ExtractErrorFromBsoncoreDoc(doc bsoncore.Document) error {
+// ExtractErrorFromServerResponse extracts an error from a server response bsoncore.Document
+// if there is one. Also used in testing for SDAM.
+func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string

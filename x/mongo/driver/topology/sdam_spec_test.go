@@ -309,7 +309,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		var currError error
 		switch appErr.Type {
 		case "command":
-			currError = driver.ExtractErrorFromBsoncoreDoc(appErr.Response)
+			currError = driver.ExtractErrorFromServerResponse(appErr.Response)
 		case "network":
 			currError = driver.Error{
 				Labels:  []string{driver.NetworkError},
