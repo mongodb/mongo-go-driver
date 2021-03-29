@@ -9,7 +9,7 @@ package scram
 import (
 	"sync"
 
-	"golang.org/x/crypto/pbkdf2"
+	"github.com/xdg-go/pbkdf2"
 )
 
 // Client implements the client side of SCRAM authentication.  It holds
