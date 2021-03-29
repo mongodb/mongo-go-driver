@@ -1924,7 +1924,7 @@ func assertGetMoreCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn fun
 	events := mt.GetAllStartedEvents()
 	assert.Equal(mt, 2, len(events), "expected 2 events to be sent, got events %v", events)
 	assert.Equal(mt, cmdName, events[0].CommandName, "expected %q event, got %q", cmdName, events[0].CommandName)
-	assert.Equal(mt, "getMore", events[1].CommandName, "expected 'getMore' event, got %q", events[0].CommandName)
+	assert.Equal(mt, "getMore", events[1].CommandName, "expected 'getMore' event, got %q", events[1].CommandName)
 }
 
 func assertKillCursorsCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn func() (*mongo.Cursor, error)) {
@@ -1939,5 +1939,5 @@ func assertKillCursorsCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn
 	events := mt.GetAllStartedEvents()
 	assert.Equal(mt, 2, len(events), "expected 2 events to be sent, got events %v", events)
 	assert.Equal(mt, cmdName, events[0].CommandName, "expected %q event, got %q", cmdName, events[0].CommandName)
-	assert.Equal(mt, "killCursors", events[1].CommandName, "expected 'killCursors' event, got %q", events[0].CommandName)
+	assert.Equal(mt, "killCursors", events[1].CommandName, "expected 'killCursors' event, got %q", events[1].CommandName)
 }
