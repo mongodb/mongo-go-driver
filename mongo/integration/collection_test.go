@@ -1921,10 +1921,12 @@ func assertGetMoreCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn fun
 	err = cursor.All(mtest.Background, &docs)
 	assert.Nil(mt, err, "All error: %v", err)
 
-	events := mt.GetAllStartedEvents()
-	assert.Equal(mt, 2, len(events), "expected 2 events to be sent, got events %v", events)
-	assert.Equal(mt, cmdName, events[0].CommandName, "expected %q event, got %q", cmdName, events[0].CommandName)
-	assert.Equal(mt, "getMore", events[1].CommandName, "expected 'getMore' event, got %q", events[1].CommandName)
+	// Only assert that the initial command and at least one getMore were sent. The exact number of getMore's required
+	// is not important.
+	evt := mt.GetStartedEvent()
+	assert.Equal(mt, cmdName, evt.CommandName, "expected command %q, got %q", cmdName, evt.CommandName)
+	evt = mt.GetStartedEvent()
+	assert.Equal(mt, "getMore", evt.CommandName, "expected command 'getMore', got %q", evt.CommandName)
 }
 
 func assertKillCursorsCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn func() (*mongo.Cursor, error)) {
@@ -1936,8 +1938,8 @@ func assertKillCursorsCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn
 	err = cursor.Close(mtest.Background)
 	assert.Nil(mt, err, "Close error: %v", err)
 
-	events := mt.GetAllStartedEvents()
-	assert.Equal(mt, 2, len(events), "expected 2 events to be sent, got events %v", events)
-	assert.Equal(mt, cmdName, events[0].CommandName, "expected %q event, got %q", cmdName, events[0].CommandName)
-	assert.Equal(mt, "killCursors", events[1].CommandName, "expected 'killCursors' event, got %q", events[1].CommandName)
+	evt := mt.GetStartedEvent()
+	assert.Equal(mt, cmdName, evt.CommandName, "expected command %q, got %q", cmdName, evt.CommandName)
+	evt = mt.GetStartedEvent()
+	assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
 }
