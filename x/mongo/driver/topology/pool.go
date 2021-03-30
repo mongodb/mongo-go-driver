@@ -443,7 +443,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 					p.monitor.Event(&event.PoolEvent{
 						Type:    event.GetFailed,
 						Address: p.address.String(),
-						Reason:  reason,
+						Reason:  event.ReasonConnectionErrored,
 					})
 				}
 				return nil, err
