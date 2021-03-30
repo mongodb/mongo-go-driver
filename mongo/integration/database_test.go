@@ -234,13 +234,17 @@ func TestDatabase(t *testing.T) {
 			_, err = evt.Command.LookupErr("cursor", "batchSize")
 			assert.Nil(mt, err, "expected command %s to contain key 'batchSize'", evt.Command)
 		})
-		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
+
+		// The BatchSize option is not honored for ListCollections operations on server version 2.6 due to an
+		// inconsistency in the legacy OP_QUERY code path (GODRIVER-1937).
+		cmdMonitoringMtOpts := mtest.NewOptions().MinServerVersion("3.0")
+		mt.RunOpts("getMore commands are monitored", cmdMonitoringMtOpts, func(mt *mtest.T) {
 			createCollections(mt, 2)
 			assertGetMoreCommandsAreMonitored(mt, "listCollections", func() (*mongo.Cursor, error) {
 				return mt.DB.ListCollections(mtest.Background, bson.D{}, options.ListCollections().SetBatchSize(2))
 			})
 		})
-		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
+		mt.RunOpts("killCursors commands are monitored", cmdMonitoringMtOpts, func(mt *mtest.T) {
 			createCollections(mt, 2)
 			assertKillCursorsCommandsAreMonitored(mt, "listCollections", func() (*mongo.Cursor, error) {
 				return mt.DB.ListCollections(mtest.Background, bson.D{}, options.ListCollections().SetBatchSize(2))
