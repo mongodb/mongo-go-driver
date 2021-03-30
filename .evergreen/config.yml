@@ -1772,9 +1772,9 @@ axes:
           GO_DIST: "C:\\golang\\go1.15"
           PYTHON3_BINARY: "C:/python/Python38/python.exe"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1604-64-go-1-15"
-        display_name: "Ubuntu 16.04"
-        run_on: ubuntu1604-build
+      - id: "ubuntu1804-64-go-1-15"
+        display_name: "Ubuntu 18.04"
+        run_on: ubuntu1804-build
         variables:
           GO_DIST: "/opt/golang/go1.15"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
@@ -1816,7 +1816,7 @@ buildvariants:
   - name: static-analysis
     display_name: "Static Analysis"
     run_on:
-      - ubuntu1604-build
+      - ubuntu1804-build
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1825,7 +1825,7 @@ buildvariants:
   - name: perf
     display_name: "Performance"
     run_on:
-      - ubuntu1604-build
+      - ubuntu1804-build
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1834,7 +1834,7 @@ buildvariants:
   - name: build-check
     display_name: "Compile Only Checks"
     run_on:
-      - ubuntu1604-test
+      - ubuntu1804-test
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1843,7 +1843,7 @@ buildvariants:
   - name: atlas-test
     display_name: "Atlas test"
     run_on:
-      - ubuntu1604-build
+      - ubuntu1804-build
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1852,7 +1852,7 @@ buildvariants:
   - name: atlas-data-lake-test
     display_name: "Atlas Data Lake Test"
     run_on:
-      - ubuntu1604-build
+      - ubuntu1804-build
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1908,7 +1908,7 @@ buildvariants:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["ubuntu1604-64-go-1-15"] }
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["ubuntu1804-64-go-1-15"] }
     display_name: "OCSP ${version} ${os-ssl-32}"
     batchtime: 20160 # 14 days
     tasks:
