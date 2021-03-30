@@ -377,7 +377,9 @@ func TestDatabase(t *testing.T) {
 			})
 		}
 
-		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
+		// The find command does not exist on server versions below 3.2.
+		cmdMonitoringMtOpts := mtest.NewOptions().MinServerVersion("3.2")
+		mt.RunOpts("getMore commands are monitored", cmdMonitoringMtOpts, func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			assertGetMoreCommandsAreMonitored(mt, "find", func() (*mongo.Cursor, error) {
 				findCmd := bson.D{
@@ -387,7 +389,7 @@ func TestDatabase(t *testing.T) {
 				return mt.DB.RunCommandCursor(mtest.Background, findCmd)
 			})
 		})
-		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
+		mt.RunOpts("killCursors commands are monitored", cmdMonitoringMtOpts, func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			assertKillCursorsCommandsAreMonitored(mt, "find", func() (*mongo.Cursor, error) {
 				findCmd := bson.D{
