@@ -1673,6 +1673,11 @@ tasks:
   - name: "test-kms-tls-invalid-cert"
     tags: ["kms-tls"]
     commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
       - func: start-kms-mock-server
         vars:
           KMS_CA_FILE: "ca.pem"
@@ -1687,6 +1692,11 @@ tasks:
   - name: "test-kms-tls-invalid-hostname"
     tags: ["kms-tls"]
     commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
       - func: start-kms-mock-server
         vars:
           KMS_CA_FILE: "ca.pem"
