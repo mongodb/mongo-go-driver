@@ -1915,7 +1915,7 @@ buildvariants:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-40-with-zlib-support"
-    matrix_spec: { version: [4.0"], os-ssl-40: "*" }
+    matrix_spec: { version: ["4.0"], os-ssl-40: "*" }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
