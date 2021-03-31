@@ -331,16 +331,16 @@ func (e Error) NamespaceNotFound() bool {
 	return e.Code == 26 || e.Message == "ns not found"
 }
 
-// helper method to extract an error from a reader if there is one; first returned item is the
-// error if it exists, the second holds parsing errors
-func extractError(rdr bsoncore.Document) error {
+// ExtractErrorFromServerResponse extracts an error from a server response bsoncore.Document
+// if there is one. Also used in testing for SDAM.
+func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
 	var ok bool
 	var tv *description.TopologyVersion
 	var wcError WriteCommandError
-	elems, err := rdr.Elements()
+	elems, err := doc.Elements()
 	if err != nil {
 		return err
 	}

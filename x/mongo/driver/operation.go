@@ -1383,7 +1383,7 @@ func (op Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
 			return nil, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
 		}
 
-		return rdr, extractError(rdr)
+		return rdr, ExtractErrorFromServerResponse(rdr)
 	case wiremessage.OpMsg:
 		_, wm, ok = wiremessage.ReadMsgFlags(wm)
 		if !ok {
@@ -1420,7 +1420,7 @@ func (op Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
 			return nil, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 		}
 
-		return res, extractError(res)
+		return res, ExtractErrorFromServerResponse(res)
 	default:
 		return nil, fmt.Errorf("cannot decode result from %s", opcode)
 	}
