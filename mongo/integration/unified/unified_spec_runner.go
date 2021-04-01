@@ -137,7 +137,7 @@ func newRunner(file *TestFile, test *testCase) *Runner {
 	}
 }
 
-// GetEntities returns a pointer to the EntityMap for the test runner. This should not be called until after\
+// GetEntities returns a pointer to the EntityMap for the test runner. This should not be called until after
 // the test is run
 func (r *Runner) GetEntities() *EntityMap {
 	return r.entities
