@@ -609,6 +609,30 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// next call to cs.Next should return False since cursor is closed
 		assert.False(mt, cs.Next(mtest.Background), "expected to return false, but returned true")
 	})
+	mt.Run("getMore commands are monitored", func(mt *mtest.T) {
+		cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
+		assert.Nil(mt, err, "Watch error: %v", err)
+		defer closeStream(cs)
+
+		_, err = mt.Coll.InsertOne(mtest.Background, bson.M{"x": 1})
+		assert.Nil(mt, err, "InsertOne error: %v", err)
+
+		mt.ClearEvents()
+		assert.True(mt, cs.Next(mtest.Background), "Next returned false with error %v", cs.Err())
+		evt := mt.GetStartedEvent()
+		assert.Equal(mt, "getMore", evt.CommandName, "expected command 'getMore', got %q", evt.CommandName)
+	})
+	mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
+		cs, err := mt.Coll.Watch(mtest.Background, mongo.Pipeline{})
+		assert.Nil(mt, err, "Watch error: %v", err)
+		defer closeStream(cs)
+
+		mt.ClearEvents()
+		err = cs.Close(mtest.Background)
+		assert.Nil(mt, err, "Close error: %v", err)
+		evt := mt.GetStartedEvent()
+		assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
+	})
 }
 
 func closeStream(cs *mongo.ChangeStream) {
