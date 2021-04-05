@@ -787,6 +787,18 @@ func TestCollection(t *testing.T) {
 			_, ok := err.(mongo.WriteConcernError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteConcernError{}, err)
 		})
+		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+			assertGetMoreCommandsAreMonitored(mt, "aggregate", func() (*mongo.Cursor, error) {
+				return mt.Coll.Aggregate(mtest.Background, mongo.Pipeline{}, options.Aggregate().SetBatchSize(3))
+			})
+		})
+		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+			assertKillCursorsCommandsAreMonitored(mt, "aggregate", func() (*mongo.Cursor, error) {
+				return mt.Coll.Aggregate(mtest.Background, mongo.Pipeline{}, options.Aggregate().SetBatchSize(3))
+			})
+		})
 	})
 	mt.RunOpts("count documents", noClientOpts, func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {
@@ -1053,6 +1065,18 @@ func TestCollection(t *testing.T) {
 					assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
 				})
 			}
+		})
+		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+			assertGetMoreCommandsAreMonitored(mt, "find", func() (*mongo.Cursor, error) {
+				return mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(3))
+			})
+		})
+		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+			assertKillCursorsCommandsAreMonitored(mt, "find", func() (*mongo.Cursor, error) {
+				return mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(3))
+			})
 		})
 	})
 	mt.RunOpts("find one", noClientOpts, func(mt *mtest.T) {
@@ -1885,4 +1909,42 @@ func create16MBDocument(mt *mtest.T) bsoncore.Document {
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 	assert.Equal(mt, targetDocSize, len(doc), "expected document length %v, got %v", targetDocSize, len(doc))
 	return doc
+}
+
+// This is a helper function to ensure that sending getMore commands for a cursor results in command monitoring events
+// being published. The cursorFn parameter should be a function that yields a cursor which is open on the server and
+// requires at least one getMore to be fully iterated.
+func assertGetMoreCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn func() (*mongo.Cursor, error)) {
+	mt.Helper()
+	mt.ClearEvents()
+
+	cursor, err := cursorFn()
+	assert.Nil(mt, err, "error creating cursor: %v", err)
+	var docs []bson.D
+	err = cursor.All(mtest.Background, &docs)
+	assert.Nil(mt, err, "All error: %v", err)
+
+	// Only assert that the initial command and at least one getMore were sent. The exact number of getMore's required
+	// is not important.
+	evt := mt.GetStartedEvent()
+	assert.Equal(mt, cmdName, evt.CommandName, "expected command %q, got %q", cmdName, evt.CommandName)
+	evt = mt.GetStartedEvent()
+	assert.Equal(mt, "getMore", evt.CommandName, "expected command 'getMore', got %q", evt.CommandName)
+}
+
+// This is a helper function to ensure that sending killCursors commands for a cursor results in command monitoring
+// events being published. The cursorFn parameter should be a function that yields a cursor which is open on the server.
+func assertKillCursorsCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn func() (*mongo.Cursor, error)) {
+	mt.Helper()
+	mt.ClearEvents()
+
+	cursor, err := cursorFn()
+	assert.Nil(mt, err, "error creating cursor: %v", err)
+	err = cursor.Close(mtest.Background)
+	assert.Nil(mt, err, "Close error: %v", err)
+
+	evt := mt.GetStartedEvent()
+	assert.Equal(mt, cmdName, evt.CommandName, "expected command %q, got %q", cmdName, evt.CommandName)
+	evt = mt.GetStartedEvent()
+	assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
 }

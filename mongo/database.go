@@ -165,12 +165,15 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
-	createCmdFn := operation.NewCommand
-	if cursorCommand {
-		createCmdFn = operation.NewCursorCommand
+	var op *operation.Command
+	switch cursorCommand {
+	case true:
+		cursorOpts := db.client.createBaseCursorOptions()
+		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
+	default:
+		op = operation.NewCommand(runCmdDoc)
 	}
-	return createCmdFn(runCmdDoc).
-		Session(sess).CommandMonitor(db.client.monitor).
+	return op.Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
 		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI), sess, nil
@@ -370,10 +373,13 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
 		ServerAPI(db.client.serverAPI)
+
+	cursorOpts := db.client.createBaseCursorOptions()
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)
 	}
 	if lco.BatchSize != nil {
+		cursorOpts.BatchSize = *lco.BatchSize
 		op = op.BatchSize(*lco.BatchSize)
 	}
 
@@ -389,7 +395,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, replaceErrors(err)
 	}
 
-	bc, err := op.Result(driver.CursorOptions{Crypt: db.client.cryptFLE})
+	bc, err := op.Result(cursorOpts)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)

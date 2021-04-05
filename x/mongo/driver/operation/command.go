@@ -33,6 +33,7 @@ type Command struct {
 	crypt          *driver.Crypt
 	serverAPI      *driver.ServerAPIOptions
 	createCursor   bool
+	cursorOpts     driver.CursorOptions
 }
 
 // NewCommand constructs and returns a new Command. Once the operation is executed, the result may only be accessed via
@@ -45,9 +46,10 @@ func NewCommand(command bsoncore.Document) *Command {
 
 // NewCursorCommand constructs a new Command. Once the operation is executed, the server response will be used to
 // construct a cursor, which can be accessed via the ResultCursor() function.
-func NewCursorCommand(command bsoncore.Document) *Command {
+func NewCursorCommand(command bsoncore.Document, cursorOpts driver.CursorOptions) *Command {
 	return &Command{
 		command:      command,
+		cursorOpts:   cursorOpts,
 		createCursor: true,
 	}
 }
@@ -84,10 +86,7 @@ func (c *Command) Execute(ctx context.Context) error {
 					return err
 				}
 
-				opts := driver.CursorOptions{
-					ServerAPI: c.serverAPI,
-				}
-				c.resultCursor, err = driver.NewBatchCursor(cursorRes, c.session, c.clock, opts)
+				c.resultCursor, err = driver.NewBatchCursor(cursorRes, c.session, c.clock, c.cursorOpts)
 				return err
 			}
 
