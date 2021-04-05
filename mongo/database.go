@@ -227,7 +227,7 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 		return nil, replaceErrors(err)
 	}
 
-	bc, err := op.ResultCursor(driver.CursorOptions{})
+	bc, err := op.ResultCursor(db.client.createBaseCursorOptions())
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
@@ -362,10 +362,13 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE)
+
+	cursorOpts := db.client.createBaseCursorOptions()
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)
 	}
 	if lco.BatchSize != nil {
+		cursorOpts.BatchSize = *lco.BatchSize
 		op = op.BatchSize(*lco.BatchSize)
 	}
 
@@ -381,7 +384,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, replaceErrors(err)
 	}
 
-	bc, err := op.Result(driver.CursorOptions{Crypt: db.client.cryptFLE})
+	bc, err := op.Result(cursorOpts)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)

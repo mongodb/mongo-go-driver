@@ -170,6 +170,16 @@ func TestDatabase(t *testing.T) {
 	})
 
 	mt.RunOpts("list collections", noClientOpts, func(mt *mtest.T) {
+		createCollections := func(mt *mtest.T, numCollections int) {
+			mt.Helper()
+
+			for i := 0; i < numCollections; i++ {
+				mt.CreateCollection(mtest.Collection{
+					Name: fmt.Sprintf("list-collections-test-%d", i),
+				}, true)
+			}
+		}
+
 		mt.RunOpts("verify results", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name             string
@@ -213,11 +223,7 @@ func TestDatabase(t *testing.T) {
 		})
 		mt.RunOpts("batch size", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
 			// Create two new collections so there will be three total.
-			for i := 0; i < 2; i++ {
-				mt.CreateCollection(mtest.Collection{
-					Name: fmt.Sprintf("list-collections-batchSize-%d", i),
-				}, true)
-			}
+			createCollections(mt, 2)
 
 			mt.ClearEvents()
 			lcOpts := options.ListCollections().SetBatchSize(2)
@@ -229,6 +235,22 @@ func TestDatabase(t *testing.T) {
 				evt.CommandName)
 			_, err = evt.Command.LookupErr("cursor", "batchSize")
 			assert.Nil(mt, err, "expected command %s to contain key 'batchSize'", evt.Command)
+		})
+
+		// The BatchSize option is not honored for ListCollections operations on server version 2.6 due to an
+		// inconsistency in the legacy OP_QUERY code path (GODRIVER-1937).
+		cmdMonitoringMtOpts := mtest.NewOptions().MinServerVersion("3.0")
+		mt.RunOpts("getMore commands are monitored", cmdMonitoringMtOpts, func(mt *mtest.T) {
+			createCollections(mt, 2)
+			assertGetMoreCommandsAreMonitored(mt, "listCollections", func() (*mongo.Cursor, error) {
+				return mt.DB.ListCollections(mtest.Background, bson.D{}, options.ListCollections().SetBatchSize(2))
+			})
+		})
+		mt.RunOpts("killCursors commands are monitored", cmdMonitoringMtOpts, func(mt *mtest.T) {
+			createCollections(mt, 2)
+			assertKillCursorsCommandsAreMonitored(mt, "listCollections", func() (*mongo.Cursor, error) {
+				return mt.DB.ListCollections(mtest.Background, bson.D{}, options.ListCollections().SetBatchSize(2))
+			})
 		})
 	})
 
@@ -356,6 +378,29 @@ func TestDatabase(t *testing.T) {
 				assert.Equal(mt, tc.numExpected, count, "expected document count %v, got %v", tc.numExpected, count)
 			})
 		}
+
+		// The find command does not exist on server versions below 3.2.
+		cmdMonitoringMtOpts := mtest.NewOptions().MinServerVersion("3.2")
+		mt.RunOpts("getMore commands are monitored", cmdMonitoringMtOpts, func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+			assertGetMoreCommandsAreMonitored(mt, "find", func() (*mongo.Cursor, error) {
+				findCmd := bson.D{
+					{"find", mt.Coll.Name()},
+					{"batchSize", 2},
+				}
+				return mt.DB.RunCommandCursor(mtest.Background, findCmd)
+			})
+		})
+		mt.RunOpts("killCursors commands are monitored", cmdMonitoringMtOpts, func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+			assertKillCursorsCommandsAreMonitored(mt, "find", func() (*mongo.Cursor, error) {
+				findCmd := bson.D{
+					{"find", mt.Coll.Name()},
+					{"batchSize", 2},
+				}
+				return mt.DB.RunCommandCursor(mtest.Background, findCmd)
+			})
+		})
 	})
 
 	mt.RunOpts("create collection", noClientOpts, func(mt *mtest.T) {

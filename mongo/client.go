@@ -926,3 +926,10 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 func (c *Client) NumberSessionsInProgress() int {
 	return c.sessionPool.CheckedOut()
 }
+
+func (c *Client) createBaseCursorOptions() driver.CursorOptions {
+	return driver.CursorOptions{
+		CommandMonitor: c.monitor,
+		Crypt:          c.cryptFLE,
+	}
+}
