@@ -168,7 +168,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	var op *operation.Command
 	switch cursorCommand {
 	case true:
-		cursorOpts := createBaseCursorOptions(db.client)
+		cursorOpts := db.client.createBaseCursorOptions()
 		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
 	default:
 		op = operation.NewCommand(runCmdDoc)
@@ -374,7 +374,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
 		ServerAPI(db.client.serverAPI)
 
-	cursorOpts := createBaseCursorOptions(db.client)
+	cursorOpts := db.client.createBaseCursorOptions()
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)
 	}

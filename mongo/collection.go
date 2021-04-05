@@ -782,7 +782,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	}
 
 	ao := options.MergeAggregateOptions(a.opts...)
-	cursorOpts := createBaseCursorOptions(a.client)
+	cursorOpts := a.client.createBaseCursorOptions()
 
 	op := operation.NewAggregate(pipelineArr).
 		Session(sess).
@@ -1139,7 +1139,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 
 	fo := options.MergeFindOptions(opts...)
-	cursorOpts := createBaseCursorOptions(coll.client)
+	cursorOpts := coll.client.createBaseCursorOptions()
 
 	if fo.AllowDiskUse != nil {
 		op.AllowDiskUse(*fo.AllowDiskUse)

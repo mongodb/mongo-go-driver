@@ -977,7 +977,7 @@ func (c *Client) NumberSessionsInProgress() int {
 	return c.sessionPool.CheckedOut()
 }
 
-func createBaseCursorOptions(c *Client) driver.CursorOptions {
+func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 	return driver.CursorOptions{
 		CommandMonitor: c.monitor,
 		Crypt:          c.cryptFLE,

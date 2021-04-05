@@ -108,7 +108,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		streamType:    config.streamType,
 		options:       options.MergeChangeStreamOptions(opts...),
 		selector:      description.ReadPrefSelector(config.readPreference),
-		cursorOptions: createBaseCursorOptions(config.client),
+		cursorOptions: config.client.createBaseCursorOptions(),
 	}
 
 	cs.sess = sessionFromContext(ctx)
