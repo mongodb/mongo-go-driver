@@ -1911,6 +1911,9 @@ func create16MBDocument(mt *mtest.T) bsoncore.Document {
 	return doc
 }
 
+// This is a helper function to ensure that sending getMore commands for a cursor results in command monitoring events
+// being published. The cursorFn parameter should be a function that yields a cursor which is open on the server and
+// requires at least one getMore to be fully iterated.
 func assertGetMoreCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn func() (*mongo.Cursor, error)) {
 	mt.Helper()
 	mt.ClearEvents()
@@ -1929,6 +1932,8 @@ func assertGetMoreCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn fun
 	assert.Equal(mt, "getMore", evt.CommandName, "expected command 'getMore', got %q", evt.CommandName)
 }
 
+// This is a helper function to ensure that sending killCursors commands for a cursor results in command monitoring
+// events being published. The cursorFn parameter should be a function that yields a cursor which is open on the server.
 func assertKillCursorsCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn func() (*mongo.Cursor, error)) {
 	mt.Helper()
 	mt.ClearEvents()

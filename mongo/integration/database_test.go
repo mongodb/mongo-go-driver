@@ -171,6 +171,8 @@ func TestDatabase(t *testing.T) {
 
 	mt.RunOpts("list collections", noClientOpts, func(mt *mtest.T) {
 		createCollections := func(mt *mtest.T, numCollections int) {
+			mt.Helper()
+
 			for i := 0; i < numCollections; i++ {
 				mt.CreateCollection(mtest.Collection{
 					Name: fmt.Sprintf("list-collections-test-%d", i),
