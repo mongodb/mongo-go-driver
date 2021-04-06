@@ -736,12 +736,11 @@ func (t *T) verifyConstraints() error {
 	var runOnErrors []error
 	for _, runOn := range t.runOn {
 		err := verifyRunOnBlockConstraint(runOn)
-		if err != nil {
-			runOnErrors = append(runOnErrors, err)
+		if err == nil {
+			return nil
 		}
-	}
-	if len(runOnErrors) == 0 {
-		return nil
+
+		runOnErrors = append(runOnErrors, err)
 	}
 	return fmt.Errorf("no matching RunOnBlock; comparison errors: %v", runOnErrors)
 }

@@ -37,28 +37,35 @@ const (
 	lowHeartbeatFrequency int32 = 50
 )
 
-type testCase struct {
+type TestCase struct {
 	Description       string             `bson:"description"`
 	RunOnRequirements []mtest.RunOnBlock `bson:"runOnRequirements"`
 	SkipReason        *string            `bson:"skipReason"`
 	Operations        []*operation       `bson:"operations"`
 	ExpectedEvents    []*expectedEvents  `bson:"expectEvents"`
 	Outcome           []*collectionData  `bson:"outcome"`
+
+	initialData    []*collectionData
+	createEntities []map[string]*entityOptions
+	fileReqs       []mtest.RunOnBlock
+
+	entities *EntityMap
+	loopDone chan struct{}
 }
 
-func (t *testCase) performsDistinct() bool {
+func (t *TestCase) performsDistinct() bool {
 	return t.performsOperation("distinct")
 }
 
-func (t *testCase) setsFailPoint() bool {
+func (t *TestCase) setsFailPoint() bool {
 	return t.performsOperation("failPoint")
 }
 
-func (t *testCase) startsTransaction() bool {
+func (t *TestCase) startsTransaction() bool {
 	return t.performsOperation("startTransaction")
 }
 
-func (t *testCase) performsOperation(name string) bool {
+func (t *TestCase) performsOperation(name string) bool {
 	for _, op := range t.Operations {
 		if op.Name == name {
 			return true
@@ -74,7 +81,7 @@ type TestFile struct {
 	RunOnRequirements []mtest.RunOnBlock          `bson:"runOnRequirements"`
 	CreateEntities    []map[string]*entityOptions `bson:"createEntities"`
 	InitialData       []*collectionData           `bson:"initialData"`
-	TestCases         []*testCase                 `bson:"tests"`
+	TestCases         []*TestCase                 `bson:"tests"`
 }
 
 // runTestDirectory runs the files in the given directory, which must be in the unifed spec format
@@ -88,14 +95,22 @@ func runTestDirectory(t *testing.T, directoryPath string) {
 
 // RunTestFile runs the tests in the given file, which must be in the unifed spec format
 func RunTestFile(t *testing.T, filepath string) {
-	runners := ParseTestFile(t, filepath)
-	for _, runner := range runners {
-		runner.Run(t)
-	}
+	fileDesc, fileReqs, testCases := ParseTestFile(t, filepath)
+	mtOpts := mtest.NewOptions().
+		RunOn(fileReqs...).
+		CreateClient(false)
+	mt := mtest.New(t, mtOpts)
+	defer mt.Close()
+
+	mt.Run(fileDesc, func(mt *mtest.T) {
+		for _, testCase := range testCases {
+			testCase.Run(mt)
+		}
+	})
 }
 
 // ParseTestFile create an array of Runners from the file at filepath
-func ParseTestFile(t *testing.T, filepath string) []*Runner {
+func ParseTestFile(t *testing.T, filepath string) (string, []mtest.RunOnBlock, []*TestCase) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
@@ -107,76 +122,52 @@ func ParseTestFile(t *testing.T, filepath string) []*Runner {
 	err = checkSchemaVersion(testFile.SchemaVersion)
 	assert.Nil(t, err, "schema version %q not supported: %v", testFile.SchemaVersion, err)
 
-	testRunners := make([]*Runner, len(testFile.TestCases))
-	for i, testCase := range testFile.TestCases {
-		testRunners[i] = newRunner(&testFile, testCase)
+	for _, testCase := range testFile.TestCases {
+		testCase.initialData = testFile.InitialData
+		testCase.createEntities = testFile.CreateEntities
+		testCase.entities = newEntityMap()
+		testCase.loopDone = make(chan struct{})
+
 	}
-	return testRunners
+	return testFile.Description, testFile.RunOnRequirements, testFile.TestCases
 }
 
-// Runner runs a unified spec testcase
-type Runner struct {
-	*testCase
-	initialData    []*collectionData
-	createEntities []map[string]*entityOptions
-	fileReqs       []mtest.RunOnBlock
-
-	entities *EntityMap
-	loopDone chan struct{}
-}
-
-func newRunner(file *TestFile, test *testCase) *Runner {
-	return &Runner{
-		testCase:       test,
-		initialData:    file.InitialData,
-		createEntities: file.CreateEntities,
-		fileReqs:       file.RunOnRequirements,
-
-		entities: newEntityMap(),
-		loopDone: make(chan struct{}),
-	}
-}
-
-// GetEntities returns a pointer to the EntityMap for the test runner. This should not be called until after
+// GetEntities returns a pointer to the EntityMap for the TestCase. This should not be called until after
 // the test is run
-func (r *Runner) GetEntities() *EntityMap {
-	return r.entities
+func (tc *TestCase) GetEntities() *EntityMap {
+	return tc.entities
 }
 
-// Run runs the test represented by Runner
-func (r *Runner) Run(t *testing.T) {
-	// Create mtest wrapper, which will skip the test if needed.
-	r.RunOnRequirements = append(r.RunOnRequirements, r.fileReqs...)
+// Run runs the TestCase
+func (tc *TestCase) Run(mt *mtest.T) {
 	mtOpts := mtest.NewOptions().
-		RunOn(r.RunOnRequirements...).
+		RunOn(tc.RunOnRequirements...).
 		CreateClient(false)
-	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
-	mt.Run(r.Description, func(mt *mtest.T) {
-		r.runTest(mt)
+	mt.RunOpts(tc.Description, mtOpts, func(mt *mtest.T) {
+		tc.runTest(mt)
 	})
 }
 
 // EndLoop will cause the runner to stop a loop operation if one is included in the test
-func (r *Runner) EndLoop() {
+func (tc *TestCase) EndLoop() {
 	select {
-	case <-r.loopDone:
+	case <-tc.loopDone:
 		return
 	default:
-		close(r.loopDone)
+		close(tc.loopDone)
 	}
 }
 
-func (r *Runner) runTest(mt *mtest.T) {
-	if r.SkipReason != nil {
-		mt.Skipf("skipping for reason: %q", *r.SkipReason)
+func (tc *TestCase) runTest(mt *mtest.T) {
+	if tc.SkipReason != nil {
+		mt.Skipf("skipping for reason: %q", *tc.SkipReason)
 	}
-	if _, ok := skippedTestDescriptions[r.Description]; ok {
+	if _, ok := skippedTestDescriptions[tc.Description]; ok {
 		mt.Skip("skipping due to known failure")
 	}
 
-	testCtx := newTestContext(mtest.Background, r.entities)
+	testCtx := newTestContext(mtest.Background, tc.entities)
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
@@ -194,17 +185,17 @@ func (r *Runner) runTest(mt *mtest.T) {
 		// Tests that started a transaction should terminate any sessions left open on the server. This is required even
 		// if the test attempted to commit/abort the transaction because an abortTransaction command can fail if it's
 		// sent to a mongos that isn't aware of the transaction.
-		if r.startsTransaction() {
+		if tc.startsTransaction() {
 			if err := terminateOpenSessions(mtest.Background); err != nil {
 				mt.Logf("error terminating open transactions after failed test: %v", err)
 			}
 		}
 
-		r.EndLoop()
+		tc.EndLoop()
 	}()
 
 	// Set up collections based on the file-level initialData field.
-	for _, collData := range r.initialData {
+	for _, collData := range tc.initialData {
 		if err := collData.createCollection(testCtx); err != nil {
 			mt.Fatalf("error setting up collection %q: %v", collData.namespace(), err)
 		}
@@ -214,8 +205,8 @@ func (r *Runner) runTest(mt *mtest.T) {
 	// a fail point, set a low heartbeatFrequencyMS value into the URI options map if one is not already present.
 	// This speeds up recovery time for the client if the fail point forces the server to return a state change
 	// error.
-	shouldSetHeartbeatFrequency := r.setsFailPoint()
-	for idx, entity := range r.createEntities {
+	shouldSetHeartbeatFrequency := tc.setsFailPoint()
+	for idx, entity := range tc.createEntities {
 		for entityType, entityOptions := range entity {
 			if shouldSetHeartbeatFrequency && entityType == "client" {
 				if entityOptions.URIOptions == nil {
@@ -226,34 +217,34 @@ func (r *Runner) runTest(mt *mtest.T) {
 				}
 			}
 
-			if err := r.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
+			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
 				mt.Fatalf("error creating entity at index %d: %v", idx, err)
 			}
 		}
 	}
 
 	// Work around SERVER-39704.
-	if mtest.ClusterTopologyKind() == mtest.Sharded && r.performsDistinct() {
+	if mtest.ClusterTopologyKind() == mtest.Sharded && tc.performsDistinct() {
 		if err := performDistinctWorkaround(testCtx); err != nil {
 			mt.Fatalf("error performing \"distinct\" workaround: %v", err)
 		}
 	}
 
-	for idx, operation := range r.Operations {
-		err := operation.execute(testCtx, r)
+	for idx, operation := range tc.Operations {
+		err := operation.execute(testCtx, tc)
 		assert.Nil(mt, err, "error running operation %q at index %d: %v", operation.Name, idx, err)
 	}
 
-	for _, client := range r.entities.clients() {
+	for _, client := range tc.entities.clients() {
 		client.stopListeningForEvents()
 	}
 
-	for idx, expectedEvents := range r.ExpectedEvents {
+	for idx, expectedEvents := range tc.ExpectedEvents {
 		err := verifyEvents(testCtx, expectedEvents)
 		assert.Nil(mt, err, "events verification failed at index %d: %v", idx, err)
 	}
 
-	for idx, collData := range r.Outcome {
+	for idx, collData := range tc.Outcome {
 		err := collData.verifyContents(testCtx)
 		assert.Nil(mt, err, "error verifying outcome for collection %q at index %d: %v",
 			collData.namespace(), idx, err)

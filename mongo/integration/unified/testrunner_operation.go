@@ -26,7 +26,7 @@ type loopArgs struct {
 	StoreIterations string       `bson:"storeIterationsAsEntity"`
 }
 
-func executeTestRunnerOperation(ctx context.Context, operation *operation, r *Runner) error {
+func executeTestRunnerOperation(ctx context.Context, operation *operation, tc *TestCase) error {
 	args := operation.Arguments
 
 	switch operation.Name {
@@ -126,14 +126,14 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, r *Ru
 		if err := bson.Unmarshal(args, unmarshaledArgs); err != nil {
 			return err
 		}
-		return loop(ctx, unmarshaledArgs, r)
+		return loop(ctx, unmarshaledArgs, tc)
 	default:
 		return fmt.Errorf("unrecognized testRunner operation %q", operation.Name)
 	}
 }
 
-func loop(ctx context.Context, args *loopArgs, r *Runner) error {
-	if r == nil {
+func loop(ctx context.Context, args *loopArgs, tc *TestCase) error {
+	if tc == nil {
 		return fmt.Errorf("Runner should be set for looping operation")
 	}
 
@@ -162,7 +162,7 @@ func loop(ctx context.Context, args *loopArgs, r *Runner) error {
 
 	for {
 		select {
-		case <-r.loopDone:
+		case <-tc.loopDone:
 			return nil
 		default:
 			var loopErr error
@@ -170,7 +170,7 @@ func loop(ctx context.Context, args *loopArgs, r *Runner) error {
 				if operation.Name == "loop" {
 					return fmt.Errorf("Loop sub-operations should not include loop")
 				}
-				loopErr = operation.execute(ctx, r)
+				loopErr = operation.execute(ctx, tc)
 
 				// if the operation errors, stop this loop
 				if loopErr != nil {

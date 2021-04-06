@@ -25,8 +25,8 @@ type operation struct {
 
 // execute runs the operation and verifies the returned result and/or error. If the result needs to be saved as
 // an entity, it also updates the entityMap associated with ctx to do so.
-func (op *operation) execute(ctx context.Context, r *Runner) error {
-	res, err := op.run(ctx, r)
+func (op *operation) execute(ctx context.Context, tc *TestCase) error {
+	res, err := op.run(ctx, tc)
 	if err != nil {
 		return fmt.Errorf("execution failed: %v", err)
 	}
@@ -43,10 +43,10 @@ func (op *operation) execute(ctx context.Context, r *Runner) error {
 	return nil
 }
 
-func (op *operation) run(ctx context.Context, r *Runner) (*operationResult, error) {
+func (op *operation) run(ctx context.Context, tc *TestCase) (*operationResult, error) {
 	if op.Object == "testRunner" {
 		// testRunner operations don't have results or expected errors, so we use newEmptyResult to fake a result.
-		return newEmptyResult(), executeTestRunnerOperation(ctx, op, r)
+		return newEmptyResult(), executeTestRunnerOperation(ctx, op, tc)
 	}
 
 	// Special handling for the "session" field because it applies to all operations.
@@ -75,7 +75,7 @@ func (op *operation) run(ctx context.Context, r *Runner) (*operationResult, erro
 		return executeStartTransaction(ctx, op)
 	case "withTransaction":
 		// executeWithTransaction internally verifies results/errors for each operation, so it doesn't return a result.
-		return newEmptyResult(), executeWithTransaction(ctx, op, r)
+		return newEmptyResult(), executeWithTransaction(ctx, op, tc)
 
 	// Client operations
 	case "createChangeStream":
