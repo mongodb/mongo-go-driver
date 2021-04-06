@@ -95,22 +95,20 @@ func runTestDirectory(t *testing.T, directoryPath string) {
 
 // RunTestFile runs the tests in the given file, which must be in the unifed spec format
 func RunTestFile(t *testing.T, filepath string) {
-	fileDesc, fileReqs, testCases := ParseTestFile(t, filepath)
+	fileReqs, testCases := ParseTestFile(t, filepath)
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	mt.Run(fileDesc, func(mt *mtest.T) {
-		for _, testCase := range testCases {
-			testCase.Run(mt)
-		}
-	})
+	for _, testCase := range testCases {
+		testCase.Run(mt)
+	}
 }
 
-// ParseTestFile create an array of Runners from the file at filepath
-func ParseTestFile(t *testing.T, filepath string) (string, []mtest.RunOnBlock, []*TestCase) {
+// ParseTestFile create an array of TestCases from the file at filepath
+func ParseTestFile(t *testing.T, filepath string) ([]mtest.RunOnBlock, []*TestCase) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
@@ -129,7 +127,7 @@ func ParseTestFile(t *testing.T, filepath string) (string, []mtest.RunOnBlock, [
 		testCase.loopDone = make(chan struct{})
 
 	}
-	return testFile.Description, testFile.RunOnRequirements, testFile.TestCases
+	return testFile.RunOnRequirements, testFile.TestCases
 }
 
 // GetEntities returns a pointer to the EntityMap for the TestCase. This should not be called until after
