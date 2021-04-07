@@ -18,52 +18,28 @@ func TestEntityMap(t *testing.T) {
 	record := bson.D{{"foo", 1}}
 	doc, err := bson.Marshal(record)
 	assert.Nil(t, err, "error marshaling example doc %s", err)
-	t.Run("errors entity", func(t *testing.T) {
+	t.Run("bson array entity", func(t *testing.T) {
 		name := "errors"
 		em := newEntityMap()
-		err = em.addErrorsEntityIfDoesntExist(name)
+		err = em.addBSONArrayEntity(name)
 		assert.Nil(t, err, "expected nil error, got %s", err)
-		// adding an existing error entity twice shouldn't error
-		err = em.addErrorsEntityIfDoesntExist(name)
+		// adding an existing bson array entity twice shouldn't error
+		err = em.addBSONArrayEntity(name)
 		assert.Nil(t, err, "expected nil error, got %s", err)
 
-		em.appendErrorsEntity(name, doc)
+		em.appendBSONArrayEntity(name, doc)
 
-		// Errors can't be retrieved until the map is closed
-		_, found := em.GetErrors(name)
+		// bson array can't be retrieved until the map is closed
+		_, found := em.GetBSONArray(name)
 		assert.False(t, found, "expected found to be false")
 
 		em.close(context.Background())
 
-		retDocs, found := em.GetErrors(name)
+		retDocs, found := em.GetBSONArray(name)
 		assert.True(t, found, "expected entity %s to be found", name)
 		assert.Equal(t, bson.Raw(doc), retDocs[0], "expected %s, got %s", bson.Raw(doc), retDocs[0])
 
-		_, found = em.GetErrors("bar")
-		assert.False(t, found, "expected found to be false")
-	})
-	t.Run("failures entity", func(t *testing.T) {
-		name := "failures"
-		em := newEntityMap()
-		err = em.addFailuresEntityIfDoesntExist(name)
-		assert.Nil(t, err, "expected nil error, got %s", err)
-		// adding an existing failure entity twice shouldn't error
-		err = em.addFailuresEntityIfDoesntExist(name)
-		assert.Nil(t, err, "expected nil error, got %s", err)
-
-		em.appendFailuresEntity(name, doc)
-
-		// Failures can't be retrieved until the map is closed
-		_, found := em.GetFailures(name)
-		assert.False(t, found, "expected found to be false")
-
-		em.close(context.Background())
-
-		retDocs, found := em.GetFailures(name)
-		assert.True(t, found, "expected entity %s to be found", name)
-		assert.Equal(t, bson.Raw(doc), retDocs[0], "expected %s, got %s", bson.Raw(doc), retDocs[0])
-
-		_, found = em.GetFailures("bar")
+		_, found = em.GetBSONArray("failures")
 		assert.False(t, found, "expected found to be false")
 	})
 	t.Run("events entity", func(t *testing.T) {
@@ -77,16 +53,16 @@ func TestEntityMap(t *testing.T) {
 		em.appendEventsEntity(name, doc)
 
 		// Events can't be retrieved until the map is closed
-		_, found := em.GetEvents(name)
+		_, found := em.GetEventList(name)
 		assert.False(t, found, "expected found to be false")
 
 		em.close(context.Background())
 
-		retDocs, found := em.GetEvents(name)
+		retDocs, found := em.GetEventList(name)
 		assert.True(t, found, "expected entity %s to be found", name)
 		assert.Equal(t, bson.Raw(doc), retDocs[0], "expected %s, got %s", bson.Raw(doc), retDocs[0])
 
-		_, found = em.GetEvents("bar")
+		_, found = em.GetEventList("bar")
 		assert.False(t, found, "expected found to be false")
 	})
 	t.Run("interations entity", func(t *testing.T) {

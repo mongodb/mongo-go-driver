@@ -19,14 +19,30 @@ import (
 )
 
 type loopArgs struct {
-	Operations      []*operation `bson:"operations"`
-	StoreErrors     string       `bson:"storeErrorsAsEntity"`
-	StoreFailures   string       `bson:"storeFailuresAsEntity"`
-	StoreSuccesses  string       `bson:"storeSuccessesAsEntity"`
-	StoreIterations string       `bson:"storeIterationsAsEntity"`
+	Operations         []*operation `bson:"operations"`
+	ErrorsEntityID     string       `bson:"storeErrorsAsEntity"`
+	FailuresEntityID   string       `bson:"storeFailuresAsEntity"`
+	SuccessesEntityID  string       `bson:"storeSuccessesAsEntity"`
+	IterationsEntityID string       `bson:"storeIterationsAsEntity"`
 }
 
-func executeTestRunnerOperation(ctx context.Context, operation *operation, tc *TestCase) error {
+func (lp *loopArgs) errorsStored() bool {
+	return lp.ErrorsEntityID != ""
+}
+
+func (lp *loopArgs) failuresStored() bool {
+	return lp.FailuresEntityID != ""
+}
+
+func (lp *loopArgs) successesStored() bool {
+	return lp.SuccessesEntityID != ""
+}
+
+func (lp *loopArgs) iterationsStored() bool {
+	return lp.IterationsEntityID != ""
+}
+
+func executeTestRunnerOperation(ctx context.Context, operation *operation, loopDone <-chan struct{}) error {
 	args := operation.Arguments
 
 	switch operation.Name {
@@ -122,59 +138,56 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, tc *T
 		index := lookupString(args, "indexName")
 		return verifyIndexExists(ctx, db, coll, index, false)
 	case "loop":
-		unmarshaledArgs := &loopArgs{}
-		if err := bson.Unmarshal(args, unmarshaledArgs); err != nil {
-			return err
+		var unmarshaledArgs loopArgs
+		if err := bson.Unmarshal(args, &unmarshaledArgs); err != nil {
+			return fmt.Errorf("error unmarshalling arguments to loopOptions: %v", err)
 		}
-		return loop(ctx, unmarshaledArgs, tc)
+		return executeLoop(ctx, &unmarshaledArgs, loopDone)
 	default:
 		return fmt.Errorf("unrecognized testRunner operation %q", operation.Name)
 	}
 }
 
-func loop(ctx context.Context, args *loopArgs, tc *TestCase) error {
-	if tc == nil {
-		return fmt.Errorf("Runner should be set for looping operation")
-	}
-
+func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) error {
 	// setup entities
 	entityMap := entities(ctx)
-	if args.StoreErrors != "" {
-		if err := entityMap.addErrorsEntityIfDoesntExist(args.StoreErrors); err != nil {
+	if args.errorsStored() {
+		if err := entityMap.addBSONArrayEntity(args.ErrorsEntityID); err != nil {
 			return err
 		}
 	}
-	if args.StoreFailures != "" {
-		if err := entityMap.addFailuresEntityIfDoesntExist(args.StoreFailures); err != nil {
+	if args.failuresStored() {
+		if err := entityMap.addBSONArrayEntity(args.FailuresEntityID); err != nil {
 			return err
 		}
 	}
-	if args.StoreSuccesses != "" {
-		if err := entityMap.addSuccessesEntity(args.StoreSuccesses); err != nil {
+	if args.successesStored() {
+		if err := entityMap.addSuccessesEntity(args.SuccessesEntityID); err != nil {
 			return err
 		}
 	}
-	if args.StoreIterations != "" {
-		if err := entityMap.addIterationsEntity(args.StoreIterations); err != nil {
+	if args.iterationsStored() {
+		if err := entityMap.addIterationsEntity(args.IterationsEntityID); err != nil {
 			return err
 		}
 	}
 
 	for {
 		select {
-		case <-tc.loopDone:
+		case <-loopDone:
 			return nil
 		default:
 			var loopErr error
-			for _, operation := range args.Operations {
+			for i, operation := range args.Operations {
 				if operation.Name == "loop" {
-					return fmt.Errorf("Loop sub-operations should not include loop")
+					return fmt.Errorf("loop sub-operations should not include loop")
 				}
-				loopErr = operation.execute(ctx, tc)
+				loopErr = operation.execute(ctx, loopDone)
 
 				// if the operation errors, stop this loop
 				if loopErr != nil {
-					if args.StoreErrors == "" && args.StoreFailures == "" {
+					if !args.errorsStored() && !args.failuresStored() {
+						loopErr = fmt.Errorf("error running loop operation %v : %v", i, loopErr)
 						break
 					}
 					record := bson.D{
@@ -183,28 +196,29 @@ func loop(ctx context.Context, args *loopArgs, tc *TestCase) error {
 					}
 					errDoc, _ := bson.Marshal(record)
 					switch {
-					case args.StoreErrors == "":
-						entityMap.appendFailuresEntity(args.StoreFailures, errDoc)
-					case args.StoreFailures == "":
-						entityMap.appendErrorsEntity(args.StoreErrors, errDoc)
+					case !args.errorsStored():
+						entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
+					case !args.failuresStored():
+						entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// errors are test runner errors
+					// TODO GODRIVER-1950: use error types to determine error vs failure
 					case strings.Contains(loopErr.Error(), "execution failed: "):
-						entityMap.appendErrorsEntity(args.StoreErrors, errDoc)
+						entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// failures are if an operation returns an incorrect result or error
 					default:
-						entityMap.appendFailuresEntity(args.StoreFailures, errDoc)
+						entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
 					}
 					break
 				}
-				if args.StoreSuccesses != "" {
-					entityMap.incrementSuccesses(args.StoreSuccesses)
+				if args.successesStored() {
+					entityMap.incrementSuccesses(args.SuccessesEntityID)
 				}
 			}
-			if args.StoreIterations != "" {
-				entityMap.incrementIterations(args.StoreIterations)
+			if args.iterationsStored() {
+				entityMap.incrementIterations(args.IterationsEntityID)
 			}
 			// If StoreFailures or StoreErrors is set, continue looping, otherwise break
-			if args.StoreErrors == "" && args.StoreFailures == "" {
+			if loopErr != nil && !args.errorsStored() && !args.failuresStored() {
 				return loopErr
 			}
 		}

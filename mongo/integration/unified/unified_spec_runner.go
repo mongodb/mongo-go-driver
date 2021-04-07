@@ -37,6 +37,7 @@ const (
 	lowHeartbeatFrequency int32 = 50
 )
 
+// TestCase holds and runs a unified spec test case
 type TestCase struct {
 	Description       string             `bson:"description"`
 	RunOnRequirements []mtest.RunOnBlock `bson:"runOnRequirements"`
@@ -45,28 +46,29 @@ type TestCase struct {
 	ExpectedEvents    []*expectedEvents  `bson:"expectEvents"`
 	Outcome           []*collectionData  `bson:"outcome"`
 
-	initialData    []*collectionData
-	createEntities []map[string]*entityOptions
-	fileReqs       []mtest.RunOnBlock
+	initialData     []*collectionData
+	createEntities  []map[string]*entityOptions
+	fileReqs        []mtest.RunOnBlock
+	killAllSessions bool
 
 	entities *EntityMap
 	loopDone chan struct{}
 }
 
-func (t *TestCase) performsDistinct() bool {
-	return t.performsOperation("distinct")
+func (tc *TestCase) performsDistinct() bool {
+	return tc.performsOperation("distinct")
 }
 
-func (t *TestCase) setsFailPoint() bool {
-	return t.performsOperation("failPoint")
+func (tc *TestCase) setsFailPoint() bool {
+	return tc.performsOperation("failPoint")
 }
 
-func (t *TestCase) startsTransaction() bool {
-	return t.performsOperation("startTransaction")
+func (tc *TestCase) startsTransaction() bool {
+	return tc.performsOperation("startTransaction")
 }
 
-func (t *TestCase) performsOperation(name string) bool {
-	for _, op := range t.Operations {
+func (tc *TestCase) performsOperation(name string) bool {
+	for _, op := range tc.Operations {
 		if op.Name == name {
 			return true
 		}
@@ -94,8 +96,8 @@ func runTestDirectory(t *testing.T, directoryPath string) {
 }
 
 // RunTestFile runs the tests in the given file, which must be in the unifed spec format
-func RunTestFile(t *testing.T, filepath string) {
-	fileReqs, testCases := ParseTestFile(t, filepath)
+func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
+	fileReqs, testCases := ParseTestFile(t, filepath, opts...)
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
 		CreateClient(false)
@@ -108,7 +110,7 @@ func RunTestFile(t *testing.T, filepath string) {
 }
 
 // ParseTestFile create an array of TestCases from the file at filepath
-func ParseTestFile(t *testing.T, filepath string) ([]mtest.RunOnBlock, []*TestCase) {
+func ParseTestFile(t *testing.T, filepath string, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
@@ -120,12 +122,13 @@ func ParseTestFile(t *testing.T, filepath string) ([]mtest.RunOnBlock, []*TestCa
 	err = checkSchemaVersion(testFile.SchemaVersion)
 	assert.Nil(t, err, "schema version %q not supported: %v", testFile.SchemaVersion, err)
 
+	op := MergeOptions(opts...)
 	for _, testCase := range testFile.TestCases {
 		testCase.initialData = testFile.InitialData
 		testCase.createEntities = testFile.CreateEntities
 		testCase.entities = newEntityMap()
 		testCase.loopDone = make(chan struct{})
-
+		testCase.killAllSessions = *op.RunKillAllSessions
 	}
 	return testFile.RunOnRequirements, testFile.TestCases
 }
@@ -147,14 +150,10 @@ func (tc *TestCase) Run(mt *mtest.T) {
 	})
 }
 
-// EndLoop will cause the runner to stop a loop operation if one is included in the test
+// EndLoop will cause the runner to stop a loop operation if one is included in the test. If the test has finished
+// running, this will panic
 func (tc *TestCase) EndLoop() {
-	select {
-	case <-tc.loopDone:
-		return
-	default:
-		close(tc.loopDone)
-	}
+	tc.loopDone <- struct{}{}
 }
 
 func (tc *TestCase) runTest(mt *mtest.T) {
@@ -183,13 +182,13 @@ func (tc *TestCase) runTest(mt *mtest.T) {
 		// Tests that started a transaction should terminate any sessions left open on the server. This is required even
 		// if the test attempted to commit/abort the transaction because an abortTransaction command can fail if it's
 		// sent to a mongos that isn't aware of the transaction.
-		if tc.startsTransaction() {
+		if tc.startsTransaction() && tc.killAllSessions {
 			if err := terminateOpenSessions(mtest.Background); err != nil {
 				mt.Logf("error terminating open transactions after failed test: %v", err)
 			}
 		}
 
-		tc.EndLoop()
+		close(tc.loopDone)
 	}()
 
 	// Set up collections based on the file-level initialData field.
@@ -229,7 +228,7 @@ func (tc *TestCase) runTest(mt *mtest.T) {
 	}
 
 	for idx, operation := range tc.Operations {
-		err := operation.execute(testCtx, tc)
+		err := operation.execute(testCtx, tc.loopDone)
 		assert.Nil(mt, err, "error running operation %q at index %d: %v", operation.Name, idx, err)
 	}
 

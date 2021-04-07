@@ -80,7 +80,7 @@ func executeStartTransaction(ctx context.Context, operation *operation) (*operat
 	return newErrorResult(sess.StartTransaction(opts)), nil
 }
 
-func executeWithTransaction(ctx context.Context, op *operation, tc *TestCase) error {
+func executeWithTransaction(ctx context.Context, op *operation, loopDone <-chan struct{}) error {
 	sess, err := entities(ctx).session(op.Object)
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func executeWithTransaction(ctx context.Context, op *operation, tc *TestCase) er
 
 	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
 		for idx, oper := range operations {
-			if err := oper.execute(ctx, tc); err != nil {
+			if err := oper.execute(ctx, loopDone); err != nil {
 				return nil, fmt.Errorf("error executing operation %q at index %d: %v", oper.Name, idx, err)
 			}
 		}

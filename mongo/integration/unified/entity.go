@@ -18,9 +18,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type storeEventsAsEntitiesOption struct {
-	ID     string   `bson:"id"`
-	Events []string `bson:"events"`
+type storeEventsAsEntitiesConfig struct {
+	EventListID string   `bson:"id"`
+	Events      []string `bson:"events"`
 }
 
 // entityOptions represents all options that can be used to configure an entity. Because there are multiple entity
@@ -34,7 +34,7 @@ type entityOptions struct {
 	UseMultipleMongoses   *bool                         `bson:"useMultipleMongoses"`
 	ObserveEvents         []string                      `bson:"observeEvents"`
 	IgnoredCommands       []string                      `bson:"ignoreCommandMonitoringEvents"`
-	StoreEventsAsEntities []storeEventsAsEntitiesOption `bson:"storeEventsAsEntities"`
+	StoreEventsAsEntities []storeEventsAsEntitiesConfig `bson:"storeEventsAsEntities"`
 	ServerAPIOptions      *serverAPIOptions             `bson:"serverApi"`
 
 	// Options for database entities.
@@ -60,43 +60,47 @@ type entityOptions struct {
 // ID, even if they are of different types. It also enforces referential integrity so construction of an entity that
 // references another (e.g. a database entity references a client) will fail if the referenced entity does not exist.
 type EntityMap struct {
-	allEntities     map[string]struct{}
-	changeStreams   map[string]*mongo.ChangeStream
-	clientEntities  map[string]*clientEntity
-	dbEntites       map[string]*mongo.Database
-	collEntities    map[string]*mongo.Collection
-	sessions        map[string]mongo.Session
-	gridfsBuckets   map[string]*gridfs.Bucket
-	bsonValues      map[string]bson.RawValue
-	eventEntities   map[string][]bson.Raw
-	errorEntities   map[string][]bson.Raw
-	failureEntities map[string][]bson.Raw
-	successValues   map[string]*int32
-	iterationValues map[string]*int32
+	allEntities       map[string]struct{}
+	changeStreams     map[string]*mongo.ChangeStream
+	clientEntities    map[string]*clientEntity
+	dbEntites         map[string]*mongo.Database
+	collEntities      map[string]*mongo.Collection
+	sessions          map[string]mongo.Session
+	gridfsBuckets     map[string]*gridfs.Bucket
+	bsonValues        map[string]bson.RawValue
+	eventListEntities map[string][]bson.Raw
+	bsonArrayEntities map[string][]bson.Raw
+	successValues     map[string]int32
+	iterationValues   map[string]int32
 
-	evtLock  sync.Mutex
-	errLock  sync.Mutex
-	failLock sync.Mutex
-	closed   atomic.Value
+	evtLock sync.Mutex
+	closed  atomic.Value
+}
+
+func (em *EntityMap) isClosed() bool {
+	return em.closed.Load().(bool)
+}
+
+func (em *EntityMap) setClosed(val bool) {
+	em.closed.Store(val)
 }
 
 func newEntityMap() *EntityMap {
 	em := &EntityMap{
-		allEntities:     make(map[string]struct{}),
-		gridfsBuckets:   make(map[string]*gridfs.Bucket),
-		bsonValues:      make(map[string]bson.RawValue),
-		changeStreams:   make(map[string]*mongo.ChangeStream),
-		clientEntities:  make(map[string]*clientEntity),
-		collEntities:    make(map[string]*mongo.Collection),
-		dbEntites:       make(map[string]*mongo.Database),
-		sessions:        make(map[string]mongo.Session),
-		eventEntities:   make(map[string][]bson.Raw),
-		errorEntities:   make(map[string][]bson.Raw),
-		failureEntities: make(map[string][]bson.Raw),
-		successValues:   make(map[string]*int32),
-		iterationValues: make(map[string]*int32),
+		allEntities:       make(map[string]struct{}),
+		gridfsBuckets:     make(map[string]*gridfs.Bucket),
+		bsonValues:        make(map[string]bson.RawValue),
+		changeStreams:     make(map[string]*mongo.ChangeStream),
+		clientEntities:    make(map[string]*clientEntity),
+		collEntities:      make(map[string]*mongo.Collection),
+		dbEntites:         make(map[string]*mongo.Database),
+		sessions:          make(map[string]mongo.Session),
+		eventListEntities: make(map[string][]bson.Raw),
+		bsonArrayEntities: make(map[string][]bson.Raw),
+		successValues:     make(map[string]int32),
+		iterationValues:   make(map[string]int32),
 	}
-	em.closed.Store(false)
+	em.setClosed(false)
 	return em
 }
 
@@ -120,29 +124,17 @@ func (em *EntityMap) addChangeStreamEntity(id string, stream *mongo.ChangeStream
 	return nil
 }
 
-func (em *EntityMap) addErrorsEntityIfDoesntExist(id string) error {
-	// Error if a non-error entity exists with the same name
+func (em *EntityMap) addBSONArrayEntity(id string) error {
+	// Error if a non-bson array entity exists with the same name
 	if _, ok := em.allEntities[id]; ok {
-		if _, ok := em.errorEntities[id]; !ok {
+		if _, ok := em.bsonArrayEntities[id]; !ok {
 			return fmt.Errorf("non-errors entity with ID %q already exists", id)
 		}
+		return nil
 	}
 
 	em.allEntities[id] = struct{}{}
-	em.errorEntities[id] = []bson.Raw{}
-	return nil
-}
-
-func (em *EntityMap) addFailuresEntityIfDoesntExist(id string) error {
-	// Error if a non-error entity exists with the same name
-	if _, ok := em.allEntities[id]; ok {
-		if _, ok := em.failureEntities[id]; !ok {
-			return fmt.Errorf("non-failures entity with ID %q already exists", id)
-		}
-	}
-
-	em.allEntities[id] = struct{}{}
-	em.failureEntities[id] = []bson.Raw{}
+	em.bsonArrayEntities[id] = []bson.Raw{}
 	return nil
 }
 
@@ -152,7 +144,7 @@ func (em *EntityMap) addSuccessesEntity(id string) error {
 	}
 
 	em.allEntities[id] = struct{}{}
-	em.successValues[id] = new(int32)
+	em.successValues[id] = 0
 	return nil
 }
 
@@ -162,7 +154,7 @@ func (em *EntityMap) addIterationsEntity(id string) error {
 	}
 
 	em.allEntities[id] = struct{}{}
-	em.iterationValues[id] = new(int32)
+	em.iterationValues[id] = 0
 	return nil
 }
 
@@ -171,43 +163,33 @@ func (em *EntityMap) addEventsEntity(id string) error {
 		return err
 	}
 	em.allEntities[id] = struct{}{}
-	em.eventEntities[id] = []bson.Raw{}
+	em.eventListEntities[id] = []bson.Raw{}
 	return nil
 }
 
 func (em *EntityMap) incrementSuccesses(id string) {
 	if _, ok := em.successValues[id]; ok {
-		atomic.AddInt32(em.successValues[id], 1)
+		em.successValues[id]++
 	}
 }
 
 func (em *EntityMap) incrementIterations(id string) {
 	if _, ok := em.iterationValues[id]; ok {
-		atomic.AddInt32(em.iterationValues[id], 1)
+		em.iterationValues[id]++
 	}
 }
 
 func (em *EntityMap) appendEventsEntity(id string, doc bson.Raw) {
 	em.evtLock.Lock()
 	defer em.evtLock.Unlock()
-	if _, ok := em.eventEntities[id]; ok {
-		em.eventEntities[id] = append(em.eventEntities[id], doc)
+	if _, ok := em.eventListEntities[id]; ok {
+		em.eventListEntities[id] = append(em.eventListEntities[id], doc)
 	}
 }
 
-func (em *EntityMap) appendErrorsEntity(id string, doc bson.Raw) {
-	em.errLock.Lock()
-	defer em.errLock.Unlock()
-	if _, ok := em.errorEntities[id]; ok {
-		em.errorEntities[id] = append(em.errorEntities[id], doc)
-	}
-}
-
-func (em *EntityMap) appendFailuresEntity(id string, doc bson.Raw) {
-	em.failLock.Lock()
-	defer em.failLock.Unlock()
-	if _, ok := em.failureEntities[id]; ok {
-		em.failureEntities[id] = append(em.failureEntities[id], doc)
+func (em *EntityMap) appendBSONArrayEntity(id string, doc bson.Raw) {
+	if _, ok := em.bsonArrayEntities[id]; ok {
+		em.bsonArrayEntities[id] = append(em.bsonArrayEntities[id], doc)
 	}
 }
 
@@ -303,33 +285,23 @@ func (em *EntityMap) session(id string) (mongo.Session, error) {
 	return sess, nil
 }
 
-// GetEvents returns the array of event documents associated with id. This should only be accessed
+// GetEventList returns the array of event documents associated with id. This should only be accessed
 // after the test is finished running
-func (em *EntityMap) GetEvents(id string) ([]bson.Raw, bool) {
-	if !em.closed.Load().(bool) {
+func (em *EntityMap) GetEventList(id string) ([]bson.Raw, bool) {
+	if !em.isClosed() {
 		return nil, false
 	}
-	val, ok := em.eventEntities[id]
+	val, ok := em.eventListEntities[id]
 	return val, ok
 }
 
-// GetErrors returns the array of error documents associated with id. This should only be accessed
+// GetBSONArray returns the bson document array associated with id. This should only be accessed
 // after the test is finished running
-func (em *EntityMap) GetErrors(id string) ([]bson.Raw, bool) {
-	if !em.closed.Load().(bool) {
+func (em *EntityMap) GetBSONArray(id string) ([]bson.Raw, bool) {
+	if !em.isClosed() {
 		return nil, false
 	}
-	val, ok := em.errorEntities[id]
-	return val, ok
-}
-
-// GetFailures returns the array of failure documents associated with id. This should only be accessed
-// after the test is finished running
-func (em *EntityMap) GetFailures(id string) ([]bson.Raw, bool) {
-	if !em.closed.Load().(bool) {
-		return nil, false
-	}
-	val, ok := em.failureEntities[id]
+	val, ok := em.bsonArrayEntities[id]
 	return val, ok
 }
 
@@ -342,19 +314,13 @@ func (em *EntityMap) GetBSON(id string) (bson.RawValue, bool) {
 // GetSuccesses returns the array of event documents associated with id
 func (em *EntityMap) GetSuccesses(id string) (int32, bool) {
 	val, ok := em.successValues[id]
-	if !ok {
-		return 0, ok
-	}
-	return atomic.LoadInt32(val), ok
+	return val, ok
 }
 
 // GetIterations returns the array of event documents associated with id
 func (em *EntityMap) GetIterations(id string) (int32, bool) {
 	val, ok := em.iterationValues[id]
-	if !ok {
-		return 0, ok
-	}
-	return atomic.LoadInt32(val), ok
+	return val, ok
 }
 
 // close disposes of the session and client entities associated with this map.
@@ -369,7 +335,7 @@ func (em *EntityMap) close(ctx context.Context) []error {
 			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
 		}
 	}
-	em.closed.Store(true)
+	em.setClosed(true)
 	return errs
 }
 
@@ -377,7 +343,7 @@ func (em *EntityMap) addClientEntity(ctx context.Context, entityOptions *entityO
 	var client *clientEntity
 
 	for _, eventsAsEntity := range entityOptions.StoreEventsAsEntities {
-		if err := em.addEventsEntity(eventsAsEntity.ID); err != nil {
+		if err := em.addEventsEntity(eventsAsEntity.EventListID); err != nil {
 			return err
 		}
 	}
