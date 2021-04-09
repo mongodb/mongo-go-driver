@@ -196,7 +196,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 
 // stale checks if a given connection's generation is below the generation of the pool
 func (p *pool) stale(c *connection) bool {
-	return c == nil || p.generation.stale(c.desc.ServerID, c.generation)
+	return c == nil || p.generation.stale(c.desc.ServiceID, c.generation)
 }
 
 // connect puts the pool into the connected state, allowing it to be used and will allow items to begin being processed from the wait queue
@@ -511,8 +511,8 @@ func (p *pool) closeConnection(c *connection) error {
 	return nil
 }
 
-func (p *pool) getGenerationForNewConnection(serverID *primitive.ObjectID) uint64 {
-	return p.generation.addConnection(serverID)
+func (p *pool) getGenerationForNewConnection(serviceID *primitive.ObjectID) uint64 {
+	return p.generation.addConnection(serviceID)
 }
 
 // removeConnection removes a connection from the pool.
@@ -532,7 +532,7 @@ func (p *pool) removeConnection(c *connection, reason string) error {
 	// Only update the generation numbers map if the connection has retrieved its generation number. Otherwise, we'd
 	// decrement the count for the generation even though it had never been incremented.
 	if c.hasGenerationNumber() {
-		p.generation.removeConnection(c.desc.ServerID)
+		p.generation.removeConnection(c.desc.ServiceID)
 	}
 
 	if publishEvent && p.monitor != nil {
@@ -579,13 +579,13 @@ func (p *pool) put(c *connection) error {
 }
 
 // clear clears the pool by incrementing the generation
-func (p *pool) clear(serverID *primitive.ObjectID) {
+func (p *pool) clear(serviceID *primitive.ObjectID) {
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
-			Type:     event.PoolCleared,
-			Address:  p.address.String(),
-			ServerID: serverID,
+			Type:      event.PoolCleared,
+			Address:   p.address.String(),
+			ServiceID: serviceID,
 		})
 	}
-	p.generation.clear(serverID)
+	p.generation.clear(serviceID)
 }

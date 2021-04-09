@@ -37,7 +37,7 @@ var DefaultDialer Dialer = &net.Dialer{}
 type Handshaker = driver.Handshaker
 
 // generationNumberFn is a callback type used by a connection to fetch its generation number given its server ID.
-type generationNumberFn func(serverID *primitive.ObjectID) uint64
+type generationNumberFn func(serviceID *primitive.ObjectID) uint64
 
 type connectionConfig struct {
 	appName                  string

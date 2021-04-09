@@ -143,11 +143,11 @@ func TestServer(t *testing.T) {
 	}
 
 	t.Run("multiple connection initialization errors are processed correctly", func(t *testing.T) {
-		assertGenerationStats := func(t *testing.T, server *Server, serverID primitive.ObjectID, generation, numConns uint64) {
+		assertGenerationStats := func(t *testing.T, server *Server, serviceID primitive.ObjectID, generation, numConns uint64) {
 			t.Helper()
 
-			stats, ok := server.pool.generation.generationMap[serverID]
-			assert.True(t, ok, "entry for serverID not found")
+			stats, ok := server.pool.generation.generationMap[serviceID]
+			assert.True(t, ok, "entry for serviceID not found")
 			assert.Equal(t, generation, stats.generation, "expected generation number %d, got %d", generation, stats.generation)
 			assert.Equal(t, numConns, stats.numConns, "expected connection count %d, got %d", numConns, stats.numConns)
 		}
@@ -174,9 +174,9 @@ func TestServer(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				var returnConnectionError bool
-				var serverID primitive.ObjectID
+				var serviceID primitive.ObjectID
 				if tc.loadBalanced {
-					serverID = primitive.NewObjectID()
+					serviceID = primitive.NewObjectID()
 				}
 
 				handshaker := &testHandshaker{
@@ -187,7 +187,7 @@ func TestServer(t *testing.T) {
 
 						desc := description.NewDefaultServer(addr)
 						if tc.loadBalanced {
-							desc.ServerID = &serverID
+							desc.ServiceID = &serviceID
 						}
 						return driver.HandshakeInformation{Description: desc}, nil
 					},
@@ -234,7 +234,7 @@ func TestServer(t *testing.T) {
 
 				_, err = server.Connection(context.Background())
 				assert.Nil(t, err, "Connection error: %v", err)
-				assertGenerationStats(t, server, serverID, 0, 1)
+				assertGenerationStats(t, server, serviceID, 0, 1)
 
 				returnConnectionError = true
 				for i := 0; i < 2; i++ {
@@ -247,7 +247,7 @@ func TestServer(t *testing.T) {
 					}
 				}
 				// The final number of connections should be numNewConns+1 to account for the extra one we create above.
-				assertGenerationStats(t, server, serverID, tc.finalGeneration, tc.numNewConns+1)
+				assertGenerationStats(t, server, serviceID, tc.finalGeneration, tc.numNewConns+1)
 			})
 		}
 	})

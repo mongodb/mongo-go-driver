@@ -49,83 +49,83 @@ func (p *poolGenerationMap) disconnect() {
 
 // addConnection increments the connection count for the generation associated with the given server ID and returns the
 // generation number for the connection.
-func (p *poolGenerationMap) addConnection(serverIDPtr *primitive.ObjectID) uint64 {
-	serverID := getServerID(serverIDPtr)
+func (p *poolGenerationMap) addConnection(serviceIDPtr *primitive.ObjectID) uint64 {
+	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
 
-	stats, ok := p.generationMap[serverID]
+	stats, ok := p.generationMap[serviceID]
 	if ok {
-		// If the serverID is already being tracked, we only need to increment the connection count.
+		// If the serviceID is already being tracked, we only need to increment the connection count.
 		stats.numConns++
 		return stats.generation
 	}
 
-	// If the serverID is untracked, create a new entry with a starting generation number of 0.
+	// If the serviceID is untracked, create a new entry with a starting generation number of 0.
 	stats = &generationStats{
 		numConns: 1,
 	}
-	p.generationMap[serverID] = stats
+	p.generationMap[serviceID] = stats
 	return 0
 }
 
-func (p *poolGenerationMap) removeConnection(serverIDPtr *primitive.ObjectID) {
-	serverID := getServerID(serverIDPtr)
+func (p *poolGenerationMap) removeConnection(serviceIDPtr *primitive.ObjectID) {
+	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
 
-	stats, ok := p.generationMap[serverID]
+	stats, ok := p.generationMap[serviceID]
 	if !ok {
 		return
 	}
 
-	// If the serverID is being tracked, decrement the connection count and delete this serverID to prevent the map
+	// If the serviceID is being tracked, decrement the connection count and delete this serviceID to prevent the map
 	// from growing unboundedly. This case would happen if a server behind a load-balancer was permanently removed
 	// and its connections were pruned after a network error or idle timeout.
 	stats.numConns--
 	if stats.numConns == 0 {
-		delete(p.generationMap, serverID)
+		delete(p.generationMap, serviceID)
 	}
 }
 
-func (p *poolGenerationMap) clear(serverIDPtr *primitive.ObjectID) {
-	serverID := getServerID(serverIDPtr)
+func (p *poolGenerationMap) clear(serviceIDPtr *primitive.ObjectID) {
+	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
 
-	if stats, ok := p.generationMap[serverID]; ok {
+	if stats, ok := p.generationMap[serviceID]; ok {
 		stats.generation++
 	}
 }
 
-func (p *poolGenerationMap) stale(serverIDPtr *primitive.ObjectID, knownGeneration uint64) bool {
+func (p *poolGenerationMap) stale(serviceIDPtr *primitive.ObjectID, knownGeneration uint64) bool {
 	// If the map has been disconnected, all connections should be considered stale to ensure that they're closed.
 	if atomic.LoadInt32(&p.state) == disconnected {
 		return true
 	}
 
-	serverID := getServerID(serverIDPtr)
+	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
 
-	if stats, ok := p.generationMap[serverID]; ok {
+	if stats, ok := p.generationMap[serviceID]; ok {
 		return knownGeneration < stats.generation
 	}
 	return false
 }
 
-func (p *poolGenerationMap) getGeneration(serverIDPtr *primitive.ObjectID) uint64 {
-	serverID := getServerID(serverIDPtr)
+func (p *poolGenerationMap) getGeneration(serviceIDPtr *primitive.ObjectID) uint64 {
+	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
 
-	if stats, ok := p.generationMap[serverID]; ok {
+	if stats, ok := p.generationMap[serviceID]; ok {
 		return stats.generation
 	}
 	return 0
 }
 
-func getServerID(oid *primitive.ObjectID) primitive.ObjectID {
+func getServiceID(oid *primitive.ObjectID) primitive.ObjectID {
 	if oid == nil {
 		return primitive.NilObjectID
 	}

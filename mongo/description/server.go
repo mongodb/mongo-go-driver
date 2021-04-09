@@ -49,7 +49,7 @@ type Server struct {
 	Passives              []string
 	Primary               address.Address
 	ReadOnly              bool
-	ServerID              *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
+	ServiceID             *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
 	SessionTimeoutMinutes uint32
 	SetName               string
 	SetVersion            uint32
@@ -228,12 +228,12 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				desc.LastError = fmt.Errorf("expected 'secondary' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-		case "serverId":
+		case "serviceId":
 			oid, ok := element.Value().ObjectIDOK()
 			if !ok {
-				desc.LastError = fmt.Errorf("expected 'serverId' to be an ObjectId but it's a BSON %s", element.Value().Type)
+				desc.LastError = fmt.Errorf("expected 'serviceId' to be an ObjectId but it's a BSON %s", element.Value().Type)
 			}
-			desc.ServerID = &oid
+			desc.ServiceID = &oid
 		case "setName":
 			desc.SetName, ok = element.Value().StringValueOK()
 			if !ok {
@@ -338,7 +338,7 @@ func (s Server) DataBearing() bool {
 
 // LoadBalanced returns true if the server is a load balancer or is behind a load balancer.
 func (s Server) LoadBalanced() bool {
-	return s.Kind == LoadBalancer || s.ServerID != nil
+	return s.Kind == LoadBalancer || s.ServiceID != nil
 }
 
 // String implements the Stringer interface
