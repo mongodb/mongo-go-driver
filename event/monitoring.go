@@ -22,7 +22,9 @@ type CommandStartedEvent struct {
 	CommandName  string
 	RequestID    int64
 	ConnectionID string
-	ServiceID    *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
+	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
+	// Otherwise, it is unset.
+	ServiceID *primitive.ObjectID
 }
 
 // CommandFinishedEvent represents a generic command finishing.
@@ -31,7 +33,9 @@ type CommandFinishedEvent struct {
 	CommandName   string
 	RequestID     int64
 	ConnectionID  string
-	ServiceID     *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
+	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
+	// Otherwise, it is unset.
+	ServiceID *primitive.ObjectID
 }
 
 // CommandSucceededEvent represents an event generated when a command's execution succeeds.
