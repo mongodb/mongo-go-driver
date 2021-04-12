@@ -238,7 +238,7 @@ func (c *connection) connect(ctx context.Context) {
 		}
 	}
 	if err == nil {
-		// For load-balanced connections, the generation number depends on the server ID, which isn't known until the
+		// For load-balanced connections, the generation number depends on the service ID, which isn't known until the
 		// initial MongoDB handshake is done. To account for this, we don't attempt to set the connection's generation
 		// number unless GetHandshakeInformation succeeds.
 		if c.config.loadBalanced {

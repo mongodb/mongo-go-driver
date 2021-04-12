@@ -20,9 +20,9 @@ type generationStats struct {
 	numConns   uint64
 }
 
-// poolGenerationMap tracks the version for each server ID present in a pool. For deployments that are not behind a load
-// balancer, there is only one server ID: primitive.NilObjectID. For load-balanced deployments, each server behind the
-// load balancer will have a unique server ID.
+// poolGenerationMap tracks the version for each service ID present in a pool. For deployments that are not behind a
+// load balancer, there is only one service ID: primitive.NilObjectID. For load-balanced deployments, each server behind
+// the load balancer will have a unique service ID.
 type poolGenerationMap struct {
 	// state must be accessed using the atomic package.
 	state         int32
@@ -47,7 +47,7 @@ func (p *poolGenerationMap) disconnect() {
 	atomic.StoreInt32(&p.state, disconnected)
 }
 
-// addConnection increments the connection count for the generation associated with the given server ID and returns the
+// addConnection increments the connection count for the generation associated with the given service ID and returns the
 // generation number for the connection.
 func (p *poolGenerationMap) addConnection(serviceIDPtr *primitive.ObjectID) uint64 {
 	serviceID := getServiceID(serviceIDPtr)
