@@ -1039,6 +1039,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 	// These tests only run when a KMS mock server is running on localhost:8000.
 	mt.RunOpts("kms tls tests", noClientOpts, func(mt *mtest.T) {
+		kmsTlsTestcase := os.Getenv("KMS_TLS_TESTCASE")
+		if kmsTlsTestcase == "" {
+			mt.Skipf("Skipping test as KMS_TLS_TESTCASE is not set")
+		}
+
 		testcases := []struct {
 			name       string
 			envValue   string
@@ -1059,24 +1064,26 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		for _, tc := range testcases {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				// Only run test if correct KMS mock server is running.
-				if os.Getenv("KMS_TLS_TESTCASE") == tc.envValue {
-					ceo := options.ClientEncryption().
-						SetKmsProviders(fullKmsProvidersMap).
-						SetKeyVaultNamespace(kvNamespace)
-					cpt := setup(mt, nil, nil, ceo)
-
-					_, err := cpt.clientEnc.CreateDataKey(context.Background(), "aws", options.DataKey().SetMasterKey(
-						bson.D{
-							{"region", "us-east-1"},
-							{"key", "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0"},
-							{"endpoint", "mongodb://127.0.0.1:8000"},
-						},
-					))
-					assert.True(mt, strings.Contains(err.Error(), tc.errMessage),
-						"expected CreateDataKey error to contain %v, got %v", tc.errMessage, err.Error())
-				} else {
-					mt.Skipf("Skipping test as KMS_TLS_TESTCASE is set to %q, expected %v", os.Getenv("KMS_TLS_TESTCASE"), tc.envValue)
+				if kmsTlsTestcase != tc.envValue {
+					mt.Skipf("Skipping test as KMS_TLS_TESTCASE is set to %q, expected %v", kmsTlsTestcase, tc.envValue)
 				}
+
+				ceo := options.ClientEncryption().
+					SetKmsProviders(fullKmsProvidersMap).
+					SetKeyVaultNamespace(kvNamespace)
+				cpt := setup(mt, nil, nil, ceo)
+				defer cpt.teardown(mt)
+
+				_, err := cpt.clientEnc.CreateDataKey(context.Background(), "aws", options.DataKey().SetMasterKey(
+					bson.D{
+						{"region", "us-east-1"},
+						{"key", "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0"},
+						{"endpoint", os.Getenv("KMS_URI")},
+					},
+				))
+				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
+				assert.True(mt, strings.Contains(err.Error(), tc.errMessage),
+					"expected CreateDataKey error to contain %v, got %v", tc.errMessage, err.Error())
 			})
 		}
 	})
