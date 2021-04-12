@@ -1939,24 +1939,25 @@ buildvariants:
     tasks:
       - name: "aws-auth-test"
 
+  # GODRIVER-1961 Upgrade OCSP tests to use os-ssl-40 and Ubuntu 18.04.
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "latest"], os-ssl-40: ["ubuntu1804-64-go-1-15"] }
-    display_name: "OCSP ${version} ${os-ssl-40}"
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["ubuntu1604-64-go-1-15"] }
+    display_name: "OCSP ${version} ${os-ssl-32}"
     batchtime: 20160 # 14 days
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "latest"], os-ssl-40: ["windows-64-go-1-15"] }
-    display_name: "OCSP ${version} ${os-ssl-40}"
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["windows-64-go-1-15"] }
+    display_name: "OCSP ${version} ${os-ssl-32}"
     batchtime: 20160 # 14 days
     tasks:
       # Windows MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "latest"], os-ssl-40: ["osx-go-1-15"] }
-    display_name: "OCSP ${version} ${os-ssl-40}"
+    matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["osx-go-1-15"] }
+    display_name: "OCSP ${version} ${os-ssl-32}"
     batchtime: 20160 # 14 days
     tasks:
       # macos MongoDB servers do not staple OCSP responses and only support RSA.
