@@ -287,6 +287,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		return err
 	}
 
+	if op.Client != nil {
+		if err := op.Client.StartCommand(); err != nil {
+			return err
+		}
+	}
+
 	srvr, conn, err := op.getServerAndConnection(ctx)
 	if err != nil {
 		return err
@@ -419,26 +425,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			_ = ep.ProcessError(err, conn)
 		}
 
-		// If we're executing a load-balanced transaction and encounter a network error, the pinned connection should
-		// be unpinned. We call ExpirePinnedConnection to ensure that the connection is closed and returned to the
-		// pool for bookkeeping. Future AbortTransaction calls will check out a new connection, which is desired. We
-		// do this before any other checks to make sure we release the invalidated connection even though other
-		// resources may be holding references to it.
-		if op.Client != nil && op.Client.PinnedConnection != nil {
-			if driverErr, ok := err.(Error); ok && driverErr.NetworkError() {
-				_ = op.Client.ExpirePinnedConnection()
-			}
-		}
-
-		// If we're executing a load-balanced transaction and are committing/aborting, unpin the session's connection.
-		// This has to be done before entering the retryability logic because commit/abort attempts are retryable on a
-		// different mongos, so we want to allow for the possibility of checking out a new connection for the retry.
-		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) && op.Client.PinnedConnection != nil {
-			if err := op.Client.UnpinConnection(); err != nil {
-				return err
-			}
-		}
-
 		finishedInfo.response = res
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
@@ -527,7 +513,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			operationErr.Labels = tt.Labels
 		case Error:
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
-				op.Client.ClearPinnedServer()
+				if err := op.Client.ClearPinnedResources(); err != nil {
+					return err
+				}
 			}
 			if e := err.(Error); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
@@ -1101,9 +1089,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 		dst = bsoncore.AppendBooleanElement(dst, "autocommit", false)
 	}
 
-	client.ApplyCommand(desc.Server)
-
-	return dst, nil
+	return dst, client.ApplyCommand(desc.Server)
 }
 
 func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {

@@ -364,17 +364,10 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		}
 	}
 
-	// If we're in load balanced mode and the pinned connection encounters a network error, it should be unpinned. In
-	// this case, we call Expire on the connection to ensure it's closed and the cursor will be reaped by the server.
+	// If we're in load balanced mode and the pinned connection encounters a network error, we should not use it for
+	// future commands. Per the spec, the connection will not be unpinned until it the cursor is actually closed, but
+	// we set the cursor ID to 0 to ensure the Close() call will not execute a killCursors command.
 	if driverErr, ok := bc.err.(Error); ok && driverErr.NetworkError() && bc.connection != nil {
-		err := bc.connection.Expire()
-		if err != nil && bc.err == nil {
-			bc.err = err
-		}
-
-		// Also unset the connection and set the cursor ID to 0 because the cursor is no longer valid, so we shouldn't
-		// send any more commands for it.
-		bc.connection = nil
 		bc.id = 0
 	}
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -149,7 +150,8 @@ func TestClientSession(t *testing.T) {
 			t.Errorf("expected error, got %v", err)
 		}
 
-		sess.ApplyCommand(description.Server{Kind: description.Standalone})
+		err = sess.ApplyCommand(description.Server{Kind: description.Standalone})
+		assert.Nil(t, err, "ApplyCommand error: %v", err)
 		if sess.TransactionState != InProgress {
 			t.Errorf("incorrect session state, expected InProgress, received %v", sess.TransactionState)
 		}

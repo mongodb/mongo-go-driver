@@ -129,7 +129,8 @@ func TestOperation(t *testing.T) {
 		noerr(t, err)
 		err = sessInProgressTransaction.StartTransaction(nil)
 		noerr(t, err)
-		sessInProgressTransaction.ApplyCommand(description.Server{})
+		err = sessInProgressTransaction.ApplyCommand(description.Server{})
+		noerr(t, err)
 
 		wcAck := writeconcern.New(writeconcern.WMajority())
 		wcUnack := writeconcern.New(writeconcern.W(0))
