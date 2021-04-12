@@ -34,22 +34,8 @@ type clientEntity struct {
 	ignoredCommands map[string]struct{}
 
 	// These should not be changed after the clientEntity is initialized
-	storePoolCreated               []string
-	storePoolReady                 []string
-	storePoolCleared               []string
-	storePoolClosed                []string
-	storeConnectionCreated         []string
-	storeConnectionReady           []string
-	storeConnectionClosed          []string
-	storeConnectionCheckOutStarted []string
-	storeConnectionCheckOutFailed  []string
-	storeConnectionCheckedOut      []string
-	storeConnectionCheckedIn       []string
-	storeCommandStarted            []string
-	storeCommandSucceeded          []string
-	storeCommandFailed             []string
-	observedEvents                 map[string]struct{}
-	storedEvents                   map[string][]string
+	observedEvents map[string]struct{}
+	storedEvents   map[string][]string
 
 	entityMap *EntityMap
 }
@@ -98,7 +84,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 			case "commandStartedEvent", "commandSucceededEvent", "commandFailedEvent":
 				entity.observedEvents[eventType] = struct{}{}
 			default:
-				return nil, fmt.Errorf("unrecognized event type %s", eventType)
+				return nil, fmt.Errorf("unrecognized observed event type %s", eventType)
 			}
 		}
 		for _, eventsAsEntity := range entityOptions.StoreEventsAsEntities {
@@ -111,7 +97,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 					"ConnectionCheckedOutEvent", "ConnectionCheckedInEvent":
 					entity.storedEvents[eventType] = append(entity.storedEvents[eventType], eventsAsEntity.EventListID)
 				default:
-					return nil, fmt.Errorf("unrecognized event type %s", eventType)
+					return nil, fmt.Errorf("unrecognized stored event type %s", eventType)
 				}
 			}
 		}
@@ -176,7 +162,7 @@ func (c *clientEntity) failedEvents() []*event.CommandFailedEvent {
 	return events
 }
 
-func getCurrentTime() int64 {
+func getSecondsSinceEpoch() int64 {
 	return time.Now().Unix()
 }
 
@@ -186,76 +172,81 @@ func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.Command
 			c.started = append(c.started, evt)
 		}
 		eventListIDs, ok := c.storedEvents["CommandStartedEvent"]
-		if ok {
-			bsonBuilder := bsoncore.NewDocumentBuilder().
-				AppendString("name", "CommandStartedEvent").
-				AppendInt64("observedAt", getCurrentTime()).
-				AppendString("databaseName", evt.DatabaseName).
-				AppendString("commandName", evt.CommandName).
-				AppendInt64("requestId", evt.RequestID).
-				AppendString("connectionId", evt.ConnectionID)
-			if evt.ServerID != nil {
-				bsonBuilder.AppendString("serverId", evt.ServerID.String())
-			}
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
-			}
+		if !ok {
+			return
+		}
+		bsonBuilder := bsoncore.NewDocumentBuilder().
+			AppendString("name", "CommandStartedEvent").
+			AppendInt64("observedAt", getSecondsSinceEpoch()).
+			AppendString("databaseName", evt.DatabaseName).
+			AppendString("commandName", evt.CommandName).
+			AppendInt64("requestId", evt.RequestID).
+			AppendString("connectionId", evt.ConnectionID)
+		if evt.ServerID != nil {
+			bsonBuilder.AppendString("serverId", evt.ServerID.String())
+		}
+		for _, id := range eventListIDs {
+			c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
 		}
 	}
 }
 
 func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.CommandSucceededEvent) {
-	if c.getRecordEvents() {
-		if _, ok := c.observedEvents["commandSucceededEvent"]; ok {
-			c.succeeded = append(c.succeeded, evt)
-		}
-		eventListIDs, ok := c.storedEvents["CommandSucceededEvent"]
-		if ok {
-			bsonBuilder := bsoncore.NewDocumentBuilder().
-				AppendString("name", "CommandSucceededEvent").
-				AppendInt64("observedAt", getCurrentTime()).
-				AppendString("commandName", evt.CommandName).
-				AppendInt64("requestId", evt.RequestID).
-				AppendString("connectionId", evt.ConnectionID)
-			if evt.ServerID != nil {
-				bsonBuilder.AppendString("serverId", evt.ServerID.String())
-			}
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
-			}
-		}
+	if !c.getRecordEvents() {
+		return
+	}
+	if _, ok := c.observedEvents["commandSucceededEvent"]; ok {
+		c.succeeded = append(c.succeeded, evt)
+	}
+	eventListIDs, ok := c.storedEvents["CommandSucceededEvent"]
+	if !ok {
+		return
+	}
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", "CommandSucceededEvent").
+		AppendInt64("observedAt", getSecondsSinceEpoch()).
+		AppendString("commandName", evt.CommandName).
+		AppendInt64("requestId", evt.RequestID).
+		AppendString("connectionId", evt.ConnectionID)
+	if evt.ServerID != nil {
+		bsonBuilder.AppendString("serverId", evt.ServerID.String())
+	}
+	for _, id := range eventListIDs {
+		c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
 	}
 }
 
 func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandFailedEvent) {
-	if c.getRecordEvents() {
-		if _, ok := c.observedEvents["commandFailedEvent"]; ok {
-			c.failed = append(c.failed, evt)
-		}
-		eventListIDs, ok := c.storedEvents["CommandFailedEvent"]
-		if ok {
-			bsonBuilder := bsoncore.NewDocumentBuilder().
-				AppendString("name", "CommandFailedEvent").
-				AppendInt64("observedAt", getCurrentTime()).
-				AppendInt64("durationNanos", evt.DurationNanos).
-				AppendString("commandName", evt.CommandName).
-				AppendInt64("requestId", evt.RequestID).
-				AppendString("connectionId", evt.ConnectionID)
-			if evt.ServerID != nil {
-				bsonBuilder.AppendString("serverId", evt.ServerID.String())
-			}
-			bsonBuilder.AppendString("failure", evt.Failure)
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
-			}
-		}
+	if !c.getRecordEvents() {
+		return
+	}
+	if _, ok := c.observedEvents["commandFailedEvent"]; ok {
+		c.failed = append(c.failed, evt)
+	}
+	eventListIDs, ok := c.storedEvents["CommandFailedEvent"]
+	if !ok {
+		return
+	}
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", "CommandFailedEvent").
+		AppendInt64("observedAt", getSecondsSinceEpoch()).
+		AppendInt64("durationNanos", evt.DurationNanos).
+		AppendString("commandName", evt.CommandName).
+		AppendInt64("requestId", evt.RequestID).
+		AppendString("connectionId", evt.ConnectionID)
+	if evt.ServerID != nil {
+		bsonBuilder.AppendString("serverId", evt.ServerID.String())
+	}
+	bsonBuilder.AppendString("failure", evt.Failure)
+	for _, id := range eventListIDs {
+		c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
 	}
 }
 
 func getPoolEventDocument(evt *event.PoolEvent) bson.Raw {
 	bsonBuilder := bsoncore.NewDocumentBuilder().
 		AppendString("name", evt.Type).
-		AppendInt64("observedAt", getCurrentTime()).
+		AppendInt64("observedAt", getSecondsSinceEpoch()).
 		AppendString("address", evt.Address)
 	if evt.ConnectionID != 0 {
 		bsonBuilder.AppendString("connectionId", fmt.Sprint(evt.ConnectionID))
@@ -275,71 +266,36 @@ func getPoolEventDocument(evt *event.PoolEvent) bson.Raw {
 }
 
 func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
 	eventBSON := getPoolEventDocument(evt)
+	var eventType string
 	switch evt.Type {
 	// TODO GODRIVER-1827: add storePoolReady and storeConnectionCheckOutStarted events
 	case event.PoolCreated:
-		eventListIDs, ok := c.storedEvents["PoolCreatedEvent"]
-		if ok {
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, eventBSON)
-			}
-		}
+		eventType = "PoolCreatedEvent"
 	case event.PoolCleared:
-		eventListIDs, ok := c.storedEvents["PoolClearedEvent"]
-		if ok {
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, eventBSON)
-			}
-		}
+		eventType = "PoolClearedEvent"
 	case event.PoolClosedEvent:
-		eventListIDs, ok := c.storedEvents["PoolClosedEvent"]
-		if ok {
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, eventBSON)
-			}
-		}
+		eventType = "PoolClosedEvent"
 	case event.ConnectionCreated:
-		eventListIDs, ok := c.storedEvents["ConnectionCreatedEvent"]
-		if ok {
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, eventBSON)
-			}
-		}
+		eventType = "ConnectionCreatedEvent"
 	case event.ConnectionReady:
-		eventListIDs, ok := c.storedEvents["ConnectionReadyEvent"]
-		if ok {
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, eventBSON)
-			}
-		}
+		eventType = "ConnectionReadyEvent"
 	case event.ConnectionClosed:
-		eventListIDs, ok := c.storedEvents["ConnectionClosedEvent"]
-		if ok {
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, eventBSON)
-			}
-		}
+		eventType = "ConnectionClosedEvent"
 	case event.GetFailed:
-		eventListIDs, ok := c.storedEvents["ConnectionCheckOutFailedEvent"]
-		if ok {
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, eventBSON)
-			}
-		}
+		eventType = "ConnectionCheckOutFailedEvent"
 	case event.GetSucceeded:
-		eventListIDs, ok := c.storedEvents["ConnectionCheckedOutEvent"]
-		if ok {
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, eventBSON)
-			}
-		}
+		eventType = "ConnectionCheckedOutEvent"
 	case event.ConnectionReturned:
-		eventListIDs, ok := c.storedEvents["ConnectionCheckedInEvent"]
-		if ok {
-			for _, id := range eventListIDs {
-				c.entityMap.appendEventsEntity(id, eventBSON)
-			}
+		eventType = "ConnectionCheckedInEvent"
+	}
+	eventListIDs, ok := c.storedEvents[eventType]
+	if ok {
+		for _, id := range eventListIDs {
+			c.entityMap.appendEventsEntity(id, eventBSON)
 		}
 	}
 }

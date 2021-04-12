@@ -190,7 +190,7 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 		}
 		return fmt.Errorf("expected type to be one of %v but was %s", possibleTypes, actual.Type)
 	case "$$matchesEntity":
-		expected, err := entities(ctx).bsonValue(assertionVal.StringValue())
+		expected, err := entities(ctx).BsonValue(assertionVal.StringValue())
 		if err != nil {
 			return err
 		}

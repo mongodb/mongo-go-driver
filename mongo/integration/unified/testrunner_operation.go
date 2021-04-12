@@ -10,11 +10,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -140,7 +140,7 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 	case "loop":
 		var unmarshaledArgs loopArgs
 		if err := bson.Unmarshal(args, &unmarshaledArgs); err != nil {
-			return fmt.Errorf("error unmarshalling arguments to loopOptions: %v", err)
+			return fmt.Errorf("error unmarshalling arguments to loopArgs: %v", err)
 		}
 		return executeLoop(ctx, &unmarshaledArgs, loopDone)
 	default:
@@ -177,6 +177,9 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 		case <-loopDone:
 			return nil
 		default:
+			if args.iterationsStored() {
+				entityMap.incrementIterations(args.IterationsEntityID)
+			}
 			var loopErr error
 			for i, operation := range args.Operations {
 				if operation.Name == "loop" {
@@ -186,22 +189,22 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 
 				// if the operation errors, stop this loop
 				if loopErr != nil {
+					// If StoreFailures or StoreErrors is set, continue looping, otherwise break
 					if !args.errorsStored() && !args.failuresStored() {
-						loopErr = fmt.Errorf("error running loop operation %v : %v", i, loopErr)
-						break
+						return fmt.Errorf("error running loop operation %v : %v", i, loopErr)
 					}
-					record := bson.D{
-						{"error", loopErr.Error()},
-						{"time", time.Now().Unix()},
-					}
-					errDoc, _ := bson.Marshal(record)
+					errDoc := bson.Raw(bsoncore.NewDocumentBuilder().
+						AppendString("error", loopErr.Error()).
+						AppendInt64("time", getSecondsSinceEpoch()).
+						Build())
 					switch {
-					case !args.errorsStored():
+					case !args.errorsStored(): // store errors as failures if storeErrorsAsEntity isnt specified
 						entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
-					case !args.failuresStored():
+					case !args.failuresStored(): // store failures as errors if storeFailuressAsEntity isnt specified
 						entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// errors are test runner errors
-					// TODO GODRIVER-1950: use error types to determine error vs failure
+					// TODO GODRIVER-1950: use error types to determine error vs failure instead of depending on the fact that
+					// operation.execute prepends "execution failed" to test runner errors
 					case strings.Contains(loopErr.Error(), "execution failed: "):
 						entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// failures are if an operation returns an incorrect result or error
@@ -213,13 +216,6 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 				if args.successesStored() {
 					entityMap.incrementSuccesses(args.SuccessesEntityID)
 				}
-			}
-			if args.iterationsStored() {
-				entityMap.incrementIterations(args.IterationsEntityID)
-			}
-			// If StoreFailures or StoreErrors is set, continue looping, otherwise break
-			if loopErr != nil && !args.errorsStored() && !args.failuresStored() {
-				return loopErr
 			}
 		}
 	}

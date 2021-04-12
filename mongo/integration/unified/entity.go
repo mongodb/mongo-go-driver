@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -17,6 +18,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
+var ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
 
 type storeEventsAsEntitiesConfig struct {
 	EventListID string   `bson:"id"`
@@ -59,6 +63,7 @@ type entityOptions struct {
 // EntityMap is used to store entities during tests. This type enforces uniqueness so no two entities can have the same
 // ID, even if they are of different types. It also enforces referential integrity so construction of an entity that
 // references another (e.g. a database entity references a client) will fail if the referenced entity does not exist.
+// Accessors are available for the bson entities.
 type EntityMap struct {
 	allEntities       map[string]struct{}
 	changeStreams     map[string]*mongo.ChangeStream
@@ -69,7 +74,7 @@ type EntityMap struct {
 	gridfsBuckets     map[string]*gridfs.Bucket
 	bsonValues        map[string]bson.RawValue
 	eventListEntities map[string][]bson.Raw
-	bsonArrayEntities map[string][]bson.Raw
+	bsonArrayEntities map[string][]bson.Raw // for storing errors and failures from a loop operation
 	successValues     map[string]int32
 	iterationValues   map[string]int32
 
@@ -128,7 +133,7 @@ func (em *EntityMap) addBSONArrayEntity(id string) error {
 	// Error if a non-bson array entity exists with the same name
 	if _, ok := em.allEntities[id]; ok {
 		if _, ok := em.bsonArrayEntities[id]; !ok {
-			return fmt.Errorf("non-errors entity with ID %q already exists", id)
+			return fmt.Errorf("non-bson entity with ID %q already exists", id)
 		}
 		return nil
 	}
@@ -229,14 +234,6 @@ func (em *EntityMap) gridFSBucket(id string) (*gridfs.Bucket, error) {
 	return bucket, nil
 }
 
-func (em *EntityMap) bsonValue(id string) (bson.RawValue, error) {
-	val, ok := em.bsonValues[id]
-	if !ok {
-		return emptyRawValue, newEntityNotFoundError("BSON", id)
-	}
-	return val, nil
-}
-
 func (em *EntityMap) changeStream(id string) (*mongo.ChangeStream, error) {
 	client, ok := em.changeStreams[id]
 	if !ok {
@@ -285,42 +282,57 @@ func (em *EntityMap) session(id string) (mongo.Session, error) {
 	return sess, nil
 }
 
-// GetEventList returns the array of event documents associated with id. This should only be accessed
+// BsonValue returns the bson.RawValue associated with id
+func (em *EntityMap) BsonValue(id string) (bson.RawValue, error) {
+	val, ok := em.bsonValues[id]
+	if !ok {
+		return emptyRawValue, newEntityNotFoundError("BSON", id)
+	}
+	return val, nil
+}
+
+// EventList returns the array of event documents associated with id. This should only be accessed
 // after the test is finished running
-func (em *EntityMap) GetEventList(id string) ([]bson.Raw, bool) {
+func (em *EntityMap) EventList(id string) ([]bson.Raw, error) {
 	if !em.isClosed() {
-		return nil, false
+		return nil, ErrEntityMapOpen
 	}
 	val, ok := em.eventListEntities[id]
-	return val, ok
+	if !ok {
+		return nil, newEntityNotFoundError("event list", id)
+	}
+	return val, nil
 }
 
-// GetBSONArray returns the bson document array associated with id. This should only be accessed
+// BSONArray returns the bson document array associated with id. This should only be accessed
 // after the test is finished running
-func (em *EntityMap) GetBSONArray(id string) ([]bson.Raw, bool) {
+func (em *EntityMap) BSONArray(id string) ([]bson.Raw, error) {
 	if !em.isClosed() {
-		return nil, false
+		return nil, ErrEntityMapOpen
 	}
 	val, ok := em.bsonArrayEntities[id]
-	return val, ok
+	if !ok {
+		return nil, newEntityNotFoundError("BSON array", id)
+	}
+	return val, nil
 }
 
-// GetBSON returns the bson.RawValue associated with id
-func (em *EntityMap) GetBSON(id string) (bson.RawValue, bool) {
-	val, ok := em.bsonValues[id]
-	return val, ok
-}
-
-// GetSuccesses returns the array of event documents associated with id
-func (em *EntityMap) GetSuccesses(id string) (int32, bool) {
+// Successes returns the array of event documents associated with id
+func (em *EntityMap) Successes(id string) (int32, error) {
 	val, ok := em.successValues[id]
-	return val, ok
+	if !ok {
+		return 0, newEntityNotFoundError("successes", id)
+	}
+	return val, nil
 }
 
-// GetIterations returns the array of event documents associated with id
-func (em *EntityMap) GetIterations(id string) (int32, bool) {
+// Iterations returns the array of event documents associated with id
+func (em *EntityMap) Iterations(id string) (int32, error) {
 	val, ok := em.iterationValues[id]
-	return val, ok
+	if !ok {
+		return 0, newEntityNotFoundError("iterations", id)
+	}
+	return val, nil
 }
 
 // close disposes of the session and client entities associated with this map.

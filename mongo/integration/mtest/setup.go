@@ -60,7 +60,8 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
-	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority))
+	// for sharded clusters, pin to one host
+	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority).SetHosts(cs.Hosts[:1]))
 }
 
 // Setup initializes the current testing context.

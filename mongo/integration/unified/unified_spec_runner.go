@@ -105,7 +105,13 @@ func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
 	defer mt.Close()
 
 	for _, testCase := range testCases {
-		testCase.Run(mt)
+		mtOpts := mtest.NewOptions().
+			RunOn(testCase.RunOnRequirements...).
+			CreateClient(false)
+
+		mt.RunOpts(testCase.Description, mtOpts, func(mt *mtest.T) {
+			testCase.Run(mt)
+		})
 	}
 }
 
@@ -139,24 +145,14 @@ func (tc *TestCase) GetEntities() *EntityMap {
 	return tc.entities
 }
 
-// Run runs the TestCase
-func (tc *TestCase) Run(mt *mtest.T) {
-	mtOpts := mtest.NewOptions().
-		RunOn(tc.RunOnRequirements...).
-		CreateClient(false)
-
-	mt.RunOpts(tc.Description, mtOpts, func(mt *mtest.T) {
-		tc.runTest(mt)
-	})
-}
-
 // EndLoop will cause the runner to stop a loop operation if one is included in the test. If the test has finished
 // running, this will panic
 func (tc *TestCase) EndLoop() {
 	tc.loopDone <- struct{}{}
 }
 
-func (tc *TestCase) runTest(mt *mtest.T) {
+// Run runs the TestCase
+func (tc *TestCase) Run(mt *mtest.T) {
 	if tc.SkipReason != nil {
 		mt.Skipf("skipping for reason: %q", *tc.SkipReason)
 	}
