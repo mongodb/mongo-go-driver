@@ -167,27 +167,28 @@ func getSecondsSinceEpoch() int64 {
 }
 
 func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.CommandStartedEvent) {
-	if c.getRecordEvents() {
-		if _, ok := c.observedEvents["commandStartedEvent"]; ok {
-			c.started = append(c.started, evt)
-		}
-		eventListIDs, ok := c.storedEvents["CommandStartedEvent"]
-		if !ok {
-			return
-		}
-		bsonBuilder := bsoncore.NewDocumentBuilder().
-			AppendString("name", "CommandStartedEvent").
-			AppendInt64("observedAt", getSecondsSinceEpoch()).
-			AppendString("databaseName", evt.DatabaseName).
-			AppendString("commandName", evt.CommandName).
-			AppendInt64("requestId", evt.RequestID).
-			AppendString("connectionId", evt.ConnectionID)
-		if evt.ServerID != nil {
-			bsonBuilder.AppendString("serverId", evt.ServerID.String())
-		}
-		for _, id := range eventListIDs {
-			c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
-		}
+	if !c.getRecordEvents() {
+		return
+	}
+	if _, ok := c.observedEvents["commandStartedEvent"]; ok {
+		c.started = append(c.started, evt)
+	}
+	eventListIDs, ok := c.storedEvents["CommandStartedEvent"]
+	if !ok {
+		return
+	}
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", "CommandStartedEvent").
+		AppendInt64("observedAt", getSecondsSinceEpoch()).
+		AppendString("databaseName", evt.DatabaseName).
+		AppendString("commandName", evt.CommandName).
+		AppendInt64("requestId", evt.RequestID).
+		AppendString("connectionId", evt.ConnectionID)
+	if evt.ServerID != nil {
+		bsonBuilder.AppendString("serverId", evt.ServerID.String())
+	}
+	for _, id := range eventListIDs {
+		c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
 	}
 }
 
