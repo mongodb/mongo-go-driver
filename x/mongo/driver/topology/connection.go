@@ -109,7 +109,7 @@ func (c *connection) processInitializationError(err error) {
 
 	c.connectErr = ConnectionError{Wrapped: err, init: true}
 	if c.config.errorHandlingCallback != nil {
-		c.config.errorHandlingCallback(c.connectErr, c.generation, c.desc.ServerID)
+		c.config.errorHandlingCallback(c.connectErr, c.generation, c.desc.ServiceID)
 	}
 }
 
@@ -117,7 +117,7 @@ func (c *connection) processInitializationError(err error) {
 // configuration.
 func (c *connection) setGenerationNumber() {
 	if c.config.getGenerationFn != nil {
-		c.generation = c.config.getGenerationFn(c.desc.ServerID)
+		c.generation = c.config.getGenerationFn(c.desc.ServiceID)
 	}
 }
 
@@ -231,14 +231,14 @@ func (c *connection) connect(ctx context.Context) {
 		c.desc = handshakeInfo.Description
 		c.isMasterRTT = time.Since(handshakeStartTime)
 
-		// If the application has indicated that the cluster is load balanced, ensure the server has included serverId
+		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
 		// in its handshake response to signal that it knows it's behind an LB as well.
-		if c.config.loadBalanced && c.desc.ServerID == nil {
+		if c.config.loadBalanced && c.desc.ServiceID == nil {
 			err = errLoadBalancedStateMismatch
 		}
 	}
 	if err == nil {
-		// For load-balanced connections, the generation number depends on the server ID, which isn't known until the
+		// For load-balanced connections, the generation number depends on the service ID, which isn't known until the
 		// initial MongoDB handshake is done. To account for this, we don't attempt to set the connection's generation
 		// number unless GetHandshakeInformation succeeds.
 		if c.config.loadBalanced {

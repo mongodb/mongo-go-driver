@@ -71,7 +71,7 @@ type startedInformation struct {
 	documentSequenceIncluded bool
 	connID                   string
 	redacted                 bool
-	serverID                 *primitive.ObjectID
+	serviceID                *primitive.ObjectID
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
@@ -83,7 +83,7 @@ type finishedInformation struct {
 	connID    string
 	startTime time.Time
 	redacted  bool
-	serverID  *primitive.ObjectID
+	serviceID *primitive.ObjectID
 }
 
 // ResponseInfo contains the context required to parse a server response.
@@ -385,7 +385,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		startedInfo.connID = conn.ID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
-		startedInfo.serverID = conn.Description().ServerID
+		startedInfo.serviceID = conn.Description().ServiceID
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
@@ -405,7 +405,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			startTime: time.Now(),
 			connID:    startedInfo.connID,
 			redacted:  startedInfo.redacted,
-			serverID:  startedInfo.serverID,
+			serviceID: startedInfo.serviceID,
 		}
 
 		// roundtrip using either the full roundTripper or a special one for when the moreToCome
@@ -1475,7 +1475,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		CommandName:  info.cmdName,
 		RequestID:    int64(info.requestID),
 		ConnectionID: info.connID,
-		ServerID:     info.serverID,
+		ServiceID:    info.serviceID,
 	}
 	op.CommandMonitor.Started(ctx, started)
 }
@@ -1502,7 +1502,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		RequestID:     int64(info.requestID),
 		ConnectionID:  info.connID,
 		DurationNanos: durationNanos,
-		ServerID:      info.serverID,
+		ServiceID:     info.serviceID,
 	}
 
 	if success {
