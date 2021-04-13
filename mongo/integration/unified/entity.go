@@ -63,7 +63,7 @@ type entityOptions struct {
 // EntityMap is used to store entities during tests. This type enforces uniqueness so no two entities can have the same
 // ID, even if they are of different types. It also enforces referential integrity so construction of an entity that
 // references another (e.g. a database entity references a client) will fail if the referenced entity does not exist.
-// Accessors are available for the bson entities.
+// Accessors are available for the BSON entities.
 type EntityMap struct {
 	allEntities       map[string]struct{}
 	changeStreams     map[string]*mongo.ChangeStream
@@ -130,10 +130,10 @@ func (em *EntityMap) addChangeStreamEntity(id string, stream *mongo.ChangeStream
 }
 
 func (em *EntityMap) addBSONArrayEntity(id string) error {
-	// Error if a non-bson array entity exists with the same name
+	// Error if a non-BSON array entity exists with the same name
 	if _, ok := em.allEntities[id]; ok {
 		if _, ok := em.bsonArrayEntities[id]; !ok {
-			return fmt.Errorf("non-bson entity with ID %q already exists", id)
+			return fmt.Errorf("non-BSON array entity with ID %q already exists", id)
 		}
 		return nil
 	}
@@ -282,8 +282,8 @@ func (em *EntityMap) session(id string) (mongo.Session, error) {
 	return sess, nil
 }
 
-// BsonValue returns the bson.RawValue associated with id
-func (em *EntityMap) BsonValue(id string) (bson.RawValue, error) {
+// BSONValue returns the bson.RawValue associated with id
+func (em *EntityMap) BSONValue(id string) (bson.RawValue, error) {
 	val, ok := em.bsonValues[id]
 	if !ok {
 		return emptyRawValue, newEntityNotFoundError("BSON", id)
@@ -304,7 +304,7 @@ func (em *EntityMap) EventList(id string) ([]bson.Raw, error) {
 	return val, nil
 }
 
-// BSONArray returns the bson document array associated with id. This should only be accessed
+// BSONArray returns the BSON document array associated with id. This should only be accessed
 // after the test is finished running
 func (em *EntityMap) BSONArray(id string) ([]bson.Raw, error) {
 	if !em.isClosed() {
@@ -317,7 +317,7 @@ func (em *EntityMap) BSONArray(id string) ([]bson.Raw, error) {
 	return val, nil
 }
 
-// Successes returns the array of event documents associated with id
+// Successes returns the number of successes associated with id
 func (em *EntityMap) Successes(id string) (int32, error) {
 	val, ok := em.successValues[id]
 	if !ok {
@@ -326,7 +326,7 @@ func (em *EntityMap) Successes(id string) (int32, error) {
 	return val, nil
 }
 
-// Iterations returns the array of event documents associated with id
+// Iterations returns the number of iterations associated with id
 func (em *EntityMap) Iterations(id string) (int32, error) {
 	val, ok := em.iterationValues[id]
 	if !ok {

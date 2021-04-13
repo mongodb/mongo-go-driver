@@ -66,9 +66,16 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 
 // Setup initializes the current testing context.
 // This function must only be called one time and must be called before any tests run.
-func Setup() error {
+func Setup(setupOpts ...*SetupOptions) error {
+	opts := MergeSetupOptions(setupOpts...)
 	var err error
-	testContext.connString, err = getConnString()
+
+	if opts.URI != nil {
+		fmt.Println(*opts.URI)
+		testContext.connString, err = connstring.ParseAndValidate(*opts.URI)
+	} else {
+		testContext.connString, err = getConnString()
+	}
 	if err != nil {
 		return fmt.Errorf("error getting connection string: %v", err)
 	}

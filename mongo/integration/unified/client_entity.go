@@ -187,8 +187,9 @@ func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.Command
 	if evt.ServerID != nil {
 		bsonBuilder.AppendString("serverId", evt.ServerID.String())
 	}
+	doc := bson.Raw(bsonBuilder.Build())
 	for _, id := range eventListIDs {
-		c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
+		c.entityMap.appendEventsEntity(id, doc)
 	}
 }
 
@@ -212,8 +213,9 @@ func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.Comma
 	if evt.ServerID != nil {
 		bsonBuilder.AppendString("serverId", evt.ServerID.String())
 	}
+	doc := bson.Raw(bsonBuilder.Build())
 	for _, id := range eventListIDs {
-		c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
+		c.entityMap.appendEventsEntity(id, doc)
 	}
 }
 
@@ -234,13 +236,14 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 		AppendInt64("durationNanos", evt.DurationNanos).
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
-		AppendString("connectionId", evt.ConnectionID)
+		AppendString("connectionId", evt.ConnectionID).
+		AppendString("failure", evt.Failure)
 	if evt.ServerID != nil {
 		bsonBuilder.AppendString("serverId", evt.ServerID.String())
 	}
-	bsonBuilder.AppendString("failure", evt.Failure)
+	doc := bson.Raw(bsonBuilder.Build())
 	for _, id := range eventListIDs {
-		c.entityMap.appendEventsEntity(id, bson.Raw(bsonBuilder.Build()))
+		c.entityMap.appendEventsEntity(id, doc)
 	}
 }
 

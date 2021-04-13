@@ -198,9 +198,9 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 						AppendInt64("time", getSecondsSinceEpoch()).
 						Build())
 					switch {
-					case !args.errorsStored(): // store errors as failures if storeErrorsAsEntity isnt specified
+					case !args.errorsStored(): // store errors as failures if storeErrorsAsEntity isn't specified
 						entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
-					case !args.failuresStored(): // store failures as errors if storeFailuressAsEntity isnt specified
+					case !args.failuresStored(): // store failures as errors if storeFailuressAsEntity isn't specified
 						entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// errors are test runner errors
 					// TODO GODRIVER-1950: use error types to determine error vs failure instead of depending on the fact that
@@ -211,6 +211,7 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 					default:
 						entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
 					}
+					// if a sub-operation errors, restart the loop
 					break
 				}
 				if args.successesStored() {
