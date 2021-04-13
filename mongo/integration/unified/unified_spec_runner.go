@@ -97,7 +97,10 @@ func runTestDirectory(t *testing.T, directoryPath string) {
 
 // RunTestFile runs the tests in the given file, which must be in the unifed spec format
 func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
-	fileReqs, testCases := ParseTestFile(t, filepath, opts...)
+	content, err := ioutil.ReadFile(filepath)
+	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
+
+	fileReqs, testCases := ParseTestFile(t, content, opts...)
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
 		CreateClient(false)
@@ -115,14 +118,11 @@ func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
 	}
 }
 
-// ParseTestFile create an array of TestCases from the file at filepath
-func ParseTestFile(t *testing.T, filepath string, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
-	content, err := ioutil.ReadFile(filepath)
-	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
-
+// ParseTestFile create an array of TestCases from the testJSON json blob
+func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
 	var testFile TestFile
-	err = bson.UnmarshalExtJSON(content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSON error for file %q: %v", filepath, err)
+	err := bson.UnmarshalExtJSON(testJSON, false, &testFile)
+	assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
 
 	// Validate that we support the schema declared by the test file before attempting to use its contents.
 	err = checkSchemaVersion(testFile.SchemaVersion)
