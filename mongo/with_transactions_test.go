@@ -35,6 +35,18 @@ var (
 	withTxnFailedEvents    []*event.CommandFailedEvent
 )
 
+type wrappedError struct {
+	err error
+}
+
+func (we wrappedError) Error() string {
+	return we.err.Error()
+}
+
+func (we wrappedError) Unwrap() error {
+	return we.err
+}
+
 func TestConvenientTransactions(t *testing.T) {
 	client := setupConvenientTransactions(t)
 	db := client.Database("TestConvenientTransactions")
@@ -380,6 +392,24 @@ func TestConvenientTransactions(t *testing.T) {
 
 		// Assert that transaction is canceled within 500ms and not 2 seconds.
 		assert.Soon(t, callback, 500*time.Millisecond)
+	})
+	t.Run("wrapped transient transaction error retried", func(t *testing.T) {
+		sess, err := client.StartSession()
+		assert.Nil(t, err, "StartSession error: %v", err)
+		defer sess.EndSession(context.Background())
+
+		returnError := true
+		res, err := sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
+			if returnError {
+				returnError = false
+				return nil, wrappedError{CommandError{Name: "test Error", Labels: []string{driver.TransientTransactionError}}}
+			}
+			return false, nil
+		})
+		assert.Nil(t, err, "WithTransaction error: %v", err)
+		resBool, ok := res.(bool)
+		assert.True(t, ok, "expected result type %T, got %T", false, res)
+		assert.False(t, resBool, "expected result false, got %v", resBool)
 	})
 }
 
