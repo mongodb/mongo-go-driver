@@ -6,7 +6,7 @@
 
 package mtest
 
-// SetUpOptions is the type used to configure mtest setup
+// SetupOptions is the type used to configure mtest setup
 type SetupOptions struct {
 	// Specifies the URI to connect to. Defaults to URI based on environment variables
 	URI *string

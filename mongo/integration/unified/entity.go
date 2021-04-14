@@ -172,16 +172,20 @@ func (em *EntityMap) addEventsEntity(id string) error {
 	return nil
 }
 
-func (em *EntityMap) incrementSuccesses(id string) {
-	if _, ok := em.successValues[id]; ok {
-		em.successValues[id]++
+func (em *EntityMap) incrementSuccesses(id string) error {
+	if _, ok := em.successValues[id]; !ok {
+		return newEntityNotFoundError("successes", id)
 	}
+	em.successValues[id]++
+	return nil
 }
 
-func (em *EntityMap) incrementIterations(id string) {
-	if _, ok := em.iterationValues[id]; ok {
-		em.iterationValues[id]++
+func (em *EntityMap) incrementIterations(id string) error {
+	if _, ok := em.iterationValues[id]; !ok {
+		return newEntityNotFoundError("iterations", id)
 	}
+	em.iterationValues[id]++
+	return nil
 }
 
 func (em *EntityMap) appendEventsEntity(id string, doc bson.Raw) {
@@ -192,10 +196,12 @@ func (em *EntityMap) appendEventsEntity(id string, doc bson.Raw) {
 	}
 }
 
-func (em *EntityMap) appendBSONArrayEntity(id string, doc bson.Raw) {
-	if _, ok := em.bsonArrayEntities[id]; ok {
-		em.bsonArrayEntities[id] = append(em.bsonArrayEntities[id], doc)
+func (em *EntityMap) appendBSONArrayEntity(id string, doc bson.Raw) error {
+	if _, ok := em.bsonArrayEntities[id]; !ok {
+		return newEntityNotFoundError("BSON array", id)
 	}
+	em.bsonArrayEntities[id] = append(em.bsonArrayEntities[id], doc)
+	return nil
 }
 
 func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOptions *entityOptions) error {

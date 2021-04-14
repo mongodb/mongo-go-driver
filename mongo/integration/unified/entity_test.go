@@ -20,14 +20,21 @@ func TestEntityMap(t *testing.T) {
 	assert.Nil(t, err, "error marshaling example doc %v", err)
 	t.Run("bson array entity", func(t *testing.T) {
 		name := "errors"
+		notFoundName := "failures"
+		notFoundErr := newEntityNotFoundError("BSON array", "failures")
 		em := newEntityMap()
+
 		err = em.addBSONArrayEntity(name)
 		assert.Nil(t, err, "addBSONArrayEntity error: %v", err)
 		// adding an existing bson array entity twice shouldn't error
 		err = em.addBSONArrayEntity(name)
 		assert.Nil(t, err, "addBSONArrayEntity error: %v", err)
 
-		em.appendBSONArrayEntity(name, doc)
+		err = em.appendBSONArrayEntity(name, doc)
+		assert.Nil(t, err, "appendBSONArrayEntity error: %v", err)
+
+		err = em.appendBSONArrayEntity(notFoundName, doc)
+		assert.Equal(t, err, notFoundErr, "expected error %v, got %v", notFoundErr, err)
 
 		// bson array can't be retrieved until the map is closed
 		_, err = em.BSONArray(name)
@@ -39,8 +46,7 @@ func TestEntityMap(t *testing.T) {
 		assert.Nil(t, err, "BSONArray error: %v", err)
 		assert.Equal(t, bson.Raw(doc), retDocs[0], "expected %s, got %s", bson.Raw(doc), retDocs[0])
 
-		_, err = em.BSONArray("failures")
-		notFoundErr := newEntityNotFoundError("BSON array", "failures")
+		_, err = em.BSONArray(notFoundName)
 		assert.Equal(t, err, notFoundErr, "expected error %v, got %v", notFoundErr, err)
 	})
 	t.Run("events entity", func(t *testing.T) {
@@ -69,38 +75,48 @@ func TestEntityMap(t *testing.T) {
 	})
 	t.Run("interations entity", func(t *testing.T) {
 		name := "iters"
+		notFoundName := "bar"
+		notFoundErr := newEntityNotFoundError("iterations", "bar")
 		em := newEntityMap()
 		err = em.addIterationsEntity(name)
 		assert.Nil(t, err, "addIterationsEntity error: %v", err)
 		err = em.addIterationsEntity(name)
 		assert.NotNil(t, err, "expected error for duplicate entity name")
 
-		em.incrementIterations(name)
+		err = em.incrementIterations(name)
+		assert.Nil(t, err, "incrementIterations error: %v", err)
+
+		err = em.incrementIterations(notFoundName)
+		assert.Equal(t, err, notFoundErr, "expected error %v, got %v", notFoundErr, err)
 
 		retVal, err := em.Iterations(name)
 		assert.Nil(t, err, "expected nil error, got %v", err)
 		assert.Equal(t, int32(1), retVal, "expected %v, got %v", int32(1), retVal)
 
-		_, err = em.Iterations("bar")
-		notFoundErr := newEntityNotFoundError("iterations", "bar")
+		_, err = em.Iterations(notFoundName)
 		assert.Equal(t, err, notFoundErr, "expected error %v, got %v", notFoundErr, err)
 	})
 	t.Run("successes entity", func(t *testing.T) {
 		name := "successes"
+		notFoundName := "bar"
+		notFoundErr := newEntityNotFoundError("successes", "bar")
 		em := newEntityMap()
 		err = em.addSuccessesEntity(name)
 		assert.Nil(t, err, "addSuccessesEntity error: %v", err)
 		err = em.addSuccessesEntity(name)
 		assert.NotNil(t, err, "expected error for duplicate entity name")
 
-		em.incrementSuccesses(name)
+		err = em.incrementSuccesses(name)
+		assert.Nil(t, err, "incrementSuccesses error: %v", err)
+
+		err = em.incrementSuccesses(notFoundName)
+		assert.Equal(t, err, notFoundErr, "expected error %v, got %v", notFoundErr, err)
 
 		retVal, err := em.Successes(name)
 		assert.Nil(t, err, "Successes error: %v", err)
 		assert.Equal(t, int32(1), retVal, "expected %v, got %v", int32(1), retVal)
 
-		_, err = em.Successes("bar")
-		notFoundErr := newEntityNotFoundError("successes", "bar")
+		_, err = em.Successes(notFoundName)
 		assert.Equal(t, err, notFoundErr, "expected error %v, got %v", notFoundErr, err)
 	})
 }

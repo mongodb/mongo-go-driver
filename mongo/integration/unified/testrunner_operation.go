@@ -178,7 +178,9 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 			return nil
 		default:
 			if args.iterationsStored() {
-				entityMap.incrementIterations(args.IterationsEntityID)
+				if err := entityMap.incrementIterations(args.IterationsEntityID); err != nil {
+					return err
+				}
 			}
 			var loopErr error
 			for i, operation := range args.Operations {
@@ -197,25 +199,31 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 						AppendString("error", loopErr.Error()).
 						AppendInt64("time", getSecondsSinceEpoch()).
 						Build())
+					var appendErr error
 					switch {
 					case !args.errorsStored(): // store errors as failures if storeErrorsAsEntity isn't specified
-						entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
+						appendErr = entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
 					case !args.failuresStored(): // store failures as errors if storeFailuressAsEntity isn't specified
-						entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
+						appendErr = entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// errors are test runner errors
 					// TODO GODRIVER-1950: use error types to determine error vs failure instead of depending on the fact that
 					// operation.execute prepends "execution failed" to test runner errors
 					case strings.Contains(loopErr.Error(), "execution failed: "):
-						entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
+						appendErr = entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// failures are if an operation returns an incorrect result or error
 					default:
-						entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
+						appendErr = entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
+					}
+					if appendErr != nil {
+						return appendErr
 					}
 					// if a sub-operation errors, restart the loop
 					break
 				}
 				if args.successesStored() {
-					entityMap.incrementSuccesses(args.SuccessesEntityID)
+					if err := entityMap.incrementSuccesses(args.SuccessesEntityID); err != nil {
+						return err
+					}
 				}
 			}
 		}
