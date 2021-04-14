@@ -70,10 +70,10 @@ func Setup(setupOpts ...*SetupOptions) error {
 	opts := MergeSetupOptions(setupOpts...)
 	var err error
 
-	if opts.URI != nil {
-		fmt.Println(*opts.URI)
+	switch {
+	case opts.URI != nil:
 		testContext.connString, err = connstring.ParseAndValidate(*opts.URI)
-	} else {
+	default:
 		testContext.connString, err = getConnString()
 	}
 	if err != nil {

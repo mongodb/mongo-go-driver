@@ -247,9 +247,9 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 	}
 }
 
-func getPoolEventDocument(evt *event.PoolEvent) bson.Raw {
+func getPoolEventDocument(evt *event.PoolEvent, evtName string) bson.Raw {
 	bsonBuilder := bsoncore.NewDocumentBuilder().
-		AppendString("name", evt.Type).
+		AppendString("name", evtName).
 		AppendInt64("observedAt", getSecondsSinceEpoch()).
 		AppendString("address", evt.Address)
 	if evt.ConnectionID != 0 {
@@ -273,7 +273,6 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 	if !c.getRecordEvents() {
 		return
 	}
-	eventBSON := getPoolEventDocument(evt)
 	var eventType string
 	switch evt.Type {
 	// TODO GODRIVER-1827: add storePoolReady and storeConnectionCheckOutStarted events
@@ -298,6 +297,7 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 	}
 	eventListIDs, ok := c.storedEvents[eventType]
 	if ok {
+		eventBSON := getPoolEventDocument(evt, eventType)
 		for _, id := range eventListIDs {
 			c.entityMap.appendEventsEntity(id, eventBSON)
 		}
