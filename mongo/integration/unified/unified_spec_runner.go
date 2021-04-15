@@ -116,7 +116,6 @@ func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
 			if err := testCase.Run(mt); err != nil {
 				mt.Fatal(err)
 			}
-
 		})
 	}
 }
@@ -154,13 +153,21 @@ func (tc *TestCase) EndLoop() {
 	tc.loopDone <- struct{}{}
 }
 
+// LoggerSkipper is passed to TestCase.Run to allow it to perform logging and skipping operations
+type LoggerSkipper interface {
+	Log(args ...interface{})
+	Logf(format string, args ...interface{})
+	Skip(args ...interface{})
+	Skipf(format string, args ...interface{})
+}
+
 // Run runs the TestCase and returns an error if it fails
-func (tc *TestCase) Run(mt *mtest.T) error {
+func (tc *TestCase) Run(ls LoggerSkipper) error {
 	if tc.SkipReason != nil {
-		mt.Skipf("skipping for reason: %q", *tc.SkipReason)
+		ls.Skipf("skipping for reason: %q", *tc.SkipReason)
 	}
 	if _, ok := skippedTestDescriptions[tc.Description]; ok {
-		mt.Skip("skipping due to known failure")
+		ls.Skip("skipping due to known failure")
 	}
 
 	testCtx := newTestContext(mtest.Background, tc.entities)
@@ -170,20 +177,20 @@ func (tc *TestCase) Run(mt *mtest.T) error {
 		// failed and that failure should be preserved.
 
 		for _, err := range disableUntargetedFailPoints(testCtx) {
-			mt.Log(err)
+			ls.Log(err)
 		}
 		for _, err := range disableTargetedFailPoints(testCtx) {
-			mt.Log(err)
+			ls.Log(err)
 		}
 		for _, err := range entities(testCtx).close(testCtx) {
-			mt.Log(err)
+			ls.Log(err)
 		}
 		// Tests that started a transaction should terminate any sessions left open on the server. This is required even
 		// if the test attempted to commit/abort the transaction because an abortTransaction command can fail if it's
 		// sent to a mongos that isn't aware of the transaction.
 		if tc.startsTransaction() && tc.killAllSessions {
 			if err := terminateOpenSessions(mtest.Background); err != nil {
-				mt.Logf("error terminating open transactions after failed test: %v", err)
+				ls.Logf("error terminating open transactions after failed test: %v", err)
 			}
 		}
 
