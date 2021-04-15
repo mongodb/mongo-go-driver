@@ -113,7 +113,10 @@ func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
 			CreateClient(false)
 
 		mt.RunOpts(testCase.Description, mtOpts, func(mt *mtest.T) {
-			testCase.Run(mt)
+			if err := testCase.Run(mt); err != nil {
+				mt.Fatal(err)
+			}
+
 		})
 	}
 }
@@ -151,8 +154,8 @@ func (tc *TestCase) EndLoop() {
 	tc.loopDone <- struct{}{}
 }
 
-// Run runs the TestCase
-func (tc *TestCase) Run(mt *mtest.T) {
+// Run runs the TestCase and returns an error if it fails
+func (tc *TestCase) Run(mt *mtest.T) error {
 	if tc.SkipReason != nil {
 		mt.Skipf("skipping for reason: %q", *tc.SkipReason)
 	}
@@ -190,7 +193,7 @@ func (tc *TestCase) Run(mt *mtest.T) {
 	// Set up collections based on the file-level initialData field.
 	for _, collData := range tc.initialData {
 		if err := collData.createCollection(testCtx); err != nil {
-			mt.Fatalf("error setting up collection %q: %v", collData.namespace(), err)
+			return fmt.Errorf("error setting up collection %q: %v", collData.namespace(), err)
 		}
 	}
 
@@ -211,7 +214,7 @@ func (tc *TestCase) Run(mt *mtest.T) {
 			}
 
 			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
-				mt.Fatalf("error creating entity at index %d: %v", idx, err)
+				return fmt.Errorf("error creating entity at index %d: %v", idx, err)
 			}
 		}
 	}
@@ -219,13 +222,14 @@ func (tc *TestCase) Run(mt *mtest.T) {
 	// Work around SERVER-39704.
 	if mtest.ClusterTopologyKind() == mtest.Sharded && tc.performsDistinct() {
 		if err := performDistinctWorkaround(testCtx); err != nil {
-			mt.Fatalf("error performing \"distinct\" workaround: %v", err)
+			return fmt.Errorf("error performing \"distinct\" workaround: %v", err)
 		}
 	}
 
 	for idx, operation := range tc.Operations {
-		err := operation.execute(testCtx, tc.loopDone)
-		assert.Nil(mt, err, "error running operation %q at index %d: %v", operation.Name, idx, err)
+		if err := operation.execute(testCtx, tc.loopDone); err != nil {
+			return fmt.Errorf("error running operation %q at index %d: %v", operation.Name, idx, err)
+		}
 	}
 
 	for _, client := range tc.entities.clients() {
@@ -233,15 +237,18 @@ func (tc *TestCase) Run(mt *mtest.T) {
 	}
 
 	for idx, expectedEvents := range tc.ExpectedEvents {
-		err := verifyEvents(testCtx, expectedEvents)
-		assert.Nil(mt, err, "events verification failed at index %d: %v", idx, err)
+		if err := verifyEvents(testCtx, expectedEvents); err != nil {
+			return fmt.Errorf("events verification failed at index %d: %v", idx, err)
+		}
 	}
 
 	for idx, collData := range tc.Outcome {
-		err := collData.verifyContents(testCtx)
-		assert.Nil(mt, err, "error verifying outcome for collection %q at index %d: %v",
-			collData.namespace(), idx, err)
+		if err := collData.verifyContents(testCtx); err != nil {
+			return fmt.Errorf("error verifying outcome for collection %q at index %d: %v",
+				collData.namespace(), idx, err)
+		}
 	}
+	return nil
 }
 
 func disableUntargetedFailPoints(ctx context.Context) []error {
