@@ -29,6 +29,8 @@
 // slice and M is a map. For more information about the use cases for these types, see the documentation on the type
 // definitions.
 //
+// Note that a D should not be constructed with duplicate key names, as that can cause undefined server behavior.
+//
 // Example:
 // 		bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
 //		bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
