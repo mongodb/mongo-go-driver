@@ -1785,6 +1785,32 @@ axes:
           GO_DIST: "/opt/golang/go1.15"
           PYTHON3_BINARY: python3
 
+  # OSes that require >= 4.0 for SSL
+  - id: os-ssl-40
+    display_name: OS
+    values:
+      - id: "windows-64-go-1-15"
+        display_name: "Windows 64-bit"
+        run_on:
+          - windows-64-vs2017-test
+        variables:
+          GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
+          GO_DIST: "C:\\golang\\go1.15"
+          PYTHON3_BINARY: "C:/python/Python38/python.exe"
+          VENV_BIN_DIR: "Scripts"
+      - id: "ubuntu1804-64-go-1-15"
+        display_name: "Ubuntu 18.04"
+        run_on: ubuntu1804-build
+        variables:
+          GO_DIST: "/opt/golang/go1.15"
+          PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
+      - id: "osx-go-1-15"
+        display_name: "MacOS 10.14"
+        run_on: macos-1014
+        variables:
+          GO_DIST: "/opt/golang/go1.15"
+          PYTHON3_BINARY: python3
+
   - id: os-aws-auth
     display_name: OS
     values:
@@ -1816,7 +1842,7 @@ buildvariants:
   - name: static-analysis
     display_name: "Static Analysis"
     run_on:
-      - ubuntu1604-build
+      - ubuntu1804-build
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1825,7 +1851,7 @@ buildvariants:
   - name: perf
     display_name: "Performance"
     run_on:
-      - ubuntu1604-build
+      - ubuntu1804-build
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1834,7 +1860,7 @@ buildvariants:
   - name: build-check
     display_name: "Compile Only Checks"
     run_on:
-      - ubuntu1604-test
+      - ubuntu1804-test
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1843,7 +1869,7 @@ buildvariants:
   - name: atlas-test
     display_name: "Atlas test"
     run_on:
-      - ubuntu1604-build
+      - ubuntu1804-build
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1852,7 +1878,7 @@ buildvariants:
   - name: atlas-data-lake-test
     display_name: "Atlas Data Lake Test"
     run_on:
-      - ubuntu1604-build
+      - ubuntu1804-build
     expansions:
       GO_DIST: "/opt/golang/go1.15"
     tasks:
@@ -1882,15 +1908,21 @@ buildvariants:
     tasks:
       - name: ".test !.enterprise-auth !.zlib !.zstd"
 
-  - matrix_name: "tests-36-40-with-zlib-support"
-    matrix_spec: { version: ["3.6", "4.0"], os-ssl-32: "*" }
+  - matrix_name: "tests-36-with-zlib-support"
+    matrix_spec: { version: ["3.6"], os-ssl-32: "*" }
     display_name: "${version} ${os-ssl-32}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
+  - matrix_name: "tests-40-with-zlib-support"
+    matrix_spec: { version: ["4.0"], os-ssl-40: "*" }
+    display_name: "${version} ${os-ssl-40}"
+    tasks:
+      - name: ".test !.enterprise-auth !.snappy !.zstd"
+
   - matrix_name: "tests-42-plus-zlib-zstd-support"
-    matrix_spec: { version: ["4.2", "4.4", "latest"], os-ssl-32: "*" }
-    display_name: "${version} ${os-ssl-32}"
+    matrix_spec: { version: ["4.2", "4.4", "latest"], os-ssl-40: "*" }
+    display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
 
@@ -1907,6 +1939,7 @@ buildvariants:
     tasks:
       - name: "aws-auth-test"
 
+  # GODRIVER-1961 Upgrade OCSP tests to use os-ssl-40 and Ubuntu 18.04.
   - matrix_name: "ocsp-test"
     matrix_spec: { version: ["4.4", "latest"], os-ssl-32: ["ubuntu1604-64-go-1-15"] }
     display_name: "OCSP ${version} ${os-ssl-32}"
@@ -1931,13 +1964,13 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "versioned-api-test"
-    matrix_spec: { version: ["latest"], os-ssl-32: "*" }
-    display_name: "API Version ${os-ssl-32}"
+    matrix_spec: { version: ["latest"], os-ssl-40: "*" }
+    display_name: "API Version ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["latest"], os-ssl-32: ["ubuntu1604-64-go-1-15"] }
-    display_name: "KMS TLS ${version} ${os-ssl-32}"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-15"] }
+    display_name: "KMS TLS ${version} ${os-ssl-40}"
     tasks:
       - name: ".kms-tls"
