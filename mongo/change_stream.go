@@ -103,11 +103,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	}
 
 	cs := &ChangeStream{
-		client:     config.client,
-		registry:   config.registry,
-		streamType: config.streamType,
-		options:    options.MergeChangeStreamOptions(opts...),
-		selector:   description.ReadPrefSelector(config.readPreference),
+		client:        config.client,
+		registry:      config.registry,
+		streamType:    config.streamType,
+		options:       options.MergeChangeStreamOptions(opts...),
+		selector:      description.ReadPrefSelector(config.readPreference),
+		cursorOptions: config.client.createBaseCursorOptions(),
 	}
 
 	cs.sess = sessionFromContext(ctx)
@@ -128,9 +129,6 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
 		Crypt(config.crypt)
 
-	if config.crypt != nil {
-		cs.cursorOptions.Crypt = config.crypt
-	}
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
 	}
@@ -141,7 +139,6 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	if cs.options.MaxAwaitTime != nil {
 		cs.cursorOptions.MaxTimeMS = int64(time.Duration(*cs.options.MaxAwaitTime) / time.Millisecond)
 	}
-	cs.cursorOptions.CommandMonitor = cs.client.monitor
 
 	switch cs.streamType {
 	case ClientStream:

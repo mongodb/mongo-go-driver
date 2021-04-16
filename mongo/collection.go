@@ -780,10 +780,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	}
 
 	ao := options.MergeAggregateOptions(a.opts...)
-	cursorOpts := driver.CursorOptions{
-		CommandMonitor: a.client.monitor,
-		Crypt:          a.client.cryptFLE,
-	}
+	cursorOpts := a.client.createBaseCursorOptions()
 
 	op := operation.NewAggregate(pipelineArr).
 		Session(sess).
@@ -1139,10 +1136,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE)
 
 	fo := options.MergeFindOptions(opts...)
-	cursorOpts := driver.CursorOptions{
-		CommandMonitor: coll.client.monitor,
-		Crypt:          coll.client.cryptFLE,
-	}
+	cursorOpts := coll.client.createBaseCursorOptions()
 
 	if fo.AllowDiskUse != nil {
 		op.AllowDiskUse(*fo.AllowDiskUse)
