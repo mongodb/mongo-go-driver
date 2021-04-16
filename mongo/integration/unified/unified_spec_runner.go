@@ -37,29 +37,38 @@ const (
 	lowHeartbeatFrequency int32 = 50
 )
 
-type testCase struct {
+// TestCase holds and runs a unified spec test case
+type TestCase struct {
 	Description       string             `bson:"description"`
 	RunOnRequirements []mtest.RunOnBlock `bson:"runOnRequirements"`
 	SkipReason        *string            `bson:"skipReason"`
 	Operations        []*operation       `bson:"operations"`
 	ExpectedEvents    []*expectedEvents  `bson:"expectEvents"`
 	Outcome           []*collectionData  `bson:"outcome"`
+
+	initialData     []*collectionData
+	createEntities  []map[string]*entityOptions
+	fileReqs        []mtest.RunOnBlock
+	killAllSessions bool
+
+	entities *EntityMap
+	loopDone chan struct{}
 }
 
-func (t *testCase) performsDistinct() bool {
-	return t.performsOperation("distinct")
+func (tc *TestCase) performsDistinct() bool {
+	return tc.performsOperation("distinct")
 }
 
-func (t *testCase) setsFailPoint() bool {
-	return t.performsOperation("failPoint")
+func (tc *TestCase) setsFailPoint() bool {
+	return tc.performsOperation("failPoint")
 }
 
-func (t *testCase) startsTransaction() bool {
-	return t.performsOperation("startTransaction")
+func (tc *TestCase) startsTransaction() bool {
+	return tc.performsOperation("startTransaction")
 }
 
-func (t *testCase) performsOperation(name string) bool {
-	for _, op := range t.Operations {
+func (tc *TestCase) performsOperation(name string) bool {
+	for _, op := range tc.Operations {
 		if op.Name == name {
 			return true
 		}
@@ -74,7 +83,7 @@ type TestFile struct {
 	RunOnRequirements []mtest.RunOnBlock          `bson:"runOnRequirements"`
 	CreateEntities    []map[string]*entityOptions `bson:"createEntities"`
 	InitialData       []*collectionData           `bson:"initialData"`
-	TestCases         []*testCase                 `bson:"tests"`
+	TestCases         []*TestCase                 `bson:"tests"`
 }
 
 // runTestDirectory runs the files in the given directory, which must be in the unifed spec format
@@ -87,72 +96,111 @@ func runTestDirectory(t *testing.T, directoryPath string) {
 }
 
 // RunTestFile runs the tests in the given file, which must be in the unifed spec format
-func RunTestFile(t *testing.T, filepath string) {
+func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
+	fileReqs, testCases := ParseTestFile(t, content, opts...)
+	mtOpts := mtest.NewOptions().
+		RunOn(fileReqs...).
+		CreateClient(false)
+	mt := mtest.New(t, mtOpts)
+	defer mt.Close()
+
+	for _, testCase := range testCases {
+		mtOpts := mtest.NewOptions().
+			RunOn(testCase.RunOnRequirements...).
+			CreateClient(false)
+
+		mt.RunOpts(testCase.Description, mtOpts, func(mt *mtest.T) {
+			if err := testCase.Run(mt); err != nil {
+				mt.Fatal(err)
+			}
+		})
+	}
+}
+
+// ParseTestFile create an array of TestCases from the testJSON json blob
+func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
 	var testFile TestFile
-	err = bson.UnmarshalExtJSON(content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSON error for file %q: %v", filepath, err)
+	err := bson.UnmarshalExtJSON(testJSON, false, &testFile)
+	assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
 
 	// Validate that we support the schema declared by the test file before attempting to use its contents.
 	err = checkSchemaVersion(testFile.SchemaVersion)
 	assert.Nil(t, err, "schema version %q not supported: %v", testFile.SchemaVersion, err)
 
-	// Create mtest wrapper, which will skip the test if needed.
-	mtOpts := mtest.NewOptions().
-		RunOn(testFile.RunOnRequirements...).
-		CreateClient(false)
-	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
-
+	op := MergeOptions(opts...)
 	for _, testCase := range testFile.TestCases {
-		mtOpts := mtest.NewOptions().
-			RunOn(testCase.RunOnRequirements...).
-			CreateClient(false)
-		mt.RunOpts(testCase.Description, mtOpts, func(mt *mtest.T) {
-			runTestCase(mt, testFile, testCase)
-		})
+		testCase.initialData = testFile.InitialData
+		testCase.createEntities = testFile.CreateEntities
+		testCase.entities = newEntityMap()
+		testCase.loopDone = make(chan struct{})
+		testCase.killAllSessions = *op.RunKillAllSessions
 	}
+	return testFile.RunOnRequirements, testFile.TestCases
 }
 
-func runTestCase(mt *mtest.T, testFile TestFile, testCase *testCase) {
-	if testCase.SkipReason != nil {
-		mt.Skipf("skipping for reason: %q", *testCase.SkipReason)
+// GetEntities returns a pointer to the EntityMap for the TestCase. This should not be called until after
+// the test is run
+func (tc *TestCase) GetEntities() *EntityMap {
+	return tc.entities
+}
+
+// EndLoop will cause the runner to stop a loop operation if one is included in the test. If the test has finished
+// running, this will panic
+func (tc *TestCase) EndLoop() {
+	tc.loopDone <- struct{}{}
+}
+
+// LoggerSkipper is passed to TestCase.Run to allow it to perform logging and skipping operations
+type LoggerSkipper interface {
+	Log(args ...interface{})
+	Logf(format string, args ...interface{})
+	Skip(args ...interface{})
+	Skipf(format string, args ...interface{})
+}
+
+// Run runs the TestCase and returns an error if it fails
+func (tc *TestCase) Run(ls LoggerSkipper) error {
+	if tc.SkipReason != nil {
+		ls.Skipf("skipping for reason: %q", *tc.SkipReason)
 	}
-	if _, ok := skippedTestDescriptions[testCase.Description]; ok {
-		mt.Skip("skipping due to known failure")
+	if _, ok := skippedTestDescriptions[tc.Description]; ok {
+		ls.Skip("skipping due to known failure")
 	}
 
-	testCtx := newTestContext(mtest.Background)
+	testCtx := newTestContext(mtest.Background, tc.entities)
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
 		// failed and that failure should be preserved.
 
 		for _, err := range disableUntargetedFailPoints(testCtx) {
-			mt.Log(err)
+			ls.Log(err)
 		}
 		for _, err := range disableTargetedFailPoints(testCtx) {
-			mt.Log(err)
+			ls.Log(err)
 		}
 		for _, err := range entities(testCtx).close(testCtx) {
-			mt.Log(err)
+			ls.Log(err)
 		}
 		// Tests that started a transaction should terminate any sessions left open on the server. This is required even
 		// if the test attempted to commit/abort the transaction because an abortTransaction command can fail if it's
 		// sent to a mongos that isn't aware of the transaction.
-		if testCase.startsTransaction() {
+		if tc.startsTransaction() && tc.killAllSessions {
 			if err := terminateOpenSessions(mtest.Background); err != nil {
-				mt.Logf("error terminating open transactions after failed test: %v", err)
+				ls.Logf("error terminating open transactions after failed test: %v", err)
 			}
 		}
+
+		close(tc.loopDone)
 	}()
 
 	// Set up collections based on the file-level initialData field.
-	for _, collData := range testFile.InitialData {
+	for _, collData := range tc.initialData {
 		if err := collData.createCollection(testCtx); err != nil {
-			mt.Fatalf("error setting up collection %q: %v", collData.namespace(), err)
+			return fmt.Errorf("error setting up collection %q: %v", collData.namespace(), err)
 		}
 	}
 
@@ -160,8 +208,8 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *testCase) {
 	// a fail point, set a low heartbeatFrequencyMS value into the URI options map if one is not already present.
 	// This speeds up recovery time for the client if the fail point forces the server to return a state change
 	// error.
-	shouldSetHeartbeatFrequency := testCase.setsFailPoint()
-	for idx, entity := range testFile.CreateEntities {
+	shouldSetHeartbeatFrequency := tc.setsFailPoint()
+	for idx, entity := range tc.createEntities {
 		for entityType, entityOptions := range entity {
 			if shouldSetHeartbeatFrequency && entityType == "client" {
 				if entityOptions.URIOptions == nil {
@@ -172,38 +220,42 @@ func runTestCase(mt *mtest.T, testFile TestFile, testCase *testCase) {
 				}
 			}
 
-			if err := entities(testCtx).addEntity(testCtx, entityType, entityOptions); err != nil {
-				mt.Fatalf("error creating entity at index %d: %v", idx, err)
+			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
+				return fmt.Errorf("error creating entity at index %d: %v", idx, err)
 			}
 		}
 	}
 
 	// Work around SERVER-39704.
-	if mtest.ClusterTopologyKind() == mtest.Sharded && testCase.performsDistinct() {
+	if mtest.ClusterTopologyKind() == mtest.Sharded && tc.performsDistinct() {
 		if err := performDistinctWorkaround(testCtx); err != nil {
-			mt.Fatalf("error performing \"distinct\" workaround: %v", err)
+			return fmt.Errorf("error performing \"distinct\" workaround: %v", err)
 		}
 	}
 
-	for idx, operation := range testCase.Operations {
-		err := operation.execute(testCtx)
-		assert.Nil(mt, err, "error running operation %q at index %d: %v", operation.Name, idx, err)
+	for idx, operation := range tc.Operations {
+		if err := operation.execute(testCtx, tc.loopDone); err != nil {
+			return fmt.Errorf("error running operation %q at index %d: %v", operation.Name, idx, err)
+		}
 	}
 
-	for _, client := range entities(testCtx).clients() {
-		client.StopListeningForEvents()
+	for _, client := range tc.entities.clients() {
+		client.stopListeningForEvents()
 	}
 
-	for idx, expectedEvents := range testCase.ExpectedEvents {
-		err := verifyEvents(testCtx, expectedEvents)
-		assert.Nil(mt, err, "events verification failed at index %d: %v", idx, err)
+	for idx, expectedEvents := range tc.ExpectedEvents {
+		if err := verifyEvents(testCtx, expectedEvents); err != nil {
+			return fmt.Errorf("events verification failed at index %d: %v", idx, err)
+		}
 	}
 
-	for idx, collData := range testCase.Outcome {
-		err := collData.verifyContents(testCtx)
-		assert.Nil(mt, err, "error verifying outcome for collection %q at index %d: %v",
-			collData.namespace(), idx, err)
+	for idx, collData := range tc.Outcome {
+		if err := collData.verifyContents(testCtx); err != nil {
+			return fmt.Errorf("error verifying outcome for collection %q at index %d: %v",
+				collData.namespace(), idx, err)
+		}
 	}
+	return nil
 }
 
 func disableUntargetedFailPoints(ctx context.Context) []error {

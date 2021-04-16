@@ -60,14 +60,22 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
-	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority))
+	// for sharded clusters, pin to one host
+	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority).SetHosts(cs.Hosts[:1]))
 }
 
 // Setup initializes the current testing context.
 // This function must only be called one time and must be called before any tests run.
-func Setup() error {
+func Setup(setupOpts ...*SetupOptions) error {
+	opts := MergeSetupOptions(setupOpts...)
 	var err error
-	testContext.connString, err = getConnString()
+
+	switch {
+	case opts.URI != nil:
+		testContext.connString, err = connstring.ParseAndValidate(*opts.URI)
+	default:
+		testContext.connString, err = getConnString()
+	}
 	if err != nil {
 		return fmt.Errorf("error getting connection string: %v", err)
 	}

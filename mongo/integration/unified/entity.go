@@ -8,13 +8,24 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
+	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
+var ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
+
+type storeEventsAsEntitiesConfig struct {
+	EventListID string   `bson:"id"`
+	Events      []string `bson:"events"`
+}
 
 // entityOptions represents all options that can be used to configure an entity. Because there are multiple entity
 // types, only a subset of the options that this type contains apply to any given entity.
@@ -23,11 +34,12 @@ type entityOptions struct {
 	ID string `bson:"id"`
 
 	// Options for client entities.
-	URIOptions          bson.M            `bson:"uriOptions"`
-	UseMultipleMongoses *bool             `bson:"useMultipleMongoses"`
-	ObserveEvents       []string          `bson:"observeEvents"`
-	IgnoredCommands     []string          `bson:"ignoreCommandMonitoringEvents"`
-	ServerAPIOptions    *serverAPIOptions `bson:"serverApi"`
+	URIOptions            bson.M                        `bson:"uriOptions"`
+	UseMultipleMongoses   *bool                         `bson:"useMultipleMongoses"`
+	ObserveEvents         []string                      `bson:"observeEvents"`
+	IgnoredCommands       []string                      `bson:"ignoreCommandMonitoringEvents"`
+	StoreEventsAsEntities []storeEventsAsEntitiesConfig `bson:"storeEventsAsEntities"`
+	ServerAPIOptions      *serverAPIOptions             `bson:"serverApi"`
 
 	// Options for database entities.
 	DatabaseName    string                 `bson:"databaseName"`
@@ -48,34 +60,56 @@ type entityOptions struct {
 	DatabaseID string `bson:"database"`
 }
 
-// entityMap is used to store entities during tests. This type enforces uniqueness so no two entities can have the same
+// EntityMap is used to store entities during tests. This type enforces uniqueness so no two entities can have the same
 // ID, even if they are of different types. It also enforces referential integrity so construction of an entity that
 // references another (e.g. a database entity references a client) will fail if the referenced entity does not exist.
-type entityMap struct {
-	allEntities    map[string]struct{}
-	changeStreams  map[string]*mongo.ChangeStream
-	clientEntities map[string]*clientEntity
-	dbEntites      map[string]*mongo.Database
-	collEntities   map[string]*mongo.Collection
-	sessions       map[string]mongo.Session
-	gridfsBuckets  map[string]*gridfs.Bucket
-	bsonValues     map[string]bson.RawValue
+// Accessors are available for the BSON entities.
+type EntityMap struct {
+	allEntities       map[string]struct{}
+	changeStreams     map[string]*mongo.ChangeStream
+	clientEntities    map[string]*clientEntity
+	dbEntites         map[string]*mongo.Database
+	collEntities      map[string]*mongo.Collection
+	sessions          map[string]mongo.Session
+	gridfsBuckets     map[string]*gridfs.Bucket
+	bsonValues        map[string]bson.RawValue
+	eventListEntities map[string][]bson.Raw
+	bsonArrayEntities map[string][]bson.Raw // for storing errors and failures from a loop operation
+	successValues     map[string]int32
+	iterationValues   map[string]int32
+
+	evtLock sync.Mutex
+	closed  atomic.Value
 }
 
-func newEntityMap() *entityMap {
-	return &entityMap{
-		allEntities:    make(map[string]struct{}),
-		gridfsBuckets:  make(map[string]*gridfs.Bucket),
-		bsonValues:     make(map[string]bson.RawValue),
-		changeStreams:  make(map[string]*mongo.ChangeStream),
-		clientEntities: make(map[string]*clientEntity),
-		collEntities:   make(map[string]*mongo.Collection),
-		dbEntites:      make(map[string]*mongo.Database),
-		sessions:       make(map[string]mongo.Session),
+func (em *EntityMap) isClosed() bool {
+	return em.closed.Load().(bool)
+}
+
+func (em *EntityMap) setClosed(val bool) {
+	em.closed.Store(val)
+}
+
+func newEntityMap() *EntityMap {
+	em := &EntityMap{
+		allEntities:       make(map[string]struct{}),
+		gridfsBuckets:     make(map[string]*gridfs.Bucket),
+		bsonValues:        make(map[string]bson.RawValue),
+		changeStreams:     make(map[string]*mongo.ChangeStream),
+		clientEntities:    make(map[string]*clientEntity),
+		collEntities:      make(map[string]*mongo.Collection),
+		dbEntites:         make(map[string]*mongo.Database),
+		sessions:          make(map[string]mongo.Session),
+		eventListEntities: make(map[string][]bson.Raw),
+		bsonArrayEntities: make(map[string][]bson.Raw),
+		successValues:     make(map[string]int32),
+		iterationValues:   make(map[string]int32),
 	}
+	em.setClosed(false)
+	return em
 }
 
-func (em *entityMap) addBSONEntity(id string, val bson.RawValue) error {
+func (em *EntityMap) addBSONEntity(id string, val bson.RawValue) error {
 	if err := em.verifyEntityDoesNotExist(id); err != nil {
 		return err
 	}
@@ -85,7 +119,7 @@ func (em *entityMap) addBSONEntity(id string, val bson.RawValue) error {
 	return nil
 }
 
-func (em *entityMap) addChangeStreamEntity(id string, stream *mongo.ChangeStream) error {
+func (em *EntityMap) addChangeStreamEntity(id string, stream *mongo.ChangeStream) error {
 	if err := em.verifyEntityDoesNotExist(id); err != nil {
 		return err
 	}
@@ -95,7 +129,82 @@ func (em *entityMap) addChangeStreamEntity(id string, stream *mongo.ChangeStream
 	return nil
 }
 
-func (em *entityMap) addEntity(ctx context.Context, entityType string, entityOptions *entityOptions) error {
+func (em *EntityMap) addBSONArrayEntity(id string) error {
+	// Error if a non-BSON array entity exists with the same name
+	if _, ok := em.allEntities[id]; ok {
+		if _, ok := em.bsonArrayEntities[id]; !ok {
+			return fmt.Errorf("non-BSON array entity with ID %q already exists", id)
+		}
+		return nil
+	}
+
+	em.allEntities[id] = struct{}{}
+	em.bsonArrayEntities[id] = []bson.Raw{}
+	return nil
+}
+
+func (em *EntityMap) addSuccessesEntity(id string) error {
+	if err := em.verifyEntityDoesNotExist(id); err != nil {
+		return err
+	}
+
+	em.allEntities[id] = struct{}{}
+	em.successValues[id] = 0
+	return nil
+}
+
+func (em *EntityMap) addIterationsEntity(id string) error {
+	if err := em.verifyEntityDoesNotExist(id); err != nil {
+		return err
+	}
+
+	em.allEntities[id] = struct{}{}
+	em.iterationValues[id] = 0
+	return nil
+}
+
+func (em *EntityMap) addEventsEntity(id string) error {
+	if err := em.verifyEntityDoesNotExist(id); err != nil {
+		return err
+	}
+	em.allEntities[id] = struct{}{}
+	em.eventListEntities[id] = []bson.Raw{}
+	return nil
+}
+
+func (em *EntityMap) incrementSuccesses(id string) error {
+	if _, ok := em.successValues[id]; !ok {
+		return newEntityNotFoundError("successes", id)
+	}
+	em.successValues[id]++
+	return nil
+}
+
+func (em *EntityMap) incrementIterations(id string) error {
+	if _, ok := em.iterationValues[id]; !ok {
+		return newEntityNotFoundError("iterations", id)
+	}
+	em.iterationValues[id]++
+	return nil
+}
+
+func (em *EntityMap) appendEventsEntity(id string, doc bson.Raw) {
+	em.evtLock.Lock()
+	defer em.evtLock.Unlock()
+	if _, ok := em.eventListEntities[id]; ok {
+		em.eventListEntities[id] = append(em.eventListEntities[id], doc)
+	}
+}
+
+func (em *EntityMap) appendBSONArrayEntity(id string, doc bson.Raw) error {
+	if _, ok := em.bsonArrayEntities[id]; !ok {
+		return newEntityNotFoundError("BSON array", id)
+	}
+	em.bsonArrayEntities[id] = append(em.bsonArrayEntities[id], doc)
+	return nil
+}
+
+func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOptions *entityOptions) error {
 	if err := em.verifyEntityDoesNotExist(entityOptions.ID); err != nil {
 		return err
 	}
@@ -123,7 +232,7 @@ func (em *entityMap) addEntity(ctx context.Context, entityType string, entityOpt
 	return nil
 }
 
-func (em *entityMap) gridFSBucket(id string) (*gridfs.Bucket, error) {
+func (em *EntityMap) gridFSBucket(id string) (*gridfs.Bucket, error) {
 	bucket, ok := em.gridfsBuckets[id]
 	if !ok {
 		return nil, newEntityNotFoundError("gridfs bucket", id)
@@ -131,15 +240,7 @@ func (em *entityMap) gridFSBucket(id string) (*gridfs.Bucket, error) {
 	return bucket, nil
 }
 
-func (em *entityMap) bsonValue(id string) (bson.RawValue, error) {
-	val, ok := em.bsonValues[id]
-	if !ok {
-		return emptyRawValue, newEntityNotFoundError("BSON", id)
-	}
-	return val, nil
-}
-
-func (em *entityMap) changeStream(id string) (*mongo.ChangeStream, error) {
+func (em *EntityMap) changeStream(id string) (*mongo.ChangeStream, error) {
 	client, ok := em.changeStreams[id]
 	if !ok {
 		return nil, newEntityNotFoundError("change stream", id)
@@ -147,7 +248,7 @@ func (em *entityMap) changeStream(id string) (*mongo.ChangeStream, error) {
 	return client, nil
 }
 
-func (em *entityMap) client(id string) (*clientEntity, error) {
+func (em *EntityMap) client(id string) (*clientEntity, error) {
 	client, ok := em.clientEntities[id]
 	if !ok {
 		return nil, newEntityNotFoundError("client", id)
@@ -155,15 +256,15 @@ func (em *entityMap) client(id string) (*clientEntity, error) {
 	return client, nil
 }
 
-func (em *entityMap) clients() map[string]*clientEntity {
+func (em *EntityMap) clients() map[string]*clientEntity {
 	return em.clientEntities
 }
 
-func (em *entityMap) collections() map[string]*mongo.Collection {
+func (em *EntityMap) collections() map[string]*mongo.Collection {
 	return em.collEntities
 }
 
-func (em *entityMap) collection(id string) (*mongo.Collection, error) {
+func (em *EntityMap) collection(id string) (*mongo.Collection, error) {
 	coll, ok := em.collEntities[id]
 	if !ok {
 		return nil, newEntityNotFoundError("collection", id)
@@ -171,7 +272,7 @@ func (em *entityMap) collection(id string) (*mongo.Collection, error) {
 	return coll, nil
 }
 
-func (em *entityMap) database(id string) (*mongo.Database, error) {
+func (em *EntityMap) database(id string) (*mongo.Database, error) {
 	db, ok := em.dbEntites[id]
 	if !ok {
 		return nil, newEntityNotFoundError("database", id)
@@ -179,7 +280,7 @@ func (em *entityMap) database(id string) (*mongo.Database, error) {
 	return db, nil
 }
 
-func (em *entityMap) session(id string) (mongo.Session, error) {
+func (em *EntityMap) session(id string) (mongo.Session, error) {
 	sess, ok := em.sessions[id]
 	if !ok {
 		return nil, newEntityNotFoundError("session", id)
@@ -187,8 +288,61 @@ func (em *entityMap) session(id string) (mongo.Session, error) {
 	return sess, nil
 }
 
+// BSONValue returns the bson.RawValue associated with id
+func (em *EntityMap) BSONValue(id string) (bson.RawValue, error) {
+	val, ok := em.bsonValues[id]
+	if !ok {
+		return emptyRawValue, newEntityNotFoundError("BSON", id)
+	}
+	return val, nil
+}
+
+// EventList returns the array of event documents associated with id. This should only be accessed
+// after the test is finished running
+func (em *EntityMap) EventList(id string) ([]bson.Raw, error) {
+	if !em.isClosed() {
+		return nil, ErrEntityMapOpen
+	}
+	val, ok := em.eventListEntities[id]
+	if !ok {
+		return nil, newEntityNotFoundError("event list", id)
+	}
+	return val, nil
+}
+
+// BSONArray returns the BSON document array associated with id. This should only be accessed
+// after the test is finished running
+func (em *EntityMap) BSONArray(id string) ([]bson.Raw, error) {
+	if !em.isClosed() {
+		return nil, ErrEntityMapOpen
+	}
+	val, ok := em.bsonArrayEntities[id]
+	if !ok {
+		return nil, newEntityNotFoundError("BSON array", id)
+	}
+	return val, nil
+}
+
+// Successes returns the number of successes associated with id
+func (em *EntityMap) Successes(id string) (int32, error) {
+	val, ok := em.successValues[id]
+	if !ok {
+		return 0, newEntityNotFoundError("successes", id)
+	}
+	return val, nil
+}
+
+// Iterations returns the number of iterations associated with id
+func (em *EntityMap) Iterations(id string) (int32, error) {
+	val, ok := em.iterationValues[id]
+	if !ok {
+		return 0, newEntityNotFoundError("iterations", id)
+	}
+	return val, nil
+}
+
 // close disposes of the session and client entities associated with this map.
-func (em *entityMap) close(ctx context.Context) []error {
+func (em *EntityMap) close(ctx context.Context) []error {
 	for _, sess := range em.sessions {
 		sess.EndSession(ctx)
 	}
@@ -199,12 +353,20 @@ func (em *entityMap) close(ctx context.Context) []error {
 			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
 		}
 	}
+	em.setClosed(true)
 	return errs
 }
 
-func (em *entityMap) addClientEntity(ctx context.Context, entityOptions *entityOptions) error {
+func (em *EntityMap) addClientEntity(ctx context.Context, entityOptions *entityOptions) error {
 	var client *clientEntity
-	client, err := newClientEntity(ctx, entityOptions)
+
+	for _, eventsAsEntity := range entityOptions.StoreEventsAsEntities {
+		if err := em.addEventsEntity(eventsAsEntity.EventListID); err != nil {
+			return err
+		}
+	}
+
+	client, err := newClientEntity(ctx, em, entityOptions)
 	if err != nil {
 		return fmt.Errorf("error creating client entity: %v", err)
 	}
@@ -213,7 +375,7 @@ func (em *entityMap) addClientEntity(ctx context.Context, entityOptions *entityO
 	return nil
 }
 
-func (em *entityMap) addDatabaseEntity(entityOptions *entityOptions) error {
+func (em *EntityMap) addDatabaseEntity(entityOptions *entityOptions) error {
 	client, ok := em.clientEntities[entityOptions.ClientID]
 	if !ok {
 		return newEntityNotFoundError("client", entityOptions.ClientID)
@@ -228,7 +390,7 @@ func (em *entityMap) addDatabaseEntity(entityOptions *entityOptions) error {
 	return nil
 }
 
-func (em *entityMap) addCollectionEntity(entityOptions *entityOptions) error {
+func (em *EntityMap) addCollectionEntity(entityOptions *entityOptions) error {
 	db, ok := em.dbEntites[entityOptions.DatabaseID]
 	if !ok {
 		return newEntityNotFoundError("database", entityOptions.DatabaseID)
@@ -243,7 +405,7 @@ func (em *entityMap) addCollectionEntity(entityOptions *entityOptions) error {
 	return nil
 }
 
-func (em *entityMap) addSessionEntity(entityOptions *entityOptions) error {
+func (em *EntityMap) addSessionEntity(entityOptions *entityOptions) error {
 	client, ok := em.clientEntities[entityOptions.ClientID]
 	if !ok {
 		return newEntityNotFoundError("client", entityOptions.ClientID)
@@ -263,7 +425,7 @@ func (em *entityMap) addSessionEntity(entityOptions *entityOptions) error {
 	return nil
 }
 
-func (em *entityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
+func (em *EntityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
 	db, ok := em.dbEntites[entityOptions.DatabaseID]
 	if !ok {
 		return newEntityNotFoundError("database", entityOptions.DatabaseID)
@@ -283,7 +445,7 @@ func (em *entityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
 	return nil
 }
 
-func (em *entityMap) verifyEntityDoesNotExist(id string) error {
+func (em *EntityMap) verifyEntityDoesNotExist(id string) error {
 	if _, ok := em.allEntities[id]; ok {
 		return fmt.Errorf("entity with ID %q already exists", id)
 	}

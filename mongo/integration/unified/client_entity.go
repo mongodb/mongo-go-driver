@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
@@ -31,14 +32,23 @@ type clientEntity struct {
 	succeeded       []*event.CommandSucceededEvent
 	failed          []*event.CommandFailedEvent
 	ignoredCommands map[string]struct{}
+
+	// These should not be changed after the clientEntity is initialized
+	observedEvents map[string]struct{}
+	storedEvents   map[string][]string // maps an entity type to an array of entityIDs for entities that store it
+
+	entityMap *EntityMap
 }
 
-func newClientEntity(ctx context.Context, entityOptions *entityOptions) (*clientEntity, error) {
+func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOptions) (*clientEntity, error) {
 	entity := &clientEntity{
 		// The "configureFailPoint" command should always be ignored.
 		ignoredCommands: map[string]struct{}{
 			"configureFailPoint": {},
 		},
+		observedEvents: make(map[string]struct{}),
+		storedEvents:   make(map[string][]string),
+		entityMap:      em,
 	}
 	entity.setRecordEvents(true)
 
@@ -58,25 +68,44 @@ func newClientEntity(ctx context.Context, entityOptions *entityOptions) (*client
 			return nil, err
 		}
 	}
-	if entityOptions.ObserveEvents != nil {
+
+	if entityOptions.ObserveEvents != nil || entityOptions.StoreEventsAsEntities != nil {
 		// Configure a command monitor that listens for the specified event types. We don't take the IgnoredCommands
 		// option into account here because it can be overridden at the test level after the entity has already been
 		// created, so we store the events for now but account for it when iterating over them later.
-		monitor := &event.CommandMonitor{}
+		monitor := &event.CommandMonitor{
+			Started:   entity.processStartedEvent,
+			Succeeded: entity.processSucceededEvent,
+			Failed:    entity.processFailedEvent,
+		}
 
 		for _, eventType := range entityOptions.ObserveEvents {
 			switch eventType {
-			case "commandStartedEvent":
-				monitor.Started = entity.processStartedEvent
-			case "commandSucceededEvent":
-				monitor.Succeeded = entity.processSucceededEvent
-			case "commandFailedEvent":
-				monitor.Failed = entity.processFailedEvent
+			case "commandStartedEvent", "commandSucceededEvent", "commandFailedEvent":
+				entity.observedEvents[eventType] = struct{}{}
 			default:
-				return nil, fmt.Errorf("unrecognized event type %s", eventType)
+				return nil, fmt.Errorf("unrecognized observed event type %s", eventType)
 			}
 		}
-		clientOpts.SetMonitor(monitor)
+		for _, eventsAsEntity := range entityOptions.StoreEventsAsEntities {
+			for _, eventType := range eventsAsEntity.Events {
+				switch eventType {
+				case "CommandStartedEvent", "CommandSucceededEvent", "CommandFailedEvent",
+					"PoolCreatedEvent", "PoolReadyEvent", "PoolClearedEvent", "PoolClosedEvent",
+					"ConnectionCreatedEvent", "ConnectionReadyEvent", "ConnectionClosedEvent",
+					"ConnectionCheckOutStartedEvent", "ConnectionCheckOutFailedEvent",
+					"ConnectionCheckedOutEvent", "ConnectionCheckedInEvent":
+					entity.storedEvents[eventType] = append(entity.storedEvents[eventType], eventsAsEntity.EventListID)
+				default:
+					return nil, fmt.Errorf("unrecognized stored event type %s", eventType)
+				}
+			}
+		}
+
+		poolMonitor := &event.PoolMonitor{
+			Event: entity.processPoolEvent,
+		}
+		clientOpts.SetMonitor(monitor).SetPoolMonitor(poolMonitor)
 	}
 	if entityOptions.ServerAPIOptions != nil {
 		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
@@ -96,7 +125,7 @@ func newClientEntity(ctx context.Context, entityOptions *entityOptions) (*client
 	return entity, nil
 }
 
-func (c *clientEntity) StopListeningForEvents() {
+func (c *clientEntity) stopListeningForEvents() {
 	c.setRecordEvents(false)
 }
 
@@ -133,21 +162,145 @@ func (c *clientEntity) failedEvents() []*event.CommandFailedEvent {
 	return events
 }
 
+func getSecondsSinceEpoch() float64 {
+	return float64(time.Now().Unix())
+}
+
 func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.CommandStartedEvent) {
-	if c.getRecordEvents() {
+	if !c.getRecordEvents() {
+		return
+	}
+	if _, ok := c.observedEvents["commandStartedEvent"]; ok {
 		c.started = append(c.started, evt)
+	}
+	eventListIDs, ok := c.storedEvents["CommandStartedEvent"]
+	if !ok {
+		return
+	}
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", "CommandStartedEvent").
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
+		AppendString("databaseName", evt.DatabaseName).
+		AppendString("commandName", evt.CommandName).
+		AppendInt64("requestId", evt.RequestID).
+		AppendString("connectionId", evt.ConnectionID)
+	if evt.ServerID != nil {
+		bsonBuilder.AppendString("serverId", evt.ServerID.String())
+	}
+	doc := bson.Raw(bsonBuilder.Build())
+	for _, id := range eventListIDs {
+		c.entityMap.appendEventsEntity(id, doc)
 	}
 }
 
 func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.CommandSucceededEvent) {
-	if c.getRecordEvents() {
+	if !c.getRecordEvents() {
+		return
+	}
+	if _, ok := c.observedEvents["commandSucceededEvent"]; ok {
 		c.succeeded = append(c.succeeded, evt)
+	}
+	eventListIDs, ok := c.storedEvents["CommandSucceededEvent"]
+	if !ok {
+		return
+	}
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", "CommandSucceededEvent").
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
+		AppendString("commandName", evt.CommandName).
+		AppendInt64("requestId", evt.RequestID).
+		AppendString("connectionId", evt.ConnectionID)
+	if evt.ServerID != nil {
+		bsonBuilder.AppendString("serverId", evt.ServerID.String())
+	}
+	doc := bson.Raw(bsonBuilder.Build())
+	for _, id := range eventListIDs {
+		c.entityMap.appendEventsEntity(id, doc)
 	}
 }
 
 func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandFailedEvent) {
-	if c.getRecordEvents() {
+	if !c.getRecordEvents() {
+		return
+	}
+	if _, ok := c.observedEvents["commandFailedEvent"]; ok {
 		c.failed = append(c.failed, evt)
+	}
+	eventListIDs, ok := c.storedEvents["CommandFailedEvent"]
+	if !ok {
+		return
+	}
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", "CommandFailedEvent").
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
+		AppendInt64("durationNanos", evt.DurationNanos).
+		AppendString("commandName", evt.CommandName).
+		AppendInt64("requestId", evt.RequestID).
+		AppendString("connectionId", evt.ConnectionID).
+		AppendString("failure", evt.Failure)
+	if evt.ServerID != nil {
+		bsonBuilder.AppendString("serverId", evt.ServerID.String())
+	}
+	doc := bson.Raw(bsonBuilder.Build())
+	for _, id := range eventListIDs {
+		c.entityMap.appendEventsEntity(id, doc)
+	}
+}
+
+func getPoolEventDocument(evt *event.PoolEvent, evtName string) bson.Raw {
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", evtName).
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
+		AppendString("address", evt.Address)
+	if evt.ConnectionID != 0 {
+		bsonBuilder.AppendString("connectionId", fmt.Sprint(evt.ConnectionID))
+	}
+	if evt.PoolOptions != nil {
+		optionsDoc := bsoncore.NewDocumentBuilder().
+			AppendString("maxPoolSize", fmt.Sprint(evt.PoolOptions.MaxPoolSize)).
+			AppendString("minPoolSize", fmt.Sprint(evt.PoolOptions.MinPoolSize)).
+			AppendString("maxIdleTimeMS", fmt.Sprint(evt.PoolOptions.WaitQueueTimeoutMS)).
+			Build()
+		bsonBuilder.AppendDocument("poolOptions", optionsDoc)
+	}
+	if evt.Reason != "" {
+		bsonBuilder.AppendString("reason", evt.Reason)
+	}
+	return bson.Raw(bsonBuilder.Build())
+}
+
+func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+	var eventType string
+	switch evt.Type {
+	// TODO GODRIVER-1827: add storePoolReady and storeConnectionCheckOutStarted events
+	case event.PoolCreated:
+		eventType = "PoolCreatedEvent"
+	case event.PoolCleared:
+		eventType = "PoolClearedEvent"
+	case event.PoolClosedEvent:
+		eventType = "PoolClosedEvent"
+	case event.ConnectionCreated:
+		eventType = "ConnectionCreatedEvent"
+	case event.ConnectionReady:
+		eventType = "ConnectionReadyEvent"
+	case event.ConnectionClosed:
+		eventType = "ConnectionClosedEvent"
+	case event.GetFailed:
+		eventType = "ConnectionCheckOutFailedEvent"
+	case event.GetSucceeded:
+		eventType = "ConnectionCheckedOutEvent"
+	case event.ConnectionReturned:
+		eventType = "ConnectionCheckedInEvent"
+	}
+	eventListIDs, ok := c.storedEvents[eventType]
+	if ok {
+		eventBSON := getPoolEventDocument(evt, eventType)
+		for _, id := range eventListIDs {
+			c.entityMap.appendEventsEntity(id, eventBSON)
+		}
 	}
 }
 
