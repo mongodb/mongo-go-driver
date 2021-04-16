@@ -1937,7 +1937,7 @@ buildvariants:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["4.2", "4.4", "latest"], os-ssl-32: ["ubuntu1604-64-go-1-15"] }
+    matrix_spec: { version: ["latest"], os-ssl-32: ["ubuntu1604-64-go-1-15"] }
     display_name: "KMS TLS ${version} ${os-ssl-32}"
     tasks:
       - name: ".kms-tls"
