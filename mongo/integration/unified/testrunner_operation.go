@@ -197,7 +197,7 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 					}
 					errDoc := bson.Raw(bsoncore.NewDocumentBuilder().
 						AppendString("error", loopErr.Error()).
-						AppendInt64("time", getSecondsSinceEpoch()).
+						AppendDouble("time", getSecondsSinceEpoch()).
 						Build())
 					var appendErr error
 					switch {

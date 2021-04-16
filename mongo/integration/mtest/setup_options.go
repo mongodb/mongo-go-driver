@@ -8,11 +8,12 @@ package mtest
 
 // SetupOptions is the type used to configure mtest setup
 type SetupOptions struct {
-	// Specifies the URI to connect to. Defaults to URI based on environment variables
+	// Specifies the URI to connect to. Defaults to URI based on the environment variables MONGODB_URI,
+	// MONGO_GO_DRIVER_CA_FILE, and MONGO_GO_DRIVER_COMPRESSOR
 	URI *string
 }
 
-// NewSetupOptions creates an empty SetupOptions interface
+// NewSetupOptions creates an empty SetupOptions struct
 func NewSetupOptions() *SetupOptions {
 	return &SetupOptions{}
 }

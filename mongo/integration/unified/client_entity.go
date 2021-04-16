@@ -35,7 +35,7 @@ type clientEntity struct {
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[string]struct{}
-	storedEvents   map[string][]string
+	storedEvents   map[string][]string // maps an entity type to an array of entityIDs for entities that store it
 
 	entityMap *EntityMap
 }
@@ -162,8 +162,8 @@ func (c *clientEntity) failedEvents() []*event.CommandFailedEvent {
 	return events
 }
 
-func getSecondsSinceEpoch() int64 {
-	return time.Now().Unix()
+func getSecondsSinceEpoch() float64 {
+	return float64(time.Now().Unix())
 }
 
 func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.CommandStartedEvent) {
@@ -179,7 +179,7 @@ func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.Command
 	}
 	bsonBuilder := bsoncore.NewDocumentBuilder().
 		AppendString("name", "CommandStartedEvent").
-		AppendInt64("observedAt", getSecondsSinceEpoch()).
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
 		AppendString("databaseName", evt.DatabaseName).
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
@@ -206,7 +206,7 @@ func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.Comma
 	}
 	bsonBuilder := bsoncore.NewDocumentBuilder().
 		AppendString("name", "CommandSucceededEvent").
-		AppendInt64("observedAt", getSecondsSinceEpoch()).
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID)
@@ -232,7 +232,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 	}
 	bsonBuilder := bsoncore.NewDocumentBuilder().
 		AppendString("name", "CommandFailedEvent").
-		AppendInt64("observedAt", getSecondsSinceEpoch()).
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
 		AppendInt64("durationNanos", evt.DurationNanos).
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
@@ -250,7 +250,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 func getPoolEventDocument(evt *event.PoolEvent, evtName string) bson.Raw {
 	bsonBuilder := bsoncore.NewDocumentBuilder().
 		AppendString("name", evtName).
-		AppendInt64("observedAt", getSecondsSinceEpoch()).
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
 		AppendString("address", evt.Address)
 	if evt.ConnectionID != 0 {
 		bsonBuilder.AppendString("connectionId", fmt.Sprint(evt.ConnectionID))
