@@ -548,19 +548,19 @@ func TestRead(t *testing.T) {
 			"ReadArray/not enough bytes (length)",
 			ReadArray,
 			[]byte{},
-			[]interface{}{Document(nil), []byte{}, false},
+			[]interface{}{Array(nil), []byte{}, false},
 		},
 		{
 			"ReadArray/not enough bytes (value)",
 			ReadArray,
 			[]byte{0x0F, 0x00, 0x00, 0x00},
-			[]interface{}{Document(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
+			[]interface{}{Array(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadArray/success",
 			ReadArray,
 			[]byte{0x08, 0x00, 0x00, 0x00, 0x0A, '0', 0x00, 0x00},
-			[]interface{}{Document{0x08, 0x00, 0x00, 0x00, 0x0A, '0', 0x00, 0x00}, []byte{}, true},
+			[]interface{}{Array{0x08, 0x00, 0x00, 0x00, 0x0A, '0', 0x00, 0x00}, []byte{}, true},
 		},
 		{
 			"ReadBinary/not enough bytes (length)",

@@ -353,7 +353,7 @@ func (op Operation) createLegacyKillCursorsWiremessage(dst []byte, desc descript
 	}
 
 	var collName string
-	var cursors bsoncore.Document
+	var cursors bsoncore.Array
 	for _, elem := range cmdElems {
 		switch elem.Key() {
 		case "killCursors":

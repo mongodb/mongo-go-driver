@@ -70,8 +70,8 @@ elementLoop:
 			}
 
 			// get count value from first batch
-			element = firstBatch.Array().Index(0)
-			count, err := element.Value().Document().LookupErr("n")
+			val := firstBatch.Array().Index(0)
+			count, err := val.Document().LookupErr("n")
 			if err != nil {
 				break elementLoop
 			}
