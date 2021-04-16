@@ -225,7 +225,6 @@ tests:
                 <<: *expectedApiVersion
 
   - description: "estimatedDocumentCount appends declared API version"
-    skipReason: "DRIVERS-1561 collStats is not in API version 1"
     operations:
       - name: estimatedDocumentCount
         object: *collection
