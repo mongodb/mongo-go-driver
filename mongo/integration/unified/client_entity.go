@@ -184,8 +184,8 @@ func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.Command
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID)
-	if evt.ServerID != nil {
-		bsonBuilder.AppendString("serverId", evt.ServerID.String())
+	if evt.ServiceID != nil {
+		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
 	}
 	doc := bson.Raw(bsonBuilder.Build())
 	for _, id := range eventListIDs {
@@ -210,8 +210,8 @@ func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.Comma
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID)
-	if evt.ServerID != nil {
-		bsonBuilder.AppendString("serverId", evt.ServerID.String())
+	if evt.ServiceID != nil {
+		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
 	}
 	doc := bson.Raw(bsonBuilder.Build())
 	for _, id := range eventListIDs {
@@ -238,8 +238,8 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID).
 		AppendString("failure", evt.Failure)
-	if evt.ServerID != nil {
-		bsonBuilder.AppendString("serverId", evt.ServerID.String())
+	if evt.ServiceID != nil {
+		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
 	}
 	doc := bson.Raw(bsonBuilder.Build())
 	for _, id := range eventListIDs {
@@ -265,6 +265,9 @@ func getPoolEventDocument(evt *event.PoolEvent, evtName string) bson.Raw {
 	}
 	if evt.Reason != "" {
 		bsonBuilder.AppendString("reason", evt.Reason)
+	}
+	if evt.ServiceID != nil {
+		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
 	}
 	return bson.Raw(bsonBuilder.Build())
 }
