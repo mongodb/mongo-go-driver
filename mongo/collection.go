@@ -321,7 +321,6 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 // field when transformed into BSON, one will be added automatically to the marshalled document. The original document
 // will not be modified. The _id can be retrieved from the InsertedID field of the returned InsertOneResult.
 //
-//
 // The opts parameter can be used to specify options for the operation (see the options.InsertOneOptions documentation.)
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/insert/.
