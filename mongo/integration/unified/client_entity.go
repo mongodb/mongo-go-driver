@@ -9,6 +9,7 @@ package unified
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -27,11 +28,13 @@ import (
 type clientEntity struct {
 	*mongo.Client
 
-	recordEvents    atomic.Value
-	started         []*event.CommandStartedEvent
-	succeeded       []*event.CommandSucceededEvent
-	failed          []*event.CommandFailedEvent
-	ignoredCommands map[string]struct{}
+	recordEvents       atomic.Value
+	started            []*event.CommandStartedEvent
+	succeeded          []*event.CommandSucceededEvent
+	failed             []*event.CommandFailedEvent
+	pooled             []*event.PoolEvent
+	ignoredCommands    map[string]struct{}
+	numConnsCheckedOut int32
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[monitoringEventType]struct{}
@@ -54,13 +57,18 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	// Construct a ClientOptions instance by first applying the cluster URI and then the URIOptions map to ensure that
 	// the options specified in the test file take precedence.
-	clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
+	uri, err := getURIForClient(entityOptions)
+	if err != nil {
+		return nil, err
+	}
+	clientOpts := options.Client().ApplyURI(uri)
 	if entityOptions.URIOptions != nil {
 		if err := setClientOptionsFromURIOptions(clientOpts, entityOptions.URIOptions); err != nil {
 			return nil, fmt.Errorf("error parsing URI options: %v", err)
 		}
 	}
-	// UseMultipleMongoses is only relevant if we're connected to a sharded cluster. Options changes and validation are
+
+	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are
 	// only required if the option is explicitly set. If it's unset, we make no changes because the cluster URI already
 	// includes all nodes and we don't enforce any limits on the number of nodes.
 	if mtest.ClusterTopologyKind() == mtest.Sharded && entityOptions.UseMultipleMongoses != nil {
@@ -73,11 +81,15 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		// Configure a command monitor that listens for the specified event types. We don't take the IgnoredCommands
 		// option into account here because it can be overridden at the test level after the entity has already been
 		// created, so we store the events for now but account for it when iterating over them later.
-		monitor := &event.CommandMonitor{
+		commandMonitor := &event.CommandMonitor{
 			Started:   entity.processStartedEvent,
 			Succeeded: entity.processSucceededEvent,
 			Failed:    entity.processFailedEvent,
 		}
+		poolMonitor := &event.PoolMonitor{
+			Event: entity.processPoolEvent,
+		}
+		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor)
 
 		for _, eventTypeStr := range entityOptions.ObserveEvents {
 			eventType, ok := monitoringEventTypeFromString(eventTypeStr)
@@ -95,11 +107,6 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 				entity.storedEvents[eventType] = append(entity.storedEvents[eventType], eventsAsEntity.EventListID)
 			}
 		}
-
-		poolMonitor := &event.PoolMonitor{
-			Event: entity.processPoolEvent,
-		}
-		clientOpts.SetMonitor(monitor).SetPoolMonitor(poolMonitor)
 	}
 	if entityOptions.ServerAPIOptions != nil {
 		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
@@ -117,6 +124,28 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	entity.Client = client
 	return entity, nil
+}
+
+func getURIForClient(opts *entityOptions) (string, error) {
+	if mtest.ClusterTopologyKind() != mtest.LoadBalanced {
+		return mtest.ClusterURI(), nil
+	}
+
+	// For load-balanced deployments, UseMultipleMongoses is used to determine the load balancer URI. If set to
+	// false, the LB fronts a single server. If unset or explicitly true, the LB fronts multiple mongos servers.
+	var uriEnvVar string
+	switch {
+	case opts.UseMultipleMongoses != nil && !*opts.UseMultipleMongoses:
+		uriEnvVar = "SINGLE_MONGOS_LOAD_BALANCER_URI"
+	default:
+		uriEnvVar = "MULTI_MONGOS_LOAD_BALANCER_URI"
+	}
+
+	uri := os.Getenv(uriEnvVar)
+	if uri == "" {
+		return "", fmt.Errorf("expected load balancer URI to be in environment variable %q, but is not set", uriEnvVar)
+	}
+	return uri, nil
 }
 
 func (c *clientEntity) stopListeningForEvents() {
@@ -154,6 +183,14 @@ func (c *clientEntity) failedEvents() []*event.CommandFailedEvent {
 	}
 
 	return events
+}
+
+func (c *clientEntity) poolEvents() []*event.PoolEvent {
+	return c.pooled
+}
+
+func (c *clientEntity) numberConnectionsCheckedOut() int32 {
+	return c.numConnsCheckedOut
 }
 
 func getSecondsSinceEpoch() float64 {
@@ -271,7 +308,18 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 		return
 	}
 
+	// Update the connection counter. This happens even if we're not storing any events.
+	switch evt.Type {
+	case event.GetSucceeded:
+		c.numConnsCheckedOut++
+	case event.ConnectionReturned:
+		c.numConnsCheckedOut--
+	}
+
 	eventType := monitoringEventTypeFromPoolEvent(evt)
+	if _, ok := c.observedEvents[eventType]; ok {
+		c.pooled = append(c.pooled, evt)
+	}
 	if eventListIDs, ok := c.storedEvents[eventType]; ok {
 		eventBSON := getPoolEventDocument(evt, eventType)
 		for _, id := range eventListIDs {

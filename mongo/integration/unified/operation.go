@@ -15,12 +15,13 @@ import (
 )
 
 type operation struct {
-	Name           string         `bson:"name"`
-	Object         string         `bson:"object"`
-	Arguments      bson.Raw       `bson:"arguments"`
-	ExpectedError  *expectedError `bson:"expectError"`
-	ExpectedResult *bson.RawValue `bson:"expectResult"`
-	ResultEntityID *string        `bson:"saveResultAsEntity"`
+	Name                 string         `bson:"name"`
+	Object               string         `bson:"object"`
+	Arguments            bson.Raw       `bson:"arguments"`
+	IgnoreResultAndError bool           `bson:"ignoreResultAndError"`
+	ExpectedError        *expectedError `bson:"expectError"`
+	ExpectedResult       *bson.RawValue `bson:"expectResult"`
+	ResultEntityID       *string        `bson:"saveResultAsEntity"`
 }
 
 // execute runs the operation and verifies the returned result and/or error. If the result needs to be saved as
@@ -29,6 +30,10 @@ func (op *operation) execute(ctx context.Context, loopDone <-chan struct{}) erro
 	res, err := op.run(ctx, loopDone)
 	if err != nil {
 		return fmt.Errorf("execution failed: %v", err)
+	}
+
+	if op.IgnoreResultAndError {
+		return nil
 	}
 
 	if err := verifyOperationError(ctx, op.ExpectedError, res); err != nil {
@@ -104,6 +109,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeCountDocuments(ctx, op)
 	case "createIndex":
 		return executeCreateIndex(ctx, op)
+	case "createFindCursor":
+		return executeCreateFindCursor(ctx, op)
 	case "deleteOne":
 		return executeDeleteOne(ctx, op)
 	case "deleteMany":
@@ -139,7 +146,9 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "upload":
 		return executeBucketUpload(ctx, op)
 
-	// Change Stream operations
+	// Cursor operations
+	case "close":
+		return newEmptyResult(), executeClose(ctx, op)
 	case "iterateUntilDocumentOrError":
 		return executeIterateUntilDocumentOrError(ctx, op)
 	default:

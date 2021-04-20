@@ -143,6 +143,19 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 			return fmt.Errorf("error unmarshalling arguments to loopArgs: %v", err)
 		}
 		return executeLoop(ctx, &unmarshaledArgs, loopDone)
+	case "assertNumberConnectionsCheckedOut":
+		clientID := lookupString(args, "client")
+		client, err := entities(ctx).client(clientID)
+		if err != nil {
+			return err
+		}
+
+		expected := int32(lookupInteger(args, "connections"))
+		actual := client.numberConnectionsCheckedOut()
+		if expected != actual {
+			return fmt.Errorf("expected %d connections to be checked out, got %d", expected, actual)
+		}
+		return nil
 	default:
 		return fmt.Errorf("unrecognized testRunner operation %q", operation.Name)
 	}

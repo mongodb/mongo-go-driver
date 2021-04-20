@@ -19,9 +19,10 @@ type TopologyKind string
 
 // These constants specify valid values for TopologyKind
 const (
-	ReplicaSet TopologyKind = "replicaset"
-	Sharded    TopologyKind = "sharded"
-	Single     TopologyKind = "single"
+	ReplicaSet   TopologyKind = "replicaset"
+	Sharded      TopologyKind = "sharded"
+	Single       TopologyKind = "single"
+	LoadBalanced TopologyKind = "load-balanced"
 	// ShardedReplicaSet is a special case of sharded that requires each shard to be a replica set rather than a
 	// standalone server.
 	ShardedReplicaSet TopologyKind = "sharded-replicaset"
@@ -54,6 +55,7 @@ type RunOnBlock struct {
 	MaxServerVersion string                   `bson:"maxServerVersion"`
 	Topology         []TopologyKind           `bson:"topology"`
 	ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
+	Auth             *bool                    `bson:"auth"`
 }
 
 // UnmarshalBSON implements custom BSON unmarshalling behavior for RunOnBlock because some test formats use the
@@ -65,14 +67,20 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 		Topology         []TopologyKind           `bson:"topology"`
 		Topologies       []TopologyKind           `bson:"topologies"`
 		ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
+		Auth             *bool                    `bson:"auth"`
+		Extra            map[string]interface{}   `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary RunOnBlock object: %v", err)
+	}
+	if len(temp.Extra) > 0 {
+		return fmt.Errorf("unrecognized fields for RunOnBlock: %v", temp.Extra)
 	}
 
 	r.MinServerVersion = temp.MinServerVersion
 	r.MaxServerVersion = temp.MaxServerVersion
 	r.ServerParameters = temp.ServerParameters
+	r.Auth = temp.Auth
 
 	if temp.Topology != nil {
 		r.Topology = temp.Topology

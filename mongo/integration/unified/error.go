@@ -53,7 +53,9 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 	// if we got a server or client-side error.
 	details, serverError := extractErrorDetails(result.Err)
 	if expected.IsClientError != nil {
-		if isClientError := !serverError; *expected.IsClientError != isClientError {
+		// The unified test format spec considers network errors to be client-side errors.
+		isClientError := !serverError || mongo.IsNetworkError(result.Err)
+		if *expected.IsClientError != isClientError {
 			return fmt.Errorf("expected error %v to be a client error: %v, is client error: %v", result.Err,
 				*expected.IsClientError, isClientError)
 		}
