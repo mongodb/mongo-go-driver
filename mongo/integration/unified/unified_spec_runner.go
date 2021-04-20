@@ -100,8 +100,7 @@ func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
-	fileReqs, testCases, err := ParseTestFile(content, opts...)
-	assert.Nil(t, err, "error parsing file: %v", err)
+	fileReqs, testCases := ParseTestFile(t, content, opts...)
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
 		CreateClient(false)
@@ -122,16 +121,14 @@ func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
 }
 
 // ParseTestFile create an array of TestCases from the testJSON json blob
-func ParseTestFile(testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase, error) {
+func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
 	var testFile TestFile
-	if err := bson.UnmarshalExtJSON(testJSON, false, &testFile); err != nil {
-		return nil, nil, fmt.Errorf("UnmarshalExtJSON error: %v", err)
-	}
+	err := bson.UnmarshalExtJSON(testJSON, false, &testFile)
+	assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
 
 	// Validate that we support the schema declared by the test file before attempting to use its contents.
-	if err := checkSchemaVersion(testFile.SchemaVersion); err != nil {
-		return nil, nil, fmt.Errorf("schema version %q not supported: %v", testFile.SchemaVersion, err)
-	}
+	err = checkSchemaVersion(testFile.SchemaVersion)
+	assert.Nil(t, err, "schema version %q not supported: %v", testFile.SchemaVersion, err)
 
 	op := MergeOptions(opts...)
 	for _, testCase := range testFile.TestCases {
@@ -141,7 +138,7 @@ func ParseTestFile(testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*Te
 		testCase.loopDone = make(chan struct{})
 		testCase.killAllSessions = *op.RunKillAllSessions
 	}
-	return testFile.RunOnRequirements, testFile.TestCases, nil
+	return testFile.RunOnRequirements, testFile.TestCases
 }
 
 // GetEntities returns a pointer to the EntityMap for the TestCase. This should not be called until after

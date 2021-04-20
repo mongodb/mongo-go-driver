@@ -685,8 +685,8 @@ func verifyServerParametersConstraints(serverParameters map[string]bson.RawValue
 	return nil
 }
 
-// VerifyRunOnBlockConstraint returns an error if the current environment does not match the provided RunOnBlock.
-func VerifyRunOnBlockConstraint(rob RunOnBlock) error {
+// verifyRunOnBlockConstraint returns an error if the current environment does not match the provided RunOnBlock.
+func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyVersionConstraints(rob.MinServerVersion, rob.MaxServerVersion); err != nil {
 		return err
 	}
@@ -735,7 +735,7 @@ func (t *T) verifyConstraints() error {
 	// don't find any matching blocks, we want to report the comparison errors for each block.
 	var runOnErrors []error
 	for _, runOn := range t.runOn {
-		err := VerifyRunOnBlockConstraint(runOn)
+		err := verifyRunOnBlockConstraint(runOn)
 		if err == nil {
 			return nil
 		}
