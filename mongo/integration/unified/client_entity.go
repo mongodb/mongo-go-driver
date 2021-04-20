@@ -90,7 +90,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 			for _, eventTypeStr := range eventsAsEntity.Events {
 				eventType, ok := monitoringEventTypeFromString(eventTypeStr)
 				if !ok {
-					return nil, fmt.Errorf("unrecognized stored event type %q", eventType)
+					return nil, fmt.Errorf("unrecognized stored event type %q", eventTypeStr)
 				}
 				entity.storedEvents[eventType] = append(entity.storedEvents[eventType], eventsAsEntity.EventListID)
 			}

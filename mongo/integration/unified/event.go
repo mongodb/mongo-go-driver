@@ -63,7 +63,7 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 func monitoringEventTypeFromPoolEvent(evt *event.PoolEvent) monitoringEventType {
 	switch evt.Type {
 	case event.PoolCreated:
-		return poolClearedEvent
+		return poolCreatedEvent
 	case event.PoolCleared:
 		return poolClearedEvent
 	case event.PoolClosedEvent:
