@@ -87,12 +87,16 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 	// We use the "eventType" value to determine which struct field should be used to deserialize the "events" array.
 
 	var temp struct {
-		ClientID  string        `bson:"client"`
-		EventType string        `bson:"eventType"`
-		Events    bson.RawValue `bson:"events"`
+		ClientID  string                 `bson:"client"`
+		EventType string                 `bson:"eventType"`
+		Events    bson.RawValue          `bson:"events"`
+		Extra     map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary expectedEvents object: %v", err)
+	}
+	if len(temp.Extra) > 0 {
+		return fmt.Errorf("unrecognized fields for expectedEvents: %v", temp.Extra)
 	}
 
 	e.ClientID = temp.ClientID
