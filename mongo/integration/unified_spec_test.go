@@ -157,7 +157,7 @@ type operationError struct {
 const dataPath string = "../../data/"
 
 var directories = []string{
-	"transactions",
+	"transactions/legacy",
 	"convenient-transactions",
 	"crud/v2",
 	"retryable-reads",
