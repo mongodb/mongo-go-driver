@@ -60,7 +60,8 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
-	// for sharded clusters, pin to one host
+	// for sharded clusters, pin to one host. Due to how the cache is implemented on 4.0 and 4.2, behavior
+	// can be inconsistent when multiple mongoses are used
 	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority).SetHosts(cs.Hosts[:1]))
 }
 
