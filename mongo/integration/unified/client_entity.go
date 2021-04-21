@@ -136,9 +136,9 @@ func getURIForClient(opts *entityOptions) (string, error) {
 	var uriEnvVar string
 	switch {
 	case opts.UseMultipleMongoses != nil && !*opts.UseMultipleMongoses:
-		uriEnvVar = "SINGLE_MONGOS_LOAD_BALANCER_URI"
+		uriEnvVar = "SINGLE_MONGOS_LB_URI"
 	default:
-		uriEnvVar = "MULTI_MONGOS_LOAD_BALANCER_URI"
+		uriEnvVar = "MULTI_MONGOS_LB_URI"
 	}
 
 	uri := os.Getenv(uriEnvVar)
