@@ -30,18 +30,15 @@ func executeIterateUntilDocumentOrError(ctx context.Context, operation *operatio
 		return nil, err
 	}
 
-	for {
-		if cursor.TryNext(ctx) {
-			// We don't expect the server to return malformed documents, so any errors from Decode are treated as fatal.
-			var res bson.Raw
-			if err := cursor.Decode(&res); err != nil {
-				return nil, fmt.Errorf("error decoding cursor result: %v", err)
-			}
+	// Next will loop until there is either a result or an error.
+	if cursor.Next(ctx) {
+		// We don't expect the server to return malformed documents, so any errors from Decode are treated as fatal.
+		var res bson.Raw
+		if err := cursor.Decode(&res); err != nil {
+			return nil, fmt.Errorf("error decoding cursor result: %v", err)
+		}
 
-			return newDocumentResult(res, nil), nil
-		}
-		if cursor.Err() != nil {
-			return newErrorResult(cursor.Err()), nil
-		}
+		return newDocumentResult(res, nil), nil
 	}
+	return newErrorResult(cursor.Err()), nil
 }
