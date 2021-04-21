@@ -452,7 +452,7 @@ func executeCreateFindCursor(ctx context.Context, operation *operation) (*operat
 	}
 
 	if operation.ResultEntityID == nil {
-		return nil, fmt.Errorf("no entity name provided to store executeChangeStream result")
+		return nil, fmt.Errorf("no entity name provided to store executeCreateFindCursor result")
 	}
 	if err := entities(ctx).addCursorEntity(*operation.ResultEntityID, result.cursor); err != nil {
 		return nil, fmt.Errorf("error storing result as cursor entity: %v", err)
