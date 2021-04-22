@@ -14,7 +14,7 @@ import (
 
 type monitoringEventType string
 
-// monitioringEventTypes poolReadyEvent and connectionCheckOutStartedEvent are included
+// monitoringEventTypes poolReadyEvent and connectionCheckOutStartedEvent are included
 // to support logging in the atlas planned maintenance executor, which stores events
 // without making assertions on them. The matching published event types will be
 // created in GODRIVER-1827
