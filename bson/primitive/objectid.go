@@ -76,7 +76,7 @@ func ObjectIDFromHex(s string) (ObjectID, error) {
 	if len(s) != 24 {
 		return NilObjectID, ErrInvalidHex
 	}
-	
+
 	b, err := hex.DecodeString(s)
 	if err != nil {
 		return NilObjectID, err
