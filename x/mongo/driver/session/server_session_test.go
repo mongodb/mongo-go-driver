@@ -10,21 +10,33 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 func TestServerSession(t *testing.T) {
-
 	t.Run("Expired", func(t *testing.T) {
-		sess, err := newServerSession()
-		require.Nil(t, err, "Unexpected error")
-		if !sess.expired(0) {
-			t.Errorf("session should be expired")
-		}
-		sess.LastUsed = time.Now().Add(-30 * time.Minute)
-		if !sess.expired(30) {
-			t.Errorf("session should be expired")
-		}
+		t.Run("non-lb mode", func(t *testing.T) {
+			sess, err := newServerSession()
+			assert.Nil(t, err, "newServerSession error: %v", err)
 
+			// The session should be expired if timeoutMinutes is 0 or if its last used time is too old.
+			assert.True(t, sess.expired(topologyDescription{}), "expected session to be expired when timeoutMinutes=0")
+			sess.LastUsed = time.Now().Add(-30 * time.Minute)
+			topoDesc := topologyDescription{timeoutMinutes: 30}
+			assert.True(t, sess.expired(topoDesc), "expected session to be expired when timeoutMinutes=30")
+		})
+		t.Run("lb mode", func(t *testing.T) {
+			sess, err := newServerSession()
+			assert.Nil(t, err, "newServerSession error: %v", err)
+
+			// The session should never be considered expired.
+			topoDesc := topologyDescription{kind: description.LoadBalanced}
+			assert.False(t, sess.expired(topoDesc), "session reported that it was expired in LB mode with timeoutMinutes=0")
+
+			sess.LastUsed = time.Now().Add(-30 * time.Minute)
+			topoDesc.timeoutMinutes = 10
+			assert.False(t, sess.expired(topoDesc), "session reported that it was expired in LB mode with timeoutMinutes=10")
+		})
 	})
 }
