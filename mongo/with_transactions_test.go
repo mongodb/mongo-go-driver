@@ -398,11 +398,17 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
+		// return error tracks whether or not the callback is being retried
 		returnError := true
 		res, err := sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
 			if returnError {
 				returnError = false
-				return nil, wrappedError{CommandError{Name: "test Error", Labels: []string{driver.TransientTransactionError}}}
+				return nil, wrappedError{
+					CommandError{
+						Name:   "test Error",
+						Labels: []string{driver.TransientTransactionError},
+					},
+				}
 			}
 			return false, nil
 		})
