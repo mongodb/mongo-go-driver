@@ -173,7 +173,6 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
 	var err error
-RetryLoop:
 	for {
 		err = s.StartTransaction(opts...)
 		if err != nil {
@@ -194,13 +193,8 @@ RetryLoop:
 			default:
 			}
 
-			currErr := err
-			for ; currErr != nil; currErr = unwrap(currErr) {
-				if cerr, ok := currErr.(CommandError); ok {
-					if cerr.HasErrorLabel(driver.TransientTransactionError) {
-						continue RetryLoop
-					}
-				}
+			if errorHasLabel(err, driver.TransientTransactionError) {
+				continue
 			}
 			return res, err
 		}

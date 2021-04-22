@@ -127,14 +127,19 @@ func unwrap(err error) error {
 	return u.Unwrap()
 }
 
-// IsNetworkError returns true if err is a network error
-func IsNetworkError(err error) bool {
+// errorHasLabel returns true if err contains the specified label
+func errorHasLabel(err error, label string) bool {
 	for ; err != nil; err = unwrap(err) {
 		if e, ok := err.(ServerError); ok {
-			return e.HasErrorLabel("NetworkError")
+			return e.HasErrorLabel(label)
 		}
 	}
 	return false
+}
+
+// IsNetworkError returns true if err is a network error
+func IsNetworkError(err error) bool {
+	return errorHasLabel(err, "NetworkError")
 }
 
 // MongocryptError represents an libmongocrypt error during client-side encryption.
