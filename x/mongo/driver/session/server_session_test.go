@@ -20,7 +20,7 @@ func TestServerSession(t *testing.T) {
 			sess, err := newServerSession()
 			assert.Nil(t, err, "newServerSession error: %v", err)
 
-			// The session should be expired if timeoutMinutes is 0 or if it's last used time is too old.
+			// The session should be expired if timeoutMinutes is 0 or if its last used time is too old.
 			assert.True(t, sess.expired(topologyDescription{}), "expected session to be expired when timeoutMinutes=0")
 			sess.LastUsed = time.Now().Add(-30 * time.Minute)
 			topoDesc := topologyDescription{timeoutMinutes: 30}
