@@ -18,7 +18,9 @@ func TestSessionPool(t *testing.T) {
 	t.Run("TestLifo", func(t *testing.T) {
 		descChan := make(chan description.Topology)
 		p := NewPool(descChan)
-		p.timeout = 30 // Set to some arbitrarily high number greater than 1 minute.
+		p.latestTopology = topologyDescription{
+			timeoutMinutes: 30, // Set to some arbitrarily high number greater than 1 minute.
+		}
 
 		first, err := p.GetSession()
 		assert.Nil(t, err, "GetSession error: %v", err)
@@ -45,8 +47,8 @@ func TestSessionPool(t *testing.T) {
 	t.Run("TestExpiredRemoved", func(t *testing.T) {
 		descChan := make(chan description.Topology)
 		p := NewPool(descChan)
-		// New sessions will always become stale when returned
-		p.timeout = 0
+		// Set timeout minutes to 0 so new sessions will always become stale when returned
+		p.latestTopology = topologyDescription{}
 
 		first, err := p.GetSession()
 		assert.Nil(t, err, "GetSession error: %v", err)
