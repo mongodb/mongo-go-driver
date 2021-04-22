@@ -44,7 +44,11 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 
 	// Check ErrorSubstring for both client and server-side errors.
 	if expected.ErrorSubstring != nil {
-		if !strings.Contains(result.Err.Error(), *expected.ErrorSubstring) {
+		// Lowercase the error messages because Go error messages always start with lowercase letters, so they may
+		// not match the casing used in specs.
+		expectedErrMsg := strings.ToLower(*expected.ErrorSubstring)
+		actualErrMsg := strings.ToLower(result.Err.Error())
+		if !strings.Contains(actualErrMsg, expectedErrMsg) {
 			return fmt.Errorf("expected error %v to contain substring %s", result.Err, *expected.ErrorSubstring)
 		}
 	}
