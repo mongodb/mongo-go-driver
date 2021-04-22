@@ -80,7 +80,8 @@ func TestMongoHelpers(t *testing.T) {
 				{"_id", oid}, {"foo", "bar"},
 				{"baz", "qux"}, {"hello", "world"},
 			}
-			_, wantBSON, _ := bson.MarshalValue(wantDoc)
+			_, wantBSON, err := bson.MarshalValue(wantDoc)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
 			want := bsoncore.Document(wantBSON)
 			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
@@ -90,7 +91,8 @@ func TestMongoHelpers(t *testing.T) {
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(float64)
 			assert.True(t, ok, "expected returned id type %T, got %T", float64(0), id)
-			_, wantBSON, _ := bson.MarshalValue(doc)
+			_, wantBSON, err := bson.MarshalValue(doc)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
 			want := bsoncore.Document(wantBSON)
 			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
@@ -100,7 +102,8 @@ func TestMongoHelpers(t *testing.T) {
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(string)
 			assert.True(t, ok, "expected returned id type string, got %T", id)
-			_, wantBSON, _ := bson.MarshalValue(doc)
+			_, wantBSON, err := bson.MarshalValue(doc)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
 			want := bsoncore.Document(wantBSON)
 			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
@@ -223,10 +226,10 @@ func TestMongoHelpers(t *testing.T) {
 			},
 			{
 				"bsoncodec.ValueMarshaler/UnmarshalBSONValue error",
-				bvMarsh{t: bsontype.Array, err: bsoncore.NewInsufficientBytesError(nil, nil)},
+				bvMarsh{err: errors.New("UnmarshalBSONValue error")},
 				nil,
 				false,
-				bsoncore.NewInsufficientBytesError(nil, nil),
+				errors.New("UnmarshalBSONValue error"),
 			},
 			{
 				"bsoncodec.ValueMarshaler/success",
@@ -234,6 +237,13 @@ func TestMongoHelpers(t *testing.T) {
 				bson.A{
 					bson.D{{"$limit", int32(12345)}},
 				},
+				false,
+				nil,
+			},
+			{
+				"bsoncodec.ValueMarshaler/success nil",
+				bvMarsh{t: bsontype.Array},
+				nil,
 				false,
 				nil,
 			},
@@ -332,7 +342,8 @@ func TestMongoHelpers(t *testing.T) {
 
 				var expected bsoncore.Document
 				if tc.arr != nil {
-					_, expectedBSON, _ := bson.MarshalValue(tc.arr)
+					_, expectedBSON, err := bson.MarshalValue(tc.arr)
+					assert.Nil(t, err, "MarshalValue error: %v", err)
 					expected = bsoncore.Document(expectedBSON)
 				}
 				assert.Equal(t, expected, arr, "expected array %v, got %v", expected, arr)
