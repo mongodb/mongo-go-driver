@@ -139,6 +139,8 @@ func Setup(setupOpts ...*SetupOptions) error {
 		testContext.topoKind = ReplicaSet
 	case description.Sharded:
 		testContext.topoKind = Sharded
+	case description.LoadBalanced:
+		testContext.topoKind = LoadBalanced
 	default:
 		return fmt.Errorf("could not detect topology kind; current topology: %s", testContext.topo.String())
 	}

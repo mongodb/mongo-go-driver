@@ -66,7 +66,7 @@ type entityOptions struct {
 // Accessors are available for the BSON entities.
 type EntityMap struct {
 	allEntities       map[string]struct{}
-	changeStreams     map[string]*mongo.ChangeStream
+	cursorEntities    map[string]cursor
 	clientEntities    map[string]*clientEntity
 	dbEntites         map[string]*mongo.Database
 	collEntities      map[string]*mongo.Collection
@@ -95,7 +95,7 @@ func newEntityMap() *EntityMap {
 		allEntities:       make(map[string]struct{}),
 		gridfsBuckets:     make(map[string]*gridfs.Bucket),
 		bsonValues:        make(map[string]bson.RawValue),
-		changeStreams:     make(map[string]*mongo.ChangeStream),
+		cursorEntities:    make(map[string]cursor),
 		clientEntities:    make(map[string]*clientEntity),
 		collEntities:      make(map[string]*mongo.Collection),
 		dbEntites:         make(map[string]*mongo.Database),
@@ -119,13 +119,13 @@ func (em *EntityMap) addBSONEntity(id string, val bson.RawValue) error {
 	return nil
 }
 
-func (em *EntityMap) addChangeStreamEntity(id string, stream *mongo.ChangeStream) error {
+func (em *EntityMap) addCursorEntity(id string, cursor cursor) error {
 	if err := em.verifyEntityDoesNotExist(id); err != nil {
 		return err
 	}
 
 	em.allEntities[id] = struct{}{}
-	em.changeStreams[id] = stream
+	em.cursorEntities[id] = cursor
 	return nil
 }
 
@@ -240,12 +240,12 @@ func (em *EntityMap) gridFSBucket(id string) (*gridfs.Bucket, error) {
 	return bucket, nil
 }
 
-func (em *EntityMap) changeStream(id string) (*mongo.ChangeStream, error) {
-	client, ok := em.changeStreams[id]
+func (em *EntityMap) cursor(id string) (cursor, error) {
+	cursor, ok := em.cursorEntities[id]
 	if !ok {
-		return nil, newEntityNotFoundError("change stream", id)
+		return nil, newEntityNotFoundError("cursor", id)
 	}
-	return client, nil
+	return cursor, nil
 }
 
 func (em *EntityMap) client(id string) (*clientEntity, error) {
@@ -348,11 +348,18 @@ func (em *EntityMap) close(ctx context.Context) []error {
 	}
 
 	var errs []error
+	for id, cursor := range em.cursorEntities {
+		if err := cursor.Close(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("error closing cursor with ID %q: %v", id, err))
+		}
+	}
+
 	for id, client := range em.clientEntities {
 		if err := client.Disconnect(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
 		}
 	}
+
 	em.setClosed(true)
 	return errs
 }

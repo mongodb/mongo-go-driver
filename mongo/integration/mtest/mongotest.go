@@ -685,12 +685,22 @@ func verifyServerParametersConstraints(serverParameters map[string]bson.RawValue
 	return nil
 }
 
+func verifyAuthConstraint(expected *bool) error {
+	if expected != nil && *expected != testContext.authEnabled {
+		return fmt.Errorf("test requires auth value: %v, cluster auth value: %v", *expected, testContext.authEnabled)
+	}
+	return nil
+}
+
 // verifyRunOnBlockConstraint returns an error if the current environment does not match the provided RunOnBlock.
 func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyVersionConstraints(rob.MinServerVersion, rob.MaxServerVersion); err != nil {
 		return err
 	}
 	if err := verifyTopologyConstraints(rob.Topology); err != nil {
+		return err
+	}
+	if err := verifyAuthConstraint(rob.Auth); err != nil {
 		return err
 	}
 
@@ -706,8 +716,8 @@ func (t *T) verifyConstraints() error {
 	if err := verifyTopologyConstraints(t.validTopologies); err != nil {
 		return err
 	}
-	if t.auth != nil && *t.auth != testContext.authEnabled {
-		return fmt.Errorf("test requires auth value: %v, cluster auth value: %v", *t.auth, testContext.authEnabled)
+	if err := verifyAuthConstraint(t.auth); err != nil {
+		return err
 	}
 	if t.ssl != nil && *t.ssl != testContext.sslEnabled {
 		return fmt.Errorf("test requires ssl value: %v, cluster ssl value: %v", *t.ssl, testContext.sslEnabled)

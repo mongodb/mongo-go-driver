@@ -442,83 +442,35 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 	return newValueResult(bsontype.Int64, bsoncore.AppendInt64(nil, count), nil), nil
 }
 
-func executeFind(ctx context.Context, operation *operation) (*operationResult, error) {
-	coll, err := entities(ctx).collection(operation.Object)
+func executeCreateFindCursor(ctx context.Context, operation *operation) (*operationResult, error) {
+	result, err := createFindCursor(ctx, operation)
 	if err != nil {
 		return nil, err
 	}
-
-	var filter bson.Raw
-	opts := options.Find()
-
-	elems, _ := operation.Arguments.Elements()
-	for _, elem := range elems {
-		key := elem.Key()
-		val := elem.Value()
-
-		switch key {
-		case "allowDiskUse":
-			opts.SetAllowDiskUse(val.Boolean())
-		case "allowPartialResults":
-			opts.SetAllowPartialResults(val.Boolean())
-		case "batchSize":
-			opts.SetBatchSize(val.Int32())
-		case "collation":
-			collation, err := createCollation(val.Document())
-			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %v", err)
-			}
-			opts.SetCollation(collation)
-		case "comment":
-			opts.SetComment(val.StringValue())
-		case "filter":
-			filter = val.Document()
-		case "hint":
-			hint, err := createHint(val)
-			if err != nil {
-				return nil, fmt.Errorf("error creating hint: %v", err)
-			}
-			opts.SetHint(hint)
-		case "limit":
-			opts.SetLimit(int64(val.Int32()))
-		case "max":
-			opts.SetMax(val.Document())
-		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
-		case "min":
-			opts.SetMin(val.Document())
-		case "noCursorTimeout":
-			opts.SetNoCursorTimeout(val.Boolean())
-		case "oplogReplay":
-			opts.SetOplogReplay(val.Boolean())
-		case "projection":
-			opts.SetProjection(val.Document())
-		case "returnKey":
-			opts.SetReturnKey(val.Boolean())
-		case "showRecordId":
-			opts.SetShowRecordID(val.Boolean())
-		case "skip":
-			opts.SetSkip(int64(val.Int32()))
-		case "snapshot":
-			opts.SetSnapshot(val.Boolean())
-		case "sort":
-			opts.SetSort(val.Document())
-		default:
-			return nil, fmt.Errorf("unrecognized find option %q", key)
-		}
-	}
-	if filter == nil {
-		return nil, newMissingArgumentError("filter")
+	if result.err != nil {
+		return newErrorResult(result.err), nil
 	}
 
-	cursor, err := coll.Find(ctx, filter, opts)
+	if operation.ResultEntityID == nil {
+		return nil, fmt.Errorf("no entity name provided to store executeCreateFindCursor result")
+	}
+	if err := entities(ctx).addCursorEntity(*operation.ResultEntityID, result.cursor); err != nil {
+		return nil, fmt.Errorf("error storing result as cursor entity: %v", err)
+	}
+	return newEmptyResult(), nil
+}
+
+func executeFind(ctx context.Context, operation *operation) (*operationResult, error) {
+	result, err := createFindCursor(ctx, operation)
 	if err != nil {
-		return newErrorResult(err), nil
+		return nil, err
 	}
-	defer cursor.Close(ctx)
+	if result.err != nil {
+		return newErrorResult(result.err), nil
+	}
 
 	var docs []bson.Raw
-	if err := cursor.All(ctx, &docs); err != nil {
+	if err := result.cursor.All(ctx, &docs); err != nil {
 		return newErrorResult(err), nil
 	}
 	return newCursorResult(docs), nil
@@ -901,4 +853,86 @@ func buildUpdateResultDocument(res *mongo.UpdateResult) (bsoncore.Document, erro
 		builder.AppendValue("upsertedId", bsoncore.Value{Type: t, Data: data})
 	}
 	return builder.Build(), nil
+}
+
+type cursorResult struct {
+	cursor *mongo.Cursor
+	err    error
+}
+
+func createFindCursor(ctx context.Context, operation *operation) (*cursorResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var filter bson.Raw
+	opts := options.Find()
+
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "allowDiskUse":
+			opts.SetAllowDiskUse(val.Boolean())
+		case "allowPartialResults":
+			opts.SetAllowPartialResults(val.Boolean())
+		case "batchSize":
+			opts.SetBatchSize(val.Int32())
+		case "collation":
+			collation, err := createCollation(val.Document())
+			if err != nil {
+				return nil, fmt.Errorf("error creating collation: %v", err)
+			}
+			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val.StringValue())
+		case "filter":
+			filter = val.Document()
+		case "hint":
+			hint, err := createHint(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating hint: %v", err)
+			}
+			opts.SetHint(hint)
+		case "limit":
+			opts.SetLimit(int64(val.Int32()))
+		case "max":
+			opts.SetMax(val.Document())
+		case "maxTimeMS":
+			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		case "min":
+			opts.SetMin(val.Document())
+		case "noCursorTimeout":
+			opts.SetNoCursorTimeout(val.Boolean())
+		case "oplogReplay":
+			opts.SetOplogReplay(val.Boolean())
+		case "projection":
+			opts.SetProjection(val.Document())
+		case "returnKey":
+			opts.SetReturnKey(val.Boolean())
+		case "showRecordId":
+			opts.SetShowRecordID(val.Boolean())
+		case "skip":
+			opts.SetSkip(int64(val.Int32()))
+		case "snapshot":
+			opts.SetSnapshot(val.Boolean())
+		case "sort":
+			opts.SetSort(val.Document())
+		default:
+			return nil, fmt.Errorf("unrecognized find option %q", key)
+		}
+	}
+	if filter == nil {
+		return nil, newMissingArgumentError("filter")
+	}
+
+	cursor, err := coll.Find(ctx, filter, opts)
+	res := &cursorResult{
+		cursor: cursor,
+		err:    err,
+	}
+	return res, nil
 }
