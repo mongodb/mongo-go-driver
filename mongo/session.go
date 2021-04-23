@@ -193,10 +193,8 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 			default:
 			}
 
-			if cerr, ok := err.(CommandError); ok {
-				if cerr.HasErrorLabel(driver.TransientTransactionError) {
-					continue
-				}
+			if errorHasLabel(err, driver.TransientTransactionError) {
+				continue
 			}
 			return res, err
 		}
