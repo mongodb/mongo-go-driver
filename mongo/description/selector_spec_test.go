@@ -23,6 +23,7 @@ func TestServerSelectionSpec(t *testing.T) {
 		"Sharded",
 		"Single",
 		"Unknown",
+		"LoadBalanced",
 	} {
 		for _, subdir := range [...]string{"read", "write"} {
 			subdirPath := path.Join(topology, subdir)

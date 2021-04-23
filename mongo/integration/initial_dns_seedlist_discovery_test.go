@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	seedlistDiscoveryTestsDir = "../../data/initial-dns-seedlist-discovery"
+	seedlistDiscoveryTestsBaseDir = "../../data/initial-dns-seedlist-discovery"
 )
 
 type seedlistTest struct {
@@ -36,13 +36,22 @@ type seedlistTest struct {
 }
 
 func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
-	mtOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false)
-	mt := mtest.New(t, mtOpts)
+	mt := mtest.New(t, noClientOpts)
 	defer mt.Close()
 
-	for _, file := range jsonFilesInDir(mt, seedlistDiscoveryTestsDir) {
+	mt.RunOpts("replica set", mtest.NewOptions().Topologies(mtest.ReplicaSet), func(mt *mtest.T) {
+		runSeedlistDiscoveryDirectory(mt, "replica-set")
+	})
+	mt.RunOpts("load balanced", mtest.NewOptions().Topologies(mtest.LoadBalanced), func(mt *mtest.T) {
+		runSeedlistDiscoveryDirectory(mt, "load-balanced")
+	})
+}
+
+func runSeedlistDiscoveryDirectory(mt *mtest.T, subdirectory string) {
+	directoryPath := path.Join(seedlistDiscoveryTestsBaseDir, subdirectory)
+	for _, file := range jsonFilesInDir(mt, directoryPath) {
 		mt.RunOpts(file, noClientOpts, func(mt *mtest.T) {
-			runSeedlistDiscoveryTest(mt, path.Join(seedlistDiscoveryTestsDir, file))
+			runSeedlistDiscoveryTest(mt, path.Join(directoryPath, file))
 		})
 	}
 }
@@ -122,6 +131,10 @@ func verifyConnstringOptions(mt *mtest.T, expected bson.Raw, cs connstring.ConnS
 			dc := opt.Boolean()
 			assert.True(mt, cs.DirectConnectionSet, "expected cs.DirectConnectionSet to be true, got false")
 			assert.Equal(mt, dc, cs.DirectConnection, "expected cs.DirectConnection to be %v, got %v", dc, cs.DirectConnection)
+		case "loadBalanced":
+			lb := opt.Boolean()
+			assert.True(mt, cs.LoadBalancedSet, "expected cs.LoadBalancedSet set to be true, got false")
+			assert.Equal(mt, lb, cs.LoadBalanced, "expected cs.LoadBalanced to be %v, got %v", lb, cs.LoadBalanced)
 		default:
 			mt.Fatalf("unrecognized connstring option %v", key)
 		}
