@@ -14,19 +14,25 @@ import (
 
 type monitoringEventType string
 
+// monitoringEventTypes poolReadyEvent and connectionCheckOutStartedEvent are included
+// to support logging in the atlas planned maintenance executor, which stores events
+// without making assertions on them. The matching published event types will be
+// created in GODRIVER-1827
 const (
-	commandStartedEvent           monitoringEventType = "CommandStartedEvent"
-	commandSucceededEvent         monitoringEventType = "CommandSucceededEvent"
-	commandFailedEvent            monitoringEventType = "CommandFailedEvent"
-	poolCreatedEvent              monitoringEventType = "PoolCreatedEvent"
-	poolClearedEvent              monitoringEventType = "PoolClearedEvent"
-	poolClosedEvent               monitoringEventType = "PoolClosedEvent"
-	connectionCreatedEvent        monitoringEventType = "ConnectionCreatedEvent"
-	connectionReadyEvent          monitoringEventType = "ConnectionReadyEvent"
-	connectionClosedEvent         monitoringEventType = "ConnectionClosedEvent"
-	connectionCheckOutFailedEvent monitoringEventType = "ConnectionCheckOutFailedEvent"
-	connectionCheckedOutEvent     monitoringEventType = "ConnectionCheckedOutEvent"
-	connectionCheckedInEvent      monitoringEventType = "ConnectionCheckedInEvent"
+	commandStartedEvent            monitoringEventType = "CommandStartedEvent"
+	commandSucceededEvent          monitoringEventType = "CommandSucceededEvent"
+	commandFailedEvent             monitoringEventType = "CommandFailedEvent"
+	poolCreatedEvent               monitoringEventType = "PoolCreatedEvent"
+	poolReadyEvent                 monitoringEventType = "PoolReadyEvent"
+	poolClearedEvent               monitoringEventType = "PoolClearedEvent"
+	poolClosedEvent                monitoringEventType = "PoolClosedEvent"
+	connectionCreatedEvent         monitoringEventType = "ConnectionCreatedEvent"
+	connectionReadyEvent           monitoringEventType = "ConnectionReadyEvent"
+	connectionClosedEvent          monitoringEventType = "ConnectionClosedEvent"
+	connectionCheckOutStartedEvent monitoringEventType = "ConnectionCheckOutStartedEvent"
+	connectionCheckOutFailedEvent  monitoringEventType = "ConnectionCheckOutFailedEvent"
+	connectionCheckedOutEvent      monitoringEventType = "ConnectionCheckedOutEvent"
+	connectionCheckedInEvent       monitoringEventType = "ConnectionCheckedInEvent"
 )
 
 func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) {
@@ -39,6 +45,8 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 		return commandFailedEvent, true
 	case "poolcreatedevent":
 		return poolCreatedEvent, true
+	case "poolreadyevent":
+		return poolReadyEvent, true
 	case "poolclearedevent":
 		return poolClearedEvent, true
 	case "poolclosedevent":
@@ -49,6 +57,8 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 		return connectionReadyEvent, true
 	case "connectionclosedevent":
 		return connectionClosedEvent, true
+	case "connectioncheckoutstartedevent":
+		return connectionCheckOutStartedEvent, true
 	case "connectioncheckoutfailedevent":
 		return connectionCheckOutFailedEvent, true
 	case "connectioncheckedoutevent":
@@ -61,6 +71,7 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 }
 
 func monitoringEventTypeFromPoolEvent(evt *event.PoolEvent) monitoringEventType {
+	// TODO GODRIVER-1827: add storePoolReady and storeConnectionCheckOutStarted events
 	switch evt.Type {
 	case event.PoolCreated:
 		return poolCreatedEvent
