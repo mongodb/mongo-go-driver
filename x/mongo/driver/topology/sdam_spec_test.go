@@ -347,12 +347,12 @@ func getError(rdr bsoncore.Document) error {
 			}
 		case "errorLabels":
 			if arr, okay := elem.Value().ArrayOK(); okay {
-				elems, err := arr.Elements()
+				vals, err := arr.Values()
 				if err != nil {
 					continue
 				}
-				for _, elem := range elems {
-					if str, ok := elem.Value().StringValueOK(); ok {
+				for _, val := range vals {
+					if str, ok := val.StringValueOK(); ok {
 						labels = append(labels, str)
 					}
 				}
@@ -404,12 +404,12 @@ func getError(rdr bsoncore.Document) error {
 				copy(wcError.WriteConcernError.Details, info)
 			}
 			if errLabels, exists := doc.Lookup("errorLabels").ArrayOK(); exists {
-				elems, err := errLabels.Elements()
+				vals, err := errLabels.Values()
 				if err != nil {
 					continue
 				}
-				for _, elem := range elems {
-					if str, ok := elem.Value().StringValueOK(); ok {
+				for _, val := range vals {
+					if str, ok := val.StringValueOK(); ok {
 						labels = append(labels, str)
 					}
 				}
