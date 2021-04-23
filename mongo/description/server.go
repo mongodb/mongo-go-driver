@@ -266,6 +266,10 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				desc.LastError = err
 				return desc
 			}
+
+			if internal.SetServiceID {
+				desc.ServiceID = &desc.TopologyVersion.ProcessID
+			}
 		}
 	}
 

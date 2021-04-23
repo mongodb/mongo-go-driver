@@ -9,7 +9,6 @@ package unified
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -57,10 +56,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	// Construct a ClientOptions instance by first applying the cluster URI and then the URIOptions map to ensure that
 	// the options specified in the test file take precedence.
-	uri, err := getURIForClient(entityOptions)
-	if err != nil {
-		return nil, err
-	}
+	uri := getURIForClient(entityOptions)
 	clientOpts := options.Client().ApplyURI(uri)
 	if entityOptions.URIOptions != nil {
 		if err := setClientOptionsFromURIOptions(clientOpts, entityOptions.URIOptions); err != nil {
@@ -126,26 +122,19 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	return entity, nil
 }
 
-func getURIForClient(opts *entityOptions) (string, error) {
+func getURIForClient(opts *entityOptions) string {
 	if mtest.ClusterTopologyKind() != mtest.LoadBalanced {
-		return mtest.ClusterURI(), nil
+		return mtest.ClusterURI()
 	}
 
-	// For load-balanced deployments, UseMultipleMongoses is used to determine the load balancer URI. If set to
-	// false, the LB fronts a single server. If unset or explicitly true, the LB fronts multiple mongos servers.
-	var uriEnvVar string
+	// For load-balanced deployments, UseMultipleMongoses is used to determine the load balancer URI. If set to false,
+	// the LB fronts a single server. If unset or explicitly true, the LB fronts multiple mongos servers.
 	switch {
 	case opts.UseMultipleMongoses != nil && !*opts.UseMultipleMongoses:
-		uriEnvVar = "SINGLE_MONGOS_LB_URI"
+		return mtest.SingleMongosLoadBalancerURI()
 	default:
-		uriEnvVar = "MULTI_MONGOS_LB_URI"
+		return mtest.MultiMongosLoadBalancerURI()
 	}
-
-	uri := os.Getenv(uriEnvVar)
-	if uri == "" {
-		return "", fmt.Errorf("expected load balancer URI to be in environment variable %q, but is not set", uriEnvVar)
-	}
-	return uri, nil
 }
 
 func (c *clientEntity) stopListeningForEvents() {
@@ -344,8 +333,14 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 
 	for key, value := range uriOpts {
 		switch key {
+		case "appname":
+			clientOpts.SetAppName(value.(string))
 		case "heartbeatFrequencyMS":
 			clientOpts.SetHeartbeatInterval(time.Duration(value.(int32)) * time.Millisecond)
+		case "loadBalanced":
+			clientOpts.SetLoadBalanced(value.(bool))
+		case "maxPoolSize":
+			clientOpts.SetMaxPoolSize(uint64(value.(int32)))
 		case "readConcernLevel":
 			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(value.(string))))
 		case "retryReads":
@@ -355,6 +350,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 		case "w":
 			wc.W = value
 			wcSet = true
+		case "waitQueueTimeoutMS":
+			return newSkipTestError("the waitQueueTimeoutMS client option is not supported")
 		default:
 			return fmt.Errorf("unrecognized URI option %s", key)
 		}

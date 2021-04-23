@@ -748,6 +748,38 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 	return newDocumentResult(raw, err), nil
 }
 
+func executeListIndexes(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := options.ListIndexes()
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "batchSize":
+			opts.SetBatchSize(val.Int32())
+		default:
+			return nil, fmt.Errorf("unrecognized listIndexes option: %q", key)
+		}
+	}
+
+	cursor, err := coll.Indexes().List(ctx, opts)
+	if err != nil {
+		return newErrorResult(err), nil
+	}
+
+	var docs []bson.Raw
+	if err := cursor.All(ctx, &docs); err != nil {
+		return newErrorResult(err), nil
+	}
+	return newCursorResult(docs), nil
+}
+
 func executeReplaceOne(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {

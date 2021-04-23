@@ -20,6 +20,7 @@ var (
 		"crud/unified",
 		"change-streams/unified",
 		"transactions/unified",
+		"load-balancers",
 	}
 )
 
