@@ -43,15 +43,17 @@ var testContext struct {
 	// shardedReplicaSet will be true if we're connected to a sharded cluster and each shard is backed by a replica set.
 	// We track this as a separate boolean rather than setting topoKind to ShardedReplicaSet because a general
 	// "Sharded" constraint in a test should match both Sharded and ShardedReplicaSet.
-	shardedReplicaSet bool
-	client            *mongo.Client // client used for setup and teardown
-	serverVersion     string
-	authEnabled       bool
-	sslEnabled        bool
-	enterpriseServer  bool
-	dataLake          bool
-	requireAPIVersion bool
-	serverParameters  bson.Raw
+	shardedReplicaSet           bool
+	client                      *mongo.Client // client used for setup and teardown
+	serverVersion               string
+	authEnabled                 bool
+	sslEnabled                  bool
+	enterpriseServer            bool
+	dataLake                    bool
+	requireAPIVersion           bool
+	serverParameters            bson.Raw
+	singleMongosLoadBalancerURI string
+	multiMongosLoadBalancerURI  string
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
@@ -75,7 +77,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 	case opts.URI != nil:
 		testContext.connString, err = connstring.ParseAndValidate(*opts.URI)
 	default:
-		testContext.connString, err = getConnString()
+		testContext.connString, err = getClusterConnString()
 	}
 	if err != nil {
 		return fmt.Errorf("error getting connection string: %v", err)
@@ -186,6 +188,20 @@ func Setup(setupOpts ...*SetupOptions) error {
 		}
 	}
 
+	if testContext.topoKind == LoadBalanced {
+		singleMongosURI := os.Getenv("SINGLE_MONGOS_LB_URI")
+		if singleMongosURI == "" {
+			return errors.New("SINGLE_MONGOS_LB_URI must be set when running against load balanced clusters")
+		}
+		testContext.singleMongosLoadBalancerURI = addNecessaryParamsToURI(singleMongosURI)
+
+		multiMongosURI := os.Getenv("MULTI_MONGOS_LB_URI")
+		if multiMongosURI == "" {
+			return errors.New("MULTI_MONGOS_LB_URI must be set when running against load balanced clusters")
+		}
+		testContext.multiMongosLoadBalancerURI = addNecessaryParamsToURI(multiMongosURI)
+	}
+
 	testContext.authEnabled = os.Getenv("AUTH") == "auth"
 	testContext.sslEnabled = os.Getenv("SSL") == "ssl"
 	biRes, err := testContext.client.Database("admin").RunCommand(Background, bson.D{{"buildInfo", 1}}).DecodeBytes()
@@ -292,15 +308,19 @@ func addCompressors(uri string) string {
 	return addOptions(uri, "compressors=", comp)
 }
 
-// ConnString gets the globally configured connection string.
-func getConnString() (connstring.ConnString, error) {
+// getClusterConnString gets the globally configured connection string.
+func getClusterConnString() (connstring.ConnString, error) {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
 		uri = "mongodb://localhost:27017"
 	}
-	uri = addTLSConfig(uri)
-	uri = addCompressors(uri)
+	uri = addNecessaryParamsToURI(uri)
 	return connstring.ParseAndValidate(uri)
+}
+
+func addNecessaryParamsToURI(uri string) string {
+	uri = addTLSConfig(uri)
+	return addCompressors(uri)
 }
 
 // CompareServerVersions compares two version number strings (i.e. positive integers separated by

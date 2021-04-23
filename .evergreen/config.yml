@@ -518,6 +518,33 @@ functions:
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
+  run-load-balancer-tests:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+
+          if [ ${SSL} = "ssl" ]; then
+              export MONGO_GO_DRIVER_CA_FILE="$PROJECT_DIRECTORY/data/certificates/ca.pem"
+              if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
+                  export MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
+              fi
+          fi
+
+          export GOFLAGS=-mod=vendor
+          set +o xtrace
+          AUTH="${AUTH}" \
+          SSL="${SSL}" \
+          MONGODB_URI="${SINGLE_MONGOS_LB_URI}" \
+          SINGLE_MONGOS_LB_URI="${SINGLE_MONGOS_LB_URI}" \
+          MULTI_MONGOS_LB_URI="${MULTI_MONGOS_LB_URI}" \
+          TOPOLOGY="${TOPOLOGY}" \
+          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
+          BUILD_TAGS="-tags cse" \
+          make evg-test-load-balancers
+
   run-atlas-data-lake-test:
     - command: shell.exec
       type: test
@@ -611,6 +638,21 @@ functions:
           -p 8100 \
           -v \
           --fault revoked
+
+  run-load-balancer:
+    - command: shell.exec
+      params:
+        script: |
+          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh start
+    - command: expansions.update
+      params:
+        file: lb-expansion.yml
+
+  stop-load-balancer:
+    - command: shell.exec
+      params:
+        script: |
+          DRIVERS_TOOLS=${DRIVERS_TOOLS} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop
 
   add-aws-auth-variables-to-file:
     - command: shell.exec
@@ -866,6 +908,7 @@ post:
       files:
         - "src/go.mongodb.org/mongo-driver/*.suite"
   - func: upload-mo-artifacts
+  - func: stop-load-balancer
   - func: cleanup
 
 tasks:
@@ -1378,6 +1421,28 @@ tasks:
     commands:
       - func: bootstrap-mongohoused
       - func: run-atlas-data-lake-test
+
+  - name: test-load-balancer-noauth-nossl
+    tags: ["load-balancer"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: run-load-balancer
+      - func: run-load-balancer-tests
+
+  - name: test-load-balancer-auth-ssl
+    tags: ["load-balancer"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "ssl"
+      - func: run-load-balancer
+      - func: run-load-balancer-tests
 
   - name: test-replicaset-noauth-nossl
     tags: ["test", "replicaset"]
@@ -1968,6 +2033,12 @@ buildvariants:
     display_name: "API Version ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
+
+  - matrix_name: "load-balancer-test"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-15"] }
+    display_name: "Load Balancer Version ${os-ssl-40}"
+    tasks:
+      - name: ".load-balancer"
 
   - matrix_name: "kms-tls-test"
     matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-15"] }

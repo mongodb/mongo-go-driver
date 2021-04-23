@@ -9,12 +9,22 @@ package integration
 import (
 	"log"
 	"os"
+	"strings"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
 
 func TestMain(m *testing.M) {
+	// If the cluster is behind a load balancer, enable the SetServiceID flag to mock server-side LB support.
+	if strings.Contains(os.Getenv("MONGODB_URI"), "loadBalanced=true") {
+		internal.SetServiceID = true
+		defer func() {
+			internal.SetServiceID = false
+		}()
+	}
+
 	if err := mtest.Setup(); err != nil {
 		log.Fatal(err)
 	}
