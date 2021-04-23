@@ -19,6 +19,7 @@ var (
 		"versioned-api",
 		"crud/unified",
 		"change-streams/unified",
+		"transactions/unified",
 	}
 )
 
