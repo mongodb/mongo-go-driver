@@ -117,13 +117,13 @@ cur, err := collection.Find(ctx, bson.D{})
 if err != nil { log.Fatal(err) }
 defer cur.Close(ctx)
 for cur.Next(ctx) {
-   var result bson.D
-   err := cur.Decode(&result)
-   if err != nil { log.Fatal(err) }
-   // do something with result....
+    var result bson.D
+    err := cur.Decode(&result)
+    if err != nil { log.Fatal(err) }
+    // do something with result....
 }
 if err := cur.Err(); err != nil {
-  log.Fatal(err)
+    log.Fatal(err)
 }
 ```
 
@@ -137,13 +137,11 @@ filter := bson.D{{"name", "pi"}}
 ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
 err = collection.FindOne(ctx, filter).Decode(&result)
-if err != nil {
-  if err == mongo.ErrNoDocuments {
+if err == mongo.ErrNoDocuments {
     // Do something when no record was found
     fmt.Println("record does not exist")
-  } else {
+} else if err != nil {
     log.Fatal(err)
-  }
 }
 // Do something with result...
 ```
