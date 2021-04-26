@@ -176,16 +176,6 @@ func Setup(setupOpts ...*SetupOptions) error {
 		}
 	}
 
-	if testContext.topoKind == ReplicaSet && CompareServerVersions(testContext.serverVersion, "4.0") >= 0 {
-		err = testContext.client.Database("admin").RunCommand(Background, bson.D{
-			{"setParameter", 1},
-			{"transactionLifetimeLimitSeconds", 3},
-		}).Err()
-		if err != nil {
-			return fmt.Errorf("error setting transactionLifetimeLimitSeconds: %v", err)
-		}
-	}
-
 	testContext.authEnabled = os.Getenv("AUTH") == "auth"
 	testContext.sslEnabled = os.Getenv("SSL") == "ssl"
 	biRes, err := testContext.client.Database("admin").RunCommand(Background, bson.D{{"buildInfo", 1}}).DecodeBytes()
