@@ -289,10 +289,12 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 
 		cs, err := connstring.ParseAndValidate(uri)
 		assert.Nil(t, err, "connstring.ParseAndValidate error: %v", err)
+		cs.LoadBalancedSet = true
+		cs.LoadBalanced = true
+
 		topo, err := New(
 			WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
 			WithURI(func(string) string { return cs.Original }),
-			WithLoadBalanced(func(bool) bool { return true }),
 		)
 		assert.Nil(t, err, "topology.New error: %v", err)
 		return topo
@@ -311,11 +313,12 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 			LookupTXT: mockResolver.LookupTXT,
 		}
 
-		topo := createLBTopology(t, "mongodb+srv://test3.test.build.10gen.cc/?loadBalanced=true")
+		topo := createLBTopology(t, "mongodb+srv://test3.test.build.10gen.cc")
 		topo.dnsResolver = dnsResolver
 		topo.rescanSRVInterval = time.Millisecond * 5
 		err := topo.Connect()
 		assert.Nil(t, err, "Connect error: %v", err)
+		defer topo.Disconnect(context.Background())
 
 		// Wait for 2*rescanInterval and assert that polling was not done and the final host list only contains the
 		// original host.
