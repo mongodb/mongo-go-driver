@@ -39,10 +39,10 @@ func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 	defer mt.Close()
 
-	mt.RunOpts("replica set", mtest.NewOptions().Topologies(mtest.ReplicaSet), func(mt *mtest.T) {
+	mt.RunOpts("replica set", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
 		runSeedlistDiscoveryDirectory(mt, "replica-set")
 	})
-	mt.RunOpts("load balanced", mtest.NewOptions().Topologies(mtest.LoadBalanced), func(mt *mtest.T) {
+	mt.RunOpts("load balanced", mtest.NewOptions().Topologies(mtest.LoadBalanced).CreateClient(false), func(mt *mtest.T) {
 		runSeedlistDiscoveryDirectory(mt, "load-balanced")
 	})
 }
