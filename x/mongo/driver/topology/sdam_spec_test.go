@@ -568,7 +568,7 @@ func runTest(t *testing.T, directory string, filename string) {
 
 // Test case for all SDAM spec tests.
 func TestSDAMSpec(t *testing.T) {
-	for _, subdir := range []string{"single", "rs", "sharded", "errors", "monitoring"} {
+	for _, subdir := range []string{"single", "rs", "sharded", "load-balanced", "errors", "monitoring"} {
 		for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(testsDir, subdir)) {
 			runTest(t, subdir, file)
 		}

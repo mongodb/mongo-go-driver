@@ -4,7 +4,7 @@ schemaVersion: "1.1"
 
 runOnRequirements:
   - minServerVersion: "4.9"
-    topologies: [ replicaset, sharded-replicaset ]
+    topologies: [ replicaset, sharded-replicaset, load-balanced ]
 
 createEntities:
   - client:
@@ -50,7 +50,7 @@ initialData:
 tests:
   - description: "Only the first command in a transaction declares an API version"
     runOnRequirements:
-      - topologies: [ replicaset, sharded-replicaset ]
+      - topologies: [ replicaset, sharded-replicaset, load-balanced ]
     operations:
       - name: startTransaction
         object: *session
@@ -91,7 +91,7 @@ tests:
                 <<: *noApiVersion
   - description: "Committing a transaction twice does not append server API options"
     runOnRequirements:
-      - topologies: [ replicaset, sharded-replicaset ]
+      - topologies: [ replicaset, sharded-replicaset, load-balanced ]
     operations:
       - name: startTransaction
         object: *session
@@ -139,7 +139,7 @@ tests:
                 <<: *noApiVersion
   - description: "abortTransaction does not include an API version"
     runOnRequirements:
-      - topologies: [ replicaset, sharded-replicaset ]
+      - topologies: [ replicaset, sharded-replicaset, load-balanced ]
     operations:
       - name: startTransaction
         object: *session

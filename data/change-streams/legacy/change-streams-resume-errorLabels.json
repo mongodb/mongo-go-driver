@@ -18,7 +18,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -111,7 +112,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -204,7 +206,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -297,7 +300,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -390,7 +394,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -483,7 +488,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -576,7 +582,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -669,7 +676,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -762,7 +770,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -855,7 +864,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -948,7 +958,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -1041,7 +1052,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -1134,7 +1146,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -1227,7 +1240,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -1320,7 +1334,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -1413,7 +1428,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -1512,7 +1528,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},
@@ -1608,7 +1625,8 @@
       "target": "collection",
       "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ],
       "changeStreamPipeline": [],
       "changeStreamOptions": {},

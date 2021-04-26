@@ -281,16 +281,53 @@ func TestPollSRVRecords(t *testing.T) {
 		}
 		_ = topo.Disconnect(context.Background())
 	})
-	t.Run("polling is not required for load balanced clusters", func(t *testing.T) {
-		cs, err := connstring.ParseAndValidate("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
+}
+
+func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
+	createLBTopology := func(t *testing.T, uri string) *Topology {
+		t.Helper()
+
+		cs, err := connstring.ParseAndValidate(uri)
 		assert.Nil(t, err, "connstring.ParseAndValidate error: %v", err)
+		cs.LoadBalancedSet = true
+		cs.LoadBalanced = true
 
 		topo, err := New(
 			WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
 			WithURI(func(string) string { return cs.Original }),
-			WithLoadBalanced(func(bool) bool { return true }),
 		)
 		assert.Nil(t, err, "topology.New error: %v", err)
+		return topo
+	}
+
+	t.Run("pollingRequired is set to false", func(t *testing.T) {
+		topo := createLBTopology(t, "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
 		assert.False(t, topo.pollingRequired, "expected SRV polling to not be required, but it is")
+	})
+
+	t.Run("new records are not detected", func(t *testing.T) {
+		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}}
+		mockResolver := newMockResolver(recordsToAdd, nil, false, false)
+		dnsResolver := &dns.Resolver{
+			LookupSRV: mockResolver.LookupSRV,
+			LookupTXT: mockResolver.LookupTXT,
+		}
+
+		topo := createLBTopology(t, "mongodb+srv://test3.test.build.10gen.cc")
+		topo.dnsResolver = dnsResolver
+		topo.rescanSRVInterval = time.Millisecond * 5
+		err := topo.Connect()
+		assert.Nil(t, err, "Connect error: %v", err)
+		defer func() {
+			_ = topo.Disconnect(context.Background())
+		}()
+
+		// Wait for 2*rescanInterval and assert that polling was not done and the final host list only contains the
+		// original host.
+		time.Sleep(2 * topo.rescanSRVInterval)
+		lookupCalledTimes := atomic.LoadInt32(&mockResolver.ranLookup)
+		assert.Equal(t, int32(0), lookupCalledTimes, "expected SRV lookup to occur 0 times, got %d", lookupCalledTimes)
+		expectedHosts := []string{"localhost.test.build.10gen.cc:27017"}
+		compareHosts(t, topo.Description().Servers, expectedHosts)
 	})
 }

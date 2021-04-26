@@ -60,7 +60,9 @@ type readPref struct {
 	TagSets      []map[string]string `json:"tag_sets"`
 }
 
-func topologyKindFromString(s string) TopologyKind {
+func topologyKindFromString(t *testing.T, s string) TopologyKind {
+	t.Helper()
+
 	switch s {
 	case "Single":
 		return Single
@@ -72,12 +74,20 @@ func topologyKindFromString(s string) TopologyKind {
 		return ReplicaSetWithPrimary
 	case "Sharded":
 		return Sharded
+	case "LoadBalanced":
+		return LoadBalanced
+	case "Unknown":
+		return Unknown
+	default:
+		t.Fatalf("unrecognized topology kind: %q", s)
 	}
 
 	return Unknown
 }
 
-func serverKindFromString(s string) ServerKind {
+func serverKindFromString(t *testing.T, s string) ServerKind {
+	t.Helper()
+
 	switch s {
 	case "Standalone":
 		return Standalone
@@ -93,6 +103,13 @@ func serverKindFromString(s string) ServerKind {
 		return RSGhost
 	case "Mongos":
 		return Mongos
+	case "LoadBalancer":
+		return LoadBalancer
+	case "PossiblePrimary", "Unknown":
+		// Go does not have a PossiblePrimary server type and per the SDAM spec, this type is synonymous with Unknown.
+		return Unknown
+	default:
+		t.Fatalf("unrecognized server kind: %q", s)
 	}
 
 	return Unknown
@@ -151,7 +168,7 @@ func selectServers(t *testing.T, test *testCase) error {
 	for _, serverDescription := range test.TopologyDescription.Servers {
 		server := Server{
 			Addr: address.Address(serverDescription.Address),
-			Kind: serverKindFromString(serverDescription.Type),
+			Kind: serverKindFromString(t, serverDescription.Type),
 		}
 
 		if serverDescription.AverageRTTMS != nil {
@@ -197,7 +214,7 @@ func selectServers(t *testing.T, test *testCase) error {
 	}
 
 	c := Topology{
-		Kind:    topologyKindFromString(test.TopologyDescription.Type),
+		Kind:    topologyKindFromString(t, test.TopologyDescription.Type),
 		Servers: servers,
 	}
 
