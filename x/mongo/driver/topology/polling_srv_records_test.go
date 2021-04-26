@@ -318,7 +318,9 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 		topo.rescanSRVInterval = time.Millisecond * 5
 		err := topo.Connect()
 		assert.Nil(t, err, "Connect error: %v", err)
-		defer topo.Disconnect(context.Background())
+		defer func() {
+			_ = topo.Disconnect(context.Background())
+		}()
 
 		// Wait for 2*rescanInterval and assert that polling was not done and the final host list only contains the
 		// original host.
