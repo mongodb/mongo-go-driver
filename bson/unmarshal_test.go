@@ -95,18 +95,17 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 }
 
 func TestUnmarshalExtJSONWithContext(t *testing.T) {
-	t.Run("UnmarshalExtJSONWithContext", func(t *testing.T) {
-		type teststruct struct{ Foo int }
-		var got teststruct
-		data := []byte("{\"foo\":1}")
-		dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
-		err := UnmarshalExtJSONWithContext(dc, data, true, &got)
-		noerr(t, err)
-		want := teststruct{1}
-		if !cmp.Equal(got, want) {
-			t.Errorf("Did not unmarshal as expected. got %v; want %v", got, want)
-		}
-	})
+	for _, tc := range unmarshalingExtTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := reflect.New(tc.sType).Interface()
+			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+			err := UnmarshalExtJSONWithContext(dc, tc.data, true, got)
+			noerr(t, err)
+			if !cmp.Equal(got, tc.want) {
+				t.Errorf("Did not unmarshal as expected. got %+v; want %+v", got, tc.want)
+			}
+		})
+	}
 }
 
 func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {

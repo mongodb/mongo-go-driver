@@ -101,6 +101,26 @@ func TestJsonScannerValidInputs(t *testing.T) {
 			tokens: []jsonToken{{t: jttString, v: "\"\\/\b\f\n\r\t"}},
 		},
 		{
+			desc:   "valid string--surrogate pair",
+			input:  `"abc \uD834\uDd1e 123"`,
+			tokens: []jsonToken{{t: jttString, v: "abc 𝄞 123"}},
+		},
+		{
+			desc:   "valid string--high surrogate at end of string",
+			input:  `"abc \uD834"`,
+			tokens: []jsonToken{{t: jttString, v: "abc �"}},
+		},
+		{
+			desc:   "valid string--low surrogate at end of string",
+			input:  `"abc \uDD1E"`,
+			tokens: []jsonToken{{t: jttString, v: "abc �"}},
+		},
+		{
+			desc:   "valid string--high surrogate with non-surrogate unicode value",
+			input:  `"abc \uDD1E\u00BF"`,
+			tokens: []jsonToken{{t: jttString, v: "abc �¿"}},
+		},
+		{
 			desc: "valid literal--true", input: "true",
 			tokens: []jsonToken{{t: jttBool, v: true}},
 		},
@@ -280,28 +300,28 @@ func TestJsonScannerValidInputs(t *testing.T) {
 
 			for _, token := range tc.tokens {
 				c, err := js.nextToken()
+				expectNoError(t, err, tc.desc)
 				jttDiff(t, token.t, c.t, tc.desc)
 				jtvDiff(t, token.v, c.v, tc.desc)
-				expectNoError(t, err, tc.desc)
 			}
 
 			c, err := js.nextToken()
-			jttDiff(t, jttEOF, c.t, tc.desc)
 			noerr(t, err)
+			jttDiff(t, jttEOF, c.t, tc.desc)
 
 			// testing early EOF reading
 			js = &jsonScanner{r: iotest.DataErrReader(strings.NewReader(tc.input))}
 
 			for _, token := range tc.tokens {
 				c, err := js.nextToken()
+				expectNoError(t, err, tc.desc)
 				jttDiff(t, token.t, c.t, tc.desc)
 				jtvDiff(t, token.v, c.v, tc.desc)
-				expectNoError(t, err, tc.desc)
 			}
 
 			c, err = js.nextToken()
-			jttDiff(t, jttEOF, c.t, tc.desc)
 			noerr(t, err)
+			jttDiff(t, jttEOF, c.t, tc.desc)
 		})
 	}
 }
