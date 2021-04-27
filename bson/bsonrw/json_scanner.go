@@ -248,7 +248,10 @@ func (js *jsonScanner) scanString() (*jsonToken, error) {
 				if utf16.IsSurrogate(rn) {
 					c, err = js.readNextByte()
 					if err != nil {
-						return nil, errors.New("end of input in JSON string")
+						if err == io.EOF {
+							return nil, errors.New("end of input in JSON string")
+						}
+						return nil, err
 					}
 
 					// If the next value isn't the beginning of a backslash escape sequence, write the
@@ -260,7 +263,10 @@ func (js *jsonScanner) scanString() (*jsonToken, error) {
 
 					c, err = js.readNextByte()
 					if err != nil {
-						return nil, errors.New("end of input in JSON string")
+						if err == io.EOF {
+							return nil, errors.New("end of input in JSON string")
+						}
+						return nil, err
 					}
 
 					// If the next value isn't the beginning of a unicode escape sequence, write the
