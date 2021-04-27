@@ -12,6 +12,7 @@ import (
 	"io"
 	"math/rand"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -368,6 +369,40 @@ func TestGridFS(x *testing.T) {
 
 			_, err = bucket.OpenDownloadStream(oid)
 			assert.Equal(mt, gridfs.ErrMissingChunkSize, err, "expected error %v, got %v", gridfs.ErrMissingChunkSize, err)
+		})
+		mt.Run("cursor error during read after downloading", func(mt *mtest.T) {
+			// To simulate a cursor error we upload a file larger than the 16MB default batch size,
+			// so Read() will actually execute a getMore against the server. Since the ReadDeadline is
+			// set in the past, this should cause a timeout.
+
+			// Create file to upload.
+			fileName := "read-error-test"
+			fileData := make([]byte, 17000000)
+
+			// Create bucket.
+			bucket, err := gridfs.NewBucket(mt.DB)
+			assert.Nil(mt, err, "NewBucket error: %v", err)
+			defer func() { _ = bucket.Drop() }()
+
+			// Open data reader from file and upload to bucket.
+			dataReader := bytes.NewReader(fileData)
+			_, err = bucket.UploadFromStream(fileName, dataReader)
+			assert.Nil(mt, err, "UploadFromStream error: %v", err)
+
+			// Open a download stream to fileName.
+			ds, err := bucket.OpenDownloadStreamByName(fileName)
+			assert.Nil(mt, err, "OpenDownloadStreamByName error: %v", err)
+
+			// Set a read deadline in the past to cause a timeout.
+			err = ds.SetReadDeadline(time.Now().Add(-1 * time.Second))
+			assert.Nil(mt, err, "SetReadDeadline error: %v", err)
+
+			// Try to read.
+			p := make([]byte, 17000000)
+			_, err = ds.Read(p)
+			assert.NotNil(mt, err, "expected error from Read, got nil")
+			assert.True(mt, strings.Contains(err.Error(), "context deadline exceeded"),
+				"expected error to contain 'context deadline exceeded', got %v", err.Error())
 		})
 	})
 
