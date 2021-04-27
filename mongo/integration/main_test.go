@@ -19,9 +19,9 @@ import (
 func TestMain(m *testing.M) {
 	// If the cluster is behind a load balancer, enable the SetServiceID flag to mock server-side LB support.
 	if strings.Contains(os.Getenv("MONGODB_URI"), "loadBalanced=true") {
-		internal.SetServiceID = true
+		internal.SetMockServiceID = true
 		defer func() {
-			internal.SetServiceID = false
+			internal.SetMockServiceID = false
 		}()
 	}
 

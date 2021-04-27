@@ -75,7 +75,7 @@ func TestLoadBalancerSupport(t *testing.T) {
 				_ = cursor.Close(mtest.Background)
 			}()
 
-			ctx, cancel := context.WithTimeout(mtest.Background, 50*time.Millisecond)
+			ctx, cancel := context.WithTimeout(mtest.Background, 5*time.Millisecond)
 			defer cancel()
 			_, err = mt.Coll.InsertOne(ctx, bson.M{"x": 1})
 			assertErrorHasInfo(mt, err, 1, 0, 0)
@@ -92,7 +92,7 @@ func TestLoadBalancerSupport(t *testing.T) {
 			_, err = mt.Coll.InsertOne(sessCtx, bson.M{"x": 1})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 
-			ctx, cancel := context.WithTimeout(mtest.Background, 50*time.Millisecond)
+			ctx, cancel := context.WithTimeout(mtest.Background, 5*time.Millisecond)
 			defer cancel()
 			_, err = mt.Coll.InsertOne(ctx, bson.M{"x": 1})
 			assertErrorHasInfo(mt, err, 0, 1, 0)

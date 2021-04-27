@@ -267,7 +267,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				return desc
 			}
 
-			if internal.SetServiceID {
+			if internal.SetMockServiceID {
 				desc.ServiceID = &desc.TopologyVersion.ProcessID
 			}
 		}
