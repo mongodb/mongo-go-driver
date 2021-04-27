@@ -93,6 +93,23 @@ tests:
       - *abortTransaction
       - *assertNoPinnedServer
 
+  - description: unpin after non-transient error on abort
+    operations:
+      - *startTransaction
+      - *insertOne
+      - name: targetedFailPoint
+        object: testRunner
+        arguments:
+          session: *session0
+          failPoint:
+            configureFailPoint: failCommand
+            mode: { times: 1 }
+            data:
+              failCommands: [ abortTransaction ]
+              errorCode: 91 # ShutdownInProgress
+      - *abortTransaction
+      - *assertNoPinnedServer
+
   - description: unpin when a new transaction is started
     operations:
       - *startTransaction
