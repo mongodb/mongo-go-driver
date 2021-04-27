@@ -533,7 +533,7 @@ functions:
               fi
           fi
 
-          # Verify that the required LB URI env vars are set to ensure that the test runner can correctly connect to
+          # Verify that the required LB URI expansions are set to ensure that the test runner can correctly connect to
           # the LBs.
           if [ -z "${SINGLE_MONGOS_LB_URI}" ]; then
             echo "SINGLE_MONGOS_LB_URI must be set for testing against LBs"
