@@ -658,7 +658,7 @@ func TestServer(t *testing.T) {
 
 		// The second check call should attempt to create a new heartbeat connection and should cancel the previous
 		// heartbeatCtx during the process.
-		_, err = server.check()
+		desc, err = server.check()
 		assert.Nil(t, err, "check error: %v", err)
 		assert.NotNil(t, desc.LastError, "expected server description to contain an error, got nil")
 		assert.True(t, previousCtxCancelled, "expected check to cancel previous context but did not")
