@@ -118,11 +118,11 @@ func (ds *DownloadStream) Close() error {
 		return ErrStreamClosed
 	}
 
-	err := ds.cursor.Close(context.Background())
-	if err != nil {
-		ds.closed = true
+	ds.closed = true
+	if ds.cursor != nil {
+		return ds.cursor.Close(context.Background())
 	}
-	return err
+	return nil
 }
 
 // SetReadDeadline sets the read deadline for this download stream.
