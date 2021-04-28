@@ -194,10 +194,10 @@ type labeledError interface {
 // interface should not be used in production.
 type ServerError interface {
 	error
-	// HasErrorLabel returns true if the error contains the specified label.
-	HasErrorLabel(string) bool
 	// HasErrorCode returns true if the error has the specified code.
 	HasErrorCode(int) bool
+	// HasErrorLabel returns true if the error contains the specified label.
+	HasErrorLabel(string) bool
 	// HasErrorMessage returns true if the error contains the specified message.
 	HasErrorMessage(string) bool
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
