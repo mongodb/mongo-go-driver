@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -161,6 +162,25 @@ type LoggerSkipper interface {
 	Skipf(format string, args ...interface{})
 }
 
+// skipTestError indicates that a test must be skipped because the runner cannot execute it (e.g. the test requires
+// an operation or option that the driver does not support).
+type skipTestError struct {
+	reason string
+}
+
+// Error implements the error interface.
+func (s skipTestError) Error() string {
+	return fmt.Sprintf("test must be skipped: %q", s.reason)
+}
+
+func newSkipTestError(reason string) error {
+	return &skipTestError{reason}
+}
+
+func isSkipTestError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "test must be skipped")
+}
+
 // Run runs the TestCase and returns an error if it fails
 func (tc *TestCase) Run(ls LoggerSkipper) error {
 	if tc.SkipReason != nil {
@@ -221,6 +241,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 			}
 
 			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
+				if isSkipTestError(err) {
+					ls.Skip(err)
+				}
+
 				return fmt.Errorf("error creating entity at index %d: %v", idx, err)
 			}
 		}

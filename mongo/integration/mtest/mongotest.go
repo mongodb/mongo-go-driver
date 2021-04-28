@@ -359,6 +359,11 @@ func (t *T) GetProxiedMessages() []*ProxyMessage {
 	return t.proxyDialer.Messages()
 }
 
+// NumberConnectionsCheckedOut returns the number of connections checked out from the test Client.
+func (t *T) NumberConnectionsCheckedOut() int {
+	return t.connsCheckedOut
+}
+
 // ClearEvents clears the existing command monitoring events.
 func (t *T) ClearEvents() {
 	t.started = t.started[:0]

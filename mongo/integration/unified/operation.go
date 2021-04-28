@@ -131,6 +131,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeInsertMany(ctx, op)
 	case "insertOne":
 		return executeInsertOne(ctx, op)
+	case "listIndexes":
+		return executeListIndexes(ctx, op)
 	case "replaceOne":
 		return executeReplaceOne(ctx, op)
 	case "updateOne":
