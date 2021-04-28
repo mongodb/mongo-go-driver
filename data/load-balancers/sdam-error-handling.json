@@ -96,7 +96,17 @@
     {
       "collectionName": "singleColl",
       "databaseName": "singleDB",
-      "documents": []
+      "documents": [
+        {
+          "_id": 1
+        },
+        {
+          "_id": 2
+        },
+        {
+          "_id": 3
+        }
+      ]
     },
     {
       "collectionName": "multiColl",
@@ -368,6 +378,127 @@
               "connectionCheckOutFailedEvent": {
                 "reason": "connectionError"
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "stale errors are ignored",
+      "operations": [
+        {
+          "name": "failPoint",
+          "object": "testRunner",
+          "arguments": {
+            "client": "failPointClient",
+            "failPoint": {
+              "configureFailPoint": "failCommand",
+              "mode": {
+                "times": 2
+              },
+              "data": {
+                "failCommands": [
+                  "getMore"
+                ],
+                "closeConnection": true
+              }
+            }
+          }
+        },
+        {
+          "name": "createFindCursor",
+          "object": "singleColl",
+          "arguments": {
+            "filter": {},
+            "batchSize": 2
+          },
+          "saveResultAsEntity": "cursor0"
+        },
+        {
+          "name": "createFindCursor",
+          "object": "singleColl",
+          "arguments": {
+            "filter": {},
+            "batchSize": 2
+          },
+          "saveResultAsEntity": "cursor1"
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "cursor0"
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "cursor0"
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "cursor0",
+          "expectError": {
+            "isClientError": true
+          }
+        },
+        {
+          "name": "close",
+          "object": "cursor0"
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "cursor1"
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "cursor1"
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "cursor1",
+          "expectError": {
+            "isClientError": true
+          }
+        },
+        {
+          "name": "close",
+          "object": "cursor1"
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "singleClient",
+          "eventType": "cmap",
+          "events": [
+            {
+              "connectionCreatedEvent": {}
+            },
+            {
+              "connectionReadyEvent": {}
+            },
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCreatedEvent": {}
+            },
+            {
+              "connectionReadyEvent": {}
+            },
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "poolClearedEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            },
+            {
+              "connectionClosedEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            },
+            {
+              "connectionClosedEvent": {}
             }
           ]
         }
