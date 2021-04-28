@@ -375,29 +375,23 @@ func TestGridFS(x *testing.T) {
 			// so Read() will actually execute a getMore against the server. Since the ReadDeadline is
 			// set in the past, this should cause a timeout.
 
-			// Create file to upload.
 			fileName := "read-error-test"
 			fileData := make([]byte, 17000000)
 
-			// Create bucket.
 			bucket, err := gridfs.NewBucket(mt.DB)
 			assert.Nil(mt, err, "NewBucket error: %v", err)
 			defer func() { _ = bucket.Drop() }()
 
-			// Open data reader from file and upload to bucket.
 			dataReader := bytes.NewReader(fileData)
 			_, err = bucket.UploadFromStream(fileName, dataReader)
 			assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
-			// Open a download stream to fileName.
 			ds, err := bucket.OpenDownloadStreamByName(fileName)
 			assert.Nil(mt, err, "OpenDownloadStreamByName error: %v", err)
 
-			// Set a read deadline in the past to cause a timeout.
 			err = ds.SetReadDeadline(time.Now().Add(-1 * time.Second))
 			assert.Nil(mt, err, "SetReadDeadline error: %v", err)
 
-			// Try to read.
 			p := make([]byte, 17000000)
 			_, err = ds.Read(p)
 			assert.NotNil(mt, err, "expected error from Read, got nil")
