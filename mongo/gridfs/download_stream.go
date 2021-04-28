@@ -118,8 +118,11 @@ func (ds *DownloadStream) Close() error {
 		return ErrStreamClosed
 	}
 
-	ds.closed = true
-	return nil
+	err := ds.cursor.Close(context.Background())
+	if err != nil {
+		ds.closed = true
+	}
+	return err
 }
 
 // SetReadDeadline sets the read deadline for this download stream.
@@ -228,7 +231,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 		ds.done = true
 		// Check for cursor error, otherwise there are no more chunks.
 		if ds.cursor.Err() != nil {
-			ds.cursor.Close(ctx)
+			_ = ds.cursor.Close(ctx)
 			return ds.cursor.Err()
 		}
 		return errNoMoreChunks

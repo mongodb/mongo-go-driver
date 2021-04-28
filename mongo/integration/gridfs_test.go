@@ -392,7 +392,7 @@ func TestGridFS(x *testing.T) {
 			err = ds.SetReadDeadline(time.Now().Add(-1 * time.Second))
 			assert.Nil(mt, err, "SetReadDeadline error: %v", err)
 
-			p := make([]byte, 17000000)
+			p := make([]byte, len(fileData))
 			_, err = ds.Read(p)
 			assert.NotNil(mt, err, "expected error from Read, got nil")
 			assert.True(mt, strings.Contains(err.Error(), "context deadline exceeded"),
