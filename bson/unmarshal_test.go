@@ -95,6 +95,14 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 }
 
 func TestUnmarshalExtJSONWithContext(t *testing.T) {
+	type fooInt struct {
+		Foo int
+	}
+
+	type fooString struct {
+		Foo string
+	}
+
 	var cases = []struct {
 		name  string
 		sType reflect.Type
@@ -102,84 +110,52 @@ func TestUnmarshalExtJSONWithContext(t *testing.T) {
 		data  []byte
 	}{
 		{
-			name: "Small struct",
-			sType: reflect.TypeOf(struct {
-				Foo int
-			}{}),
-			data: []byte(`{"foo":1}`),
-			want: &struct {
-				Foo int
-			}{Foo: 1},
+			name:  "Small struct",
+			sType: reflect.TypeOf(fooInt{}),
+			data:  []byte(`{"foo":1}`),
+			want:  &fooInt{Foo: 1},
 		},
 		{
-			name: "Valid surrogate pair",
-			sType: reflect.TypeOf(struct {
-				Foo string
-			}{}),
-			data: []byte(`{"foo":"\uD834\uDd1e"}`),
-			want: &struct {
-				Foo string
-			}{Foo: "𝄞"},
+			name:  "Valid surrogate pair",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"\uD834\uDd1e"}`),
+			want:  &fooString{Foo: "𝄞"},
 		},
 		{
-			name: "Valid surrogate pair with other values",
-			sType: reflect.TypeOf(struct {
-				Foo string
-			}{}),
-			data: []byte(`{"foo":"abc \uD834\uDd1e 123"}`),
-			want: &struct {
-				Foo string
-			}{Foo: "abc 𝄞 123"},
+			name:  "Valid surrogate pair with other values",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"abc \uD834\uDd1e 123"}`),
+			want:  &fooString{Foo: "abc 𝄞 123"},
 		},
 		{
-			name: "High surrogate value with no following low surrogate value",
-			sType: reflect.TypeOf(struct {
-				Foo string
-			}{}),
-			data: []byte(`{"foo":"abc \uD834 123"}`),
-			want: &struct {
-				Foo string
-			}{Foo: "abc � 123"},
+			name:  "High surrogate value with no following low surrogate value",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"abc \uD834 123"}`),
+			want:  &fooString{Foo: "abc � 123"},
 		},
 		{
-			name: "High surrogate value at end of string",
-			sType: reflect.TypeOf(struct {
-				Foo string
-			}{}),
-			data: []byte(`{"foo":"\uD834"}`),
-			want: &struct {
-				Foo string
-			}{Foo: "�"},
+			name:  "High surrogate value at end of string",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"\uD834"}`),
+			want:  &fooString{Foo: "�"},
 		},
 		{
-			name: "Low surrogate value with no preceeding high surrogate value",
-			sType: reflect.TypeOf(struct {
-				Foo string
-			}{}),
-			data: []byte(`{"foo":"abc \uDd1e 123"}`),
-			want: &struct {
-				Foo string
-			}{Foo: "abc � 123"},
+			name:  "Low surrogate value with no preceeding high surrogate value",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"abc \uDd1e 123"}`),
+			want:  &fooString{Foo: "abc � 123"},
 		},
 		{
-			name: "Low surrogate value at end of string",
-			sType: reflect.TypeOf(struct {
-				Foo string
-			}{}),
-			data: []byte(`{"foo":"\uDd1e"}`),
-			want: &struct {
-				Foo string
-			}{Foo: "�"},
+			name:  "Low surrogate value at end of string",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"\uDd1e"}`),
+			want:  &fooString{Foo: "�"},
 		},
 		{
-			name: "High surrogate value with non-surrogate unicode value",
-			sType: reflect.TypeOf(struct {
-				Foo string
-			}{}),
-			data: []byte(`{"foo":"\uD834\u00BF"}`),
-			want: &struct {
-				Foo string
-			}{Foo: "�¿"},
+			name:  "High surrogate value with non-surrogate unicode value",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"\uD834\u00BF"}`),
+			want:  &fooString{Foo: "�¿"},
 		},
 	}
 

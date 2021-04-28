@@ -283,12 +283,12 @@ func (js *jsonScanner) scanString() (*jsonToken, error) {
 
 					rn2 := getu4(us)
 
-					// Try to decode the pair of runes as a utf16 surrogate pair. If that fails, just
-					// write the original two runes to the buffer.
+					// Try to decode the pair of runes as a utf16 surrogate pair. If that fails, write
+					// the Unicode replacement character for the surrogate value and the 2nd decoded rune.
 					if rnPair := utf16.DecodeRune(rn, rn2); rnPair != unicode.ReplacementChar {
 						b.WriteRune(rnPair)
 					} else {
-						b.WriteRune(rn)
+						b.WriteRune(unicode.ReplacementChar)
 						b.WriteRune(rn2)
 					}
 
