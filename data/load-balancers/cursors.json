@@ -1148,6 +1148,81 @@
           ]
         }
       ]
+    },
+    {
+      "description": "change streams pin to a connection",
+      "operations": [
+        {
+          "name": "createChangeStream",
+          "object": "collection0",
+          "arguments": {
+            "pipeline": []
+          },
+          "saveResultAsEntity": "changeStream0"
+        },
+        {
+          "name": "assertNumberConnectionsCheckedOut",
+          "object": "testRunner",
+          "arguments": {
+            "client": "client0",
+            "connections": 1
+          }
+        },
+        {
+          "name": "close",
+          "object": "changeStream0"
+        },
+        {
+          "name": "assertNumberConnectionsCheckedOut",
+          "object": "testRunner",
+          "arguments": {
+            "client": "client0",
+            "connections": 0
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client0",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "commandName": "aggregate"
+              }
+            },
+            {
+              "commandSucceededEvent": {
+                "commandName": "aggregate"
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "commandName": "killCursors"
+              }
+            },
+            {
+              "commandSucceededEvent": {
+                "commandName": "killCursors"
+              }
+            }
+          ]
+        },
+        {
+          "client": "client0",
+          "eventType": "cmap",
+          "events": [
+            {
+              "connectionReadyEvent": {}
+            },
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -52,7 +52,10 @@ createEntities:
 initialData:
   - collectionName: *singleCollName
     databaseName: *singleDBName
-    documents: []
+    documents:
+      - _id: 1
+      - _id: 2
+      - _id: 3
   - collectionName: *multiCollName
     databaseName: *multiDBName
     documents:
@@ -196,3 +199,72 @@ tests:
               reason: error
           - connectionCheckOutFailedEvent:
               reason: connectionError
+
+  - description: stale errors are ignored
+    operations:
+      - name: failPoint
+        object: testRunner
+        arguments:
+          client: *failPointClient
+          failPoint:
+            configureFailPoint: failCommand
+            mode: { times: 2 }
+            data:
+              failCommands: [getMore]
+              closeConnection: true
+      # Force two connections to be checked out from the pool.
+      - name: createFindCursor
+        object: *singleColl
+        arguments:
+          filter: {}
+          batchSize: 2
+        saveResultAsEntity: &cursor0 cursor0
+      - name: createFindCursor
+        object: *singleColl
+        arguments:
+          filter: {}
+          batchSize: 2
+        saveResultAsEntity: &cursor1 cursor1
+      # Iterate cursor0 three times to force a network error.
+      - name: iterateUntilDocumentOrError
+        object: *cursor0
+      - name: iterateUntilDocumentOrError
+        object: *cursor0
+      - name: iterateUntilDocumentOrError
+        object: *cursor0
+        expectError:
+          isClientError: true
+      - name: close
+        object: *cursor0
+      # Iterate cursor1 three times to force a network error.
+      - name: iterateUntilDocumentOrError
+        object: *cursor1
+      - name: iterateUntilDocumentOrError
+        object: *cursor1
+      - name: iterateUntilDocumentOrError
+        object: *cursor1
+        expectError:
+          isClientError: true
+      - name: close
+        object: *cursor1
+    expectEvents:
+      - client: *singleClient
+        eventType: cmap
+        events:
+          # Events for creating both cursors.
+          - connectionCreatedEvent: {}
+          - connectionReadyEvent: {}
+          - connectionCheckedOutEvent: {}
+          - connectionCreatedEvent: {}
+          - connectionReadyEvent: {}
+          - connectionCheckedOutEvent: {}
+          # Events for iterating and closing the first cursor.  The failed
+          # getMore should cause a poolClearedEvent to be published.
+          - poolClearedEvent: {}
+          - connectionCheckedInEvent: {}
+          - connectionClosedEvent: {}
+          # Events for iterating and closing the second cursor. The failed
+          # getMore should not clear the pool because the connection's
+          # generation number is stale.
+          - connectionCheckedInEvent: {}
+          - connectionClosedEvent: {}
