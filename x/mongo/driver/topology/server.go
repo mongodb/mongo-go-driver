@@ -596,6 +596,10 @@ func (s *Server) setupHeartbeatConnection() error {
 
 	// Take the lock when assigning the context and connection because they're accessed by cancelCheck.
 	s.heartbeatLock.Lock()
+	if s.heartbeatCtxCancel != nil {
+		// Ensure the previous context is cancelled to avoid a leak.
+		s.heartbeatCtxCancel()
+	}
 	s.heartbeatCtx, s.heartbeatCtxCancel = context.WithCancel(s.globalCtx)
 	s.conn = conn
 	s.heartbeatLock.Unlock()
