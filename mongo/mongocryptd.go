@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	defaultServerSelectionTimeout = 1 * time.Second
+	defaultServerSelectionTimeout = 10 * time.Second
 	defaultURI                    = "mongodb://localhost:27020"
 	defaultPath                   = "mongocryptd"
 	serverSelectionTimeoutStr     = "server selection error"
