@@ -116,9 +116,14 @@ func TestJsonScannerValidInputs(t *testing.T) {
 			tokens: []jsonToken{{t: jttString, v: "abc �"}},
 		},
 		{
-			desc:   "valid string--high surrogate with non-surrogate unicode value",
+			desc:   "valid string--high surrogate with non-surrogate Unicode value",
 			input:  `"abc \uDD1E\u00BF"`,
 			tokens: []jsonToken{{t: jttString, v: "abc �¿"}},
+		},
+		{
+			desc:   "valid string--high surrogate with non-Unicode escape sequence",
+			input:  `"abc \uDD1E\t"`,
+			tokens: []jsonToken{{t: jttString, v: "abc �\t"}},
 		},
 		{
 			desc: "valid literal--true", input: "true",
