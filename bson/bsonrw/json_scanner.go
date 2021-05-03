@@ -254,10 +254,11 @@ func (js *jsonScanner) scanString() (*jsonToken, error) {
 						return nil, err
 					}
 
-					// If the next value isn't the beginning of a backslash escape sequence, write the
-					// current rune and goto the beginning of the next char eval block.
+					// If the next value isn't the beginning of a backslash escape sequence, write
+					// the Unicode replacement character for the surrogate value and goto the
+					// beginning of the next char eval block.
 					if c != '\\' {
-						b.WriteRune(rn)
+						b.WriteRune(unicode.ReplacementChar)
 						goto evalNextChar
 					}
 
@@ -270,9 +271,10 @@ func (js *jsonScanner) scanString() (*jsonToken, error) {
 					}
 
 					// If the next value isn't the beginning of a unicode escape sequence, write the
-					// current rune and goto the beginning of the next escape char eval block.
+					// Unicode replacement character for the surrogate value and goto the beginning
+					// of the next escape char eval block.
 					if c != 'u' {
-						b.WriteRune(rn)
+						b.WriteRune(unicode.ReplacementChar)
 						goto evalNextEscapeChar
 					}
 
