@@ -13,15 +13,10 @@ package awsv4
 import (
 	"bytes"
 	"fmt"
-	"reflect"
 )
 
 // Whether the byte value can be sent without escaping in AWS URLs
 var noEscape [256]bool
-
-var errValueNotSet = fmt.Errorf("value not set")
-
-var byteSliceType = reflect.TypeOf([]byte{})
 
 func init() {
 	for i := 0; i < len(noEscape); i++ {
