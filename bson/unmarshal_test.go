@@ -95,18 +95,81 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 }
 
 func TestUnmarshalExtJSONWithContext(t *testing.T) {
-	t.Run("UnmarshalExtJSONWithContext", func(t *testing.T) {
-		type teststruct struct{ Foo int }
-		var got teststruct
-		data := []byte("{\"foo\":1}")
-		dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
-		err := UnmarshalExtJSONWithContext(dc, data, true, &got)
-		noerr(t, err)
-		want := teststruct{1}
-		if !cmp.Equal(got, want) {
-			t.Errorf("Did not unmarshal as expected. got %v; want %v", got, want)
-		}
-	})
+	type fooInt struct {
+		Foo int
+	}
+
+	type fooString struct {
+		Foo string
+	}
+
+	var cases = []struct {
+		name  string
+		sType reflect.Type
+		want  interface{}
+		data  []byte
+	}{
+		{
+			name:  "Small struct",
+			sType: reflect.TypeOf(fooInt{}),
+			data:  []byte(`{"foo":1}`),
+			want:  &fooInt{Foo: 1},
+		},
+		{
+			name:  "Valid surrogate pair",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"\uD834\uDd1e"}`),
+			want:  &fooString{Foo: "𝄞"},
+		},
+		{
+			name:  "Valid surrogate pair with other values",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"abc \uD834\uDd1e 123"}`),
+			want:  &fooString{Foo: "abc 𝄞 123"},
+		},
+		{
+			name:  "High surrogate value with no following low surrogate value",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"abc \uD834 123"}`),
+			want:  &fooString{Foo: "abc � 123"},
+		},
+		{
+			name:  "High surrogate value at end of string",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"\uD834"}`),
+			want:  &fooString{Foo: "�"},
+		},
+		{
+			name:  "Low surrogate value with no preceeding high surrogate value",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"abc \uDd1e 123"}`),
+			want:  &fooString{Foo: "abc � 123"},
+		},
+		{
+			name:  "Low surrogate value at end of string",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"\uDd1e"}`),
+			want:  &fooString{Foo: "�"},
+		},
+		{
+			name:  "High surrogate value with non-surrogate unicode value",
+			sType: reflect.TypeOf(fooString{}),
+			data:  []byte(`{"foo":"\uD834\u00BF"}`),
+			want:  &fooString{Foo: "�¿"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := reflect.New(tc.sType).Interface()
+			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+			err := UnmarshalExtJSONWithContext(dc, tc.data, true, got)
+			noerr(t, err)
+			if !cmp.Equal(got, tc.want) {
+				t.Errorf("Did not unmarshal as expected. got %+v; want %+v", got, tc.want)
+			}
+		})
+	}
 }
 
 func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
