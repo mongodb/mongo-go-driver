@@ -4,7 +4,9 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 //
-// Based on github.com/aws/aws-sdk-go by Amazon.com, Inc.
+// Based on github.com/aws/aws-sdk-go by Amazon.com, Inc. with code from:
+// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/credentials/static_provider.go
+// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/credentials/credentials.go
 // See THIRD-PARTY-NOTICES for original license terms
 
 package awsv4
