@@ -94,7 +94,6 @@ functions:
           PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
           PREPARE_SHELL: |
              set -o errexit
-             set -o xtrace
              export GOPATH="$GOPATH"
              export GOROOT="${GO_DIST}"
              export GOCACHE="$GOCACHE"
@@ -317,7 +316,6 @@ functions:
           fi
 
           export GOFLAGS=-mod=vendor
-          set +o xtrace
           AUTH=${AUTH} \
           SSL=${SSL} \
           MONGODB_URI="${MONGODB_URI}" \
@@ -352,7 +350,7 @@ functions:
         silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
-          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          # DO NOT ECHO WITH XTRACE
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
             export GOCACHE=$(cygpath -w "$(pwd)/.cache")
@@ -372,7 +370,7 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
-          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          # DO NOT ECHO WITH XTRACE
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
             export GOCACHE=$(cygpath -w "$(pwd)/.cache")
@@ -399,7 +397,7 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
-          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          # DO NOT ECHO WITH XTRACE
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
             export GOCACHE=$(cygpath -w "$(pwd)/.cache")
@@ -426,7 +424,7 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
-          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          # DO NOT ECHO WITH XTRACE
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
             export GOCACHE=$(cygpath -w "$(pwd)/.cache")
@@ -462,7 +460,6 @@ functions:
             export MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
           fi
 
-          set +o xtrace
           AUTH="auth" \
           SSL="ssl" \
           TOPOLOGY="server" \
@@ -495,7 +492,6 @@ functions:
           . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
 
           export GOFLAGS=-mod=vendor
-          set +o xtrace
           AUTH="${AUTH}" \
           SSL="${SSL}" \
           MONGODB_URI="${MONGODB_URI}" \
@@ -548,7 +544,6 @@ functions:
           # testing Client instances, so we set MONGODB_URI to SINGLE_MONGOS_LB_URI.
 
           export GOFLAGS=-mod=vendor
-          set +o xtrace
           AUTH="${AUTH}" \
           SSL="${SSL}" \
           MONGODB_URI="${SINGLE_MONGOS_LB_URI}" \
@@ -565,7 +560,6 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          set +o xtrace
           AUTH="auth" \
           SSL="nossl" \
           TOPOLOGY="server" \
@@ -739,7 +733,7 @@ functions:
         working_dir: "src"
         silent: true
         script: |
-          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          # DO NOT ECHO WITH XTRACE
           cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
             alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
             alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
@@ -791,7 +785,7 @@ functions:
         working_dir: "src"
         silent: true
         script: |
-          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          # DO NOT ECHO WITH XTRACE
           cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
             export AWS_ACCESS_KEY_ID=${iam_auth_ecs_account}
             export AWS_SECRET_ACCESS_KEY=${iam_auth_ecs_secret_access_key}
@@ -811,7 +805,7 @@ functions:
         working_dir: "src"
         silent: true
         script: |
-          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          # DO NOT ECHO WITH XTRACE
           cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
             alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
             export AWS_ACCESS_KEY_ID=$(jsonkey AccessKeyId)
@@ -890,7 +884,6 @@ functions:
           export KMS_TLS_TESTCASE="${KMS_TLS_TESTCASE}"
 
           export GOFLAGS=-mod=vendor
-          set +o xtrace
           AUTH="${AUTH}" \
           SSL="${SSL}" \
           MONGODB_URI="${MONGODB_URI}" \
