@@ -11,7 +11,6 @@ package operation
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -31,46 +30,12 @@ type DropDatabase struct {
 	deployment   driver.Deployment
 	selector     description.ServerSelector
 	writeConcern *writeconcern.WriteConcern
-	result       DropDatabaseResult
 	serverAPI    *driver.ServerAPIOptions
-}
-
-type DropDatabaseResult struct {
-	// The dropped database.
-	Dropped string
-}
-
-func buildDropDatabaseResult(response bsoncore.Document, srvr driver.Server) (DropDatabaseResult, error) {
-	elements, err := response.Elements()
-	if err != nil {
-		return DropDatabaseResult{}, err
-	}
-	ddr := DropDatabaseResult{}
-	for _, element := range elements {
-		switch element.Key() {
-		case "dropped":
-			var ok bool
-			ddr.Dropped, ok = element.Value().StringValueOK()
-			if !ok {
-				err = fmt.Errorf("response field 'dropped' is type string, but received BSON type %s", element.Value().Type)
-			}
-		}
-	}
-	return ddr, nil
 }
 
 // NewDropDatabase constructs and returns a new DropDatabase.
 func NewDropDatabase() *DropDatabase {
 	return &DropDatabase{}
-}
-
-// Result returns the result of executing this operation.
-func (dd *DropDatabase) Result() DropDatabaseResult { return dd.result }
-
-func (dd *DropDatabase) processResponse(info driver.ResponseInfo) error {
-	var err error
-	dd.result, err = buildDropDatabaseResult(info.ServerResponse, info.Server)
-	return err
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
@@ -80,17 +45,16 @@ func (dd *DropDatabase) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         dd.command,
-		ProcessResponseFn: dd.processResponse,
-		Client:            dd.session,
-		Clock:             dd.clock,
-		CommandMonitor:    dd.monitor,
-		Crypt:             dd.crypt,
-		Database:          dd.database,
-		Deployment:        dd.deployment,
-		Selector:          dd.selector,
-		WriteConcern:      dd.writeConcern,
-		ServerAPI:         dd.serverAPI,
+		CommandFn:      dd.command,
+		Client:         dd.session,
+		Clock:          dd.clock,
+		CommandMonitor: dd.monitor,
+		Crypt:          dd.crypt,
+		Database:       dd.database,
+		Deployment:     dd.deployment,
+		Selector:       dd.selector,
+		WriteConcern:   dd.writeConcern,
+		ServerAPI:      dd.serverAPI,
 	}.Execute(ctx, nil)
 
 }
