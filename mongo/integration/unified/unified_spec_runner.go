@@ -88,20 +88,32 @@ type TestFile struct {
 }
 
 // runTestDirectory runs the files in the given directory, which must be in the unifed spec format
-func runTestDirectory(t *testing.T, directoryPath string) {
+func runTestDirectory(t *testing.T, directoryPath string, pass bool) {
 	for _, filename := range testhelpers.FindJSONFilesInDir(t, directoryPath) {
 		t.Run(filename, func(t *testing.T) {
-			RunTestFile(t, path.Join(directoryPath, filename))
+			runTestFile(t, path.Join(directoryPath, filename), pass)
 		})
 	}
 }
 
 // RunTestFile runs the tests in the given file, which must be in the unifed spec format
 func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
+	runTestFile(t, filepath, true, opts...)
+}
+
+// runTestFile runs the tests in the given file, with pass determining whether the tests should pass or not
+func runTestFile(t *testing.T, filepath string, pass bool, opts ...*Options) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
-	fileReqs, testCases := ParseTestFile(t, content, opts...)
+	fileReqs, testCases, err := ParseTestFile(content, opts...)
+	if err != nil {
+		if pass {
+			t.Fatal(err)
+		}
+		return
+	}
+
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
 		CreateClient(false)
@@ -114,22 +126,42 @@ func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
 			CreateClient(false)
 
 		mt.RunOpts(testCase.Description, mtOpts, func(mt *mtest.T) {
-			if err := testCase.Run(mt); err != nil {
-				mt.Fatal(err)
+			defer func() {
+				// catch panics from looking up elements and fail if it's unexpected
+				if r := recover(); r != nil {
+					if pass {
+						mt.Fatal(r)
+					}
+				}
+			}()
+			err := testCase.Run(mt)
+			if pass {
+				if err != nil {
+					mt.Fatal(err)
+				}
+				return
 			}
+			if err != nil {
+				return
+			}
+			mt.Fatalf("Expected test to error, got nil")
 		})
 	}
 }
 
 // ParseTestFile create an array of TestCases from the testJSON json blob
-func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
+func ParseTestFile(testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase, error) {
 	var testFile TestFile
 	err := bson.UnmarshalExtJSON(testJSON, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
+	if err != nil {
+		return nil, nil, fmt.Errorf("UnmarshalExtJSON error: %v", err)
+	}
 
 	// Validate that we support the schema declared by the test file before attempting to use its contents.
 	err = checkSchemaVersion(testFile.SchemaVersion)
-	assert.Nil(t, err, "schema version %q not supported: %v", testFile.SchemaVersion, err)
+	if err != nil {
+		return nil, nil, fmt.Errorf("schema version %q not supported: %v", testFile.SchemaVersion, err)
+	}
 
 	op := MergeOptions(opts...)
 	for _, testCase := range testFile.TestCases {
@@ -139,7 +171,7 @@ func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.Run
 		testCase.loopDone = make(chan struct{})
 		testCase.killAllSessions = *op.RunKillAllSessions
 	}
-	return testFile.RunOnRequirements, testFile.TestCases
+	return testFile.RunOnRequirements, testFile.TestCases, nil
 }
 
 // GetEntities returns a pointer to the EntityMap for the TestCase. This should not be called until after

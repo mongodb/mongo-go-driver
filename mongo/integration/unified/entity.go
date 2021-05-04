@@ -368,6 +368,9 @@ func (em *EntityMap) addClientEntity(ctx context.Context, entityOptions *entityO
 	var client *clientEntity
 
 	for _, eventsAsEntity := range entityOptions.StoreEventsAsEntities {
+		if entityOptions.ID == eventsAsEntity.EventListID {
+			return fmt.Errorf("entity with ID %q already exists", entityOptions.ID)
+		}
 		if err := em.addEventsEntity(eventsAsEntity.EventListID); err != nil {
 			return err
 		}

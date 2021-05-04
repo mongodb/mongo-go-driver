@@ -14,13 +14,16 @@ import (
 )
 
 var (
-	directories = []string{
+	passDirectories = []string{
 		"unified-test-format/valid-pass",
 		"versioned-api",
 		"crud/unified",
 		"change-streams/unified",
 		"transactions/unified",
 		"load-balancers",
+	}
+	failDirectories = []string{
+		"unified-test-format/valid-fail",
 	}
 )
 
@@ -34,9 +37,15 @@ func TestUnifiedSpec(t *testing.T) {
 		t.Fatalf("error terminating open transactions: %v", err)
 	}
 
-	for _, testDir := range directories {
+	for _, testDir := range passDirectories {
 		t.Run(testDir, func(t *testing.T) {
-			runTestDirectory(t, path.Join(dataDirectory, testDir))
+			runTestDirectory(t, path.Join(dataDirectory, testDir), true)
+		})
+	}
+
+	for _, testDir := range failDirectories {
+		t.Run(testDir, func(t *testing.T) {
+			runTestDirectory(t, path.Join(dataDirectory, testDir), false)
 		})
 	}
 }
