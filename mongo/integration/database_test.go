@@ -221,7 +221,15 @@ func TestDatabase(t *testing.T) {
 				})
 			}
 		})
-		mt.RunOpts("batch size", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
+
+		// For server versions below 3.0, we internally execute ListCollections() as a legacy
+		// OP_QUERY against the system.namespaces collection. Command monitoring upconversions
+		// translate this to a "find" command rather than "listCollections".
+		cmdMonitoringCmdName := "listCollections"
+		if mtest.CompareServerVersions(mtest.ServerVersion(), "3.0") < 0 {
+			cmdMonitoringCmdName = "find"
+		}
+		mt.Run("batch size", func(mt *mtest.T) {
 			// Create two new collections so there will be three total.
 			createCollections(mt, 2)
 
@@ -231,29 +239,24 @@ func TestDatabase(t *testing.T) {
 			assert.Nil(mt, err, "ListCollectionNames error: %v", err)
 
 			evt := mt.GetStartedEvent()
-			assert.Equal(mt, "listCollections", evt.CommandName, "expected 'listCollections' command to be sent, got %q",
+			assert.Equal(
+				mt,
+				cmdMonitoringCmdName,
+				evt.CommandName,
+				"expected %q command to be sent, got %q",
+				cmdMonitoringCmdName,
 				evt.CommandName)
 			_, err = evt.Command.LookupErr("cursor", "batchSize")
 			assert.Nil(mt, err, "expected command %s to contain key 'batchSize'", evt.Command)
 		})
-
-		// For server versions below 3.0, we internally execute ListCollections() as a legacy
-		// OP_QUERY against the system.namespaces collection. Command monitoring upconversions
-		// translate this to a "find" command rather than "listCollections".
-		cmdMonitoringCmdName := "listCollections"
-		if mtest.CompareServerVersions(mtest.ServerVersion(), "3.0") < 0 {
-			cmdMonitoringCmdName = "find"
-		}
 		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
 			createCollections(mt, 2)
-
 			assertGetMoreCommandsAreMonitored(mt, cmdMonitoringCmdName, func() (*mongo.Cursor, error) {
 				return mt.DB.ListCollections(mtest.Background, bson.D{}, options.ListCollections().SetBatchSize(2))
 			})
 		})
 		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
 			createCollections(mt, 2)
-
 			assertKillCursorsCommandsAreMonitored(mt, cmdMonitoringCmdName, func() (*mongo.Cursor, error) {
 				return mt.DB.ListCollections(mtest.Background, bson.D{}, options.ListCollections().SetBatchSize(2))
 			})
