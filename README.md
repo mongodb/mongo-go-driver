@@ -117,13 +117,13 @@ cur, err := collection.Find(ctx, bson.D{})
 if err != nil { log.Fatal(err) }
 defer cur.Close(ctx)
 for cur.Next(ctx) {
-   var result bson.D
-   err := cur.Decode(&result)
-   if err != nil { log.Fatal(err) }
-   // do something with result....
+    var result bson.D
+    err := cur.Decode(&result)
+    if err != nil { log.Fatal(err) }
+    // do something with result....
 }
 if err := cur.Err(); err != nil {
-  log.Fatal(err)
+    log.Fatal(err)
 }
 ```
 
@@ -140,7 +140,7 @@ err = collection.FindOne(ctx, filter).Decode(&result)
 if err == mongo.ErrNoDocuments {
     // Do something when no record was found
     fmt.Println("record does not exist")
-} else {
+} else if err != nil {
     log.Fatal(err)
 }
 // Do something with result...
