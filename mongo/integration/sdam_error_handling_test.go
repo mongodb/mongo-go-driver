@@ -85,6 +85,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				_, err := mt.Coll.InsertOne(timeoutCtx, bson.D{{"test", 1}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
+				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
 				assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
 			})
 			mt.RunOpts("pool cleared on non-timeout network error", noClientOpts, func(mt *mtest.T) {
