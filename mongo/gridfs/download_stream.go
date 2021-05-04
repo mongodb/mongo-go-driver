@@ -119,6 +119,9 @@ func (ds *DownloadStream) Close() error {
 	}
 
 	ds.closed = true
+	if ds.cursor != nil {
+		return ds.cursor.Close(context.Background())
+	}
 	return nil
 }
 
@@ -226,6 +229,11 @@ func (ds *DownloadStream) GetFile() *File {
 func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	if !ds.cursor.Next(ctx) {
 		ds.done = true
+		// Check for cursor error, otherwise there are no more chunks.
+		if ds.cursor.Err() != nil {
+			_ = ds.cursor.Close(ctx)
+			return ds.cursor.Err()
+		}
 		return errNoMoreChunks
 	}
 
