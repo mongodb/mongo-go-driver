@@ -72,8 +72,8 @@ func (me MarshalError) Error() string {
 //
 type Pipeline []bson.D
 
-// transformAndEnsureID is a hack that makes it easy to get a RawValue as the _id value. This will
-// be removed when we switch from using bsonx to bsoncore for the driver package.
+// transformAndEnsureID is a hack that makes it easy to get a RawValue as the _id value.
+// It will also add an ObjectID _id as the first key if it not already present in the passed-in val.
 func transformAndEnsureID(registry *bsoncodec.Registry, val interface{}) (bsoncore.Document, interface{}, error) {
 	if registry == nil {
 		registry = bson.NewRegistryBuilder().Build()

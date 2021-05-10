@@ -85,6 +85,17 @@ func TestMongoHelpers(t *testing.T) {
 			want := bsoncore.Document(wantBSON)
 			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
+		t.Run("existing _id as should remain in place", func(t *testing.T) {
+			doc := bson.D{{"foo", "bar"}, {"_id", 3.14159}, {"baz", "qux"}, {"hello", "world"}}
+			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
+			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
+			_, ok := id.(float64)
+			assert.True(t, ok, "expected returned id type %T, got %T", float64(0), id)
+			_, wantBSON, err := bson.MarshalValue(doc)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
+			want := bsoncore.Document(wantBSON)
+			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
+		})
 		t.Run("existing _id as first element should remain first element", func(t *testing.T) {
 			doc := bson.D{{"_id", 3.14159}, {"foo", "bar"}, {"baz", "qux"}, {"hello", "world"}}
 			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
