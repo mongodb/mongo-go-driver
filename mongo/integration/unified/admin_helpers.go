@@ -21,7 +21,6 @@ var (
 	ignoredKillAllSessionsErrors = []int{
 		11601, // Interrupted, for SERVER-38335 on server versions below 4.2
 		13,    // Unauthorized, for SERVER-54216 on atlas
-		59,    // CommandNotFound, for pre-3.6 servers
 	}
 )
 
