@@ -51,6 +51,7 @@ type TestCase struct {
 	createEntities  []map[string]*entityOptions
 	fileReqs        []mtest.RunOnBlock
 	killAllSessions bool
+	schemaVersion   string
 
 	entities *EntityMap
 	loopDone chan struct{}
@@ -96,23 +97,17 @@ func runTestDirectory(t *testing.T, directoryPath string, pass bool) {
 	}
 }
 
-// RunTestFile runs the tests in the given file, which must be in the unifed spec format
+// RunTestFile runs the tests in the given file, which must be in the unified spec format
 func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
-	runTestFile(t, filepath, true, opts...)
+	runTestFile(t, filepath, false, opts...)
 }
 
-// runTestFile runs the tests in the given file, with pass determining whether the tests should pass or not
-func runTestFile(t *testing.T, filepath string, pass bool, opts ...*Options) {
+// runTestFile runs the tests in the given file, with expectValidFail determining whether the tests should expect to pass or fail
+func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*Options) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
-	fileReqs, testCases, err := ParseTestFile(content, opts...)
-	if err != nil {
-		if pass {
-			t.Fatal(err)
-		}
-		return
-	}
+	fileReqs, testCases := ParseTestFile(t, content, opts...)
 
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
@@ -129,49 +124,42 @@ func runTestFile(t *testing.T, filepath string, pass bool, opts ...*Options) {
 			defer func() {
 				// catch panics from looking up elements and fail if it's unexpected
 				if r := recover(); r != nil {
-					if pass {
+					if !expectValidFail {
 						mt.Fatal(r)
 					}
 				}
 			}()
 			err := testCase.Run(mt)
-			if pass {
+			if expectValidFail {
 				if err != nil {
-					mt.Fatal(err)
+					return
 				}
-				return
+				mt.Fatalf("expected test to error, got nil")
 			}
 			if err != nil {
-				return
+				mt.Fatal(err)
 			}
-			mt.Fatalf("Expected test to error, got nil")
+			return
 		})
 	}
 }
 
 // ParseTestFile create an array of TestCases from the testJSON json blob
-func ParseTestFile(testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase, error) {
+func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
 	var testFile TestFile
 	err := bson.UnmarshalExtJSON(testJSON, false, &testFile)
-	if err != nil {
-		return nil, nil, fmt.Errorf("UnmarshalExtJSON error: %v", err)
-	}
-
-	// Validate that we support the schema declared by the test file before attempting to use its contents.
-	err = checkSchemaVersion(testFile.SchemaVersion)
-	if err != nil {
-		return nil, nil, fmt.Errorf("schema version %q not supported: %v", testFile.SchemaVersion, err)
-	}
+	assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
 
 	op := MergeOptions(opts...)
 	for _, testCase := range testFile.TestCases {
 		testCase.initialData = testFile.InitialData
 		testCase.createEntities = testFile.CreateEntities
+		testCase.schemaVersion = testFile.SchemaVersion
 		testCase.entities = newEntityMap()
 		testCase.loopDone = make(chan struct{})
 		testCase.killAllSessions = *op.RunKillAllSessions
 	}
-	return testFile.RunOnRequirements, testFile.TestCases, nil
+	return testFile.RunOnRequirements, testFile.TestCases
 }
 
 // GetEntities returns a pointer to the EntityMap for the TestCase. This should not be called until after
@@ -220,6 +208,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	}
 	if _, ok := skippedTestDescriptions[tc.Description]; ok {
 		ls.Skip("skipping due to known failure")
+	}
+	// Validate that we support the schema declared by the test file before attempting to use its contents.
+	if err := checkSchemaVersion(tc.schemaVersion); err != nil {
+		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
 	}
 
 	testCtx := newTestContext(mtest.Background, tc.entities)
