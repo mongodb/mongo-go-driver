@@ -88,11 +88,12 @@ type TestFile struct {
 	TestCases         []*TestCase                 `bson:"tests"`
 }
 
-// runTestDirectory runs the files in the given directory, which must be in the unifed spec format
-func runTestDirectory(t *testing.T, directoryPath string, pass bool) {
+// runTestDirectory runs the files in the given directory, which must be in the unified spec format, with
+// expectValidFail determining whether the tests should expect to pass or fail
+func runTestDirectory(t *testing.T, directoryPath string, expectValidFail bool) {
 	for _, filename := range testhelpers.FindJSONFilesInDir(t, directoryPath) {
 		t.Run(filename, func(t *testing.T) {
-			runTestFile(t, path.Join(directoryPath, filename), pass)
+			runTestFile(t, path.Join(directoryPath, filename), expectValidFail)
 		})
 	}
 }
