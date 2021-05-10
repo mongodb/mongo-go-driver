@@ -72,52 +72,51 @@ func TestMongoHelpers(t *testing.T) {
 	t.Run("transform and ensure ID", func(t *testing.T) {
 		t.Run("newly added _id should be first element", func(t *testing.T) {
 			doc := bson.D{{"foo", "bar"}, {"baz", "qux"}, {"hello", "world"}}
-			want := bsonx.Doc{
-				{"_id", bsonx.Null()}, {"foo", bsonx.String("bar")},
-				{"baz", bsonx.String("qux")}, {"hello", bsonx.String("world")},
-			}
 			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			oid, ok := id.(primitive.ObjectID)
 			assert.True(t, ok, "expected returned id type %T, got %T", primitive.ObjectID{}, id)
-			want[0] = bsonx.Elem{"_id", bsonx.ObjectID(oid)}
-			assert.Equal(t, got, want, "expected document %v, got %v", got, want)
-		})
-		t.Run("existing _id should be first element", func(t *testing.T) {
-			doc := bson.D{{"foo", "bar"}, {"baz", "qux"}, {"_id", 3.14159}, {"hello", "world"}}
-			want := bsonx.Doc{
-				{"_id", bsonx.Double(3.14159)}, {"foo", bsonx.String("bar")},
-				{"baz", bsonx.String("qux")}, {"hello", bsonx.String("world")},
+			wantDoc := bson.D{
+				{"_id", oid}, {"foo", "bar"},
+				{"baz", "qux"}, {"hello", "world"},
 			}
+			_, wantBSON, err := bson.MarshalValue(wantDoc)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
+			want := bsoncore.Document(wantBSON)
+			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
+		})
+		t.Run("existing _id as should remain in place", func(t *testing.T) {
+			doc := bson.D{{"foo", "bar"}, {"_id", 3.14159}, {"baz", "qux"}, {"hello", "world"}}
 			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(float64)
 			assert.True(t, ok, "expected returned id type %T, got %T", float64(0), id)
-			assert.Equal(t, got, want, "expected document %v, got %v", got, want)
+			_, wantBSON, err := bson.MarshalValue(doc)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
+			want := bsoncore.Document(wantBSON)
+			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
 		t.Run("existing _id as first element should remain first element", func(t *testing.T) {
 			doc := bson.D{{"_id", 3.14159}, {"foo", "bar"}, {"baz", "qux"}, {"hello", "world"}}
-			want := bsonx.Doc{
-				{"_id", bsonx.Double(3.14159)}, {"foo", bsonx.String("bar")},
-				{"baz", bsonx.String("qux")}, {"hello", bsonx.String("world")},
-			}
 			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(float64)
 			assert.True(t, ok, "expected returned id type %T, got %T", float64(0), id)
-			assert.Equal(t, got, want, "expected document %v, got %v", got, want)
+			_, wantBSON, err := bson.MarshalValue(doc)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
+			want := bsoncore.Document(wantBSON)
+			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
 		t.Run("existing _id should not overwrite a first binary field", func(t *testing.T) {
 			doc := bson.D{{"bin", []byte{0, 0, 0}}, {"_id", "LongEnoughIdentifier"}}
-			want := bsonx.Doc{
-				{"_id", bsonx.String("LongEnoughIdentifier")},
-				{"bin", bsonx.Binary(0x00, []byte{0x00, 0x00, 0x00})},
-			}
 			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(string)
 			assert.True(t, ok, "expected returned id type string, got %T", id)
-			assert.Equal(t, got, want, "expected document %v, got %v", got, want)
+			_, wantBSON, err := bson.MarshalValue(doc)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
+			want := bsoncore.Document(wantBSON)
+			assert.Equal(t, want, got, "expected document %v, got %v", want, got)
 		})
 	})
 	t.Run("transform aggregate pipeline", func(t *testing.T) {
@@ -128,149 +127,237 @@ func TestMongoHelpers(t *testing.T) {
 		arr, _ = bsoncore.AppendArrayEnd(arr, index)
 
 		testCases := []struct {
-			name     string
-			pipeline interface{}
-			arr      bsonx.Arr
-			err      error
+			name           string
+			pipeline       interface{}
+			arr            bson.A
+			hasOutputStage bool
+			err            error
 		}{
 			{
 				"Pipeline/error",
-				Pipeline{{{"hello", func() {}}}}, bsonx.Arr{},
+				Pipeline{{{"hello", func() {}}}},
+				nil,
+				false,
 				MarshalError{Value: primitive.D{}, Err: errors.New("no encoder found for func()")},
 			},
 			{
 				"Pipeline/success",
 				Pipeline{{{"hello", "world"}}, {{"pi", 3.14159}}},
-				bsonx.Arr{
-					bsonx.Document(bsonx.Doc{{"hello", bsonx.String("world")}}),
-					bsonx.Document(bsonx.Doc{{"pi", bsonx.Double(3.14159)}}),
+				bson.A{
+					bson.D{{"hello", "world"}},
+					bson.D{{"pi", 3.14159}},
 				},
+				false,
 				nil,
 			},
 			{
-				"bsonx.Arr",
-				bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}})},
-				bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}})},
+				"bson.A",
+				bson.A{
+					bson.D{{"$limit", 12345}},
+				},
+				bson.A{
+					bson.D{{"$limit", 12345}},
+				},
+				false,
 				nil,
 			},
 			{
-				"[]bsonx.Doc",
-				[]bsonx.Doc{{{"$limit", bsonx.Int32(12345)}}},
-				bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}})},
+				"[]bson.D",
+				[]bson.D{{{"$limit", 12345}}},
+				bson.A{
+					bson.D{{"$limit", 12345}},
+				},
+				false,
 				nil,
 			},
 			{
 				"primitive.A/error",
 				primitive.A{"5"},
-				bsonx.Arr{},
+				nil,
+				false,
 				MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
 				"primitive.A/success",
 				primitive.A{bson.D{{"$limit", int32(12345)}}, map[string]interface{}{"$count": "foobar"}},
-				bsonx.Arr{
-					bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}}),
-					bsonx.Document(bsonx.Doc{{"$count", bsonx.String("foobar")}}),
+				bson.A{
+					bson.D{{"$limit", int(12345)}},
+					bson.D{{"$count", "foobar"}},
 				},
+				false,
 				nil,
 			},
 			{
 				"bson.A/error",
 				bson.A{"5"},
-				bsonx.Arr{},
+				nil,
+				false,
 				MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
 				"bson.A/success",
 				bson.A{bson.D{{"$limit", int32(12345)}}, map[string]interface{}{"$count": "foobar"}},
-				bsonx.Arr{
-					bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}}),
-					bsonx.Document(bsonx.Doc{{"$count", bsonx.String("foobar")}}),
+				bson.A{
+					bson.D{{"$limit", int32(12345)}},
+					bson.D{{"$count", "foobar"}},
 				},
+				false,
 				nil,
 			},
 			{
 				"[]interface{}/error",
 				[]interface{}{"5"},
-				bsonx.Arr{},
+				nil,
+				false,
 				MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
 				"[]interface{}/success",
 				[]interface{}{bson.D{{"$limit", int32(12345)}}, map[string]interface{}{"$count": "foobar"}},
-				bsonx.Arr{
-					bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}}),
-					bsonx.Document(bsonx.Doc{{"$count", bsonx.String("foobar")}}),
+				bson.A{
+					bson.D{{"$limit", int32(12345)}},
+					bson.D{{"$count", "foobar"}},
 				},
+				false,
 				nil,
 			},
 			{
 				"bsoncodec.ValueMarshaler/MarshalBSONValue error",
 				bvMarsh{err: errors.New("MarshalBSONValue error")},
-				bsonx.Arr{},
+				nil,
+				false,
 				errors.New("MarshalBSONValue error"),
 			},
 			{
 				"bsoncodec.ValueMarshaler/not array",
 				bvMarsh{t: bsontype.String},
-				bsonx.Arr{},
+				nil,
+				false,
 				fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", bsontype.String, bsontype.Array),
 			},
 			{
 				"bsoncodec.ValueMarshaler/UnmarshalBSONValue error",
-				bvMarsh{t: bsontype.Array},
-				bsonx.Arr{},
-				bsoncore.NewInsufficientBytesError(nil, nil),
+				bvMarsh{err: errors.New("UnmarshalBSONValue error")},
+				nil,
+				false,
+				errors.New("UnmarshalBSONValue error"),
 			},
 			{
 				"bsoncodec.ValueMarshaler/success",
 				bvMarsh{t: bsontype.Array, data: arr},
-				bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}})},
+				bson.A{
+					bson.D{{"$limit", int32(12345)}},
+				},
+				false,
+				nil,
+			},
+			{
+				"bsoncodec.ValueMarshaler/success nil",
+				bvMarsh{t: bsontype.Array},
+				nil,
+				false,
 				nil,
 			},
 			{
 				"nil",
 				nil,
-				bsonx.Arr{},
+				nil,
+				false,
 				errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"),
 			},
 			{
 				"not array or slice",
 				int64(42),
-				bsonx.Arr{},
+				nil,
+				false,
 				errors.New("can only transform slices and arrays into aggregation pipelines, but got int64"),
 			},
 			{
 				"array/error",
 				[1]interface{}{int64(42)},
-				bsonx.Arr{},
+				nil,
+				false,
 				MarshalError{Value: int64(0), Err: errors.New("WriteInt64 can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
 				"array/success",
 				[1]interface{}{primitive.D{{"$limit", int64(12345)}}},
-				bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int64(12345)}})},
+				bson.A{
+					bson.D{{"$limit", int64(12345)}},
+				},
+				false,
 				nil,
 			},
 			{
 				"slice/error",
 				[]interface{}{int64(42)},
-				bsonx.Arr{},
+				nil,
+				false,
 				MarshalError{Value: int64(0), Err: errors.New("WriteInt64 can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
 				"slice/success",
 				[]interface{}{primitive.D{{"$limit", int64(12345)}}},
-				bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int64(12345)}})},
+				bson.A{
+					bson.D{{"$limit", int64(12345)}},
+				},
+				false,
+				nil,
+			},
+			{
+				"hasOutputStage/out",
+				bson.A{
+					bson.D{{"$out", bson.D{
+						{"db", "output-db"},
+						{"coll", "output-collection"},
+					}}},
+				},
+				bson.A{
+					bson.D{{"$out", bson.D{
+						{"db", "output-db"},
+						{"coll", "output-collection"},
+					}}},
+				},
+				true,
+				nil,
+			},
+			{
+				"hasOutputStage/merge",
+				bson.A{
+					bson.D{{"$merge", bson.D{
+						{"into", bson.D{
+							{"db", "output-db"},
+							{"coll", "output-collection"},
+						}},
+					}}},
+				},
+				bson.A{
+					bson.D{{"$merge", bson.D{
+						{"into", bson.D{
+							{"db", "output-db"},
+							{"coll", "output-collection"},
+						}},
+					}}},
+				},
+				true,
 				nil,
 			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				arr, err := transformAggregatePipeline(bson.NewRegistryBuilder().Build(), tc.pipeline)
+				arr, hasOutputStage, err := transformAggregatePipeline(bson.NewRegistryBuilder().Build(), tc.pipeline)
+				assert.Equal(t, tc.hasOutputStage, hasOutputStage, "expected hasOutputStage %v, got %v",
+					tc.hasOutputStage, hasOutputStage)
 				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
-				assert.Equal(t, tc.arr, arr, "expected array %v, got %v", tc.arr, arr)
+
+				var expected bsoncore.Document
+				if tc.arr != nil {
+					_, expectedBSON, err := bson.MarshalValue(tc.arr)
+					assert.Nil(t, err, "MarshalValue error: %v", err)
+					expected = bsoncore.Document(expectedBSON)
+				}
+				assert.Equal(t, expected, arr, "expected array %v, got %v", expected, arr)
 			})
 		}
 	})
