@@ -1838,8 +1838,8 @@ axes:
           # The GCC toolchain that comes with Ubuntu 14.04 is incompatible with the standard binary
           # release of Go 1.16. As a result, Cgo builds on Ubuntu 14.04 fail with a linking error
           # (see https://github.com/golang/go/issues/43996). On Ubuntu 14.04, we only run tests for
-          # server v2.6, which doesn't support client-side encryption. Exclude all build tags to
-          # prevent attempting to link the client-side encryption (libmongocrypt) binaries when
+          # server v2.6 and 3.X, which don't support client-side encryption. Exclude all build tags
+          # to prevent attempting to link the client-side encryption (libmongocrypt) binaries when
           # running Go tests.
           GO_BUILD_TAGS: ""
 
