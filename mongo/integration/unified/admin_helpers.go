@@ -17,8 +17,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const (
-	errorInterrupted int32 = 11601
+var (
+	ignoredKillAllSessionsErrors = []int{
+		11601, // Interrupted, for SERVER-38335 on server versions below 4.2
+		13,    // Unauthorized, for SERVER-54216 on atlas
+	}
 )
 
 // terminateOpenSessions executes a killAllSessions command to ensure that sesssions left open on the server by a test
@@ -34,9 +37,13 @@ func terminateOpenSessions(ctx context.Context) error {
 		}
 
 		err := client.Database("admin").RunCommand(ctx, cmd).Err()
-		if ce, ok := err.(mongo.CommandError); ok && ce.Code == errorInterrupted {
-			// Workaround for SERVER-38335 on server versions below 4.2.
-			err = nil
+		if se, ok := err.(mongo.ServerError); ok {
+			for _, code := range ignoredKillAllSessionsErrors {
+				if se.HasErrorCode(code) {
+					err = nil
+					break
+				}
+			}
 		}
 		return err
 	}
