@@ -2713,6 +2713,7 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 	}
 }
 
+// VersionedAPIExamples contains examples of creating clients with versioned API.
 func VersionedAPIExamples(t *testing.T) {
 	ctx := context.Background()
 
