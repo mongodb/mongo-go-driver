@@ -2720,49 +2720,41 @@ func VersionedAPIExamples(t *testing.T) {
 	{
 		// Start Versioned API Example 1
 
-		serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPI))
+		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPIOptions))
 
 		// End Versioned API Example 1
-		if err != nil {
-			panic(err)
-		}
+		require.NoError(t, err)
 		_ = serverAPIClient
 	}
 	{
 		// Start Versioned API Example 2
 
-		serverAPI := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPI))
+		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPIOptions))
 
 		// End Versioned API Example 2
-		if err != nil {
-			panic(err)
-		}
+		require.NoError(t, err)
 		_ = serverAPIClient
 	}
 	{
 		// Start Versioned API Example 3
 
-		serverAPI := options.ServerAPI(options.ServerAPIVersion1).SetStrict(false)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPI))
+		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(false)
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPIOptions))
 
 		// End Versioned API Example 3
-		if err != nil {
-			panic(err)
-		}
+		require.NoError(t, err)
 		_ = serverAPIClient
 	}
 	{
 		// Start Versioned API Example 4
 
-		serverAPI := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPI))
+		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPIOptions))
 
 		// End Versioned API Example 4
-		if err != nil {
-			panic(err)
-		}
+		require.NoError(t, err)
 		_ = serverAPIClient
 	}
 }
