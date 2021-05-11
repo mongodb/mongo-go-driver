@@ -2712,3 +2712,56 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 	}
 }
+
+func VersionedAPIExamples(t *testing.T) {
+	ctx := context.Background()
+
+	{
+		// Start Versioned API Example 1
+
+		serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPI))
+
+		// End Versioned API Example 1
+		if err != nil {
+			panic(err)
+		}
+		_ = serverAPIClient
+	}
+	{
+		// Start Versioned API Example 2
+
+		serverAPI := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPI))
+
+		// End Versioned API Example 2
+		if err != nil {
+			panic(err)
+		}
+		_ = serverAPIClient
+	}
+	{
+		// Start Versioned API Example 3
+
+		serverAPI := options.ServerAPI(options.ServerAPIVersion1).SetStrict(false)
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPI))
+
+		// End Versioned API Example 3
+		if err != nil {
+			panic(err)
+		}
+		_ = serverAPIClient
+	}
+	{
+		// Start Versioned API Example 4
+
+		serverAPI := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPI))
+
+		// End Versioned API Example 4
+		if err != nil {
+			panic(err)
+		}
+		_ = serverAPIClient
+	}
+}
