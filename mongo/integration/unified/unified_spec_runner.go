@@ -98,11 +98,6 @@ func runTestDirectory(t *testing.T, directoryPath string, expectValidFail bool) 
 	}
 }
 
-// RunTestFile runs the tests in the given file, which must be in the unified spec format
-func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
-	runTestFile(t, filepath, false, opts...)
-}
-
 // runTestFile runs the tests in the given file, with expectValidFail determining whether the tests should expect to pass or fail
 func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*Options) {
 	content, err := ioutil.ReadFile(filepath)
