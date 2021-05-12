@@ -183,7 +183,7 @@ func (c *clientEntity) numberConnectionsCheckedOut() int32 {
 }
 
 func getSecondsSinceEpoch() float64 {
-	return float64(time.Now().Unix())
+	return float64(time.Now().UnixNano())/float64(time.Second/time.Nanosecond)
 }
 
 func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.CommandStartedEvent) {
