@@ -1895,6 +1895,7 @@ axes:
           GO_DIST: "/opt/golang/go1.16"
           PYTHON3_BINARY: python3
 
+  # OCSP linux tasks need to run against this OS since stapling is disabled on Ubuntu 18.04 (SERVER-51364)
   - id: ocsp-rhel-70
     display_name: OS
     values:
