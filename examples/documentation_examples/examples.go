@@ -2717,11 +2717,14 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 func VersionedAPIExamples(t *testing.T) {
 	ctx := context.Background()
 
+	// The URI to be used in the example blocks.
+	uri := "mongodb://localhost:27017"
+
 	{
 		// Start Versioned API Example 1
 
 		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPIOptions))
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
 
 		// End Versioned API Example 1
 		require.NoError(t, err)
@@ -2731,7 +2734,7 @@ func VersionedAPIExamples(t *testing.T) {
 		// Start Versioned API Example 2
 
 		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPIOptions))
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
 
 		// End Versioned API Example 2
 		require.NoError(t, err)
@@ -2741,7 +2744,7 @@ func VersionedAPIExamples(t *testing.T) {
 		// Start Versioned API Example 3
 
 		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(false)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPIOptions))
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
 
 		// End Versioned API Example 3
 		require.NoError(t, err)
@@ -2751,7 +2754,7 @@ func VersionedAPIExamples(t *testing.T) {
 		// Start Versioned API Example 4
 
 		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().SetServerAPIOptions(serverAPIOptions))
+		serverAPIClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
 
 		// End Versioned API Example 4
 		require.NoError(t, err)
