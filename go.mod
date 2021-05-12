@@ -3,7 +3,6 @@ module go.mongodb.org/mongo-driver
 go 1.10
 
 require (
-	github.com/aws/aws-sdk-go v1.34.28
 	github.com/go-stack/stack v1.8.0
 	github.com/gobuffalo/genny v0.1.1 // indirect
 	github.com/gobuffalo/gogen v0.1.1 // indirect
