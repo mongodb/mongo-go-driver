@@ -2713,51 +2713,99 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 	}
 }
 
-// VersionedAPIExamples contains examples of creating clients with versioned API.
-func VersionedAPIExamples(t *testing.T) {
-	ctx := context.Background()
+// Start Versioned API Example 1
 
-	// The URI to be used in the example blocks.
+// VersionedAPIExample is an example of creating a client with versioned API.
+func VersionedAPIExample() {
+	ctx := context.Background()
+	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
+	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
+	// For a sharded cluster, connect to the mongos instances; e.g.
+	// uri := "mongodb://mongos0.example.com:27017,mongos1.example.com:27017/"
 	uri := "mongodb://localhost:27017"
 
-	{
-		// Start Versioned API Example 1
-
-		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
-
-		// End Versioned API Example 1
-		require.NoError(t, err)
-		_ = serverAPIClient
+	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
+	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
+	client, err := mongo.Connect(ctx, clientOpts)
+	if err != nil {
+		panic(err)
 	}
-	{
-		// Start Versioned API Example 2
+	defer func() { _ = client.Disconnect(ctx) }()
+}
 
-		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
+// End Versioned API Example 1
 
-		// End Versioned API Example 2
-		require.NoError(t, err)
-		_ = serverAPIClient
+// Start Versioned API Example 2
+
+// VersionedAPIStrictExample is an example of creating a client with strict versioned API.
+func VersionedAPIStrictExample() {
+	ctx := context.Background()
+	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
+	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
+	// For a sharded cluster, connect to the mongos instances; e.g.
+	// uri := "mongodb://mongos0.example.com:27017,mongos1.example.com:27017/"
+	uri := "mongodb://localhost:27017"
+
+	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
+	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
+	client, err := mongo.Connect(ctx, clientOpts)
+	if err != nil {
+		panic(err)
 	}
-	{
-		// Start Versioned API Example 3
+	defer func() { _ = client.Disconnect(ctx) }()
+}
 
-		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(false)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
+// End Versioned API Example 2
 
-		// End Versioned API Example 3
-		require.NoError(t, err)
-		_ = serverAPIClient
+// Start Versioned API Example 3
+
+// VersionedAPINonStrictExample is an example of creating a client with non-strict versioned API.
+func VersionedAPINonStrictExample() {
+	ctx := context.Background()
+	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
+	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
+	// For a sharded cluster, connect to the mongos instances; e.g.
+	// uri := "mongodb://mongos0.example.com:27017,mongos1.example.com:27017/"
+	uri := "mongodb://localhost:27017"
+
+	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(false)
+	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
+	client, err := mongo.Connect(ctx, clientOpts)
+	if err != nil {
+		panic(err)
 	}
-	{
-		// Start Versioned API Example 4
+	defer func() { _ = client.Disconnect(ctx) }()
+}
 
-		serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
-		serverAPIClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
+// End Versioned API Example 3
 
-		// End Versioned API Example 4
-		require.NoError(t, err)
-		_ = serverAPIClient
+// Start Versioned API Example 4
+
+// VersionedAPIDeprecationErrorsExample is an example of creating a client with versioned API
+// with deprecation errors.
+func VersionedAPIDeprecationErrorsExample() {
+	ctx := context.Background()
+	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
+	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
+	// For a sharded cluster, connect to the mongos instances; e.g.
+	// uri := "mongodb://mongos0.example.com:27017,mongos1.example.com:27017/"
+	uri := "mongodb://localhost:27017"
+
+	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
+	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
+	client, err := mongo.Connect(ctx, clientOpts)
+	if err != nil {
+		panic(err)
 	}
+	defer func() { _ = client.Disconnect(ctx) }()
+}
+
+// End Versioned API Example 4
+
+// VersionedAPIExamples runs all versioned API examples.
+func VersionedAPIExamples() {
+	VersionedAPIExample()
+	VersionedAPIStrictExample()
+	VersionedAPINonStrictExample()
+	VersionedAPIDeprecationErrorsExample()
 }
