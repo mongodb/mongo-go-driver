@@ -5,6 +5,7 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 //
 // Based on github.com/aws/aws-sdk-go by Amazon.com, Inc. with code from:
+// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/request/request.go
 // - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/signer/v4/v4.go
 // - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/signer/v4/uri_path.go
 // - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/types.go
@@ -295,7 +296,7 @@ func (ctx *signingCtx) buildCanonicalString() {
 
 	uri := getURIPath(ctx.Request.URL)
 
-	uri = escapePath(uri, false)
+	uri = EscapePath(uri, false)
 
 	ctx.canonicalString = strings.Join([]string{
 		ctx.Request.Method,

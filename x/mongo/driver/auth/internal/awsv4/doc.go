@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 //
-// Based on github.com/aws/aws-sdk-go by Amazon.com, Inc.
+// Based on github.com/aws/aws-sdk-go v1.34.28 by Amazon.com, Inc.
 // See THIRD-PARTY-NOTICES for original license terms
 
 // Package awsv4 implements signing for AWS V4 signer with static credentials,

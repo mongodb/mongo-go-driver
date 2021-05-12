@@ -6,6 +6,7 @@
 //
 // Based on github.com/aws/aws-sdk-go by Amazon.com, Inc. with code from:
 // - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/signer/v4/header_rules.go
+// - github.com/aws/aws-sdk-go/blob/v1.34.28/internal/strings/strings.go
 // See THIRD-PARTY-NOTICES for original license terms
 
 package awsv4
