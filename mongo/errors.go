@@ -202,13 +202,13 @@ type ServerError interface {
 	HasErrorMessage(string) bool
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 	HasErrorCodeWithMessage(int, string) bool
-
-	serverError()
 }
 
 var _ ServerError = CommandError{}
 var _ ServerError = WriteException{}
 var _ ServerError = BulkWriteException{}
+var _ ServerError = driver.WriteCommandError{}
+var _ ServerError = driver.WriteConcernError{}
 
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
@@ -263,9 +263,6 @@ func (e CommandError) HasErrorCodeWithMessage(code int, message string) bool {
 func (e CommandError) IsMaxTimeMSExpiredError() bool {
 	return e.Code == 50 || e.Name == "MaxTimeMSExpired"
 }
-
-// serverError implements the ServerError interface.
-func (e CommandError) serverError() {}
 
 // WriteError is an error that occurred during execution of a write operation. This error type is only returned as part
 // of a WriteException or BulkWriteException.
@@ -395,9 +392,6 @@ func (mwe WriteException) HasErrorCodeWithMessage(code int, message string) bool
 	return false
 }
 
-// serverError implements the ServerError interface.
-func (mwe WriteException) serverError() {}
-
 func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcernError {
 	if wce == nil {
 		return nil
@@ -497,9 +491,6 @@ func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) 
 	}
 	return false
 }
-
-// serverError implements the ServerError interface.
-func (bwe BulkWriteException) serverError() {}
 
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different

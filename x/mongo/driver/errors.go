@@ -119,6 +119,58 @@ func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bo
 	return (*wce.WriteConcernError).Retryable()
 }
 
+// HasErrorCode returns true if the error has the specified code.
+func (wce WriteCommandError) HasErrorCode(code int) bool {
+	if wce.WriteConcernError != nil && int(wce.WriteConcernError.Code) == code {
+		return true
+	}
+	for _, we := range wce.WriteErrors {
+		if int(we.Code) == code {
+			return true
+		}
+	}
+	return false
+}
+
+// HasErrorLabel returns true if the error contains the specified label.
+func (wce WriteCommandError) HasErrorLabel(label string) bool {
+	if wce.Labels != nil {
+		for _, l := range wce.Labels {
+			if l == label {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// HasErrorMessage returns true if the error contains the specified message.
+func (wce WriteCommandError) HasErrorMessage(message string) bool {
+	if wce.WriteConcernError != nil && strings.Contains(wce.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range wce.WriteErrors {
+		if strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
+func (wce WriteCommandError) HasErrorCodeWithMessage(code int, message string) bool {
+	if wce.WriteConcernError != nil &&
+		int(wce.WriteConcernError.Code) == code && strings.Contains(wce.WriteConcernError.Message, message) {
+		return true
+	}
+	for _, we := range wce.WriteErrors {
+		if int(we.Code) == code && strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
 // WriteConcernError is a write concern failure that occurred as a result of a
 // write operation.
 type WriteConcernError struct {
@@ -179,6 +231,33 @@ func (wce WriteConcernError) NotMaster() bool {
 	}
 	hasNoCode := wce.Code == 0
 	return hasNoCode && strings.Contains(wce.Message, "not master")
+}
+
+// HasErrorCode returns true if the error has the specified code.
+func (wce WriteConcernError) HasErrorCode(code int) bool {
+	return int(wce.Code) == code
+}
+
+// HasErrorLabel returns true if the error contains the specified label.
+func (wce WriteConcernError) HasErrorLabel(label string) bool {
+	if wce.Labels != nil {
+		for _, l := range wce.Labels {
+			if l == label {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// HasErrorMessage returns true if the error contains the specified message.
+func (wce WriteConcernError) HasErrorMessage(message string) bool {
+	return strings.Contains(wce.Message, message)
+}
+
+// HasErrorCodeWithMessage returns true if the error has the specified code and Message contains the specified message.
+func (wce WriteConcernError) HasErrorCodeWithMessage(code int, message string) bool {
+	return int(wce.Code) == code && strings.Contains(wce.Message, message)
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
