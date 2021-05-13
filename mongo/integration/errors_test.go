@@ -387,6 +387,33 @@ func TestErrors(t *testing.T) {
 				false,
 				false,
 			},
+			{
+				"driver Error all true",
+				driver.Error{matchCode, "foo", []string{label}, "e", matchWrapped, nil},
+				true,
+				true,
+				true,
+				true,
+				true,
+			},
+			{
+				"driver Error all false",
+				driver.Error{otherCode, "bar", []string{"otherError"}, "e", otherWrapped, nil},
+				false,
+				false,
+				false,
+				false,
+				false,
+			},
+			{
+				"driver Error has code not message",
+				driver.Error{matchCode, "bar", []string{"otherError"}, "e", nil, nil},
+				true,
+				false,
+				false,
+				false,
+				false,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {

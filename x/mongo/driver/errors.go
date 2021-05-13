@@ -317,6 +317,11 @@ func (e Error) Unwrap() error {
 	return e.Wrapped
 }
 
+// HasErrorCode returns true if the error has the specified code.
+func (e Error) HasErrorCode(code int) bool {
+	return int(e.Code) == code
+}
+
 // HasErrorLabel returns true if the error contains the specified label.
 func (e Error) HasErrorLabel(label string) bool {
 	if e.Labels != nil {
@@ -327,6 +332,16 @@ func (e Error) HasErrorLabel(label string) bool {
 		}
 	}
 	return false
+}
+
+// HasErrorMessage returns true if the error contains the specified message.
+func (e Error) HasErrorMessage(message string) bool {
+	return strings.Contains(e.Message, message)
+}
+
+// HasErrorCodeWithMessage returns true if the error has the specified code and Message contains the specified message.
+func (e Error) HasErrorCodeWithMessage(code int, message string) bool {
+	return int(e.Code) == code && strings.Contains(e.Message, message)
 }
 
 // RetryableRead returns true if the error is retryable for a read operation

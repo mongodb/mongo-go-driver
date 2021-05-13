@@ -209,6 +209,7 @@ var _ ServerError = WriteException{}
 var _ ServerError = BulkWriteException{}
 var _ ServerError = driver.WriteCommandError{}
 var _ ServerError = driver.WriteConcernError{}
+var _ ServerError = driver.Error{}
 
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
