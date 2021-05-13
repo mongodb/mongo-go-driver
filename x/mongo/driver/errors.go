@@ -121,7 +121,7 @@ func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bo
 
 // HasErrorCode returns true if the error has the specified code.
 func (wce WriteCommandError) HasErrorCode(code int) bool {
-	if wce.WriteConcernError != nil && int(wce.WriteConcernError.Code) == code {
+	if wce.WriteConcernError != nil && wce.WriteConcernError.HasErrorCode(code) {
 		return true
 	}
 	for _, we := range wce.WriteErrors {
@@ -134,6 +134,9 @@ func (wce WriteCommandError) HasErrorCode(code int) bool {
 
 // HasErrorLabel returns true if the error contains the specified label.
 func (wce WriteCommandError) HasErrorLabel(label string) bool {
+	if wce.WriteConcernError != nil && wce.WriteConcernError.HasErrorLabel(label) {
+		return true
+	}
 	if wce.Labels != nil {
 		for _, l := range wce.Labels {
 			if l == label {
@@ -146,7 +149,7 @@ func (wce WriteCommandError) HasErrorLabel(label string) bool {
 
 // HasErrorMessage returns true if the error contains the specified message.
 func (wce WriteCommandError) HasErrorMessage(message string) bool {
-	if wce.WriteConcernError != nil && strings.Contains(wce.WriteConcernError.Message, message) {
+	if wce.WriteConcernError != nil && wce.WriteConcernError.HasErrorMessage(message) {
 		return true
 	}
 	for _, we := range wce.WriteErrors {
@@ -159,8 +162,7 @@ func (wce WriteCommandError) HasErrorMessage(message string) bool {
 
 // HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 func (wce WriteCommandError) HasErrorCodeWithMessage(code int, message string) bool {
-	if wce.WriteConcernError != nil &&
-		int(wce.WriteConcernError.Code) == code && strings.Contains(wce.WriteConcernError.Message, message) {
+	if wce.WriteConcernError != nil && wce.WriteConcernError.HasErrorCodeWithMessage(code, message) {
 		return true
 	}
 	for _, we := range wce.WriteErrors {

@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 type netErr struct {
@@ -297,6 +298,92 @@ func TestErrors(t *testing.T) {
 				true,
 				false,
 				true,
+				false,
+				false,
+			},
+			{
+				"driver WriteCommandError all in writeConcernErorr",
+				driver.WriteCommandError{
+					&driver.WriteConcernError{"name", matchCode, "foo", nil, []string{label}, nil},
+					nil,
+					[]string{"otherError"},
+				},
+				true,
+				true,
+				true,
+				true,
+				false,
+			},
+			{
+				"driver WriteCommandError all in writeError",
+				driver.WriteCommandError{
+					nil,
+					driver.WriteErrors{
+						driver.WriteError{0, matchCode, "foo"},
+						driver.WriteError{0, otherCode, "bar"},
+					},
+					[]string{"otherError"},
+				},
+				true,
+				false,
+				true,
+				true,
+				false,
+			},
+			{
+				"driver WriteCommandError all false",
+				driver.WriteCommandError{
+					&driver.WriteConcernError{"name", otherCode, "bar", nil, []string{"otherError"}, nil},
+					driver.WriteErrors{
+						driver.WriteError{0, otherCode, "baz"},
+					},
+					[]string{"otherError"},
+				},
+				false,
+				false,
+				false,
+				false,
+				false,
+			},
+			{
+				"driver WriteCommandError HasErrorCodeAndMessage false",
+				driver.WriteCommandError{
+					&driver.WriteConcernError{"name", matchCode, "bar", nil, []string{}, nil},
+					driver.WriteErrors{
+						driver.WriteError{0, otherCode, "foo"},
+					},
+					[]string{"otherError"},
+				},
+				true,
+				false,
+				true,
+				false,
+				false,
+			},
+			{
+				"driver WriteConcernError all true",
+				driver.WriteConcernError{"wce", matchCode, "foo", nil, []string{label}, nil},
+				true,
+				true,
+				true,
+				true,
+				false,
+			},
+			{
+				"driver WriteConcernError all false",
+				driver.WriteConcernError{"wce", otherCode, "bar", nil, []string{"otherError"}, nil},
+				false,
+				false,
+				false,
+				false,
+				false,
+			},
+			{
+				"driver WriteConcernError has code not message",
+				driver.WriteConcernError{"wce", matchCode, "bar", nil, []string{"otherError"}, nil},
+				true,
+				false,
+				false,
 				false,
 				false,
 			},
