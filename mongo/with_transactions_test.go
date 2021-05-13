@@ -417,6 +417,29 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.True(t, ok, "expected result type %T, got %T", false, res)
 		assert.False(t, resBool, "expected result false, got %v", resBool)
 	})
+	t.Run("timeout before commitTransaction does not retry", func(t *testing.T) {
+		withTransactionTimeout = 2 * time.Second
+
+		sess, err := client.StartSession()
+		assert.Nil(t, err, "StartSession erro: %v", err)
+		defer sess.EndSession(context.Background())
+
+		callback := func() {
+			_, _ = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
+				c, cancel := context.WithTimeout(sessCtx, time.Nanosecond)
+				defer cancel()
+
+				_, err := client.Database("test").
+					Collection("test").
+					InsertOne(c, bson.D{{}})
+
+				return nil, err
+			})
+		}
+
+		// Assert that transaction fails within 500ms and not 2 seconds.
+		assert.Soon(t, callback, 500*time.Millisecond)
+	})
 }
 
 func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.ClientOptions) *Client {
