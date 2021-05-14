@@ -47,6 +47,7 @@ func TestDocumentationExamples(t *testing.T) {
 	documentation_examples.DeleteExamples(t, db)
 	documentation_examples.RunCommandExamples(t, db)
 	documentation_examples.IndexExamples(t, db)
+	documentation_examples.VersionedAPIExamples()
 }
 
 func TestAggregationExamples(t *testing.T) {
