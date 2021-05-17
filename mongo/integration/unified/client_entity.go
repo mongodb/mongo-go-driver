@@ -105,6 +105,9 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 	}
 	if entityOptions.ServerAPIOptions != nil {
+		if err := entityOptions.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+			return nil, err
+		}
 		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
 	} else {
 		testutil.AddTestServerAPIVersion(clientOpts)

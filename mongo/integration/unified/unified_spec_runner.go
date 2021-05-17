@@ -51,6 +51,7 @@ type TestCase struct {
 	createEntities  []map[string]*entityOptions
 	fileReqs        []mtest.RunOnBlock
 	killAllSessions bool
+	schemaVersion   string
 
 	entities *EntityMap
 	loopDone chan struct{}
@@ -87,21 +88,23 @@ type TestFile struct {
 	TestCases         []*TestCase                 `bson:"tests"`
 }
 
-// runTestDirectory runs the files in the given directory, which must be in the unifed spec format
-func runTestDirectory(t *testing.T, directoryPath string) {
+// runTestDirectory runs the files in the given directory, which must be in the unified spec format, with
+// expectValidFail determining whether the tests should expect to pass or fail
+func runTestDirectory(t *testing.T, directoryPath string, expectValidFail bool) {
 	for _, filename := range testhelpers.FindJSONFilesInDir(t, directoryPath) {
 		t.Run(filename, func(t *testing.T) {
-			RunTestFile(t, path.Join(directoryPath, filename))
+			runTestFile(t, path.Join(directoryPath, filename), expectValidFail)
 		})
 	}
 }
 
-// RunTestFile runs the tests in the given file, which must be in the unifed spec format
-func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
+// runTestFile runs the tests in the given file, with expectValidFail determining whether the tests should expect to pass or fail
+func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*Options) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
 	fileReqs, testCases := ParseTestFile(t, content, opts...)
+
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
 		CreateClient(false)
@@ -114,9 +117,25 @@ func RunTestFile(t *testing.T, filepath string, opts ...*Options) {
 			CreateClient(false)
 
 		mt.RunOpts(testCase.Description, mtOpts, func(mt *mtest.T) {
-			if err := testCase.Run(mt); err != nil {
+			defer func() {
+				// catch panics from looking up elements and fail if it's unexpected
+				if r := recover(); r != nil {
+					if !expectValidFail {
+						mt.Fatal(r)
+					}
+				}
+			}()
+			err := testCase.Run(mt)
+			if expectValidFail {
+				if err != nil {
+					return
+				}
+				mt.Fatalf("expected test to error, got nil")
+			}
+			if err != nil {
 				mt.Fatal(err)
 			}
+			return
 		})
 	}
 }
@@ -127,14 +146,11 @@ func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.Run
 	err := bson.UnmarshalExtJSON(testJSON, false, &testFile)
 	assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
 
-	// Validate that we support the schema declared by the test file before attempting to use its contents.
-	err = checkSchemaVersion(testFile.SchemaVersion)
-	assert.Nil(t, err, "schema version %q not supported: %v", testFile.SchemaVersion, err)
-
 	op := MergeOptions(opts...)
 	for _, testCase := range testFile.TestCases {
 		testCase.initialData = testFile.InitialData
 		testCase.createEntities = testFile.CreateEntities
+		testCase.schemaVersion = testFile.SchemaVersion
 		testCase.entities = newEntityMap()
 		testCase.loopDone = make(chan struct{})
 		testCase.killAllSessions = *op.RunKillAllSessions
@@ -188,6 +204,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	}
 	if _, ok := skippedTestDescriptions[tc.Description]; ok {
 		ls.Skip("skipping due to known failure")
+	}
+	// Validate that we support the schema declared by the test file before attempting to use its contents.
+	if err := checkSchemaVersion(tc.schemaVersion); err != nil {
+		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
 	}
 
 	testCtx := newTestContext(mtest.Background, tc.entities)
