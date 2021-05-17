@@ -24,8 +24,10 @@ func ExampleBucket_OpenUploadStream() {
 	var fileContent []byte
 	var bucket *gridfs.Bucket
 
-	// Specify the Metadata option to include a "metadata" field in the files collection document.
-	uploadOpts := options.GridFSUpload().SetMetadata(bson.D{{"metadata tag", "tag"}})
+	// Specify the Metadata option to include a "metadata" field in the files
+	// collection document.
+	uploadOpts := options.GridFSUpload().
+		SetMetadata(bson.D{{"metadata tag", "tag"}})
 	uploadStream, err := bucket.OpenUploadStream("filename", uploadOpts)
 	if err != nil {
 		log.Fatal(err)
@@ -36,8 +38,10 @@ func ExampleBucket_OpenUploadStream() {
 		}
 	}()
 
-	// Use SetWriteDeadline to force a timeout if the upload does not succeed in 2 seconds.
-	if err = uploadStream.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
+	// Use SetWriteDeadline to force a timeout if the upload does not succeed in
+	// 2 seconds.
+	err = uploadStream.SetWriteDeadline(time.Now().Add(2 * time.Second))
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -50,9 +54,14 @@ func ExampleBucket_UploadFromStream() {
 	var fileContent []byte
 	var bucket *gridfs.Bucket
 
-	// Specify the Metadata option to include a "metadata" field in the files collection document.
-	uploadOpts := options.GridFSUpload().SetMetadata(bson.D{{"metadata tag", "tag"}})
-	fileID, err := bucket.UploadFromStream("filename", bytes.NewBuffer(fileContent), uploadOpts)
+	// Specify the Metadata option to include a "metadata" field in the files
+	// collection document.
+	uploadOpts := options.GridFSUpload().
+		SetMetadata(bson.D{{"metadata tag", "tag"}})
+	fileID, err := bucket.UploadFromStream(
+		"filename",
+		bytes.NewBuffer(fileContent),
+		uploadOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,8 +83,10 @@ func ExampleBucket_OpenDownloadStream() {
 		}
 	}()
 
-	// Use SetReadDeadline to force a timeout if the download does not succeed in 2 seconds.
-	if err = downloadStream.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+	// Use SetReadDeadline to force a timeout if the download does not succeed
+	// in 2 seconds.
+	err = downloadStream.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if err != nil {
 		log.Fatal(err)
 	}
 

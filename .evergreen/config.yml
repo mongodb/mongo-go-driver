@@ -140,6 +140,7 @@ functions:
           cd $(mktemp -d)
           go get -u golang.org/x/lint/golint
           go get -u github.com/kisielk/errcheck
+          go get -u github.com/walle/lll/...
           cd -
 
           # initialize submodules
