@@ -552,6 +552,29 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 		}
 		op.Validator(validator)
 	}
+	if cco.TimeSeriesOptions != nil {
+		idx, doc := bsoncore.AppendDocumentStart(nil)
+		if cco.TimeSeriesOptions.TimeField != "" {
+			doc = bsoncore.AppendStringElement(doc, "timeField", cco.TimeSeriesOptions.TimeField)
+		} else {
+			return fmt.Errorf("must specify a non-empty string timeField in TimeSeriesOptions")
+		}
+
+		if cco.TimeSeriesOptions.MetaField != nil {
+			doc = bsoncore.AppendStringElement(doc, "metaField", *cco.TimeSeriesOptions.MetaField)
+		}
+
+		if cco.TimeSeriesOptions.ExpireAfterSeconds != nil {
+			doc = bsoncore.AppendInt64Element(doc, "expireAfterSeconds", *cco.TimeSeriesOptions.ExpireAfterSeconds)
+		}
+
+		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
+		if err != nil {
+			return err
+		}
+
+		op.TimeSeries(doc)
+	}
 
 	return db.executeCreateOperation(ctx, op)
 }

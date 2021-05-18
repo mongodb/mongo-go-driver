@@ -20,6 +20,21 @@ func DefaultIndex() *DefaultIndexOptions {
 	return &DefaultIndexOptions{}
 }
 
+// TimeSeriesOptions specifies options on a time-series collection.
+type TimeSeriesOptions struct {
+	// Name of the top-level field to be used for time. Inserted documents must have this field,
+	// and the field must be of the BSON UTC datetime type (0x9).
+	TimeField string
+
+	// Optional name of the top-level field describing the series. This field is used to group
+	// related data and may be of any BSON type, except for array. This name may not be the same
+	// as the timeField or _id.
+	MetaField *string
+
+	// Optional number indicating after how many seconds old time-series data should be deleted.
+	ExpireAfterSeconds *int64
+}
+
 // SetStorageEngine sets the value for the StorageEngine field.
 func (d *DefaultIndexOptions) SetStorageEngine(storageEngine interface{}) *DefaultIndexOptions {
 	d.StorageEngine = storageEngine
@@ -70,6 +85,9 @@ type CreateCollectionOptions struct {
 	// is only valid for MongoDB versions >= 3.2. The default value is nil, meaning no validator will be used for the
 	// collection.
 	Validator interface{}
+
+	// Options for specifying a time-series collection.
+	TimeSeriesOptions *TimeSeriesOptions
 }
 
 // CreateCollection creates a new CreateCollectionOptions instance.
@@ -131,6 +149,12 @@ func (c *CreateCollectionOptions) SetValidator(validator interface{}) *CreateCol
 	return c
 }
 
+// SetTimeSeriesOptions sets the options for time-series collections.
+func (c *CreateCollectionOptions) SetTimeSeriesOptions(timeSeriesOpts TimeSeriesOptions) *CreateCollectionOptions {
+	c.TimeSeriesOptions = &timeSeriesOpts
+	return c
+}
+
 // MergeCreateCollectionOptions combines the given CreateCollectionOptions instances into a single
 // CreateCollectionOptions in a last-one-wins fashion.
 func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateCollectionOptions {
@@ -167,6 +191,9 @@ func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateColle
 		}
 		if opt.Validator != nil {
 			cc.Validator = opt.Validator
+		}
+		if opt.TimeSeriesOptions != nil {
+			cc.TimeSeriesOptions = opt.TimeSeriesOptions
 		}
 	}
 

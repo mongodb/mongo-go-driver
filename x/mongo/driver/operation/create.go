@@ -43,6 +43,7 @@ type Create struct {
 	selector            description.ServerSelector
 	writeConcern        *writeconcern.WriteConcern
 	serverAPI           *driver.ServerAPIOptions
+	timeSeries          bsoncore.Document
 }
 
 // NewCreate constructs and returns a new Create.
@@ -118,6 +119,9 @@ func (c *Create) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if c.viewOn != nil {
 		dst = bsoncore.AppendStringElement(dst, "viewOn", *c.viewOn)
+	}
+	if c.timeSeries != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "timeseries", c.timeSeries)
 	}
 	return dst, nil
 }
@@ -329,5 +333,15 @@ func (c *Create) ServerAPI(serverAPI *driver.ServerAPIOptions) *Create {
 	}
 
 	c.serverAPI = serverAPI
+	return c
+}
+
+// TimeSeries sets the time series options for this operation.
+func (c *Create) TimeSeries(timeSeries bsoncore.Document) *Create {
+	if c == nil {
+		c = new(Create)
+	}
+
+	c.timeSeries = timeSeries
 	return c
 }
