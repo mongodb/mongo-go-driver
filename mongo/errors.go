@@ -116,8 +116,8 @@ func IsTimeout(err error) bool {
 	return false
 }
 
-// IsDeadlineExceededError returns true if err is from an expired or canceled context
-func IsDeadlineExceededError(err error) bool {
+// isNonRetryableTransactionContextError returns true if err is from an expired or canceled context
+func isNonRetryableTransactionContextError(err error) bool {
 	for ; err != nil; err = unwrap(err) {
 		if err == context.DeadlineExceeded || err == context.Canceled {
 			return true

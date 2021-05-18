@@ -194,7 +194,7 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 			}
 
 			// End if context has timed out or been canceled, as retrying has no chance of success.
-			if IsDeadlineExceededError(err) {
+			if isNonRetryableTransactionContextError(err) {
 				return res, err
 			}
 			if errorHasLabel(err, driver.TransientTransactionError) {
