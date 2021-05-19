@@ -20,6 +20,12 @@ func DefaultIndex() *DefaultIndexOptions {
 	return &DefaultIndexOptions{}
 }
 
+// SetStorageEngine sets the value for the StorageEngine field.
+func (d *DefaultIndexOptions) SetStorageEngine(storageEngine interface{}) *DefaultIndexOptions {
+	d.StorageEngine = storageEngine
+	return d
+}
+
 // TimeSeriesOptions specifies options on a time-series collection.
 type TimeSeriesOptions struct {
 	// Name of the top-level field to be used for time. Inserted documents must have this field,
@@ -32,13 +38,30 @@ type TimeSeriesOptions struct {
 	MetaField *string
 
 	// Optional number indicating after how many seconds old time-series data should be deleted.
-	ExpireAfterSeconds *int64
+	ExpireAfterSeconds *int32
 }
 
-// SetStorageEngine sets the value for the StorageEngine field.
-func (d *DefaultIndexOptions) SetStorageEngine(storageEngine interface{}) *DefaultIndexOptions {
-	d.StorageEngine = storageEngine
-	return d
+// TimeSeries creates a new TimeSeriesOptions instance.
+func TimeSeries() *TimeSeriesOptions {
+	return &TimeSeriesOptions{}
+}
+
+// SetTimeField sets the value for the TimeField.
+func (tso *TimeSeriesOptions) SetTimeField(timeField string) *TimeSeriesOptions {
+	tso.TimeField = timeField
+	return tso
+}
+
+// SetMetaField sets the value for the MetaField.
+func (tso *TimeSeriesOptions) SetMetaField(metaField string) *TimeSeriesOptions {
+	tso.MetaField = &metaField
+	return tso
+}
+
+// SetExpireAfterSeconds sets the value for the ExpireAfterSeconds field.
+func (tso *TimeSeriesOptions) SetExpireAfterSeconds(eas int32) *TimeSeriesOptions {
+	tso.ExpireAfterSeconds = &eas
+	return tso
 }
 
 // CreateCollectionOptions represents options that can be used to configure a CreateCollection operation.

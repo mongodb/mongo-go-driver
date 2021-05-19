@@ -1,0 +1,110 @@
+{
+  "description": "timeseries-collection",
+  "schemaVersion": "1.0",
+  "runOnRequirements": [
+    {
+      "minServerVersion": "4.9",
+      "serverParameters": {
+        "featureFlagTimeseriesCollection": {
+          "value": true,
+          "version": "5.0"
+        }
+      }
+    }
+  ],
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0",
+        "observeEvents": [
+          "commandStartedEvent"
+        ]
+      }
+    },
+    {
+      "database": {
+        "id": "database0",
+        "client": "client0",
+        "databaseName": "ts-tests"
+      }
+    },
+    {
+      "collection": {
+        "id": "collection0",
+        "database": "database0",
+        "collectionName": "test"
+      }
+    }
+  ],
+  "initialData": [
+    {
+      "collectionName": "test",
+      "databaseName": "ts-tests",
+      "documents": []
+    }
+  ],
+  "tests": [
+    {
+      "description": "createCollection with all options",
+      "operations": [
+        {
+          "name": "dropCollection",
+          "object": "database0",
+          "arguments": {
+            "collection": "test"
+          }
+        },
+        {
+          "name": "createCollection",
+          "object": "database0",
+          "arguments": {
+            "collection": "test",
+            "timeseries": {
+              "timeField": "time",
+              "metaField": "meta",
+              "expireAfterSeconds": 604800
+            }
+          }
+        },
+        {
+          "name": "assertCollectionExists",
+          "object": "testRunner",
+          "arguments": {
+            "databaseName": "ts-tests",
+            "collectionName": "test"
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client0",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "drop": "test"
+                },
+                "commandName": "drop",
+                "databaseName": "ts-tests"
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "create": "test",
+                  "timeseries": {
+                    "timeField": "time",
+                    "metaField": "meta",
+                    "expireAfterSeconds": 604800
+                  }
+                },
+                "commandName": "create",
+                "databaseName": "ts-tests"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

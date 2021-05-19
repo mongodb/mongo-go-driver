@@ -24,6 +24,7 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 	}
 
 	var collName string
+	var cco options.CreateCollectionOptions
 	elems, _ := operation.Arguments.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -32,6 +33,29 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 		switch key {
 		case "collection":
 			collName = val.StringValue()
+		case "timeseries":
+			tsElems, err := elem.Value().Document().Elements()
+			if err != nil {
+				return nil, err
+			}
+
+			tso := options.TimeSeries()
+			for _, elem := range tsElems {
+				key := elem.Key()
+				val := elem.Value()
+
+				switch key {
+				case "timeField":
+					tso.SetTimeField(val.StringValue())
+				case "metaField":
+					tso.SetMetaField(val.StringValue())
+				case "expireAfterSeconds":
+					tso.SetExpireAfterSeconds(val.Int32())
+				default:
+					return nil, fmt.Errorf("unrecognized timeseries option %q", key)
+				}
+			}
+			cco.SetTimeSeriesOptions(*tso)
 		default:
 			return nil, fmt.Errorf("unrecognized createCollection option %q", key)
 		}
@@ -40,7 +64,7 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("collName")
 	}
 
-	err = db.CreateCollection(ctx, collName)
+	err = db.CreateCollection(ctx, collName, &cco)
 	return newErrorResult(err), nil
 }
 

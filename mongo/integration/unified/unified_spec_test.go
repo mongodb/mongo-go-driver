@@ -21,6 +21,7 @@ var (
 		"change-streams/unified",
 		"transactions/unified",
 		"load-balancers",
+		"collection-management",
 	}
 	failDirectories = []string{
 		"unified-test-format/valid-fail",

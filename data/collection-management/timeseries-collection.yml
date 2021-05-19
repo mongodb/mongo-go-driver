@@ -1,0 +1,63 @@
+description: "timeseries-collection"
+
+schemaVersion: "1.0"
+
+runOnRequirements:
+  - minServerVersion: "4.9"
+    serverParameters:
+      featureFlagTimeseriesCollection:
+        value: true
+        version: "5.0"
+
+createEntities:
+  - client:
+      id: &client0 client0
+      observeEvents: [ commandStartedEvent ]
+  - database:
+      id: &database0 database0
+      client: *client0
+      databaseName: &database0Name ts-tests
+  - collection:
+      id: &collection0 collection0
+      database: *database0
+      collectionName: &collection0Name test
+
+initialData:
+  - collectionName: *collection0Name
+    databaseName: *database0Name
+    documents: []
+
+tests:
+  - description: "createCollection with all options"
+    operations:
+      - name: dropCollection
+        object: *database0
+        arguments:
+          collection: *collection0Name
+      - name: createCollection
+        object: *database0
+        arguments:
+          collection: *collection0Name
+          timeseries: &timeseries0
+            timeField: "time"
+            metaField: "meta"
+            expireAfterSeconds: 604800
+      - name: assertCollectionExists
+        object: testRunner
+        arguments:
+          databaseName: *database0Name
+          collectionName: *collection0Name
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                drop: *collection0Name
+              commandName: drop
+              databaseName: *database0Name
+          - commandStartedEvent:
+              command:
+                create: *collection0Name
+                timeseries: *timeseries0
+              commandName: create
+              databaseName: *database0Name
