@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -o errexit
-set -o xtrace
 
 export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
 export GOCACHE="$(pwd)/.cache"
@@ -43,6 +42,36 @@ if [ "$SSL" != "nossl" ]; then
     fi
 fi
 
+# Set temp credentials for AWS if python3 is available.
+#
+# Using python3-venv in Ubuntu 14.04 (an OS required for legacy server version
+# tasks) requires the use of apt-get, which we wish to avoid. So, we do not set
+# a python3 binary on Ubuntu 14.04. Setting AWS temp credentials for legacy
+# server version tasks is unneccesary, as temp credentials are only needed on 4.2+.
+if [ ! -z ${PYTHON3_BINARY} ]; then
+  export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
+  export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
+  export AWS_DEFAULT_REGION="us-east-1"
+  ${PYTHON3_BINARY} -m venv ./venv
+
+  # Set the PYTHON environment variable to point to the active python3 binary. This is used by the
+  # set-temp-creds.sh script.
+  if [ "Windows_NT" = "$OS" ]; then
+    export PYTHON="$(pwd)/venv/Scripts/python"
+  else
+    export PYTHON="$(pwd)/venv/bin/python"
+  fi
+
+  ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
+  . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
+fi
+
+# If GO_BUILD_TAGS is not set, set the default Go build tags to "cse" to enable
+# client-side encryption, which requires linking the libmongocrypt C library.
+if [ -z ${GO_BUILD_TAGS+x} ]; then
+  GO_BUILD_TAGS="cse"
+fi
+
 AUTH=${AUTH} \
 SSL=${SSL} \
 MONGO_GO_DRIVER_CA_FILE=${MONGO_GO_DRIVER_CA_FILE} \
@@ -51,9 +80,18 @@ MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE=${MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_F
 MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE=${MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE} \
 MONGODB_URI="${MONGODB_URI}" \
 TOPOLOGY=${TOPOLOGY} \
-BUILD_TAGS="-tags cse" \
-AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
-AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+BUILD_TAGS="-tags ${GO_BUILD_TAGS}" \
+AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
+AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
+AWS_DEFAULT_REGION="us-east-1" \
+CSFLE_AWS_TEMP_ACCESS_KEY_ID="$CSFLE_AWS_TEMP_ACCESS_KEY_ID" \
+CSFLE_AWS_TEMP_SECRET_ACCESS_KEY="$CSFLE_AWS_TEMP_SECRET_ACCESS_KEY" \
+CSFLE_AWS_TEMP_SESSION_TOKEN="$CSFLE_AWS_TEMP_SESSION_TOKEN" \
+AZURE_TENANT_ID="${cse_azure_tenant_id}" \
+AZURE_CLIENT_ID="${cse_azure_client_id}" \
+AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
+GCP_EMAIL="${cse_gcp_email}" \
+GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
 make evg-test \
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH
