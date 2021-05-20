@@ -77,14 +77,14 @@ func TestSDAMProse(t *testing.T) {
 				}
 			}
 
-			// Force isMaster requests to block for 500ms and wait until a server's average RTT goes over 250ms.
+			// Force isMaster and hello requests to block for 500ms and wait until a server's average RTT goes over 250ms.
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
 				Mode: mtest.FailPointMode{
 					Times: 1000,
 				},
 				Data: mtest.FailPointData{
-					FailCommands:    []string{"isMaster"},
+					FailCommands:    []string{"isMaster", "hello"},
 					BlockConnection: true,
 					BlockTimeMS:     500,
 					AppName:         "streamingRttTest",

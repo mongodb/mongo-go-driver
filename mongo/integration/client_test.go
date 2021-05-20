@@ -8,6 +8,7 @@ package integration
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"reflect"
 	"strings"
@@ -417,7 +418,12 @@ func TestClient(t *testing.T) {
 		// First two messages should be connection handshakes: one for the heartbeat connection and the other for the
 		// application connection.
 		for idx, pair := range msgPairs[:2] {
-			assert.Equal(mt, pair.CommandName, "isMaster", "expected command name isMaster at index %d, got %s", idx,
+			helloCommand := "isMaster"
+			//  Expect "hello" command name with API version.
+			if os.Getenv("REQUIRE_API_VERSION") == "true" {
+				helloCommand = "hello"
+			}
+			assert.Equal(mt, pair.CommandName, helloCommand, "expected command name %s at index %d, got %s", helloCommand, idx,
 				pair.CommandName)
 
 			sent := pair.Sent
