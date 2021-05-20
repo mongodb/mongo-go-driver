@@ -54,6 +54,7 @@ var testContext struct {
 	serverParameters            bson.Raw
 	singleMongosLoadBalancerURI string
 	multiMongosLoadBalancerURI  string
+	serverless                  bool
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
@@ -185,17 +186,24 @@ func Setup(setupOpts ...*SetupOptions) error {
 		if singleMongosURI == "" {
 			return errors.New("SINGLE_MONGOS_LB_URI must be set when running against load balanced clusters")
 		}
-		testContext.singleMongosLoadBalancerURI = addNecessaryParamsToURI(singleMongosURI)
+		testContext.singleMongosLoadBalancerURI, err = addNecessaryParamsToURI(singleMongosURI)
+		if err != nil {
+			return fmt.Errorf("error getting single mongos load balancer uri: %v", err)
+		}
 
 		multiMongosURI := os.Getenv("MULTI_MONGOS_LB_URI")
 		if multiMongosURI == "" {
 			return errors.New("MULTI_MONGOS_LB_URI must be set when running against load balanced clusters")
 		}
-		testContext.multiMongosLoadBalancerURI = addNecessaryParamsToURI(multiMongosURI)
+		testContext.multiMongosLoadBalancerURI, err = addNecessaryParamsToURI(multiMongosURI)
+		if err != nil {
+			return fmt.Errorf("error getting multi mongos load balancer uri: %v", err)
+		}
 	}
 
 	testContext.authEnabled = os.Getenv("AUTH") == "auth"
 	testContext.sslEnabled = os.Getenv("SSL") == "ssl"
+	testContext.serverless = os.Getenv("SERVERLESS") == "serverless"
 	biRes, err := testContext.client.Database("admin").RunCommand(Background, bson.D{{"buildInfo", 1}}).DecodeBytes()
 	if err != nil {
 		return fmt.Errorf("buildInfo error: %v", err)
@@ -300,19 +308,50 @@ func addCompressors(uri string) string {
 	return addOptions(uri, "compressors=", comp)
 }
 
+func addAuthCredentials(uri string) (string, error) {
+	if os.Getenv("SERVERLESS") != "serverless" {
+		return uri, nil
+	}
+	user := os.Getenv("SERVERLESS_ATLAS_USER")
+	if user == "" {
+		return "", fmt.Errorf("serverless expects SERVERLESS_ATLAS_USER to be set")
+	}
+	password := os.Getenv("SERVERLESS_ATLAS_PASSWORD")
+	if user == "" || password == "" {
+		return "", fmt.Errorf("serverless expects SERVERLESS_ATLAS_PASSWORD to be set")
+	}
+
+	var scheme string
+	// remove the scheme
+	if strings.HasPrefix(uri, "mongodb+srv://") {
+		scheme = "mongodb+srv://"
+	} else if strings.HasPrefix(uri, "mongodb://") {
+		scheme = "mongodb://"
+	} else {
+		return "", fmt.Errorf("scheme must be \"mongodb\" or \"mongodb+srv\"")
+	}
+
+	uri = scheme + user + ":" + password + "@" + uri[len(scheme):]
+	return uri, nil
+}
+
 // getClusterConnString gets the globally configured connection string.
 func getClusterConnString() (connstring.ConnString, error) {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
 		uri = "mongodb://localhost:27017"
 	}
-	uri = addNecessaryParamsToURI(uri)
+	uri, err := addNecessaryParamsToURI(uri)
+	if err != nil {
+		return connstring.ConnString{}, err
+	}
 	return connstring.ParseAndValidate(uri)
 }
 
-func addNecessaryParamsToURI(uri string) string {
+func addNecessaryParamsToURI(uri string) (string, error) {
 	uri = addTLSConfig(uri)
-	return addCompressors(uri)
+	uri = addCompressors(uri)
+	return addAuthCredentials(uri)
 }
 
 // CompareServerVersions compares two version number strings (i.e. positive integers separated by

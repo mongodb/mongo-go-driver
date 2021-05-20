@@ -147,9 +147,6 @@ functions:
           git submodule init
           git submodule update
 
-          # generate any source code
-          make generate
-
   upload-mo-artifacts:
     - command: shell.exec
       params:
@@ -503,6 +500,28 @@ functions:
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           make evg-test-load-balancers
+
+  run-serverless-tests:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+
+          export MONGO_GO_DRIVER_CA_FILE="$PROJECT_DIRECTORY/data/certificates/ca.pem"
+          if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
+            export MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
+          fi
+
+          AUTH="auth" \
+          SSL="ssl" \
+          MONGODB_URI="${MONGODB_URI}" \
+          MONGODB_API_VERSION=${MONGODB_API_VERSION} \
+          SERVERLESS="serverless" \
+          SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
+          SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
+          make evg-test-serverless
 
   run-atlas-data-lake-test:
     - command: shell.exec
@@ -1730,6 +1749,11 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
 
+  - name: "test-serverless"
+    tags: ["serverless"]
+    commands:
+      - func: "run-serverless-tests"
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -1882,6 +1906,42 @@ axes:
           SKIP_EC2_AUTH_TEST: true
           PYTHON3: python3
 
+task_groups:
+  - name: serverless_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800 # 30 minutes
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - func: fix-absolute-paths
+      - func: make-files-executable
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+
+            SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
+            SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
+            SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
+              bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
+      - command: expansions.update
+        params:
+          file: serverless-expansion.yml
+    teardown_group:
+      - command: shell.exec
+        params:
+          script: |
+            ${PREPARE_SHELL}          
+
+            SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
+            SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
+            SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
+            SERVERLESS_INSTANCE_NAME=${SERVERLESS_INSTANCE_NAME} \
+              bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
+    tasks:
+      - ".serverless"
+
 buildvariants:
   - name: static-analysis
     display_name: "Static Analysis"
@@ -2024,3 +2084,9 @@ buildvariants:
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
+
+  - matrix_name: "serverless"
+    matrix_spec: { os-aws-auth: ["ubuntu1804-64-go-1-16"] }
+    display_name: "Serverless ${os-aws-auth}"
+    tasks:
+      - "serverless_task_group"

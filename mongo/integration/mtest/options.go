@@ -54,6 +54,7 @@ type RunOnBlock struct {
 	MinServerVersion string                   `bson:"minServerVersion"`
 	MaxServerVersion string                   `bson:"maxServerVersion"`
 	Topology         []TopologyKind           `bson:"topology"`
+	Serverless       string                   `bson:"serverless"`
 	ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
 	Auth             *bool                    `bson:"auth"`
 }
