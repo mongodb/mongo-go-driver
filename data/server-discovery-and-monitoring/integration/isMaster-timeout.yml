@@ -16,7 +16,7 @@ tests:
       configureFailPoint: failCommand
       mode: { times: 2 }
       data:
-          failCommands: ["isMaster"]
+          failCommands: ["isMaster", "hello"]
           appName: timeoutMonitorHandshakeTest
           blockConnection: true
           blockTimeMS: 1000
@@ -98,7 +98,7 @@ tests:
             configureFailPoint: failCommand
             mode: { times: 2 }
             data:
-                failCommands: ["isMaster"]
+                failCommands: ["isMaster", "hello"]
                 appName: timeoutMonitorCheckTest
                 blockConnection: true
                 blockTimeMS: 1000
