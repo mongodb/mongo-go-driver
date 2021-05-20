@@ -33,6 +33,7 @@ type CommitTransaction struct {
 	selector      description.ServerSelector
 	writeConcern  *writeconcern.WriteConcern
 	retry         *driver.RetryMode
+	serverAPI     *driver.ServerAPIOptions
 }
 
 // NewCommitTransaction constructs and returns a new CommitTransaction.
@@ -64,6 +65,7 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Deployment:        ct.deployment,
 		Selector:          ct.selector,
 		WriteConcern:      ct.writeConcern,
+		ServerAPI:         ct.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -188,5 +190,15 @@ func (ct *CommitTransaction) Retry(retry driver.RetryMode) *CommitTransaction {
 	}
 
 	ct.retry = &retry
+	return ct
+}
+
+// ServerAPI sets the server API version for this operation.
+func (ct *CommitTransaction) ServerAPI(serverAPI *driver.ServerAPIOptions) *CommitTransaction {
+	if ct == nil {
+		ct = new(CommitTransaction)
+	}
+
+	ct.serverAPI = serverAPI
 	return ct
 }
