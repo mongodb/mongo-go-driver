@@ -4,7 +4,7 @@ schemaVersion: "1.1"
 
 runOnRequirements:
   - minServerVersion: "4.9"
-    topologies: [ replicaset, sharded-replicaset, load-balanced ]
+    topologies: [ replicaset, sharded-replicaset ]
 
 createEntities:
   - client:
@@ -46,7 +46,7 @@ initialData:
 tests:
   - description: "All commands in a transaction declare an API version"
     runOnRequirements:
-      - topologies: [ replicaset, sharded-replicaset, load-balanced ]
+      - topologies: [ replicaset, sharded-replicaset ]
     operations:
       - name: startTransaction
         object: *session
@@ -79,6 +79,43 @@ tests:
                 insert: *collectionName
                 documents: [ { _id: 7, x: 77 } ]
                 lsid: { $$sessionLsid: *session }
+                <<: *noApiVersion
+          - commandStartedEvent:
+              command:
+                commitTransaction: 1
+                lsid: { $$sessionLsid: *session }
+                <<: *noApiVersion
+  - description: "Committing a transaction twice does not append server API options"
+    runOnRequirements:
+      - topologies: [ replicaset, sharded-replicaset ]
+    operations:
+      - name: startTransaction
+        object: *session
+      - name: insertOne
+        object: *collection
+        arguments:
+          session: *session
+          document: { _id: 6, x: 66 }
+        expectResult: { $$unsetOrMatches: { insertedId: { $$unsetOrMatches: 6 } } }
+      - name: insertOne
+        object: *collection
+        arguments:
+          session: *session
+          document: { _id: 7, x: 77 }
+        expectResult: { $$unsetOrMatches: { insertedId: { $$unsetOrMatches: 7 } } }
+      - name: commitTransaction
+        object: *session
+      - name: commitTransaction
+        object: *session
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              command:
+                insert: *collectionName
+                documents: [ { _id: 6, x: 66 } ]
+                lsid: { $$sessionLsid: *session }
+                startTransaction: true
                 <<: *expectedApiVersion
           - commandStartedEvent:
               command:
@@ -87,7 +124,7 @@ tests:
                 <<: *expectedApiVersion
   - description: "abortTransaction includes an API version"
     runOnRequirements:
-      - topologies: [ replicaset, sharded-replicaset, load-balanced ]
+      - topologies: [ replicaset, sharded-replicaset ]
     operations:
       - name: startTransaction
         object: *session

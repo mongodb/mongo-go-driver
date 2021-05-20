@@ -1,11 +1,13 @@
 description: "Test commands: strict mode"
 
-schemaVersion: "1.1"
+schemaVersion: "1.4"
 
 runOnRequirements:
   - minServerVersion: "4.9"
     serverParameters:
       enableTestCommands: true
+    # serverless gives a different error for unrecognized testVersion2 command
+    serverless: "forbid"
 
 createEntities:
   - client:
