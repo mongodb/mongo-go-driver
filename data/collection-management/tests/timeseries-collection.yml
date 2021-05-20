@@ -3,11 +3,7 @@ description: "timeseries-collection"
 schemaVersion: "1.0"
 
 runOnRequirements:
-  - minServerVersion: "4.9"
-    serverParameters:
-      featureFlagTimeseriesCollection:
-        value: true
-        version: "5.0"
+  - minServerVersion: "5.0"
 
 createEntities:
   - client:
