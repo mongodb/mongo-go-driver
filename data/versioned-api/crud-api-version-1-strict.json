@@ -713,7 +713,7 @@
                     ]
                   },
                   "apiVersion": "1",
-                  "apiStrict": "true",
+                  "apiStrict": true,
                   "apiDeprecationErrors": {
                     "$$unsetOrMatches": false
                   }

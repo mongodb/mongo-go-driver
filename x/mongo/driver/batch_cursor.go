@@ -354,6 +354,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		Legacy:         LegacyGetMore,
 		CommandMonitor: bc.cmdMonitor,
 		Crypt:          bc.crypt,
+		ServerAPI:      bc.serverAPI,
 	}.Execute(ctx, nil)
 
 	// Once the cursor has been drained, we can unpin the connection if one is currently pinned.
