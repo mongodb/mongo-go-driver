@@ -49,11 +49,9 @@ tests:
           - commandStartedEvent:
               command:
                 drop: *collection0Name
-              commandName: drop
               databaseName: *database0Name
           - commandStartedEvent:
               command:
                 create: *collection0Name
                 timeseries: *timeseries0
-              commandName: create
               databaseName: *database0Name

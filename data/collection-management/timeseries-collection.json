@@ -78,7 +78,6 @@
                 "command": {
                   "drop": "test"
                 },
-                "commandName": "drop",
                 "databaseName": "ts-tests"
               }
             },
@@ -92,7 +91,6 @@
                     "expireAfterSeconds": 604800
                   }
                 },
-                "commandName": "create",
                 "databaseName": "ts-tests"
               }
             }
