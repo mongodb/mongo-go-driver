@@ -240,7 +240,7 @@ tests:
                   - $group: { _id: 1, n: { $sum: $count }}
                 <<: *expectedApiVersion
 
-  - description: "find command with declared API version appends to the command, but getMore does not"
+  - description: "find and getMore append API version"
     operations:
       - name: find
         object: *collection
@@ -264,9 +264,7 @@ tests:
           - commandStartedEvent:
               command:
                 getMore: { $$type: [ int, long ] }
-                apiVersion: { $$exists: false }
-                apiStrict: { $$exists: false }
-                apiDeprecationErrors: { $$exists: false }
+                <<: *expectedApiVersion
 
   - description: "findOneAndDelete appends declared API version"
     operations:
