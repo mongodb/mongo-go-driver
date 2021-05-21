@@ -55,3 +55,64 @@ tests:
                 create: *collection0Name
                 timeseries: *timeseries0
               databaseName: *database0Name
+
+  # Unlike regular collections, time-series collections allow duplicate ids.
+  - description: "insertMany with duplicate ids"
+    operations:
+      - name: dropCollection
+        object: *database0
+        arguments:
+          collection: *collection0Name
+      - name: createCollection
+        object: *database0
+        arguments:
+          collection: *collection0Name
+          timeseries: &timeseries0
+            timeField: "time"
+            metaField: "meta"
+            expireAfterSeconds: 604800
+      - name: assertCollectionExists
+        object: testRunner
+        arguments:
+          databaseName: *database0Name
+          collectionName: *collection0Name
+      - name: insertMany
+        object: *collection0
+        arguments:
+          documents: &docs
+            - {
+                _id: 1,
+                time: {
+                  $date: {
+                    $numberLong: "1552949630482"
+                  }
+                }
+              }
+            - {
+                _id: 1,
+                time: {
+                  $date: {
+                    $numberLong: "1552949630483"
+                  }
+                }
+              }
+    expectEvents:
+      - client: *client0
+        events:
+          - commandStartedEvent:
+              command:
+                drop: *collection0Name
+              databaseName: *database0Name
+          - commandStartedEvent:
+              command:
+                create: *collection0Name
+                timeseries: *timeseries0
+              databaseName: *database0Name
+          - commandStartedEvent:
+              command:
+                insert: *collection0Name
+                documents: *docs
+    outcome:
+    - collectionName: *collection0Name
+      databaseName: *database0Name
+      documents: *docs

@@ -97,6 +97,139 @@
           ]
         }
       ]
+    },
+    {
+      "description": "insertMany with duplicate ids",
+      "operations": [
+        {
+          "name": "dropCollection",
+          "object": "database0",
+          "arguments": {
+            "collection": "test"
+          }
+        },
+        {
+          "name": "createCollection",
+          "object": "database0",
+          "arguments": {
+            "collection": "test",
+            "timeseries": {
+              "timeField": "time",
+              "metaField": "meta",
+              "expireAfterSeconds": 604800
+            }
+          }
+        },
+        {
+          "name": "assertCollectionExists",
+          "object": "testRunner",
+          "arguments": {
+            "databaseName": "ts-tests",
+            "collectionName": "test"
+          }
+        },
+        {
+          "name": "insertMany",
+          "object": "collection0",
+          "arguments": {
+            "documents": [
+              {
+                "_id": 1,
+                "time": {
+                  "$date": {
+                    "$numberLong": "1552949630482"
+                  }
+                }
+              },
+              {
+                "_id": 1,
+                "time": {
+                  "$date": {
+                    "$numberLong": "1552949630483"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client0",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "drop": "test"
+                },
+                "databaseName": "ts-tests"
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "create": "test",
+                  "timeseries": {
+                    "timeField": "time",
+                    "metaField": "meta",
+                    "expireAfterSeconds": 604800
+                  }
+                },
+                "databaseName": "ts-tests"
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "insert": "test",
+                  "documents": [
+                    {
+                      "_id": 1,
+                      "time": {
+                        "$date": {
+                          "$numberLong": "1552949630482"
+                        }
+                      }
+                    },
+                    {
+                      "_id": 1,
+                      "time": {
+                        "$date": {
+                          "$numberLong": "1552949630483"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "ts-tests",
+          "documents": [
+            {
+              "_id": 1,
+              "time": {
+                "$date": {
+                  "$numberLong": "1552949630482"
+                }
+              }
+            },
+            {
+              "_id": 1,
+              "time": {
+                "$date": {
+                  "$numberLong": "1552949630483"
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
