@@ -129,7 +129,10 @@ var nestedInstance = nestedtest1{
 
 const extendedBSONDir = "../data/extended_bson"
 
-func mustReadBSONTestData(filename string) map[string]interface{} {
+// readExtJSONFile reads the GZIP-compressed extended JSON document from the given filename in the
+// "extended BSON" test data directory (../data/extended_bson) and returns it as a
+// map[string]interface{}. It panics on any errors.
+func readExtJSONFile(filename string) map[string]interface{} {
 	filePath := path.Join(extendedBSONDir, filename)
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -176,15 +179,15 @@ func BenchmarkMarshal(b *testing.B) {
 		},
 		{
 			desc:  "deep_bson.json.gz",
-			value: mustReadBSONTestData("deep_bson.json.gz"),
+			value: readExtJSONFile("deep_bson.json.gz"),
 		},
 		{
 			desc:  "flat_bson.json.gz",
-			value: mustReadBSONTestData("flat_bson.json.gz"),
+			value: readExtJSONFile("flat_bson.json.gz"),
 		},
 		{
 			desc:  "full_bson.json.gz",
-			value: mustReadBSONTestData("full_bson.json.gz"),
+			value: readExtJSONFile("full_bson.json.gz"),
 		},
 	}
 
@@ -235,15 +238,15 @@ func BenchmarkUnmarshal(b *testing.B) {
 		},
 		{
 			desc:  "deep_bson.json.gz",
-			value: mustReadBSONTestData("deep_bson.json.gz"),
+			value: readExtJSONFile("deep_bson.json.gz"),
 		},
 		{
 			desc:  "flat_bson.json.gz",
-			value: mustReadBSONTestData("flat_bson.json.gz"),
+			value: readExtJSONFile("flat_bson.json.gz"),
 		},
 		{
 			desc:  "full_bson.json.gz",
-			value: mustReadBSONTestData("full_bson.json.gz"),
+			value: readExtJSONFile("full_bson.json.gz"),
 		},
 	}
 
