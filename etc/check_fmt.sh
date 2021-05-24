@@ -14,7 +14,7 @@ fi
 # E.g ignored lines:
 #     // "mongodb://ldap-user:ldap-pwd@localhost:27017/?authMechanism=PLAIN"
 #     // (https://docs.mongodb.com/manual/core/authentication-mechanisms-enterprise/#security-auth-ldap).
-lll_out="$(find "$@" -type f -name "*_examples_test.go" | lll -w 4 -l 80 -e '^\s+\/\/.+:\/\/' --files)"
+lll_out="$(find "$@" -type f -name "*_examples_test.go" | lll -w 4 -l 80 -e '^\s*\/\/.+:\/\/' --files)"
 
 if [[ $lll_out ]]; then
   echo "lll check failed for:";

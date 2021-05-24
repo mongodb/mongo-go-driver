@@ -69,8 +69,8 @@ func ExampleRegistry_customDecoder() {
 		vr bsonrw.ValueReader,
 		val reflect.Value,
 	) error {
-		// All decoder implementations should check that val is valid and
-		// settable and is of the correct kind before proceeding.
+		// All decoder implementations should check that val is valid, settable,
+		// and is of the correct kind before proceeding.
 		if !val.IsValid() || !val.CanSet() || val.Kind() != reflect.Bool {
 			return bsoncodec.ValueDecoderError{
 				Name:     "lenientBoolDecodeValue",
