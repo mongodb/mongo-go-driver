@@ -45,7 +45,13 @@ func (e ErrMapForOrderedArgument) Error() string {
 	return fmt.Sprintf("multi-key map passed in for ordered parameter %v", e.ParamName)
 }
 
+// replaceErrors replaces errors (including wrapped errors) from the x package with errors from the mongo package.
 func replaceErrors(err error) error {
+	var w error
+	if w = errors.Unwrap(err); w != nil {
+		w = replaceErrors(w)
+	}
+
 	if err == topology.ErrTopologyClosed {
 		return ErrClientDisconnected
 	}
@@ -55,14 +61,14 @@ func replaceErrors(err error) error {
 			Message: de.Message,
 			Labels:  de.Labels,
 			Name:    de.Name,
-			Wrapped: de.Wrapped,
+			Wrapped: w,
 		}
 	}
 	if qe, ok := err.(driver.QueryFailureError); ok {
 		// qe.Message is "command failure"
 		ce := CommandError{
 			Name:    qe.Message,
-			Wrapped: qe.Wrapped,
+			Wrapped: w,
 		}
 
 		dollarErr, err := qe.Response.LookupErr("$err")
@@ -76,11 +82,34 @@ func replaceErrors(err error) error {
 
 		return ce
 	}
+	if re, ok := err.(driver.ResponseError); ok {
+		return CommandError{
+			Name:    re.Message,
+			Wrapped: w,
+		}
+	}
+	if wce, ok := err.(driver.WriteCommandError); ok {
+		return WriteException{
+			WriteConcernError: convertDriverWriteConcernError(wce.WriteConcernError),
+			WriteErrors:       writeErrorsFromDriverWriteErrors(wce.WriteErrors),
+			Labels:            wce.Labels,
+		}
+	}
+	if wce, ok := err.(driver.WriteConcernError); ok {
+		return convertDriverWriteConcernError(&wce)
+	}
+	if we, ok := err.(driver.WriteError); ok {
+		return WriteError{
+			Index:   int(we.Index),
+			Code:    int(we.Code),
+			Message: we.Message,
+		}
+	}
 	if me, ok := err.(mongocrypt.Error); ok {
 		return MongocryptError{Code: me.Code, Message: me.Message}
 	}
 
-	return err
+	return fmt.Errorf("%s: %w", err.Error(), w)
 }
 
 // IsDuplicateKeyError returns true if err is a duplicate key error
