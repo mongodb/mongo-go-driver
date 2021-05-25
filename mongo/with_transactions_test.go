@@ -424,14 +424,14 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
+		// Create context with short timeout.
+		withTransactionContext, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+		defer cancel()
 		callback := func() {
-			_, _ = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
-				c, cancel := context.WithTimeout(sessCtx, time.Nanosecond)
-				defer cancel()
-
+			_, _ = sess.WithTransaction(withTransactionContext, func(sessCtx SessionContext) (interface{}, error) {
 				_, err := client.Database("test").
 					Collection("test").
-					InsertOne(c, bson.D{{}})
+					InsertOne(sessCtx, bson.D{{}})
 
 				return nil, err
 			})
@@ -447,11 +447,56 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
+		// Create context and cancel it immediately.
+		withTransactionContext, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		cancel()
+		callback := func() {
+			_, _ = sess.WithTransaction(withTransactionContext, func(sessCtx SessionContext) (interface{}, error) {
+				_, err := client.Database("test").
+					Collection("test").
+					InsertOne(sessCtx, bson.D{{}})
+
+				return nil, err
+			})
+		}
+
+		// Assert that transaction fails within 500ms and not 2 seconds.
+		assert.Soon(t, callback, 500*time.Millisecond)
+	})
+	t.Run("slow operation before commitTransaction retries", func(t *testing.T) {
+		withTransactionTimeout = 2 * time.Second
+
+		// Set failpoint to block insertOne once for 500ms.
+		failpoint := bson.D{{"configureFailPoint", "failCommand"},
+			{"mode", bson.D{
+				{"times", 1},
+			}},
+			{"data", bson.D{
+				{"failCommands", bson.A{"insert"}},
+				{"blockConnection", true},
+				{"blockTimeMS", 500},
+			}},
+		}
+		err := dbAdmin.RunCommand(bgCtx, failpoint).Err()
+		assert.Nil(t, err, "error setting failpoint: %v", err)
+		defer func() {
+			err = dbAdmin.RunCommand(bgCtx, bson.D{
+				{"configureFailPoint", "failCommand"},
+				{"mode", "off"},
+			}).Err()
+			assert.Nil(t, err, "error turning off failpoint: %v", err)
+		}()
+
+		sess, err := client.StartSession()
+		assert.Nil(t, err, "StartSession error: %v", err)
+		defer sess.EndSession(context.Background())
+
 		callback := func() {
 			_, _ = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
-				c, cancel := context.WithTimeout(sessCtx, withTransactionTimeout)
-				// cancel immediately.
-				cancel()
+				// Set a timeout of 300ms to cause a timeout on first insertOne
+				// and force a retry.
+				c, cancel := context.WithTimeout(sessCtx, 300*time.Millisecond)
+				defer cancel()
 
 				_, err := client.Database("test").
 					Collection("test").
@@ -461,8 +506,8 @@ func TestConvenientTransactions(t *testing.T) {
 			})
 		}
 
-		// Assert that transaction fails within 500ms and not 2 seconds.
-		assert.Soon(t, callback, 500*time.Millisecond)
+		// Assert that transaction passes within 2 seconds.
+		assert.Soon(t, callback, 2*time.Second)
 	})
 }
 
