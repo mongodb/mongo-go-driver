@@ -55,7 +55,7 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 					return nil, fmt.Errorf("unrecognized timeseries option %q", key)
 				}
 			}
-			cco.SetTimeSeriesOptions(*tso)
+			cco.SetTimeSeriesOptions(tso)
 		default:
 			return nil, fmt.Errorf("unrecognized createCollection option %q", key)
 		}

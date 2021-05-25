@@ -173,8 +173,8 @@ func (c *CreateCollectionOptions) SetValidator(validator interface{}) *CreateCol
 }
 
 // SetTimeSeriesOptions sets the options for time-series collections.
-func (c *CreateCollectionOptions) SetTimeSeriesOptions(timeSeriesOpts TimeSeriesOptions) *CreateCollectionOptions {
-	c.TimeSeriesOptions = &timeSeriesOpts
+func (c *CreateCollectionOptions) SetTimeSeriesOptions(timeSeriesOpts *TimeSeriesOptions) *CreateCollectionOptions {
+	c.TimeSeriesOptions = timeSeriesOpts
 	return c
 }
 
