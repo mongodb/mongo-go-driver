@@ -68,7 +68,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 		return desc
 	}
 	var ok bool
-	var isReplicaSet, isMaster, hidden, secondary, arbiterOnly bool
+	var isReplicaSet, isWritablePrimary, hidden, secondary, arbiterOnly bool
 	var msg string
 	var version VersionRange
 	for _, element := range elements {
@@ -112,10 +112,16 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				desc.LastError = err
 				return desc
 			}
-		case "ismaster":
-			isMaster, ok = element.Value().BooleanOK()
+		case "isWritablePrimary":
+			isWritablePrimary, ok = element.Value().BooleanOK()
 			if !ok {
-				desc.LastError = fmt.Errorf("expected 'isMaster' to be a boolean but it's a BSON %s", element.Value().Type)
+				desc.LastError = fmt.Errorf("expected 'isWritablePrimary' to be a boolean but it's a BSON %s", element.Value().Type)
+				return desc
+			}
+		case "ismaster":
+			isWritablePrimary, ok = element.Value().BooleanOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'ismaster' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
 		case "isreplicaset":
@@ -290,7 +296,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 	if isReplicaSet {
 		desc.Kind = RSGhost
 	} else if desc.SetName != "" {
-		if isMaster {
+		if isWritablePrimary {
 			desc.Kind = RSPrimary
 		} else if hidden {
 			desc.Kind = RSMember
