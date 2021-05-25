@@ -4,25 +4,32 @@ set -o errexit
 
 export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
 export GOCACHE="$(pwd)/.cache"
+export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
 
 if [ "Windows_NT" = "$OS" ]; then
     export GOPATH=$(cygpath -m $GOPATH)
     export GOCACHE=$(cygpath -m $GOCACHE)
+    export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
 
-    mkdir -p c:/libmongocrypt/include
-    mkdir -p c:/libmongocrypt/bin
-    curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
-    tar -xvzf libmongocrypt.tar.gz
-    cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
-    cp ./include/mongocrypt/*.h c:/libmongocrypt/include
-    export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+    if [ ! -d "c:/libmongocrypt/include" ]; then
+        mkdir -p c:/libmongocrypt/include
+        mkdir -p c:/libmongocrypt/bin
+        curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
+        tar -xvzf libmongocrypt.tar.gz
+        cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
+        cp ./include/mongocrypt/*.h c:/libmongocrypt/include
+        export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+    fi
 else
-    git clone https://github.com/mongodb/libmongocrypt
-    ./libmongocrypt/.evergreen/compile.sh
+    if [ ! -d "libmongocrypt" ]; then
+        git clone https://github.com/mongodb/libmongocrypt
+        ./libmongocrypt/.evergreen/compile.sh
+    fi
 fi
 
 export GOROOT="${GOROOT}"
 export PATH="${GOROOT}/bin:${GCC_PATH}:$GOPATH/bin:$PATH"
+export PROJECT="${project}"
 export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
 export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
 export GOFLAGS=-mod=vendor
@@ -49,8 +56,8 @@ fi
 # a python3 binary on Ubuntu 14.04. Setting AWS temp credentials for legacy
 # server version tasks is unneccesary, as temp credentials are only needed on 4.2+.
 if [ ! -z ${PYTHON3_BINARY} ]; then
-  export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
-  export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
+  export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+  export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
   export AWS_DEFAULT_REGION="us-east-1"
   ${PYTHON3_BINARY} -m venv ./venv
 
@@ -62,7 +69,7 @@ if [ ! -z ${PYTHON3_BINARY} ]; then
     export PYTHON="$(pwd)/venv/bin/python"
   fi
 
-  ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
+  ./venv/${VENV_BIN_DIR:-bin}/pip3 install boto3
   . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
 fi
 
@@ -80,9 +87,10 @@ MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE=${MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_F
 MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE=${MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE} \
 MONGODB_URI="${MONGODB_URI}" \
 TOPOLOGY=${TOPOLOGY} \
+MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
 BUILD_TAGS="-tags ${GO_BUILD_TAGS}" \
-AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
-AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
+AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
 AWS_DEFAULT_REGION="us-east-1" \
 CSFLE_AWS_TEMP_ACCESS_KEY_ID="$CSFLE_AWS_TEMP_ACCESS_KEY_ID" \
 CSFLE_AWS_TEMP_SECRET_ACCESS_KEY="$CSFLE_AWS_TEMP_SECRET_ACCESS_KEY" \
