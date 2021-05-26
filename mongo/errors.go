@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -109,7 +110,7 @@ func replaceErrors(err error) error {
 		return MongocryptError{Code: me.Code, Message: me.Message}
 	}
 
-	return fmt.Errorf("%s: %w", err.Error(), w)
+	return internal.WrapErrorf(w, err.Error())
 }
 
 // IsDuplicateKeyError returns true if err is a duplicate key error
