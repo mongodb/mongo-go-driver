@@ -48,9 +48,18 @@ func (e ErrMapForOrderedArgument) Error() string {
 
 // replaceErrors replaces errors (including wrapped errors) from the x package with errors from the mongo package.
 func replaceErrors(err error) error {
+	if err == nil {
+		return nil
+	}
+
 	var w error
-	if w = errors.Unwrap(err); w != nil {
-		w = replaceErrors(w)
+	u, ok := err.(interface {
+		Unwrap() error
+	})
+	if !ok {
+		w = nil
+	} else {
+		w = replaceErrors(u.Unwrap())
 	}
 
 	if err == topology.ErrTopologyClosed {
