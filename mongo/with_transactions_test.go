@@ -420,6 +420,15 @@ func TestConvenientTransactions(t *testing.T) {
 	t.Run("expired context before commitTransaction does not retry", func(t *testing.T) {
 		withTransactionTimeout = 2 * time.Second
 
+		coll := db.Collection("test")
+		// Explicitly create the collection on server because implicit collection creation is not allowed in
+		// transactions for server versions <= 4.2.
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v", err)
+		defer func() {
+			_ = coll.Drop(bgCtx)
+		}()
+
 		sess, err := client.StartSession()
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
@@ -429,10 +438,7 @@ func TestConvenientTransactions(t *testing.T) {
 		defer cancel()
 		callback := func() {
 			_, _ = sess.WithTransaction(withTransactionContext, func(sessCtx SessionContext) (interface{}, error) {
-				_, err := client.Database("test").
-					Collection("test").
-					InsertOne(sessCtx, bson.D{{}})
-
+				_, err := coll.InsertOne(sessCtx, bson.D{{}})
 				return nil, err
 			})
 		}
@@ -443,6 +449,15 @@ func TestConvenientTransactions(t *testing.T) {
 	t.Run("canceled context before commitTransaction does not retry", func(t *testing.T) {
 		withTransactionTimeout = 2 * time.Second
 
+		coll := db.Collection("test")
+		// Explicitly create the collection on server because implicit collection creation is not allowed in
+		// transactions for server versions <= 4.2.
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v", err)
+		defer func() {
+			_ = coll.Drop(bgCtx)
+		}()
+
 		sess, err := client.StartSession()
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
@@ -452,10 +467,7 @@ func TestConvenientTransactions(t *testing.T) {
 		cancel()
 		callback := func() {
 			_, _ = sess.WithTransaction(withTransactionContext, func(sessCtx SessionContext) (interface{}, error) {
-				_, err := client.Database("test").
-					Collection("test").
-					InsertOne(sessCtx, bson.D{{}})
-
+				_, err := coll.InsertOne(sessCtx, bson.D{{}})
 				return nil, err
 			})
 		}
@@ -465,6 +477,15 @@ func TestConvenientTransactions(t *testing.T) {
 	})
 	t.Run("slow operation before commitTransaction retries", func(t *testing.T) {
 		withTransactionTimeout = 2 * time.Second
+
+		coll := db.Collection("test")
+		// Explicitly create the collection on server because implicit collection creation is not allowed in
+		// transactions for server versions <= 4.2.
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v", err)
+		defer func() {
+			_ = coll.Drop(bgCtx)
+		}()
 
 		// Set failpoint to block insertOne once for 500ms.
 		failpoint := bson.D{{"configureFailPoint", "failCommand"},
@@ -477,7 +498,7 @@ func TestConvenientTransactions(t *testing.T) {
 				{"blockTimeMS", 500},
 			}},
 		}
-		err := dbAdmin.RunCommand(bgCtx, failpoint).Err()
+		err = dbAdmin.RunCommand(bgCtx, failpoint).Err()
 		assert.Nil(t, err, "error setting failpoint: %v", err)
 		defer func() {
 			err = dbAdmin.RunCommand(bgCtx, bson.D{
@@ -498,10 +519,7 @@ func TestConvenientTransactions(t *testing.T) {
 				c, cancel := context.WithTimeout(sessCtx, 300*time.Millisecond)
 				defer cancel()
 
-				_, err := client.Database("test").
-					Collection("test").
-					InsertOne(c, bson.D{{}})
-
+				_, err := coll.InsertOne(c, bson.D{{}})
 				return nil, err
 			})
 			assert.Nil(t, err, "WithTransaction error: %v", err)
