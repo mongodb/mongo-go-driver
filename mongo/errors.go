@@ -53,6 +53,7 @@ func replaceErrors(err error) error {
 	}
 
 	var w error
+	// Unwrap logic copied from Go1.13 source: https://golang.org/src/errors/wrap.go?s=372:400#L4
 	u, ok := err.(interface {
 		Unwrap() error
 	})
