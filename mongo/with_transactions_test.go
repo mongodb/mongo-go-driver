@@ -492,7 +492,7 @@ func TestConvenientTransactions(t *testing.T) {
 		defer sess.EndSession(context.Background())
 
 		callback := func() {
-			_, _ = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
+			_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
 				// Set a timeout of 300ms to cause a timeout on first insertOne
 				// and force a retry.
 				c, cancel := context.WithTimeout(sessCtx, 300*time.Millisecond)
@@ -504,6 +504,7 @@ func TestConvenientTransactions(t *testing.T) {
 
 				return nil, err
 			})
+			assert.Nil(t, err, "WithTransaction error: %v", err)
 		}
 
 		// Assert that transaction passes within 2 seconds.
