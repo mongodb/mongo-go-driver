@@ -52,16 +52,7 @@ func replaceErrors(err error) error {
 		return nil
 	}
 
-	var w error
-	// Unwrap logic copied from Go1.13 source: https://golang.org/src/errors/wrap.go?s=372:400#L4
-	u, ok := err.(interface {
-		Unwrap() error
-	})
-	if !ok {
-		w = nil
-	} else {
-		w = replaceErrors(u.Unwrap())
-	}
+	w := replaceErrors(unwrap(err))
 
 	if err == topology.ErrTopologyClosed {
 		return ErrClientDisconnected
