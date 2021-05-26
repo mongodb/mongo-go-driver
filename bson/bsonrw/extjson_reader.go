@@ -164,6 +164,19 @@ func (ejvr *extJSONValueReader) skipObject() {
 	depth := 1
 	for depth > 0 {
 		ejvr.p.advanceState()
+
+		// If object is empty, raise depth and return. If there is a comma, there are
+		// remaining fields, emptyObject must be set back to false, and comma must be
+		// skipped with advanceState().
+		if ejvr.p.emptyObject {
+			if ejvr.p.s == jpsSawComma {
+				ejvr.p.emptyObject = false
+				ejvr.p.advanceState()
+			}
+			depth--
+			return
+		}
+
 		switch ejvr.p.s {
 		case jpsSawBeginObject, jpsSawBeginArray:
 			depth++
