@@ -499,6 +499,8 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 //
 // The opts parameter can be used to specify options for the operation (see the options.CreateCollectionOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
