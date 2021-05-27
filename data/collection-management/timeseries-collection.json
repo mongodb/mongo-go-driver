@@ -53,10 +53,12 @@
           "object": "database0",
           "arguments": {
             "collection": "test",
+            "expireAfterSeconds": {
+              "$numberLong": "604800"
+            },
             "timeseries": {
               "timeField": "time",
-              "metaField": "meta",
-              "expireAfterSeconds": 604800
+              "metaField": "meta"
             }
           }
         },
@@ -87,8 +89,7 @@
                   "create": "test",
                   "timeseries": {
                     "timeField": "time",
-                    "metaField": "meta",
-                    "expireAfterSeconds": 604800
+                    "metaField": "meta"
                   }
                 },
                 "databaseName": "ts-tests"
@@ -113,10 +114,12 @@
           "object": "database0",
           "arguments": {
             "collection": "test",
+            "expireAfterSeconds": {
+              "$numberLong": "604800"
+            },
             "timeseries": {
               "timeField": "time",
-              "metaField": "meta",
-              "expireAfterSeconds": 604800
+              "metaField": "meta"
             }
           }
         },
@@ -171,8 +174,7 @@
                   "create": "test",
                   "timeseries": {
                     "timeField": "time",
-                    "metaField": "meta",
-                    "expireAfterSeconds": 604800
+                    "metaField": "meta"
                   }
                 },
                 "databaseName": "ts-tests"
@@ -200,30 +202,6 @@
                       }
                     }
                   ]
-                }
-              }
-            }
-          ]
-        }
-      ],
-      "outcome": [
-        {
-          "collectionName": "test",
-          "databaseName": "ts-tests",
-          "documents": [
-            {
-              "_id": 1,
-              "time": {
-                "$date": {
-                  "$numberLong": "1552949630482"
-                }
-              }
-            },
-            {
-              "_id": 1,
-              "time": {
-                "$date": {
-                  "$numberLong": "1552949630483"
                 }
               }
             }

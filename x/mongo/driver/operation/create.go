@@ -43,6 +43,7 @@ type Create struct {
 	selector            description.ServerSelector
 	writeConcern        *writeconcern.WriteConcern
 	serverAPI           *driver.ServerAPIOptions
+	expireAfterSeconds  *int64
 	timeSeries          bsoncore.Document
 }
 
@@ -119,6 +120,9 @@ func (c *Create) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if c.viewOn != nil {
 		dst = bsoncore.AppendStringElement(dst, "viewOn", *c.viewOn)
+	}
+	if c.expireAfterSeconds != nil {
+		dst = bsoncore.AppendInt64Element(dst, "expireAfterSeconds", *c.expireAfterSeconds)
 	}
 	if c.timeSeries != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "timeseries", c.timeSeries)
@@ -333,6 +337,15 @@ func (c *Create) ServerAPI(serverAPI *driver.ServerAPIOptions) *Create {
 	}
 
 	c.serverAPI = serverAPI
+	return c
+}
+
+func (c *Create) ExpireAfterSeconds(eas int64) *Create {
+	if c == nil {
+		c = new(Create)
+	}
+
+	c.expireAfterSeconds = &eas
 	return c
 }
 

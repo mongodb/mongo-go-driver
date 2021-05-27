@@ -36,9 +36,6 @@ type TimeSeriesOptions struct {
 	// related data and may be of any BSON type, except for array. This name may not be the same
 	// as the timeField or _id.
 	MetaField *string
-
-	// Optional number indicating after how many seconds old time-series data should be deleted.
-	ExpireAfterSeconds *int32
 }
 
 // TimeSeries creates a new TimeSeriesOptions instance.
@@ -55,12 +52,6 @@ func (tso *TimeSeriesOptions) SetTimeField(timeField string) *TimeSeriesOptions 
 // SetMetaField sets the value for the MetaField.
 func (tso *TimeSeriesOptions) SetMetaField(metaField string) *TimeSeriesOptions {
 	tso.MetaField = &metaField
-	return tso
-}
-
-// SetExpireAfterSeconds sets the value for the ExpireAfterSeconds field.
-func (tso *TimeSeriesOptions) SetExpireAfterSeconds(eas int32) *TimeSeriesOptions {
-	tso.ExpireAfterSeconds = &eas
 	return tso
 }
 
@@ -108,6 +99,9 @@ type CreateCollectionOptions struct {
 	// is only valid for MongoDB versions >= 3.2. The default value is nil, meaning no validator will be used for the
 	// collection.
 	Validator interface{}
+
+	// Value indicating after how many seconds old time-series data should be deleted.
+	ExpireAfterSeconds *int64
 
 	// Options for specifying a time-series collection.
 	TimeSeriesOptions *TimeSeriesOptions
@@ -169,6 +163,12 @@ func (c *CreateCollectionOptions) SetValidationLevel(level string) *CreateCollec
 // SetValidator sets the value for the Validator field.
 func (c *CreateCollectionOptions) SetValidator(validator interface{}) *CreateCollectionOptions {
 	c.Validator = validator
+	return c
+}
+
+// SetExpireAfterSeconds sets the value for the ExpireAfterSeconds field.
+func (c *CreateCollectionOptions) SetExpireAfterSeconds(eas int64) *CreateCollectionOptions {
+	c.ExpireAfterSeconds = &eas
 	return c
 }
 

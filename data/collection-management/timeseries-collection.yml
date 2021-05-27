@@ -34,10 +34,11 @@ tests:
         object: *database0
         arguments:
           collection: *collection0Name
+          expireAfterSeconds:
+            $numberLong: "604800"
           timeseries: &timeseries0
             timeField: "time"
             metaField: "meta"
-            expireAfterSeconds: 604800
       - name: assertCollectionExists
         object: testRunner
         arguments:
@@ -67,10 +68,11 @@ tests:
         object: *database0
         arguments:
           collection: *collection0Name
+          expireAfterSeconds:
+            $numberLong: "604800"
           timeseries: &timeseries0
             timeField: "time"
             metaField: "meta"
-            expireAfterSeconds: 604800
       - name: assertCollectionExists
         object: testRunner
         arguments:
@@ -112,7 +114,6 @@ tests:
               command:
                 insert: *collection0Name
                 documents: *docs
-    outcome:
-    - collectionName: *collection0Name
-      databaseName: *database0Name
-      documents: *docs
+
+   # Expect no particular outcome from the collection since ordering of
+   # documents may vary given duplicate _ids.

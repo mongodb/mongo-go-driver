@@ -552,16 +552,15 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 		}
 		op.Validator(validator)
 	}
+	if cco.ExpireAfterSeconds != nil {
+		op.ExpireAfterSeconds(*cco.ExpireAfterSeconds)
+	}
 	if cco.TimeSeriesOptions != nil {
 		idx, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendStringElement(doc, "timeField", cco.TimeSeriesOptions.TimeField)
 
 		if cco.TimeSeriesOptions.MetaField != nil {
 			doc = bsoncore.AppendStringElement(doc, "metaField", *cco.TimeSeriesOptions.MetaField)
-		}
-
-		if cco.TimeSeriesOptions.ExpireAfterSeconds != nil {
-			doc = bsoncore.AppendInt32Element(doc, "expireAfterSeconds", *cco.TimeSeriesOptions.ExpireAfterSeconds)
 		}
 
 		doc, err := bsoncore.AppendDocumentEnd(doc, idx)

@@ -33,6 +33,8 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 		switch key {
 		case "collection":
 			collName = val.StringValue()
+		case "expireAfterSeconds":
+			cco.SetExpireAfterSeconds(val.Int64())
 		case "timeseries":
 			tsElems, err := elem.Value().Document().Elements()
 			if err != nil {
@@ -49,8 +51,6 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 					tso.SetTimeField(val.StringValue())
 				case "metaField":
 					tso.SetMetaField(val.StringValue())
-				case "expireAfterSeconds":
-					tso.SetExpireAfterSeconds(val.Int32())
 				default:
 					return nil, fmt.Errorf("unrecognized timeseries option %q", key)
 				}
