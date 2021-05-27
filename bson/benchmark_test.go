@@ -196,7 +196,7 @@ func BenchmarkMarshal(b *testing.B) {
 			b.Run("BSON", func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					_, err := Marshal(tc.value)
-					if err == nil {
+					if err != nil {
 						b.Errorf("error marshalling BSON: %s", err)
 					}
 				}
