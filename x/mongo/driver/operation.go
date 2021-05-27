@@ -843,18 +843,13 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 		return dst, info, err
 	}
 
-	// Add server API information before calling addSession() because it will modify
-	// transaction state.
-	if op.Client == nil || !op.Client.TransactionInProgress() {
-		dst = op.addServerAPI(dst)
-	}
-
 	dst, err = op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
 
 	dst = op.addClusterTime(dst, desc)
+	dst = op.addServerAPI(dst)
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 	// Command monitoring only reports the document inside $query
@@ -909,19 +904,13 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 	if err != nil {
 		return dst, info, err
 	}
-
-	// Add server API information before calling addSession() because it will modify
-	// transaction state.
-	if op.Client == nil || !op.Client.TransactionInProgress() {
-		dst = op.addServerAPI(dst)
-	}
-
 	dst, err = op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
 
 	dst = op.addClusterTime(dst, desc)
+	dst = op.addServerAPI(dst)
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
 	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, false)

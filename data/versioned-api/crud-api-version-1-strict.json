@@ -651,7 +651,7 @@
       ]
     },
     {
-      "description": "find command with declared API version appends to the command, but getMore does not",
+      "description": "find and getMore append API version",
       "operations": [
         {
           "name": "find",
@@ -712,14 +712,10 @@
                       "long"
                     ]
                   },
-                  "apiVersion": {
-                    "$$exists": false
-                  },
-                  "apiStrict": {
-                    "$$exists": false
-                  },
+                  "apiVersion": "1",
+                  "apiStrict": true,
                   "apiDeprecationErrors": {
-                    "$$exists": false
+                    "$$unsetOrMatches": false
                   }
                 }
               }
