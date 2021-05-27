@@ -34,7 +34,7 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 		case "collection":
 			collName = val.StringValue()
 		case "expireAfterSeconds":
-			cco.SetExpireAfterSeconds(val.Int64())
+			cco.SetExpireAfterSeconds(int64(val.Int32()))
 		case "timeseries":
 			tsElems, err := elem.Value().Document().Elements()
 			if err != nil {

@@ -53,9 +53,7 @@
           "object": "database0",
           "arguments": {
             "collection": "test",
-            "expireAfterSeconds": {
-              "$numberLong": "604800"
-            },
+            "expireAfterSeconds": 604800,
             "timeseries": {
               "timeField": "time",
               "metaField": "meta"
@@ -87,6 +85,9 @@
               "commandStartedEvent": {
                 "command": {
                   "create": "test",
+                  "expireAfterSeconds": {
+                    "$numberLong": "604800"
+                  },
                   "timeseries": {
                     "timeField": "time",
                     "metaField": "meta"
@@ -114,9 +115,7 @@
           "object": "database0",
           "arguments": {
             "collection": "test",
-            "expireAfterSeconds": {
-              "$numberLong": "604800"
-            },
+            "expireAfterSeconds": 604800,
             "timeseries": {
               "timeField": "time",
               "metaField": "meta"
@@ -154,6 +153,34 @@
               }
             ]
           }
+        },
+        {
+          "name": "find",
+          "object": "collection0",
+          "arguments": {
+            "filter": {},
+            "sort": {
+              "time": 1
+            }
+          },
+          "expectResult": [
+            {
+              "_id": 1,
+              "time": {
+                "$date": {
+                  "$numberLong": "1552949630482"
+                }
+              }
+            },
+            {
+              "_id": 1,
+              "time": {
+                "$date": {
+                  "$numberLong": "1552949630483"
+                }
+              }
+            }
+          ]
         }
       ],
       "expectEvents": [
@@ -172,6 +199,9 @@
               "commandStartedEvent": {
                 "command": {
                   "create": "test",
+                  "expireAfterSeconds": {
+                    "$numberLong": "604800"
+                  },
                   "timeseries": {
                     "timeField": "time",
                     "metaField": "meta"
@@ -203,6 +233,19 @@
                     }
                   ]
                 }
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "find": "test",
+                  "filter": {},
+                  "sort": {
+                    "time": 1
+                  }
+                },
+                "commandName": "find",
+                "databaseName": "ts-tests"
               }
             }
           ]
