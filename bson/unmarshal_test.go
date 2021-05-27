@@ -341,7 +341,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 		{
 			"empty embedded document",
 			`{
-				"UndefinedField": {"empty": {}},
+				"UndefinedField": {"empty": {}, "key": 1},
 				"DefinedField": "value"
 			}`,
 			"value",
