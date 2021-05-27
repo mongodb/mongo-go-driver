@@ -215,6 +215,9 @@ func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateColle
 		if opt.Validator != nil {
 			cc.Validator = opt.Validator
 		}
+		if opt.ExpireAfterSeconds != nil {
+			cc.ExpireAfterSeconds = opt.ExpireAfterSeconds
+		}
 		if opt.TimeSeriesOptions != nil {
 			cc.TimeSeriesOptions = opt.TimeSeriesOptions
 		}
