@@ -417,6 +417,117 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.True(t, ok, "expected result type %T, got %T", false, res)
 		assert.False(t, resBool, "expected result false, got %v", resBool)
 	})
+	t.Run("expired context before commitTransaction does not retry", func(t *testing.T) {
+		withTransactionTimeout = 2 * time.Second
+
+		coll := db.Collection("test")
+		// Explicitly create the collection on server because implicit collection creation is not allowed in
+		// transactions for server versions <= 4.2.
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v", err)
+		defer func() {
+			_ = coll.Drop(bgCtx)
+		}()
+
+		sess, err := client.StartSession()
+		assert.Nil(t, err, "StartSession error: %v", err)
+		defer sess.EndSession(context.Background())
+
+		// Create context with short timeout.
+		withTransactionContext, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+		defer cancel()
+		callback := func() {
+			_, _ = sess.WithTransaction(withTransactionContext, func(sessCtx SessionContext) (interface{}, error) {
+				_, err := coll.InsertOne(sessCtx, bson.D{{}})
+				return nil, err
+			})
+		}
+
+		// Assert that transaction fails within 500ms and not 2 seconds.
+		assert.Soon(t, callback, 500*time.Millisecond)
+	})
+	t.Run("canceled context before commitTransaction does not retry", func(t *testing.T) {
+		withTransactionTimeout = 2 * time.Second
+
+		coll := db.Collection("test")
+		// Explicitly create the collection on server because implicit collection creation is not allowed in
+		// transactions for server versions <= 4.2.
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v", err)
+		defer func() {
+			_ = coll.Drop(bgCtx)
+		}()
+
+		sess, err := client.StartSession()
+		assert.Nil(t, err, "StartSession error: %v", err)
+		defer sess.EndSession(context.Background())
+
+		// Create context and cancel it immediately.
+		withTransactionContext, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		cancel()
+		callback := func() {
+			_, _ = sess.WithTransaction(withTransactionContext, func(sessCtx SessionContext) (interface{}, error) {
+				_, err := coll.InsertOne(sessCtx, bson.D{{}})
+				return nil, err
+			})
+		}
+
+		// Assert that transaction fails within 500ms and not 2 seconds.
+		assert.Soon(t, callback, 500*time.Millisecond)
+	})
+	t.Run("slow operation before commitTransaction retries", func(t *testing.T) {
+		withTransactionTimeout = 2 * time.Second
+
+		coll := db.Collection("test")
+		// Explicitly create the collection on server because implicit collection creation is not allowed in
+		// transactions for server versions <= 4.2.
+		err := db.RunCommand(bgCtx, bson.D{{"create", coll.Name()}}).Err()
+		assert.Nil(t, err, "error creating collection on server: %v", err)
+		defer func() {
+			_ = coll.Drop(bgCtx)
+		}()
+
+		// Set failpoint to block insertOne once for 500ms.
+		failpoint := bson.D{{"configureFailPoint", "failCommand"},
+			{"mode", bson.D{
+				{"times", 1},
+			}},
+			{"data", bson.D{
+				{"failCommands", bson.A{"insert"}},
+				{"blockConnection", true},
+				{"blockTimeMS", 500},
+			}},
+		}
+		err = dbAdmin.RunCommand(bgCtx, failpoint).Err()
+		assert.Nil(t, err, "error setting failpoint: %v", err)
+		defer func() {
+			err = dbAdmin.RunCommand(bgCtx, bson.D{
+				{"configureFailPoint", "failCommand"},
+				{"mode", "off"},
+			}).Err()
+			assert.Nil(t, err, "error turning off failpoint: %v", err)
+		}()
+
+		sess, err := client.StartSession()
+		assert.Nil(t, err, "StartSession error: %v", err)
+		defer sess.EndSession(context.Background())
+
+		callback := func() {
+			_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
+				// Set a timeout of 300ms to cause a timeout on first insertOne
+				// and force a retry.
+				c, cancel := context.WithTimeout(sessCtx, 300*time.Millisecond)
+				defer cancel()
+
+				_, err := coll.InsertOne(c, bson.D{{}})
+				return nil, err
+			})
+			assert.Nil(t, err, "WithTransaction error: %v", err)
+		}
+
+		// Assert that transaction passes within 2 seconds.
+		assert.Soon(t, callback, 2*time.Second)
+	})
 }
 
 func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.ClientOptions) *Client {
