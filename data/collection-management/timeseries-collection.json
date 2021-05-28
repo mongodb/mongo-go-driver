@@ -85,9 +85,7 @@
               "commandStartedEvent": {
                 "command": {
                   "create": "test",
-                  "expireAfterSeconds": {
-                    "$numberLong": "604800"
-                  },
+                  "expireAfterSeconds": 604800,
                   "timeseries": {
                     "timeField": "time",
                     "metaField": "meta"
@@ -199,9 +197,7 @@
               "commandStartedEvent": {
                 "command": {
                   "create": "test",
-                  "expireAfterSeconds": {
-                    "$numberLong": "604800"
-                  },
+                  "expireAfterSeconds": 604800,
                   "timeseries": {
                     "timeField": "time",
                     "metaField": "meta"
