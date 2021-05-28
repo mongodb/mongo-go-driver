@@ -234,7 +234,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 	// When unmarshalling extJSON, fields that are undefined in the destination struct are skipped.
 	// This process must not skip other, defined fields and must not raise errors.
 	type expectedResponse struct {
-		DefinedField string
+		DefinedField interface{}
 	}
 
 	unmarshalExpectedResponse := func(t *testing.T, extJSON string) *expectedResponse {
@@ -246,8 +246,9 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name     string
-		testJSON string
+		name          string
+		testJSON      string
+		expectedValue interface{}
 	}{
 		{
 			"no array",
@@ -255,6 +256,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": {"key": 1},
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"outer array",
@@ -262,6 +264,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": [{"key": 1}],
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"embedded array",
@@ -269,6 +272,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": {"keys": [2]},
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"outer array and embedded array",
@@ -276,6 +280,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": [{"keys": [2]}],
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"embedded document",
@@ -283,6 +288,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": {"key": {"one": "two"}},
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"doubly embedded document",
@@ -290,6 +296,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": {"key": {"one": {"two": "three"}}},
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"embedded document and embedded array",
@@ -297,6 +304,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": {"key": {"one": {"two": [3]}}},
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"embedded document and embedded array in outer array",
@@ -304,6 +312,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": [{"key": {"one": [3]}}],
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"code with scope",
@@ -311,6 +320,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": {"logic": {"$code": "foo", "$scope": {"bar": 1}}},
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"embedded array of code with scope",
@@ -318,6 +328,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": {"logic": [{"$code": "foo", "$scope": {"bar": 1}}]},
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"type definition embedded document",
@@ -325,19 +336,38 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 				"UndefinedField": {"myDouble": {"$numberDouble": "1.24"}},
 				"DefinedField": "value"
 			}`,
+			"value",
 		},
 		{
 			"empty embedded document",
 			`{
-				"UndefinedField": {"empty": {}},
+				"UndefinedField": {"empty": {}, "key": 1},
 				"DefinedField": "value"
 			}`,
+			"value",
+		},
+		{
+			"empty object before",
+			`{
+				"UndefinedField": {},
+				"DefinedField": {"value": "a"}
+			}`,
+			D{{"value", "a"}},
+		},
+		{
+			"empty object after",
+			`{
+				"DefinedField": {"value": "a"},
+				"UndefinedField": {}
+			}`,
+			D{{"value", "a"}},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			responseDoc := unmarshalExpectedResponse(t, tc.testJSON)
-			assert.Equal(t, "value", responseDoc.DefinedField, "expected DefinedField to be 'value', got %q", responseDoc.DefinedField)
+			assert.Equal(t, tc.expectedValue, responseDoc.DefinedField, "expected DefinedField to be %v, got %q",
+				tc.expectedValue, responseDoc.DefinedField)
 		})
 	}
 }
