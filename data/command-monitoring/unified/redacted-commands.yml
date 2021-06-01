@@ -1,0 +1,166 @@
+description: "redacted-commands"
+
+schemaVersion: "1.0"
+
+runOnRequirements:
+  - minServerVersion: "5.0"
+
+createEntities:
+  - client:
+      id: &client client
+      observeEvents:
+        - commandStartedEvent
+  - database:
+      id: &database database
+      client: *client
+      databaseName: &databaseName command-monitoring-tests
+
+tests:
+  - description: "authenticate"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: authenticate
+          command:
+            authenticate: "private"
+        # Malformed authentication commands will fail against the server, but we
+        # just want to assert that security-related commands are redacted
+        # in command monitoring.
+        expectError:
+          isError: true
+    expectEvents: &redacted-event
+      - client: *client
+        events:
+          # Expect empty (redacted) event.
+          - commandStartedEvent: {}
+
+  - description: "saslStart"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: saslStart
+          command:
+            saslStart: "private"
+        expectError:
+          isError: true
+    expectEvents: *redacted-event
+
+  - description: "saslContinue"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: saslContinue
+          command:
+            saslContinue: "private"
+        expectError:
+          isError: true
+    expectEvents: *redacted-event
+
+  - description: "getnonce"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: getnonce
+          command:
+            getnonce: "private"
+    expectEvents: *redacted-event
+
+  - description: "createUser"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: createUser
+          command:
+            createUser: "private"
+        expectError:
+          isError: true
+    expectEvents: *redacted-event
+
+  - description: "updateUser"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: updateUser
+          command:
+            updateUser: "private"
+        expectError:
+          isError: true
+    expectEvents: *redacted-event
+
+  - description: "copydbgetnonce"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: copydbgetnonce
+          command:
+            copydbgetnonce: "private"
+        expectError:
+          isError: true
+    expectEvents: *redacted-event
+
+  - description: "copydbsaslstart"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: copydbsaslstart
+          command:
+            copydbsaslstart: "private"
+        expectError:
+          isError: true
+    expectEvents: *redacted-event
+
+  - description: "copydb"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: copydb
+          command:
+            copydb: "private"
+        expectError:
+          isError: true
+    expectEvents: *redacted-event
+
+  - description: "hello with speculativeAuth"
+    operations:
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: hello
+          command:
+            hello: "private"
+            speculativeAuthenticate: "foo"
+        expectError:
+          isError: true
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: ismaster
+          command:
+            ismaster: "private"
+            speculativeAuthenticate: "foo"
+        expectError:
+          isError: true
+      - name: runCommand
+        object: *database
+        arguments:
+          commandName: isMaster
+          command:
+            isMaster: "private"
+            speculativeAuthenticate: "foo"
+        expectError:
+          isError: true
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent: {}
+          - commandStartedEvent: {}
+          - commandStartedEvent: {}
