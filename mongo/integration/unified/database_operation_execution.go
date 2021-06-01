@@ -51,6 +51,8 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 					tso.SetTimeField(val.StringValue())
 				case "metaField":
 					tso.SetMetaField(val.StringValue())
+				case "granularity":
+					tso.SetGranularity(val.StringValue())
 				default:
 					return nil, fmt.Errorf("unrecognized timeseries option %q", key)
 				}

@@ -56,7 +56,8 @@
             "expireAfterSeconds": 604800,
             "timeseries": {
               "timeField": "time",
-              "metaField": "meta"
+              "metaField": "meta",
+              "granularity": "minutes"
             }
           }
         },
@@ -88,7 +89,8 @@
                   "expireAfterSeconds": 604800,
                   "timeseries": {
                     "timeField": "time",
-                    "metaField": "meta"
+                    "metaField": "meta",
+                    "granularity": "minutes"
                   }
                 },
                 "databaseName": "ts-tests"
@@ -116,7 +118,8 @@
             "expireAfterSeconds": 604800,
             "timeseries": {
               "timeField": "time",
-              "metaField": "meta"
+              "metaField": "meta",
+              "granularity": "minutes"
             }
           }
         },
@@ -200,7 +203,8 @@
                   "expireAfterSeconds": 604800,
                   "timeseries": {
                     "timeField": "time",
-                    "metaField": "meta"
+                    "metaField": "meta",
+                    "granularity": "minutes"
                   }
                 },
                 "databaseName": "ts-tests"

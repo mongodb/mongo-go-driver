@@ -564,6 +564,9 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 		if cco.TimeSeriesOptions.MetaField != nil {
 			doc = bsoncore.AppendStringElement(doc, "metaField", *cco.TimeSeriesOptions.MetaField)
 		}
+		if cco.TimeSeriesOptions.Granularity != nil {
+			doc = bsoncore.AppendStringElement(doc, "granularity", *cco.TimeSeriesOptions.Granularity)
+		}
 
 		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
 		if err != nil {

@@ -36,6 +36,10 @@ type TimeSeriesOptions struct {
 	// related data and may be of any BSON type, except for array. This name may not be the same
 	// as the timeField or _id.
 	MetaField *string
+
+	// Optional string specifying granularity of time-series data. Allowed granularity options are
+	// "seconds", "minutes" and "hours".
+	Granularity *string
 }
 
 // TimeSeries creates a new TimeSeriesOptions instance.
@@ -52,6 +56,12 @@ func (tso *TimeSeriesOptions) SetTimeField(timeField string) *TimeSeriesOptions 
 // SetMetaField sets the value for the MetaField.
 func (tso *TimeSeriesOptions) SetMetaField(metaField string) *TimeSeriesOptions {
 	tso.MetaField = &metaField
+	return tso
+}
+
+// SetGranularity sets the value for Granularity.
+func (tso *TimeSeriesOptions) SetGranularity(granularity string) *TimeSeriesOptions {
+	tso.Granularity = &granularity
 	return tso
 }
 

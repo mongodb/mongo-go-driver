@@ -39,6 +39,7 @@ tests:
           timeseries: &timeseries0
             timeField: "time"
             metaField: "meta"
+            granularity: "minutes"
       - name: assertCollectionExists
         object: testRunner
         arguments:
