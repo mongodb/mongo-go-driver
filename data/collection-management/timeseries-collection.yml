@@ -125,5 +125,4 @@ tests:
                 find: *collection0Name
                 filter: {}
                 sort: { time: 1 }
-              commandName: find
               databaseName: *database0Name

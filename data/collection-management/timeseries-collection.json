@@ -240,7 +240,6 @@
                     "time": 1
                   }
                 },
-                "commandName": "find",
                 "databaseName": "ts-tests"
               }
             }
