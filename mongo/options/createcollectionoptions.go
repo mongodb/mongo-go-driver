@@ -34,7 +34,7 @@ type TimeSeriesOptions struct {
 
 	// Optional name of the top-level field describing the series. This field is used to group
 	// related data and may be of any BSON type, except for array. This name may not be the same
-	// as the timeField or _id.
+	// as the TimeField or _id.
 	MetaField *string
 
 	// Optional string specifying granularity of time-series data. Allowed granularity options are

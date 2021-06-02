@@ -340,7 +340,7 @@ func (c *Create) ServerAPI(serverAPI *driver.ServerAPIOptions) *Create {
 	return c
 }
 
-// ExpireAfterSeconds set the seconds to wait before deleting old time-series data.
+// ExpireAfterSeconds sets the seconds to wait before deleting old time-series data.
 func (c *Create) ExpireAfterSeconds(eas int64) *Create {
 	if c == nil {
 		c = new(Create)
