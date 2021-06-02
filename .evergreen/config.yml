@@ -509,18 +509,14 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
-          export MONGO_GO_DRIVER_CA_FILE="$PROJECT_DIRECTORY/data/certificates/ca.pem"
-          if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
-            export MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
-          fi
-
+          export GOFLAGS=-mod=vendor
           AUTH="auth" \
           SSL="ssl" \
           MONGODB_URI="${MONGODB_URI}" \
-          MONGODB_API_VERSION=${MONGODB_API_VERSION} \
           SERVERLESS="serverless" \
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
           SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
+          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           make evg-test-serverless
 
   run-atlas-data-lake-test:
@@ -1939,6 +1935,20 @@ task_groups:
             SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
             SERVERLESS_INSTANCE_NAME=${SERVERLESS_INSTANCE_NAME} \
               bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
+      - command: gotest.parse_files
+        params:
+          files:
+            - "src/go.mongodb.org/mongo-driver/*.suite"
+      - command: s3.put
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          local_file: mongodb-logs.tar.gz
+          remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
+          bucket: mciuploads
+          permissions: public-read
+          content_type: ${content_type|application/x-gzip}
+          display_name: "mongodb-logs.tar.gz"
     tasks:
       - ".serverless"
 
@@ -2086,7 +2096,7 @@ buildvariants:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
-    matrix_spec: { os-aws-auth: ["ubuntu1804-64-go-1-16"] }
+    matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-16"] }
     display_name: "Serverless ${os-aws-auth}"
     tasks:
       - "serverless_task_group"

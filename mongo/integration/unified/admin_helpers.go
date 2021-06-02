@@ -9,6 +9,7 @@ package unified
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil"
@@ -45,6 +46,12 @@ func terminateOpenSessions(ctx context.Context) error {
 				}
 			}
 		}
+
+		// for SERVER-54216 on atlas
+		if err != nil && strings.Contains(err.Error(), "(AtlasError) (Unauthorized)") {
+			err = nil
+		}
+
 		return err
 	}
 

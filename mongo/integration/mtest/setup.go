@@ -289,12 +289,15 @@ func addOptions(uri string, opts ...string) string {
 // addTLSConfig checks for the environmental variable indicating that the tests are being run
 // on an SSL-enabled server, and if so, returns a new URI with the necessary configuration.
 func addTLSConfig(uri string) string {
+	if os.Getenv("SSL") == "ssl" {
+		uri = addOptions(uri, "ssl=", "true")
+	}
 	caFile := os.Getenv("MONGO_GO_DRIVER_CA_FILE")
 	if len(caFile) == 0 {
 		return uri
 	}
 
-	return addOptions(uri, "ssl=true&sslCertificateAuthorityFile=", caFile)
+	return addOptions(uri, "sslCertificateAuthorityFile=", caFile)
 }
 
 // addCompressors checks for the environment variable indicating that the tests are being run with compression
