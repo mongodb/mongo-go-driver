@@ -9,7 +9,6 @@ package integration
 import (
 	"fmt"
 	"os"
-	"path"
 	"reflect"
 	"strings"
 	"testing"
@@ -28,8 +27,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
-
-const certificatesDir = "../../data/certificates"
 
 var noClientOpts = mtest.NewOptions().CreateClient(false)
 
@@ -88,21 +85,21 @@ func TestClient(t *testing.T) {
 			password    string
 		}{
 			{
-				"client.pem",
+				"MONGO_GO_DRIVER_KEY_FILE",
 				"",
 			},
 			{
-				"client-pkcs8-encrypted.pem",
+				"MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE",
 				"&sslClientCertificateKeyPassword=password",
 			},
 			{
-				"client-pkcs8-unencrypted.pem",
+				"MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE",
 				"",
 			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.certificate, func(mt *mtest.T) {
-				const user = "C=US,ST=New York,L=New York City,O=MongoDB,OU=other,CN=external"
+				const user = "C=US,ST=New York,L=New York City,O=MDB,OU=Drivers,CN=client"
 				db := mt.Client.Database("$external")
 
 				// We don't care if the user doesn't already exist.
@@ -131,7 +128,7 @@ func TestClient(t *testing.T) {
 				cs := fmt.Sprintf(
 					"%s&sslClientCertificateKeyFile=%s&authMechanism=MONGODB-X509&authSource=$external%s",
 					revisedConnString,
-					path.Join(certificatesDir, tc.certificate),
+					os.Getenv(tc.certificate),
 					tc.password,
 				)
 				authClientOpts := options.Client().ApplyURI(cs)

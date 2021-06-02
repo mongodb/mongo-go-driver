@@ -171,21 +171,36 @@ MONGODB_URI="mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaS
 
 ### Testing Auth and TLS
 
-To test authentication and TLS, first set up a MongoDB cluster with auth and TLS configured. Testing authentication requires a user with the `root` role on the `admin` database. The Go Driver repository comes with example certificates in the `data/certificates` directory. These certs can be used for testing. Here is an example command that would run a mongod with TLS correctly configured for tests:
+To test authentication and TLS, first set up a MongoDB cluster with auth and TLS configured. Testing authentication requires a user with the `root` role on the `admin` database. Here is an example command that would run a mongod with TLS correctly configured for tests. Either set or replace PATH_TO_SERVER_KEY_FILE and PATH_TO_CA_FILE with paths to their respective files:
 
 ```
 mongod \
 --auth \
 --tlsMode requireTLS \
---tlsCertificateKeyFile $(pwd)/data/certificates/server.pem \
---tlsCAFile $(pwd)/data/certificates/ca.pem \
+--tlsCertificateKeyFile $PATH_TO_SERVER_KEY_FILE \
+--tlsCAFile $PATH_TO_CA_FILE \
 --tlsAllowInvalidCertificates
 ```
 
-To run the tests with `make`, set `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database, set `MONGODB_URI` to the connection string of the server, set `AUTH=auth`, and set `SSL=ssl`. For example:
+To run the tests with `make`, set:
+- `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database
+- `MONGO_GO_DRIVER_KEY_FILE` to the location of the client key file
+- `MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE` to the location of the pkcs8 client key file encrypted with the password string: `password` 
+- `MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE` to the location of the unencrypted pkcs8 key file
+- `MONGODB_URI` to the connection string of the server
+- `AUTH=auth`
+- `SSL=ssl`
+
+For example:
 
 ```
-AUTH=auth SSL=ssl MONGO_GO_DRIVER_CA_FILE=$(pwd)/data/certificates/ca.pem  MONGODB_URI="mongodb://user:password@localhost:27017/?authSource=admin" make
+AUTH=auth SSL=ssl \
+MONGO_GO_DRIVER_CA_FILE=$PATH_TO_CA_FILE \
+MONGO_GO_DRIVER_KEY_FILE=$PATH_TO_CLIENT_KEY_FILE \
+MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE=$PATH_TO_ENCRYPTED_KEY_FILE \
+MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE=$PATH_TO_UNENCRYPTED_KEY_FILE \
+MONGODB_URI="mongodb://user:password@localhost:27017/?authSource=admin" \
+make
 ```
 
 Notes:
