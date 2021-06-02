@@ -337,7 +337,7 @@
       ]
     },
     {
-      "description": "hello with speculativeAuth",
+      "description": "hello with speculative authenticate",
       "operations": [
         {
           "name": "runCommand",
@@ -413,6 +413,72 @@
                   "isMaster": {
                     "$$exists": false
                   }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "hello without speculative authenticate is not redacted",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database",
+          "arguments": {
+            "commandName": "hello",
+            "command": {
+              "hello": "public"
+            }
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database",
+          "arguments": {
+            "commandName": "ismaster",
+            "command": {
+              "ismaster": "public"
+            }
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database",
+          "arguments": {
+            "commandName": "isMaster",
+            "command": {
+              "isMaster": "public"
+            }
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "commandName": "hello",
+                "command": {
+                  "hello": "public"
+                }
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "commandName": "ismaster",
+                "command": {
+                  "ismaster": "public"
+                }
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "commandName": "isMaster",
+                "command": {
+                  "isMaster": "public"
                 }
               }
             }
