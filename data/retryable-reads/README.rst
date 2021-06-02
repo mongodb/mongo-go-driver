@@ -74,9 +74,10 @@ Each YAML file has the following keys:
     version.
 
   - ``topology`` (optional): An array of server topologies against which the
-    tests can be run successfully. Valid topologies are "single", "replicaset",
-    and "sharded". If this field is omitted, the default is all topologies (i.e.
-    ``["single", "replicaset", "sharded"]``).
+    tests can be run successfully. Valid topologies are "single",
+    "replicaset", "sharded", and "load-balanced". If this field is omitted,
+    the default is all topologies (i.e. ``["single", "replicaset", "sharded",
+    "load-balanced"]``).
 
   - ``serverless``: Optional string. Whether or not the test should be run on
     serverless instances imitating sharded clusters. Valid values are "require",
@@ -229,3 +230,5 @@ Changelog
 :2020-09-16: Suggest lowering heartbeatFrequencyMS in addition to minHeartbeatFrequencyMS.
 
 :2021-03-23: Add prose test for retrying PoolClearedErrors
+
+:2021-04-29: Add ``load-balanced`` to test topology requirements.

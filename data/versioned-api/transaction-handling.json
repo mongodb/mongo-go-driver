@@ -6,7 +6,8 @@
       "minServerVersion": "4.9",
       "topologies": [
         "replicaset",
-        "sharded-replicaset"
+        "sharded-replicaset",
+        "load-balanced"
       ]
     }
   ],
@@ -91,7 +92,8 @@
         {
           "topologies": [
             "replicaset",
-            "sharded-replicaset"
+            "sharded-replicaset",
+            "load-balanced"
           ]
         }
       ],
@@ -182,119 +184,6 @@
                   "lsid": {
                     "$$sessionLsid": "session"
                   },
-                  "apiVersion": {
-                    "$$exists": false
-                  },
-                  "apiStrict": {
-                    "$$exists": false
-                  },
-                  "apiDeprecationErrors": {
-                    "$$exists": false
-                  }
-                }
-              }
-            },
-            {
-              "commandStartedEvent": {
-                "command": {
-                  "commitTransaction": 1,
-                  "lsid": {
-                    "$$sessionLsid": "session"
-                  },
-                  "apiVersion": {
-                    "$$exists": false
-                  },
-                  "apiStrict": {
-                    "$$exists": false
-                  },
-                  "apiDeprecationErrors": {
-                    "$$exists": false
-                  }
-                }
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "description": "Committing a transaction twice does not append server API options",
-      "runOnRequirements": [
-        {
-          "topologies": [
-            "replicaset",
-            "sharded-replicaset"
-          ]
-        }
-      ],
-      "operations": [
-        {
-          "name": "startTransaction",
-          "object": "session"
-        },
-        {
-          "name": "insertOne",
-          "object": "collection",
-          "arguments": {
-            "session": "session",
-            "document": {
-              "_id": 6,
-              "x": 66
-            }
-          },
-          "expectResult": {
-            "$$unsetOrMatches": {
-              "insertedId": {
-                "$$unsetOrMatches": 6
-              }
-            }
-          }
-        },
-        {
-          "name": "insertOne",
-          "object": "collection",
-          "arguments": {
-            "session": "session",
-            "document": {
-              "_id": 7,
-              "x": 77
-            }
-          },
-          "expectResult": {
-            "$$unsetOrMatches": {
-              "insertedId": {
-                "$$unsetOrMatches": 7
-              }
-            }
-          }
-        },
-        {
-          "name": "commitTransaction",
-          "object": "session"
-        },
-        {
-          "name": "commitTransaction",
-          "object": "session"
-        }
-      ],
-      "expectEvents": [
-        {
-          "client": "client",
-          "events": [
-            {
-              "commandStartedEvent": {
-                "command": {
-                  "insert": "test",
-                  "documents": [
-                    {
-                      "_id": 6,
-                      "x": 66
-                    }
-                  ],
-                  "lsid": {
-                    "$$sessionLsid": "session"
-                  },
-                  "startTransaction": true,
                   "apiVersion": "1",
                   "apiStrict": {
                     "$$unsetOrMatches": false
@@ -332,7 +221,8 @@
         {
           "topologies": [
             "replicaset",
-            "sharded-replicaset"
+            "sharded-replicaset",
+            "load-balanced"
           ]
         }
       ],
