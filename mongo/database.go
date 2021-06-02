@@ -499,6 +499,8 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 //
 // The opts parameter can be used to specify options for the operation (see the options.CreateCollectionOptions
 // documentation).
+//
+// For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
@@ -551,6 +553,27 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 			return err
 		}
 		op.Validator(validator)
+	}
+	if cco.ExpireAfterSeconds != nil {
+		op.ExpireAfterSeconds(*cco.ExpireAfterSeconds)
+	}
+	if cco.TimeSeriesOptions != nil {
+		idx, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendStringElement(doc, "timeField", cco.TimeSeriesOptions.TimeField)
+
+		if cco.TimeSeriesOptions.MetaField != nil {
+			doc = bsoncore.AppendStringElement(doc, "metaField", *cco.TimeSeriesOptions.MetaField)
+		}
+		if cco.TimeSeriesOptions.Granularity != nil {
+			doc = bsoncore.AppendStringElement(doc, "granularity", *cco.TimeSeriesOptions.Granularity)
+		}
+
+		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
+		if err != nil {
+			return err
+		}
+
+		op.TimeSeries(doc)
 	}
 
 	return db.executeCreateOperation(ctx, op)
