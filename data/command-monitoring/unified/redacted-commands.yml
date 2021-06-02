@@ -29,11 +29,14 @@ tests:
         # in command monitoring.
         expectError:
           isError: true
-    expectEvents: &redacted-event
+    expectEvents:
       - client: *client
         events:
-          # Expect empty (redacted) event.
-          - commandStartedEvent: {}
+          - commandStartedEvent:
+              commandName: authenticate
+              # This only asserts that the command name has been redacted from the published command;
+              # however, it's unlikely that a driver would redact this but leave other, sensitive fields.
+              command: { authenticate: { $$exists: false } }
 
   - description: "saslStart"
     operations:
@@ -45,7 +48,12 @@ tests:
             saslStart: "private"
         expectError:
           isError: true
-    expectEvents: *redacted-event
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: saslStart
+              command: { saslStart: { $$exists: false } }
 
   - description: "saslContinue"
     operations:
@@ -57,7 +65,12 @@ tests:
             saslContinue: "private"
         expectError:
           isError: true
-    expectEvents: *redacted-event
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: saslContinue
+              command: { saslContinue: { $$exists: false } }
 
   - description: "getnonce"
     operations:
@@ -67,7 +80,12 @@ tests:
           commandName: getnonce
           command:
             getnonce: "private"
-    expectEvents: *redacted-event
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: getnonce
+              command: { getnonce: { $$exists: false } }
 
   - description: "createUser"
     operations:
@@ -79,7 +97,12 @@ tests:
             createUser: "private"
         expectError:
           isError: true
-    expectEvents: *redacted-event
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: createUser
+              command: { createUser: { $$exists: false } }
 
   - description: "updateUser"
     operations:
@@ -91,7 +114,12 @@ tests:
             updateUser: "private"
         expectError:
           isError: true
-    expectEvents: *redacted-event
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: updateUser
+              command: { updateUser: { $$exists: false } }
 
   - description: "copydbgetnonce"
     operations:
@@ -103,7 +131,12 @@ tests:
             copydbgetnonce: "private"
         expectError:
           isError: true
-    expectEvents: *redacted-event
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: copydbgetnonce
+              command: { copydbgetnonce: { $$exists: false } }
 
   - description: "copydbsaslstart"
     operations:
@@ -115,7 +148,12 @@ tests:
             copydbsaslstart: "private"
         expectError:
           isError: true
-    expectEvents: *redacted-event
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: copydbsaslstart
+              command: { copydbsaslstart: { $$exists: false } }
 
   - description: "copydb"
     operations:
@@ -127,7 +165,12 @@ tests:
             copydb: "private"
         expectError:
           isError: true
-    expectEvents: *redacted-event
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: copydb
+              command: { copydb: { $$exists: false } }
 
   - description: "hello with speculativeAuth"
     operations:
@@ -161,6 +204,12 @@ tests:
     expectEvents:
       - client: *client
         events:
-          - commandStartedEvent: {}
-          - commandStartedEvent: {}
-          - commandStartedEvent: {}
+          - commandStartedEvent:
+              commandName: hello
+              command: { hello: { $$exists: false } }
+          - commandStartedEvent:
+              commandName: ismaster
+              command: { ismaster: { $$exists: false } }
+          - commandStartedEvent:
+              commandName: isMaster
+              command: { isMaster: { $$exists: false } }

@@ -46,7 +46,14 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "authenticate",
+                "command": {
+                  "authenticate": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
@@ -74,7 +81,14 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "saslStart",
+                "command": {
+                  "saslStart": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
@@ -102,7 +116,14 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "saslContinue",
+                "command": {
+                  "saslContinue": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
@@ -127,7 +148,14 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "getnonce",
+                "command": {
+                  "getnonce": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
@@ -155,7 +183,14 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "createUser",
+                "command": {
+                  "createUser": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
@@ -183,7 +218,14 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "updateUser",
+                "command": {
+                  "updateUser": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
@@ -211,7 +253,14 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "copydbgetnonce",
+                "command": {
+                  "copydbgetnonce": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
@@ -239,7 +288,14 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "copydbsaslstart",
+                "command": {
+                  "copydbsaslstart": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
@@ -267,7 +323,14 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "copydb",
+                "command": {
+                  "copydb": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
@@ -324,13 +387,34 @@
           "client": "client",
           "events": [
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "hello",
+                "command": {
+                  "hello": {
+                    "$$exists": false
+                  }
+                }
+              }
             },
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "ismaster",
+                "command": {
+                  "ismaster": {
+                    "$$exists": false
+                  }
+                }
+              }
             },
             {
-              "commandStartedEvent": {}
+              "commandStartedEvent": {
+                "commandName": "isMaster",
+                "command": {
+                  "isMaster": {
+                    "$$exists": false
+                  }
+                }
+              }
             }
           ]
         }
