@@ -280,8 +280,6 @@ functions:
         add_expansions_to_env: true
         script: |
           ${PREPARE_SHELL}
-          export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
-          export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
           sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   send-perf-data:

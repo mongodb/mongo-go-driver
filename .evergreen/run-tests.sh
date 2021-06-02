@@ -49,6 +49,11 @@ if [ "$SSL" != "nossl" ]; then
     fi
 fi
 
+if [ -z ${AWS_ACCESS_KEY_ID+x} ]; then
+  export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
+  export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
+fi
+
 # Set temp credentials for AWS if python3 is available.
 #
 # Using python3-venv in Ubuntu 14.04 (an OS required for legacy server version
