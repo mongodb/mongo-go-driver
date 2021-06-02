@@ -36,6 +36,8 @@ tests:
               commandName: authenticate
               # This only asserts that the command name has been redacted from the published command;
               # however, it's unlikely that a driver would redact this but leave other, sensitive fields.
+              # We cannot simply assert that command is an empty document because it's at root-level, so
+              # additional fields in the actual document will be permitted
               command: { authenticate: { $$exists: false } }
 
   - description: "saslStart"
