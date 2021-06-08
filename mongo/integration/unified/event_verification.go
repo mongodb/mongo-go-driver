@@ -173,10 +173,8 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 				// there are not enough bytes to read a document from bson.RawValue{}.
 				// In the case of an empty Command, hardcode an empty bson.RawValue document.
 				if len(actual.Command) == 0 {
-					// This represents a null BSON value: first four bytes are length (7), and
-					// remaining bytes are the null value.
-					nullValue := []byte{7, 0, 0, 0, 10, 0, 0}
-					actualDoc = bson.RawValue{Type: bsontype.EmbeddedDocument, Value: nullValue}
+					emptyDoc := []byte{5, 0, 0, 0, 0}
+					actualDoc = bson.RawValue{Type: bsontype.EmbeddedDocument, Value: emptyDoc}
 				}
 
 				if err := verifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
