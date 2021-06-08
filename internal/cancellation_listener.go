@@ -6,12 +6,16 @@
 
 package internal
 
-import "context"
+import (
+	"context"
+	"sync"
+)
 
 // CancellationListener listens for context cancellation in a loop until the context expires or the listener is aborted.
 type CancellationListener struct {
 	aborted bool
 	done    chan struct{}
+	mtx     sync.RWMutex
 }
 
 // NewCancellationListener constructs a CancellationListener.
@@ -25,12 +29,12 @@ func NewCancellationListener() *CancellationListener {
 // detects that the context has been cancelled (i.e. ctx.Err() == context.Canceled), the provided callback is called to
 // abort in-progress work. Even if the context expires, this function will block until StopListening is called.
 func (c *CancellationListener) Listen(ctx context.Context, abortFn func()) {
-	c.aborted = false
+	c.setAborted(false)
 
 	select {
 	case <-ctx.Done():
 		if ctx.Err() == context.Canceled {
-			c.aborted = true
+			c.setAborted(true)
 			abortFn()
 		}
 
@@ -43,5 +47,17 @@ func (c *CancellationListener) Listen(ctx context.Context, abortFn func()) {
 // will return true if the provided abort callback was called when listening for cancellation on the previous context.
 func (c *CancellationListener) StopListening() bool {
 	c.done <- struct{}{}
+	return c.getAborted()
+}
+
+func (c *CancellationListener) setAborted(aborted bool) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	c.aborted = aborted
+}
+
+func (c *CancellationListener) getAborted() bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
 	return c.aborted
 }
