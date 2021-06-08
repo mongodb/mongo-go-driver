@@ -340,6 +340,9 @@ func (p *parser) validate() error {
 		if p.Scheme == SchemeMongoDBSRV {
 			return errors.New("a direct connection cannot be made if an SRV URI is used")
 		}
+		if p.LoadBalancedSet && p.LoadBalanced {
+			return internal.ErrLoadBalancedWithDirectConnection
+		}
 	}
 
 	// Validation for load-balanced mode.
@@ -349,9 +352,6 @@ func (p *parser) validate() error {
 		}
 		if p.ReplicaSet != "" {
 			return internal.ErrLoadBalancedWithReplicaSet
-		}
-		if p.ConnectSet || p.DirectConnectionSet {
-			return internal.ErrLoadBalancedWithDirectConnection
 		}
 	}
 
