@@ -55,11 +55,7 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 
 		actualDoc, ok := actual.DocumentOK()
 		if !ok {
-			// If actual value isn't empty, return error.
-			if len(actual.Value) != 0 {
-				return newMatchingError(keyPath, "expected value to be a document but got a %s", actual.Type)
-			}
-			actualDoc = bson.Raw{}
+			return newMatchingError(keyPath, "expected value to be a document but got a %s", actual.Type)
 		}
 
 		// Perform element-wise comparisons.
