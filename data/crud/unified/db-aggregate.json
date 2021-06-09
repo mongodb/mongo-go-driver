@@ -1,9 +1,10 @@
 {
   "description": "db-aggregate",
-  "schemaVersion": "1.1",
+  "schemaVersion": "1.4",
   "runOnRequirements": [
     {
-      "minServerVersion": "3.6.0"
+      "minServerVersion": "3.6.0",
+      "serverless": "forbid"
     }
   ],
   "createEntities": [
