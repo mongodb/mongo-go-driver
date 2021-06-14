@@ -116,7 +116,7 @@ func TestMongoHelpers(t *testing.T) {
 			got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
 			assert.Nil(t, err, "transformAndEnsureID error: %v", err)
 			_, ok := id.(string)
-			assert.True(t, ok, "expected returned id type %T, got %T", string(0), id)
+			assert.True(t, ok, "expected returned id type string, got %T", id)
 			assert.Equal(t, got, want, "expected document %v, got %v", got, want)
 		})
 	})
