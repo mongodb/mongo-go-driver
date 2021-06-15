@@ -347,11 +347,6 @@ func runTest(t *testing.T, file string) {
 		t.Run("parse error", func(t *testing.T) {
 			for _, p := range test.ParseErrors {
 				t.Run(p.Description, func(t *testing.T) {
-					// skip DBRef tests
-					if strings.Contains(p.Description, "Bad DBRef") {
-						t.Skip("skipping DBRef test")
-					}
-
 					s := unescapeUnicode(p.String, test.BsonType)
 					if test.BsonType == "0x13" {
 						s = fmt.Sprintf(`{"decimal128": {"$numberDecimal": "%s"}}`, s)

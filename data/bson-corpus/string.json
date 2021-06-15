@@ -29,11 +29,6 @@
             "canonical_extjson": "{\"a\" : \"\\u2606\\u2606\\u2606\\u2606\"}"
         },
         {
-            "description": "four-byte UTF-8 (𝄞)",
-            "canonical_bson": "1100000002610005000000F09D849E0000",
-            "canonical_extjson": "{\"a\" : \"𝄞\"}"
-        },
-        {
             "description": "Embedded nulls",
             "canonical_bson": "190000000261000D0000006162006261620062616261620000",
             "canonical_extjson": "{\"a\" : \"ab\\u0000bab\\u0000babab\"}"

@@ -3,9 +3,24 @@
     "bson_type": "0x00",
     "valid": [
         {
-            "description": "Document with keys that start with $",
+            "description": "Dollar-prefixed key in top-level document",
             "canonical_bson": "0F00000010246B6579002A00000000",
             "canonical_extjson": "{\"$key\": {\"$numberInt\": \"42\"}}"
+        },
+        {
+            "description": "Dollar as key in top-level document",
+            "canonical_bson": "0E00000002240002000000610000",
+            "canonical_extjson": "{\"$\": \"a\"}"
+        },
+        {
+            "description": "Dotted key in top-level document",
+            "canonical_bson": "1000000002612E620002000000630000",
+            "canonical_extjson": "{\"a.b\": \"c\"}"
+        },
+        {
+            "description": "Dot as key in top-level document",
+            "canonical_bson": "0E000000022E0002000000610000",
+            "canonical_extjson": "{\".\": \"a\"}"
         }
     ],
     "decodeErrors": [
@@ -69,11 +84,11 @@
     "parseErrors": [
         {
             "description" : "Bad $regularExpression (extra field)",
-            "string" : "{\"a\" : \"$regularExpression\": {\"pattern\": \"abc\", \"options\": \"\", \"unrelated\": true}}}"
+            "string" : "{\"a\" : {\"$regularExpression\": {\"pattern\": \"abc\", \"options\": \"\", \"unrelated\": true}}}"
         },
         {
             "description" : "Bad $regularExpression (missing options field)",
-            "string" : "{\"a\" : \"$regularExpression\": {\"pattern\": \"abc\"}}}"
+            "string" : "{\"a\" : {\"$regularExpression\": {\"pattern\": \"abc\"}}}"
         },
         {
             "description": "Bad $regularExpression (pattern is number, not string)",
@@ -85,7 +100,7 @@
         },
         {
             "description" : "Bad $regularExpression (missing pattern field)",
-            "string" : "{\"a\" : \"$regularExpression\": {\"options\":\"ix\"}}}"
+            "string" : "{\"a\" : {\"$regularExpression\": {\"options\":\"ix\"}}}"
         },
         {
             "description": "Bad $oid (number, not string)",
@@ -152,6 +167,10 @@
             "string": "{\"a\" : {\"$code\" : 42}}"
         },
         {
+            "description": "Bad $code (type is number, not string) when $scope is also present",
+            "string": "{\"a\" : {\"$code\" : 42, \"$scope\" : {}}}"
+        },
+        {
             "description": "Bad $code (extra field)",
             "string": "{\"a\" : {\"$code\" : \"\", \"unrelated\": true}}"
         },
@@ -194,14 +213,6 @@
         {
             "description": "Bad $date (extra field)",
             "string": "{\"a\" : {\"$date\" : {\"$numberLong\" : \"1356351330501\"}, \"unrelated\": true}}"
-        },
-        {
-            "description": "Bad DBRef (ref is number, not string)",
-            "string": "{\"x\" : {\"$ref\" : 42, \"$id\" : \"abc\"}}"
-        },
-        {
-            "description": "Bad DBRef (db is number, not string)",
-            "string": "{\"x\" : {\"$ref\" : \"a\", \"$id\" : \"abc\", \"$db\" : 42}}"
         },
         {
             "description": "Bad $minKey (boolean, not integer)",
