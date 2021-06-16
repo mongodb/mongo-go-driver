@@ -160,6 +160,8 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 		return umm.SetFilter(filter).SetUpdate(update), nil
 	case "deleteOne":
 		var filter bson.Raw
+		var hint interface{}
+		var err error
 		elems, _ := args.Elements()
 		for _, elem := range elems {
 			key := elem.Key()
@@ -168,6 +170,11 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			switch key {
 			case "filter":
 				filter = val.Document()
+			case "hint":
+				hint, err = createHint(val)
+				if err != nil {
+					return nil, fmt.Errorf("error creating hint: %v", err)
+				}
 			default:
 				return nil, fmt.Errorf("unrecognized deleteOne option %q", key)
 			}
@@ -176,7 +183,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			return nil, newMissingArgumentError("filter")
 		}
 
-		return mongo.NewDeleteOneModel().SetFilter(filter), nil
+		return mongo.NewDeleteOneModel().SetFilter(filter).SetHint(hint), nil
 	case "deleteMany":
 		dmm := mongo.NewDeleteManyModel()
 		var filter bson.Raw

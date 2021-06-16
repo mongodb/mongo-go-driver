@@ -2,13 +2,10 @@
 # Please review the generated file, then remove this notice.
 
 description: db-aggregate
-schemaVersion: '1.4'
+schemaVersion: '1.1'
 runOnRequirements:
   -
     minServerVersion: 3.6.0
-    # serverless does not support either of the current database-level aggregation stages ($listLocalSessions and
-    # $currentOp)
-    serverless: forbid
 createEntities:
   -
     client:

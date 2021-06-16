@@ -31,6 +31,12 @@ type expectedError struct {
 // this function will only check that result.Err is also nil. Otherwise, it will check that result.Err is non-nil and
 // will perform any other assertions required by the expectedError object. An error is returned if any checks fail.
 func verifyOperationError(ctx context.Context, expected *expectedError, result *operationResult) error {
+	// The unified spec test format doesn't treat ErrUnacknowledgedWrite as an error, so set result.Err to nil
+	// to indicate that no error occurred.
+	if result.Err == mongo.ErrUnacknowledgedWrite {
+		result.Err = nil
+	}
+
 	if expected == nil {
 		if result.Err != nil {
 			return fmt.Errorf("expected no error, but got %v", result.Err)
