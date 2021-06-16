@@ -6,6 +6,7 @@ schemaVersion: '1.1'
 runOnRequirements:
   -
     minServerVersion: 3.6.0
+    # TODO GODRIVER-1861: Add serverless: forbid and bump schema version to 1.4.
 createEntities:
   -
     client:
