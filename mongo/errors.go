@@ -275,6 +275,7 @@ type WriteError struct {
 
 	Code    int
 	Message string
+	Details bson.Raw
 }
 
 func (we WriteError) Error() string { return we.Message }
@@ -299,7 +300,12 @@ func (we WriteErrors) Error() string {
 func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
 	wes := make(WriteErrors, 0, len(errs))
 	for _, err := range errs {
-		wes = append(wes, WriteError{Index: int(err.Index), Code: int(err.Code), Message: err.Message})
+		wes = append(wes, WriteError{
+			Index:   int(err.Index),
+			Code:    int(err.Code),
+			Message: err.Message,
+			Details: bson.Raw(err.Details),
+		})
 	}
 	return wes
 }

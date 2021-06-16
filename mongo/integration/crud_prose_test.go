@@ -8,6 +8,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"testing"
 
@@ -111,6 +112,237 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
 	})
 
+}
+
+func TestWriteErrorsDetails(t *testing.T) {
+	clientOpts := options.Client().
+		SetRetryWrites(false).
+		SetWriteConcern(mtest.MajorityWc).
+		SetReadConcern(mtest.MajorityRc)
+	mtOpts := mtest.NewOptions().
+		ClientOptions(clientOpts).
+		MinServerVersion("5.0").
+		Topologies(mtest.ReplicaSet, mtest.Single).
+		CreateClient(false)
+
+	mt := mtest.New(t, mtOpts)
+	defer mt.Close()
+
+	mt.Run("JSON Schema validation", func(mt *mtest.T) {
+		// Create a JSON Schema validator document that requires properties "a" and "b". Use it in
+		// the collection creation options so that collections created for subtests have the JSON
+		// Schema validator applied.
+		validator := bson.D{{
+			Key: "validator",
+			Value: bson.M{
+				"$jsonSchema": bson.M{
+					"bsonType": "object",
+					"required": []string{"a", "b"},
+					"properties": bson.M{
+						"a": bson.M{"bsonType": "string"},
+						"b": bson.M{"bsonType": "int"},
+					},
+				},
+			},
+		}}
+		validatorOpts := mtest.NewOptions().CollectionCreateOptions(validator)
+
+		mt.RunOpts("InsertOne schema validation errors with details", validatorOpts, func(mt *mtest.T) {
+			// Try to insert a document that doesn't contain the required propertie.
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"nope", 1}})
+			assert.NotNil(mt, err, "expected an error, got nil")
+
+			we, ok := err.(mongo.WriteException)
+			assert.True(mt, ok, "expected mongo.WriteException, got %q (type = %T)", err, err)
+			assert.True(
+				mt,
+				we.HasErrorCode(121),
+				"expected mongo.WriteException to have error code 121 (DocumentValidationFailure)")
+
+			// Assert that there is one WriteError and that the Details field is populated.
+			assert.Equal(mt, 1, len(we.WriteErrors), "expected exactly 1 write error")
+			details := we.WriteErrors[0].Details
+			assert.True(
+				mt,
+				len(details) > 0,
+				"expected WriteError.Details to be populated, but is empty")
+
+			// Assert that the most recent CommandSucceededEvent was triggered by the InsertOne and
+			// contains the resulting write errors and that "writeErrors[0].errInfo" is the same as
+			// "WriteException.WriteErrors[0].Details".
+			evts := mt.GetAllSucceededEvents()
+			assert.True(
+				mt,
+				len(evts) >= 1,
+				"expected there to be at least 1 CommandSucceededEvent recorded")
+			evt := evts[len(evts)-1]
+			assert.Equal(
+				mt,
+				"insert",
+				evt.CommandName,
+				"expected the last CommandSucceededEvent to be for \"insert\", was %q",
+				evt.CommandName)
+			errInfo, ok := evt.Reply.Lookup("writeErrors", "0", "errInfo").DocumentOK()
+			assert.True(
+				mt,
+				ok,
+				"expected evt.Reply to contain writeErrors[0].errInfo but doesn't (evt.Reply = %v)",
+				evt.Reply)
+			assert.Equal(mt, details, errInfo, "want %v, got %v", details, errInfo)
+		})
+
+		mt.RunOpts("InsertMany schema validation errors with details", validatorOpts, func(mt *mtest.T) {
+			_, err := mt.Coll.InsertMany(
+				context.Background(),
+				[]interface{}{
+					bson.D{{"nope", 1}},
+					bson.D{{"nope", 2}},
+				})
+			assert.NotNil(mt, err, "expected an error, got nil")
+
+			bwe, ok := err.(mongo.BulkWriteException)
+			assert.True(mt, ok, "expected mongo.BulkWriteException, got %q (type = %T)", err, err)
+			assert.True(
+				mt,
+				bwe.HasErrorCode(121),
+				"expected mongo.BulkWriteException to have error code 121 (DocumentValidationFailure)")
+
+			// Assert that there is one WriteError and that the Details field is populated.
+			assert.Equal(mt, 1, len(bwe.WriteErrors), "expected exactly 1 write error")
+			details := bwe.WriteErrors[0].Details
+			assert.True(mt, len(details) > 0, "expected WriteError.Details to be populated, but is empty")
+
+			// Assert that the most recent CommandSucceededEvent was triggered by the InsertMany and
+			// contains the resulting write errors and that "writeErrors[0].errInfo" is the same as
+			// "WriteException.WriteErrors[0].Details".
+			evts := mt.GetAllSucceededEvents()
+			assert.True(
+				mt,
+				len(evts) >= 1,
+				"expected there to be at least 1 CommandSucceededEvent recorded")
+			evt := evts[len(evts)-1]
+			assert.Equal(
+				mt,
+				"insert",
+				evt.CommandName,
+				"expected the last CommandSucceededEvent to be for \"insert\", was %q",
+				evt.CommandName)
+			errInfo, ok := evt.Reply.Lookup("writeErrors", "0", "errInfo").DocumentOK()
+			assert.True(
+				mt,
+				ok,
+				"expected evt.Reply to contain writeErrors[0].errInfo but doesn't (evt.Reply = %v)",
+				evt.Reply)
+			assert.Equal(mt, details, errInfo, "want %v, got %v", details, errInfo)
+		})
+
+		mt.RunOpts("UpdateOne schema validation errors with details", validatorOpts, func(mt *mtest.T) {
+			// Insert two valid documents and then attempt to update them to be invalid.
+			_, err := mt.Coll.InsertMany(
+				context.Background(),
+				[]interface{}{
+					bson.D{{"a", "str1"}, {"b", 1}},
+					bson.D{{"a", "str2"}, {"b", 2}},
+				})
+			assert.Nil(mt, err, "unexpected error inserting valid documents: %s", err)
+
+			// Try to set "a" to be an int, which violates the string type requirement.
+			_, err = mt.Coll.UpdateOne(
+				context.Background(),
+				bson.D{},
+				bson.D{{"$set", bson.D{{"a", 1}}}})
+			assert.NotNil(mt, err, "expected an error, got nil")
+
+			we, ok := err.(mongo.WriteException)
+			assert.True(mt, ok, "expected mongo.WriteException, got %q (type = %T)", err, err)
+			assert.True(
+				mt,
+				we.HasErrorCode(121),
+				"expected mongo.WriteException to have error code 121 (DocumentValidationFailure)")
+
+			// Assert that there is one WriteError and that the Details field is populated.
+			assert.Equal(mt, 1, len(we.WriteErrors), "expected exactly 1 write error")
+			details := we.WriteErrors[0].Details
+			assert.True(mt, len(details) > 0, "expected WriteError.Details to be populated, but is empty")
+
+			// Assert that the most recent CommandSucceededEvent was triggered by the UpdateOne and
+			// contains the resulting write errors and that "writeErrors[0].errInfo" is the same as
+			// "WriteException.WriteErrors[0].Details".
+			evts := mt.GetAllSucceededEvents()
+			assert.True(
+				mt,
+				len(evts) >= 2,
+				"expected there to be at least 2 CommandSucceededEvent recorded")
+			evt := evts[len(evts)-1]
+			assert.Equal(
+				mt,
+				"update",
+				evt.CommandName,
+				"expected the last CommandSucceededEvent to be for \"update\", was %q",
+				evt.CommandName)
+			errInfo, ok := evt.Reply.Lookup("writeErrors", "0", "errInfo").DocumentOK()
+			assert.True(
+				mt,
+				ok,
+				"expected evt.Reply to contain writeErrors[0].errInfo but doesn't (evt.Reply = %v)",
+				evt.Reply)
+			assert.Equal(mt, details, errInfo, "want %v, got %v", details, errInfo)
+		})
+
+		mt.RunOpts("UpdateMany schema validation errors with details", validatorOpts, func(mt *mtest.T) {
+			// Insert two valid documents and then attempt to update them to be invalid.
+			_, err := mt.Coll.InsertMany(
+				context.Background(),
+				[]interface{}{
+					bson.D{{"a", "str1"}, {"b", 1}},
+					bson.D{{"a", "str2"}, {"b", 2}},
+				})
+			assert.Nil(mt, err, "unexpected error inserting valid documents: %s", err)
+
+			// Try to set "a" to be an int in all documents in the collection, which violates
+			// the string type requirement.
+			_, err = mt.Coll.UpdateMany(
+				context.Background(),
+				bson.D{},
+				bson.D{{"$set", bson.D{{"a", 1}}}})
+			assert.NotNil(mt, err, "expected an error, got nil")
+
+			we, ok := err.(mongo.WriteException)
+			assert.True(mt, ok, "expected mongo.WriteException, got %q (type = %T)", err, err)
+			assert.True(
+				mt,
+				we.HasErrorCode(121),
+				"expected mongo.WriteException to have error code 121 (DocumentValidationFailure)")
+
+			// Assert that there is one WriteError and that the Details field is populated.
+			assert.Equal(mt, 1, len(we.WriteErrors), "expected exactly 1 write error")
+			details := we.WriteErrors[0].Details
+			assert.True(mt, len(details) > 0, "expected WriteError.Details to be populated, but is empty")
+
+			// Assert that the most recent CommandSucceededEvent was triggered by the UpdateMany and
+			// contains the resulting write errors and that "writeErrors[0].errInfo" is the same as
+			// "WriteException.WriteErrors[0].Details".
+			evts := mt.GetAllSucceededEvents()
+			assert.True(
+				mt,
+				len(evts) >= 2,
+				"expected there to be at least 2 CommandSucceededEvent recorded")
+			evt := evts[len(evts)-1]
+			assert.Equal(
+				mt,
+				"update",
+				evt.CommandName,
+				"expected the last CommandSucceededEvent to be for \"update\", was %q",
+				evt.CommandName)
+			errInfo, ok := evt.Reply.Lookup("writeErrors", "0", "errInfo").DocumentOK()
+			assert.True(
+				mt,
+				ok,
+				"expected evt.Reply to contain writeErrors[0].errInfo but doesn't (evt.Reply = %v)",
+				evt.Reply)
+			assert.Equal(mt, details, errInfo, "want %v, got %v", details, errInfo)
+		})
+	})
 }
 
 func TestHintErrors(t *testing.T) {
