@@ -22,6 +22,10 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+// Security-sensitive commands that should be ignored in command monitoring by default.
+var securitySensitiveCommands = []string{"authenticate", "saslStart", "saslContinue", "getnonce",
+	"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb"}
+
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
 // execution.
 type clientEntity struct {
@@ -43,6 +47,17 @@ type clientEntity struct {
 }
 
 func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOptions) (*clientEntity, error) {
+	// The "configureFailPoint" command should always be ignored.
+	ignoredCommands := map[string]struct{}{
+		"configureFailPoint": {},
+	}
+	// If not observing sensitive commands, add security-sensitive commands
+	// to ignoredCommands by default.
+	if entityOptions.ObserveSensitiveCommands != nil && !*entityOptions.ObserveSensitiveCommands {
+		for _, cmd := range securitySensitiveCommands {
+			ignoredCommands[cmd] = struct{}{}
+		}
+	}
 	entity := &clientEntity{
 		// The "configureFailPoint" command should always be ignored.
 		ignoredCommands: map[string]struct{}{

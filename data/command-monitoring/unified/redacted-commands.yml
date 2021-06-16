@@ -1,15 +1,17 @@
 description: "redacted-commands"
 
-schemaVersion: "1.0"
+schemaVersion: "1.5"
 
 runOnRequirements:
   - minServerVersion: "5.0"
+    auth: false
 
 createEntities:
   - client:
       id: &client client
       observeEvents:
         - commandStartedEvent
+      observeSensitiveCommands: true
   - database:
       id: &database database
       client: *client
