@@ -15,6 +15,12 @@ type ConnectionError struct {
 	// during a connection handshake.
 	init    bool
 	message string
+
+	// isOperationDeadline indicates whether the connection establishment was attempted with a
+	// operation-scoped timeout or a connection-scoped timeout.
+	//   - true  = operation-scoped context timeout was used
+	//   - false = connection-scoped timeout (connectTimeoutMS) was used
+	isOperationDeadline bool
 }
 
 // Error implements the error interface.

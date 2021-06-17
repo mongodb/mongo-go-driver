@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -275,6 +276,62 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 
 	wrappedConnErr := unwrapConnectionError(err)
 	if wrappedConnErr == nil {
+		return
+	}
+
+	var isOperationDeadline bool
+	if connErr, ok := err.(ConnectionError); ok {
+		isOperationDeadline = connErr.isOperationDeadline
+	}
+
+	isTimeout := func(err error) bool {
+		// Handle any errors that self-report as a timeout.
+		// TODO: underlyingError and the Timeout() type assert condition are copied from the
+		// "os.IsTimeout" function, which was introduced in Go 1.10. When we drop support for Go 1.9,
+		// use "os.IsTimeout" instead.
+		underlyingError := func(err error) error {
+			switch err := err.(type) {
+			case *os.PathError:
+				return err.Err
+			case *os.LinkError:
+				return err.Err
+			case *os.SyscallError:
+				return err.Err
+			}
+			return err
+		}
+
+		if terr, ok := underlyingError(err).(interface{ Timeout() bool }); ok && terr.Timeout() {
+			return true
+		}
+
+		// Extract any wrapped errors from a *net.OpError.
+		if opErr, ok := err.(*net.OpError); ok {
+			err = opErr.Err
+			// Handle the case where an error has been replaced by "net.errCanceled", which isn't
+			// exported and can't be compared directly. In this case, just compare the error message.
+			if err.Error() == "operation was canceled" {
+				return true
+			}
+		}
+
+		// Extract any wrapped errors that implement Unwrap() to get the original error.
+		for {
+			wrapper, ok := err.(interface{ Unwrap() error })
+			if !ok {
+				break
+			}
+			err = wrapper.Unwrap()
+		}
+
+		// Return true if the unwrapped error is either a context cancelled or deadline exceeded.
+		return err == context.Canceled ||
+			err == context.DeadlineExceeded
+	}
+
+	// Ignore errors that indicate a client-side timeout occurred when using an operation-scoped
+	// deadline (i.e. not using connectTimeoutMS as the connection timeout).
+	if isOperationDeadline && isTimeout(wrappedConnErr) {
 		return
 	}
 

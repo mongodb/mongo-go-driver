@@ -54,6 +54,221 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 	return cnc, nil
 }
 
+func TestServerConnectionTimeout(t *testing.T) {
+	// Create a TCP listener on a random port but never call Accept on it. The TCP listener will
+	// behave like a TCP service that doesn't explicitly deny connections, but doesn't respond to
+	// them, forcing client-side timeouts instead.
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() {
+		_ = l.Close()
+	}()
+	addr := address.Address(l.Addr().String())
+
+	testCases := []struct {
+		desc              string
+		ctxFn             func() (context.Context, context.CancelFunc)
+		dialer            func(Dialer) Dialer
+		handshaker        func(Handshaker) Handshaker
+		expectErr         bool
+		expectPoolCleared bool
+	}{
+		{
+			desc: "no errors should not clear the pool",
+			ctxFn: func() (context.Context, context.CancelFunc) {
+				return context.Background(), nil
+			},
+			expectErr:         false,
+			expectPoolCleared: false,
+		},
+		{
+			desc: "Dialer context timeout with operation-scoped deadline should not clear the pool",
+			ctxFn: func() (context.Context, context.CancelFunc) {
+				return context.WithTimeout(context.Background(), 1*time.Second)
+			},
+			dialer: func(Dialer) Dialer {
+				var d net.Dialer
+				return DialerFunc(func(_ context.Context, network, address string) (net.Conn, error) {
+					ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-1*time.Hour))
+					defer cancel()
+					return d.DialContext(ctx, network, address)
+				})
+			},
+			expectErr:         true,
+			expectPoolCleared: false,
+		},
+		{
+			desc: "Dialer context cancelled with operation-scoped deadline should not clear the pool",
+			ctxFn: func() (context.Context, context.CancelFunc) {
+				return context.WithTimeout(context.Background(), 1*time.Second)
+			},
+			dialer: func(Dialer) Dialer {
+				var d net.Dialer
+				return DialerFunc(func(_ context.Context, network, address string) (net.Conn, error) {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return d.DialContext(ctx, network, address)
+				})
+			},
+			expectErr:         true,
+			expectPoolCleared: false,
+		},
+		{
+			desc: "Dialer context timeout with connection-scoped deadline should clear the pool",
+			ctxFn: func() (context.Context, context.CancelFunc) {
+				return context.Background(), nil
+			},
+			dialer: func(Dialer) Dialer {
+				var d net.Dialer
+				return DialerFunc(func(_ context.Context, network, address string) (net.Conn, error) {
+					ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-1*time.Hour))
+					defer cancel()
+					return d.DialContext(ctx, network, address)
+				})
+			},
+			expectErr:         true,
+			expectPoolCleared: true,
+		},
+		{
+			desc: "GetHandshakeInformation context timeout with operation-scoped deadline should not clear the pool",
+			ctxFn: func() (context.Context, context.CancelFunc) {
+				return context.WithTimeout(context.Background(), 1*time.Second)
+			},
+			handshaker: func(Handshaker) Handshaker {
+				h := auth.Handshaker(nil, &auth.HandshakeOptions{})
+				return &testHandshaker{
+					getHandshakeInformation: func(_ context.Context, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
+						ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-1*time.Hour))
+						defer cancel()
+						return h.GetHandshakeInformation(ctx, addr, c)
+					},
+				}
+			},
+			expectErr:         true,
+			expectPoolCleared: false,
+		},
+		{
+			desc: "GetHandshakeInformation context canceled with operation-scoped deadline should not clear the pool",
+			ctxFn: func() (context.Context, context.CancelFunc) {
+				return context.WithTimeout(context.Background(), 1*time.Second)
+			},
+			handshaker: func(Handshaker) Handshaker {
+				h := auth.Handshaker(nil, &auth.HandshakeOptions{})
+				return &testHandshaker{
+					getHandshakeInformation: func(_ context.Context, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
+						ctx, cancel := context.WithCancel(context.Background())
+						cancel()
+						return h.GetHandshakeInformation(ctx, addr, c)
+					},
+				}
+			},
+			expectErr:         true,
+			expectPoolCleared: false,
+		},
+		{
+			desc: "GetHandshakeInformation context timeout with connection-scoped deadline should clear the pool",
+			ctxFn: func() (context.Context, context.CancelFunc) {
+				return context.Background(), nil
+			},
+			handshaker: func(Handshaker) Handshaker {
+				h := auth.Handshaker(nil, &auth.HandshakeOptions{})
+				return &testHandshaker{
+					getHandshakeInformation: func(_ context.Context, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
+						ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-1*time.Hour))
+						defer cancel()
+						return h.GetHandshakeInformation(ctx, addr, c)
+					},
+				}
+			},
+			expectErr:         true,
+			expectPoolCleared: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			// Start a goroutine that pulls events from the events channel and inserts them into the
+			// events slice. Use a sync.WaitGroup to allow the test code to block until the events
+			// channel loop exits, guaranteeing that all events were copied from the channel.
+			events := make([]*event.PoolEvent, 0)
+			eventsCh := make(chan *event.PoolEvent)
+			var eventsWg sync.WaitGroup
+			eventsWg.Add(1)
+			go func() {
+				for evt := range eventsCh {
+					events = append(events, evt)
+				}
+				eventsWg.Done()
+			}()
+
+			server, err := NewServer(
+				addr,
+				primitive.NewObjectID(),
+				// Create a connection pool event monitor that sends all events to an events channel
+				// so we can assert on the connection pool events later.
+				WithConnectionPoolMonitor(func(_ *event.PoolMonitor) *event.PoolMonitor {
+					return &event.PoolMonitor{
+						Event: func(event *event.PoolEvent) {
+							eventsCh <- event
+						},
+					}
+				}),
+				// Replace the default dialer and handshaker with the test dialer and handshaker, if
+				// present.
+				WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
+					if tc.dialer != nil {
+						opts = append(opts, WithDialer(tc.dialer))
+					}
+					if tc.handshaker != nil {
+						opts = append(opts, WithHandshaker(tc.handshaker))
+					}
+					return opts
+				}),
+				// Disable monitoring to prevent unrelated failures from the RTT monitor and
+				// heartbeats from unexpectedly clearing the connection pool.
+				withMonitoringDisabled(func(bool) bool { return true }),
+			)
+			require.NoError(t, err)
+			require.NoError(t, server.Connect(nil))
+
+			// Use the context returned by the test case ctxFn to call Connection. Contexts without
+			// deadlines (e.g. context.Background())
+			ctx, cancel := tc.ctxFn()
+			if cancel != nil {
+				defer cancel()
+			}
+			_, err = server.Connection(ctx)
+			if tc.expectErr {
+				assert.NotNil(t, err, "expected an error but got nil")
+			} else {
+				assert.Nil(t, err, "expected no error but got %s", err)
+			}
+
+			// Close the events channel and expect that no more events are sent on the channel. Then
+			// wait for the events channel loop to return before inspecting the events slice.
+			close(eventsCh)
+			eventsWg.Wait()
+			require.NotEmpty(t, events, "expected more than 0 connection pool monitor events")
+
+			// Look for any "ConnectionPoolCleared" events in the events slice so we can assert that
+			// the Server connection pool was or wasn't cleared, depending on the test expectations.
+			poolCleared := false
+			for _, evt := range events {
+				if evt.Type == event.PoolCleared {
+					poolCleared = true
+				}
+			}
+			assert.Equal(
+				t,
+				tc.expectPoolCleared,
+				poolCleared,
+				"want pool cleared: %t, actual pool cleared: %t",
+				tc.expectPoolCleared,
+				poolCleared)
+		})
+	}
+}
+
 func TestServer(t *testing.T) {
 	var serverTestTable = []struct {
 		name            string
