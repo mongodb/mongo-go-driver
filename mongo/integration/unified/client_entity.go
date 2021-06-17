@@ -9,6 +9,7 @@ package unified
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -31,13 +32,14 @@ var securitySensitiveCommands = []string{"authenticate", "saslStart", "saslConti
 type clientEntity struct {
 	*mongo.Client
 
-	recordEvents       atomic.Value
-	started            []*event.CommandStartedEvent
-	succeeded          []*event.CommandSucceededEvent
-	failed             []*event.CommandFailedEvent
-	pooled             []*event.PoolEvent
-	ignoredCommands    map[string]struct{}
-	numConnsCheckedOut int32
+	recordEvents             atomic.Value
+	started                  []*event.CommandStartedEvent
+	succeeded                []*event.CommandSucceededEvent
+	failed                   []*event.CommandFailedEvent
+	pooled                   []*event.PoolEvent
+	ignoredCommands          map[string]struct{}
+	observeSensitiveCommands *bool
+	numConnsCheckedOut       int32
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[monitoringEventType]struct{}
@@ -53,19 +55,17 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	}
 	// If not observing sensitive commands, add security-sensitive commands
 	// to ignoredCommands by default.
-	if entityOptions.ObserveSensitiveCommands != nil && !*entityOptions.ObserveSensitiveCommands {
+	if entityOptions.ObserveSensitiveCommands == nil || !*entityOptions.ObserveSensitiveCommands {
 		for _, cmd := range securitySensitiveCommands {
 			ignoredCommands[cmd] = struct{}{}
 		}
 	}
 	entity := &clientEntity{
-		// The "configureFailPoint" command should always be ignored.
-		ignoredCommands: map[string]struct{}{
-			"configureFailPoint": {},
-		},
-		observedEvents: make(map[monitoringEventType]struct{}),
-		storedEvents:   make(map[monitoringEventType][]string),
-		entityMap:      em,
+		ignoredCommands:          ignoredCommands,
+		observedEvents:           make(map[monitoringEventType]struct{}),
+		storedEvents:             make(map[monitoringEventType][]string),
+		entityMap:                em,
+		observeSensitiveCommands: entityOptions.ObserveSensitiveCommands,
 	}
 	entity.setRecordEvents(true)
 
@@ -159,10 +159,30 @@ func (c *clientEntity) stopListeningForEvents() {
 	c.setRecordEvents(false)
 }
 
+func (c *clientEntity) isIgnoredEvent(event *event.CommandStartedEvent) bool {
+	// Check if command is not in ignoredCommands.
+	if _, ok := c.ignoredCommands[event.CommandName]; !ok {
+		// Check if command is "hello" or legacy hello.
+		if event.CommandName == "hello" || strings.ToLower(event.CommandName) == "ismaster" {
+			_, err := event.Command.LookupErr("speculativeAuthenticate")
+			speculativeAuth := err == nil
+
+			// If observeSensitiveCommands is false (or unset) and hello command is with
+			// speculative authenticate, command should be ignored.
+			if (c.observeSensitiveCommands == nil || !*c.observeSensitiveCommands) &&
+				speculativeAuth {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
 func (c *clientEntity) startedEvents() []*event.CommandStartedEvent {
 	var events []*event.CommandStartedEvent
 	for _, evt := range c.started {
-		if _, ok := c.ignoredCommands[evt.CommandName]; !ok {
+		if !c.isIgnoredEvent(evt) {
 			events = append(events, evt)
 		}
 	}
