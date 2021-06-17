@@ -273,7 +273,9 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection finishes handshaking.
-func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64, serviceID *primitive.ObjectID) {
+// ctxErr is any error caused by the context passed to Server#Connection() and is used to determine whether or not an
+// operation-scoped context deadline or cancellation was the cause of the handshake error.
+func (s *Server) ProcessHandshakeError(err, ctxErr error, startingGenerationNumber uint64, serviceID *primitive.ObjectID) {
 	// Ignore the error if the server is behind a load balancer but the service ID is unknown. This indicates that the
 	// error happened when dialing the connection or during the MongoDB handshake, so we don't know the service ID to
 	// use for clearing the pool.
@@ -287,6 +289,34 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 
 	wrappedConnErr := unwrapConnectionError(err)
 	if wrappedConnErr == nil {
+		return
+	}
+
+	isTimeout := func(err error) bool {
+		for err != nil {
+			if netErr, ok := err.(net.Error); ok {
+				if netErr.Timeout() {
+					return true
+				}
+			}
+			// Handle the case where an error has been replaced by "net.errCanceled", which isn't
+			// exported and can't be compared directly. In this case, just compare the error message.
+			if err.Error() == "operation was canceled" {
+				return true
+			}
+			if wrapper, ok := err.(interface{ Unwrap() error }); ok {
+				err = wrapper.Unwrap()
+			} else {
+				break
+			}
+		}
+
+		return false
+	}
+
+	// Ignore errors that indicate a client-side timeout occurred when using an operation-scoped
+	// deadline (i.e. not using connectTimeoutMS as the connection timeout).
+	if (ctxErr == context.DeadlineExceeded || ctxErr == context.Canceled) && isTimeout(wrappedConnErr) {
 		return
 	}
 
