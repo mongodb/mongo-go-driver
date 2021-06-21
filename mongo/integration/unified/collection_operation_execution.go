@@ -122,7 +122,6 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 	}
 
 	res, err := coll.BulkWrite(ctx, models, opts)
-
 	raw := emptyCoreDocument
 	if res != nil {
 		rawUpsertedIDs := emptyDocument
