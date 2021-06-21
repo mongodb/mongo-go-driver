@@ -46,6 +46,7 @@ type Aggregate struct {
 	writeConcern             *writeconcern.WriteConcern
 	crypt                    *driver.Crypt
 	serverAPI                *driver.ServerAPIOptions
+	let                      bsoncore.Document
 
 	result driver.CursorResponse
 }
@@ -148,6 +149,12 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 	if a.pipeline != nil {
 
 		dst = bsoncore.AppendArrayElement(dst, "pipeline", a.pipeline)
+	}
+	if a.let != nil {
+		if desc.WireVersion == nil || !desc.WireVersion.Includes(13) {
+			return nil, errors.New("the 'let' command parameter requires a minimum server wire version of 13")
+		}
+		dst = bsoncore.AppendDocumentElement(dst, "let", a.let)
 	}
 	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
 	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc)
@@ -364,5 +371,15 @@ func (a *Aggregate) ServerAPI(serverAPI *driver.ServerAPIOptions) *Aggregate {
 	}
 
 	a.serverAPI = serverAPI
+	return a
+}
+
+// Let specifies the let document to use. This option is only valid for server versions 5.0 and above.
+func (a *Aggregate) Let(let bsoncore.Document) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.let = let
 	return a
 }

@@ -834,6 +834,14 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		}
 		op.Hint(hintVal)
 	}
+	if ao.Let != nil {
+		let, err := transformBsoncoreDocument(a.registry, ao.Let, true, "let")
+		if err != nil {
+			closeImplicitSession(sess)
+			return nil, err
+		}
+		op.Let(let)
+	}
 
 	retry := driver.RetryNone
 	if a.retryRead && !hasOutputStage {
