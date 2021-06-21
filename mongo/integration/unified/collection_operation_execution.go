@@ -122,17 +122,15 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 	}
 
 	res, err := coll.BulkWrite(ctx, models, opts)
-	if err != nil {
-		return newDocumentResult(nil, err), nil
-	}
 
 	raw := emptyCoreDocument
 	if res != nil {
 		rawUpsertedIDs := emptyDocument
+		var marshalErr error
 		if res.UpsertedIDs != nil {
-			rawUpsertedIDs, err = bson.Marshal(res.UpsertedIDs)
-			if err != nil {
-				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %v", err)
+			rawUpsertedIDs, marshalErr = bson.Marshal(res.UpsertedIDs)
+			if marshalErr != nil {
+				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %v", marshalErr)
 			}
 		}
 
