@@ -159,7 +159,6 @@ const dataPath string = "../../data/"
 var directories = []string{
 	"transactions/legacy",
 	"convenient-transactions",
-	"crud/v2",
 	"retryable-reads",
 	"sessions",
 	"read-write-concern/operation",

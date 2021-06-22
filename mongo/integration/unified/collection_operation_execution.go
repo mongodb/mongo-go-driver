@@ -125,10 +125,11 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 	raw := emptyCoreDocument
 	if res != nil {
 		rawUpsertedIDs := emptyDocument
+		var marshalErr error
 		if res.UpsertedIDs != nil {
-			rawUpsertedIDs, err = bson.Marshal(res.UpsertedIDs)
-			if err != nil {
-				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %v", err)
+			rawUpsertedIDs, marshalErr = bson.Marshal(res.UpsertedIDs)
+			if marshalErr != nil {
+				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %v", marshalErr)
 			}
 		}
 
@@ -737,12 +738,16 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 	res, err := coll.InsertOne(ctx, document, opts)
 	raw := emptyCoreDocument
 	if res != nil {
-		t, data, err := bson.MarshalValue(res.InsertedID)
+		idT, idData, err := bson.MarshalValue(res.InsertedID)
 		if err != nil {
-			return nil, fmt.Errorf("error convertined InsertedID field to BSON: %v", err)
+			return nil, fmt.Errorf("error converting InsertedID field to BSON: %v", err)
 		}
+
+		// Some spec tests assert insertedCount for insertOne, so manually add insertedCount of 1.
+		countT, countData, _ := bson.MarshalValue(1)
 		raw = bsoncore.NewDocumentBuilder().
-			AppendValue("insertedId", bsoncore.Value{Type: t, Data: data}).
+			AppendValue("insertedId", bsoncore.Value{Type: idT, Data: idData}).
+			AppendValue("insertedCount", bsoncore.Value{Type: countT, Data: countData}).
 			Build()
 	}
 	return newDocumentResult(raw, err), nil

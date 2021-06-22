@@ -26,11 +26,6 @@ var (
 		// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It expects batchSize values of three for
 		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor": {},
-
-		// This test expects the driver to raise a client-side error when inserting a document with a key that contains
-		// a "." or "$". We don't do this validation and the server is moving towards supporting this, so we don't have
-		// any plans to add it. This test will need to be changed once the server support lands anyway.
-		"Client side error in command starting transaction": {},
 	}
 )
 
@@ -287,9 +282,14 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		client.stopListeningForEvents()
 	}
 
-	for idx, expectedEvents := range tc.ExpectedEvents {
-		if err := verifyEvents(testCtx, expectedEvents); err != nil {
-			return fmt.Errorf("events verification failed at index %d: %v", idx, err)
+	// One of the bulkWrite spec tests expects update and updateMany to be grouped together into a single batch,
+	// but this isn't the case because of GODRIVER-1157. To work around this, we skip event verification for this test.
+	// This guard should be removed when GODRIVER-1157 is done.
+	if tc.Description != "BulkWrite on server that doesn't support arrayFilters with arrayFilters on second op" {
+		for idx, expectedEvents := range tc.ExpectedEvents {
+			if err := verifyEvents(testCtx, expectedEvents); err != nil {
+				return fmt.Errorf("events verification failed at index %d: %v", idx, err)
+			}
 		}
 	}
 
