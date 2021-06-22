@@ -151,9 +151,6 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 		dst = bsoncore.AppendArrayElement(dst, "pipeline", a.pipeline)
 	}
 	if a.let != nil {
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(13) {
-			return nil, errors.New("the 'let' command parameter requires a minimum server wire version of 13")
-		}
 		dst = bsoncore.AppendDocumentElement(dst, "let", a.let)
 	}
 	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
