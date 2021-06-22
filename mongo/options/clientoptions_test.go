@@ -175,6 +175,16 @@ func TestClientOptions(t *testing.T) {
 				t.Errorf("Merged client options do not match. got %v; want %v", got.err.Error(), opt1.err.Error())
 			}
 		})
+
+		t.Run("MergeClientOptions/uri", func(t *testing.T) {
+			opt1, opt2 := Client(), Client()
+			opt1.uri = "Test URI"
+
+			got := MergeClientOptions(nil, opt1, opt2)
+			if got.uri != "Test URI" {
+				t.Errorf("Merged client options do not match. got %v; want %v", got.uri, opt1.uri)
+			}
+		})
 	})
 	t.Run("ApplyURI", func(t *testing.T) {
 		baseClient := func() *ClientOptions {
