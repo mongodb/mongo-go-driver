@@ -45,10 +45,10 @@ type AggregateOptions struct {
 	// error if the hint parameter is a multi-key map. The default value is nil, which means that no hint will be sent.
 	Hint interface{}
 
-	// Specifies parameters for the aggregate expression. This option is only valid for MongoDB versions >= 5.0. For
-	// previous server versions, the driver will return an error if this option is used. This must be a document mapping
-	// parameter names to values. Values must be constant or closed expressions that do not reference document fields.
-	// Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
+	// Specifies parameters for the aggregate expression. This option is only valid for MongoDB versions >= 5.0. Older
+	// servers will report an error for using this option. This must be a document mapping parameter names to values.
+	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
+	// accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
 }
 
