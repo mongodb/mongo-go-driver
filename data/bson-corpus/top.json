@@ -215,14 +215,6 @@
             "string": "{\"a\" : {\"$date\" : {\"$numberLong\" : \"1356351330501\"}, \"unrelated\": true}}"
         },
         {
-            "description": "Bad DBRef (ref is number, not string)",
-            "string": "{\"x\" : {\"$ref\" : 42, \"$id\" : \"abc\"}}"
-        },
-        {
-            "description": "Bad DBRef (db is number, not string)",
-            "string": "{\"x\" : {\"$ref\" : \"a\", \"$id\" : \"abc\", \"$db\" : 42}}"
-        },
-        {
             "description": "Bad $minKey (boolean, not integer)",
             "string": "{\"a\" : {\"$minKey\" : true}}"
         },

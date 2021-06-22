@@ -25,6 +25,12 @@
             "description" : "Y10K",
             "canonical_bson" : "1000000009610000DC1FD277E6000000",
             "canonical_extjson" : "{\"a\":{\"$date\":{\"$numberLong\":\"253402300800000\"}}}"
+        },
+        {
+            "description": "leading zero ms",
+            "canonical_bson": "10000000096100D1D6D6CC3B01000000",
+            "relaxed_extjson": "{\"a\" : {\"$date\" : \"2012-12-24T12:15:30.001Z\"}}",
+            "canonical_extjson": "{\"a\" : {\"$date\" : {\"$numberLong\" : \"1356351330001\"}}}"
         }
     ],
     "decodeErrors": [
