@@ -1762,7 +1762,7 @@ func TestCollection(t *testing.T) {
 				SetUpsert(true),
 			)
 
-			// Seed mock responses. Responses look like: 
+			// Seed mock responses. Responses look like:
 			// {ok: 1, n: <matched count>, nModified: <modified count>, upserted: [{index:<index>, _id:<ID>},...]}.
 			var responses []bson.D
 			for i := numModels; i > 0; i -= maxBatchCount {
@@ -1772,11 +1772,11 @@ func TestCollection(t *testing.T) {
 				if i < maxBatchCount {
 					count = i
 					// the last document is upserted
-					upsert = bson.D{{"index", count-1}, {"_id", "bar"}}
+					upsert = bson.D{{"index", count - 1}, {"_id", "bar"}}
 				}
 				res := mtest.CreateSuccessResponse(
 					bson.E{"n", count},
-					bson.E{"nModified", count-1},
+					bson.E{"nModified", count - 1},
 					bson.E{"upserted",
 						bson.A{upsert},
 					},
