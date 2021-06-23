@@ -294,10 +294,8 @@ func (s *Server) ProcessHandshakeError(err, ctxErr error, startingGenerationNumb
 
 	isTimeout := func(err error) bool {
 		for err != nil {
-			if netErr, ok := err.(net.Error); ok {
-				if netErr.Timeout() {
-					return true
-				}
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				return true
 			}
 			// Handle the case where an error has been replaced by "net.errCanceled", which isn't
 			// exported and can't be compared directly. In this case, just compare the error message.
