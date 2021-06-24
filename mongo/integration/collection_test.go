@@ -1746,8 +1746,6 @@ func TestCollection(t *testing.T) {
 				update := bson.D{
 					{"$set", bson.D{
 						{"a", int32(i + 1)},
-						{"b", int32(i * 2)},
-						{"c", int32(i * 3)},
 					}},
 				}
 				model := mongo.NewUpdateOneModel().
@@ -1801,7 +1799,7 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, int64(2), res.UpsertedCount, "expected %v upserted documents, got %v", 2, res.UpsertedCount)
 			assert.Equal(mt, 2, len(res.UpsertedIDs), "expected %v upserted ids, got %v", 2, len(res.UpsertedIDs))
 
-			// find the upserted documents and check their contents
+			// find the upserted documents and check their ids
 			id1, ok := res.UpsertedIDs[0]
 			assert.True(mt, ok, "expected id at key 0")
 			assert.Equal(mt, "foo", id1, "expected id to be foo, got %v", id1)
