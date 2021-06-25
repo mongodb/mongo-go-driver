@@ -1414,7 +1414,7 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 
 		return true
 	}
-	if strings.ToLower(cmd) != "ismaster" {
+	if strings.ToLower(cmd) != "ismaster" && cmd != "hello" {
 		return false
 	}
 
