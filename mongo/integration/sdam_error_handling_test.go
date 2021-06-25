@@ -49,12 +49,13 @@ func TestSDAMErrorHandling(t *testing.T) {
 	mt.RunOpts("before handshake completes", baseMtOpts().Auth(true).MinServerVersion("4.4"), func(mt *mtest.T) {
 		mt.RunOpts("network errors", noClientOpts, func(mt *mtest.T) {
 			mt.Run("pool not cleared on operation-scoped network timeout", func(mt *mtest.T) {
-				// Assert that the pool is cleared when a connection created by an application operation thread
-				// encounters a network timeout during handshaking. Unlike the non-timeout test below, we only test
-				// connections created in the foreground for timeouts because connections created by the pool
-				// maintenance routine can't be timed out using a context.
+				// Assert that the pool is not cleared when a connection created by an application
+				// operation thread encounters an operation timeout during handshaking. Unlike the
+				// non-timeout test below, we only test connections created in the foreground for
+				// timeouts because connections created by the pool maintenance routine can't be
+				// timed out using a context.
 
-				appName := "authNetworkTimeoutTest"
+				appName := "authOperationTimeoutTest"
 				// Set failpoint on saslContinue instead of saslStart because saslStart isn't done when using
 				// speculative auth.
 				mt.SetFailPoint(mtest.FailPoint{
@@ -91,12 +92,11 @@ func TestSDAMErrorHandling(t *testing.T) {
 			})
 
 			mt.Run("pool cleared on non-operation-scoped network timeout", func(mt *mtest.T) {
-				// Assert that the pool is cleared when a connection created by an application operation thread
-				// encounters a network timeout during handshaking. Unlike the non-timeout test below, we only test
-				// connections created in the foreground for timeouts because connections created by the pool
-				// maintenance routine can't be timed out using a context.
+				// Assert that the pool is cleared when a connection created by an application
+				// operation thread encounters a timeout caused by connectTimeoutMS during
+				// handshaking.
 
-				appName := "authNetworkTimeoutTest"
+				appName := "authConnectTimeoutTest"
 				// Set failpoint on saslContinue instead of saslStart because saslStart isn't done when using
 				// speculative auth.
 				mt.SetFailPoint(mtest.FailPoint{

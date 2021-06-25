@@ -57,109 +57,89 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 func TestServerConnectionTimeout(t *testing.T) {
 	testCases := []struct {
 		desc              string
-		ctxFn             func() (context.Context, context.CancelFunc)
 		dialer            func(Dialer) Dialer
 		handshaker        func(Handshaker) Handshaker
+		operationTimeout  time.Duration
+		connectTimeout    time.Duration
 		expectErr         bool
 		expectPoolCleared bool
 	}{
 		{
-			desc: "No errors should not clear the pool",
-			ctxFn: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
-			},
+			desc:              "successful connection should not clear the pool",
 			expectErr:         false,
 			expectPoolCleared: false,
 		},
 		{
-			desc: "Parent context deadline exceeded error during dialing should not clear the pool",
-			ctxFn: func() (context.Context, context.CancelFunc) {
-				return context.WithTimeout(context.Background(), 100*time.Millisecond)
-			},
+			desc: "operation timeout error during dialing should not clear the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
-					// Sleep for at least 150ms and expect the context passed to server.Connection()
-					// to time out during the sleep. Expect the error returned by DialContext() to
-					// be treated as a timeout caused by an operation-scoped deadline.
+					// Wait for the passed in context to time out. Expect the error returned by
+					// DialContext() to be treated as a timeout caused by an operation-scoped deadline.
 					// E.g. FindOne(context.WithTimeout(...))
-					time.Sleep(150 * time.Millisecond)
+					<-ctx.Done()
 					return d.DialContext(ctx, network, addr)
 				})
 			},
+			operationTimeout:  100 * time.Millisecond,
+			connectTimeout:    1 * time.Minute,
 			expectErr:         true,
 			expectPoolCleared: false,
 		},
 		{
-			desc: "Child context deadline exceeded error during dialing should clear the pool",
-			ctxFn: func() (context.Context, context.CancelFunc) {
-				// Return a context with a timeout that will not be reached during the test.
-				return context.WithTimeout(context.Background(), 1*time.Minute)
-			},
+			desc: "connectTimeMS timeout error during dialing should clear the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
-					// Wrap the context in a context with an already-exceeded deadline. Expect the
-					// error returned by DialContext() to be treated as a timeout caused by reaching
-					// connectTimeoutMS.
-					ctx, cancel := context.WithDeadline(ctx, time.Now().Add(-1*time.Hour))
-					defer cancel()
+					// Wait for the passed in context to time out. Expect the error returned by
+					// DialContext() to be treated as a timeout caused by reaching connectTimeoutMS.
+					<-ctx.Done()
 					return d.DialContext(ctx, network, addr)
 				})
 			},
+			operationTimeout:  1 * time.Minute,
+			connectTimeout:    100 * time.Millisecond,
 			expectErr:         true,
 			expectPoolCleared: true,
 		},
 		{
-			desc: "Parent context deadline exceeded error during handshake should not clear the pool",
-			ctxFn: func() (context.Context, context.CancelFunc) {
-				return context.WithTimeout(context.Background(), 100*time.Millisecond)
+			desc: "connectTimeMS timeout error during dialing with no operation timeout should clear the pool",
+			dialer: func(Dialer) Dialer {
+				var d net.Dialer
+				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
+					// Wait for the passed in context to time out. Expect the error returned by
+					// DialContext() to be treated as a timeout caused by reaching connectTimeoutMS.
+					<-ctx.Done()
+					return d.DialContext(ctx, network, addr)
+				})
 			},
+			operationTimeout:  0, // Uses a context.Background() with no timeout.
+			connectTimeout:    100 * time.Millisecond,
+			expectErr:         true,
+			expectPoolCleared: true,
+		},
+		{
+			desc: "operation timeout error during handshake should not clear the pool",
 			handshaker: func(Handshaker) Handshaker {
 				h := auth.Handshaker(nil, &auth.HandshakeOptions{})
 				return &testHandshaker{
 					getHandshakeInformation: func(ctx context.Context, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
-						// Sleep for at least 150ms and expect the context passed to
-						// server.Connection() to time out during the sleep. Expect the error
-						// returned by GetHandshakeInformation() to be treated as a timeout caused
-						// by an operation-scoped deadline.
+						// Wait for the passed in context to time out. Expect the error returned by
+						// GetHandshakeInformation() to be treated as a timeout caused by an
+						// operation-scoped deadline.
 						// E.g. FindOne(context.WithTimeout(...))
-						time.Sleep(150 * time.Millisecond)
+						<-ctx.Done()
 						return h.GetHandshakeInformation(ctx, addr, c)
 					},
 				}
 			},
+			operationTimeout:  100 * time.Millisecond,
+			connectTimeout:    1 * time.Minute,
 			expectErr:         true,
 			expectPoolCleared: false,
 		},
 		{
-			desc: "Child context deadline exceeded error during handshake should clear the pool",
-			ctxFn: func() (context.Context, context.CancelFunc) {
-				// Return a context with a timeout that will not be reached during the test.
-				return context.WithTimeout(context.Background(), 1*time.Minute)
-			},
-			handshaker: func(Handshaker) Handshaker {
-				h := auth.Handshaker(nil, &auth.HandshakeOptions{})
-				return &testHandshaker{
-					getHandshakeInformation: func(ctx context.Context, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
-						// Wrap the context in a context with an already-exceeded deadline. Expect
-						// the error returned by GetHandshakeInformation() to be treated as a
-						// timeout caused by connectTimeoutMS.
-						ctx, cancel := context.WithDeadline(ctx, time.Now().Add(-1*time.Hour))
-						defer cancel()
-						return h.GetHandshakeInformation(ctx, addr, c)
-					},
-				}
-			},
-			expectErr:         true,
-			expectPoolCleared: true,
-		},
-		{
-			desc: "Dial errors unrelated to context timeouts should clear the pool",
-			ctxFn: func() (context.Context, context.CancelFunc) {
-				// Return a context with a timeout that will not be reached during the test.
-				return context.WithTimeout(context.Background(), 1*time.Minute)
-			},
+			desc: "dial errors unrelated to context timeouts should clear the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, _, _ string) (net.Conn, error) {
@@ -171,22 +151,19 @@ func TestServerConnectionTimeout(t *testing.T) {
 			expectPoolCleared: true,
 		},
 		{
-			desc: "Context error with a dial error unrelated to context timeouts should clear the pool",
-			ctxFn: func() (context.Context, context.CancelFunc) {
-				return context.WithTimeout(context.Background(), 100*time.Millisecond)
-			},
+			desc: "context error with dial errors unrelated to context timeouts should clear the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, _, _ string) (net.Conn, error) {
 					// Try to dial an invalid TCP address and expect an error.
 					c, err := d.DialContext(ctx, "tcp", "300.0.0.0:nope")
-					// Sleep for at least 150ms and expect the context passed to server.Connection()
-					// to time out during the sleep. Expect that the context error is ignored
-					// because the dial error is not a timeout.
-					time.Sleep(150 * time.Millisecond)
+					// Wait for the passed in context to time out. Expect that the context error is
+					// ignored because the dial error is not a timeout.
+					<-ctx.Done()
 					return c, err
 				})
 			},
+			operationTimeout:  100 * time.Millisecond,
 			expectErr:         true,
 			expectPoolCleared: true,
 		},
@@ -205,10 +182,10 @@ func TestServerConnectionTimeout(t *testing.T) {
 			var eventsWg sync.WaitGroup
 			eventsWg.Add(1)
 			go func() {
+				defer eventsWg.Done()
 				for evt := range eventsCh {
 					events = append(events, evt)
 				}
-				eventsWg.Done()
 			}()
 
 			// Create a TCP listener on a random port. The listener will accept connections but not
@@ -234,6 +211,9 @@ func TestServerConnectionTimeout(t *testing.T) {
 				// Replace the default dialer and handshaker with the test dialer and handshaker, if
 				// present.
 				WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
+					if tc.connectTimeout > 0 {
+						opts = append(opts, WithConnectTimeout(func(time.Duration) time.Duration { return tc.connectTimeout }))
+					}
 					if tc.dialer != nil {
 						opts = append(opts, WithDialer(tc.dialer))
 					}
@@ -249,9 +229,11 @@ func TestServerConnectionTimeout(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, server.Connect(nil))
 
-			// Use the context returned by the test case ctxFn to call Connection.
-			ctx, cancel := tc.ctxFn()
-			if cancel != nil {
+			// Create a context with the operation timeout if one is specified in the test case.
+			ctx := context.Background()
+			if tc.operationTimeout > 0 {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithTimeout(ctx, tc.operationTimeout)
 				defer cancel()
 			}
 			_, err = server.Connection(ctx)
@@ -263,6 +245,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 
 			// Close the events channel and expect that no more events are sent on the channel. Then
 			// wait for the events channel loop to return before inspecting the events slice.
+			server.Disconnect(context.Background())
 			close(eventsCh)
 			eventsWg.Wait()
 			require.NotEmpty(t, events, "expected more than 0 connection pool monitor events")
