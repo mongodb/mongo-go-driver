@@ -160,23 +160,23 @@ func (c *clientEntity) stopListeningForEvents() {
 }
 
 func (c *clientEntity) isIgnoredEvent(event *event.CommandStartedEvent) bool {
-	// Check if command is not in ignoredCommands.
-	if _, ok := c.ignoredCommands[event.CommandName]; !ok {
-		// Check if command is "hello" or legacy hello.
-		if event.CommandName == "hello" || strings.ToLower(event.CommandName) == "ismaster" {
-			_, err := event.Command.LookupErr("speculativeAuthenticate")
-			speculativeAuth := err == nil
-
-			// If observeSensitiveCommands is false (or unset) and hello command is with
-			// speculative authenticate, command should be ignored.
-			if (c.observeSensitiveCommands == nil || !*c.observeSensitiveCommands) &&
-				speculativeAuth {
-				return true
-			}
-		}
-		return false
+	// Check if command is in ignoredCommands.
+	if _, ok := c.ignoredCommands[event.CommandName]; ok {
+		return true
 	}
-	return true
+
+	if event.CommandName == "hello" || strings.ToLower(event.CommandName) == "ismaster" {
+		_, err := event.Command.LookupErr("speculativeAuthenticate")
+		speculativeAuth := err == nil
+
+		// If observeSensitiveCommands is false (or unset) and hello command is with
+		// speculative authenticate, command should be ignored.
+		if (c.observeSensitiveCommands == nil || !*c.observeSensitiveCommands) &&
+			speculativeAuth {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *clientEntity) startedEvents() []*event.CommandStartedEvent {
