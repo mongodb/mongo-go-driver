@@ -63,7 +63,6 @@
             }
           },
           "expectResult": {
-            "insertedCount": 1,
             "insertedId": {
               "$$unsetOrMatches": 1
             }
@@ -166,7 +165,6 @@
             }
           },
           "expectResult": {
-            "insertedCount": 1,
             "insertedId": {
               "$$unsetOrMatches": 1
             }
@@ -221,7 +219,6 @@
             }
           },
           "expectResult": {
-            "insertedCount": 1,
             "insertedId": {
               "$$unsetOrMatches": 1
             }
@@ -280,7 +277,6 @@
             }
           },
           "expectResult": {
-            "insertedCount": 1,
             "insertedId": {
               "$$unsetOrMatches": 1
             }
@@ -390,7 +386,6 @@
             }
           },
           "expectResult": {
-            "insertedCount": 1,
             "insertedId": {
               "$$unsetOrMatches": {
                 "a.b": 1
@@ -501,7 +496,6 @@
             }
           },
           "expectResult": {
-            "insertedCount": 1,
             "insertedId": {
               "$$unsetOrMatches": 1
             }

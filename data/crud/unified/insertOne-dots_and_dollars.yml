@@ -36,7 +36,6 @@ tests:
         arguments:
           document: &dollarPrefixedKey { _id: 1, $a: 1 }
         expectResult: &insertResult
-          insertedCount: 1
           insertedId: { $$unsetOrMatches: 1 }
     expectEvents: &expectEventsDollarPrefixedKey
       - client: *client0
@@ -156,7 +155,6 @@ tests:
         arguments:
           document: &dottedKeyInId { _id: { a.b: 1 } }
         expectResult:
-          insertedCount: 1
           insertedId: { $$unsetOrMatches: { a.b: 1 } }
     expectEvents: &expectEventsDottedKeyInId
       - client: *client0
