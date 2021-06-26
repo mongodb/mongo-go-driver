@@ -243,9 +243,10 @@ func TestServerConnectionTimeout(t *testing.T) {
 				assert.Nil(t, err, "expected no error but got %s", err)
 			}
 
-			// Close the events channel and expect that no more events are sent on the channel. Then
-			// wait for the events channel loop to return before inspecting the events slice.
-			server.Disconnect(context.Background())
+			// Disconnect the server then close the events channel and expect that no more events
+			// are sent on the channel. Then wait for the events channel loop to return before
+			// inspecting the events slice.
+			_ = server.Disconnect(context.Background())
 			close(eventsCh)
 			eventsWg.Wait()
 			require.NotEmpty(t, events, "expected more than 0 connection pool monitor events")
@@ -267,6 +268,10 @@ func TestServerConnectionTimeout(t *testing.T) {
 				poolCleared)
 		})
 	}
+}
+
+func TestServerConnectionCancellation(t *testing.T) {
+	// TODO: Write test.
 }
 
 func TestServer(t *testing.T) {

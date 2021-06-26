@@ -272,10 +272,11 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 	return &Connection{connection: connImpl}, nil
 }
 
-// ProcessHandshakeError implements SDAM error handling for errors that occur before a connection finishes handshaking.
-// ctxErr is any error caused by the context passed to Server.Connection() and is used to determine whether or not an
-// operation-scoped context deadline or cancellation was the cause of the handshake error.
-func (s *Server) ProcessHandshakeError(err, ctxErr error, startingGenerationNumber uint64, serviceID *primitive.ObjectID) {
+// ProcessHandshakeError implements SDAM error handling for errors that occur before a connection
+// finishes handshaking. opCtx is the context passed to Server.Connection() and is used to determine
+// whether or not an operation-scoped context deadline or cancellation was the cause of the
+// handshake error.
+func (s *Server) ProcessHandshakeError(err error, opCtx context.Context, startingGenerationNumber uint64, serviceID *primitive.ObjectID) {
 	// Ignore the error if the server is behind a load balancer but the service ID is unknown. This indicates that the
 	// error happened when dialing the connection or during the MongoDB handshake, so we don't know the service ID to
 	// use for clearing the pool.
@@ -292,7 +293,29 @@ func (s *Server) ProcessHandshakeError(err, ctxErr error, startingGenerationNumb
 		return
 	}
 
-	isTimeoutOrCanceled := func(err error) bool {
+	isCtxTimeoutOrCanceled := func(ctx context.Context) bool {
+		if ctx == nil {
+			return false
+		}
+
+		if ctx.Err() != nil {
+			return true
+		}
+
+		// In some networking functions, the deadline from the context is used to determine timeouts
+		// instead of the ctx.Done() chan closure. In that case, there can be a race condition
+		// between the networking functing returning an error and ctx.Err() returning an an error
+		// (i.e. the networking function returns an error caused by the context deadline, but
+		// ctx.Err() returns nil). If the operation-scoped context deadline was exceeded, assume
+		// operation-scoped context timeout caused the error.
+		if deadline, ok := ctx.Deadline(); ok && time.Now().After(deadline) {
+			return true
+		}
+
+		return false
+	}
+
+	isErrTimeoutOrCanceled := func(err error) bool {
 		for err != nil {
 			// Check for errors that implement the "net.Error" interface and self-report as timeout
 			// errors. Includes some "*net.OpError" errors and "context.DeadlineExceeded".
@@ -322,7 +345,7 @@ func (s *Server) ProcessHandshakeError(err, ctxErr error, startingGenerationNumb
 	// still clear the pool.
 	// TODO(GODRIVER-2038): Remove this condition when connections are no longer created with an
 	// operation-scoped timeout.
-	if ctxErr != nil && isTimeoutOrCanceled(wrappedConnErr) {
+	if isCtxTimeoutOrCanceled(opCtx) && isErrTimeoutOrCanceled(wrappedConnErr) {
 		return
 	}
 

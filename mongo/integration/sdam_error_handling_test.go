@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -28,7 +29,6 @@ func TestSDAMErrorHandling(t *testing.T) {
 		return options.Client().
 			ApplyURI(mtest.ClusterURI()).
 			SetRetryWrites(false).
-			SetPoolMonitor(poolMonitor).
 			SetWriteConcern(mtest.MajorityWc)
 	}
 	baseMtOpts := func() *mtest.Options {
@@ -71,13 +71,9 @@ func TestSDAMErrorHandling(t *testing.T) {
 					},
 				})
 
-				// Reset the client with the appName specified in the failpoint.
-				clientOpts := options.Client().
-					SetAppName(appName).
-					SetRetryWrites(false).
-					SetPoolMonitor(poolMonitor)
-				mt.ResetClient(clientOpts)
-				clearPoolChan()
+				// Reset the client with the appName specified in the failpoint and the pool monitor.
+				tpm := newTestPoolMonitor()
+				mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
 
 				// Use a context with a 100ms timeout so that the saslContinue delay of 150ms causes
 				// an operation-scoped context timeout (i.e. a timeout not caused by a client timeout
@@ -88,7 +84,11 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
-				assert.False(mt, isPoolCleared(), "expected pool not to be cleared but was cleared")
+
+				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+					return evt.Type == event.PoolCleared
+				})
+				assert.True(mt, len(poolClearedEvents) == 0, "expected pool not to be cleared but was cleared")
 			})
 
 			mt.Run("pool cleared on non-operation-scoped network timeout", func(mt *mtest.T) {
@@ -112,16 +112,14 @@ func TestSDAMErrorHandling(t *testing.T) {
 					},
 				})
 
-				// Reset the client with the appName specified in the failpoint.
-				clientOpts := options.Client().
+				// Reset the client with the appName specified in the failpoint and the pool monitor.
+				tpm := newTestPoolMonitor()
+				mt.ResetClient(baseClientOpts().
 					SetAppName(appName).
-					SetRetryWrites(false).
-					SetPoolMonitor(poolMonitor).
+					SetPoolMonitor(tpm.PoolMonitor).
 					// Set a 100ms socket timeout so that the saslContinue delay of 150ms causes a
 					// timeout during socket read (i.e. a timeout not caused by the InsertOne context).
-					SetSocketTimeout(100 * time.Millisecond)
-				mt.ResetClient(clientOpts)
-				clearPoolChan()
+					SetSocketTimeout(100 * time.Millisecond))
 
 				// Use context.Background() so that the new connection will not time out due to an
 				// operation-scoped timeout.
@@ -129,7 +127,11 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
-				assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
+
+				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+					return evt.Type == event.PoolCleared
+				})
+				assert.True(mt, len(poolClearedEvents) > 0, "expected pool to be cleared but was not")
 			})
 
 			mt.RunOpts("pool cleared on non-timeout network error", noClientOpts, func(mt *mtest.T) {
@@ -150,15 +152,20 @@ func TestSDAMErrorHandling(t *testing.T) {
 						},
 					})
 
-					clientOpts := options.Client().
+					// Reset the client with the appName specified in the failpoint.
+					tpm := newTestPoolMonitor()
+					mt.ResetClient(baseClientOpts().
 						SetAppName(appName).
-						SetMinPoolSize(5).
-						SetPoolMonitor(poolMonitor)
-					mt.ResetClient(clientOpts)
-					clearPoolChan()
+						SetPoolMonitor(tpm.PoolMonitor).
+						// Set minPoolSize to enable the background pool maintenance goroutine.
+						SetMinPoolSize(5))
 
 					time.Sleep(200 * time.Millisecond)
-					assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
+
+					poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+						return evt.Type == event.PoolCleared
+					})
+					assert.True(mt, len(poolClearedEvents) > 0, "expected pool to be cleared but was not")
 				})
 
 				mt.Run("foreground", func(mt *mtest.T) {
@@ -178,16 +185,18 @@ func TestSDAMErrorHandling(t *testing.T) {
 						},
 					})
 
-					clientOpts := options.Client().
-						SetAppName(appName).
-						SetPoolMonitor(poolMonitor)
-					mt.ResetClient(clientOpts)
-					clearPoolChan()
+					// Reset the client with the appName specified in the failpoint.
+					tpm := newTestPoolMonitor()
+					mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
 
 					_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
 					assert.NotNil(mt, err, "expected InsertOne error, got nil")
 					assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
-					assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
+
+					poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+						return evt.Type == event.PoolCleared
+					})
+					assert.True(mt, len(poolClearedEvents) > 0, "expected pool to be cleared but was not")
 				})
 			})
 		})
@@ -195,7 +204,8 @@ func TestSDAMErrorHandling(t *testing.T) {
 	mt.RunOpts("after handshake completes", baseMtOpts(), func(mt *mtest.T) {
 		mt.RunOpts("network errors", noClientOpts, func(mt *mtest.T) {
 			mt.Run("pool cleared on non-timeout network error", func(mt *mtest.T) {
-				clearPoolChan()
+				appName := "afterHandshakeNetworkError"
+
 				mt.SetFailPoint(mtest.FailPoint{
 					ConfigureFailPoint: "failCommand",
 					Mode: mtest.FailPointMode{
@@ -204,16 +214,26 @@ func TestSDAMErrorHandling(t *testing.T) {
 					Data: mtest.FailPointData{
 						FailCommands:    []string{"insert"},
 						CloseConnection: true,
+						AppName:         appName,
 					},
 				})
+
+				// Reset the client with the appName specified in the failpoint.
+				tpm := newTestPoolMonitor()
+				mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
 
 				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"test", 1}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
-				assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
+
+				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+					return evt.Type == event.PoolCleared
+				})
+				assert.True(mt, len(poolClearedEvents) > 0, "expected pool to be cleared but was not")
 			})
 			mt.Run("pool not cleared on timeout network error", func(mt *mtest.T) {
-				clearPoolChan()
+				tpm := newTestPoolMonitor()
+				mt.ResetClient(baseClientOpts().SetPoolMonitor(tpm.PoolMonitor))
 
 				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
 				assert.Nil(mt, err, "InsertOne error: %v", err)
@@ -227,10 +247,14 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.NotNil(mt, err, "expected Find error, got %v", err)
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 
-				assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
+				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+					return evt.Type == event.PoolCleared
+				})
+				assert.True(mt, len(poolClearedEvents) == 0, "expected pool to not be cleared but was")
 			})
 			mt.Run("pool not cleared on context cancellation", func(mt *mtest.T) {
-				clearPoolChan()
+				tpm := newTestPoolMonitor()
+				mt.ResetClient(baseClientOpts().SetPoolMonitor(tpm.PoolMonitor))
 
 				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
 				assert.Nil(mt, err, "InsertOne error: %v", err)
@@ -250,7 +274,10 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
 				assert.True(mt, errors.Is(err, context.Canceled), "expected error %v to be context.Canceled", err)
 
-				assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
+				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+					return evt.Type == event.PoolCleared
+				})
+				assert.True(mt, len(poolClearedEvents) == 0, "expected pool to not be cleared but was")
 			})
 		})
 		mt.RunOpts("server errors", noClientOpts, func(mt *mtest.T) {
@@ -287,10 +314,10 @@ func TestSDAMErrorHandling(t *testing.T) {
 			}
 			for _, tc := range testCases {
 				mt.RunOpts(fmt.Sprintf("command error - %s", tc.name), serverErrorsMtOpts, func(mt *mtest.T) {
-					clearPoolChan()
+					appName := fmt.Sprintf("command_error_%s", tc.name)
 
 					// Cause the next insert to fail with an ok:0 response.
-					fp := mtest.FailPoint{
+					mt.SetFailPoint(mtest.FailPoint{
 						ConfigureFailPoint: "failCommand",
 						Mode: mtest.FailPointMode{
 							Times: 1,
@@ -298,17 +325,21 @@ func TestSDAMErrorHandling(t *testing.T) {
 						Data: mtest.FailPointData{
 							FailCommands: []string{"insert"},
 							ErrorCode:    tc.errorCode,
+							AppName:      appName,
 						},
-					}
-					mt.SetFailPoint(fp)
+					})
 
-					runServerErrorsTest(mt, tc.isShutdownError)
+					// Reset the client with the appName specified in the failpoint.
+					tpm := newTestPoolMonitor()
+					mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
+
+					runServerErrorsTest(mt, tc.isShutdownError, tpm)
 				})
 				mt.RunOpts(fmt.Sprintf("write concern error - %s", tc.name), serverErrorsMtOpts, func(mt *mtest.T) {
-					clearPoolChan()
+					appName := fmt.Sprintf("write_concern_error_%s", tc.name)
 
 					// Cause the next insert to fail with a write concern error.
-					fp := mtest.FailPoint{
+					mt.SetFailPoint(mtest.FailPoint{
 						ConfigureFailPoint: "failCommand",
 						Mode: mtest.FailPointMode{
 							Times: 1,
@@ -318,32 +349,40 @@ func TestSDAMErrorHandling(t *testing.T) {
 							WriteConcernError: &mtest.WriteConcernErrorData{
 								Code: tc.errorCode,
 							},
+							AppName: appName,
 						},
-					}
-					mt.SetFailPoint(fp)
+					})
 
-					runServerErrorsTest(mt, tc.isShutdownError)
+					// Reset the client with the appName specified in the failpoint.
+					tpm := newTestPoolMonitor()
+					mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
+
+					runServerErrorsTest(mt, tc.isShutdownError, tpm)
 				})
 			}
 		})
 	})
 }
 
-func runServerErrorsTest(mt *mtest.T, isShutdownError bool) {
+func runServerErrorsTest(mt *mtest.T, isShutdownError bool, tpm *testPoolMonitor) {
 	mt.Helper()
 
 	_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
 	assert.NotNil(mt, err, "expected InsertOne error, got nil")
 
+	poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+		return evt.Type == event.PoolCleared
+	})
+	isPoolCleared := len(poolClearedEvents) > 0
+
 	// The pool should always be cleared for shutdown errors, regardless of server version.
 	if isShutdownError {
-		assert.True(mt, isPoolCleared(), "expected pool to be cleared, but was not")
+		assert.True(mt, isPoolCleared, "expected pool to be cleared, but was not")
 		return
 	}
 
 	// For non-shutdown errors, the pool is only cleared if the error is from a pre-4.2 server.
 	wantCleared := mtest.CompareServerVersions(mtest.ServerVersion(), "4.2") < 0
-	gotCleared := isPoolCleared()
-	assert.Equal(mt, wantCleared, gotCleared, "expected pool to be cleared: %v; pool was cleared: %v",
-		wantCleared, gotCleared)
+	assert.Equal(mt, wantCleared, isPoolCleared, "expected pool to be cleared: %t; pool was cleared: %t",
+		wantCleared, isPoolCleared)
 }

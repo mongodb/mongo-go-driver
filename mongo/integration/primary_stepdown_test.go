@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"sync"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,7 +24,55 @@ const (
 	errorInterruptedAtShutdown int32 = 11600
 )
 
+// testPoolMonitor exposes an *event.PoolMonitor and collects all events logged to that
+// *event.PoolMonitor. It is safe to use from multiple concurrent goroutines.
+type testPoolMonitor struct {
+	*event.PoolMonitor
+
+	events []*event.PoolEvent
+	mu     sync.RWMutex
+}
+
+func newTestPoolMonitor() *testPoolMonitor {
+	tpm := &testPoolMonitor{
+		events: make([]*event.PoolEvent, 0),
+	}
+	tpm.PoolMonitor = &event.PoolMonitor{
+		Event: func(evt *event.PoolEvent) {
+			tpm.mu.Lock()
+			defer tpm.mu.Unlock()
+			tpm.events = append(tpm.events, evt)
+		},
+	}
+	return tpm
+}
+
+// Events returns a copy of the events collected by the testPoolMonitor. Filters can optionally be
+// applied to the returned events set and are applied using AND logic (i.e. all filters must return
+// true to include the event in the result).
+func (tpm *testPoolMonitor) Events(filters ...func(*event.PoolEvent) bool) []*event.PoolEvent {
+	filtered := make([]*event.PoolEvent, 0, len(tpm.events))
+	tpm.mu.RLock()
+	defer tpm.mu.RUnlock()
+
+	for _, evt := range tpm.events {
+		keep := true
+		for _, filter := range filters {
+			if !filter(evt) {
+				keep = false
+			}
+		}
+		if keep {
+			filtered = append(filtered, evt)
+		}
+	}
+
+	return filtered
+}
+
 var poolChan = make(chan *event.PoolEvent, 100)
+
+// TODO(GODRIVER-2068): Replace all uses of poolMonitor with individual instances of testPoolMonitor.
 var poolMonitor = &event.PoolMonitor{
 	Event: func(event *event.PoolEvent) {
 		poolChan <- event
