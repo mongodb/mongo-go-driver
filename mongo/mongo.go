@@ -16,7 +16,6 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -81,8 +80,6 @@ func transformAndEnsureID(registry *bsoncodec.Registry, val interface{}) (bsonco
 	switch tt := val.(type) {
 	case nil:
 		return nil, nil, ErrNilDocument
-	case bsonx.Doc:
-		val = tt.Copy()
 	case []byte:
 		// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
 		val = bson.Raw(tt)
@@ -123,16 +120,16 @@ func transformAndEnsureID(registry *bsoncodec.Registry, val interface{}) (bsonco
 	return doc, id, nil
 }
 
-func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc, error) {
-	if doc, ok := val.(bsonx.Doc); ok {
-		return doc.Copy(), nil
-	}
-	b, err := transformBsoncoreDocument(registry, val, true, "document")
-	if err != nil {
-		return nil, err
-	}
-	return bsonx.ReadDoc(b)
-}
+// func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsoncore.Document, error) {
+// 	// if doc, ok := val.(bsonx.Doc); ok {
+// 	// 	return doc.Copy(), nil
+// 	// }
+// 	b, err := transformBsoncoreDocument(registry, val, true, "document")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return b, nil
+// }
 
 func transformBsoncoreDocument(registry *bsoncodec.Registry, val interface{}, mapAllowed bool, paramName string) (bsoncore.Document, error) {
 	if registry == nil {
@@ -276,7 +273,7 @@ func transformUpdateValue(registry *bsoncodec.Registry, update interface{}, doll
 	switch t := update.(type) {
 	case nil:
 		return u, ErrNilDocument
-	case primitive.D, bsonx.Doc:
+	case primitive.D:
 		u.Type = bsontype.EmbeddedDocument
 		u.Data, err = transformBsoncoreDocument(registry, update, true, "update")
 		if err != nil {

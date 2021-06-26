@@ -14,6 +14,7 @@ import (
 
 	"math"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/x/bsonx"
@@ -141,7 +142,7 @@ func (us *UploadStream) Abort() error {
 	if err != nil {
 		return err
 	}
-	_, err = us.chunksColl.DeleteMany(ctx, bsonx.Doc{{"files_id", id}})
+	_, err = us.chunksColl.DeleteMany(ctx, bson.D{{"files_id", id}})
 	if err != nil {
 		return err
 	}
@@ -178,11 +179,12 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 			endIndex = us.bufferIndex
 		}
 		chunkData := us.buffer[i:endIndex]
-		docs[us.chunkIndex-begChunkIndex] = bsonx.Doc{
-			{"_id", bsonx.ObjectID(primitive.NewObjectID())},
+		docs[us.chunkIndex-begChunkIndex] = bson.D{
+			{"_id", primitive.NewObjectID()},
 			{"files_id", id},
-			{"n", bsonx.Int32(int32(us.chunkIndex))},
+			{"n", int32(us.chunkIndex)},
 			{"data", bsonx.Binary(0x00, chunkData)},
+			// {"data", bsoncore.BuildDocumentValue(chunkData)},
 		}
 		us.chunkIndex++
 		us.fileLen += int64(len(chunkData))
@@ -207,16 +209,16 @@ func (us *UploadStream) createFilesCollDoc(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	doc := bsonx.Doc{
+	doc := bson.D{
 		{"_id", id},
-		{"length", bsonx.Int64(us.fileLen)},
-		{"chunkSize", bsonx.Int32(us.chunkSize)},
+		{"length", us.fileLen},
+		{"chunkSize", us.chunkSize},
 		{"uploadDate", bsonx.DateTime(time.Now().UnixNano() / int64(time.Millisecond))},
-		{"filename", bsonx.String(us.filename)},
+		{"filename", us.filename},
 	}
 
 	if us.metadata != nil {
-		doc = append(doc, bsonx.Elem{"metadata", bsonx.Document(us.metadata)})
+		doc = append(doc, bson.E{"metadata", us.metadata})
 	}
 
 	_, err = us.filesColl.InsertOne(ctx, doc)
