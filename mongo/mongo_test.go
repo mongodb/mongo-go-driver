@@ -16,59 +16,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestMongoHelpers(t *testing.T) {
-	t.Run("transform document", func(t *testing.T) {
-		testCases := []struct {
-			name     string
-			document interface{}
-			want     bsonx.Doc
-			err      error
-		}{
-			{
-				"bson.Marshaler",
-				bMarsh{bsonx.Doc{{"foo", bsonx.String("bar")}}},
-				bsonx.Doc{{"foo", bsonx.String("bar")}},
-				nil,
-			},
-			{
-				"reflection",
-				reflectStruct{Foo: "bar"},
-				bsonx.Doc{{"foo", bsonx.String("bar")}},
-				nil,
-			},
-			{
-				"reflection pointer",
-				&reflectStruct{Foo: "bar"},
-				bsonx.Doc{{"foo", bsonx.String("bar")}},
-				nil,
-			},
-			{
-				"unsupported type",
-				[]string{"foo", "bar"},
-				nil,
-				MarshalError{
-					Value: []string{"foo", "bar"},
-					Err:   errors.New("WriteArray can only write a Array while positioned on a Element or Value but is positioned on a TopLevel")},
-			},
-			{
-				"nil",
-				nil,
-				nil,
-				ErrNilDocument,
-			},
-		}
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				got, err := transformDocument(bson.NewRegistryBuilder().Build(), tc.document)
-				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
-				assert.Equal(t, tc.want, got, "expected document %v, got %v", tc.want, got)
-			})
-		}
-	})
 	t.Run("transform and ensure ID", func(t *testing.T) {
 		t.Run("newly added _id should be first element", func(t *testing.T) {
 			doc := bson.D{{"foo", "bar"}, {"baz", "qux"}, {"hello", "world"}}
@@ -398,11 +349,11 @@ func TestMongoHelpers(t *testing.T) {
 var _ bson.Marshaler = bMarsh{}
 
 type bMarsh struct {
-	bsonx.Doc
+	bson.D
 }
 
 func (b bMarsh) MarshalBSON() ([]byte, error) {
-	return b.Doc.MarshalBSON()
+	return bson.Marshal(b)
 }
 
 type reflectStruct struct {
