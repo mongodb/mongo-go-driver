@@ -271,7 +271,80 @@ func TestServerConnectionTimeout(t *testing.T) {
 }
 
 func TestServerConnectionCancellation(t *testing.T) {
-	// TODO: Write test.
+	// Start a goroutine that pulls events from the events channel and inserts them into the
+	// events slice. Use a sync.WaitGroup to allow the test code to block until the events
+	// channel loop exits, guaranteeing that all events were copied from the channel.
+	events := make([]*event.PoolEvent, 0)
+	eventsCh := make(chan *event.PoolEvent)
+	var eventsWg sync.WaitGroup
+	eventsWg.Add(1)
+	go func() {
+		defer eventsWg.Done()
+		for evt := range eventsCh {
+			events = append(events, evt)
+		}
+	}()
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() {
+		_ = l.Close()
+	}()
+
+	// Create a context with cancellation that can be cancelled before the dial completes.
+	ctx, cancel := context.WithCancel(context.Background())
+
+	server, err := NewServer(
+		address.Address(l.Addr().String()),
+		primitive.NewObjectID(),
+		// Create a connection pool event monitor that sends all events to an events channel
+		// so we can assert on the connection pool events later.
+		WithConnectionPoolMonitor(func(_ *event.PoolMonitor) *event.PoolMonitor {
+			return &event.PoolMonitor{
+				Event: func(event *event.PoolEvent) {
+					eventsCh <- event
+				},
+			}
+		}),
+		// Disable monitoring to prevent unrelated failures from the RTT monitor and
+		// heartbeats from unexpectedly clearing the connection pool.
+		withMonitoringDisabled(func(bool) bool { return true }),
+		// Use the standard auth.Handshaker
+		WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
+			return append(opts, WithDialer(func(Dialer) Dialer {
+				var d net.Dialer
+				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
+					// Cancel the operation context before dialing and expect a context cancellation
+					// error.
+					cancel()
+					return d.DialContext(ctx, network, addr)
+				})
+			}))
+		}),
+	)
+	require.NoError(t, err)
+	require.NoError(t, server.Connect(nil))
+
+	_, err = server.Connection(ctx)
+	assert.NotNil(t, err, "expected an error but got nil")
+
+	// Disconnect the server then close the events channel and expect that no more events
+	// are sent on the channel. Then wait for the events channel loop to return before
+	// inspecting the events slice.
+	_ = server.Disconnect(context.Background())
+	close(eventsCh)
+	eventsWg.Wait()
+	require.NotEmpty(t, events, "expected more than 0 connection pool monitor events")
+
+	// Look for any "ConnectionPoolCleared" events in the events slice so we can assert that
+	// the Server connection pool was or wasn't cleared, depending on the test expectations.
+	poolCleared := false
+	for _, evt := range events {
+		if evt.Type == event.PoolCleared {
+			poolCleared = true
+		}
+	}
+	assert.False(t, poolCleared, "expected pool to not be cleared, but was cleared")
 }
 
 func TestServer(t *testing.T) {
