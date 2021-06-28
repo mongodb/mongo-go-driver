@@ -70,6 +70,8 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 			opts.SetMaxAwaitTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "pipeline":
 			pipeline = testhelpers.RawToInterfaceSlice(val.Array())
+		case "let":
+			opts.SetLet(val.Document())
 		default:
 			return nil, fmt.Errorf("unrecognized aggregate option %q", key)
 		}
