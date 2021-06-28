@@ -309,7 +309,6 @@ func TestServerConnectionCancellation(t *testing.T) {
 		// Disable monitoring to prevent unrelated failures from the RTT monitor and
 		// heartbeats from unexpectedly clearing the connection pool.
 		withMonitoringDisabled(func(bool) bool { return true }),
-		// Use the standard auth.Handshaker
 		WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
 			return append(opts, WithDialer(func(Dialer) Dialer {
 				var d net.Dialer
@@ -337,7 +336,7 @@ func TestServerConnectionCancellation(t *testing.T) {
 	require.NotEmpty(t, events, "expected more than 0 connection pool monitor events")
 
 	// Look for any "ConnectionPoolCleared" events in the events slice so we can assert that
-	// the Server connection pool was or wasn't cleared, depending on the test expectations.
+	// the Server connection pool wasn't cleared.
 	poolCleared := false
 	for _, evt := range events {
 		if evt.Type == event.PoolCleared {

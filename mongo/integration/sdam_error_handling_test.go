@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -84,11 +83,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
-
-				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-					return evt.Type == event.PoolCleared
-				})
-				assert.True(mt, len(poolClearedEvents) == 0, "expected pool not to be cleared but was cleared")
+				assert.False(mt, tpm.IsPoolCleared(), "expected pool not to be cleared but was cleared")
 			})
 
 			mt.Run("pool cleared on non-operation-scoped network timeout", func(mt *mtest.T) {
@@ -127,11 +122,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
-
-				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-					return evt.Type == event.PoolCleared
-				})
-				assert.True(mt, len(poolClearedEvents) > 0, "expected pool to be cleared but was not")
+				assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared but was not")
 			})
 
 			mt.RunOpts("pool cleared on non-timeout network error", noClientOpts, func(mt *mtest.T) {
@@ -162,10 +153,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 
 					time.Sleep(200 * time.Millisecond)
 
-					poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-						return evt.Type == event.PoolCleared
-					})
-					assert.True(mt, len(poolClearedEvents) > 0, "expected pool to be cleared but was not")
+					assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared but was not")
 				})
 
 				mt.Run("foreground", func(mt *mtest.T) {
@@ -192,11 +180,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
 					assert.NotNil(mt, err, "expected InsertOne error, got nil")
 					assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
-
-					poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-						return evt.Type == event.PoolCleared
-					})
-					assert.True(mt, len(poolClearedEvents) > 0, "expected pool to be cleared but was not")
+					assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared but was not")
 				})
 			})
 		})
@@ -225,11 +209,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"test", 1}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
-
-				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-					return evt.Type == event.PoolCleared
-				})
-				assert.True(mt, len(poolClearedEvents) > 0, "expected pool to be cleared but was not")
+				assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared but was not")
 			})
 			mt.Run("pool not cleared on timeout network error", func(mt *mtest.T) {
 				tpm := newTestPoolMonitor()
@@ -246,11 +226,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				_, err = mt.Coll.Find(timeoutCtx, filter)
 				assert.NotNil(mt, err, "expected Find error, got %v", err)
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
-
-				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-					return evt.Type == event.PoolCleared
-				})
-				assert.True(mt, len(poolClearedEvents) == 0, "expected pool to not be cleared but was")
+				assert.False(mt, tpm.IsPoolCleared(), "expected pool to not be cleared but was")
 			})
 			mt.Run("pool not cleared on context cancellation", func(mt *mtest.T) {
 				tpm := newTestPoolMonitor()
@@ -273,11 +249,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
 				assert.True(mt, errors.Is(err, context.Canceled), "expected error %v to be context.Canceled", err)
-
-				poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-					return evt.Type == event.PoolCleared
-				})
-				assert.True(mt, len(poolClearedEvents) == 0, "expected pool to not be cleared but was")
+				assert.False(mt, tpm.IsPoolCleared(), "expected pool to not be cleared but was")
 			})
 		})
 		mt.RunOpts("server errors", noClientOpts, func(mt *mtest.T) {
@@ -370,19 +342,15 @@ func runServerErrorsTest(mt *mtest.T, isShutdownError bool, tpm *testPoolMonitor
 	_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
 	assert.NotNil(mt, err, "expected InsertOne error, got nil")
 
-	poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-		return evt.Type == event.PoolCleared
-	})
-	isPoolCleared := len(poolClearedEvents) > 0
-
 	// The pool should always be cleared for shutdown errors, regardless of server version.
 	if isShutdownError {
-		assert.True(mt, isPoolCleared, "expected pool to be cleared, but was not")
+		assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared, but was not")
 		return
 	}
 
 	// For non-shutdown errors, the pool is only cleared if the error is from a pre-4.2 server.
 	wantCleared := mtest.CompareServerVersions(mtest.ServerVersion(), "4.2") < 0
-	assert.Equal(mt, wantCleared, isPoolCleared, "expected pool to be cleared: %t; pool was cleared: %t",
-		wantCleared, isPoolCleared)
+	gotCleared := tpm.IsPoolCleared()
+	assert.Equal(mt, wantCleared, gotCleared, "expected pool to be cleared: %t; pool was cleared: %t",
+		wantCleared, gotCleared)
 }

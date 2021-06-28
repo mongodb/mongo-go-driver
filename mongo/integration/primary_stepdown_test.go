@@ -60,6 +60,7 @@ func (tpm *testPoolMonitor) Events(filters ...func(*event.PoolEvent) bool) []*ev
 		for _, filter := range filters {
 			if !filter(evt) {
 				keep = false
+				break
 			}
 		}
 		if keep {
@@ -68,6 +69,15 @@ func (tpm *testPoolMonitor) Events(filters ...func(*event.PoolEvent) bool) []*ev
 	}
 
 	return filtered
+}
+
+// IsPoolCleared returns true if there are any events of type "event.PoolCleared" in the events
+// recorded by the testPoolMonitor.
+func (tpm *testPoolMonitor) IsPoolCleared() bool {
+	poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+		return evt.Type == event.PoolCleared
+	})
+	return len(poolClearedEvents) > 0
 }
 
 var poolChan = make(chan *event.PoolEvent, 100)
