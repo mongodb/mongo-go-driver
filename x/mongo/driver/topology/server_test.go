@@ -54,6 +54,8 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 	return cnc, nil
 }
 
+// TestServerConnectionTimeout tests how different timeout errors are handled during connection
+// creation and server handshake.
 func TestServerConnectionTimeout(t *testing.T) {
 	testCases := []struct {
 		desc              string
@@ -177,6 +179,8 @@ func TestServerConnectionTimeout(t *testing.T) {
 			// Start a goroutine that pulls events from the events channel and inserts them into the
 			// events slice. Use a sync.WaitGroup to allow the test code to block until the events
 			// channel loop exits, guaranteeing that all events were copied from the channel.
+			// TODO(GODRIVER-2068): Consider using the "testPoolMonitor" from the "mongo/integration"
+			// package. Requires moving "testPoolMonitor" into a test utilities package.
 			events := make([]*event.PoolEvent, 0)
 			eventsCh := make(chan *event.PoolEvent)
 			var eventsWg sync.WaitGroup
@@ -270,10 +274,14 @@ func TestServerConnectionTimeout(t *testing.T) {
 	}
 }
 
+// TestServerConnectionCancellation tests how context cancellation errors are handled during
+// connection creation.
 func TestServerConnectionCancellation(t *testing.T) {
 	// Start a goroutine that pulls events from the events channel and inserts them into the
 	// events slice. Use a sync.WaitGroup to allow the test code to block until the events
 	// channel loop exits, guaranteeing that all events were copied from the channel.
+	// TODO(GODRIVER-2068): Consider using the "testPoolMonitor" from the "mongo/integration"
+	// package. Requires moving "testPoolMonitor" into a test utilities package.
 	events := make([]*event.PoolEvent, 0)
 	eventsCh := make(chan *event.PoolEvent)
 	var eventsWg sync.WaitGroup
