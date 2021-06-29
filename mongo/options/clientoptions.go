@@ -819,7 +819,12 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.err != nil {
 			c.err = opt.err
 		}
-
+		if opt.uri != "" {
+			c.uri = opt.uri
+		}
+		if opt.cs != nil {
+			c.cs = opt.cs
+		}
 	}
 
 	return c
