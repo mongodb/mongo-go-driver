@@ -23,6 +23,7 @@ var (
 		"load-balancers",
 		"collection-management",
 		"command-monitoring/unified",
+		"sessions/unified",
 	}
 	failDirectories = []string{
 		"unified-test-format/valid-fail",

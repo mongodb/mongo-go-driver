@@ -42,6 +42,8 @@ const (
 	cryptMaxBsonObjectSize uint32 = 2097152
 	// minimum wire version necessary to use automatic encryption
 	cryptMinWireVersion int32 = 8
+	// minimum wire version necessary to use read snapshots
+	readSnapshotMinWireVersion int32 = 13
 )
 
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
@@ -710,6 +712,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 	// everything.
 	op.updateClusterTimes(res)
 	op.updateOperationTime(res)
+	op.Client.UpdateSnapshotTime(res)
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
 	if err != nil {
@@ -1012,6 +1015,13 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		rc = readconcern.New()
 	}
 
+	if client != nil && client.Snapshot {
+		if desc.WireVersion.Max < readSnapshotMinWireVersion {
+			return dst, errors.New("snapshot reads require MongoDB 5.0 or later")
+		}
+		rc = readconcern.Snapshot()
+	}
+
 	if rc == nil {
 		return dst, nil
 	}
@@ -1021,10 +1031,17 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		return dst, err
 	}
 
-	if sessionsSupported(desc.WireVersion) && client != nil && client.Consistent && client.OperationTime != nil {
-		data = data[:len(data)-1] // remove the null byte
-		data = bsoncore.AppendTimestampElement(data, "afterClusterTime", client.OperationTime.T, client.OperationTime.I)
-		data, _ = bsoncore.AppendDocumentEnd(data, 0)
+	if sessionsSupported(desc.WireVersion) && client != nil {
+		if client.Consistent && client.OperationTime != nil {
+			data = data[:len(data)-1] // remove the null byte
+			data = bsoncore.AppendTimestampElement(data, "afterClusterTime", client.OperationTime.T, client.OperationTime.I)
+			data, _ = bsoncore.AppendDocumentEnd(data, 0)
+		}
+		if client.Snapshot && client.SnapshotTime != nil {
+			data = data[:len(data)-1] // remove the null byte
+			data = bsoncore.AppendTimestampElement(data, "atClusterTime", client.SnapshotTime.T, client.SnapshotTime.I)
+			data, _ = bsoncore.AppendDocumentEnd(data, 0)
+		}
 	}
 
 	if len(data) == bsoncore.EmptyDocumentLength {

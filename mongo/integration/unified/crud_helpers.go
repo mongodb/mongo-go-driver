@@ -90,6 +90,7 @@ func createListCollectionsArguments(args bson.Raw) (*listCollectionsArguments, e
 		opts: options.ListCollections(),
 	}
 
+	lca.filter = emptyDocument
 	elems, _ := args.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -105,9 +106,6 @@ func createListCollectionsArguments(args bson.Raw) (*listCollectionsArguments, e
 		default:
 			return nil, fmt.Errorf("unrecognized listCollections option %q", key)
 		}
-	}
-	if lca.filter == nil {
-		return nil, newMissingArgumentError("filter")
 	}
 
 	return lca, nil

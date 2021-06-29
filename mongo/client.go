@@ -299,6 +299,9 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	if sopts.DefaultMaxCommitTime != nil {
 		coreOpts.DefaultMaxCommitTime = sopts.DefaultMaxCommitTime
 	}
+	if sopts.Snapshot != nil {
+		coreOpts.Snapshot = sopts.Snapshot
+	}
 
 	sess, err := session.NewClientSession(c.sessionPool, c.id, session.Explicit, coreOpts)
 	if err != nil {

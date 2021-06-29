@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
@@ -41,6 +42,9 @@ var ErrCommitAfterAbort = errors.New("cannot call commitTransaction after callin
 
 // ErrUnackWCUnsupported is returned if an unacknowledged write concern is supported for a transaciton.
 var ErrUnackWCUnsupported = errors.New("transactions do not support unacknowledged write concerns")
+
+// ErrSnapshotTransaction is returned if an transaction is started on a snapshot session.
+var ErrSnapshotTransaction = errors.New("transactions are not supported in snapshot sessions")
 
 // Type describes the type of the session
 type Type uint8
@@ -115,6 +119,7 @@ type Client struct {
 	Aborting       bool
 	RetryWrite     bool
 	RetryRead      bool
+	Snapshot       bool
 
 	// options for the current transaction
 	// most recently set by transactionopt
@@ -134,6 +139,7 @@ type Client struct {
 	PinnedServer     *description.Server
 	RecoveryToken    bson.Raw
 	PinnedConnection LoadBalancedTransactionConnection
+	SnapshotTime     *primitive.Timestamp
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -175,7 +181,6 @@ func MaxClusterTime(ct1, ct2 bson.Raw) bson.Raw {
 // NewClientSession creates a Client.
 func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...*ClientOptions) (*Client, error) {
 	c := &Client{
-		Consistent:  true, // set default
 		ClientID:    clientID,
 		SessionType: sessionType,
 		pool:        pool,
@@ -196,6 +201,13 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...
 	}
 	if mergedOpts.DefaultMaxCommitTime != nil {
 		c.transactionMaxCommitTime = mergedOpts.DefaultMaxCommitTime
+	}
+	if mergedOpts.Snapshot != nil {
+		c.Snapshot = *mergedOpts.Snapshot
+	}
+
+	if c.Consistent && c.Snapshot {
+		return nil, errors.New("causal consistency and snapshot cannot both be set for a session")
 	}
 
 	servSess, err := pool.GetSession()
@@ -260,6 +272,30 @@ func (c *Client) UpdateRecoveryToken(response bson.Raw) {
 	}
 
 	c.RecoveryToken = token.Document()
+}
+
+// UpdateSnapshotTime updates the session's value for the atClusterTime field of ReadConcern.
+func (c *Client) UpdateSnapshotTime(response bsoncore.Document) {
+	if c == nil {
+		return
+	}
+
+	subDoc := response
+	if cur, ok := response.Lookup("cursor").DocumentOK(); ok {
+		subDoc = cur
+	}
+
+	ssTimeElem, err := subDoc.LookupErr("atClusterTime")
+	if err != nil {
+		// atClusterTime not included by the server
+		return
+	}
+
+	t, i := ssTimeElem.Timestamp()
+	c.SnapshotTime = &primitive.Timestamp{
+		T: t,
+		I: i,
+	}
 }
 
 // ClearPinnedResources clears the pinned server and/or connection associated with the session.
@@ -335,6 +371,9 @@ func (c *Client) TransactionCommitted() bool {
 func (c *Client) CheckStartTransaction() error {
 	if c.TransactionState == InProgress || c.TransactionState == Starting {
 		return ErrTransactInProgress
+	}
+	if c.Snapshot {
+		return ErrSnapshotTransaction
 	}
 	return nil
 }
