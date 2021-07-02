@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	monitoringTestDir = "../../data/command-monitoring"
+	monitoringTestDir = "../../data/command-monitoring/legacy"
 )
 
 type monitoringTestFile struct {
