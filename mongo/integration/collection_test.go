@@ -1694,8 +1694,6 @@ func TestCollection(t *testing.T) {
 			for i := 0; i < numDocs; i++ {
 				d := bson.D{
 					{"a", int32(i)},
-					{"b", int32(i * 2)},
-					{"c", int32(i * 3)},
 				}
 				insertModels = append(insertModels, mongo.NewInsertOneModel().SetDocument(d))
 				deleteModels = append(deleteModels, mongo.NewDeleteOneModel().SetFilter(bson.D{}))
@@ -1742,6 +1740,7 @@ func TestCollection(t *testing.T) {
 			numModels := maxBatchCount + 50
 			var models []mongo.WriteModel
 
+			// The first document is upserted and followed by updates
 			for i := 0; i < numModels-1; i++ {
 				update := bson.D{
 					{"$set", bson.D{
@@ -1765,11 +1764,11 @@ func TestCollection(t *testing.T) {
 			var responses []bson.D
 			for i := numModels; i > 0; i -= maxBatchCount {
 				count := maxBatchCount
-				// the first document is upserted
+				// the first of all the update documents is upserted
 				upsert := bson.D{{"index", 0}, {"_id", "foo"}}
 				if i < maxBatchCount {
 					count = i
-					// the last document is upserted
+					// the last of all the update documents is upserted
 					upsert = bson.D{{"index", count - 1}, {"_id", "bar"}}
 				}
 				res := mtest.CreateSuccessResponse(
