@@ -388,6 +388,11 @@ func (bc *BatchCursor) PostBatchResumeToken() bsoncore.Document {
 	return bc.postBatchResumeToken
 }
 
+// SetBatchSize sets the batchSize for future getMores.
+func (bc *BatchCursor) SetBatchSize(size int32) {
+	bc.batchSize = size
+}
+
 func (bc *BatchCursor) getOperationDeployment() Deployment {
 	if bc.connection != nil {
 		return &loadBalancedCursorDeployment{
