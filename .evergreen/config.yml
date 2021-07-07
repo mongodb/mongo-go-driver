@@ -391,6 +391,8 @@ functions:
           export ATLAS_SHARD_SRV="${atlas_sharded_uri_srv}"
           export ATLAS_TLS11_SRV="${atlas_tls_v11_uri_srv}"
           export ATLAS_TLS12_SRV="${atlas_tls_v12_uri_srv}"
+          export ATLAS_SERVERLESS="${atlas_serverless_uri}"
+          export ATLAS_SERVERLESS_SRV="${atlas_serverless_uri_srv}"
           make -s evg-test-atlas
 
   run-ocsp-test:
