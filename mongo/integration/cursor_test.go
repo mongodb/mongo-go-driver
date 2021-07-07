@@ -218,7 +218,8 @@ func TestCursor(t *testing.T) {
 			assert.Equal(mt, failpointData.ErrorCode, mongoErr.Code, "expected code %v, got: %v", failpointData.ErrorCode, mongoErr.Code)
 		})
 	})
-	mt.Run("set batchSize", func(mt *mtest.T) {
+	// For versions < 3.2, the first find will get all the documents
+	mt.RunOpts("set batchSize", mtest.NewOptions().MinServerVersion("3.2"), func(mt *mtest.T) {
 		initCollection(mt, mt.Coll)
 		mt.ClearEvents()
 
@@ -238,6 +239,7 @@ func TestCursor(t *testing.T) {
 		batchCursor.SetBatchSize(4)
 		assert.True(mt, cursor.Next(mtest.Background), "expected Next true, got false")
 		evt = mt.GetStartedEvent()
+		assert.NotNil(mt, evt, "expected getMore event, got nil")
 		assert.Equal(mt, "getMore", evt.CommandName, "expected 'getMore' event, got '%v'", evt.CommandName)
 		sizeVal, err = evt.Command.LookupErr("batchSize")
 		assert.Nil(mt, err, "expected getMore command to have batchSize")
