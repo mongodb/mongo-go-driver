@@ -218,6 +218,34 @@ func TestCursor(t *testing.T) {
 			assert.Equal(mt, failpointData.ErrorCode, mongoErr.Code, "expected code %v, got: %v", failpointData.ErrorCode, mongoErr.Code)
 		})
 	})
+	// For versions < 3.2, the first find will get all the documents
+	mt.RunOpts("set batchSize", mtest.NewOptions().MinServerVersion("3.2"), func(mt *mtest.T) {
+		initCollection(mt, mt.Coll)
+		mt.ClearEvents()
+
+		// create cursor with batchSize 0
+		cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(0))
+		assert.Nil(mt, err, "Find error: %v", err)
+		defer cursor.Close(mtest.Background)
+		evt := mt.GetStartedEvent()
+		assert.Equal(mt, "find", evt.CommandName, "expected 'find' event, got '%v'", evt.CommandName)
+		sizeVal, err := evt.Command.LookupErr("batchSize")
+		assert.Nil(mt, err, "expected find command to have batchSize")
+		batchSize := sizeVal.Int32()
+		assert.Equal(mt, int32(0), batchSize, "expected batchSize 0, got %v", batchSize)
+
+		// make sure that the getMore sends the new batchSize
+		batchCursor := mongo.BatchCursorFromCursor(cursor)
+		batchCursor.SetBatchSize(4)
+		assert.True(mt, cursor.Next(mtest.Background), "expected Next true, got false")
+		evt = mt.GetStartedEvent()
+		assert.NotNil(mt, evt, "expected getMore event, got nil")
+		assert.Equal(mt, "getMore", evt.CommandName, "expected 'getMore' event, got '%v'", evt.CommandName)
+		sizeVal, err = evt.Command.LookupErr("batchSize")
+		assert.Nil(mt, err, "expected getMore command to have batchSize")
+		batchSize = sizeVal.Int32()
+		assert.Equal(mt, int32(4), batchSize, "expected batchSize 4, got %v", batchSize)
+	})
 }
 
 type tryNextCursor interface {
