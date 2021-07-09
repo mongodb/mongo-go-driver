@@ -160,7 +160,12 @@ func TestWriteErrorsDetails(t *testing.T) {
 				"expected mongo.WriteException to have error code 121 (DocumentValidationFailure)")
 
 			// Assert that there is one WriteError and that the Details field is populated.
-			assert.Equal(mt, 1, len(we.WriteErrors), "expected exactly 1 write error")
+			assert.Equal(
+				mt,
+				1,
+				len(we.WriteErrors),
+				"expected exactly 1 write error, but got %d",
+				len(we.WriteErrors))
 			details := we.WriteErrors[0].Details
 			assert.True(
 				mt,
@@ -192,12 +197,7 @@ func TestWriteErrorsDetails(t *testing.T) {
 		})
 
 		mt.RunOpts("InsertMany schema validation errors with details", validatorOpts, func(mt *mtest.T) {
-			_, err := mt.Coll.InsertMany(
-				context.Background(),
-				[]interface{}{
-					bson.D{{"nope", 1}},
-					bson.D{{"nope", 2}},
-				})
+			_, err := mt.Coll.InsertMany(context.Background(), []interface{}{bson.D{{"nope", 1}}})
 			assert.NotNil(mt, err, "expected an error, got nil")
 
 			bwe, ok := err.(mongo.BulkWriteException)
@@ -208,7 +208,12 @@ func TestWriteErrorsDetails(t *testing.T) {
 				"expected mongo.BulkWriteException to have error code 121 (DocumentValidationFailure)")
 
 			// Assert that there is one WriteError and that the Details field is populated.
-			assert.Equal(mt, 1, len(bwe.WriteErrors), "expected exactly 1 write error")
+			assert.Equal(
+				mt,
+				1,
+				len(bwe.WriteErrors),
+				"expected exactly 1 write error, but got %d",
+				len(bwe.WriteErrors))
 			details := bwe.WriteErrors[0].Details
 			assert.True(mt, len(details) > 0, "expected WriteError.Details to be populated, but is empty")
 

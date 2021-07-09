@@ -20,6 +20,11 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
+// batchErrorsTargetLength is the target length of error messages returned by batch operation
+// error types. Try to limit batch error messages to 2kb to prevent problems when printing error
+// messages from large batch operations.
+const batchErrorsTargetLength = 2000
+
 // ErrUnacknowledgedWrite is returned by operations that have an unacknowledged write concern.
 var ErrUnacknowledgedWrite = errors.New("unacknowledged write")
 
@@ -278,23 +283,25 @@ type WriteError struct {
 	Details bson.Raw
 }
 
-func (we WriteError) Error() string { return we.Message }
+func (we WriteError) Error() string {
+	msg := we.Message
+	if len(we.Details) > 0 {
+		msg = fmt.Sprintf("%s: %s", msg, we.Details.String())
+	}
+	return msg
+}
 
 // WriteErrors is a group of write errors that occurred during execution of a write operation.
 type WriteErrors []WriteError
 
 // Error implements the error interface.
 func (we WriteErrors) Error() string {
-	var buf bytes.Buffer
-	fmt.Fprint(&buf, "write errors: [")
-	for idx, err := range we {
-		if idx != 0 {
-			fmt.Fprintf(&buf, ", ")
-		}
-		fmt.Fprintf(&buf, "{%s}", err)
+	errs := make([]error, len(we))
+	for i := 0; i < len(we); i++ {
+		errs[i] = we[i]
 	}
-	fmt.Fprint(&buf, "]")
-	return buf.String()
+	// WriteErrors isn't returned from batch operations, but we can still use the same formatter.
+	return "write errors: " + joinBatchErrors(errs, batchErrorsTargetLength)
 }
 
 func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
@@ -342,11 +349,21 @@ type WriteException struct {
 
 // Error implements the error interface.
 func (mwe WriteException) Error() string {
-	var buf bytes.Buffer
-	fmt.Fprint(&buf, "multiple write errors: [")
-	fmt.Fprintf(&buf, "{%s}, ", mwe.WriteErrors)
-	fmt.Fprintf(&buf, "{%s}]", mwe.WriteConcernError)
-	return buf.String()
+	causes := make([]string, 0, 2)
+	if mwe.WriteConcernError != nil {
+		causes = append(causes, "write concern error: "+mwe.WriteConcernError.Error())
+	}
+	if len(mwe.WriteErrors) > 0 {
+		// The WriteErrors error message already starts with "write errors:", so don't add it to the
+		// error message again.
+		causes = append(causes, mwe.WriteErrors.Error())
+	}
+
+	message := "write exception: "
+	if len(causes) == 0 {
+		return message + "no causes"
+	}
+	return message + strings.Join(causes, ", ")
 }
 
 // HasErrorCode returns true if the error has the specified code.
@@ -426,9 +443,7 @@ type BulkWriteError struct {
 
 // Error implements the error interface.
 func (bwe BulkWriteError) Error() string {
-	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "{%s}", bwe.WriteError)
-	return buf.String()
+	return bwe.WriteError.Error()
 }
 
 // BulkWriteException is the error type returned by BulkWrite and InsertMany operations.
@@ -445,11 +460,23 @@ type BulkWriteException struct {
 
 // Error implements the error interface.
 func (bwe BulkWriteException) Error() string {
-	var buf bytes.Buffer
-	fmt.Fprint(&buf, "bulk write error: [")
-	fmt.Fprintf(&buf, "{%s}, ", bwe.WriteErrors)
-	fmt.Fprintf(&buf, "{%s}]", bwe.WriteConcernError)
-	return buf.String()
+	causes := make([]string, 0, 2)
+	if bwe.WriteConcernError != nil {
+		causes = append(causes, "write concern error: "+bwe.WriteConcernError.Error())
+	}
+	if len(bwe.WriteErrors) > 0 {
+		errs := make([]error, len(bwe.WriteErrors))
+		for i := 0; i < len(bwe.WriteErrors); i++ {
+			errs[i] = &bwe.WriteErrors[i]
+		}
+		causes = append(causes, "write errors: "+joinBatchErrors(errs, 2000))
+	}
+
+	message := "bulk write exception: "
+	if len(causes) == 0 {
+		return message + "no causes"
+	}
+	return "bulk write exception: " + strings.Join(causes, ", ")
 }
 
 // HasErrorCode returns true if any of the errors have the specified code.
@@ -544,4 +571,30 @@ func processWriteError(err error) (returnResult, error) {
 	default:
 		return rrAll, nil
 	}
+}
+
+// joinBatchErrors appends messages from the given errors to a comma-separated string. If the
+// target length is reached, it stops appending error messages and appends the message
+// "+N more errors..." to the end.
+//
+// Example format:
+//     "[message 1, message 2, +8 more errors...]"
+func joinBatchErrors(errs []error, targetLength int) string {
+	var buf bytes.Buffer
+	fmt.Fprint(&buf, "[")
+	for idx, err := range errs {
+		if idx != 0 {
+			fmt.Fprint(&buf, ", ")
+		}
+		// If the error message has exceeded the target error message length, stop appending errors
+		// to the message and append the number of remaining errors instead.
+		if buf.Len() > targetLength {
+			fmt.Fprintf(&buf, "+%d more errors...", len(errs)-idx)
+			break
+		}
+		fmt.Fprint(&buf, err.Error())
+	}
+	fmt.Fprint(&buf, "]")
+
+	return buf.String()
 }
