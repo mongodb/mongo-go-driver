@@ -20,11 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-// batchErrorsTargetLength is the target length of error messages returned by batch operation
-// error types. Try to limit batch error messages to 2kb to prevent problems when printing error
-// messages from large batch operations.
-const batchErrorsTargetLength = 2000
-
 // ErrUnacknowledgedWrite is returned by operations that have an unacknowledged write concern.
 var ErrUnacknowledgedWrite = errors.New("unacknowledged write")
 
@@ -301,7 +296,7 @@ func (we WriteErrors) Error() string {
 		errs[i] = we[i]
 	}
 	// WriteErrors isn't returned from batch operations, but we can still use the same formatter.
-	return "write errors: " + joinBatchErrors(errs, batchErrorsTargetLength)
+	return "write errors: " + joinBatchErrors(errs)
 }
 
 func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
@@ -469,7 +464,7 @@ func (bwe BulkWriteException) Error() string {
 		for i := 0; i < len(bwe.WriteErrors); i++ {
 			errs[i] = &bwe.WriteErrors[i]
 		}
-		causes = append(causes, "write errors: "+joinBatchErrors(errs, 2000))
+		causes = append(causes, "write errors: "+joinBatchErrors(errs))
 	}
 
 	message := "bulk write exception: "
@@ -573,13 +568,18 @@ func processWriteError(err error) (returnResult, error) {
 	}
 }
 
+// batchErrorsTargetLength is the target length of error messages returned by batch operation
+// error types. Try to limit batch error messages to 2kb to prevent problems when printing error
+// messages from large batch operations.
+const batchErrorsTargetLength = 2000
+
 // joinBatchErrors appends messages from the given errors to a comma-separated string. If the
-// target length is reached, it stops appending error messages and appends the message
-// "+N more errors..." to the end.
+// string exceeds 2kb, it stops appending error messages and appends the message "+N more errors..."
+// to the end.
 //
 // Example format:
 //     "[message 1, message 2, +8 more errors...]"
-func joinBatchErrors(errs []error, targetLength int) string {
+func joinBatchErrors(errs []error) string {
 	var buf bytes.Buffer
 	fmt.Fprint(&buf, "[")
 	for idx, err := range errs {
@@ -588,7 +588,7 @@ func joinBatchErrors(errs []error, targetLength int) string {
 		}
 		// If the error message has exceeded the target error message length, stop appending errors
 		// to the message and append the number of remaining errors instead.
-		if buf.Len() > targetLength {
+		if buf.Len() > batchErrorsTargetLength {
 			fmt.Fprintf(&buf, "+%d more errors...", len(errs)-idx)
 			break
 		}
