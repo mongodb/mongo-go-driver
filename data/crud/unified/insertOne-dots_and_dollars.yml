@@ -36,8 +36,8 @@ tests:
         arguments:
           document: &dollarPrefixedKey { _id: 1, $a: 1 }
         expectResult: &insertResult
-          insertedCount: 1
-          insertedId: { $$unsetOrMatches: 1 }
+          # InsertOneResult is optional because all of its fields are optional
+          $$unsetOrMatches: { insertedId: { $$unsetOrMatches: 1 } }
     expectEvents: &expectEventsDollarPrefixedKey
       - client: *client0
         events:
@@ -156,8 +156,8 @@ tests:
         arguments:
           document: &dottedKeyInId { _id: { a.b: 1 } }
         expectResult:
-          insertedCount: 1
-          insertedId: { $$unsetOrMatches: { a.b: 1 } }
+          # InsertOneResult is optional because all of its fields are optional
+          $$unsetOrMatches: { insertedId: { $$unsetOrMatches: { a.b: 1 } } }
     expectEvents: &expectEventsDottedKeyInId
       - client: *client0
         events:
@@ -224,7 +224,8 @@ tests:
         arguments:
           document: *dollarPrefixedKeyInId
         expectResult:
-          acknowledged: { $$unsetOrMatches: false }
+          # InsertOneResult is optional because all of its fields are optional
+          $$unsetOrMatches: { acknowledged: { $$unsetOrMatches: false } }
     expectEvents:
       - client: *client0
         events:

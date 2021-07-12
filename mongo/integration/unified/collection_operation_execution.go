@@ -740,16 +740,12 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 	res, err := coll.InsertOne(ctx, document, opts)
 	raw := emptyCoreDocument
 	if res != nil {
-		idT, idData, err := bson.MarshalValue(res.InsertedID)
+		t, data, err := bson.MarshalValue(res.InsertedID)
 		if err != nil {
 			return nil, fmt.Errorf("error converting InsertedID field to BSON: %v", err)
 		}
-
-		// Some spec tests assert insertedCount for insertOne, so manually add insertedCount of 1.
-		countT, countData, _ := bson.MarshalValue(1)
 		raw = bsoncore.NewDocumentBuilder().
-			AppendValue("insertedId", bsoncore.Value{Type: idT, Data: idData}).
-			AppendValue("insertedCount", bsoncore.Value{Type: countT, Data: countData}).
+			AppendValue("insertedId", bsoncore.Value{Type: t, Data: data}).
 			Build()
 	}
 	return newDocumentResult(raw, err), nil
