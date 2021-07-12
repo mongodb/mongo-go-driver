@@ -221,7 +221,7 @@ func TestWriteErrorsDetails(t *testing.T) {
 				assert.True(
 					mt,
 					sErr.HasErrorCode(121),
-					"expected mongo.WriteException to have error code 121 (DocumentValidationFailure)")
+					"expected mongo.ServerError to have error code 121 (DocumentValidationFailure)")
 
 				var details bson.Raw
 				if tc.expectBulkError {
@@ -229,30 +229,34 @@ func TestWriteErrorsDetails(t *testing.T) {
 					assert.True(
 						mt,
 						ok,
-						"expected error to be type mongo.BulkWriteException, got type = %T",
+						"expected error to be type mongo.BulkWriteException, got type %T (error %q)",
+						err,
 						err)
 					// Assert that there is one WriteError and that the Details field is populated.
 					assert.Equal(
 						mt,
 						1,
 						len(bwe.WriteErrors),
-						"expected exactly 1 write error, but got %d",
-						len(bwe.WriteErrors))
+						"expected exactly 1 write error, but got %d write errors (error %q)",
+						len(bwe.WriteErrors),
+						err)
 					details = bwe.WriteErrors[0].Details
 				} else {
 					we, ok := err.(mongo.WriteException)
 					assert.True(
 						mt,
 						ok,
-						"expected error to be type mongo.WriteException, got type = %T",
+						"expected error to be type mongo.WriteException, got type %T (error %q)",
+						err,
 						err)
 					// Assert that there is one WriteError and that the Details field is populated.
 					assert.Equal(
 						mt,
 						1,
 						len(we.WriteErrors),
-						"expected exactly 1 write error, but got %d",
-						len(we.WriteErrors))
+						"expected exactly 1 write error, but got %d write errors (error %q)",
+						len(we.WriteErrors),
+						err)
 					details = we.WriteErrors[0].Details
 				}
 
