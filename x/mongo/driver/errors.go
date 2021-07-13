@@ -187,6 +187,7 @@ type WriteError struct {
 	Index   int64
 	Code    int64
 	Message string
+	Details bsoncore.Document
 }
 
 func (we WriteError) Error() string { return we.Message }
@@ -410,6 +411,10 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 				}
 				if msg, exists := doc.Lookup("errmsg").StringValueOK(); exists {
 					we.Message = msg
+				}
+				if info, exists := doc.Lookup("errInfo").DocumentOK(); exists {
+					we.Details = make([]byte, len(info))
+					copy(we.Details, info)
 				}
 				wcError.WriteErrors = append(wcError.WriteErrors, we)
 			}

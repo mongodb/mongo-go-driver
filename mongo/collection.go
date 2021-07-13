@@ -376,12 +376,8 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	bwErrors := make([]BulkWriteError, 0, len(writeException.WriteErrors))
 	for _, we := range writeException.WriteErrors {
 		bwErrors = append(bwErrors, BulkWriteError{
-			WriteError{
-				Index:   we.Index,
-				Code:    we.Code,
-				Message: we.Message,
-			},
-			nil,
+			WriteError: we,
+			Request:    nil,
 		})
 	}
 
