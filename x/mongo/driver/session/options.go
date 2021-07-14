@@ -14,9 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-// DefaultCausalConsistency is the default value for the CausalConsistency option.
-var DefaultCausalConsistency = true
-
 // ClientOptions represents all possible options for creating a client session.
 type ClientOptions struct {
 	CausalConsistency     *bool
@@ -59,10 +56,6 @@ func mergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.Snapshot != nil {
 			c.Snapshot = opt.Snapshot
 		}
-	}
-
-	if c.CausalConsistency == nil && (c.Snapshot == nil || !*c.Snapshot) {
-		c.CausalConsistency = &DefaultCausalConsistency
 	}
 
 	return c

@@ -8,7 +8,6 @@ package integration
 
 import (
 	"bytes"
-	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -188,14 +187,6 @@ func TestSessions(t *testing.T) {
 				assert.Equal(mt, mongo.ErrWrongClient, err, "expected error %v, got %v", mongo.ErrWrongClient, err)
 			})
 		}
-	})
-	mt.Run("causalConsistency and Snapshot true", func(mt *mtest.T) {
-		// causalConsistency and snapshot are mutually exclusive
-		sessOpts := options.Session().SetCausalConsistency(true).SetSnapshot(true)
-		_, err := mt.Client.StartSession(sessOpts)
-		assert.NotNil(mt, err, "expected StartSession error, got nil")
-		expectedErr := errors.New("causal consistency and snapshot cannot both be set for a session")
-		assert.Equal(mt, expectedErr, err, "expected error %v, got %v", expectedErr, err)
 	})
 	mt.RunOpts("ended session", noClientOpts, func(mt *mtest.T) {
 		// an ended session cannot be used in commands

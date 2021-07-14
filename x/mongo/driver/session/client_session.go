@@ -180,15 +180,12 @@ func MaxClusterTime(ct1, ct2 bson.Raw) bson.Raw {
 
 // NewClientSession creates a Client.
 func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...*ClientOptions) (*Client, error) {
+	mergedOpts := mergeClientOptions(opts...)
+
 	c := &Client{
 		ClientID:    clientID,
 		SessionType: sessionType,
 		pool:        pool,
-	}
-
-	mergedOpts := mergeClientOptions(opts...)
-	if mergedOpts.CausalConsistency != nil {
-		c.Consistent = *mergedOpts.CausalConsistency
 	}
 	if mergedOpts.DefaultReadPreference != nil {
 		c.transactionRp = mergedOpts.DefaultReadPreference
@@ -204,6 +201,13 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...
 	}
 	if mergedOpts.Snapshot != nil {
 		c.Snapshot = *mergedOpts.Snapshot
+	}
+
+	// The default for causalConsistency is true, unless Snapshot is enabled, then it's false. Set
+	// the default and then allow any explicit causalConsistency setting to override it.
+	c.Consistent = !c.Snapshot
+	if mergedOpts.CausalConsistency != nil {
+		c.Consistent = *mergedOpts.CausalConsistency
 	}
 
 	if c.Consistent && c.Snapshot {
