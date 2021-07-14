@@ -199,6 +199,7 @@ type Operation struct {
 	// ServerAPI specifies options used to configure the API version sent to the server.
 	ServerAPI *ServerAPIOptions
 
+	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
 }
 

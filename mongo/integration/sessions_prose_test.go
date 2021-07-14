@@ -10,12 +10,7 @@ import (
 )
 
 func TestSessionsProse(t *testing.T) {
-	mtOpts := mtest.NewOptions().
-		MinServerVersion("5.0").
-		Topologies(mtest.ReplicaSet, mtest.Sharded).
-		CreateClient(false)
-	mt := mtest.New(t, mtOpts)
-
+	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 	mt.Run("causalConsistency and Snapshot true", func(mt *mtest.T) {
 		// causalConsistency and snapshot are mutually exclusive
 		sessOpts := options.Session().SetCausalConsistency(true).SetSnapshot(true)

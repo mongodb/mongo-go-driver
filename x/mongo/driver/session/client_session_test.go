@@ -194,4 +194,113 @@ func TestClientSession(t *testing.T) {
 			t.Errorf("expected error, got %v", err)
 		}
 	})
+
+	t.Run("causal consistency and snapshot", func(t *testing.T) {
+		falseVal := false
+		trueVal := true
+
+		testCases := []struct {
+			description        string
+			consistent         *bool
+			snapshot           *bool
+			expectedConsistent bool
+			expectedSnapshot   bool
+			shouldErr          bool
+		}{
+			{
+				"both unset",
+				nil,
+				nil,
+				true,
+				false,
+				false,
+			},
+			{
+				"both false",
+				&falseVal,
+				&falseVal,
+				false,
+				false,
+				false,
+			},
+			{
+				"both true",
+				&trueVal,
+				&trueVal,
+				true,
+				true,
+				true,
+			},
+			{
+				"cc unset snapshot true",
+				nil,
+				&trueVal,
+				false,
+				true,
+				false,
+			},
+			{
+				"cc unset snapshot false",
+				nil,
+				&falseVal,
+				true,
+				false,
+				false,
+			},
+			{
+				"cc true snapshot unset",
+				&trueVal,
+				nil,
+				true,
+				false,
+				false,
+			},
+			{
+				"cc false snapshot unset",
+				&falseVal,
+				nil,
+				false,
+				false,
+				false,
+			},
+			{
+				"cc false snapshot true",
+				&falseVal,
+				&trueVal,
+				false,
+				true,
+				false,
+			},
+			{
+				"cc true snapshot false",
+				&trueVal,
+				&falseVal,
+				true,
+				false,
+				false,
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.description, func(t *testing.T) {
+				sessOpts := &ClientOptions{
+					CausalConsistency: tc.consistent,
+					Snapshot:          tc.snapshot,
+				}
+
+				id, _ := uuid.New()
+				sess, err := NewClientSession(&Pool{}, id, Explicit, sessOpts)
+				if tc.shouldErr {
+					require.NotNil(t, err, "expected NewClientSession error; got nil")
+				} else {
+					require.Nil(t, err, "unexpected NewClientSession error %v", err)
+
+					require.Equal(t, tc.expectedConsistent, sess.Consistent,
+						"expected Consistent to be %v, got %v", tc.expectedConsistent, sess.Consistent)
+					require.Equal(t, tc.expectedSnapshot, sess.Snapshot,
+						"expected Snapshot to be %v, got %v", tc.expectedSnapshot, sess.Snapshot)
+				}
+			})
+		}
+	})
 }
