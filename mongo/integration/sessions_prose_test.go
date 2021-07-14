@@ -11,7 +11,7 @@ import (
 
 func TestSessionsProse(t *testing.T) {
 	mtOpts := mtest.NewOptions().
-		MinServerVersion("3.6").
+		MinServerVersion("5.0").
 		Topologies(mtest.ReplicaSet, mtest.Sharded).
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)

@@ -198,6 +198,8 @@ type Operation struct {
 
 	// ServerAPI specifies options used to configure the API version sent to the server.
 	ServerAPI *ServerAPIOptions
+
+	cmdName string
 }
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
@@ -392,6 +394,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
+		op.cmdName = startedInfo.cmdName
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
 		op.publishStartedEvent(ctx, startedInfo)
@@ -712,8 +715,12 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 	// everything.
 	op.updateClusterTimes(res)
 	op.updateOperationTime(res)
-	op.Client.UpdateSnapshotTime(res)
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
+
+	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
+	if op.cmdName == "find" || op.cmdName == "aggregate" || op.cmdName == "distinct" {
+		op.Client.UpdateSnapshotTime(res)
+	}
 
 	if err != nil {
 		return res, err
