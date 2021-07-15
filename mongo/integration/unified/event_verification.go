@@ -202,6 +202,16 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 			if expected.Reply != nil {
 				expectedDoc := documentToRawValue(expected.Reply)
 				actualDoc := documentToRawValue(actual.Reply)
+
+				// If actual.Reply is empty, as is the case with redacted replies,
+				// verifyValuesMatch will return an error from DocumentOK() because
+				// there are not enough bytes to read a document from bson.RawValue{}.
+				// In the case of an empty Reply, hardcode an empty bson.RawValue document.
+				if len(actual.Reply) == 0 {
+					emptyDoc := []byte{5, 0, 0, 0, 0}
+					actualDoc = bson.RawValue{Type: bsontype.EmbeddedDocument, Value: emptyDoc}
+				}
+
 				if err := verifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
 					return newEventVerificationError(idx, client, "error comparing reply documents: %v", err)
 				}
