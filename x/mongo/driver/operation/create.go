@@ -37,7 +37,7 @@ type Create struct {
 	session             *session.Client
 	clock               *session.ClusterClock
 	monitor             *event.CommandMonitor
-	crypt               *driver.Crypt
+	crypt               driver.Crypt
 	database            string
 	deployment          driver.Deployment
 	selector            description.ServerSelector
@@ -281,7 +281,7 @@ func (c *Create) CommandMonitor(monitor *event.CommandMonitor) *Create {
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (c *Create) Crypt(crypt *driver.Crypt) *Create {
+func (c *Create) Crypt(crypt driver.Crypt) *Create {
 	if c == nil {
 		c = new(Create)
 	}

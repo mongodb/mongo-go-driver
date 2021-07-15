@@ -27,7 +27,7 @@ type AbortTransaction struct {
 	clock         *session.ClusterClock
 	collection    string
 	monitor       *event.CommandMonitor
-	crypt         *driver.Crypt
+	crypt         driver.Crypt
 	database      string
 	deployment    driver.Deployment
 	selector      description.ServerSelector
@@ -130,7 +130,7 @@ func (at *AbortTransaction) CommandMonitor(monitor *event.CommandMonitor) *Abort
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (at *AbortTransaction) Crypt(crypt *driver.Crypt) *AbortTransaction {
+func (at *AbortTransaction) Crypt(crypt driver.Crypt) *AbortTransaction {
 	if at == nil {
 		at = new(AbortTransaction)
 	}

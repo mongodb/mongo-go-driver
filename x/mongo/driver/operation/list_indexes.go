@@ -31,7 +31,7 @@ type ListIndexes struct {
 	deployment driver.Deployment
 	selector   description.ServerSelector
 	retry      *driver.RetryMode
-	crypt      *driver.Crypt
+	crypt      driver.Crypt
 	serverAPI  *driver.ServerAPIOptions
 
 	result driver.CursorResponse
@@ -205,7 +205,7 @@ func (li *ListIndexes) Retry(retry driver.RetryMode) *ListIndexes {
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (li *ListIndexes) Crypt(crypt *driver.Crypt) *ListIndexes {
+func (li *ListIndexes) Crypt(crypt driver.Crypt) *ListIndexes {
 	if li == nil {
 		li = new(ListIndexes)
 	}

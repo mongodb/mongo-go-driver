@@ -71,7 +71,7 @@ type Client struct {
 	keyVaultClientFLE *Client
 	keyVaultCollFLE   *Collection
 	mongocryptdFLE    *mcryptClient
-	cryptFLE          *driver.Crypt
+	cryptFLE          driver.Crypt
 	metadataClientFLE *Client
 	internalClientFLE *Client
 }
@@ -619,6 +619,8 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		if err := c.configureAutoEncryption(opts); err != nil {
 			return err
 		}
+	} else {
+		c.cryptFLE = opts.Crypt
 	}
 
 	// OCSP cache

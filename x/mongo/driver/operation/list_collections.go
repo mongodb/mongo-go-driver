@@ -27,7 +27,7 @@ type ListCollections struct {
 	session        *session.Client
 	clock          *session.ClusterClock
 	monitor        *event.CommandMonitor
-	crypt          *driver.Crypt
+	crypt          driver.Crypt
 	database       string
 	deployment     driver.Deployment
 	readPreference *readpref.ReadPref
@@ -159,7 +159,7 @@ func (lc *ListCollections) CommandMonitor(monitor *event.CommandMonitor) *ListCo
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (lc *ListCollections) Crypt(crypt *driver.Crypt) *ListCollections {
+func (lc *ListCollections) Crypt(crypt driver.Crypt) *ListCollections {
 	if lc == nil {
 		lc = new(ListCollections)
 	}

@@ -509,7 +509,7 @@ func (b Builtin) Type() string {
 	case Deployment:
 		t = "driver.Deployment"
 	case Crypt:
-		t = "*driver.Crypt"
+		t = "driver.Crypt"
 	}
 	return t
 }

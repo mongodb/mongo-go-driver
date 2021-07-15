@@ -94,7 +94,7 @@ type changeStreamConfig struct {
 	streamType     StreamType
 	collectionName string
 	databaseName   string
-	crypt          *driver.Crypt
+	crypt          driver.Crypt
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
