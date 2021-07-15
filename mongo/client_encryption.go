@@ -22,7 +22,7 @@ import (
 
 // ClientEncryption is used to create data keys and explicitly encrypt and decrypt BSON values.
 type ClientEncryption struct {
-	crypt          *driver.Crypt
+	crypt          driver.Crypt
 	keyVaultClient *Client
 	keyVaultColl   *Collection
 }

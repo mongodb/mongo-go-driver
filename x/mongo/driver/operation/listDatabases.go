@@ -35,7 +35,7 @@ type ListDatabases struct {
 	readPreference      *readpref.ReadPref
 	retry               *driver.RetryMode
 	selector            description.ServerSelector
-	crypt               *driver.Crypt
+	crypt               driver.Crypt
 	serverAPI           *driver.ServerAPIOptions
 
 	result ListDatabasesResult
@@ -307,7 +307,7 @@ func (ld *ListDatabases) Retry(retry driver.RetryMode) *ListDatabases {
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (ld *ListDatabases) Crypt(crypt *driver.Crypt) *ListDatabases {
+func (ld *ListDatabases) Crypt(crypt driver.Crypt) *ListDatabases {
 	if ld == nil {
 		ld = new(ListDatabases)
 	}

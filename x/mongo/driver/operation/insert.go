@@ -30,7 +30,7 @@ type Insert struct {
 	clock                    *session.ClusterClock
 	collection               string
 	monitor                  *event.CommandMonitor
-	crypt                    *driver.Crypt
+	crypt                    driver.Crypt
 	database                 string
 	deployment               driver.Deployment
 	selector                 description.ServerSelector
@@ -195,7 +195,7 @@ func (i *Insert) CommandMonitor(monitor *event.CommandMonitor) *Insert {
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (i *Insert) Crypt(crypt *driver.Crypt) *Insert {
+func (i *Insert) Crypt(crypt driver.Crypt) *Insert {
 	if i == nil {
 		i = new(Insert)
 	}

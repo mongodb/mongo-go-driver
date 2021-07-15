@@ -197,7 +197,7 @@ type Operation struct {
 	CommandMonitor *event.CommandMonitor
 
 	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
-	Crypt *Crypt
+	Crypt Crypt
 
 	// ServerAPI specifies options used to configure the API version sent to the server.
 	ServerAPI *ServerAPIOptions
@@ -212,7 +212,7 @@ type Operation struct {
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
 func (op Operation) shouldEncrypt() bool {
-	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption
+	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption()
 }
 
 // selectServer handles performing server selection for an operation.

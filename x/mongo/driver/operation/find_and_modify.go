@@ -45,7 +45,7 @@ type FindAndModify struct {
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	retry                    *driver.RetryMode
-	crypt                    *driver.Crypt
+	crypt                    driver.Crypt
 	hint                     bsoncore.Value
 	serverAPI                *driver.ServerAPIOptions
 
@@ -410,7 +410,7 @@ func (fam *FindAndModify) Retry(retry driver.RetryMode) *FindAndModify {
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (fam *FindAndModify) Crypt(crypt *driver.Crypt) *FindAndModify {
+func (fam *FindAndModify) Crypt(crypt driver.Crypt) *FindAndModify {
 	if fam == nil {
 		fam = new(FindAndModify)
 	}
