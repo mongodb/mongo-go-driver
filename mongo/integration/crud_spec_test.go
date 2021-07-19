@@ -67,7 +67,7 @@ func TestCrudSpec(t *testing.T) {
 }
 
 func verifyServerlessConstraint(mt *mtest.T, expected string) error {
-	serverless := os.Getenv("serverless") == "serverless"
+	serverless := os.Getenv("SERVERLESS") == "serverless"
 
 	switch expected {
 	case "require":
