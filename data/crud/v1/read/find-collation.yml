@@ -1,6 +1,7 @@
 data:
     - {_id: 1, x: 'ping'}
 minServerVersion: '3.4'
+serverless: 'forbid'
 
 tests:
     -
