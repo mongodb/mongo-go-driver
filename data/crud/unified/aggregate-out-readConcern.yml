@@ -2,13 +2,14 @@
 # Please review the generated file, then remove this notice.
 
 description: aggregate-out-readConcern
-schemaVersion: '1.0'
+schemaVersion: '1.4'
 runOnRequirements:
   -
     minServerVersion: 4.1.0
     topologies:
       - replicaset
       - sharded
+    serverless: "forbid"
 createEntities:
   -
     client:

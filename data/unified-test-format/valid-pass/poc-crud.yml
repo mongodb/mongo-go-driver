@@ -144,6 +144,7 @@ tests:
     runOnRequirements:
       - minServerVersion: "4.1.0"
         topologies: [ replicaset, sharded-replicaset ]
+        serverless: "forbid"
     operations:
       - name: aggregate
         object: *collection2

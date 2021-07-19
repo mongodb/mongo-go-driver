@@ -323,7 +323,8 @@
           "topologies": [
             "replicaset",
             "sharded-replicaset"
-          ]
+          ],
+          "serverless": "forbid"
         }
       ],
       "operations": [
