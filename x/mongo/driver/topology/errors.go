@@ -66,6 +66,7 @@ type WaitQueueTimeoutError struct {
 	PinnedCursorConnections      uint64
 	PinnedTransactionConnections uint64
 	maxPoolSize                  uint64
+	totalConnectionCount         int
 }
 
 // Error implements the error interface.
@@ -75,10 +76,14 @@ func (w WaitQueueTimeoutError) Error() string {
 		errorMsg = fmt.Sprintf("%s: %s", errorMsg, w.Wrapped.Error())
 	}
 
-	errorMsg = fmt.Sprintf("%s; maxPoolSize: %d, connections in use by cursors: %d, connections in use by transactions: %d",
-		errorMsg, w.maxPoolSize, w.PinnedCursorConnections, w.PinnedTransactionConnections)
-	return fmt.Sprintf("%s, connections in use by other operations: %d", errorMsg,
-		w.maxPoolSize-(w.PinnedCursorConnections+w.PinnedTransactionConnections))
+	return fmt.Sprintf(
+		"%s; maxPoolSize: %d, connections in use by cursors: %d"+
+			", connections in use by transactions: %d, connections in use by other operations: %d",
+		errorMsg,
+		w.maxPoolSize,
+		w.PinnedCursorConnections,
+		w.PinnedTransactionConnections,
+		uint64(w.totalConnectionCount)-w.PinnedCursorConnections-w.PinnedTransactionConnections)
 }
 
 // Unwrap returns the underlying error.

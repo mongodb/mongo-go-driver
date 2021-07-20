@@ -47,46 +47,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 	// blockConnection and appName.
 	mt.RunOpts("before handshake completes", baseMtOpts().Auth(true).MinServerVersion("4.4"), func(mt *mtest.T) {
 		mt.RunOpts("network errors", noClientOpts, func(mt *mtest.T) {
-			mt.Run("pool not cleared on operation-scoped network timeout", func(mt *mtest.T) {
-				// Assert that the pool is not cleared when a connection created by an application
-				// operation thread encounters an operation timeout during handshaking. Unlike the
-				// non-timeout test below, we only test connections created in the foreground for
-				// timeouts because connections created by the pool maintenance routine can't be
-				// timed out using a context.
-
-				appName := "authOperationTimeoutTest"
-				// Set failpoint on saslContinue instead of saslStart because saslStart isn't done when using
-				// speculative auth.
-				mt.SetFailPoint(mtest.FailPoint{
-					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
-						Times: 1,
-					},
-					Data: mtest.FailPointData{
-						FailCommands:    []string{"saslContinue"},
-						BlockConnection: true,
-						BlockTimeMS:     150,
-						AppName:         appName,
-					},
-				})
-
-				// Reset the client with the appName specified in the failpoint and the pool monitor.
-				tpm := newTestPoolMonitor()
-				mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
-
-				// Use a context with a 100ms timeout so that the saslContinue delay of 150ms causes
-				// an operation-scoped context timeout (i.e. a timeout not caused by a client timeout
-				// like connectTimeoutMS or socketTimeoutMS).
-				timeoutCtx, cancel := context.WithTimeout(mtest.Background, 100*time.Millisecond)
-				defer cancel()
-				_, err := mt.Coll.InsertOne(timeoutCtx, bson.D{{"test", 1}})
-				assert.NotNil(mt, err, "expected InsertOne error, got nil")
-				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
-				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
-				assert.False(mt, tpm.IsPoolCleared(), "expected pool not to be cleared but was cleared")
-			})
-
-			mt.Run("pool cleared on non-operation-scoped network timeout", func(mt *mtest.T) {
+			mt.Run("pool cleared on network timeout", func(mt *mtest.T) {
 				// Assert that the pool is cleared when a connection created by an application
 				// operation thread encounters a timeout caused by connectTimeoutMS during
 				// handshaking.

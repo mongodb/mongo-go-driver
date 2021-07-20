@@ -264,8 +264,8 @@ func TestConnection(t *testing.T) {
 					// both of the tests declared below. Both tests also specify a 10ms max connect time to provide
 					// a large buffer for lag and avoid test flakiness.
 
-					{"context timeout is lower", 1 * time.Millisecond, 100 * time.Millisecond, 10 * time.Millisecond},
-					{"connect timeout is lower", 100 * time.Millisecond, 1 * time.Millisecond, 10 * time.Millisecond},
+					{"context timeout is lower", 1 * time.Millisecond, 100 * time.Millisecond, 50 * time.Millisecond},
+					{"connect timeout is lower", 100 * time.Millisecond, 1 * time.Millisecond, 50 * time.Millisecond},
 				}
 
 				for _, tc := range testCases {
@@ -839,18 +839,19 @@ func TestConnection(t *testing.T) {
 			makeMultipleConnections := func(t *testing.T, numConns int) (*pool, []*Connection) {
 				t.Helper()
 
-				addr := address.Address("")
-				pool, err := newPool(poolConfig{Address: addr})
+				addr := bootstrapConnections(t, 3, func(nc net.Conn) {})
+				pool, err := newPool(poolConfig{
+					Address: address.Address(addr.String()),
+				})
 				assert.Nil(t, err, "newPool error: %v", err)
 
-				err = pool.sem.Acquire(context.Background(), int64(numConns))
-				assert.Nil(t, err, "error acquiring semaphore: %v", err)
+				err = pool.connect()
+				assert.Nil(t, err, "pool.connect() error: %v", err)
 
 				conns := make([]*Connection, 0, numConns)
 				for i := 0; i < numConns; i++ {
-					conn, err := newConnection(addr)
-					assert.Nil(t, err, "newConnection error: %v", err)
-					conn.pool = pool
+					conn, err := pool.checkOut(context.Background())
+					assert.Nil(t, err, "checkOut error: %v", err)
 					conns = append(conns, &Connection{connection: conn})
 				}
 				return pool, conns
@@ -873,6 +874,10 @@ func TestConnection(t *testing.T) {
 
 			t.Run("cursors", func(t *testing.T) {
 				pool, conn := makeOneConnection(t)
+				defer func() {
+					_ = pool.disconnect(context.Background())
+				}()
+
 				err := conn.PinToCursor()
 				assert.Nil(t, err, "PinToCursor error: %v", err)
 				assertPoolPinnedStats(t, pool, 1, 0)
@@ -886,6 +891,10 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("transactions", func(t *testing.T) {
 				pool, conn := makeOneConnection(t)
+				defer func() {
+					_ = pool.disconnect(context.Background())
+				}()
+
 				err := conn.PinToTransaction()
 				assert.Nil(t, err, "PinToTransaction error: %v", err)
 				assertPoolPinnedStats(t, pool, 0, 1)
@@ -899,6 +908,10 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("pool is only updated for first reference", func(t *testing.T) {
 				pool, conn := makeOneConnection(t)
+				defer func() {
+					_ = pool.disconnect(context.Background())
+				}()
+
 				err := conn.PinToTransaction()
 				assert.Nil(t, err, "PinToTransaction error: %v", err)
 				assertPoolPinnedStats(t, pool, 0, 1)
@@ -921,6 +934,10 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("multiple connections from a pool", func(t *testing.T) {
 				pool, conns := makeMultipleConnections(t, 2)
+				defer func() {
+					_ = pool.disconnect(context.Background())
+				}()
+
 				first, second := conns[0], conns[1]
 
 				err := first.PinToTransaction()
@@ -943,6 +960,10 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("close is ignored if connection is pinned", func(t *testing.T) {
 				pool, conn := makeOneConnection(t)
+				defer func() {
+					_ = pool.disconnect(context.Background())
+				}()
+
 				err := conn.PinToCursor()
 				assert.Nil(t, err, "PinToCursor error: %v", err)
 
@@ -953,6 +974,10 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("expire forcefully returns connection to pool", func(t *testing.T) {
 				pool, conn := makeOneConnection(t)
+				defer func() {
+					_ = pool.disconnect(context.Background())
+				}()
+
 				err := conn.PinToCursor()
 				assert.Nil(t, err, "PinToCursor error: %v", err)
 
