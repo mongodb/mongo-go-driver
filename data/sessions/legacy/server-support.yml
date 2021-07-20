@@ -1,0 +1,97 @@
+runOn:
+  - minServerVersion: "3.6.0"
+
+database_name: &database_name "session-tests"
+collection_name: &collection_name "test"
+
+data:
+  - {_id: 1}
+
+tests:
+  - description: Server supports explicit sessions
+    operations:
+      - name: assertSessionNotDirty
+        object: testRunner
+        arguments:
+          session: session0
+      - &insert_with_explicit_session
+        name: insertOne
+        object: collection
+        arguments:
+          session: session0
+          document: {_id: 2}
+        result:
+          insertedId: 2
+      - name: assertSessionNotDirty
+        object: testRunner
+        arguments:
+          session: session0
+      - name: endSession
+        object: session0
+      - &find_with_implicit_session
+        name: find
+        object: collection
+        arguments:
+          filter: {_id: -1}
+        result: []
+      - name: assertSameLsidOnLastTwoCommands
+        object: testRunner
+
+    expectations:
+      - command_started_event:
+          command:
+            insert: *collection_name
+            documents:
+              - {_id: 2}
+            ordered: true
+            lsid: session0
+          command_name: insert
+          database_name: *database_name
+      - command_started_event:
+          command:
+            find: *collection_name
+            filter: {_id: -1}
+            lsid: session0
+          command_name: find
+          database_name: *database_name
+
+    outcome:
+      collection:
+        data:
+          - {_id: 1}
+          - {_id: 2}
+
+  - description: Server supports implicit sessions
+    operations:
+      - &insert_with_implicit_session
+        name: insertOne
+        object: collection
+        arguments:
+          document: {_id: 2}
+        result:
+          insertedId: 2
+      - *find_with_implicit_session
+      - name: assertSameLsidOnLastTwoCommands
+        object: testRunner
+
+    expectations:
+      - command_started_event:
+          command:
+            insert: *collection_name
+            documents:
+              - {_id: 2}
+            ordered: true
+          command_name: insert
+          database_name: *database_name
+      - command_started_event:
+          command:
+            find: *collection_name
+            filter: {_id: -1}
+          command_name: find
+          database_name: *database_name
+
+    outcome:
+      collection:
+        data:
+          - {_id: 1}
+          - {_id: 2}

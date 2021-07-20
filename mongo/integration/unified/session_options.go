@@ -75,6 +75,7 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 		Causal          *bool                  `bson:"causalConsistency"`
 		MaxCommitTimeMS *int64                 `bson:"maxCommitTimeMS"`
 		TxnOptions      *transactionOptions    `bson:"defaultTransactionOptions"`
+		Snapshot        *bool                  `bson:"snapshot"`
 		Extra           map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
@@ -92,14 +93,19 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 		mctms := time.Duration(*temp.MaxCommitTimeMS) * time.Millisecond
 		so.SetDefaultMaxCommitTime(&mctms)
 	}
-	if rc := temp.TxnOptions.ReadConcern; rc != nil {
-		so.SetDefaultReadConcern(rc)
+	if temp.TxnOptions != nil {
+		if rc := temp.TxnOptions.ReadConcern; rc != nil {
+			so.SetDefaultReadConcern(rc)
+		}
+		if rp := temp.TxnOptions.ReadPreference; rp != nil {
+			so.SetDefaultReadPreference(rp)
+		}
+		if wc := temp.TxnOptions.WriteConcern; wc != nil {
+			so.SetDefaultWriteConcern(wc)
+		}
 	}
-	if rp := temp.TxnOptions.ReadPreference; rp != nil {
-		so.SetDefaultReadPreference(rp)
-	}
-	if wc := temp.TxnOptions.WriteConcern; wc != nil {
-		so.SetDefaultWriteConcern(wc)
+	if temp.Snapshot != nil {
+		so.SetSnapshot(*temp.Snapshot)
 	}
 	return nil
 }

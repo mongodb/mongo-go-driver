@@ -42,6 +42,8 @@ const (
 	cryptMaxBsonObjectSize uint32 = 2097152
 	// minimum wire version necessary to use automatic encryption
 	cryptMinWireVersion int32 = 8
+	// minimum wire version necessary to use read snapshots
+	readSnapshotMinWireVersion int32 = 13
 )
 
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
@@ -196,6 +198,9 @@ type Operation struct {
 
 	// ServerAPI specifies options used to configure the API version sent to the server.
 	ServerAPI *ServerAPIOptions
+
+	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
+	cmdName string
 }
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
@@ -390,6 +395,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
+		op.cmdName = startedInfo.cmdName
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
 		op.publishStartedEvent(ctx, startedInfo)
@@ -712,6 +718,11 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 	op.updateOperationTime(res)
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
+	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
+	if op.cmdName == "find" || op.cmdName == "aggregate" || op.cmdName == "distinct" {
+		op.Client.UpdateSnapshotTime(res)
+	}
+
 	if err != nil {
 		return res, err
 	}
@@ -1012,6 +1023,13 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		rc = readconcern.New()
 	}
 
+	if client != nil && client.Snapshot {
+		if desc.WireVersion.Max < readSnapshotMinWireVersion {
+			return dst, errors.New("snapshot reads require MongoDB 5.0 or later")
+		}
+		rc = readconcern.Snapshot()
+	}
+
 	if rc == nil {
 		return dst, nil
 	}
@@ -1021,10 +1039,17 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		return dst, err
 	}
 
-	if sessionsSupported(desc.WireVersion) && client != nil && client.Consistent && client.OperationTime != nil {
-		data = data[:len(data)-1] // remove the null byte
-		data = bsoncore.AppendTimestampElement(data, "afterClusterTime", client.OperationTime.T, client.OperationTime.I)
-		data, _ = bsoncore.AppendDocumentEnd(data, 0)
+	if sessionsSupported(desc.WireVersion) && client != nil {
+		if client.Consistent && client.OperationTime != nil {
+			data = data[:len(data)-1] // remove the null byte
+			data = bsoncore.AppendTimestampElement(data, "afterClusterTime", client.OperationTime.T, client.OperationTime.I)
+			data, _ = bsoncore.AppendDocumentEnd(data, 0)
+		}
+		if client.Snapshot && client.SnapshotTime != nil {
+			data = data[:len(data)-1] // remove the null byte
+			data = bsoncore.AppendTimestampElement(data, "atClusterTime", client.SnapshotTime.T, client.SnapshotTime.I)
+			data, _ = bsoncore.AppendDocumentEnd(data, 0)
+		}
 	}
 
 	if len(data) == bsoncore.EmptyDocumentLength {
