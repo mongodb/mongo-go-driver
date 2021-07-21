@@ -311,7 +311,7 @@ func addCompressors(uri string) string {
 	return addOptions(uri, "compressors=", comp)
 }
 
-func addAuthCredentials(uri string) (string, error) {
+func addServerlessAuthCredentials(uri string) (string, error) {
 	if os.Getenv("SERVERLESS") != "serverless" {
 		return uri, nil
 	}
@@ -354,7 +354,7 @@ func getClusterConnString() (connstring.ConnString, error) {
 func addNecessaryParamsToURI(uri string) (string, error) {
 	uri = addTLSConfig(uri)
 	uri = addCompressors(uri)
-	return addAuthCredentials(uri)
+	return addServerlessAuthCredentials(uri)
 }
 
 // CompareServerVersions compares two version number strings (i.e. positive integers separated by

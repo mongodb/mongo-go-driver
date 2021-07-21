@@ -346,7 +346,7 @@ func TestAggregatePrimaryPreferredReadPreference(t *testing.T) {
 
 	mt := mtest.New(t, mtOpts)
 	mt.Run("aggregate $out with non-primary read preference", func(mt *mtest.T) {
-		// $out is not allowed on serverless instances.
+		// DRIVERS-1836 $out is not allowed on serverless instances.
 		if os.Getenv("SERVERLESS") == "serverless" {
 			mt.Skip("test forbids serverless")
 		}

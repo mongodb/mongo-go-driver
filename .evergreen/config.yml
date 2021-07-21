@@ -1749,6 +1749,8 @@ tasks:
     tags: ["serverless"]
     commands:
       - func: "run-serverless-tests"
+        vars:
+          MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
 axes:
   - id: version
@@ -1928,7 +1930,7 @@ task_groups:
       - command: shell.exec
         params:
           script: |
-            ${PREPARE_SHELL}          
+            ${PREPARE_SHELL}
 
             SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
             SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
@@ -2097,6 +2099,6 @@ buildvariants:
 
   - matrix_name: "serverless"
     matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-16"] }
-    display_name: "Serverless ${os-aws-auth}"
+    display_name: "Serverless ${os-ssl-40}"
     tasks:
       - "serverless_task_group"
