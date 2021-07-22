@@ -16,7 +16,7 @@
   },
   "operation": "read",
   "read_preference": {
-    "mode": "SecondaryPreferred",
+    "mode": "Nearest",
     "tag_sets": [
       {
         "data_center": "nyc"

@@ -14,9 +14,9 @@
       }
     ]
   },
-  "operation": "read",
+  "operation": "write",
   "read_preference": {
-    "mode": "SecondaryPreferred",
+    "mode": "PrimaryPreferred",
     "tag_sets": [
       {
         "data_center": "nyc"

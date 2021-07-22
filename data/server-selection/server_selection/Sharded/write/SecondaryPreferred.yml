@@ -5,14 +5,10 @@ topology_description:
     address: g:27017
     avg_rtt_ms: 5
     type: Mongos
-    tags:
-      data_center: nyc
   - &2
     address: h:27017
     avg_rtt_ms: 35
     type: Mongos
-    tags:
-      data_center: dc
 operation: write
 read_preference:
   mode: SecondaryPreferred

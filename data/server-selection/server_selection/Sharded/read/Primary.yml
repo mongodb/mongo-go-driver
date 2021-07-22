@@ -11,9 +11,7 @@ topology_description:
     type: Mongos
 operation: read
 read_preference:
-  mode: SecondaryPreferred
-  tag_sets:
-  - data_center: nyc
+  mode: Primary
 suitable_servers:
 - *1
 - *2

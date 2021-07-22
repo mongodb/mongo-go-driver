@@ -14,14 +14,9 @@
       }
     ]
   },
-  "operation": "read",
+  "operation": "write",
   "read_preference": {
-    "mode": "SecondaryPreferred",
-    "tag_sets": [
-      {
-        "data_center": "nyc"
-      }
-    ]
+    "mode": "Primary"
   },
   "suitable_servers": [
     {

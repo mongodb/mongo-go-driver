@@ -5,18 +5,12 @@
       {
         "address": "g:27017",
         "avg_rtt_ms": 5,
-        "type": "Mongos",
-        "tags": {
-          "data_center": "nyc"
-        }
+        "type": "Mongos"
       },
       {
         "address": "h:27017",
         "avg_rtt_ms": 35,
-        "type": "Mongos",
-        "tags": {
-          "data_center": "dc"
-        }
+        "type": "Mongos"
       }
     ]
   },
@@ -33,28 +27,19 @@
     {
       "address": "g:27017",
       "avg_rtt_ms": 5,
-      "type": "Mongos",
-      "tags": {
-        "data_center": "nyc"
-      }
+      "type": "Mongos"
     },
     {
       "address": "h:27017",
       "avg_rtt_ms": 35,
-      "type": "Mongos",
-      "tags": {
-        "data_center": "dc"
-      }
+      "type": "Mongos"
     }
   ],
   "in_latency_window": [
     {
       "address": "g:27017",
       "avg_rtt_ms": 5,
-      "type": "Mongos",
-      "tags": {
-        "data_center": "nyc"
-      }
+      "type": "Mongos"
     }
   ]
 }
