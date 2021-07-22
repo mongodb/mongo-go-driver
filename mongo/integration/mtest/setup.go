@@ -320,7 +320,7 @@ func addServerlessAuthCredentials(uri string) (string, error) {
 		return "", fmt.Errorf("serverless expects SERVERLESS_ATLAS_USER to be set")
 	}
 	password := os.Getenv("SERVERLESS_ATLAS_PASSWORD")
-	if user == "" || password == "" {
+	if password == "" {
 		return "", fmt.Errorf("serverless expects SERVERLESS_ATLAS_PASSWORD to be set")
 	}
 
