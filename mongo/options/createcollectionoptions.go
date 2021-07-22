@@ -110,10 +110,20 @@ type CreateCollectionOptions struct {
 	// collection.
 	Validator interface{}
 
-	// Value indicating after how many seconds old time-series data should be deleted.
+	// Value indicating after how many seconds old time-series data should be deleted. See
+	// https://docs.mongodb.com/manual/reference/command/create/ for supported options, and
+	// https://docs.mongodb.com/manual/core/timeseries-collections/ for more information on time-series
+	// collections.
+	//
+	// This option is only valid for MongoDB versions >= 5.0
 	ExpireAfterSeconds *int64
 
-	// Options for specifying a time-series collection.
+	// Options for specifying a time-series collection. See
+	// https://docs.mongodb.com/manual/reference/command/create/ for supported options, and
+	// https://docs.mongodb.com/manual/core/timeseries-collections/ for more information on time-series
+	// collections.
+	//
+	// This option is only valid for MongoDB versions >= 5.0
 	TimeSeriesOptions *TimeSeriesOptions
 }
 
