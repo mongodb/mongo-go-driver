@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -85,7 +86,9 @@ func isExpectedKillAllSessionsError(err error) bool {
 	}
 
 	_, ok = killAllSessionsErrorCodes[cmdErr.Code]
-	return ok
+	// for SERVER-54216 on atlas
+	atlasUnauthorized := strings.Contains(err.Error(), "(AtlasError) (Unauthorized)")
+	return ok || atlasUnauthorized
 }
 
 // kill all open sessions on the server. This function uses mt.GlobalClient() because killAllSessions is not allowed

@@ -1,6 +1,6 @@
 description: "aggregate-let"
 
-schemaVersion: "1.0"
+schemaVersion: "1.4"
 
 createEntities:
   - client:
@@ -126,6 +126,7 @@ tests:
   - description: "Aggregate to collection with let option"
     runOnRequirements:
       - minServerVersion: "5.0"
+        serverless: "forbid"
     operations:
       - name: aggregate
         object: *collection0

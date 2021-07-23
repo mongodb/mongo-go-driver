@@ -1,6 +1,6 @@
 description: "CRUD Api Version 1 (strict)"
 
-schemaVersion: "1.1"
+schemaVersion: "1.4"
 
 runOnRequirements:
   - minServerVersion: "4.9"
@@ -62,6 +62,10 @@ tests:
                 <<: *expectedApiVersion
 
   - description: "aggregate on database appends declared API version"
+    runOnRequirements:
+        # serverless does not support either of the current database-level aggregation stages ($listLocalSessions and
+        # $currentOp)
+      - serverless: "forbid"
     operations:
       - name: aggregate
         object: *adminDatabase

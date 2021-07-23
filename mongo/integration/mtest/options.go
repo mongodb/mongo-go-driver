@@ -54,6 +54,7 @@ type RunOnBlock struct {
 	MinServerVersion string                   `bson:"minServerVersion"`
 	MaxServerVersion string                   `bson:"maxServerVersion"`
 	Topology         []TopologyKind           `bson:"topology"`
+	Serverless       string                   `bson:"serverless"`
 	ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
 	Auth             *bool                    `bson:"auth"`
 }
@@ -66,6 +67,7 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 		MaxServerVersion string                   `bson:"maxServerVersion"`
 		Topology         []TopologyKind           `bson:"topology"`
 		Topologies       []TopologyKind           `bson:"topologies"`
+		Serverless       string                   `bson:"serverless"`
 		ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
 		Auth             *bool                    `bson:"auth"`
 		Extra            map[string]interface{}   `bson:",inline"`
@@ -79,6 +81,7 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 
 	r.MinServerVersion = temp.MinServerVersion
 	r.MaxServerVersion = temp.MaxServerVersion
+	r.Serverless = temp.Serverless
 	r.ServerParameters = temp.ServerParameters
 	r.Auth = temp.Auth
 

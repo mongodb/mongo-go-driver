@@ -703,6 +703,23 @@ func verifyAuthConstraint(expected *bool) error {
 	return nil
 }
 
+func verifyServerlessConstraint(expected string) error {
+	switch expected {
+	case "require":
+		if !testContext.serverless {
+			return fmt.Errorf("test requires serverless")
+		}
+	case "forbid":
+		if testContext.serverless {
+			return fmt.Errorf("test forbids serverless")
+		}
+	case "allow", "":
+	default:
+		return fmt.Errorf("invalid value for serverless: %s", expected)
+	}
+	return nil
+}
+
 // verifyRunOnBlockConstraint returns an error if the current environment does not match the provided RunOnBlock.
 func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyVersionConstraints(rob.MinServerVersion, rob.MaxServerVersion); err != nil {
@@ -712,6 +729,9 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 		return err
 	}
 	if err := verifyAuthConstraint(rob.Auth); err != nil {
+		return err
+	}
+	if err := verifyServerlessConstraint(rob.Serverless); err != nil {
 		return err
 	}
 

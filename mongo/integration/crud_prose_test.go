@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -345,6 +346,11 @@ func TestAggregatePrimaryPreferredReadPreference(t *testing.T) {
 
 	mt := mtest.New(t, mtOpts)
 	mt.Run("aggregate $out with non-primary read preference", func(mt *mtest.T) {
+		// DRIVERS-1836 $out is not allowed on serverless instances.
+		if os.Getenv("SERVERLESS") == "serverless" {
+			mt.Skip("test forbids serverless")
+		}
+
 		doc, err := bson.Marshal(bson.D{
 			{"_id", 1},
 			{"x", 11},

@@ -1,6 +1,6 @@
 {
   "description": "CRUD Api Version 1 (strict)",
-  "schemaVersion": "1.1",
+  "schemaVersion": "1.4",
   "runOnRequirements": [
     {
       "minServerVersion": "4.9"
@@ -141,6 +141,11 @@
     },
     {
       "description": "aggregate on database appends declared API version",
+      "runOnRequirements": [
+        {
+          "serverless": "forbid"
+        }
+      ],
       "operations": [
         {
           "name": "aggregate",

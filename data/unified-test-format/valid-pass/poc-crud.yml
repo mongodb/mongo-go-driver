@@ -1,6 +1,6 @@
 description: "poc-crud"
 
-schemaVersion: "1.0"
+schemaVersion: "1.4"
 
 createEntities:
   - client:
@@ -144,6 +144,7 @@ tests:
     runOnRequirements:
       - minServerVersion: "4.1.0"
         topologies: [ replicaset, sharded-replicaset ]
+        serverless: "forbid"
     operations:
       - name: aggregate
         object: *collection2
@@ -173,6 +174,9 @@ tests:
   - description: "Aggregate with $listLocalSessions"
     runOnRequirements:
       - minServerVersion: "3.6.0"
+        # serverless does not support either of the current database-level aggregation stages ($listLocalSessions and
+        # $currentOp)
+        serverless: forbid
     operations:
       - name: aggregate
         object: *database1
