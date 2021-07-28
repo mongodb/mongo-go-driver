@@ -9,9 +9,9 @@ topology_description:
     address: h:27017
     avg_rtt_ms: 35
     type: Mongos
-operation: read
+operation: write
 read_preference:
-  mode: SecondaryPreferred
+  mode: Secondary
   tag_sets:
   - data_center: nyc
 suitable_servers:
