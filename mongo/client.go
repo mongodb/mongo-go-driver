@@ -271,6 +271,9 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 
 // StartSession starts a new session configured with the given options.
 //
+// StartSession does not actually communicate with the server and will not error if the client is
+// disconnected.
+//
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
 func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
