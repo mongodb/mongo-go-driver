@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	logger "log"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2802,10 +2803,70 @@ func VersionedAPIDeprecationErrorsExample() {
 
 // End Versioned API Example 4
 
+// VersionedAPIStrictCountExample is an example of using CountDocuments instead of a traditional count
+// with a strict API version since the count command does not belong to API version 1.
+func VersionedAPIStrictCountExample(t *testing.T) {
+	ctx := context.Background()
+	uri := "mongodb://localhost:27017"
+
+	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
+	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
+
+	client, err := mongo.Connect(ctx, clientOpts)
+	require.Nil(t, err, "Connect error: %v", err)
+	defer func() { _ = client.Disconnect(ctx) }()
+
+	// Start Versioned API Example 5
+
+	coll := client.Database("db").Collection("sales")
+	docs := []interface{}{
+		bson.D{{"_id", 1}, {"item", "abc"}, {"price", 10}, {"quantity", 2}, {"date", "2021-01-01T08:00:00Z"}},
+		bson.D{{"_id", 2}, {"item", "jkl"}, {"price", 20}, {"quantity", 1}, {"date", "2021-02-03T09:00:00Z"}},
+		bson.D{{"_id", 3}, {"item", "xyz"}, {"price", 5}, {"quantity", 5}, {"date", "2021-02-03T09:05:00Z"}},
+		bson.D{{"_id", 4}, {"item", "abc"}, {"price", 10}, {"quantity", 10}, {"date", "2021-02-15T08:00:00Z"}},
+		bson.D{{"_id", 5}, {"item", "xyz"}, {"price", 5}, {"quantity", 10}, {"date", "2021-02-15T09:05:00Z"}},
+		bson.D{{"_id", 6}, {"item", "xyz"}, {"price", 5}, {"quantity", 5}, {"date", "2021-02-15T12:05:10Z"}},
+		bson.D{{"_id", 7}, {"item", "xyz"}, {"price", 5}, {"quantity", 10}, {"date", "2021-02-15T14:12:12Z"}},
+		bson.D{{"_id", 8}, {"item", "abc"}, {"price", 10}, {"quantity", 5}, {"date", "2021-03-16T20:20:13Z"}},
+	}
+	_, err = coll.InsertMany(ctx, docs)
+
+	// End Versioned API Example 5
+	defer func() { _ = coll.Drop(ctx) }()
+	require.Nil(t, err, "InsertMany error: %v", err)
+
+	res := client.Database("db").RunCommand(ctx, bson.D{{"count", "sales"}})
+	require.NotNil(t, res.Err(), "expected RunCommand error, got nil")
+	expectedErr := "Provided apiStrict:true, but the command count is not in API Version 1"
+	require.True(t, strings.Contains(res.Err().Error(), expectedErr),
+		"expected RunCommand error to contain %q, got %q", expectedErr, res.Err().Error())
+
+	// Start Versioned API Example 6
+
+	// (APIStrictError) Provided apiStrict:true, but the command count is not in API Version 1.
+
+	// End Versioned API Example 6
+
+	// Start Versioned API Example 7
+
+	count, err := coll.CountDocuments(ctx, bson.D{})
+
+	// End Versioned API Example 7
+	require.Nil(t, err, "CountDocuments error: %v", err)
+	require.Equal(t, count, int64(8), "expected count to be 8, got %v", count)
+
+	// Start Versioned API Example 8
+
+	// 8
+
+	// End Versioned API Example 8
+}
+
 // VersionedAPIExamples runs all versioned API examples.
-func VersionedAPIExamples() {
+func VersionedAPIExamples(t *testing.T) {
 	VersionedAPIExample()
 	VersionedAPIStrictExample()
 	VersionedAPINonStrictExample()
 	VersionedAPIDeprecationErrorsExample()
+	VersionedAPIStrictCountExample(t)
 }
