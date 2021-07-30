@@ -179,7 +179,9 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		PoolMonitor: cfg.poolMonitor,
 	}
 
-	connectionOpts := append(cfg.connectionOpts, withErrorHandlingCallback(s.ProcessHandshakeError))
+	connectionOpts := make([]ConnectionOption, len(cfg.connectionOpts))
+	copy(connectionOpts, cfg.connectionOpts)
+	connectionOpts = append(connectionOpts, withErrorHandlingCallback(s.ProcessHandshakeError))
 	s.pool, err = newPool(pc, connectionOpts...)
 	if err != nil {
 		return nil, err
@@ -649,7 +651,9 @@ func (s *Server) updateDescription(desc description.Server) {
 // createConnection creates a new connection instance but does not call connect on it. The caller must call connect
 // before the connection can be used for network operations.
 func (s *Server) createConnection() (*connection, error) {
-	opts := []ConnectionOption{
+	opts := make([]ConnectionOption, len(s.cfg.connectionOpts))
+	copy(opts, s.cfg.connectionOpts)
+	opts = append(opts,
 		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
@@ -662,8 +666,7 @@ func (s *Server) createConnection() (*connection, error) {
 		// Override any monitors specified in options with nil to avoid monitoring heartbeats.
 		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
 		withPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return nil }),
-	}
-	opts = append(s.cfg.connectionOpts, opts...)
+	)
 
 	return newConnection(s.address, opts...)
 }
