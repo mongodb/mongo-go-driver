@@ -125,7 +125,7 @@ functions:
             # If this was a patch build, doing a fresh clone would not actually test the patch
             cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
           else
-            git clone -b activateVenvTypos git@github.com:benjirewis/drivers-evergreen-tools.git $DRIVERS_TOOLS
+            git clone git://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
           fi
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
@@ -825,7 +825,7 @@ functions:
           cat setup.js
           mongo --nodb setup.js aws_e2e_ecs.js
 
-  start-kms-mock-servers:
+  start-kms-mock-server:
     - command: shell.exec
       type: test
       params:
@@ -833,10 +833,15 @@ functions:
         background: true
         script: |
           ${PREPARE_SHELL}
+          set -o xtrace
+          echo "Logging a mock KMS server!"
+
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate_venv.sh
-          python -u kms_http_server.py --ca_file ../x509gen/ca.pem --cert_file ../x509gen/expired.pem --port 8000 &
-            python -u kms_http_server.py --ca_file ../x509gen/ca.pem --cert_file ../x509gen/wrong-host.pem --port 8001
+          if [ ! -z ${FIRST_RUN} ]; then
+            unset FIRST_RUN
+            . ./activate_venv.sh
+          fi
+          python -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT}
 
   run-kms-tls-test:
     - command: shell.exec
@@ -846,6 +851,7 @@ functions:
         script: |
           ${PREPARE_SHELL}
           export TEST_KMS_TLS=true
+          ps aux
 
           export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
@@ -1713,7 +1719,15 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-      - func: start-kms-mock-servers
+      - func: start-kms-mock-server
+        vars:
+          FIRST_RUN: true
+          CERT_FILE: expired.pem
+          PORT: 9000
+      - func: start-kms-mock-server
+        vars:
+          CERT_FILE: wrong-host.pem
+          PORT: 9001
       - func: run-kms-tls-test
         vars:
           TOPOLOGY: "server"

@@ -1037,7 +1037,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// These tests only run when KMS mock servers are running on localhost:8000 and 8001.
+	// These tests only run when KMS mock servers are running on localhost:9000 and 9001.
 	mt.RunOpts("kms tls tests", noClientOpts, func(mt *mtest.T) {
 		testKmsTls := os.Getenv("TEST_KMS_TLS")
 		if testKmsTls == "" || testKmsTls == "false" {
@@ -1051,12 +1051,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}{
 			{
 				"invalid certificate",
-				8000,
+				9000,
 				"expired",
 			},
 			{
 				"invalid hostname",
-				8001,
+				9001,
 				"SANs",
 			},
 		}
