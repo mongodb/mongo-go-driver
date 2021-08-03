@@ -827,21 +827,18 @@ functions:
 
   start-kms-mock-server:
     - command: shell.exec
-      type: test
       params:
-        working_dir: src
-        background: true
         script: |
           ${PREPARE_SHELL}
-          set -o xtrace
-          echo "Logging a mock KMS server!"
 
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          if [ ! -z ${FIRST_RUN} ]; then
-            unset FIRST_RUN
-            . ./activate_venv.sh
-          fi
-          python -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT}
+          . ./activate_venv.sh
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/csfle
+          ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port 8000
 
   run-kms-tls-test:
     - command: shell.exec
@@ -850,8 +847,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          export TEST_KMS_TLS=true
-          ps aux
+          export KMS_TLS_TESTCASE="${KMS_TLS_TESTCASE}"
 
           export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
@@ -1711,7 +1707,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
 
-  - name: "test-kms-tls"
+  - name: "test-kms-tls-invalid-cert"
     tags: ["kms-tls"]
     commands:
       - func: bootstrap-mongo-orchestration
@@ -1721,15 +1717,28 @@ tasks:
           SSL: "nossl"
       - func: start-kms-mock-server
         vars:
-          FIRST_RUN: true
-          CERT_FILE: expired.pem
-          PORT: 9000
-      - func: start-kms-mock-server
-        vars:
-          CERT_FILE: wrong-host.pem
-          PORT: 9001
+          CERT_FILE: "expired.pem"
       - func: run-kms-tls-test
         vars:
+          KMS_TLS_TESTCASE: "INVALID_CERT"
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+
+  - name: "test-kms-tls-invalid-hostname"
+    tags: ["kms-tls"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-kms-mock-server
+        vars:
+          CERT_FILE: "wrong-host.pem"
+      - func: run-kms-tls-test
+        vars:
+          KMS_TLS_TESTCASE: "INVALID_HOSTNAME"
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
