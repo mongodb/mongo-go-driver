@@ -1078,7 +1078,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					bson.D{
 						{"region", "us-east-1"},
 						{"key", "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0"},
-						{"endpoint", "mongodb://127.0.0.1:8000"},
+						{"endpoint", "127.0.0.1:8000"},
 					},
 				))
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
