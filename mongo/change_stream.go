@@ -50,7 +50,7 @@ var (
 		10107: {}, // NotMaster
 		11600: {}, // InterruptedAtShutdown
 		11602: {}, // InterruptedDueToReplStateChange
-		13435: {}, // NotMasterNoSlaveOk
+		13435: {}, // NotMasterNoSecondaryOK
 		13436: {}, // NotMasterOrSecondary
 		63:    {}, // StaleShardVersion
 		150:   {}, // StaleEpoch

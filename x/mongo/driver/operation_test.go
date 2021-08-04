@@ -438,28 +438,28 @@ func TestOperation(t *testing.T) {
 			})
 		}
 	})
-	t.Run("slaveOK", func(t *testing.T) {
+	t.Run("secondaryOK", func(t *testing.T) {
 		t.Run("description.SelectedServer", func(t *testing.T) {
-			want := wiremessage.SlaveOK
+			want := wiremessage.SecondaryOK
 			desc := description.SelectedServer{
 				Kind:   description.Single,
 				Server: description.Server{Kind: description.RSSecondary},
 			}
-			got := Operation{}.slaveOK(desc)
+			got := Operation{}.secondaryOK(desc)
 			if got != want {
 				t.Errorf("Did not receive expected query flags. got %v; want %v", got, want)
 			}
 		})
 		t.Run("readPreference", func(t *testing.T) {
-			want := wiremessage.SlaveOK
-			got := Operation{ReadPreference: readpref.Secondary()}.slaveOK(description.SelectedServer{})
+			want := wiremessage.SecondaryOK
+			got := Operation{ReadPreference: readpref.Secondary()}.secondaryOK(description.SelectedServer{})
 			if got != want {
 				t.Errorf("Did not receive expected query flags. got %v; want %v", got, want)
 			}
 		})
-		t.Run("not slaveOK", func(t *testing.T) {
+		t.Run("not secondaryOK", func(t *testing.T) {
 			var want wiremessage.QueryFlag
-			got := Operation{}.slaveOK(description.SelectedServer{})
+			got := Operation{}.secondaryOK(description.SelectedServer{})
 			if got != want {
 				t.Errorf("Did not receive expected query flags. got %v; want %v", got, want)
 			}

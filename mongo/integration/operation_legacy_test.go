@@ -197,7 +197,7 @@ func runFindWithOptions(mt *mtest.T) opQuery {
 		{"$orderby", sort},
 	}
 	return opQuery{
-		flags:                wiremessage.QueryFlag(wiremessage.Partial | wiremessage.TailableCursor | wiremessage.NoCursorTimeout | wiremessage.OplogReplay | wiremessage.SlaveOK),
+		flags:                wiremessage.QueryFlag(wiremessage.Partial | wiremessage.TailableCursor | wiremessage.NoCursorTimeout | wiremessage.OplogReplay | wiremessage.SecondaryOK),
 		fullCollectionName:   fullCollName(mt, mt.Coll.Name()),
 		numToSkip:            1,
 		numToReturn:          2,
@@ -215,7 +215,7 @@ func runListCollectionsWithOptions(mt *mtest.T) opQuery {
 		{"$and", bson.A{regexDoc, modifiedFilterDoc}},
 	}
 	return opQuery{
-		flags:              wiremessage.SlaveOK,
+		flags:              wiremessage.SecondaryOK,
 		fullCollectionName: fullCollName(mt, "system.namespaces"),
 		query:              listCollDoc,
 	}
@@ -229,7 +229,7 @@ func runListIndexesWithOptions(mt *mtest.T) opQuery {
 		{"$maxTimeMS", int64(10000)},
 	}
 	return opQuery{
-		flags:              wiremessage.SlaveOK,
+		flags:              wiremessage.SecondaryOK,
 		fullCollectionName: fullCollName(mt, "system.indexes"),
 		numToReturn:        2,
 		query:              listIndexesDoc,

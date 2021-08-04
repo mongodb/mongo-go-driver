@@ -813,7 +813,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 
 func (op Operation) createQueryWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	var info startedInformation
-	flags := op.slaveOK(desc)
+	flags := op.secondaryOK(desc)
 	var wmindex int32
 	info.requestID = wiremessage.NextRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
@@ -1270,13 +1270,13 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 	return doc, nil
 }
 
-func (op Operation) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag {
+func (op Operation) secondaryOK(desc description.SelectedServer) wiremessage.QueryFlag {
 	if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
-		return wiremessage.SlaveOK
+		return wiremessage.SecondaryOK
 	}
 
 	if rp := op.ReadPreference; rp != nil && rp.Mode() != readpref.PrimaryMode {
-		return wiremessage.SlaveOK
+		return wiremessage.SecondaryOK
 	}
 
 	return 0
