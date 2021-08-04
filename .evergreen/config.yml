@@ -827,20 +827,18 @@ functions:
 
   start-kms-mock-server:
     - command: shell.exec
-      type: test
       params:
-        working_dir: src
-        background: true
         script: |
           ${PREPARE_SHELL}
+
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          cat <<EOF > kms_setup.json
-          {
-              "kms_ca_file": "${KMS_CA_FILE}",
-              "kms_cert_file": "${KMS_CERT_FILE}"
-          }
-          EOF
-          mongo --nodb mock_kms.js
+          . ./activate_venv.sh
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/csfle
+          ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port 8000
 
   run-kms-tls-test:
     - command: shell.exec
@@ -1719,8 +1717,7 @@ tasks:
           SSL: "nossl"
       - func: start-kms-mock-server
         vars:
-          KMS_CA_FILE: "ca.pem"
-          KMS_CERT_FILE: "expired.pem"
+          CERT_FILE: "expired.pem"
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_CERT"
@@ -1738,8 +1735,7 @@ tasks:
           SSL: "nossl"
       - func: start-kms-mock-server
         vars:
-          KMS_CA_FILE: "ca.pem"
-          KMS_CERT_FILE: "wrong-host.pem"
+          CERT_FILE: "wrong-host.pem"
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_HOSTNAME"
