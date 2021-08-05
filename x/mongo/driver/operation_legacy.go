@@ -97,7 +97,7 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 	// build options as a byte slice of elements rather than a bsoncore.Document because they will be appended
 	// to another document with $query
 	var optsElems []byte
-	flags := op.slaveOK(desc)
+	flags := op.secondaryOK(desc)
 	var numToSkip, numToReturn, batchSize, limit int32 // numToReturn calculated from batchSize and limit
 	var filter, returnFieldsSelector bsoncore.Document
 	var collName string
@@ -466,7 +466,7 @@ func (op Operation) createLegacyListCollectionsWiremessage(dst []byte, desc desc
 
 	var wmIdx int32
 	wmIdx, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
-	dst = wiremessage.AppendQueryFlags(dst, op.slaveOK(desc))
+	dst = wiremessage.AppendQueryFlags(dst, op.secondaryOK(desc))
 	dst = wiremessage.AppendQueryFullCollectionName(dst, op.getFullCollectionName(listCollectionsNamespace))
 	dst = wiremessage.AppendQueryNumberToSkip(dst, 0)
 	dst = wiremessage.AppendQueryNumberToReturn(dst, batchSize)
@@ -617,7 +617,7 @@ func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc descript
 
 	var wmIdx int32
 	wmIdx, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
-	dst = wiremessage.AppendQueryFlags(dst, op.slaveOK(desc))
+	dst = wiremessage.AppendQueryFlags(dst, op.secondaryOK(desc))
 	dst = wiremessage.AppendQueryFullCollectionName(dst, op.getFullCollectionName(listIndexesNamespace))
 	dst = wiremessage.AppendQueryNumberToSkip(dst, 0)
 	dst = wiremessage.AppendQueryNumberToReturn(dst, batchSize)

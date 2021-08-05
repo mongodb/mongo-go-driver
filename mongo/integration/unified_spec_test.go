@@ -437,6 +437,21 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		fp, err := op.Arguments.LookupErr("failPoint")
 		assert.Nil(mt, err, "failPoint not found in arguments")
 		mt.SetFailPointFromDocument(fp.Document())
+	case "assertSessionTransactionState":
+		stateVal, err := op.Arguments.LookupErr("state")
+		assert.Nil(mt, err, "state not found in arguments")
+		expectedState, ok := stateVal.StringValueOK()
+		assert.True(mt, ok, "state argument is not a string")
+
+		assert.NotNil(mt, clientSession, "expected valid session, got nil")
+		actualState := clientSession.TransactionState.String()
+
+		// actualState should match expectedState, but "in progress" is the same as
+		// "in_progress".
+		stateMatch := actualState == expectedState ||
+			actualState == "in progress" && expectedState == "in_progress"
+		assert.True(mt, stateMatch, "expected transaction state %v, got %v",
+			expectedState, actualState)
 	case "assertSessionPinned":
 		if clientSession.PinnedServer == nil {
 			return errors.New("expected pinned server, got nil")

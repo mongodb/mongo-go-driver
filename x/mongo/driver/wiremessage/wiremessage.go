@@ -78,7 +78,7 @@ type QueryFlag int32
 const (
 	_ QueryFlag = 1 << iota
 	TailableCursor
-	SlaveOK
+	SecondaryOK
 	OplogReplay
 	NoCursorTimeout
 	AwaitData
@@ -92,8 +92,8 @@ func (qf QueryFlag) String() string {
 	if qf&TailableCursor == TailableCursor {
 		strs = append(strs, "TailableCursor")
 	}
-	if qf&SlaveOK == SlaveOK {
-		strs = append(strs, "SlaveOK")
+	if qf&SecondaryOK == SecondaryOK {
+		strs = append(strs, "SecondaryOK")
 	}
 	if qf&OplogReplay == OplogReplay {
 		strs = append(strs, "OplogReplay")

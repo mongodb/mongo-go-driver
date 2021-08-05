@@ -282,7 +282,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 
 				// "not master" errors
 				{"NotMaster", 10107, false},
-				{"NotMasterNoSlaveOk", 13435, false},
+				{"NotMasterNoSecondaryOk", 13435, false},
 			}
 			for _, tc := range testCases {
 				mt.RunOpts(fmt.Sprintf("command error - %s", tc.name), serverErrorsMtOpts, func(mt *mtest.T) {
