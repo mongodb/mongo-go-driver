@@ -1,5 +1,5 @@
 {
-  "description": "Post-4.2 ShutdownInProgress error",
+  "description": "Pre-4.2 ShutdownInProgress error",
   "uri": "mongodb://a/?replicaSet=rs",
   "phases": [
     {
@@ -9,13 +9,14 @@
           "a:27017",
           {
             "ok": 1,
-            "ismaster": true,
+            "helloOk": true,
+            "isWritablePrimary": true,
             "hosts": [
               "a:27017"
             ],
             "setName": "rs",
             "minWireVersion": 0,
-            "maxWireVersion": 8
+            "maxWireVersion": 7
           }
         ]
       ],
@@ -36,12 +37,12 @@
       }
     },
     {
-      "description": "Post-4.2 ShutdownInProgress error marks server Unknown",
+      "description": "Pre-4.2 ShutdownInProgress error marks server Unknown and clears the pool",
       "applicationErrors": [
         {
           "address": "a:27017",
           "when": "afterHandshakeCompletes",
-          "maxWireVersion": 8,
+          "maxWireVersion": 7,
           "type": "command",
           "response": {
             "ok": 0,
