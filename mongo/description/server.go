@@ -22,7 +22,8 @@ import (
 // This type should be used to track the state of a server that was selected to perform an operation.
 type SelectedServer struct {
 	Server
-	Kind TopologyKind
+	Kind    TopologyKind
+	HelloOK bool
 }
 
 // Server contains information about a node in a cluster. This is created from isMaster command responses. If the value
