@@ -99,6 +99,20 @@ func (id ObjectID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(id.Hex())
 }
 
+// MarshalText returns the ObjectID as text
+// Implementing this allows us to use the ObjectID as a map key
+// when marshalling json.
+func (id ObjectID) MarshalText() ([]byte, error) {
+	return []byte(id.Hex()), nil
+}
+
+// UnmarshalText converts a text ObjectID into a byte string
+// Implementing this allows us to use the ObjectID as a map key
+// when marshalling json.
+func (id ObjectID) UnmarshalText(b []byte) error {
+	return id.UnmarshalJSON(b)
+}
+
 // UnmarshalJSON populates the byte slice with the ObjectID. If the byte slice is 24 bytes long, it
 // will be populated with the hex representation of the ObjectID. If the byte slice is twelve bytes
 // long, it will be populated with the BSON representation of the ObjectID. This method also accepts empty strings and

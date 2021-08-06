@@ -172,6 +172,37 @@ func TestCounterOverflow(t *testing.T) {
 	require.Equal(t, uint32(0), objectIDCounter)
 }
 
+func TestObjectID_MarshalJSONMap(t *testing.T) {
+	type mapOID struct {
+		Map map[ObjectID]string
+	}
+
+	oid := NewObjectID()
+	expectedJson := []byte(fmt.Sprintf(`{"Map":{%q:"foo"}}`, oid.Hex()))
+	data := mapOID{
+		Map: map[ObjectID]string{oid: "foo"},
+	}
+
+	out, err := json.Marshal(&data)
+	require.NoError(t, err)
+	require.Equal(t, expectedJson, out)
+}
+
+func TestObjectID_UnmarshalJSONMap(t *testing.T) {
+	type mapOID struct {
+		Map map[ObjectID]string
+	}
+	oid := NewObjectID()
+	mapOIDJson := []byte(fmt.Sprintf(`{"Map":{%q:"foo"}}`, oid.Hex()))
+	expectedData := mapOID{
+		Map: map[ObjectID]string{oid: "foo"},
+	}
+
+	data := mapOID{}
+	err := json.Unmarshal(mapOIDJson, &data)
+	require.NoError(t, err)
+	require.Equal(t, expectedData, data)
+}
 func TestObjectID_UnmarshalJSON(t *testing.T) {
 	oid := NewObjectID()
 
