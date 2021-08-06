@@ -2,7 +2,7 @@
   "runOn": [
     {
       "minServerVersion": "4.4",
-      "authEnabled": true
+      "auth": true
     }
   ],
   "database_name": "sdam-tests",

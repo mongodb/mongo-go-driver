@@ -199,7 +199,7 @@ additions:
 
 - The ``runOn`` requirement gains a new field:
 
-  - ``authEnabled`` (optional): If True, skip this test if auth is not enabled.
+  - ``auth`` (optional): If True, skip this test if auth is not enabled.
     If False, skip this test if auth is enabled. If this field is omitted,
     this test can be run on clusters with or without auth.
 
