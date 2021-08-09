@@ -110,6 +110,12 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 		case "socketTimeoutMS":
 			st := convertValueToMilliseconds(t, opt)
 			clientOpts.SetSocketTimeout(st)
+		case "minPoolSize":
+			clientOpts.SetMinPoolSize(uint64(opt.AsInt64()))
+		case "maxPoolSize":
+			clientOpts.SetMaxPoolSize(uint64(opt.AsInt64()))
+		case "directConnection":
+			clientOpts.SetDirect(opt.Boolean())
 		default:
 			t.Fatalf("unrecognized client option: %v", name)
 		}
