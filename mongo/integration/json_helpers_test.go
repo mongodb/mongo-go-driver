@@ -107,6 +107,9 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 		case "serverSelectionTimeoutMS":
 			sst := convertValueToMilliseconds(t, opt)
 			clientOpts.SetServerSelectionTimeout(sst)
+		case "socketTimeoutMS":
+			st := convertValueToMilliseconds(t, opt)
+			clientOpts.SetSocketTimeout(st)
 		default:
 			t.Fatalf("unrecognized client option: %v", name)
 		}
