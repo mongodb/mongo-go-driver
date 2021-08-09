@@ -1425,8 +1425,22 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 		return
 	}
 
+	rco := options.RunCmd()
+	rpVal, err := op.Arguments.LookupErr("readPreference", "mode")
+	if err == nil {
+		if rp, ok := rpVal.StringValueOK(); ok {
+			switch rp {
+			case "Primary":
+				rco.SetReadPreference(mtest.PrimaryRp)
+			case "Secondary":
+				fmt.Println("setting secondary!")
+				rco.SetReadPreference(mtest.SecondaryRp)
+			}
+		}
+	}
+
 	db := client.Database("admin")
-	err = db.RunCommand(mtest.Background, cmd).Err()
+	err = db.RunCommand(mtest.Background, cmd, rco).Err()
 	assert.Nil(mt, err, "RunCommand error for command %q: %v", op.CommandName, err)
 }
 

@@ -31,6 +31,8 @@ var (
 	MajorityWc = writeconcern.New(writeconcern.WMajority())
 	// PrimaryRp is the primary read preference.
 	PrimaryRp = readpref.Primary()
+	// SecondaryRP is the secondary read preference.
+	SecondaryRp = readpref.Secondary()
 	// LocalRc is the local read concern
 	LocalRc = readconcern.Local()
 	// MajorityRc is the majority read concern
