@@ -696,9 +696,14 @@ func verifyServerParametersConstraints(serverParameters map[string]bson.RawValue
 	return nil
 }
 
-func verifyAuthConstraint(expected *bool) error {
-	if expected != nil && *expected != testContext.authEnabled {
-		return fmt.Errorf("test requires auth value: %v, cluster auth value: %v", *expected, testContext.authEnabled)
+func verifyAuthConstraint(expectedAuth *bool, expectedAuthEnabled *bool) error {
+	// Most tests in the unified format have runOn.auth to indicate whether the
+	// test should be run against an auth-enabled configuration. Some have
+	// runOn.authEnabled to indicate the same thing.
+	if expectedAuth != nil && *expectedAuth != testContext.authEnabled {
+		return fmt.Errorf("test requires auth value: %v, cluster auth value: %v", *expectedAuth, testContext.authEnabled)
+	} else if expectedAuthEnabled != nil && *expectedAuthEnabled != testContext.authEnabled {
+		return fmt.Errorf("test requires auth value: %v, cluster auth value: %v", *expectedAuthEnabled, testContext.authEnabled)
 	}
 	return nil
 }
@@ -728,7 +733,7 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyTopologyConstraints(rob.Topology); err != nil {
 		return err
 	}
-	if err := verifyAuthConstraint(rob.Auth); err != nil {
+	if err := verifyAuthConstraint(rob.Auth, rob.AuthEnabled); err != nil {
 		return err
 	}
 	if err := verifyServerlessConstraint(rob.Serverless); err != nil {
@@ -747,7 +752,7 @@ func (t *T) verifyConstraints() error {
 	if err := verifyTopologyConstraints(t.validTopologies); err != nil {
 		return err
 	}
-	if err := verifyAuthConstraint(t.auth); err != nil {
+	if err := verifyAuthConstraint(t.auth, nil); err != nil {
 		return err
 	}
 	if t.ssl != nil && *t.ssl != testContext.sslEnabled {

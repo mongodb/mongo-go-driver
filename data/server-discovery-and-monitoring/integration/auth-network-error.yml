@@ -2,10 +2,7 @@
 runOn:
     # failCommand appName requirements
     - minServerVersion: "4.4"
-      # The original test has runOn.authEnabled, but the Go driver uses
-      # runOn.auth here in order to use the same RunOnBlock as the other
-      # unified format tests.
-      auth: true
+      authEnabled: true
 
 database_name: &database_name "sdam-tests"
 collection_name: &collection_name "auth-network-error"
