@@ -482,19 +482,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					ConnectionDescription: desc.Server,
 					CurrentIndex:          currIndex,
 				}
-
-				// Update HelloOK on server description if necessary.
-				//
-				// If HelloOK is still false and command sent was a legacy hello,
-				// check if server returned "helloOk", and if so, set desc.HelloOk.
-				if !desc.HelloOK && strings.ToLower(op.cmdName) == "ismaster" {
-					val, err := res.LookupErr("helloOk")
-					if err == nil {
-						if helloOK, ok := val.BooleanOK(); ok {
-							desc.HelloOK = helloOK
-						}
-					}
-				}
 				perr = op.ProcessResponseFn(info)
 			}
 

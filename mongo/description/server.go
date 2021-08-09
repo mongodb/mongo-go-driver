@@ -22,8 +22,7 @@ import (
 // This type should be used to track the state of a server that was selected to perform an operation.
 type SelectedServer struct {
 	Server
-	Kind    TopologyKind
-	HelloOK bool
+	Kind TopologyKind
 }
 
 // Server contains information about a node in a cluster. This is created from isMaster command responses. If the value
@@ -39,6 +38,7 @@ type Server struct {
 	CanonicalAddr         address.Address
 	ElectionID            primitive.ObjectID
 	HeartbeatInterval     time.Duration
+	HelloOK               bool
 	Hosts                 []string
 	LastError             error
 	LastUpdateTime        time.Time
@@ -62,7 +62,16 @@ type Server struct {
 
 // NewServer creates a new server description from the given isMaster command response.
 func NewServer(addr address.Address, response bson.Raw) Server {
-	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
+	// Set HelloOK on server description based on initial isMaster command response.
+	val, err := response.LookupErr("helloOk")
+	var helloOK bool
+	if err == nil {
+		if valBool, ok := val.BooleanOK(); ok {
+			helloOK = valBool
+		}
+	}
+
+	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC(), HelloOK: helloOK}
 	elements, err := response.Elements()
 	if err != nil {
 		desc.LastError = err
