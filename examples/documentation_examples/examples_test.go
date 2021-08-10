@@ -11,6 +11,7 @@ package documentation_examples_test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -47,7 +48,17 @@ func TestDocumentationExamples(t *testing.T) {
 	documentation_examples.DeleteExamples(t, db)
 	documentation_examples.RunCommandExamples(t, db)
 	documentation_examples.IndexExamples(t, db)
-	documentation_examples.VersionedAPIExamples(t)
+	documentation_examples.VersionedAPIExamples()
+
+	// Because it uses RunCommand with an apiVersion, the strict count example can only be
+	// run on 5.0+ without auth.
+	ver, err := getServerVersion(ctx, client)
+	auth := os.Getenv("AUTH") == "auth"
+	if err == nil && testutil.CompareVersions(t, ver, "5.0") >= 0 && !auth {
+		documentation_examples.VersionedAPIStrictCountExample(t)
+	} else {
+		t.Log("skipping versioned API strict count example")
+	}
 }
 
 func TestAggregationExamples(t *testing.T) {

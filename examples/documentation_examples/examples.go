@@ -2863,10 +2863,9 @@ func VersionedAPIStrictCountExample(t *testing.T) {
 }
 
 // VersionedAPIExamples runs all versioned API examples.
-func VersionedAPIExamples(t *testing.T) {
+func VersionedAPIExamples() {
 	VersionedAPIExample()
 	VersionedAPIStrictExample()
 	VersionedAPINonStrictExample()
 	VersionedAPIDeprecationErrorsExample()
-	VersionedAPIStrictCountExample(t)
 }
