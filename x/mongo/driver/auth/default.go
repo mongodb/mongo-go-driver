@@ -36,7 +36,7 @@ type DefaultAuthenticator struct {
 	Cred *Cred
 
 	// The authenticator to use for speculative authentication. Because the correct auth mechanism is unknown when doing
-	// the initial isMaster, SCRAM-SHA-256 is used for the speculative attempt.
+	// the initial hello, SCRAM-SHA-256 is used for the speculative attempt.
 	speculativeAuthenticator SpeculativeAuthenticator
 }
 

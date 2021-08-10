@@ -422,7 +422,7 @@ func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bo
 	}
 
 	wcerr := writeCmdErr.WriteConcernError
-	if wcerr != nil && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
+	if wcerr != nil && (wcerr.NodeIsRecovering() || wcerr.NotPrimary()) {
 		return wcerr, true
 	}
 	return nil, false
@@ -442,10 +442,10 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	if conn.Stale() {
 		return driver.NoChange
 	}
-	// Invalidate server description if not master or node recovering error occurs.
+	// Invalidate server description if not primary or node recovering error occurs.
 	// These errors can be reported as a command error or a write concern error.
 	desc := conn.Description()
-	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotMaster()) {
+	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotPrimary()) {
 		// ignore stale error
 		if desc.TopologyVersion.CompareToIncoming(cerr.TopologyVersion) >= 0 {
 			return driver.NoChange
@@ -660,7 +660,7 @@ func (s *Server) createConnection() (*connection, error) {
 		// We override whatever handshaker is currently attached to the options with a basic
 		// one because need to make sure we don't do auth.
 		WithHandshaker(func(h Handshaker) Handshaker {
-			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
+			return operation.NewHello().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
 				ServerAPI(s.cfg.serverAPI)
 		}),
 		// Override any monitors specified in options with nil to avoid monitoring heartbeats.
@@ -719,9 +719,9 @@ func (s *Server) checkWasCancelled() bool {
 	return s.heartbeatCtx.Err() != nil
 }
 
-func (s *Server) createBaseOperation(conn driver.Connection) *operation.IsMaster {
+func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
 	return operation.
-		NewIsMaster().
+		NewHello().
 		ClusterClock(s.cfg.clock).
 		Deployment(driver.SingleConnectionDeployment{conn}).
 		ServerAPI(s.cfg.serverAPI)
@@ -739,9 +739,9 @@ func (s *Server) check() (description.Server, error) {
 		err = s.setupHeartbeatConnection()
 		if err == nil {
 			// Use the description from the connection handshake as the value for this check.
-			s.rttMonitor.addSample(s.conn.isMasterRTT)
+			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
-			durationNanos = s.conn.isMasterRTT.Nanoseconds()
+			durationNanos = s.conn.helloRTT.Nanoseconds()
 		}
 	}
 
@@ -762,7 +762,7 @@ func (s *Server) check() (description.Server, error) {
 			err = baseOperation.StreamResponse(s.heartbeatCtx, heartbeatConn)
 		case streamable:
 			// The server supports the streamable protocol. Set the socket timeout to
-			// connectTimeoutMS+heartbeatFrequencyMS and execute an awaitable isMaster request. Set conn.canStream so
+			// connectTimeoutMS+heartbeatFrequencyMS and execute an awaitable hello request. Set conn.canStream so
 			// the wire message will advertise streaming support to the server.
 
 			// Calculation for maxAwaitTimeMS is taken from time.Duration.Milliseconds (added in Go 1.13).
@@ -899,7 +899,7 @@ func (s *Server) publishServerOpeningEvent(addr address.Address) {
 	}
 }
 
-// publishes a ServerHeartbeatStartedEvent to indicate an ismaster command has started
+// publishes a ServerHeartbeatStartedEvent to indicate a hello command has started
 func (s *Server) publishServerHeartbeatStartedEvent(connectionID string, await bool) {
 	serverHeartbeatStarted := &event.ServerHeartbeatStartedEvent{
 		ConnectionID: connectionID,
@@ -911,7 +911,7 @@ func (s *Server) publishServerHeartbeatStartedEvent(connectionID string, await b
 	}
 }
 
-// publishes a ServerHeartbeatSucceededEvent to indicate ismaster has succeeded
+// publishes a ServerHeartbeatSucceededEvent to indicate hello has succeeded
 func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	durationNanos int64,
 	desc description.Server,
@@ -928,7 +928,7 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	}
 }
 
-// publishes a ServerHeartbeatFailedEvent to indicate ismaster has failed
+// publishes a ServerHeartbeatFailedEvent to indicate hello has failed
 func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 	durationNanos int64,
 	err error,

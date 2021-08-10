@@ -47,7 +47,7 @@ type connection struct {
 	readTimeout          time.Duration
 	writeTimeout         time.Duration
 	desc                 description.Server
-	isMasterRTT          time.Duration
+	helloRTT             time.Duration
 	compressor           wiremessage.CompressorID
 	zliblevel            int
 	zstdLevel            int
@@ -208,7 +208,7 @@ func (c *connection) connect(ctx context.Context) {
 
 	c.bumpIdleDeadline()
 
-	// running isMaster and authentication is handled by a handshaker on the configuration instance.
+	// running hello and authentication is handled by a handshaker on the configuration instance.
 	handshaker := c.config.handshaker
 	if handshaker == nil {
 		if c.poolMonitor != nil {
@@ -229,7 +229,7 @@ func (c *connection) connect(ctx context.Context) {
 		// We only need to retain the Description field as the connection's description. The authentication-related
 		// fields in handshakeInfo are tracked by the handshaker if necessary.
 		c.desc = handshakeInfo.Description
-		c.isMasterRTT = time.Since(handshakeStartTime)
+		c.helloRTT = time.Since(handshakeStartTime)
 
 		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
 		// in its handshake response to signal that it knows it's behind an LB as well.
@@ -473,7 +473,7 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 	// read the length as an int32
 	size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
 
-	// In the case of an isMaster response where MaxMessageSize has not yet been set, use the hard-coded
+	// In the case of a hello response where MaxMessageSize has not yet been set, use the hard-coded
 	// defaultMaxMessageSize instead.
 	maxMessageSize := c.desc.MaxMessageSize
 	if maxMessageSize == 0 {
@@ -807,7 +807,7 @@ func (c *Connection) unpin(reason string) error {
 	return nil
 }
 
-var notMasterCodes = []int32{10107, 13435}
+var notPrimaryCodes = []int32{10107, 13435}
 var recoveringCodes = []int32{11600, 11602, 13436, 189, 91}
 
 func configureTLS(ctx context.Context,

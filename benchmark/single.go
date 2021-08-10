@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -50,7 +51,7 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 	}
 	defer db.Client().Disconnect(ctx)
 
-	cmd := bsonx.Doc{{"ismaster", bsonx.Boolean(true)}}
+	cmd := bsonx.Doc{{internal.LegacyHelloLowercase, bsonx.Boolean(true)}}
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
@@ -62,7 +63,7 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 		// read the document and then throw it away to prevent
 		out, err := doc.MarshalBSON()
 		if len(out) == 0 {
-			return errors.New("output of ismaster is empty")
+			return errors.New("output of command is empty")
 		}
 	}
 	tm.StopTimer()

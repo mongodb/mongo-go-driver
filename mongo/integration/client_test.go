@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -310,7 +311,7 @@ func TestClient(t *testing.T) {
 		started := mt.GetStartedEvent()
 		assert.Equal(mt, "endSessions", started.CommandName, "expected cmd name endSessions, got %v", started.CommandName)
 	})
-	mt.RunOpts("isMaster lastWriteDate", mtest.NewOptions().Topologies(mtest.ReplicaSet), func(mt *mtest.T) {
+	mt.RunOpts("hello lastWriteDate", mtest.NewOptions().Topologies(mtest.ReplicaSet), func(mt *mtest.T) {
 		_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 	})
@@ -415,7 +416,7 @@ func TestClient(t *testing.T) {
 		// First two messages should be connection handshakes: one for the heartbeat connection and the other for the
 		// application connection.
 		for idx, pair := range msgPairs[:2] {
-			helloCommand := "isMaster"
+			helloCommand := internal.LegacyHello
 			//  Expect "hello" command name with API version.
 			if os.Getenv("REQUIRE_API_VERSION") == "true" {
 				helloCommand = "hello"

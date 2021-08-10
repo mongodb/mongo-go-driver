@@ -185,7 +185,7 @@ func (f *fsm) applyToSingle(s description.Server) description.Server {
 		f.replaceServer(s)
 	case description.RSPrimary, description.RSSecondary, description.RSArbiter, description.RSMember, description.RSGhost:
 		// A replica set name can be provided when creating a direct connection. In this case, if the set name returned
-		// by the isMaster response doesn't match up with the one provided during configuration, the server description
+		// by the hello response doesn't match up with the one provided during configuration, the server description
 		// is replaced with a default Unknown description.
 		//
 		// We create a new server description rather than doing s.Kind = description.Unknown because the other fields,

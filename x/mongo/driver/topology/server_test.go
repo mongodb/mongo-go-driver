@@ -32,7 +32,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
-func makeIsMasterReply() []byte {
+func makeHelloReply() []byte {
 	didx, doc := bsoncore.AppendDocumentStart(nil)
 	doc = bsoncore.AppendInt32Element(doc, "ok", 1)
 	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
@@ -47,7 +47,7 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 		ReadResp: make(chan []byte, 2),
 		ReadErr:  make(chan error, 1),
 	}
-	if err := cnc.AddResponse(makeIsMasterReply()); err != nil {
+	if err := cnc.AddResponse(makeHelloReply()); err != nil {
 		return nil, err
 	}
 
@@ -615,23 +615,23 @@ func TestServer(t *testing.T) {
 		oldTVConn := newProcessErrorTestConn(oldTV)
 		newTVConn := newProcessErrorTestConn(newTV)
 
-		staleNotMasterError := driver.Error{
-			Code:            10107, // NotMaster
+		staleNotPrimaryError := driver.Error{
+			Code:            10107, // NotPrimary
 			TopologyVersion: oldTV,
 		}
-		newNotMasterError := driver.Error{
+		newNotPrimaryError := driver.Error{
 			Code: 10107,
 		}
 		newShutdownError := driver.Error{
 			Code: 11600, // InterruptedAtShutdown
 		}
-		staleNotMasterWCError := driver.WriteCommandError{
+		staleNotPrimaryWCError := driver.WriteCommandError{
 			WriteConcernError: &driver.WriteConcernError{
 				Code:            10107,
 				TopologyVersion: oldTV,
 			},
 		}
-		newNotMasterWCError := driver.WriteCommandError{
+		newNotPrimaryWCError := driver.WriteCommandError{
 			WriteConcernError: &driver.WriteConcernError{
 				Code: 10107,
 			},
@@ -678,15 +678,15 @@ func TestServer(t *testing.T) {
 			{"stale connection", errors.New("foo"), newStaleProcessErrorTestConn(), driver.NoChange},
 			{"non state change error", nonStateChangeError, oldTVConn, driver.NoChange},
 
-			// Tests for top-level (ok: 0) errors. We test a NotMaster error and a Shutdown error because the former
+			// Tests for top-level (ok: 0) errors. We test a NotPrimary error and a Shutdown error because the former
 			// only causes the server to be marked Unknown and the latter causes the pool to be cleared.
-			{"stale not master error", staleNotMasterError, newTVConn, driver.NoChange},
-			{"new not master error", newNotMasterError, oldTVConn, driver.ServerMarkedUnknown},
+			{"stale not primary error", staleNotPrimaryError, newTVConn, driver.NoChange},
+			{"new not primary error", newNotPrimaryError, oldTVConn, driver.ServerMarkedUnknown},
 			{"new shutdown error", newShutdownError, oldTVConn, driver.ConnectionPoolCleared},
 
 			// Repeat ok:0 tests for write concern errors.
-			{"stale not master write concern error", staleNotMasterWCError, newTVConn, driver.NoChange},
-			{"new not master write concern error", newNotMasterWCError, oldTVConn, driver.ServerMarkedUnknown},
+			{"stale not primary write concern error", staleNotPrimaryWCError, newTVConn, driver.NoChange},
+			{"new not primary write concern error", newNotPrimaryWCError, oldTVConn, driver.ServerMarkedUnknown},
 			{"new shutdown write concern error", newShutdownWCError, oldTVConn, driver.ConnectionPoolCleared},
 
 			// Network/timeout error tests.
@@ -790,7 +790,7 @@ func TestServer(t *testing.T) {
 		}
 
 		// do a heartbeat with a non-nil connection
-		if err = channelConn.AddResponse(makeIsMasterReply()); err != nil {
+		if err = channelConn.AddResponse(makeHelloReply()); err != nil {
 			t.Fatalf("error adding response: %v", err)
 		}
 		_, err = s.check()
@@ -852,7 +852,7 @@ func TestServer(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			publishedEvents = nil
 			// do a heartbeat with a non-nil connection
-			if err = channelConn.AddResponse(makeIsMasterReply()); err != nil {
+			if err = channelConn.AddResponse(makeHelloReply()); err != nil {
 				t.Fatalf("error adding response: %v", err)
 			}
 			_, err = s.check()

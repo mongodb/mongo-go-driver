@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -31,10 +32,10 @@ func TestSDAMProse(t *testing.T) {
 	mt.RunOpts("heartbeats processed more frequently", heartbeatFrequencyMtOpts, func(mt *mtest.T) {
 		// Test that lowering heartbeat frequency to 50ms causes the client to process heartbeats more frequently.
 		//
-		// In X ms, tests on 4.4+ should process at least numberOfNodes * (1 + X/frequency + X/frequency) isMaster
+		// In X ms, tests on 4.4+ should process at least numberOfNodes * (1 + X/frequency + X/frequency) hello
 		// responses:
 		// Each node should process 1 normal response (connection handshake) + X/frequency awaitable responses.
-		// Each node should also process X/frequency RTT isMaster responses.
+		// Each node should also process X/frequency RTT hello responses.
 		//
 		// Tests on < 4.4 should process at least numberOfNodes * X/frequency messages.
 
@@ -77,14 +78,14 @@ func TestSDAMProse(t *testing.T) {
 				}
 			}
 
-			// Force isMaster and hello requests to block for 500ms and wait until a server's average RTT goes over 250ms.
+			// Force hello requests to block for 500ms and wait until a server's average RTT goes over 250ms.
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
 				Mode: mtest.FailPointMode{
 					Times: 1000,
 				},
 				Data: mtest.FailPointData{
-					FailCommands:    []string{"isMaster", "hello"},
+					FailCommands:    []string{internal.LegacyHello, "hello"},
 					BlockConnection: true,
 					BlockTimeMS:     500,
 					AppName:         "streamingRttTest",

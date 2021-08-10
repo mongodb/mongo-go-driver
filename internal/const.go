@@ -14,8 +14,11 @@ var Version = "local build"
 // until an upstream service can support running behind a load balancer.
 var SetMockServiceID = false
 
-// LegacyHelloCommand is the legacy version of the Hello command.
-var LegacyHelloCommand = "isMaster"
+// LegacyHello is the legacy version of the hello command.
+var LegacyHello = "isMaster"
 
-// LegacyHelloResponse is the legacy version of the Hello response from the server.
-var LegacyHelloResponse = "ismaster"
+// LegacyHelloLowercase is the lowercase, legacy version of the hello command.
+var LegacyHelloLowercase = "ismaster"
+
+// LegacyNotPrimary is the legacy version of the "not primary" server error message.
+var LegacyNotPrimary = "not master"

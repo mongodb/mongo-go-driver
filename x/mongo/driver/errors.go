@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -14,7 +15,7 @@ import (
 var (
 	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001, 262}
 	nodeIsRecoveringCodes   = []int32{11600, 11602, 13436, 189, 91}
-	notMasterCodes          = []int32{10107, 13435, 10058}
+	notPrimaryCodes         = []int32{10107, 13435, 10058}
 	nodeIsShuttingDownCodes = []int32{11600, 91}
 
 	unknownReplWriteConcernCode   = int32(79)
@@ -170,15 +171,16 @@ func (wce WriteConcernError) NodeIsShuttingDown() bool {
 	return hasNoCode && strings.Contains(wce.Message, "node is shutting down")
 }
 
-// NotMaster returns true if this error is a not master error.
-func (wce WriteConcernError) NotMaster() bool {
-	for _, code := range notMasterCodes {
+// NotPrimary returns true if this error is a not primary error.
+func (wce WriteConcernError) NotPrimary() bool {
+	for _, code := range notPrimaryCodes {
 		if wce.Code == int64(code) {
 			return true
 		}
 	}
 	hasNoCode := wce.Code == 0
-	return hasNoCode && strings.Contains(wce.Message, "not master")
+	return hasNoCode &&
+		(strings.Contains(wce.Message, internal.LegacyNotPrimary) || strings.Contains(wce.Message, "not primary"))
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -316,15 +318,16 @@ func (e Error) NodeIsShuttingDown() bool {
 	return hasNoCode && strings.Contains(e.Message, "node is shutting down")
 }
 
-// NotMaster returns true if this error is a not master error.
-func (e Error) NotMaster() bool {
-	for _, code := range notMasterCodes {
+// NotPrimary returns true if this error is a not primary error.
+func (e Error) NotPrimary() bool {
+	for _, code := range notPrimaryCodes {
 		if e.Code == code {
 			return true
 		}
 	}
 	hasNoCode := e.Code == 0
-	return hasNoCode && strings.Contains(e.Message, "not master")
+	return hasNoCode &&
+		(strings.Contains(e.Message, internal.LegacyNotPrimary) || strings.Contains(e.Message, "not primary"))
 }
 
 // NamespaceNotFound returns true if this errors is a NamespaceNotFound error.

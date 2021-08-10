@@ -276,13 +276,13 @@ func TestSDAMErrorHandling(t *testing.T) {
 				// "node is recovering" errors
 				{"InterruptedAtShutdown", 11600, true},
 				{"InterruptedDueToReplStateChange, not shutdown", 11602, false},
-				{"NotMasterOrSecondary", 13436, false},
+				{"NotPrimaryOrSecondary", 13436, false},
 				{"PrimarySteppedDown", 189, false},
 				{"ShutdownInProgress", 91, true},
 
-				// "not master" errors
-				{"NotMaster", 10107, false},
-				{"NotMasterNoSecondaryOk", 13435, false},
+				// "not primary" errors
+				{"NotPrimary", 10107, false},
+				{"NotPrimaryNoSecondaryOk", 13435, false},
 			}
 			for _, tc := range testCases {
 				mt.RunOpts(fmt.Sprintf("command error - %s", tc.name), serverErrorsMtOpts, func(mt *mtest.T) {

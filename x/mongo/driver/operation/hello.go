@@ -198,7 +198,7 @@ func (h *Hello) command(dst []byte, desc description.SelectedServer) ([]byte, er
 	if h.serverAPI != nil || desc.Server.HelloOK {
 		dst = bsoncore.AppendInt32Element(dst, "hello", 1)
 	} else {
-		dst = bsoncore.AppendInt32Element(dst, internal.LegacyHelloCommand, 1)
+		dst = bsoncore.AppendInt32Element(dst, internal.LegacyHello, 1)
 	}
 	dst = bsoncore.AppendBooleanElement(dst, "helloOk", true)
 

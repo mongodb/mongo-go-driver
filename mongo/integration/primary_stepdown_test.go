@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	errorNotMaster             int32 = 10107
+	errorNotPrimary            int32 = 10107
 	errorShutdownInProgress    int32 = 91
 	errorInterruptedAtShutdown int32 = 11600
 )
@@ -147,8 +147,8 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 			errCode                int32
 			poolCleared            bool
 		}{
-			{"notMaster keep pool", "4.2", "", errorNotMaster, false},
-			{"notMaster reset pool", "4.0", "4.0", errorNotMaster, true},
+			{"notPrimary keep pool", "4.2", "", errorNotPrimary, false},
+			{"notPrimary reset pool", "4.0", "4.0", errorNotPrimary, true},
 			{"shutdown in progress reset pool", "4.0", "", errorShutdownInProgress, true},
 			{"interrupted at shutdown reset pool", "4.0", "", errorInterruptedAtShutdown, true},
 		}

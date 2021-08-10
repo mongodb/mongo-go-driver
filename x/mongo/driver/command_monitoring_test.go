@@ -9,6 +9,7 @@ package driver
 import (
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -16,18 +17,18 @@ import (
 func TestCommandMonitoring(t *testing.T) {
 	t.Run("redactCommand", func(t *testing.T) {
 		emptyDoc := bsoncore.BuildDocumentFromElements(nil)
-		isMaster := bsoncore.BuildDocumentFromElements(nil,
-			bsoncore.AppendInt32Element(nil, "isMaster", 1),
+		legacyHello := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendInt32Element(nil, internal.LegacyHello, 1),
 		)
-		isMasterLowercase := bsoncore.BuildDocumentFromElements(nil,
-			bsoncore.AppendInt32Element(nil, "ismaster", 1),
+		legacyHelloLowercase := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendInt32Element(nil, internal.LegacyHelloLowercase, 1),
 		)
-		isMasterSpeculative := bsoncore.BuildDocumentFromElements(nil,
-			bsoncore.AppendInt32Element(nil, "isMaster", 1),
+		legacyHelloSpeculative := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendInt32Element(nil, internal.LegacyHello, 1),
 			bsoncore.AppendDocumentElement(nil, "speculativeAuthenticate", emptyDoc),
 		)
-		isMasterSpeculativeLowercase := bsoncore.BuildDocumentFromElements(nil,
-			bsoncore.AppendInt32Element(nil, "ismaster", 1),
+		legacyHelloSpeculativeLowercase := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendInt32Element(nil, internal.LegacyHelloLowercase, 1),
 			bsoncore.AppendDocumentElement(nil, "speculativeAuthenticate", emptyDoc),
 		)
 
@@ -37,10 +38,10 @@ func TestCommandMonitoring(t *testing.T) {
 			command     bsoncore.Document
 			redacted    bool
 		}{
-			{"isMaster", "isMaster", isMaster, false},
-			{"isMaster lowercase", "ismaster", isMasterLowercase, false},
-			{"isMaster speculative auth", "isMaster", isMasterSpeculative, true},
-			{"isMaster speculative auth lowercase", "isMaster", isMasterSpeculativeLowercase, true},
+			{"legacy hello", internal.LegacyHello, legacyHello, false},
+			{"legacy hello lowercase", internal.LegacyHelloLowercase, legacyHelloLowercase, false},
+			{"legacy hello speculative auth", internal.LegacyHello, legacyHelloSpeculative, true},
+			{"legacy hello speculative auth lowercase", internal.LegacyHello, legacyHelloSpeculativeLowercase, true},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
