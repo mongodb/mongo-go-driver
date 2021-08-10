@@ -58,7 +58,8 @@ type File struct {
 	// ChunkSize is the maximum number of bytes for each chunk in this file.
 	ChunkSize int32
 
-	// UploadDate is the time this file was added to GridFS in UTC.
+	// UploadDate is the time this file was added to GridFS in UTC. This field is set by the driver and is not configurable.
+	// The Metadata field can be used to store a custom date.
 	UploadDate time.Time
 
 	// Name is the name of this file.
