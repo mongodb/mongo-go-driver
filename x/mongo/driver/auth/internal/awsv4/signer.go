@@ -41,7 +41,7 @@ const (
 )
 
 var ignoredHeaders = rules{
-	blacklist{
+	denylist{
 		mapRule{
 			authorizationHeader: struct{}{},
 			"User-Agent":        struct{}{},

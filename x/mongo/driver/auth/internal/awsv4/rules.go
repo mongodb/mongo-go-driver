@@ -55,14 +55,14 @@ func (w whitelist) IsValid(value string) bool {
 	return w.rule.IsValid(value)
 }
 
-// blacklist is a generic rule for blacklisting
-type blacklist struct {
+// denylist is a generic rule for denylisting
+type denylist struct {
 	rule
 }
 
 // IsValid for whitelist checks if the value is within the whitelist
-func (b blacklist) IsValid(value string) bool {
-	return !b.rule.IsValid(value)
+func (d denylist) IsValid(value string) bool {
+	return !d.rule.IsValid(value)
 }
 
 type patterns []string
