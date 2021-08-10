@@ -2806,15 +2806,14 @@ func VersionedAPIDeprecationErrorsExample() {
 // VersionedAPIStrictCountExample is an example of using CountDocuments instead of a traditional count
 // with a strict API version since the count command does not belong to API version 1.
 func VersionedAPIStrictCountExample(t *testing.T) {
-	ctx := context.Background()
 	uri := "mongodb://localhost:27017"
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
 
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(context.TODO(), clientOpts)
 	require.Nil(t, err, "Connect error: %v", err)
-	defer func() { _ = client.Disconnect(ctx) }()
+	defer func() { _ = client.Disconnect(context.TODO()) }()
 
 	// Start Versioned API Example 5
 
@@ -2829,13 +2828,13 @@ func VersionedAPIStrictCountExample(t *testing.T) {
 		bson.D{{"_id", 7}, {"item", "xyz"}, {"price", 5}, {"quantity", 10}, {"date", "2021-02-15T14:12:12Z"}},
 		bson.D{{"_id", 8}, {"item", "abc"}, {"price", 10}, {"quantity", 5}, {"date", "2021-03-16T20:20:13Z"}},
 	}
-	_, err = coll.InsertMany(ctx, docs)
+	_, err = coll.InsertMany(context.TODO(), docs)
 
 	// End Versioned API Example 5
-	defer func() { _ = coll.Drop(ctx) }()
+	defer func() { _ = coll.Drop(context.TODO()) }()
 	require.Nil(t, err, "InsertMany error: %v", err)
 
-	res := client.Database("db").RunCommand(ctx, bson.D{{"count", "sales"}})
+	res := client.Database("db").RunCommand(context.TODO(), bson.D{{"count", "sales"}})
 	require.NotNil(t, res.Err(), "expected RunCommand error, got nil")
 	expectedErr := "Provided apiStrict:true, but the command count is not in API Version 1"
 	require.True(t, strings.Contains(res.Err().Error(), expectedErr),
@@ -2849,7 +2848,7 @@ func VersionedAPIStrictCountExample(t *testing.T) {
 
 	// Start Versioned API Example 7
 
-	count, err := coll.CountDocuments(ctx, bson.D{})
+	count, err := coll.CountDocuments(context.TODO(), bson.D{})
 
 	// End Versioned API Example 7
 	require.Nil(t, err, "CountDocuments error: %v", err)
