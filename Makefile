@@ -59,12 +59,12 @@ fmt:
 
 .PHONY: lint
 lint:
-	golint $(PKGS) | ./etc/lintscreen.pl .lint-whitelist
+	golint $(PKGS) | ./etc/lintscreen.pl .lint-allowlist
 
-.PHONY: lint-add-whitelist
-lint-add-whitelist:
-	golint $(PKGS) | ./etc/lintscreen.pl -u .lint-whitelist
-	sort .lint-whitelist -o .lint-whitelist
+.PHONY: lint-add-allowlist
+lint-add-allowlist:
+	golint $(PKGS) | ./etc/lintscreen.pl -u .lint-allowlist
+	sort .lint-allowlist -o .lint-allowlist
 
 .PHONY: errcheck
 errcheck:
