@@ -25,7 +25,7 @@ var _ bson.Unmarshaler = (*transactionOptions)(nil)
 func (to *transactionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
 		RC              *readConcern           `bson:"readConcern"`
-		RP              *readPreference        `bson:"readPreference"`
+		RP              *ReadPreference        `bson:"readPreference"`
 		WC              *writeConcern          `bson:"writeConcern"`
 		MaxCommitTimeMS *int64                 `bson:"maxCommitTimeMS"`
 		Extra           map[string]interface{} `bson:",inline"`
@@ -46,7 +46,7 @@ func (to *transactionOptions) UnmarshalBSON(data []byte) error {
 		to.SetReadConcern(rc.toReadConcernOption())
 	}
 	if rp := temp.RP; rp != nil {
-		converted, err := rp.toReadPrefOption()
+		converted, err := rp.ToReadPrefOption()
 		if err != nil {
 			return fmt.Errorf("error parsing read preference document: %v", err)
 		}

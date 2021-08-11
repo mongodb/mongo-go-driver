@@ -26,7 +26,7 @@ func (bo *gridFSBucketOptions) UnmarshalBSON(data []byte) error {
 		Name      *string                `bson:"name"`
 		ChunkSize *int32                 `bson:"chunkSizeBytes"`
 		RC        *readConcern           `bson:"readConcern"`
-		RP        *readPreference        `bson:"readPreference"`
+		RP        *ReadPreference        `bson:"readPreference"`
 		WC        *writeConcern          `bson:"writeConcern"`
 		Extra     map[string]interface{} `bson:",inline"`
 	}
@@ -48,7 +48,7 @@ func (bo *gridFSBucketOptions) UnmarshalBSON(data []byte) error {
 		bo.SetReadConcern(temp.RC.toReadConcernOption())
 	}
 	if temp.RP != nil {
-		rp, err := temp.RP.toReadPrefOption()
+		rp, err := temp.RP.ToReadPrefOption()
 		if err != nil {
 			return fmt.Errorf("error parsing read preference document: %v", err)
 		}
