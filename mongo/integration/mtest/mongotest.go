@@ -698,14 +698,9 @@ func verifyServerParametersConstraints(serverParameters map[string]bson.RawValue
 	return nil
 }
 
-func verifyAuthConstraint(expectedAuth *bool, expectedAuthEnabled *bool) error {
-	// Most tests in the unified format have runOn.auth to indicate whether the
-	// test should be run against an auth-enabled configuration. Some have
-	// runOn.authEnabled to indicate the same thing.
-	if expectedAuth != nil && *expectedAuth != testContext.authEnabled {
-		return fmt.Errorf("test requires auth value: %v, cluster auth value: %v", *expectedAuth, testContext.authEnabled)
-	} else if expectedAuthEnabled != nil && *expectedAuthEnabled != testContext.authEnabled {
-		return fmt.Errorf("test requires auth value: %v, cluster auth value: %v", *expectedAuthEnabled, testContext.authEnabled)
+func verifyAuthConstraint(expected *bool) error {
+	if expected != nil && *expected != testContext.authEnabled {
+		return fmt.Errorf("test requires auth value: %v, cluster auth value: %v", *expected, testContext.authEnabled)
 	}
 	return nil
 }
@@ -735,13 +730,25 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyTopologyConstraints(rob.Topology); err != nil {
 		return err
 	}
-	if err := verifyAuthConstraint(rob.Auth, rob.AuthEnabled); err != nil {
-		return err
+
+	// Tests in the unified test format have runOn.auth to indicate whether the
+	// test should be run against an auth-enabled configuration. SDAM integration
+	// spec tests have runOn.authEnabled to indicate the same thing. Use whichever
+	// is set for verifyAuthConstraint().
+	auth := rob.Auth
+	if rob.AuthEnabled != nil {
+		if auth != nil {
+			return fmt.Errorf("runOnBlock cannot specify both auth and authEnabled")
+		}
+		auth = rob.AuthEnabled
 	}
-	if err := verifyServerlessConstraint(rob.Serverless); err != nil {
+	if err := verifyAuthConstraint(auth); err != nil {
 		return err
 	}
 
+	if err := verifyServerlessConstraint(rob.Serverless); err != nil {
+		return err
+	}
 	return verifyServerParametersConstraints(rob.ServerParameters)
 }
 
@@ -754,7 +761,7 @@ func (t *T) verifyConstraints() error {
 	if err := verifyTopologyConstraints(t.validTopologies); err != nil {
 		return err
 	}
-	if err := verifyAuthConstraint(t.auth, nil); err != nil {
+	if err := verifyAuthConstraint(t.auth); err != nil {
 		return err
 	}
 	if t.ssl != nil && *t.ssl != testContext.sslEnabled {

@@ -62,16 +62,7 @@ type Server struct {
 
 // NewServer creates a new server description from the given isMaster command response.
 func NewServer(addr address.Address, response bson.Raw) Server {
-	// Set HelloOK on server description based on initial isMaster command response.
-	val, err := response.LookupErr("helloOk")
-	var helloOK bool
-	if err == nil {
-		if valBool, ok := val.BooleanOK(); ok {
-			helloOK = valBool
-		}
-	}
-
-	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC(), HelloOK: helloOK}
+	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
 	elements, err := response.Elements()
 	if err != nil {
 		desc.LastError = err
@@ -107,6 +98,12 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			desc.ElectionID, ok = element.Value().ObjectIDOK()
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'electionId' to be a objectID but it's a BSON %s", element.Value().Type)
+				return desc
+			}
+		case "helloOk":
+			desc.HelloOK, ok = element.Value().BooleanOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'helloOk' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
 		case "hidden":

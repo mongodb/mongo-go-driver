@@ -1433,7 +1433,6 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 			case "Primary":
 				rco.SetReadPreference(mtest.PrimaryRp)
 			case "Secondary":
-				fmt.Println("setting secondary!")
 				rco.SetReadPreference(mtest.SecondaryRp)
 			}
 		}
