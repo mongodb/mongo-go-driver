@@ -178,14 +178,14 @@ func TestObjectID_MarshalJSONMap(t *testing.T) {
 	}
 
 	oid := NewObjectID()
-	expectedJson := []byte(fmt.Sprintf(`{"Map":{%q:"foo"}}`, oid.Hex()))
+	expectedJSON := []byte(fmt.Sprintf(`{"Map":{%q:"foo"}}`, oid.Hex()))
 	data := mapOID{
 		Map: map[ObjectID]string{oid: "foo"},
 	}
 
 	out, err := json.Marshal(&data)
 	require.NoError(t, err)
-	require.Equal(t, expectedJson, out)
+	require.Equal(t, expectedJSON, out)
 }
 
 func TestObjectID_UnmarshalJSONMap(t *testing.T) {
@@ -193,16 +193,17 @@ func TestObjectID_UnmarshalJSONMap(t *testing.T) {
 		Map map[ObjectID]string
 	}
 	oid := NewObjectID()
-	mapOIDJson := []byte(fmt.Sprintf(`{"Map":{%q:"foo"}}`, oid.Hex()))
+	mapOIDJSON := []byte(fmt.Sprintf(`{"Map":{%q:"foo"}}`, oid.Hex()))
 	expectedData := mapOID{
 		Map: map[ObjectID]string{oid: "foo"},
 	}
 
 	data := mapOID{}
-	err := json.Unmarshal(mapOIDJson, &data)
+	err := json.Unmarshal(mapOIDJSON, &data)
 	require.NoError(t, err)
 	require.Equal(t, expectedData, data)
 }
+
 func TestObjectID_UnmarshalJSON(t *testing.T) {
 	oid := NewObjectID()
 

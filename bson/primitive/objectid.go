@@ -94,23 +94,21 @@ func IsValidObjectID(s string) bool {
 	return err == nil
 }
 
-// MarshalJSON returns the ObjectID as a string
-func (id ObjectID) MarshalJSON() ([]byte, error) {
-	return json.Marshal(id.Hex())
-}
-
-// MarshalText returns the ObjectID as text
-// Implementing this allows us to use the ObjectID as a map key
-// when marshalling json.
+// MarshalText returns the ObjectID as UTF-8-encoded text. Implementing this allows us to use ObjectID
+// as a map key when marshalling JSON. See https://pkg.go.dev/encoding#TextMarshaler
 func (id ObjectID) MarshalText() ([]byte, error) {
 	return []byte(id.Hex()), nil
 }
 
-// UnmarshalText converts a text ObjectID into a byte string
-// Implementing this allows us to use the ObjectID as a map key
-// when marshalling json.
+// UnmarshalText populates the byte slice with the ObjectID. Implementing this allows us to use ObjectID
+// as a map key when unmarshalling JSON. See https://pkg.go.dev/encoding#TextUnmarshaler
 func (id ObjectID) UnmarshalText(b []byte) error {
 	return id.UnmarshalJSON(b)
+}
+
+// MarshalJSON returns the ObjectID as a string
+func (id ObjectID) MarshalJSON() ([]byte, error) {
+	return json.Marshal(id.Hex())
 }
 
 // UnmarshalJSON populates the byte slice with the ObjectID. If the byte slice is 24 bytes long, it
