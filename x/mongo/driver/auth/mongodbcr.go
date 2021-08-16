@@ -21,7 +21,8 @@ import (
 
 // MONGODBCR is the mechanism name for MONGODB-CR.
 //
-// The MONGODB-CR authentication mechanism is deprecated in MongoDB 4.0.
+// The MONGODB-CR authentication mechanism is deprecated in MongoDB 3.6 and removed in
+// MongoDB 4.0.
 const MONGODBCR = "MONGODB-CR"
 
 func newMongoDBCRAuthenticator(cred *Cred) (Authenticator, error) {
@@ -34,7 +35,8 @@ func newMongoDBCRAuthenticator(cred *Cred) (Authenticator, error) {
 
 // MongoDBCRAuthenticator uses the MONGODB-CR algorithm to authenticate a connection.
 //
-// The MONGODB-CR authentication mechanism is deprecated in MongoDB 4.0.
+// The MONGODB-CR authentication mechanism is deprecated in MongoDB 3.6 and removed in
+// MongoDB 4.0.
 type MongoDBCRAuthenticator struct {
 	DB       string
 	Username string
@@ -43,7 +45,8 @@ type MongoDBCRAuthenticator struct {
 
 // Auth authenticates the connection.
 //
-// The MONGODB-CR authentication mechanism is deprecated in MongoDB 4.0.
+// The MONGODB-CR authentication mechanism is deprecated in MongoDB 3.6 and removed in
+// MongoDB 4.0.
 func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 
 	db := a.DB
