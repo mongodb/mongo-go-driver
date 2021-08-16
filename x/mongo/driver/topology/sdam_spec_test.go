@@ -42,6 +42,8 @@ type IsMaster struct {
 	Hidden                       bool               `bson:"hidden,omitempty"`
 	Hosts                        []string           `bson:"hosts,omitempty"`
 	IsMaster                     bool               `bson:"ismaster,omitempty"`
+	HelloOK                      bool               `bson:"helloOk,omitempty"`
+	IsWritablePrimary            bool               `bson:"isWritablePrimary,omitempty"`
 	IsReplicaSet                 bool               `bson:"isreplicaset,omitempty"`
 	LastWrite                    *lastWriteDate     `bson:"lastWrite,omitempty"`
 	LogicalSessionTimeoutMinutes uint32             `bson:"logicalSessionTimeoutMinutes,omitempty"`

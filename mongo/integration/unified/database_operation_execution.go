@@ -167,12 +167,12 @@ func executeRunCommand(ctx context.Context, operation *operation) (*operationRes
 			// GODRIVER-1774: We currently don't support overriding read concern for RunCommand.
 			return nil, fmt.Errorf("readConcern in runCommand not supported")
 		case "readPreference":
-			var temp readPreference
+			var temp ReadPreference
 			if err := bson.Unmarshal(val.Document(), &temp); err != nil {
 				return nil, fmt.Errorf("error unmarshalling readPreference option: %v", err)
 			}
 
-			rp, err := temp.toReadPrefOption()
+			rp, err := temp.ToReadPrefOption()
 			if err != nil {
 				return nil, fmt.Errorf("error creating readpref.ReadPref object: %v", err)
 			}

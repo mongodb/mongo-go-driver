@@ -194,12 +194,13 @@ func (im *IsMaster) handshakeCommand(dst []byte, desc description.SelectedServer
 }
 
 // command appends all necessary command fields.
-func (im *IsMaster) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
-	if im.serverAPI != nil {
+func (im *IsMaster) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
+	if im.serverAPI != nil || desc.Server.HelloOK {
 		dst = bsoncore.AppendInt32Element(dst, "hello", 1)
 	} else {
 		dst = bsoncore.AppendInt32Element(dst, "isMaster", 1)
 	}
+	dst = bsoncore.AppendBooleanElement(dst, "helloOk", true)
 
 	if tv := im.topologyVersion; tv != nil {
 		var tvIdx int32

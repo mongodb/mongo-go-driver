@@ -57,6 +57,7 @@ type RunOnBlock struct {
 	Serverless       string                   `bson:"serverless"`
 	ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
 	Auth             *bool                    `bson:"auth"`
+	AuthEnabled      *bool                    `bson:"authEnabled"`
 }
 
 // UnmarshalBSON implements custom BSON unmarshalling behavior for RunOnBlock because some test formats use the
@@ -70,6 +71,7 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 		Serverless       string                   `bson:"serverless"`
 		ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
 		Auth             *bool                    `bson:"auth"`
+		AuthEnabled      *bool                    `bson:"authEnabled"`
 		Extra            map[string]interface{}   `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
@@ -84,6 +86,7 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 	r.Serverless = temp.Serverless
 	r.ServerParameters = temp.ServerParameters
 	r.Auth = temp.Auth
+	r.AuthEnabled = temp.AuthEnabled
 
 	if temp.Topology != nil {
 		r.Topology = temp.Topology

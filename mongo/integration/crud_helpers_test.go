@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/mongo/integration/unified"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -1425,8 +1426,20 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 		return
 	}
 
+	rco := options.RunCmd()
+	rpVal, err := op.Arguments.LookupErr("readPreference")
+	if err == nil {
+		var temp unified.ReadPreference
+		err = bson.Unmarshal(rpVal.Document(), &temp)
+		assert.Nil(mt, err, "error unmarshalling readPreference option: %v", err)
+
+		rp, err := temp.ToReadPrefOption()
+		assert.Nil(mt, err, "error creating readpref.ReadPref object: %v", err)
+		rco.SetReadPreference(rp)
+	}
+
 	db := client.Database("admin")
-	err = db.RunCommand(mtest.Background, cmd).Err()
+	err = db.RunCommand(mtest.Background, cmd, rco).Err()
 	assert.Nil(mt, err, "RunCommand error for command %q: %v", op.CommandName, err)
 }
 

@@ -31,6 +31,8 @@ var (
 	MajorityWc = writeconcern.New(writeconcern.WMajority())
 	// PrimaryRp is the primary read preference.
 	PrimaryRp = readpref.Primary()
+	// SecondaryRp is the secondary read preference.
+	SecondaryRp = readpref.Secondary()
 	// LocalRc is the local read concern
 	LocalRc = readconcern.Local()
 	// MajorityRc is the majority read concern
@@ -728,13 +730,25 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyTopologyConstraints(rob.Topology); err != nil {
 		return err
 	}
-	if err := verifyAuthConstraint(rob.Auth); err != nil {
-		return err
+
+	// Tests in the unified test format have runOn.auth to indicate whether the
+	// test should be run against an auth-enabled configuration. SDAM integration
+	// spec tests have runOn.authEnabled to indicate the same thing. Use whichever
+	// is set for verifyAuthConstraint().
+	auth := rob.Auth
+	if rob.AuthEnabled != nil {
+		if auth != nil {
+			return fmt.Errorf("runOnBlock cannot specify both auth and authEnabled")
+		}
+		auth = rob.AuthEnabled
 	}
-	if err := verifyServerlessConstraint(rob.Serverless); err != nil {
+	if err := verifyAuthConstraint(auth); err != nil {
 		return err
 	}
 
+	if err := verifyServerlessConstraint(rob.Serverless); err != nil {
+		return err
+	}
 	return verifyServerParametersConstraints(rob.ServerParameters)
 }
 

@@ -59,14 +59,17 @@ func (wc *writeConcern) toWriteConcernOption() (*writeconcern.WriteConcern, erro
 	return writeconcern.New(wcOptions...), nil
 }
 
-type readPreference struct {
+// ReadPreference is a representation of BSON readPreference objects in tests.
+type ReadPreference struct {
 	Mode                string              `bson:"mode"`
 	TagSets             []map[string]string `bson:"tagSets"`
 	MaxStalenessSeconds *int64              `bson:"maxStalenessSeconds"`
 	Hedge               bson.M              `bson:"hedge"`
 }
 
-func (rp *readPreference) toReadPrefOption() (*readpref.ReadPref, error) {
+// ToReadPrefOption converts a ReadPreference into a readpref.ReadPref object and will
+// error if the original ReadPreference is malformed.
+func (rp *ReadPreference) ToReadPrefOption() (*readpref.ReadPref, error) {
 	mode, err := readpref.ModeFromString(rp.Mode)
 	if err != nil {
 		return nil, fmt.Errorf("invalid read preference mode %q", rp.Mode)
