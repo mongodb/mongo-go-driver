@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -19,10 +20,10 @@ import (
 )
 
 var (
-	// The base elements for an isMaster response.
-	handshakeIsMasterElements = [][]byte{
+	// The base elements for a hello response.
+	handshakeHelloElements = [][]byte{
 		bsoncore.AppendInt32Element(nil, "ok", 1),
-		bsoncore.AppendBooleanElement(nil, "ismaster", true),
+		bsoncore.AppendBooleanElement(nil, internal.LegacyHelloLowercase, true),
 		bsoncore.AppendInt32Element(nil, "maxBsonObjectSize", 16777216),
 		bsoncore.AppendInt32Element(nil, "maxMessageSizeBytes", 48000000),
 		bsoncore.AppendInt32Element(nil, "minWireVersion", 0),
@@ -42,8 +43,8 @@ func TestSpeculativeSCRAM(t *testing.T) {
 	}
 
 	t.Run("speculative response included", func(t *testing.T) {
-		// Tests for SCRAM-SHA1 and SCRAM-SHA-256 when the isMaster response contains a reply to the speculative
-		// authentication attempt. The driver should only send a saslContinue after the isMaster to complete
+		// Tests for SCRAM-SHA1 and SCRAM-SHA-256 when the hello response contains a reply to the speculative
+		// authentication attempt. The driver should only send a saslContinue after the hello to complete
 		// authentication.
 
 		testCases := []struct {
@@ -89,16 +90,16 @@ func TestSpeculativeSCRAM(t *testing.T) {
 				assert.Nil(t, err, "FinishHandshake error: %v", err)
 				assert.Equal(t, 0, len(conn.ReadResp), "%d messages left unread", len(conn.ReadResp))
 
-				// Assert that the driver sent isMaster with the speculative authentication message.
+				// Assert that the driver sent hello with the speculative authentication message.
 				assert.Equal(t, len(tc.payloads), len(conn.Written), "expected %d wire messages to be sent, got %d",
 					len(tc.payloads), (conn.Written))
-				isMasterCmd, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
-				assert.Nil(t, err, "error parsing isMaster command: %v", err)
-				assertCommandName(t, isMasterCmd, "isMaster")
+				helloCmd, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				assert.Nil(t, err, "error parsing hello command: %v", err)
+				assertCommandName(t, helloCmd, internal.LegacyHello)
 
 				// Assert that the correct document was sent for speculative authentication.
-				authDocVal, err := isMasterCmd.LookupErr("speculativeAuthenticate")
-				assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(isMasterCmd))
+				authDocVal, err := helloCmd.LookupErr("speculativeAuthenticate")
+				assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(helloCmd))
 				authDoc := authDocVal.Document()
 				sentMechanism := tc.mechanism
 				if sentMechanism == "" {
@@ -125,9 +126,9 @@ func TestSpeculativeSCRAM(t *testing.T) {
 		}
 	})
 	t.Run("speculative response not included", func(t *testing.T) {
-		// Tests for SCRAM-SHA-1 and SCRAM-SHA-256 when the isMaster response does not contain a reply to the
+		// Tests for SCRAM-SHA-1 and SCRAM-SHA-256 when the hello response does not contain a reply to the
 		// speculative authentication attempt. The driver should send both saslStart and saslContinue after the initial
-		// isMaster.
+		// hello.
 
 		// There is no test for the default mechanism because we can't control the nonce used for the actual
 		// authentication attempt after the speculative attempt fails.
@@ -151,7 +152,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 					Authenticator: authenticator,
 					DBUser:        "admin.user",
 				})
-				numResponses := len(tc.payloads) + 1 // +1 for isMaster response
+				numResponses := len(tc.payloads) + 1 // +1 for hello response
 				responses := make(chan []byte, numResponses)
 				writeReplies(t, responses, createRegularSCRAMHandshake(tc.payloads)...)
 
@@ -172,11 +173,11 @@ func TestSpeculativeSCRAM(t *testing.T) {
 
 				assert.Equal(t, numResponses, len(conn.Written), "expected %d wire messages to be sent, got %d",
 					numResponses, len(conn.Written))
-				isMaster, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
-				assert.Nil(t, err, "error parsing isMaster command: %v", err)
-				assertCommandName(t, isMaster, "isMaster")
-				_, err = isMaster.LookupErr("speculativeAuthenticate")
-				assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(isMaster))
+				hello, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				assert.Nil(t, err, "error parsing hello command: %v", err)
+				assertCommandName(t, hello, internal.LegacyHello)
+				_, err = hello.LookupErr("speculativeAuthenticate")
+				assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(hello))
 
 				saslStart, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing saslStart command: %v", err)
@@ -210,14 +211,14 @@ func setNonce(t *testing.T, authenticator Authenticator, nonce string) {
 // createSpeculativeSCRAMHandshake creates the server replies for a successful speculative SCRAM authentication attempt.
 // There are two replies:
 //
-// 1. isMaster reply containing a "speculativeAuthenticate" document.
+// 1. hello reply containing a "speculativeAuthenticate" document.
 // 2. saslContinue reply with done:true
 func createSpeculativeSCRAMHandshake(payloads [][]byte) []bsoncore.Document {
 	firstAuthResponse := createSCRAMServerResponse(payloads[0], false)
 	firstAuthElem := bsoncore.AppendDocumentElement(nil, "speculativeAuthenticate", firstAuthResponse)
-	isMaster := bsoncore.BuildDocumentFromElements(nil, append(handshakeIsMasterElements, firstAuthElem)...)
+	hello := bsoncore.BuildDocumentFromElements(nil, append(handshakeHelloElements, firstAuthElem)...)
 
-	responses := []bsoncore.Document{isMaster}
+	responses := []bsoncore.Document{hello}
 	for idx := 1; idx < len(payloads); idx++ {
 		responses = append(responses, createSCRAMServerResponse(payloads[idx], idx == len(payloads)-1))
 	}
@@ -227,12 +228,12 @@ func createSpeculativeSCRAMHandshake(payloads [][]byte) []bsoncore.Document {
 // createRegularSCRAMHandshake creates the server replies for a handshake + SCRAM authentication attempt. There are
 // three replies:
 //
-// 1. isMaster reply
+// 1. hello reply
 // 2. saslStart reply with done:false
 // 3. saslContinue reply with done:true
 func createRegularSCRAMHandshake(payloads [][]byte) []bsoncore.Document {
-	isMaster := bsoncore.BuildDocumentFromElements(nil, handshakeIsMasterElements...)
-	responses := []bsoncore.Document{isMaster}
+	hello := bsoncore.BuildDocumentFromElements(nil, handshakeHelloElements...)
+	responses := []bsoncore.Document{hello}
 
 	for idx, payload := range payloads {
 		responses = append(responses, createSCRAMServerResponse(payload, idx == len(payloads)-1))

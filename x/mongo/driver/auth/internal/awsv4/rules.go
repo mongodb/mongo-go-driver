@@ -45,24 +45,24 @@ func (m mapRule) IsValid(value string) bool {
 	return ok
 }
 
-// whitelist is a generic rule for whitelisting
-type whitelist struct {
+// allowlist is a generic rule for allowlisting
+type allowlist struct {
 	rule
 }
 
-// IsValid for whitelist checks if the value is within the whitelist
-func (w whitelist) IsValid(value string) bool {
-	return w.rule.IsValid(value)
+// IsValid for allowlist checks if the value is within the allowlist
+func (a allowlist) IsValid(value string) bool {
+	return a.rule.IsValid(value)
 }
 
-// blacklist is a generic rule for blacklisting
-type blacklist struct {
+// denylist is a generic rule for denylisting
+type denylist struct {
 	rule
 }
 
-// IsValid for whitelist checks if the value is within the whitelist
-func (b blacklist) IsValid(value string) bool {
-	return !b.rule.IsValid(value)
+// IsValid for allowlist checks if the value is within the allowlist
+func (d denylist) IsValid(value string) bool {
+	return !d.rule.IsValid(value)
 }
 
 type patterns []string

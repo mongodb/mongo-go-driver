@@ -29,11 +29,11 @@ import (
 )
 
 type response struct {
-	Host     string
-	IsMaster IsMaster
+	Host  string
+	Hello Hello
 }
 
-type IsMaster struct {
+type Hello struct {
 	Arbiters                     []string           `bson:"arbiters,omitempty"`
 	ArbiterOnly                  bool               `bson:"arbiterOnly,omitempty"`
 	ClusterTime                  bson.Raw           `bson:"$clusterTime,omitempty"`
@@ -41,7 +41,6 @@ type IsMaster struct {
 	ElectionID                   primitive.ObjectID `bson:"electionId,omitempty"`
 	Hidden                       bool               `bson:"hidden,omitempty"`
 	Hosts                        []string           `bson:"hosts,omitempty"`
-	IsMaster                     bool               `bson:"ismaster,omitempty"`
 	HelloOK                      bool               `bson:"helloOk,omitempty"`
 	IsWritablePrimary            bool               `bson:"isWritablePrimary,omitempty"`
 	IsReplicaSet                 bool               `bson:"isreplicaset,omitempty"`
@@ -215,8 +214,8 @@ func (r *response) UnmarshalBSON(buf []byte) error {
 		return fmt.Errorf("error unmarshalling Host: %v", err)
 	}
 
-	if err := doc.Index(1).Value().Unmarshal(&r.IsMaster); err != nil {
-		return fmt.Errorf("error unmarshalling IsMaster: %v", err)
+	if err := doc.Index(1).Value().Unmarshal(&r.Hello); err != nil {
+		return fmt.Errorf("error unmarshalling Hello: %v", err)
 	}
 
 	return nil
@@ -267,7 +266,7 @@ func applyResponses(t *testing.T, topo *Topology, responses []response, sub *dri
 	default:
 	}
 	for _, response := range responses {
-		doc, err := bson.Marshal(response.IsMaster)
+		doc, err := bson.Marshal(response.Hello)
 		assert.Nil(t, err, "Marshal error: %v", err)
 
 		addr := address.Address(response.Host)

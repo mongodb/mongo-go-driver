@@ -17,7 +17,7 @@ func TestInsert(t *testing.T) {
 	var topoOpts []topology.Option
 
 	connOpts = append(connOpts, topology.WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
-		return operation.NewIsMaster().AppName("operationgen-test")
+		return operation.NewHello().AppName("operationgen-test")
 	}))
 	// topoOpts = append(topoOpts, topology.WithServerSelectionTimeout(func(time.Duration) time.Duration { return 5 * time.Second }))
 	serverOpts = append(serverOpts, topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {

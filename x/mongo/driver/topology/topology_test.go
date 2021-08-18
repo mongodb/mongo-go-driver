@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -297,7 +298,7 @@ func TestServerSelection(t *testing.T) {
 			t.Errorf("findServer does not properly set the topology description kind. got %v; want %v", ss.Kind, description.Single)
 		}
 	})
-	t.Run("Update on not master error", func(t *testing.T) {
+	t.Run("Update on not primary error", func(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
 		topo.cfg.cs.HeartbeatInterval = time.Minute
@@ -333,11 +334,11 @@ func TestServerSelection(t *testing.T) {
 		subCh := make(chan description.Topology, 1)
 		subCh <- desc
 
-		// send a not master error to the server forcing an update
+		// send a not primary error to the server forcing an update
 		serv, err := topo.FindServer(desc.Servers[0])
 		noerr(t, err)
 		atomic.StoreInt32(&serv.connectionstate, connected)
-		_ = serv.ProcessError(driver.Error{Message: "not master"}, initConnection{})
+		_ = serv.ProcessError(driver.Error{Message: internal.LegacyNotPrimary}, initConnection{})
 
 		resp := make(chan []description.Server)
 

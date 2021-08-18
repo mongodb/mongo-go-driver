@@ -22,7 +22,7 @@ const (
 type rttConfig struct {
 	interval           time.Duration
 	createConnectionFn func() (*connection, error)
-	createOperationFn  func(driver.Connection) *operation.IsMaster
+	createOperationFn  func(driver.Connection) *operation.Hello
 }
 
 type rttMonitor struct {
@@ -124,11 +124,11 @@ func (r *rttMonitor) pingServer() {
 		}
 
 		// Add the initial connection handshake time as an RTT sample.
-		r.addSample(r.conn.isMasterRTT)
+		r.addSample(r.conn.helloRTT)
 		return
 	}
 
-	// We're using an already established connection. Issue an isMaster command to get a new RTT sample.
+	// We're using an already established connection. Issue a hello command to get a new RTT sample.
 	rttConn := initConnection{r.conn}
 	start := time.Now()
 	err := r.cfg.createOperationFn(rttConn).Execute(r.ctx)

@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -165,7 +166,7 @@ func (c *clientEntity) isIgnoredEvent(event *event.CommandStartedEvent) bool {
 		return true
 	}
 
-	if event.CommandName == "hello" || strings.ToLower(event.CommandName) == "ismaster" {
+	if event.CommandName == "hello" || strings.ToLower(event.CommandName) == internal.LegacyHelloLowercase {
 		_, err := event.Command.LookupErr("speculativeAuthenticate")
 		speculativeAuth := err == nil
 

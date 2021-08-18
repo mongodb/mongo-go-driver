@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -1283,7 +1284,7 @@ func (op Operation) secondaryOK(desc description.SelectedServer) wiremessage.Que
 }
 
 func (Operation) canCompress(cmd string) bool {
-	if cmd == "isMaster" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
+	if cmd == internal.LegacyHello || cmd == "hello" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
 		cmd == "createUser" || cmd == "updateUser" || cmd == "copydbSaslStart" || cmd == "copydbgetnonce" || cmd == "copydb" {
 		return false
 	}
@@ -1439,11 +1440,11 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 
 		return true
 	}
-	if strings.ToLower(cmd) != "ismaster" && cmd != "hello" {
+	if strings.ToLower(cmd) != internal.LegacyHelloLowercase && cmd != "hello" {
 		return false
 	}
 
-	// An isMaster without speculative authentication can be monitored.
+	// A hello without speculative authentication can be monitored.
 	_, err := doc.LookupErr("speculativeAuthenticate")
 	return err == nil
 }

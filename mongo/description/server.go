@@ -25,7 +25,7 @@ type SelectedServer struct {
 	Kind TopologyKind
 }
 
-// Server contains information about a node in a cluster. This is created from isMaster command responses. If the value
+// Server contains information about a node in a cluster. This is created from hello command responses. If the value
 // of the Kind field is LoadBalancer, only the Addr and Kind fields will be set. All other fields will be set to the
 // zero value of the field's type.
 type Server struct {
@@ -60,7 +60,7 @@ type Server struct {
 	WireVersion           *VersionRange
 }
 
-// NewServer creates a new server description from the given isMaster command response.
+// NewServer creates a new server description from the given hello command response.
 func NewServer(addr address.Address, response bson.Raw) Server {
 	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
 	elements, err := response.Elements()
@@ -125,10 +125,10 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				desc.LastError = fmt.Errorf("expected 'isWritablePrimary' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-		case "ismaster":
+		case internal.LegacyHelloLowercase:
 			isWritablePrimary, ok = element.Value().BooleanOK()
 			if !ok {
-				desc.LastError = fmt.Errorf("expected 'ismaster' to be a boolean but it's a BSON %s", element.Value().Type)
+				desc.LastError = fmt.Errorf("expected legacy hello to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
 		case "isreplicaset":

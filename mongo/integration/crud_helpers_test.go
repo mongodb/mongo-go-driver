@@ -1409,7 +1409,7 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 }
 
 func executeAdminCommand(mt *mtest.T, op *operation) {
-	// Per the streamable isMaster test format description, a separate client must be used to execute this operation.
+	// Per the streamable hello test format description, a separate client must be used to execute this operation.
 	clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
 	testutil.AddTestServerAPIVersion(clientOpts)
 	client, err := mongo.Connect(mtest.Background, clientOpts)

@@ -73,7 +73,7 @@ func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 	}
 	if sc.speculative {
-		// The "db" field is only appended for speculative auth because the isMaster command is executed against admin
+		// The "db" field is only appended for speculative auth because the hello command is executed against admin
 		// so this is needed to tell the server the user's auth source. For a non-speculative attempt, the SASL commands
 		// will be executed against the auth source.
 		saslCmdElements = append(saslCmdElements, bsoncore.AppendStringElement(nil, "db", sc.source))

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -28,8 +29,8 @@ var (
 
 func TestSpeculativeX509(t *testing.T) {
 	t.Run("speculative response included", func(t *testing.T) {
-		// Tests for X509 when the isMaster response contains a reply to the speculative authentication attempt. The
-		// driver should not send any more commands after the isMaster.
+		// Tests for X509 when the hello response contains a reply to the speculative authentication attempt. The
+		// driver should not send any more commands after the hello.
 
 		authenticator, err := CreateAuthenticator("MONGODB-X509", &Cred{})
 		assert.Nil(t, err, "CreateAuthenticator error: %v", err)
@@ -57,12 +58,12 @@ func TestSpeculativeX509(t *testing.T) {
 
 		assert.Equal(t, numResponses, len(conn.Written), "expected %d wire messages to be sent, got %d",
 			numResponses, len(conn.Written))
-		isMaster, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
-		assert.Nil(t, err, "error parsing isMaster command: %v", err)
-		assertCommandName(t, isMaster, "isMaster")
+		hello, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+		assert.Nil(t, err, "error parsing hello command: %v", err)
+		assertCommandName(t, hello, internal.LegacyHello)
 
-		authDocVal, err := isMaster.LookupErr("speculativeAuthenticate")
-		assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(isMaster))
+		authDocVal, err := hello.LookupErr("speculativeAuthenticate")
+		assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(hello))
 		authDoc := authDocVal.Document()
 		expectedAuthDoc := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendInt32Element(nil, "authenticate", 1),
@@ -72,8 +73,8 @@ func TestSpeculativeX509(t *testing.T) {
 			expectedAuthDoc, authDoc)
 	})
 	t.Run("speculative response not included", func(t *testing.T) {
-		// Tests for X509 when the isMaster response does not contain a reply to the speculative authentication attempt.
-		// The driver should send an authenticate command after the isMaster.
+		// Tests for X509 when the hello response does not contain a reply to the speculative authentication attempt.
+		// The driver should send an authenticate command after the hello.
 
 		authenticator, err := CreateAuthenticator("MONGODB-X509", &Cred{})
 		assert.Nil(t, err, "CreateAuthenticator error: %v", err)
@@ -102,11 +103,11 @@ func TestSpeculativeX509(t *testing.T) {
 
 		assert.Equal(t, numResponses, len(conn.Written), "expected %d wire messages to be sent, got %d",
 			numResponses, len(conn.Written))
-		isMaster, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
-		assert.Nil(t, err, "error parsing isMaster command: %v", err)
-		assertCommandName(t, isMaster, "isMaster")
-		_, err = isMaster.LookupErr("speculativeAuthenticate")
-		assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(isMaster))
+		hello, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+		assert.Nil(t, err, "error parsing hello command: %v", err)
+		assertCommandName(t, hello, internal.LegacyHello)
+		_, err = hello.LookupErr("speculativeAuthenticate")
+		assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(hello))
 
 		authenticate, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
 		assert.Nil(t, err, "error parsing authenticate command: %v", err)
@@ -117,19 +118,19 @@ func TestSpeculativeX509(t *testing.T) {
 // createSpeculativeX509Handshake creates the server replies for a successful speculative X509 authentication attempt.
 // There is only one reply:
 //
-// 1. isMaster reply containing a "speculativeAuthenticate" document.
+// 1. hello reply containing a "speculativeAuthenticate" document.
 func createSpeculativeX509Handshake() []bsoncore.Document {
 	firstAuthElem := bsoncore.AppendDocumentElement(nil, "speculativeAuthenticate", x509Response)
-	isMaster := bsoncore.BuildDocumentFromElements(nil, append(handshakeIsMasterElements, firstAuthElem)...)
-	return []bsoncore.Document{isMaster}
+	hello := bsoncore.BuildDocumentFromElements(nil, append(handshakeHelloElements, firstAuthElem)...)
+	return []bsoncore.Document{hello}
 }
 
 // createSpeculativeX509Handshake creates the server replies for a handshake + X509 authentication attempt.
 // There are two replies:
 //
-// 1. isMaster reply
+// 1. hello reply
 // 2. authenticate reply
 func createRegularX509Handshake() []bsoncore.Document {
-	isMaster := bsoncore.BuildDocumentFromElements(nil, handshakeIsMasterElements...)
-	return []bsoncore.Document{isMaster, x509Response}
+	hello := bsoncore.BuildDocumentFromElements(nil, handshakeHelloElements...)
+	return []bsoncore.Document{hello, x509Response}
 }

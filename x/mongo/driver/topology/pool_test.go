@@ -584,7 +584,7 @@ func TestPool(t *testing.T) {
 				Address: address.Address(""),
 			}
 			p, err := newPool(pc, WithHandshaker(func(Handshaker) Handshaker {
-				return operation.NewIsMaster()
+				return operation.NewHello()
 			}),
 				WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) {

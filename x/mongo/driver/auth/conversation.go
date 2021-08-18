@@ -16,7 +16,7 @@ import (
 // handshake.
 //
 // FirstMessage method returns the first message to be sent to the server. This message will be included in the initial
-// isMaster command.
+// hello command.
 //
 // Finish takes the server response to the initial message and conducts the remainder of the conversation to
 // authenticate the provided connection.

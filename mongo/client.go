@@ -425,7 +425,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 	// Handshaker
 	var handshaker = func(driver.Handshaker) driver.Handshaker {
-		return operation.NewIsMaster().AppName(appName).Compressors(comps).ClusterClock(c.clock).
+		return operation.NewHello().AppName(appName).Compressors(comps).ClusterClock(c.clock).
 			ServerAPI(c.serverAPI).LoadBalanced(loadBalanced)
 	}
 	// Auth & Database & Password & Username

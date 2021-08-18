@@ -38,7 +38,7 @@ var (
 	resumableErrorLabel                = "ResumableChangeStreamError"
 	errorCursorNotFound          int32 = 43 // CursorNotFound error code
 
-	// Whitelist of error codes that are considered resumable.
+	// Allowlist of error codes that are considered resumable.
 	resumableChangeStreamErrors = map[int32]struct{}{
 		6:     {}, // HostUnreachable
 		7:     {}, // HostNotFound
@@ -47,11 +47,11 @@ var (
 		189:   {}, // PrimarySteppedDown
 		262:   {}, // ExceededTimeLimit
 		9001:  {}, // SocketException
-		10107: {}, // NotMaster
+		10107: {}, // NotPrimary
 		11600: {}, // InterruptedAtShutdown
 		11602: {}, // InterruptedDueToReplStateChange
-		13435: {}, // NotMasterNoSecondaryOK
-		13436: {}, // NotMasterOrSecondary
+		13435: {}, // NotPrimaryNoSecondaryOK
+		13436: {}, // NotPrimaryOrSecondary
 		63:    {}, // StaleShardVersion
 		150:   {}, // StaleEpoch
 		13388: {}, // StaleConfig
@@ -601,7 +601,7 @@ func (cs *ChangeStream) isResumableError() bool {
 		return commandErr.HasErrorLabel(resumableErrorLabel)
 	}
 
-	// For wire versions below 9, a server error is resumable if its code is on the whitelist.
+	// For wire versions below 9, a server error is resumable if its code is on the allowlist.
 	_, resumable := resumableChangeStreamErrors[commandErr.Code]
 	return resumable
 }

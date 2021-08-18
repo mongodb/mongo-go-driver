@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -548,7 +549,7 @@ func TestOperation(t *testing.T) {
 		}
 		op := Operation{
 			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
-				return bsoncore.AppendInt32Element(dst, "isMaster", 1), nil
+				return bsoncore.AppendInt32Element(dst, internal.LegacyHello, 1), nil
 			},
 			Database:   "admin",
 			Deployment: SingleConnectionDeployment{conn},

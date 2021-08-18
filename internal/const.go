@@ -13,3 +13,12 @@ var Version = "local build"
 // command responses by using the value of "topologyVersion.processId".  This is used for testing load balancer support
 // until an upstream service can support running behind a load balancer.
 var SetMockServiceID = false
+
+// LegacyHello is the legacy version of the hello command.
+var LegacyHello = "isMaster"
+
+// LegacyHelloLowercase is the lowercase, legacy version of the hello command.
+var LegacyHelloLowercase = "ismaster"
+
+// LegacyNotPrimary is the legacy version of the "not primary" server error message.
+var LegacyNotPrimary = "not master"

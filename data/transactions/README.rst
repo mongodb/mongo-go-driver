@@ -9,10 +9,14 @@ Transactions Tests
 Introduction
 ============
 
-The YAML and JSON files in this directory are platform-independent tests that
-drivers can use to prove their conformance to the Transactions Spec. They are
-designed with the intention of sharing some test-runner code with the CRUD Spec
-tests and the Command Monitoring Spec tests.
+The YAML and JSON files in the ``legacy`` and ``unified`` sub-directories are
+platform-independent tests that drivers can use to prove their conformance to
+the Transactions Spec. The tests in the ``legacy`` directory are designed with
+the intention of sharing some test-runner code with the CRUD Spec tests and the
+Command Monitoring Spec tests. The format for these tests and instructions for
+executing them are provided in the following sections. Tests in the
+``unified`` directory are written using the `Unified Test Format
+<../../unified-test-format/unified-test-format.rst>`_.
 
 Several prose tests, which are not easily expressed in YAML, are also presented
 in this file. Those tests will need to be manually implemented by each driver.
@@ -41,7 +45,10 @@ The ``failCommand`` fail point may be configured like so::
           failCommands: ["commandName", "commandName2"],
           closeConnection: <true|false>,
           errorCode: <Number>,
-          writeConcernError: <document>
+          writeConcernError: <document>,
+          appName: <string>,
+          blockConnection: <true|false>,
+          blockTimeMS: <Number>,
         }
     });
 
@@ -66,10 +73,18 @@ control the fail point's behavior. ``failCommand`` supports the following
 - ``errorCode``: Integer option, which is unset by default. If set, the command
   will not be executed and the specified command error code will be returned as
   a command error.
-- ``writeConcernError``: A document, which is unset by default. If set, the
-  server will return this document in the "writeConcernError" field. This
-  failure response only applies to commands that support write concern and
-  happens *after* the command finishes (regardless of success or failure).
+- ``appName``: A string to filter which MongoClient should be affected by
+  the failpoint. `New in mongod 4.4.0-rc2 <https://jira.mongodb.org/browse/SERVER-47195>`_.
+- ``blockConnection``: Whether the server should block the affected commands.
+  Default false.
+- ``blockTimeMS``: The number of milliseconds the affect commands should be
+  blocked for. Required when blockConnection is true.
+  `New in mongod 4.3.4 <https://jira.mongodb.org/browse/SERVER-41070>`_.
+
+Speeding Up Tests
+=================
+
+See `Speeding Up Tests <../../retryable-reads/tests/README.rst#speeding-up-tests>`_ in the retryable reads spec tests.
 
 Test Format
 ===========
@@ -96,6 +111,18 @@ Each YAML file has the following keys:
     tests can be run successfully. Valid topologies are "single", "replicaset",
     and "sharded". If this field is omitted, the default is all topologies (i.e.
     ``["single", "replicaset", "sharded"]``).
+
+  - ``serverless``: Optional string. Whether or not the test should be run on
+    serverless instances imitating sharded clusters. Valid values are "require",
+    "forbid", and "allow". If "require", the test MUST only be run on serverless
+    instances. If "forbid", the test MUST NOT be run on serverless instances. If
+    omitted or "allow", this option has no effect.
+
+    The test runner MUST be informed whether or not serverless is being used in
+    order to determine if this requirement is met (e.g. through an environment
+    variable or configuration option). Since the serverless proxy imitates a
+    mongos, the runner is not capable of determining this by issuing a server
+    command such as ``buildInfo`` or ``hello``.
 
 - ``database_name`` and ``collection_name``: The database and collection to use
   for testing.
@@ -175,7 +202,7 @@ Each YAML file has the following keys:
     - ``collection``:
 
       - ``data``: The data that should exist in the collection after the
-        operations have run.
+        operations have run, sorted by "_id".
 
 Use as Integration Tests
 ========================
@@ -299,6 +326,8 @@ Then for each element in ``tests``:
      latest data by using **primary read preference** with
      **local read concern** even when the MongoClient is configured with
      another read preference or read concern.
+     Note the server does not guarantee that documents returned by a find
+     command will be in inserted order. This find MUST sort by ``{_id:1}``.
 
 .. _SERVER-38335: https://jira.mongodb.org/browse/SERVER-38335
 
@@ -383,6 +412,70 @@ the given session is not pinned to a mongos::
         object: testRunner
         arguments:
           session: session0
+
+assertCollectionExists
+~~~~~~~~~~~~~~~~~~~~~~
+
+The "assertCollectionExists" operation instructs the test runner to assert that
+the given collection exists in the database::
+
+      - name: assertCollectionExists
+        object: testRunner
+        arguments:
+          database: db
+          collection: test
+
+Use a ``listCollections`` command to check whether the collection exists. Note
+that it is currently not possible to run ``listCollections`` from within a
+transaction.
+
+assertCollectionNotExists
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The "assertCollectionNotExists" operation instructs the test runner to assert
+that the given collection does not exist in the database::
+
+      - name: assertCollectionNotExists
+        object: testRunner
+        arguments:
+          database: db
+          collection: test
+
+Use a ``listCollections`` command to check whether the collection exists. Note
+that it is currently not possible to run ``listCollections`` from within a
+transaction.
+
+assertIndexExists
+~~~~~~~~~~~~~~~~~
+
+The "assertIndexExists" operation instructs the test runner to assert that the
+index with the given name exists on the collection::
+
+      - name: assertIndexExists
+        object: testRunner
+        arguments:
+          database: db
+          collection: test
+          index: t_1
+
+Use a ``listIndexes`` command to check whether the index exists. Note that it is
+currently not possible to run ``listIndexes`` from within a transaction.
+
+assertIndexNotExists
+~~~~~~~~~~~~~~~~~~~~
+
+The "assertIndexNotExists" operation instructs the test runner to assert that
+the index with the given name does not exist on the collection::
+
+      - name: assertIndexNotExists
+        object: testRunner
+        arguments:
+          database: db
+          collection: test
+          index: t_1
+
+Use a ``listIndexes`` command to check whether the index exists. Note that it is
+currently not possible to run ``listIndexes`` from within a transaction.
 
 Command-Started Events
 ``````````````````````

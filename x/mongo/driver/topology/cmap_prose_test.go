@@ -71,7 +71,7 @@ func TestCMAPProse(t *testing.T) {
 				connOpts := []ConnectionOption{
 					WithDialer(func(Dialer) Dialer { return dialer }),
 					WithHandshaker(func(Handshaker) Handshaker {
-						return operation.NewIsMaster()
+						return operation.NewHello()
 					}),
 				}
 				pool := createTestPool(t, cfg, connOpts...)
@@ -99,7 +99,7 @@ func TestCMAPProse(t *testing.T) {
 				connOpts := []ConnectionOption{
 					WithDialer(func(Dialer) Dialer { return dialer }),
 					WithHandshaker(func(Handshaker) Handshaker {
-						return operation.NewIsMaster()
+						return operation.NewHello()
 					}),
 				}
 				pool := createTestPool(t, getConfig(), connOpts...)

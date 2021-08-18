@@ -18,6 +18,15 @@ drivers can use to prove their conformance to the Change Streams Spec.
 Several prose tests, which are not easily expressed in YAML, are also presented
 in this file. Those tests will need to be manually implemented by each driver.
 
+Subdirectories for Test Formats
+-------------------------------
+
+This document describes the legacy format for change streams tests.
+Tests in this legacy format are located under ``./legacy/``.
+
+New change streams tests should be written in the `unified test format <../../unified-test-format/unified-test-format.rst>`__
+and placed under ``./unified/``.
+
 Spec Test Format
 ================
 
@@ -35,12 +44,12 @@ Each YAML file has the following keys:
   - ``maxServerVersion``: Reserved for later use
   - ``failPoint``: Optional configureFailPoint command document to run to configure a fail point on the primary server.
   - ``target``: The entity on which to run the change stream. Valid values are:
-  
+
     - ``collection``: Watch changes on collection ``database_name.collection_name``
     - ``database``: Watch changes on database ``database_name``
     - ``client``: Watch changes on entire clusters
   - ``topology``: An array of server topologies against which to run the test.
-    Valid topologies are ``single``, ``replicaset``, and ``sharded``.
+    Valid topologies are ``single``, ``replicaset``, ``sharded``, and "load-balanced".
   - ``changeStreamPipeline``: An array of additional aggregation pipeline stages to add to the change stream
   - ``changeStreamOptions``: Additional options to add to the changeStream
   - ``operations``: Array of documents, each describing an operation. Each document has the following fields:
@@ -68,7 +77,7 @@ The definition of MATCH or MATCHES in the Spec Test Runner is as follows:
 Pseudocode implementation of ``actual`` MATCHES ``expected``:
 
 ::
-  
+
   If expected is "42" or 42:
     Assert that actual exists (is not null or undefined)
   Else:
@@ -112,7 +121,7 @@ For each YAML file, for each element in ``tests``:
     Transactions spec test documentation for more information.
 
 - Create a new MongoClient ``client``
-- Begin monitoring all APM events for ``client``. (If the driver uses global listeners, filter out all events that do not originate with ``client``). Filter out any "internal" commands (e.g. ``isMaster``)
+- Begin monitoring all APM events for ``client``. (If the driver uses global listeners, filter out all events that do not originate with ``client``). Filter out any "internal" commands (e.g. ``hello`` or legacy hello)
 - Using ``client``, create a changeStream ``changeStream`` against the specified ``target``. Use ``changeStreamPipeline`` and ``changeStreamOptions`` if they are non-empty. Capture any error.
 - If there was no error, use ``globalClient`` and run every operation in ``operations`` in serial against the server until all operations have been executed or an error is thrown. Capture any error.
 - If there was no error and ``result.error`` is set, iterate ``changeStream`` once and capture any error.
@@ -133,6 +142,11 @@ For each YAML file, for each element in ``tests``:
   - For each (``expected``, ``idx``) in ``expectations``
     - If ``actual[idx]`` is a ``killCursors`` event, skip it and move to ``actual[idx+1]``.
     - Else assert that ``actual[idx]`` MATCHES ``expected``
+  - Note: the change stream test command event expectations cover a
+    prefix subset of all command events published by the driver.
+    The test runner MUST verify that, if there are N expectations, that the
+    first N events published by the driver match the expectations, and
+    MUST NOT inspect any subsequent events published by the driver.
 
 - Close the MongoClient ``client``
 
@@ -199,7 +213,7 @@ The following tests have not yet been automated, but MUST still be tested. All t
    - If ``resumeAfter`` was not specified, the ``getResumeToken`` result must be empty.
 
 #. For a ``ChangeStream`` under these conditions:
-   
+
    - The batch is not empty.
    - The batch has been iterated up to but not including the last element.
 

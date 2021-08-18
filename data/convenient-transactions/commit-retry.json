@@ -18,7 +18,7 @@
   "data": [],
   "tests": [
     {
-      "description": "callback succeeds after multiple connection errors",
+      "description": "commitTransaction succeeds after multiple connection errors",
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {
@@ -26,7 +26,7 @@
         },
         "data": {
           "failCommands": [
-            "insert"
+            "commitTransaction"
           ],
           "closeConnection": true
         }
@@ -46,6 +46,9 @@
                     "document": {
                       "_id": 1
                     }
+                  },
+                  "result": {
+                    "insertedId": 1
                   }
                 }
               ]
@@ -80,7 +83,7 @@
         {
           "command_started_event": {
             "command": {
-              "abortTransaction": 1,
+              "commitTransaction": 1,
               "lsid": "session0",
               "txnNumber": {
                 "$numberLong": "1"
@@ -90,75 +93,8 @@
               "startTransaction": null,
               "writeConcern": null
             },
-            "command_name": "abortTransaction",
+            "command_name": "commitTransaction",
             "database_name": "admin"
-          }
-        },
-        {
-          "command_started_event": {
-            "command": {
-              "insert": "test",
-              "documents": [
-                {
-                  "_id": 1
-                }
-              ],
-              "ordered": true,
-              "lsid": "session0",
-              "readConcern": {
-                "afterClusterTime": 42
-              },
-              "txnNumber": {
-                "$numberLong": "2"
-              },
-              "startTransaction": true,
-              "autocommit": false,
-              "writeConcern": null
-            },
-            "command_name": "insert",
-            "database_name": "withTransaction-tests"
-          }
-        },
-        {
-          "command_started_event": {
-            "command": {
-              "abortTransaction": 1,
-              "lsid": "session0",
-              "txnNumber": {
-                "$numberLong": "2"
-              },
-              "autocommit": false,
-              "readConcern": null,
-              "startTransaction": null,
-              "writeConcern": null
-            },
-            "command_name": "abortTransaction",
-            "database_name": "admin"
-          }
-        },
-        {
-          "command_started_event": {
-            "command": {
-              "insert": "test",
-              "documents": [
-                {
-                  "_id": 1
-                }
-              ],
-              "ordered": true,
-              "lsid": "session0",
-              "readConcern": {
-                "afterClusterTime": 42
-              },
-              "txnNumber": {
-                "$numberLong": "3"
-              },
-              "startTransaction": true,
-              "autocommit": false,
-              "writeConcern": null
-            },
-            "command_name": "insert",
-            "database_name": "withTransaction-tests"
           }
         },
         {
@@ -167,12 +103,35 @@
               "commitTransaction": 1,
               "lsid": "session0",
               "txnNumber": {
-                "$numberLong": "3"
+                "$numberLong": "1"
               },
               "autocommit": false,
+              "writeConcern": {
+                "w": "majority",
+                "wtimeout": 10000
+              },
               "readConcern": null,
-              "startTransaction": null,
-              "writeConcern": null
+              "startTransaction": null
+            },
+            "command_name": "commitTransaction",
+            "database_name": "admin"
+          }
+        },
+        {
+          "command_started_event": {
+            "command": {
+              "commitTransaction": 1,
+              "lsid": "session0",
+              "txnNumber": {
+                "$numberLong": "1"
+              },
+              "autocommit": false,
+              "writeConcern": {
+                "w": "majority",
+                "wtimeout": 10000
+              },
+              "readConcern": null,
+              "startTransaction": null
             },
             "command_name": "commitTransaction",
             "database_name": "admin"
@@ -190,8 +149,19 @@
       }
     },
     {
-      "description": "callback is not retried after non-transient error (DuplicateKeyError)",
-      "useMultipleMongoses": true,
+      "description": "commitTransaction retry only overwrites write concern w option",
+      "failPoint": {
+        "configureFailPoint": "failCommand",
+        "mode": {
+          "times": 2
+        },
+        "data": {
+          "failCommands": [
+            "commitTransaction"
+          ],
+          "closeConnection": true
+        }
+      },
       "operations": [
         {
           "name": "withTransaction",
@@ -211,7 +181,142 @@
                   "result": {
                     "insertedId": 1
                   }
-                },
+                }
+              ]
+            },
+            "options": {
+              "writeConcern": {
+                "w": 2,
+                "j": true,
+                "wtimeout": 5000
+              }
+            }
+          }
+        }
+      ],
+      "expectations": [
+        {
+          "command_started_event": {
+            "command": {
+              "insert": "test",
+              "documents": [
+                {
+                  "_id": 1
+                }
+              ],
+              "ordered": true,
+              "lsid": "session0",
+              "txnNumber": {
+                "$numberLong": "1"
+              },
+              "startTransaction": true,
+              "autocommit": false,
+              "readConcern": null,
+              "writeConcern": null
+            },
+            "command_name": "insert",
+            "database_name": "withTransaction-tests"
+          }
+        },
+        {
+          "command_started_event": {
+            "command": {
+              "commitTransaction": 1,
+              "lsid": "session0",
+              "txnNumber": {
+                "$numberLong": "1"
+              },
+              "autocommit": false,
+              "writeConcern": {
+                "w": 2,
+                "j": true,
+                "wtimeout": 5000
+              },
+              "readConcern": null,
+              "startTransaction": null
+            },
+            "command_name": "commitTransaction",
+            "database_name": "admin"
+          }
+        },
+        {
+          "command_started_event": {
+            "command": {
+              "commitTransaction": 1,
+              "lsid": "session0",
+              "txnNumber": {
+                "$numberLong": "1"
+              },
+              "autocommit": false,
+              "writeConcern": {
+                "w": "majority",
+                "j": true,
+                "wtimeout": 5000
+              },
+              "readConcern": null,
+              "startTransaction": null
+            },
+            "command_name": "commitTransaction",
+            "database_name": "admin"
+          }
+        },
+        {
+          "command_started_event": {
+            "command": {
+              "commitTransaction": 1,
+              "lsid": "session0",
+              "txnNumber": {
+                "$numberLong": "1"
+              },
+              "autocommit": false,
+              "writeConcern": {
+                "w": "majority",
+                "j": true,
+                "wtimeout": 5000
+              },
+              "readConcern": null,
+              "startTransaction": null
+            },
+            "command_name": "commitTransaction",
+            "database_name": "admin"
+          }
+        }
+      ],
+      "outcome": {
+        "collection": {
+          "data": [
+            {
+              "_id": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "description": "commit is retried after commitTransaction UnknownTransactionCommitResult (NotWritablePrimary)",
+      "failPoint": {
+        "configureFailPoint": "failCommand",
+        "mode": {
+          "times": 2
+        },
+        "data": {
+          "failCommands": [
+            "commitTransaction"
+          ],
+          "errorCode": 10107,
+          "errorLabels": [
+            "RetryableWriteError"
+          ],
+          "closeConnection": false
+        }
+      },
+      "operations": [
+        {
+          "name": "withTransaction",
+          "object": "session0",
+          "arguments": {
+            "callback": {
+              "operations": [
                 {
                   "name": "insertOne",
                   "object": "collection",
@@ -222,19 +327,153 @@
                     }
                   },
                   "result": {
-                    "errorLabelsOmit": [
-                      "TransientTransactionError",
-                      "UnknownTransactionCommitResult"
-                    ]
+                    "insertedId": 1
                   }
                 }
               ]
             }
+          }
+        }
+      ],
+      "expectations": [
+        {
+          "command_started_event": {
+            "command": {
+              "insert": "test",
+              "documents": [
+                {
+                  "_id": 1
+                }
+              ],
+              "ordered": true,
+              "lsid": "session0",
+              "txnNumber": {
+                "$numberLong": "1"
+              },
+              "startTransaction": true,
+              "autocommit": false,
+              "readConcern": null,
+              "writeConcern": null
+            },
+            "command_name": "insert",
+            "database_name": "withTransaction-tests"
+          }
+        },
+        {
+          "command_started_event": {
+            "command": {
+              "commitTransaction": 1,
+              "lsid": "session0",
+              "txnNumber": {
+                "$numberLong": "1"
+              },
+              "autocommit": false,
+              "readConcern": null,
+              "startTransaction": null,
+              "writeConcern": null
+            },
+            "command_name": "commitTransaction",
+            "database_name": "admin"
+          }
+        },
+        {
+          "command_started_event": {
+            "command": {
+              "commitTransaction": 1,
+              "lsid": "session0",
+              "txnNumber": {
+                "$numberLong": "1"
+              },
+              "autocommit": false,
+              "writeConcern": {
+                "w": "majority",
+                "wtimeout": 10000
+              },
+              "readConcern": null,
+              "startTransaction": null
+            },
+            "command_name": "commitTransaction",
+            "database_name": "admin"
+          }
+        },
+        {
+          "command_started_event": {
+            "command": {
+              "commitTransaction": 1,
+              "lsid": "session0",
+              "txnNumber": {
+                "$numberLong": "1"
+              },
+              "autocommit": false,
+              "writeConcern": {
+                "w": "majority",
+                "wtimeout": 10000
+              },
+              "readConcern": null,
+              "startTransaction": null
+            },
+            "command_name": "commitTransaction",
+            "database_name": "admin"
+          }
+        }
+      ],
+      "outcome": {
+        "collection": {
+          "data": [
+            {
+              "_id": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "description": "commit is not retried after MaxTimeMSExpired error",
+      "failPoint": {
+        "configureFailPoint": "failCommand",
+        "mode": {
+          "times": 1
+        },
+        "data": {
+          "failCommands": [
+            "commitTransaction"
+          ],
+          "errorCode": 50
+        }
+      },
+      "operations": [
+        {
+          "name": "withTransaction",
+          "object": "session0",
+          "arguments": {
+            "callback": {
+              "operations": [
+                {
+                  "name": "insertOne",
+                  "object": "collection",
+                  "arguments": {
+                    "session": "session0",
+                    "document": {
+                      "_id": 1
+                    }
+                  },
+                  "result": {
+                    "insertedId": 1
+                  }
+                }
+              ]
+            },
+            "options": {
+              "maxCommitTimeMS": 60000
+            }
           },
           "result": {
-            "errorLabelsOmit": [
-              "TransientTransactionError",
+            "errorCodeName": "MaxTimeMSExpired",
+            "errorLabelsContain": [
               "UnknownTransactionCommitResult"
+            ],
+            "errorLabelsOmit": [
+              "TransientTransactionError"
             ]
           }
         }
@@ -266,40 +505,18 @@
         {
           "command_started_event": {
             "command": {
-              "insert": "test",
-              "documents": [
-                {
-                  "_id": 1
-                }
-              ],
-              "ordered": true,
+              "commitTransaction": 1,
               "lsid": "session0",
               "txnNumber": {
                 "$numberLong": "1"
               },
               "autocommit": false,
+              "maxTimeMS": 60000,
               "readConcern": null,
               "startTransaction": null,
               "writeConcern": null
             },
-            "command_name": "insert",
-            "database_name": "withTransaction-tests"
-          }
-        },
-        {
-          "command_started_event": {
-            "command": {
-              "abortTransaction": 1,
-              "lsid": "session0",
-              "txnNumber": {
-                "$numberLong": "1"
-              },
-              "autocommit": false,
-              "readConcern": null,
-              "startTransaction": null,
-              "writeConcern": null
-            },
-            "command_name": "abortTransaction",
+            "command_name": "commitTransaction",
             "database_name": "admin"
           }
         }
