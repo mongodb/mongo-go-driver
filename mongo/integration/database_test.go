@@ -56,12 +56,10 @@ func TestDatabase(t *testing.T) {
 		})
 		mt.Run("decode struct", func(mt *mtest.T) {
 			result := struct {
-				Hello bool    `bson:"ismaster"`
-				Ok    float64 `bson:"ok"`
+				Ok float64 `bson:"ok"`
 			}{}
-			err := mt.DB.RunCommand(mtest.Background, bson.D{{internal.LegacyHello, 1}}).Decode(&result)
+			err := mt.DB.RunCommand(mtest.Background, bson.D{{"ping", 1}}).Decode(&result)
 			assert.Nil(mt, err, "RunCommand error: %v", err)
-			assert.Equal(mt, true, result.Hello, "expected Hello value true, got false")
 			assert.Equal(mt, 1.0, result.Ok, "expected ok value 1.0, got %v", result.Ok)
 		})
 

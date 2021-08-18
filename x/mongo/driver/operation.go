@@ -1284,7 +1284,7 @@ func (op Operation) secondaryOK(desc description.SelectedServer) wiremessage.Que
 }
 
 func (Operation) canCompress(cmd string) bool {
-	if cmd == internal.LegacyHello || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
+	if cmd == internal.LegacyHello || cmd == "hello" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
 		cmd == "createUser" || cmd == "updateUser" || cmd == "copydbSaslStart" || cmd == "copydbgetnonce" || cmd == "copydb" {
 		return false
 	}

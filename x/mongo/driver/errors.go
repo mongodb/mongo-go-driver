@@ -179,8 +179,7 @@ func (wce WriteConcernError) NotPrimary() bool {
 		}
 	}
 	hasNoCode := wce.Code == 0
-	return hasNoCode &&
-		(strings.Contains(wce.Message, internal.LegacyNotPrimary) || strings.Contains(wce.Message, "not primary"))
+	return hasNoCode && strings.Contains(wce.Message, internal.LegacyNotPrimary)
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -326,8 +325,7 @@ func (e Error) NotPrimary() bool {
 		}
 	}
 	hasNoCode := e.Code == 0
-	return hasNoCode &&
-		(strings.Contains(e.Message, internal.LegacyNotPrimary) || strings.Contains(e.Message, "not primary"))
+	return hasNoCode && strings.Contains(e.Message, internal.LegacyNotPrimary)
 }
 
 // NamespaceNotFound returns true if this errors is a NamespaceNotFound error.

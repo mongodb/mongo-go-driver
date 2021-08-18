@@ -62,16 +62,7 @@ type Server struct {
 
 // NewServer creates a new server description from the given hello command response.
 func NewServer(addr address.Address, response bson.Raw) Server {
-	// Set HelloOK on server description based on initial hello command response.
-	val, err := response.LookupErr("helloOk")
-	var helloOK bool
-	if err == nil {
-		if valBool, ok := val.BooleanOK(); ok {
-			helloOK = valBool
-		}
-	}
-
-	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC(), HelloOK: helloOK}
+	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
 	elements, err := response.Elements()
 	if err != nil {
 		desc.LastError = err

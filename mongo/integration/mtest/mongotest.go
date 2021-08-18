@@ -44,7 +44,7 @@ const (
 )
 
 // FailPoint is a representation of a server fail point.
-// See https://github.com/mongodb/specifications/tree/master/source/transactions/tests#server-fail-point
+// See https://github.com/mongodb/specifications/tree/HEAD/source/transactions/tests#server-fail-point
 // for more information regarding fail points.
 type FailPoint struct {
 	ConfigureFailPoint string `bson:"configureFailPoint"`
