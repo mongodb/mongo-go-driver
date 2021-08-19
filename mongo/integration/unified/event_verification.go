@@ -34,21 +34,24 @@ var (
 
 type commandMonitoringEvent struct {
 	CommandStartedEvent *struct {
-		Command      bson.Raw `bson:"command"`
-		CommandName  *string  `bson:"commandName"`
-		DatabaseName *string  `bson:"databaseName"`
-		HasServiceID *bool    `bson:"hasServiceId"`
+		Command               bson.Raw `bson:"command"`
+		CommandName           *string  `bson:"commandName"`
+		DatabaseName          *string  `bson:"databaseName"`
+		HasServerConnectionID *bool    `bson:"hasServerConnectionId"`
+		HasServiceID          *bool    `bson:"hasServiceId"`
 	} `bson:"commandStartedEvent"`
 
 	CommandSucceededEvent *struct {
-		CommandName  *string  `bson:"commandName"`
-		Reply        bson.Raw `bson:"reply"`
-		HasServiceID *bool    `bson:"hasServiceId"`
+		CommandName           *string  `bson:"commandName"`
+		Reply                 bson.Raw `bson:"reply"`
+		HasServerConnectionID *bool    `bson:"hasServerConnectionId"`
+		HasServiceID          *bool    `bson:"hasServiceId"`
 	} `bson:"commandSucceededEvent"`
 
 	CommandFailedEvent *struct {
-		CommandName  *string `bson:"commandName"`
-		HasServiceID *bool   `bson:"hasServiceId"`
+		CommandName           *string `bson:"commandName"`
+		HasServerConnectionID *bool   `bson:"hasServerConnectionId"`
+		HasServiceID          *bool   `bson:"hasServiceId"`
 	} `bson:"commandFailedEvent"`
 }
 
@@ -186,6 +189,11 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 					return newEventVerificationError(idx, client, "error verifying serviceID: %v", err)
 				}
 			}
+			if expected.HasServerConnectionID != nil {
+				if err := verifyServerConnectionID(*expected.HasServerConnectionID, actual.ServerConnectionID); err != nil {
+					return newEventVerificationError(idx, client, "error verifying serverConnectionID: %v", err)
+				}
+			}
 		case evt.CommandSucceededEvent != nil:
 			if len(succeeded) == 0 {
 				return newEventVerificationError(idx, client, "no CommandSucceededEvent published")
@@ -221,6 +229,11 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 					return newEventVerificationError(idx, client, "error verifying serviceID: %v", err)
 				}
 			}
+			if expected.HasServerConnectionID != nil {
+				if err := verifyServerConnectionID(*expected.HasServerConnectionID, actual.ServerConnectionID); err != nil {
+					return newEventVerificationError(idx, client, "error verifying serverConnectionID: %v", err)
+				}
+			}
 		case evt.CommandFailedEvent != nil:
 			if len(failed) == 0 {
 				return newEventVerificationError(idx, client, "no CommandFailedEvent published")
@@ -237,6 +250,11 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 			if expected.HasServiceID != nil {
 				if err := verifyServiceID(*expected.HasServiceID, actual.ServiceID); err != nil {
 					return newEventVerificationError(idx, client, "error verifying serviceID: %v", err)
+				}
+			}
+			if expected.HasServerConnectionID != nil {
+				if err := verifyServerConnectionID(*expected.HasServerConnectionID, actual.ServerConnectionID); err != nil {
+					return newEventVerificationError(idx, client, "error verifying serverConnectionID: %v", err)
 				}
 			}
 		default:
@@ -344,6 +362,16 @@ func getNextPoolEvent(events []*event.PoolEvent, expectedType string) (*event.Po
 func verifyServiceID(expectServiceID bool, serviceID *primitive.ObjectID) error {
 	if eventHasID := serviceID != nil; expectServiceID != eventHasID {
 		return fmt.Errorf("expected event to have server ID: %v, event has server ID %v", expectServiceID, serviceID)
+	}
+	return nil
+}
+
+func verifyServerConnectionID(expectedHasSCID bool, scid *uint64) error {
+	if actualHasSCID := scid != nil; expectedHasSCID != actualHasSCID {
+		if expectedHasSCID {
+			return fmt.Errorf("expected event to have server connection ID, event has none")
+		}
+		return fmt.Errorf("expected event to have no server connection ID, got %d", *scid)
 	}
 	return nil
 }

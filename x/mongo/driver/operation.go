@@ -73,20 +73,22 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
+	serverConnID             *uint64
 	redacted                 bool
 	serviceID                *primitive.ObjectID
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
 type finishedInformation struct {
-	cmdName   string
-	requestID int32
-	response  bsoncore.Document
-	cmdErr    error
-	connID    string
-	startTime time.Time
-	redacted  bool
-	serviceID *primitive.ObjectID
+	cmdName      string
+	requestID    int32
+	response     bsoncore.Document
+	cmdErr       error
+	connID       string
+	serverConnID *uint64
+	startTime    time.Time
+	redacted     bool
+	serviceID    *primitive.ObjectID
 }
 
 // ResponseInfo contains the context required to parse a server response.
@@ -399,6 +401,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.cmdName = startedInfo.cmdName
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
+		startedInfo.serverConnID = desc.ConnectionID
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
@@ -413,12 +416,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		finishedInfo := finishedInformation{
-			cmdName:   startedInfo.cmdName,
-			requestID: startedInfo.requestID,
-			startTime: time.Now(),
-			connID:    startedInfo.connID,
-			redacted:  startedInfo.redacted,
-			serviceID: startedInfo.serviceID,
+			cmdName:      startedInfo.cmdName,
+			requestID:    startedInfo.requestID,
+			startTime:    time.Now(),
+			connID:       startedInfo.connID,
+			serverConnID: startedInfo.serverConnID,
+			redacted:     startedInfo.redacted,
+			serviceID:    startedInfo.serviceID,
 		}
 
 		// roundtrip using either the full roundTripper or a special one for when the moreToCome
@@ -1471,12 +1475,13 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	}
 
 	started := &event.CommandStartedEvent{
-		Command:      cmdCopy,
-		DatabaseName: op.Database,
-		CommandName:  info.cmdName,
-		RequestID:    int64(info.requestID),
-		ConnectionID: info.connID,
-		ServiceID:    info.serviceID,
+		Command:            cmdCopy,
+		DatabaseName:       op.Database,
+		CommandName:        info.cmdName,
+		RequestID:          int64(info.requestID),
+		ConnectionID:       info.connID,
+		ServerConnectionID: info.serverConnID,
+		ServiceID:          info.serviceID,
 	}
 	op.CommandMonitor.Started(ctx, started)
 }
@@ -1499,11 +1504,12 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	finished := event.CommandFinishedEvent{
-		CommandName:   info.cmdName,
-		RequestID:     int64(info.requestID),
-		ConnectionID:  info.connID,
-		DurationNanos: durationNanos,
-		ServiceID:     info.serviceID,
+		CommandName:        info.cmdName,
+		RequestID:          int64(info.requestID),
+		ConnectionID:       info.connID,
+		DurationNanos:      durationNanos,
+		ServerConnectionID: info.serverConnID,
+		ServiceID:          info.serviceID,
 	}
 
 	if success {
