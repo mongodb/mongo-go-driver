@@ -182,7 +182,8 @@ PoolClearedError Retryability Test
 ==================================
 
 This test will be used to ensure drivers properly retry after encountering PoolClearedErrors.
-This test MUST be implemented by any driver that implements the CMAP specification.
+It MUST be implemented by any driver that implements the CMAP specification.
+This test requires MongoDB 4.2.9+ for ``blockConnection`` support in the failpoint.
 
 1. Create a client with maxPoolSize=1 and retryReads=true. If testing against a
    sharded deployment, be sure to connect to only a single mongos.

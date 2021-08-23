@@ -5,6 +5,7 @@ runOn:
     -
         minServerVersion: "4.1.7"
         topology: ["sharded", "load-balanced"]
+        serverless: "forbid" # Test relies on failpoints. Serverless only exposes a load balancer fronting multiple Atlas Proxy instances. See DRIVERS-1882.
 
 database_name: &database_name "retryable-reads-tests"
 bucket_name: "fs"

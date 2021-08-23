@@ -1,7 +1,8 @@
 {
   "runOn": [
     {
-      "minServerVersion": "4.9.0"
+      "minServerVersion": "4.9.0",
+      "serverless": "forbid"
     }
   ],
   "database_name": "retryable-reads-tests",
