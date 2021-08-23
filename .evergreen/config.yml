@@ -518,6 +518,8 @@ functions:
           SERVERLESS="serverless" \
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
           SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
+          SINGLE_MONGOS_LB_URI="mongodb://invalid" \
+          MULTI_MONGOS_LB_URI="${MONGODB_URI}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           make evg-test-serverless
 
