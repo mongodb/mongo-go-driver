@@ -509,17 +509,18 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
+          set -o xtrace
           ${PREPARE_SHELL}
 
           export GOFLAGS=-mod=vendor
           AUTH="auth" \
           SSL="ssl" \
-          MONGODB_URI="${MONGODB_URI}" \
+          MONGODB_URI="${MONGODB_SRV_URI}" \
           SERVERLESS="serverless" \
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
           SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
           SINGLE_MONGOS_LB_URI="mongodb://invalid" \
-          MULTI_MONGOS_LB_URI="${MONGODB_URI}" \
+          MULTI_MONGOS_LB_URI="${MONGODB_SRV_URI}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           make evg-test-serverless
 

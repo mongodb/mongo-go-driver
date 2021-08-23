@@ -1,0 +1,1303 @@
+=== RUN   TestCrudSpec
+=== RUN   TestCrudSpec/aggregate-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/aggregate-out.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/aggregate.json
+=== RUN   TestCrudSpec/aggregate.json/Aggregate_with_multiple_stages
+=== RUN   TestCrudSpec/count-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/count-empty.json
+=== RUN   TestCrudSpec/count-empty.json/Estimated_document_count_with_empty_collection
+=== RUN   TestCrudSpec/count-empty.json/Count_documents_with_empty_collection
+=== RUN   TestCrudSpec/count-empty.json/Deprecated_count_with_empty_collection
+=== RUN   TestCrudSpec/count.json
+=== RUN   TestCrudSpec/count.json/Estimated_document_count
+=== RUN   TestCrudSpec/count.json/Count_documents_without_a_filter
+=== RUN   TestCrudSpec/count.json/Count_documents_with_a_filter
+=== RUN   TestCrudSpec/count.json/Count_documents_with_skip_and_limit
+=== RUN   TestCrudSpec/count.json/Deprecated_count_without_a_filter
+=== RUN   TestCrudSpec/count.json/Deprecated_count_with_a_filter
+=== RUN   TestCrudSpec/count.json/Deprecated_count_with_skip_and_limit
+=== RUN   TestCrudSpec/distinct-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/distinct.json
+=== RUN   TestCrudSpec/distinct.json/Distinct_without_a_filter
+=== RUN   TestCrudSpec/distinct.json/Distinct_with_a_filter
+=== RUN   TestCrudSpec/find-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/find.json
+=== RUN   TestCrudSpec/find.json/Find_with_filter
+=== RUN   TestCrudSpec/find.json/Find_with_filter,_sort,_skip,_and_limit
+=== RUN   TestCrudSpec/find.json/Find_with_limit,_sort,_and_batchsize
+=== RUN   TestCrudSpec/bulkWrite-arrayFilters.json
+=== RUN   TestCrudSpec/bulkWrite-arrayFilters.json/BulkWrite_with_arrayFilters
+=== RUN   TestCrudSpec/bulkWrite-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/bulkWrite.json
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_with_deleteOne_operations
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_with_deleteMany_operations
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_with_insertOne_operations
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_with_replaceOne_operations
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_with_updateOne_operations
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_with_updateMany_operations
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_with_mixed_ordered_operations
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_with_mixed_unordered_operations
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_continue-on-error_behavior_with_unordered_(preexisting_duplicate_key)
+=== RUN   TestCrudSpec/bulkWrite.json/BulkWrite_continue-on-error_behavior_with_unordered_(duplicate_key_in_requests)
+=== RUN   TestCrudSpec/deleteMany-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/deleteMany.json
+=== RUN   TestCrudSpec/deleteMany.json/DeleteMany_when_many_documents_match
+=== RUN   TestCrudSpec/deleteMany.json/DeleteMany_when_no_document_matches
+=== RUN   TestCrudSpec/deleteOne-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/deleteOne.json
+=== RUN   TestCrudSpec/deleteOne.json/DeleteOne_when_many_documents_match
+=== RUN   TestCrudSpec/deleteOne.json/DeleteOne_when_one_document_matches
+=== RUN   TestCrudSpec/deleteOne.json/DeleteOne_when_no_documents_match
+=== RUN   TestCrudSpec/findOneAndDelete-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/findOneAndDelete.json
+=== RUN   TestCrudSpec/findOneAndDelete.json/FindOneAndDelete_when_many_documents_match
+=== RUN   TestCrudSpec/findOneAndDelete.json/FindOneAndDelete_when_one_document_matches
+=== RUN   TestCrudSpec/findOneAndDelete.json/FindOneAndDelete_when_no_documents_match
+=== RUN   TestCrudSpec/findOneAndReplace-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/findOneAndReplace-upsert.json
+=== RUN   TestCrudSpec/findOneAndReplace-upsert.json/FindOneAndReplace_when_no_documents_match_without_id_specified_with_upsert_returning_the_document_before_modification
+=== RUN   TestCrudSpec/findOneAndReplace-upsert.json/FindOneAndReplace_when_no_documents_match_without_id_specified_with_upsert_returning_the_document_after_modification
+=== RUN   TestCrudSpec/findOneAndReplace-upsert.json/FindOneAndReplace_when_no_documents_match_with_id_specified_with_upsert_returning_the_document_before_modification
+=== RUN   TestCrudSpec/findOneAndReplace-upsert.json/FindOneAndReplace_when_no_documents_match_with_id_specified_with_upsert_returning_the_document_after_modification
+=== RUN   TestCrudSpec/findOneAndReplace.json
+=== RUN   TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_many_documents_match_returning_the_document_before_modification
+=== RUN   TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_many_documents_match_returning_the_document_after_modification
+=== RUN   TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_one_document_matches_returning_the_document_before_modification
+=== RUN   TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_one_document_matches_returning_the_document_after_modification
+=== RUN   TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_no_documents_match_returning_the_document_before_modification
+=== RUN   TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_no_documents_match_returning_the_document_after_modification
+=== RUN   TestCrudSpec/findOneAndUpdate-arrayFilters.json
+=== RUN   TestCrudSpec/findOneAndUpdate-arrayFilters.json/FindOneAndUpdate_when_no_document_matches_arrayFilters
+=== RUN   TestCrudSpec/findOneAndUpdate-arrayFilters.json/FindOneAndUpdate_when_one_document_matches_arrayFilters
+=== RUN   TestCrudSpec/findOneAndUpdate-arrayFilters.json/FindOneAndUpdate_when_multiple_documents_match_arrayFilters
+=== RUN   TestCrudSpec/findOneAndUpdate-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/findOneAndUpdate.json
+=== RUN   TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_many_documents_match_returning_the_document_before_modification
+=== RUN   TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_many_documents_match_returning_the_document_after_modification
+=== RUN   TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_one_document_matches_returning_the_document_before_modification
+=== RUN   TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_one_document_matches_returning_the_document_after_modification
+=== RUN   TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_no_documents_match_returning_the_document_before_modification
+=== RUN   TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_no_documents_match_with_upsert_returning_the_document_before_modification
+=== RUN   TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_no_documents_match_returning_the_document_after_modification
+=== RUN   TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_no_documents_match_with_upsert_returning_the_document_after_modification
+=== RUN   TestCrudSpec/insertMany.json
+=== RUN   TestCrudSpec/insertMany.json/InsertMany_with_non-existing_documents
+=== RUN   TestCrudSpec/insertMany.json/InsertMany_continue-on-error_behavior_with_unordered_(preexisting_duplicate_key)
+=== RUN   TestCrudSpec/insertMany.json/InsertMany_continue-on-error_behavior_with_unordered_(duplicate_key_in_requests)
+=== RUN   TestCrudSpec/insertOne.json
+=== RUN   TestCrudSpec/insertOne.json/InsertOne_with_a_non-existing_document
+=== RUN   TestCrudSpec/replaceOne-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/replaceOne.json
+=== RUN   TestCrudSpec/replaceOne.json/ReplaceOne_when_many_documents_match
+=== RUN   TestCrudSpec/replaceOne.json/ReplaceOne_when_one_document_matches
+=== RUN   TestCrudSpec/replaceOne.json/ReplaceOne_when_no_documents_match
+=== RUN   TestCrudSpec/replaceOne.json/ReplaceOne_with_upsert_when_no_documents_match_without_an_id_specified
+=== RUN   TestCrudSpec/replaceOne.json/ReplaceOne_with_upsert_when_no_documents_match_with_an_id_specified
+=== RUN   TestCrudSpec/updateMany-arrayFilters.json
+=== RUN   TestCrudSpec/updateMany-arrayFilters.json/UpdateMany_when_no_documents_match_arrayFilters
+=== RUN   TestCrudSpec/updateMany-arrayFilters.json/UpdateMany_when_one_document_matches_arrayFilters
+=== RUN   TestCrudSpec/updateMany-arrayFilters.json/UpdateMany_when_multiple_documents_match_arrayFilters
+=== RUN   TestCrudSpec/updateMany-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/updateMany.json
+=== RUN   TestCrudSpec/updateMany.json/UpdateMany_when_many_documents_match
+=== RUN   TestCrudSpec/updateMany.json/UpdateMany_when_one_document_matches
+=== RUN   TestCrudSpec/updateMany.json/UpdateMany_when_no_documents_match
+=== RUN   TestCrudSpec/updateMany.json/UpdateMany_with_upsert_when_no_documents_match
+=== RUN   TestCrudSpec/updateOne-arrayFilters.json
+=== RUN   TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_no_document_matches_arrayFilters
+=== RUN   TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_one_document_matches_arrayFilters
+=== RUN   TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_multiple_documents_match_arrayFilters
+=== RUN   TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_no_documents_match_multiple_arrayFilters
+=== RUN   TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_one_document_matches_multiple_arrayFilters
+=== RUN   TestCrudSpec/updateOne-collation.json
+    crud_spec_test.go:101: test forbids serverless
+=== RUN   TestCrudSpec/updateOne.json
+=== RUN   TestCrudSpec/updateOne.json/UpdateOne_when_many_documents_match
+=== RUN   TestCrudSpec/updateOne.json/UpdateOne_when_one_document_matches
+=== RUN   TestCrudSpec/updateOne.json/UpdateOne_when_no_documents_match
+=== RUN   TestCrudSpec/updateOne.json/UpdateOne_with_upsert_when_no_documents_match
+--- PASS: TestCrudSpec (31.20s)
+    --- SKIP: TestCrudSpec/aggregate-collation.json (0.00s)
+    --- SKIP: TestCrudSpec/aggregate-out.json (0.00s)
+    --- PASS: TestCrudSpec/aggregate.json (0.40s)
+        --- PASS: TestCrudSpec/aggregate.json/Aggregate_with_multiple_stages (0.40s)
+    --- SKIP: TestCrudSpec/count-collation.json (0.00s)
+    --- PASS: TestCrudSpec/count-empty.json (1.05s)
+        --- PASS: TestCrudSpec/count-empty.json/Estimated_document_count_with_empty_collection (0.34s)
+        --- PASS: TestCrudSpec/count-empty.json/Count_documents_with_empty_collection (0.34s)
+        --- PASS: TestCrudSpec/count-empty.json/Deprecated_count_with_empty_collection (0.36s)
+    --- PASS: TestCrudSpec/count.json (2.72s)
+        --- PASS: TestCrudSpec/count.json/Estimated_document_count (0.38s)
+        --- PASS: TestCrudSpec/count.json/Count_documents_without_a_filter (0.42s)
+        --- PASS: TestCrudSpec/count.json/Count_documents_with_a_filter (0.35s)
+        --- PASS: TestCrudSpec/count.json/Count_documents_with_skip_and_limit (0.38s)
+        --- PASS: TestCrudSpec/count.json/Deprecated_count_without_a_filter (0.42s)
+        --- PASS: TestCrudSpec/count.json/Deprecated_count_with_a_filter (0.38s)
+        --- PASS: TestCrudSpec/count.json/Deprecated_count_with_skip_and_limit (0.38s)
+    --- SKIP: TestCrudSpec/distinct-collation.json (0.00s)
+    --- PASS: TestCrudSpec/distinct.json (0.73s)
+        --- PASS: TestCrudSpec/distinct.json/Distinct_without_a_filter (0.38s)
+        --- PASS: TestCrudSpec/distinct.json/Distinct_with_a_filter (0.34s)
+    --- SKIP: TestCrudSpec/find-collation.json (0.00s)
+    --- PASS: TestCrudSpec/find.json (1.10s)
+        --- PASS: TestCrudSpec/find.json/Find_with_filter (0.37s)
+        --- PASS: TestCrudSpec/find.json/Find_with_filter,_sort,_skip,_and_limit (0.35s)
+        --- PASS: TestCrudSpec/find.json/Find_with_limit,_sort,_and_batchsize (0.38s)
+    --- PASS: TestCrudSpec/bulkWrite-arrayFilters.json (0.41s)
+        --- PASS: TestCrudSpec/bulkWrite-arrayFilters.json/BulkWrite_with_arrayFilters (0.41s)
+    --- SKIP: TestCrudSpec/bulkWrite-collation.json (0.00s)
+    --- PASS: TestCrudSpec/bulkWrite.json (3.96s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_with_deleteOne_operations (0.38s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_with_deleteMany_operations (0.38s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_with_insertOne_operations (0.39s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_with_replaceOne_operations (0.39s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_with_updateOne_operations (0.39s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_with_updateMany_operations (0.39s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_with_mixed_ordered_operations (0.52s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_with_mixed_unordered_operations (0.39s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_continue-on-error_behavior_with_unordered_(preexisting_duplicate_key) (0.35s)
+        --- PASS: TestCrudSpec/bulkWrite.json/BulkWrite_continue-on-error_behavior_with_unordered_(duplicate_key_in_requests) (0.38s)
+    --- SKIP: TestCrudSpec/deleteMany-collation.json (0.00s)
+    --- PASS: TestCrudSpec/deleteMany.json (0.74s)
+        --- PASS: TestCrudSpec/deleteMany.json/DeleteMany_when_many_documents_match (0.37s)
+        --- PASS: TestCrudSpec/deleteMany.json/DeleteMany_when_no_document_matches (0.37s)
+    --- SKIP: TestCrudSpec/deleteOne-collation.json (0.00s)
+    --- PASS: TestCrudSpec/deleteOne.json (1.15s)
+        --- PASS: TestCrudSpec/deleteOne.json/DeleteOne_when_many_documents_match (0.36s)
+        --- PASS: TestCrudSpec/deleteOne.json/DeleteOne_when_one_document_matches (0.40s)
+        --- PASS: TestCrudSpec/deleteOne.json/DeleteOne_when_no_documents_match (0.40s)
+    --- SKIP: TestCrudSpec/findOneAndDelete-collation.json (0.00s)
+    --- PASS: TestCrudSpec/findOneAndDelete.json (1.17s)
+        --- PASS: TestCrudSpec/findOneAndDelete.json/FindOneAndDelete_when_many_documents_match (0.41s)
+        --- PASS: TestCrudSpec/findOneAndDelete.json/FindOneAndDelete_when_one_document_matches (0.37s)
+        --- PASS: TestCrudSpec/findOneAndDelete.json/FindOneAndDelete_when_no_documents_match (0.39s)
+    --- SKIP: TestCrudSpec/findOneAndReplace-collation.json (0.00s)
+    --- PASS: TestCrudSpec/findOneAndReplace-upsert.json (1.49s)
+        --- PASS: TestCrudSpec/findOneAndReplace-upsert.json/FindOneAndReplace_when_no_documents_match_without_id_specified_with_upsert_returning_the_document_before_modification (0.36s)
+        --- PASS: TestCrudSpec/findOneAndReplace-upsert.json/FindOneAndReplace_when_no_documents_match_without_id_specified_with_upsert_returning_the_document_after_modification (0.36s)
+        --- PASS: TestCrudSpec/findOneAndReplace-upsert.json/FindOneAndReplace_when_no_documents_match_with_id_specified_with_upsert_returning_the_document_before_modification (0.38s)
+        --- PASS: TestCrudSpec/findOneAndReplace-upsert.json/FindOneAndReplace_when_no_documents_match_with_id_specified_with_upsert_returning_the_document_after_modification (0.38s)
+    --- PASS: TestCrudSpec/findOneAndReplace.json (2.33s)
+        --- PASS: TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_many_documents_match_returning_the_document_before_modification (0.38s)
+        --- PASS: TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_many_documents_match_returning_the_document_after_modification (0.38s)
+        --- PASS: TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_one_document_matches_returning_the_document_before_modification (0.37s)
+        --- PASS: TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_one_document_matches_returning_the_document_after_modification (0.42s)
+        --- PASS: TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_no_documents_match_returning_the_document_before_modification (0.40s)
+        --- PASS: TestCrudSpec/findOneAndReplace.json/FindOneAndReplace_when_no_documents_match_returning_the_document_after_modification (0.39s)
+    --- PASS: TestCrudSpec/findOneAndUpdate-arrayFilters.json (1.14s)
+        --- PASS: TestCrudSpec/findOneAndUpdate-arrayFilters.json/FindOneAndUpdate_when_no_document_matches_arrayFilters (0.38s)
+        --- PASS: TestCrudSpec/findOneAndUpdate-arrayFilters.json/FindOneAndUpdate_when_one_document_matches_arrayFilters (0.39s)
+        --- PASS: TestCrudSpec/findOneAndUpdate-arrayFilters.json/FindOneAndUpdate_when_multiple_documents_match_arrayFilters (0.37s)
+    --- SKIP: TestCrudSpec/findOneAndUpdate-collation.json (0.00s)
+    --- PASS: TestCrudSpec/findOneAndUpdate.json (3.09s)
+        --- PASS: TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_many_documents_match_returning_the_document_before_modification (0.37s)
+        --- PASS: TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_many_documents_match_returning_the_document_after_modification (0.38s)
+        --- PASS: TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_one_document_matches_returning_the_document_before_modification (0.38s)
+        --- PASS: TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_one_document_matches_returning_the_document_after_modification (0.40s)
+        --- PASS: TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_no_documents_match_returning_the_document_before_modification (0.38s)
+        --- PASS: TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_no_documents_match_with_upsert_returning_the_document_before_modification (0.39s)
+        --- PASS: TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_no_documents_match_returning_the_document_after_modification (0.40s)
+        --- PASS: TestCrudSpec/findOneAndUpdate.json/FindOneAndUpdate_when_no_documents_match_with_upsert_returning_the_document_after_modification (0.38s)
+    --- PASS: TestCrudSpec/insertMany.json (1.18s)
+        --- PASS: TestCrudSpec/insertMany.json/InsertMany_with_non-existing_documents (0.39s)
+        --- PASS: TestCrudSpec/insertMany.json/InsertMany_continue-on-error_behavior_with_unordered_(preexisting_duplicate_key) (0.39s)
+        --- PASS: TestCrudSpec/insertMany.json/InsertMany_continue-on-error_behavior_with_unordered_(duplicate_key_in_requests) (0.40s)
+    --- PASS: TestCrudSpec/insertOne.json (0.38s)
+        --- PASS: TestCrudSpec/insertOne.json/InsertOne_with_a_non-existing_document (0.38s)
+    --- SKIP: TestCrudSpec/replaceOne-collation.json (0.00s)
+    --- PASS: TestCrudSpec/replaceOne.json (1.88s)
+        --- PASS: TestCrudSpec/replaceOne.json/ReplaceOne_when_many_documents_match (0.33s)
+        --- PASS: TestCrudSpec/replaceOne.json/ReplaceOne_when_one_document_matches (0.37s)
+        --- PASS: TestCrudSpec/replaceOne.json/ReplaceOne_when_no_documents_match (0.39s)
+        --- PASS: TestCrudSpec/replaceOne.json/ReplaceOne_with_upsert_when_no_documents_match_without_an_id_specified (0.39s)
+        --- PASS: TestCrudSpec/replaceOne.json/ReplaceOne_with_upsert_when_no_documents_match_with_an_id_specified (0.39s)
+    --- PASS: TestCrudSpec/updateMany-arrayFilters.json (1.14s)
+        --- PASS: TestCrudSpec/updateMany-arrayFilters.json/UpdateMany_when_no_documents_match_arrayFilters (0.37s)
+        --- PASS: TestCrudSpec/updateMany-arrayFilters.json/UpdateMany_when_one_document_matches_arrayFilters (0.38s)
+        --- PASS: TestCrudSpec/updateMany-arrayFilters.json/UpdateMany_when_multiple_documents_match_arrayFilters (0.39s)
+    --- SKIP: TestCrudSpec/updateMany-collation.json (0.00s)
+    --- PASS: TestCrudSpec/updateMany.json (1.62s)
+        --- PASS: TestCrudSpec/updateMany.json/UpdateMany_when_many_documents_match (0.40s)
+        --- PASS: TestCrudSpec/updateMany.json/UpdateMany_when_one_document_matches (0.41s)
+        --- PASS: TestCrudSpec/updateMany.json/UpdateMany_when_no_documents_match (0.39s)
+        --- PASS: TestCrudSpec/updateMany.json/UpdateMany_with_upsert_when_no_documents_match (0.41s)
+    --- PASS: TestCrudSpec/updateOne-arrayFilters.json (1.95s)
+        --- PASS: TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_no_document_matches_arrayFilters (0.41s)
+        --- PASS: TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_one_document_matches_arrayFilters (0.38s)
+        --- PASS: TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_multiple_documents_match_arrayFilters (0.35s)
+        --- PASS: TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_no_documents_match_multiple_arrayFilters (0.39s)
+        --- PASS: TestCrudSpec/updateOne-arrayFilters.json/UpdateOne_when_one_document_matches_multiple_arrayFilters (0.41s)
+    --- SKIP: TestCrudSpec/updateOne-collation.json (0.00s)
+    --- PASS: TestCrudSpec/updateOne.json (1.56s)
+        --- PASS: TestCrudSpec/updateOne.json/UpdateOne_when_many_documents_match (0.36s)
+        --- PASS: TestCrudSpec/updateOne.json/UpdateOne_when_one_document_matches (0.39s)
+        --- PASS: TestCrudSpec/updateOne.json/UpdateOne_when_no_documents_match (0.39s)
+        --- PASS: TestCrudSpec/updateOne.json/UpdateOne_with_upsert_when_no_documents_match (0.42s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	32.367s
+=== RUN   TestRetryableWritesSpec
+=== RUN   TestRetryableWritesSpec/bulkWrite-errorLabels.json
+=== RUN   TestRetryableWritesSpec/bulkWrite-errorLabels.json/BulkWrite_succeeds_with_RetryableWriteError_from_server
+=== RUN   TestRetryableWritesSpec/bulkWrite-errorLabels.json/BulkWrite_fails_if_server_does_not_return_RetryableWriteError
+=== RUN   TestRetryableWritesSpec/bulkWrite-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestRetryableWritesSpec/bulkWrite.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+=== RUN   TestRetryableWritesSpec/deleteMany.json
+=== RUN   TestRetryableWritesSpec/deleteMany.json/DeleteMany_ignores_retryWrites
+=== RUN   TestRetryableWritesSpec/deleteOne-errorLabels.json
+=== RUN   TestRetryableWritesSpec/deleteOne-errorLabels.json/DeleteOne_succeeds_with_RetryableWriteError_from_server
+=== RUN   TestRetryableWritesSpec/deleteOne-errorLabels.json/DeleteOne_fails_if_server_does_not_return_RetryableWriteError
+=== RUN   TestRetryableWritesSpec/deleteOne-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestRetryableWritesSpec/deleteOne.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+=== RUN   TestRetryableWritesSpec/findOneAndDelete-errorLabels.json
+=== RUN   TestRetryableWritesSpec/findOneAndDelete-errorLabels.json/FindOneAndDelete_succeeds_with_RetryableWriteError_from_server
+=== RUN   TestRetryableWritesSpec/findOneAndDelete-errorLabels.json/FindOneAndDelete_fails_if_server_does_not_return_RetryableWriteError
+=== RUN   TestRetryableWritesSpec/findOneAndDelete-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestRetryableWritesSpec/findOneAndDelete.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+=== RUN   TestRetryableWritesSpec/findOneAndReplace-errorLabels.json
+=== RUN   TestRetryableWritesSpec/findOneAndReplace-errorLabels.json/FindOneAndReplace_succeeds_with_RetryableWriteError_from_server
+=== RUN   TestRetryableWritesSpec/findOneAndReplace-errorLabels.json/FindOneAndReplace_fails_if_server_does_not_return_RetryableWriteError
+=== RUN   TestRetryableWritesSpec/findOneAndReplace-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestRetryableWritesSpec/findOneAndReplace.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+=== RUN   TestRetryableWritesSpec/findOneAndUpdate-errorLabels.json
+=== RUN   TestRetryableWritesSpec/findOneAndUpdate-errorLabels.json/FindOneAndUpdate_succeeds_with_RetryableWriteError_from_server
+=== RUN   TestRetryableWritesSpec/findOneAndUpdate-errorLabels.json/FindOneAndUpdate_fails_if_server_does_not_return_RetryableWriteError
+=== RUN   TestRetryableWritesSpec/findOneAndUpdate-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestRetryableWritesSpec/findOneAndUpdate.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+=== RUN   TestRetryableWritesSpec/insertMany-errorLabels.json
+=== RUN   TestRetryableWritesSpec/insertMany-errorLabels.json/InsertMany_succeeds_with_RetryableWriteError_from_server
+=== RUN   TestRetryableWritesSpec/insertMany-errorLabels.json/InsertMany_fails_if_server_does_not_return_RetryableWriteError
+=== RUN   TestRetryableWritesSpec/insertMany-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestRetryableWritesSpec/insertMany.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+=== RUN   TestRetryableWritesSpec/insertOne-errorLabels.json
+=== RUN   TestRetryableWritesSpec/insertOne-errorLabels.json/InsertOne_succeeds_with_RetryableWriteError_from_server
+=== RUN   TestRetryableWritesSpec/insertOne-errorLabels.json/InsertOne_fails_if_server_does_not_return_RetryableWriteError
+=== RUN   TestRetryableWritesSpec/insertOne-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestRetryableWritesSpec/insertOne.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+=== RUN   TestRetryableWritesSpec/replaceOne-errorLabels.json
+=== RUN   TestRetryableWritesSpec/replaceOne-errorLabels.json/ReplaceOne_succeeds_with_RetryableWriteError_from_server
+=== RUN   TestRetryableWritesSpec/replaceOne-errorLabels.json/ReplaceOne_fails_if_server_does_not_return_RetryableWriteError
+=== RUN   TestRetryableWritesSpec/replaceOne-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestRetryableWritesSpec/replaceOne.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+=== RUN   TestRetryableWritesSpec/updateMany.json
+=== RUN   TestRetryableWritesSpec/updateMany.json/UpdateMany_ignores_retryWrites
+=== RUN   TestRetryableWritesSpec/updateOne-errorLabels.json
+=== RUN   TestRetryableWritesSpec/updateOne-errorLabels.json/UpdateOne_succeeds_with_RetryableWriteError_from_server
+=== RUN   TestRetryableWritesSpec/updateOne-errorLabels.json/UpdateOne_fails_if_server_does_not_return_RetryableWriteError
+=== RUN   TestRetryableWritesSpec/updateOne-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestRetryableWritesSpec/updateOne.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+--- PASS: TestRetryableWritesSpec (10.51s)
+    --- PASS: TestRetryableWritesSpec/bulkWrite-errorLabels.json (1.11s)
+        --- PASS: TestRetryableWritesSpec/bulkWrite-errorLabels.json/BulkWrite_succeeds_with_RetryableWriteError_from_server (0.50s)
+        --- PASS: TestRetryableWritesSpec/bulkWrite-errorLabels.json/BulkWrite_fails_if_server_does_not_return_RetryableWriteError (0.61s)
+    --- SKIP: TestRetryableWritesSpec/bulkWrite-serverErrors.json (0.00s)
+    --- SKIP: TestRetryableWritesSpec/bulkWrite.json (0.00s)
+    --- PASS: TestRetryableWritesSpec/deleteMany.json (0.42s)
+        --- PASS: TestRetryableWritesSpec/deleteMany.json/DeleteMany_ignores_retryWrites (0.41s)
+    --- PASS: TestRetryableWritesSpec/deleteOne-errorLabels.json (1.06s)
+        --- PASS: TestRetryableWritesSpec/deleteOne-errorLabels.json/DeleteOne_succeeds_with_RetryableWriteError_from_server (0.47s)
+        --- PASS: TestRetryableWritesSpec/deleteOne-errorLabels.json/DeleteOne_fails_if_server_does_not_return_RetryableWriteError (0.58s)
+    --- SKIP: TestRetryableWritesSpec/deleteOne-serverErrors.json (0.01s)
+    --- SKIP: TestRetryableWritesSpec/deleteOne.json (0.00s)
+    --- PASS: TestRetryableWritesSpec/findOneAndDelete-errorLabels.json (1.17s)
+        --- PASS: TestRetryableWritesSpec/findOneAndDelete-errorLabels.json/FindOneAndDelete_succeeds_with_RetryableWriteError_from_server (0.53s)
+        --- PASS: TestRetryableWritesSpec/findOneAndDelete-errorLabels.json/FindOneAndDelete_fails_if_server_does_not_return_RetryableWriteError (0.60s)
+    --- SKIP: TestRetryableWritesSpec/findOneAndDelete-serverErrors.json (0.00s)
+    --- SKIP: TestRetryableWritesSpec/findOneAndDelete.json (0.00s)
+    --- PASS: TestRetryableWritesSpec/findOneAndReplace-errorLabels.json (1.06s)
+        --- PASS: TestRetryableWritesSpec/findOneAndReplace-errorLabels.json/FindOneAndReplace_succeeds_with_RetryableWriteError_from_server (0.45s)
+        --- PASS: TestRetryableWritesSpec/findOneAndReplace-errorLabels.json/FindOneAndReplace_fails_if_server_does_not_return_RetryableWriteError (0.61s)
+    --- SKIP: TestRetryableWritesSpec/findOneAndReplace-serverErrors.json (0.00s)
+    --- SKIP: TestRetryableWritesSpec/findOneAndReplace.json (0.00s)
+    --- PASS: TestRetryableWritesSpec/findOneAndUpdate-errorLabels.json (1.07s)
+        --- PASS: TestRetryableWritesSpec/findOneAndUpdate-errorLabels.json/FindOneAndUpdate_succeeds_with_RetryableWriteError_from_server (0.47s)
+        --- PASS: TestRetryableWritesSpec/findOneAndUpdate-errorLabels.json/FindOneAndUpdate_fails_if_server_does_not_return_RetryableWriteError (0.60s)
+    --- SKIP: TestRetryableWritesSpec/findOneAndUpdate-serverErrors.json (0.00s)
+    --- SKIP: TestRetryableWritesSpec/findOneAndUpdate.json (0.00s)
+    --- PASS: TestRetryableWritesSpec/insertMany-errorLabels.json (1.02s)
+        --- PASS: TestRetryableWritesSpec/insertMany-errorLabels.json/InsertMany_succeeds_with_RetryableWriteError_from_server (0.45s)
+        --- PASS: TestRetryableWritesSpec/insertMany-errorLabels.json/InsertMany_fails_if_server_does_not_return_RetryableWriteError (0.56s)
+    --- SKIP: TestRetryableWritesSpec/insertMany-serverErrors.json (0.00s)
+    --- SKIP: TestRetryableWritesSpec/insertMany.json (0.00s)
+    --- PASS: TestRetryableWritesSpec/insertOne-errorLabels.json (0.95s)
+        --- PASS: TestRetryableWritesSpec/insertOne-errorLabels.json/InsertOne_succeeds_with_RetryableWriteError_from_server (0.43s)
+        --- PASS: TestRetryableWritesSpec/insertOne-errorLabels.json/InsertOne_fails_if_server_does_not_return_RetryableWriteError (0.52s)
+    --- SKIP: TestRetryableWritesSpec/insertOne-serverErrors.json (0.00s)
+    --- SKIP: TestRetryableWritesSpec/insertOne.json (0.00s)
+    --- PASS: TestRetryableWritesSpec/replaceOne-errorLabels.json (1.09s)
+        --- PASS: TestRetryableWritesSpec/replaceOne-errorLabels.json/ReplaceOne_succeeds_with_RetryableWriteError_from_server (0.47s)
+        --- PASS: TestRetryableWritesSpec/replaceOne-errorLabels.json/ReplaceOne_fails_if_server_does_not_return_RetryableWriteError (0.61s)
+    --- SKIP: TestRetryableWritesSpec/replaceOne-serverErrors.json (0.00s)
+    --- SKIP: TestRetryableWritesSpec/replaceOne.json (0.00s)
+    --- PASS: TestRetryableWritesSpec/updateMany.json (0.40s)
+        --- PASS: TestRetryableWritesSpec/updateMany.json/UpdateMany_ignores_retryWrites (0.40s)
+    --- PASS: TestRetryableWritesSpec/updateOne-errorLabels.json (1.12s)
+        --- PASS: TestRetryableWritesSpec/updateOne-errorLabels.json/UpdateOne_succeeds_with_RetryableWriteError_from_server (0.49s)
+        --- PASS: TestRetryableWritesSpec/updateOne-errorLabels.json/UpdateOne_fails_if_server_does_not_return_RetryableWriteError (0.62s)
+    --- SKIP: TestRetryableWritesSpec/updateOne-serverErrors.json (0.00s)
+    --- SKIP: TestRetryableWritesSpec/updateOne.json (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	11.426s
+=== RUN   TestUnifiedSpecs
+=== RUN   TestUnifiedSpecs/retryable-reads
+=== RUN   TestUnifiedSpecs/retryable-reads/aggregate-merge.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/aggregate-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/aggregate.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/changeStreams-client.watch-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/changeStreams-client.watch.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/changeStreams-db.coll.watch-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/changeStreams-db.coll.watch.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/changeStreams-db.watch-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/changeStreams-db.watch.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_InterruptedAtShutdown
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_InterruptedDueToReplStateChange
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_NotWritablePrimary
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_NotPrimaryNoSecondaryOk
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_NotPrimaryOrSecondary
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_PrimarySteppedDown
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_ShutdownInProgress
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_HostNotFound
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_HostUnreachable
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_NetworkTimeout
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_SocketException
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_fails_after_two_NotWritablePrimary_errors
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_fails_after_NotWritablePrimary_when_retryReads_is_false
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count.json
+=== RUN   TestUnifiedSpecs/retryable-reads/count.json/Count_succeeds_on_first_attempt
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count.json/Count_succeeds_on_second_attempt
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count.json/Count_fails_on_first_attempt
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/count.json/Count_fails_on_second_attempt
+    unified_spec_test.go:339: count has been deprecated
+=== RUN   TestUnifiedSpecs/retryable-reads/countDocuments-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/countDocuments.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/distinct-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/distinct.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/estimatedDocumentCount-4.9.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/estimatedDocumentCount-pre4.9.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.8.99" server version "5.0.2" is higher than max version "4.8.99"]
+=== RUN   TestUnifiedSpecs/retryable-reads/estimatedDocumentCount-serverErrors-4.9.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/estimatedDocumentCount-serverErrors-pre4.9.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.8.99" server version "5.0.2" is higher than max version "4.8.99"]
+=== RUN   TestUnifiedSpecs/retryable-reads/find-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/find.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/findOne-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/findOne.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/gridfs-download-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/gridfs-download.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/gridfs-downloadByName-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/gridfs-downloadByName.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listCollectionNames-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listCollectionNames.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listCollectionObjects-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listCollectionObjects.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listCollections-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listCollections.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listDatabaseNames-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listDatabaseNames.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listDatabaseObjects-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listDatabaseObjects.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listDatabases-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listDatabases.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listIndexNames-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listIndexNames.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listIndexes-serverErrors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/listIndexes.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+=== RUN   TestUnifiedSpecs/retryable-reads/mapReduce.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"] test forbids serverless]
+--- PASS: TestUnifiedSpecs (14.77s)
+    --- PASS: TestUnifiedSpecs/retryable-reads (14.77s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/aggregate-merge.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/aggregate-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/aggregate.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/changeStreams-client.watch-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/changeStreams-client.watch.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/changeStreams-db.coll.watch-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/changeStreams-db.coll.watch.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/changeStreams-db.watch-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/changeStreams-db.watch.json (0.00s)
+        --- PASS: TestUnifiedSpecs/retryable-reads/count-serverErrors.json (11.22s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_InterruptedAtShutdown (0.87s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_InterruptedDueToReplStateChange (0.88s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_NotWritablePrimary (0.87s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_NotPrimaryNoSecondaryOk (0.86s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_NotPrimaryOrSecondary (0.87s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_PrimarySteppedDown (0.85s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_ShutdownInProgress (0.89s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_HostNotFound (0.86s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_HostUnreachable (0.87s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_NetworkTimeout (0.84s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_succeeds_after_SocketException (0.86s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_fails_after_two_NotWritablePrimary_errors (0.84s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count-serverErrors.json/Count_fails_after_NotWritablePrimary_when_retryReads_is_false (0.86s)
+        --- PASS: TestUnifiedSpecs/retryable-reads/count.json (3.47s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count.json/Count_succeeds_on_first_attempt (0.82s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count.json/Count_succeeds_on_second_attempt (0.89s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count.json/Count_fails_on_first_attempt (0.88s)
+            --- SKIP: TestUnifiedSpecs/retryable-reads/count.json/Count_fails_on_second_attempt (0.88s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/countDocuments-serverErrors.json (0.01s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/countDocuments.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/distinct-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/distinct.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/estimatedDocumentCount-4.9.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/estimatedDocumentCount-pre4.9.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/estimatedDocumentCount-serverErrors-4.9.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/estimatedDocumentCount-serverErrors-pre4.9.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/find-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/find.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/findOne-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/findOne.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/gridfs-download-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/gridfs-download.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/gridfs-downloadByName-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/gridfs-downloadByName.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listCollectionNames-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listCollectionNames.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listCollectionObjects-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listCollectionObjects.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listCollections-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listCollections.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listDatabaseNames-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listDatabaseNames.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listDatabaseObjects-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listDatabaseObjects.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listDatabases-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listDatabases.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listIndexNames-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listIndexNames.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listIndexes-serverErrors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/listIndexes.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/retryable-reads/mapReduce.json (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	15.614s
+=== RUN   TestUnifiedSpecs
+=== RUN   TestUnifiedSpecs/sessions/legacy
+=== RUN   TestUnifiedSpecs/sessions/legacy/dirty-session-errors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/sessions/legacy/server-support.json
+=== RUN   TestUnifiedSpecs/sessions/legacy/server-support.json/Server_supports_explicit_sessions
+=== RUN   TestUnifiedSpecs/sessions/legacy/server-support.json/Server_supports_implicit_sessions
+--- PASS: TestUnifiedSpecs (1.85s)
+    --- PASS: TestUnifiedSpecs/sessions/legacy (1.85s)
+        --- SKIP: TestUnifiedSpecs/sessions/legacy/dirty-session-errors.json (0.00s)
+        --- PASS: TestUnifiedSpecs/sessions/legacy/server-support.json (1.85s)
+            --- PASS: TestUnifiedSpecs/sessions/legacy/server-support.json/Server_supports_explicit_sessions (0.92s)
+            --- PASS: TestUnifiedSpecs/sessions/legacy/server-support.json/Server_supports_implicit_sessions (0.92s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	2.753s
+=== RUN   TestUnifiedSpec
+=== RUN   TestUnifiedSpec/crud/unified
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-let.json
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_with_let_option
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_with_let_option_and_dollar-prefixed_$literal_value
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["single" "replicaset"]]
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_with_let_option_unsupported_(server-side_error)
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_to_collection_with_let_option
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_to_collection_with_let_option_unsupported_(server-side_error)
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-merge.json
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge_and_batch_size_of_0
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge_and_majority_readConcern
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge_and_local_readConcern
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge_and_available_readConcern
+=== RUN   TestUnifiedSpec/crud/unified/aggregate-out-readConcern.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset" "sharded"]]
+=== RUN   TestUnifiedSpec/crud/unified/aggregate.json
+=== RUN   TestUnifiedSpec/crud/unified/aggregate.json/aggregate_with_multiple_batches_works
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-arrayFilters-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.5.5"]
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-arrayFilters.json
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-arrayFilters.json/BulkWrite_updateOne_with_arrayFilters
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-arrayFilters.json/BulkWrite_updateMany_with_arrayFilters
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-delete-hint-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.3.99"]
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-delete-hint-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.3.3"]
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-delete-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-delete-hint.json/BulkWrite_deleteOne_with_hints
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-delete-hint.json/BulkWrite_deleteMany_with_hints
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_pre-5.0_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dotted_key
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_dollar-prefixed_key_in_embedded_doc
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_dotted_key_in_embedded_doc
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_3.6+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_pre-3.6_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_pre-5.0_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_3.6+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_pre-3.6_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-hint-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.3.99"]
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-hint-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.1.9"]
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-hint.json/BulkWrite_updateOne_with_update_hints
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-hint.json/BulkWrite_updateMany_with_update_hints
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-hint.json/BulkWrite_replaceOne_with_update_hints
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-validation.json
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-validation.json/BulkWrite_replaceOne_prohibits_atomic_modifiers
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-validation.json/BulkWrite_updateOne_requires_atomic_modifiers
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-update-validation.json/BulkWrite_updateMany_requires_atomic_modifiers
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/db-aggregate.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpec/crud/unified/deleteMany-hint-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.3.99"]
+=== RUN   TestUnifiedSpec/crud/unified/deleteMany-hint-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.3.3"]
+=== RUN   TestUnifiedSpec/crud/unified/deleteMany-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/deleteMany-hint.json/DeleteMany_with_hint_string
+=== RUN   TestUnifiedSpec/crud/unified/deleteMany-hint.json/DeleteMany_with_hint_document
+=== RUN   TestUnifiedSpec/crud/unified/deleteOne-hint-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.3.99"]
+=== RUN   TestUnifiedSpec/crud/unified/deleteOne-hint-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.3.3"]
+=== RUN   TestUnifiedSpec/crud/unified/deleteOne-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/deleteOne-hint.json/DeleteOne_with_hint_string
+=== RUN   TestUnifiedSpec/crud/unified/deleteOne-hint.json/deleteOne_with_hint_document
+=== RUN   TestUnifiedSpec/crud/unified/estimatedDocumentCount.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpec/crud/unified/find-allowdiskuse-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.0.99"]
+=== RUN   TestUnifiedSpec/crud/unified/find-allowdiskuse-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.3.0"]
+=== RUN   TestUnifiedSpec/crud/unified/find-allowdiskuse.json
+=== RUN   TestUnifiedSpec/crud/unified/find-allowdiskuse.json/Find_does_not_send_allowDiskuse_when_value_is_not_specified
+=== RUN   TestUnifiedSpec/crud/unified/find-allowdiskuse.json/Find_sends_allowDiskuse_false_when_false_is_specified
+=== RUN   TestUnifiedSpec/crud/unified/find-allowdiskuse.json/Find_sends_allowDiskUse_true_when_true_is_specified
+=== RUN   TestUnifiedSpec/crud/unified/find.json
+=== RUN   TestUnifiedSpec/crud/unified/find.json/find_with_multiple_batches_works
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndDelete-hint-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.0.99"]
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndDelete-hint-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.3.3"]
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndDelete-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndDelete-hint.json/FindOneAndDelete_with_hint_string
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndDelete-hint.json/FindOneAndDelete_with_hint_document
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_3.6+_server
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_pre-3.6_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_pre-5.0_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_3.6+_server
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_pre-3.6_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-hint-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.0.99"]
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-hint-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.3.0"]
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-hint.json/FindOneAndReplace_with_hint_string
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndReplace-hint.json/FindOneAndReplace_with_hint_document
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-hint-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.0.99"]
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-hint-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.3.0"]
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-hint.json/FindOneAndUpdate_with_hint_string
+=== RUN   TestUnifiedSpec/crud/unified/findOneAndUpdate-hint.json/FindOneAndUpdate_with_hint_document
+=== RUN   TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_pre-5.0_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_top-level_dotted_key
+=== RUN   TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_dollar-prefixed_key_in_embedded_doc
+=== RUN   TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_dotted_key_in_embedded_doc
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_pre-5.0_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dotted_key
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dollar-prefixed_key_in_embedded_doc
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dotted_key_in_embedded_doc
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dollar-prefixed_key_in__id_yields_server-side_error
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dotted_key_in__id_on_3.6+_server
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dotted_key_in__id_on_pre-3.6_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_DBRef-like_keys
+=== RUN   TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Unacknowledged_write_using_dollar-prefixed_or_dotted_keys_may_be_silently_rejected_on_pre-5.0_server
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_3.6+_server
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_pre-3.6_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_pre-5.0_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_3.6+_server
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_pre-3.6_server_yields_server-side_error
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Unacknowledged_write_using_dollar-prefixed_or_dotted_keys_may_be_silently_rejected_on_pre-5.0_server
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.99"]
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-hint.json/ReplaceOne_with_hint_string
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-hint.json/ReplaceOne_with_hint_document
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-validation.json
+=== RUN   TestUnifiedSpec/crud/unified/replaceOne-validation.json/ReplaceOne_prohibits_atomic_modifiers
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-delete-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-delete-hint-clientError.json/Unacknowledged_bulkWrite_deleteOne_with_hints_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-delete-hint-clientError.json/Unacknowledged_bulkWrite_deleteMany_with_hints_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-update-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-update-hint-clientError.json/Unacknowledged_bulkWrite_updateOne_with_hints_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-update-hint-clientError.json/Unacknowledged_bulkWrite_updateMany_with_hints_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-update-hint-clientError.json/Unacknowledged_bulkWrite_replaceOne_with_hints_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-deleteMany-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-deleteMany-hint-clientError.json/Unacknowledged_deleteMany_with_hint_string_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-deleteMany-hint-clientError.json/Unacknowledged_deleteMany_with_hint_document_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-deleteOne-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-deleteOne-hint-clientError.json/Unacknowledged_deleteOne_with_hint_string_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-deleteOne-hint-clientError.json/Unacknowledged_deleteOne_with_hint_document_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-findOneAndDelete-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-findOneAndDelete-hint-clientError.json/Unacknowledged_findOneAndDelete_with_hint_string_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-findOneAndDelete-hint-clientError.json/Unacknowledged_findOneAndDelete_with_hint_document_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-findOneAndReplace-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-findOneAndReplace-hint-clientError.json/Unacknowledged_findOneAndReplace_with_hint_string_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-findOneAndReplace-hint-clientError.json/Unacknowledged_findOneAndReplace_with_hint_document_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-findOneAndUpdate-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-findOneAndUpdate-hint-clientError.json/Unacknowledged_findOneAndUpdate_with_hint_string_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-findOneAndUpdate-hint-clientError.json/Unacknowledged_findOneAndUpdate_with_hint_document_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-replaceOne-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-replaceOne-hint-clientError.json/Unacknowledged_ReplaceOne_with_hint_string_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-replaceOne-hint-clientError.json/Unacknowledged_ReplaceOne_with_hint_document_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-updateMany-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-updateMany-hint-clientError.json/Unacknowledged_updateMany_with_hint_string_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-updateMany-hint-clientError.json/Unacknowledged_updateMany_with_hint_document_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-updateOne-hint-clientError.json
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-updateOne-hint-clientError.json/Unacknowledged_updateOne_with_hint_string_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/unacknowledged-updateOne-hint-clientError.json/Unacknowledged_updateOne_with_hint_document_fails_with_client-side_error
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-hint-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.3.99"]
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-hint-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.1.9"]
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-hint.json/UpdateMany_with_hint_string
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-hint.json/UpdateMany_with_hint_document
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-validation.json
+=== RUN   TestUnifiedSpec/crud/unified/updateMany-validation.json/UpdateMany_requires_atomic_modifiers
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-hint-clientError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "3.3.99"]
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-hint-serverError.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [server version "5.0.2" is higher than max version "4.1.9"]
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-hint.json
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-hint.json/UpdateOne_with_hint_string
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-hint.json/UpdateOne_with_hint_document
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-validation.json
+=== RUN   TestUnifiedSpec/crud/unified/updateOne-validation.json/UpdateOne_requires_atomic_modifiers
+=== RUN   TestUnifiedSpec/crud/unified/updateWithPipelines.json
+=== RUN   TestUnifiedSpec/crud/unified/updateWithPipelines.json/UpdateOne_using_pipelines
+=== RUN   TestUnifiedSpec/crud/unified/updateWithPipelines.json/UpdateMany_using_pipelines
+=== RUN   TestUnifiedSpec/crud/unified/updateWithPipelines.json/FindOneAndUpdate_using_pipelines
+=== RUN   TestUnifiedSpec/crud/unified/updateWithPipelines.json/UpdateOne_in_bulk_write_using_pipelines
+=== RUN   TestUnifiedSpec/crud/unified/updateWithPipelines.json/UpdateMany_in_bulk_write_using_pipelines
+--- PASS: TestUnifiedSpec (38.84s)
+    --- PASS: TestUnifiedSpec/crud/unified (38.82s)
+        --- PASS: TestUnifiedSpec/crud/unified/aggregate-let.json (0.42s)
+            --- PASS: TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_with_let_option (0.41s)
+            --- SKIP: TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_with_let_option_and_dollar-prefixed_$literal_value (0.00s)
+            --- SKIP: TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_with_let_option_unsupported_(server-side_error) (0.00s)
+            --- SKIP: TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_to_collection_with_let_option (0.00s)
+            --- SKIP: TestUnifiedSpec/crud/unified/aggregate-let.json/Aggregate_to_collection_with_let_option_unsupported_(server-side_error) (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/aggregate-merge.json (1.78s)
+            --- PASS: TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge_and_batch_size_of_0 (0.34s)
+            --- PASS: TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge_and_majority_readConcern (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge_and_local_readConcern (0.33s)
+            --- PASS: TestUnifiedSpec/crud/unified/aggregate-merge.json/Aggregate_with_$merge_and_available_readConcern (0.37s)
+        --- SKIP: TestUnifiedSpec/crud/unified/aggregate-out-readConcern.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/aggregate.json (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/aggregate.json/aggregate_with_multiple_batches_works (0.35s)
+        --- SKIP: TestUnifiedSpec/crud/unified/bulkWrite-arrayFilters-clientError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-arrayFilters.json (0.77s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-arrayFilters.json/BulkWrite_updateOne_with_arrayFilters (0.38s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-arrayFilters.json/BulkWrite_updateMany_with_arrayFilters (0.38s)
+        --- SKIP: TestUnifiedSpec/crud/unified/bulkWrite-delete-hint-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/bulkWrite-delete-hint-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-delete-hint.json (0.76s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-delete-hint.json/BulkWrite_deleteOne_with_hints (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-delete-hint.json/BulkWrite_deleteMany_with_hints (0.39s)
+        --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json (1.51s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_5.0+_server (0.39s)
+            --- SKIP: TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_pre-5.0_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dotted_key (0.38s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_dollar-prefixed_key_in_embedded_doc (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-insertOne-dots_and_dollars.json/Inserting_document_with_dotted_key_in_embedded_doc (0.37s)
+        --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json (1.13s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_3.6+_server (0.38s)
+            --- SKIP: TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_pre-3.6_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_5.0+_server (0.37s)
+            --- SKIP: TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_pre-5.0_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_3.6+_server (0.38s)
+            --- SKIP: TestUnifiedSpec/crud/unified/bulkWrite-replaceOne-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_pre-3.6_server_yields_server-side_error (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/bulkWrite-update-hint-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/bulkWrite-update-hint-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-update-hint.json (1.10s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-update-hint.json/BulkWrite_updateOne_with_update_hints (0.35s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-update-hint.json/BulkWrite_updateMany_with_update_hints (0.38s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-update-hint.json/BulkWrite_replaceOne_with_update_hints (0.37s)
+        --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-update-validation.json (1.01s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-update-validation.json/BulkWrite_replaceOne_prohibits_atomic_modifiers (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-update-validation.json/BulkWrite_updateOne_requires_atomic_modifiers (0.33s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-update-validation.json/BulkWrite_updateMany_requires_atomic_modifiers (0.32s)
+        --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json (1.44s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server (0.38s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server (0.34s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateMany-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server (0.36s)
+        --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json (1.45s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server (0.35s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server (0.39s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server (0.35s)
+            --- PASS: TestUnifiedSpec/crud/unified/bulkWrite-updateOne-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server (0.35s)
+        --- SKIP: TestUnifiedSpec/crud/unified/db-aggregate.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/deleteMany-hint-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/deleteMany-hint-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/deleteMany-hint.json (0.70s)
+            --- PASS: TestUnifiedSpec/crud/unified/deleteMany-hint.json/DeleteMany_with_hint_string (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/deleteMany-hint.json/DeleteMany_with_hint_document (0.34s)
+        --- SKIP: TestUnifiedSpec/crud/unified/deleteOne-hint-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/deleteOne-hint-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/deleteOne-hint.json (0.72s)
+            --- PASS: TestUnifiedSpec/crud/unified/deleteOne-hint.json/DeleteOne_with_hint_string (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/deleteOne-hint.json/deleteOne_with_hint_document (0.36s)
+        --- SKIP: TestUnifiedSpec/crud/unified/estimatedDocumentCount.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/find-allowdiskuse-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/find-allowdiskuse-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/find-allowdiskuse.json (0.77s)
+            --- PASS: TestUnifiedSpec/crud/unified/find-allowdiskuse.json/Find_does_not_send_allowDiskuse_when_value_is_not_specified (0.25s)
+            --- PASS: TestUnifiedSpec/crud/unified/find-allowdiskuse.json/Find_sends_allowDiskuse_false_when_false_is_specified (0.26s)
+            --- PASS: TestUnifiedSpec/crud/unified/find-allowdiskuse.json/Find_sends_allowDiskUse_true_when_true_is_specified (0.25s)
+        --- PASS: TestUnifiedSpec/crud/unified/find.json (0.40s)
+            --- PASS: TestUnifiedSpec/crud/unified/find.json/find_with_multiple_batches_works (0.40s)
+        --- SKIP: TestUnifiedSpec/crud/unified/findOneAndDelete-hint-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/findOneAndDelete-hint-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/findOneAndDelete-hint.json (0.70s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndDelete-hint.json/FindOneAndDelete_with_hint_string (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndDelete-hint.json/FindOneAndDelete_with_hint_document (0.34s)
+        --- PASS: TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json (1.07s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_3.6+_server (0.35s)
+            --- SKIP: TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_pre-3.6_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_5.0+_server (0.37s)
+            --- SKIP: TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_pre-5.0_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_3.6+_server (0.35s)
+            --- SKIP: TestUnifiedSpec/crud/unified/findOneAndReplace-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_pre-3.6_server_yields_server-side_error (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/findOneAndReplace-hint-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/findOneAndReplace-hint-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/findOneAndReplace-hint.json (0.76s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndReplace-hint.json/FindOneAndReplace_with_hint_string (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndReplace-hint.json/FindOneAndReplace_with_hint_document (0.39s)
+        --- PASS: TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json (1.39s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server (0.33s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server (0.35s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndUpdate-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server (0.35s)
+        --- SKIP: TestUnifiedSpec/crud/unified/findOneAndUpdate-hint-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/findOneAndUpdate-hint-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/findOneAndUpdate-hint.json (0.72s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndUpdate-hint.json/FindOneAndUpdate_with_hint_string (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/findOneAndUpdate-hint.json/FindOneAndUpdate_with_hint_document (0.36s)
+        --- PASS: TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json (1.50s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_5.0+_server (0.39s)
+            --- SKIP: TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_pre-5.0_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_top-level_dotted_key (0.39s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_dollar-prefixed_key_in_embedded_doc (0.35s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertMany-dots_and_dollars.json/Inserting_document_with_dotted_key_in_embedded_doc (0.36s)
+        --- PASS: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json (2.52s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_5.0+_server (0.36s)
+            --- SKIP: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dollar-prefixed_key_on_pre-5.0_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_top-level_dotted_key (0.34s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dollar-prefixed_key_in_embedded_doc (0.39s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dotted_key_in_embedded_doc (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dollar-prefixed_key_in__id_yields_server-side_error (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dotted_key_in__id_on_3.6+_server (0.35s)
+            --- SKIP: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_dotted_key_in__id_on_pre-3.6_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Inserting_document_with_DBRef-like_keys (0.35s)
+            --- SKIP: TestUnifiedSpec/crud/unified/insertOne-dots_and_dollars.json/Unacknowledged_write_using_dollar-prefixed_or_dotted_keys_may_be_silently_rejected_on_pre-5.0_server (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json (1.12s)
+            --- PASS: TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_3.6+_server (0.37s)
+            --- SKIP: TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_top-level_dotted_key_on_pre-3.6_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_5.0+_server (0.37s)
+            --- SKIP: TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_dollar-prefixed_key_in_embedded_doc_on_pre-5.0_server_yields_server-side_error (0.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_3.6+_server (0.37s)
+            --- SKIP: TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Replacing_document_with_dotted_key_in_embedded_doc_on_pre-3.6_server_yields_server-side_error (0.00s)
+            --- SKIP: TestUnifiedSpec/crud/unified/replaceOne-dots_and_dollars.json/Unacknowledged_write_using_dollar-prefixed_or_dotted_keys_may_be_silently_rejected_on_pre-5.0_server (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/replaceOne-hint.json (0.76s)
+            --- PASS: TestUnifiedSpec/crud/unified/replaceOne-hint.json/ReplaceOne_with_hint_string (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/replaceOne-hint.json/ReplaceOne_with_hint_document (0.38s)
+        --- PASS: TestUnifiedSpec/crud/unified/replaceOne-validation.json (0.12s)
+            --- PASS: TestUnifiedSpec/crud/unified/replaceOne-validation.json/ReplaceOne_prohibits_atomic_modifiers (0.12s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-delete-hint-clientError.json (0.65s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-delete-hint-clientError.json/Unacknowledged_bulkWrite_deleteOne_with_hints_fails_with_client-side_error (0.32s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-delete-hint-clientError.json/Unacknowledged_bulkWrite_deleteMany_with_hints_fails_with_client-side_error (0.33s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-update-hint-clientError.json (0.98s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-update-hint-clientError.json/Unacknowledged_bulkWrite_updateOne_with_hints_fails_with_client-side_error (0.31s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-update-hint-clientError.json/Unacknowledged_bulkWrite_updateMany_with_hints_fails_with_client-side_error (0.34s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-bulkWrite-update-hint-clientError.json/Unacknowledged_bulkWrite_replaceOne_with_hints_fails_with_client-side_error (0.32s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-deleteMany-hint-clientError.json (0.66s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-deleteMany-hint-clientError.json/Unacknowledged_deleteMany_with_hint_string_fails_with_client-side_error (0.33s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-deleteMany-hint-clientError.json/Unacknowledged_deleteMany_with_hint_document_fails_with_client-side_error (0.33s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-deleteOne-hint-clientError.json (0.70s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-deleteOne-hint-clientError.json/Unacknowledged_deleteOne_with_hint_string_fails_with_client-side_error (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-deleteOne-hint-clientError.json/Unacknowledged_deleteOne_with_hint_document_fails_with_client-side_error (0.34s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-findOneAndDelete-hint-clientError.json (0.67s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-findOneAndDelete-hint-clientError.json/Unacknowledged_findOneAndDelete_with_hint_string_fails_with_client-side_error (0.33s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-findOneAndDelete-hint-clientError.json/Unacknowledged_findOneAndDelete_with_hint_document_fails_with_client-side_error (0.34s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-findOneAndReplace-hint-clientError.json (0.65s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-findOneAndReplace-hint-clientError.json/Unacknowledged_findOneAndReplace_with_hint_string_fails_with_client-side_error (0.31s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-findOneAndReplace-hint-clientError.json/Unacknowledged_findOneAndReplace_with_hint_document_fails_with_client-side_error (0.34s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-findOneAndUpdate-hint-clientError.json (0.67s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-findOneAndUpdate-hint-clientError.json/Unacknowledged_findOneAndUpdate_with_hint_string_fails_with_client-side_error (0.33s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-findOneAndUpdate-hint-clientError.json/Unacknowledged_findOneAndUpdate_with_hint_document_fails_with_client-side_error (0.34s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-replaceOne-hint-clientError.json (0.63s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-replaceOne-hint-clientError.json/Unacknowledged_ReplaceOne_with_hint_string_fails_with_client-side_error (0.32s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-replaceOne-hint-clientError.json/Unacknowledged_ReplaceOne_with_hint_document_fails_with_client-side_error (0.31s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-updateMany-hint-clientError.json (0.65s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-updateMany-hint-clientError.json/Unacknowledged_updateMany_with_hint_string_fails_with_client-side_error (0.34s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-updateMany-hint-clientError.json/Unacknowledged_updateMany_with_hint_document_fails_with_client-side_error (0.31s)
+        --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-updateOne-hint-clientError.json (0.74s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-updateOne-hint-clientError.json/Unacknowledged_updateOne_with_hint_string_fails_with_client-side_error (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/unacknowledged-updateOne-hint-clientError.json/Unacknowledged_updateOne_with_hint_document_fails_with_client-side_error (0.37s)
+        --- PASS: TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json (1.49s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server (0.40s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateMany-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server (0.35s)
+        --- SKIP: TestUnifiedSpec/crud/unified/updateMany-hint-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/updateMany-hint-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/updateMany-hint.json (0.77s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateMany-hint.json/UpdateMany_with_hint_string (0.39s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateMany-hint.json/UpdateMany_with_hint_document (0.38s)
+        --- PASS: TestUnifiedSpec/crud/unified/updateMany-validation.json (0.13s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateMany-validation.json/UpdateMany_requires_atomic_modifiers (0.13s)
+        --- PASS: TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json (1.52s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json/Updating_document_to_set_top-level_dollar-prefixed_key_on_5.0+_server (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json/Updating_document_to_set_top-level_dotted_key_on_5.0+_server (0.37s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json/Updating_document_to_set_dollar-prefixed_key_in_embedded_doc_on_5.0+_server (0.39s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateOne-dots_and_dollars.json/Updating_document_to_set_dotted_key_in_embedded_doc_on_5.0+_server (0.38s)
+        --- SKIP: TestUnifiedSpec/crud/unified/updateOne-hint-clientError.json (0.00s)
+        --- SKIP: TestUnifiedSpec/crud/unified/updateOne-hint-serverError.json (0.00s)
+        --- PASS: TestUnifiedSpec/crud/unified/updateOne-hint.json (0.74s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateOne-hint.json/UpdateOne_with_hint_string (0.38s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateOne-hint.json/UpdateOne_with_hint_document (0.36s)
+        --- PASS: TestUnifiedSpec/crud/unified/updateOne-validation.json (0.14s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateOne-validation.json/UpdateOne_requires_atomic_modifiers (0.14s)
+        --- PASS: TestUnifiedSpec/crud/unified/updateWithPipelines.json (2.00s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateWithPipelines.json/UpdateOne_using_pipelines (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateWithPipelines.json/UpdateMany_using_pipelines (0.36s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateWithPipelines.json/FindOneAndUpdate_using_pipelines (0.38s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateWithPipelines.json/UpdateOne_in_bulk_write_using_pipelines (0.38s)
+            --- PASS: TestUnifiedSpec/crud/unified/updateWithPipelines.json/UpdateMany_in_bulk_write_using_pipelines (0.52s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration/unified	39.738s
+=== RUN   TestUnifiedSpec
+=== RUN   TestUnifiedSpec/transactions/unified
+=== RUN   TestUnifiedSpec/transactions/unified/mongos-unpin.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["sharded-replicaset"]]
+--- PASS: TestUnifiedSpec (0.03s)
+    --- PASS: TestUnifiedSpec/transactions/unified (0.00s)
+        --- SKIP: TestUnifiedSpec/transactions/unified/mongos-unpin.json (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration/unified	2.119s
+=== RUN   TestUnifiedSpec
+=== RUN   TestUnifiedSpec/versioned-api
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/aggregate_on_collection_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/aggregate_on_database_appends_declared_API_version
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/bulkWrite_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/countDocuments_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/deleteMany_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/deleteOne_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/distinct_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/estimatedDocumentCount_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/find_and_getMore_append_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/findOneAndDelete_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/findOneAndReplace_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/findOneAndUpdate_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/insertMany_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/insertOne_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/replaceOne_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/updateMany_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/updateOne_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/aggregate_on_collection_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/aggregate_on_database_appends_declared_API_version
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/bulkWrite_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/countDocuments_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/deleteMany_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/deleteOne_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/distinct_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/estimatedDocumentCount_appends_declared_API_version_on_4.9.0_or_greater
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/find_and_getMore_append_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/findOneAndDelete_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/findOneAndReplace_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/findOneAndUpdate_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/insertMany_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/insertOne_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/replaceOne_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/updateMany_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/crud-api-version-1.json/updateOne_appends_declared_API_version
+=== RUN   TestUnifiedSpec/versioned-api/runcommand-helper-no-api-version-declared.json
+=== RUN   TestUnifiedSpec/versioned-api/runcommand-helper-no-api-version-declared.json/runCommand_does_not_inspect_or_change_the_command_document
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpec/versioned-api/runcommand-helper-no-api-version-declared.json/runCommand_does_not_prevent_sending_invalid_API_version_declarations
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpec/versioned-api/test-commands-deprecation-errors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [mismatched values for server parameter "acceptApiVersion2"; expected true, got false]
+=== RUN   TestUnifiedSpec/versioned-api/test-commands-strict-mode.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [test forbids serverless]
+=== RUN   TestUnifiedSpec/versioned-api/transaction-handling.json
+=== RUN   TestUnifiedSpec/versioned-api/transaction-handling.json/All_commands_in_a_transaction_declare_an_API_version
+=== RUN   TestUnifiedSpec/versioned-api/transaction-handling.json/abortTransaction_includes_an_API_version
+--- PASS: TestUnifiedSpec (12.00s)
+    --- PASS: TestUnifiedSpec/versioned-api (11.98s)
+        --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json (5.41s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/aggregate_on_collection_appends_declared_API_version (0.30s)
+            --- SKIP: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/aggregate_on_database_appends_declared_API_version (0.00s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/bulkWrite_appends_declared_API_version (0.47s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/countDocuments_appends_declared_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/deleteMany_appends_declared_API_version (0.32s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/deleteOne_appends_declared_API_version (0.32s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/distinct_appends_declared_API_version (0.31s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/estimatedDocumentCount_appends_declared_API_version (0.33s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/find_and_getMore_append_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/findOneAndDelete_appends_declared_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/findOneAndReplace_appends_declared_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/findOneAndUpdate_appends_declared_API_version (0.33s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/insertMany_appends_declared_API_version (0.33s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/insertOne_appends_declared_API_version (0.33s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/replaceOne_appends_declared_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/updateMany_appends_declared_API_version (0.33s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1-strict.json/updateOne_appends_declared_API_version (0.33s)
+        --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json (5.60s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/aggregate_on_collection_appends_declared_API_version (0.31s)
+            --- SKIP: TestUnifiedSpec/versioned-api/crud-api-version-1.json/aggregate_on_database_appends_declared_API_version (0.00s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/bulkWrite_appends_declared_API_version (0.49s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/countDocuments_appends_declared_API_version (0.32s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/deleteMany_appends_declared_API_version (0.35s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/deleteOne_appends_declared_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/distinct_appends_declared_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/estimatedDocumentCount_appends_declared_API_version_on_4.9.0_or_greater (0.35s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/find_and_getMore_append_API_version (0.38s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/findOneAndDelete_appends_declared_API_version (0.35s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/findOneAndReplace_appends_declared_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/findOneAndUpdate_appends_declared_API_version (0.35s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/insertMany_appends_declared_API_version (0.32s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/insertOne_appends_declared_API_version (0.36s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/replaceOne_appends_declared_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/updateMany_appends_declared_API_version (0.34s)
+            --- PASS: TestUnifiedSpec/versioned-api/crud-api-version-1.json/updateOne_appends_declared_API_version (0.32s)
+        --- PASS: TestUnifiedSpec/versioned-api/runcommand-helper-no-api-version-declared.json (0.00s)
+            --- SKIP: TestUnifiedSpec/versioned-api/runcommand-helper-no-api-version-declared.json/runCommand_does_not_inspect_or_change_the_command_document (0.00s)
+            --- SKIP: TestUnifiedSpec/versioned-api/runcommand-helper-no-api-version-declared.json/runCommand_does_not_prevent_sending_invalid_API_version_declarations (0.00s)
+        --- SKIP: TestUnifiedSpec/versioned-api/test-commands-deprecation-errors.json (0.00s)
+        --- SKIP: TestUnifiedSpec/versioned-api/test-commands-strict-mode.json (0.00s)
+        --- PASS: TestUnifiedSpec/versioned-api/transaction-handling.json (0.97s)
+            --- PASS: TestUnifiedSpec/versioned-api/transaction-handling.json/All_commands_in_a_transaction_declare_an_API_version (0.54s)
+            --- PASS: TestUnifiedSpec/versioned-api/transaction-handling.json/abortTransaction_includes_an_API_version (0.43s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration/unified	12.837s
+=== RUN   TestUnifiedSpecs
+=== RUN   TestUnifiedSpecs/transactions/legacy
+=== RUN   TestUnifiedSpecs/transactions/legacy/abort.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/bulk.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/causal-consistency.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/commit.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/count.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/create-collection.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset" "sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/create-index.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset" "sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/delete.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/error-labels.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/errors-client.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/errors.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/findOneAndDelete.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/findOneAndReplace.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/findOneAndUpdate.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/insert.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/isolation.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/mongos-pin-auto.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/mongos-recovery-token.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/pin-mongos.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/read-concern.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/read-pref.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/reads.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/retryable-abort-errorLabels.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset" "sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/retryable-abort.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/retryable-commit-errorLabels.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset" "sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/retryable-commit.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/retryable-writes.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/run-command.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/transaction-options-repl.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/transaction-options.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/update.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/transactions/legacy/write-concern.json
+    mongotest.go:139: skipping due to environmental constraints: no matching RunOnBlock; comparison errors: [topology kind "load-balanced" does not match any of the required kinds ["replicaset"] topology kind "load-balanced" does not match any of the required kinds ["sharded"]]
+=== RUN   TestUnifiedSpecs/convenient-transactions
+--- PASS: TestUnifiedSpecs (0.05s)
+    --- PASS: TestUnifiedSpecs/transactions/legacy (0.05s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/abort.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/bulk.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/causal-consistency.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/commit.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/count.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/create-collection.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/create-index.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/delete.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/error-labels.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/errors-client.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/errors.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/findOneAndDelete.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/findOneAndReplace.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/findOneAndUpdate.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/insert.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/isolation.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/mongos-pin-auto.json (0.01s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/mongos-recovery-token.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/pin-mongos.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/read-concern.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/read-pref.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/reads.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/retryable-abort-errorLabels.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/retryable-abort.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/retryable-commit-errorLabels.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/retryable-commit.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/retryable-writes.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/run-command.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/transaction-options-repl.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/transaction-options.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/update.json (0.00s)
+        --- SKIP: TestUnifiedSpecs/transactions/legacy/write-concern.json (0.00s)
+    --- PASS: TestUnifiedSpecs/convenient-transactions (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	0.903s
+=== RUN   TestWriteErrorsWithLabels
+    mongotest.go:139: skipping due to environmental constraints: topology kind "load-balanced" does not match any of the required kinds ["replicaset"]
+--- SKIP: TestWriteErrorsWithLabels (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	0.887s
+=== RUN   TestWriteErrorsDetails
+    mongotest.go:139: skipping due to environmental constraints: topology kind "load-balanced" does not match any of the required kinds ["replicaset" "single"]
+--- SKIP: TestWriteErrorsDetails (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	0.888s
+=== RUN   TestHintErrors
+    mongotest.go:139: skipping due to environmental constraints: server version "5.0.2" is higher than max version "3.2"
+--- SKIP: TestHintErrors (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	0.866s
+=== RUN   TestAggregatePrimaryPreferredReadPreference
+=== RUN   TestAggregatePrimaryPreferredReadPreference/aggregate_$out_with_non-primary_read_preference
+    crud_prose_test.go:351: test forbids serverless
+--- PASS: TestAggregatePrimaryPreferredReadPreference (0.32s)
+    --- SKIP: TestAggregatePrimaryPreferredReadPreference/aggregate_$out_with_non-primary_read_preference (0.32s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	1.209s
+=== RUN   TestWriteConcernError
+=== RUN   TestWriteConcernError/errInfo_is_propagated
+    mongotest.go:139: skipping due to environmental constraints: topology kind "load-balanced" does not match any of the required kinds ["replicaset"]
+--- PASS: TestWriteConcernError (0.00s)
+    --- SKIP: TestWriteConcernError/errInfo_is_propagated (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	0.872s
+=== RUN   TestErrorsCodeNamePropagated
+    mongotest.go:139: skipping due to environmental constraints: topology kind "load-balanced" does not match any of the required kinds ["replicaset"]
+--- SKIP: TestErrorsCodeNamePropagated (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	0.816s
+=== RUN   TestRetryableWritesProse
+=== RUN   TestRetryableWritesProse/txn_number_included
+    mongotest.go:139: skipping due to environmental constraints: topology kind "load-balanced" does not match any of the required kinds ["replicaset" "sharded"]
+=== RUN   TestRetryableWritesProse/wrap_mmapv1_error
+    mongotest.go:139: skipping due to environmental constraints: topology kind "load-balanced" does not match any of the required kinds ["replicaset" "sharded"]
+=== RUN   TestRetryableWritesProse/transaction_number_not_sent_on_writes
+    mongotest.go:139: skipping due to environmental constraints: topology kind "load-balanced" does not match any of the required kinds ["single"]
+--- PASS: TestRetryableWritesProse (0.00s)
+    --- SKIP: TestRetryableWritesProse/txn_number_included (0.00s)
+    --- SKIP: TestRetryableWritesProse/wrap_mmapv1_error (0.00s)
+    --- SKIP: TestRetryableWritesProse/transaction_number_not_sent_on_writes (0.00s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	0.910s
+=== RUN   TestCursor
+=== RUN   TestCursor/cursor_is_killed_on_server
+=== RUN   TestCursor/try_next
+=== RUN   TestCursor/try_next/existing_non-empty_batch
+=== RUN   TestCursor/try_next/one_getMore_sent
+=== RUN   TestCursor/try_next/getMore_error
+=== RUN   TestCursor/RemainingBatchLength
+=== RUN   TestCursor/RemainingBatchLength/first_batch_is_non_empty
+=== RUN   TestCursor/RemainingBatchLength/first_batch_is_empty
+=== RUN   TestCursor/all
+=== RUN   TestCursor/all/getMore_error
+    mongotest.go:139: skipping due to environmental constraints: topology kind "load-balanced" does not match any of the required kinds ["replicaset"]
+=== RUN   TestCursor/close
+=== RUN   TestCursor/close/killCursors_error
+    mongotest.go:139: skipping due to environmental constraints: topology kind "load-balanced" does not match any of the required kinds ["replicaset"]
+=== RUN   TestCursor/set_batchSize
+--- PASS: TestCursor (3.11s)
+    --- PASS: TestCursor/cursor_is_killed_on_server (1.26s)
+    --- PASS: TestCursor/try_next (0.91s)
+        --- PASS: TestCursor/try_next/existing_non-empty_batch (0.37s)
+        --- PASS: TestCursor/try_next/one_getMore_sent (0.54s)
+        --- PASS: TestCursor/try_next/getMore_error (0.00s)
+    --- PASS: TestCursor/RemainingBatchLength (0.41s)
+        --- PASS: TestCursor/RemainingBatchLength/first_batch_is_non_empty (0.41s)
+        --- PASS: TestCursor/RemainingBatchLength/first_batch_is_empty (0.00s)
+    --- PASS: TestCursor/all (0.00s)
+        --- SKIP: TestCursor/all/getMore_error (0.00s)
+    --- PASS: TestCursor/close (0.00s)
+        --- SKIP: TestCursor/close/killCursors_error (0.00s)
+    --- PASS: TestCursor/set_batchSize (0.53s)
+PASS
+ok  	go.mongodb.org/mongo-driver/mongo/integration	3.982s

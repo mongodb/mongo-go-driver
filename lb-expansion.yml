@@ -1,0 +1,2 @@
+SINGLE_MONGOS_LB_URI: "mongodb://127.0.0.1:8000/?loadBalanced=true"
+MULTI_MONGOS_LB_URI: "mongodb://127.0.0.1:8001/?loadBalanced=true"

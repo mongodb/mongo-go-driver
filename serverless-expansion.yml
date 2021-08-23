@@ -1,0 +1,7 @@
+MONGODB_URI: "mongodb://2450-d1882gcp-shard-00-00.2tzoa.mongodb-dev.net:27017,2450-d1882gcp-shard-00-01.2tzoa.mongodb-dev.net:27017,2450-d1882gcp-shard-00-02.2tzoa.mongodb-dev.net:27017"
+MONGODB_SRV_URI: "mongodb+srv://2450-d1882gcp.2tzoa.mongodb-dev.net"
+SERVERLESS_INSTANCE_NAME: "2450-D1882GCP"
+SSL: ssl
+AUTH: auth
+TOPOLOGY: sharded_cluster
+SERVERLESS: serverless
