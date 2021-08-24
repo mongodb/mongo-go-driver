@@ -73,7 +73,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
-	serverConnID             *uint64
+	serverConnID             *uint32
 	redacted                 bool
 	serviceID                *primitive.ObjectID
 }
@@ -85,7 +85,7 @@ type finishedInformation struct {
 	response     bsoncore.Document
 	cmdErr       error
 	connID       string
-	serverConnID *uint64
+	serverConnID *uint32
 	startTime    time.Time
 	redacted     bool
 	serviceID    *primitive.ObjectID

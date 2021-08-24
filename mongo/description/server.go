@@ -35,7 +35,7 @@ type Server struct {
 	AverageRTT            time.Duration
 	AverageRTTSet         bool
 	Compression           []string // compression methods returned by server
-	ConnectionID          *uint64
+	ConnectionID          *uint32
 	CanonicalAddr         address.Address
 	ElectionID            primitive.ObjectID
 	HeartbeatInterval     time.Duration
@@ -96,13 +96,13 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				return desc
 			}
 		case "connectionId":
-			i64, ok := element.Value().AsInt64OK()
+			i32, ok := element.Value().AsInt32OK()
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'connectionId' to be an integer but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-			ui64 := uint64(i64)
-			desc.ConnectionID = &ui64
+			ui32 := uint32(i32)
+			desc.ConnectionID = &ui32
 		case "electionId":
 			desc.ElectionID, ok = element.Value().ObjectIDOK()
 			if !ok {
