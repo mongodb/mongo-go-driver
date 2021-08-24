@@ -16,8 +16,7 @@ import (
 
 var (
 	supportedSchemaVersions = map[int]string{
-		// We do not fully support the 1.5 schema, but we need 1.5 to test with observeSensitiveCommands.
-		1: "1.5",
+		1: "1.6",
 	}
 )
 
