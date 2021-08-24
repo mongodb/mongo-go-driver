@@ -342,6 +342,27 @@ func TestMongoHelpers(t *testing.T) {
 				true,
 				nil,
 			},
+			{
+				"semantic single document/primitive.D",
+				bson.D{},
+				nil,
+				false,
+				errors.New("can only transform types that are semantically arrays of documents, got primitive.D"),
+			},
+			{
+				"semantic single document/bson.Raw",
+				bson.Raw{},
+				nil,
+				false,
+				errors.New("can only transform types that are semantically arrays of documents, got bson.Raw"),
+			},
+			{
+				"semantic single document/bsoncore.Document",
+				bsoncore.Document{},
+				nil,
+				false,
+				errors.New("can only transform types that are semantically arrays of documents, got bsoncore.Document"),
+			},
 		}
 
 		for _, tc := range testCases {

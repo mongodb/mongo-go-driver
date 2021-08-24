@@ -219,6 +219,10 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 		}
 
 		return pipelineDoc, hasOutputStage, nil
+	case bson.D, bson.Raw, bsoncore.Document:
+		// Explicitly forbid pipeline types that are semantically single documents
+		// but are implemented as slices.
+		return nil, false, fmt.Errorf("can only transform types that are semantically arrays of documents, got %T", t)
 	default:
 		val := reflect.ValueOf(t)
 		if !val.IsValid() || (val.Kind() != reflect.Slice && val.Kind() != reflect.Array) {
