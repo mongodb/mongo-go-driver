@@ -126,6 +126,9 @@ func TestMongoHelpers(t *testing.T) {
 		arr, _ = bsoncore.AppendDocumentEnd(arr, dindex)
 		arr, _ = bsoncore.AppendArrayEnd(arr, index)
 
+		docBytes, err := bson.Marshal(bson.D{{"x", 1}})
+		assert.Nil(t, err, "Marshal error: %v", err)
+
 		testCases := []struct {
 			name           string
 			pipeline       interface{}
@@ -344,24 +347,31 @@ func TestMongoHelpers(t *testing.T) {
 			},
 			{
 				"semantic single document/bson.D",
-				bson.D{},
+				bson.D{{"x", 1}},
 				nil,
 				false,
-				errors.New("can only transform types that are semantically arrays of documents, got primitive.D"),
+				errors.New("primitive.D is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
 			},
 			{
 				"semantic single document/bson.Raw",
-				bson.Raw{},
+				bson.Raw(docBytes),
 				nil,
 				false,
-				errors.New("can only transform types that are semantically arrays of documents, got bson.Raw"),
+				errors.New("bson.Raw is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
 			},
 			{
 				"semantic single document/bsoncore.Document",
-				bsoncore.Document{},
+				bsoncore.Document(docBytes),
 				nil,
 				false,
-				errors.New("can only transform types that are semantically arrays of documents, got bsoncore.Document"),
+				errors.New("bsoncore.Document is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
+			},
+			{
+				"semantic single document/empty bson.D",
+				bson.D{},
+				bson.A{},
+				false,
+				nil,
 			},
 		}
 
