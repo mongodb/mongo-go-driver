@@ -126,8 +126,9 @@ func TestMongoHelpers(t *testing.T) {
 		arr, _ = bsoncore.AppendDocumentEnd(arr, dindex)
 		arr, _ = bsoncore.AppendArrayEnd(arr, index)
 
-		docBytes, err := bson.Marshal(bson.D{{"x", 1}})
-		assert.Nil(t, err, "Marshal error: %v", err)
+		index, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendInt32Element(doc, "x", 1)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, index)
 
 		testCases := []struct {
 			name           string
@@ -354,14 +355,14 @@ func TestMongoHelpers(t *testing.T) {
 			},
 			{
 				"semantic single document/bson.Raw",
-				bson.Raw(docBytes),
+				bson.Raw(doc),
 				nil,
 				false,
 				errors.New("bson.Raw is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
 			},
 			{
 				"semantic single document/bsoncore.Document",
-				bsoncore.Document(docBytes),
+				bsoncore.Document(doc),
 				nil,
 				false,
 				errors.New("bsoncore.Document is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
