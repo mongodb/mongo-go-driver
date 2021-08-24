@@ -343,7 +343,7 @@ func TestMongoHelpers(t *testing.T) {
 				nil,
 			},
 			{
-				"semantic single document/primitive.D",
+				"semantic single document/bson.D",
 				bson.D{},
 				nil,
 				false,
