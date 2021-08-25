@@ -150,8 +150,7 @@ func getURIForClient(opts *entityOptions) string {
 	// the LB fronts a single server. If unset or explicitly true, the LB fronts multiple mongos servers.
 	switch {
 	case opts.UseMultipleMongoses != nil && !*opts.UseMultipleMongoses:
-		fmt.Println("SINGLE_MONGOS_LB_URI was requested; but testing against serverless")
-		return "mongodb://invalid?lol"
+		return mtest.SingleMongosLoadBalancerURI()
 	default:
 		return mtest.MultiMongosLoadBalancerURI()
 	}
