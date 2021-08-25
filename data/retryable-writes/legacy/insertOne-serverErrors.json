@@ -11,8 +11,7 @@
       "topology": [
         "sharded",
         "load-balanced"
-      ],
-      "serverless": "forbid"
+      ]
     }
   ],
   "data": [
