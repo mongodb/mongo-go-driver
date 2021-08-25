@@ -179,7 +179,6 @@ tests:
   # attempt to send a killCursors command when the cursor is closed because the connection is no longer valid.
   - description: pinned connections are not returned after an network error during getMore
     operations:
-      # TODO: this is a mystery. Why does this pass? Even if I interleave an operation?
       - name: failPoint
         object: testRunner
         arguments:
