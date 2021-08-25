@@ -4,6 +4,7 @@ schemaVersion: '1.3'
 
 runOnRequirements:
   - topologies: [ load-balanced ]
+    serverless: forbid # Test sets useMultipleMongoses: false. Serverless only exposes a load balancer fronting multiple Atlas Proxy instances. See DRIVERS-1882.
 
 _yamlAnchors:
   observedEvents: &observedEvents
