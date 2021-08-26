@@ -687,10 +687,6 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
-	if err := ensureNoDollarKey(r); err != nil {
-		return nil, err
-	}
-
 	updateOptions := make([]*options.UpdateOptions, 0, len(opts))
 	for _, opt := range opts {
 		uOpts := options.Update()
