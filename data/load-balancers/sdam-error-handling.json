@@ -5,8 +5,7 @@
     {
       "topologies": [
         "load-balanced"
-      ],
-      "serverless": "forbid"
+      ]
     }
   ],
   "_yamlAnchors": {
