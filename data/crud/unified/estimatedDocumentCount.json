@@ -1,11 +1,6 @@
 {
   "description": "estimatedDocumentCount",
   "schemaVersion": "1.0",
-  "runOnRequirements": [
-    {
-      "serverless": "forbid"
-    }
-  ],
   "createEntities": [
     {
       "client": {
