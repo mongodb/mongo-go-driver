@@ -66,6 +66,7 @@ type pool struct {
 
 	// Must be accessed using the atomic package.
 	connected                    int32
+	_alignment_64bits            int32 // details of atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	pinnedCursorConnections      uint64
 	pinnedTransactionConnections uint64
 
