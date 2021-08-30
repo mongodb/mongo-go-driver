@@ -104,11 +104,14 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	}
 
 	cs := &ChangeStream{
-		client:        config.client,
-		registry:      config.registry,
-		streamType:    config.streamType,
-		options:       options.MergeChangeStreamOptions(opts...),
-		selector:      description.ReadPrefSelector(config.readPreference),
+		client:     config.client,
+		registry:   config.registry,
+		streamType: config.streamType,
+		options:    options.MergeChangeStreamOptions(opts...),
+		selector: description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(config.readPreference),
+			description.LatencySelector(config.client.localThreshold),
+		}),
 		cursorOptions: config.client.createBaseCursorOptions(),
 	}
 
