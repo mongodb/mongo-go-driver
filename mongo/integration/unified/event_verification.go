@@ -373,6 +373,9 @@ func verifyServerConnectionID(expectedHasSCID bool, scid *uint32) error {
 		}
 		return fmt.Errorf("expected event to have no server connection ID, got %d", *scid)
 	}
+	if expectedHasSCID && *scid <= 0 {
+		return fmt.Errorf("expected event to have a positive server connection ID, got %d", *scid)
+	}
 	return nil
 }
 
