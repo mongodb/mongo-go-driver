@@ -374,6 +374,20 @@ func TestMongoHelpers(t *testing.T) {
 				false,
 				nil,
 			},
+			{
+				"semantic single document/empty bson.Raw",
+				bson.Raw{},
+				bson.A{},
+				false,
+				nil,
+			},
+			{
+				"semantic single document/empty bsoncore.Document",
+				bsoncore.Document{},
+				bson.A{},
+				false,
+				nil,
+			},
 		}
 
 		for _, tc := range testCases {
