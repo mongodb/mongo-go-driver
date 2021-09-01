@@ -120,3 +120,59 @@ func TestDateTime(t *testing.T) {
 		})
 	})
 }
+
+func TestRecursiveMap(t *testing.T) {
+	testCases := []struct {
+		name string
+		d    D
+		m    M
+	}{
+		{
+			"basic",
+			D{
+				{"foo", "bar"},
+				{"baz", "qux"},
+			},
+			M{"foo": "bar", "baz": "qux"},
+		},
+		{
+			"embedded D",
+			D{
+				{"foo", D{
+					{"bar", "baz"},
+				}},
+				{"qux", "quux"},
+			},
+			M{"foo": M{"bar": "baz"}, "qux": "quux"},
+		},
+		{
+			"embedded A",
+			D{
+				{"foo", A{"bar", "baz"}},
+				{"qux", "quux"},
+			},
+			M{"foo": M{"0": "bar", "1": "baz"}, "qux": "quux"},
+		},
+		{
+			"embedded D in A",
+			D{
+				{"foo", A{"bar", D{
+					{"baz", "qux"},
+				}}},
+				{"quux", "quuz"},
+			},
+			M{"foo": M{"0": "bar", "1": M{"baz": "qux"}}, "quux": "quuz"},
+		},
+		{
+			"empty",
+			D{},
+			M{},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := tc.d.RecursiveMap()
+			assert.Equal(t, m, tc.m, "expected M %v, got %v", tc.m, m)
+		})
+	}
+}

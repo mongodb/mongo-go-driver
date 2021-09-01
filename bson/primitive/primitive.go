@@ -194,6 +194,24 @@ func (d D) Map() M {
 	return m
 }
 
+// RecursiveMap creates a map from the elements of the D, recursively creating
+// maps from embedded documents and arrays within D.
+func (d D) RecursiveMap() M {
+	m := make(M, len(d))
+	for _, e := range d {
+		key := e.Key
+		switch e := e.Value.(type) {
+		case D:
+			m[key] = e.RecursiveMap()
+		case A:
+			m[key] = e.RecursiveMap()
+		default:
+			m[key] = e
+		}
+	}
+	return m
+}
+
 // E represents a BSON element for a D. It is usually used inside a D.
 type E struct {
 	Key   string
@@ -215,3 +233,24 @@ type M map[string]interface{}
 //
 // 		bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
 type A []interface{}
+
+// RecursiveMap creates a map from the elements of the A, recursively creating
+// maps from embedded documents and arrays within A.
+func (a A) RecursiveMap() M {
+	m := make(M, len(a))
+
+	var index int
+	for _, v := range a {
+		key := fmt.Sprint(index)
+		switch v := v.(type) {
+		case D:
+			m[key] = v.RecursiveMap()
+		case A:
+			m[key] = v.RecursiveMap()
+		default:
+			m[key] = v
+		}
+		index += 1
+	}
+	return m
+}
