@@ -46,6 +46,7 @@ type connection struct {
 	idleDeadline         atomic.Value // Stores a time.Time
 	readTimeout          time.Duration
 	writeTimeout         time.Duration
+	descMu               sync.RWMutex // Guards desc. TODO: Remove with or after GODRIVER-2038.
 	desc                 description.Server
 	isMasterRTT          time.Duration
 	compressor           wiremessage.CompressorID
@@ -228,7 +229,9 @@ func (c *connection) connect(ctx context.Context) {
 	if err == nil {
 		// We only need to retain the Description field as the connection's description. The authentication-related
 		// fields in handshakeInfo are tracked by the handshaker if necessary.
+		c.descMu.Lock()
 		c.desc = handshakeInfo.Description
+		c.descMu.Unlock()
 		c.isMasterRTT = time.Since(handshakeStartTime)
 
 		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
