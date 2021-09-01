@@ -228,6 +228,17 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 		aidx, arr := bsoncore.AppendArrayStart(nil)
 		var hasOutputStage bool
 		valLen := val.Len()
+
+		// Explicitly forbid non-empty pipelines that are semantically single documents
+		// and are implemented as slices.
+		switch t := pipeline.(type) {
+		case bson.D, bson.Raw, bsoncore.Document:
+			if valLen > 0 {
+				return nil, false,
+					fmt.Errorf("%T is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead", t)
+			}
+		}
+
 		for idx := 0; idx < valLen; idx++ {
 			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, fmt.Sprintf("pipeline stage :%v", idx))
 			if err != nil {

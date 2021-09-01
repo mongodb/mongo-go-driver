@@ -126,6 +126,10 @@ func TestMongoHelpers(t *testing.T) {
 		arr, _ = bsoncore.AppendDocumentEnd(arr, dindex)
 		arr, _ = bsoncore.AppendArrayEnd(arr, index)
 
+		index, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendInt32Element(doc, "x", 1)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, index)
+
 		testCases := []struct {
 			name           string
 			pipeline       interface{}
@@ -340,6 +344,48 @@ func TestMongoHelpers(t *testing.T) {
 					}}},
 				},
 				true,
+				nil,
+			},
+			{
+				"semantic single document/bson.D",
+				bson.D{{"x", 1}},
+				nil,
+				false,
+				errors.New("primitive.D is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
+			},
+			{
+				"semantic single document/bson.Raw",
+				bson.Raw(doc),
+				nil,
+				false,
+				errors.New("bson.Raw is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
+			},
+			{
+				"semantic single document/bsoncore.Document",
+				bsoncore.Document(doc),
+				nil,
+				false,
+				errors.New("bsoncore.Document is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
+			},
+			{
+				"semantic single document/empty bson.D",
+				bson.D{},
+				bson.A{},
+				false,
+				nil,
+			},
+			{
+				"semantic single document/empty bson.Raw",
+				bson.Raw{},
+				bson.A{},
+				false,
+				nil,
+			},
+			{
+				"semantic single document/empty bsoncore.Document",
+				bsoncore.Document{},
+				bson.A{},
+				false,
 				nil,
 			},
 		}
