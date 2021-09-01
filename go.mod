@@ -21,7 +21,7 @@ require (
 	github.com/xdg-go/scram v1.0.2
 	github.com/xdg-go/stringprep v1.0.2
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
-	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+	golang.org/x/crypto v0.0.0-20201216223049-8b5274cf687f
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20190531175056-4c3a928424d2 // indirect
 	golang.org/x/tools v0.0.0-20190531172133-b3315ee88b7d
