@@ -1975,7 +1975,6 @@ buildvariants:
       - name: ".test .enterprise-auth"
 
   - matrix_name: "aws-auth-test"
-    matrix_spec: { os-aws-auth: "*" }
     matrix_spec: { version: ["4.4", "5.0", "latest"], os-aws-auth: "*" }
     display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
