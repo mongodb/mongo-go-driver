@@ -196,7 +196,14 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 
 // stale checks if a given connection's generation is below the generation of the pool
 func (p *pool) stale(c *connection) bool {
-	return c == nil || p.generation.stale(c.desc.ServiceID, c.generation)
+	if c == nil {
+		return true
+	}
+
+	c.descMu.RLock()
+	serviceID := c.desc.ServiceID
+	c.descMu.RUnlock()
+	return p.generation.stale(serviceID, c.generation)
 }
 
 // connect puts the pool into the connected state, allowing it to be used and will allow items to begin being processed from the wait queue
@@ -532,7 +539,10 @@ func (p *pool) removeConnection(c *connection, reason string) error {
 	// Only update the generation numbers map if the connection has retrieved its generation number. Otherwise, we'd
 	// decrement the count for the generation even though it had never been incremented.
 	if c.hasGenerationNumber() {
-		p.generation.removeConnection(c.desc.ServiceID)
+		c.descMu.RLock()
+		serviceID := c.desc.ServiceID
+		c.descMu.RUnlock()
+		p.generation.removeConnection(serviceID)
 	}
 
 	if publishEvent && p.monitor != nil {
