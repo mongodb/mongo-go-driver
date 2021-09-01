@@ -98,9 +98,7 @@ func (rp *resourcePool) initialize() {
 // add will add a new rpe to the pool, requires that the resource pool is locked
 func (rp *resourcePool) add(e *resourcePoolElement) {
 	if e == nil {
-		e = &resourcePoolElement{
-			value: rp.initFn(),
-		}
+		return
 	}
 
 	e.next = rp.start
@@ -206,9 +204,30 @@ func (rp *resourcePool) Maintain() {
 		}
 	}
 
-	for rp.totalSize < rp.minSize {
-		rp.add(nil)
-		rp.totalSize++
+	// Determine the number of resources we need to satisfy minSize and start that many goroutines
+	// that each try to get a new resource and insert it into the pool.
+	n := rp.minSize - rp.totalSize
+	for i := uint64(0); i < n; i++ {
+		go func() {
+			// If we couldn't increment the total pool size becasue it's already at max size, return
+			// without adding any resources to the pool.
+			if !rp.incrementTotal() {
+				return
+			}
+
+			r := rp.initFn()
+			// If we didn't get a resource back from initFn(), decrement the total pool size and
+			// return.
+			if r == nil {
+				rp.decrementTotal()
+				return
+			}
+
+			// If we got a resource back from initFn(), try to insert it into the pool. Use Put()
+			// to handle the case where we got a resource from initFn() but the resource is expired
+			// (e.g. a connection that fails handshake).
+			rp.Put(r)
+		}()
 	}
 
 	// reset the timer for the background cleanup routine

@@ -131,7 +131,7 @@ func (p *pool) connectionInitFunc() interface{} {
 		return nil
 	}
 
-	go c.connect(context.Background())
+	c.connect(context.Background())
 
 	return c
 }

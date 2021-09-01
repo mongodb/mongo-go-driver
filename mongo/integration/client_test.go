@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -456,6 +457,13 @@ func TestClient(t *testing.T) {
 
 		mode := modeVal.StringValue()
 		assert.Equal(mt, mode, "primaryPreferred", "expected read preference mode primaryPreferred, got %v", mode)
+	})
+
+	// Test that using a client with minPoolSize set doesn't cause a data race.
+	mtOpts = mtest.NewOptions().ClientOptions(options.Client().SetMinPoolSize(5))
+	mt.RunOpts("minPoolSize", mtOpts, func(mt *mtest.T) {
+		err := mt.Client.Ping(context.Background(), readpref.Primary())
+		assert.Nil(t, err, "unexpected error calling Ping: %v", err)
 	})
 }
 
