@@ -35,7 +35,7 @@ var objectIDCounter = readRandomUint32()
 var processUnique = processUniqueBytes()
 
 var _ encoding.TextMarshaler = ObjectID{}
-var _ encoding.TextUnmarshaler = ObjectID{}
+var _ encoding.TextUnmarshaler = &ObjectID{}
 
 // NewObjectID generates a new ObjectID.
 func NewObjectID() ObjectID {
@@ -105,9 +105,13 @@ func (id ObjectID) MarshalText() ([]byte, error) {
 
 // UnmarshalText populates the byte slice with the ObjectID. Implementing this allows us to use ObjectID
 // as a map key when unmarshalling JSON. See https://pkg.go.dev/encoding#TextUnmarshaler
-func (id ObjectID) UnmarshalText(b []byte) error {
-	id, err := ObjectIDFromHex(string(b))
-	return err
+func (id *ObjectID) UnmarshalText(b []byte) error {
+	oid, err := ObjectIDFromHex(string(b))
+	if err != nil {
+		return err
+	}
+	*id = oid
+	return nil
 }
 
 // MarshalJSON returns the ObjectID as a string

@@ -55,6 +55,9 @@ func parseOpCompressed(wm []byte) (wiremessage.OpCode, []byte, error) {
 	}
 
 	compressedMsg, wm, ok := wiremessage.ReadCompressedCompressedMessage(wm, int32(len(wm)))
+	if !ok {
+		return originalOpcode, nil, errors.New("failed to read compressed message")
+	}
 
 	opts := driver.CompressionOpts{
 		Compressor:       compressorID,

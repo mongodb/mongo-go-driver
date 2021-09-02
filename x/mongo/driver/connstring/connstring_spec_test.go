@@ -54,17 +54,15 @@ func (h *host) toString() string {
 	case "ip_literal":
 		if len(h.Port) == 0 {
 			return "[" + h.Host + "]"
-		} else {
-			return "[" + h.Host + "]" + ":" + string(h.Port)
 		}
+		return "[" + h.Host + "]" + ":" + string(h.Port)
 	case "ipv4":
 		fallthrough
 	case "hostname":
 		if len(h.Port) == 0 {
 			return h.Host
-		} else {
-			return h.Host + ":" + string(h.Port)
 		}
+		return h.Host + ":" + string(h.Port)
 	}
 
 	return ""

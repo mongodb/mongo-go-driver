@@ -482,7 +482,7 @@ func TestPool(t *testing.T) {
 			if p.conns.totalSize != 0 {
 				t.Errorf("Pool should have 0 total connections. got %d; want %d", p.conns.totalSize, 0)
 			}
-			c, err = p.get(ctx)
+			_, err = p.get(ctx)
 			noerr(t, err)
 			if d.lenopened() != 2 {
 				t.Errorf("Should have opened 2 connections, but didn't. got %d; want %d", d.lenopened(), 2)

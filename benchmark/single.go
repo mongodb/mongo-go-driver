@@ -62,6 +62,9 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 		}
 		// read the document and then throw it away to prevent
 		out, err := doc.MarshalBSON()
+		if err != nil {
+			return err
+		}
 		if len(out) == 0 {
 			return errors.New("output of command is empty")
 		}

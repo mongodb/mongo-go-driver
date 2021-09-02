@@ -70,9 +70,9 @@ func AddTLSConfigToURI(uri string) string {
 	return AddOptionsToURI(uri, "ssl=true&sslCertificateAuthorityFile=", caFile)
 }
 
-// AddCompressorToUri checks for the environment variable indicating that the tests are being run with compression
+// AddCompressorToURI checks for the environment variable indicating that the tests are being run with compression
 // enabled. If so, it returns a new URI with the necessary configuration
-func AddCompressorToUri(uri string) string {
+func AddCompressorToURI(uri string) string {
 	comp := os.Getenv("MONGO_GO_DRIVER_COMPRESSOR")
 	if len(comp) == 0 {
 		return uri
@@ -108,7 +108,7 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 	if err != nil {
 		t.Fatal(err)
 	} else {
-		monitoredTopology.Connect()
+		_ = monitoredTopology.Connect()
 
 		err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
 			Database(dbName).ServerSelector(description.WriteSelector()).Deployment(monitoredTopology).Execute(context.Background())
@@ -148,7 +148,7 @@ func GlobalMonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topol
 		if err != nil {
 			monitoredTopologyErr = err
 		} else {
-			monitoredTopology.Connect()
+			_ = monitoredTopology.Connect()
 
 			err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
 				Database(DBName(t)).ServerSelector(description.WriteSelector()).Deployment(monitoredTopology).Execute(context.Background())
@@ -200,7 +200,7 @@ func Topology(t *testing.T) *topology.Topology {
 		if err != nil {
 			liveTopologyErr = err
 		} else {
-			liveTopology.Connect()
+			_ = liveTopology.Connect()
 
 			err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
 				Database(DBName(t)).ServerSelector(description.WriteSelector()).Deployment(liveTopology).Execute(context.Background())
@@ -274,7 +274,7 @@ func ConnString(t *testing.T) connstring.ConnString {
 		}
 
 		mongodbURI = AddTLSConfigToURI(mongodbURI)
-		mongodbURI = AddCompressorToUri(mongodbURI)
+		mongodbURI = AddCompressorToURI(mongodbURI)
 
 		var err error
 		connectionString, err = connstring.ParseAndValidate(mongodbURI)

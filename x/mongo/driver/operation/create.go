@@ -55,8 +55,7 @@ func NewCreate(collectionName string) *Create {
 }
 
 func (c *Create) processResponse(driver.ResponseInfo) error {
-	var err error
-	return err
+	return nil
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.

@@ -233,3 +233,20 @@ func TestObjectID_UnmarshalJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestObjectID_MarshalText(t *testing.T) {
+	oid := ObjectID{0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB}
+	b, err := oid.MarshalText()
+	assert.Nil(t, err, "MarshalText error: %v", err)
+	want := "000102030405060708090a0b"
+	got := string(b)
+	assert.Equal(t, want, got, "want %v, got %v", want, got)
+}
+
+func TestObjectID_UnmarshalText(t *testing.T) {
+	var oid ObjectID
+	err := oid.UnmarshalText([]byte("000102030405060708090a0b"))
+	assert.Nil(t, err, "UnmarshalText error: %v", err)
+	want := ObjectID{0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB}
+	assert.Equal(t, want, oid, "want %v, got %v", want, oid)
+}

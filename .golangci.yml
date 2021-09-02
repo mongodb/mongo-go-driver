@@ -1,0 +1,63 @@
+run:
+  timeout: 5m
+
+linters:
+  disable-all: true
+  enable:
+    # - deadcode
+    - errcheck
+    # - errorlint
+    - goimports
+    # - gosimple
+    - govet
+    - ineffassign
+    # - misspell
+    # - nakedret
+    - revive
+    - staticcheck
+    # - structcheck
+    - typecheck
+    # - unused
+    # - unconvert
+    # - unparam
+    # - varcheck
+
+linters-settings:
+  errcheck:
+    exclude: .errcheck-excludes
+  govet:
+    disable:
+      - cgocall
+      - composites
+  staticcheck:
+    checks: [
+      "all",
+      "-SA1019", # Disable deprecation warnings for now.
+      "-SA1012", # Disable "do not pass a nil Context" to allow testing nil contexts in tests.
+    ]
+
+issues:
+  exclude:
+    # Ignore capitalization warning for this weird field name.
+    - "var-naming: struct field CqCssWxW should be CqCSSWxW"
+    # Ignore warnings for common "wiremessage.Read..." usage because the safest way to use that API
+    # is by by assigning possibly unused returned byte buffers.
+    - "SA4006: this value of `wm` is never used"
+    - "SA4006: this value of `rem` is never used"
+    - "ineffectual assignment to wm"
+    - "ineffectual assignment to rem"
+  skip-dirs-use-default: false
+  skip-dirs:
+    - (^|/)vendor($|/)
+    - (^|/)testdata($|/)
+    - (^|/)data($|/)
+    - (^|/)etc($|/)
+  exclude-rules:
+    - path: examples/
+      linters:
+        - revive
+        - errcheck
+    - path: x/mongo/driver/operation/
+      linters:
+        - staticcheck # TODO: Re-enable once GODRIVER-2154 is done.
+        - ineffassign # TODO: Re-enable once GODRIVER-2154 is done.

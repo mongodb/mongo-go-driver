@@ -464,7 +464,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			if retryable && retryableErr && retries != 0 {
 				retries--
-				original, err = err, nil
+				original = err
 				conn.Close() // Avoid leaking the connection.
 				srvr, conn, err = op.getServerAndConnection(ctx)
 				if err != nil || conn == nil || !op.retryable(conn.Description()) {
@@ -491,7 +491,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					ConnectionDescription: desc.Server,
 					CurrentIndex:          currIndex,
 				}
-				perr = op.ProcessResponseFn(info)
+				_ = op.ProcessResponseFn(info)
 			}
 
 			if batching && len(tt.WriteErrors) > 0 && currIndex > 0 {
@@ -502,7 +502,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If batching is enabled and either ordered is the default (which is true) or
 			// explicitly set to true and we have write errors, return the errors.
-			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered == true) && len(tt.WriteErrors) > 0 {
+			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered) && len(tt.WriteErrors) > 0 {
 				return tt
 			}
 			if op.Client != nil && op.Client.Committing && tt.WriteConcernError != nil {
@@ -555,7 +555,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			if retryable && retryableErr && retries != 0 {
 				retries--
-				original, err = err, nil
+				original = err
 				conn.Close() // Avoid leaking the connection.
 				srvr, conn, err = op.getServerAndConnection(ctx)
 				if err != nil || conn == nil || !op.retryable(conn.Description()) {
@@ -582,7 +582,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					ConnectionDescription: desc.Server,
 					CurrentIndex:          currIndex,
 				}
-				perr = op.ProcessResponseFn(info)
+				_ = op.ProcessResponseFn(info)
 			}
 
 			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
@@ -616,7 +616,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					ConnectionDescription: desc.Server,
 					CurrentIndex:          currIndex,
 				}
-				perr = op.ProcessResponseFn(info)
+				_ = op.ProcessResponseFn(info)
 			}
 			return err
 		}

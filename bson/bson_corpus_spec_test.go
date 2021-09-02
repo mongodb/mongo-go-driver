@@ -160,6 +160,7 @@ func normalizeCanonicalDouble(t *testing.T, key string, cEJ string) string {
 	// Parse the float contained by the map.
 	expectedString := cEJMap[key]["$numberDouble"]
 	expectedFloat, err := strconv.ParseFloat(expectedString, 64)
+	require.NoError(t, err)
 
 	// Normalize the string
 	return fmt.Sprintf(`{"%s":{"$numberDouble":"%s"}}`, key, formatDouble(expectedFloat))

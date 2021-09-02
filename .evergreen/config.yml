@@ -138,8 +138,7 @@ functions:
           # repo will update the driver's go.mod/go.sum files. This puts the contents of go.mod/go.sum out of sync with
           # the vendor directory and tests fail to compile due to inconsistent vendoring.
           cd $(mktemp -d)
-          go get -u golang.org/x/lint/golint
-          go get -u github.com/kisielk/errcheck
+          go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
           go get -u github.com/walle/lll/...
           cd -
 
@@ -893,26 +892,12 @@ tasks:
         vars:
           targets: check-fmt
 
-  - name: sa-errcheck
-    tags: ["static-analysis"]
-    commands:
-      - func: run-make
-        vars:
-          targets: errcheck
-
   - name: sa-lint
     tags: ["static-analysis"]
     commands:
       - func: run-make
         vars:
           targets: lint
-
-  - name: sa-vet
-    tags: ["static-analysis"]
-    commands:
-      - func: run-make
-        vars:
-          targets: vet
 
   - name: perf
     tags: ["performance"]

@@ -100,7 +100,7 @@ func isPoolCleared() bool {
 }
 
 func clearPoolChan() {
-	for len(poolChan) < 0 {
+	for len(poolChan) > 0 {
 		<-poolChan
 	}
 }

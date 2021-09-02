@@ -407,6 +407,7 @@ func ExampleConnect_versionedAPI() {
 	// Fails with error: (APIStrictError) Provided apiStrict:true, but the
 	// command distinct is not in API Version 1
 	_, err = coll.Distinct(context.TODO(), "distinct", bson.D{})
+	log.Println(err)
 
 	// ServerAPIOptions can be declared with a DeprecationErrors option.
 	// DeprecationErrors can be used to enable command failures when using

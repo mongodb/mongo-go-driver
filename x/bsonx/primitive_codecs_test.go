@@ -293,7 +293,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"p", Int32(12345)},
 				{"q", Timestamp(10, 20)}, {"r", Int64(1234567890)}, {"s", Decimal128(d128)}, {"t", MinKey()}, {"u", MaxKey()},
 			}
-			got := Doc{}
 			slc := make(bsonrw.SliceWriter, 0, 128)
 			vw, err := bsonrw.NewBSONValueWriter(&slc)
 			noerr(t, err)
@@ -301,7 +300,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 			ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
 			err = (PrimitiveCodecs{}).DocumentEncodeValue(ec, vw, reflect.ValueOf(want))
 			noerr(t, err)
-			got, err = ReadDoc(slc)
+			got, err := ReadDoc(slc)
 			noerr(t, err)
 			if !got.Equal(want) {
 				t.Error("Documents do not match")

@@ -741,7 +741,6 @@ func (s *Server) check() (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
-			durationNanos = s.conn.helloRTT.Nanoseconds()
 		}
 	}
 
@@ -889,12 +888,16 @@ func (ss *ServerSubscription) Unsubscribe() error {
 
 // publishes a ServerOpeningEvent to indicate the server is being initialized
 func (s *Server) publishServerOpeningEvent(addr address.Address) {
+	if s == nil {
+		return
+	}
+
 	serverOpening := &event.ServerOpeningEvent{
 		Address:    addr,
 		TopologyID: s.topologyID,
 	}
 
-	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerOpening != nil {
+	if s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerOpening != nil {
 		s.cfg.serverMonitor.ServerOpening(serverOpening)
 	}
 }

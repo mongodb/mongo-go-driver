@@ -32,7 +32,7 @@ var globalConnectionID uint64 = 1
 
 var (
 	defaultMaxMessageSize        uint32 = 48000000
-	errResponseTooLarge          error  = errors.New("length of read message too large")
+	errResponseTooLarge                 = errors.New("length of read message too large")
 	errLoadBalancedStateMismatch        = errors.New("driver attempted to initialize in load balancing mode, but the server does not support this mode")
 )
 
