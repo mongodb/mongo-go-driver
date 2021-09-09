@@ -7,7 +7,6 @@
 package uuid // import "go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 
 import (
-	"bytes"
 	"crypto/rand"
 	"io"
 )
@@ -33,5 +32,5 @@ func New() (UUID, error) {
 
 // Equal returns true if two UUIDs are equal.
 func Equal(a, b UUID) bool {
-	return bytes.Equal([]byte(a[:]), []byte(b[:]))
+	return a == b
 }

@@ -239,7 +239,7 @@ func (f *fsm) updateRSFromPrimary(s description.Server) {
 		return
 	}
 
-	if s.SetVersion != 0 && !bytes.Equal(s.ElectionID[:], primitive.NilObjectID[:]) {
+	if s.SetVersion != 0 && !s.ElectionID.IsZero() {
 		if f.maxSetVersion > s.SetVersion || bytes.Compare(f.maxElectionID[:], s.ElectionID[:]) == 1 {
 			f.replaceServer(description.Server{
 				Addr:      s.Addr,
