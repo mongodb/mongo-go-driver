@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -103,7 +104,7 @@ type T struct {
 	dataLake          *bool
 	ssl               *bool
 	collCreateOpts    bson.D
-	connsCheckedOut   int // net number of connections checked out during test execution
+	connsCheckedOut   int64 // net number of connections checked out during test execution
 	requireAPIVersion *bool
 
 	// options copied to sub-tests
@@ -231,7 +232,7 @@ func (t *T) RunOpts(name string, opts *Options, callback func(*T)) {
 			// store number of sessions and connections checked out here but assert that they're equal to 0 after
 			// cleaning up test resources to make sure resources are always cleared
 			sessions := sub.Client.NumberSessionsInProgress()
-			conns := sub.connsCheckedOut
+			conns := sub.NumberConnectionsCheckedOut()
 
 			if sub.clientType != Mock {
 				sub.ClearFailPoints()
@@ -369,7 +370,7 @@ func (t *T) GetProxiedMessages() []*ProxyMessage {
 
 // NumberConnectionsCheckedOut returns the number of connections checked out from the test Client.
 func (t *T) NumberConnectionsCheckedOut() int {
-	return t.connsCheckedOut
+	return int(atomic.LoadInt64(&t.connsCheckedOut))
 }
 
 // ClearEvents clears the existing command monitoring events.
@@ -594,9 +595,9 @@ func (t *T) createTestClient() {
 
 				switch evt.Type {
 				case event.GetSucceeded:
-					t.connsCheckedOut++
+					atomic.AddInt64(&t.connsCheckedOut, 1)
 				case event.ConnectionReturned:
-					t.connsCheckedOut--
+					atomic.AddInt64(&t.connsCheckedOut, -1)
 				}
 			},
 		})
