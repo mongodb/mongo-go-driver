@@ -24,14 +24,14 @@ type Resolver struct {
 // DefaultResolver is a Resolver that uses the default Resolver from the net package.
 var DefaultResolver = &Resolver{net.LookupSRV, net.LookupTXT}
 
-// ParseHosts uses the srv string to get the hosts.
-func (r *Resolver) ParseHosts(host string, stopOnErr bool) ([]string, error) {
+// ParseHosts uses the srv string and service name to get the hosts.
+func (r *Resolver) ParseHosts(host string, srvName string, stopOnErr bool) ([]string, error) {
 	parsedHosts := strings.Split(host, ",")
 
 	if len(parsedHosts) != 1 {
 		return nil, fmt.Errorf("URI with SRV must include one and only one hostname")
 	}
-	return r.fetchSeedlistFromSRV(parsedHosts[0], stopOnErr)
+	return r.fetchSeedlistFromSRV(parsedHosts[0], srvName, stopOnErr)
 }
 
 // GetConnectionArgsFromTXT gets the TXT record associated with the host and returns the connection arguments.
@@ -64,7 +64,7 @@ func (r *Resolver) GetConnectionArgsFromTXT(host string) ([]string, error) {
 	return connectionArgsFromTXT, nil
 }
 
-func (r *Resolver) fetchSeedlistFromSRV(host string, stopOnErr bool) ([]string, error) {
+func (r *Resolver) fetchSeedlistFromSRV(host string, srvName string, stopOnErr bool) ([]string, error) {
 	var err error
 
 	_, _, err = net.SplitHostPort(host)
@@ -75,7 +75,11 @@ func (r *Resolver) fetchSeedlistFromSRV(host string, stopOnErr bool) ([]string, 
 		return nil, fmt.Errorf("URI with srv must not include a port number")
 	}
 
-	_, addresses, err := r.LookupSRV("mongodb", "tcp", host)
+	// default to "mongodb" as service name if not supplied
+	if srvName == "" {
+		srvName = "mongodb"
+	}
+	_, addresses, err := r.LookupSRV(srvName, "tcp", host)
 	if err != nil {
 		return nil, err
 	}

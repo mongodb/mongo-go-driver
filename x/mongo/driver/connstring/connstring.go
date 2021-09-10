@@ -97,6 +97,7 @@ type ConnString struct {
 	ServerSelectionTimeoutSet          bool
 	SocketTimeout                      time.Duration
 	SocketTimeoutSet                   bool
+	SRVServiceName                     string
 	SSL                                bool
 	SSLSet                             bool
 	SSLClientCertificateKeyFile        string
@@ -257,8 +258,26 @@ func (p *parser) parse(original string) error {
 	var connectionArgsFromTXT []string
 	parsedHosts := strings.Split(hosts, ",")
 
+	uri = uri[len(hosts):]
+
+	extractedDatabase, err := extractDatabaseFromURI(uri)
+	if err != nil {
+		return err
+	}
+
+	uri = extractedDatabase.uri
+	p.Database = extractedDatabase.db
+
+	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
+	for _, pair := range connectionArgsFromQueryString {
+		err := p.addOption(pair)
+		if err != nil {
+			return err
+		}
+	}
+
 	if p.Scheme == SchemeMongoDBSRV {
-		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, true)
+		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, p.SRVServiceName, true)
 		if err != nil {
 			return err
 		}
@@ -282,20 +301,7 @@ func (p *parser) parse(original string) error {
 		return fmt.Errorf("must have at least 1 host")
 	}
 
-	uri = uri[len(hosts):]
-
-	extractedDatabase, err := extractDatabaseFromURI(uri)
-	if err != nil {
-		return err
-	}
-
-	uri = extractedDatabase.uri
-	p.Database = extractedDatabase.db
-
-	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
-	connectionArgPairs := append(connectionArgsFromTXT, connectionArgsFromQueryString...)
-
-	for _, pair := range connectionArgPairs {
+	for _, pair := range connectionArgsFromTXT {
 		err = p.addOption(pair)
 		if err != nil {
 			return err
@@ -762,6 +768,12 @@ func (p *parser) addOption(pair string) error {
 		}
 		p.SocketTimeout = time.Duration(n) * time.Millisecond
 		p.SocketTimeoutSet = true
+	case "srvservicename":
+		// srvServiceName can only be set on URIs with the "mongodb+srv" scheme
+		if p.Scheme != SchemeMongoDBSRV {
+			return fmt.Errorf("cannot specify srvServiceName on non-SRV URI")
+		}
+		p.SRVServiceName = value
 	case "ssl", "tls":
 		switch value {
 		case "true":
