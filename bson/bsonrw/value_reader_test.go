@@ -459,7 +459,7 @@ func TestValueReader(t *testing.T) {
 				if ns != tc.ns {
 					t.Errorf("Incorrect namespace returned. got %v; want %v", ns, tc.ns)
 				}
-				if !bytes.Equal(oid[:], tc.oid[:]) {
+				if oid != tc.oid {
 					t.Errorf("ObjectIDs did not match. got %v; want %v", oid, tc.oid)
 				}
 			})
@@ -1049,7 +1049,7 @@ func TestValueReader(t *testing.T) {
 				if !errequal(t, err, tc.err) {
 					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
 				}
-				if !bytes.Equal(oid[:], tc.oid[:]) {
+				if oid != tc.oid {
 					t.Errorf("ObjectIDs did not match. got %v; want %v", oid, tc.oid)
 				}
 			})
