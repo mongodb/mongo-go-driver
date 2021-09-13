@@ -125,7 +125,7 @@ functions:
             # If this was a patch build, doing a fresh clone would not actually test the patch
             cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
           else
-            git clone git://github.com/kevinAlbs/drivers-evergreen-tools.git --branch test_serverless_behind_loadbalancer.1882 $DRIVERS_TOOLS
+            git clone git://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
           fi
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
@@ -509,7 +509,6 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
-          set -o xtrace
           ${PREPARE_SHELL}
 
           export GOFLAGS=-mod=vendor
