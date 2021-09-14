@@ -401,7 +401,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.cmdName = startedInfo.cmdName
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
-		startedInfo.serverConnID = desc.ConnectionID
+		startedInfo.serverConnID = conn.ServerConnectionID()
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress

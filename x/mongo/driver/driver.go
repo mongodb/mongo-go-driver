@@ -52,6 +52,7 @@ type Connection interface {
 	Description() description.Server
 	Close() error
 	ID() string
+	ServerConnectionID() *uint32
 	Address() address.Address
 	Stale() bool
 }
@@ -137,11 +138,14 @@ type ErrorProcessor interface {
 }
 
 // HandshakeInformation contains information extracted from a MongoDB connection handshake. This is a helper type that
-// augments description.Server by also tracking authentication-related fields. We use this type rather than adding
-// these fields to description.Server to avoid retaining sensitive information in a user-facing type.
+// augments description.Server by also tracking server connection ID and authentication-related fields. We use this type
+// rather than adding authentication-related fields to description.Server to avoid retaining sensitive information in a
+// user-facing type. The server connection ID is stored in this type because unlike description.Server, all handshakes are
+// correlated with a single network connection.
 type HandshakeInformation struct {
 	Description             description.Server
 	SpeculativeAuthenticate bsoncore.Document
+	ServerConnectionID      *uint32
 	SaslSupportedMechs      []string
 }
 

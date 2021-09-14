@@ -638,20 +638,22 @@ type mockConnection struct {
 	pReadDst []byte
 
 	// returns
-	rWriteErr  error
-	rReadWM    []byte
-	rReadErr   error
-	rDesc      description.Server
-	rCloseErr  error
-	rID        string
-	rAddr      address.Address
-	rCanStream bool
-	rStreaming bool
+	rWriteErr     error
+	rReadWM       []byte
+	rReadErr      error
+	rDesc         description.Server
+	rCloseErr     error
+	rID           string
+	rServerConnID *uint32
+	rAddr         address.Address
+	rCanStream    bool
+	rStreaming    bool
 }
 
 func (m *mockConnection) Description() description.Server { return m.rDesc }
 func (m *mockConnection) Close() error                    { return m.rCloseErr }
 func (m *mockConnection) ID() string                      { return m.rID }
+func (m *mockConnection) ServerConnectionID() *uint32     { return m.rServerConnID }
 func (m *mockConnection) Address() address.Address        { return m.rAddr }
 func (m *mockConnection) SupportsStreaming() bool         { return m.rCanStream }
 func (m *mockConnection) CurrentlyStreaming() bool        { return m.rStreaming }
