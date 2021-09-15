@@ -58,7 +58,7 @@ type checkOutResult struct {
 
 // pool is a wrapper of resource pool that follows the CMAP spec for connection pools
 type pool struct {
-	// connected,nextid must be accessed using the atomic package and should be at the begin of struct.
+	// These fields must be accessed using the atomic package and should be at the beginning of the struct.
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
 	connected                    int64
