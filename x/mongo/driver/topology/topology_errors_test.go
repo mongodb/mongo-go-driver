@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build go1.13
 // +build go1.13
 
 package topology
@@ -30,7 +31,7 @@ func TestTopologyErrors(t *testing.T) {
 			noerr(t, err)
 
 			topo.cfg.cs.HeartbeatInterval = time.Minute
-			atomic.StoreInt32(&topo.connectionstate, connected)
+			atomic.StoreInt64(&topo.connectionstate, connected)
 			desc := description.Topology{
 				Servers: []description.Server{},
 			}

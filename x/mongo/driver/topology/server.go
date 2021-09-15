@@ -56,14 +56,14 @@ func (ss *SelectedServer) Description() description.SelectedServer {
 
 // These constants represent the connection states of a server.
 const (
-	disconnected int32 = iota
+	disconnected int64 = iota
 	disconnecting
 	connected
 	connecting
 	initialized
 )
 
-func connectionStateString(state int32) string {
+func connectionStateString(state int64) string {
 	switch state {
 	case 0:
 		return "Disconnected"
@@ -84,7 +84,7 @@ func connectionStateString(state int32) string {
 type Server struct {
 	cfg             *serverConfig
 	address         address.Address
-	connectionstate int32
+	connectionstate int64
 
 	// connection related fields
 	pool *pool
@@ -195,7 +195,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 // Connect initializes the Server by starting background monitoring goroutines.
 // This method must be called before a Server can be used.
 func (s *Server) Connect(updateCallback updateTopologyCallback) error {
-	if !atomic.CompareAndSwapInt32(&s.connectionstate, disconnected, connected) {
+	if !atomic.CompareAndSwapInt64(&s.connectionstate, disconnected, connected) {
 		return ErrServerConnected
 	}
 
@@ -225,7 +225,7 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 // any in flight read or write operations. If this method returns with no
 // errors, all connections associated with this Server have been closed.
 func (s *Server) Disconnect(ctx context.Context) error {
-	if !atomic.CompareAndSwapInt32(&s.connectionstate, connected, disconnecting) {
+	if !atomic.CompareAndSwapInt64(&s.connectionstate, connected, disconnecting) {
 		return ErrServerClosed
 	}
 
@@ -246,7 +246,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 	}
 
 	s.closewg.Wait()
-	atomic.StoreInt32(&s.connectionstate, disconnected)
+	atomic.StoreInt64(&s.connectionstate, disconnected)
 
 	return nil
 }
@@ -261,7 +261,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		})
 	}
 
-	if atomic.LoadInt32(&s.connectionstate) != connected {
+	if atomic.LoadInt64(&s.connectionstate) != connected {
 		return nil, ErrServerClosed
 	}
 
@@ -379,7 +379,7 @@ func (s *Server) SelectedDescription() description.SelectedServer {
 // updated server descriptions will be sent. The channel will have a buffer
 // size of one, and will be pre-populated with the current description.
 func (s *Server) Subscribe() (*ServerSubscription, error) {
-	if atomic.LoadInt32(&s.connectionstate) != connected {
+	if atomic.LoadInt64(&s.connectionstate) != connected {
 		return nil, ErrSubscribeAfterClosed
 	}
 	ch := make(chan description.Server, 1)
@@ -577,7 +577,7 @@ func (s *Server) update() {
 		// Perform the next check.
 		desc, err := s.check()
 		if err == errCheckCancelled {
-			if atomic.LoadInt32(&s.connectionstate) != connected {
+			if atomic.LoadInt64(&s.connectionstate) != connected {
 				continue
 			}
 
@@ -843,7 +843,7 @@ func extractTopologyVersion(err error) *description.TopologyVersion {
 // String implements the Stringer interface.
 func (s *Server) String() string {
 	desc := s.Description()
-	connState := atomic.LoadInt32(&s.connectionstate)
+	connState := atomic.LoadInt64(&s.connectionstate)
 	str := fmt.Sprintf("Addr: %s, Type: %s, State: %s",
 		s.address, desc.Kind, connectionStateString(connState))
 	if len(desc.Tags) != 0 {
