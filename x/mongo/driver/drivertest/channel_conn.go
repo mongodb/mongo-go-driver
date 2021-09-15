@@ -62,8 +62,8 @@ func (c *ChannelConn) ID() string {
 }
 
 // ServerConnectionID implements the driver.Connection interface.
-func (c *ChannelConn) ServerConnectionID() *uint32 {
-	serverConnectionID := uint32(42)
+func (c *ChannelConn) ServerConnectionID() *int32 {
+	serverConnectionID := int32(42)
 	return &serverConnectionID
 }
 
