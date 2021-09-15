@@ -24,7 +24,7 @@ type generationStats struct {
 // load balancer, there is only one service ID: primitive.NilObjectID. For load-balanced deployments, each server behind
 // the load balancer will have a unique service ID.
 type poolGenerationMap struct {
-	// state must be accessed using the atomic package and should be at the begin of struct.
+	// state must be accessed using the atomic package and should be at the beginning of the struct.
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
 	state         int64
