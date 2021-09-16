@@ -81,7 +81,7 @@ func TestConnection(t *testing.T) {
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
-				connState := atomic.LoadInt32(&conn.connected)
+				connState := atomic.LoadInt64(&conn.connected)
 				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
 			})
 			t.Run("handshaker error", func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestConnection(t *testing.T) {
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
-				connState := atomic.LoadInt32(&conn.connected)
+				connState := atomic.LoadInt64(&conn.connected)
 				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
 			})
 			t.Run("calls error callback", func(t *testing.T) {
@@ -753,7 +753,7 @@ func TestConnection(t *testing.T) {
 				conn.connect(context.Background())
 				err = conn.wait()
 				assert.NotNil(t, err, "expected handshake error from wait, got nil")
-				connState := atomic.LoadInt32(&conn.connected)
+				connState := atomic.LoadInt64(&conn.connected)
 				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
 
 				err = conn.close()
