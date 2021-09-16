@@ -514,10 +514,12 @@ functions:
           export GOFLAGS=-mod=vendor
           AUTH="auth" \
           SSL="ssl" \
-          MONGODB_URI="${MONGODB_URI}" \
+          MONGODB_URI="${SINGLE_ATLASPROXY_SERVERLESS_URI}" \
           SERVERLESS="serverless" \
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
           SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
+          SINGLE_MONGOS_LB_URI="${SINGLE_ATLASPROXY_SERVERLESS_URI}" \
+          MULTI_MONGOS_LB_URI="${MULTI_ATLASPROXY_SERVERLESS_URI}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           make evg-test-serverless
 
@@ -1920,6 +1922,7 @@ task_groups:
             SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
             SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
             SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
+            LOADBALANCED=ON \
               bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
       - command: expansions.update
         params:

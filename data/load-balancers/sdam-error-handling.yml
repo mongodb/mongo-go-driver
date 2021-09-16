@@ -65,6 +65,10 @@ initialData:
 
 tests:
   - description: only connections for a specific serviceId are closed when pools are cleared
+    runOnRequirements:
+    # This test assumes that two sequential connections receive different serviceIDs.
+    # Sequential connections to a serverless instance may receive the same serviceID.
+    - serverless: forbid
     operations:
       # Create two cursors to force two connections.
       - name: createFindCursor

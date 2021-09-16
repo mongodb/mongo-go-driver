@@ -127,6 +127,11 @@
   "tests": [
     {
       "description": "only connections for a specific serviceId are closed when pools are cleared",
+      "runOnRequirements": [
+        {
+          "serverless": "forbid"
+        }
+      ],
       "operations": [
         {
           "name": "createFindCursor",

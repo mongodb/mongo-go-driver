@@ -196,6 +196,7 @@ evg-test-serverless:
 	go test $(BUILD_TAGS) ./mongo/integration -run TestErrorsCodeNamePropagated -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration -run TestRetryableWritesProse -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration -run TestCursor -v -timeout $(TEST_TIMEOUT)s >> test.suite
+	go test $(BUILD_TAGS) ./mongo/integration/unified -run TestUnifiedSpec/load-balancers -v -timeout $(TEST_TIMEOUT)s >> test.suite
 
 # benchmark specific targets and support
 perf:driver-test-data.tar.gz
