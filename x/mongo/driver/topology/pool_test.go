@@ -193,7 +193,7 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have closed 1 connections, but didn't. got %d; want %d", d.lenclosed(), 1)
 			}
 			close(cleanup)
-			state := atomic.LoadInt32(&p.connected)
+			state := atomic.LoadInt64(&p.connected)
 			if state != disconnected {
 				t.Errorf("Should have set the connection state on return. got %d; want %d", state, disconnected)
 			}
@@ -250,10 +250,10 @@ func TestPool(t *testing.T) {
 	})
 	t.Run("connect", func(t *testing.T) {
 		t.Run("can reconnect a disconnected pool", func(t *testing.T) {
-			assertGenerationMapState := func(t *testing.T, p *pool, expectedState int32) {
+			assertGenerationMapState := func(t *testing.T, p *pool, expectedState int64) {
 				t.Helper()
 
-				actualState := atomic.LoadInt32(&p.generation.state)
+				actualState := atomic.LoadInt64(&p.generation.state)
 				assert.Equal(t, expectedState, actualState, "expected generation map state %d, got %d", expectedState, actualState)
 			}
 
@@ -296,7 +296,7 @@ func TestPool(t *testing.T) {
 				t.Errorf("Pool should have 0 total connections. got %d; want %d", p.conns.totalSize, 0)
 			}
 			close(cleanup)
-			state := atomic.LoadInt32(&p.connected)
+			state := atomic.LoadInt64(&p.connected)
 			if state != disconnected {
 				t.Errorf("Should have set the connection state on return. got %d; want %d", state, disconnected)
 			}

@@ -58,14 +58,10 @@ type checkOutResult struct {
 
 // pool is a wrapper of resource pool that follows the CMAP spec for connection pools
 type pool struct {
-	address    address.Address
-	opts       []ConnectionOption
-	conns      *resourcePool // pool for non-checked out connections
-	generation *poolGenerationMap
-	monitor    *event.PoolMonitor
-
-	// Must be accessed using the atomic package.
-	connected                    int32
+	// These fields must be accessed using the atomic package and should be at the beginning of the struct.
+	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
+	// - suggested layout: https://go101.org/article/memory-layout.html
+	connected                    int64
 	pinnedCursorConnections      uint64
 	pinnedTransactionConnections uint64
 
@@ -73,6 +69,12 @@ type pool struct {
 	opened map[uint64]*connection // opened holds all of the currently open connections.
 	sem    *semaphore.Weighted
 	sync.Mutex
+
+	address    address.Address
+	opts       []ConnectionOption
+	conns      *resourcePool // pool for non-checked out connections
+	generation *poolGenerationMap
+	monitor    *event.PoolMonitor
 }
 
 // connectionExpiredFunc checks if a given connection is stale and should be removed from the resource pool
@@ -87,7 +89,7 @@ func connectionExpiredFunc(v interface{}) bool {
 	}
 
 	switch {
-	case atomic.LoadInt32(&c.pool.connected) != connected:
+	case atomic.LoadInt64(&c.pool.connected) != connected:
 		c.expireReason = event.ReasonPoolClosed
 	case c.closed():
 		// A connection would only be closed if it encountered a network error during an operation and closed itself.
@@ -208,7 +210,7 @@ func (p *pool) stale(c *connection) bool {
 
 // connect puts the pool into the connected state, allowing it to be used and will allow items to begin being processed from the wait queue
 func (p *pool) connect() error {
-	if !atomic.CompareAndSwapInt32(&p.connected, disconnected, connected) {
+	if !atomic.CompareAndSwapInt64(&p.connected, disconnected, connected) {
 		return ErrPoolConnected
 	}
 	p.generation.connect()
@@ -218,7 +220,7 @@ func (p *pool) connect() error {
 
 // disconnect disconnects the pool and closes all connections including those both in and out of the pool
 func (p *pool) disconnect(ctx context.Context) error {
-	if !atomic.CompareAndSwapInt32(&p.connected, connected, disconnecting) {
+	if !atomic.CompareAndSwapInt64(&p.connected, connected, disconnecting) {
 		return ErrPoolDisconnected
 	}
 
@@ -267,7 +269,7 @@ func (p *pool) disconnect(ctx context.Context) error {
 		_ = p.removeConnection(pc, event.ReasonPoolClosed)
 		_ = p.closeConnection(pc) // We don't care about errors while closing the connection.
 	}
-	atomic.StoreInt32(&p.connected, disconnected)
+	atomic.StoreInt64(&p.connected, disconnected)
 	p.conns.clearTotal()
 
 	if p.monitor != nil {
@@ -301,7 +303,7 @@ func (p *pool) makeNewConnection() (*connection, string, error) {
 		})
 	}
 
-	if atomic.LoadInt32(&p.connected) != connected {
+	if atomic.LoadInt64(&p.connected) != connected {
 		// Manually publish a ConnectionClosed event here because the connection reference hasn't been stored and we
 		// need to ensure each ConnectionCreated event has a corresponding ConnectionClosed event.
 		if p.monitor != nil {
@@ -348,7 +350,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		ctx = context.Background()
 	}
 
-	if atomic.LoadInt32(&p.connected) != connected {
+	if atomic.LoadInt64(&p.connected) != connected {
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
@@ -380,7 +382,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 	// This loop is so that we don't end up with more than maxPoolSize connections if p.conns.Maintain runs between
 	// calling p.conns.Get() and making the new connection
 	for {
-		if atomic.LoadInt32(&p.connected) != connected {
+		if atomic.LoadInt64(&p.connected) != connected {
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
 					Type:    event.GetFailed,
@@ -395,7 +397,7 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		connVal := p.conns.Get()
 		if c, ok := connVal.(*connection); ok && connVal != nil {
 			// call connect if not connected
-			if atomic.LoadInt32(&c.connected) == initialized {
+			if atomic.LoadInt64(&c.connected) == initialized {
 				c.connect(ctx)
 			}
 
@@ -499,12 +501,12 @@ func (p *pool) closeConnection(c *connection) error {
 		return ErrWrongPool
 	}
 
-	if atomic.LoadInt32(&c.connected) == connected {
+	if atomic.LoadInt64(&c.connected) == connected {
 		c.closeConnectContext()
 		_ = c.wait() // Make sure that the connection has finished connecting
 	}
 
-	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
+	if !atomic.CompareAndSwapInt64(&c.connected, connected, disconnected) {
 		return nil // We're closing an already closed connection
 	}
 

@@ -103,7 +103,7 @@ func TestServerSelection(t *testing.T) {
 			SupportedWireVersions.Max,
 		)
 		desc.CompatibilityErr = want
-		atomic.StoreInt32(&topo.connectionstate, connected)
+		atomic.StoreInt64(&topo.connectionstate, connected)
 		topo.desc.Store(desc)
 		_, err = topo.SelectServer(context.Background(), selectFirst)
 		assert.Equal(t, err, want, "expected %v, got %v", want, err)
@@ -128,7 +128,7 @@ func TestServerSelection(t *testing.T) {
 			MinSupportedMongoDBVersion,
 		)
 		desc.CompatibilityErr = want
-		atomic.StoreInt32(&topo.connectionstate, connected)
+		atomic.StoreInt64(&topo.connectionstate, connected)
 		topo.desc.Store(desc)
 		_, err = topo.SelectServer(context.Background(), selectFirst)
 		assert.Equal(t, err, want, "expected %v, got %v", want, err)
@@ -281,7 +281,7 @@ func TestServerSelection(t *testing.T) {
 	t.Run("findServer returns topology kind", func(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
-		atomic.StoreInt32(&topo.connectionstate, connected)
+		atomic.StoreInt64(&topo.connectionstate, connected)
 		srvr, err := ConnectServer(address.Address("one"), topo.updateCallback, topo.id)
 		noerr(t, err)
 		topo.servers[address.Address("one")] = srvr
@@ -301,7 +301,7 @@ func TestServerSelection(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
 		topo.cfg.cs.HeartbeatInterval = time.Minute
-		atomic.StoreInt32(&topo.connectionstate, connected)
+		atomic.StoreInt64(&topo.connectionstate, connected)
 
 		addr1 := address.Address("one")
 		addr2 := address.Address("two")
@@ -336,7 +336,7 @@ func TestServerSelection(t *testing.T) {
 		// send a not master error to the server forcing an update
 		serv, err := topo.FindServer(desc.Servers[0])
 		noerr(t, err)
-		atomic.StoreInt32(&serv.connectionstate, connected)
+		atomic.StoreInt64(&serv.connectionstate, connected)
 		_ = serv.ProcessError(driver.Error{Message: "not master"}, initConnection{})
 
 		resp := make(chan []description.Server)
@@ -368,7 +368,7 @@ func TestServerSelection(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
 		topo.cfg.cs.HeartbeatInterval = time.Minute
-		atomic.StoreInt32(&topo.connectionstate, connected)
+		atomic.StoreInt64(&topo.connectionstate, connected)
 
 		primaryAddr := address.Address("one")
 		desc := description.Topology{
@@ -398,7 +398,7 @@ func TestServerSelection(t *testing.T) {
 		noerr(t, err)
 
 		topo.cfg.cs.HeartbeatInterval = time.Minute
-		atomic.StoreInt32(&topo.connectionstate, connected)
+		atomic.StoreInt64(&topo.connectionstate, connected)
 		desc := description.Topology{
 			Servers: []description.Server{},
 		}

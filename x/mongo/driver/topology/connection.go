@@ -39,6 +39,11 @@ var (
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
 type connection struct {
+	// connected must be accessed using the atomic package and should be at the beginning of the struct.
+	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
+	// - suggested layout: https://go101.org/article/memory-layout.html
+	connected int64
+
 	id                   string
 	nc                   net.Conn // When nil, the connection is closed.
 	addr                 address.Address
@@ -52,7 +57,6 @@ type connection struct {
 	compressor           wiremessage.CompressorID
 	zliblevel            int
 	zstdLevel            int
-	connected            int32 // must be accessed using the sync/atomic package
 	connectDone          chan struct{}
 	connectErr           error
 	config               *connectionConfig
@@ -97,13 +101,13 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 	if !c.config.loadBalanced {
 		c.setGenerationNumber()
 	}
-	atomic.StoreInt32(&c.connected, initialized)
+	atomic.StoreInt64(&c.connected, initialized)
 
 	return c, nil
 }
 
 func (c *connection) processInitializationError(opCtx context.Context, err error) {
-	atomic.StoreInt32(&c.connected, disconnected)
+	atomic.StoreInt64(&c.connected, disconnected)
 	if c.nc != nil {
 		_ = c.nc.Close()
 	}
@@ -138,7 +142,7 @@ func (c *connection) hasGenerationNumber() bool {
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform
 // initialization handshakes.
 func (c *connection) connect(ctx context.Context) {
-	if !atomic.CompareAndSwapInt32(&c.connected, initialized, connected) {
+	if !atomic.CompareAndSwapInt64(&c.connected, initialized, connected) {
 		return
 	}
 	defer close(c.connectDone)
@@ -345,7 +349,7 @@ func (c *connection) cancellationListenerCallback() {
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	var err error
-	if atomic.LoadInt32(&c.connected) != connected {
+	if atomic.LoadInt64(&c.connected) != connected {
 		return ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
 	select {
@@ -402,7 +406,7 @@ func (c *connection) write(ctx context.Context, wm []byte) (err error) {
 
 // readWireMessage reads a wiremessage from the connection. The dst parameter will be overwritten.
 func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
-	if atomic.LoadInt32(&c.connected) != connected {
+	if atomic.LoadInt64(&c.connected) != connected {
 		return dst, ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
 
@@ -505,7 +509,7 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 
 func (c *connection) close() error {
 	// Overwrite the connection state as the first step so only the first close call will execute.
-	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
+	if !atomic.CompareAndSwapInt64(&c.connected, connected, disconnected) {
 		return nil
 	}
 
@@ -518,7 +522,7 @@ func (c *connection) close() error {
 }
 
 func (c *connection) closed() bool {
-	return atomic.LoadInt32(&c.connected) == disconnected
+	return atomic.LoadInt64(&c.connected) == disconnected
 }
 
 func (c *connection) idleTimeoutExpired() bool {
