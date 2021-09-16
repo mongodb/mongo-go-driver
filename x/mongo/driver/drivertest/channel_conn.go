@@ -61,6 +61,12 @@ func (c *ChannelConn) ID() string {
 	return "faked"
 }
 
+// ServerConnectionID implements the driver.Connection interface.
+func (c *ChannelConn) ServerConnectionID() *int32 {
+	serverConnectionID := int32(42)
+	return &serverConnectionID
+}
+
 // Address implements the driver.Connection interface.
 func (c *ChannelConn) Address() address.Address { return address.Address("0.0.0.0") }
 

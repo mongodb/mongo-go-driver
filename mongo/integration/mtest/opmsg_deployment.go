@@ -88,6 +88,12 @@ func (*connection) ID() string {
 	return "<mock_connection>"
 }
 
+// ServerConnectionID returns a fixed identifier for the server connection.
+func (*connection) ServerConnectionID() *int32 {
+	serverConnectionID := int32(42)
+	return &serverConnectionID
+}
+
 // Address returns a fixed address for the connection.
 func (*connection) Address() address.Address {
 	return serverAddress

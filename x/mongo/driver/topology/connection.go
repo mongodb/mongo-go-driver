@@ -62,6 +62,7 @@ type connection struct {
 	currentlyStreaming   bool
 	connectContextMutex  sync.Mutex
 	cancellationListener cancellationListener
+	serverConnectionID   *int32 // the server's ID for this client's connection
 
 	// pool related fields
 	pool         *pool
@@ -227,11 +228,13 @@ func (c *connection) connect(ctx context.Context) {
 	handshakeConn := initConnection{c}
 	handshakeInfo, err = handshaker.GetHandshakeInformation(handshakeCtx, c.addr, handshakeConn)
 	if err == nil {
-		// We only need to retain the Description field as the connection's description. The authentication-related
-		// fields in handshakeInfo are tracked by the handshaker if necessary.
+		// We only need to retain the Description field and the server connection ID. The authentication-related
+		// fields in handshakeInfo are tracked by the handshaker if necessary. We also lock the description mutex
+		// before setting the server description.
 		c.descMu.Lock()
 		c.desc = handshakeInfo.Description
 		c.descMu.Unlock()
+		c.serverConnectionID = handshakeInfo.ServerConnectionID
 		c.helloRTT = time.Since(handshakeStartTime)
 
 		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
@@ -562,6 +565,10 @@ func (c *connection) setSocketTimeout(timeout time.Duration) {
 
 func (c *connection) ID() string {
 	return c.id
+}
+
+func (c *connection) ServerConnectionID() *int32 {
+	return c.serverConnectionID
 }
 
 // initConnection is an adapter used during connection initialization. It has the minimum
