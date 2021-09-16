@@ -255,11 +255,8 @@ func (p *parser) parse(original string) error {
 		hosts = uri[:idx]
 	}
 
-	var connectionArgsFromTXT []string
 	parsedHosts := strings.Split(hosts, ",")
-
 	uri = uri[len(hosts):]
-
 	extractedDatabase, err := extractDatabaseFromURI(uri)
 	if err != nil {
 		return err
@@ -268,19 +265,15 @@ func (p *parser) parse(original string) error {
 	uri = extractedDatabase.uri
 	p.Database = extractedDatabase.db
 
+	// grab connection arguments from URI
 	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
-	for _, pair := range connectionArgsFromQueryString {
-		err := p.addOption(pair)
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
 	}
 
+	// grab connection arguments from TXT record and enable SSL if "mongodb+srv://"
+	var connectionArgsFromTXT []string
 	if p.Scheme == SchemeMongoDBSRV {
-		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, p.SRVServiceName, true)
-		if err != nil {
-			return err
-		}
 		connectionArgsFromTXT, err = p.dnsResolver.GetConnectionArgsFromTXT(hosts)
 		if err != nil {
 			return err
@@ -291,6 +284,23 @@ func (p *parser) parse(original string) error {
 		p.SSLSet = true
 	}
 
+	// add connection arguments from URI and TXT records to connstring
+	connectionArgPairs := append(connectionArgsFromTXT, connectionArgsFromQueryString...)
+	for _, pair := range connectionArgPairs {
+		err := p.addOption(pair)
+		if err != nil {
+			return err
+		}
+	}
+
+	// do SRV lookup if "mongodb+srv://"
+	if p.Scheme == SchemeMongoDBSRV {
+		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, p.SRVServiceName, true)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, host := range parsedHosts {
 		err = p.addHost(host)
 		if err != nil {
@@ -299,13 +309,6 @@ func (p *parser) parse(original string) error {
 	}
 	if len(p.Hosts) == 0 {
 		return fmt.Errorf("must have at least 1 host")
-	}
-
-	for _, pair := range connectionArgsFromTXT {
-		err = p.addOption(pair)
-		if err != nil {
-			return err
-		}
 	}
 
 	err = p.setDefaultAuthParams(extractedDatabase.db)

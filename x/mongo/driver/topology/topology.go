@@ -527,8 +527,8 @@ func (t *Topology) pollSRVRecords() {
 			break
 		}
 
-		// TODO: Don't use t.cfg.cs!!
-		parsedHosts, err := t.dnsResolver.ParseHosts(hosts, t.cfg.cs.SRVServiceName, false)
+		srvName := extractSrvServiceName(uri)
+		parsedHosts, err := t.dnsResolver.ParseHosts(hosts, srvName, false)
 		// DNS problem or no verified hosts returned
 		if err != nil || len(parsedHosts) == 0 {
 			if !t.pollHeartbeatTime.Load().(bool) {
@@ -766,4 +766,22 @@ func (t *Topology) publishTopologyClosedEvent() {
 	if t.cfg.serverMonitor != nil && t.cfg.serverMonitor.TopologyClosed != nil {
 		t.cfg.serverMonitor.TopologyClosed(topologyClosed)
 	}
+}
+
+// extracts the srvServiceName option from a URI if it exists
+func extractSrvServiceName(uri string) string {
+	parsedURI := strings.Split(uri, "?")
+	if len(parsedURI) != 2 {
+		return ""
+	}
+
+	connectionArgs := strings.Split(parsedURI[1], "&")
+	for _, pair := range connectionArgs {
+		parsedPair := strings.Split(pair, "=")
+		if len(parsedPair) == 2 && parsedPair[0] == "srvServiceName" {
+			return parsedPair[1]
+		}
+	}
+
+	return ""
 }
