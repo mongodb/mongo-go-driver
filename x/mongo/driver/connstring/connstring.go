@@ -776,6 +776,14 @@ func (p *parser) addOption(pair string) error {
 		if p.Scheme != SchemeMongoDBSRV {
 			return fmt.Errorf("cannot specify srvServiceName on non-SRV URI")
 		}
+
+		// srvServiceName must be between 1 and 62 characters according to
+		// our specification. Empty service names are not valid, and the service
+		// name (including prepended underscore) should not exceed the 63 character
+		// limit for DNS query subdomains.
+		if len(value) < 1 || len(value) > 62 {
+			return fmt.Errorf("srvServiceName value must be between 1 and 62 characters")
+		}
 		p.SRVServiceName = value
 	case "ssl", "tls":
 		switch value {

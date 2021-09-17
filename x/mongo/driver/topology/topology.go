@@ -768,20 +768,21 @@ func (t *Topology) publishTopologyClosedEvent() {
 	}
 }
 
-// extracts the srvServiceName option from a URI if it exists
+// extracts the last occurrence of the srvServiceName option from a URI if it exists.
 func extractSrvServiceName(uri string) string {
 	parsedURI := strings.Split(uri, "?")
 	if len(parsedURI) != 2 {
 		return ""
 	}
 
+	var srvName string
 	connectionArgs := strings.Split(parsedURI[1], "&")
 	for _, pair := range connectionArgs {
 		parsedPair := strings.Split(pair, "=")
 		if len(parsedPair) == 2 && parsedPair[0] == "srvServiceName" {
-			return parsedPair[1]
+			srvName = parsedPair[1]
 		}
 	}
 
-	return ""
+	return srvName
 }
