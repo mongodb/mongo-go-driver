@@ -787,6 +787,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		Session(sess).
 		WriteConcern(wc).
 		ReadConcern(rc).
+		ReadPreference(a.readPreference).
 		CommandMonitor(a.client.monitor).
 		ServerSelector(selector).
 		ClusterClock(a.client.clock).
@@ -794,13 +795,8 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		Collection(a.col).
 		Deployment(a.client.deployment).
 		Crypt(a.client.cryptFLE).
-		ServerAPI(a.client.serverAPI)
-	if !hasOutputStage {
-		// Only pass the user-specified read preference if the aggregation doesn't have a $out or $merge stage.
-		// Otherwise, the read preference could be forwarded to a mongos, which would error if the aggregation were
-		// executed against a non-primary node.
-		op.ReadPreference(a.readPreference)
-	}
+		ServerAPI(a.client.serverAPI).
+		HasOutputStage(hasOutputStage)
 
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)

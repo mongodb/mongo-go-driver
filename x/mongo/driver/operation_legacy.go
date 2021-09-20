@@ -162,7 +162,7 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 	numToReturn = op.calculateNumberToReturn(limit, batchSize)
 
 	// add read preference if needed
-	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	rp, err := op.createReadPref(desc, true)
 	if err != nil {
 		return dst, info, "", err
 	}
@@ -451,7 +451,7 @@ func (op Operation) createLegacyListCollectionsWiremessage(dst []byte, desc desc
 	if err != nil {
 		return dst, info, "", err
 	}
-	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	rp, err := op.createReadPref(desc, true)
 	if err != nil {
 		return dst, info, "", err
 	}
@@ -607,7 +607,7 @@ func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc descript
 	filter = bsoncore.AppendStringElement(filter, "ns", op.getFullCollectionName(filterCollName))
 	filter, _ = bsoncore.AppendDocumentEnd(filter, fidx)
 
-	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	rp, err := op.createReadPref(desc, true)
 	if err != nil {
 		return dst, info, "", err
 	}
