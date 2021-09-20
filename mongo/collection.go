@@ -772,9 +772,12 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		sess = nil
 	}
 
-	selector := makePinnedSelector(sess, a.writeSelector)
-	if !hasOutputStage {
+	var selector description.ServerSelectorFunc
+	if hasOutputStage {
+		selector = makeOutputSelector(sess, a.readSelector, a.client.localThreshold)
+	} else {
 		selector = makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
+
 	}
 
 	ao := options.MergeAggregateOptions(a.opts...)
@@ -1670,6 +1673,32 @@ func makePinnedSelector(sess *session.Client, defaultSelector description.Server
 	}
 }
 
+// makePinnedOutputSelector makes a selector for a pinned session with a pinned server given that the underlying operation
+// is an aggregate with a $out or $merge stage. Will attempt to do server selection on the pinned server. If that fails, will
+// remove secondaries with wire version < 13 from the list of candidates, and will go through a list of default selectors.
+func makePinnedOutputSelector(sess *session.Client, defaultSelector description.ServerSelector) description.ServerSelectorFunc {
+	return func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
+		if sess != nil && sess.PinnedServer != nil {
+			// If there is a pinned server, try to find it in the list of candidates.
+			for _, candidate := range svrs {
+				if candidate.Addr == sess.PinnedServer.Addr {
+					return []description.Server{candidate}, nil
+				}
+			}
+
+			return nil, nil
+		}
+
+		var cands []description.Server
+		for _, svr := range svrs {
+			if svr.Kind != description.RSSecondary || svr.WireVersion.Max >= 13 {
+				cands = append(cands, svr)
+			}
+		}
+		return defaultSelector.SelectServer(t, cands)
+	}
+}
+
 func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelectorFunc {
 	if sess != nil && sess.TransactionRunning() {
 		selector = description.CompositeSelector([]description.ServerSelector{
@@ -1679,4 +1708,15 @@ func makeReadPrefSelector(sess *session.Client, selector description.ServerSelec
 	}
 
 	return makePinnedSelector(sess, selector)
+}
+
+func makeOutputSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelectorFunc {
+	if sess != nil && sess.TransactionRunning() {
+		selector = description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(sess.CurrentRp),
+			description.LatencySelector(localThreshold),
+		})
+	}
+
+	return makePinnedOutputSelector(sess, selector)
 }
