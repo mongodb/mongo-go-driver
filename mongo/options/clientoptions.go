@@ -121,6 +121,7 @@ type ClientOptions struct {
 	ServerAPIOptions         *ServerAPIOptions
 	ServerSelectionTimeout   *time.Duration
 	SocketTimeout            *time.Duration
+	SRVServiceName           *string
 	TLSConfig                *tls.Config
 	WriteConcern             *writeconcern.WriteConcern
 	ZlibLevel                *int
@@ -336,6 +337,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if cs.SocketTimeoutSet {
 		c.SocketTimeout = &cs.SocketTimeout
+	}
+
+	if cs.SRVServiceName != "" {
+		c.SRVServiceName = &cs.SRVServiceName
 	}
 
 	if cs.SSL {
@@ -760,6 +765,13 @@ func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptio
 	return c
 }
 
+// SetSRVServiceName specifies a custom SRV service name to use in SRV polling. To use a custom SRV service name
+// in SRV discovery, this function must be called before ApplyURI.
+func (c *ClientOptions) SetSRVServiceName(srvName string) *ClientOptions {
+	c.SRVServiceName = &srvName
+	return c
+}
+
 // MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
 // The specified options are merged with the existing options on the client, with the specified options taking
 // precedence.
@@ -848,6 +860,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.SocketTimeout != nil {
 			c.SocketTimeout = opt.SocketTimeout
+		}
+		if opt.SRVServiceName != nil {
+			c.SRVServiceName = opt.SRVServiceName
 		}
 		if opt.TLSConfig != nil {
 			c.TLSConfig = opt.TLSConfig
