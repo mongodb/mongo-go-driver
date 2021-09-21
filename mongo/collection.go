@@ -772,9 +772,9 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		sess = nil
 	}
 
-	selector := makePinnedSelector(sess, a.writeSelector)
-	if !hasOutputStage {
-		selector = makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
+	selector := makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
+	if hasOutputStage {
+		selector = makeOutputSelector(sess, a.readPreference, a.client.localThreshold)
 	}
 
 	ao := options.MergeAggregateOptions(a.opts...)
@@ -1674,5 +1674,18 @@ func makeReadPrefSelector(sess *session.Client, selector description.ServerSelec
 		})
 	}
 
+	return makePinnedSelector(sess, selector)
+}
+
+func makeOutputSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelectorFunc {
+	if sess != nil && sess.TransactionRunning() {
+		// Use current transaction's read preference if available
+		rp = sess.CurrentRp
+	}
+
+	selector := description.CompositeSelector([]description.ServerSelector{
+		description.OutputSelector(rp),
+		description.LatencySelector(localThreshold),
+	})
 	return makePinnedSelector(sess, selector)
 }
