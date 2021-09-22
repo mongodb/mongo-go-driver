@@ -261,7 +261,7 @@ func TestConnection(t *testing.T) {
 					maxConnectTime time.Duration
 				}{
 					// The timeout to dial a connection should be min(context timeout, connectTimeoutMS), so 1ms for
-					// both of the tests declared below. Both tests also specify a 10ms max connect time to provide
+					// both of the tests declared below. Both tests also specify a 50ms max connect time to provide
 					// a large buffer for lag and avoid test flakiness.
 
 					{"context timeout is lower", 1 * time.Millisecond, 100 * time.Millisecond, 50 * time.Millisecond},
@@ -836,7 +836,7 @@ func TestConnection(t *testing.T) {
 		})
 
 		t.Run("pinning", func(t *testing.T) {
-			makeMultipleConnections := func(t *testing.T, numConns int) (*pool, []*Connection) {
+			makeMultipleConnections := func(t *testing.T, numConns int) (*pool, []*Connection, func()) {
 				t.Helper()
 
 				addr := bootstrapConnections(t, 3, func(nc net.Conn) {})
@@ -854,13 +854,17 @@ func TestConnection(t *testing.T) {
 					assert.Nil(t, err, "checkOut error: %v", err)
 					conns = append(conns, &Connection{connection: conn})
 				}
-				return pool, conns
+				disconnect := func() {
+					err := pool.disconnect(context.Background())
+					assert.Nil(t, err, "unexpected pool.disconnect() error: %v", err)
+				}
+				return pool, conns, disconnect
 			}
-			makeOneConnection := func(t *testing.T) (*pool, *Connection) {
+			makeOneConnection := func(t *testing.T) (*pool, *Connection, func()) {
 				t.Helper()
 
-				pool, conns := makeMultipleConnections(t, 1)
-				return pool, conns[0]
+				pool, conns, disconnect := makeMultipleConnections(t, 1)
+				return pool, conns[0], disconnect
 			}
 
 			assertPoolPinnedStats := func(t *testing.T, p *pool, cursorConns, txnConns uint64) {
@@ -873,10 +877,8 @@ func TestConnection(t *testing.T) {
 			}
 
 			t.Run("cursors", func(t *testing.T) {
-				pool, conn := makeOneConnection(t)
-				defer func() {
-					_ = pool.disconnect(context.Background())
-				}()
+				pool, conn, disconnect := makeOneConnection(t)
+				defer disconnect()
 
 				err := conn.PinToCursor()
 				assert.Nil(t, err, "PinToCursor error: %v", err)
@@ -890,10 +892,8 @@ func TestConnection(t *testing.T) {
 				assertPoolPinnedStats(t, pool, 0, 0)
 			})
 			t.Run("transactions", func(t *testing.T) {
-				pool, conn := makeOneConnection(t)
-				defer func() {
-					_ = pool.disconnect(context.Background())
-				}()
+				pool, conn, disconnect := makeOneConnection(t)
+				defer disconnect()
 
 				err := conn.PinToTransaction()
 				assert.Nil(t, err, "PinToTransaction error: %v", err)
@@ -907,10 +907,8 @@ func TestConnection(t *testing.T) {
 				assertPoolPinnedStats(t, pool, 0, 0)
 			})
 			t.Run("pool is only updated for first reference", func(t *testing.T) {
-				pool, conn := makeOneConnection(t)
-				defer func() {
-					_ = pool.disconnect(context.Background())
-				}()
+				pool, conn, disconnect := makeOneConnection(t)
+				defer disconnect()
 
 				err := conn.PinToTransaction()
 				assert.Nil(t, err, "PinToTransaction error: %v", err)
@@ -933,10 +931,8 @@ func TestConnection(t *testing.T) {
 				assertPoolPinnedStats(t, pool, 0, 0)
 			})
 			t.Run("multiple connections from a pool", func(t *testing.T) {
-				pool, conns := makeMultipleConnections(t, 2)
-				defer func() {
-					_ = pool.disconnect(context.Background())
-				}()
+				pool, conns, disconnect := makeMultipleConnections(t, 2)
+				defer disconnect()
 
 				first, second := conns[0], conns[1]
 
@@ -959,10 +955,8 @@ func TestConnection(t *testing.T) {
 				assertPoolPinnedStats(t, pool, 0, 0)
 			})
 			t.Run("close is ignored if connection is pinned", func(t *testing.T) {
-				pool, conn := makeOneConnection(t)
-				defer func() {
-					_ = pool.disconnect(context.Background())
-				}()
+				pool, conn, disconnect := makeOneConnection(t)
+				defer disconnect()
 
 				err := conn.PinToCursor()
 				assert.Nil(t, err, "PinToCursor error: %v", err)
@@ -973,10 +967,8 @@ func TestConnection(t *testing.T) {
 				assertPoolPinnedStats(t, pool, 1, 0)
 			})
 			t.Run("expire forcefully returns connection to pool", func(t *testing.T) {
-				pool, conn := makeOneConnection(t)
-				defer func() {
-					_ = pool.disconnect(context.Background())
-				}()
+				pool, conn, disconnect := makeOneConnection(t)
+				defer disconnect()
 
 				err := conn.PinToCursor()
 				assert.Nil(t, err, "PinToCursor error: %v", err)

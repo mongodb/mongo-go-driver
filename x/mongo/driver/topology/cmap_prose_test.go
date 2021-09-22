@@ -56,10 +56,12 @@ func TestCMAPProse(t *testing.T) {
 				p.totalConnectionCount())
 		}
 
-		t.Run("checkOut", func(t *testing.T) {
-			t.Run("errored connection exists in pool", func(t *testing.T) {
+		t.Run("maintain", func(t *testing.T) {
+			t.Run("connection error publishes events", func(t *testing.T) {
 				// If a connection is created as part of minPoolSize maintenance and errors while connecting, checkOut()
 				// should report that error and publish an event.
+				// If maintain() creates a connection that encounters an error while connecting,
+				// the pool should publish connection created and closed events.
 				clearEvents()
 
 				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
@@ -74,17 +76,50 @@ func TestCMAPProse(t *testing.T) {
 						return operation.NewHello()
 					}),
 				}
-				pool := createTestPool(t, cfg, connOpts...)
+				_, disconnect := createTestPool(t, cfg, connOpts...)
+				defer disconnect()
+
+				// Wait up to 3 seconds for the maintain() goroutine to run and for 1 connection
+				// created and 1 connection closed events to be published.
+				start := time.Now()
+				for len(created) != 1 || len(closed) != 1 {
+					if time.Since(start) > 3*time.Second {
+						t.Errorf(
+							"Expected 1 connection created and 1 connection closed events within 3 seconds. "+
+								"Actual created events: %d, actual closed events: %d",
+							len(created),
+							len(closed))
+					}
+					time.Sleep(time.Millisecond)
+				}
+			})
+		})
+		t.Run("checkOut", func(t *testing.T) {
+			t.Run("connection error publishes events", func(t *testing.T) {
+				// If checkOut() creates a connection that encounters an error while connecting,
+				// the pool should publish connection created and closed events and checkOut should
+				// return the error.
+				clearEvents()
+
+				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
+					return &testNetConn{writeerr: errors.New("write error")}, nil
+				}
+
+				cfg := getConfig()
+				connOpts := []ConnectionOption{
+					WithDialer(func(Dialer) Dialer { return dialer }),
+					WithHandshaker(func(Handshaker) Handshaker {
+						return operation.NewHello()
+					}),
+				}
+				pool, disconnect := createTestPool(t, cfg, connOpts...)
+				defer disconnect()
 
 				_, err := pool.checkOut(context.Background())
 				assert.NotNil(t, err, "expected checkOut() error, got nil")
 
-				assert.True(t, len(created) == 1 || len(created) == 2, "expected 1 or 2 opened events, got %d", len(created))
-				assert.True(t, len(closed) == 1 || len(closed) == 2, "expected 1 or 2 closed events, got %d", len(closed))
-
-				_ = pool.disconnect(context.Background())
-				netCount := len(created) - len(closed)
-				assert.Equal(t, 0, netCount, "expected net connection count to be 0, got %d", netCount)
+				assert.Equal(t, 1, len(created), "expected 1 opened events, got %d", len(created))
+				assert.Equal(t, 1, len(closed), "expected 1 closed events, got %d", len(closed))
 			})
 			t.Run("pool is empty", func(t *testing.T) {
 				// If a checkOut() has to create a new connection and that connection encounters an
@@ -101,10 +136,8 @@ func TestCMAPProse(t *testing.T) {
 						return operation.NewHello()
 					}),
 				}
-				pool := createTestPool(t, getConfig(), connOpts...)
-				defer func() {
-					_ = pool.disconnect(context.Background())
-				}()
+				pool, disconnect := createTestPool(t, getConfig(), connOpts...)
+				defer disconnect()
 
 				_, err := pool.checkOut(context.Background())
 				assert.NotNil(t, err, "expected checkOut() error, got nil")
@@ -125,10 +158,8 @@ func TestCMAPProse(t *testing.T) {
 				connOpts := []ConnectionOption{
 					WithDialer(func(Dialer) Dialer { return dialer }),
 				}
-				pool := createTestPool(t, getConfig(), connOpts...)
-				defer func() {
-					_ = pool.disconnect(context.Background())
-				}()
+				pool, disconnect := createTestPool(t, getConfig(), connOpts...)
+				defer disconnect()
 
 				conn, err := pool.checkOut(context.Background())
 				assert.Nil(t, err, "checkOut() error: %v", err)
@@ -161,10 +192,8 @@ func TestCMAPProse(t *testing.T) {
 					WithDialer(func(Dialer) Dialer { return dialer }),
 					WithIdleTimeout(func(time.Duration) time.Duration { return 1 * time.Second }),
 				}
-				pool := createTestPool(t, getConfig(), connOpts...)
-				defer func() {
-					_ = pool.disconnect(context.Background())
-				}()
+				pool, disconnect := createTestPool(t, getConfig(), connOpts...)
+				defer disconnect()
 
 				conn, err := pool.checkOut(context.Background())
 				assert.Nil(t, err, "checkOut() error: %v", err)
@@ -192,7 +221,7 @@ func TestCMAPProse(t *testing.T) {
 				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
 					return &testNetConn{}, nil
 				}
-				pool := createTestPool(t, getConfig(), WithDialer(func(Dialer) Dialer { return dialer }))
+				pool, _ := createTestPool(t, getConfig(), WithDialer(func(Dialer) Dialer { return dialer }))
 
 				conns := checkoutConnections(t, pool, numConns)
 				assertConnectionCounts(t, pool, numConns, 0)
@@ -224,7 +253,7 @@ func TestCMAPProse(t *testing.T) {
 				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
 					return &testNetConn{}, nil
 				}
-				pool := createTestPool(t, getConfig(), WithDialer(func(Dialer) Dialer { return dialer }))
+				pool, _ := createTestPool(t, getConfig(), WithDialer(func(Dialer) Dialer { return dialer }))
 
 				conns := checkoutConnections(t, pool, numConns)
 				assertConnectionCounts(t, pool, numConns, 0)
@@ -262,7 +291,7 @@ func TestCMAPProse(t *testing.T) {
 	})
 }
 
-func createTestPool(t *testing.T, cfg poolConfig, opts ...ConnectionOption) *pool {
+func createTestPool(t *testing.T, cfg poolConfig, opts ...ConnectionOption) (*pool, func()) {
 	t.Helper()
 
 	pool, err := newPool(cfg, opts...)
@@ -270,7 +299,11 @@ func createTestPool(t *testing.T, cfg poolConfig, opts ...ConnectionOption) *poo
 	err = pool.connect()
 	assert.Nil(t, err, "connect error: %v", err)
 
-	return pool
+	disconnect := func() {
+		err := pool.disconnect(context.Background())
+		assert.Nil(t, err, "unexpected pool.disconnect() error: %v", err)
+	}
+	return pool, disconnect
 }
 
 func checkoutConnections(t *testing.T, p *pool, numConns int) []*connection {
