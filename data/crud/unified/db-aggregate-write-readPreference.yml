@@ -4,9 +4,10 @@ schemaVersion: '1.4'
 
 runOnRequirements:
   # 3.6+ non-standalone is needed to utilize $readPreference in OP_MSG.
-  # Serverless does not support $listLocalSessions and $currentOp stages.
+  # Serverless does not support $listLocalSessions and $currentOp stages, and
+  # mongos does not allow combining them with $out or $merge.
   - minServerVersion: "3.6"
-    topologies: [ replicaset, sharded, load-balanced ]
+    topologies: [ replicaset ]
     serverless: forbid
 
 _yamlAnchors:
