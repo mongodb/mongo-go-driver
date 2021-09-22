@@ -358,7 +358,7 @@ func TestPool(t *testing.T) {
 			p, err := newPool(poolConfig{})
 			noerr(t, err)
 
-			for i := 0; i < 10; i++ {
+			for i := 0; i < 100; i++ {
 				err = p.connect()
 				noerr(t, err)
 

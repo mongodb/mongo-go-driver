@@ -177,7 +177,9 @@ func (p *pool) disconnect(ctx context.Context) error {
 
 	// Call cancelBackground() to exit the maintain() background goroutine and broadcast to the
 	// connsCond to wake up all createConnections() goroutines.
+	p.connsCond.L.Lock()
 	p.cancelBackground()
+	p.connsCond.L.Unlock()
 	p.connsCond.Broadcast()
 	// Wait for all background goroutines to exit.
 	p.backgroundDone.Wait()
@@ -192,7 +194,7 @@ func (p *pool) disconnect(ctx context.Context) error {
 	// either all the connections have been checked back into the pool (i.e. total open connections
 	// equals idle connections) or until the Context deadline is reached.
 	if _, ok := ctx.Deadline(); ok {
-		ticker := time.NewTicker(500 * time.Millisecond)
+		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
 
 	graceful:
@@ -585,7 +587,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 	// loop to continue, allowing for a subsequent check to return from createConnections().
 	condition := func() bool {
 		checkOutWaiting := p.newConnWait.len() > 0
-		poolHasSpace := p.maxSize == 0 || len(p.conns) < int(p.maxSize)
+		poolHasSpace := p.maxSize == 0 || uint64(len(p.conns)) < p.maxSize
 		cancelled := ctx.Err() != nil
 		return (checkOutWaiting && poolHasSpace) || cancelled
 	}
