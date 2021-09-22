@@ -52,7 +52,7 @@ func TestCMAPProse(t *testing.T) {
 			assert.Equal(t, numClosed, len(closed), "expected %d closed events, got %d", numClosed, len(closed))
 
 			netCount := numCreated - numClosed
-			assert.Equal(t, netCount, p.totalConnectionCount(), "expected %d connections in opened map, got %d", netCount,
+			assert.Equal(t, netCount, p.totalConnectionCount(), "expected %d total connections, got %d", netCount,
 				p.totalConnectionCount())
 		}
 
