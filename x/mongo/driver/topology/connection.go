@@ -223,6 +223,7 @@ func (c *connection) connect(ctx context.Context) {
 		// We only need to retain the Description field as the connection's description. The authentication-related
 		// fields in handshakeInfo are tracked by the handshaker if necessary.
 		c.desc = handshakeInfo.Description
+		c.serverConnectionID = handshakeInfo.ServerConnectionID
 		c.helloRTT = time.Since(handshakeStartTime)
 
 		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
