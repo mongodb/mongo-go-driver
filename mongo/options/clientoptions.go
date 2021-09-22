@@ -766,7 +766,8 @@ func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptio
 }
 
 // SetSRVServiceName specifies a custom SRV service name to use in SRV polling. To use a custom SRV service name
-// in SRV discovery, this function must be called before ApplyURI.
+// in SRV discovery, this function must be called before ApplyURI. This can also be set through the "srvServiceName"
+// URI option.
 func (c *ClientOptions) SetSRVServiceName(srvName string) *ClientOptions {
 	c.SRVServiceName = &srvName
 	return c
