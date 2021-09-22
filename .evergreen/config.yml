@@ -134,13 +134,10 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
-          # Install any go tools that we need. Do this in a temp directory because running "go get" inside the driver
-          # repo will update the driver's go.mod/go.sum files. This puts the contents of go.mod/go.sum out of sync with
-          # the vendor directory and tests fail to compile due to inconsistent vendoring.
-          cd $(mktemp -d)
-          go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
-          go get -u github.com/walle/lll/...
-          cd -
+          # Install any go tools that we need. Use "go install" instead of "go get" to prevent
+          # modifying the go.mod file.
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install github.com/walle/lll/...@latest
 
           # initialize submodules
           git submodule init
