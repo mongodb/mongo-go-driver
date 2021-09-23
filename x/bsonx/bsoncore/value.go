@@ -61,34 +61,34 @@ func (v Value) IsNumber() bool {
 // will panic.
 //
 // TODO(skriptble): Add support for Decimal128.
-func (v Value) AsInt32() int32 {
+func (v Value) AsInt32() (i32 int32, Error error) {
 	if !v.IsNumber() {
-		panic(ElementTypeError{"bsoncore.Value.AsInt32", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.AsInt32", v.Type}
 	}
-	var i32 int32
+
 	switch v.Type {
 	case bsontype.Double:
 		f64, _, ok := ReadDouble(v.Data)
 		if !ok {
-			panic(NewInsufficientBytesError(v.Data, v.Data))
+			Error = NewInsufficientBytesError(v.Data, v.Data)
 		}
 		i32 = int32(f64)
 	case bsontype.Int32:
 		var ok bool
 		i32, _, ok = ReadInt32(v.Data)
 		if !ok {
-			panic(NewInsufficientBytesError(v.Data, v.Data))
+			Error = NewInsufficientBytesError(v.Data, v.Data)
 		}
 	case bsontype.Int64:
 		i64, _, ok := ReadInt64(v.Data)
 		if !ok {
-			panic(NewInsufficientBytesError(v.Data, v.Data))
+			Error = NewInsufficientBytesError(v.Data, v.Data)
 		}
 		i32 = int32(i64)
 	case bsontype.Decimal128:
-		panic(ElementTypeError{"bsoncore.Value.AsInt32", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.AsInt32", v.Type}
 	}
-	return i32
+	return i32, Error
 }
 
 // AsInt32OK functions the same as AsInt32 but returns a boolean instead of panicking. False
@@ -129,35 +129,35 @@ func (v Value) AsInt32OK() (int32, bool) {
 // will panic.
 //
 // TODO(skriptble): Add support for Decimal128.
-func (v Value) AsInt64() int64 {
+func (v Value) AsInt64() (i64 int64, Error error) {
 	if !v.IsNumber() {
-		panic(ElementTypeError{"bsoncore.Value.AsInt64", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.AsInt64", v.Type}
 	}
-	var i64 int64
+
 	switch v.Type {
 	case bsontype.Double:
 		f64, _, ok := ReadDouble(v.Data)
 		if !ok {
-			panic(NewInsufficientBytesError(v.Data, v.Data))
+			Error = NewInsufficientBytesError(v.Data, v.Data)
 		}
 		i64 = int64(f64)
 	case bsontype.Int32:
 		var ok bool
 		i32, _, ok := ReadInt32(v.Data)
 		if !ok {
-			panic(NewInsufficientBytesError(v.Data, v.Data))
+			Error = NewInsufficientBytesError(v.Data, v.Data)
 		}
 		i64 = int64(i32)
 	case bsontype.Int64:
 		var ok bool
 		i64, _, ok = ReadInt64(v.Data)
 		if !ok {
-			panic(NewInsufficientBytesError(v.Data, v.Data))
+			Error = NewInsufficientBytesError(v.Data, v.Data)
 		}
 	case bsontype.Decimal128:
-		panic(ElementTypeError{"bsoncore.Value.AsInt64", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.AsInt64", v.Type}
 	}
-	return i64
+	return i64, Error
 }
 
 // AsInt64OK functions the same as AsInt64 but returns a boolean instead of panicking. False
@@ -384,15 +384,15 @@ func (v Value) DebugString() string {
 
 // Double returns the float64 value for this element.
 // It panics if e's BSON type is not bsontype.Double.
-func (v Value) Double() float64 {
+func (v Value) Double() (f64 float64, Error error) {
 	if v.Type != bsontype.Double {
-		panic(ElementTypeError{"bsoncore.Value.Double", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Double", v.Type}
 	}
 	f64, _, ok := ReadDouble(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return f64
+	return f64, Error
 }
 
 // DoubleOK is the same as Double, but returns a boolean instead of panicking.
@@ -412,15 +412,15 @@ func (v Value) DoubleOK() (float64, bool) {
 //
 // NOTE: This method is called StringValue to avoid a collision with the String method which
 // implements the fmt.Stringer interface.
-func (v Value) StringValue() string {
+func (v Value) StringValue() (str string, Error error) {
 	if v.Type != bsontype.String {
-		panic(ElementTypeError{"bsoncore.Value.StringValue", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.StringValue", v.Type}
 	}
 	str, _, ok := ReadString(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return str
+	return str, Error
 }
 
 // StringValueOK is the same as StringValue, but returns a boolean instead of
@@ -438,15 +438,15 @@ func (v Value) StringValueOK() (string, bool) {
 
 // Document returns the BSON document the Value represents as a Document. It panics if the
 // value is a BSON type other than document.
-func (v Value) Document() Document {
+func (v Value) Document() (doc Document, Error error) {
 	if v.Type != bsontype.EmbeddedDocument {
-		panic(ElementTypeError{"bsoncore.Value.Document", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Document", v.Type}
 	}
 	doc, _, ok := ReadDocument(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return doc
+	return doc, Error
 }
 
 // DocumentOK is the same as Document, except it returns a boolean
@@ -464,15 +464,15 @@ func (v Value) DocumentOK() (Document, bool) {
 
 // Array returns the BSON array the Value represents as an Array. It panics if the
 // value is a BSON type other than array.
-func (v Value) Array() Array {
+func (v Value) Array() (arr Array, Error error) {
 	if v.Type != bsontype.Array {
-		panic(ElementTypeError{"bsoncore.Value.Array", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Array", v.Type}
 	}
 	arr, _, ok := ReadArray(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return arr
+	return arr, Error
 }
 
 // ArrayOK is the same as Array, except it returns a boolean instead
@@ -490,15 +490,15 @@ func (v Value) ArrayOK() (Array, bool) {
 
 // Binary returns the BSON binary value the Value represents. It panics if the value is a BSON type
 // other than binary.
-func (v Value) Binary() (subtype byte, data []byte) {
+func (v Value) Binary() (subtype byte, data []byte, Error error) {
 	if v.Type != bsontype.Binary {
-		panic(ElementTypeError{"bsoncore.Value.Binary", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Binary", v.Type}
 	}
 	subtype, data, _, ok := ReadBinary(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return subtype, data
+	return subtype, data, Error
 }
 
 // BinaryOK is the same as Binary, except it returns a boolean instead of
@@ -516,15 +516,15 @@ func (v Value) BinaryOK() (subtype byte, data []byte, ok bool) {
 
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
-func (v Value) ObjectID() primitive.ObjectID {
+func (v Value) ObjectID() (oid primitive.ObjectID, Error error) {
 	if v.Type != bsontype.ObjectID {
-		panic(ElementTypeError{"bsoncore.Value.ObjectID", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.ObjectID", v.Type}
 	}
 	oid, _, ok := ReadObjectID(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return oid
+	return oid, Error
 }
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
@@ -542,15 +542,15 @@ func (v Value) ObjectIDOK() (primitive.ObjectID, bool) {
 
 // Boolean returns the boolean value the Value represents. It panics if the
 // value is a BSON type other than boolean.
-func (v Value) Boolean() bool {
+func (v Value) Boolean() (b bool, Error error) {
 	if v.Type != bsontype.Boolean {
-		panic(ElementTypeError{"bsoncore.Value.Boolean", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Boolean", v.Type}
 	}
 	b, _, ok := ReadBoolean(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return b
+	return b, Error
 }
 
 // BooleanOK is the same as Boolean, except it returns a boolean instead of
@@ -568,15 +568,15 @@ func (v Value) BooleanOK() (bool, bool) {
 
 // DateTime returns the BSON datetime value the Value represents as a
 // unix timestamp. It panics if the value is a BSON type other than datetime.
-func (v Value) DateTime() int64 {
+func (v Value) DateTime() (dt int64, Error error) {
 	if v.Type != bsontype.DateTime {
-		panic(ElementTypeError{"bsoncore.Value.DateTime", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.DateTime", v.Type}
 	}
 	dt, _, ok := ReadDateTime(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return dt
+	return dt, Error
 }
 
 // DateTimeOK is the same as DateTime, except it returns a boolean instead of
@@ -594,15 +594,16 @@ func (v Value) DateTimeOK() (int64, bool) {
 
 // Time returns the BSON datetime value the Value represents. It panics if the value is a BSON
 // type other than datetime.
-func (v Value) Time() time.Time {
+func (v Value) Time() (t time.Time, Error error) {
 	if v.Type != bsontype.DateTime {
-		panic(ElementTypeError{"bsoncore.Value.Time", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Time", v.Type}
 	}
 	dt, _, ok := ReadDateTime(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return time.Unix(int64(dt)/1000, int64(dt)%1000*1000000)
+	t = time.Unix(int64(dt)/1000, int64(dt)%1000*1000000)
+	return
 }
 
 // TimeOK is the same as Time, except it returns a boolean instead of
@@ -620,15 +621,15 @@ func (v Value) TimeOK() (time.Time, bool) {
 
 // Regex returns the BSON regex value the Value represents. It panics if the value is a BSON
 // type other than regex.
-func (v Value) Regex() (pattern, options string) {
+func (v Value) Regex() (pattern string, options string, Error error) {
 	if v.Type != bsontype.Regex {
-		panic(ElementTypeError{"bsoncore.Value.Regex", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Regex", v.Type}
 	}
 	pattern, options, _, ok := ReadRegex(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return pattern, options
+	return pattern, options, Error
 }
 
 // RegexOK is the same as Regex, except it returns a boolean instead of
@@ -646,15 +647,15 @@ func (v Value) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer value the Value represents. It panics if the value is a BSON
 // type other than DBPointer.
-func (v Value) DBPointer() (string, primitive.ObjectID) {
+func (v Value) DBPointer() (ns string, pointer primitive.ObjectID, Error error) {
 	if v.Type != bsontype.DBPointer {
-		panic(ElementTypeError{"bsoncore.Value.DBPointer", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.DBPointer", v.Type}
 	}
 	ns, pointer, _, ok := ReadDBPointer(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return ns, pointer
+	return ns, pointer, Error
 }
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
@@ -672,15 +673,15 @@ func (v Value) DBPointerOK() (string, primitive.ObjectID, bool) {
 
 // JavaScript returns the BSON JavaScript code value the Value represents. It panics if the value is
 // a BSON type other than JavaScript code.
-func (v Value) JavaScript() string {
+func (v Value) JavaScript() (js string, Error error) {
 	if v.Type != bsontype.JavaScript {
-		panic(ElementTypeError{"bsoncore.Value.JavaScript", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.JavaScript", v.Type}
 	}
 	js, _, ok := ReadJavaScript(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return js
+	return js, Error
 }
 
 // JavaScriptOK is the same as Javascript, excepti that it returns a boolean
@@ -698,15 +699,15 @@ func (v Value) JavaScriptOK() (string, bool) {
 
 // Symbol returns the BSON symbol value the Value represents. It panics if the value is a BSON
 // type other than symbol.
-func (v Value) Symbol() string {
+func (v Value) Symbol() (symbol string, Error error) {
 	if v.Type != bsontype.Symbol {
-		panic(ElementTypeError{"bsoncore.Value.Symbol", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Symbol", v.Type}
 	}
 	symbol, _, ok := ReadSymbol(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return symbol
+	return symbol, Error
 }
 
 // SymbolOK is the same as Symbol, excepti that it returns a boolean
@@ -724,41 +725,44 @@ func (v Value) SymbolOK() (string, bool) {
 
 // CodeWithScope returns the BSON JavaScript code with scope the Value represents.
 // It panics if the value is a BSON type other than JavaScript code with scope.
-func (v Value) CodeWithScope() (string, Document) {
+func (v Value) CodeWithScope() (code string, scope Document, Error error) {
 	if v.Type != bsontype.CodeWithScope {
-		panic(ElementTypeError{"bsoncore.Value.CodeWithScope", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.CodeWithScope", v.Type}
 	}
 	code, scope, _, ok := ReadCodeWithScope(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return code, scope
+	return code, scope, Error
 }
 
 // CodeWithScopeOK is the same as CodeWithScope, except that it returns a boolean instead of
 // panicking.
-func (v Value) CodeWithScopeOK() (string, Document, bool) {
+func (v Value) CodeWithScopeOK() (code string, scope Document, status bool) {
 	if v.Type != bsontype.CodeWithScope {
-		return "", nil, false
+		status = false
+		return "", nil, status
 	}
 	code, scope, _, ok := ReadCodeWithScope(v.Data)
 	if !ok {
+		status = false
 		return "", nil, false
 	}
-	return code, scope, true
+	status = true
+	return code, scope, status
 }
 
 // Int32 returns the int32 the Value represents. It panics if the value is a BSON type other than
 // int32.
-func (v Value) Int32() int32 {
+func (v Value) Int32() (i32 int32, Error error) {
 	if v.Type != bsontype.Int32 {
-		panic(ElementTypeError{"bsoncore.Value.Int32", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Int32", v.Type}
 	}
 	i32, _, ok := ReadInt32(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return i32
+	return i32, Error
 }
 
 // Int32OK is the same as Int32, except that it returns a boolean instead of
@@ -776,15 +780,15 @@ func (v Value) Int32OK() (int32, bool) {
 
 // Timestamp returns the BSON timestamp value the Value represents. It panics if the value is a
 // BSON type other than timestamp.
-func (v Value) Timestamp() (t, i uint32) {
+func (v Value) Timestamp() (t, i uint32, Error error) {
 	if v.Type != bsontype.Timestamp {
-		panic(ElementTypeError{"bsoncore.Value.Timestamp", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Timestamp", v.Type}
 	}
 	t, i, _, ok := ReadTimestamp(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return t, i
+	return t, i, Error
 }
 
 // TimestampOK is the same as Timestamp, except that it returns a boolean
@@ -802,15 +806,15 @@ func (v Value) TimestampOK() (t, i uint32, ok bool) {
 
 // Int64 returns the int64 the Value represents. It panics if the value is a BSON type other than
 // int64.
-func (v Value) Int64() int64 {
+func (v Value) Int64() (i64 int64, Error error) {
 	if v.Type != bsontype.Int64 {
-		panic(ElementTypeError{"bsoncore.Value.Int64", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Int64", v.Type}
 	}
 	i64, _, ok := ReadInt64(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return i64
+	return i64, Error
 }
 
 // Int64OK is the same as Int64, except that it returns a boolean instead of
@@ -828,15 +832,15 @@ func (v Value) Int64OK() (int64, bool) {
 
 // Decimal128 returns the decimal the Value represents. It panics if the value is a BSON type other than
 // decimal.
-func (v Value) Decimal128() primitive.Decimal128 {
+func (v Value) Decimal128() (d128 primitive.Decimal128, Error error) {
 	if v.Type != bsontype.Decimal128 {
-		panic(ElementTypeError{"bsoncore.Value.Decimal128", v.Type})
+		Error = ElementTypeError{"bsoncore.Value.Decimal128", v.Type}
 	}
 	d128, _, ok := ReadDecimal128(v.Data)
 	if !ok {
-		panic(NewInsufficientBytesError(v.Data, v.Data))
+		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return d128
+	return d128, Error
 }
 
 // Decimal128OK is the same as Decimal128, except that it returns a boolean
