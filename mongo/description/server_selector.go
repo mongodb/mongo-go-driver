@@ -130,40 +130,16 @@ func WriteSelector() ServerSelector {
 
 // ReadPrefSelector selects servers based on the provided read preference.
 func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
-	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
-		if t.Kind == LoadBalanced {
-			// In LoadBalanced mode, there should only be one server in the topology and it must be selected. We check
-			// this before checking MaxStaleness support becuase there's no monitoring in this mode, so the candidate
-			// server wouldn't have a wire version set, which would result in an error.
-			return candidates, nil
-		}
-
-		if _, set := rp.MaxStaleness(); set {
-			for _, s := range candidates {
-				if s.Kind != Unknown {
-					if err := maxStalenessSupported(s.WireVersion); err != nil {
-						return nil, err
-					}
-				}
-			}
-		}
-
-		switch t.Kind {
-		case Single:
-			return candidates, nil
-		case ReplicaSetNoPrimary, ReplicaSetWithPrimary:
-			return selectForReplicaSet(rp, t, candidates)
-		case Sharded:
-			return selectByKind(candidates, Mongos), nil
-		}
-
-		return nil, nil
-	})
+	return readPrefSelector(rp, false)
 }
 
 // OutputSelector selects servers based on the provided read preference given that the underlying operation is
 // aggregate with an output stage.
 func OutputSelector(rp *readpref.ReadPref) ServerSelector {
+	return readPrefSelector(rp, true)
+}
+
+func readPrefSelector(rp *readpref.ReadPref, isOutputAggregate bool) ServerSelector {
 	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
 		if t.Kind == LoadBalanced {
 			// In LoadBalanced mode, there should only be one server in the topology and it must be selected. We check
@@ -186,7 +162,7 @@ func OutputSelector(rp *readpref.ReadPref) ServerSelector {
 		case Single:
 			return candidates, nil
 		case ReplicaSetNoPrimary, ReplicaSetWithPrimary:
-			return selectForRSWithOutput(rp, t, candidates)
+			return selectForReplicaSet(rp, isOutputAggregate, t, candidates)
 		case Sharded:
 			return selectByKind(candidates, Mongos), nil
 		}
@@ -204,7 +180,7 @@ func maxStalenessSupported(wireVersion *VersionRange) error {
 	return nil
 }
 
-func selectForReplicaSet(rp *readpref.ReadPref, t Topology, candidates []Server) ([]Server, error) {
+func selectForReplicaSet(rp *readpref.ReadPref, isOutputAggregate bool, t Topology, candidates []Server) ([]Server, error) {
 	if err := verifyMaxStaleness(rp, t); err != nil {
 		return nil, err
 	}
@@ -216,62 +192,33 @@ func selectForReplicaSet(rp *readpref.ReadPref, t Topology, candidates []Server)
 		selected := selectByKind(candidates, RSPrimary)
 
 		if len(selected) == 0 {
-			selected = selectSecondaries(rp, false, candidates)
+			selected = selectSecondaries(rp, isOutputAggregate, candidates)
 			return selectByTagSet(selected, rp.TagSets()), nil
 		}
 
 		return selected, nil
 	case readpref.SecondaryPreferredMode:
-		selected := selectSecondaries(rp, false, candidates)
+		selected := selectSecondaries(rp, isOutputAggregate, candidates)
 		selected = selectByTagSet(selected, rp.TagSets())
 		if len(selected) > 0 {
 			return selected, nil
 		}
 		return selectByKind(candidates, RSPrimary), nil
 	case readpref.SecondaryMode:
-		selected := selectSecondaries(rp, false, candidates)
-		return selectByTagSet(selected, rp.TagSets()), nil
-	case readpref.NearestMode:
-		selected := selectByKind(candidates, RSPrimary)
-		selected = append(selected, selectSecondaries(rp, false, candidates)...)
-		return selectByTagSet(selected, rp.TagSets()), nil
-	}
+		selected := selectSecondaries(rp, isOutputAggregate, candidates)
+		selected = selectByTagSet(selected, rp.TagSets())
 
-	return nil, fmt.Errorf("unsupported mode: %d", rp.Mode())
-}
-
-func selectForRSWithOutput(rp *readpref.ReadPref, t Topology, candidates []Server) ([]Server, error) {
-	if err := verifyMaxStaleness(rp, t); err != nil {
-		return nil, err
-	}
-
-	switch rp.Mode() {
-	case readpref.PrimaryMode:
-		return selectByKind(candidates, RSPrimary), nil
-	case readpref.PrimaryPreferredMode:
-		selected := selectByKind(candidates, RSPrimary)
-
-		if len(selected) == 0 {
-			selected = selectSecondaries(rp, true, candidates)
-			return selectByTagSet(selected, rp.TagSets()), nil
-		}
-
-		return selected, nil
-	case readpref.SecondaryMode, readpref.SecondaryPreferredMode:
 		// When selecting a server for an aggregate with an output stage,
 		// Secondary read preference functions identically to SecondaryPreferred:
 		// if no secondaries are available (none >= wire version 13), we fall
 		// back to primary.
-
-		selected := selectSecondaries(rp, true, candidates)
-		selected = selectByTagSet(selected, rp.TagSets())
-		if len(selected) > 0 {
+		if !isOutputAggregate || len(selected) > 0 {
 			return selected, nil
 		}
 		return selectByKind(candidates, RSPrimary), nil
 	case readpref.NearestMode:
 		selected := selectByKind(candidates, RSPrimary)
-		selected = append(selected, selectSecondaries(rp, true, candidates)...)
+		selected = append(selected, selectSecondaries(rp, isOutputAggregate, candidates)...)
 		return selectByTagSet(selected, rp.TagSets()), nil
 	}
 
