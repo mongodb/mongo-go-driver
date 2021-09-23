@@ -168,7 +168,7 @@ func (d Document) Lookup(key ...string) Value {
 }
 
 // LookupErr is the same as Lookup, except it returns an error in addition to an empty Value.
-func (d Document) LookupErr(key ...string) (Value, error) {
+func (d Document) LookupErr(key ...string) (val Value, Error error) {
 	if len(key) < 1 {
 		return Value{}, ErrEmptyKey
 	}
@@ -194,14 +194,21 @@ func (d Document) LookupErr(key ...string) (Value, error) {
 			tt := bsontype.Type(elem[0])
 			switch tt {
 			case bsontype.EmbeddedDocument:
-				val, err := elem.Value().Document().LookupErr(key[1:]...)
+				doc, err := elem.Value().Document()
+				if err != nil {
+					return Value{}, err
+				}
+				val, err := doc.LookupErr(key[1:]...)
 				if err != nil {
 					return Value{}, err
 				}
 				return val, nil
 			case bsontype.Array:
-				// Convert to Document to continue Lookup recursion.
-				val, err := Document(elem.Value().Array()).LookupErr(key[1:]...)
+				v, err := elem.Value().Array()
+				if err != nil {
+					return Value{}, err
+				}
+				val, err := Document(v).LookupErr(key[1:]...)
 				if err != nil {
 					return Value{}, err
 				}
@@ -210,8 +217,11 @@ func (d Document) LookupErr(key ...string) (Value, error) {
 				return Value{}, InvalidDepthTraversalError{Key: elem.Key(), Type: tt}
 			}
 		}
-		return elem.ValueErr()
+		val, Error = elem.ValueErr()
+		return val, Error
+
 	}
+
 	return Value{}, ErrElementNotFound
 }
 
