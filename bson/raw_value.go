@@ -124,7 +124,7 @@ func (rv RawValue) DebugString() string { return convertToCoreValue(rv).DebugStr
 
 // Double returns the float64 value for this element.
 // It panics if e's BSON type is not bsontype.Double.
-func (rv RawValue) Double() float64 { return convertToCoreValue(rv).Double() }
+func (rv RawValue) Double() (float64, error) { return convertToCoreValue(rv).Double() }
 
 // DoubleOK is the same as Double, but returns a boolean instead of panicking.
 func (rv RawValue) DoubleOK() (float64, bool) { return convertToCoreValue(rv).DoubleOK() }
@@ -134,7 +134,7 @@ func (rv RawValue) DoubleOK() (float64, bool) { return convertToCoreValue(rv).Do
 //
 // NOTE: This method is called StringValue to avoid a collision with the String method which
 // implements the fmt.Stringer interface.
-func (rv RawValue) StringValue() string { return convertToCoreValue(rv).StringValue() }
+func (rv RawValue) StringValue() (string, error) { return convertToCoreValue(rv).StringValue() }
 
 // StringValueOK is the same as StringValue, but returns a boolean instead of
 // panicking.
@@ -142,7 +142,13 @@ func (rv RawValue) StringValueOK() (string, bool) { return convertToCoreValue(rv
 
 // Document returns the BSON document the Value represents as a Document. It panics if the
 // value is a BSON type other than document.
-func (rv RawValue) Document() Raw { return Raw(convertToCoreValue(rv).Document()) }
+func (rv RawValue) Document() (raw Raw, Error error) {
+	doc, error := convertToCoreValue(rv).Document()
+	if error != nil {
+		Error = error
+	}
+	return Raw(doc), Error
+}
 
 // DocumentOK is the same as Document, except it returns a boolean
 // instead of panicking.
@@ -153,7 +159,13 @@ func (rv RawValue) DocumentOK() (Raw, bool) {
 
 // Array returns the BSON array the Value represents as an Array. It panics if the
 // value is a BSON type other than array.
-func (rv RawValue) Array() Raw { return Raw(convertToCoreValue(rv).Array()) }
+func (rv RawValue) Array() (raw Raw, Error error) {
+	arr, error := convertToCoreValue(rv).Array()
+	if error != nil {
+		Error = error
+	}
+	return Raw(arr), Error
+}
 
 // ArrayOK is the same as Array, except it returns a boolean instead
 // of panicking.
@@ -164,7 +176,9 @@ func (rv RawValue) ArrayOK() (Raw, bool) {
 
 // Binary returns the BSON binary value the Value represents. It panics if the value is a BSON type
 // other than binary.
-func (rv RawValue) Binary() (subtype byte, data []byte) { return convertToCoreValue(rv).Binary() }
+func (rv RawValue) Binary() (subtype byte, data []byte, Error error) {
+	return convertToCoreValue(rv).Binary()
+}
 
 // BinaryOK is the same as Binary, except it returns a boolean instead of
 // panicking.
@@ -174,7 +188,9 @@ func (rv RawValue) BinaryOK() (subtype byte, data []byte, ok bool) {
 
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
-func (rv RawValue) ObjectID() primitive.ObjectID { return convertToCoreValue(rv).ObjectID() }
+func (rv RawValue) ObjectID() (primitive.ObjectID, error) {
+	return convertToCoreValue(rv).ObjectID()
+}
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
@@ -184,7 +200,9 @@ func (rv RawValue) ObjectIDOK() (primitive.ObjectID, bool) {
 
 // Boolean returns the boolean value the Value represents. It panics if the
 // value is a BSON type other than boolean.
-func (rv RawValue) Boolean() bool { return convertToCoreValue(rv).Boolean() }
+func (rv RawValue) Boolean() (bool, error) {
+	return convertToCoreValue(rv).Boolean()
+}
 
 // BooleanOK is the same as Boolean, except it returns a boolean instead of
 // panicking.
@@ -192,7 +210,7 @@ func (rv RawValue) BooleanOK() (bool, bool) { return convertToCoreValue(rv).Bool
 
 // DateTime returns the BSON datetime value the Value represents as a
 // unix timestamp. It panics if the value is a BSON type other than datetime.
-func (rv RawValue) DateTime() int64 { return convertToCoreValue(rv).DateTime() }
+func (rv RawValue) DateTime() (int64, error) { return convertToCoreValue(rv).DateTime() }
 
 // DateTimeOK is the same as DateTime, except it returns a boolean instead of
 // panicking.
@@ -200,7 +218,7 @@ func (rv RawValue) DateTimeOK() (int64, bool) { return convertToCoreValue(rv).Da
 
 // Time returns the BSON datetime value the Value represents. It panics if the value is a BSON
 // type other than datetime.
-func (rv RawValue) Time() time.Time { return convertToCoreValue(rv).Time() }
+func (rv RawValue) Time() (time.Time, error) { return convertToCoreValue(rv).Time() }
 
 // TimeOK is the same as Time, except it returns a boolean instead of
 // panicking.
@@ -208,7 +226,9 @@ func (rv RawValue) TimeOK() (time.Time, bool) { return convertToCoreValue(rv).Ti
 
 // Regex returns the BSON regex value the Value represents. It panics if the value is a BSON
 // type other than regex.
-func (rv RawValue) Regex() (pattern, options string) { return convertToCoreValue(rv).Regex() }
+func (rv RawValue) Regex() (pattern, options string, Error error) {
+	return convertToCoreValue(rv).Regex()
+}
 
 // RegexOK is the same as Regex, except it returns a boolean instead of
 // panicking.
@@ -218,7 +238,7 @@ func (rv RawValue) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer value the Value represents. It panics if the value is a BSON
 // type other than DBPointer.
-func (rv RawValue) DBPointer() (string, primitive.ObjectID) {
+func (rv RawValue) DBPointer() (string, primitive.ObjectID, error) {
 	return convertToCoreValue(rv).DBPointer()
 }
 
@@ -230,7 +250,7 @@ func (rv RawValue) DBPointerOK() (string, primitive.ObjectID, bool) {
 
 // JavaScript returns the BSON JavaScript code value the Value represents. It panics if the value is
 // a BSON type other than JavaScript code.
-func (rv RawValue) JavaScript() string { return convertToCoreValue(rv).JavaScript() }
+func (rv RawValue) JavaScript() (string, error) { return convertToCoreValue(rv).JavaScript() }
 
 // JavaScriptOK is the same as Javascript, excepti that it returns a boolean
 // instead of panicking.
@@ -238,7 +258,7 @@ func (rv RawValue) JavaScriptOK() (string, bool) { return convertToCoreValue(rv)
 
 // Symbol returns the BSON symbol value the Value represents. It panics if the value is a BSON
 // type other than symbol.
-func (rv RawValue) Symbol() string { return convertToCoreValue(rv).Symbol() }
+func (rv RawValue) Symbol() (string, error) { return convertToCoreValue(rv).Symbol() }
 
 // SymbolOK is the same as Symbol, excepti that it returns a boolean
 // instead of panicking.
@@ -246,9 +266,9 @@ func (rv RawValue) SymbolOK() (string, bool) { return convertToCoreValue(rv).Sym
 
 // CodeWithScope returns the BSON JavaScript code with scope the Value represents.
 // It panics if the value is a BSON type other than JavaScript code with scope.
-func (rv RawValue) CodeWithScope() (string, Raw) {
-	code, scope := convertToCoreValue(rv).CodeWithScope()
-	return code, Raw(scope)
+func (rv RawValue) CodeWithScope() (string, Raw, error) {
+	code, scope, error := convertToCoreValue(rv).CodeWithScope()
+	return code, Raw(scope), error
 }
 
 // CodeWithScopeOK is the same as CodeWithScope, except that it returns a boolean instead of
@@ -260,7 +280,7 @@ func (rv RawValue) CodeWithScopeOK() (string, Raw, bool) {
 
 // Int32 returns the int32 the Value represents. It panics if the value is a BSON type other than
 // int32.
-func (rv RawValue) Int32() int32 { return convertToCoreValue(rv).Int32() }
+func (rv RawValue) Int32() (int32, error) { return convertToCoreValue(rv).Int32() }
 
 // Int32OK is the same as Int32, except that it returns a boolean instead of
 // panicking.
@@ -268,7 +288,7 @@ func (rv RawValue) Int32OK() (int32, bool) { return convertToCoreValue(rv).Int32
 
 // AsInt32 returns a BSON number as an int32. If the BSON type is not a numeric one, this method
 // will panic.
-func (rv RawValue) AsInt32() int32 { return convertToCoreValue(rv).AsInt32() }
+func (rv RawValue) AsInt32() (int32, error) { return convertToCoreValue(rv).AsInt32() }
 
 // AsInt32OK is the same as AsInt32, except that it returns a boolean instead of
 // panicking.
@@ -276,7 +296,7 @@ func (rv RawValue) AsInt32OK() (int32, bool) { return convertToCoreValue(rv).AsI
 
 // Timestamp returns the BSON timestamp value the Value represents. It panics if the value is a
 // BSON type other than timestamp.
-func (rv RawValue) Timestamp() (t, i uint32) { return convertToCoreValue(rv).Timestamp() }
+func (rv RawValue) Timestamp() (t, i uint32, Error error) { return convertToCoreValue(rv).Timestamp() }
 
 // TimestampOK is the same as Timestamp, except that it returns a boolean
 // instead of panicking.
@@ -284,7 +304,7 @@ func (rv RawValue) TimestampOK() (t, i uint32, ok bool) { return convertToCoreVa
 
 // Int64 returns the int64 the Value represents. It panics if the value is a BSON type other than
 // int64.
-func (rv RawValue) Int64() int64 { return convertToCoreValue(rv).Int64() }
+func (rv RawValue) Int64() (int64, error) { return convertToCoreValue(rv).Int64() }
 
 // Int64OK is the same as Int64, except that it returns a boolean instead of
 // panicking.
@@ -292,7 +312,7 @@ func (rv RawValue) Int64OK() (int64, bool) { return convertToCoreValue(rv).Int64
 
 // AsInt64 returns a BSON number as an int64. If the BSON type is not a numeric one, this method
 // will panic.
-func (rv RawValue) AsInt64() int64 { return convertToCoreValue(rv).AsInt64() }
+func (rv RawValue) AsInt64() (int64, error) { return convertToCoreValue(rv).AsInt64() }
 
 // AsInt64OK is the same as AsInt64, except that it returns a boolean instead of
 // panicking.
@@ -300,7 +320,9 @@ func (rv RawValue) AsInt64OK() (int64, bool) { return convertToCoreValue(rv).AsI
 
 // Decimal128 returns the decimal the Value represents. It panics if the value is a BSON type other than
 // decimal.
-func (rv RawValue) Decimal128() primitive.Decimal128 { return convertToCoreValue(rv).Decimal128() }
+func (rv RawValue) Decimal128() (primitive.Decimal128, error) {
+	return convertToCoreValue(rv).Decimal128()
+}
 
 // Decimal128OK is the same as Decimal128, except that it returns a boolean
 // instead of panicking.
