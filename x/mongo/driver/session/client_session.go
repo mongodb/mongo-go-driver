@@ -237,9 +237,12 @@ func (c *Client) AdvanceClusterTime(clusterTime bson.Raw) error {
 	if c.Terminated {
 		return ErrSessionEnded
 	}
-	clusterTime = c.ClusterTime
-	clusterTime, error := MaxClusterTime(c.ClusterTime, clusterTime)
-	return error
+	maxClusterTime, err := MaxClusterTime(c.ClusterTime, clusterTime)
+	if err != nil {
+		return err
+	}
+	c.ClusterTime = maxClusterTime
+	return nil
 }
 
 // AdvanceOperationTime updates the session's operation time.
@@ -362,8 +365,6 @@ func (c *Client) EndSession() {
 
 	c.Terminated = true
 	c.pool.ReturnSession(c.Server)
-
-	return
 }
 
 // TransactionInProgress returns true if the client session is in an active transaction.
