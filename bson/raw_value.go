@@ -142,12 +142,12 @@ func (rv RawValue) StringValueOK() (string, bool) { return convertToCoreValue(rv
 
 // Document returns the BSON document the Value represents as a Document. It panics if the
 // value is a BSON type other than document.
-func (rv RawValue) Document() (raw Raw, Error error) {
-	doc, error := convertToCoreValue(rv).Document()
-	if error != nil {
-		Error = error
+func (rv RawValue) Document() (Raw, error) {
+	doc, err := convertToCoreValue(rv).Document()
+	if err != nil {
+		return nil, err
 	}
-	return Raw(doc), Error
+	return Raw(doc), nil
 }
 
 // DocumentOK is the same as Document, except it returns a boolean
@@ -159,12 +159,12 @@ func (rv RawValue) DocumentOK() (Raw, bool) {
 
 // Array returns the BSON array the Value represents as an Array. It panics if the
 // value is a BSON type other than array.
-func (rv RawValue) Array() (raw Raw, Error error) {
-	arr, error := convertToCoreValue(rv).Array()
-	if error != nil {
-		Error = error
+func (rv RawValue) Array() (Raw, error) {
+	arr, err := convertToCoreValue(rv).Array()
+	if err != nil {
+		return nil, err
 	}
-	return Raw(arr), Error
+	return Raw(arr), nil
 }
 
 // ArrayOK is the same as Array, except it returns a boolean instead
@@ -188,9 +188,7 @@ func (rv RawValue) BinaryOK() (subtype byte, data []byte, ok bool) {
 
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
-func (rv RawValue) ObjectID() (primitive.ObjectID, error) {
-	return convertToCoreValue(rv).ObjectID()
-}
+func (rv RawValue) ObjectID() (primitive.ObjectID, error) { return convertToCoreValue(rv).ObjectID() }
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
@@ -200,9 +198,7 @@ func (rv RawValue) ObjectIDOK() (primitive.ObjectID, bool) {
 
 // Boolean returns the boolean value the Value represents. It panics if the
 // value is a BSON type other than boolean.
-func (rv RawValue) Boolean() (bool, error) {
-	return convertToCoreValue(rv).Boolean()
-}
+func (rv RawValue) Boolean() (bool, error) { return convertToCoreValue(rv).Boolean() }
 
 // BooleanOK is the same as Boolean, except it returns a boolean instead of
 // panicking.
@@ -267,8 +263,11 @@ func (rv RawValue) SymbolOK() (string, bool) { return convertToCoreValue(rv).Sym
 // CodeWithScope returns the BSON JavaScript code with scope the Value represents.
 // It panics if the value is a BSON type other than JavaScript code with scope.
 func (rv RawValue) CodeWithScope() (string, Raw, error) {
-	code, scope, error := convertToCoreValue(rv).CodeWithScope()
-	return code, Raw(scope), error
+	code, scope, err := convertToCoreValue(rv).CodeWithScope()
+	if err != nil {
+		return "", nil, err
+	}
+	return code, Raw(scope), nil
 }
 
 // CodeWithScopeOK is the same as CodeWithScope, except that it returns a boolean instead of
