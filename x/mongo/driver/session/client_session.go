@@ -95,7 +95,6 @@ type LoadBalancedTransactionConnection interface {
 	Description() description.Server
 	Close() error
 	ID() string
-	ServerConnectionID() *int32
 	Address() address.Address
 	Stale() bool
 
@@ -158,32 +157,35 @@ func getClusterTime(clusterTime bson.Raw) (uint32, uint32, error) {
 		return 0, 0, err
 	}
 
-	return timestampVal.Timestamp()
+	t, i, err := timestampVal.Timestamp()
+	if err != nil {
+		return 0, 0, err
+	}
+	return t, i, nil
 }
 
 // MaxClusterTime compares 2 clusterTime documents and returns the document representing the highest cluster time.
 func MaxClusterTime(ct1, ct2 bson.Raw) (bson.Raw, error) {
-	epoch1, ord1, error := getClusterTime(ct1)
-	if error != nil {
-		return nil, error
+	epoch1, ord1, err := getClusterTime(ct1)
+	if err != nil {
+		return nil, err
 	}
-
-	epoch2, ord2, error := getClusterTime(ct2)
-	if error != nil {
-		return nil, error
+	epoch2, ord2, err := getClusterTime(ct2)
+	if err != nil {
+		return nil, err
 	}
 
 	if epoch1 > epoch2 {
-		return ct1, error
+		return ct1, nil
 	} else if epoch1 < epoch2 {
-		return ct2, error
+		return ct2, nil
 	} else if ord1 > ord2 {
-		return ct1, error
+		return ct1, nil
 	} else if ord1 < ord2 {
-		return ct2, error
+		return ct2, nil
 	}
 
-	return ct1, error
+	return ct1, nil
 }
 
 // NewClientSession creates a Client.
@@ -313,13 +315,15 @@ func (c *Client) UpdateSnapshotTime(response bsoncore.Document) error {
 		return err
 	}
 
-	t, i, error := ssTimeElem.Timestamp()
+	t, i, err := ssTimeElem.Timestamp()
+	if err != nil {
+		return err
+	}
 	c.SnapshotTime = &primitive.Timestamp{
 		T: t,
 		I: i,
 	}
-
-	return error
+	return nil
 }
 
 // ClearPinnedResources clears the pinned server and/or connection associated with the session.
@@ -365,6 +369,8 @@ func (c *Client) EndSession() {
 
 	c.Terminated = true
 	c.pool.ReturnSession(c.Server)
+
+	return
 }
 
 // TransactionInProgress returns true if the client session is in an active transaction.
