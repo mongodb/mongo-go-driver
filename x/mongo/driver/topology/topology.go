@@ -527,7 +527,7 @@ func (t *Topology) pollSRVRecords() {
 			break
 		}
 
-		parsedHosts, err := t.dnsResolver.ParseHosts(hosts, false)
+		parsedHosts, err := t.dnsResolver.ParseHosts(hosts, t.cfg.srvServiceName, false)
 		// DNS problem or no verified hosts returned
 		if err != nil || len(parsedHosts) == 0 {
 			if !t.pollHeartbeatTime.Load().(bool) {

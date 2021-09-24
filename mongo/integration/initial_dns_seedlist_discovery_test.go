@@ -135,6 +135,9 @@ func verifyConnstringOptions(mt *mtest.T, expected bson.Raw, cs connstring.ConnS
 			lb := opt.Boolean()
 			assert.True(mt, cs.LoadBalancedSet, "expected cs.LoadBalancedSet set to be true, got false")
 			assert.Equal(mt, lb, cs.LoadBalanced, "expected cs.LoadBalanced to be %v, got %v", lb, cs.LoadBalanced)
+		case "srvServiceName":
+			srvName := opt.StringValue()
+			assert.Equal(mt, srvName, cs.SRVServiceName, "expected cs.SRVServiceName to be %q, got %q", srvName, cs.SRVServiceName)
 		default:
 			mt.Fatalf("unrecognized connstring option %v", key)
 		}

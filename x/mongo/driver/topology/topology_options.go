@@ -36,6 +36,7 @@ type config struct {
 	uri                    string
 	serverSelectionTimeout time.Duration
 	serverMonitor          *event.ServerMonitor
+	srvServiceName         string
 	loadBalanced           bool
 }
 
@@ -304,6 +305,22 @@ func WithURI(fn func(string) string) Option {
 	}
 }
 
+// WithLoadBalanced specifies whether or not the cluster is behind a load balancer.
+func WithLoadBalanced(fn func(bool) bool) Option {
+	return func(cfg *config) error {
+		cfg.loadBalanced = fn(cfg.loadBalanced)
+		return nil
+	}
+}
+
+// WithSRVServiceName specifies the SRV service name that was used to create the topology.
+func WithSRVServiceName(fn func(string) string) Option {
+	return func(cfg *config) error {
+		cfg.srvServiceName = fn(cfg.srvServiceName)
+		return nil
+	}
+}
+
 // addCACertFromFile adds a root CA certificate to the configuration given a path
 // to the containing file.
 func addCACertFromFile(cfg *tls.Config, file string) error {
@@ -421,12 +438,4 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (strin
 	}
 
 	return x509CertSubject(crt), nil
-}
-
-// WithLoadBalanced specifies whether or not the cluster is behind a load balancer.
-func WithLoadBalanced(fn func(bool) bool) Option {
-	return func(cfg *config) error {
-		cfg.loadBalanced = fn(cfg.loadBalanced)
-		return nil
-	}
 }

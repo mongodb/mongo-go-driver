@@ -97,6 +97,7 @@ type ConnString struct {
 	ServerSelectionTimeoutSet          bool
 	SocketTimeout                      time.Duration
 	SocketTimeoutSet                   bool
+	SRVServiceName                     string
 	SSL                                bool
 	SSLSet                             bool
 	SSLClientCertificateKeyFile        string
@@ -254,14 +255,25 @@ func (p *parser) parse(original string) error {
 		hosts = uri[:idx]
 	}
 
-	var connectionArgsFromTXT []string
 	parsedHosts := strings.Split(hosts, ",")
+	uri = uri[len(hosts):]
+	extractedDatabase, err := extractDatabaseFromURI(uri)
+	if err != nil {
+		return err
+	}
 
+	uri = extractedDatabase.uri
+	p.Database = extractedDatabase.db
+
+	// grab connection arguments from URI
+	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
+	if err != nil {
+		return err
+	}
+
+	// grab connection arguments from TXT record and enable SSL if "mongodb+srv://"
+	var connectionArgsFromTXT []string
 	if p.Scheme == SchemeMongoDBSRV {
-		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, true)
-		if err != nil {
-			return err
-		}
 		connectionArgsFromTXT, err = p.dnsResolver.GetConnectionArgsFromTXT(hosts)
 		if err != nil {
 			return err
@@ -272,6 +284,23 @@ func (p *parser) parse(original string) error {
 		p.SSLSet = true
 	}
 
+	// add connection arguments from URI and TXT records to connstring
+	connectionArgPairs := append(connectionArgsFromTXT, connectionArgsFromQueryString...)
+	for _, pair := range connectionArgPairs {
+		err := p.addOption(pair)
+		if err != nil {
+			return err
+		}
+	}
+
+	// do SRV lookup if "mongodb+srv://"
+	if p.Scheme == SchemeMongoDBSRV {
+		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, p.SRVServiceName, true)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, host := range parsedHosts {
 		err = p.addHost(host)
 		if err != nil {
@@ -280,26 +309,6 @@ func (p *parser) parse(original string) error {
 	}
 	if len(p.Hosts) == 0 {
 		return fmt.Errorf("must have at least 1 host")
-	}
-
-	uri = uri[len(hosts):]
-
-	extractedDatabase, err := extractDatabaseFromURI(uri)
-	if err != nil {
-		return err
-	}
-
-	uri = extractedDatabase.uri
-	p.Database = extractedDatabase.db
-
-	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
-	connectionArgPairs := append(connectionArgsFromTXT, connectionArgsFromQueryString...)
-
-	for _, pair := range connectionArgPairs {
-		err = p.addOption(pair)
-		if err != nil {
-			return err
-		}
 	}
 
 	err = p.setDefaultAuthParams(extractedDatabase.db)
@@ -762,6 +771,20 @@ func (p *parser) addOption(pair string) error {
 		}
 		p.SocketTimeout = time.Duration(n) * time.Millisecond
 		p.SocketTimeoutSet = true
+	case "srvservicename":
+		// srvServiceName can only be set on URIs with the "mongodb+srv" scheme
+		if p.Scheme != SchemeMongoDBSRV {
+			return fmt.Errorf("cannot specify srvServiceName on non-SRV URI")
+		}
+
+		// srvServiceName must be between 1 and 62 characters according to
+		// our specification. Empty service names are not valid, and the service
+		// name (including prepended underscore) should not exceed the 63 character
+		// limit for DNS query subdomains.
+		if len(value) < 1 || len(value) > 62 {
+			return fmt.Errorf("srvServiceName value must be between 1 and 62 characters")
+		}
+		p.SRVServiceName = value
 	case "ssl", "tls":
 		switch value {
 		case "true":
