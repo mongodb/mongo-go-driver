@@ -2,7 +2,7 @@
   "tests": [
     {
       "description": "SRV URI with custom srvServiceName",
-      "uri": "mongodb+srv://test1.test.build.10gen.cc/?srvServiceName=customname",
+      "uri": "mongodb+srv://test22.test.build.10gen.cc/?srvServiceName=customname",
       "valid": true,
       "warning": false,
       "hosts": null,
