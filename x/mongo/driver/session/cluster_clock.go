@@ -31,11 +31,11 @@ func (cc *ClusterClock) GetClusterTime() bson.Raw {
 // AdvanceClusterTime updates the cluster's current time.
 func (cc *ClusterClock) AdvanceClusterTime(clusterTime bson.Raw) error {
 	cc.lock.Lock()
-	clusterTime = cc.clusterTime
-	clusterTime, err := MaxClusterTime(cc.clusterTime, clusterTime)
+	maxClusterTime, err := MaxClusterTime(cc.clusterTime, clusterTime)
 	if err != nil {
 		return err
 	}
+	cc.clusterTime = maxClusterTime
 	cc.lock.Unlock()
 	return nil
 }
