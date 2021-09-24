@@ -63,9 +63,8 @@ func (v Value) IsNumber() bool {
 // TODO(skriptble): Add support for Decimal128.
 func (v Value) AsInt32() (i32 int32, Error error) {
 	if !v.IsNumber() {
-		Error = ElementTypeError{"bsoncore.Value.AsInt32", v.Type}
+		panic(ElementTypeError{"bsoncore.Value.AsInt32", v.Type})
 	}
-
 	switch v.Type {
 	case bsontype.Double:
 		f64, _, ok := ReadDouble(v.Data)
@@ -88,7 +87,7 @@ func (v Value) AsInt32() (i32 int32, Error error) {
 	case bsontype.Decimal128:
 		Error = ElementTypeError{"bsoncore.Value.AsInt32", v.Type}
 	}
-	return i32, Error
+	return i32, nil
 }
 
 // AsInt32OK functions the same as AsInt32 but returns a boolean instead of panicking. False
@@ -133,7 +132,6 @@ func (v Value) AsInt64() (i64 int64, Error error) {
 	if !v.IsNumber() {
 		Error = ElementTypeError{"bsoncore.Value.AsInt64", v.Type}
 	}
-
 	switch v.Type {
 	case bsontype.Double:
 		f64, _, ok := ReadDouble(v.Data)
@@ -157,7 +155,7 @@ func (v Value) AsInt64() (i64 int64, Error error) {
 	case bsontype.Decimal128:
 		Error = ElementTypeError{"bsoncore.Value.AsInt64", v.Type}
 	}
-	return i64, Error
+	return i64, nil
 }
 
 // AsInt64OK functions the same as AsInt64 but returns a boolean instead of panicking. False
@@ -392,7 +390,7 @@ func (v Value) Double() (f64 float64, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return f64, Error
+	return f64, nil
 }
 
 // DoubleOK is the same as Double, but returns a boolean instead of panicking.
@@ -420,7 +418,7 @@ func (v Value) StringValue() (str string, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return str, Error
+	return str, nil
 }
 
 // StringValueOK is the same as StringValue, but returns a boolean instead of
@@ -438,15 +436,15 @@ func (v Value) StringValueOK() (string, bool) {
 
 // Document returns the BSON document the Value represents as a Document. It panics if the
 // value is a BSON type other than document.
-func (v Value) Document() (doc Document, Error error) {
+func (v Value) Document() (Document, error) {
 	if v.Type != bsontype.EmbeddedDocument {
-		Error = ElementTypeError{"bsoncore.Value.Document", v.Type}
+		return nil, ElementTypeError{"bsoncore.Value.Document", v.Type}
 	}
 	doc, _, ok := ReadDocument(v.Data)
 	if !ok {
-		Error = NewInsufficientBytesError(v.Data, v.Data)
+		return nil, NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return doc, Error
+	return doc, nil
 }
 
 // DocumentOK is the same as Document, except it returns a boolean
@@ -464,15 +462,15 @@ func (v Value) DocumentOK() (Document, bool) {
 
 // Array returns the BSON array the Value represents as an Array. It panics if the
 // value is a BSON type other than array.
-func (v Value) Array() (arr Array, Error error) {
+func (v Value) Array() (Array, error) {
 	if v.Type != bsontype.Array {
-		Error = ElementTypeError{"bsoncore.Value.Array", v.Type}
+		return nil, ElementTypeError{"bsoncore.Value.Array", v.Type}
 	}
 	arr, _, ok := ReadArray(v.Data)
 	if !ok {
-		Error = NewInsufficientBytesError(v.Data, v.Data)
+		return nil, NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return arr, Error
+	return arr, nil
 }
 
 // ArrayOK is the same as Array, except it returns a boolean instead
@@ -498,7 +496,7 @@ func (v Value) Binary() (subtype byte, data []byte, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return subtype, data, Error
+	return subtype, data, nil
 }
 
 // BinaryOK is the same as Binary, except it returns a boolean instead of
@@ -524,7 +522,7 @@ func (v Value) ObjectID() (oid primitive.ObjectID, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return oid, Error
+	return oid, nil
 }
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
@@ -550,7 +548,7 @@ func (v Value) Boolean() (b bool, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return b, Error
+	return b, nil
 }
 
 // BooleanOK is the same as Boolean, except it returns a boolean instead of
@@ -576,7 +574,7 @@ func (v Value) DateTime() (dt int64, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return dt, Error
+	return dt, nil
 }
 
 // DateTimeOK is the same as DateTime, except it returns a boolean instead of
@@ -602,8 +600,7 @@ func (v Value) Time() (t time.Time, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	t = time.Unix(int64(dt)/1000, int64(dt)%1000*1000000)
-	return
+	return time.Unix(int64(dt)/1000, int64(dt)%1000*1000000), nil
 }
 
 // TimeOK is the same as Time, except it returns a boolean instead of
@@ -621,7 +618,7 @@ func (v Value) TimeOK() (time.Time, bool) {
 
 // Regex returns the BSON regex value the Value represents. It panics if the value is a BSON
 // type other than regex.
-func (v Value) Regex() (pattern string, options string, Error error) {
+func (v Value) Regex() (pattern, options string, Error error) {
 	if v.Type != bsontype.Regex {
 		Error = ElementTypeError{"bsoncore.Value.Regex", v.Type}
 	}
@@ -629,7 +626,7 @@ func (v Value) Regex() (pattern string, options string, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return pattern, options, Error
+	return pattern, options, nil
 }
 
 // RegexOK is the same as Regex, except it returns a boolean instead of
@@ -655,7 +652,7 @@ func (v Value) DBPointer() (ns string, pointer primitive.ObjectID, Error error) 
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return ns, pointer, Error
+	return ns, pointer, nil
 }
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
@@ -681,7 +678,7 @@ func (v Value) JavaScript() (js string, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return js, Error
+	return js, nil
 }
 
 // JavaScriptOK is the same as Javascript, excepti that it returns a boolean
@@ -707,7 +704,7 @@ func (v Value) Symbol() (symbol string, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return symbol, Error
+	return symbol, nil
 }
 
 // SymbolOK is the same as Symbol, excepti that it returns a boolean
@@ -733,23 +730,20 @@ func (v Value) CodeWithScope() (code string, scope Document, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return code, scope, Error
+	return code, scope, nil
 }
 
 // CodeWithScopeOK is the same as CodeWithScope, except that it returns a boolean instead of
 // panicking.
-func (v Value) CodeWithScopeOK() (code string, scope Document, status bool) {
+func (v Value) CodeWithScopeOK() (string, Document, bool) {
 	if v.Type != bsontype.CodeWithScope {
-		status = false
-		return "", nil, status
+		return "", nil, false
 	}
 	code, scope, _, ok := ReadCodeWithScope(v.Data)
 	if !ok {
-		status = false
 		return "", nil, false
 	}
-	status = true
-	return code, scope, status
+	return code, scope, true
 }
 
 // Int32 returns the int32 the Value represents. It panics if the value is a BSON type other than
@@ -762,7 +756,7 @@ func (v Value) Int32() (i32 int32, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return i32, Error
+	return i32, nil
 }
 
 // Int32OK is the same as Int32, except that it returns a boolean instead of
@@ -788,7 +782,7 @@ func (v Value) Timestamp() (t, i uint32, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return t, i, Error
+	return t, i, nil
 }
 
 // TimestampOK is the same as Timestamp, except that it returns a boolean
@@ -814,7 +808,7 @@ func (v Value) Int64() (i64 int64, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return i64, Error
+	return i64, nil
 }
 
 // Int64OK is the same as Int64, except that it returns a boolean instead of
@@ -840,7 +834,7 @@ func (v Value) Decimal128() (d128 primitive.Decimal128, Error error) {
 	if !ok {
 		Error = NewInsufficientBytesError(v.Data, v.Data)
 	}
-	return d128, Error
+	return d128, nil
 }
 
 // Decimal128OK is the same as Decimal128, except that it returns a boolean
