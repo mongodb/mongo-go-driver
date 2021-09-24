@@ -95,7 +95,6 @@ type LoadBalancedTransactionConnection interface {
 	Description() description.Server
 	Close() error
 	ID() string
-	ServerConnectionID() *int32
 	Address() address.Address
 	Stale() bool
 
@@ -143,40 +142,47 @@ type Client struct {
 	SnapshotTime     *primitive.Timestamp
 }
 
-func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
+func getClusterTime(clusterTime bson.Raw) (uint32, uint32, error) {
 	if clusterTime == nil {
-		return 0, 0
+		return 0, 0, nil
 	}
 
 	clusterTimeVal, err := clusterTime.LookupErr("$clusterTime")
 	if err != nil {
-		return 0, 0
+		return 0, 0, err
 	}
 
 	timestampVal, err := bson.Raw(clusterTimeVal.Value).LookupErr("clusterTime")
 	if err != nil {
-		return 0, 0
+		return 0, 0, err
 	}
 
 	return timestampVal.Timestamp()
 }
 
 // MaxClusterTime compares 2 clusterTime documents and returns the document representing the highest cluster time.
-func MaxClusterTime(ct1, ct2 bson.Raw) bson.Raw {
-	epoch1, ord1 := getClusterTime(ct1)
-	epoch2, ord2 := getClusterTime(ct2)
-
-	if epoch1 > epoch2 {
-		return ct1
-	} else if epoch1 < epoch2 {
-		return ct2
-	} else if ord1 > ord2 {
-		return ct1
-	} else if ord1 < ord2 {
-		return ct2
+func MaxClusterTime(ct1, ct2 bson.Raw) (bson.Raw, error) {
+	epoch1, ord1, error := getClusterTime(ct1)
+	if error != nil {
+		return nil, error
 	}
 
-	return ct1
+	epoch2, ord2, error := getClusterTime(ct2)
+	if error != nil {
+		return nil, error
+	}
+
+	if epoch1 > epoch2 {
+		return ct1, error
+	} else if epoch1 < epoch2 {
+		return ct2, error
+	} else if ord1 > ord2 {
+		return ct1, error
+	} else if ord1 < ord2 {
+		return ct2, error
+	}
+
+	return ct1, error
 }
 
 // NewClientSession creates a Client.
@@ -230,8 +236,9 @@ func (c *Client) AdvanceClusterTime(clusterTime bson.Raw) error {
 	if c.Terminated {
 		return ErrSessionEnded
 	}
-	c.ClusterTime = MaxClusterTime(c.ClusterTime, clusterTime)
-	return nil
+	clusterTime = c.ClusterTime
+	clusterTime, error := MaxClusterTime(c.ClusterTime, clusterTime)
+	return error
 }
 
 // AdvanceOperationTime updates the session's operation time.
@@ -266,23 +273,29 @@ func (c *Client) UpdateUseTime() error {
 }
 
 // UpdateRecoveryToken updates the session's recovery token from the server response.
-func (c *Client) UpdateRecoveryToken(response bson.Raw) {
+func (c *Client) UpdateRecoveryToken(response bson.Raw) error {
 	if c == nil {
-		return
+		return nil
 	}
 
 	token, err := response.LookupErr("recoveryToken")
 	if err != nil {
-		return
+		return err
 	}
 
-	c.RecoveryToken = token.Document()
+	doc, err := token.Document()
+	if err != nil {
+		return err
+	}
+	
+	c.RecoveryToken = doc
+	return nil
 }
 
 // UpdateSnapshotTime updates the session's value for the atClusterTime field of ReadConcern.
-func (c *Client) UpdateSnapshotTime(response bsoncore.Document) {
+func (c *Client) UpdateSnapshotTime(response bsoncore.Document) error {
 	if c == nil {
-		return
+		return nil
 	}
 
 	subDoc := response
@@ -293,14 +306,16 @@ func (c *Client) UpdateSnapshotTime(response bsoncore.Document) {
 	ssTimeElem, err := subDoc.LookupErr("atClusterTime")
 	if err != nil {
 		// atClusterTime not included by the server
-		return
+		return err
 	}
 
-	t, i := ssTimeElem.Timestamp()
+	t, i, error := ssTimeElem.Timestamp()
 	c.SnapshotTime = &primitive.Timestamp{
 		T: t,
 		I: i,
 	}
+
+	return error
 }
 
 // ClearPinnedResources clears the pinned server and/or connection associated with the session.
