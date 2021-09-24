@@ -81,16 +81,19 @@ github.com/xdg-go/scram
 github.com/xdg-go/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 github.com/youmark/pkcs8
-# golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+# golang.org/x/crypto v0.0.0-20201216223049-8b5274cf687f
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20190531175056-4c3a928424d2
+# golang.org/x/sys v0.0.0-20191026070338-33540a1f6037
+golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+# golang.org/x/term v0.0.0-20201117132131-f5c789dd3221
+golang.org/x/term
 # golang.org/x/text v0.3.5
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
