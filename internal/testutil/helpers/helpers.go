@@ -201,15 +201,19 @@ func RawSliceToInterfaceSlice(elems []bson.Raw) []interface{} {
 }
 
 // RawToInterfaceSlice converts a bson.Raw that is internally an array to []interface{}.
-func RawToInterfaceSlice(doc bson.Raw) []interface{} {
+func RawToInterfaceSlice(doc bson.Raw) ([]interface{}, error) {
 	values, _ := doc.Values()
 
 	out := make([]interface{}, 0, len(values))
 	for _, val := range values {
-		out = append(out, val.Document())
+		doc, err := val.Document()
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, doc)
 	}
 
-	return out
+	return out, nil
 }
 
 // Convert each interface{} value in the map to a string.
