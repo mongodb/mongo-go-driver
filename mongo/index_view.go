@@ -482,11 +482,23 @@ func getOrGenerateIndexName(keySpecDocument bsoncore.Document, model IndexModel)
 		bsonValue := elem.Value()
 		switch bsonValue.Type {
 		case bsontype.Int32:
-			value = fmt.Sprintf("%d", bsonValue.Int32())
+			bI32, err := bsonValue.Int32()
+			if err != nil {
+				return "", err
+			}
+			value = fmt.Sprintf("%d", bI32)
 		case bsontype.Int64:
-			value = fmt.Sprintf("%d", bsonValue.Int64())
+			bI64, err := bsonValue.Int64()
+			if err != nil {
+				return "", err
+			}
+			value = fmt.Sprintf("%d", bI64)
 		case bsontype.String:
-			value = bsonValue.StringValue()
+			bStr, err := bsonValue.StringValue()
+			if err != nil {
+				return "", err
+			}
+			value = bStr
 		default:
 			return "", ErrInvalidIndexValue
 		}
