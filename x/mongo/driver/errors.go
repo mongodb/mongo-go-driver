@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -15,7 +14,7 @@ import (
 var (
 	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001, 262}
 	nodeIsRecoveringCodes   = []int32{11600, 11602, 13436, 189, 91}
-	notPrimaryCodes         = []int32{10107, 13435, 10058}
+	notMasterCodes          = []int32{10107, 13435, 10058}
 	nodeIsShuttingDownCodes = []int32{11600, 91}
 
 	unknownReplWriteConcernCode   = int32(79)
@@ -74,7 +73,7 @@ func (e ResponseError) Error() string {
 	if e.Wrapped != nil {
 		return fmt.Sprintf("%s: %s", e.Message, e.Wrapped)
 	}
-	return fmt.Sprintf("%s", e.Message)
+	return e.Message
 }
 
 // WriteCommandError is an error for a write command.
@@ -171,15 +170,15 @@ func (wce WriteConcernError) NodeIsShuttingDown() bool {
 	return hasNoCode && strings.Contains(wce.Message, "node is shutting down")
 }
 
-// NotPrimary returns true if this error is a not primary error.
-func (wce WriteConcernError) NotPrimary() bool {
-	for _, code := range notPrimaryCodes {
+// NotMaster returns true if this error is a not master error.
+func (wce WriteConcernError) NotMaster() bool {
+	for _, code := range notMasterCodes {
 		if wce.Code == int64(code) {
 			return true
 		}
 	}
 	hasNoCode := wce.Code == 0
-	return hasNoCode && strings.Contains(wce.Message, internal.LegacyNotPrimary)
+	return hasNoCode && strings.Contains(wce.Message, "not master")
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -317,15 +316,15 @@ func (e Error) NodeIsShuttingDown() bool {
 	return hasNoCode && strings.Contains(e.Message, "node is shutting down")
 }
 
-// NotPrimary returns true if this error is a not primary error.
-func (e Error) NotPrimary() bool {
-	for _, code := range notPrimaryCodes {
+// NotMaster returns true if this error is a not master error.
+func (e Error) NotMaster() bool {
+	for _, code := range notMasterCodes {
 		if e.Code == code {
 			return true
 		}
 	}
 	hasNoCode := e.Code == 0
-	return hasNoCode && strings.Contains(e.Message, internal.LegacyNotPrimary)
+	return hasNoCode && strings.Contains(e.Message, "not master")
 }
 
 // NamespaceNotFound returns true if this errors is a NamespaceNotFound error.
@@ -352,15 +351,27 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 		case "ok":
 			switch elem.Value().Type {
 			case bson.TypeInt32:
-				if elem.Value().Int32() == 1 {
+				i32, err := elem.Value().Int32()
+				if err != nil {
+					return err
+				}
+				if i32 == 1 {
 					ok = true
 				}
 			case bson.TypeInt64:
-				if elem.Value().Int64() == 1 {
+				i64, err := elem.Value().Int64()
+				if err != nil {
+					return err
+				}
+				if i64 == 1 {
 					ok = true
 				}
 			case bson.TypeDouble:
-				if elem.Value().Double() == 1 {
+				dbl, err := elem.Value().Double()
+				if err != nil {
+					return err
+				}
+				if dbl == 1 {
 					ok = true
 				}
 			}
