@@ -118,7 +118,10 @@ func (*ListCollectionsBatchCursor) projectNameElement(rawDoc bsoncore.Document) 
 			continue
 		}
 
-		name := elem.Value().StringValue()
+		name, err := elem.Value().StringValue()
+		if err != nil {
+			return nil, err
+		}
 		collName := name[strings.Index(name, ".")+1:]
 		filteredElems = bsoncore.AppendStringElement(filteredElems, "name", collName)
 	}
