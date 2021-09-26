@@ -89,7 +89,10 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 		return primitive.Binary{}, err
 	}
 
-	subtype, data := bson.Raw(dataKeyDoc).Lookup("_id").Binary()
+	subtype, data, err := bson.Raw(dataKeyDoc).Lookup("_id").Binary()
+	if err != nil {
+		return primitive.Binary{}, err
+	}
 	return primitive.Binary{Subtype: subtype, Data: data}, nil
 }
 
