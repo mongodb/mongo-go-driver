@@ -97,7 +97,7 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 	// build options as a byte slice of elements rather than a bsoncore.Document because they will be appended
 	// to another document with $query
 	var optsElems []byte
-	flags := op.secondaryOK(desc)
+	flags := op.slaveOK(desc)
 	var numToSkip, numToReturn, batchSize, limit int32 // numToReturn calculated from batchSize and limit
 	var filter, returnFieldsSelector bsoncore.Document
 	var collName string
@@ -105,7 +105,10 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 	for _, elem := range cmdElems {
 		switch elem.Key() {
 		case "find":
-			collName = elem.Value().StringValue()
+			collName, err = elem.Value().StringValue()
+			if err != nil {
+				return dst, info, "", err
+			}
 		case "filter":
 			filter = elem.Value().Data
 		case "sort":
@@ -130,18 +133,32 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 			returnFieldsSelector = elem.Value().Data
 		case "skip":
 			// CRUD spec declares skip as int64 but numToSkip is int32 in OP_QUERY
-			numToSkip = int32(elem.Value().Int64())
+			skipValI64, err := elem.Value().Int64()
+			if err != nil {
+				return dst, info, "", err
+			}
+			numToSkip = int32(skipValI64)
 		case "batchSize":
-			batchSize = elem.Value().Int32()
+			batchSize, err = elem.Value().Int32()
+			if err != nil {
+				return dst, info, "", err
+			}
 			// Not possible to use batchSize = 1 because cursor will be closed on first batch
 			if batchSize == 1 {
 				batchSize = 2
 			}
 		case "limit":
 			// CRUD spec declares limit as int64 but numToReturn is int32 in OP_QUERY
-			limit = int32(elem.Value().Int64())
+			limitValI64, err := elem.Value().Int64()
+			if err != nil {
+				return dst, info, "", err
+			}
+			limit = int32(limitValI64)
 		case "singleBatch":
-			singleBatch = elem.Value().Boolean()
+			singleBatch, err = elem.Value().Boolean()
+			if err != nil {
+				return dst, info, "", err
+			}
 		case "tailable":
 			flags |= wiremessage.TailableCursor
 		case "awaitData":
@@ -273,11 +290,20 @@ func (op Operation) createLegacyGetMoreWiremessage(dst []byte, desc description.
 	for _, elem := range cmdElems {
 		switch elem.Key() {
 		case "getMore":
-			cursorID = elem.Value().Int64()
+			cursorID, err = elem.Value().Int64()
+			if err != nil {
+				return dst, info, "", err
+			}
 		case "collection":
-			collName = elem.Value().StringValue()
+			collName, err = elem.Value().StringValue()
+			if err != nil {
+				return dst, info, "", err
+			}
 		case "batchSize":
-			numToReturn = elem.Value().Int32()
+			numToReturn, err = elem.Value().Int32()
+			if err != nil {
+				return dst, info, "", err
+			}
 		}
 	}
 
@@ -321,7 +347,11 @@ func (op Operation) legacyKillCursors(ctx context.Context, dst []byte, srvr Serv
 
 	ridx, response := bsoncore.AppendDocumentStart(nil)
 	response = bsoncore.AppendInt32Element(response, "ok", 1)
-	response = bsoncore.AppendArrayElement(response, "cursorsUnknown", startedInfo.cmd.Lookup("cursors").Array())
+	strdArr, err := startedInfo.cmd.Lookup("cursors").Array()
+	if err != nil {
+		return err
+	}
+	response = bsoncore.AppendArrayElement(response, "cursorsUnknown", strdArr)
 	response, _ = bsoncore.AppendDocumentEnd(response, ridx)
 
 	finishedInfo.response = response
@@ -357,9 +387,15 @@ func (op Operation) createLegacyKillCursorsWiremessage(dst []byte, desc descript
 	for _, elem := range cmdElems {
 		switch elem.Key() {
 		case "killCursors":
-			collName = elem.Value().StringValue()
+			collName, err = elem.Value().StringValue()
+			if err != nil {
+				return nil, info, "", err
+			}
 		case "cursors":
-			cursors = elem.Value().Array()
+			cursors, err = elem.Value().Array()
+			if err != nil {
+				return nil, info, "", err
+			}
 		}
 	}
 
@@ -371,7 +407,11 @@ func (op Operation) createLegacyKillCursorsWiremessage(dst []byte, desc descript
 		}
 
 		for _, cursorVal := range cursorValues {
-			cursorIDs = append(cursorIDs, cursorVal.Int64())
+			csri64, err := cursorVal.Int64()
+			if err != nil {
+				return nil, info, "", err
+			}
+			cursorIDs = append(cursorIDs, csri64)
 		}
 	}
 
@@ -443,7 +483,11 @@ func (op Operation) createLegacyListCollectionsWiremessage(dst []byte, desc desc
 	// which doesn't apply to legacy servers
 	var originalFilter bsoncore.Document
 	if filterVal, err := cmdDoc.LookupErr("filter"); err == nil {
-		originalFilter = filterVal.Document()
+		fltrDoc, err := filterVal.Document()
+		if err != nil {
+			return nil, info, "", err
+		}
+		originalFilter = fltrDoc
 	}
 
 	var optsElems []byte
@@ -466,7 +510,7 @@ func (op Operation) createLegacyListCollectionsWiremessage(dst []byte, desc desc
 
 	var wmIdx int32
 	wmIdx, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
-	dst = wiremessage.AppendQueryFlags(dst, op.secondaryOK(desc))
+	dst = wiremessage.AppendQueryFlags(dst, op.slaveOK(desc))
 	dst = wiremessage.AppendQueryFullCollectionName(dst, op.getFullCollectionName(listCollectionsNamespace))
 	dst = wiremessage.AppendQueryNumberToSkip(dst, 0)
 	dst = wiremessage.AppendQueryNumberToReturn(dst, batchSize)
@@ -506,7 +550,13 @@ func (op Operation) transformListCollectionsFilter(filter bsoncore.Document) (bs
 		if nameVal.Type != bsontype.String {
 			return nil, ErrFilterType
 		}
-		convertedFilter = bsoncore.AppendStringElement(convertedFilter, "name", op.getFullCollectionName(nameVal.StringValue()))
+
+		nValStr, err := nameVal.StringValue()
+		if err != nil {
+			return nil, err
+		}
+
+		convertedFilter = bsoncore.AppendStringElement(convertedFilter, "name", op.getFullCollectionName(nValStr))
 	}
 	convertedFilter, _ = bsoncore.AppendDocumentEnd(convertedFilter, convertedIdx)
 
@@ -590,12 +640,22 @@ func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc descript
 	for _, elem := range cmdElems {
 		switch elem.Key() {
 		case "listIndexes":
-			filterCollName = elem.Value().StringValue()
+			filterCollName, err = elem.Value().StringValue()
+			if err != nil {
+				return nil, info, "", err
+			}
 		case "cursor":
 			// the batchSize option is embedded in a cursor subdocument
-			cursorDoc := elem.Value().Document()
+			cursorDoc, err := elem.Value().Document()
+			if err != nil {
+				return nil, info, "", err
+			}
 			if val, err := cursorDoc.LookupErr("batchSize"); err == nil {
-				batchSize = val.Int32()
+				valI32, err := val.Int32()
+				if err != nil {
+					return nil, info, "", err
+				}
+				batchSize = valI32
 			}
 		case "maxTimeMS":
 			optsElems = bsoncore.AppendValueElement(optsElems, "$maxTimeMS", elem.Value())
@@ -617,7 +677,7 @@ func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc descript
 
 	var wmIdx int32
 	wmIdx, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
-	dst = wiremessage.AppendQueryFlags(dst, op.secondaryOK(desc))
+	dst = wiremessage.AppendQueryFlags(dst, op.slaveOK(desc))
 	dst = wiremessage.AppendQueryFullCollectionName(dst, op.getFullCollectionName(listIndexesNamespace))
 	dst = wiremessage.AppendQueryNumberToSkip(dst, 0)
 	dst = wiremessage.AppendQueryNumberToReturn(dst, batchSize)
