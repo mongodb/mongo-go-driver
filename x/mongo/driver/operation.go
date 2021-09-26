@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -73,22 +72,20 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
-	serverConnID             *int32
 	redacted                 bool
 	serviceID                *primitive.ObjectID
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
 type finishedInformation struct {
-	cmdName      string
-	requestID    int32
-	response     bsoncore.Document
-	cmdErr       error
-	connID       string
-	serverConnID *int32
-	startTime    time.Time
-	redacted     bool
-	serviceID    *primitive.ObjectID
+	cmdName   string
+	requestID int32
+	response  bsoncore.Document
+	cmdErr    error
+	connID    string
+	startTime time.Time
+	redacted  bool
+	serviceID *primitive.ObjectID
 }
 
 // ResponseInfo contains the context required to parse a server response.
@@ -401,7 +398,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.cmdName = startedInfo.cmdName
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
-		startedInfo.serverConnID = conn.ServerConnectionID()
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
@@ -416,13 +412,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		finishedInfo := finishedInformation{
-			cmdName:      startedInfo.cmdName,
-			requestID:    startedInfo.requestID,
-			startTime:    time.Now(),
-			connID:       startedInfo.connID,
-			serverConnID: startedInfo.serverConnID,
-			redacted:     startedInfo.redacted,
-			serviceID:    startedInfo.serviceID,
+			cmdName:   startedInfo.cmdName,
+			requestID: startedInfo.requestID,
+			startTime: time.Now(),
+			connID:    startedInfo.connID,
+			redacted:  startedInfo.redacted,
+			serviceID: startedInfo.serviceID,
 		}
 
 		// roundtrip using either the full roundTripper or a special one for when the moreToCome
@@ -498,7 +493,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If batching is enabled and either ordered is the default (which is true) or
 			// explicitly set to true and we have write errors, return the errors.
-			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered == true) && len(tt.WriteErrors) > 0 {
+			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered) && len(tt.WriteErrors) > 0 {
 				return tt
 			}
 			if op.Client != nil && op.Client.Committing && tt.WriteConcernError != nil {
@@ -818,7 +813,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 
 func (op Operation) createQueryWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	var info startedInformation
-	flags := op.secondaryOK(desc)
+	flags := op.slaveOK(desc)
 	var wmindex int32
 	info.requestID = wiremessage.NextRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
@@ -863,8 +858,11 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	if err != nil {
 		return dst, info, err
 	}
-
-	dst = op.addClusterTime(dst, desc)
+	opAddClusterTime, err := op.addClusterTime(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+	dst = opAddClusterTime
 	dst = op.addServerAPI(dst)
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
@@ -925,7 +923,11 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 		return dst, info, err
 	}
 
-	dst = op.addClusterTime(dst, desc)
+	opAddClusterTime, err := op.addClusterTime(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+	dst = opAddClusterTime
 	dst = op.addServerAPI(dst)
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
@@ -1111,23 +1113,27 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	return dst, client.ApplyCommand(desc.Server)
 }
 
-func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {
+func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	client, clock := op.Client, op.Clock
 	if (clock == nil && client == nil) || !sessionsSupported(desc.WireVersion) {
-		return dst
+		return dst, nil
 	}
 	clusterTime := clock.GetClusterTime()
 	if client != nil {
-		clusterTime = session.MaxClusterTime(clusterTime, client.ClusterTime)
+		maxClusterTime, err := session.MaxClusterTime(clusterTime, client.ClusterTime)
+		if err != nil {
+			return dst, err
+		}
+		clusterTime = maxClusterTime
 	}
 	if clusterTime == nil {
-		return dst
+		return dst, nil
 	}
 	val, err := clusterTime.LookupErr("$clusterTime")
 	if err != nil {
-		return dst
+		return dst, err
 	}
-	return append(bsoncore.AppendHeader(dst, val.Type, "$clusterTime"), val.Value...)
+	return append(bsoncore.AppendHeader(dst, val.Type, "$clusterTime"), val.Value...), nil
 	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
@@ -1157,23 +1163,28 @@ func (op Operation) updateClusterTimes(response bsoncore.Document) {
 // updateOperationTime updates the operation time on the session attached to this operation. While
 // the session's AdvanceOperationTime method may return an error, this method does not because an
 // error being returned from this method will not be returned further up.
-func (op Operation) updateOperationTime(response bsoncore.Document) {
+func (op Operation) updateOperationTime(response bsoncore.Document) error {
 	sess := op.Client
 	if sess == nil {
-		return
+		return nil
 	}
 
 	opTimeElem, err := response.LookupErr("operationTime")
 	if err != nil {
 		// operationTime not included by the server
-		return
+		return err
 	}
 
-	t, i := opTimeElem.Timestamp()
+	t, i, err := opTimeElem.Timestamp()
+	if err != nil {
+		// operationTime not included by the server
+		return err
+	}
 	_ = sess.AdvanceOperationTime(&primitive.Timestamp{
 		T: t,
 		I: i,
 	})
+	return nil
 }
 
 func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) {
@@ -1275,20 +1286,20 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 	return doc, nil
 }
 
-func (op Operation) secondaryOK(desc description.SelectedServer) wiremessage.QueryFlag {
+func (op Operation) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag {
 	if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
-		return wiremessage.SecondaryOK
+		return wiremessage.SlaveOK
 	}
 
 	if rp := op.ReadPreference; rp != nil && rp.Mode() != readpref.PrimaryMode {
-		return wiremessage.SecondaryOK
+		return wiremessage.SlaveOK
 	}
 
 	return 0
 }
 
 func (Operation) canCompress(cmd string) bool {
-	if cmd == internal.LegacyHello || cmd == "hello" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
+	if cmd == "isMaster" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
 		cmd == "createUser" || cmd == "updateUser" || cmd == "copydbSaslStart" || cmd == "copydbgetnonce" || cmd == "copydb" {
 		return false
 	}
@@ -1444,11 +1455,11 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 
 		return true
 	}
-	if strings.ToLower(cmd) != internal.LegacyHelloLowercase && cmd != "hello" {
+	if strings.ToLower(cmd) != "ismaster" && cmd != "hello" {
 		return false
 	}
 
-	// A hello without speculative authentication can be monitored.
+	// An isMaster without speculative authentication can be monitored.
 	_, err := doc.LookupErr("speculativeAuthenticate")
 	return err == nil
 }
@@ -1475,13 +1486,12 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	}
 
 	started := &event.CommandStartedEvent{
-		Command:            cmdCopy,
-		DatabaseName:       op.Database,
-		CommandName:        info.cmdName,
-		RequestID:          int64(info.requestID),
-		ConnectionID:       info.connID,
-		ServerConnectionID: info.serverConnID,
-		ServiceID:          info.serviceID,
+		Command:      cmdCopy,
+		DatabaseName: op.Database,
+		CommandName:  info.cmdName,
+		RequestID:    int64(info.requestID),
+		ConnectionID: info.connID,
+		ServiceID:    info.serviceID,
 	}
 	op.CommandMonitor.Started(ctx, started)
 }
@@ -1500,16 +1510,15 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	var durationNanos int64
 	var emptyTime time.Time
 	if info.startTime != emptyTime {
-		durationNanos = time.Now().Sub(info.startTime).Nanoseconds()
+		durationNanos = time.Since(info.startTime).Nanoseconds()
 	}
 
 	finished := event.CommandFinishedEvent{
-		CommandName:        info.cmdName,
-		RequestID:          int64(info.requestID),
-		ConnectionID:       info.connID,
-		DurationNanos:      durationNanos,
-		ServerConnectionID: info.serverConnID,
-		ServiceID:          info.serviceID,
+		CommandName:   info.cmdName,
+		RequestID:     int64(info.requestID),
+		ConnectionID:  info.connID,
+		DurationNanos: durationNanos,
+		ServiceID:     info.serviceID,
 	}
 
 	if success {
