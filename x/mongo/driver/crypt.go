@@ -127,7 +127,11 @@ func (c *Crypt) EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *o
 		return 0, nil, err
 	}
 
-	sub, data := res.Lookup("v").Binary()
+	sub, data, err := res.Lookup("v").Binary()
+	if err != nil {
+		return 0, nil, err
+	}
+
 	return sub, data, nil
 }
 
