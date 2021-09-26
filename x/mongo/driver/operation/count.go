@@ -64,14 +64,26 @@ elementLoop:
 				break elementLoop
 			}
 		case "cursor": // for count using aggregate with $collStats
-			firstBatch, err := element.Value().Document().LookupErr("firstBatch")
+			doc, err := element.Value().Document()
+			if err != nil {
+				break elementLoop
+			}
+			firstBatch, err := doc.LookupErr("firstBatch")
 			if err != nil {
 				break elementLoop
 			}
 
 			// get count value from first batch
-			val := firstBatch.Array().Index(0)
-			count, err := val.Document().LookupErr("n")
+			frstArr, err := firstBatch.Array()
+			if err != nil {
+				break elementLoop
+			}
+			val := frstArr.Index(0)
+			valDoc, err := val.Document()
+			if err != nil {
+				break elementLoop
+			}
+			count, err := valDoc.LookupErr("n")
 			if err != nil {
 				break elementLoop
 			}
@@ -80,8 +92,7 @@ elementLoop:
 			var ok bool
 			cr.N, ok = count.AsInt64OK()
 			if !ok {
-				err = fmt.Errorf("response field 'n' is type int64, but received BSON type %s",
-					element.Value().Type)
+				err = fmt.Errorf("response field 'n' is type int64, but received BSON type %s", element.Value().Type)
 				break elementLoop
 			}
 		}
