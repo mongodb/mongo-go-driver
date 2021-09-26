@@ -102,25 +102,45 @@ func (result *UpdateResult) UnmarshalBSON(b []byte) error {
 		case "n":
 			switch elem.Value().Type {
 			case bson.TypeInt32:
-				result.MatchedCount = int64(elem.Value().Int32())
+				bI32, err := elem.Value().Int32()
+				if err != nil {
+					return err
+				}
+				result.MatchedCount = int64(bI32)
 			case bson.TypeInt64:
-				result.MatchedCount = elem.Value().Int64()
+				bI64, err := elem.Value().Int64()
+				if err != nil {
+					return err
+				}
+				result.MatchedCount = bI64
 			default:
-				return fmt.Errorf("Received invalid type for n, should be Int32 or Int64, received %s", elem.Value().Type)
+				return fmt.Errorf("received invalid type for n, should be Int32 or Int64, received %s", elem.Value().Type)
 			}
 		case "nModified":
 			switch elem.Value().Type {
 			case bson.TypeInt32:
-				result.ModifiedCount = int64(elem.Value().Int32())
+				bI32, err := elem.Value().Int32()
+				if err != nil {
+					return err
+				}
+				result.ModifiedCount = int64(bI32)
 			case bson.TypeInt64:
-				result.ModifiedCount = elem.Value().Int64()
+				bI64, err := elem.Value().Int64()
+				if err != nil {
+					return err
+				}
+				result.ModifiedCount = bI64
 			default:
-				return fmt.Errorf("Received invalid type for nModified, should be Int32 or Int64, received %s", elem.Value().Type)
+				return fmt.Errorf("received invalid type for nModified, should be Int32 or Int64, received %s", elem.Value().Type)
 			}
 		case "upserted":
 			switch elem.Value().Type {
 			case bson.TypeArray:
-				e, err := elem.Value().Array().IndexErr(0)
+				bArr, err := elem.Value().Array()
+				if err != nil {
+					return err
+				}
+				e, err := bArr.IndexErr(0)
 				if err != nil {
 					break
 				}
@@ -130,13 +150,17 @@ func (result *UpdateResult) UnmarshalBSON(b []byte) error {
 				var d struct {
 					ID interface{} `bson:"_id"`
 				}
-				err = bson.Unmarshal(e.Value().Document(), &d)
+				bDoc, err := e.Value().Document()
+				if err != nil {
+					return err
+				}
+				err = bson.Unmarshal(bDoc, &d)
 				if err != nil {
 					return err
 				}
 				result.UpsertedID = d.ID
 			default:
-				return fmt.Errorf("Received invalid type for upserted, should be Array, received %s", elem.Value().Type)
+				return fmt.Errorf("received invalid type for upserted, should be Array, received %s", elem.Value().Type)
 			}
 		}
 	}
