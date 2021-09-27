@@ -772,9 +772,9 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		sess = nil
 	}
 
-	selector := makePinnedSelector(sess, a.writeSelector)
-	if !hasOutputStage {
-		selector = makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
+	selector := makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
+	if hasOutputStage {
+		selector = makeOutputAggregateSelector(sess, a.readPreference, a.client.localThreshold)
 	}
 
 	ao := options.MergeAggregateOptions(a.opts...)
@@ -784,6 +784,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		Session(sess).
 		WriteConcern(wc).
 		ReadConcern(rc).
+		ReadPreference(a.readPreference).
 		CommandMonitor(a.client.monitor).
 		ServerSelector(selector).
 		ClusterClock(a.client.clock).
@@ -791,13 +792,8 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		Collection(a.col).
 		Deployment(a.client.deployment).
 		Crypt(a.client.cryptFLE).
-		ServerAPI(a.client.serverAPI)
-	if !hasOutputStage {
-		// Only pass the user-specified read preference if the aggregation doesn't have a $out or $merge stage.
-		// Otherwise, the read preference could be forwarded to a mongos, which would error if the aggregation were
-		// executed against a non-primary node.
-		op.ReadPreference(a.readPreference)
-	}
+		ServerAPI(a.client.serverAPI).
+		HasOutputStage(hasOutputStage)
 
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
@@ -1678,5 +1674,18 @@ func makeReadPrefSelector(sess *session.Client, selector description.ServerSelec
 		})
 	}
 
+	return makePinnedSelector(sess, selector)
+}
+
+func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelectorFunc {
+	if sess != nil && sess.TransactionRunning() {
+		// Use current transaction's read preference if available
+		rp = sess.CurrentRp
+	}
+
+	selector := description.CompositeSelector([]description.ServerSelector{
+		description.OutputAggregateSelector(rp),
+		description.LatencySelector(localThreshold),
+	})
 	return makePinnedSelector(sess, selector)
 }

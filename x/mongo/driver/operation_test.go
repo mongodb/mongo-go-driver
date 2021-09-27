@@ -429,7 +429,8 @@ func TestOperation(t *testing.T) {
 		for _, tc := range testCases {
 			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
-				got, err := Operation{ReadPreference: tc.rp}.createReadPref(tc.serverKind, tc.topoKind, tc.opQuery)
+				desc := description.SelectedServer{Kind: tc.topoKind, Server: description.Server{Kind: tc.serverKind}}
+				got, err := Operation{ReadPreference: tc.rp}.createReadPref(desc, tc.opQuery)
 				if err != nil {
 					t.Fatalf("error creating read pref: %v", err)
 				}

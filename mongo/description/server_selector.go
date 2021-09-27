@@ -130,6 +130,16 @@ func WriteSelector() ServerSelector {
 
 // ReadPrefSelector selects servers based on the provided read preference.
 func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
+	return readPrefSelector(rp, false)
+}
+
+// OutputAggregateSelector selects servers based on the provided read preference given that the underlying operation is
+// aggregate with an output stage.
+func OutputAggregateSelector(rp *readpref.ReadPref) ServerSelector {
+	return readPrefSelector(rp, true)
+}
+
+func readPrefSelector(rp *readpref.ReadPref, isOutputAggregate bool) ServerSelector {
 	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
 		if t.Kind == LoadBalanced {
 			// In LoadBalanced mode, there should only be one server in the topology and it must be selected. We check
@@ -152,7 +162,7 @@ func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 		case Single:
 			return candidates, nil
 		case ReplicaSetNoPrimary, ReplicaSetWithPrimary:
-			return selectForReplicaSet(rp, t, candidates)
+			return selectForReplicaSet(rp, isOutputAggregate, t, candidates)
 		case Sharded:
 			return selectByKind(candidates, Mongos), nil
 		}
@@ -170,7 +180,7 @@ func maxStalenessSupported(wireVersion *VersionRange) error {
 	return nil
 }
 
-func selectForReplicaSet(rp *readpref.ReadPref, t Topology, candidates []Server) ([]Server, error) {
+func selectForReplicaSet(rp *readpref.ReadPref, isOutputAggregate bool, t Topology, candidates []Server) ([]Server, error) {
 	if err := verifyMaxStaleness(rp, t); err != nil {
 		return nil, err
 	}
@@ -182,31 +192,40 @@ func selectForReplicaSet(rp *readpref.ReadPref, t Topology, candidates []Server)
 		selected := selectByKind(candidates, RSPrimary)
 
 		if len(selected) == 0 {
-			selected = selectSecondaries(rp, candidates)
+			selected = selectSecondaries(rp, isOutputAggregate, candidates)
 			return selectByTagSet(selected, rp.TagSets()), nil
 		}
 
 		return selected, nil
 	case readpref.SecondaryPreferredMode:
-		selected := selectSecondaries(rp, candidates)
+		selected := selectSecondaries(rp, isOutputAggregate, candidates)
 		selected = selectByTagSet(selected, rp.TagSets())
 		if len(selected) > 0 {
 			return selected, nil
 		}
 		return selectByKind(candidates, RSPrimary), nil
 	case readpref.SecondaryMode:
-		selected := selectSecondaries(rp, candidates)
-		return selectByTagSet(selected, rp.TagSets()), nil
+		selected := selectSecondaries(rp, isOutputAggregate, candidates)
+		selected = selectByTagSet(selected, rp.TagSets())
+
+		// When selecting a server for an aggregate with an output stage,
+		// Secondary read preference functions identically to SecondaryPreferred:
+		// if no secondaries are available (none >= wire version 13), we fall
+		// back to primary.
+		if !isOutputAggregate || len(selected) > 0 {
+			return selected, nil
+		}
+		return selectByKind(candidates, RSPrimary), nil
 	case readpref.NearestMode:
 		selected := selectByKind(candidates, RSPrimary)
-		selected = append(selected, selectSecondaries(rp, candidates)...)
+		selected = append(selected, selectSecondaries(rp, isOutputAggregate, candidates)...)
 		return selectByTagSet(selected, rp.TagSets()), nil
 	}
 
 	return nil, fmt.Errorf("unsupported mode: %d", rp.Mode())
 }
 
-func selectSecondaries(rp *readpref.ReadPref, candidates []Server) []Server {
+func selectSecondaries(rp *readpref.ReadPref, isOutputAggregate bool, candidates []Server) []Server {
 	secondaries := selectByKind(candidates, RSSecondary)
 	if len(secondaries) == 0 {
 		return secondaries
@@ -225,7 +244,11 @@ func selectSecondaries(rp *readpref.ReadPref, candidates []Server) []Server {
 			for _, secondary := range secondaries {
 				estimatedStaleness := baseTime.Sub(secondary.LastWriteTime) + secondary.HeartbeatInterval
 				if estimatedStaleness <= maxStaleness {
-					selected = append(selected, secondary)
+					// If underlying operation is an aggregate with an output stage, only select secondaries with
+					// wire version 13 or greater.
+					if !isOutputAggregate || secondary.WireVersion.Max >= 13 {
+						selected = append(selected, secondary)
+					}
 				}
 			}
 
@@ -238,7 +261,11 @@ func selectSecondaries(rp *readpref.ReadPref, candidates []Server) []Server {
 		for _, secondary := range secondaries {
 			estimatedStaleness := secondary.LastUpdateTime.Sub(secondary.LastWriteTime) - primary.LastUpdateTime.Sub(primary.LastWriteTime) + secondary.HeartbeatInterval
 			if estimatedStaleness <= maxStaleness {
-				selected = append(selected, secondary)
+				// If underlying operation is an aggregate with an output stage, only select secondaries with
+				// wire version 13 or greater.
+				if !isOutputAggregate || secondary.WireVersion.Max >= 13 {
+					selected = append(selected, secondary)
+				}
 			}
 		}
 		return selected

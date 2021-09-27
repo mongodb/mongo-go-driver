@@ -202,6 +202,10 @@ type Operation struct {
 	// ServerAPI specifies options used to configure the API version sent to the server.
 	ServerAPI *ServerAPIOptions
 
+	// IsOutputAggregate specifies whether this operation is an aggregate with an output stage. If true,
+	// read preference will not be added to the command on wire versions < 13.
+	IsOutputAggregate bool
+
 	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
 }
@@ -831,7 +835,7 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	dst = wiremessage.AppendQueryNumberToReturn(dst, -1)
 
 	wrapper := int32(-1)
-	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	rp, err := op.createReadPref(desc, true)
 	if err != nil {
 		return dst, info, err
 	}
@@ -929,7 +933,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 	dst = op.addServerAPI(dst)
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
-	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, false)
+	rp, err := op.createReadPref(desc, false)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1190,9 +1194,15 @@ func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) 
 	return op.ReadPreference, nil
 }
 
-func (op Operation) createReadPref(serverKind description.ServerKind, topologyKind description.TopologyKind, isOpQuery bool) (bsoncore.Document, error) {
-	if serverKind == description.Standalone || (isOpQuery && serverKind != description.Mongos) || op.Type == Write {
-		// Don't send read preference for non-mongos when using OP_QUERY or for all standalones
+func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bool) (bsoncore.Document, error) {
+	if desc.Server.Kind == description.Standalone || (isOpQuery && desc.Server.Kind != description.Mongos) ||
+		op.Type == Write || (op.IsOutputAggregate && desc.Server.WireVersion.Max < 13) {
+		// Don't send read preference for:
+		// 1. all standalones
+		// 2. non-mongos when using OP_QUERY
+		// 3. all writes
+		// 4. when operation is an aggregate with an output stage, and selected server's wire
+		//    version is < 13
 		return nil, nil
 	}
 
@@ -1203,7 +1213,7 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 	}
 
 	if rp == nil {
-		if topologyKind == description.Single && serverKind != description.Mongos {
+		if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
 			doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			return doc, nil
@@ -1213,10 +1223,10 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 
 	switch rp.Mode() {
 	case readpref.PrimaryMode:
-		if serverKind == description.Mongos {
+		if desc.Server.Kind == description.Mongos {
 			return nil, nil
 		}
-		if topologyKind == description.Single {
+		if desc.Kind == description.Single {
 			doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			return doc, nil
@@ -1226,7 +1236,7 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 		doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 	case readpref.SecondaryPreferredMode:
 		_, ok := rp.MaxStaleness()
-		if serverKind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 && rp.HedgeEnabled() == nil {
+		if desc.Server.Kind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 && rp.HedgeEnabled() == nil {
 			return nil, nil
 		}
 		doc = bsoncore.AppendStringElement(doc, "mode", "secondaryPreferred")

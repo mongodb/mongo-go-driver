@@ -47,6 +47,7 @@ type Aggregate struct {
 	crypt                    *driver.Crypt
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
+	hasOutputStage           bool
 
 	result driver.CursorResponse
 }
@@ -104,6 +105,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		Crypt:                          a.crypt,
 		MinimumWriteConcernWireVersion: 5,
 		ServerAPI:                      a.serverAPI,
+		IsOutputAggregate:              a.hasOutputStage,
 	}.Execute(ctx, nil)
 
 }
@@ -378,5 +380,16 @@ func (a *Aggregate) Let(let bsoncore.Document) *Aggregate {
 	}
 
 	a.let = let
+	return a
+}
+
+// HasOutputStage specifies whether the aggregate contains an output stage. Used in determining when to
+// append read preference at the operation level.
+func (a *Aggregate) HasOutputStage(hos bool) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.hasOutputStage = hos
 	return a
 }
