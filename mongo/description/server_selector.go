@@ -133,9 +133,9 @@ func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 	return readPrefSelector(rp, false)
 }
 
-// OutputSelector selects servers based on the provided read preference given that the underlying operation is
+// OutputAggregateSelector selects servers based on the provided read preference given that the underlying operation is
 // aggregate with an output stage.
-func OutputSelector(rp *readpref.ReadPref) ServerSelector {
+func OutputAggregateSelector(rp *readpref.ReadPref) ServerSelector {
 	return readPrefSelector(rp, true)
 }
 

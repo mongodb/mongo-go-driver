@@ -1201,7 +1201,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 		// 1. all standalones
 		// 2. non-mongos when using OP_QUERY
 		// 3. all writes
-		// 3. when operation is an aggregate with an output stage, and selected server's wire
+		// 4. when operation is an aggregate with an output stage, and selected server's wire
 		//    version is < 13
 		return nil, nil
 	}
