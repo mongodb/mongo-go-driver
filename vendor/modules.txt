@@ -38,10 +38,11 @@ github.com/google/go-cmp/cmp/internal/value
 github.com/joho/godotenv
 # github.com/karrick/godirwalk v1.10.3
 github.com/karrick/godirwalk
-# github.com/klauspost/compress v1.9.5
+# github.com/klauspost/compress v1.13.6
+github.com/klauspost/compress
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
-github.com/klauspost/compress/snappy
+github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
