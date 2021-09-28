@@ -160,20 +160,36 @@ func (c *clientEntity) stopListeningForEvents() {
 	c.setRecordEvents(false)
 }
 
-func (c *clientEntity) isIgnoredEvent(event *event.CommandStartedEvent) bool {
+func (c *clientEntity) isIgnoredStartedEvent(event *event.CommandStartedEvent) bool {
 	// Check if command is in ignoredCommands.
 	if _, ok := c.ignoredCommands[event.CommandName]; ok {
 		return true
 	}
 
 	if event.CommandName == "hello" || strings.ToLower(event.CommandName) == internal.LegacyHelloLowercase {
-		_, err := event.Command.LookupErr("speculativeAuthenticate")
-		speculativeAuth := err == nil
-
-		// If observeSensitiveCommands is false (or unset) and hello command is with
-		// speculative authenticate, command should be ignored.
+		// If observeSensitiveCommands is false (or unset) and hello command has been
+		// redacted at operation level, hello command should be ignored as it contained
+		// speculativeAuthenticate.
 		if (c.observeSensitiveCommands == nil || !*c.observeSensitiveCommands) &&
-			speculativeAuth {
+			len(event.Command) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *clientEntity) isIgnoredSucceededEvent(event *event.CommandSucceededEvent) bool {
+	// Check if command is in ignoredCommands.
+	if _, ok := c.ignoredCommands[event.CommandName]; ok {
+		return true
+	}
+
+	if event.CommandName == "hello" || strings.ToLower(event.CommandName) == internal.LegacyHelloLowercase {
+		// If observeSensitiveCommands is false (or unset) and hello reply has been
+		// redacted at operation level, hello command should be ignored as it contained
+		// speculativeAuthenticate.
+		if (c.observeSensitiveCommands == nil || !*c.observeSensitiveCommands) &&
+			len(event.Reply) == 0 {
 			return true
 		}
 	}
@@ -183,7 +199,7 @@ func (c *clientEntity) isIgnoredEvent(event *event.CommandStartedEvent) bool {
 func (c *clientEntity) startedEvents() []*event.CommandStartedEvent {
 	var events []*event.CommandStartedEvent
 	for _, evt := range c.started {
-		if !c.isIgnoredEvent(evt) {
+		if !c.isIgnoredStartedEvent(evt) {
 			events = append(events, evt)
 		}
 	}
@@ -194,7 +210,7 @@ func (c *clientEntity) startedEvents() []*event.CommandStartedEvent {
 func (c *clientEntity) succeededEvents() []*event.CommandSucceededEvent {
 	var events []*event.CommandSucceededEvent
 	for _, evt := range c.succeeded {
-		if _, ok := c.ignoredCommands[evt.CommandName]; !ok {
+		if !c.isIgnoredSucceededEvent(evt) {
 			events = append(events, evt)
 		}
 	}
