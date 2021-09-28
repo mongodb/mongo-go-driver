@@ -2,6 +2,11 @@ module go.mongodb.org/mongo-driver
 
 go 1.10
 
+retract (
+	[v1.6.0, v1.6.1] // Contains data race bug in background connection establishment.
+	[v1.7.0, v1.7.1] // Contains data race bug in background connection establishment.
+)
+
 require (
 	github.com/go-stack/stack v1.8.0
 	github.com/gobuffalo/genny v0.1.1 // indirect
