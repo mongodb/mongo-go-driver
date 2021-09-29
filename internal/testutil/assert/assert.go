@@ -81,8 +81,7 @@ func NotNil(t testing.TB, obj interface{}, msg string, args ...interface{}) {
 	}
 }
 
-// Soon runs the provided callback for a maximum of timeoutMS milliseconds. It returns the callback error
-// if the callback returned and ErrCallbackTimedOut if the timeout expired.
+// Soon runs the provided callback for a maximum of timeoutMS milliseconds.
 func Soon(t testing.TB, callback func(), timeout time.Duration) {
 	t.Helper()
 

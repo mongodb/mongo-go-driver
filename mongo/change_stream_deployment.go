@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -33,6 +34,11 @@ func (c *changeStreamDeployment) Kind() description.TopologyKind {
 
 func (c *changeStreamDeployment) Connection(context.Context) (driver.Connection, error) {
 	return c.conn, nil
+}
+
+// MinRTT always returns 0. It implements the driver.Server interface.
+func (c *changeStreamDeployment) MinRTT() time.Duration {
+	return 0
 }
 
 func (c *changeStreamDeployment) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {

@@ -8,6 +8,7 @@ package topology
 
 import (
 	"context"
+	"math"
 	"sync"
 	"time"
 
@@ -17,17 +18,22 @@ import (
 
 const (
 	rttAlphaValue = 0.2
+	minSamples    = 5
+	maxSamples    = 500
 )
 
 type rttConfig struct {
 	interval           time.Duration
+	minRTTWindow       time.Duration // Window size to calculate minimum RTT over.
 	createConnectionFn func() (*connection, error)
 	createOperationFn  func(driver.Connection) *operation.Hello
 }
 
 type rttMonitor struct {
-	sync.Mutex
-	conn          *connection
+	mu            sync.RWMutex // mu guards samples, offset, minRTT, averageRTT, and averageRTTSet
+	samples       []time.Duration
+	offset        int
+	minRTT        time.Duration
 	averageRTT    time.Duration
 	averageRTTSet bool
 	closeWg       sync.WaitGroup
@@ -36,9 +42,14 @@ type rttMonitor struct {
 	cancelFn      context.CancelFunc
 }
 
-func newRttMonitor(cfg *rttConfig) *rttMonitor {
+func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 	ctx, cancel := context.WithCancel(context.Background())
+	// Determine the number of samples we need to keep to store the minWindow of RTT durations. The
+	// number of samples must be between [5, 500].
+	numSamples := int(math.Max(minSamples, math.Min(maxSamples, float64((cfg.minRTTWindow)/cfg.interval))))
+
 	return &rttMonitor{
+		samples:  make([]time.Duration, numSamples),
 		cfg:      cfg,
 		ctx:      ctx,
 		cancelFn: cancel,
@@ -53,21 +64,6 @@ func (r *rttMonitor) connect() {
 func (r *rttMonitor) disconnect() {
 	// Signal for the routine to stop.
 	r.cancelFn()
-
-	var conn *connection
-	r.Lock()
-	conn = r.conn
-	r.Unlock()
-
-	if conn != nil {
-		// If the connection exists, we need to wait for it to be connected. We can ignore the error from conn.wait().
-		// If the connection wasn't successfully opened, its state was set back to disconnected, so calling conn.close()
-		// will be a noop.
-		conn.closeConnectContext()
-		_ = conn.wait()
-		_ = conn.close()
-	}
-
 	r.closeWg.Wait()
 }
 
@@ -76,77 +72,88 @@ func (r *rttMonitor) start() {
 	ticker := time.NewTicker(r.cfg.interval)
 	defer ticker.Stop()
 
-	for {
-		// The context is only cancelled in disconnect() so if there's an error on it, the monitor is shutting down.
-		if r.ctx.Err() != nil {
-			return
+	var conn *connection
+	defer func() {
+		if conn != nil {
+			// If the connection exists, we need to wait for it to be connected. We can ignore the
+			// error from conn.wait(). If the connection wasn't successfully opened, its state was
+			// set back to disconnected, so calling conn.close() will be a noop.
+			conn.closeConnectContext()
+			_ = conn.wait()
+			_ = conn.close()
 		}
+	}()
 
-		r.pingServer()
+	for {
+		conn = r.runHello(conn)
 
 		select {
 		case <-ticker.C:
 		case <-r.ctx.Done():
-			// Shutting down
 			return
 		}
 	}
 }
 
-// reset sets the average RTT to 0. This should only be called from the server monitor when an error occurs during a
-// server check. Errors in the RTT monitor should not reset the average RTT.
-func (r *rttMonitor) reset() {
-	r.Lock()
-	defer r.Unlock()
-
-	r.averageRTT = 0
-	r.averageRTTSet = false
-}
-
-func (r *rttMonitor) setupRttConnection() error {
-	conn, err := r.cfg.createConnectionFn()
-	if err != nil {
-		return err
-	}
-
-	r.Lock()
-	r.conn = conn
-	r.Unlock()
-
-	r.conn.connect(r.ctx)
-	return r.conn.wait()
-}
-
-func (r *rttMonitor) pingServer() {
-	if r.conn == nil || r.conn.closed() {
-		if err := r.setupRttConnection(); err != nil {
-			return
+// runHello runs a "hello" operation using the provided connection, measures the duration, and adds
+// the duration as an RTT sample and returns the connection used. If the provided connection is nil
+// or closed, runHello tries to establish a new connection. If the "hello" operation returns an
+// error, runHello closes the connection.
+func (r *rttMonitor) runHello(conn *connection) *connection {
+	if conn == nil || conn.closed() {
+		var err error
+		conn, err = r.cfg.createConnectionFn()
+		if err != nil {
+			return nil
 		}
 
-		// Add the initial connection handshake time as an RTT sample.
-		r.addSample(r.conn.helloRTT)
-		return
+		conn.connect(r.ctx)
+		err = conn.wait()
+		if err != nil {
+			_ = conn.close()
+			return nil
+		}
 	}
 
-	// We're using an already established connection. Issue a hello command to get a new RTT sample.
-	rttConn := initConnection{r.conn}
 	start := time.Now()
-	err := r.cfg.createOperationFn(rttConn).Execute(r.ctx)
+	err := r.cfg.createOperationFn(initConnection{conn}).Execute(r.ctx)
 	if err != nil {
-		// Errors from the RTT monitor do not reset the average RTT or update the topology, so we close the existing
-		// connection and recreate it on the next check.
-		_ = r.conn.close()
-		return
+		// Errors from the RTT monitor do not reset the RTTs or update the topology, so we close the
+		// existing connection and recreate it on the next check.
+		_ = conn.close()
+		return nil
 	}
 
 	r.addSample(time.Since(start))
+
+	return conn
+}
+
+// reset sets the average RTT to 0. This should only be called from the server monitor when an error
+// occurs during a server check. Errors in the RTT monitor should not reset the RTTs.
+func (r *rttMonitor) reset() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for i := range r.samples {
+		r.samples[i] = 0
+	}
+	r.minRTT = 0
+	r.averageRTT = 0
+	r.averageRTTSet = false
 }
 
 func (r *rttMonitor) addSample(rtt time.Duration) {
 	// Lock for the duration of this method. We're doing compuationally inexpensive work very infrequently, so lock
 	// contention isn't expected.
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.samples[r.offset] = rtt
+	r.offset = (r.offset + 1) % len(r.samples)
+	// Set the minRTT as the minimum of all collected samples. Require at least 5 samples before
+	// setting minRTT to prevent noisy samples on startup from artificially increasing minRTT.
+	r.minRTT = min(r.samples, minSamples)
 
 	if !r.averageRTTSet {
 		r.averageRTT = rtt
@@ -157,9 +164,42 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 	r.averageRTT = time.Duration(rttAlphaValue*float64(rtt) + (1-rttAlphaValue)*float64(r.averageRTT))
 }
 
+// min returns the minimum value of the slice of duration samples. Zero values are not considered
+// samples and are ignored. If no samples or fewer than minSamples are found in the slice, min
+// returns 0.
+func min(samples []time.Duration, minSamples int) time.Duration {
+	if len(samples) == 0 || len(samples) < minSamples {
+		return 0
+	}
+
+	count := 0
+	min := time.Duration(math.MaxInt64)
+	for _, d := range samples {
+		if d > 0 {
+			count++
+		}
+		if d > 0 && d < min {
+			min = d
+		}
+	}
+	if count == 0 || count < minSamples {
+		return 0
+	}
+	return min
+}
+
+// getRTT returns the exponentially weighted moving average observed round-trip time.
 func (r *rttMonitor) getRTT() time.Duration {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
 	return r.averageRTT
+}
+
+// getMinRTT returns the minimum observed round-trip time over the window period.
+func (r *rttMonitor) getMinRTT() time.Duration {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return r.minRTT
 }
