@@ -24,7 +24,7 @@ import (
 // pool events.
 
 var (
-	eventTypesMap = map[string]string{
+	poolEventTypesMap = map[string]string{
 		"PoolClearedEvent": event.PoolCleared,
 	}
 	defaultCallbackTimeout = 10 * time.Second
@@ -32,49 +32,74 @@ var (
 
 // unifiedRunnerEventMonitor monitors connection pool-related events.
 type unifiedRunnerEventMonitor struct {
-	sync.Mutex
-	poolEventCount map[string]int
+	poolEventCount               map[string]int
+	poolEventCountLock           sync.Mutex
+	sdamMonitor                  *event.ServerMonitor
+	serverMarkedUnknownCount     int
+	serverMarkedUnknownCountLock sync.Mutex
 }
 
 func newUnifiedRunnerEventMonitor() *unifiedRunnerEventMonitor {
-	return &unifiedRunnerEventMonitor{
+	urem := unifiedRunnerEventMonitor{
 		poolEventCount: make(map[string]int),
 	}
+	urem.sdamMonitor = &event.ServerMonitor{
+		ServerDescriptionChanged: (func(e *event.ServerDescriptionChangedEvent) {
+			urem.serverMarkedUnknownCountLock.Lock()
+			defer urem.serverMarkedUnknownCountLock.Unlock()
+
+			// Spec tests only ever handle ServerMarkedUnknown ServerDescriptionChangedEvents
+			// for the time being.
+			if e.NewDescription.Kind == description.Unknown {
+				urem.serverMarkedUnknownCount++
+			}
+		}),
+	}
+	return &urem
 }
 
-// handlePoolEvent can be used as the event handler for an connection pool monitor.
+// handlePoolEvent can be used as the event handler for a connection pool monitor.
 func (u *unifiedRunnerEventMonitor) handlePoolEvent(evt *event.PoolEvent) {
-	u.Lock()
-	defer u.Unlock()
+	u.poolEventCountLock.Lock()
+	defer u.poolEventCountLock.Unlock()
 
 	u.poolEventCount[evt.Type]++
 }
 
-// getCount returns the number of events of the given type, or 0 if no events were recorded.
-func (u *unifiedRunnerEventMonitor) getCount(eventType string) int {
-	u.Lock()
-	defer u.Unlock()
+// getPoolEventCount returns the number of pool events of the given type, or 0 if no events were recorded.
+func (u *unifiedRunnerEventMonitor) getPoolEventCount(eventType string) int {
+	u.poolEventCountLock.Lock()
+	defer u.poolEventCountLock.Unlock()
 
-	mappedType := eventTypesMap[eventType]
+	mappedType := poolEventTypesMap[eventType]
 	return u.poolEventCount[mappedType]
+}
+
+// getServerMarkedUnknownEvent returns the number of ServerMarkedUnknownEvents, or 0 if none were recorded.
+func (u *unifiedRunnerEventMonitor) getServerMarkedUnknownCount() int {
+	u.serverMarkedUnknownCountLock.Lock()
+	defer u.serverMarkedUnknownCountLock.Unlock()
+
+	return u.serverMarkedUnknownCount
 }
 
 func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 	eventType := op.Arguments.Lookup("event").StringValue()
-	if eventType == "ServerMarkedUnknownEvent" {
-		mt.Log("skipping waitForEvent assertion for event type ServerMarkedUnknownEvent")
-		return
-	}
-
 	expectedCount := int(op.Arguments.Lookup("count").Int32())
 
 	callback := func() {
 		for {
-			count := test.monitor.getCount(eventType)
+			var count int
+			// Spec tests only ever wait for ServerMarkedUnknown SDAM events for the time being.
+			if eventType == "ServerMarkedUnknownEvent" {
+				count = test.monitor.getServerMarkedUnknownCount()
+			} else {
+				count = test.monitor.getPoolEventCount(eventType)
+			}
+
 			if count >= expectedCount {
 				return
 			}
-
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
@@ -84,13 +109,15 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 
 func assertEventCount(mt *mtest.T, testCase *testCase, op *operation) {
 	eventType := op.Arguments.Lookup("event").StringValue()
-	if eventType == "ServerMarkedUnknownEvent" {
-		mt.Log("skipping waitForEvent assertion for event type ServerMarkedUnknownEvent")
-		return
-	}
-
 	expectedCount := int(op.Arguments.Lookup("count").Int32())
-	gotCount := testCase.monitor.getCount(eventType)
+
+	var gotCount int
+	// Spec tests only ever assert ServerMarkedUnknown SDAM events for the time being.
+	if eventType == "ServerMarkedUnknownEvent" {
+		gotCount = testCase.monitor.getServerMarkedUnknownCount()
+	} else {
+		gotCount = testCase.monitor.getPoolEventCount(eventType)
+	}
 	assert.Equal(mt, expectedCount, gotCount, "expected count %d for event %s, got %d", expectedCount, eventType,
 		gotCount)
 }

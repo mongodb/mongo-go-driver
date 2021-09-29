@@ -272,6 +272,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		testClientOpts.SetPoolMonitor(&event.PoolMonitor{
 			Event: test.monitor.handlePoolEvent,
 		})
+		testClientOpts.SetServerMonitor(test.monitor.sdamMonitor)
 		if testClientOpts.HeartbeatInterval == nil {
 			// If one isn't specified in the test, use a low heartbeat frequency so the Client will quickly recover when
 			// using failpoints that cause SDAM state changes.
