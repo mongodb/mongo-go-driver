@@ -28,41 +28,34 @@ var (
 		"PoolClearedEvent": event.PoolCleared,
 	}
 	defaultCallbackTimeout = 10 * time.Second
-	sdamEventCount         = make(map[string]int)
-	sdamEventCountLock     = sync.Mutex{}
 )
 
 // unifiedRunnerEventMonitor monitors connection pool-related events.
 type unifiedRunnerEventMonitor struct {
-	poolEventCountLock sync.Mutex
-	poolEventCount     map[string]int
-	sdamMonitor        *event.ServerMonitor
+	poolEventCount               map[string]int
+	poolEventCountLock           sync.Mutex
+	sdamMonitor                  *event.ServerMonitor
+	serverMarkedUnknownCount     int
+	serverMarkedUnknownCountLock sync.Mutex
 }
 
 func newUnifiedRunnerEventMonitor() *unifiedRunnerEventMonitor {
-	// reset SDAM event count for each new unifiedRunnerEventMonitor.
-	sdamEventCountLock.Lock()
-	sdamEventCount = make(map[string]int)
-	sdamEventCountLock.Unlock()
-
-	return &unifiedRunnerEventMonitor{
+	urem := unifiedRunnerEventMonitor{
 		poolEventCount: make(map[string]int),
-		sdamMonitor: &event.ServerMonitor{
-			ServerDescriptionChanged: handleServerDescriptionChanged,
-		},
 	}
-}
+	urem.sdamMonitor = &event.ServerMonitor{
+		ServerDescriptionChanged: (func(e *event.ServerDescriptionChangedEvent) {
+			urem.serverMarkedUnknownCountLock.Lock()
+			defer urem.serverMarkedUnknownCountLock.Unlock()
 
-// handleServerDescriptionChanged can be used as the event handler for ServerDescriptionChanged
-// on a ServerMonitor.
-func handleServerDescriptionChanged(e *event.ServerDescriptionChangedEvent) {
-	sdamEventCountLock.Lock()
-	defer sdamEventCountLock.Unlock()
-
-	// Spec tests only ever handle ServerMarkedUnknown ServerDescriptionChangedEvents for the time being.
-	if e.NewDescription.Kind == description.Unknown {
-		sdamEventCount["ServerMarkedUnknownEvent"]++
+			// Spec tests only ever handle ServerMarkedUnknown ServerDescriptionChangedEvents
+			// for the time being.
+			if e.NewDescription.Kind == description.Unknown {
+				urem.serverMarkedUnknownCount++
+			}
+		}),
 	}
+	return &urem
 }
 
 // handlePoolEvent can be used as the event handler for a connection pool monitor.
@@ -82,12 +75,12 @@ func (u *unifiedRunnerEventMonitor) getPoolEventCount(eventType string) int {
 	return u.poolEventCount[mappedType]
 }
 
-// getSDAMEventCount returns the number of SDAM events of the given type, or 0 if no events were recorded.
-func (u *unifiedRunnerEventMonitor) getSDAMEventCount(eventType string) int {
-	sdamEventCountLock.Lock()
-	defer sdamEventCountLock.Unlock()
+// getServerMarkedUnknownEvent returns the number of ServerMarkedUnknownEvents, or 0 if none were recorded.
+func (u *unifiedRunnerEventMonitor) getServerMarkedUnknownCount() int {
+	u.serverMarkedUnknownCountLock.Lock()
+	defer u.serverMarkedUnknownCountLock.Unlock()
 
-	return sdamEventCount[eventType]
+	return u.serverMarkedUnknownCount
 }
 
 func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
@@ -99,7 +92,7 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 			var count int
 			// Spec tests only ever wait for ServerMarkedUnknown SDAM events for the time being.
 			if eventType == "ServerMarkedUnknownEvent" {
-				count = test.monitor.getSDAMEventCount(eventType)
+				count = test.monitor.getServerMarkedUnknownCount()
 			} else {
 				count = test.monitor.getPoolEventCount(eventType)
 			}
@@ -121,7 +114,7 @@ func assertEventCount(mt *mtest.T, testCase *testCase, op *operation) {
 	var gotCount int
 	// Spec tests only ever assert ServerMarkedUnknown SDAM events for the time being.
 	if eventType == "ServerMarkedUnknownEvent" {
-		gotCount = testCase.monitor.getSDAMEventCount(eventType)
+		gotCount = testCase.monitor.getServerMarkedUnknownCount()
 	} else {
 		gotCount = testCase.monitor.getPoolEventCount(eventType)
 	}
