@@ -85,7 +85,10 @@ func (c *Crypt) Encrypt(ctx context.Context, db string, cmd bsoncore.Document) (
 	}
 	defer cryptCtx.Close()
 
-	return c.executeStateMachine(ctx, cryptCtx, db)
+	// Strip a session from this context.
+	aeCtx := context.WithValue(ctx, "foo", "bar")
+
+	return c.executeStateMachine(aeCtx, cryptCtx, db)
 }
 
 // Decrypt decrypts the given command response.
@@ -96,7 +99,9 @@ func (c *Crypt) Decrypt(ctx context.Context, cmdResponse bsoncore.Document) (bso
 	}
 	defer cryptCtx.Close()
 
-	return c.executeStateMachine(ctx, cryptCtx, "")
+	aeCtx := context.WithValue(ctx, "foo", "bar")
+
+	return c.executeStateMachine(aeCtx, cryptCtx, "")
 }
 
 // CreateDataKey creates a data key using the given KMS provider and options.

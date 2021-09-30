@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -359,8 +360,13 @@ func (*sessionImpl) session() {
 }
 
 // sessionFromContext checks for a sessionImpl in the argued context and returns the session if it
-// exists
+// exists, unless this context is being used for automatic encryption.
 func sessionFromContext(ctx context.Context) *session.Client {
+	ae := ctx.Value("foo")
+	if val, ok := ae.(string); ok && val == "bar" {
+		fmt.Println("stripping session")
+		return nil
+	}
 	s := ctx.Value(sessionKey{})
 	if ses, ok := s.(*sessionImpl); ses != nil && ok {
 		return ses.clientSession
