@@ -9,10 +9,12 @@
 package integration
 
 import (
+	"context"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -67,10 +69,27 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 	return ciphertext
 }
 
+func getLsid(mt *mtest.T, doc bson.Raw) bson.Raw {
+	mt.Helper()
+
+	lsid, err := doc.LookupErr("lsid")
+	assert.Nil(mt, err, "expected lsid in document: %v", doc)
+	lsidDoc, ok := lsid.DocumentOK()
+	assert.True(mt, ok, "expected lsid to be document, but got: %v", lsid)
+	return lsidDoc
+}
 func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 	verifyClientSideEncryptionVarsSet(t)
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
 	defer mt.Close()
+
+	makeMonitor := func(captured *[]event.CommandStartedEvent) *event.CommandMonitor {
+		return &event.CommandMonitor{
+			Started: func(_ context.Context, cse *event.CommandStartedEvent) {
+				*captured = append(*captured, *cse)
+			},
+		}
+	}
 
 	kmsProvidersMap := map[string]map[string]interface{}{
 		"local": {"key": localMasterKey},
@@ -90,8 +109,9 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 	}
 	schemaMap := map[string]interface{}{"db.coll": schema}
 
-	mt.Run("automatic encryption", func(t *mtest.T) {
+	mt.Run("automatic encryption", func(mt *mtest.T) {
 		createDataKeyAndEncrypt(mt, "myKey")
+		var capturedEvents []event.CommandStartedEvent
 
 		aeOpts := options.AutoEncryption().
 			SetKmsProviders(kmsProvidersMap).
@@ -102,7 +122,8 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 			ApplyURI(mtest.ClusterURI()).
 			SetReadConcern(mtest.MajorityRc).
 			SetWriteConcern(mtest.MajorityWc).
-			SetAutoEncryptionOptions(aeOpts)
+			SetAutoEncryptionOptions(aeOpts).
+			SetMonitor(makeMonitor(&capturedEvents))
 
 		testutil.AddTestServerAPIVersion(clientOpts)
 
@@ -116,12 +137,41 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		coll := client.Database("db").Collection("coll")
 		coll.Drop(mtest.Background)
+
+		capturedEvents = make([]event.CommandStartedEvent, 0)
 		_, err = coll.InsertOne(sessionCtx, bson.D{{"encryptMe", "test"}, {"keyName", "myKey"}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
+
+		assert.Equal(mt, len(capturedEvents), 2, "expected 2 events, got %v", len(capturedEvents))
+
+		// Assert the first event is a find on the keyvault.datakeys collection.
+		event := capturedEvents[0]
+		assert.Equal(mt, event.CommandName, "find", "expected command 'find', got '%v'", event.CommandName)
+		assert.Equal(mt, event.DatabaseName, "keyvault", "expected find on keyvault, got %v", event.DatabaseName)
+
+		// Assert the find used an implicit session with an lsid != session.ID()
+		lsid := getLsid(mt, event.Command)
+		assert.Nil(mt, err, "lsid not found on %v", event.Command)
+		assert.NotEqual(mt, lsid, session.ID(), "expected different lsid, but got %v", lsid)
+
+		// Assert the second event is the original insert.
+		event = capturedEvents[1]
+		assert.Equal(mt, event.CommandName, "insert", "expected command 'insert', got '%v'", event.CommandName)
+
+		// Assert the insert used the explicit session.
+		lsid = getLsid(mt, event.Command)
+		assert.Nil(mt, err, "lsid not found on %v", event.Command)
+		assert.Equal(mt, lsid, session.ID(), "expected lsid %v, but got %v", session.ID(), lsid)
+
+		// Check that 'encryptMe' is encrypted.
+		encryptMe, err := event.Command.LookupErr("documents", "0", "encryptMe")
+		assert.Nil(mt, err, "could not find 'encryptMe' on %v", event.Command)
+		assert.Equal(mt, encryptMe.Type, bson.TypeBinary, "expected Binary, got %v", encryptMe.Type)
 	})
 
-	mt.Run("automatic decryption", func(t *mtest.T) {
+	mt.Run("automatic decryption", func(mt *mtest.T) {
 		ciphertext := createDataKeyAndEncrypt(mt, "myKey")
+		var capturedEvents []event.CommandStartedEvent
 
 		aeOpts := options.AutoEncryption().
 			SetKmsProviders(kmsProvidersMap).
@@ -132,7 +182,8 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 			ApplyURI(mtest.ClusterURI()).
 			SetReadConcern(mtest.MajorityRc).
 			SetWriteConcern(mtest.MajorityWc).
-			SetAutoEncryptionOptions(aeOpts)
+			SetAutoEncryptionOptions(aeOpts).
+			SetMonitor(makeMonitor(&capturedEvents))
 		testutil.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(mtest.Background, clientOpts)
@@ -146,7 +197,30 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 		session, err := client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		sessionCtx := mongo.NewSessionContext(mtest.Background, session)
+		capturedEvents = make([]event.CommandStartedEvent, 0)
 		res := coll.FindOne(sessionCtx, bson.D{{}})
 		assert.Nil(mt, res.Err(), "FindOne error: %v", res.Err())
+
+		assert.Equal(mt, len(capturedEvents), 2, "expected 2 events, got %v", len(capturedEvents))
+
+		// Assert the first event is the original find.
+		event := capturedEvents[0]
+		assert.Equal(mt, event.CommandName, "find", "expected command 'find', got '%v'", event.CommandName)
+		assert.Equal(mt, event.DatabaseName, "db", "expected find on db, got %v", event.DatabaseName)
+
+		// Assert the find used the explicit session
+		lsid := getLsid(mt, event.Command)
+		assert.Nil(mt, err, "lsid not found on %v", event.Command)
+		assert.Equal(mt, lsid, session.ID(), "expected lsid %v, but got %v", session.ID(), lsid)
+
+		// Assert the second event is the find on the keyvault.datakeys collection.
+		event = capturedEvents[1]
+		assert.Equal(mt, event.CommandName, "find", "expected command 'find', got '%v'", event.CommandName)
+		assert.Equal(mt, event.DatabaseName, "keyvault", "expected find on keyvault, got %v", event.DatabaseName)
+
+		// Assert the find used an implicit session with an lsid != session.ID()
+		lsid = getLsid(mt, event.Command)
+		assert.Nil(mt, err, "lsid not found on %v", event.Command)
+		assert.NotEqual(mt, lsid, session.ID(), "expected different lsid, but got %v", lsid)
 	})
 }
