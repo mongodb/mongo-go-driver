@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
@@ -20,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // createDataKeyAndEncrypt creates a data key with the alternate name @keyName.
@@ -56,9 +58,7 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 	_, err = ce.CreateDataKey(mtest.Background, "local", dkOpts)
 	assert.Nil(mt, err, "CreateDataKey error: %v", err)
 
-	t, value, err := bson.MarshalValue("test")
-	assert.Nil(mt, err, "MarshalValue error: %v", err)
-	in := bson.RawValue{Type: t, Value: value}
+	in := bson.RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "test")}
 	eOpts := options.Encrypt().
 		SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Random").
 		SetKeyAltName(keyName)
@@ -80,9 +80,11 @@ func getLsid(mt *mtest.T, doc bson.Raw) bson.Raw {
 
 func makeMonitor(mt *mtest.T, captured *[]event.CommandStartedEvent) *event.CommandMonitor {
 	mt.Helper()
+	assert.NotNil(mt, captured, "captured is nil")
 
 	return &event.CommandMonitor{
 		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
+			assert.NotNil(mt, cse, "expected non-Nil CommandStartedEvent")
 			*captured = append(*captured, *cse)
 		},
 	}

@@ -14,8 +14,7 @@ import (
 
 // keyRetriever gets keys from the key vault collection.
 type keyRetriever struct {
-	coll                    *Collection
-	supportExplicitSessions bool
+	coll *Collection
 }
 
 func (kr *keyRetriever) cryptKeys(ctx context.Context, filter bsoncore.Document) ([]bsoncore.Document, error) {
