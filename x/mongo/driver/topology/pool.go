@@ -594,8 +594,8 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 
 	// wait waits for there to be an available wantConn and for the pool to have space for a new
 	// connection. When the condition becomes true, it creates a new connection and returns the
-	// waiting waiting wantConn and new connection. If the Context is cancelled or there are any
-	// errrors, wait returns with "ok = false".
+	// waiting wantConn and new connection. If the Context is cancelled or there are any
+	// errors, wait returns with "ok = false".
 	wait := func() (*wantConn, *connection, bool) {
 		p.connsCond.L.Lock()
 		defer p.connsCond.L.Unlock()
