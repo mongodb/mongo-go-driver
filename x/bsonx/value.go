@@ -30,33 +30,12 @@ type Val struct {
 	primitive interface{}
 }
 
-func (v Val) reset() Val {
-	v.primitive = nil // clear out any pointers so we don't accidentally stop them from being garbage collected.
-	v.t = bsontype.Type(0)
-	v.bootstrap[0] = 0x00
-	v.bootstrap[1] = 0x00
-	v.bootstrap[2] = 0x00
-	v.bootstrap[3] = 0x00
-	v.bootstrap[4] = 0x00
-	v.bootstrap[5] = 0x00
-	v.bootstrap[6] = 0x00
-	v.bootstrap[7] = 0x00
-	v.bootstrap[8] = 0x00
-	v.bootstrap[9] = 0x00
-	v.bootstrap[10] = 0x00
-	v.bootstrap[11] = 0x00
-	v.bootstrap[12] = 0x00
-	v.bootstrap[13] = 0x00
-	v.bootstrap[14] = 0x00
-	return v
-}
-
 func (v Val) string() string {
 	if v.primitive != nil {
 		return v.primitive.(string)
 	}
 	// The string will either end with a null byte or it fills the entire bootstrap space.
-	length := uint8(v.bootstrap[0])
+	length := v.bootstrap[0]
 	return string(v.bootstrap[1 : length+1])
 }
 
@@ -190,7 +169,7 @@ func (v Val) MarshalAppendBSONValue(dst []byte) (bsontype.Type, []byte, error) {
 	case bsontype.Boolean:
 		dst = bsoncore.AppendBoolean(dst, v.Boolean())
 	case bsontype.DateTime:
-		dst = bsoncore.AppendDateTime(dst, int64(v.DateTime()))
+		dst = bsoncore.AppendDateTime(dst, v.DateTime())
 	case bsontype.Null:
 	case bsontype.Regex:
 		pattern, options := v.Regex()
@@ -199,9 +178,9 @@ func (v Val) MarshalAppendBSONValue(dst []byte) (bsontype.Type, []byte, error) {
 		ns, ptr := v.DBPointer()
 		dst = bsoncore.AppendDBPointer(dst, ns, ptr)
 	case bsontype.JavaScript:
-		dst = bsoncore.AppendJavaScript(dst, string(v.JavaScript()))
+		dst = bsoncore.AppendJavaScript(dst, v.JavaScript())
 	case bsontype.Symbol:
-		dst = bsoncore.AppendSymbol(dst, string(v.Symbol()))
+		dst = bsoncore.AppendSymbol(dst, v.Symbol())
 	case bsontype.CodeWithScope:
 		code, doc := v.CodeWithScope()
 		var scope []byte
@@ -568,7 +547,7 @@ func (v Val) Time() time.Time {
 		panic(ElementTypeError{"bson.Value.Time", v.t})
 	}
 	i := v.i64()
-	return time.Unix(int64(i)/1000, int64(i)%1000*1000000)
+	return time.Unix(i/1000, i%1000*1000000)
 }
 
 // TimeOK is the same as Time, except it returns a boolean instead of
@@ -578,7 +557,7 @@ func (v Val) TimeOK() (time.Time, bool) {
 		return time.Time{}, false
 	}
 	i := v.i64()
-	return time.Unix(int64(i)/1000, int64(i)%1000*1000000), true
+	return time.Unix(i/1000, i%1000*1000000), true
 }
 
 // Null returns the BSON undefined the Value represents. It panics if the value is a BSON type
@@ -587,7 +566,6 @@ func (v Val) Null() {
 	if v.t != bsontype.Null && v.t != bsontype.Type(0) {
 		panic(ElementTypeError{"bson.Value.Null", v.t})
 	}
-	return
 }
 
 // NullOK is the same as Null, except it returns a boolean instead of

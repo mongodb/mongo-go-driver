@@ -50,10 +50,6 @@ func newProxyDialer() *proxyDialer {
 	}
 }
 
-func newProxyError(err error) error {
-	return fmt.Errorf("proxy error: %v", err)
-}
-
 func newProxyErrorWithWireMsg(wm []byte, err error) error {
 	return fmt.Errorf("proxy error for wiremessage %v: %v", wm, err)
 }
@@ -135,10 +131,8 @@ func (p *proxyDialer) Messages() []*ProxyMessage {
 	p.Lock()
 	defer p.Unlock()
 
-	copiedMessages := make([]*ProxyMessage, 0, len(p.messages))
-	for _, msg := range p.messages {
-		copiedMessages = append(copiedMessages, msg)
-	}
+	copiedMessages := make([]*ProxyMessage, len(p.messages))
+	copy(copiedMessages, p.messages)
 	return copiedMessages
 }
 

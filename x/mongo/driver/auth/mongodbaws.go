@@ -60,7 +60,7 @@ func (a *awsSaslAdapter) Start() (string, []byte, error) {
 	if err != nil {
 		return MongoDBAWS, nil, err
 	}
-	return MongoDBAWS, []byte(step), nil
+	return MongoDBAWS, step, nil
 }
 
 func (a *awsSaslAdapter) Next(challenge []byte) ([]byte, error) {

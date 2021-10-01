@@ -133,17 +133,3 @@ func docToBytes(d interface{}) []byte {
 	}
 	return b
 }
-
-type byteMarshaler []byte
-
-func (bm byteMarshaler) MarshalBSON() ([]byte, error) { return bm, nil }
-
-type _Interface interface {
-	method()
-}
-
-type _impl struct {
-	Foo string
-}
-
-func (_impl) method() {}

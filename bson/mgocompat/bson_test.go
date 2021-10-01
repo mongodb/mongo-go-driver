@@ -975,7 +975,7 @@ func TestUnmarshalSetterErrSetZero(t *testing.T) {
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 
 	m := map[string]*setterType{}
-	err = bson.UnmarshalWithRegistry(Registry, []byte(data), m)
+	err = bson.UnmarshalWithRegistry(Registry, data, m)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 
 	value, ok := m["field"]
@@ -1119,9 +1119,6 @@ type condTime struct {
 type condStruct struct {
 	V struct{ A []int } `bson:",omitempty"`
 }
-type condRaw struct {
-	V bson.RawValue `bson:",omitempty"`
-}
 
 type shortInt struct {
 	V int64 `bson:",minsize"`
@@ -1141,9 +1138,6 @@ type shortNonEmptyInt struct {
 
 type inlineInt struct {
 	V struct{ A, B int } `bson:",inline"`
-}
-type inlineCantPtr struct {
-	V *struct{ A, B int } `bson:",inline"`
 }
 type inlineDupName struct {
 	A int
@@ -1283,7 +1277,6 @@ var (
 	int64var = int64(42)
 	int64ptr = &int64var
 	intvar   = int(42)
-	intptr   = &intvar
 
 	gsintvar = getterSetterInt(42)
 )

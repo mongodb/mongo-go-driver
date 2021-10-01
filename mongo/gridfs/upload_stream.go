@@ -161,7 +161,7 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 		numChunks = int(math.Floor(chunks))
 	}
 
-	docs := make([]interface{}, int(numChunks))
+	docs := make([]interface{}, numChunks)
 
 	id, err := convertFileID(us.FileID)
 	if err != nil {

@@ -764,7 +764,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"time.Time",
 					now,
 					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(now.UnixNano() / int64(time.Millisecond))},
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: now.UnixNano() / int64(time.Millisecond)},
 					bsonrwtest.ReadDateTime,
 					nil,
 				},

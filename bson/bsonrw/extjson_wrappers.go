@@ -19,7 +19,7 @@ import (
 )
 
 func wrapperKeyBSONType(key string) bsontype.Type {
-	switch string(key) {
+	switch key {
 	case "$numberInt":
 		return bsontype.Int32
 	case "$numberLong":
@@ -269,7 +269,9 @@ func (ejv *extJSONValue) parseDouble() (float64, error) {
 		return 0, fmt.Errorf("$numberDouble value should be string, but instead is %s", ejv.t)
 	}
 
-	switch string(ejv.v.(string)) {
+	str := ejv.v.(string)
+
+	switch str {
 	case "Infinity":
 		return math.Inf(1), nil
 	case "-Infinity":
@@ -278,7 +280,7 @@ func (ejv *extJSONValue) parseDouble() (float64, error) {
 		return math.NaN(), nil
 	}
 
-	f, err := strconv.ParseFloat(ejv.v.(string), 64)
+	f, err := strconv.ParseFloat(str, 64)
 	if err != nil {
 		return 0, err
 	}
@@ -364,7 +366,7 @@ func (ejv *extJSONValue) parseRegex() (pattern, options string, err error) {
 	for i, key := range regexObj.keys {
 		val := regexObj.values[i]
 
-		switch string(key) {
+		switch key {
 		case "pattern":
 			if patFound {
 				return "", "", errors.New("duplicate pattern key in $regularExpression")

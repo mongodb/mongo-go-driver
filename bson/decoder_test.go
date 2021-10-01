@@ -62,6 +62,7 @@ func TestDecoderv2(t *testing.T) {
 		}
 		t.Run("lookup error", func(t *testing.T) {
 			type certainlydoesntexistelsewhereihope func(string, string) string
+			var _ = certainlydoesntexistelsewhereihope(nil)
 			cdeih := func(string, string) string { return "certainlydoesntexistelsewhereihope" }
 			dec, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
 			noerr(t, err)
@@ -249,20 +250,7 @@ func TestDecoderv2(t *testing.T) {
 	})
 }
 
-type testDecoderCodec struct {
-	EncodeValueCalled bool
-	DecodeValueCalled bool
-}
-
-func (tdc *testDecoderCodec) EncodeValue(bsoncodec.EncodeContext, bsonrw.ValueWriter, interface{}) error {
-	tdc.EncodeValueCalled = true
-	return nil
-}
-
-func (tdc *testDecoderCodec) DecodeValue(bsoncodec.DecodeContext, bsonrw.ValueReader, interface{}) error {
-	tdc.DecodeValueCalled = true
-	return nil
-}
+var _ Unmarshaler = &testUnmarshaler{}
 
 type testUnmarshaler struct {
 	invoked bool

@@ -17,8 +17,8 @@ import (
 type VRWInvoked byte
 
 const (
-	llvrwNothing VRWInvoked = iota
-	llvrwReadArray
+	_                         = iota
+	llvrwReadArray VRWInvoked = 1
 	llvrwReadBinary
 	llvrwReadBoolean
 	llvrwReadDocument

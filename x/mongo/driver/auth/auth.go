@@ -13,7 +13,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -152,7 +151,7 @@ func (ah *authHandshaker) authenticate(ctx context.Context, cfg *Config) error {
 		if ah.conversation == nil {
 			return errors.New("speculative auth was not attempted but the server included a response")
 		}
-		return ah.conversation.Finish(ctx, cfg, bsoncore.Document(speculativeResponse))
+		return ah.conversation.Finish(ctx, cfg, speculativeResponse)
 	}
 
 	// If the server does not support speculative authentication or the first attempt was not successful, we need to

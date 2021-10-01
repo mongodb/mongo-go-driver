@@ -5,7 +5,7 @@ linters:
   disable-all: true
   # TODO(GODRIVER-2156): Enable all commented-out linters.
   enable:
-    # - deadcode
+    - deadcode
     - errcheck
     # - errorlint
     - goimports
@@ -18,8 +18,8 @@ linters:
     - staticcheck
     # - structcheck
     - typecheck
-    # - unused
-    # - unconvert
+    - unused
+    - unconvert
     # - unparam
     # - varcheck
 
@@ -54,11 +54,23 @@ issues:
     - (^|/)data($|/)
     - (^|/)etc($|/)
   exclude-rules:
+    # Ignore some linters for example code that is intentionally simplified.
     - path: examples/
       linters:
         - revive
         - errcheck
+    # Ignore some linters for generated operation code.
+    # TODO: Re-enable once GODRIVER-2154 is done.
     - path: x/mongo/driver/operation/
       linters:
-        - staticcheck # TODO: Re-enable once GODRIVER-2154 is done.
-        - ineffassign # TODO: Re-enable once GODRIVER-2154 is done.
+        - staticcheck
+        - ineffassign
+    # Disable unused code linters for the copy/pasted "awsv4" package.
+    - path: x/mongo/driver/auth/internal/awsv4
+      linters:
+        - unused
+    # Disable unused code linters for "crypt.go" because the linter doesn't work correctly without
+    # enabling CGO.
+    - path: x/mongo/driver/crypt.go
+      linters:
+        - unused

@@ -9,14 +9,10 @@ package session
 import (
 	"time"
 
-	"crypto/rand"
-
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
-
-var rander = rand.Reader
 
 // Server is an open session with the server.
 type Server struct {

@@ -25,7 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -52,7 +51,6 @@ type Client struct {
 	id              uuid.UUID
 	topologyOptions []topology.Option
 	deployment      driver.Deployment
-	connString      connstring.ConnString
 	localThreshold  time.Duration
 	retryWrites     bool
 	retryReads      bool
@@ -61,7 +59,6 @@ type Client struct {
 	readConcern     *readconcern.ReadConcern
 	writeConcern    *writeconcern.WriteConcern
 	registry        *bsoncodec.Registry
-	marshaller      BSONAppender
 	monitor         *event.CommandMonitor
 	serverAPI       *driver.ServerAPIOptions
 	serverMonitor   *event.ServerMonitor

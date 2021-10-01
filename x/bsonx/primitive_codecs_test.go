@@ -893,8 +893,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 	})
 }
 
-func compareValues(v1, v2 Val) bool    { return v1.Equal(v2) }
-func compareElements(e1, e2 Elem) bool { return e1.Equal(e2) }
+func compareValues(v1, v2 Val) bool { return v1.Equal(v2) }
 
 func docToBytes(d Doc) []byte {
 	b, err := d.MarshalBSON()

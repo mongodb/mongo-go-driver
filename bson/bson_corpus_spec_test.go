@@ -22,7 +22,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/pretty"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
@@ -60,12 +59,6 @@ type parseErrorTestCase struct {
 }
 
 const dataDir = "../data/bson-corpus/"
-
-var dvd bsoncodec.DefaultValueDecoders
-var dve bsoncodec.DefaultValueEncoders
-
-var dc = bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
-var ec = bsoncodec.EncodeContext{Registry: NewRegistryBuilder().Build()}
 
 func findJSONFilesInDir(t *testing.T, dir string) []string {
 	files := make([]string, 0)

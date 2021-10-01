@@ -22,7 +22,7 @@ func TestTimeCodec(t *testing.T) {
 	now := time.Now().Truncate(time.Millisecond)
 
 	t.Run("UseLocalTimeZone", func(t *testing.T) {
-		reader := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(now.UnixNano() / int64(time.Millisecond))}
+		reader := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: now.UnixNano() / int64(time.Millisecond)}
 		testCases := []struct {
 			name string
 			opts *bsonoptions.TimeCodecOptions

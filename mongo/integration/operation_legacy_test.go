@@ -197,7 +197,7 @@ func runFindWithOptions(mt *mtest.T) opQuery {
 		{"$orderby", sort},
 	}
 	return opQuery{
-		flags:                wiremessage.QueryFlag(wiremessage.Partial | wiremessage.TailableCursor | wiremessage.NoCursorTimeout | wiremessage.OplogReplay | wiremessage.SecondaryOK),
+		flags:                wiremessage.Partial | wiremessage.TailableCursor | wiremessage.NoCursorTimeout | wiremessage.OplogReplay | wiremessage.SecondaryOK,
 		fullCollectionName:   fullCollName(mt, mt.Coll.Name()),
 		numToSkip:            1,
 		numToReturn:          2,

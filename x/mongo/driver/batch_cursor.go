@@ -345,7 +345,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 				return nil
 			}
 
-			bc.postBatchResumeToken = bsoncore.Document(pbrtDoc)
+			bc.postBatchResumeToken = pbrtDoc
 
 			return nil
 		},

@@ -332,7 +332,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 
 		generation := server.pool.generation.getGeneration(nil)
 		if appErr.Generation != nil {
-			generation = uint64(*appErr.Generation)
+			generation = *appErr.Generation
 		}
 		//use generation number to check conn stale
 		innerConn := connection{
@@ -364,14 +364,14 @@ func compareServerDescriptions(t *testing.T,
 		"%v: expected %d hosts, got %d", idx, len(expected.Hosts), len(actual.Hosts))
 	for idx, expectedHost := range expected.Hosts {
 		actualHost := actual.Hosts[idx]
-		assert.Equal(t, expectedHost, string(actualHost), "%v: expected host %s, got %s", idx, expectedHost, actualHost)
+		assert.Equal(t, expectedHost, actualHost, "%v: expected host %s, got %s", idx, expectedHost, actualHost)
 	}
 
 	assert.Equal(t, len(expected.Passives), len(actual.Passives),
 		"%v: expected %d hosts, got %d", idx, len(expected.Passives), len(actual.Passives))
 	for idx, expectedPassive := range expected.Passives {
 		actualPassive := actual.Passives[idx]
-		assert.Equal(t, expectedPassive, string(actualPassive), "%v: expected passive %s, got %s", idx, expectedPassive, actualPassive)
+		assert.Equal(t, expectedPassive, actualPassive, "%v: expected passive %s, got %s", idx, expectedPassive, actualPassive)
 	}
 
 	assert.Equal(t, expected.Primary, string(actual.Primary),
@@ -419,7 +419,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 		if me.TopologyOpeningEvent != nil {
 			actual, ok := publishedEvents[idx].(event.TopologyOpeningEvent)
 			assert.True(t, ok, "%v: expected type %T, got %T", idx, event.TopologyOpeningEvent{}, publishedEvents[idx])
-			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, actual.TopologyID.IsZero(), "%v: expected topology id", idx)
 		}
 		if me.ServerOpeningEvent != nil {
 			actual, ok := publishedEvents[idx].(event.ServerOpeningEvent)
@@ -428,7 +428,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 			evt := me.ServerOpeningEvent
 			assert.Equal(t, evt.Address, string(actual.Address),
 				"%v: expected address %s, got %s", idx, evt.Address, actual.Address)
-			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, actual.TopologyID.IsZero(), "%v: expected topology id", idx)
 		}
 		if me.TopologyDescriptionChangedEvent != nil {
 			actual, ok := publishedEvents[idx].(event.TopologyDescriptionChangedEvent)
@@ -437,7 +437,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 			evt := me.TopologyDescriptionChangedEvent
 			compareTopologyDescriptions(t, evt.PreviousDescription, actual.PreviousDescription, idx)
 			compareTopologyDescriptions(t, evt.NewDescription, actual.NewDescription, idx)
-			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, actual.TopologyID.IsZero(), "%v: expected topology id", idx)
 		}
 		if me.ServerDescriptionChangedEvent != nil {
 			actual, ok := publishedEvents[idx].(event.ServerDescriptionChangedEvent)
@@ -448,7 +448,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 				"%v: expected server address %s, got %s", idx, evt.Address, actual.Address)
 			compareServerDescriptions(t, evt.PreviousDescription, actual.PreviousDescription, idx)
 			compareServerDescriptions(t, evt.NewDescription, actual.NewDescription, idx)
-			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, actual.TopologyID.IsZero(), "%v: expected topology id", idx)
 		}
 		if me.ServerClosedEvent != nil {
 			actual, ok := publishedEvents[idx].(event.ServerClosedEvent)
@@ -457,7 +457,7 @@ func compareEvents(t *testing.T, events []monitoringEvent) {
 			evt := me.ServerClosedEvent
 			assert.Equal(t, evt.Address, string(actual.Address),
 				"%v: expected server address %s, got %s", idx, evt.Address, actual.Address)
-			assert.False(t, primitive.ObjectID(actual.TopologyID).IsZero(), "%v: expected topology id", idx)
+			assert.False(t, actual.TopologyID.IsZero(), "%v: expected topology id", idx)
 		}
 	}
 }

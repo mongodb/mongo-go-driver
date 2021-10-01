@@ -105,7 +105,7 @@ func (wc *WriteConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
 
 			elems = bsoncore.AppendInt32Element(elems, "w", int32(t))
 		case string:
-			elems = bsoncore.AppendStringElement(elems, "w", string(t))
+			elems = bsoncore.AppendStringElement(elems, "w", t)
 		}
 	}
 

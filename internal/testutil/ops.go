@@ -54,13 +54,6 @@ func DropCollection(t *testing.T, dbname, colname string) {
 	}
 }
 
-func autoDropDB(t *testing.T, topo *topology.Topology) {
-	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
-		Database(DBName(t)).ServerSelector(description.WriteSelector()).Deployment(topo).
-		Execute(context.Background())
-	require.NoError(t, err)
-}
-
 // AutoInsertDocs inserts the docs into the test cluster.
 func AutoInsertDocs(t *testing.T, writeConcern *writeconcern.WriteConcern, docs ...bsoncore.Document) {
 	InsertDocs(t, DBName(t), ColName(t), writeConcern, docs...)
