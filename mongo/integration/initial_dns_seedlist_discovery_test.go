@@ -42,6 +42,9 @@ func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
 	mt.RunOpts("replica set", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
 		runSeedlistDiscoveryDirectory(mt, "replica-set")
 	})
+	mt.RunOpts("sharded", mtest.NewOptions().Topologies(mtest.Sharded).CreateClient(false), func(mt *mtest.T) {
+		runSeedlistDiscoveryDirectory(mt, "sharded")
+	})
 	mt.RunOpts("load balanced", mtest.NewOptions().Topologies(mtest.LoadBalanced).CreateClient(false), func(mt *mtest.T) {
 		runSeedlistDiscoveryDirectory(mt, "load-balanced")
 	})
