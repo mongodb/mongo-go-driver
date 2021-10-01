@@ -23,11 +23,10 @@ import (
 )
 
 // createDataKeyAndEncrypt creates a data key with the alternate name @keyName.
-// Returns a ciphertext encrypted with the data key for use as test data.
+// Returns a ciphertext encrypted with the data key as test data.
 func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 	mt.Helper()
 
-	// Use majority read and write concern since operations will depend on keys being created.
 	kvClientOpts := options.Client().
 		ApplyURI(mtest.ClusterURI()).
 		SetReadConcern(mtest.MajorityRc).
@@ -60,11 +59,11 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 	t, value, err := bson.MarshalValue("test")
 	assert.Nil(mt, err, "MarshalValue error: %v", err)
 	in := bson.RawValue{Type: t, Value: value}
-	encryptOpts := options.Encrypt().
+	eOpts := options.Encrypt().
 		SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Random").
 		SetKeyAltName(keyName)
 
-	ciphertext, err := ce.Encrypt(mtest.Background, in, encryptOpts)
+	ciphertext, err := ce.Encrypt(mtest.Background, in, eOpts)
 	assert.Nil(mt, err, "Encrypt error: %v", err)
 	return ciphertext
 }
@@ -78,18 +77,21 @@ func getLsid(mt *mtest.T, doc bson.Raw) bson.Raw {
 	assert.True(mt, ok, "expected lsid to be document, but got: %v", lsid)
 	return lsidDoc
 }
+
+func makeMonitor(mt *mtest.T, captured *[]event.CommandStartedEvent) *event.CommandMonitor {
+	mt.Helper()
+
+	return &event.CommandMonitor{
+		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
+			*captured = append(*captured, *cse)
+		},
+	}
+}
+
 func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 	verifyClientSideEncryptionVarsSet(t)
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
 	defer mt.Close()
-
-	makeMonitor := func(captured *[]event.CommandStartedEvent) *event.CommandMonitor {
-		return &event.CommandMonitor{
-			Started: func(_ context.Context, cse *event.CommandStartedEvent) {
-				*captured = append(*captured, *cse)
-			},
-		}
-	}
 
 	kmsProvidersMap := map[string]map[string]interface{}{
 		"local": {"key": localMasterKey},
@@ -111,32 +113,34 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 	mt.Run("automatic encryption", func(mt *mtest.T) {
 		createDataKeyAndEncrypt(mt, "myKey")
-		var capturedEvents []event.CommandStartedEvent
 
 		aeOpts := options.AutoEncryption().
 			SetKmsProviders(kmsProvidersMap).
 			SetKeyVaultNamespace("keyvault.datakeys").
 			SetSchemaMap(schemaMap)
 
+		var capturedEvents []event.CommandStartedEvent
+
 		clientOpts := options.Client().
 			ApplyURI(mtest.ClusterURI()).
 			SetReadConcern(mtest.MajorityRc).
 			SetWriteConcern(mtest.MajorityWc).
 			SetAutoEncryptionOptions(aeOpts).
-			SetMonitor(makeMonitor(&capturedEvents))
+			SetMonitor(makeMonitor(mt, &capturedEvents))
 
 		testutil.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(mtest.Background, clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
+		defer client.Disconnect(mtest.Background)
+
+		coll := client.Database("db").Collection("coll")
+		err = coll.Drop(mtest.Background)
+		assert.Nil(mt, err, "Drop error: %v", err)
 
 		session, err := client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
-
 		sessionCtx := mongo.NewSessionContext(mtest.Background, session)
-
-		coll := client.Database("db").Collection("coll")
-		coll.Drop(mtest.Background)
 
 		capturedEvents = make([]event.CommandStartedEvent, 0)
 		_, err = coll.InsertOne(sessionCtx, bson.D{{"encryptMe", "test"}, {"keyName", "myKey"}})
@@ -146,57 +150,62 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		// Assert the first event is a find on the keyvault.datakeys collection.
 		event := capturedEvents[0]
-		assert.Equal(mt, event.CommandName, "find", "expected command 'find', got '%v'", event.CommandName)
-		assert.Equal(mt, event.DatabaseName, "keyvault", "expected find on keyvault, got %v", event.DatabaseName)
+		assert.Equal(mt, event.CommandName, "find", "expected command find, got %q", event.CommandName)
+		assert.Equal(mt, event.DatabaseName, "keyvault", "expected find on keyvault, got %q", event.DatabaseName)
 
 		// Assert the find used an implicit session with an lsid != session.ID()
 		lsid := getLsid(mt, event.Command)
-		assert.Nil(mt, err, "lsid not found on %v", event.Command)
+		assert.Nil(mt, err, "lsid not found in %v", event.Command)
 		assert.NotEqual(mt, lsid, session.ID(), "expected different lsid, but got %v", lsid)
 
 		// Assert the second event is the original insert.
 		event = capturedEvents[1]
-		assert.Equal(mt, event.CommandName, "insert", "expected command 'insert', got '%v'", event.CommandName)
+		assert.Equal(mt, event.CommandName, "insert", "expected command insert, got %q", event.CommandName)
 
 		// Assert the insert used the explicit session.
 		lsid = getLsid(mt, event.Command)
 		assert.Nil(mt, err, "lsid not found on %v", event.Command)
 		assert.Equal(mt, lsid, session.ID(), "expected lsid %v, but got %v", session.ID(), lsid)
 
-		// Check that 'encryptMe' is encrypted.
+		// Check that encryptMe is encrypted.
 		encryptMe, err := event.Command.LookupErr("documents", "0", "encryptMe")
-		assert.Nil(mt, err, "could not find 'encryptMe' on %v", event.Command)
+		assert.Nil(mt, err, "could not find encryptMe in %v", event.Command)
 		assert.Equal(mt, encryptMe.Type, bson.TypeBinary, "expected Binary, got %v", encryptMe.Type)
 	})
 
 	mt.Run("automatic decryption", func(mt *mtest.T) {
 		ciphertext := createDataKeyAndEncrypt(mt, "myKey")
-		var capturedEvents []event.CommandStartedEvent
 
 		aeOpts := options.AutoEncryption().
 			SetKmsProviders(kmsProvidersMap).
 			SetKeyVaultNamespace("keyvault.datakeys").
 			SetBypassAutoEncryption(true)
 
+		var capturedEvents []event.CommandStartedEvent
+
 		clientOpts := options.Client().
 			ApplyURI(mtest.ClusterURI()).
 			SetReadConcern(mtest.MajorityRc).
 			SetWriteConcern(mtest.MajorityWc).
 			SetAutoEncryptionOptions(aeOpts).
-			SetMonitor(makeMonitor(&capturedEvents))
+			SetMonitor(makeMonitor(mt, &capturedEvents))
+
 		testutil.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(mtest.Background, clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
+		defer client.Disconnect(mtest.Background)
 
 		coll := client.Database("db").Collection("coll")
-		coll.Drop(mtest.Background)
+		err = coll.Drop(mtest.Background)
+		assert.Nil(mt, err, "Drop error: %v", err)
 		_, err = coll.InsertOne(mtest.Background, bson.D{{"encryptMe", ciphertext}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 
 		session, err := client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		sessionCtx := mongo.NewSessionContext(mtest.Background, session)
+
 		capturedEvents = make([]event.CommandStartedEvent, 0)
 		res := coll.FindOne(sessionCtx, bson.D{{}})
 		assert.Nil(mt, res.Err(), "FindOne error: %v", res.Err())
@@ -205,8 +214,8 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		// Assert the first event is the original find.
 		event := capturedEvents[0]
-		assert.Equal(mt, event.CommandName, "find", "expected command 'find', got '%v'", event.CommandName)
-		assert.Equal(mt, event.DatabaseName, "db", "expected find on db, got %v", event.DatabaseName)
+		assert.Equal(mt, event.CommandName, "find", "expected command find, got %q", event.CommandName)
+		assert.Equal(mt, event.DatabaseName, "db", "expected find on db, got %q", event.DatabaseName)
 
 		// Assert the find used the explicit session
 		lsid := getLsid(mt, event.Command)
@@ -215,8 +224,8 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		// Assert the second event is the find on the keyvault.datakeys collection.
 		event = capturedEvents[1]
-		assert.Equal(mt, event.CommandName, "find", "expected command 'find', got '%v'", event.CommandName)
-		assert.Equal(mt, event.DatabaseName, "keyvault", "expected find on keyvault, got %v", event.DatabaseName)
+		assert.Equal(mt, event.CommandName, "find", "expected command find, got %q", event.CommandName)
+		assert.Equal(mt, event.DatabaseName, "keyvault", "expected find on keyvault, got %q", event.DatabaseName)
 
 		// Assert the find used an implicit session with an lsid != session.ID()
 		lsid = getLsid(mt, event.Command)

@@ -77,9 +77,9 @@ func newMcryptClient(opts *options.AutoEncryptionOptions) (*mcryptClient, error)
 
 // markCommand executes the given command on mongocryptd.
 func (mc *mcryptClient) markCommand(ctx context.Context, dbName string, cmd bsoncore.Document) (bsoncore.Document, error) {
-	// Strip the explicit session from the context if one was provided.
+	// Remove the explicit session from the context if one is set.
 	// The explicit session will be from a different client.
-	// If an explicit session was passed in the context, it is applied later.
+	// If an explicit session is set, it is applied after automatic encryption.
 	ctx = NewSessionContext(ctx, nil)
 	db := mc.client.Database(dbName, databaseOpts)
 

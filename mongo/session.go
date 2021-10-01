@@ -359,7 +359,7 @@ func (*sessionImpl) session() {
 }
 
 // sessionFromContext checks for a sessionImpl in the argued context and returns the session if it
-// exists, unless this context is being used for automatic encryption.
+// exists
 func sessionFromContext(ctx context.Context) *session.Client {
 	s := ctx.Value(sessionKey{})
 	if ses, ok := s.(*sessionImpl); ses != nil && ok {
