@@ -42,7 +42,7 @@ issues:
     # Ignore capitalization warning for this weird field name.
     - "var-naming: struct field CqCssWxW should be CqCSSWxW"
     # Ignore warnings for common "wiremessage.Read..." usage because the safest way to use that API
-    # is by by assigning possibly unused returned byte buffers.
+    # is by assigning possibly unused returned byte buffers.
     - "SA4006: this value of `wm` is never used"
     - "SA4006: this value of `rem` is never used"
     - "ineffectual assignment to wm"
