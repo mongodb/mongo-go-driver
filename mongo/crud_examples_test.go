@@ -664,6 +664,9 @@ func ExampleWithSession() {
 			// changed to have a timeout.
 			return sess.CommitTransaction(context.Background())
 		})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func ExampleClient_UseSessionWithOptions() {

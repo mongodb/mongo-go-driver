@@ -840,6 +840,9 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	sess := sessionFromContext(ctx)
 
 	err := c.validSession(sess)
+	if err != nil {
+		return ListDatabasesResult{}, err
+	}
 	if sess == nil && c.sessionPool != nil {
 		sess, err = session.NewClientSession(c.sessionPool, c.id, session.Implicit)
 		if err != nil {

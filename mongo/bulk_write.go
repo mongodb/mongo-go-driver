@@ -59,11 +59,6 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 			continue
 		}
 
-		bypassDocValidation := bw.bypassDocumentValidation
-		if bypassDocValidation != nil && !*bypassDocValidation {
-			bypassDocValidation = nil
-		}
-
 		batchRes, batchErr, err := bw.runBatch(ctx, batch)
 
 		bw.mergeResults(batchRes)

@@ -271,6 +271,9 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		Options: indexOpts,
 	}
 	name, err := coll.Indexes().CreateOne(ctx, model)
+	if err != nil {
+		return nil, err
+	}
 	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), nil), nil
 }
 

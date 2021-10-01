@@ -245,7 +245,7 @@ func TestConnection(t *testing.T) {
 							assert.Nil(t, err, "newConnection error: %v", err)
 
 							conn.connect(context.Background())
-							err = conn.wait()
+							_ = conn.wait()
 							assert.NotNil(t, sentCfg, "expected TLS config to be set, but was not")
 							assert.Equal(t, tc.expectedServerName, sentCfg.ServerName, "expected ServerName %s, got %s",
 								tc.expectedServerName, sentCfg.ServerName)

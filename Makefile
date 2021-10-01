@@ -17,7 +17,7 @@ ATLAS_URIS = "$(ATLAS_FREE)" "$(ATLAS_REPLSET)" "$(ATLAS_SHARD)" "$(ATLAS_TLS11)
 TEST_TIMEOUT = 1800
 
 .PHONY: default
-default: check-env check-fmt vet build-examples lint errcheck test-cover test-race
+default: check-env check-fmt build-examples lint test-cover test-race
 
 .PHONY: check-env
 check-env:
@@ -59,16 +59,7 @@ fmt:
 
 .PHONY: lint
 lint:
-	golint $(PKGS) | ./etc/lintscreen.pl .lint-allowlist
-
-.PHONY: lint-add-allowlist
-lint-add-allowlist:
-	golint $(PKGS) | ./etc/lintscreen.pl -u .lint-allowlist
-	sort .lint-allowlist -o .lint-allowlist
-
-.PHONY: errcheck
-errcheck:
-	errcheck -exclude .errcheck-excludes ./bson/... ./mongo/... ./x/...
+	golangci-lint run --config .golangci.yml ./...
 
 .PHONY: test
 test:
@@ -125,11 +116,6 @@ update-server-selection-tests:
 .PHONY: update-notices
 update-notices:
 	etc/generate-notices.pl > THIRD-PARTY-NOTICES
-
-.PHONY: vet
-vet:
-	go vet $(BUILD_TAGS) -cgocall=false -composites=false -unusedstringmethods="Error" $(PKGS)
-
 
 # Evergreen specific targets
 .PHONY: evg-test

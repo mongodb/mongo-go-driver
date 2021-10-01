@@ -140,7 +140,9 @@ func runCommandOnAllServers(mt *mtest.T, commandFn func(client *mongo.Client) er
 
 		err = commandFn(shardClient)
 		_ = shardClient.Disconnect(mtest.Background)
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

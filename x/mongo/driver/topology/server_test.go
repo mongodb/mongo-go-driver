@@ -573,6 +573,7 @@ func TestServer(t *testing.T) {
 		noerr(t, err)
 
 		conn, err := s.Connection(context.Background())
+		noerr(t, err)
 		if d.lenopened() != 1 {
 			t.Errorf("Should have opened 1 connections, but didn't. got %d; want %d", d.lenopened(), 1)
 		}

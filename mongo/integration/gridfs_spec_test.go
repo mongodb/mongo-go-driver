@@ -312,6 +312,7 @@ func executeGridfsUpload(mt *mtest.T, test gridfsTest, bucket *gridfs.Bucket) {
 	hexBytes := hexStringToBytes(mt, args.Lookup("source", "$hex").StringValue())
 	fileID := primitive.NewObjectID()
 	stream, err := bucket.OpenUploadStreamWithID(fileID, args.Lookup("filename").StringValue(), uploadOpts)
+	assert.Nil(mt, err, "OpenUploadStreamWithID error: %v", err)
 	err = stream.SetWriteDeadline(gridfsDeadline)
 	assert.Nil(mt, err, "SetWriteDeadline error: %v", err)
 

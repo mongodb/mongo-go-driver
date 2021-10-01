@@ -1785,6 +1785,7 @@ func TestCollection(t *testing.T) {
 			assert.True(mt, ok, "expected id at key %v", numModels-1)
 
 			doc, err := mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id1}}).DecodeBytes()
+			assert.Nil(mt, err, "FindOne error: %v", err)
 			a, ok := doc.Lookup("a").Int32OK()
 			assert.True(mt, ok, "expected a to be an int32")
 			assert.Equal(mt, int32(numModels-1), a, "expected a value %v, got %v", numModels-1, a)
@@ -1796,6 +1797,7 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, int32((numModels-2)*3), c, "expected b value %v, got %v", (numModels-2)*3, c)
 
 			doc, err = mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id2}}).DecodeBytes()
+			assert.Nil(mt, err, "FindOne error: %v", err)
 			x, ok := doc.Lookup("x").Int32OK()
 			assert.True(mt, ok, "expected x to be an int32")
 			assert.Equal(mt, int32(1), x, "expected a value 1, got %v", x)

@@ -281,6 +281,7 @@ func validateQueryWiremessage(mt *mtest.T, wm []byte, expected opQuery) {
 	query, wm, ok = wiremessage.ReadQueryQuery(wm)
 	assert.True(mt, ok, "could not read query document")
 	expectedQueryBytes, err := bson.Marshal(expected.query)
+	assert.Nil(mt, err, "Marshal error for query: %v", err)
 	assert.True(mt, bytes.Equal(query, expectedQueryBytes), "expected query %v, got %v", bsoncore.Document(expectedQueryBytes), query)
 
 	if len(expected.returnFieldsSelector) == 0 {
