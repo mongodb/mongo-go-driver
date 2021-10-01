@@ -380,7 +380,6 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			bc.err = err
 		}
 	}
-	return
 }
 
 // PostBatchResumeToken returns the latest seen post batch resume token.
