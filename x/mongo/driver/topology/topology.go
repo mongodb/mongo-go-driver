@@ -543,6 +543,24 @@ func (t *Topology) pollSRVRecords() {
 			t.pollHeartbeatTime.Store(false)
 		}
 
+		// If t.cfg.srvMaxHosts is non-zero, randomly select up to SRVMaxHosts hosts from
+		// parsedHosts using the modern Fisher-Yates algorithm.
+		if t.cfg.srvMaxHosts != 0 {
+			n := len(parsedHosts)
+			for i := 0; i < n-1; i++ {
+				j := i + rand.Intn(n-i)
+				parsedHosts[j], parsedHosts[i] = parsedHosts[i], parsedHosts[j]
+			}
+
+			// Take the minimum of t.cfg.srvMaxHosts and len(parsedHosts) as the limit
+			// on the number of hosts.
+			limit := t.cfg.srvMaxHosts
+			if len(parsedHosts) < limit {
+				limit = len(parsedHosts)
+			}
+			parsedHosts = parsedHosts[:limit]
+		}
+
 		cont := t.processSRVResults(parsedHosts)
 		if !cont {
 			break

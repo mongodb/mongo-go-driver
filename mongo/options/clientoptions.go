@@ -121,6 +121,7 @@ type ClientOptions struct {
 	ServerAPIOptions         *ServerAPIOptions
 	ServerSelectionTimeout   *time.Duration
 	SocketTimeout            *time.Duration
+	SRVMaxHosts              *int
 	SRVServiceName           *string
 	TLSConfig                *tls.Config
 	WriteConcern             *writeconcern.WriteConcern
@@ -762,6 +763,14 @@ func (c *ClientOptions) SetDisableOCSPEndpointCheck(disableCheck bool) *ClientOp
 // options.
 func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptions {
 	c.ServerAPIOptions = opts
+	return c
+}
+
+// SetSRVMaxHosts specifies the maximum number of SRV results to randomly select during polling. To limit the number
+// of hosts selected in SRV discovery, this function must be called before ApplyURI. This can also be set through
+// the "srvMaxHosts" URI option.
+func (c *ClientOptions) SetSRVMaxHosts(srvMaxHosts int) *ClientOptions {
+	c.SRVMaxHosts = &srvMaxHosts
 	return c
 }
 
