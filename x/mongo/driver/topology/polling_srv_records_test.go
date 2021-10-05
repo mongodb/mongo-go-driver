@@ -371,7 +371,7 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
 		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27018, 0, 0}}
 		topo, disconnect := simulateSRVPoll(0, recordsToAdd, recordsToRemove)
-		defer disconnect(context.Background())
+		defer func() { _ = disconnect(context.Background()) }()
 
 		actualHosts := topo.Description().Servers
 		expectedHosts := []string{
@@ -391,7 +391,7 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
 		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27017, 0, 0}, {"localhost.test.build.10gen.cc.", 27018, 0, 0}}
 		topo, disconnect := simulateSRVPoll(2, recordsToAdd, recordsToRemove)
-		defer disconnect(context.Background())
+		defer func() { _ = disconnect(context.Background()) }()
 
 		actualHosts := topo.Description().Servers
 		expectedHosts := []string{
@@ -410,7 +410,7 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
 		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27018, 0, 0}}
 		topo, disconnect := simulateSRVPoll(2, recordsToAdd, recordsToRemove)
-		defer disconnect(context.Background())
+		defer func() { _ = disconnect(context.Background()) }()
 
 		actualHosts := topo.Description().Servers
 		assert.Equal(t, 2, len(actualHosts), "expected 2 hosts in topology server list, got %v", len(actualHosts))
