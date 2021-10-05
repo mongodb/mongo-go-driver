@@ -333,6 +333,10 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 }
 
 func TestPollSRVRecordsMaxHosts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	// simulateSRVPoll creates a topology with srvMaxHosts, mocks the DNS changes described by
 	// recordsToAdd and recordsToRemove, and returns the the topology.
 	simulateSRVPoll := func(srvMaxHosts int, recordsToAdd []*net.SRV, recordsToRemove []*net.SRV) (*Topology, func(ctx context.Context) error) {
@@ -363,9 +367,6 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 		return topo, topo.Disconnect
 	}
 
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
 	t.Run("SRVMaxHosts is 0", func(t *testing.T) {
 		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
 		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27018, 0, 0}}

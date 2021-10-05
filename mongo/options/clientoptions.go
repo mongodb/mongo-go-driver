@@ -871,6 +871,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.SocketTimeout != nil {
 			c.SocketTimeout = opt.SocketTimeout
 		}
+		if opt.SRVMaxHosts != nil {
+			c.SRVMaxHosts = opt.SRVMaxHosts
+		}
 		if opt.SRVServiceName != nil {
 			c.SRVServiceName = opt.SRVServiceName
 		}
