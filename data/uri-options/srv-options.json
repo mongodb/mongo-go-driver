@@ -19,6 +19,26 @@
       "hosts": null,
       "auth": null,
       "options": {}
+    },
+    {
+      "description": "SRV URI with srvMaxHosts",
+      "uri": "mongodb+srv://test1.test.build.10gen.cc/?srvMaxHosts=2",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {
+        "srvMaxHosts": 2
+      }
+    },
+    {
+      "description": "Non-SRV URI with srvMaxHosts",
+      "uri": "mongodb://example.com/?srvMaxHosts=2",
+      "valid": false,
+      "warning": true,
+      "hosts": null,
+      "auth": null,
+      "options": {}
     }
   ]
 }
