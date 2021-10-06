@@ -302,22 +302,13 @@ func (p *parser) parse(original string) error {
 			return err
 		}
 
-		// If p.SRVMaxHosts is non-zero, randomly select up to SRVMaxHosts hosts from
-		// parsedHosts using the modern Fisher-Yates algorithm.
-		if p.SRVMaxHosts != 0 {
-			n := len(parsedHosts)
-			for i := 0; i < n-1; i++ {
-				j := i + rand.Intn(n-i)
-				parsedHosts[j], parsedHosts[i] = parsedHosts[i], parsedHosts[j]
-			}
-
-			// Take the minimum of p.SRVMaxHosts and len(parsedHosts) as the limit
-			// on the number of hosts.
-			limit := p.SRVMaxHosts
-			if len(parsedHosts) < limit {
-				limit = len(parsedHosts)
-			}
-			parsedHosts = parsedHosts[:limit]
+		// If p.SRVMaxHosts is non-zero and is less than the number of hosts, randomly
+		// select SRVMaxHosts hosts from parsedHosts.
+		if p.SRVMaxHosts != 0 && p.SRVMaxHosts < len(parsedHosts) {
+			rand.Shuffle(len(parsedHosts), func(i, j int) {
+				parsedHosts[i], parsedHosts[j] = parsedHosts[j], parsedHosts[i]
+			})
+			parsedHosts = parsedHosts[:p.SRVMaxHosts]
 		}
 	}
 

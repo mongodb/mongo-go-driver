@@ -108,9 +108,9 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	assert.Nil(mt, err, "topology.Connect error: %v", err)
 	defer func() { _ = topo.Disconnect(mtest.Background) }()
 
-	// If NumHosts is set, check number of hosts returned in an SDAM scan.
+	// If NumHosts is set, check number of hosts currently stored on the Topology.
 	if test.NumHosts != nil {
-		actualNumHosts := countAllServers(topo)
+		actualNumHosts := len(topo.Description().Servers)
 		assert.Equal(mt, *test.NumHosts, actualNumHosts, "expected to find %v hosts, found %v",
 			*test.NumHosts, actualNumHosts)
 	}
@@ -220,15 +220,4 @@ func getServerByAddress(address string, topo *topology.Topology) (description.Se
 	}
 	defer selectedServerConnection.Close()
 	return selectedServerConnection.Description(), nil
-}
-
-func countAllServers(topo *topology.Topology) int {
-	var numHosts int
-	selector := description.ServerSelectorFunc(func(_ description.Topology, servers []description.Server) ([]description.Server, error) {
-		numHosts = len(servers)
-		return nil, nil
-	})
-
-	_, _ = topo.SelectServer(context.Background(), selector)
-	return numHosts
 }

@@ -340,6 +340,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.SocketTimeout = &cs.SocketTimeout
 	}
 
+	if cs.SRVMaxHosts != 0 {
+		c.SRVMaxHosts = &cs.SRVMaxHosts
+	}
+
 	if cs.SRVServiceName != "" {
 		c.SRVServiceName = &cs.SRVServiceName
 	}
