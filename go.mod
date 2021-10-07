@@ -3,12 +3,15 @@ module go.mongodb.org/mongo-driver
 go 1.10
 
 require (
+	github.com/aws/aws-sdk-go-v2/credentials v1.4.2
+	github.com/aws/aws-sdk-go-v2/ec2imds v0.1.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.7.1
 	github.com/go-stack/stack v1.8.0
 	github.com/gobuffalo/genny v0.1.1 // indirect
 	github.com/gobuffalo/gogen v0.1.1 // indirect
 	github.com/gobuffalo/packr/v2 v2.2.0
 	github.com/golang/snappy v0.0.1
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.6
 	github.com/karrick/godirwalk v1.10.3 // indirect
 	github.com/klauspost/compress v1.13.6
 	github.com/kr/pretty v0.1.0

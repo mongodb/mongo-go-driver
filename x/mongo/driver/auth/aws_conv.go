@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -159,6 +161,40 @@ func executeAWSHTTPRequest(req *http.Request) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
+func (ac *awsConversation) getWebIdentityCredentials() (*awsv4.StaticProvider, error) {
+	region := os.Getenv("AWS_DEFAULT_REGION")
+	roleArn := os.Getenv("AWS_ROLE_ARN")
+	webIdentityTokenFile := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE")
+
+	if webIdentityTokenFile == "" && region == "" && roleArn == "" {
+		return nil, nil
+	}
+
+	stsOpts := sts.Options{
+		Region: region,
+	}
+	client := sts.New(stsOpts)
+
+	roleProvider := stscreds.NewWebIdentityRoleProvider(client, roleArn, stscreds.IdentityTokenFile(webIdentityTokenFile))
+
+	result, err := roleProvider.Retrieve(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	ac.username = result.AccessKeyID
+	ac.password = result.SecretAccessKey
+	ac.token = result.SessionToken
+
+	credentials, err := ac.validateAndMakeCredentials()
+	if err != nil {
+		return nil, err
+	}
+
+	return credentials, nil
+}
+
+
 func (ac *awsConversation) getEC2Credentials() (*awsv4.StaticProvider, error) {
 	// get token
 	req, err := http.NewRequest("PUT", awsEC2URI+awsEC2TokenPath, nil)
@@ -228,6 +264,12 @@ func (ac *awsConversation) getCredentials() (*awsv4.StaticProvider, error) {
 	ac.token = os.Getenv("AWS_SESSION_TOKEN")
 
 	creds, err = ac.validateAndMakeCredentials()
+	if creds != nil || err != nil {
+		return creds, err
+	}
+
+	// Credentials from web identity token file
+	creds, err = ac.getWebIdentityCredentials()
 	if creds != nil || err != nil {
 		return creds, err
 	}
