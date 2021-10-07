@@ -37,6 +37,10 @@ const (
 	clientDone
 )
 
+const (
+	defaultSTSTimeout = 10 * time.Second
+)
+
 type awsConversation struct {
 	state    clientState
 	valid    bool
@@ -66,7 +70,7 @@ const (
 	defaultRegion       = "us-east-1"
 	maxHostLength       = 255
 	defaultHTTPTimeout  = 10 * time.Second
-	responceNonceLength = 64
+	responseNonceLength = 64
 )
 
 // Step takes a string provided from a server (or just an empty string for the
@@ -177,14 +181,16 @@ func (ac *awsConversation) getWebIdentityCredentials() (*awsv4.StaticProvider, e
 
 	roleProvider := stscreds.NewWebIdentityRoleProvider(client, roleArn, stscreds.IdentityTokenFile(webIdentityTokenFile))
 
-	result, err := roleProvider.Retrieve(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), defaultSTSTimeout)
+	defer cancel()
+	creds, err := roleProvider.Retrieve(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	ac.username = result.AccessKeyID
-	ac.password = result.SecretAccessKey
-	ac.token = result.SessionToken
+	ac.username = creds.AccessKeyID
+	ac.password = creds.SecretAccessKey
+	ac.token = creds.SessionToken
 
 	credentials, err := ac.validateAndMakeCredentials()
 	if err != nil {
@@ -193,7 +199,6 @@ func (ac *awsConversation) getWebIdentityCredentials() (*awsv4.StaticProvider, e
 
 	return credentials, nil
 }
-
 
 func (ac *awsConversation) getEC2Credentials() (*awsv4.StaticProvider, error) {
 	// get token
@@ -335,8 +340,8 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	if sm.Nonce.Subtype != 0x00 {
 		return nil, errors.New("server reply contained unexpected binary subtype")
 	}
-	if len(sm.Nonce.Data) != responceNonceLength {
-		return nil, fmt.Errorf("server reply nonce was not %v bytes", responceNonceLength)
+	if len(sm.Nonce.Data) != responseNonceLength {
+		return nil, fmt.Errorf("server reply nonce was not %v bytes", responseNonceLength)
 	}
 	if !bytes.HasPrefix(sm.Nonce.Data, ac.nonce) {
 		return nil, errors.New("server nonce did not extend client nonce")
