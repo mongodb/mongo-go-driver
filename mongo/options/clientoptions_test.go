@@ -515,6 +515,18 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?loadBalanced=false",
 				baseClient().SetLoadBalanced(false),
 			},
+			{
+				"srvServiceName",
+				"mongodb+srv://test22.test.build.10gen.cc/?srvServiceName=customname",
+				baseClient().SetSRVServiceName("customname").
+					SetHosts([]string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"}),
+			},
+			{
+				"srvMaxHosts",
+				"mongodb+srv://test1.test.build.10gen.cc/?srvMaxHosts=2",
+				baseClient().SetSRVMaxHosts(2).
+					SetHosts([]string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"}),
+			},
 		}
 
 		for _, tc := range testCases {
@@ -529,12 +541,15 @@ func TestClientOptions(t *testing.T) {
 					tc.result.cs = &cs
 				}
 
+				// We have to sort string slices in comparison, as Hosts resolved from SRV URIs do not have a set order.
+				stringLess := func(a, b string) bool { return a < b }
 				if diff := cmp.Diff(
 					tc.result, result,
 					cmp.AllowUnexported(ClientOptions{}, readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
 					cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
 					cmp.Comparer(compareTLSConfig),
 					cmp.Comparer(compareErrors),
+					cmpopts.SortSlices(stringLess),
 					cmpopts.IgnoreFields(connstring.ConnString{}, "SSLClientCertificateKeyPassword"),
 				); diff != "" {
 					t.Errorf("URI did not apply correctly: (-want +got)\n%s", diff)
