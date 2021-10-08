@@ -331,3 +331,93 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 		compareHosts(t, topo.Description().Servers, expectedHosts)
 	})
 }
+
+func TestPollSRVRecordsMaxHosts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	// simulateSRVPoll creates a topology with srvMaxHosts, mocks the DNS changes described by
+	// recordsToAdd and recordsToRemove, and returns the the topology.
+	simulateSRVPoll := func(srvMaxHosts int, recordsToAdd []*net.SRV, recordsToRemove []*net.SRV) (*Topology, func(ctx context.Context) error) {
+		t.Helper()
+
+		cs, err := connstring.ParseAndValidate("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
+		assert.Nil(t, err, "ParseAndValidate error: %v", err)
+		topo, err := New(
+			WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
+			WithURI(func(string) string { return cs.Original }),
+			WithSRVMaxHosts(func(int) int { return srvMaxHosts }),
+		)
+		assert.Nil(t, err, "error during topology creation: %v", err)
+
+		mockRes := newMockResolver(recordsToAdd, recordsToRemove, false, false)
+		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
+		topo.rescanSRVInterval = time.Millisecond * 5
+		err = topo.Connect()
+		assert.Nil(t, err, "Connect error: %v", err)
+
+		// Wait for description to update.
+		sub, err := topo.Subscribe()
+		assert.Nil(t, err, "Subscribe error: %v", err)
+		for atomic.LoadInt32(&mockRes.ranLookup) < 2 {
+			<-sub.Updates
+		}
+
+		return topo, topo.Disconnect
+	}
+
+	t.Run("SRVMaxHosts is 0", func(t *testing.T) {
+		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
+		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27018, 0, 0}}
+		topo, disconnect := simulateSRVPoll(0, recordsToAdd, recordsToRemove)
+		defer func() { _ = disconnect(context.Background()) }()
+
+		actualHosts := topo.Description().Servers
+		expectedHosts := []string{
+			"localhost.test.build.10gen.cc:27017",
+			"localhost.test.build.10gen.cc:27019",
+			"localhost.test.build.10gen.cc:27020",
+		}
+		compareHosts(t, actualHosts, expectedHosts)
+
+		for _, e := range expectedHosts {
+			addr := address.Address(e).Canonicalize()
+			_, ok := topo.servers[addr]
+			assert.True(t, ok, "topology server list did not contain expected host %v", e)
+		}
+	})
+	t.Run("SRVMaxHosts is number of hosts", func(t *testing.T) {
+		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
+		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27017, 0, 0}, {"localhost.test.build.10gen.cc.", 27018, 0, 0}}
+		topo, disconnect := simulateSRVPoll(2, recordsToAdd, recordsToRemove)
+		defer func() { _ = disconnect(context.Background()) }()
+
+		actualHosts := topo.Description().Servers
+		expectedHosts := []string{
+			"localhost.test.build.10gen.cc:27019",
+			"localhost.test.build.10gen.cc:27020",
+		}
+		compareHosts(t, actualHosts, expectedHosts)
+
+		for _, e := range expectedHosts {
+			addr := address.Address(e).Canonicalize()
+			_, ok := topo.servers[addr]
+			assert.True(t, ok, "topology server list did not contain expected host %v", e)
+		}
+	})
+	t.Run("SRVMaxHosts is less than number of hosts", func(t *testing.T) {
+		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
+		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27018, 0, 0}}
+		topo, disconnect := simulateSRVPoll(2, recordsToAdd, recordsToRemove)
+		defer func() { _ = disconnect(context.Background()) }()
+
+		actualHosts := topo.Description().Servers
+		assert.Equal(t, 2, len(actualHosts), "expected 2 hosts in topology server list, got %v", len(actualHosts))
+
+		expectedHost := "localhost.test.build.10gen.cc:27017"
+		addr := address.Address(expectedHost).Canonicalize()
+		_, ok := topo.servers[addr]
+		assert.True(t, ok, "topology server list did not contain expected host %v", expectedHost)
+	})
+}

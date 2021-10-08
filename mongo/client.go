@@ -375,7 +375,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	// ClusterClock
 	c.clock = new(session.ClusterClock)
 
-	// Pass down URI and SRV service name so topology can poll SRV records correctly
+	// Pass down URI, SRV service name, and SRV max hosts so topology can poll SRV records correctly.
 	topologyOpts = append(topologyOpts,
 		topology.WithURI(func(uri string) string { return opts.GetURI() }),
 		topology.WithSRVServiceName(func(srvName string) string {
@@ -383,6 +383,12 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 				return *opts.SRVServiceName
 			}
 			return ""
+		}),
+		topology.WithSRVMaxHosts(func(srvMaxHosts int) int {
+			if opts.SRVMaxHosts != nil {
+				return *opts.SRVMaxHosts
+			}
+			return 0
 		}),
 	)
 
@@ -675,9 +681,9 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 	// Deployment
 	if opts.Deployment != nil {
-		// topology options: WithSeedlist, WithURI and WithSRVServiceName
+		// topology options: WithSeedlist, WithURI, WithSRVServiceName and WithSRVMaxHosts
 		// server options: WithClock and WithConnectionOptions
-		if len(serverOpts) > 2 || len(topologyOpts) > 3 {
+		if len(serverOpts) > 2 || len(topologyOpts) > 4 {
 			return errors.New("cannot specify topology or server options with a deployment")
 		}
 		c.deployment = opts.Deployment

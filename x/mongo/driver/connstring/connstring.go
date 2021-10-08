@@ -9,6 +9,7 @@ package connstring // import "go.mongodb.org/mongo-driver/x/mongo/driver/connstr
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"net/url"
 	"strconv"
@@ -97,6 +98,7 @@ type ConnString struct {
 	ServerSelectionTimeoutSet          bool
 	SocketTimeout                      time.Duration
 	SocketTimeoutSet                   bool
+	SRVMaxHosts                        int
 	SRVServiceName                     string
 	SSL                                bool
 	SSLSet                             bool
@@ -298,6 +300,19 @@ func (p *parser) parse(original string) error {
 		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, p.SRVServiceName, true)
 		if err != nil {
 			return err
+		}
+
+		// If p.SRVMaxHosts is non-zero and is less than the number of hosts, randomly
+		// select SRVMaxHosts hosts from parsedHosts using the modern Fisher-Yates
+		// algorithm.
+		if p.SRVMaxHosts != 0 && p.SRVMaxHosts < len(parsedHosts) {
+			// TODO(GODRIVER-1876): Use rand#Shuffle after dropping Go 1.9 support.
+			n := len(parsedHosts)
+			for i := 0; i < n-1; i++ {
+				j := i + rand.Intn(n-i)
+				parsedHosts[j], parsedHosts[i] = parsedHosts[i], parsedHosts[j]
+			}
+			parsedHosts = parsedHosts[:p.SRVMaxHosts]
 		}
 	}
 
@@ -771,6 +786,17 @@ func (p *parser) addOption(pair string) error {
 		}
 		p.SocketTimeout = time.Duration(n) * time.Millisecond
 		p.SocketTimeoutSet = true
+	case "srvmaxhosts":
+		// srvMaxHosts can only be set on URIs with the "mongodb+srv" scheme
+		if p.Scheme != SchemeMongoDBSRV {
+			return fmt.Errorf("cannot specify srvMaxHosts on non-SRV URI")
+		}
+
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.SRVMaxHosts = n
 	case "srvservicename":
 		// srvServiceName can only be set on URIs with the "mongodb+srv" scheme
 		if p.Scheme != SchemeMongoDBSRV {

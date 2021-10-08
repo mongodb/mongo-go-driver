@@ -14,3 +14,18 @@ tests:
       hosts: ~
       auth: ~
       options: {}
+    - description: "SRV URI with srvMaxHosts"
+      uri: "mongodb+srv://test1.test.build.10gen.cc/?srvMaxHosts=2"
+      valid: true
+      warning: false
+      hosts: ~
+      auth: ~
+      options:
+          srvMaxHosts: 2
+    - description: "Non-SRV URI with srvMaxHosts"
+      uri: "mongodb://example.com/?srvMaxHosts=2"
+      valid: false
+      warning: true
+      hosts: ~
+      auth: ~
+      options: {}

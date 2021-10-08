@@ -150,6 +150,8 @@ func VerifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map
 			require.Equal(t, value, cs.RetryWrites)
 		case "serverselectiontimeoutms":
 			require.Equal(t, value, float64(cs.ServerSelectionTimeout/time.Millisecond))
+		case "srvmaxhosts":
+			require.Equal(t, value, float64(cs.SRVMaxHosts))
 		case "srvservicename":
 			require.Equal(t, value, cs.SRVServiceName)
 		case "ssl", "tls":

@@ -36,6 +36,7 @@ type config struct {
 	uri                    string
 	serverSelectionTimeout time.Duration
 	serverMonitor          *event.ServerMonitor
+	srvMaxHosts            int
 	srvServiceName         string
 	loadBalanced           bool
 }
@@ -309,6 +310,14 @@ func WithURI(fn func(string) string) Option {
 func WithLoadBalanced(fn func(bool) bool) Option {
 	return func(cfg *config) error {
 		cfg.loadBalanced = fn(cfg.loadBalanced)
+		return nil
+	}
+}
+
+// WithSRVMaxHosts specifies the SRV host limit that was used to create the topology.
+func WithSRVMaxHosts(fn func(int) int) Option {
+	return func(cfg *config) error {
+		cfg.srvMaxHosts = fn(cfg.srvMaxHosts)
 		return nil
 	}
 }

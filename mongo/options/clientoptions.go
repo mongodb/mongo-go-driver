@@ -121,6 +121,7 @@ type ClientOptions struct {
 	ServerAPIOptions         *ServerAPIOptions
 	ServerSelectionTimeout   *time.Duration
 	SocketTimeout            *time.Duration
+	SRVMaxHosts              *int
 	SRVServiceName           *string
 	TLSConfig                *tls.Config
 	WriteConcern             *writeconcern.WriteConcern
@@ -337,6 +338,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if cs.SocketTimeoutSet {
 		c.SocketTimeout = &cs.SocketTimeout
+	}
+
+	if cs.SRVMaxHosts != 0 {
+		c.SRVMaxHosts = &cs.SRVMaxHosts
 	}
 
 	if cs.SRVServiceName != "" {
@@ -765,6 +770,14 @@ func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptio
 	return c
 }
 
+// SetSRVMaxHosts specifies the maximum number of SRV results to randomly select during polling. To limit the number
+// of hosts selected in SRV discovery, this function must be called before ApplyURI. This can also be set through
+// the "srvMaxHosts" URI option.
+func (c *ClientOptions) SetSRVMaxHosts(srvMaxHosts int) *ClientOptions {
+	c.SRVMaxHosts = &srvMaxHosts
+	return c
+}
+
 // SetSRVServiceName specifies a custom SRV service name to use in SRV polling. To use a custom SRV service name
 // in SRV discovery, this function must be called before ApplyURI. This can also be set through the "srvServiceName"
 // URI option.
@@ -861,6 +874,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.SocketTimeout != nil {
 			c.SocketTimeout = opt.SocketTimeout
+		}
+		if opt.SRVMaxHosts != nil {
+			c.SRVMaxHosts = opt.SRVMaxHosts
 		}
 		if opt.SRVServiceName != nil {
 			c.SRVServiceName = opt.SRVServiceName

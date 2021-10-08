@@ -28,11 +28,13 @@ const (
 )
 
 type seedlistTest struct {
-	URI     string   `bson:"uri"`
-	Seeds   []string `bson:"seeds"`
-	Hosts   []string `bson:"hosts"`
-	Error   bool     `bson:"error"`
-	Options bson.Raw `bson:"options"`
+	URI      string   `bson:"uri"`
+	Seeds    []string `bson:"seeds"`
+	NumSeeds *int     `bson:"numSeeds"`
+	Hosts    []string `bson:"hosts"`
+	NumHosts *int     `bson:"numHosts"`
+	Error    bool     `bson:"error"`
+	Options  bson.Raw `bson:"options"`
 }
 
 func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
@@ -41,6 +43,9 @@ func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
 
 	mt.RunOpts("replica set", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
 		runSeedlistDiscoveryDirectory(mt, "replica-set")
+	})
+	mt.RunOpts("sharded", mtest.NewOptions().Topologies(mtest.Sharded).CreateClient(false), func(mt *mtest.T) {
+		runSeedlistDiscoveryDirectory(mt, "sharded")
 	})
 	mt.RunOpts("load balanced", mtest.NewOptions().Topologies(mtest.LoadBalanced).CreateClient(false), func(mt *mtest.T) {
 		runSeedlistDiscoveryDirectory(mt, "load-balanced")
@@ -81,20 +86,34 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	assert.Equal(mt, connstring.SchemeMongoDBSRV, cs.Scheme,
 		"expected scheme %v, got %v", connstring.SchemeMongoDBSRV, cs.Scheme)
 
-	// DNS records may be out of order from the test file's ordering
-	expectedSeedlist := buildSet(test.Seeds)
+	// DNS records may be out of order from the test file's ordering.
 	actualSeedlist := buildSet(cs.Hosts)
-	assert.Equal(mt, expectedSeedlist, actualSeedlist, "expected seedlist %v, got %v", expectedSeedlist, actualSeedlist)
+	// If NumSeeds is set, check number of seeds in seedlist.
+	if test.NumSeeds != nil {
+		assert.Equal(mt, len(actualSeedlist), *test.NumSeeds,
+			"expected %v seeds, got %v", *test.NumSeeds, len(actualSeedlist))
+	}
+	// If Seeds is set, check contents of seedlist.
+	if test.Seeds != nil {
+		expectedSeedlist := buildSet(test.Seeds)
+		assert.Equal(mt, expectedSeedlist, actualSeedlist, "expected seedlist %v, got %v", expectedSeedlist, actualSeedlist)
+	}
 	verifyConnstringOptions(mt, test.Options, cs)
 	setSSLSettings(mt, &cs, test)
 
-	// make a topology from the options
+	// Make a topology from the options.
 	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 	assert.Nil(mt, err, "topology.New error: %v", err)
 	err = topo.Connect()
 	assert.Nil(mt, err, "topology.Connect error: %v", err)
 	defer func() { _ = topo.Disconnect(mtest.Background) }()
 
+	// If NumHosts is set, check number of hosts currently stored on the Topology.
+	if test.NumHosts != nil {
+		actualNumHosts := len(topo.Description().Servers)
+		assert.Equal(mt, *test.NumHosts, actualNumHosts, "expected to find %v hosts, found %v",
+			*test.NumHosts, actualNumHosts)
+	}
 	for _, host := range test.Hosts {
 		_, err := getServerByAddress(host, topo)
 		assert.Nil(mt, err, "did not find host %v", host)
@@ -135,6 +154,9 @@ func verifyConnstringOptions(mt *mtest.T, expected bson.Raw, cs connstring.ConnS
 			lb := opt.Boolean()
 			assert.True(mt, cs.LoadBalancedSet, "expected cs.LoadBalancedSet set to be true, got false")
 			assert.Equal(mt, lb, cs.LoadBalanced, "expected cs.LoadBalanced to be %v, got %v", lb, cs.LoadBalanced)
+		case "srvMaxHosts":
+			srvMaxHosts := opt.Int32()
+			assert.Equal(mt, srvMaxHosts, int32(cs.SRVMaxHosts), "expected cs.SRVMaxHosts to be %v, got %v", srvMaxHosts, cs.SRVMaxHosts)
 		case "srvServiceName":
 			srvName := opt.StringValue()
 			assert.Equal(mt, srvName, cs.SRVServiceName, "expected cs.SRVServiceName to be %q, got %q", srvName, cs.SRVServiceName)
