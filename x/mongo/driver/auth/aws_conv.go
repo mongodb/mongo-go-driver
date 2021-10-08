@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -33,6 +35,10 @@ const (
 	clientFirst
 	clientFinal
 	clientDone
+)
+
+const (
+	defaultSTSTimeout = 10 * time.Second
 )
 
 type awsConversation struct {
@@ -64,7 +70,7 @@ const (
 	defaultRegion       = "us-east-1"
 	maxHostLength       = 255
 	defaultHTTPTimeout  = 10 * time.Second
-	responceNonceLength = 64
+	responseNonceLength = 64
 )
 
 // Step takes a string provided from a server (or just an empty string for the
@@ -159,6 +165,41 @@ func executeAWSHTTPRequest(req *http.Request) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
+func (ac *awsConversation) getWebIdentityCredentials() (*awsv4.StaticProvider, error) {
+	region := os.Getenv("AWS_DEFAULT_REGION")
+	roleArn := os.Getenv("AWS_ROLE_ARN")
+	webIdentityTokenFile := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE")
+
+	if webIdentityTokenFile == "" && region == "" && roleArn == "" {
+		return nil, nil
+	}
+
+	stsOpts := sts.Options{
+		Region: region,
+	}
+	client := sts.New(stsOpts)
+
+	roleProvider := stscreds.NewWebIdentityRoleProvider(client, roleArn, stscreds.IdentityTokenFile(webIdentityTokenFile))
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultSTSTimeout)
+	defer cancel()
+	creds, err := roleProvider.Retrieve(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ac.username = creds.AccessKeyID
+	ac.password = creds.SecretAccessKey
+	ac.token = creds.SessionToken
+
+	credentials, err := ac.validateAndMakeCredentials()
+	if err != nil {
+		return nil, err
+	}
+
+	return credentials, nil
+}
+
 func (ac *awsConversation) getEC2Credentials() (*awsv4.StaticProvider, error) {
 	// get token
 	req, err := http.NewRequest("PUT", awsEC2URI+awsEC2TokenPath, nil)
@@ -232,6 +273,12 @@ func (ac *awsConversation) getCredentials() (*awsv4.StaticProvider, error) {
 		return creds, err
 	}
 
+	// Credentials from web identity token file
+	creds, err = ac.getWebIdentityCredentials()
+	if creds != nil || err != nil {
+		return creds, err
+	}
+
 	// Credentials from ECS metadata
 	relativeEcsURI := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
 	if len(relativeEcsURI) > 0 {
@@ -293,8 +340,8 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	if sm.Nonce.Subtype != 0x00 {
 		return nil, errors.New("server reply contained unexpected binary subtype")
 	}
-	if len(sm.Nonce.Data) != responceNonceLength {
-		return nil, fmt.Errorf("server reply nonce was not %v bytes", responceNonceLength)
+	if len(sm.Nonce.Data) != responseNonceLength {
+		return nil, fmt.Errorf("server reply nonce was not %v bytes", responseNonceLength)
 	}
 	if !bytes.HasPrefix(sm.Nonce.Data, ac.nonce) {
 		return nil, errors.New("server nonce did not extend client nonce")
