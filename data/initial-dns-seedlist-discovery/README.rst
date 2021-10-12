@@ -17,7 +17,7 @@ load-balanced sharded cluster with the mongos servers running on localhost ports
 27017 and 27018 (corresponding to the script in `drivers-evergreen-tools`_). The
 load balancers, shard servers, and config servers may run on any open ports.
 
-.. _`drivers-evergreen-tools`: ../../connection-string/connection-string-spec.rst
+.. _`drivers-evergreen-tools`: https://github.com/mongodb-labs/drivers-evergreen-tools/blob/master/.evergreen/run-load-balancer.sh
 
 The tests in the ``sharded`` directory MUST be executed against a sharded
 cluster with the mongos servers running on localhost ports 27017 and 27018.
@@ -98,7 +98,7 @@ These YAML and JSON files contain the following fields:
   hosts cannot be deterministically asserted.
 - ``options``: the parsed `URI options`_ as discovered from the
   `Connection String`_'s "Connection Options" component and SRV resolution
-  (e.g. TXT records, implicit ``ssl`` default).
+  (e.g. TXT records, implicit ``tls`` default).
 - ``parsed_options``: additional, parsed options from other `Connection String`_
   components. This is mainly used for asserting ``UserInfo`` (as ``user`` and
   ``password``) and ``Auth database`` (as ``auth_database``).
@@ -109,7 +109,7 @@ These YAML and JSON files contain the following fields:
 .. _`Connection String`: ../../connection-string/connection-string-spec.rst
 .. _`URI options`: ../../uri-options/uri-options.rst
 
-For each file, create MongoClient initialized with the ``mongodb+srv``
+For each file, create a MongoClient initialized with the ``mongodb+srv``
 connection string.
 
 If ``seeds`` is specified, drivers SHOULD verify that the set of hosts in the
@@ -123,11 +123,11 @@ size of that set matches ``numHosts``.
 
 If ``options`` is specified, drivers MUST verify each of the values under
 ``options`` match the MongoClient's parsed value for that option. There may be
-other options parsed by the Client as well, which a test does not verify.
+other options parsed by the MongoClient as well, which a test does not verify.
 
 If ``parsed_options`` is specified, drivers MUST verify that each of the values
 under ``parsed_options`` match the MongoClient's parsed value for that option.
-Support values include, but are not limited to, ``user`` and ``password``
+Supported values include, but are not limited to, ``user`` and ``password``
 (parsed from ``UserInfo``) and ``auth_database`` (parsed from
 ``Auth database``).
 
