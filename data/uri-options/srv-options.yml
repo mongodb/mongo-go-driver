@@ -79,7 +79,7 @@ tests:
           replicaSet: foo
           srvMaxHosts: 0
     - description: "SRV URI with srvMaxHosts=0 and loadBalanced=true"
-      uri: "mongodb+srv://test1.test.build.10gen.cc/?srvMaxHosts=0&loadBalanced=true"
+      uri: "mongodb+srv://test3.test.build.10gen.cc/?srvMaxHosts=0&loadBalanced=true"
       valid: true
       warning: false
       hosts: ~

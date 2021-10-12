@@ -4,7 +4,6 @@
 uri: "mongodb+srv://test5.test.build.10gen.cc/?srvMaxHosts=0"
 seeds:
     - localhost.test.build.10gen.cc:27017
-    - localhost.test.build.10gen.cc:27018
 hosts:
     - localhost:27017
     - localhost:27018
