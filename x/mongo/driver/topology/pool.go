@@ -67,7 +67,7 @@ type pool struct {
 
 	maintainInterval time.Duration      // maintainInterval is the maintain() loop interval.
 	cancelBackground context.CancelFunc // cancelBackground is called to signal background goroutines to stop.
-	backgroundDone   *sync.WaitGroup    // stopDone waits for all background goroutines to return.
+	backgroundDone   *sync.WaitGroup    // backgroundDone waits for all background goroutines to return.
 
 	connsCond   *sync.Cond             // connsCond guards conns, newConnWait.
 	conns       map[uint64]*connection // conns holds all currently open connections.
@@ -94,7 +94,7 @@ func connectionPerished(conn *connection) (string, bool) {
 	return "", false
 }
 
-// newPool creates a new pool that will hold size number of idle connections. It will use the
+// newPool creates a new pool. It will use the
 // provided options when creating connections.
 func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 	opts := connOpts
@@ -148,7 +148,7 @@ func (p *pool) connect() error {
 	p.generation.connect()
 
 	// Create a Context with cancellation that's used to signal the createConnections() and
-	// maintain() background goroutines to stop. Also create a "disconnectDone" WaitGroup that is
+	// maintain() background goroutines to stop. Also create a "backgroundDone" WaitGroup that is
 	// used to wait for the background goroutines to return. Always create a new Context and
 	// WaitGroup each time we start new set of background goroutines to prevent interaction between
 	// current and previous sets of background goroutines.
@@ -804,7 +804,7 @@ func (w *wantConn) waiting() bool {
 	}
 }
 
-// tryDeliver attempts to deliver pc, err to w and reports whether it succeeded.
+// tryDeliver attempts to deliver conn, err to w and reports whether it succeeded.
 func (w *wantConn) tryDeliver(conn *connection, err error) bool {
 	w.mu.Lock()
 	defer w.mu.Unlock()

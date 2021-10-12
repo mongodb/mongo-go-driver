@@ -27,7 +27,7 @@ func TestPool(t *testing.T) {
 			err = p.connect()
 			noerr(t, err)
 
-			assert.Equal(t, connected, p.connected, "Expected new pool to be connected")
+			assert.Equal(t, connected, p.connected, "expected new pool to be connected")
 
 			err = p.disconnect(context.Background())
 			noerr(t, err)
@@ -52,7 +52,7 @@ func TestPool(t *testing.T) {
 			noerr(t, err)
 
 			err = p2.closeConnection(&connection{pool: p1})
-			assert.Equal(t, ErrWrongPool, err, "Expected ErrWrongPool error")
+			assert.Equal(t, ErrWrongPool, err, "expected ErrWrongPool error")
 
 			err = p1.disconnect(context.Background())
 			noerr(t, err)
