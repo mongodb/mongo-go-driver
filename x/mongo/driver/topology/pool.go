@@ -62,7 +62,7 @@ type pool struct {
 	maxConnecting uint64
 	monitor       *event.PoolMonitor
 
-	opts       []ConnectionOption
+	connOpts   []ConnectionOption
 	generation *poolGenerationMap
 
 	maintainInterval time.Duration      // maintainInterval is the maintain() loop interval.
@@ -94,12 +94,10 @@ func connectionPerished(conn *connection) (string, bool) {
 	return "", false
 }
 
-// newPool creates a new pool. It will use the
-// provided options when creating connections.
-func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
-	opts := connOpts
+// newPool creates a new pool. It will use the provided options when creating connections.
+func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	if config.MaxIdleTime != time.Duration(0) {
-		opts = append(opts, WithIdleTimeout(func(_ time.Duration) time.Duration { return config.MaxIdleTime }))
+		connOpts = append(connOpts, WithIdleTimeout(func(_ time.Duration) time.Duration { return config.MaxIdleTime }))
 	}
 
 	pool := &pool{
@@ -108,7 +106,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 		maxSize:          config.MaxPoolSize,
 		maxConnecting:    2,
 		monitor:          config.PoolMonitor,
-		opts:             opts,
+		connOpts:         connOpts,
 		generation:       newPoolGenerationMap(),
 		connected:        disconnected,
 		maintainInterval: 10 * time.Second,
@@ -116,21 +114,22 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
 		conns:            make(map[uint64]*connection, config.MaxPoolSize),
 		idleConns:        make([]*connection, 0, config.MaxPoolSize),
 	}
-	pool.opts = append(pool.opts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
+	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
 	if pool.monitor != nil {
 		pool.monitor.Event(&event.PoolEvent{
 			Type: event.PoolCreated,
 			PoolOptions: &event.MonitorPoolOptions{
-				MaxPoolSize:        config.MaxPoolSize,
-				MinPoolSize:        config.MinPoolSize,
+				MaxPoolSize: config.MaxPoolSize,
+				MinPoolSize: config.MinPoolSize,
+				// TODO: We don't use this value, should we publish it?
 				WaitQueueTimeoutMS: uint64(config.MaxIdleTime) / uint64(time.Millisecond),
 			},
 			Address: pool.address.String(),
 		})
 	}
 
-	return pool, nil
+	return pool
 }
 
 // stale checks if a given connection's generation is below the generation of the pool
@@ -176,7 +175,10 @@ func (p *pool) disconnect(ctx context.Context) error {
 	}
 
 	// Call cancelBackground() to exit the maintain() background goroutine and broadcast to the
-	// connsCond to wake up all createConnections() goroutines.
+	// connsCond to wake up all createConnections() goroutines. We must hold the connsCond lock here
+	// because we're changing the condition by cancelling the "background goroutine" Context, even
+	// tho cancelling the Context is also synchronized by a lock. Otherwise, we run into an
+	// intermittent bug that prevents the createConnections() goroutines from exiting.
 	p.connsCond.L.Lock()
 	p.cancelBackground()
 	p.connsCond.L.Unlock()
@@ -256,7 +258,6 @@ func (p *pool) disconnect(ctx context.Context) error {
 		w.tryDeliver(nil, ErrPoolDisconnected)
 	}
 
-	// Mark the pool state as disconnected.
 	atomic.StoreInt64(&p.connected, disconnected)
 
 	if p.monitor != nil {
@@ -290,6 +291,7 @@ func (p *pool) unpinConnectionFromTransaction() {
 // checkOut checks out a connection from the pool. If an idle connection is not available, the
 // checkOut enters a queue waiting for either the next idle or new connection. If the pool is
 // disconnected, checkOut returns an error.
+// Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
 func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	if atomic.LoadInt64(&p.connected) != connected {
 		if p.monitor != nil {
@@ -299,14 +301,17 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				Reason:  event.ReasonPoolClosed,
 			})
 		}
-		err = ErrPoolDisconnected
-		return
+		return nil, ErrPoolDisconnected
 	}
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
+	// Create a wantConn, which we will use to request an existing idle or new connection. Always
+	// cancel the wantConn if checkOut() returned an error to make sure any delivered connections
+	// are returned to the pool (e.g. if a connection was delivered immediately after the Context
+	// timed out).
 	w := newWantConn()
 	defer func() {
 		if err != nil {
@@ -314,6 +319,9 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 	}()
 
+	// Get in the queue for an idle connection. If queueForIdleConn returns true, it was able to
+	// immediately deliver an idle connection to the wantConn, so we can return the connection or
+	// error from the wantConn without waiting for "ready".
 	if delivered := p.queueForIdleConn(w); delivered {
 		if w.err != nil {
 			if p.monitor != nil {
@@ -323,8 +331,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 					Reason:  event.ReasonConnectionErrored,
 				})
 			}
-			err = w.err
-			return
+			return nil, w.err
 		}
 
 		if p.monitor != nil {
@@ -334,12 +341,14 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				ConnectionID: w.conn.poolID,
 			})
 		}
-		conn = w.conn
-		return
+		return w.conn, nil
 	}
 
+	// If we didn't get an immediately available idle connection, also get in the queue for a new
+	// connection while we're waiting for an idle connection.
 	p.queueForNewConn(w)
 
+	// Wait for either the wantConn to be ready or for the Context to time out.
 	select {
 	case <-w.ready:
 		if w.err != nil {
@@ -350,8 +359,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 					Reason:  event.ReasonConnectionErrored,
 				})
 			}
-			err = w.err
-			return
+			return nil, w.err
 		}
 
 		if p.monitor != nil {
@@ -361,8 +369,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				ConnectionID: w.conn.poolID,
 			})
 		}
-		conn = w.conn
-		return
+		return w.conn, nil
 	case <-ctx.Done():
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
@@ -371,14 +378,13 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				Reason:  event.ReasonTimedOut,
 			})
 		}
-		err = WaitQueueTimeoutError{
+		return nil, WaitQueueTimeoutError{
 			Wrapped:                      ctx.Err(),
 			PinnedCursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
 			PinnedTransactionConnections: atomic.LoadUint64(&p.pinnedTransactionConnections),
 			maxPoolSize:                  p.maxSize,
 			totalConnectionCount:         p.totalConnectionCount(),
 		}
-		return
 	}
 }
 
@@ -407,6 +413,10 @@ func (p *pool) getGenerationForNewConnection(serviceID *primitive.ObjectID) uint
 
 // removeConnection removes a connection from the pool and emits a "ConnectionClosed" event.
 func (p *pool) removeConnection(conn *connection, reason string) error {
+	if conn == nil {
+		return nil
+	}
+
 	if conn.pool != p {
 		return ErrWrongPool
 	}
@@ -614,7 +624,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			return nil, nil, false
 		}
 
-		conn, err := newConnection(p.address, p.opts...)
+		conn, err := newConnection(p.address, p.connOpts...)
 		if err != nil {
 			w.tryDeliver(nil, err)
 			return nil, nil, false
@@ -779,7 +789,7 @@ func compact(arr []*connection) []*connection {
 // The conn may be gotten by creating a new connection or by finding an idle connection, or a
 // cancellation may make the conn no longer wanted. These three options are racing against each
 // other and use wantConn to coordinate and agree about the winning outcome.
-// Based on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1174-1240;bpv=0;bpt=1
+// Based on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1174-1240
 type wantConn struct {
 	ready chan struct{}
 
@@ -841,7 +851,7 @@ func (w *wantConn) cancel(p *pool, err error) {
 }
 
 // A wantConnQueue is a queue of wantConns.
-// Based on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1242-1306;bpv=0;bpt=1
+// Based on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1242-1306
 type wantConnQueue struct {
 	// This is a queue, not a deque.
 	// It is split into two stages - head[headPos:] and tail.

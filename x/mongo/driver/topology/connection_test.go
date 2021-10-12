@@ -840,12 +840,10 @@ func TestConnection(t *testing.T) {
 				t.Helper()
 
 				addr := bootstrapConnections(t, numConns, func(nc net.Conn) {})
-				pool, err := newPool(poolConfig{
+				pool := newPool(poolConfig{
 					Address: address.Address(addr.String()),
 				})
-				assert.Nil(t, err, "newPool error: %v", err)
-
-				err = pool.connect()
+				err := pool.connect()
 				assert.Nil(t, err, "pool.connect() error: %v", err)
 
 				conns := make([]*Connection, 0, numConns)

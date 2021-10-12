@@ -221,7 +221,8 @@ func TestCMAPProse(t *testing.T) {
 				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
 					return &testNetConn{}, nil
 				}
-				pool, _ := createTestPool(t, getConfig(), WithDialer(func(Dialer) Dialer { return dialer }))
+				pool, disconnect := createTestPool(t, getConfig(), WithDialer(func(Dialer) Dialer { return dialer }))
+				defer disconnect()
 
 				conns := checkoutConnections(t, pool, numConns)
 				assertConnectionCounts(t, pool, numConns, 0)
@@ -294,14 +295,12 @@ func TestCMAPProse(t *testing.T) {
 func createTestPool(t *testing.T, cfg poolConfig, opts ...ConnectionOption) (*pool, func()) {
 	t.Helper()
 
-	pool, err := newPool(cfg, opts...)
-	assert.Nil(t, err, "newPool error: %v", err)
-	err = pool.connect()
+	pool := newPool(cfg, opts...)
+	err := pool.connect()
 	assert.Nil(t, err, "connect error: %v", err)
 
 	disconnect := func() {
-		err := pool.disconnect(context.Background())
-		assert.Nil(t, err, "unexpected pool.disconnect() error: %v", err)
+		_ = pool.disconnect(context.Background())
 	}
 	return pool, disconnect
 }

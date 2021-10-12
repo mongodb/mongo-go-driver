@@ -182,11 +182,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 	connectionOpts := make([]ConnectionOption, len(cfg.connectionOpts))
 	copy(connectionOpts, cfg.connectionOpts)
 	connectionOpts = append(connectionOpts, withErrorHandlingCallback(s.ProcessHandshakeError))
-	s.pool, err = newPool(pc, connectionOpts...)
-	if err != nil {
-		return nil, err
-	}
-
+	s.pool = newPool(pc, connectionOpts...)
 	s.publishServerOpeningEvent(s.address)
 
 	return s, nil
