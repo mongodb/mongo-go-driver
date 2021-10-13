@@ -485,7 +485,7 @@ func TestClientStress(t *testing.T) {
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 
-	// Test that a Client can recover from a massive traffic spikes after the traffic spike is over.
+	// Test that a Client can recover from a massive traffic spike after the traffic spike is over.
 	mt.Run("Client recovers from traffic spike", func(mt *mtest.T) {
 		oid := primitive.NewObjectID()
 		doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
