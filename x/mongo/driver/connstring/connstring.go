@@ -382,10 +382,10 @@ func (p *parser) validate() error {
 	// Check for invalid use of SRVMaxHosts.
 	if p.SRVMaxHosts > 0 {
 		if p.ReplicaSet != "" {
-			return fmt.Errorf("cannot specify positive srvMaxHosts with replicaSet")
+			return internal.ErrSRVMaxHostsWithReplicaSet
 		}
 		if p.LoadBalanced {
-			return fmt.Errorf("cannot specify positive srvMaxHosts with loadBalanced=true")
+			return internal.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
 
