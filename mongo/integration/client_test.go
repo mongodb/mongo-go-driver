@@ -479,10 +479,11 @@ func TestClientStress(t *testing.T) {
 	// TODO: Enable with GODRIVER-2038.
 	t.Skip("TODO: Enable with GODRIVER-2038")
 
-	mtOpts := mtest.NewOptions().
-		MinServerVersion("3.6").
-		Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.Single).
-		CreateClient(false)
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	mtOpts := mtest.NewOptions().CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 
 	// Test that a Client can recover from a massive traffic spike after the traffic spike is over.
@@ -490,7 +491,7 @@ func TestClientStress(t *testing.T) {
 		oid := primitive.NewObjectID()
 		doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
 		_, err := mt.Coll.InsertOne(context.Background(), doc)
-		assert.Nil(mt, err, "unexpected error inserting document: %v", err)
+		assert.Nil(mt, err, "InsertOne error: %v", err)
 
 		// findOne calls FindOne("_id": oid) on the given collection and with the given timeout. It
 		// returns any errors.
@@ -521,7 +522,7 @@ func TestClientStress(t *testing.T) {
 		for i := 0; i < 50; i++ {
 			start := time.Now()
 			err := findOne(mt.Coll, 10*time.Second)
-			assert.Nil(t, err, "unexpected error calling FindOne: %v", err)
+			assert.Nil(t, err, "FindOne error: %v", err)
 			duration := time.Since(start)
 			if duration > maxRTT {
 				maxRTT = duration
@@ -538,7 +539,7 @@ func TestClientStress(t *testing.T) {
 			mt.RunOpts(fmt.Sprintf("maxPoolSize %d", maxPoolSize), maxPoolSizeOpt, func(mt *mtest.T) {
 				doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
 				_, err := mt.Coll.InsertOne(context.Background(), doc)
-				assert.Nil(mt, err, "unexpected error inserting document: %v", err)
+				assert.Nil(mt, err, "InsertOne error: %v", err)
 
 				// Set the timeout to be 10x the maximum observed RTT. Use a minimum 10ms timeout to
 				// prevent spurious test failures due to extremely low timeouts.
