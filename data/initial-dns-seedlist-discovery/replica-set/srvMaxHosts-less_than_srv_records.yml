@@ -2,13 +2,14 @@
 # hosts are added to the seed list. We cannot anticipate which hosts will be
 # selected, so this test uses numSeeds instead of seeds. Since this is a replica
 # set, all hosts should ultimately be discovered by SDAM.
-uri: "mongodb+srv://test1.test.build.10gen.cc/?replicaSet=repl0&srvMaxHosts=1"
+#
+# The replicaSet URI option is omitted to avoid a URI validation error.
+uri: "mongodb+srv://test1.test.build.10gen.cc/?srvMaxHosts=1"
 numSeeds: 1
 hosts:
     - localhost:27017
     - localhost:27018
     - localhost:27019
 options:
-    replicaSet: repl0
     srvMaxHosts: 1
     ssl: true

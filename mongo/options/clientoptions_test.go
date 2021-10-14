@@ -615,6 +615,31 @@ func TestClientOptions(t *testing.T) {
 			})
 		}
 	})
+	t.Run("srvMaxHosts validation", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			opts *ClientOptions
+			err  error
+		}{
+			{"replica set name", Client().SetReplicaSet("foo"), internal.ErrSRVMaxHostsWithReplicaSet},
+			{"loadBalanced=true", Client().SetLoadBalanced(true), internal.ErrSRVMaxHostsWithLoadBalanced},
+			{"loadBalanced=false", Client().SetLoadBalanced(false), nil},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				err := tc.opts.Validate()
+				assert.Nil(t, err, "Validate error when srvMxaHosts is unset: %v", err)
+
+				tc.opts.SetSRVMaxHosts(0)
+				err = tc.opts.Validate()
+				assert.Nil(t, err, "Validate error when srvMaxHosts is 0: %v", err)
+
+				tc.opts.SetSRVMaxHosts(2)
+				err = tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "expected error %v when srvMaxHosts > 0, got %v", tc.err, err)
+			})
+		}
+	})
 }
 
 func createCertPool(t *testing.T, paths ...string) *x509.CertPool {

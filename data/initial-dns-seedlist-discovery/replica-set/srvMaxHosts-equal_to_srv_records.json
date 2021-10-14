@@ -1,5 +1,5 @@
 {
-  "uri": "mongodb+srv://test1.test.build.10gen.cc/?replicaSet=repl0&srvMaxHosts=2",
+  "uri": "mongodb+srv://test1.test.build.10gen.cc/?srvMaxHosts=2",
   "numSeeds": 2,
   "seeds": [
     "localhost.test.build.10gen.cc:27017",
@@ -11,7 +11,6 @@
     "localhost:27019"
   ],
   "options": {
-    "replicaSet": "repl0",
     "srvMaxHosts": 2,
     "ssl": true
   }

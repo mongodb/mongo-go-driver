@@ -379,6 +379,16 @@ func (p *parser) validate() error {
 		}
 	}
 
+	// Check for invalid use of SRVMaxHosts.
+	if p.SRVMaxHosts > 0 {
+		if p.ReplicaSet != "" {
+			return internal.ErrSRVMaxHostsWithReplicaSet
+		}
+		if p.LoadBalanced {
+			return internal.ErrSRVMaxHostsWithLoadBalanced
+		}
+	}
+
 	return nil
 }
 

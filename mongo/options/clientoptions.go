@@ -182,12 +182,25 @@ func (c *ClientOptions) validateAndSetError() {
 	if c.LoadBalanced != nil && *c.LoadBalanced {
 		if len(c.Hosts) > 1 {
 			c.err = internal.ErrLoadBalancedWithMultipleHosts
+			return
 		}
 		if c.ReplicaSet != nil {
 			c.err = internal.ErrLoadBalancedWithReplicaSet
+			return
 		}
 		if c.Direct != nil {
 			c.err = internal.ErrLoadBalancedWithDirectConnection
+			return
+		}
+	}
+
+	// Validation for srvMaxHosts.
+	if c.SRVMaxHosts != nil && *c.SRVMaxHosts > 0 {
+		if c.ReplicaSet != nil {
+			c.err = internal.ErrSRVMaxHostsWithReplicaSet
+		}
+		if c.LoadBalanced != nil && *c.LoadBalanced {
+			c.err = internal.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
 }
