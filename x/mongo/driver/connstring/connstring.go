@@ -295,17 +295,6 @@ func (p *parser) parse(original string) error {
 		}
 	}
 
-	// A positive "srvMaxHosts" value is not allowed with "loadbalanced=true" or
-	// "replSetName".
-	if p.SRVMaxHosts > 0 {
-		if p.ReplicaSet != "" {
-			return fmt.Errorf("cannot specify positive srvMaxHosts with replicaSet")
-		}
-		if p.LoadBalanced {
-			return fmt.Errorf("cannot specify positive srvMaxHosts with loadBalanced=true")
-		}
-	}
-
 	// do SRV lookup if "mongodb+srv://"
 	if p.Scheme == SchemeMongoDBSRV {
 		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, p.SRVServiceName, true)
@@ -387,6 +376,16 @@ func (p *parser) validate() error {
 		}
 		if p.ReplicaSet != "" {
 			return internal.ErrLoadBalancedWithReplicaSet
+		}
+	}
+
+	// Check for invalid use of SRVMaxHosts.
+	if p.SRVMaxHosts > 0 {
+		if p.ReplicaSet != "" {
+			return fmt.Errorf("cannot specify positive srvMaxHosts with replicaSet")
+		}
+		if p.LoadBalanced {
+			return fmt.Errorf("cannot specify positive srvMaxHosts with loadBalanced=true")
 		}
 	}
 
