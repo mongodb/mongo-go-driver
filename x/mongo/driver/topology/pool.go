@@ -319,10 +319,10 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 	}()
 
-	// Get in the queue for an idle connection. If queueForIdleConn returns true, it was able to
+	// Get in the queue for an idle connection. If getOrQueueForIdleConn returns true, it was able to
 	// immediately deliver an idle connection to the wantConn, so we can return the connection or
 	// error from the wantConn without waiting for "ready".
-	if delivered := p.queueForIdleConn(w); delivered {
+	if delivered := p.getOrQueueForIdleConn(w); delivered {
 		if w.err != nil {
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
@@ -528,7 +528,11 @@ func (p *pool) clear(serviceID *primitive.ObjectID) {
 	p.generation.clear(serviceID)
 }
 
-func (p *pool) queueForIdleConn(w *wantConn) bool {
+// getOrQueueForIdleConn attempts to deliver an idle connection to the given wantConn. If there is
+// an idle connection in the idle connections stack, it pops an idle connection, delivers it to the
+// wantConn, and returns true. If there are no idle connections in the idle connections stack, it
+// adds the wantConn to the idleConnWait queue and returns false.
+func (p *pool) getOrQueueForIdleConn(w *wantConn) bool {
 	p.idleMu.Lock()
 	defer p.idleMu.Unlock()
 
@@ -836,6 +840,10 @@ func (w *wantConn) tryDeliver(conn *connection, err error) bool {
 // has been delivered already, cancel returns it with p.checkInNoEvent(). Note that the caller must
 // not hold any locks on the pool while calling cancel.
 func (w *wantConn) cancel(p *pool, err error) {
+	if err == nil {
+		panic("x/mongo/driver/topology: internal error: misuse of cancel")
+	}
+
 	w.mu.Lock()
 	if w.conn == nil && w.err == nil {
 		close(w.ready) // catch misbehavior in future delivery

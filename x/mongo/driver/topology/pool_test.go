@@ -595,6 +595,8 @@ func TestPool(t *testing.T) {
 			err = p.disconnect(context.Background())
 			noerr(t, err)
 		})
+		// Test that if a checkOut() times out, it returns a WaitQueueTimeout error that wraps a
+		// context.DeadlineExceeded error.
 		t.Run("wait queue timeout error", func(t *testing.T) {
 			t.Parallel()
 
@@ -623,7 +625,7 @@ func TestPool(t *testing.T) {
 			assert.NotNilf(t, err, "expected a WaitQueueTimeout error")
 
 			// Assert that error received is WaitQueueTimeoutError with context deadline exceeded.
-			assert.IsType(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueTimeoutError")
+			assert.IsTypef(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueTimeoutError")
 			if err, ok := err.(WaitQueueTimeoutError); ok {
 				assert.Equalf(t, context.DeadlineExceeded, err.Unwrap(), "expected wrapped error to be a context.Timeout")
 			}
@@ -631,11 +633,64 @@ func TestPool(t *testing.T) {
 			err = p.disconnect(context.Background())
 			noerr(t, err)
 		})
+		// Test that an indefinitely blocked checkOut() doesn't cause the wait queue to overflow
+		// if there are many other checkOut() calls that time out. This tests a scenario where a
+		// wantConnQueue may grow unbounded while a checkOut() is blocked, even if all subsequent
+		// checkOut() calls time out (due to the behavior of wantConnQueue.cleanFront()).
+		t.Run("wait queue doesn't overflow", func(t *testing.T) {
+			t.Parallel()
+
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+
+			p := newPool(poolConfig{
+				Address:     address.Address(addr.String()),
+				MaxPoolSize: 1,
+			})
+			err := p.connect()
+			noerr(t, err)
+
+			// Check out the 1 connection that the pool will create.
+			c, err := p.checkOut(context.Background())
+			noerr(t, err)
+
+			// Start a goroutine that tries to check out another connection with no timeout. Expect
+			// this goroutine to block (wait in the wait queue) until the checked-out connection is
+			// checked-in. Assert that there is no error once checkOut() finally does return.
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				_, err := p.checkOut(context.Background())
+				noerr(t, err)
+			}()
+
+			// Run lots of check-out attempts with a low timeout and assert that each one fails with
+			// a WaitQueueTimeout error. Expect no other errors or panics.
+			for i := 0; i < 50000; i++ {
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Microsecond)
+				_, err := p.checkOut(ctx)
+				cancel()
+				assert.NotNilf(t, err, "expected a WaitQueueTimeout error")
+				assert.IsTypef(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueTimeoutError")
+			}
+
+			// Check-in the connection we checked out earlier and wait for the checkOut() goroutine
+			// to resume.
+			err = p.checkIn(c)
+			noerr(t, err)
+			wg.Wait()
+		})
 	})
 	t.Run("checkIn", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("does not return to pool twice", func(t *testing.T) {
+		t.Run("cannot return same connection to pool twice", func(t *testing.T) {
 			t.Parallel()
 
 			cleanup := make(chan struct{})
