@@ -121,6 +121,7 @@ type Session interface {
 	OperationTime() *primitive.Timestamp
 	Client() *Client
 	ID() bson.Raw
+	TransactionState() session.TransactionState
 
 	// Functions to modify mutable session properties.
 	AdvanceClusterTime(bson.Raw) error
@@ -165,6 +166,11 @@ func (s *sessionImpl) EndSession(ctx context.Context) {
 		_ = s.AbortTransaction(ctx)
 	}
 	s.clientSession.EndSession()
+}
+
+// TransactionState implements the Session interface.
+func (s *sessionImpl) TransactionState() session.TransactionState {
+	return s.clientSession.TransactionState
 }
 
 // WithTransaction implements the Session interface.
