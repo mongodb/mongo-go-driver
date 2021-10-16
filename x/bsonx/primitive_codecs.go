@@ -19,7 +19,6 @@ import (
 var primitiveCodecs PrimitiveCodecs
 
 var tDocument = reflect.TypeOf((Doc)(nil))
-var tMDoc = reflect.TypeOf((MDoc)(nil))
 var tArray = reflect.TypeOf((Arr)(nil))
 var tValue = reflect.TypeOf(Val{})
 var tElementSlice = reflect.TypeOf(([]Elem)(nil))

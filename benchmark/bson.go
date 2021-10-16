@@ -55,21 +55,3 @@ func loadSourceRaw(pathParts ...string) (bson.Raw, error) {
 
 	return bson.Raw(raw), nil
 }
-
-func loadSourceD(pathParts ...string) (bson.D, error) {
-	data, err := ioutil.ReadFile(filepath.Join(pathParts...))
-	if err != nil {
-		return nil, err
-	}
-	doc := bson.D{}
-	err = bson.UnmarshalExtJSON(data, true, &doc)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(doc) == 0 {
-		return nil, errors.New("empty bson document")
-	}
-
-	return doc, nil
-}

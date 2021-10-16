@@ -50,10 +50,6 @@ func newProxyDialer() *proxyDialer {
 	}
 }
 
-func newProxyError(err error) error {
-	return fmt.Errorf("proxy error: %v", err)
-}
-
 func newProxyErrorWithWireMsg(wm []byte, err error) error {
 	return fmt.Errorf("proxy error for wiremessage %v: %v", wm, err)
 }

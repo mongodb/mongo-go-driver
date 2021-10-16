@@ -821,9 +821,6 @@ func (c *Connection) unpin(reason string) error {
 	return nil
 }
 
-var notPrimaryCodes = []int32{10107, 13435}
-var recoveringCodes = []int32{11600, 11602, 13436, 189, 91}
-
 func configureTLS(ctx context.Context,
 	tlsConnSource tlsConnectionSource,
 	nc net.Conn,

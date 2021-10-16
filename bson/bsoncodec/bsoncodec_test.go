@@ -92,8 +92,6 @@ func compareDecimal128(d1, d2 primitive.Decimal128) bool {
 	return true
 }
 
-func compareStrings(s1, s2 string) bool { return s1 == s2 }
-
 type noPrivateFields struct {
 	a string
 }

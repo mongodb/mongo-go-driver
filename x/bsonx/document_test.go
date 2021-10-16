@@ -53,12 +53,6 @@ func BenchmarkDocument(b *testing.B) {
 	}
 }
 
-func valueEqual(v1, v2 Val) bool { return v1.Equal(v2) }
-
-func elementEqual(e1, e2 Elem) bool { return e1.Equal(e2) }
-
-func documentComparer(d1, d2 Doc) bool { return d1.Equal(d2) }
-
 func TestDocument(t *testing.T) {
 	t.Parallel()
 	t.Run("ReadDocument", func(t *testing.T) {

@@ -22,7 +22,6 @@ const (
 	tenThousand     = ten * thousand
 	hundredThousand = hundred * thousand
 	million         = hundred * hundredThousand
-	halfMillion     = five * hundredThousand
 
 	ExecutionTimeout = five * time.Minute
 	StandardRuntime  = time.Minute

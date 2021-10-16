@@ -20,7 +20,6 @@ import (
 
 var (
 	tPrimitiveD          = reflect.TypeOf(primitive.D{})
-	tPrimitiveA          = reflect.TypeOf(primitive.A{})
 	tPrimitiveCWS        = reflect.TypeOf(primitive.CodeWithScope{})
 	defaultValueEncoders = bsoncodec.DefaultValueEncoders{}
 	defaultValueDecoders = bsoncodec.DefaultValueDecoders{}

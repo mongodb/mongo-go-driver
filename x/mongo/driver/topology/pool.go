@@ -49,13 +49,6 @@ type poolConfig struct {
 	PoolMonitor *event.PoolMonitor
 }
 
-// checkOutResult is all the values that can be returned from a checkOut
-type checkOutResult struct {
-	c      *connection
-	err    error
-	reason string
-}
-
 // pool is a wrapper of resource pool that follows the CMAP spec for connection pools
 type pool struct {
 	// These fields must be accessed using the atomic package and should be at the beginning of the struct.
