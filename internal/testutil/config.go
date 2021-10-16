@@ -318,15 +318,6 @@ func GetDBName(cs connstring.ConnString) string {
 	return fmt.Sprintf("mongo-go-driver-%d", os.Getpid())
 }
 
-// Integration should be called at the beginning of integration
-// tests to ensure that they are skipped if integration testing is
-// turned off.
-func Integration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-}
-
 // compareVersions compares two version number strings (i.e. positive integers separated by
 // periods). Comparisons are done to the lesser precision of the two versions. For example, 3.2 is
 // considered equal to 3.2.11, whereas 3.2.0 is considered less than 3.2.11.
