@@ -22,7 +22,7 @@ The MongoDB supported driver for Go.
 -------------------------
 ## Requirements
 
-- Go 1.10 or higher. We aim to support the latest supported versions of go.
+- Go 1.10 or higher if using the driver as a dependency. Go 1.16 or higher if building the driver yourself. We aim to support the latest supported versions of go.
 - MongoDB 2.6 and higher.
 
 -------------------------
@@ -185,7 +185,7 @@ mongod \
 To run the tests with `make`, set:
 - `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database
 - `MONGO_GO_DRIVER_KEY_FILE` to the location of the client key file
-- `MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE` to the location of the pkcs8 client key file encrypted with the password string: `password` 
+- `MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE` to the location of the pkcs8 client key file encrypted with the password string: `password`
 - `MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE` to the location of the unencrypted pkcs8 key file
 - `MONGODB_URI` to the connection string of the server
 - `AUTH=auth`
@@ -228,7 +228,7 @@ Check out the [project page](https://jira.mongodb.org/browse/GODRIVER) for ticke
 Commits to master are run automatically on [evergreen](https://evergreen.mongodb.com/waterfall/mongo-go-driver).
 
 -------------------------
-## Thanks and Acknowledgement 
+## Thanks and Acknowledgement
 
 <a href="https://github.com/ashleymcnamara">@ashleymcnamara</a> - Mongo Gopher Artwork
 
