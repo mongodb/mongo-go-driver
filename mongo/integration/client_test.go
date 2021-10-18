@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -469,15 +470,13 @@ func TestClient(t *testing.T) {
 }
 
 func TestClientStress(t *testing.T) {
-	// TODO: Enable with GODRIVER-2038.
-	t.Skip("TODO: Enable with GODRIVER-2038")
-
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
 
 	mtOpts := mtest.NewOptions().CreateClient(false)
 	mt := mtest.New(t, mtOpts)
+	defer mt.Close()
 
 	// Test that a Client can recover from a massive traffic spike after the traffic spike is over.
 	mt.Run("Client recovers from traffic spike", func(mt *mtest.T) {
@@ -505,6 +504,7 @@ func TestClientStress(t *testing.T) {
 				if err != nil {
 					errs = append(errs, err)
 				}
+				time.Sleep(10 * time.Microsecond)
 			}
 			return errs
 		}
@@ -523,34 +523,52 @@ func TestClientStress(t *testing.T) {
 		}
 		assert.True(mt, maxRTT > 0, "RTT must be greater than 0")
 
-		// Run tests with various "maxPoolSize" values, including 1-connection pools and unlimited
-		// size pools, to test how the client handles traffic spikes using different connection pool
-		// configurations.
+		// Run tests with various "maxPoolSize" values, including 1-connection pools and the default
+		// size of 100, to test how the client handles traffic spikes using different connection
+		// pool configurations.
 		maxPoolSizes := []uint64{0, 1, 10, 100}
 		for _, maxPoolSize := range maxPoolSizes {
-			maxPoolSizeOpt := mtest.NewOptions().ClientOptions(options.Client().SetMaxPoolSize(maxPoolSize))
+			tpm := newTestPoolMonitor()
+			maxPoolSizeOpt := mtest.NewOptions().ClientOptions(
+				options.Client().
+					SetPoolMonitor(tpm.PoolMonitor).
+					SetMaxPoolSize(maxPoolSize))
 			mt.RunOpts(fmt.Sprintf("maxPoolSize %d", maxPoolSize), maxPoolSizeOpt, func(mt *mtest.T) {
+				// Print the count of connection created, connection closed, and pool clear events
+				// collected during the test to help with debugging.
+				defer func() {
+					created := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionCreated }))
+					closed := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionClosed }))
+					poolCleared := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.PoolCleared }))
+					mt.Logf("Connections created: %d, connections closed: %d, pool clears: %d", created, closed, poolCleared)
+				}()
+
 				doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
 				_, err := mt.Coll.InsertOne(context.Background(), doc)
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
-				// Set the timeout to be 10x the maximum observed RTT. Use a minimum 10ms timeout to
+				// Set the timeout to be 100x the maximum observed RTT. Use a minimum 100ms timeout to
 				// prevent spurious test failures due to extremely low timeouts.
-				timeout := maxRTT * 10
-				if timeout < 10*time.Millisecond {
-					timeout = 10 * time.Millisecond
+				timeout := maxRTT * 100
+				minTimeout := 100 * time.Millisecond
+				if timeout < minTimeout {
+					timeout = minTimeout
 				}
-				t.Logf("Max RTT %v; using a timeout of %v", maxRTT, timeout)
+				mt.Logf("Max RTT %v; using a timeout of %v", maxRTT, timeout)
+
+				// Warm up the client for 1 second to allow connections to be established. Ignore
+				// any errors.
+				_ = findOneFor(mt.Coll, timeout, 1*time.Second)
 
 				// Simulate normal traffic by running one FindOne loop for 1 second and assert that there
 				// are no errors.
 				errs := findOneFor(mt.Coll, timeout, 1*time.Second)
 				assert.True(mt, len(errs) == 0, "expected no errors, but got %d (%v)", len(errs), errs)
 
-				// Simulate an extreme traffic spike by running 1,000 FindOne loops in parallel for 10
+				// Simulate an extreme traffic spike by running 2,000 FindOne loops in parallel for 10
 				// seconds and expect at least some errors to occur.
 				g := new(errgroup.Group)
-				for i := 0; i < 1000; i++ {
+				for i := 0; i < 2000; i++ {
 					g.Go(func() error {
 						errs := findOneFor(mt.Coll, timeout, 10*time.Second)
 						if len(errs) == 0 {
@@ -560,11 +578,11 @@ func TestClientStress(t *testing.T) {
 					})
 				}
 				err = g.Wait()
-				assert.NotNil(mt, err, "expected at least one error, got nil")
+				mt.Logf("Error from extreme traffic spike (errors are expected): %v", err)
 
-				// Simulate normal traffic again for 1 second. Ignore any errors to allow any outstanding
+				// Simulate normal traffic again for 5 second. Ignore any errors to allow any outstanding
 				// connection errors to stop.
-				_ = findOneFor(mt.Coll, timeout, 1*time.Second)
+				_ = findOneFor(mt.Coll, timeout, 5*time.Second)
 
 				// Simulate normal traffic again for 1 second and assert that there are no errors.
 				errs = findOneFor(mt.Coll, timeout, 1*time.Second)

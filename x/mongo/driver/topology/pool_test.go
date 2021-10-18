@@ -371,82 +371,6 @@ func TestPool(t *testing.T) {
 	t.Run("checkOut", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("checkOut on a full pool should return a new connection as soon as the pool isn't full", func(t *testing.T) {
-			t.Parallel()
-
-			cleanup := make(chan struct{})
-			defer close(cleanup)
-			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
-				<-cleanup
-				_ = nc.Close()
-			})
-
-			d := newdialer(&net.Dialer{})
-			p := newPool(
-				poolConfig{
-					Address:     address.Address(addr.String()),
-					MaxPoolSize: 2,
-				},
-				WithDialer(func(Dialer) Dialer { return d }),
-			)
-			err := p.connect()
-			noerr(t, err)
-
-			// Check out two connections (MaxPoolSize) so that subsequent checkOut() calls should
-			// block until a connection is checked back in or removed from the pool.
-			c, err := p.checkOut(context.Background())
-			noerr(t, err)
-			_, err = p.checkOut(context.Background())
-			noerr(t, err)
-			assert.Equalf(t, 2, d.lenopened(), "should have opened 2 connection")
-			assert.Equalf(t, 2, p.totalConnectionCount(), "pool should have 2 total connection")
-			assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 idle connection")
-
-			// Run a checkOut() with timeout and expect it to time out because the pool is at
-			// MaxPoolSize and no connections are checked in or removed from the pool.
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
-			defer cancel()
-			_, err = p.checkOut(ctx)
-			assert.Equalf(t, context.DeadlineExceeded, err.(WaitQueueTimeoutError).Wrapped, "TODO")
-
-			// Start a goroutine that calls checkOut() without a timeout after recording the start
-			// time of the checkOut().
-			var start time.Time
-			waiting := make(chan struct{})
-			var wg sync.WaitGroup
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
-				close(waiting)
-				start = time.Now()
-				_, err := p.checkOut(context.Background())
-				noerr(t, err)
-			}()
-
-			// Close a connection, wait for the checkOut() goroutine to signal it is waiting for a
-			// checkOut(), then check in the closed connection. Expect that the checkOut() goroutine
-			// exits within 5ms of checking in the closed connection.
-			c.close()
-			<-waiting
-			err = p.checkIn(c)
-			noerr(t, err)
-			wg.Wait()
-			assert.WithinDurationf(
-				t,
-				start,
-				time.Now(),
-				5*time.Millisecond,
-				"expected checkOut to complete within 5ms of checking in a closed connection")
-
-			assert.Equalf(t, 1, d.lenclosed(), "should have closed 1 connection")
-			assert.Equalf(t, 3, d.lenopened(), "should have opened 3 connection")
-			assert.Equalf(t, 2, p.totalConnectionCount(), "pool should have 2 total connection")
-			assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 idle connection")
-
-			err = p.disconnect(context.Background())
-			noerr(t, err)
-		})
 		t.Run("return error when attempting to create new connection", func(t *testing.T) {
 			t.Parallel()
 
@@ -685,6 +609,78 @@ func TestPool(t *testing.T) {
 			err = p.checkIn(c)
 			noerr(t, err)
 			wg.Wait()
+		})
+		// Test that checkOut() on a full connection pool creates and returns a new connection
+		// immediately as soon as the pool is no longer full.
+		t.Run("should return a new connection as soon as the pool isn't full", func(t *testing.T) {
+			t.Parallel()
+
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+
+			d := newdialer(&net.Dialer{})
+			p := newPool(
+				poolConfig{
+					Address:     address.Address(addr.String()),
+					MaxPoolSize: 2,
+				},
+				WithDialer(func(Dialer) Dialer { return d }),
+			)
+			err := p.connect()
+			noerr(t, err)
+
+			// Check out two connections (MaxPoolSize) so that subsequent checkOut() calls should
+			// block until a connection is checked back in or removed from the pool.
+			c, err := p.checkOut(context.Background())
+			noerr(t, err)
+			_, err = p.checkOut(context.Background())
+			noerr(t, err)
+			assert.Equalf(t, 2, d.lenopened(), "should have opened 2 connection")
+			assert.Equalf(t, 2, p.totalConnectionCount(), "pool should have 2 total connection")
+			assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 idle connection")
+
+			// Run a checkOut() with timeout and expect it to time out because the pool is at
+			// MaxPoolSize and no connections are checked in or removed from the pool.
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+			defer cancel()
+			_, err = p.checkOut(ctx)
+			assert.Equalf(
+				t,
+				context.DeadlineExceeded,
+				err.(WaitQueueTimeoutError).Wrapped,
+				"expected wrapped error to be a context.DeadlineExceeded")
+
+			// Start a goroutine that closes one of the checked-out conections and checks it in.
+			// Expect that the checked-in connection is closed and allows blocked checkOut() to
+			// complete. Assert that the time between checking in the closed connection and when the
+			// checkOut() completes is within 50ms.
+			var start time.Time
+			go func() {
+				c.close()
+				start = time.Now()
+				err := p.checkIn(c)
+				noerr(t, err)
+			}()
+			_, err = p.checkOut(context.Background())
+			noerr(t, err)
+			assert.WithinDurationf(
+				t,
+				time.Now(),
+				start,
+				50*time.Millisecond,
+				"expected checkOut to complete within 50ms of checking in a closed connection")
+
+			assert.Equalf(t, 1, d.lenclosed(), "should have closed 1 connection")
+			assert.Equalf(t, 3, d.lenopened(), "should have opened 3 connection")
+			assert.Equalf(t, 2, p.totalConnectionCount(), "pool should have 2 total connection")
+			assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 idle connection")
+
+			err = p.disconnect(context.Background())
+			noerr(t, err)
 		})
 	})
 	t.Run("checkIn", func(t *testing.T) {
