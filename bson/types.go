@@ -7,8 +7,6 @@
 package bson
 
 import (
-	"reflect"
-
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
@@ -36,7 +34,3 @@ const (
 	TypeMinKey           = bsontype.MinKey
 	TypeMaxKey           = bsontype.MaxKey
 )
-
-var tRawValue = reflect.TypeOf(RawValue{})
-var tInt32 = reflect.TypeOf(int32(0))
-var tRaw = reflect.TypeOf(Raw(nil))
