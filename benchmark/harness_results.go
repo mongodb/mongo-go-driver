@@ -50,6 +50,9 @@ func (r *BenchResult) EvergreenPerfFormat() ([]interface{}, error) {
 		map[string]interface{}{
 			"info": map[string]interface{}{
 				"test_name": r.Name + "-throughput",
+				"args": map[string]interface{}{
+					"threads": 1,
+				},
 			},
 			"metrics": []Metric{
 				{Name: "seconds", Value: r.Duration.Round(time.Millisecond).Seconds()},
@@ -63,6 +66,9 @@ func (r *BenchResult) EvergreenPerfFormat() ([]interface{}, error) {
 		out = append(out, interface{}(map[string]interface{}{
 			"info": map[string]interface{}{
 				"test_name": r.Name + "-MB-adjusted",
+				"args": map[string]interface{}{
+					"threads": 1,
+				},
 			},
 			"metrics": []Metric{
 				{Name: "seconds", Value: r.Duration.Round(time.Millisecond).Seconds()},
