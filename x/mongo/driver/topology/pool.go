@@ -122,8 +122,6 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 			PoolOptions: &event.MonitorPoolOptions{
 				MaxPoolSize: config.MaxPoolSize,
 				MinPoolSize: config.MinPoolSize,
-				// TODO: We don't use this value, should we publish it?
-				WaitQueueTimeoutMS: uint64(config.MaxIdleTime) / uint64(time.Millisecond),
 			},
 			Address: pool.address.String(),
 		})
@@ -214,48 +212,42 @@ func (p *pool) disconnect(ctx context.Context) error {
 		}
 	}
 
-	// Collect all conns from the pool and all wantConns from newConnWait while holding the
-	// connsCond lock. We can't call removeConnection on the connections or cancel on the wantConns
-	// while holding any locks, so do that after we release the lock.
-	p.connsCond.L.Lock()
-	conns := make([]*connection, 0, len(p.conns))
-	for _, conn := range p.conns {
-		conns = append(conns, conn)
-	}
-
-	wantConns := make([]*wantConn, 0, p.newConnWait.len())
-	for {
-		w := p.newConnWait.popFront()
-		if w == nil {
-			break
-		}
-		wantConns = append(wantConns, w)
-	}
-	p.connsCond.L.Unlock()
-
-	// Empty the idle connections stack and collect all wantConns from idleConnWait while holding
-	// the idleMu lock. We can't call cancel on the wantConns while holding any locks, so do that
-	// after we release the lock.
+	// Empty the idle connections stack and try to deliver ErrPoolDisconnected to any waiting
+	// wantConns from idleConnWait while holding the idleMu lock.
 	p.idleMu.Lock()
 	p.idleConns = p.idleConns[:0]
-
 	for {
 		w := p.idleConnWait.popFront()
 		if w == nil {
 			break
 		}
-		wantConns = append(wantConns, w)
+		w.tryDeliver(nil, ErrPoolDisconnected)
 	}
 	p.idleMu.Unlock()
 
+	// Collect all conns from the pool and try to deliver ErrPoolDisconnected to any waiting
+	// wantConns from newConnWait while holding the connsCond lock. We can't call removeConnection
+	// on the connections or cancel on the wantConns while holding any locks, so do that after we
+	// release the lock.
+	p.connsCond.L.Lock()
+	conns := make([]*connection, 0, len(p.conns))
+	for _, conn := range p.conns {
+		conns = append(conns, conn)
+	}
+	for {
+		w := p.newConnWait.popFront()
+		if w == nil {
+			break
+		}
+		w.tryDeliver(nil, ErrPoolDisconnected)
+	}
+	p.connsCond.L.Unlock()
+
 	// Now that we're not holding any locks, remove all of the connections we collected from the
-	// pool and try to deliver ErrPoolDisconnected to any waiting wantConns.
+	// pool.
 	for _, conn := range conns {
 		_ = p.removeConnection(conn, event.ReasonPoolClosed)
 		_ = p.closeConnection(conn) // We don't care about errors while closing the connection.
-	}
-	for _, w := range wantConns {
-		w.tryDeliver(nil, ErrPoolDisconnected)
 	}
 
 	atomic.StoreInt64(&p.connected, disconnected)
@@ -724,9 +716,14 @@ func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
 
 		// Figure out how many more wantConns we need to satisfy minPoolSize. Assume that the
 		// outstanding wantConns (i.e. the ones that weren't removed from the slice) will all return
-		// connections when they're ready, so only add wantConns to make up the difference.
+		// connections when they're ready, so only add wantConns to make up the difference. Limit
+		// the number of connections requested to max 10 at a time to prevent overshooting
+		// minPoolSize in case other checkOut() calls are requesting new connections, too.
 		total := p.totalConnectionCount()
 		n := int(p.minSize) - total - len(wantConns)
+		if n > 10 {
+			n = 10
+		}
 
 		for i := 0; i < n; i++ {
 			w := newWantConn()
