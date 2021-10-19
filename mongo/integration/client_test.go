@@ -526,7 +526,7 @@ func TestClientStress(t *testing.T) {
 		// Run tests with various "maxPoolSize" values, including 1-connection pools and the default
 		// size of 100, to test how the client handles traffic spikes using different connection
 		// pool configurations.
-		maxPoolSizes := []uint64{0, 1, 10, 100}
+		maxPoolSizes := []uint64{1, 10, 100}
 		for _, maxPoolSize := range maxPoolSizes {
 			tpm := newTestPoolMonitor()
 			maxPoolSizeOpt := mtest.NewOptions().ClientOptions(
@@ -565,10 +565,10 @@ func TestClientStress(t *testing.T) {
 				errs := findOneFor(mt.Coll, timeout, 1*time.Second)
 				assert.True(mt, len(errs) == 0, "expected no errors, but got %d (%v)", len(errs), errs)
 
-				// Simulate an extreme traffic spike by running 2,000 FindOne loops in parallel for 10
+				// Simulate an extreme traffic spike by running 1,000 FindOne loops in parallel for 10
 				// seconds and expect at least some errors to occur.
 				g := new(errgroup.Group)
-				for i := 0; i < 2000; i++ {
+				for i := 0; i < 1000; i++ {
 					g.Go(func() error {
 						errs := findOneFor(mt.Coll, timeout, 10*time.Second)
 						if len(errs) == 0 {
