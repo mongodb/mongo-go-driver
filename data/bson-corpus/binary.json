@@ -51,6 +51,11 @@
             "canonical_extjson": "{\"x\" : { \"$binary\" : {\"base64\" : \"c//SZESzTGmQ6OfR38A11A==\", \"subType\" : \"05\"}}}"
         },
         {
+            "description": "subtype 0x07",
+            "canonical_bson": "1D000000057800100000000773FFD26444B34C6990E8E7D1DFC035D400",
+            "canonical_extjson": "{\"x\" : { \"$binary\" : {\"base64\" : \"c//SZESzTGmQ6OfR38A11A==\", \"subType\" : \"07\"}}}"
+        },
+        {
             "description": "subtype 0x80",
             "canonical_bson": "0F0000000578000200000080FFFF00",
             "canonical_extjson": "{\"x\" : { \"$binary\" : {\"base64\" : \"//8=\", \"subType\" : \"80\"}}}"
