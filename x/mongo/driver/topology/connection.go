@@ -18,7 +18,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -51,7 +50,6 @@ type connection struct {
 	idleDeadline         atomic.Value // Stores a time.Time
 	readTimeout          time.Duration
 	writeTimeout         time.Duration
-	descMu               sync.RWMutex // Guards desc. TODO: Remove with or after GODRIVER-2038.
 	desc                 description.Server
 	helloRTT             time.Duration
 	compressor           wiremessage.CompressorID
@@ -69,11 +67,9 @@ type connection struct {
 	serverConnectionID   *int32 // the server's ID for this client's connection
 
 	// pool related fields
-	pool         *pool
-	poolID       uint64
-	generation   uint64
-	expireReason string
-	poolMonitor  *event.PoolMonitor
+	pool       *pool
+	poolID     uint64
+	generation uint64
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -95,7 +91,6 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 		config:               cfg,
 		connectContextMade:   make(chan struct{}),
 		cancellationListener: internal.NewCancellationListener(),
-		poolMonitor:          cfg.poolMonitor,
 	}
 	// Connections to non-load balanced deployments should eagerly set the generation numbers so errors encountered
 	// at any point during connection establishment can be processed without the connection being considered stale.
@@ -217,13 +212,6 @@ func (c *connection) connect(ctx context.Context) {
 	// running hello and authentication is handled by a handshaker on the configuration instance.
 	handshaker := c.config.handshaker
 	if handshaker == nil {
-		if c.poolMonitor != nil {
-			c.poolMonitor.Event(&event.PoolEvent{
-				Type:         event.ConnectionReady,
-				Address:      c.addr.String(),
-				ConnectionID: c.poolID,
-			})
-		}
 		return
 	}
 
@@ -232,12 +220,9 @@ func (c *connection) connect(ctx context.Context) {
 	handshakeConn := initConnection{c}
 	handshakeInfo, err = handshaker.GetHandshakeInformation(handshakeCtx, c.addr, handshakeConn)
 	if err == nil {
-		// We only need to retain the Description field and the server connection ID. The authentication-related
-		// fields in handshakeInfo are tracked by the handshaker if necessary. We also lock the description mutex
-		// before setting the server description.
-		c.descMu.Lock()
+		// We only need to retain the Description field as the connection's description. The authentication-related
+		// fields in handshakeInfo are tracked by the handshaker if necessary.
 		c.desc = handshakeInfo.Description
-		c.descMu.Unlock()
 		c.serverConnectionID = handshakeInfo.ServerConnectionID
 		c.helloRTT = time.Since(handshakeStartTime)
 
@@ -293,13 +278,6 @@ func (c *connection) connect(ctx context.Context) {
 				break clientMethodLoop
 			}
 		}
-	}
-	if c.poolMonitor != nil {
-		c.poolMonitor.Event(&event.PoolEvent{
-			Type:         event.ConnectionReady,
-			Address:      c.addr.String(),
-			ConnectionID: c.poolID,
-		})
 	}
 }
 
@@ -718,7 +696,7 @@ func (c *Connection) Expire() error {
 }
 
 func (c *Connection) cleanupReferences() error {
-	err := c.pool.put(c.connection)
+	err := c.pool.checkIn(c.connection)
 	if c.cleanupPoolFn != nil {
 		c.cleanupPoolFn()
 		c.cleanupPoolFn = nil

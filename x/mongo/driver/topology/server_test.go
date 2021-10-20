@@ -72,24 +72,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			expectPoolCleared: false,
 		},
 		{
-			desc: "operation timeout error during dialing should not clear the pool",
-			dialer: func(Dialer) Dialer {
-				var d net.Dialer
-				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
-					// Wait for the passed in context to time out. Expect the error returned by
-					// DialContext() to be treated as a timeout caused by an operation-scoped deadline.
-					// E.g. FindOne(context.WithTimeout(...))
-					<-ctx.Done()
-					return d.DialContext(ctx, network, addr)
-				})
-			},
-			operationTimeout:  100 * time.Millisecond,
-			connectTimeout:    1 * time.Minute,
-			expectErr:         true,
-			expectPoolCleared: false,
-		},
-		{
-			desc: "connectTimeMS timeout error during dialing should clear the pool",
+			desc: "timeout error during dialing should clear the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -105,7 +88,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			expectPoolCleared: true,
 		},
 		{
-			desc: "connectTimeMS timeout error during dialing with no operation timeout should clear the pool",
+			desc: "timeout error during dialing with no operation timeout should clear the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -121,26 +104,6 @@ func TestServerConnectionTimeout(t *testing.T) {
 			expectPoolCleared: true,
 		},
 		{
-			desc: "operation timeout error during handshake should not clear the pool",
-			handshaker: func(Handshaker) Handshaker {
-				h := auth.Handshaker(nil, &auth.HandshakeOptions{})
-				return &testHandshaker{
-					getHandshakeInformation: func(ctx context.Context, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
-						// Wait for the passed in context to time out. Expect the error returned by
-						// GetHandshakeInformation() to be treated as a timeout caused by an
-						// operation-scoped deadline.
-						// E.g. FindOne(context.WithTimeout(...))
-						<-ctx.Done()
-						return h.GetHandshakeInformation(ctx, addr, c)
-					},
-				}
-			},
-			operationTimeout:  100 * time.Millisecond,
-			connectTimeout:    1 * time.Minute,
-			expectErr:         true,
-			expectPoolCleared: false,
-		},
-		{
 			desc: "dial errors unrelated to context timeouts should clear the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
@@ -153,7 +116,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			expectPoolCleared: true,
 		},
 		{
-			desc: "context error with dial errors unrelated to context timeouts should clear the pool",
+			desc: "operation context timeout with unrelated dial errors should clear the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, _, _ string) (net.Conn, error) {
@@ -166,6 +129,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 				})
 			},
 			operationTimeout:  100 * time.Millisecond,
+			connectTimeout:    1 * time.Second,
 			expectErr:         true,
 			expectPoolCleared: true,
 		},
@@ -251,6 +215,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			// are sent on the channel. Then wait for the events channel loop to return before
 			// inspecting the events slice.
 			_ = server.Disconnect(context.Background())
+
 			close(eventsCh)
 			eventsWg.Wait()
 			require.NotEmpty(t, events, "expected more than 0 connection pool monitor events")
@@ -272,86 +237,6 @@ func TestServerConnectionTimeout(t *testing.T) {
 				poolCleared)
 		})
 	}
-}
-
-// TestServerConnectionCancellation tests how context cancellation errors are handled during
-// connection creation.
-func TestServerConnectionCancellation(t *testing.T) {
-	// Start a goroutine that pulls events from the events channel and inserts them into the
-	// events slice. Use a sync.WaitGroup to allow the test code to block until the events
-	// channel loop exits, guaranteeing that all events were copied from the channel.
-	// TODO(GODRIVER-2068): Consider using the "testPoolMonitor" from the "mongo/integration"
-	// package. Requires moving "testPoolMonitor" into a test utilities package.
-	events := make([]*event.PoolEvent, 0)
-	eventsCh := make(chan *event.PoolEvent)
-	var eventsWg sync.WaitGroup
-	eventsWg.Add(1)
-	go func() {
-		defer eventsWg.Done()
-		for evt := range eventsCh {
-			events = append(events, evt)
-		}
-	}()
-
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	defer func() {
-		_ = l.Close()
-	}()
-
-	// Create a context with cancellation that can be cancelled before the dial completes.
-	ctx, cancel := context.WithCancel(context.Background())
-
-	server, err := NewServer(
-		address.Address(l.Addr().String()),
-		primitive.NewObjectID(),
-		// Create a connection pool event monitor that sends all events to an events channel
-		// so we can assert on the connection pool events later.
-		WithConnectionPoolMonitor(func(_ *event.PoolMonitor) *event.PoolMonitor {
-			return &event.PoolMonitor{
-				Event: func(event *event.PoolEvent) {
-					eventsCh <- event
-				},
-			}
-		}),
-		// Disable monitoring to prevent unrelated failures from the RTT monitor and
-		// heartbeats from unexpectedly clearing the connection pool.
-		withMonitoringDisabled(func(bool) bool { return true }),
-		WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
-			return append(opts, WithDialer(func(Dialer) Dialer {
-				var d net.Dialer
-				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
-					// Cancel the operation context before dialing and expect a context cancellation
-					// error.
-					cancel()
-					return d.DialContext(ctx, network, addr)
-				})
-			}))
-		}),
-	)
-	require.NoError(t, err)
-	require.NoError(t, server.Connect(nil))
-
-	_, err = server.Connection(ctx)
-	assert.NotNil(t, err, "expected an error but got nil")
-
-	// Disconnect the server then close the events channel and expect that no more events
-	// are sent on the channel. Then wait for the events channel loop to return before
-	// inspecting the events slice.
-	_ = server.Disconnect(context.Background())
-	close(eventsCh)
-	eventsWg.Wait()
-	require.NotEmpty(t, events, "expected more than 0 connection pool monitor events")
-
-	// Look for any "ConnectionPoolCleared" events in the events slice so we can assert that
-	// the Server connection pool wasn't cleared.
-	poolCleared := false
-	for _, evt := range events {
-		if evt.Type == event.PoolCleared {
-			poolCleared = true
-		}
-	}
-	assert.False(t, poolCleared, "expected pool to not be cleared, but was cleared")
 }
 
 func TestServer(t *testing.T) {
@@ -410,6 +295,9 @@ func TestServer(t *testing.T) {
 			}
 			err = s.pool.connect()
 			require.NoError(t, err, "unable to connect to pool")
+			defer func() {
+				_ = s.pool.disconnect(context.Background())
+			}()
 			s.connectionstate = connected
 
 			// The internal connection pool resets the generation number once the number of connections in a generation
@@ -571,6 +459,9 @@ func TestServer(t *testing.T) {
 		s.connectionstate = connected
 		err = s.pool.connect()
 		noerr(t, err)
+		defer func() {
+			_ = s.pool.disconnect(context.Background())
+		}()
 
 		conn, err := s.Connection(context.Background())
 		noerr(t, err)

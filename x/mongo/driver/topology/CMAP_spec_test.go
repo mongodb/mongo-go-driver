@@ -119,6 +119,9 @@ func runCMAPTest(t *testing.T, testFileName string) {
 	s.connectionstate = connected
 	err = s.pool.connect()
 	testHelpers.RequireNil(t, err, "error connecting connection pool: %v", err)
+	defer func() {
+		_ = s.pool.disconnect(context.Background())
+	}()
 
 	for _, op := range test.Operations {
 		if tempErr := runOperation(t, op, testInfo, s, test.PoolOptions.WaitQueueTimeoutMS); tempErr != nil {
