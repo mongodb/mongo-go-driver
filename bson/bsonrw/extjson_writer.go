@@ -22,12 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var ejvwPool = sync.Pool{
-	New: func() interface{} {
-		return new(extJSONValueWriter)
-	},
-}
-
 // ExtJSONValueWriterPool is a pool for ExtJSON ValueWriters.
 type ExtJSONValueWriterPool struct {
 	pool sync.Pool

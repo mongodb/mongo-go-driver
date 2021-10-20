@@ -14,6 +14,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
+var tRawValue = reflect.TypeOf(RawValue{})
+var tRaw = reflect.TypeOf(Raw(nil))
+
 var primitiveCodecs PrimitiveCodecs
 
 // PrimitiveCodecs is a namespace for all of the default bsoncodec.Codecs for the primitive types

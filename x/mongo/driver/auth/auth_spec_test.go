@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
 type credential struct {
@@ -102,13 +101,6 @@ func mapInterfaceToString(m map[string]interface{}) map[string]string {
 	}
 
 	return out
-}
-
-func verifyMechProperties(t *testing.T, cs connstring.ConnString, mechProps map[string]interface{}) {
-	// Check that all options are present.
-	for key, value := range mechProps {
-		require.Equal(t, value, cs.AuthMechanismProperties[key])
-	}
 }
 
 // Test case for all connection string spec tests.

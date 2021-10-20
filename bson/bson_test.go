@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -29,10 +28,6 @@ func noerr(t *testing.T, err error) {
 		t.Errorf("Unexpected error: (%T)%v", err, err)
 		t.FailNow()
 	}
-}
-
-func requireErrEqual(t *testing.T, err1 error, err2 error) {
-	require.True(t, compareErrors(err1, err2))
 }
 
 func TestTimeRoundTrip(t *testing.T) {

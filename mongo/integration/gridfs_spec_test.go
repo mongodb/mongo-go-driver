@@ -22,7 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 type gridfsTestFile struct {
@@ -459,21 +458,6 @@ func hexStringToBytes(mt *mtest.T, hexStr string) []byte {
 	hexBytes, err := hex.DecodeString(hexStr)
 	assert.Nil(mt, err, "DecodeString error for %v: %v", hexStr, err)
 	return hexBytes
-}
-
-func replaceBsonValue(original bson.Raw, key string, newValue bson.RawValue) bson.Raw {
-	idx, newDoc := bsoncore.AppendDocumentStart(nil)
-	elems, _ := original.Elements()
-	for _, elem := range elems {
-		rawValue := elem.Value()
-		if elem.Key() == key {
-			rawValue = newValue
-		}
-
-		newDoc = bsoncore.AppendValueElement(newDoc, elem.Key(), bsoncore.Value{Type: rawValue.Type, Data: rawValue.Value})
-	}
-	newDoc, _ = bsoncore.AppendDocumentEnd(newDoc, idx)
-	return bson.Raw(newDoc)
 }
 
 func runCommands(mt *mtest.T, commands []interface{}) {

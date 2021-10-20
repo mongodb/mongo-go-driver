@@ -22,6 +22,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+var tInt32 = reflect.TypeOf(int32(0))
+
 func TestMarshalAppendWithRegistry(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {

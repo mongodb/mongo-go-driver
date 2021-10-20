@@ -28,11 +28,8 @@ import (
 )
 
 var (
-	connsCheckedOut        int
-	errorInterrupted       int32 = 11601
-	withTxnStartedEvents   []*event.CommandStartedEvent
-	withTxnSucceededEvents []*event.CommandSucceededEvent
-	withTxnFailedEvents    []*event.CommandFailedEvent
+	connsCheckedOut  int
+	errorInterrupted int32 = 11601
 )
 
 type wrappedError struct {

@@ -28,7 +28,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -467,12 +466,6 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), readpref.Primary())
 		assert.Nil(t, err, "unexpected error calling Ping: %v", err)
 	})
-}
-
-type proxyMessage struct {
-	serverAddress string
-	sent          wiremessage.WireMessage
-	received      wiremessage.WireMessage
 }
 
 func TestClientStress(t *testing.T) {

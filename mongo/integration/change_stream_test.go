@@ -677,13 +677,3 @@ func compareResumeTokens(mt *mtest.T, cs *mongo.ChangeStream, expected bson.Raw)
 	mt.Helper()
 	assert.Equal(mt, expected, cs.ResumeToken(), "expected resume token %v, got %v", expected, cs.ResumeToken())
 }
-
-func ensureResumeToken(mt *mtest.T, cs *mongo.ChangeStream) {
-	mt.Helper()
-
-	_, err := mt.Coll.InsertOne(mtest.Background, bson.D{
-		{"ensureResumeToken", 1},
-	})
-	assert.Nil(mt, err, "InsertOne error for ensureResumeToken doc: %v", err)
-	assert.True(mt, cs.Next(mtest.Background), "expected cs.Next to return true, got false")
-}

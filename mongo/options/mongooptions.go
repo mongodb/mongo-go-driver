@@ -157,5 +157,3 @@ type MarshalError struct {
 func (me MarshalError) Error() string {
 	return fmt.Sprintf("cannot transform type %s to a bson.Raw", reflect.TypeOf(me.Value))
 }
-
-var defaultRegistry = bson.DefaultRegistry

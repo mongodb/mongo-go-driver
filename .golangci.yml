@@ -5,7 +5,7 @@ linters:
   disable-all: true
   # TODO(GODRIVER-2156): Enable all commented-out linters.
   enable:
-    # - deadcode
+    - deadcode
     - errcheck
     # - errorlint
     - goimports

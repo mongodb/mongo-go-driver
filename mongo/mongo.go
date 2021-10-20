@@ -161,21 +161,6 @@ func transformBsoncoreDocument(registry *bsoncodec.Registry, val interface{}, ma
 	return b, nil
 }
 
-func ensureID(d bsonx.Doc) (bsonx.Doc, interface{}) {
-	var id interface{}
-
-	elem, err := d.LookupElementErr("_id")
-	switch err.(type) {
-	case nil:
-		id = elem
-	default:
-		oid := primitive.NewObjectID()
-		d = append(d, bsonx.Elem{"_id", bsonx.ObjectID(oid)})
-		id = oid
-	}
-	return d, id
-}
-
 func ensureDollarKey(doc bsoncore.Document) error {
 	firstElem, err := doc.IndexErr(0)
 	if err != nil {
