@@ -409,9 +409,9 @@ func TestRegistry(t *testing.T) {
 	})
 }
 
-type fakeType1 struct{ b bool }
-type fakeType2 struct{ b bool }
-type fakeType4 struct{ b bool }
+type fakeType1 struct{}
+type fakeType2 struct{}
+type fakeType4 struct{}
 type fakeType5 func(string, string) string
 type fakeStructCodec struct{ fakeCodec }
 type fakeSliceCodec struct{ fakeCodec }

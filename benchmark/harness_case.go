@@ -56,10 +56,6 @@ func (c *CaseDefinition) StopTimer() {
 	c.isRunning = false
 }
 
-func (c *CaseDefinition) roundedRuntime() time.Duration {
-	return roundDurationMS(c.Runtime)
-}
-
 func (c *CaseDefinition) Run(ctx context.Context) *BenchResult {
 	out := &BenchResult{
 		Trials:     1,
