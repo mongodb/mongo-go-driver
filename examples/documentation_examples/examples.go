@@ -2538,15 +2538,19 @@ func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
 	require.NoError(t, err)
 
 	// Start CausalConsistency Example 1
+
+	// Use a causally-consistent session to run some operations
 	opts := options.Session().SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
 	session1, err := client.StartSession(opts)
 	
 	client.UseSessionWithOptions(ctx, opts, func(sctx mongo.SessionContext) error {
+		// Run an update with our causally-consistent session
 		_, err = coll.UpdateOne(sctx, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", current_date}}}})
 		if err != nil {
 			return err
 		}
 
+		// Run an insert with our causally-consistent session
 		_, err = coll.InsertOne(sctx, bson.D{{"sku", "nuts-111"}, {"name", "Pecans"}, {"start", current_date}})
 		if err != nil {
 			return err
@@ -2559,16 +2563,20 @@ func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
 
 	// Start CausalConsistency Example 2
 
+	// Make a new session that is causally consistent with session1 so session2 reads what session1 writes
 	opts = options.Session().SetDefaultReadPreference(readpref.Secondary()).SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
 	session2, err := client.StartSession(opts)
 
 	client.UseSessionWithOptions(ctx, opts, func(sctx mongo.SessionContext) error {
+		// Set cluster time of session2 to session1's cluster time
 		cluster_time := session1.ClusterTime()
-		operation_time := session1.OperationTime()
-
 		session2.AdvanceClusterTime(cluster_time)
+
+		// Set operation time of session2 to session1's operation time
+		operation_time := session1.OperationTime()
 		session2.AdvanceOperationTime(operation_time)
 
+		// Run a find on session2, which should find all the writes from session1
 		cursor, err := coll.Find(ctx, bson.D{{"end", nil}})
 
 		if err != nil {
