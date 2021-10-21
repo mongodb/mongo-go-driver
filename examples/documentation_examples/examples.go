@@ -2527,6 +2527,67 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	}
 }
 
+// CausalConsistencyExamples contains examples of causal consistency usage.
+func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
+	ctx := context.Background()
+	coll := client.Database("test").Collection("items")
+
+	current_date := time.Now()
+
+	err := coll.Drop(ctx)
+	require.NoError(t, err)
+
+	// Start CausalConsistency Example 1
+	opts := options.Session().SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
+	session1, err := client.StartSession(opts)
+	
+	client.UseSessionWithOptions(ctx, opts, func(sctx mongo.SessionContext) error {
+		_, err = coll.UpdateOne(sctx, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", current_date}}}})
+		if err != nil {
+			return err
+		}
+
+		_, err = coll.InsertOne(sctx, bson.D{{"sku", "nuts-111"}, {"name", "Pecans"}, {"start", current_date}})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	// End CausalConsistency Example 1
+
+	// Start CausalConsistency Example 2
+
+	opts = options.Session().SetDefaultReadPreference(readpref.Secondary()).SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
+	session2, err := client.StartSession(opts)
+
+	client.UseSessionWithOptions(ctx, opts, func(sctx mongo.SessionContext) error {
+		cluster_time := session1.ClusterTime()
+		operation_time := session1.OperationTime()
+
+		session2.AdvanceClusterTime(cluster_time)
+		session2.AdvanceOperationTime(operation_time)
+
+		cursor, err := coll.Find(ctx, bson.D{{"end", nil}})
+
+		if err != nil {
+			fmt.Printf("cursor failure: %v\n", err)
+			return err
+		}
+
+		for cursor.Next(ctx) {
+			doc := cursor.Current
+			fmt.Printf("Document: %v\n", doc.String())
+		}
+		
+		return nil
+	})
+
+	// End CausalConsistency Example 2
+	return nil
+}
+
 // RunCommandExamples contains examples of RunCommand operations.
 func RunCommandExamples(t *testing.T, db *mongo.Database) {
 	ctx := context.Background()
