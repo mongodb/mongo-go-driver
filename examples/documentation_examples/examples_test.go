@@ -115,8 +115,8 @@ func TestChangeStreamExamples(t *testing.T) {
 func TestCausalConsistencyExamples(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	topo := createTopology(t)
-	client, err := mongo.Connect(context.Background(), &options.ClientOptions{Deployment: topo})
+	cs := testutil.ConnString(t)
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cs.String()))
 	require.NoError(t, err)
 	defer client.Disconnect(ctx)
 
