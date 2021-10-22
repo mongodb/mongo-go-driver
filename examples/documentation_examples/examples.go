@@ -2542,7 +2542,7 @@ func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
 	// Use a causally-consistent session to run some operations
 	opts := options.Session().SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
 	session1, err := client.StartSession(opts)
-	
+
 	client.UseSessionWithOptions(ctx, opts, func(sctx mongo.SessionContext) error {
 		// Run an update with our causally-consistent session
 		_, err = coll.UpdateOne(sctx, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", current_date}}}})
@@ -2588,7 +2588,7 @@ func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
 			doc := cursor.Current
 			fmt.Printf("Document: %v\n", doc.String())
 		}
-		
+
 		return nil
 	})
 
