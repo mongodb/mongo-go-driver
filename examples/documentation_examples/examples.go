@@ -2544,7 +2544,7 @@ func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
 		writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
 	session1, err := client.StartSession(opts)
 
-	client.UseSessionWithOptions(ctx, opts, func(sctx mongo.SessionContext) error {
+	err = client.UseSessionWithOptions(ctx, opts, func(sctx mongo.SessionContext) error {
 		// Run an update with our causally-consistent session
 		_, err = coll.UpdateOne(sctx, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", currentDate}}}})
 		if err != nil {
@@ -2559,6 +2559,10 @@ func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
 
 		return nil
 	})
+
+	if err != nil {
+		return err
+	}
 
 	// End Causal Consistency Example 1
 
