@@ -57,7 +57,8 @@ func (r *BenchResult) EvergreenPerfFormat() ([]interface{}, error) {
 			"metrics": []Metric{
 				{Name: "seconds", Value: r.Duration.Round(time.Millisecond).Seconds()},
 				{Name: "ops_per_second", Value: r.getThroughput(median)},
-				{Name: "ops_per_second_values", Value: []float64{r.getThroughput(min), r.getThroughput(max)}},
+				{Name: "ops_per_second_min", Value: r.getThroughput(min)},
+				{Name: "ops_per_second_max", Value: r.getThroughput(max)},
 			},
 		},
 	}
@@ -73,7 +74,8 @@ func (r *BenchResult) EvergreenPerfFormat() ([]interface{}, error) {
 			"metrics": []Metric{
 				{Name: "seconds", Value: r.Duration.Round(time.Millisecond).Seconds()},
 				{Name: "ops_per_second", Value: r.adjustResults(median)},
-				{Name: "ops_per_second_values", Value: []float64{r.adjustResults(min), r.adjustResults(max)}},
+				{Name: "ops_per_second_min", Value: r.adjustResults(min)},
+				{Name: "ops_per_second_max", Value: r.adjustResults(max)},
 			},
 		}))
 	}
