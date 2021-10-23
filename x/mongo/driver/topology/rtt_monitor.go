@@ -129,7 +129,7 @@ func (r *rttMonitor) runHello(conn *connection) *connection {
 	return conn
 }
 
-// reset sets the average RTT to 0. This should only be called from the server monitor when an error
+// reset sets the average and min RTT to 0. This should only be called from the server monitor when an error
 // occurs during a server check. Errors in the RTT monitor should not reset the RTTs.
 func (r *rttMonitor) reset() {
 	r.mu.Lock()
