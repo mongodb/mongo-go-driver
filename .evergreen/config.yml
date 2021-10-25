@@ -2039,14 +2039,12 @@ buildvariants:
   - matrix_name: "ocsp-test"
     matrix_spec: { version: ["4.4", "5.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-16"] }
     display_name: "OCSP ${version} ${ocsp-rhel-70}"
-    batchtime: 20160 # 14 days
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
     matrix_spec: { version: ["4.4", "5.0", "latest"], os-ssl-40: ["windows-64-go-1-16"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
-    batchtime: 20160 # 14 days
     tasks:
       # Windows MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
@@ -2054,7 +2052,6 @@ buildvariants:
   - matrix_name: "ocsp-test-macos"
     matrix_spec: { version: ["4.4", "5.0", "latest"], os-ssl-40: ["osx-go-1-16"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
-    batchtime: 20160 # 14 days
     tasks:
       # macos MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
