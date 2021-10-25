@@ -9,6 +9,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"reflect"
 	"strings"
@@ -51,6 +52,46 @@ func (e *negateCodec) DecodeValue(ectx bsoncodec.DecodeContext, vr bsonrw.ValueR
 
 	val.SetInt(i * -1)
 	return nil
+}
+
+var _ options.ContextDialer = &slowConnDialer{}
+
+// A slowConnDialer dials connections that delay network round trips by the given delay duration.
+type slowConnDialer struct {
+	dialer *net.Dialer
+	delay  time.Duration
+}
+
+func newSlowConnDialer(delay time.Duration) *slowConnDialer {
+	return &slowConnDialer{
+		dialer: &net.Dialer{},
+		delay:  delay,
+	}
+}
+
+func (scd *slowConnDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	conn, err := scd.dialer.DialContext(ctx, network, address)
+	if err != nil {
+		return nil, err
+	}
+	return &slowConn{
+		Conn:  conn,
+		delay: scd.delay,
+	}, nil
+}
+
+var _ net.Conn = &slowConn{}
+
+// slowConn is a net.Conn that delays all calls to Read() by given delay durations. All other
+// net.Conn functions behave identically to the embedded net.Conn.
+type slowConn struct {
+	net.Conn
+	delay time.Duration
+}
+
+func (sc *slowConn) Read(b []byte) (n int, err error) {
+	time.Sleep(sc.delay)
+	return sc.Conn.Read(b)
 }
 
 func TestClient(t *testing.T) {
@@ -468,49 +509,34 @@ func TestClient(t *testing.T) {
 		assert.Nil(t, err, "unexpected error calling Ping: %v", err)
 	})
 
-	mtOpts = mtest.NewOptions().
-		// Support for "blockTimeMS" in server failpoints was added in server v4.2.
-		MinServerVersion("4.2")
-	mt.RunOpts("minimum RTT is monitored", mtOpts, func(mt *mtest.T) {
+	mt.Run("minimum RTT is monitored", func(mt *mtest.T) {
 		if testing.Short() {
 			t.Skip("skipping integration test in short mode")
 		}
 
-		// Force hello requests to block for 500ms, reset the test client to zero the minimum RTT,
-		// and wait until a server's minimum RTT goes over 250ms.
-		mt.SetFailPoint(mtest.FailPoint{
-			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
-				Times: 1000,
-			},
-			Data: mtest.FailPointData{
-				FailCommands:    []string{internal.LegacyHello, "hello"},
-				BlockConnection: true,
-				BlockTimeMS:     500,
-				AppName:         "clientMinRTTTest",
-			},
-		})
-		// Reset the client after setting the fail point to reset the RTT monitor samples and apply
-		// the app name.
+		// Reset the client with a dialer that delays all network round trips by 300ms and set the
+		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
 		mt.ResetClient(options.Client().
-			SetHeartbeatInterval(100 * time.Millisecond).
-			SetAppName("clientMinRTTTest"))
-
-		topo := getTopologyFromClient(mt.Client)
+			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
+			SetHeartbeatInterval(100 * time.Millisecond))
 
 		// Assert that the minimum RTT is eventually >250ms.
+		topo := getTopologyFromClient(mt.Client)
 		assert.Soon(mt, func() {
 			for {
 				time.Sleep(100 * time.Millisecond)
 
-				// We don't know which server received the failpoint command, so we wait until any
-				// of the server minimum RTTs cross the threshold.
+				// Wait for all of the server's minimum RTTs to be >250ms.
+				done := true
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.MinRTT() > 250*time.Millisecond {
-						return
+					if server.MinRTT() <= 250*time.Millisecond {
+						done = false
 					}
+				}
+				if done {
+					return
 				}
 			}
 		}, 10*time.Second)
@@ -518,47 +544,24 @@ func TestClient(t *testing.T) {
 
 	// Test that if the minimum RTT is greater than the remaining timeout for an operation, the
 	// operation is not sent to the server and no connections are closed.
-	mtOpts = mtest.NewOptions().
-		// Support for "blockTimeMS" in server failpoints was added in server v4.2.
-		MinServerVersion("4.2").
-		// We can only run this test in single server topologies because otherwise we can't confirm
-		// that the operation is sent to the same server that the fail point is sent to.
-		Topologies(mtest.Single)
-	mt.RunOpts("minimum RTT used to prevent sending requests", mtOpts, func(mt *mtest.T) {
+	mt.Run("minimum RTT used to prevent sending requests", func(mt *mtest.T) {
 		if testing.Short() {
 			t.Skip("skipping integration test in short mode")
 		}
 
-		// Force hello requests to block for 500ms, reset the test client to zero the minimum RTT,
-		// and wait until a server's minimum RTT goes over 250ms.
-		mt.SetFailPoint(mtest.FailPoint{
-			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
-				Times: 1000,
-			},
-			Data: mtest.FailPointData{
-				FailCommands:    []string{internal.LegacyHello, "hello"},
-				BlockConnection: true,
-				BlockTimeMS:     500,
-				AppName:         "clientMinRTTPingTest",
-			},
-		})
-
-		// Assert that we can call Ping with a 250ms timeout after the failpoint is set but before
-		// resetting the client. The "hello" latency shouldn't affect operations yet because the
-		// server's minimum RTT is still <250ms.
+		// Assert that we can call Ping with a 250ms timeout.
 		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 		defer cancel()
 		err := mt.Client.Ping(ctx, nil)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
+		// Reset the client with a dialer that delays all network round trips by 300ms and set the
+		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
 		tpm := newTestPoolMonitor()
-		// Reset the client after setting the fail point to reset the RTT monitor samples and apply
-		// the app name.
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
-			SetHeartbeatInterval(100 * time.Millisecond).
-			SetAppName("clientMinRTTPingTest"))
+			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
+			SetHeartbeatInterval(100 * time.Millisecond))
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
@@ -566,16 +569,16 @@ func TestClient(t *testing.T) {
 			for {
 				time.Sleep(100 * time.Millisecond)
 
-				// We only run this test in single server topologies, so expect exactly one server
-				// description.
-				if len(topo.Description().Servers) != 1 {
-					continue
+				// Wait for all of the server's minimum RTTs to be >250ms.
+				done := true
+				for _, desc := range topo.Description().Servers {
+					server, err := topo.FindServer(desc)
+					assert.Nil(mt, err, "FindServer error: %v", err)
+					if server.MinRTT() <= 250*time.Millisecond {
+						done = false
+					}
 				}
-				// Return once the server reports a minimum RTT of >250ms.
-				desc := topo.Description().Servers[0]
-				server, err := topo.FindServer(desc)
-				assert.Nil(mt, err, "FindServer error: %v", err)
-				if server.MinRTT() > 250*time.Millisecond {
+				if done {
 					return
 				}
 			}

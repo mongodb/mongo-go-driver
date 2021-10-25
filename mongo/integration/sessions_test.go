@@ -122,7 +122,7 @@ func TestSessions(t *testing.T) {
 	clusterTimeHandshakeOpts := options.Client().
 		SetHosts(hosts[:1]). // Prevent handshakes to other hosts from updating the cluster time.
 		SetDirect(true).
-		SetHeartbeatInterval(1 * time.Hour) // Prevent extra heartbeats from updating the cluster time.
+		SetHeartbeatInterval(50 * time.Second) // Prevent extra heartbeats from updating the cluster time.
 	clusterTimeHandshakeMtOpts := mtest.NewOptions().
 		ClientType(mtest.Proxy).
 		ClientOptions(clusterTimeHandshakeOpts).

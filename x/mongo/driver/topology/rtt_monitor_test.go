@@ -1,7 +1,9 @@
 package topology
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"math"
 	"net"
 	"testing"
@@ -20,6 +22,40 @@ func makeHelloReply() []byte {
 	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
 	return drivertest.MakeReply(doc)
 }
+
+var _ net.Conn = &slowConn{}
+
+// slowConn is a net.Conn that delays all calls to Read() by the given delay duration. After the
+// delay, Read() reads the given response. Calls to Write() reset the read buffer, so subsequent
+// Read() calls read from the beginning of the provided response.
+type slowConn struct {
+	reader *bytes.Reader
+	delay  time.Duration
+}
+
+func newSlowConn(response []byte, delay time.Duration) *slowConn {
+	return &slowConn{
+		reader: bytes.NewReader(response),
+		delay:  delay,
+	}
+}
+
+func (c *slowConn) Read(b []byte) (int, error) {
+	time.Sleep(c.delay)
+	return c.reader.Read(b)
+}
+
+func (c *slowConn) Write(b []byte) (int, error) {
+	c.reader.Seek(0, io.SeekStart)
+	return len(b), nil
+}
+
+func (c *slowConn) Close() error                       { return nil }
+func (c *slowConn) LocalAddr() net.Addr                { return nil }
+func (c *slowConn) RemoteAddr() net.Addr               { return nil }
+func (c *slowConn) SetDeadline(_ time.Time) error      { return nil }
+func (c *slowConn) SetReadDeadline(_ time.Time) error  { return nil }
+func (c *slowConn) SetWriteDeadline(_ time.Time) error { return nil }
 
 func TestRTTMonitor(t *testing.T) {
 	t.Run("creates the correct size samples slice", func(t *testing.T) {
@@ -61,8 +97,7 @@ func TestRTTMonitor(t *testing.T) {
 		t.Parallel()
 
 		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
-			reply := makeHelloReply()
-			return newSlowConn(10*time.Millisecond, reply[:4], reply[4:]), nil
+			return newSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Second,
@@ -81,19 +116,16 @@ func TestRTTMonitor(t *testing.T) {
 		}
 	})
 
-	t.Run("works", func(t *testing.T) {
+	t.Run("measures the average and minimum RTT", func(t *testing.T) {
 		t.Parallel()
 
 		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
-			reply := makeHelloReply()
-			return newSlowConn(10*time.Millisecond, reply[:4], reply[4:]), nil
+			return newSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Millisecond,
 			createConnectionFn: func() (*connection, error) {
-				return newConnection("", WithDialer(func(Dialer) Dialer {
-					return dialer
-				}))
+				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
 			createOperationFn: func(conn driver.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
@@ -102,52 +134,24 @@ func TestRTTMonitor(t *testing.T) {
 		rtt.connect()
 		defer rtt.disconnect()
 
-		// Wait up to a second for the avg and min RTTs to be greater than 0.
-		start := time.Now()
-		for time.Since(start) < 1*time.Second {
-			if rtt.getRTT() > 0 && rtt.getMinRTT() > 0 {
-				break
-			}
-		}
-
-		assert.Greater(t, rtt.getMinRTT().Nanoseconds(), int64(0), "expected getMinRTT() to return a positive duration")
-		assert.Greater(t, rtt.getRTT().Nanoseconds(), int64(0), "expected getRTT() to return a positive duration")
+		assert.Eventuallyf(
+			t,
+			func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 },
+			1*time.Second,
+			10*time.Millisecond,
+			"expected getRTT() and getMinRTT() to return positive durations within 1 second")
+		assert.True(
+			t,
+			rtt.getRTT() > 0,
+			"expected getRTT() to return a positive duration, got %v",
+			rtt.getRTT())
+		assert.True(
+			t,
+			rtt.getMinRTT() > 0,
+			"expected getMinRTT() to return a positive duration, got %v",
+			rtt.getMinRTT())
 	})
 }
-
-var _ net.Conn = &slowConn{}
-
-// slowConn is a net.Conn that returns a response after sleeping for a specified time.
-type slowConn struct {
-	duration  time.Duration
-	responses [][]byte
-	offset    int
-}
-
-func newSlowConn(duration time.Duration, responses ...[]byte) *slowConn {
-	return &slowConn{
-		duration:  duration,
-		responses: responses,
-	}
-}
-
-func (c *slowConn) Read(b []byte) (int, error) {
-	time.Sleep(c.duration)
-	response := c.responses[c.offset]
-	c.offset = (c.offset + 1) % len(c.responses)
-
-	return copy(b, response), nil
-}
-
-func (c *slowConn) Write(b []byte) (int, error) {
-	return len(b), nil
-}
-func (c *slowConn) Close() error                       { return nil }
-func (c *slowConn) LocalAddr() net.Addr                { return nil }
-func (c *slowConn) RemoteAddr() net.Addr               { return nil }
-func (c *slowConn) SetDeadline(_ time.Time) error      { return nil }
-func (c *slowConn) SetReadDeadline(_ time.Time) error  { return nil }
-func (c *slowConn) SetWriteDeadline(_ time.Time) error { return nil }
 
 func TestMin(t *testing.T) {
 	cases := []struct {
@@ -206,7 +210,7 @@ func TestMin(t *testing.T) {
 			t.Parallel()
 
 			got := min(tc.samples, tc.minSamples)
-			assert.Equal(t, tc.want, got, "TODO")
+			assert.Equal(t, tc.want, got, "unexpected result from min()")
 		})
 	}
 }

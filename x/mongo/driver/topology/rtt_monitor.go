@@ -101,8 +101,7 @@ func (r *rttMonitor) start() {
 // error, runHello closes the connection.
 func (r *rttMonitor) runHello(conn *connection) *connection {
 	if conn == nil || conn.closed() {
-		var err error
-		conn, err = r.cfg.createConnectionFn()
+		conn, err := r.cfg.createConnectionFn()
 		if err != nil {
 			return nil
 		}
@@ -113,6 +112,12 @@ func (r *rttMonitor) runHello(conn *connection) *connection {
 			_ = conn.close()
 			return nil
 		}
+
+		// If we just created a new connection, record the "hello" RTT from the new connection and
+		// return the new connection. Don't run another "hello" command this interval because it's
+		// now unnecessary.
+		r.addSample(conn.helloRTT)
+		return conn
 	}
 
 	start := time.Now()
@@ -123,7 +128,6 @@ func (r *rttMonitor) runHello(conn *connection) *connection {
 		_ = conn.close()
 		return nil
 	}
-
 	r.addSample(time.Since(start))
 
 	return conn

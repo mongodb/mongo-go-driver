@@ -679,6 +679,8 @@ func (s *Server) check() (description.Server, error) {
 		// Create a new connection and add it's handshake RTT as a sample.
 		err = s.setupHeartbeatConnection()
 		if err == nil {
+			// Use the description from the connection handshake as the value for this check.
+			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
 		}
 	}
