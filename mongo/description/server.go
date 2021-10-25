@@ -48,6 +48,7 @@ type Server struct {
 	MaxMessageSize        uint32
 	Members               []address.Address
 	Passives              []string
+	Passive               bool
 	Primary               address.Address
 	ReadOnly              bool
 	ServiceID             *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
@@ -220,6 +221,12 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			desc.Passives, err = internal.StringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
+				return desc
+			}
+		case "passive":
+			desc.Passive, ok = element.Value().BooleanOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'passive' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
 		case "primary":
@@ -424,6 +431,10 @@ func (s Server) Equal(other Server) bool {
 	}
 
 	if s.Kind != other.Kind {
+		return false
+	}
+
+	if s.Passive != other.Passive {
 		return false
 	}
 
