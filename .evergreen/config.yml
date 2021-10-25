@@ -283,9 +283,8 @@ functions:
           sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   send-perf-data:
-    - command: json.send
+    - command: perf.send
       params:
-        name: perf
         file: src/go.mongodb.org/mongo-driver/perf.json
 
   run-enterprise-auth-tests:
