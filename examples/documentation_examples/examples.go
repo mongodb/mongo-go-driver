@@ -2528,14 +2528,16 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 }
 
 // CausalConsistencyExamples contains examples of causal consistency usage.
-func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
+func CausalConsistencyExamples(client *mongo.Client) error {
 	ctx := context.Background()
 	coll := client.Database("test").Collection("items")
 
 	currentDate := time.Now()
 
 	err := coll.Drop(ctx)
-	require.NoError(t, err)
+	if err != nil {
+		return err
+	}
 
 	// Start Causal Consistency Example 1
 
@@ -2544,7 +2546,11 @@ func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
 		writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
 	session1, err := client.StartSession(opts)
 
-	err = client.UseSessionWithOptions(ctx, opts, func(sctx mongo.SessionContext) error {
+	if err != nil {
+		return err
+	}
+
+	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
 		// Run an update with our causally-consistent session
 		_, err = coll.UpdateOne(sctx, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", currentDate}}}})
 		if err != nil {
@@ -2574,7 +2580,11 @@ func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
 		writeconcern.WTimeout(1000)))
 	session2, err := client.StartSession(opts)
 
-	err = client.UseSessionWithOptions(ctx, opts, func(sctx mongo.SessionContext) error {
+	if err != nil {
+		return err
+	}
+
+	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
 		// Set cluster time of session2 to session1's cluster time
 		clusterTime := session1.ClusterTime()
 		session2.AdvanceClusterTime(clusterTime)
@@ -2589,12 +2599,12 @@ func CausalConsistencyExamples(t *testing.T, client *mongo.Client) error {
 			return err
 		}
 
-		for cursor.Next(ctx) {
+		for cursor.Next(sctx) {
 			doc := cursor.Current
 			fmt.Printf("Document: %v\n", doc.String())
 		}
 
-		return nil
+		return cursor.Err()
 	})
 
 	if err != nil {

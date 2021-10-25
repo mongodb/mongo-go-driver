@@ -120,7 +120,7 @@ func TestCausalConsistencyExamples(t *testing.T) {
 	require.NoError(t, err)
 	defer client.Disconnect(ctx)
 
-	err = documentation_examples.CausalConsistencyExamples(t, client)
+	err = documentation_examples.CausalConsistencyExamples(client)
 	require.NoError(t, err)
 }
 
