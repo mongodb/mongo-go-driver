@@ -459,13 +459,12 @@ func TestPollSRVRecordsServiceName(t *testing.T) {
 
 	t.Run("SRVServiceName is customname", func(t *testing.T) {
 		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
-		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27018, 0, 0}}
+		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27017, 0, 0}, {"localhost.test.build.10gen.cc.", 27018, 0, 0}}
 		topo, disconnect := simulateSRVPoll("customname", recordsToAdd, recordsToRemove)
 		defer func() { _ = disconnect(context.Background()) }()
 
 		actualHosts := topo.Description().Servers
 		expectedHosts := []string{
-			"localhost.test.build.10gen.cc:27017",
 			"localhost.test.build.10gen.cc:27019",
 			"localhost.test.build.10gen.cc:27020",
 		}
