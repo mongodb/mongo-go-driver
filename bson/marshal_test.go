@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -299,6 +300,54 @@ func TestNullBytes(t *testing.T) {
 				res, err := Marshal(D{{"foo", regex}})
 				assert.Equal(t, wantErr, err, "expected Marshal error %v, got error %v with result %q", wantErr, err, Raw(res))
 			})
+		}
+	})
+}
+
+func TestIndentExtJSON(t *testing.T) {
+	t.Run("IndentExtJSON", func(t *testing.T) {
+		dst := make([]byte, 0, 1024)
+		type teststruct struct{ Foo int }
+		val := teststruct{1}
+		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
+
+		marshaled, err := MarshalExtJSONAppendWithContext(ec, dst, val, true, false)
+		noerr(t, err)
+		
+		got, err := IndentExtJSON(marshaled)
+		noerr(t, err)
+		
+		var want bytes.Buffer
+		err = json.Indent(&want, marshaled, "", "\t")
+		noerr(t, err)
+
+		if !bytes.Equal(got, want.Bytes()) {
+			t.Errorf("Bytes are not equal. got %v; want %v", got, want.Bytes())
+			t.Errorf("Bytes:\n%s\n%s", got, want.Bytes())
+		}
+	})
+}
+
+func TestMarshalExtJSONIndent(t *testing.T) {
+	t.Run("MarshalExtJSONIndent", func(t *testing.T) {
+		dst := make([]byte, 0, 1024)
+		type teststruct struct{ Foo int }
+		val := teststruct{1}
+		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
+
+		got, err := MarshalExtJSONIndent(ec, dst, val, true, false)
+		noerr(t, err)
+
+		marshaled, err := MarshalExtJSONAppendWithContext(ec, dst, val, true, false)
+		noerr(t, err)
+
+		var want bytes.Buffer
+		err = json.Indent(&want, marshaled, "", "\t")
+		noerr(t, err)
+
+		if !bytes.Equal(got, want.Bytes()) {
+			t.Errorf("Bytes are not equal. got %v; want %v", got, want.Bytes())
+			t.Errorf("Bytes:\n%s\n%s", got, want.Bytes())
 		}
 	})
 }
