@@ -46,8 +46,8 @@ func (c *slowConn) Read(b []byte) (int, error) {
 }
 
 func (c *slowConn) Write(b []byte) (int, error) {
-	c.reader.Seek(0, io.SeekStart)
-	return len(b), nil
+	_, err := c.reader.Seek(0, io.SeekStart)
+	return len(b), err
 }
 
 func (c *slowConn) Close() error                       { return nil }
