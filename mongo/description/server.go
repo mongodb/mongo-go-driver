@@ -434,10 +434,6 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if s.Passive != other.Passive {
-		return false
-	}
-
 	if s.LastError != nil || other.LastError != nil {
 		if s.LastError == nil || other.LastError == nil {
 			return false
