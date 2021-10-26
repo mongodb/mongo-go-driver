@@ -241,7 +241,7 @@ func MarshalExtJSONIndent(ec bsoncodec.EncodeContext, dst []byte, val interface{
 	if err != nil {
 		return nil, err
 	}
-	
+
 	formatted, err := IndentExtJSON(marshaled)
 	if err != nil {
 		return nil, err

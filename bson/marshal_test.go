@@ -313,10 +313,10 @@ func TestIndentExtJSON(t *testing.T) {
 
 		marshaled, err := MarshalExtJSONAppendWithContext(ec, dst, val, true, false)
 		noerr(t, err)
-		
+
 		got, err := IndentExtJSON(marshaled)
 		noerr(t, err)
-		
+
 		var want bytes.Buffer
 		err = json.Indent(&want, marshaled, "", "\t")
 		noerr(t, err)
