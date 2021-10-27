@@ -31,8 +31,3 @@ func (kc *KmsContext) BytesNeeded() int32 {
 func (kc *KmsContext) FeedResponse(response []byte) error {
 	panic(cseNotSupportedMsg)
 }
-
-// createErrorFromStatus creates a new Error from the status of the KmsContext instance.
-func (kc *KmsContext) createErrorFromStatus() error {
-	panic(cseNotSupportedMsg)
-}

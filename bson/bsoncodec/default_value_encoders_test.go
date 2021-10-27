@@ -54,7 +54,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 	type myuint uint
 	type myfloat32 float32
 	type myfloat64 float64
-	type mystring string
 
 	now := time.Now().Truncate(time.Millisecond)
 	pjsnum := new(json.Number)

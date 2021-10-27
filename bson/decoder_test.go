@@ -62,6 +62,9 @@ func TestDecoderv2(t *testing.T) {
 		}
 		t.Run("lookup error", func(t *testing.T) {
 			type certainlydoesntexistelsewhereihope func(string, string) string
+			// Avoid unused code lint error.
+			_ = certainlydoesntexistelsewhereihope(func(string, string) string { return "" })
+
 			cdeih := func(string, string) string { return "certainlydoesntexistelsewhereihope" }
 			dec, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
 			noerr(t, err)
@@ -247,21 +250,6 @@ func TestDecoderv2(t *testing.T) {
 			t.Fatalf("Decode error mismatch; expected %v, got %v", ErrDecodeToNil, err)
 		}
 	})
-}
-
-type testDecoderCodec struct {
-	EncodeValueCalled bool
-	DecodeValueCalled bool
-}
-
-func (tdc *testDecoderCodec) EncodeValue(bsoncodec.EncodeContext, bsonrw.ValueWriter, interface{}) error {
-	tdc.EncodeValueCalled = true
-	return nil
-}
-
-func (tdc *testDecoderCodec) DecodeValue(bsoncodec.DecodeContext, bsonrw.ValueReader, interface{}) error {
-	tdc.DecodeValueCalled = true
-	return nil
 }
 
 type testUnmarshaler struct {

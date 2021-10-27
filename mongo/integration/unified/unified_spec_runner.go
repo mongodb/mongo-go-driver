@@ -44,7 +44,6 @@ type TestCase struct {
 
 	initialData     []*collectionData
 	createEntities  []map[string]*entityOptions
-	fileReqs        []mtest.RunOnBlock
 	killAllSessions bool
 	schemaVersion   string
 
