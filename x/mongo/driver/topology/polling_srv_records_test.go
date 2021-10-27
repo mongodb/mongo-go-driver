@@ -153,12 +153,6 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 
 			require.True(t, tt.heartbeatTime == topo.pollHeartbeatTime.Load().(bool), "Not polling on correct intervals")
 			compareHosts(t, desc.Servers, tt.expectedHosts)
-			for _, e := range tt.expectedHosts {
-				addr := address.Address(e).Canonicalize()
-				if _, ok := topo.servers[addr]; !ok {
-					t.Errorf("Topology server list did not contain expected value %v", e)
-				}
-			}
 			_ = topo.Disconnect(context.Background())
 		})
 	}
@@ -204,12 +198,6 @@ func TestPollSRVRecords(t *testing.T) {
 		actualHosts := topo.Description().Servers
 		expectedHosts := []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"}
 		compareHosts(t, actualHosts, expectedHosts)
-		for _, e := range expectedHosts {
-			addr := address.Address(e).Canonicalize()
-			if _, ok := topo.servers[addr]; !ok {
-				t.Errorf("Topology server list did not contain expected value %v", e)
-			}
-		}
 		_ = topo.Disconnect(context.Background())
 
 	})
@@ -238,12 +226,6 @@ func TestPollSRVRecords(t *testing.T) {
 		require.False(t, topo.pollHeartbeatTime.Load().(bool))
 		expectedHosts := []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018", "localhost.test.build.10gen.cc:27020"}
 		compareHosts(t, desc.Servers, expectedHosts)
-		for _, e := range expectedHosts {
-			addr := address.Address(e).Canonicalize()
-			if _, ok := topo.servers[addr]; !ok {
-				t.Errorf("Topology server list did not contain expected value %v", e)
-			}
-		}
 		_ = topo.Disconnect(context.Background())
 
 	})
@@ -273,12 +255,6 @@ func TestPollSRVRecords(t *testing.T) {
 		require.False(t, topo.pollHeartbeatTime.Load().(bool))
 		expectedHosts := []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"}
 		compareHosts(t, desc.Servers, expectedHosts)
-		for _, e := range expectedHosts {
-			addr := address.Address(e).Canonicalize()
-			if _, ok := topo.servers[addr]; !ok {
-				t.Errorf("Topology server list did not contain expected value %v", e)
-			}
-		}
 		_ = topo.Disconnect(context.Background())
 	})
 }
@@ -380,12 +356,6 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 			"localhost.test.build.10gen.cc:27020",
 		}
 		compareHosts(t, actualHosts, expectedHosts)
-
-		for _, e := range expectedHosts {
-			addr := address.Address(e).Canonicalize()
-			_, ok := topo.servers[addr]
-			assert.True(t, ok, "topology server list did not contain expected host %v", e)
-		}
 	})
 	t.Run("SRVMaxHosts is number of hosts", func(t *testing.T) {
 		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
@@ -399,12 +369,6 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 			"localhost.test.build.10gen.cc:27020",
 		}
 		compareHosts(t, actualHosts, expectedHosts)
-
-		for _, e := range expectedHosts {
-			addr := address.Address(e).Canonicalize()
-			_, ok := topo.servers[addr]
-			assert.True(t, ok, "topology server list did not contain expected host %v", e)
-		}
 	})
 	t.Run("SRVMaxHosts is less than number of hosts", func(t *testing.T) {
 		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
@@ -469,11 +433,5 @@ func TestPollSRVRecordsServiceName(t *testing.T) {
 			"localhost.test.build.10gen.cc:27020",
 		}
 		compareHosts(t, actualHosts, expectedHosts)
-
-		for _, e := range expectedHosts {
-			addr := address.Address(e).Canonicalize()
-			_, ok := topo.servers[addr]
-			assert.True(t, ok, "topology server list did not contain expected host %v", e)
-		}
 	})
 }
