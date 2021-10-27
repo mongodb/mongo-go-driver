@@ -225,24 +225,24 @@ func MarshalExtJSONAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val
 	return *sw, nil
 }
 
-func IndentExtJSON(src []byte) ([]byte, error) {
-	var buf bytes.Buffer
-	err := json.Indent(&buf, src, "", "\t")
-	formatted := buf.Bytes()
+func IndentExtJSON(dst *bytes.Buffer, src []byte, prefix, indent string) ([]byte, error) {
+	err := json.Indent(dst, src, prefix, indent)
 	if err != nil {
 		return nil, err
 	}
+
+	formatted := dst.Bytes()
 
 	return formatted, nil
 }
 
-func MarshalExtJSONIndent(ec bsoncodec.EncodeContext, dst []byte, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	marshaled, err := MarshalExtJSONAppendWithContext(ec, dst, val, canonical, escapeHTML)
+func MarshalExtJSONIndent(val interface{}, canonical, escapeHTML bool, dst *bytes.Buffer, prefix, indent string) ([]byte, error) {
+	marshaled, err := MarshalExtJSON(val, canonical, escapeHTML)
 	if err != nil {
 		return nil, err
 	}
 
-	formatted, err := IndentExtJSON(marshaled)
+	formatted, err := IndentExtJSON(dst, marshaled, prefix, indent)
 	if err != nil {
 		return nil, err
 	}

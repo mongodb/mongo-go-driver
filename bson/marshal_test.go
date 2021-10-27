@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
@@ -305,49 +306,91 @@ func TestNullBytes(t *testing.T) {
 }
 
 func TestIndentExtJSON(t *testing.T) {
+	type indentTestCase struct {
+		name string
+		val  interface{}
+	}
+
 	t.Run("IndentExtJSON", func(t *testing.T) {
-		dst := make([]byte, 0, 1024)
-		type teststruct struct{ Foo int }
-		val := teststruct{1}
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
+		testCases := []indentTestCase{
+			{
+				"empty val",
+				struct{}{},
+			},
+			{
+				"embedded struct",
+				struct {
+					Embedded interface{} `json:"embedded"`
+					Foo      string      `json:"foo"`
+				}{
+					Embedded: struct {
+						Name string `json:"name"`
+						Word string `json:"word"`
+					}{
+						Name: "test",
+						Word: "word",
+					},
+					Foo: "bar",
+				},
+			},
+			{
+				"date struct",
+				struct {
+					Foo  string    `json:"foo"`
+					Date time.Time `json:"date"`
+				}{
+					Foo:  "bar",
+					Date: time.Now(),
+				},
+			},
+			{
+				"float struct",
+				struct {
+					Foo   string  `json:"foo"`
+					Float float32 `json:"float"`
+				}{
+					Foo:   "bar",
+					Float: 3.14,
+				},
+			},
+		}
 
-		marshaled, err := MarshalExtJSONAppendWithContext(ec, dst, val, true, false)
-		noerr(t, err)
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				marshaled, err := MarshalExtJSON(tc.val, true, false)
+				assert.Nil(t, err, "Marshal error: %v", err)
 
-		got, err := IndentExtJSON(marshaled)
-		noerr(t, err)
+				var buf bytes.Buffer
+				extJSONBytes, err := IndentExtJSON(&buf, marshaled, "", "\t")
+				assert.Nil(t, err, "Marshal error: %v", err)
 
-		var want bytes.Buffer
-		err = json.Indent(&want, marshaled, "", "\t")
-		noerr(t, err)
+				var expectedExtJSONBuf bytes.Buffer
+				err = json.Indent(&expectedExtJSONBuf, marshaled, "", "\t")
+				assert.Nil(t, err, "Marshal error: %v", err)
 
-		if !bytes.Equal(got, want.Bytes()) {
-			t.Errorf("Bytes are not equal. got %v; want %v", got, want.Bytes())
-			t.Errorf("Bytes:\n%s\n%s", got, want.Bytes())
+				expectedExtJSONBytes := expectedExtJSONBuf.Bytes()
+
+				assert.Equal(t, extJSONBytes, expectedExtJSONBytes, "expected:\n%s\ngot:\n%s", expectedExtJSONBytes, extJSONBytes)
+			})
 		}
 	})
 }
 
 func TestMarshalExtJSONIndent(t *testing.T) {
 	t.Run("MarshalExtJSONIndent", func(t *testing.T) {
-		dst := make([]byte, 0, 1024)
-		type teststruct struct{ Foo int }
-		val := teststruct{1}
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
+		val := struct{ Foo int }{1}
 
-		got, err := MarshalExtJSONIndent(ec, dst, val, true, false)
-		noerr(t, err)
+		var buf bytes.Buffer
+		got, err := MarshalExtJSONIndent(val, true, false, &buf, "", "\t")
+		assert.Nil(t, err, "Marshal error: %v", err)
 
-		marshaled, err := MarshalExtJSONAppendWithContext(ec, dst, val, true, false)
-		noerr(t, err)
+		marshaled, err := MarshalExtJSON(val, true, false)
+		assert.Nil(t, err, "Marshal error: %v", err)
 
 		var want bytes.Buffer
 		err = json.Indent(&want, marshaled, "", "\t")
-		noerr(t, err)
+		assert.Nil(t, err, "Marshal error: %v", err)
 
-		if !bytes.Equal(got, want.Bytes()) {
-			t.Errorf("Bytes are not equal. got %v; want %v", got, want.Bytes())
-			t.Errorf("Bytes:\n%s\n%s", got, want.Bytes())
-		}
+		assert.Equal(t, got, want.Bytes(), "expected:\n%s\ngot:\n%s", got, want.Bytes())
 	})
 }
