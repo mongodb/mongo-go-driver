@@ -36,9 +36,8 @@ func (c *changeStreamDeployment) Connection(context.Context) (driver.Connection,
 	return c.conn, nil
 }
 
-// MinRTT always returns 0. It implements the driver.Server interface.
 func (c *changeStreamDeployment) MinRTT() time.Duration {
-	return 0
+	return c.server.MinRTT()
 }
 
 func (c *changeStreamDeployment) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {

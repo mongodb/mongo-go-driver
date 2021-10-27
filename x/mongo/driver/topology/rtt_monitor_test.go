@@ -17,9 +17,7 @@ import (
 )
 
 func makeHelloReply() []byte {
-	didx, doc := bsoncore.AppendDocumentStart(nil)
-	doc = bsoncore.AppendInt32Element(doc, "ok", 1)
-	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
+	doc := bsoncore.NewDocumentBuilder().AppendInt32("ok", 1).Build()
 	return drivertest.MakeReply(doc)
 }
 
@@ -58,6 +56,42 @@ func (c *slowConn) SetReadDeadline(_ time.Time) error  { return nil }
 func (c *slowConn) SetWriteDeadline(_ time.Time) error { return nil }
 
 func TestRTTMonitor(t *testing.T) {
+	t.Run("measures the average and minimum RTT", func(t *testing.T) {
+		t.Parallel()
+
+		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
+			return newSlowConn(makeHelloReply(), 10*time.Millisecond), nil
+		})
+		rtt := newRTTMonitor(&rttConfig{
+			interval: 10 * time.Millisecond,
+			createConnectionFn: func() (*connection, error) {
+				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
+			},
+			createOperationFn: func(conn driver.Connection) *operation.Hello {
+				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
+			},
+		})
+		rtt.connect()
+		defer rtt.disconnect()
+
+		assert.Eventuallyf(
+			t,
+			func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 },
+			1*time.Second,
+			10*time.Millisecond,
+			"expected getRTT() and getMinRTT() to return positive durations within 1 second")
+		assert.True(
+			t,
+			rtt.getRTT() > 0,
+			"expected getRTT() to return a positive duration, got %v",
+			rtt.getRTT())
+		assert.True(
+			t,
+			rtt.getMinRTT() > 0,
+			"expected getMinRTT() to return a positive duration, got %v",
+			rtt.getMinRTT())
+	})
+
 	t.Run("creates the correct size samples slice", func(t *testing.T) {
 		t.Parallel()
 
@@ -116,7 +150,7 @@ func TestRTTMonitor(t *testing.T) {
 		}
 	})
 
-	t.Run("measures the average and minimum RTT", func(t *testing.T) {
+	t.Run("works after reset", func(t *testing.T) {
 		t.Parallel()
 
 		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
@@ -134,22 +168,15 @@ func TestRTTMonitor(t *testing.T) {
 		rtt.connect()
 		defer rtt.disconnect()
 
-		assert.Eventuallyf(
-			t,
-			func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 },
-			1*time.Second,
-			10*time.Millisecond,
-			"expected getRTT() and getMinRTT() to return positive durations within 1 second")
-		assert.True(
-			t,
-			rtt.getRTT() > 0,
-			"expected getRTT() to return a positive duration, got %v",
-			rtt.getRTT())
-		assert.True(
-			t,
-			rtt.getMinRTT() > 0,
-			"expected getMinRTT() to return a positive duration, got %v",
-			rtt.getMinRTT())
+		for i := 0; i < 3; i++ {
+			assert.Eventuallyf(
+				t,
+				func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 },
+				1*time.Second,
+				10*time.Millisecond,
+				"expected getRTT() and getMinRTT() to return positive durations within 1 second")
+			rtt.reset()
+		}
 	})
 }
 

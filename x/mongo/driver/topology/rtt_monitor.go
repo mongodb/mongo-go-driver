@@ -36,13 +36,18 @@ type rttMonitor struct {
 	minRTT        time.Duration
 	averageRTT    time.Duration
 	averageRTTSet bool
-	closeWg       sync.WaitGroup
-	cfg           *rttConfig
-	ctx           context.Context
-	cancelFn      context.CancelFunc
+
+	closeWg  sync.WaitGroup
+	cfg      *rttConfig
+	ctx      context.Context
+	cancelFn context.CancelFunc
 }
 
 func newRTTMonitor(cfg *rttConfig) *rttMonitor {
+	if cfg.interval <= 0 {
+		panic("RTT monitor interval must be greater than 0")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	// Determine the number of samples we need to keep to store the minWindow of RTT durations. The
 	// number of samples must be between [5, 500].
@@ -142,6 +147,7 @@ func (r *rttMonitor) reset() {
 	for i := range r.samples {
 		r.samples[i] = 0
 	}
+	r.offset = 0
 	r.minRTT = 0
 	r.averageRTT = 0
 	r.averageRTTSet = false
@@ -172,10 +178,6 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 // samples and are ignored. If no samples or fewer than minSamples are found in the slice, min
 // returns 0.
 func min(samples []time.Duration, minSamples int) time.Duration {
-	if len(samples) == 0 || len(samples) < minSamples {
-		return 0
-	}
-
 	count := 0
 	min := time.Duration(math.MaxInt64)
 	for _, d := range samples {
