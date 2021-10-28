@@ -8,7 +8,6 @@ package bson
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -305,92 +304,78 @@ func TestNullBytes(t *testing.T) {
 	})
 }
 
-func TestIndentExtJSON(t *testing.T) {
+func TestMarshalExtJSONIndent(t *testing.T) {
 	type indentTestCase struct {
 		name string
 		val  interface{}
+		expectedExtJSON string
+	}
+	
+	// expectedExtJSON must be written as below because single-quoted
+	// literal strings capture undesired code formatting tabs
+	testCases := []indentTestCase{
+		{
+			"empty val",
+			struct{}{},
+			`{}`,
+		},
+		{
+			"embedded struct",
+			struct {
+				Embedded interface{} `json:"embedded"`
+				Foo      string      `json:"foo"`
+			}{
+				Embedded: struct {
+					Name string `json:"name"`
+					Word string `json:"word"`
+				}{
+					Name: "test",
+					Word: "word",
+				},
+				Foo: "bar",
+			},
+			"{\n\t\"embedded\": {\n\t\t\"name\": \"test\",\n\t\t\"word\": \"word\"\n\t},\n\t\"foo\": \"bar\"\n}",
+		},
+		{
+			"date struct",
+			struct {
+				Foo  string    `json:"foo"`
+				Date time.Time `json:"date"`
+			}{
+				Foo:  "bar",
+				Date: time.Date(2000, time.January, 1, 12, 0, 0, 0, time.UTC),
+			},
+			"{\n\t\"foo\": \"bar\",\n\t\"date\": {\n\t\t\"$date\": {\n\t\t\t\"$numberLong\": \"946728000000\"\n\t\t}\n\t}\n}",
+		},
+		{
+			"float struct",
+			struct {
+				Foo   string  `json:"foo"`
+				Float float32 `json:"float"`
+			}{
+				Foo:   "bar",
+				Float: 3.14,
+			},
+			"{\n\t\"foo\": \"bar\",\n\t\"float\": {\n\t\t\"$numberDouble\": \"3.140000104904175\"\n\t}\n}",
+		},
 	}
 
-	t.Run("IndentExtJSON", func(t *testing.T) {
-		testCases := []indentTestCase{
-			{
-				"empty val",
-				struct{}{},
-			},
-			{
-				"embedded struct",
-				struct {
-					Embedded interface{} `json:"embedded"`
-					Foo      string      `json:"foo"`
-				}{
-					Embedded: struct {
-						Name string `json:"name"`
-						Word string `json:"word"`
-					}{
-						Name: "test",
-						Word: "word",
-					},
-					Foo: "bar",
-				},
-			},
-			{
-				"date struct",
-				struct {
-					Foo  string    `json:"foo"`
-					Date time.Time `json:"date"`
-				}{
-					Foo:  "bar",
-					Date: time.Now(),
-				},
-			},
-			{
-				"float struct",
-				struct {
-					Foo   string  `json:"foo"`
-					Float float32 `json:"float"`
-				}{
-					Foo:   "bar",
-					Float: 3.14,
-				},
-			},
-		}
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			marshaled, err := MarshalExtJSON(tc.val, true, false)
+			assert.Nil(t, err, "Marshal error: %v", err)
 
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				marshaled, err := MarshalExtJSON(tc.val, true, false)
-				assert.Nil(t, err, "Marshal error: %v", err)
+			var buf bytes.Buffer
+			err = IndentExtJSON(&buf, marshaled, "", "\t")
+			assert.Nil(t, err, "Marshal error: %v", err)
+			
+			extJSONBytes := buf.Bytes()
+			expectedExtJSONBytes := []byte(tc.expectedExtJSON)
 
-				var buf bytes.Buffer
-				extJSONBytes, err := IndentExtJSON(&buf, marshaled, "", "\t")
-				assert.Nil(t, err, "Marshal error: %v", err)
-
-				var expectedExtJSONBuf bytes.Buffer
-				err = json.Indent(&expectedExtJSONBuf, marshaled, "", "\t")
-				assert.Nil(t, err, "Marshal error: %v", err)
-
-				expectedExtJSONBytes := expectedExtJSONBuf.Bytes()
-
-				assert.Equal(t, extJSONBytes, expectedExtJSONBytes, "expected:\n%s\ngot:\n%s", expectedExtJSONBytes, extJSONBytes)
-			})
-		}
-	})
+			assert.Equal(t, expectedExtJSONBytes, extJSONBytes, "expected:\n%s\ngot:\n%s", expectedExtJSONBytes, extJSONBytes)
+		})
+	}
 }
 
-func TestMarshalExtJSONIndent(t *testing.T) {
-	t.Run("MarshalExtJSONIndent", func(t *testing.T) {
-		val := struct{ Foo int }{1}
-
-		var buf bytes.Buffer
-		got, err := MarshalExtJSONIndent(val, true, false, &buf, "", "\t")
-		assert.Nil(t, err, "Marshal error: %v", err)
-
-		marshaled, err := MarshalExtJSON(val, true, false)
-		assert.Nil(t, err, "Marshal error: %v", err)
-
-		var want bytes.Buffer
-		err = json.Indent(&want, marshaled, "", "\t")
-		assert.Nil(t, err, "Marshal error: %v", err)
-
-		assert.Equal(t, got, want.Bytes(), "expected:\n%s\ngot:\n%s", got, want.Bytes())
-	})
-}
