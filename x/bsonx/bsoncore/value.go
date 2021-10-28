@@ -751,7 +751,14 @@ func (v Value) CodeWithScopeOK() (string, Document, bool) {
 // Int32 returns the int32 the Value represents. It panics if the value is a BSON type other than
 // int32.
 func (v Value) Int32() int32 {
-	if v.Type != bsontype.Int32 {
+	if v.Type == bsontype.Int64 {
+		i64, _, ok := ReadInt64(v.Data)
+		if !ok {
+			panic(NewInsufficientBytesError(v.Data, v.Data))
+		}
+
+		return int32(i64)
+	} else if v.Type != bsontype.Int32 {
 		panic(ElementTypeError{"bsoncore.Value.Int32", v.Type})
 	}
 	i32, _, ok := ReadInt32(v.Data)

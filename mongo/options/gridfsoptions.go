@@ -66,6 +66,13 @@ func (b *BucketOptions) SetChunkSizeBytes(i int32) *BucketOptions {
 	return b
 }
 
+// SetChunkSizeBytesInt64 sets the value for the ChunkSize field.
+func (b *BucketOptions) SetChunkSizeBytesInt64(i int64) *BucketOptions {
+	size := int32(i)
+	b.ChunkSizeBytes = &size
+	return b
+}
+
 // SetWriteConcern sets the value for the WriteConcern field.
 func (b *BucketOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *BucketOptions {
 	b.WriteConcern = wc
@@ -134,6 +141,13 @@ func GridFSUpload() *UploadOptions {
 // SetChunkSizeBytes sets the value for the ChunkSize field.
 func (u *UploadOptions) SetChunkSizeBytes(i int32) *UploadOptions {
 	u.ChunkSizeBytes = &i
+	return u
+}
+
+// SetChunkSizeBytesInt64 sets the value for the ChunkSize field.
+func (u *UploadOptions) SetChunkSizeBytesInt64(i int64) *UploadOptions {
+	size := int32(i)
+	u.ChunkSizeBytes = &size
 	return u
 }
 
