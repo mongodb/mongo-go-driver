@@ -70,8 +70,6 @@ func TestGridFS(t *testing.T) {
 			{"Bucket chunk size set", options.GridFSBucket().SetChunkSizeBytes(27), nil},
 			{"Upload stream chunk size set", nil, options.GridFSUpload().SetChunkSizeBytes(27)},
 			{"Bucket and upload set to different values", options.GridFSBucket().SetChunkSizeBytes(27), options.GridFSUpload().SetChunkSizeBytes(31)},
-			{"Upload stream Int64 chunk size", nil, options.GridFSUpload().SetChunkSizeBytesInt64(int64(31))},
-			{"Bucket Int64 chunk size", options.GridFSBucket().SetChunkSizeBytesInt64(int64(31)), nil},
 		}
 
 		for _, tt := range chunkSizeTests {
