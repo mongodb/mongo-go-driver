@@ -7,9 +7,6 @@
 package bson
 
 import (
-	"bytes"
-	"encoding/json"
-
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -223,29 +220,4 @@ func MarshalExtJSONAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val
 	}
 
 	return *sw, nil
-}
-
-func IndentExtJSON(src []byte) ([]byte, error) {
-	var buf bytes.Buffer
-	err := json.Indent(&buf, src, "", "\t")
-	formatted := buf.Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	return formatted, nil
-}
-
-func MarshalExtJSONIndent(ec bsoncodec.EncodeContext, dst []byte, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	marshaled, err := MarshalExtJSONAppendWithContext(ec, dst, val, canonical, escapeHTML)
-	if err != nil {
-		return nil, err
-	}
-
-	formatted, err := IndentExtJSON(marshaled)
-	if err != nil {
-		return nil, err
-	}
-
-	return formatted, nil
 }
