@@ -306,11 +306,11 @@ func TestNullBytes(t *testing.T) {
 
 func TestMarshalExtJSONIndent(t *testing.T) {
 	type indentTestCase struct {
-		name string
-		val  interface{}
+		name            string
+		val             interface{}
 		expectedExtJSON string
 	}
-	
+
 	// expectedExtJSON must be written as below because single-quoted
 	// literal strings capture undesired code formatting tabs
 	testCases := []indentTestCase{
@@ -370,7 +370,7 @@ func TestMarshalExtJSONIndent(t *testing.T) {
 			var buf bytes.Buffer
 			err = IndentExtJSON(&buf, marshaled, "", "\t")
 			assert.Nil(t, err, "Marshal error: %v", err)
-			
+
 			extJSONBytes := buf.Bytes()
 			expectedExtJSONBytes := []byte(tc.expectedExtJSON)
 
@@ -378,4 +378,3 @@ func TestMarshalExtJSONIndent(t *testing.T) {
 		})
 	}
 }
-
