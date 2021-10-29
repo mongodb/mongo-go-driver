@@ -350,6 +350,9 @@ func runTest(t *testing.T, file string) {
 					case "0x00", "0x05", "0x13":
 						var doc D
 						err := UnmarshalExtJSON([]byte(s), true, &doc)
+						if strings.Contains(p.Description, "Null") {
+							_, err = Marshal(doc)
+						}
 						expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
 					default:
 						t.Errorf("Update test to check for parse errors for type %s", test.BsonType)
