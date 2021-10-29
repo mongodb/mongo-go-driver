@@ -21,46 +21,46 @@ func makeHelloReply() []byte {
 	return drivertest.MakeReply(doc)
 }
 
-var _ net.Conn = &slowConn{}
+var _ net.Conn = &mockSlowConn{}
 
-// slowConn is a net.Conn that delays all calls to Read() by the given delay duration. After the
+// mockSlowConn is a net.Conn that delays all calls to Read() by the given delay duration. After the
 // delay, Read() reads the given response. Calls to Write() reset the read buffer, so subsequent
 // Read() calls read from the beginning of the provided response.
-type slowConn struct {
+type mockSlowConn struct {
 	reader *bytes.Reader
 	delay  time.Duration
 }
 
-func newSlowConn(response []byte, delay time.Duration) *slowConn {
-	return &slowConn{
+func newMockSlowConn(response []byte, delay time.Duration) *mockSlowConn {
+	return &mockSlowConn{
 		reader: bytes.NewReader(response),
 		delay:  delay,
 	}
 }
 
-func (c *slowConn) Read(b []byte) (int, error) {
-	time.Sleep(c.delay)
-	return c.reader.Read(b)
+func (msc *mockSlowConn) Read(b []byte) (int, error) {
+	time.Sleep(msc.delay)
+	return msc.reader.Read(b)
 }
 
-func (c *slowConn) Write(b []byte) (int, error) {
-	_, err := c.reader.Seek(0, io.SeekStart)
+func (msc *mockSlowConn) Write(b []byte) (int, error) {
+	_, err := msc.reader.Seek(0, io.SeekStart)
 	return len(b), err
 }
 
-func (c *slowConn) Close() error                       { return nil }
-func (c *slowConn) LocalAddr() net.Addr                { return nil }
-func (c *slowConn) RemoteAddr() net.Addr               { return nil }
-func (c *slowConn) SetDeadline(_ time.Time) error      { return nil }
-func (c *slowConn) SetReadDeadline(_ time.Time) error  { return nil }
-func (c *slowConn) SetWriteDeadline(_ time.Time) error { return nil }
+func (*mockSlowConn) Close() error                       { return nil }
+func (*mockSlowConn) LocalAddr() net.Addr                { return nil }
+func (*mockSlowConn) RemoteAddr() net.Addr               { return nil }
+func (*mockSlowConn) SetDeadline(_ time.Time) error      { return nil }
+func (*mockSlowConn) SetReadDeadline(_ time.Time) error  { return nil }
+func (*mockSlowConn) SetWriteDeadline(_ time.Time) error { return nil }
 
 func TestRTTMonitor(t *testing.T) {
 	t.Run("measures the average and minimum RTT", func(t *testing.T) {
 		t.Parallel()
 
 		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
-			return newSlowConn(makeHelloReply(), 10*time.Millisecond), nil
+			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Millisecond,
@@ -131,7 +131,7 @@ func TestRTTMonitor(t *testing.T) {
 		t.Parallel()
 
 		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
-			return newSlowConn(makeHelloReply(), 10*time.Millisecond), nil
+			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Second,
@@ -154,7 +154,7 @@ func TestRTTMonitor(t *testing.T) {
 		t.Parallel()
 
 		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
-			return newSlowConn(makeHelloReply(), 10*time.Millisecond), nil
+			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Millisecond,
