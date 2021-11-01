@@ -112,6 +112,18 @@ func TestChangeStreamExamples(t *testing.T) {
 	documentation_examples.ChangeStreamExamples(t, db)
 }
 
+func TestCausalConsistencyExamples(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cs := testutil.ConnString(t)
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cs.String()))
+	require.NoError(t, err)
+	defer client.Disconnect(ctx)
+
+	err = documentation_examples.CausalConsistencyExamples(client)
+	require.NoError(t, err)
+}
+
 func getServerVersion(ctx context.Context, client *mongo.Client) (string, error) {
 	serverStatus, err := client.Database("admin").RunCommand(
 		ctx,

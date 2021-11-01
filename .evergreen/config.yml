@@ -276,9 +276,8 @@ functions:
           sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   send-perf-data:
-    - command: json.send
+    - command: perf.send
       params:
-        name: perf
         file: src/go.mongodb.org/mongo-driver/perf.json
 
   run-enterprise-auth-tests:
@@ -1593,14 +1592,6 @@ tasks:
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
-  - name: go1.9-build
-    tags: ["compile-check"]
-    commands:
-      - func: run-make
-        vars:
-          targets: "build"
-          BUILD_ENV: "PATH=/opt/golang/go1.9/bin:$PATH GOROOT=/opt/golang/go1.9"
-
   - name: go1.10-build
     tags: ["compile-check"]
     commands:
@@ -2040,14 +2031,14 @@ buildvariants:
   - matrix_name: "ocsp-test"
     matrix_spec: { version: ["4.4", "5.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-16"] }
     display_name: "OCSP ${version} ${ocsp-rhel-70}"
-    batchtime: 20160 # 14 days
+    batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
     matrix_spec: { version: ["4.4", "5.0", "latest"], os-ssl-40: ["windows-64-go-1-16"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
-    batchtime: 20160 # 14 days
+    batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       # Windows MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
@@ -2055,7 +2046,7 @@ buildvariants:
   - matrix_name: "ocsp-test-macos"
     matrix_spec: { version: ["4.4", "5.0", "latest"], os-ssl-40: ["osx-go-1-16"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
-    batchtime: 20160 # 14 days
+    batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       # macos MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"

@@ -54,12 +54,6 @@ func (entme ErrNoTypeMapEntry) Error() string {
 // ErrNotInterface is returned when the provided type is not an interface.
 var ErrNotInterface = errors.New("The provided type is not an interface")
 
-var defaultRegistry *Registry
-
-func init() {
-	defaultRegistry = buildDefaultRegistry()
-}
-
 // A RegistryBuilder is used to build a Registry. This type is not goroutine
 // safe.
 type RegistryBuilder struct {

@@ -9,6 +9,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"reflect"
 	"strings"
@@ -51,6 +52,46 @@ func (e *negateCodec) DecodeValue(ectx bsoncodec.DecodeContext, vr bsonrw.ValueR
 
 	val.SetInt(i * -1)
 	return nil
+}
+
+var _ options.ContextDialer = &slowConnDialer{}
+
+// A slowConnDialer dials connections that delay network round trips by the given delay duration.
+type slowConnDialer struct {
+	dialer *net.Dialer
+	delay  time.Duration
+}
+
+func newSlowConnDialer(delay time.Duration) *slowConnDialer {
+	return &slowConnDialer{
+		dialer: &net.Dialer{},
+		delay:  delay,
+	}
+}
+
+func (scd *slowConnDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	conn, err := scd.dialer.DialContext(ctx, network, address)
+	if err != nil {
+		return nil, err
+	}
+	return &slowConn{
+		Conn:  conn,
+		delay: scd.delay,
+	}, nil
+}
+
+var _ net.Conn = &slowConn{}
+
+// slowConn is a net.Conn that delays all calls to Read() by given delay durations. All other
+// net.Conn functions behave identically to the embedded net.Conn.
+type slowConn struct {
+	net.Conn
+	delay time.Duration
+}
+
+func (sc *slowConn) Read(b []byte) (n int, err error) {
+	time.Sleep(sc.delay)
+	return sc.Conn.Read(b)
 }
 
 func TestClient(t *testing.T) {
@@ -466,6 +507,95 @@ func TestClient(t *testing.T) {
 	mt.RunOpts("minPoolSize", mtOpts, func(mt *mtest.T) {
 		err := mt.Client.Ping(context.Background(), readpref.Primary())
 		assert.Nil(t, err, "unexpected error calling Ping: %v", err)
+	})
+
+	mt.Run("minimum RTT is monitored", func(mt *mtest.T) {
+		if testing.Short() {
+			t.Skip("skipping integration test in short mode")
+		}
+
+		// Reset the client with a dialer that delays all network round trips by 300ms and set the
+		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
+		mt.ResetClient(options.Client().
+			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
+			SetHeartbeatInterval(100 * time.Millisecond))
+
+		// Assert that the minimum RTT is eventually >250ms.
+		topo := getTopologyFromClient(mt.Client)
+		assert.Soon(mt, func() {
+			for {
+				time.Sleep(100 * time.Millisecond)
+
+				// Wait for all of the server's minimum RTTs to be >250ms.
+				done := true
+				for _, desc := range topo.Description().Servers {
+					server, err := topo.FindServer(desc)
+					assert.Nil(mt, err, "FindServer error: %v", err)
+					if server.MinRTT() <= 250*time.Millisecond {
+						done = false
+					}
+				}
+				if done {
+					return
+				}
+			}
+		}, 10*time.Second)
+	})
+
+	// Test that if the minimum RTT is greater than the remaining timeout for an operation, the
+	// operation is not sent to the server and no connections are closed.
+	mt.Run("minimum RTT used to prevent sending requests", func(mt *mtest.T) {
+		if testing.Short() {
+			t.Skip("skipping integration test in short mode")
+		}
+
+		// Assert that we can call Ping with a 250ms timeout.
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
+		err := mt.Client.Ping(ctx, nil)
+		assert.Nil(mt, err, "Ping error: %v", err)
+
+		// Reset the client with a dialer that delays all network round trips by 300ms and set the
+		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
+		tpm := newTestPoolMonitor()
+		mt.ResetClient(options.Client().
+			SetPoolMonitor(tpm.PoolMonitor).
+			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
+			SetHeartbeatInterval(100 * time.Millisecond))
+
+		// Assert that the minimum RTT is eventually >250ms.
+		topo := getTopologyFromClient(mt.Client)
+		assert.Soon(mt, func() {
+			for {
+				time.Sleep(100 * time.Millisecond)
+
+				// Wait for all of the server's minimum RTTs to be >250ms.
+				done := true
+				for _, desc := range topo.Description().Servers {
+					server, err := topo.FindServer(desc)
+					assert.Nil(mt, err, "FindServer error: %v", err)
+					if server.MinRTT() <= 250*time.Millisecond {
+						done = false
+					}
+				}
+				if done {
+					return
+				}
+			}
+		}, 10*time.Second)
+
+		// Once we've waited for the minimum RTT for the single server to be >250ms, run a bunch of
+		// Ping operations with a timeout of 250ms and expect that they return errors.
+		for i := 0; i < 10; i++ {
+			ctx, cancel = context.WithTimeout(context.Background(), 250*time.Millisecond)
+			err := mt.Client.Ping(ctx, nil)
+			cancel()
+			assert.NotNil(mt, err, "expected Ping to return an error")
+		}
+
+		// Assert that the Ping timeouts result in no connections being closed.
+		closed := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionClosed }))
+		assert.Equal(t, 0, closed, "expected no connections to be closed")
 	})
 }
 
