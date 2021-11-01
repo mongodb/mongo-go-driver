@@ -131,6 +131,9 @@ evg-test-auth:
 .PHONY: evg-test-atlas
 evg-test-atlas:
 	go run ./mongo/testatlas/main.go $(ATLAS_URIS)
+	MONGODB_URI=$(ATLAS_REPLSET_SRV) go test -timeout 5m -run ^TestClientStress$ go.mongodb.org/mongo-driver/mongo/integration -count=1 -v
+	MONGODB_URI=$(ATLAS_SHARD_SRV) go test -timeout 5m -run ^TestClientStress$ go.mongodb.org/mongo-driver/mongo/integration -count=1 -v
+	MONGODB_URI=$(ATLAS_SERVERLESS_SRV) go test -timeout 5m -run ^TestClientStress$ go.mongodb.org/mongo-driver/mongo/integration -count=1 -v
 
 .PHONY: evg-test-ocsp
 evg-test-ocsp:
