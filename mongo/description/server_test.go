@@ -43,6 +43,7 @@ func TestServer(t *testing.T) {
 			{"maxMessageSize", Server{MaxMessageSize: 1}, true},
 			{"members", Server{Members: []address.Address{address.Address("foo")}}, true},
 			{"passives", Server{Passives: []string{"foo"}}, false},
+			{"passive", Server{Passive: true}, true},
 			{"primary", Server{Primary: address.Address("foo")}, false},
 			{"readOnly", Server{ReadOnly: true}, true},
 			{"sessionTimeoutMinutes", Server{SessionTimeoutMinutes: 1}, false},

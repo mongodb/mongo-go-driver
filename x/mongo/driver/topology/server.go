@@ -166,10 +166,11 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 	s.desc.Store(description.NewDefaultServer(addr))
 	rttCfg := &rttConfig{
 		interval:           cfg.heartbeatInterval,
+		minRTTWindow:       5 * time.Minute,
 		createConnectionFn: s.createConnection,
 		createOperationFn:  s.createBaseOperation,
 	}
-	s.rttMonitor = newRttMonitor(rttCfg)
+	s.rttMonitor = newRTTMonitor(rttCfg)
 
 	pc := poolConfig{
 		Address:     addr,
@@ -779,6 +780,11 @@ func extractTopologyVersion(err error) *description.TopologyVersion {
 	return nil
 }
 
+// MinRTT returns the minimum round-trip time to the server observed over the last 5 minutes.
+func (s *Server) MinRTT() time.Duration {
+	return s.rttMonitor.getMinRTT()
+}
+
 // String implements the Stringer interface.
 func (s *Server) String() string {
 	desc := s.Description()
@@ -789,7 +795,7 @@ func (s *Server) String() string {
 		str += fmt.Sprintf(", Tag sets: %s", desc.Tags)
 	}
 	if connState == connected {
-		str += fmt.Sprintf(", Average RTT: %d", desc.AverageRTT)
+		str += fmt.Sprintf(", Average RTT: %s, Min RTT: %s", desc.AverageRTT, s.MinRTT())
 	}
 	if desc.LastError != nil {
 		str += fmt.Sprintf(", Last error: %s", desc.LastError)

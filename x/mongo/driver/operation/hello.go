@@ -3,7 +3,6 @@ package operation
 import (
 	"context"
 	"errors"
-	"fmt"
 	"runtime"
 	"strconv"
 
@@ -106,47 +105,6 @@ func (h *Hello) LoadBalanced(lb bool) *Hello {
 // Result returns the result of executing this operation.
 func (h *Hello) Result(addr address.Address) description.Server {
 	return description.NewServer(addr, bson.Raw(h.res))
-}
-
-func (h *Hello) decodeStringSlice(element bsoncore.Element, name string) ([]string, error) {
-	arr, ok := element.Value().ArrayOK()
-	if !ok {
-		return nil, fmt.Errorf("expected '%s' to be an array but it's a BSON %s", name, element.Value().Type)
-	}
-	vals, err := arr.Values()
-	if err != nil {
-		return nil, err
-	}
-	var strs []string
-	for _, val := range vals {
-		str, ok := val.StringValueOK()
-		if !ok {
-			return nil, fmt.Errorf("expected '%s' to be an array of strings, but found a BSON %s", name, val.Type)
-		}
-		strs = append(strs, str)
-	}
-	return strs, nil
-}
-
-func (h *Hello) decodeStringMap(element bsoncore.Element, name string) (map[string]string, error) {
-	doc, ok := element.Value().DocumentOK()
-	if !ok {
-		return nil, fmt.Errorf("expected '%s' to be a document but it's a BSON %s", name, element.Value().Type)
-	}
-	elements, err := doc.Elements()
-	if err != nil {
-		return nil, err
-	}
-	m := make(map[string]string)
-	for _, element := range elements {
-		key := element.Key()
-		value, ok := element.Value().StringValueOK()
-		if !ok {
-			return nil, fmt.Errorf("expected '%s' to be a document of strings, but found a BSON %s", name, element.Value().Type)
-		}
-		m[key] = value
-	}
-	return m, nil
 }
 
 // handshakeCommand appends all necessary command fields as well as client metadata, SASL supported mechs, and compression.

@@ -2527,6 +2527,94 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	}
 }
 
+// CausalConsistencyExamples contains examples of causal consistency usage.
+func CausalConsistencyExamples(client *mongo.Client) error {
+	ctx := context.Background()
+	coll := client.Database("test").Collection("items")
+
+	currentDate := time.Now()
+
+	err := coll.Drop(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Start Causal Consistency Example 1
+
+	// Use a causally-consistent session to run some operations
+	opts := options.Session().SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(
+		writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
+	session1, err := client.StartSession(opts)
+
+	if err != nil {
+		return err
+	}
+
+	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
+		// Run an update with our causally-consistent session
+		_, err = coll.UpdateOne(sctx, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", currentDate}}}})
+		if err != nil {
+			return err
+		}
+
+		// Run an insert with our causally-consistent session
+		_, err = coll.InsertOne(sctx, bson.D{{"sku", "nuts-111"}, {"name", "Pecans"}, {"start", currentDate}})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// End Causal Consistency Example 1
+
+	// Start Causal Consistency Example 2
+
+	// Make a new session that is causally consistent with session1 so session2 reads what session1 writes
+	opts = options.Session().SetDefaultReadPreference(readpref.Secondary()).SetDefaultReadConcern(
+		readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority(),
+		writeconcern.WTimeout(1000)))
+	session2, err := client.StartSession(opts)
+
+	if err != nil {
+		return err
+	}
+
+	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
+		// Set cluster time of session2 to session1's cluster time
+		clusterTime := session1.ClusterTime()
+		session2.AdvanceClusterTime(clusterTime)
+
+		// Set operation time of session2 to session1's operation time
+		operationTime := session1.OperationTime()
+		session2.AdvanceOperationTime(operationTime)
+		// Run a find on session2, which should find all the writes from session1
+		cursor, err := coll.Find(sctx, bson.D{{"end", nil}})
+
+		if err != nil {
+			return err
+		}
+
+		for cursor.Next(sctx) {
+			doc := cursor.Current
+			fmt.Printf("Document: %v\n", doc.String())
+		}
+
+		return cursor.Err()
+	})
+
+	if err != nil {
+		return err
+	}
+	// End Causal Consistency Example 2
+
+	return nil
+}
+
 // RunCommandExamples contains examples of RunCommand operations.
 func RunCommandExamples(t *testing.T, db *mongo.Database) {
 	ctx := context.Background()

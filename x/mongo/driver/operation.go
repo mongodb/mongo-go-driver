@@ -429,15 +429,23 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			serviceID:    startedInfo.serviceID,
 		}
 
-		// roundtrip using either the full roundTripper or a special one for when the moreToCome
-		// flag is set
-		var roundTrip = op.roundTrip
-		if moreToCome {
-			roundTrip = op.moreToComeRoundTrip
-		}
-		res, err = roundTrip(ctx, conn, wm)
-		if ep, ok := srvr.(ErrorProcessor); ok {
-			_ = ep.ProcessError(err, conn)
+		// Check if there's enough time to perform a best-case network round trip before the Context
+		// deadline. If not, create a network error that wraps a context.DeadlineExceeded error and
+		// skip the actual round trip.
+		if deadline, ok := ctx.Deadline(); ok && time.Now().Add(srvr.MinRTT()).After(deadline) {
+			err = op.networkError(context.DeadlineExceeded)
+		} else {
+			// roundtrip using either the full roundTripper or a special one for when the moreToCome
+			// flag is set
+			var roundTrip = op.roundTrip
+			if moreToCome {
+				roundTrip = op.moreToComeRoundTrip
+			}
+			res, err = roundTrip(ctx, conn, wm)
+
+			if ep, ok := srvr.(ErrorProcessor); ok {
+				_ = ep.ProcessError(err, conn)
+			}
 		}
 
 		finishedInfo.response = res
@@ -673,17 +681,7 @@ func (op Operation) retryable(desc description.Server) bool {
 func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
 	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
-		labels := []string{NetworkError}
-		if op.Client != nil {
-			op.Client.MarkDirty()
-		}
-		if op.Client != nil && op.Client.TransactionRunning() && !op.Client.Committing {
-			labels = append(labels, TransientTransactionError)
-		}
-		if op.Client != nil && op.Client.Committing {
-			labels = append(labels, UnknownTransactionCommitResult)
-		}
-		return nil, Error{Message: err.Error(), Labels: labels, Wrapped: err}
+		return nil, op.networkError(err)
 	}
 
 	return op.readWireMessage(ctx, conn, wm)
@@ -694,17 +692,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 
 	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
-		labels := []string{NetworkError}
-		if op.Client != nil {
-			op.Client.MarkDirty()
-		}
-		if op.Client != nil && op.Client.TransactionRunning() && !op.Client.Committing {
-			labels = append(labels, TransientTransactionError)
-		}
-		if op.Client != nil && op.Client.Committing {
-			labels = append(labels, UnknownTransactionCommitResult)
-		}
-		return nil, Error{Message: err.Error(), Labels: labels, Wrapped: err}
+		return nil, op.networkError(err)
 	}
 
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
@@ -741,6 +729,27 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 		return op.Crypt.Decrypt(ctx, res)
 	}
 	return res, nil
+}
+
+// networkError wraps the provided error in an Error with label "NetworkError" and, if a transaction
+// is running or committing, the appropriate transaction state labels. The returned error indicates
+// the operation should be retried for reads and writes. If err is nil, networkError returns nil.
+func (op Operation) networkError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	labels := []string{NetworkError}
+	if op.Client != nil {
+		op.Client.MarkDirty()
+	}
+	if op.Client != nil && op.Client.TransactionRunning() && !op.Client.Committing {
+		labels = append(labels, TransientTransactionError)
+	}
+	if op.Client != nil && op.Client.Committing {
+		labels = append(labels, UnknownTransactionCommitResult)
+	}
+	return Error{Message: err.Error(), Labels: labels, Wrapped: err}
 }
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is

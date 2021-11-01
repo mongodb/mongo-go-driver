@@ -23,6 +23,11 @@ type BenchResult struct {
 	hasErrors  *bool
 }
 
+type Metric struct {
+	Name  string      `json:"name"`
+	Value interface{} `json:"value"`
+}
+
 func (r *BenchResult) EvergreenPerfFormat() ([]interface{}, error) {
 	timings := r.timings()
 
@@ -43,32 +48,34 @@ func (r *BenchResult) EvergreenPerfFormat() ([]interface{}, error) {
 
 	out := []interface{}{
 		map[string]interface{}{
-			"name": r.Name + "-throughput",
-			"results": map[string]interface{}{
-				"1": map[string]interface{}{
-					"seconds":        r.Duration.Round(time.Millisecond).Seconds(),
-					"ops_per_second": r.getThroughput(median),
-					"ops_per_second_values": []float64{
-						r.getThroughput(min),
-						r.getThroughput(max),
-					},
+			"info": map[string]interface{}{
+				"test_name": r.Name + "-throughput",
+				"args": map[string]interface{}{
+					"threads": 1,
 				},
+			},
+			"metrics": []Metric{
+				{Name: "seconds", Value: r.Duration.Round(time.Millisecond).Seconds()},
+				{Name: "ops_per_second", Value: r.getThroughput(median)},
+				{Name: "ops_per_second_min", Value: r.getThroughput(min)},
+				{Name: "ops_per_second_max", Value: r.getThroughput(max)},
 			},
 		},
 	}
 
 	if r.DataSize > 0 {
 		out = append(out, interface{}(map[string]interface{}{
-			"name": r.Name + "-MB-adjusted",
-			"results": map[string]interface{}{
-				"1": map[string]interface{}{
-					"seconds":        r.Duration.Round(time.Millisecond).Seconds(),
-					"ops_per_second": r.adjustResults(median),
-					"ops_per_second_values": []float64{
-						r.adjustResults(min),
-						r.adjustResults(max),
-					},
+			"info": map[string]interface{}{
+				"test_name": r.Name + "-MB-adjusted",
+				"args": map[string]interface{}{
+					"threads": 1,
 				},
+			},
+			"metrics": []Metric{
+				{Name: "seconds", Value: r.Duration.Round(time.Millisecond).Seconds()},
+				{Name: "ops_per_second", Value: r.adjustResults(median)},
+				{Name: "ops_per_second_min", Value: r.adjustResults(min)},
+				{Name: "ops_per_second_max", Value: r.adjustResults(max)},
 			},
 		}))
 	}

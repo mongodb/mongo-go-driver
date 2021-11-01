@@ -28,8 +28,6 @@ type Command struct {
 	monitor        *event.CommandMonitor
 	resultResponse bsoncore.Document
 	resultCursor   *driver.BatchCursor
-	srvr           driver.Server
-	desc           description.Server
 	crypt          *driver.Crypt
 	serverAPI      *driver.ServerAPIOptions
 	createCursor   bool

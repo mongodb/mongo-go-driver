@@ -76,11 +76,12 @@ func (c *ChannelNetConn) SetWriteDeadline(_ time.Time) error {
 
 // GetWrittenMessage gets the last wire message written to the connection
 func (c *ChannelNetConn) GetWrittenMessage() []byte {
-	var wm []byte
 	select {
-	case wm = <-c.Written:
+	case wm := <-c.Written:
+		return wm
+	default:
+		return nil
 	}
-	return wm
 }
 
 // AddResponse adds a response to the connection.
