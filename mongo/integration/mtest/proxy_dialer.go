@@ -131,10 +131,8 @@ func (p *proxyDialer) Messages() []*ProxyMessage {
 	p.Lock()
 	defer p.Unlock()
 
-	copiedMessages := make([]*ProxyMessage, 0, len(p.messages))
-	for _, msg := range p.messages {
-		copiedMessages = append(copiedMessages, msg)
-	}
+	copiedMessages := make([]*ProxyMessage, len(p.messages))
+	copy(copiedMessages, p.messages)
 	return copiedMessages
 }
 

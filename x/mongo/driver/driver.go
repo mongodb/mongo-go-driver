@@ -2,6 +2,7 @@ package driver // import "go.mongodb.org/mongo-driver/x/mongo/driver"
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -43,6 +44,9 @@ type Subscriber interface {
 // retrieving and returning of connections.
 type Server interface {
 	Connection(context.Context) (Connection, error)
+
+	// MinRTT returns the minimum round-trip time to the server observed over the window period.
+	MinRTT() time.Duration
 }
 
 // Connection represents a connection to a MongoDB server.
@@ -192,6 +196,11 @@ func (ssd SingleConnectionDeployment) Kind() description.TopologyKind { return d
 // Connection implements the Server interface. It always returns the embedded connection.
 func (ssd SingleConnectionDeployment) Connection(context.Context) (Connection, error) {
 	return ssd.C, nil
+}
+
+// MinRTT always returns 0. It implements the driver.Server interface.
+func (ssd SingleConnectionDeployment) MinRTT() time.Duration {
+	return 0
 }
 
 // TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using

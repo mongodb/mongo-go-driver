@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -130,22 +131,33 @@ func TestSessions(t *testing.T) {
 	mt.RunOpts("cluster time is updated from handshakes", clusterTimeHandshakeMtOpts, func(mt *mtest.T) {
 		err := mt.Client.Ping(mtest.Background, mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) > 2, "expected more than two messages, got %d", len(msgPairs))
 
-		for idx, pair := range mt.GetProxiedMessages() {
-			// Get the $clusterTime value sent to the server. The first three messages are the handshakes for the
-			// heartbeat, RTT, and application connections. These should not contain $clusterTime because they happen on
-			// connections that don't know the server's wire version and therefore don't know if the server supports
-			// $clusterTime.
-			_, err = pair.Sent.Command.LookupErr("$clusterTime")
-			if idx <= 2 {
-				assert.NotNil(mt, err, "expected no $clusterTime field in command %s", pair.Sent.Command)
-				continue
+		// Assert that all sent commands (including handshake commands) include a "$clusterTime" in
+		// the command document.
+		for _, pair := range mt.GetProxiedMessages() {
+			_, err := pair.Sent.Command.LookupErr("$clusterTime")
+			hasClusterTime := err == nil
+
+			switch pair.CommandName {
+			// If the command is either legacy hello or "hello" (used as the first message in any
+			// handshake or the checks from the heartbeat or RTT monitors), expect that there is no
+			// "$clusterTime" because the connection doesn't know the server's wire version yet so
+			// it doesn't know if the connection supports "$clusterTime".
+			case internal.LegacyHello, "hello":
+				assert.False(
+					mt,
+					hasClusterTime,
+					"expected no $clusterTime field in command %s",
+					pair.Sent.Command)
+			// If the command is anything else (including other handshake commands), assert that the
+			// command includes "$clusterTime".
+			default:
+				assert.True(
+					mt,
+					hasClusterTime,
+					"expected $clusterTime field in in Ping command %s",
+					pair.Sent.Command)
 			}
-
-			// All messages after the first two should contain $clusterTime.
-			assert.Nil(mt, err, "expected $clusterTime field in command %s", pair.Sent.Command)
 		}
 	})
 

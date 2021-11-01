@@ -8,6 +8,7 @@ package mtest
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -131,6 +132,11 @@ func (md *mockDeployment) Kind() description.TopologyKind {
 // Connection implements the driver.Server interface.
 func (md *mockDeployment) Connection(context.Context) (driver.Connection, error) {
 	return md.conn, nil
+}
+
+// MinRTT always returns 0. It implements the driver.Server interface.
+func (md *mockDeployment) MinRTT() time.Duration {
+	return 0
 }
 
 // Connect is a no-op method which implements the driver.Connector interface.
