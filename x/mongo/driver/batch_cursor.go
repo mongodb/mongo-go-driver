@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
@@ -424,6 +425,11 @@ func (lbcd *loadBalancedCursorDeployment) Kind() description.TopologyKind {
 
 func (lbcd *loadBalancedCursorDeployment) Connection(_ context.Context) (Connection, error) {
 	return lbcd.conn, nil
+}
+
+// MinRTT always returns 0. It implements the driver.Server interface.
+func (lbcd *loadBalancedCursorDeployment) MinRTT() time.Duration {
+	return 0
 }
 
 func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {

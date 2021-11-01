@@ -43,7 +43,9 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 				err = json.Unmarshal(content, &test)
 				assert.Nil(t, err, "Unmarshal error: %v", err)
 
-				var monitor rttMonitor
+				monitor := newRTTMonitor(&rttConfig{
+					interval: 10 * time.Second,
+				})
 				if test.AvgRttMs != "NULL" {
 					// If not "NULL", then must be a number, so typecast to float64
 					monitor.addSample(time.Duration(test.AvgRttMs.(float64) * float64(time.Millisecond)))

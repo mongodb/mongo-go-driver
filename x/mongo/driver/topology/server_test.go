@@ -32,13 +32,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
-func makeHelloReply() []byte {
-	didx, doc := bsoncore.AppendDocumentStart(nil)
-	doc = bsoncore.AppendInt32Element(doc, "ok", 1)
-	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
-	return drivertest.MakeReply(doc)
-}
-
 type channelNetConnDialer struct{}
 
 func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (net.Conn, error) {

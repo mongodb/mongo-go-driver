@@ -446,5 +446,5 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (strin
 		return "", err
 	}
 
-	return x509CertSubject(crt), nil
+	return crt.Subject.String(), nil
 }

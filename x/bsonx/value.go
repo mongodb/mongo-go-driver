@@ -30,27 +30,6 @@ type Val struct {
 	primitive interface{}
 }
 
-func (v Val) reset() Val {
-	v.primitive = nil // clear out any pointers so we don't accidentally stop them from being garbage collected.
-	v.t = bsontype.Type(0)
-	v.bootstrap[0] = 0x00
-	v.bootstrap[1] = 0x00
-	v.bootstrap[2] = 0x00
-	v.bootstrap[3] = 0x00
-	v.bootstrap[4] = 0x00
-	v.bootstrap[5] = 0x00
-	v.bootstrap[6] = 0x00
-	v.bootstrap[7] = 0x00
-	v.bootstrap[8] = 0x00
-	v.bootstrap[9] = 0x00
-	v.bootstrap[10] = 0x00
-	v.bootstrap[11] = 0x00
-	v.bootstrap[12] = 0x00
-	v.bootstrap[13] = 0x00
-	v.bootstrap[14] = 0x00
-	return v
-}
-
 func (v Val) string() string {
 	if v.primitive != nil {
 		return v.primitive.(string)

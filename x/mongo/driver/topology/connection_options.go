@@ -40,7 +40,6 @@ type Handshaker = driver.Handshaker
 type generationNumberFn func(serviceID *primitive.ObjectID) uint64
 
 type connectionConfig struct {
-	appName                  string
 	connectTimeout           time.Duration
 	dialer                   Dialer
 	handshaker               Handshaker
