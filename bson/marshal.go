@@ -226,11 +226,7 @@ func MarshalExtJSONAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val
 }
 
 func IndentExtJSON(dst *bytes.Buffer, src []byte, prefix, indent string) error {
-	err := json.Indent(dst, src, prefix, indent)
-	if err != nil {
-		return err
-	}
-	return nil
+	return json.Indent(dst, src, prefix, indent)
 }
 
 func MarshalExtJSONIndent(val interface{}, canonical, escapeHTML bool, prefix, indent string) ([]byte, error) {
