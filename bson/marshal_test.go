@@ -364,8 +364,7 @@ func TestMarshalExtJSONIndent(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			var buf bytes.Buffer
-			extJSONBytes, err := MarshalExtJSONIndent(tc.val, true, false, &buf, "", "\t")
+			extJSONBytes, err := MarshalExtJSONIndent(tc.val, true, false, "", "\t")
 			assert.Nil(t, err, "Marshal indent error: %v", err)
 
 			expectedExtJSONBytes := []byte(tc.expectedExtJSON)

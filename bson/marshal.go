@@ -233,16 +233,17 @@ func IndentExtJSON(dst *bytes.Buffer, src []byte, prefix, indent string) error {
 	return nil
 }
 
-func MarshalExtJSONIndent(val interface{}, canonical, escapeHTML bool, dst *bytes.Buffer, prefix, indent string) ([]byte, error) {
+func MarshalExtJSONIndent(val interface{}, canonical, escapeHTML bool, prefix, indent string) ([]byte, error) {
 	marshaled, err := MarshalExtJSON(val, canonical, escapeHTML)
 	if err != nil {
 		return nil, err
 	}
 
-	err = IndentExtJSON(dst, marshaled, prefix, indent)
+	var buf bytes.Buffer
+	err = IndentExtJSON(&buf, marshaled, prefix, indent)
 	if err != nil {
 		return nil, err
 	}
 
-	return dst.Bytes(), nil
+	return buf.Bytes(), nil
 }
