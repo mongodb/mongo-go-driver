@@ -350,6 +350,7 @@ func runTest(t *testing.T, file string) {
 					case "0x00", "0x05", "0x13":
 						var doc D
 						err := UnmarshalExtJSON([]byte(s), true, &doc)
+						// Null bytes are validated when marshaling to BSON
 						if strings.Contains(p.Description, "Null") {
 							_, err = Marshal(doc)
 						}
