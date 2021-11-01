@@ -1233,9 +1233,6 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 
 	sets := make([]bsoncore.Document, 0, len(rp.TagSets()))
 	for _, ts := range rp.TagSets() {
-		if len(ts) == 0 {
-			continue
-		}
 		i, set := bsoncore.AppendDocumentStart(nil)
 		for _, t := range ts {
 			set = bsoncore.AppendStringElement(set, t.Name, t.Value)

@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
@@ -396,6 +397,25 @@ func TestOperation(t *testing.T) {
 				"secondaryPreferred/withTags",
 				readpref.SecondaryPreferred(readpref.WithTags("disk", "ssd", "use", "reporting")),
 				description.RSSecondary, description.ReplicaSet, false, rpWithTags,
+			},
+			// GODRIVER-2205: Ensure empty tag sets are written as an empty document in the read
+			// preference document. Empty tag sets match any server and are used as a fallback when
+			// no other tag sets match any servers.
+			{
+				"secondaryPreferred/withTags/emptyTagSet",
+				readpref.SecondaryPreferred(readpref.WithTagSets(
+					tag.Set{{Name: "disk", Value: "ssd"}},
+					tag.Set{})),
+				description.RSSecondary,
+				description.ReplicaSet,
+				false,
+				bsoncore.NewDocumentBuilder().
+					AppendString("mode", "secondaryPreferred").
+					AppendArray("tags", bsoncore.NewArrayBuilder().
+						AppendDocument(bsoncore.NewDocumentBuilder().AppendString("disk", "ssd").Build()).
+						AppendDocument(bsoncore.NewDocumentBuilder().Build()).
+						Build()).
+					Build(),
 			},
 			{
 				"secondaryPreferred/withMaxStaleness",
