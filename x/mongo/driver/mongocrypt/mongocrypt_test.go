@@ -124,7 +124,7 @@ func testKmsCtx(t *testing.T, ctx *Context, keyAltName bool) {
 	kmsCtx := ctx.NextKmsContext()
 	hostname, err := kmsCtx.HostName()
 	noerr(t, err)
-	expectedHost := "kms.us-east-1.amazonaws.com"
+	expectedHost := "kms.us-east-1.amazonaws.com:443"
 	if hostname != expectedHost {
 		t.Fatalf("hostname mismatch; expected %s, got %s", expectedHost, hostname)
 	}
