@@ -126,9 +126,8 @@ func testKmsCtx(t *testing.T, ctx *Context, keyAltName bool) {
 	hostname, err := kmsCtx.HostName()
 	noerr(t, err)
 
-	// on MacOS and Linux, hostname will include the default port "443". On Windows,
-	// the default port will not be included. Just verify that expectedHost is a substring
-	// of the hostname.
+	// Only check for the hostname. Libmongocrypt versions that do not include MONGOCRYPT-352 will not
+	// include the default port "443".
 	expectedHost := "kms.us-east-1.amazonaws.com"
 	if !strings.Contains(hostname, expectedHost) {
 		t.Fatalf("hostname mismatch; expected %s to contain %s", hostname, expectedHost)
