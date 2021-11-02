@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -124,9 +125,13 @@ func testKmsCtx(t *testing.T, ctx *Context, keyAltName bool) {
 	kmsCtx := ctx.NextKmsContext()
 	hostname, err := kmsCtx.HostName()
 	noerr(t, err)
-	expectedHost := "kms.us-east-1.amazonaws.com:443"
-	if hostname != expectedHost {
-		t.Fatalf("hostname mismatch; expected %s, got %s", expectedHost, hostname)
+
+	// on MacOS and Linux, hostname will include the default port "443". On Windows,
+	// the default port will not be included. Just verify that expectedHost is a substring
+	// of the hostname.
+	expectedHost := "kms.us-east-1.amazonaws.com"
+	if !strings.Contains(hostname, expectedHost) {
+		t.Fatalf("hostname mismatch; expected %s to contain %s", hostname, expectedHost)
 	}
 
 	// get message to send to KMS
