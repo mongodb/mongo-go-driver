@@ -43,6 +43,11 @@ type CryptOptions struct {
 	BypassAutoEncryption bool
 }
 
+// Crypt is an interface implemented by types that can encrypt and decrypt instances of
+// bsoncore.Document.
+//
+// Users should rely on the driver's crypt type (used by default) for encryption and decryption
+// unless they are perfectly confident in another implementation of Crypt.
 type Crypt interface {
 	// Encrypt encrypts the given command.
 	Encrypt(ctx context.Context, db string, cmd bsoncore.Document) (bsoncore.Document, error)
