@@ -9,6 +9,7 @@ package bsoncore
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"math"
 	"reflect"
 	"testing"
@@ -934,6 +935,13 @@ func TestNullBytes(t *testing.T) {
 				assertBSONCreationPanics(t, createValFn, invalidRegexPanicMsg)
 			})
 		}
+	})
+	t.Run("sub document field name", func(t *testing.T) {
+		doc, _ := json.Marshal(primitive.D{{"foo", primitive.D{{"bar", "foobar"}}}})
+		createDocFn := func() {
+			AppendHeader(doc, bsontype.EmbeddedDocument, "a\x00")
+		}
+		assertBSONCreationPanics(t, createDocFn, invalidKeyPanicMsg)
 	})
 }
 
