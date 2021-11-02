@@ -484,13 +484,6 @@ func (c *ClientOptions) SetConnectTimeout(d time.Duration) *ClientOptions {
 	return c
 }
 
-// SetCrypt specifies a custom Crypt to be used to encrypt and decrypt documents. The default is no encryption.
-// Using SetAutoEncryptionOptions will override anything set here.
-func (c *ClientOptions) SetCrypt(cr driver.Crypt) *ClientOptions {
-	c.Crypt = cr
-	return c
-}
-
 // SetDialer specifies a custom ContextDialer to be used to create new connections to the server. The default is a
 // net.Dialer with the Timeout field set to ConnectTimeout. See https://golang.org/pkg/net/#Dialer for more information
 // about the net.Dialer type.
