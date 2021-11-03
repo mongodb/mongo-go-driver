@@ -937,7 +937,7 @@ func TestNullBytes(t *testing.T) {
 	})
 	t.Run("sub document field name", func(t *testing.T) {
 		createDocFn := func() {
-			NewDocumentBuilder().StartDocument("a\x00").AppendDocument("foobar", []byte("foo")).FinishDocument()
+			NewDocumentBuilder().StartDocument("foobar").AppendDocument("a\x00", []byte("foo")).FinishDocument()
 		}
 		assertBSONCreationPanics(t, createDocFn, invalidKeyPanicMsg)
 	})
