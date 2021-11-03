@@ -197,7 +197,7 @@ func (c *crypt) executeStateMachine(ctx context.Context, cryptCtx *mongocrypt.Co
 		case mongocrypt.NeedMongoKeys:
 			err = c.retrieveKeys(ctx, cryptCtx)
 		case mongocrypt.NeedKms:
-			err = c.decryptKeys(ctx, cryptCtx)
+			err = c.decryptKeys(cryptCtx)
 		case mongocrypt.Ready:
 			return cryptCtx.Finish()
 		default:
@@ -265,14 +265,14 @@ func (c *crypt) retrieveKeys(ctx context.Context, cryptCtx *mongocrypt.Context) 
 	return cryptCtx.CompleteOperation()
 }
 
-func (c *crypt) decryptKeys(ctx context.Context, cryptCtx *mongocrypt.Context) error {
+func (c *crypt) decryptKeys(cryptCtx *mongocrypt.Context) error {
 	for {
 		kmsCtx := cryptCtx.NextKmsContext()
 		if kmsCtx == nil {
 			break
 		}
 
-		if err := c.decryptKey(ctx, kmsCtx); err != nil {
+		if err := c.decryptKey(kmsCtx); err != nil {
 			return err
 		}
 	}
@@ -280,7 +280,7 @@ func (c *crypt) decryptKeys(ctx context.Context, cryptCtx *mongocrypt.Context) e
 	return cryptCtx.FinishKmsContexts()
 }
 
-func (c *crypt) decryptKey(ctx context.Context, kmsCtx *mongocrypt.KmsContext) error {
+func (c *crypt) decryptKey(kmsCtx *mongocrypt.KmsContext) error {
 	host, err := kmsCtx.HostName()
 	if err != nil {
 		return err

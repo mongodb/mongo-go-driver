@@ -106,7 +106,7 @@ var skipKeywords = []string{
 }
 
 func runTest(t *testing.T, filename string, test testCase, warningsError bool) {
-	t.Run(test.Description, func(t *testing.T) {
+	t.Run(filename+"/"+test.Description, func(t *testing.T) {
 		if _, skip := skipDescriptions[test.Description]; skip {
 			t.Skip()
 		}

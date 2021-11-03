@@ -467,7 +467,7 @@ func TestConnection(t *testing.T) {
 					if !tnc.closed {
 						t.Errorf("failed to closeConnection net.Conn after error writing bytes.")
 					}
-					listener.assertMethodsCalled(t, 1, 1)
+					listener.assertCalledOnce(t)
 				})
 				t.Run("success", func(t *testing.T) {
 					tnc := &testNetConn{}
@@ -482,7 +482,7 @@ func TestConnection(t *testing.T) {
 					if !cmp.Equal(got, want) {
 						t.Errorf("writeWireMessage did not write the proper bytes. got %v; want %v", got, want)
 					}
-					listener.assertMethodsCalled(t, 1, 1)
+					listener.assertCalledOnce(t)
 				})
 				t.Run("cancel in-progress write", func(t *testing.T) {
 					// Simulate context cancellation during a network write.
@@ -604,7 +604,7 @@ func TestConnection(t *testing.T) {
 					if !tnc.closed {
 						t.Errorf("failed to closeConnection net.Conn after error writing bytes.")
 					}
-					listener.assertMethodsCalled(t, 1, 1)
+					listener.assertCalledOnce(t)
 				})
 				t.Run("full message read errors", func(t *testing.T) {
 					err := errors.New("Read error")
@@ -621,7 +621,7 @@ func TestConnection(t *testing.T) {
 					if !tnc.closed {
 						t.Errorf("failed to closeConnection net.Conn after error writing bytes.")
 					}
-					listener.assertMethodsCalled(t, 1, 1)
+					listener.assertCalledOnce(t)
 				})
 				t.Run("message too large errors", func(t *testing.T) {
 					testCases := []struct {
@@ -654,7 +654,7 @@ func TestConnection(t *testing.T) {
 							if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 								t.Errorf("errors do not match. got %v; want %v", got, want)
 							}
-							listener.assertMethodsCalled(t, 1, 1)
+							listener.assertCalledOnce(t)
 						})
 					}
 				})
@@ -671,7 +671,7 @@ func TestConnection(t *testing.T) {
 					if !cmp.Equal(got, want) {
 						t.Errorf("did not read full wire message. got %v; want %v", got, want)
 					}
-					listener.assertMethodsCalled(t, 1, 1)
+					listener.assertCalledOnce(t)
 				})
 				t.Run("cancel in-progress read", func(t *testing.T) {
 					// Simulate context cancellation during a network read. This has two sub-tests to test cancellation
@@ -1258,21 +1258,20 @@ func newTestCancellationListener(aborted bool) *testCancellationListener {
 	}
 }
 
-func (t *testCancellationListener) Listen(ctx context.Context, abortFn func()) {
-	t.numListen++
-	t.listener.Listen(ctx, abortFn)
+func (tcl *testCancellationListener) Listen(ctx context.Context, abortFn func()) {
+	tcl.numListen++
+	tcl.listener.Listen(ctx, abortFn)
 }
 
-func (t *testCancellationListener) StopListening() bool {
-	t.numStopListening++
-	t.listener.StopListening()
-	return t.aborted
+func (tcl *testCancellationListener) StopListening() bool {
+	tcl.numStopListening++
+	tcl.listener.StopListening()
+	return tcl.aborted
 }
 
-func (t *testCancellationListener) assertMethodsCalled(testingT *testing.T, numListen int, numStopListening int) {
-	assert.Equal(testingT, numListen, t.numListen, "expected Listen to be called %d times, got %d", numListen, t.numListen)
-	assert.Equal(testingT, numStopListening, t.numStopListening, "expected StopListening to be called %d times, got %d",
-		numListen, t.numListen)
+func (tcl *testCancellationListener) assertCalledOnce(t *testing.T) {
+	assert.Equal(t, 1, tcl.numListen, "expected Listen to be called once, got %d", tcl.numListen)
+	assert.Equal(t, 1, tcl.numStopListening, "expected StopListening to be called once, got %d", tcl.numListen)
 }
 
 // hangingTLSConn is an implementation of tlsConn that wraps the tls.Conn type and overrides the Handshake function to

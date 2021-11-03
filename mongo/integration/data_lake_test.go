@@ -79,7 +79,7 @@ func TestAtlasDataLake(t *testing.T) {
 			{"scram-sha-256", "SCRAM-SHA-256"},
 		}
 		for _, tc := range testCases {
-			clientOpts := getBaseClientOptions(mt)
+			clientOpts := getBaseClientOptions()
 			if tc.authMechanism != "" {
 				cred := getBaseCredential(mt)
 				cred.AuthMechanism = tc.authMechanism
@@ -95,7 +95,7 @@ func TestAtlasDataLake(t *testing.T) {
 	})
 }
 
-func getBaseClientOptions(mt *mtest.T) *options.ClientOptions {
+func getBaseClientOptions() *options.ClientOptions {
 	opts := options.Client().ApplyURI(mtest.ClusterURI())
 	return options.Client().SetHosts(opts.Hosts)
 }

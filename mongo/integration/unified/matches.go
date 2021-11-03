@@ -47,7 +47,7 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 		// not actually be a document. In this case, evaluate the special operator with the actual value rather than
 		// doing an element-wise document comparison.
 		if requiresSpecialMatching(expectedDoc) {
-			if err := evaluateSpecialComparison(ctx, expectedDoc, actual, ""); err != nil {
+			if err := evaluateSpecialComparison(ctx, expectedDoc, actual); err != nil {
 				return newMatchingError(keyPath, "error doing special matching assertion: %v", err)
 			}
 			return nil
@@ -78,7 +78,7 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 				// $$unsetOrMatches could recurse back into this function. In that case, the target document is nested
 				// and should not have extra keys.
 				ctx = makeMatchContext(ctx, "", false)
-				if err := evaluateSpecialComparison(ctx, specialDoc, actualValue, expectedKey); err != nil {
+				if err := evaluateSpecialComparison(ctx, specialDoc, actualValue); err != nil {
 					return newMatchingError(fullKeyPath, "error doing special matching assertion: %v", err)
 				}
 				continue
@@ -165,7 +165,7 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 	return nil
 }
 
-func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actual bson.RawValue, fieldName string) error {
+func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actual bson.RawValue) error {
 	assertionElem := assertionDoc.Index(0)
 	assertion := assertionElem.Key()
 	assertionVal := assertionElem.Value()

@@ -61,7 +61,7 @@ func TestSCRAM(t *testing.T) {
 				})
 
 				responses := make(chan []byte, len(tc.payloads))
-				writeReplies(t, responses, createSCRAMConversation(tc.payloads)...)
+				writeReplies(responses, createSCRAMConversation(tc.payloads)...)
 
 				desc := description.Server{
 					WireVersion: &description.VersionRange{
@@ -112,7 +112,7 @@ func createSCRAMServerResponse(payload []byte, done bool) bsoncore.Document {
 	)
 }
 
-func writeReplies(t *testing.T, c chan []byte, docs ...bsoncore.Document) {
+func writeReplies(c chan []byte, docs ...bsoncore.Document) {
 	for _, doc := range docs {
 		reply := drivertest.MakeReply(doc)
 		c <- reply

@@ -911,13 +911,12 @@ func (q *wantConnQueue) peekFront() *wantConn {
 
 // cleanFront pops any wantConns that are no longer waiting from the head of the
 // queue, reporting whether any were popped.
-func (q *wantConnQueue) cleanFront() (cleaned bool) {
+func (q *wantConnQueue) cleanFront() {
 	for {
 		w := q.peekFront()
 		if w == nil || w.waiting() {
-			return cleaned
+			return
 		}
 		q.popFront()
-		cleaned = true
 	}
 }

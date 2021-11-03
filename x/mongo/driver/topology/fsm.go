@@ -46,7 +46,7 @@ func newFSM() *fsm {
 //
 // apply should operation on immutable descriptions so we don't have to lock for the entire time we're applying the
 // server description.
-func (f *fsm) apply(s description.Server) (description.Topology, description.Server, error) {
+func (f *fsm) apply(s description.Server) (description.Topology, description.Server) {
 	newServers := make([]description.Server, len(f.Servers))
 	copy(newServers, f.Servers)
 
@@ -77,7 +77,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 	}
 
 	if _, ok := f.findServer(s.Addr); !ok {
-		return f.Topology, s, nil
+		return f.Topology, s
 	}
 
 	updatedDesc := s
@@ -107,7 +107,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					MinSupportedMongoDBVersion,
 				)
 				f.Topology.CompatibilityErr = f.compatibilityErr
-				return f.Topology, s, nil
+				return f.Topology, s
 			}
 
 			if server.WireVersion.Min > SupportedWireVersions.Max {
@@ -119,14 +119,14 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					SupportedWireVersions.Max,
 				)
 				f.Topology.CompatibilityErr = f.compatibilityErr
-				return f.Topology, s, nil
+				return f.Topology, s
 			}
 		}
 	}
 
 	f.compatible.Store(true)
 	f.compatibilityErr = nil
-	return f.Topology, updatedDesc, nil
+	return f.Topology, updatedDesc
 }
 
 func (f *fsm) applyToReplicaSetNoPrimary(s description.Server) description.Server {
@@ -376,12 +376,10 @@ func (f *fsm) removeServerByAddr(addr address.Address) {
 	}
 }
 
-func (f *fsm) replaceServer(s description.Server) bool {
+func (f *fsm) replaceServer(s description.Server) {
 	if i, ok := f.findServer(s.Addr); ok {
 		f.setServer(i, s)
-		return true
 	}
-	return false
 }
 
 func (f *fsm) setServer(i int, s description.Server) {

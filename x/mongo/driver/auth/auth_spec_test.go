@@ -57,7 +57,7 @@ func runTestsInFile(t *testing.T, dirname string, filename string) {
 }
 
 func runTest(t *testing.T, filename string, test testCase) {
-	t.Run(test.Description, func(t *testing.T) {
+	t.Run(filename+":"+test.Description, func(t *testing.T) {
 		opts := options.Client().ApplyURI(test.URI)
 		if test.Valid {
 			require.NoError(t, opts.Validate())

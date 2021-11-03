@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet string) error {
+func bsonMapDecoding(tm TimerManager, iters int, dataSet string) error {
 	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, dataSet)
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet st
 	return nil
 }
 
-func bsonMapEncoding(ctx context.Context, tm TimerManager, iters int, dataSet string) error {
+func bsonMapEncoding(tm TimerManager, iters int, dataSet string) error {
 	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, dataSet)
 	if err != nil {
 		return err
@@ -63,26 +63,26 @@ func bsonMapEncoding(ctx context.Context, tm TimerManager, iters int, dataSet st
 	return nil
 }
 
-func BSONFlatMapDecoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonMapDecoding(ctx, tm, iters, flatBSONData)
+func BSONFlatMapDecoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonMapDecoding(tm, iters, flatBSONData)
 }
 
-func BSONFlatMapEncoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonMapEncoding(ctx, tm, iters, flatBSONData)
+func BSONFlatMapEncoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonMapEncoding(tm, iters, flatBSONData)
 }
 
-func BSONDeepMapDecoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonMapDecoding(ctx, tm, iters, deepBSONData)
+func BSONDeepMapDecoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonMapDecoding(tm, iters, deepBSONData)
 }
 
-func BSONDeepMapEncoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonMapEncoding(ctx, tm, iters, deepBSONData)
+func BSONDeepMapEncoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonMapEncoding(tm, iters, deepBSONData)
 }
 
-func BSONFullMapDecoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonMapDecoding(ctx, tm, iters, fullBSONData)
+func BSONFullMapDecoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonMapDecoding(tm, iters, fullBSONData)
 }
 
-func BSONFullMapEncoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonMapEncoding(ctx, tm, iters, fullBSONData)
+func BSONFullMapEncoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonMapEncoding(tm, iters, fullBSONData)
 }

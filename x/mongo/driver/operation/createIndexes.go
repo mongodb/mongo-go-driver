@@ -47,7 +47,7 @@ type CreateIndexesResult struct {
 	IndexesBefore int32
 }
 
-func buildCreateIndexesResult(response bsoncore.Document, srvr driver.Server) (CreateIndexesResult, error) {
+func buildCreateIndexesResult(response bsoncore.Document) (CreateIndexesResult, error) {
 	elements, err := response.Elements()
 	if err != nil {
 		return CreateIndexesResult{}, err
@@ -90,7 +90,7 @@ func (ci *CreateIndexes) Result() CreateIndexesResult { return ci.result }
 
 func (ci *CreateIndexes) processResponse(info driver.ResponseInfo) error {
 	var err error
-	ci.result, err = buildCreateIndexesResult(info.ServerResponse, info.Server)
+	ci.result, err = buildCreateIndexesResult(info.ServerResponse)
 	return err
 }
 

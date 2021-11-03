@@ -64,7 +64,7 @@ type FindAndModifyResult struct {
 	LastErrorObject LastErrorObject
 }
 
-func buildFindAndModifyResult(response bsoncore.Document, srvr driver.Server) (FindAndModifyResult, error) {
+func buildFindAndModifyResult(response bsoncore.Document) (FindAndModifyResult, error) {
 	elements, err := response.Elements()
 	if err != nil {
 		return FindAndModifyResult{}, err
@@ -109,7 +109,7 @@ func (fam *FindAndModify) Result() FindAndModifyResult { return fam.result }
 func (fam *FindAndModify) processResponse(info driver.ResponseInfo) error {
 	var err error
 
-	fam.result, err = buildFindAndModifyResult(info.ServerResponse, info.Server)
+	fam.result, err = buildFindAndModifyResult(info.ServerResponse)
 	return err
 
 }

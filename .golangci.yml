@@ -22,7 +22,7 @@ linters:
     - typecheck
     - unused
     - unconvert
-    # - unparam
+    - unparam
     - varcheck
 
 linters-settings:

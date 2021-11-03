@@ -556,7 +556,7 @@ func TestOperation(t *testing.T) {
 		serverResponseDoc := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendInt32Element(nil, "ok", 1),
 		)
-		nonStreamingResponse := createExhaustServerResponse(t, serverResponseDoc, false)
+		nonStreamingResponse := createExhaustServerResponse(serverResponseDoc, false)
 
 		// Create a connection that reports that it cannot stream messages.
 		conn := &mockConnection{
@@ -584,7 +584,7 @@ func TestOperation(t *testing.T) {
 		assert.False(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be false")
 
 		// Modify the connection to report that it can stream and create a new server response with moreToCome=true.
-		streamingResponse := createExhaustServerResponse(t, serverResponseDoc, true)
+		streamingResponse := createExhaustServerResponse(serverResponseDoc, true)
 		conn.rReadWM = streamingResponse
 		conn.rCanStream = true
 		err = op.Execute(context.TODO(), nil)
@@ -601,7 +601,7 @@ func TestOperation(t *testing.T) {
 	})
 }
 
-func createExhaustServerResponse(t *testing.T, response bsoncore.Document, moreToCome bool) []byte {
+func createExhaustServerResponse(response bsoncore.Document, moreToCome bool) []byte {
 	idx, wm := wiremessage.AppendHeaderStart(nil, 0, wiremessage.CurrentRequestID()+1, wiremessage.OpMsg)
 	var flags wiremessage.MsgFlag
 	if moreToCome {

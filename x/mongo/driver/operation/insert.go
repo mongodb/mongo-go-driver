@@ -43,7 +43,7 @@ type InsertResult struct {
 	N int32
 }
 
-func buildInsertResult(response bsoncore.Document, srvr driver.Server) (InsertResult, error) {
+func buildInsertResult(response bsoncore.Document) (InsertResult, error) {
 	elements, err := response.Elements()
 	if err != nil {
 		return InsertResult{}, err
@@ -73,7 +73,7 @@ func NewInsert(documents ...bsoncore.Document) *Insert {
 func (i *Insert) Result() InsertResult { return i.result }
 
 func (i *Insert) processResponse(info driver.ResponseInfo) error {
-	ir, err := buildInsertResult(info.ServerResponse, info.Server)
+	ir, err := buildInsertResult(info.ServerResponse)
 	i.result.N += ir.N
 	return err
 }

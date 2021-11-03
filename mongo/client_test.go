@@ -307,7 +307,7 @@ func TestClient(t *testing.T) {
 
 				serverVersion, err := getServerVersion(client.Database("admin"))
 				assert.Nil(t, err, "getServerVersion error: %v", err)
-				if compareVersions(t, serverVersion, "3.6.0") < 1 {
+				if compareVersions(serverVersion, "3.6.0") < 1 {
 					t.Skip("skipping server version < 3.6")
 				}
 

@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
-func bsonDocumentEncoding(ctx context.Context, tm TimerManager, iters int, source string) error {
+func bsonDocumentEncoding(tm TimerManager, iters int, source string) error {
 	doc, err := loadSourceDocument(getProjectRoot(), perfDataDir, bsonDataDir, source)
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func bsonDocumentEncoding(ctx context.Context, tm TimerManager, iters int, sourc
 	return nil
 }
 
-func bsonDocumentDecodingLazy(ctx context.Context, tm TimerManager, iters int, source string) error {
+func bsonDocumentDecodingLazy(tm TimerManager, iters int, source string) error {
 	doc, err := loadSourceDocument(getProjectRoot(), perfDataDir, bsonDataDir, source)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func bsonDocumentDecodingLazy(ctx context.Context, tm TimerManager, iters int, s
 	return nil
 }
 
-func bsonDocumentDecoding(ctx context.Context, tm TimerManager, iters, numKeys int, source string) error {
+func bsonDocumentDecoding(tm TimerManager, iters, numKeys int, source string) error {
 	doc, err := loadSourceDocument(getProjectRoot(), perfDataDir, bsonDataDir, source)
 	if err != nil {
 		return err
@@ -86,38 +86,38 @@ func bsonDocumentDecoding(ctx context.Context, tm TimerManager, iters, numKeys i
 
 }
 
-func BSONFlatDocumentEncoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonDocumentEncoding(ctx, tm, iters, flatBSONData)
+func BSONFlatDocumentEncoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonDocumentEncoding(tm, iters, flatBSONData)
 }
 
-func BSONFlatDocumentDecodingLazy(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonDocumentDecodingLazy(ctx, tm, iters, flatBSONData)
+func BSONFlatDocumentDecodingLazy(_ context.Context, tm TimerManager, iters int) error {
+	return bsonDocumentDecodingLazy(tm, iters, flatBSONData)
 }
 
-func BSONFlatDocumentDecoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonDocumentDecoding(ctx, tm, iters, 145, flatBSONData)
+func BSONFlatDocumentDecoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonDocumentDecoding(tm, iters, 145, flatBSONData)
 }
 
-func BSONDeepDocumentEncoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonDocumentEncoding(ctx, tm, iters, deepBSONData)
+func BSONDeepDocumentEncoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonDocumentEncoding(tm, iters, deepBSONData)
 }
 
-func BSONDeepDocumentDecodingLazy(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonDocumentDecodingLazy(ctx, tm, iters, deepBSONData)
+func BSONDeepDocumentDecodingLazy(_ context.Context, tm TimerManager, iters int) error {
+	return bsonDocumentDecodingLazy(tm, iters, deepBSONData)
 }
 
-func BSONDeepDocumentDecoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonDocumentDecoding(ctx, tm, iters, 126, deepBSONData)
+func BSONDeepDocumentDecoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonDocumentDecoding(tm, iters, 126, deepBSONData)
 }
 
-func BSONFullDocumentEncoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonDocumentEncoding(ctx, tm, iters, fullBSONData)
+func BSONFullDocumentEncoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonDocumentEncoding(tm, iters, fullBSONData)
 }
 
-func BSONFullDocumentDecodingLazy(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonDocumentDecodingLazy(ctx, tm, iters, fullBSONData)
+func BSONFullDocumentDecodingLazy(_ context.Context, tm TimerManager, iters int) error {
+	return bsonDocumentDecodingLazy(tm, iters, fullBSONData)
 }
 
-func BSONFullDocumentDecoding(ctx context.Context, tm TimerManager, iters int) error {
-	return bsonDocumentDecoding(ctx, tm, iters, 145, fullBSONData)
+func BSONFullDocumentDecoding(_ context.Context, tm TimerManager, iters int) error {
+	return bsonDocumentDecoding(tm, iters, 145, fullBSONData)
 }

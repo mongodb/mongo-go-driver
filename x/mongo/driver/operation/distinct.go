@@ -45,7 +45,7 @@ type DistinctResult struct {
 	Values bsoncore.Value
 }
 
-func buildDistinctResult(response bsoncore.Document, srvr driver.Server) (DistinctResult, error) {
+func buildDistinctResult(response bsoncore.Document) (DistinctResult, error) {
 	elements, err := response.Elements()
 	if err != nil {
 		return DistinctResult{}, err
@@ -73,7 +73,7 @@ func (d *Distinct) Result() DistinctResult { return d.result }
 
 func (d *Distinct) processResponse(info driver.ResponseInfo) error {
 	var err error
-	d.result, err = buildDistinctResult(info.ServerResponse, info.Server)
+	d.result, err = buildDistinctResult(info.ServerResponse)
 	return err
 }
 
