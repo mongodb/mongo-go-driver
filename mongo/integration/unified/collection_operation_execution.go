@@ -169,7 +169,7 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 			}
 			opts.SetCollation(collation)
 		case "filter":
-			filter = bson.Raw(val.Document())
+			filter = val.Document()
 		case "hint":
 			hint, err := createHint(val)
 			if err != nil {
@@ -177,7 +177,7 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 			}
 			opts.SetHint(hint)
 		case "limit":
-			opts.SetLimit(int64(val.Int64()))
+			opts.SetLimit(val.Int64())
 		case "maxTimeMS":
 			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "skip":

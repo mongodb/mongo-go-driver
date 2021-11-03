@@ -975,7 +975,7 @@ func TestUnmarshalSetterErrSetZero(t *testing.T) {
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 
 	m := map[string]*setterType{}
-	err = bson.UnmarshalWithRegistry(Registry, []byte(data), m)
+	err = bson.UnmarshalWithRegistry(Registry, data, m)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 
 	value, ok := m["field"]

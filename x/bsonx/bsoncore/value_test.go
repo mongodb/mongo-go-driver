@@ -117,27 +117,27 @@ func TestValue(t *testing.T) {
 		{
 			"StringValue/Success", Value.StringValue, Value{Type: bsontype.String, Data: AppendString(nil, "hello, world!")},
 			nil,
-			[]interface{}{string("hello, world!")},
+			[]interface{}{"hello, world!"},
 		},
 		{
 			"StringValueOK/Not String", Value.StringValueOK, Value{Type: bsontype.Double},
 			nil,
-			[]interface{}{string(""), false},
+			[]interface{}{"", false},
 		},
 		{
 			"StringValueOK/Insufficient Bytes", Value.StringValueOK, Value{Type: bsontype.String, Data: []byte{0x01, 0x02, 0x03, 0x04}},
 			nil,
-			[]interface{}{string(""), false},
+			[]interface{}{"", false},
 		},
 		{
 			"StringValueOK/Zero Length", Value.StringValueOK, Value{Type: bsontype.String, Data: []byte{0x00, 0x00, 0x00, 0x00}},
 			nil,
-			[]interface{}{string(""), false},
+			[]interface{}{"", false},
 		},
 		{
 			"StringValueOK/Success", Value.StringValueOK, Value{Type: bsontype.String, Data: AppendString(nil, "hello, world!")},
 			nil,
-			[]interface{}{string("hello, world!"), true},
+			[]interface{}{"hello, world!", true},
 		},
 		{
 			"Document/Not Document", Value.Document, Value{Type: bsontype.String},
@@ -332,7 +332,7 @@ func TestValue(t *testing.T) {
 		{
 			"Time/Success", Value.Time, Value{Type: bsontype.DateTime, Data: AppendTime(nil, now)},
 			nil,
-			[]interface{}{time.Time(now)},
+			[]interface{}{now},
 		},
 		{
 			"TimeOK/Not DateTime", Value.TimeOK, Value{Type: bsontype.String},
@@ -347,7 +347,7 @@ func TestValue(t *testing.T) {
 		{
 			"TimeOK/Success", Value.TimeOK, Value{Type: bsontype.DateTime, Data: AppendTime(nil, now)},
 			nil,
-			[]interface{}{time.Time(now), true},
+			[]interface{}{now, true},
 		},
 		{
 			"Regex/Not Regex", Value.Regex, Value{Type: bsontype.String},
@@ -362,22 +362,22 @@ func TestValue(t *testing.T) {
 		{
 			"Regex/Success", Value.Regex, Value{Type: bsontype.Regex, Data: AppendRegex(nil, "/abcdefg/", "hijkl")},
 			nil,
-			[]interface{}{string("/abcdefg/"), string("hijkl")},
+			[]interface{}{"/abcdefg/", "hijkl"},
 		},
 		{
 			"RegexOK/Not Regex", Value.RegexOK, Value{Type: bsontype.String},
 			nil,
-			[]interface{}{string(""), string(""), false},
+			[]interface{}{"", "", false},
 		},
 		{
 			"RegexOK/Insufficient Bytes", Value.RegexOK, Value{Type: bsontype.Regex, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{string(""), string(""), false},
+			[]interface{}{"", "", false},
 		},
 		{
 			"RegexOK/Success", Value.RegexOK, Value{Type: bsontype.Regex, Data: AppendRegex(nil, "/abcdefg/", "hijkl")},
 			nil,
-			[]interface{}{string("/abcdefg/"), string("hijkl"), true},
+			[]interface{}{"/abcdefg/", "hijkl", true},
 		},
 		{
 			"DBPointer/Not DBPointer", Value.DBPointer, Value{Type: bsontype.String},
@@ -392,22 +392,22 @@ func TestValue(t *testing.T) {
 		{
 			"DBPointer/Success", Value.DBPointer, Value{Type: bsontype.DBPointer, Data: AppendDBPointer(nil, "foobar", oid)},
 			nil,
-			[]interface{}{string("foobar"), primitive.ObjectID(oid)},
+			[]interface{}{"foobar", oid},
 		},
 		{
 			"DBPointerOK/Not DBPointer", Value.DBPointerOK, Value{Type: bsontype.String},
 			nil,
-			[]interface{}{string(""), primitive.ObjectID{}, false},
+			[]interface{}{"", primitive.ObjectID{}, false},
 		},
 		{
 			"DBPointerOK/Insufficient Bytes", Value.DBPointerOK, Value{Type: bsontype.DBPointer, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{string(""), primitive.ObjectID{}, false},
+			[]interface{}{"", primitive.ObjectID{}, false},
 		},
 		{
 			"DBPointerOK/Success", Value.DBPointerOK, Value{Type: bsontype.DBPointer, Data: AppendDBPointer(nil, "foobar", oid)},
 			nil,
-			[]interface{}{string("foobar"), primitive.ObjectID(oid), true},
+			[]interface{}{"foobar", oid, true},
 		},
 		{
 			"JavaScript/Not JavaScript", Value.JavaScript, Value{Type: bsontype.String},
@@ -422,22 +422,22 @@ func TestValue(t *testing.T) {
 		{
 			"JavaScript/Success", Value.JavaScript, Value{Type: bsontype.JavaScript, Data: AppendJavaScript(nil, "var hello = 'world';")},
 			nil,
-			[]interface{}{string("var hello = 'world';")},
+			[]interface{}{"var hello = 'world';"},
 		},
 		{
 			"JavaScriptOK/Not JavaScript", Value.JavaScriptOK, Value{Type: bsontype.String},
 			nil,
-			[]interface{}{string(""), false},
+			[]interface{}{"", false},
 		},
 		{
 			"JavaScriptOK/Insufficient Bytes", Value.JavaScriptOK, Value{Type: bsontype.JavaScript, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{string(""), false},
+			[]interface{}{"", false},
 		},
 		{
 			"JavaScriptOK/Success", Value.JavaScriptOK, Value{Type: bsontype.JavaScript, Data: AppendJavaScript(nil, "var hello = 'world';")},
 			nil,
-			[]interface{}{string("var hello = 'world';"), true},
+			[]interface{}{"var hello = 'world';", true},
 		},
 		{
 			"Symbol/Not Symbol", Value.Symbol, Value{Type: bsontype.String},
@@ -452,22 +452,22 @@ func TestValue(t *testing.T) {
 		{
 			"Symbol/Success", Value.Symbol, Value{Type: bsontype.Symbol, Data: AppendSymbol(nil, "symbol123456")},
 			nil,
-			[]interface{}{string("symbol123456")},
+			[]interface{}{"symbol123456"},
 		},
 		{
 			"SymbolOK/Not Symbol", Value.SymbolOK, Value{Type: bsontype.String},
 			nil,
-			[]interface{}{string(""), false},
+			[]interface{}{"", false},
 		},
 		{
 			"SymbolOK/Insufficient Bytes", Value.SymbolOK, Value{Type: bsontype.Symbol, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{string(""), false},
+			[]interface{}{"", false},
 		},
 		{
 			"SymbolOK/Success", Value.SymbolOK, Value{Type: bsontype.Symbol, Data: AppendSymbol(nil, "symbol123456")},
 			nil,
-			[]interface{}{string("symbol123456"), true},
+			[]interface{}{"symbol123456", true},
 		},
 		{
 			"CodeWithScope/Not CodeWithScope", Value.CodeWithScope, Value{Type: bsontype.String},
@@ -482,22 +482,22 @@ func TestValue(t *testing.T) {
 		{
 			"CodeWithScope/Success", Value.CodeWithScope, Value{Type: bsontype.CodeWithScope, Data: AppendCodeWithScope(nil, "var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00})},
 			nil,
-			[]interface{}{string("var hello = 'world';"), Document{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]interface{}{"var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00}},
 		},
 		{
 			"CodeWithScopeOK/Not CodeWithScope", Value.CodeWithScopeOK, Value{Type: bsontype.String},
 			nil,
-			[]interface{}{string(""), Document(nil), false},
+			[]interface{}{"", Document(nil), false},
 		},
 		{
 			"CodeWithScopeOK/Insufficient Bytes", Value.CodeWithScopeOK, Value{Type: bsontype.CodeWithScope, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{string(""), Document(nil), false},
+			[]interface{}{"", Document(nil), false},
 		},
 		{
 			"CodeWithScopeOK/Success", Value.CodeWithScopeOK, Value{Type: bsontype.CodeWithScope, Data: AppendCodeWithScope(nil, "var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00})},
 			nil,
-			[]interface{}{string("var hello = 'world';"), Document{0x05, 0x00, 0x00, 0x00, 0x00}, true},
+			[]interface{}{"var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00}, true},
 		},
 		{
 			"Int32/Not Int32", Value.Int32, Value{Type: bsontype.String},
