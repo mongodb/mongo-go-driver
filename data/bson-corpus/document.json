@@ -51,6 +51,10 @@
         {
             "description": "Invalid subdocument: bad string length in field",
             "bson": "1C00000003666F6F001200000002626172000500000062617A000000"
+        },
+        {
+            "description": "Null byte in sub-document key",
+            "bson": "150000000378000D00000010610000010000000000"
         }
     ]
 }

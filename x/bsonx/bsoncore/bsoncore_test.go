@@ -935,6 +935,12 @@ func TestNullBytes(t *testing.T) {
 			})
 		}
 	})
+	t.Run("sub document field name", func(t *testing.T) {
+		createDocFn := func() {
+			NewDocumentBuilder().StartDocument("foobar").AppendDocument("a\x00", []byte("foo")).FinishDocument()
+		}
+		assertBSONCreationPanics(t, createDocFn, invalidKeyPanicMsg)
+	})
 }
 
 func compareDecimal128(d1, d2 primitive.Decimal128) bool {

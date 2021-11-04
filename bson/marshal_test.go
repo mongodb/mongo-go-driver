@@ -302,6 +302,13 @@ func TestNullBytes(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("sub document field name", func(t *testing.T) {
+		doc := D{{"foo", D{{"foobar", D{{"a\x00", "foobar"}}}}}}
+		res, err := Marshal(doc)
+		wantErr := errors.New("BSON element key cannot contain null bytes")
+		assert.Equal(t, wantErr, err, "expected Marshal error %v, got error %v with result %q", wantErr, err, Raw(res))
+	})
 }
 
 func TestMarshalExtJSONIndent(t *testing.T) {

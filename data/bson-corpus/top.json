@@ -79,6 +79,10 @@
         {
             "description": "Document truncated mid-key",
             "bson": "1200000002666F"
+        },
+        {
+            "description": "Null byte in document key",
+            "bson": "0D000000107800000100000000"
         }
     ],
     "parseErrors": [
@@ -241,7 +245,22 @@
         {
             "description": "Bad DBpointer (extra field)",
             "string": "{\"a\": {\"$dbPointer\": {\"a\": {\"$numberInt\": \"1\"}, \"$id\": {\"$oid\": \"56e1fc72e0c917e9c4714161\"}, \"c\": {\"$numberInt\": \"2\"}, \"$ref\": \"b\"}}}"
+        },
+        {
+            "description" : "Null byte in document key",
+            "string" : "{\"a\\u0000\": 1 }"
+        },
+        {
+            "description" : "Null byte in sub-document key",
+            "string" : "{\"a\" : {\"b\\u0000\": 1 }}"
+        },
+        {
+            "description": "Null byte in $regularExpression pattern",
+            "string": "{\"a\" : {\"$regularExpression\" : { \"pattern\": \"b\\u0000\", \"options\" : \"i\"}}}"
+        },
+        {
+            "description": "Null byte in $regularExpression options",
+            "string": "{\"a\" : {\"$regularExpression\" : { \"pattern\": \"b\", \"options\" : \"i\\u0000\"}}}"
         }
-
     ]
 }
