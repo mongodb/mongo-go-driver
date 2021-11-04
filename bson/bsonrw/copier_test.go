@@ -132,7 +132,7 @@ func TestCopier(t *testing.T) {
 			{
 				"String/dst/error",
 				&TestValueReaderWriter{bsontype: bsontype.String, err: errors.New("2"), errAfter: llvrwWriteString},
-				&TestValueReaderWriter{bsontype: bsontype.String, readval: string("hello, world")},
+				&TestValueReaderWriter{bsontype: bsontype.String, readval: "hello, world"},
 				errors.New("2"),
 			},
 			{
@@ -270,7 +270,7 @@ func TestCopier(t *testing.T) {
 			{
 				"Javascript/dst/error",
 				&TestValueReaderWriter{bsontype: bsontype.JavaScript, err: errors.New("2"), errAfter: llvrwWriteJavascript},
-				&TestValueReaderWriter{bsontype: bsontype.JavaScript, readval: string("hello, world")},
+				&TestValueReaderWriter{bsontype: bsontype.JavaScript, readval: "hello, world"},
 				errors.New("2"),
 			},
 			{
@@ -467,7 +467,7 @@ func TestCopier(t *testing.T) {
 			}
 		})
 		t.Run("Non BytesReader", func(t *testing.T) {
-			llvrw := &TestValueReaderWriter{t: t, bsontype: bsontype.String, readval: string("Hello, world!")}
+			llvrw := &TestValueReaderWriter{t: t, bsontype: bsontype.String, readval: "Hello, world!"}
 			btype, got, err := Copier{}.CopyValueToBytes(llvrw)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "Hello, world!")
@@ -506,7 +506,7 @@ func TestCopier(t *testing.T) {
 			}
 		})
 		t.Run("Non BytesReader", func(t *testing.T) {
-			llvrw := &TestValueReaderWriter{t: t, bsontype: bsontype.String, readval: string("Hello, world!")}
+			llvrw := &TestValueReaderWriter{t: t, bsontype: bsontype.String, readval: "Hello, world!"}
 			btype, got, err := Copier{}.AppendValueBytes(nil, llvrw)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "Hello, world!")

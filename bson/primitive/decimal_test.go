@@ -155,7 +155,7 @@ func TestDecimal128_JSON(t *testing.T) {
 		bytes, err := json.Marshal(decimal)
 		assert.Nil(t, err, "json.Marshal error: %v", err)
 		got := NewDecimal128(0, 0)
-		err = json.Unmarshal([]byte(bytes), &got)
+		err = json.Unmarshal(bytes, &got)
 		assert.Nil(t, err, "json.Unmarshal error: %v", err)
 		assert.Equal(t, decimal.h, got.h, "expected h: %v got: %v", decimal.h, got.h)
 		assert.Equal(t, decimal.l, got.l, "expected l: %v got: %v", decimal.l, got.l)

@@ -377,13 +377,13 @@ func TestRegistry(t *testing.T) {
 	})
 	t.Run("Type Map", func(t *testing.T) {
 		reg := NewRegistryBuilder().
-			RegisterTypeMapEntry(bsontype.String, reflect.TypeOf(string(""))).
+			RegisterTypeMapEntry(bsontype.String, reflect.TypeOf("")).
 			RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int(0))).
 			Build()
 
 		var got, want reflect.Type
 
-		want = reflect.TypeOf(string(""))
+		want = reflect.TypeOf("")
 		got, err := reg.LookupTypeMapEntry(bsontype.String)
 		noerr(t, err)
 		if got != want {

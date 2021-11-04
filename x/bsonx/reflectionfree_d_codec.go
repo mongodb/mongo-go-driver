@@ -229,7 +229,7 @@ func (r *reflectionFreeDCodec) encodeDocumentValue(ec bsoncodec.EncodeContext, v
 	case int16:
 		return vw.WriteInt32(int32(val))
 	case int32:
-		return vw.WriteInt32(int32(val))
+		return vw.WriteInt32(val)
 	case int64:
 		return r.encodeInt64(ec, vw, val)
 	case uint:
@@ -365,7 +365,7 @@ func (r *reflectionFreeDCodec) encodeInt64(ec bsoncodec.EncodeContext, vw bsonrw
 	if ec.MinSize && fitsIn32Bits(val) {
 		return vw.WriteInt32(int32(val))
 	}
-	return vw.WriteInt64(int64(val))
+	return vw.WriteInt64(val)
 }
 
 func (r *reflectionFreeDCodec) encodeUint64(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val uint64) error {

@@ -179,7 +179,7 @@ func TestMongoHelpers(t *testing.T) {
 				primitive.A{"5"},
 				nil,
 				false,
-				MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
+				MarshalError{Value: "", Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
 				"primitive.A/success",
@@ -196,7 +196,7 @@ func TestMongoHelpers(t *testing.T) {
 				bson.A{"5"},
 				nil,
 				false,
-				MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
+				MarshalError{Value: "", Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
 				"bson.A/success",
@@ -213,7 +213,7 @@ func TestMongoHelpers(t *testing.T) {
 				[]interface{}{"5"},
 				nil,
 				false,
-				MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
+				MarshalError{Value: "", Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 			},
 			{
 				"[]interface{}/success",
