@@ -272,11 +272,8 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection
-// finishes handshaking. opCtx is the context passed to Server.Connection() and is used to determine
-// whether or not an operation-scoped context deadline or cancellation was the cause of the
-// handshake error; it is not used for timeout or cancellation of ProcessHandshakeError.
-// TODO(GODRIVER-2138): Remove unnecessary operation Context parameter after GODRIVER-2038.
-func (s *Server) ProcessHandshakeError(opCtx context.Context, err error, startingGenerationNumber uint64, serviceID *primitive.ObjectID) {
+// finishes handshaking.
+func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64, serviceID *primitive.ObjectID) {
 	// Ignore the error if the server is behind a load balancer but the service ID is unknown. This indicates that the
 	// error happened when dialing the connection or during the MongoDB handshake, so we don't know the service ID to
 	// use for clearing the pool.

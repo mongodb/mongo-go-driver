@@ -102,7 +102,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 	return c, nil
 }
 
-func (c *connection) processInitializationError(opCtx context.Context, err error) {
+func (c *connection) processInitializationError(err error) {
 	atomic.StoreInt64(&c.connected, disconnected)
 	if c.nc != nil {
 		_ = c.nc.Close()
@@ -110,7 +110,7 @@ func (c *connection) processInitializationError(opCtx context.Context, err error
 
 	c.connectErr = ConnectionError{Wrapped: err, init: true}
 	if c.config.errorHandlingCallback != nil {
-		c.config.errorHandlingCallback(opCtx, c.connectErr, c.generation, c.desc.ServiceID)
+		c.config.errorHandlingCallback(c.connectErr, c.generation, c.desc.ServiceID)
 	}
 }
 
@@ -185,7 +185,7 @@ func (c *connection) connect(ctx context.Context) {
 	var tempNc net.Conn
 	tempNc, err = c.config.dialer.DialContext(dialCtx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		c.processInitializationError(ctx, err)
+		c.processInitializationError(err)
 		return
 	}
 	c.nc = tempNc
@@ -201,7 +201,7 @@ func (c *connection) connect(ctx context.Context) {
 		}
 		tlsNc, err := configureTLS(dialCtx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
-			c.processInitializationError(ctx, err)
+			c.processInitializationError(err)
 			return
 		}
 		c.nc = tlsNc
@@ -247,7 +247,7 @@ func (c *connection) connect(ctx context.Context) {
 
 	// We have a failed handshake here
 	if err != nil {
-		c.processInitializationError(ctx, err)
+		c.processInitializationError(err)
 		return
 	}
 

@@ -53,7 +53,7 @@ type connectionConfig struct {
 	zstdLevel                *int
 	ocspCache                ocsp.Cache
 	disableOCSPEndpointCheck bool
-	errorHandlingCallback    func(opCtx context.Context, err error, startGenNum uint64, svcID *primitive.ObjectID)
+	errorHandlingCallback    func(err error, startGenNum uint64, svcID *primitive.ObjectID)
 	tlsConnectionSource      tlsConnectionSource
 	loadBalanced             bool
 	getGenerationFn          generationNumberFn
@@ -90,7 +90,7 @@ func withTLSConnectionSource(fn func(tlsConnectionSource) tlsConnectionSource) C
 	}
 }
 
-func withErrorHandlingCallback(fn func(opCtx context.Context, err error, startGenNum uint64, svcID *primitive.ObjectID)) ConnectionOption {
+func withErrorHandlingCallback(fn func(err error, startGenNum uint64, svcID *primitive.ObjectID)) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.errorHandlingCallback = fn
 		return nil
