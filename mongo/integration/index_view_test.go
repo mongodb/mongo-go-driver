@@ -29,6 +29,9 @@ func TestIndexView(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 	defer mt.Close()
 
+	var pbool = func(b bool) *bool { return &b }
+	var pint32 = func(i int32) *int32 { return &i }
+
 	mt.Run("list", func(mt *mtest.T) {
 		createIndexes := func(mt *mtest.T, numIndexes int) {
 			mt.Helper()
@@ -472,21 +475,84 @@ func TestIndexView(t *testing.T) {
 	})
 	mt.RunOpts("list specifications", noClientOpts, func(mt *mtest.T) {
 		mt.Run("verify results", func(mt *mtest.T) {
-			keysDoc := bsoncore.NewDocumentBuilder().AppendInt32("_id", 1).Build()
-			expectedSpec := &mongo.IndexSpecification{
-				Name:         "_id_",
-				Namespace:    mt.DB.Name() + "." + mt.Coll.Name(),
-				KeysDocument: bson.Raw(keysDoc),
-				Version:      2,
+			// Create a handful of indexes
+			_, err := mt.Coll.Indexes().CreateMany(mtest.Background, []mongo.IndexModel{
+				{
+					Keys:    bson.D{{"foo", int32(-1)}},
+					Options: options.Index().SetUnique(true),
+				},
+				{
+					Keys:    bson.D{{"bar", int32(1)}},
+					Options: options.Index().SetExpireAfterSeconds(120),
+				},
+				{
+					Keys:    bson.D{{"baz", int32(1)}},
+					Options: options.Index().SetSparse(true),
+				},
+				{
+					Keys: bson.D{{"bar", int32(1)}, {"baz", int32(-1)}},
+				},
+			})
+			assert.Nil(mt, err, "CreateMany error: %v", err)
+
+			expectedSpecs := []*mongo.IndexSpecification{
+				{
+					Name:               "_id_",
+					Namespace:          mt.DB.Name() + "." + mt.Coll.Name(),
+					KeysDocument:       bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("_id", 1).Build()),
+					Version:            2,
+					ExpireAfterSeconds: nil,
+					Sparse:             nil,
+					// ID index is special and does not return 'true', despite being unique.
+					Unique: nil,
+				},
+				{
+					Name:               "foo_-1",
+					Namespace:          mt.DB.Name() + "." + mt.Coll.Name(),
+					KeysDocument:       bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("foo", -1).Build()),
+					Version:            2,
+					ExpireAfterSeconds: nil,
+					Sparse:             nil,
+					Unique:             pbool(true),
+				},
+				{
+					Name:               "bar_1",
+					Namespace:          mt.DB.Name() + "." + mt.Coll.Name(),
+					KeysDocument:       bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("bar", 1).Build()),
+					Version:            2,
+					ExpireAfterSeconds: pint32(120),
+					Sparse:             nil,
+					Unique:             nil,
+				},
+				{
+					Name:               "baz_1",
+					Namespace:          mt.DB.Name() + "." + mt.Coll.Name(),
+					KeysDocument:       bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("baz", 1).Build()),
+					Version:            2,
+					ExpireAfterSeconds: nil,
+					Sparse:             pbool(true),
+					Unique:             nil,
+				},
+				{
+					Name:               "bar_1_baz_-1",
+					Namespace:          mt.DB.Name() + "." + mt.Coll.Name(),
+					KeysDocument:       bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("bar", 1).AppendInt32("baz", -1).Build()),
+					Version:            2,
+					ExpireAfterSeconds: nil,
+					Sparse:             nil,
+					Unique:             nil,
+				},
 			}
 			if mtest.CompareServerVersions(mtest.ServerVersion(), "3.4") < 0 {
-				expectedSpec.Version = 1
+				for _, expectedSpec := range expectedSpecs {
+					expectedSpec.Version = 1
+				}
 			}
 
 			specs, err := mt.Coll.Indexes().ListSpecifications(mtest.Background)
 			assert.Nil(mt, err, "ListSpecifications error: %v", err)
-			assert.Equal(mt, 1, len(specs), "expected 1 specification, got %d", len(specs))
-			assert.Equal(mt, expectedSpec, specs[0], "expected specification %v, got %v", expectedSpec, specs[0])
+			assert.Equal(mt, len(expectedSpecs), len(specs), "expected %d specification, got %d", len(expectedSpecs), len(specs))
+			assert.True(mt, cmp.Equal(specs, expectedSpecs), "expected specifications to match: %v", cmp.Diff(specs, expectedSpecs))
 		})
 		mt.RunOpts("options passed to listIndexes", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
 			opts := options.ListIndexes().SetMaxTime(100 * time.Millisecond)
