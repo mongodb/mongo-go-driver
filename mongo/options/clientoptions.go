@@ -99,7 +99,6 @@ type ClientOptions struct {
 	AutoEncryptionOptions    *AutoEncryptionOptions
 	ConnectTimeout           *time.Duration
 	Compressors              []string
-	Crypt                    driver.Crypt
 	Dialer                   ContextDialer
 	Direct                   *bool
 	DisableOCSPEndpointCheck *bool
@@ -138,6 +137,13 @@ type ClientOptions struct {
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
 	AuthenticateToAnything *bool
+
+	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
+	// encryption.
+	//
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Crypt driver.Crypt
 
 	// Deployment specifies a custom deployment to use for the new Client.
 	//

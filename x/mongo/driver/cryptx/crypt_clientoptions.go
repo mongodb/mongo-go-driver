@@ -12,7 +12,6 @@ import (
 )
 
 // SetCrypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no encryption.
-// Using options.SetAutoEncryptionOptions will override anything set here.
 //
 // This API is unstable and should not be used unless you are perfectly confident in the provided, custom implementation of
 // driver.Crypt.
