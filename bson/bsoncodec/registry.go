@@ -368,7 +368,7 @@ func (r *Registry) lookupInterfaceEncoder(t reflect.Type, allowAddr bool) (Value
 			// in interfaceEncoders
 			defaultEnc, found := r.lookupInterfaceEncoder(t, false)
 			if !found {
-				defaultEnc, _ = r.kindEncoders[t.Kind()]
+				defaultEnc = r.kindEncoders[t.Kind()]
 			}
 			return newCondAddrEncoder(ienc.ve, defaultEnc), true
 		}
@@ -439,7 +439,7 @@ func (r *Registry) lookupInterfaceDecoder(t reflect.Type, allowAddr bool) (Value
 			// in interfaceDecoders
 			defaultDec, found := r.lookupInterfaceDecoder(t, false)
 			if !found {
-				defaultDec, _ = r.kindDecoders[t.Kind()]
+				defaultDec = r.kindDecoders[t.Kind()]
 			}
 			return newCondAddrDecoder(idec.vd, defaultDec), true
 		}

@@ -232,8 +232,7 @@ func TestUnmarshalNonNilInterface(t *testing.T) {
 	data, err := bson.MarshalWithRegistry(Registry, bson.M{"b": 2})
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	m := bson.M{"a": 1}
-	var i interface{}
-	i = m
+	var i interface{} = m
 	err = bson.UnmarshalWithRegistry(Registry, data, &i)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	assert.True(t, reflect.DeepEqual(bson.M{"b": 2}, i), "expected: %v, got: %v", bson.M{"b": 2}, i)

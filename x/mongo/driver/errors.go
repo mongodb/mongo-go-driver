@@ -74,7 +74,7 @@ func (e ResponseError) Error() string {
 	if e.Wrapped != nil {
 		return fmt.Sprintf("%s: %s", e.Message, e.Wrapped)
 	}
-	return fmt.Sprintf("%s", e.Message)
+	return e.Message
 }
 
 // WriteCommandError is an error for a write command.

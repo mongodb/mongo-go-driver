@@ -74,7 +74,7 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) erro
 			}
 			return nil
 		}
-		break // compare bytes for expected.Value and actual.Value outside of the switch
+		// Don't return. Compare bytes for expected.Value and actual.Value outside of the switch.
 	case bson.TypeEmbeddedDocument:
 		e := expected.Document()
 		if typeVal, err := e.LookupErr("$$type"); err == nil {

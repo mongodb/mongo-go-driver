@@ -129,7 +129,6 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 			if err != nil {
 				mt.Fatal(err)
 			}
-			return
 		})
 	}
 }

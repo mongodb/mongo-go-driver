@@ -470,16 +470,12 @@ func (v Val) Undefined() {
 	if v.t != bsontype.Undefined {
 		panic(ElementTypeError{"bson.Value.Undefined", v.t})
 	}
-	return
 }
 
 // UndefinedOK is the same as Undefined, except it returns a boolean instead of
 // panicking.
 func (v Val) UndefinedOK() bool {
-	if v.t != bsontype.Undefined {
-		return false
-	}
-	return true
+	return v.t == bsontype.Undefined
 }
 
 // ObjectID returns the BSON ObjectID the Value represents. It panics if the value is a BSON type
@@ -566,7 +562,6 @@ func (v Val) Null() {
 	if v.t != bsontype.Null && v.t != bsontype.Type(0) {
 		panic(ElementTypeError{"bson.Value.Null", v.t})
 	}
-	return
 }
 
 // NullOK is the same as Null, except it returns a boolean instead of
@@ -762,16 +757,12 @@ func (v Val) MinKey() {
 	if v.t != bsontype.MinKey {
 		panic(ElementTypeError{"bson.Value.MinKey", v.t})
 	}
-	return
 }
 
 // MinKeyOK is the same as MinKey, except it returns a boolean instead of
 // panicking.
 func (v Val) MinKeyOK() bool {
-	if v.t != bsontype.MinKey {
-		return false
-	}
-	return true
+	return v.t == bsontype.MinKey
 }
 
 // MaxKey returns the BSON maxkey the Value represents. It panics if the value is a BSON type
@@ -780,16 +771,12 @@ func (v Val) MaxKey() {
 	if v.t != bsontype.MaxKey {
 		panic(ElementTypeError{"bson.Value.MaxKey", v.t})
 	}
-	return
 }
 
 // MaxKeyOK is the same as MaxKey, except it returns a boolean instead of
 // panicking.
 func (v Val) MaxKeyOK() bool {
-	if v.t != bsontype.MaxKey {
-		return false
-	}
-	return true
+	return v.t == bsontype.MaxKey
 }
 
 // Equal compares v to v2 and returns true if they are equal. Unknown BSON types are

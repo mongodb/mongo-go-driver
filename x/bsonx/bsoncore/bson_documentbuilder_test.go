@@ -197,8 +197,7 @@ func TestDocumentBuilder(t *testing.T) {
 	})
 	t.Run("TestBuildInlineDocument", func(t *testing.T) {
 		docElement := BuildDocumentFromElements(nil, AppendInt32Element(nil, "x", int32(256)))
-		var expected Document
-		expected = BuildDocumentFromElements(nil, AppendDocumentElement(nil, "y", docElement))
+		expected := Document(BuildDocumentFromElements(nil, AppendDocumentElement(nil, "y", docElement)))
 		result := NewDocumentBuilder().StartDocument("y").AppendInt32("x", int32(256)).FinishDocument().Build()
 		if !bytes.Equal(result, expected) {
 			t.Errorf("Documents do not match. got %v; want %v", result, expected)
@@ -207,8 +206,7 @@ func TestDocumentBuilder(t *testing.T) {
 	t.Run("TestBuildNestedInlineDocument", func(t *testing.T) {
 		docElement := BuildDocumentFromElements(nil, AppendDoubleElement(nil, "x", 3.14))
 		docInline := BuildDocumentFromElements(nil, AppendDocumentElement(nil, "y", docElement))
-		var expected Document
-		expected = BuildDocumentFromElements(nil, AppendDocumentElement(nil, "z", docInline))
+		expected := Document(BuildDocumentFromElements(nil, AppendDocumentElement(nil, "z", docInline)))
 		result := NewDocumentBuilder().StartDocument("z").StartDocument("y").AppendDouble("x", 3.14).FinishDocument().FinishDocument().Build()
 		if !bytes.Equal(result, expected) {
 			t.Errorf("Documents do not match. got %v; want %v", result, expected)

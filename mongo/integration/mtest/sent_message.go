@@ -116,7 +116,6 @@ func parseOpQuery(wm []byte) (*SentMessage, error) {
 				Style: bsoncore.ArrayStyle,
 				Data:  elem.Value().Array(),
 			}
-			break
 		}
 		if docSequence != nil {
 			// There can only be one of these arrays in a well-formed command, so we exit the loop once one is found.

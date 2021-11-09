@@ -361,7 +361,7 @@ func loadCert(data []byte) ([]byte, error) {
 	var certBlock *pem.Block
 
 	for certBlock == nil {
-		if data == nil || len(data) == 0 {
+		if len(data) == 0 {
 			return nil, errors.New(".pem file must have both a CERTIFICATE and an RSA PRIVATE KEY section")
 		}
 

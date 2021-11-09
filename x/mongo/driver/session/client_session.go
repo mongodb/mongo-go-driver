@@ -346,8 +346,6 @@ func (c *Client) EndSession() {
 
 	c.Terminated = true
 	c.pool.ReturnSession(c.Server)
-
-	return
 }
 
 // TransactionInProgress returns true if the client session is in an active transaction.

@@ -135,9 +135,7 @@ Loop:
 // BigInt returns significand as big.Int and exponent, bi * 10 ^ exp.
 func (d Decimal128) BigInt() (bi *big.Int, exp int, err error) {
 	high, low := d.GetBytes()
-	var posSign bool // positive sign
-
-	posSign = high>>63&1 == 0
+	posSign := high>>63&1 == 0 // positive sign
 
 	switch high >> 58 & (1<<5 - 1) {
 	case 0x1F:

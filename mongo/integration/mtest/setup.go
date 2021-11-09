@@ -169,7 +169,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		// the shard is a standalone if the "/" character isn't present.
 		var foundStandalone bool
 		for _, shard := range shards {
-			if strings.Index(shard.Host, "/") == -1 {
+			if !strings.Contains(shard.Host, "/") {
 				foundStandalone = true
 				break
 			}

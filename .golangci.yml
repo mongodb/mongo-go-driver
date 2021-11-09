@@ -9,7 +9,7 @@ linters:
     - errcheck
     # - errorlint
     - goimports
-    # - gosimple
+    - gosimple
     - govet
     - ineffassign
     # - misspell
