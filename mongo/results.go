@@ -158,15 +158,30 @@ type IndexSpecification struct {
 
 	// The index version.
 	Version int32
+
+	// The length of time, in seconds, for documents to remain in the collection. The default value is 0, which means
+	// that documents will remain in the collection until they're explicitly deleted or the collection is dropped.
+	ExpireAfterSeconds *int32
+
+	// If true, the index will only reference documents that contain the fields specified in the index. The default is
+	// false.
+	Sparse *bool
+
+	// If true, the collection will not accept insertion or update of documents where the index key value matches an
+	// existing value in the index. The default is false.
+	Unique *bool
 }
 
 var _ bson.Unmarshaler = (*IndexSpecification)(nil)
 
 type unmarshalIndexSpecification struct {
-	Name         string   `bson:"name"`
-	Namespace    string   `bson:"ns"`
-	KeysDocument bson.Raw `bson:"key"`
-	Version      int32    `bson:"v"`
+	Name               string   `bson:"name"`
+	Namespace          string   `bson:"ns"`
+	KeysDocument       bson.Raw `bson:"key"`
+	Version            int32    `bson:"v"`
+	ExpireAfterSeconds *int32   `bson:"expireAfterSeconds"`
+	Sparse             *bool    `bson:"sparse"`
+	Unique             *bool    `bson:"unique"`
 }
 
 // UnmarshalBSON implements the bson.Unmarshaler interface.
@@ -180,6 +195,9 @@ func (i *IndexSpecification) UnmarshalBSON(data []byte) error {
 	i.Namespace = temp.Namespace
 	i.KeysDocument = temp.KeysDocument
 	i.Version = temp.Version
+	i.ExpireAfterSeconds = temp.ExpireAfterSeconds
+	i.Sparse = temp.Sparse
+	i.Unique = temp.Unique
 	return nil
 }
 
