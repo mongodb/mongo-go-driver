@@ -45,9 +45,15 @@ func DriverBenchmarkMain() int {
 
 	if outputFileName == "" {
 		fmt.Println(string(evgOutput))
-	} else if err := ioutil.WriteFile(outputFileName, evgOutput, 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "problem writing file '%s': %s", outputFileName, err.Error())
-		return 1
+	} else {
+		// Ignore gosec warning "Expect WriteFile permissions to be 0600 or less" for benchmark
+		// result file.
+		/* #nosec G306 */
+		err := ioutil.WriteFile(outputFileName, evgOutput, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "problem writing file '%s': %s", outputFileName, err.Error())
+			return 1
+		}
 	}
 
 	if hasErrors {

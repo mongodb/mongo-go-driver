@@ -8,10 +8,13 @@ package auth
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
-
 	"io"
+
+	// Ignore gosec warning "Blocklisted import crypto/md5: weak cryptographic primitive". We need
+	// to use MD5 here to implement the MONGODB-CR specification.
+	/* #nosec G501 */
+	"crypto/md5"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -95,6 +98,9 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 func (a *MongoDBCRAuthenticator) createKey(nonce string) string {
+	// Ignore gosec warning "Use of weak cryptographic primitive". We need to use MD5 here to
+	// implement the MONGODB-CR specification.
+	/* #nosec G401 */
 	h := md5.New()
 
 	_, _ = io.WriteString(h, nonce)

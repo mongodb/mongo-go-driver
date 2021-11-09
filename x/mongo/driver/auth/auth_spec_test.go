@@ -52,11 +52,11 @@ func runTestsInFile(t *testing.T, dirname string, filename string) {
 	filename = filename[:len(filename)-5]
 
 	for _, testCase := range container.Tests {
-		runTest(t, filename, &testCase)
+		runTest(t, filename, testCase)
 	}
 }
 
-func runTest(t *testing.T, filename string, test *testCase) {
+func runTest(t *testing.T, filename string, test testCase) {
 	t.Run(test.Description, func(t *testing.T) {
 		opts := options.Client().ApplyURI(test.URI)
 		if test.Valid {

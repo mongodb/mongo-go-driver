@@ -115,6 +115,8 @@ func (mc *mcryptClient) disconnect(ctx context.Context) error {
 }
 
 func (mc *mcryptClient) spawnProcess() error {
+	// Ignore gosec warning about subprocess launched with externally-provided path variable.
+	/* #nosec G204 */
 	cmd := exec.Command(mc.path, mc.spawnArgs...)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
