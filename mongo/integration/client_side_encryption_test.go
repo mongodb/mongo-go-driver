@@ -22,6 +22,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/cryptx"
+	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
 
 // createDataKeyAndEncrypt creates a data key with the alternate name @keyName.
@@ -233,5 +236,106 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 		lsid = getLsid(mt, event.Command)
 		assert.Nil(mt, err, "lsid not found on %v", event.Command)
 		assert.NotEqual(mt, lsid, session.ID(), "expected different lsid, but got %v", lsid)
+	})
+}
+
+// customCrypt is a test implementation of the driver.Crypt interface
+type customCrypt struct{}
+
+var (
+	_     driver.Crypt = (*customCrypt)(nil)
+	mySSN              = "123456789"
+)
+
+// Encrypt encrypts the given command.
+func (c *customCrypt) Encrypt(ctx context.Context, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+	elems, err := cmd.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedCmd := bsoncore.NewDocumentBuilder()
+	for _, elem := range elems {
+		// "encrypt" ssn element as "hidden"
+		if elem.Key() == "ssn" {
+			encryptedCmd = encryptedCmd.AppendString("ssn", "hidden")
+		} else {
+			encryptedCmd = encryptedCmd.AppendValue(elem.Key(), elem.Value())
+		}
+	}
+	return encryptedCmd.Build(), nil
+}
+
+// Decrypt decrypts the given command response.
+func (c *customCrypt) Decrypt(ctx context.Context, cmdResponse bsoncore.Document) (bsoncore.Document, error) {
+	elems, err := cmdResponse.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	decryptedCmdResponse := bsoncore.NewDocumentBuilder()
+	for _, elem := range elems {
+		// "decrypt" ssn element as mySSN
+		if elem.Key() == "ssn" {
+			decryptedCmdResponse = decryptedCmdResponse.AppendString("ssn", mySSN)
+		} else {
+			decryptedCmdResponse = decryptedCmdResponse.AppendValue(elem.Key(), elem.Value())
+		}
+	}
+	return decryptedCmdResponse.Build(), nil
+}
+
+// CreateDataKey implements the driver.Crypt interface.
+func (c *customCrypt) CreateDataKey(ctx context.Context, kmsProvider string, opts *mcopts.DataKeyOptions) (bsoncore.Document, error) {
+	return nil, nil
+}
+
+// EncryptExplicit implements the driver.Crypt interface.
+func (c *customCrypt) EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *mcopts.ExplicitEncryptionOptions) (byte, []byte, error) {
+	return 0, nil, nil
+}
+
+// DecryptExplicit implements the driver.Crypt interface.
+func (c *customCrypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) (bsoncore.Value, error) {
+	return bsoncore.Value{}, nil
+}
+
+// Close implements the driver.Crypt interface.
+func (c *customCrypt) Close() {
+}
+
+// BypassAutoEncryption implements the driver.Crypt interface.
+func (c *customCrypt) BypassAutoEncryption() bool {
+	return false
+}
+
+func TestClientSideEncryptionCustomCrypt(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
+	defer mt.Close()
+
+	kmsProvidersMap := map[string]map[string]interface{}{
+		"local": {"key": localMasterKey},
+	}
+
+	mt.Run("auto encryption and decryption", func(mt *mtest.T) {
+		aeOpts := options.AutoEncryption().
+			SetKmsProviders(kmsProvidersMap).
+			SetKeyVaultNamespace("keyvault.datakeys")
+		clientOpts := options.Client().
+			ApplyURI(mtest.ClusterURI()).
+			SetAutoEncryptionOptions(aeOpts)
+		cryptx.SetCrypt(clientOpts, &customCrypt{})
+		testutil.AddTestServerAPIVersion(clientOpts)
+
+		client, err := mongo.Connect(mtest.Background, clientOpts)
+		defer client.Disconnect(mtest.Background)
+		assert.Nil(mt, err, "Connect error: %v", err)
+
+		coll := client.Database("db").Collection("coll")
+		defer func() { _ = coll.Drop(mtest.Background) }()
+
+		doc := bson.D{{"foo", "bar"}, {"ssn", mySSN}}
+		_, err = coll.InsertOne(mtest.Background, doc)
+		assert.Nil(mt, err, "InsertOne error")
 	})
 }
