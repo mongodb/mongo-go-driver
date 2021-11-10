@@ -238,8 +238,17 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 	})
 }
 
-// customCrypt is a test implementation of the driver.Crypt interface
-type customCrypt struct{}
+// customCrypt is a test implementation of the driver.Crypt interface. It keeps track of the number of times its
+// methods have been called.
+type customCrypt struct {
+	numEncryptCalls              int
+	numDecryptCalls              int
+	numCreateDataKeyCalls        int
+	numEncryptExplicitCalls      int
+	numDecryptExplicitCalls      int
+	numCloseCalls                int
+	numBypassAutoEncryptionCalls int
+}
 
 var (
 	_     driver.Crypt = (*customCrypt)(nil)
@@ -248,6 +257,7 @@ var (
 
 // Encrypt encrypts the given command.
 func (c *customCrypt) Encrypt(ctx context.Context, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+	c.numEncryptCalls++
 	elems, err := cmd.Elements()
 	if err != nil {
 		return nil, err
@@ -267,6 +277,7 @@ func (c *customCrypt) Encrypt(ctx context.Context, db string, cmd bsoncore.Docum
 
 // Decrypt decrypts the given command response.
 func (c *customCrypt) Decrypt(ctx context.Context, cmdResponse bsoncore.Document) (bsoncore.Document, error) {
+	c.numDecryptCalls++
 	elems, err := cmdResponse.Elements()
 	if err != nil {
 		return nil, err
@@ -286,30 +297,35 @@ func (c *customCrypt) Decrypt(ctx context.Context, cmdResponse bsoncore.Document
 
 // CreateDataKey implements the driver.Crypt interface.
 func (c *customCrypt) CreateDataKey(ctx context.Context, kmsProvider string, opts *mcopts.DataKeyOptions) (bsoncore.Document, error) {
+	c.numCreateDataKeyCalls++
 	return nil, nil
 }
 
 // EncryptExplicit implements the driver.Crypt interface.
 func (c *customCrypt) EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *mcopts.ExplicitEncryptionOptions) (byte, []byte, error) {
+	c.numEncryptExplicitCalls++
 	return 0, nil, nil
 }
 
 // DecryptExplicit implements the driver.Crypt interface.
 func (c *customCrypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) (bsoncore.Value, error) {
+	c.numDecryptExplicitCalls++
 	return bsoncore.Value{}, nil
 }
 
 // Close implements the driver.Crypt interface.
 func (c *customCrypt) Close() {
+	c.numCloseCalls++
 }
 
 // BypassAutoEncryption implements the driver.Crypt interface.
 func (c *customCrypt) BypassAutoEncryption() bool {
+	c.numBypassAutoEncryptionCalls++
 	return false
 }
 
 func TestClientSideEncryptionCustomCrypt(t *testing.T) {
-	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").CreateClient(false))
+	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
 	defer mt.Close()
 
 	kmsProvidersMap := map[string]map[string]interface{}{
@@ -323,7 +339,8 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 		clientOpts := options.Client().
 			ApplyURI(mtest.ClusterURI()).
 			SetAutoEncryptionOptions(aeOpts)
-		clientOpts.Crypt = &customCrypt{}
+		cc := &customCrypt{}
+		clientOpts.Crypt = cc
 		testutil.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(mtest.Background, clientOpts)
@@ -335,6 +352,31 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 
 		doc := bson.D{{"foo", "bar"}, {"ssn", mySSN}}
 		_, err = coll.InsertOne(mtest.Background, doc)
-		assert.Nil(mt, err, "InsertOne error")
+		assert.Nil(mt, err, "InsertOne error: %v", err)
+
+		res := coll.FindOne(mtest.Background, bson.D{{"foo", "bar"}})
+		assert.Nil(mt, res.Err(), "FindOne error: %v", err)
+
+		rawRes, err := res.DecodeBytes()
+		assert.Nil(mt, err, "DecodeBytes error: %v", err)
+		ssn, ok := rawRes.Lookup("ssn").StringValueOK()
+		assert.True(mt, ok, "expected 'ssn' value to be type string, got %T", ssn)
+		assert.Equal(mt, ssn, mySSN, "expected 'ssn' value %q, got %q", mySSN, ssn)
+
+		// Assert customCrypt methods are called the correct number of times.
+		assert.Equal(mt, cc.numEncryptCalls, 1,
+			"expected 1 call to Encrypt, got %v", cc.numEncryptCalls)
+		assert.Equal(mt, cc.numDecryptCalls, 1,
+			"expected 1 call to Decrypt, got %v", cc.numDecryptCalls)
+		assert.Equal(mt, cc.numCreateDataKeyCalls, 0,
+			"expected 0 calls to CreateDataKey, got %v", cc.numCreateDataKeyCalls)
+		assert.Equal(mt, cc.numEncryptExplicitCalls, 0,
+			"expected 0 calls to EncryptExplicit, got %v", cc.numEncryptExplicitCalls)
+		assert.Equal(mt, cc.numDecryptExplicitCalls, 0,
+			"expected 0 calls to DecryptExplicit, got %v", cc.numDecryptExplicitCalls)
+		assert.Equal(mt, cc.numCloseCalls, 0,
+			"expected 0 calls to Close, got %v", cc.numCloseCalls)
+		assert.Equal(mt, cc.numBypassAutoEncryptionCalls, 2,
+			"expected 2 calls to BypassAutoEncryption, got %v", cc.numBypassAutoEncryptionCalls)
 	})
 }
