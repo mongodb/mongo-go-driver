@@ -23,7 +23,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/cryptx"
 	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
 
@@ -310,7 +309,7 @@ func (c *customCrypt) BypassAutoEncryption() bool {
 }
 
 func TestClientSideEncryptionCustomCrypt(t *testing.T) {
-	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
+	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").CreateClient(false))
 	defer mt.Close()
 
 	kmsProvidersMap := map[string]map[string]interface{}{
@@ -324,7 +323,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 		clientOpts := options.Client().
 			ApplyURI(mtest.ClusterURI()).
 			SetAutoEncryptionOptions(aeOpts)
-		cryptx.SetCrypt(clientOpts, &customCrypt{})
+		clientOpts.Crypt = &customCrypt{}
 		testutil.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(mtest.Background, clientOpts)
