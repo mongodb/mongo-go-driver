@@ -98,6 +98,9 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 		case "retryReads":
 			clientOpts.SetRetryReads(opt.Boolean())
 		case "autoEncryptOpts":
+			if uri, err := getTLSUri(opt.Document()); err == nil {
+				clientOpts.ApplyURI(uri)
+			}
 			clientOpts.SetAutoEncryptionOptions(createAutoEncryptionOptions(t, opt.Document()))
 		case "appname":
 			clientOpts.SetAppName(opt.StringValue())
@@ -122,6 +125,15 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 	}
 
 	return clientOpts
+}
+
+func getTLSUri(opts bson.Raw) (string, error) {
+	kmsProviders, _ := opts.Lookup("kmsProviders").Document().Elements()
+	uri, err := kmsProviders[0].Value().Document().LookupErr("tlsURI")
+	if err != nil {
+		return "", err
+	}
+	return uri.StringValue(), nil
 }
 
 func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncryptionOptions {
@@ -224,6 +236,12 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 				"secretAccessKey": awsTempSecretAccessKey,
 			}
 			kmsMap["aws"] = awsMap
+		case "kmip":
+			endpoint := providerOpt.Document().Lookup("endpoint").StringValue()
+			kmipMap := map[string]interface{}{
+				"endpoint": endpoint,
+			}
+			kmsMap["kmip"] = kmipMap
 		default:
 			t.Fatalf("unrecognized KMS provider: %v", provider)
 		}
