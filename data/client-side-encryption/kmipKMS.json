@@ -125,10 +125,11 @@
       "clientOptions": {
         "autoEncryptOpts": {
           "kmsProviders": {
-            "kmip": {
-              "endpoint": "localhost:5698",
-              "tlsURI": "mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/kmip-client.pem&sslCertificateAuthorityFile=testdata/kmip-ca.pem"
-            }
+            "kmip": {}
+          },
+          "tlsOpts": {
+            "tlsCAfile": "/Users/gabriela.asuncion/drivers-evergreen-tools/.evergreen/x509gen/ca.pem",
+            "tlsCertificateKeyFile": "/Users/gabriela.asuncion/drivers-evergreen-tools/.evergreen/x509gen/client.pem"
           }
         }
       },

@@ -98,9 +98,6 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 		case "retryReads":
 			clientOpts.SetRetryReads(opt.Boolean())
 		case "autoEncryptOpts":
-			if uri, err := getTLSUri(opt.Document()); err == nil {
-				clientOpts.ApplyURI(uri)
-			}
 			clientOpts.SetAutoEncryptionOptions(createAutoEncryptionOptions(t, opt.Document()))
 		case "appname":
 			clientOpts.SetAppName(opt.StringValue())
@@ -125,15 +122,6 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 	}
 
 	return clientOpts
-}
-
-func getTLSUri(opts bson.Raw) (string, error) {
-	kmsProviders, _ := opts.Lookup("kmsProviders").Document().Elements()
-	uri, err := kmsProviders[0].Value().Document().LookupErr("tlsURI")
-	if err != nil {
-		return "", err
-	}
-	return uri.StringValue(), nil
 }
 
 func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncryptionOptions {
@@ -163,6 +151,14 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 			aeo.SetKeyVaultNamespace(opt.StringValue())
 		case "bypassAutoEncryption":
 			aeo.SetBypassAutoEncryption(opt.Boolean())
+		case "tlsOpts":
+			var tlsOptsMap map[string]interface{}
+			err := bson.Unmarshal(opt.Document(), &tlsOptsMap)
+			if err != nil {
+				t.Fatalf("error creating tls options map: %v", err)
+			}
+
+			aeo.SetTLSConfig(tlsOptsMap)
 		default:
 			t.Fatalf("unrecognized auto encryption option: %v", name)
 		}
@@ -237,9 +233,8 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 			}
 			kmsMap["aws"] = awsMap
 		case "kmip":
-			endpoint := providerOpt.Document().Lookup("endpoint").StringValue()
 			kmipMap := map[string]interface{}{
-				"endpoint": endpoint,
+				"endpoint": "localhost:5698",
 			}
 			kmsMap["kmip"] = kmipMap
 		default:

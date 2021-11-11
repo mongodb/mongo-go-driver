@@ -795,6 +795,7 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptdFLE.markCommand,
 		KmsProviders:         kmsProviders,
+		TlsCfg:               *opts.TLSConfig,
 		BypassAutoEncryption: bypass,
 		SchemaMap:            cryptSchemaMap,
 	}

@@ -6,6 +6,10 @@
 
 package options
 
+import (
+	"crypto/tls"
+)
+
 // AutoEncryptionOptions represents options used to configure auto encryption/decryption behavior for a mongo.Client
 // instance.
 //
@@ -27,6 +31,7 @@ type AutoEncryptionOptions struct {
 	SchemaMap             map[string]interface{}
 	BypassAutoEncryption  *bool
 	ExtraOptions          map[string]interface{}
+	TLSConfig             *tls.Config
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -91,6 +96,34 @@ func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}
 	return a
 }
 
+func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]interface{}) (*AutoEncryptionOptions, error) {
+	var cfg tls.Config
+
+	if clientCertPath, found := tlsOpts["tlsCertificateKeyFile"].(string); found {
+		if keyPwd, found := tlsOpts["keyPwd"].(string); found {
+			_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, keyPwd)
+			if err != nil {
+				return a, err
+			}
+		} else {
+			_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, "")
+			if err != nil {
+				return a, err
+			}
+		}	
+	}
+
+	if CApath, found := tlsOpts["tlsCAfile"].(string); found {
+		err := addCACertFromFile(&cfg, CApath)
+		if err != nil {
+			return a , err
+		}
+	}
+
+	a.TLSConfig = &cfg
+	return a, nil
+}
+
 // MergeAutoEncryptionOptions combines the argued AutoEncryptionOptions in a last-one wins fashion.
 func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionOptions {
 	aeo := AutoEncryption()
@@ -116,6 +149,9 @@ func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionO
 		}
 		if opt.ExtraOptions != nil {
 			aeo.ExtraOptions = opt.ExtraOptions
+		}
+		if opt.TLSConfig != nil {
+			aeo.TLSConfig = opt.TLSConfig
 		}
 	}
 
