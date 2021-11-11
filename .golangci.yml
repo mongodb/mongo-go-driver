@@ -12,6 +12,7 @@ linters:
     # - gosimple
     - govet
     - ineffassign
+    - makezero
     # - misspell
     # - nakedret
     - revive
