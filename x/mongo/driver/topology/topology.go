@@ -48,6 +48,9 @@ var ErrServerSelectionTimeout = errors.New("server selection timeout")
 // MonitorMode represents the way in which a server is monitored.
 type MonitorMode uint8
 
+// random is a package-global pseudo-random number source.
+var random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 // These constants are the available monitoring modes.
 const (
 	AutomaticMode MonitorMode = iota
@@ -395,7 +398,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 			continue
 		}
 
-		selected := suitable[rand.Intn(len(suitable))]
+		selected := suitable[random.Intn(len(suitable))]
 		selectedS, err := t.FindServer(selected)
 		switch {
 		case err != nil:
@@ -550,7 +553,7 @@ func (t *Topology) pollSRVRecords() {
 			// TODO(GODRIVER-1876): Use rand#Shuffle after dropping Go 1.9 support.
 			n := len(parsedHosts)
 			for i := 0; i < n-1; i++ {
-				j := i + rand.Intn(n-i)
+				j := i + random.Intn(n-i)
 				parsedHosts[j], parsedHosts[i] = parsedHosts[i], parsedHosts[j]
 			}
 			parsedHosts = parsedHosts[:t.cfg.srvMaxHosts]
