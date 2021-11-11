@@ -256,7 +256,7 @@ var (
 )
 
 // Encrypt encrypts the given command.
-func (c *customCrypt) Encrypt(ctx context.Context, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+func (c *customCrypt) Encrypt(_ context.Context, _ string, cmd bsoncore.Document) (bsoncore.Document, error) {
 	c.numEncryptCalls++
 	elems, err := cmd.Elements()
 	if err != nil {
@@ -276,7 +276,7 @@ func (c *customCrypt) Encrypt(ctx context.Context, db string, cmd bsoncore.Docum
 }
 
 // Decrypt decrypts the given command response.
-func (c *customCrypt) Decrypt(ctx context.Context, cmdResponse bsoncore.Document) (bsoncore.Document, error) {
+func (c *customCrypt) Decrypt(_ context.Context, cmdResponse bsoncore.Document) (bsoncore.Document, error) {
 	c.numDecryptCalls++
 	elems, err := cmdResponse.Elements()
 	if err != nil {
@@ -296,19 +296,19 @@ func (c *customCrypt) Decrypt(ctx context.Context, cmdResponse bsoncore.Document
 }
 
 // CreateDataKey implements the driver.Crypt interface.
-func (c *customCrypt) CreateDataKey(ctx context.Context, kmsProvider string, opts *mcopts.DataKeyOptions) (bsoncore.Document, error) {
+func (c *customCrypt) CreateDataKey(_ context.Context, _ string, _ *mcopts.DataKeyOptions) (bsoncore.Document, error) {
 	c.numCreateDataKeyCalls++
 	return nil, nil
 }
 
 // EncryptExplicit implements the driver.Crypt interface.
-func (c *customCrypt) EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *mcopts.ExplicitEncryptionOptions) (byte, []byte, error) {
+func (c *customCrypt) EncryptExplicit(_ context.Context, _ bsoncore.Value, _ *mcopts.ExplicitEncryptionOptions) (byte, []byte, error) {
 	c.numEncryptExplicitCalls++
 	return 0, nil, nil
 }
 
 // DecryptExplicit implements the driver.Crypt interface.
-func (c *customCrypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) (bsoncore.Value, error) {
+func (c *customCrypt) DecryptExplicit(_ context.Context, _ byte, _ []byte) (bsoncore.Value, error) {
 	c.numDecryptExplicitCalls++
 	return bsoncore.Value{}, nil
 }
