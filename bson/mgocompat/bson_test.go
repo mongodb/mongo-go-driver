@@ -726,37 +726,37 @@ func TestMarshalErrorItems(t *testing.T) {
 // Unmarshalling error cases.
 
 type unmarshalErrorType struct {
-	obj   interface{}
-	data  string
-	error string
+	obj  interface{}
+	data string
 }
 
 var unmarshalErrorItems = []unmarshalErrorType{
 	// Tag name conflicts with existing parameter.
-	{&structWithDupKeys{},
-		"\x10name\x00\x08\x00\x00\x00",
-		"Duplicated key 'name' in struct bson_test.structWithDupKeys"},
-
-	{nil,
-		"\xEEname\x00",
-		"Unknown element kind \\(0xEE\\)"},
-
-	{struct{ Name bool }{},
-		"\x10name\x00\x08\x00\x00\x00",
-		"unmarshal can't deal with struct values. Use a pointer"},
-
-	{123,
-		"\x10name\x00\x08\x00\x00\x00",
-		"unmarshal needs a map or a pointer to a struct"},
-
-	{nil,
-		"\x08\x62\x00\x02",
-		"encoded boolean must be 1 or 0, found 2"},
-
+	{
+		obj:  &structWithDupKeys{},
+		data: "\x10name\x00\x08\x00\x00\x00",
+	},
+	{
+		obj:  nil,
+		data: "\xEEname\x00",
+	},
+	{
+		obj:  struct{ Name bool }{},
+		data: "\x10name\x00\x08\x00\x00\x00",
+	},
+	{
+		obj:  123,
+		data: "\x10name\x00\x08\x00\x00\x00",
+	},
+	{
+		obj:  nil,
+		data: "\x08\x62\x00\x02",
+	},
 	// Non-string and not numeric map key.
-	{map[bool]interface{}{true: 1},
-		"\x10true\x00\x01\x00\x00\x00",
-		"BSON map must have string or decimal keys. Got: map\\[bool\\]interface \\{\\}"},
+	{
+		obj:  map[bool]interface{}{true: 1},
+		data: "\x10true\x00\x01\x00\x00\x00",
+	},
 }
 
 func TestUnmarshalErrorItems(t *testing.T) {
@@ -779,28 +779,28 @@ func TestUnmarshalErrorItems(t *testing.T) {
 }
 
 type unmarshalRawErrorType struct {
-	obj   interface{}
-	raw   bson.RawValue
-	error string
+	obj interface{}
+	raw bson.RawValue
 }
 
 var unmarshalRawErrorItems = []unmarshalRawErrorType{
 	// Tag name conflicts with existing parameter.
-	{&structWithDupKeys{},
-		bson.RawValue{Type: 0x03, Value: []byte("\x10byte\x00\x08\x00\x00\x00")},
-		"Duplicated key 'name' in struct bson_test.structWithDupKeys"},
-
-	{&struct{}{},
-		bson.RawValue{Type: 0xEE, Value: []byte{}},
-		"Unknown element kind \\(0xEE\\)"},
-
-	{struct{ Name bool }{},
-		bson.RawValue{Type: 0x10, Value: []byte("\x08\x00\x00\x00")},
-		"raw Unmarshal can't deal with struct values. Use a pointer"},
-
-	{123,
-		bson.RawValue{Type: 0x10, Value: []byte("\x08\x00\x00\x00")},
-		"raw Unmarshal needs a map or a valid pointer"},
+	{
+		obj: &structWithDupKeys{},
+		raw: bson.RawValue{Type: 0x03, Value: []byte("\x10byte\x00\x08\x00\x00\x00")},
+	},
+	{
+		obj: &struct{}{},
+		raw: bson.RawValue{Type: 0xEE, Value: []byte{}},
+	},
+	{
+		obj: struct{ Name bool }{},
+		raw: bson.RawValue{Type: 0x10, Value: []byte("\x08\x00\x00\x00")},
+	},
+	{
+		obj: 123,
+		raw: bson.RawValue{Type: 0x10, Value: []byte("\x08\x00\x00\x00")},
+	},
 }
 
 func TestUnmarshalRawErrorItems(t *testing.T) {
