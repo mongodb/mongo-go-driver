@@ -371,6 +371,7 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 		compareHosts(t, actualHosts, expectedHosts)
 	})
 	t.Run("SRVMaxHosts is less than number of hosts", func(t *testing.T) {
+		t.Skipf("skipping due to GODRIVER-2222")
 		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}
 		recordsToRemove := []*net.SRV{{"localhost.test.build.10gen.cc.", 27018, 0, 0}}
 		topo, disconnect := simulateSRVPoll(2, recordsToAdd, recordsToRemove)

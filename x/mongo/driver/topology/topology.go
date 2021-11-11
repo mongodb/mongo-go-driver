@@ -491,6 +491,10 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 	return suitable, nil
 }
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func (t *Topology) pollSRVRecords() {
 	defer t.pollingwg.Done()
 
