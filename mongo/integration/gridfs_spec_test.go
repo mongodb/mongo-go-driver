@@ -194,7 +194,7 @@ func arrangeGridfsCollections(mt *mtest.T, arrange gridfsArrange) {
 		return
 	}
 
-	var arrangeCmds []interface{}
+	arrangeCmds := make([]interface{}, 0, len(arrange.Data))
 	for _, cmd := range arrange.Data {
 		if cmd[0].Key != "update" {
 			arrangeCmds = append(arrangeCmds, cmd)
@@ -230,7 +230,7 @@ func arrangeGridfsCollections(mt *mtest.T, arrange gridfsArrange) {
 func executeUploadAssert(mt *mtest.T, fileID primitive.ObjectID, assert gridfsAssert) {
 	fileIDVal := bsonx.ObjectID(fileID)
 
-	var assertCommands []interface{}
+	assertCommands := make([]interface{}, 0, len(assert.Data))
 	for _, data := range assert.Data {
 		documentsIdx := data.IndexOf("documents")
 		if documentsIdx == -1 {
@@ -412,7 +412,7 @@ func executeGridfsDelete(mt *mtest.T, test gridfsTest, bucket *gridfs.Bucket) {
 		compareGridfsAssertError(mt, test.Assert.Error, err)
 		return
 	}
-	var cmds []interface{}
+	cmds := make([]interface{}, 0, len(test.Assert.Data))
 	for _, cmd := range test.Assert.Data {
 		cmds = append(cmds, cmd)
 	}
@@ -432,7 +432,7 @@ func setupGridfsTest(mt *mtest.T, data gridfsData) int32 {
 			break
 		}
 	}
-	var chunksDocs []interface{}
+	chunksDocs := make([]interface{}, 0, len(data.Chunks))
 	for _, chunk := range data.Chunks {
 		if hexStr, err := chunk.LookupErr("data", "$hex"); err == nil {
 			hexBytes := hexStringToBytes(mt, hexStr.StringValue())

@@ -33,7 +33,7 @@ func StringSliceFromRawValue(name string, val bson.RawValue) ([]string, error) {
 		return nil, err
 	}
 
-	var strs []string
+	strs := make([]string, 0, len(arrayValues))
 	for _, arrayVal := range arrayValues {
 		str, ok := arrayVal.StringValueOK()
 		if !ok {
