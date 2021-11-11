@@ -13,7 +13,7 @@ linters:
     - govet
     - ineffassign
     # - misspell
-    # - nakedret
+    - nakedret
     - revive
     - staticcheck
     # - structcheck
