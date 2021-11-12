@@ -43,24 +43,46 @@ type CryptOptions struct {
 	BypassAutoEncryption bool
 }
 
-// Crypt consumes the libmongocrypt.MongoCrypt type to iterate the mongocrypt state machine and perform encryption
+// Crypt is an interface implemented by types that can encrypt and decrypt instances of
+// bsoncore.Document.
+//
+// Users should rely on the driver's crypt type (used by default) for encryption and decryption
+// unless they are perfectly confident in another implementation of Crypt.
+type Crypt interface {
+	// Encrypt encrypts the given command.
+	Encrypt(ctx context.Context, db string, cmd bsoncore.Document) (bsoncore.Document, error)
+	// Decrypt decrypts the given command response.
+	Decrypt(ctx context.Context, cmdResponse bsoncore.Document) (bsoncore.Document, error)
+	// CreateDataKey creates a data key using the given KMS provider and options.
+	CreateDataKey(ctx context.Context, kmsProvider string, opts *options.DataKeyOptions) (bsoncore.Document, error)
+	// EncryptExplicit encrypts the given value with the given options.
+	EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *options.ExplicitEncryptionOptions) (byte, []byte, error)
+	// DecryptExplicit decrypts the given encrypted value.
+	DecryptExplicit(ctx context.Context, subtype byte, data []byte) (bsoncore.Value, error)
+	// Close cleans up any resources associated with the Crypt instance.
+	Close()
+	// BypassAutoEncryption returns true if auto-encryption should be bypassed.
+	BypassAutoEncryption() bool
+}
+
+// crypt consumes the libmongocrypt.MongoCrypt type to iterate the mongocrypt state machine and perform encryption
 // and decryption.
-type Crypt struct {
+type crypt struct {
 	mongoCrypt *mongocrypt.MongoCrypt
 	collInfoFn CollectionInfoFn
 	keyFn      KeyRetrieverFn
 	markFn     MarkCommandFn
 
-	BypassAutoEncryption bool
+	bypassAutoEncryption bool
 }
 
 // NewCrypt creates a new Crypt instance configured with the given AutoEncryptionOptions.
-func NewCrypt(opts *CryptOptions) (*Crypt, error) {
-	c := &Crypt{
+func NewCrypt(opts *CryptOptions) (Crypt, error) {
+	c := &crypt{
 		collInfoFn:           opts.CollInfoFn,
 		keyFn:                opts.KeyFn,
 		markFn:               opts.MarkFn,
-		BypassAutoEncryption: opts.BypassAutoEncryption,
+		bypassAutoEncryption: opts.BypassAutoEncryption,
 	}
 
 	mongocryptOpts := options.MongoCrypt().SetKmsProviders(opts.KmsProviders).SetLocalSchemaMap(opts.SchemaMap)
@@ -74,8 +96,8 @@ func NewCrypt(opts *CryptOptions) (*Crypt, error) {
 }
 
 // Encrypt encrypts the given command.
-func (c *Crypt) Encrypt(ctx context.Context, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
-	if c.BypassAutoEncryption {
+func (c *crypt) Encrypt(ctx context.Context, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+	if c.bypassAutoEncryption {
 		return cmd, nil
 	}
 
@@ -89,7 +111,7 @@ func (c *Crypt) Encrypt(ctx context.Context, db string, cmd bsoncore.Document) (
 }
 
 // Decrypt decrypts the given command response.
-func (c *Crypt) Decrypt(ctx context.Context, cmdResponse bsoncore.Document) (bsoncore.Document, error) {
+func (c *crypt) Decrypt(ctx context.Context, cmdResponse bsoncore.Document) (bsoncore.Document, error) {
 	cryptCtx, err := c.mongoCrypt.CreateDecryptionContext(cmdResponse)
 	if err != nil {
 		return nil, err
@@ -100,7 +122,7 @@ func (c *Crypt) Decrypt(ctx context.Context, cmdResponse bsoncore.Document) (bso
 }
 
 // CreateDataKey creates a data key using the given KMS provider and options.
-func (c *Crypt) CreateDataKey(ctx context.Context, kmsProvider string, opts *options.DataKeyOptions) (bsoncore.Document, error) {
+func (c *crypt) CreateDataKey(ctx context.Context, kmsProvider string, opts *options.DataKeyOptions) (bsoncore.Document, error) {
 	cryptCtx, err := c.mongoCrypt.CreateDataKeyContext(kmsProvider, opts)
 	if err != nil {
 		return nil, err
@@ -111,7 +133,7 @@ func (c *Crypt) CreateDataKey(ctx context.Context, kmsProvider string, opts *opt
 }
 
 // EncryptExplicit encrypts the given value with the given options.
-func (c *Crypt) EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *options.ExplicitEncryptionOptions) (byte, []byte, error) {
+func (c *crypt) EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *options.ExplicitEncryptionOptions) (byte, []byte, error) {
 	idx, doc := bsoncore.AppendDocumentStart(nil)
 	doc = bsoncore.AppendValueElement(doc, "v", val)
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
@@ -132,7 +154,7 @@ func (c *Crypt) EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *o
 }
 
 // DecryptExplicit decrypts the given encrypted value.
-func (c *Crypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) (bsoncore.Value, error) {
+func (c *crypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) (bsoncore.Value, error) {
 	idx, doc := bsoncore.AppendDocumentStart(nil)
 	doc = bsoncore.AppendBinaryElement(doc, "v", subtype, data)
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
@@ -152,11 +174,15 @@ func (c *Crypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) 
 }
 
 // Close cleans up any resources associated with the Crypt instance.
-func (c *Crypt) Close() {
+func (c *crypt) Close() {
 	c.mongoCrypt.Close()
 }
 
-func (c *Crypt) executeStateMachine(ctx context.Context, cryptCtx *mongocrypt.Context, db string) (bsoncore.Document, error) {
+func (c *crypt) BypassAutoEncryption() bool {
+	return c.bypassAutoEncryption
+}
+
+func (c *crypt) executeStateMachine(ctx context.Context, cryptCtx *mongocrypt.Context, db string) (bsoncore.Document, error) {
 	var err error
 	for {
 		state := cryptCtx.State()
@@ -180,7 +206,7 @@ func (c *Crypt) executeStateMachine(ctx context.Context, cryptCtx *mongocrypt.Co
 	}
 }
 
-func (c *Crypt) collectionInfo(ctx context.Context, cryptCtx *mongocrypt.Context, db string) error {
+func (c *crypt) collectionInfo(ctx context.Context, cryptCtx *mongocrypt.Context, db string) error {
 	op, err := cryptCtx.NextOperation()
 	if err != nil {
 		return err
@@ -199,7 +225,7 @@ func (c *Crypt) collectionInfo(ctx context.Context, cryptCtx *mongocrypt.Context
 	return cryptCtx.CompleteOperation()
 }
 
-func (c *Crypt) markCommand(ctx context.Context, cryptCtx *mongocrypt.Context, db string) error {
+func (c *crypt) markCommand(ctx context.Context, cryptCtx *mongocrypt.Context, db string) error {
 	op, err := cryptCtx.NextOperation()
 	if err != nil {
 		return err
@@ -216,7 +242,7 @@ func (c *Crypt) markCommand(ctx context.Context, cryptCtx *mongocrypt.Context, d
 	return cryptCtx.CompleteOperation()
 }
 
-func (c *Crypt) retrieveKeys(ctx context.Context, cryptCtx *mongocrypt.Context) error {
+func (c *crypt) retrieveKeys(ctx context.Context, cryptCtx *mongocrypt.Context) error {
 	op, err := cryptCtx.NextOperation()
 	if err != nil {
 		return err
@@ -236,7 +262,7 @@ func (c *Crypt) retrieveKeys(ctx context.Context, cryptCtx *mongocrypt.Context) 
 	return cryptCtx.CompleteOperation()
 }
 
-func (c *Crypt) decryptKeys(ctx context.Context, cryptCtx *mongocrypt.Context) error {
+func (c *crypt) decryptKeys(ctx context.Context, cryptCtx *mongocrypt.Context) error {
 	for {
 		kmsCtx := cryptCtx.NextKmsContext()
 		if kmsCtx == nil {
@@ -251,7 +277,7 @@ func (c *Crypt) decryptKeys(ctx context.Context, cryptCtx *mongocrypt.Context) e
 	return cryptCtx.FinishKmsContexts()
 }
 
-func (c *Crypt) decryptKey(ctx context.Context, kmsCtx *mongocrypt.KmsContext) error {
+func (c *crypt) decryptKey(ctx context.Context, kmsCtx *mongocrypt.KmsContext) error {
 	host, err := kmsCtx.HostName()
 	if err != nil {
 		return err

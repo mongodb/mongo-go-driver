@@ -22,6 +22,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
 
 // createDataKeyAndEncrypt creates a data key with the alternate name @keyName.
@@ -233,5 +235,148 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 		lsid = getLsid(mt, event.Command)
 		assert.Nil(mt, err, "lsid not found on %v", event.Command)
 		assert.NotEqual(mt, lsid, session.ID(), "expected different lsid, but got %v", lsid)
+	})
+}
+
+// customCrypt is a test implementation of the driver.Crypt interface. It keeps track of the number of times its
+// methods have been called.
+type customCrypt struct {
+	numEncryptCalls              int
+	numDecryptCalls              int
+	numCreateDataKeyCalls        int
+	numEncryptExplicitCalls      int
+	numDecryptExplicitCalls      int
+	numCloseCalls                int
+	numBypassAutoEncryptionCalls int
+}
+
+var (
+	_     driver.Crypt = (*customCrypt)(nil)
+	mySSN              = "123456789"
+)
+
+// Encrypt encrypts the given command.
+func (c *customCrypt) Encrypt(_ context.Context, _ string, cmd bsoncore.Document) (bsoncore.Document, error) {
+	c.numEncryptCalls++
+	elems, err := cmd.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedCmd := bsoncore.NewDocumentBuilder()
+	for _, elem := range elems {
+		// "encrypt" ssn element as "hidden"
+		if elem.Key() == "ssn" {
+			encryptedCmd = encryptedCmd.AppendString("ssn", "hidden")
+		} else {
+			encryptedCmd = encryptedCmd.AppendValue(elem.Key(), elem.Value())
+		}
+	}
+	return encryptedCmd.Build(), nil
+}
+
+// Decrypt decrypts the given command response.
+func (c *customCrypt) Decrypt(_ context.Context, cmdResponse bsoncore.Document) (bsoncore.Document, error) {
+	c.numDecryptCalls++
+	elems, err := cmdResponse.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	decryptedCmdResponse := bsoncore.NewDocumentBuilder()
+	for _, elem := range elems {
+		// "decrypt" ssn element as mySSN
+		if elem.Key() == "ssn" {
+			decryptedCmdResponse = decryptedCmdResponse.AppendString("ssn", mySSN)
+		} else {
+			decryptedCmdResponse = decryptedCmdResponse.AppendValue(elem.Key(), elem.Value())
+		}
+	}
+	return decryptedCmdResponse.Build(), nil
+}
+
+// CreateDataKey implements the driver.Crypt interface.
+func (c *customCrypt) CreateDataKey(_ context.Context, _ string, _ *mcopts.DataKeyOptions) (bsoncore.Document, error) {
+	c.numCreateDataKeyCalls++
+	return nil, nil
+}
+
+// EncryptExplicit implements the driver.Crypt interface.
+func (c *customCrypt) EncryptExplicit(_ context.Context, _ bsoncore.Value, _ *mcopts.ExplicitEncryptionOptions) (byte, []byte, error) {
+	c.numEncryptExplicitCalls++
+	return 0, nil, nil
+}
+
+// DecryptExplicit implements the driver.Crypt interface.
+func (c *customCrypt) DecryptExplicit(_ context.Context, _ byte, _ []byte) (bsoncore.Value, error) {
+	c.numDecryptExplicitCalls++
+	return bsoncore.Value{}, nil
+}
+
+// Close implements the driver.Crypt interface.
+func (c *customCrypt) Close() {
+	c.numCloseCalls++
+}
+
+// BypassAutoEncryption implements the driver.Crypt interface.
+func (c *customCrypt) BypassAutoEncryption() bool {
+	c.numBypassAutoEncryptionCalls++
+	return false
+}
+
+func TestClientSideEncryptionCustomCrypt(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
+	defer mt.Close()
+
+	kmsProvidersMap := map[string]map[string]interface{}{
+		"local": {"key": localMasterKey},
+	}
+
+	mt.Run("auto encryption and decryption", func(mt *mtest.T) {
+		aeOpts := options.AutoEncryption().
+			SetKmsProviders(kmsProvidersMap).
+			SetKeyVaultNamespace("keyvault.datakeys")
+		clientOpts := options.Client().
+			ApplyURI(mtest.ClusterURI()).
+			SetAutoEncryptionOptions(aeOpts)
+		cc := &customCrypt{}
+		clientOpts.Crypt = cc
+		testutil.AddTestServerAPIVersion(clientOpts)
+
+		client, err := mongo.Connect(mtest.Background, clientOpts)
+		defer client.Disconnect(mtest.Background)
+		assert.Nil(mt, err, "Connect error: %v", err)
+
+		coll := client.Database("db").Collection("coll")
+		defer func() { _ = coll.Drop(mtest.Background) }()
+
+		doc := bson.D{{"foo", "bar"}, {"ssn", mySSN}}
+		_, err = coll.InsertOne(mtest.Background, doc)
+		assert.Nil(mt, err, "InsertOne error: %v", err)
+
+		res := coll.FindOne(mtest.Background, bson.D{{"foo", "bar"}})
+		assert.Nil(mt, res.Err(), "FindOne error: %v", err)
+
+		rawRes, err := res.DecodeBytes()
+		assert.Nil(mt, err, "DecodeBytes error: %v", err)
+		ssn, ok := rawRes.Lookup("ssn").StringValueOK()
+		assert.True(mt, ok, "expected 'ssn' value to be type string, got %T", ssn)
+		assert.Equal(mt, ssn, mySSN, "expected 'ssn' value %q, got %q", mySSN, ssn)
+
+		// Assert customCrypt methods are called the correct number of times.
+		assert.Equal(mt, cc.numEncryptCalls, 1,
+			"expected 1 call to Encrypt, got %v", cc.numEncryptCalls)
+		assert.Equal(mt, cc.numDecryptCalls, 1,
+			"expected 1 call to Decrypt, got %v", cc.numDecryptCalls)
+		assert.Equal(mt, cc.numCreateDataKeyCalls, 0,
+			"expected 0 calls to CreateDataKey, got %v", cc.numCreateDataKeyCalls)
+		assert.Equal(mt, cc.numEncryptExplicitCalls, 0,
+			"expected 0 calls to EncryptExplicit, got %v", cc.numEncryptExplicitCalls)
+		assert.Equal(mt, cc.numDecryptExplicitCalls, 0,
+			"expected 0 calls to DecryptExplicit, got %v", cc.numDecryptExplicitCalls)
+		assert.Equal(mt, cc.numCloseCalls, 0,
+			"expected 0 calls to Close, got %v", cc.numCloseCalls)
+		assert.Equal(mt, cc.numBypassAutoEncryptionCalls, 2,
+			"expected 2 calls to BypassAutoEncryption, got %v", cc.numBypassAutoEncryptionCalls)
 	})
 }

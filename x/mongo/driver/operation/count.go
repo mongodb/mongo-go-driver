@@ -30,7 +30,7 @@ type Count struct {
 	clock          *session.ClusterClock
 	collection     string
 	monitor        *event.CommandMonitor
-	crypt          *driver.Crypt
+	crypt          driver.Crypt
 	database       string
 	deployment     driver.Deployment
 	readConcern    *readconcern.ReadConcern
@@ -238,7 +238,7 @@ func (c *Count) CommandMonitor(monitor *event.CommandMonitor) *Count {
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (c *Count) Crypt(crypt *driver.Crypt) *Count {
+func (c *Count) Crypt(crypt driver.Crypt) *Count {
 	if c == nil {
 		c = new(Count)
 	}

@@ -44,7 +44,7 @@ type Aggregate struct {
 	retry                    *driver.RetryMode
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
-	crypt                    *driver.Crypt
+	crypt                    driver.Crypt
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
 	hasOutputStage           bool
@@ -354,7 +354,7 @@ func (a *Aggregate) Retry(retry driver.RetryMode) *Aggregate {
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (a *Aggregate) Crypt(crypt *driver.Crypt) *Aggregate {
+func (a *Aggregate) Crypt(crypt driver.Crypt) *Aggregate {
 	if a == nil {
 		a = new(Aggregate)
 	}

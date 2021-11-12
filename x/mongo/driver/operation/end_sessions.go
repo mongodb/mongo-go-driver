@@ -25,7 +25,7 @@ type EndSessions struct {
 	session    *session.Client
 	clock      *session.ClusterClock
 	monitor    *event.CommandMonitor
-	crypt      *driver.Crypt
+	crypt      driver.Crypt
 	database   string
 	deployment driver.Deployment
 	selector   description.ServerSelector
@@ -113,7 +113,7 @@ func (es *EndSessions) CommandMonitor(monitor *event.CommandMonitor) *EndSession
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (es *EndSessions) Crypt(crypt *driver.Crypt) *EndSessions {
+func (es *EndSessions) Crypt(crypt driver.Crypt) *EndSessions {
 	if es == nil {
 		es = new(EndSessions)
 	}

@@ -27,7 +27,7 @@ type CommitTransaction struct {
 	session       *session.Client
 	clock         *session.ClusterClock
 	monitor       *event.CommandMonitor
-	crypt         *driver.Crypt
+	crypt         driver.Crypt
 	database      string
 	deployment    driver.Deployment
 	selector      description.ServerSelector
@@ -133,7 +133,7 @@ func (ct *CommitTransaction) CommandMonitor(monitor *event.CommandMonitor) *Comm
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (ct *CommitTransaction) Crypt(crypt *driver.Crypt) *CommitTransaction {
+func (ct *CommitTransaction) Crypt(crypt driver.Crypt) *CommitTransaction {
 	if ct == nil {
 		ct = new(CommitTransaction)
 	}
