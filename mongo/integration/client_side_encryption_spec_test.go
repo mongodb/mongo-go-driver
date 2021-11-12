@@ -51,10 +51,8 @@ func TestClientSideEncryptionSpec(t *testing.T) {
 	verifyClientSideEncryptionVarsSet(t)
 
 	for _, fileName := range jsonFilesInDir(t, path.Join(dataPath, encryptionSpecName)) {
-		if (fileName == "kmipKMS.json") {
-			t.Run(fileName, func(t *testing.T) {
-				runSpecTestFile(t, encryptionSpecName, fileName)
-			})
-		}
+		t.Run(fileName, func(t *testing.T) {
+			runSpecTestFile(t, encryptionSpecName, fileName)
+		})
 	}
 }

@@ -26,16 +26,18 @@ import (
 )
 
 var (
-	awsAccessKeyID         = os.Getenv("AWS_ACCESS_KEY_ID")
-	awsSecretAccessKey     = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	awsTempAccessKeyID     = os.Getenv("CSFLE_AWS_TEMP_ACCESS_KEY_ID")
-	awsTempSecretAccessKey = os.Getenv("CSFLE_AWS_TEMP_SECRET_ACCESS_KEY")
-	awsTempSessionToken    = os.Getenv("CSFLE_AWS_TEMP_SESSION_TOKEN")
-	azureTenantID          = os.Getenv("AZURE_TENANT_ID")
-	azureClientID          = os.Getenv("AZURE_CLIENT_ID")
-	azureClientSecret      = os.Getenv("AZURE_CLIENT_SECRET")
-	gcpEmail               = os.Getenv("GCP_EMAIL")
-	gcpPrivateKey          = os.Getenv("GCP_PRIVATE_KEY")
+	awsAccessKeyID              = os.Getenv("AWS_ACCESS_KEY_ID")
+	awsSecretAccessKey          = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	awsTempAccessKeyID          = os.Getenv("CSFLE_AWS_TEMP_ACCESS_KEY_ID")
+	awsTempSecretAccessKey      = os.Getenv("CSFLE_AWS_TEMP_SECRET_ACCESS_KEY")
+	awsTempSessionToken         = os.Getenv("CSFLE_AWS_TEMP_SESSION_TOKEN")
+	azureTenantID               = os.Getenv("AZURE_TENANT_ID")
+	azureClientID               = os.Getenv("AZURE_CLIENT_ID")
+	azureClientSecret           = os.Getenv("AZURE_CLIENT_SECRET")
+	gcpEmail                    = os.Getenv("GCP_EMAIL")
+	gcpPrivateKey               = os.Getenv("GCP_PRIVATE_KEY")
+	sslCertificateAuthorityFile = os.Getenv("MONGOC_TEST_CSFLE_TLS_CA_FILE")
+	sslClientCertificateKeyFile = os.Getenv("MONGOC_TEST_CSFLE_TLS_CERTIFICATE_KEY_FILE")
 )
 
 // Helper functions to do read JSON spec test files and convert JSON objects into the appropriate driver types.
@@ -151,14 +153,6 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 			aeo.SetKeyVaultNamespace(opt.StringValue())
 		case "bypassAutoEncryption":
 			aeo.SetBypassAutoEncryption(opt.Boolean())
-		case "tlsOpts":
-			var tlsOptsMap map[string]interface{}
-			err := bson.Unmarshal(opt.Document(), &tlsOptsMap)
-			if err != nil {
-				t.Fatalf("error creating tls options map: %v", err)
-			}
-
-			aeo.SetTLSConfig(tlsOptsMap)
 		default:
 			t.Fatalf("unrecognized auto encryption option: %v", name)
 		}
@@ -166,6 +160,13 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 	if !kvnsFound {
 		aeo.SetKeyVaultNamespace("keyvault.datakeys")
 	}
+
+	// pass TLS options through environment variables
+	tlsOptsMap := map[string]interface{}{
+		"tlsCertificateKeyFile": sslClientCertificateKeyFile,
+		"tlsCAFile":             sslCertificateAuthorityFile,
+	}
+	aeo.SetTLSConfig(tlsOptsMap)
 
 	return aeo
 }

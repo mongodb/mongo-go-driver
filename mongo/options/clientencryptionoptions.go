@@ -6,10 +6,13 @@
 
 package options
 
+import "crypto/tls"
+
 // ClientEncryptionOptions represents all possible options used to configure a ClientEncryption instance.
 type ClientEncryptionOptions struct {
 	KeyVaultNamespace string
 	KmsProviders      map[string]map[string]interface{}
+	TLSConfig         *tls.Config
 }
 
 // ClientEncryption creates a new ClientEncryptionOptions instance.
@@ -29,6 +32,34 @@ func (c *ClientEncryptionOptions) SetKmsProviders(providers map[string]map[strin
 	return c
 }
 
+func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]interface{}) (*ClientEncryptionOptions, error) {
+	var cfg tls.Config
+
+	if clientCertPath, found := tlsOpts["tlsCertificateKeyFile"].(string); found {
+		if keyPwd, found := tlsOpts["keyPwd"].(string); found {
+			_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, keyPwd)
+			if err != nil {
+				return c, err
+			}
+		} else {
+			_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, "")
+			if err != nil {
+				return c, err
+			}
+		}	
+	}
+
+	if CApath, found := tlsOpts["tlsCAfile"].(string); found {
+		err := addCACertFromFile(&cfg, CApath)
+		if err != nil {
+			return c , err
+		}
+	}
+
+	c.TLSConfig = &cfg
+	return c, nil
+}
+
 // MergeClientEncryptionOptions combines the argued ClientEncryptionOptions in a last-one wins fashion.
 func MergeClientEncryptionOptions(opts ...*ClientEncryptionOptions) *ClientEncryptionOptions {
 	ceo := ClientEncryption()
@@ -42,6 +73,9 @@ func MergeClientEncryptionOptions(opts ...*ClientEncryptionOptions) *ClientEncry
 		}
 		if opt.KmsProviders != nil {
 			ceo.KmsProviders = opt.KmsProviders
+		}
+		if opt.TLSConfig != nil {
+			ceo.TLSConfig = opt.TLSConfig
 		}
 	}
 

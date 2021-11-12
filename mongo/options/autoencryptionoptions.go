@@ -113,7 +113,7 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]interface{}) (*A
 		}	
 	}
 
-	if CApath, found := tlsOpts["tlsCAfile"].(string); found {
+	if CApath, found := tlsOpts["tlsCAFile"].(string); found {
 		err := addCACertFromFile(&cfg, CApath)
 		if err != nil {
 			return a , err

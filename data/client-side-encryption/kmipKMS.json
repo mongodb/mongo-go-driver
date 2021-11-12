@@ -126,10 +126,6 @@
         "autoEncryptOpts": {
           "kmsProviders": {
             "kmip": {}
-          },
-          "tlsOpts": {
-            "tlsCAfile": "/Users/gabriela.asuncion/drivers-evergreen-tools/.evergreen/x509gen/ca.pem",
-            "tlsCertificateKeyFile": "/Users/gabriela.asuncion/drivers-evergreen-tools/.evergreen/x509gen/client.pem"
           }
         }
       },
