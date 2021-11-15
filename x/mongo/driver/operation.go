@@ -1204,6 +1204,8 @@ func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) 
 }
 
 func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bool) (bsoncore.Document, error) {
+	// TODO(GODRIVER-2231): Instead of checking if isOutputAggregate and desc.Server.WireVersion.Max < 13,
+	// somehow check if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
 	if desc.Server.Kind == description.Standalone || (isOpQuery && desc.Server.Kind != description.Mongos) ||
 		op.Type == Write || (op.IsOutputAggregate && desc.Server.WireVersion.Max < 13) {
 		// Don't send read preference for:
