@@ -36,8 +36,8 @@ var (
 	azureClientSecret           = os.Getenv("AZURE_CLIENT_SECRET")
 	gcpEmail                    = os.Getenv("GCP_EMAIL")
 	gcpPrivateKey               = os.Getenv("GCP_PRIVATE_KEY")
-	sslCertificateAuthorityFile = os.Getenv("MONGOC_TEST_CSFLE_TLS_CA_FILE")
-	sslClientCertificateKeyFile = os.Getenv("MONGOC_TEST_CSFLE_TLS_CERTIFICATE_KEY_FILE")
+	sslCertificateAuthorityFile = os.Getenv("CSFLE_TLS_CA_FILE")
+	sslClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CERTIFICATE_KEY_FILE")
 )
 
 // Helper functions to do read JSON spec test files and convert JSON objects into the appropriate driver types.
@@ -139,7 +139,9 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 
 		switch name {
 		case "kmsProviders":
+			// TODO: confirm with spec for testing, check if opt.Document contains kmip then set certs
 			aeo.SetKmsProviders(createKmsProvidersMap(t, opt.Document()))
+			aeo.SetTLSConfig(createTLSOptsMap(t, opt.Document()))
 		case "schemaMap":
 			var schemaMap map[string]interface{}
 			err := bson.Unmarshal(opt.Document(), &schemaMap)
@@ -161,14 +163,29 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 		aeo.SetKeyVaultNamespace("keyvault.datakeys")
 	}
 
-	// pass TLS options through environment variables
-	tlsOptsMap := map[string]interface{}{
-		"tlsCertificateKeyFile": sslClientCertificateKeyFile,
-		"tlsCAFile":             sslCertificateAuthorityFile,
-	}
-	aeo.SetTLSConfig(tlsOptsMap)
-
 	return aeo
+}
+
+func createTLSOptsMap(t testing.TB, opts bson.Raw) map[string]map[string]interface{} {
+	t.Helper()
+
+	tlsMap := make(map[string]map[string]interface{})
+	elems, _ := opts.Elements()
+
+	for _, elem := range elems {
+		provider := elem.Key()
+
+		if provider != "local" {
+			tlsOptsMap := map[string]interface{}{
+				"tlsCertificateKeyFile": sslClientCertificateKeyFile,
+				"tlsCAFile":             sslCertificateAuthorityFile,
+			}
+
+			tlsMap[provider] = tlsOptsMap
+		}
+	}
+
+	return tlsMap
 }
 
 func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]interface{} {

@@ -32,6 +32,15 @@ func (kc *KmsContext) HostName() (string, error) {
 	return C.GoString(hostname), nil
 }
 
+// TODO: create new method to access KMS context's current KMS provider
+func (kc *KmsContext) KMSProvider() (string, error) {
+	var kmsProvider *C.char // out param for mongocrypt function to fill in kmsProvider
+	if ok := C.mongocrypt_kms_ctx_get_kms_provider(kc.wrapped, &kmsProvider); !ok {
+		return "", kc.createErrorFromStatus()
+	}
+	return C.GoString(kmsProvider), nil
+}
+
 // Message returns the message to send to the KMS.
 func (kc *KmsContext) Message() ([]byte, error) {
 	msgBinary := newBinary()

@@ -12,6 +12,7 @@ import "crypto/tls"
 type ClientEncryptionOptions struct {
 	KeyVaultNamespace string
 	KmsProviders      map[string]map[string]interface{}
+	// TODO: Map string to *tls.Config
 	TLSConfig         *tls.Config
 }
 

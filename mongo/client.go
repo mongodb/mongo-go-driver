@@ -791,19 +791,19 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 		cir = collInfoRetriever{client: c.metadataClientFLE}
 	}
 
-	var tlsConfig tls.Config
-	if opts.TLSConfig != nil {
-		tlsConfig = *opts.TLSConfig
-	} else {
-		tlsConfig = tls.Config{}
-	}
+	// var tlsConfig map[string]tls.Config
+	// if opts.TLSConfig != nil {
+	// 	tlsConfig = *opts.TLSConfig
+	// } else {
+	// 	tlsConfig = tls.Config{}
+	// }
 
 	cryptOpts := &driver.CryptOptions{
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptdFLE.markCommand,
 		KmsProviders:         kmsProviders,
-		TlsCfg:               tlsConfig,
+		TlsCfg:               opts.TLSConfig,
 		BypassAutoEncryption: bypass,
 		SchemaMap:            cryptSchemaMap,
 	}
