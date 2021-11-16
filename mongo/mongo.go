@@ -210,20 +210,37 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 			return nil, false, fmt.Errorf("can only transform slices and arrays into aggregation pipelines, but got %v", val.Kind())
 		}
 
-		aidx, arr := bsoncore.AppendArrayStart(nil)
 		var hasOutputStage bool
 		valLen := val.Len()
 
+		switch t := pipeline.(type) {
 		// Explicitly forbid non-empty pipelines that are semantically single documents
 		// and are implemented as slices.
-		switch t := pipeline.(type) {
 		case bson.D, bson.Raw, bsoncore.Document:
 			if valLen > 0 {
 				return nil, false,
-					fmt.Errorf("%T is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead", t)
+					fmt.Errorf("%T is not an allowed pipeline type as it represents a single document. Use bson.A, mongo.Pipeline or bsoncore.Array instead", t)
 			}
+		// bsoncore.Arrays do not need to be transformed. Only check validity and presence of output stage.
+		case bsoncore.Array:
+			a := pipeline.(bsoncore.Array)
+			if err := a.Validate(); err != nil {
+				return nil, false, err
+			}
+
+			// If not empty, check if first value of first stage is $out or $merge.
+			if valLen > 0 {
+				firstStage, ok := a.Index(0).DocumentOK()
+				if ok {
+					if elem, err := firstStage.IndexErr(0); err == nil && (elem.Key() == "$out" || elem.Key() == "$merge") {
+						hasOutputStage = true
+					}
+				}
+			}
+			return bsoncore.Document(a), hasOutputStage, nil
 		}
 
+		aidx, arr := bsoncore.AppendArrayStart(nil)
 		for idx := 0; idx < valLen; idx++ {
 			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface(), true, fmt.Sprintf("pipeline stage :%v", idx))
 			if err != nil {

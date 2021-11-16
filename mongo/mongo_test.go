@@ -120,15 +120,24 @@ func TestMongoHelpers(t *testing.T) {
 		})
 	})
 	t.Run("transform aggregate pipeline", func(t *testing.T) {
+		// []byte of [{{"$limit", 12345}}]
 		index, arr := bsoncore.AppendArrayStart(nil)
 		dindex, arr := bsoncore.AppendDocumentElementStart(arr, "0")
 		arr = bsoncore.AppendInt32Element(arr, "$limit", 12345)
 		arr, _ = bsoncore.AppendDocumentEnd(arr, dindex)
 		arr, _ = bsoncore.AppendArrayEnd(arr, index)
 
+		// []byte of {{"x", 1}}
 		index, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendInt32Element(doc, "x", 1)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, index)
+
+		// bsoncore.Array of [{{"$merge", {}}}]
+		outputStage := bsoncore.NewDocumentBuilder().
+			StartDocument("$merge").
+			FinishDocument().
+			Build()
+		arrOutputStage := bsoncore.NewArrayBuilder().AppendDocument(outputStage).Build()
 
 		testCases := []struct {
 			name           string
@@ -351,21 +360,21 @@ func TestMongoHelpers(t *testing.T) {
 				bson.D{{"x", 1}},
 				nil,
 				false,
-				errors.New("primitive.D is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
+				errors.New("primitive.D is not an allowed pipeline type as it represents a single document. Use bson.A, mongo.Pipeline or bsoncore.Array instead"),
 			},
 			{
 				"semantic single document/bson.Raw",
 				bson.Raw(doc),
 				nil,
 				false,
-				errors.New("bson.Raw is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
+				errors.New("bson.Raw is not an allowed pipeline type as it represents a single document. Use bson.A, mongo.Pipeline or bsoncore.Array instead"),
 			},
 			{
 				"semantic single document/bsoncore.Document",
 				bsoncore.Document(doc),
 				nil,
 				false,
-				errors.New("bsoncore.Document is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead"),
+				errors.New("bsoncore.Document is not an allowed pipeline type as it represents a single document. Use bson.A, mongo.Pipeline or bsoncore.Array instead"),
 			},
 			{
 				"semantic single document/empty bson.D",
@@ -386,6 +395,24 @@ func TestMongoHelpers(t *testing.T) {
 				bsoncore.Document{},
 				bson.A{},
 				false,
+				nil,
+			},
+			{
+				"bsoncore.Array/success",
+				bsoncore.Array(arr),
+				bson.A{
+					bson.D{{"$limit", int32(12345)}},
+				},
+				false,
+				nil,
+			},
+			{
+				"bsoncore.Array/hasOutputStage",
+				arrOutputStage,
+				bson.A{
+					bson.D{{"$merge", bson.D{}}},
+				},
+				true,
 				nil,
 			},
 		}
