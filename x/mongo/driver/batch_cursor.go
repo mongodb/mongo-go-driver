@@ -184,6 +184,13 @@ func NewEmptyBatchCursor() *BatchCursor {
 	return &BatchCursor{currentBatch: new(bsoncore.DocumentSequence)}
 }
 
+// NewBatchCursorFromBytes returns a batch cursor with current batch set to the provided contents.
+func NewBatchCursorFromBytes(contents []byte) *BatchCursor {
+	return &BatchCursor{currentBatch: &bsoncore.DocumentSequence{
+		Data: contents,
+	}}
+}
+
 // ID returns the cursor ID for this batch cursor.
 func (bc *BatchCursor) ID() int64 {
 	return bc.id

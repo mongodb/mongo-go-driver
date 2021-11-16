@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // ErrNoDocuments is returned by SingleResult methods when the operation that created the SingleResult did not return
@@ -26,6 +27,22 @@ type SingleResult struct {
 	cur *Cursor
 	rdr bson.Raw
 	reg *bsoncodec.Registry
+}
+
+// NewSingleResultFromBytes creates a SingleResult with an underlying Cursor pre-loaded with the provided contents.
+func NewSingleResultFromBytes(contents []byte) *SingleResult {
+	c := &Cursor{
+		bc:       driver.NewBatchCursorFromBytes(contents),
+		registry: bson.DefaultRegistry,
+		Current:  bson.Raw(contents),
+	}
+
+	// Initialize just the batchLength here so RemainingBatchLength will return an accurate result.
+	c.batchLength = c.bc.Batch().DocumentCount()
+	return &SingleResult{
+		cur: c,
+		reg: bson.DefaultRegistry,
+	}
 }
 
 // Decode will unmarshal the document represented by this SingleResult into v. If there was an error from the operation
@@ -71,6 +88,12 @@ func (sr *SingleResult) setRdrContents() error {
 		return nil
 	case sr.cur != nil:
 		defer sr.cur.Close(context.TODO())
+
+		// Set contents of rdr to cur.Current if non-nil. Otherwise, iterate underlying
+		// cursor.
+		if sr.rdr = sr.cur.Current; sr.rdr != nil {
+			return nil
+		}
 		if !sr.cur.Next(context.TODO()) {
 			if err := sr.cur.Err(); err != nil {
 				return err

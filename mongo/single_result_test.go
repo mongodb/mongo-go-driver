@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -48,4 +49,37 @@ func TestSingleResult(t *testing.T) {
 		sr := &SingleResult{}
 		assert.Equal(t, ErrNoDocuments, sr.Err(), "expected error %v, got %v", ErrNoDocuments, sr.Err())
 	})
+}
+
+func TestNewSingleResultFromBytes(t *testing.T) {
+	// Mimic a FindOne response from the server.
+	findOneResponse := bson.D{{"_id", 2}, {"foo", "bar"}}
+	findOneResponseBytes, err := bson.Marshal(findOneResponse)
+	assert.Nil(t, err, "Marshal error: %v", err)
+
+	res := NewSingleResultFromBytes(findOneResponseBytes)
+
+	// Assert that decoded first batch is as expected.
+	expectedDecoded := bson.Raw(findOneResponseBytes)
+	decoded, err := res.DecodeBytes()
+	assert.Nil(t, err, "DecodeBytes error: %v", err)
+	assert.Equal(t, expectedDecoded, decoded,
+		"expected decoded SingleResult to be %v, got %v", expectedDecoded, decoded)
+
+	// Assert that RDR contents are set correctly after Decode.
+	assert.NotNil(t, res.rdr, "expected non-nil rdr contents")
+	assert.Equal(t, expectedDecoded, res.rdr,
+		"expected RDR contents to be %v, got %v", expectedDecoded, res.rdr)
+
+	// Assert that a call to cur.Next will return false, as there is only one batch in
+	// SingleResult Cursors created by NewSingleResultFromBytes.
+	next := res.cur.Next(context.Background())
+	assert.False(t, next, "expected call to Next to return false, got true")
+
+	// Check for error on SingleResult.
+	assert.Nil(t, res.Err(), "SingleResult error: %v", res.Err())
+
+	// Assert that a call to cur.Close will not fail.
+	err = res.cur.Close(context.Background())
+	assert.Nil(t, err, "Close error: %v", err)
 }
