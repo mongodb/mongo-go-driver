@@ -126,14 +126,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 			continue
 		}
 
-		if enc, ok := currEncoder.(ValueEncoder); ok {
-			err = enc.EncodeValue(ec, vw, currVal)
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		err = encoder.EncodeValue(ec, vw, currVal)
+		err = currEncoder.EncodeValue(ec, vw, currVal)
 		if err != nil {
 			return err
 		}

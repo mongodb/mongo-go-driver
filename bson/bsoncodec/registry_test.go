@@ -328,7 +328,7 @@ func TestRegistry(t *testing.T) {
 					t.Run("Decoder", func(t *testing.T) {
 						var wanterr error
 						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
-							wanterr = ErrNoDecoder{Type: ene.Type}
+							wanterr = ErrNoDecoder(ene)
 						} else {
 							wanterr = tc.wanterr
 						}

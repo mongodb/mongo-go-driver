@@ -264,7 +264,7 @@ func (d Doc) Equal(id IDoc) bool {
 			}
 		}
 	case MDoc:
-		unique := make(map[string]struct{}, 0)
+		unique := make(map[string]struct{})
 		for _, elem := range d {
 			unique[elem.Key] = struct{}{}
 			val, ok := tt[elem.Key]

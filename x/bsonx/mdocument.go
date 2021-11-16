@@ -21,7 +21,7 @@ type MDoc map[string]Val
 // ReadMDoc will create a Doc using the provided slice of bytes. If the
 // slice of bytes is not a valid BSON document, this method will return an error.
 func ReadMDoc(b []byte) (MDoc, error) {
-	doc := make(MDoc, 0)
+	doc := make(MDoc)
 	err := doc.UnmarshalBSON(b)
 	if err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (d MDoc) Equal(id IDoc) bool {
 			}
 		}
 	case Doc:
-		unique := make(map[string]struct{}, 0)
+		unique := make(map[string]struct{})
 		for _, elem := range tt {
 			unique[elem.Key] = struct{}{}
 			val, ok := d[elem.Key]
