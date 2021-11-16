@@ -560,7 +560,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 		}
 		dominant, ok := dominantField(fields[i : i+advance])
 		if !ok || !sc.OverwriteDuplicatedInlinedFields {
-			return nil, fmt.Errorf("struct %s) duplicated key %s", t.String(), name)
+			return nil, fmt.Errorf("struct %s has duplicated key %s", t.String(), name)
 		}
 		sd.fl = append(sd.fl, dominant)
 		sd.fm[name] = dominant
