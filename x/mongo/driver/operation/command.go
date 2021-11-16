@@ -1,5 +1,3 @@
-// NOTE: This file is maintained by hand because operationgen cannot generate it.
-
 package operation
 
 import (
