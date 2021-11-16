@@ -7,7 +7,6 @@
 package integration
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -887,16 +886,12 @@ func insertDocuments(mt *mtest.T, coll *mongo.Collection, rawDocs []bson.Raw) {
 func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 	mt.Helper()
 
-	ctx := context.Background()
-
 	// key vault data
 	if len(testFile.KeyVaultData) > 0 {
 		keyVaultColl := mt.CreateCollection(mtest.Collection{
 			Name: "datakeys",
 			DB:   "keyvault",
 		}, false)
-
-		keyVaultColl.Drop(ctx)
 
 		insertDocuments(mt, keyVaultColl, testFile.KeyVaultData)
 	}

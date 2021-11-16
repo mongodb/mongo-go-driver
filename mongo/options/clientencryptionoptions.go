@@ -6,14 +6,18 @@
 
 package options
 
-import "crypto/tls"
+import (
+	"crypto/tls"
+	"errors"
+	"fmt"
+)
 
 // ClientEncryptionOptions represents all possible options used to configure a ClientEncryption instance.
 type ClientEncryptionOptions struct {
 	KeyVaultNamespace string
 	KmsProviders      map[string]map[string]interface{}
 	// TODO: Map string to *tls.Config
-	TLSConfig         *tls.Config
+	TLSConfig         map[string]tls.Config
 }
 
 // ClientEncryption creates a new ClientEncryptionOptions instance.
@@ -33,31 +37,41 @@ func (c *ClientEncryptionOptions) SetKmsProviders(providers map[string]map[strin
 	return c
 }
 
-func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]interface{}) (*ClientEncryptionOptions, error) {
-	var cfg tls.Config
+func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]map[string]interface{}) (*ClientEncryptionOptions, error) {
+	c.TLSConfig = make(map[string]tls.Config)
 
-	if clientCertPath, found := tlsOpts["tlsCertificateKeyFile"].(string); found {
-		if keyPwd, found := tlsOpts["keyPwd"].(string); found {
-			_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, keyPwd)
-			if err != nil {
-				return c, err
+	for key, doc := range tlsOpts {
+		var cfg tls.Config
+		
+		for cert := range doc {
+			if (cert != "tlsCertificateKeyFile") && (cert != "tlsCAFile") && (cert != "tlsCertificateKeyFilePassword") {
+				return c, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", "TODO", key))
 			}
-		} else {
-			_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, "")
-			if err != nil {
-				return c, err
-			}
-		}	
-	}
-
-	if CApath, found := tlsOpts["tlsCAfile"].(string); found {
-		err := addCACertFromFile(&cfg, CApath)
-		if err != nil {
-			return c , err
 		}
-	}
 
-	c.TLSConfig = &cfg
+		if clientCertPath, found := doc["tlsCertificateKeyFile"].(string); found {
+			if keyPwd, found := doc["tlsCertificateKeyFilePassword"].(string); found {
+				_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, keyPwd)
+				if err != nil {
+					return c, err
+				}
+			} else {
+				_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, "")
+				if err != nil {
+					return c, err
+				}
+			}	
+		}
+	
+		if CApath, found := doc["tlsCAFile"].(string); found {
+			err := addCACertFromFile(&cfg, CApath)
+			if err != nil {
+				return c, err
+			}
+		}
+		
+		c.TLSConfig[key] = cfg
+	}
 	return c, nil
 }
 

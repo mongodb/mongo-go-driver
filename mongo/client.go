@@ -791,13 +791,6 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 		cir = collInfoRetriever{client: c.metadataClientFLE}
 	}
 
-	// var tlsConfig map[string]tls.Config
-	// if opts.TLSConfig != nil {
-	// 	tlsConfig = *opts.TLSConfig
-	// } else {
-	// 	tlsConfig = tls.Config{}
-	// }
-
 	cryptOpts := &driver.CryptOptions{
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,

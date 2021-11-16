@@ -100,12 +100,17 @@ func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}
 
 // TODO: check to return nil if error
 func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]map[string]interface{}) (*AutoEncryptionOptions, error) {
+	a.TLSConfig = make(map[string]tls.Config)
+
 	for key, doc := range tlsOpts {
-		if key != "tlsCertificateKeyFile" || key != "tlsCertificateKeyFilePassword" || key != "tlsCAFile" {
-			return a, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", "TODO", key))
+		var cfg tls.Config
+		
+		for cert := range doc {
+			if (cert != "tlsCertificateKeyFile") && (cert != "tlsCAFile") && (cert != "tlsCertificateKeyFilePassword") {
+				return a, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", "TODO", key))
+			}
 		}
 
-		var cfg tls.Config
 		if clientCertPath, found := doc["tlsCertificateKeyFile"].(string); found {
 			if keyPwd, found := doc["tlsCertificateKeyFilePassword"].(string); found {
 				_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, keyPwd)

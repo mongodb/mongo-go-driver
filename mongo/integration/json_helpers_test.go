@@ -175,7 +175,7 @@ func createTLSOptsMap(t testing.TB, opts bson.Raw) map[string]map[string]interfa
 	for _, elem := range elems {
 		provider := elem.Key()
 
-		if provider != "local" {
+		if provider == "kmip" {
 			tlsOptsMap := map[string]interface{}{
 				"tlsCertificateKeyFile": sslClientCertificateKeyFile,
 				"tlsCAFile":             sslCertificateAuthorityFile,
