@@ -180,8 +180,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		PoolMonitor: cfg.poolMonitor,
 	}
 
-	connectionOpts := make([]ConnectionOption, len(cfg.connectionOpts))
-	copy(connectionOpts, cfg.connectionOpts)
+	connectionOpts := copyConnectionOpts(cfg.connectionOpts)
 	connectionOpts = append(connectionOpts, withErrorHandlingCallback(s.ProcessHandshakeError))
 	s.pool = newPool(pc, connectionOpts...)
 	s.publishServerOpeningEvent(s.address)
@@ -590,8 +589,7 @@ func (s *Server) updateDescription(desc description.Server) {
 // createConnection creates a new connection instance but does not call connect on it. The caller must call connect
 // before the connection can be used for network operations.
 func (s *Server) createConnection() (*connection, error) {
-	opts := make([]ConnectionOption, len(s.cfg.connectionOpts))
-	copy(opts, s.cfg.connectionOpts)
+	opts := copyConnectionOpts(s.cfg.connectionOpts)
 	opts = append(opts,
 		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
@@ -607,6 +605,12 @@ func (s *Server) createConnection() (*connection, error) {
 	)
 
 	return newConnection(s.address, opts...)
+}
+
+func copyConnectionOpts(opts []ConnectionOption) []ConnectionOption {
+	optsCopy := make([]ConnectionOption, len(opts))
+	copy(optsCopy, opts)
+	return optsCopy
 }
 
 func (s *Server) setupHeartbeatConnection() error {
