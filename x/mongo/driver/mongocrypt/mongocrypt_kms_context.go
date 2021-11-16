@@ -32,7 +32,7 @@ func (kc *KmsContext) HostName() (string, error) {
 	return C.GoString(hostname), nil
 }
 
-// TODO: create new method to access KMS context's current KMS provider
+// KMSProvider gets the KMS providr of the KMS context.
 func (kc *KmsContext) KMSProvider() string {
 	kmsProvider := C.mongocrypt_kms_ctx_get_kms_provider(kc.wrapped, nil)
 	return C.GoString(kmsProvider)

@@ -139,7 +139,6 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 
 		switch name {
 		case "kmsProviders":
-			// TODO: confirm with spec for testing, check if opt.Document contains kmip then set certs
 			aeo.SetKmsProviders(createKmsProvidersMap(t, opt.Document()))
 			aeo.SetTLSConfig(createTLSOptsMap(t, opt.Document()))
 		case "schemaMap":

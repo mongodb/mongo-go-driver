@@ -16,7 +16,6 @@ import (
 type ClientEncryptionOptions struct {
 	KeyVaultNamespace string
 	KmsProviders      map[string]map[string]interface{}
-	// TODO: Map string to *tls.Config
 	TLSConfig         map[string]tls.Config
 }
 
@@ -45,7 +44,7 @@ func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]map[string]int
 		
 		for cert := range doc {
 			if (cert != "tlsCertificateKeyFile") && (cert != "tlsCAFile") && (cert != "tlsCertificateKeyFilePassword") {
-				return c, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", "TODO", key))
+				return c, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", cert, key))
 			}
 		}
 

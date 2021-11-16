@@ -107,7 +107,7 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]map[string]inter
 		
 		for cert := range doc {
 			if (cert != "tlsCertificateKeyFile") && (cert != "tlsCAFile") && (cert != "tlsCertificateKeyFilePassword") {
-				return a, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", "TODO", key))
+				return a, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", cert, key))
 			}
 		}
 
