@@ -23,6 +23,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -48,8 +49,8 @@ var ErrServerSelectionTimeout = errors.New("server selection timeout")
 // MonitorMode represents the way in which a server is monitored.
 type MonitorMode uint8
 
-// random is a package-global pseudo-random number source.
-var random = rand.New(rand.NewSource(time.Now().UnixNano()))
+// random is a package-global pseudo-random number generator.
+var random = randutil.NewLockedRand(rand.NewSource(time.Now().UnixNano()))
 
 // These constants are the available monitoring modes.
 const (

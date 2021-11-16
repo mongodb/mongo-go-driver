@@ -17,13 +17,14 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
-// random is a package-global pseudo-random number source.
-var random = rand.New(rand.NewSource(time.Now().UnixNano()))
+// random is a package-global pseudo-random number generator.
+var random = randutil.NewLockedRand(rand.NewSource(time.Now().UnixNano()))
 
 // ParseAndValidate parses the provided URI into a ConnString object.
 // It check that all values are valid.
