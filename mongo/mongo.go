@@ -219,7 +219,7 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 		case bson.D, bson.Raw, bsoncore.Document:
 			if valLen > 0 {
 				return nil, false,
-					fmt.Errorf("%T is not an allowed pipeline type as it represents a single document. Use bson.A, mongo.Pipeline or bsoncore.Array instead", t)
+					fmt.Errorf("%T is not an allowed pipeline type as it represents a single document. Use bson.A or mongo.Pipeline instead", t)
 			}
 		// bsoncore.Arrays do not need to be transformed. Only check validity and presence of output stage.
 		case bsoncore.Array:
