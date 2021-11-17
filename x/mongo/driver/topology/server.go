@@ -82,9 +82,9 @@ func connectionStateString(state int64) string {
 
 // Server is a single server within a topology.
 type Server struct {
+	connectionstate int64
 	cfg             *serverConfig
 	address         address.Address
-	connectionstate int64
 
 	// connection related fields
 	pool *pool

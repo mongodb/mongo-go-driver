@@ -86,6 +86,9 @@ type WriteConcernErrorData struct {
 type T struct {
 	*testing.T
 
+	_               *bool // 64-bit align connsCheckedOut on 64-bit and 32-bit platforms.
+	connsCheckedOut int64 // net number of connections checked out during test execution
+
 	// members for only this T instance
 	createClient      *bool
 	createCollection  *bool
@@ -104,7 +107,6 @@ type T struct {
 	dataLake          *bool
 	ssl               *bool
 	collCreateOpts    bson.D
-	connsCheckedOut   int64 // net number of connections checked out during test execution
 	requireAPIVersion *bool
 
 	// options copied to sub-tests
