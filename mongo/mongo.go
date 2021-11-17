@@ -223,21 +223,27 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 			}
 		// bsoncore.Arrays do not need to be transformed. Only check validity and presence of output stage.
 		case bsoncore.Array:
-			a := pipeline.(bsoncore.Array)
-			if err := a.Validate(); err != nil {
+			if err := t.Validate(); err != nil {
 				return nil, false, err
 			}
 
-			// If not empty, check if first value of first stage is $out or $merge.
-			if valLen > 0 {
-				firstStage, ok := a.Index(0).DocumentOK()
-				if ok {
-					if elem, err := firstStage.IndexErr(0); err == nil && (elem.Key() == "$out" || elem.Key() == "$merge") {
-						hasOutputStage = true
-					}
+			values, err := t.Values()
+			if err != nil {
+				return nil, false, err
+			}
+
+			numVals := len(values)
+			if numVals == 0 {
+				return bsoncore.Document(t), false, nil
+			}
+
+			// If not empty, check if first value of the last stage is $out or $merge.
+			if lastStage, ok := values[numVals-1].DocumentOK(); ok {
+				if elem, err := lastStage.IndexErr(0); err == nil && (elem.Key() == "$out" || elem.Key() == "$merge") {
+					hasOutputStage = true
 				}
 			}
-			return bsoncore.Document(a), hasOutputStage, nil
+			return bsoncore.Document(t), hasOutputStage, nil
 		}
 
 		aidx, arr := bsoncore.AppendArrayStart(nil)

@@ -133,11 +133,29 @@ func TestMongoHelpers(t *testing.T) {
 		doc, _ = bsoncore.AppendDocumentEnd(doc, index)
 
 		// bsoncore.Array of [{{"$merge", {}}}]
-		outputStage := bsoncore.NewDocumentBuilder().
+		mergeStage := bsoncore.NewDocumentBuilder().
 			StartDocument("$merge").
 			FinishDocument().
 			Build()
-		arrOutputStage := bsoncore.NewArrayBuilder().AppendDocument(outputStage).Build()
+		arrMergeStage := bsoncore.NewArrayBuilder().AppendDocument(mergeStage).Build()
+
+		fooStage := bsoncore.NewDocumentBuilder().AppendString("foo", "bar").Build()
+		bazStage := bsoncore.NewDocumentBuilder().AppendString("baz", "qux").Build()
+		outStage := bsoncore.NewDocumentBuilder().AppendString("$out", "myColl").Build()
+
+		// bsoncore.Array of [{{"foo", "bar"}}, {{"baz", "qux"}}, {{"$out", "myColl"}}]
+		arrOutStage := bsoncore.NewArrayBuilder().
+			AppendDocument(fooStage).
+			AppendDocument(bazStage).
+			AppendDocument(outStage).
+			Build()
+
+		// bsoncore.Array of [{{"foo", "bar"}}, {{"$out", "myColl"}}, {{"baz", "qux"}}]
+		arrMiddleOutStage := bsoncore.NewArrayBuilder().
+			AppendDocument(fooStage).
+			AppendDocument(outStage).
+			AppendDocument(bazStage).
+			Build()
 
 		testCases := []struct {
 			name           string
@@ -407,12 +425,34 @@ func TestMongoHelpers(t *testing.T) {
 				nil,
 			},
 			{
-				"bsoncore.Array/hasOutputStage",
-				arrOutputStage,
+				"bsoncore.Array/mergeStage",
+				arrMergeStage,
 				bson.A{
 					bson.D{{"$merge", bson.D{}}},
 				},
 				true,
+				nil,
+			},
+			{
+				"bsoncore.Array/outStage",
+				arrOutStage,
+				bson.A{
+					bson.D{{"foo", "bar"}},
+					bson.D{{"baz", "qux"}},
+					bson.D{{"$out", "myColl"}},
+				},
+				true,
+				nil,
+			},
+			{
+				"bsoncore.Array/middleOutStage",
+				arrMiddleOutStage,
+				bson.A{
+					bson.D{{"foo", "bar"}},
+					bson.D{{"$out", "myColl"}},
+					bson.D{{"baz", "qux"}},
+				},
+				false,
 				nil,
 			},
 		}
