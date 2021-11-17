@@ -140,7 +140,10 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 		switch name {
 		case "kmsProviders":
 			aeo.SetKmsProviders(createKmsProvidersMap(t, opt.Document()))
-			aeo.SetTLSConfig(createTLSOptsMap(t, opt.Document()))
+			_, err := aeo.SetTLSConfig(createTLSOptsMap(t, opt.Document()))
+			if err != nil {
+				t.Fatalf("error creating kms providers map: %v", err)
+			}
 		case "schemaMap":
 			var schemaMap map[string]interface{}
 			err := bson.Unmarshal(opt.Document(), &schemaMap)

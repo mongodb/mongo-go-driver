@@ -36,40 +36,39 @@ func (c *ClientEncryptionOptions) SetKmsProviders(providers map[string]map[strin
 	return c
 }
 
-func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]map[string]interface{}) (*ClientEncryptionOptions, error) {
+// SetTLSConfig applies custom TLS options to configure connections with each KMS provider.
+func (c *ClientEncryptionOptions) SetTLSConfig(tlsOptsMap map[string]map[string]interface{}) (*ClientEncryptionOptions, error) {
 	c.TLSConfig = make(map[string]tls.Config)
 
-	for key, doc := range tlsOpts {
+	for provider, tlsOpts := range tlsOptsMap {
 		var cfg tls.Config
 		
-		for cert := range doc {
-			if (cert != "tlsCertificateKeyFile") && (cert != "tlsCAFile") && (cert != "tlsCertificateKeyFilePassword") {
-				return c, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", cert, key))
+		for cert := range tlsOpts {
+			var err error
+			switch cert {
+			case "tlsCertificateKeyFile":
+				clientCertPath, _ := tlsOpts[cert].(string)
+				// apply custom key file password if found, otherwise use empty string
+				if keyPwd, found := tlsOpts["tlsCertificateKeyFilePassword"].(string); found {
+					_, err = addClientCertFromConcatenatedFile(&cfg, clientCertPath, keyPwd)
+				} else {
+					_, err = addClientCertFromConcatenatedFile(&cfg, clientCertPath, "")
+				}
+			case "tlsCertificateKeyFilePassword":
+				continue
+			case "tlsCAFile":
+				CApath, _ := tlsOpts[cert].(string)
+				err = addCACertFromFile(&cfg, CApath)
+			default:
+				return c, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", cert, provider))
 			}
-		}
-
-		if clientCertPath, found := doc["tlsCertificateKeyFile"].(string); found {
-			if keyPwd, found := doc["tlsCertificateKeyFilePassword"].(string); found {
-				_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, keyPwd)
-				if err != nil {
-					return c, err
-				}
-			} else {
-				_, err := addClientCertFromConcatenatedFile(&cfg, clientCertPath, "")
-				if err != nil {
-					return c, err
-				}
-			}	
-		}
-	
-		if CApath, found := doc["tlsCAFile"].(string); found {
-			err := addCACertFromFile(&cfg, CApath)
+			
 			if err != nil {
 				return c, err
 			}
 		}
-		
-		c.TLSConfig[key] = cfg
+
+		c.TLSConfig[provider] = cfg
 	}
 	return c, nil
 }
