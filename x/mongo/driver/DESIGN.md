@@ -19,5 +19,5 @@ The `Operation` type handles executing a series of commands using a `Deployment`
 batch split write commands, such as insert. The type itself is heavily documented, so reading the
 code and comments together should provide an understanding of how the type works.
 
-This type is not meant to be used directly by callers. Instead an wrapping type should be defined
-using the IDL and an implementation generated using `operationgen`.
+This type is not meant to be used directly by callers. Instead a wrapping type should be defined
+using the IDL.
