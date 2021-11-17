@@ -120,15 +120,42 @@ func TestMongoHelpers(t *testing.T) {
 		})
 	})
 	t.Run("transform aggregate pipeline", func(t *testing.T) {
+		// []byte of [{{"$limit", 12345}}]
 		index, arr := bsoncore.AppendArrayStart(nil)
 		dindex, arr := bsoncore.AppendDocumentElementStart(arr, "0")
 		arr = bsoncore.AppendInt32Element(arr, "$limit", 12345)
 		arr, _ = bsoncore.AppendDocumentEnd(arr, dindex)
 		arr, _ = bsoncore.AppendArrayEnd(arr, index)
 
+		// []byte of {{"x", 1}}
 		index, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendInt32Element(doc, "x", 1)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, index)
+
+		// bsoncore.Array of [{{"$merge", {}}}]
+		mergeStage := bsoncore.NewDocumentBuilder().
+			StartDocument("$merge").
+			FinishDocument().
+			Build()
+		arrMergeStage := bsoncore.NewArrayBuilder().AppendDocument(mergeStage).Build()
+
+		fooStage := bsoncore.NewDocumentBuilder().AppendString("foo", "bar").Build()
+		bazStage := bsoncore.NewDocumentBuilder().AppendString("baz", "qux").Build()
+		outStage := bsoncore.NewDocumentBuilder().AppendString("$out", "myColl").Build()
+
+		// bsoncore.Array of [{{"foo", "bar"}}, {{"baz", "qux"}}, {{"$out", "myColl"}}]
+		arrOutStage := bsoncore.NewArrayBuilder().
+			AppendDocument(fooStage).
+			AppendDocument(bazStage).
+			AppendDocument(outStage).
+			Build()
+
+		// bsoncore.Array of [{{"foo", "bar"}}, {{"$out", "myColl"}}, {{"baz", "qux"}}]
+		arrMiddleOutStage := bsoncore.NewArrayBuilder().
+			AppendDocument(fooStage).
+			AppendDocument(outStage).
+			AppendDocument(bazStage).
+			Build()
 
 		testCases := []struct {
 			name           string
@@ -385,6 +412,46 @@ func TestMongoHelpers(t *testing.T) {
 				"semantic single document/empty bsoncore.Document",
 				bsoncore.Document{},
 				bson.A{},
+				false,
+				nil,
+			},
+			{
+				"bsoncore.Array/success",
+				bsoncore.Array(arr),
+				bson.A{
+					bson.D{{"$limit", int32(12345)}},
+				},
+				false,
+				nil,
+			},
+			{
+				"bsoncore.Array/mergeStage",
+				arrMergeStage,
+				bson.A{
+					bson.D{{"$merge", bson.D{}}},
+				},
+				true,
+				nil,
+			},
+			{
+				"bsoncore.Array/outStage",
+				arrOutStage,
+				bson.A{
+					bson.D{{"foo", "bar"}},
+					bson.D{{"baz", "qux"}},
+					bson.D{{"$out", "myColl"}},
+				},
+				true,
+				nil,
+			},
+			{
+				"bsoncore.Array/middleOutStage",
+				arrMiddleOutStage,
+				bson.A{
+					bson.D{{"foo", "bar"}},
+					bson.D{{"$out", "myColl"}},
+					bson.D{{"baz", "qux"}},
+				},
 				false,
 				nil,
 			},
