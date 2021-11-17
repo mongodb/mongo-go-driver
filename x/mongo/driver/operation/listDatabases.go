@@ -73,14 +73,14 @@ func buildListDatabasesResult(response bsoncore.Document, srvr driver.Server) (L
 			}
 
 			var tmp bsoncore.Document
-			marshalErr := bson.Unmarshal(arr, &tmp)
-			if marshalErr != nil {
-				return ir, marshalErr
+			err := bson.Unmarshal(arr, &tmp)
+			if err != nil {
+				return ir, err
 			}
 
-			records, marshalErr := tmp.Elements()
-			if marshalErr != nil {
-				return ir, marshalErr
+			records, err := tmp.Elements()
+			if err != nil {
+				return ir, err
 			}
 
 			ir.Databases = make([]databaseRecord, len(records))
@@ -90,9 +90,9 @@ func buildListDatabasesResult(response bsoncore.Document, srvr driver.Server) (L
 					return ir, fmt.Errorf("'databases' element is type document, but received BSON type %s", val.Value().Type)
 				}
 
-				elems, marshalErr := valueDoc.Elements()
-				if marshalErr != nil {
-					return ir, marshalErr
+				elems, err := valueDoc.Elements()
+				if err != nil {
+					return ir, err
 				}
 
 				for _, elem := range elems {

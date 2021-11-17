@@ -77,7 +77,7 @@ func buildFindAndModifyResult(response bsoncore.Document, srvr driver.Server) (F
 			famr.Value, ok = element.Value().DocumentOK()
 
 			// The 'value' field returned by a FindAndModify can be null in the case that no document was found.
-			if famr.Value != nil && !ok {
+			if element.Value().Type != bsontype.Null && !ok {
 				return famr, fmt.Errorf("response field 'value' is type document or null, but received BSON type %s", element.Value().Type)
 			}
 		case "lastErrorObject":
