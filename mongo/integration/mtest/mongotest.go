@@ -84,10 +84,13 @@ type WriteConcernErrorData struct {
 
 // T is a wrapper around testing.T.
 type T struct {
-	*testing.T
+	// connsCheckedOut is the net number of connections checked out during test execution.
+	// It must be accessed using the atomic package and should be at the beginning of the struct.
+	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
+	// - suggested layout: https://go101.org/article/memory-layout.html
+	connsCheckedOut int64
 
-	_               *bool // 64-bit align connsCheckedOut on 64-bit and 32-bit platforms.
-	connsCheckedOut int64 // net number of connections checked out during test execution
+	*testing.T
 
 	// members for only this T instance
 	createClient      *bool

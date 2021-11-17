@@ -82,9 +82,14 @@ func connectionStateString(state int64) string {
 
 // Server is a single server within a topology.
 type Server struct {
+	// connectionstate must be accessed using the atomic package and should be at the beginning of
+	// the struct.
+	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
+	// - suggested layout: https://go101.org/article/memory-layout.html
 	connectionstate int64
-	cfg             *serverConfig
-	address         address.Address
+
+	cfg     *serverConfig
+	address address.Address
 
 	// connection related fields
 	pool *pool
