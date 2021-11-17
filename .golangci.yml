@@ -60,12 +60,6 @@ issues:
       linters:
         - revive
         - errcheck
-    # Ignore some linters for generated operation code.
-    # TODO: Re-enable once GODRIVER-2154 is done.
-    - path: x/mongo/driver/operation/
-      linters:
-        - staticcheck
-        - ineffassign
     # Disable unused code linters for the copy/pasted "awsv4" package.
     - path: x/mongo/driver/auth/internal/awsv4
       linters:

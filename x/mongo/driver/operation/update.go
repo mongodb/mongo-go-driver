@@ -4,8 +4,6 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// NOTE: This file is maintained by hand because operationgen cannot generate it.
-
 package operation
 
 import (
@@ -67,26 +65,22 @@ func buildUpdateResult(response bsoncore.Document, srvr driver.Server) (UpdateRe
 	ur := UpdateResult{}
 	for _, element := range elements {
 		switch element.Key() {
-
 		case "nModified":
 			var ok bool
 			ur.NModified, ok = element.Value().Int32OK()
 			if !ok {
-				err = fmt.Errorf("response field 'nModified' is type int32, but received BSON type %s", element.Value().Type)
+				return ur, fmt.Errorf("response field 'nModified' is type int32, but received BSON type %s", element.Value().Type)
 			}
-
 		case "n":
 			var ok bool
 			ur.N, ok = element.Value().Int32OK()
 			if !ok {
-				err = fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
+				return ur, fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
 			}
-
 		case "upserted":
 			arr, ok := element.Value().ArrayOK()
 			if !ok {
-				err = fmt.Errorf("response field 'upserted' is type array, but received BSON type %s", element.Value().Type)
-				break
+				return ur, fmt.Errorf("response field 'upserted' is type array, but received BSON type %s", element.Value().Type)
 			}
 
 			var values []bsoncore.Value
@@ -98,12 +92,11 @@ func buildUpdateResult(response bsoncore.Document, srvr driver.Server) (UpdateRe
 			for _, val := range values {
 				valDoc, ok := val.DocumentOK()
 				if !ok {
-					err = fmt.Errorf("upserted value is type document, but received BSON type %s", val.Type)
-					break
+					return ur, fmt.Errorf("upserted value is type document, but received BSON type %s", val.Type)
 				}
 				var upsert Upsert
 				if err = bson.Unmarshal(valDoc, &upsert); err != nil {
-					break
+					return ur, err
 				}
 				ur.Upserted = append(ur.Upserted, upsert)
 			}
