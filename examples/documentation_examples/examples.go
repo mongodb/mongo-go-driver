@@ -2543,7 +2543,7 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 
 	// Use a causally-consistent session to run some operations
 	opts := options.Session().SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(
-		writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
+		writeconcern.New(writeconcern.WMajority()))
 	session1, err := client.StartSession(opts)
 
 	if err != nil {
@@ -2576,8 +2576,7 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 
 	// Make a new session that is causally consistent with session1 so session2 reads what session1 writes
 	opts = options.Session().SetDefaultReadPreference(readpref.Secondary()).SetDefaultReadConcern(
-		readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority(),
-		writeconcern.WTimeout(1000)))
+		readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority()))
 	session2, err := client.StartSession(opts)
 
 	if err != nil {
