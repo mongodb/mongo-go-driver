@@ -835,7 +835,37 @@ functions:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port 8000
+          ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT}
+
+  start-kms-mock-server-require-client-cert:
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+
+          cd ${DRIVERS_TOOLS}/.evergreen/csfle
+          . ./activate_venv.sh
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/csfle
+          ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT} --require_client_cert
+
+  start-kmip-mock-server:
+     - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+
+          cd ${DRIVERS_TOOLS}/.evergreen/csfle
+          . ./activate_venv.sh
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/csfle
+          ./kmstlsvenv/bin/python3 -u kms_kmip_server.py --port 5698
 
   run-kms-tls-test:
     - command: shell.exec
@@ -860,6 +890,34 @@ functions:
           AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
           GCP_EMAIL="${cse_gcp_email}" \
           GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
+          make evg-test-kms \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+
+  run-kmip-tests:
+  - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+
+          export GOFLAGS=-mod=vendor
+          AUTH="${AUTH}" \
+          SSL="${SSL}" \
+          MONGODB_URI="${MONGODB_URI}" \
+          TOPOLOGY="${TOPOLOGY}" \
+          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
+          BUILD_TAGS="-tags cse" \
+          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
+          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
+          AZURE_TENANT_ID="${cse_azure_tenant_id}" \
+          AZURE_CLIENT_ID="${cse_azure_client_id}" \
+          AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
+          GCP_EMAIL="${cse_gcp_email}" \
+          GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
+          CSFLE_TLS_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
+          CSFLE_TLS_CERTIFICATE_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
           make evg-test-kms \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
@@ -1693,6 +1751,7 @@ tasks:
       - func: start-kms-mock-server
         vars:
           CERT_FILE: "expired.pem"
+          PORT: 8000
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_CERT"
@@ -1711,9 +1770,37 @@ tasks:
       - func: start-kms-mock-server
         vars:
           CERT_FILE: "wrong-host.pem"
+          PORT: 8000
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_HOSTNAME"
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+
+    - name: "test-kms-kmip"
+    tags: ["kms-kmip"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-kms-mock-server
+        vars:
+          CERT_FILE: "expired.pem"
+          PORT: 8000
+      - func: start-kms-mock-server
+        vars:
+          CERT_FILE: "wrong-host.pem"
+          PORT: 8001
+      - func: start-kms-mock-server-require-client-cert
+        vars:
+          CERT_FILE: "server.pem"
+          PORT: 8002
+      - func: start-kms-kmip-server
+      - func: run-kmip-tests
+        vars:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
@@ -2075,3 +2162,9 @@ buildvariants:
     display_name: "Serverless ${os-ssl-40}"
     tasks:
       - "serverless_task_group"
+
+  - matrix_name: "kms-kmip-test"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-16"] }
+    display_name: "KMS KMIP ${os-ssl-40}"
+    tasks:
+      - name: ".kms-kmip"
