@@ -852,7 +852,7 @@ functions:
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT} --require_client_cert
 
-  start-kmip-mock-server:
+  start-kms-kmip-server:
      - command: shell.exec
       params:
         script: |
@@ -860,6 +860,7 @@ functions:
 
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           . ./activate_venv.sh
+          pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
     - command: shell.exec
       params:
         background: true
