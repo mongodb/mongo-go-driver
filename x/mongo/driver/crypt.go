@@ -73,7 +73,7 @@ type crypt struct {
 	collInfoFn CollectionInfoFn
 	keyFn      KeyRetrieverFn
 	markFn     MarkCommandFn
-	tlsCfg     map[string]*tls.Config
+	tlsConfig  map[string]*tls.Config
 
 	bypassAutoEncryption bool
 }
@@ -84,7 +84,7 @@ func NewCrypt(opts *CryptOptions) (Crypt, error) {
 		collInfoFn:           opts.CollInfoFn,
 		keyFn:                opts.KeyFn,
 		markFn:               opts.MarkFn,
-		tlsCfg:               opts.TLSConfig,
+		tlsConfig:            opts.TLSConfig,
 		bypassAutoEncryption: opts.BypassAutoEncryption,
 	}
 
@@ -296,8 +296,8 @@ func (c *crypt) decryptKey(ctx context.Context, kmsCtx *mongocrypt.KmsContext) e
 		addr = fmt.Sprintf("%s:%d", host, defaultKmsPort)
 	}
 
-	kmsProvider, err := kmsCtx.KMSProvider()
-	tlsCfg := c.tlsCfg[kmsProvider]
+	kmsProvider := kmsCtx.KMSProvider()
+	tlsCfg := c.tlsConfig[kmsProvider]
 	conn, err := tls.Dial("tcp", addr, tlsCfg)
 	if err != nil {
 		return err
