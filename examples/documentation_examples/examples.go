@@ -2564,6 +2564,8 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 		return err
 	}
 
+	session1.EndSession(context.TODO())
+
 	// End Causal Consistency Example 1
 
 	// Start Causal Consistency Example 2
@@ -2602,6 +2604,8 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 	if err := cursor.Err(); err != nil {
 		return err
 	}
+
+	session2.EndSession(context.TODO())
 
 	// End Causal Consistency Example 2
 
