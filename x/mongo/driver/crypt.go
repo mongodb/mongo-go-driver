@@ -293,7 +293,7 @@ func (c *crypt) decryptKey(ctx context.Context, kmsCtx *mongocrypt.KmsContext) e
 		addr = fmt.Sprintf("%s:%d", host, defaultKmsPort)
 	}
 
-	conn, err := tls.Dial("tcp", addr, &tls.Config{})
+	conn, err := tls.Dial("tcp", addr, &tls.Config{MinVersion: tls.VersionTLS12})
 	if err != nil {
 		return err
 	}

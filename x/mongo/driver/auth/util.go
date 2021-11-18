@@ -7,14 +7,21 @@
 package auth
 
 import (
-	"crypto/md5"
 	"fmt"
 	"io"
+
+	// Ignore gosec warning "Blocklisted import crypto/md5: weak cryptographic primitive". We need
+	// to use MD5 here to implement the SCRAM specification.
+	/* #nosec G501 */
+	"crypto/md5"
 )
 
 const defaultAuthDB = "admin"
 
 func mongoPasswordDigest(username, password string) string {
+	// Ignore gosec warning "Use of weak cryptographic primitive". We need to use MD5 here to
+	// implement the SCRAM specification.
+	/* #nosec G401 */
 	h := md5.New()
 	_, _ = io.WriteString(h, username)
 	_, _ = io.WriteString(h, ":mongo:")

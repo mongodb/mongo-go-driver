@@ -10,6 +10,7 @@ linters:
     # - errorlint
     - goimports
     - gosimple
+    - gosec
     - govet
     - ineffassign
     - makezero
@@ -70,3 +71,9 @@ issues:
     - path: x/mongo/driver/crypt.go
       linters:
         - unused
+    # Ignore "TLS MinVersion too low", "TLS InsecureSkipVerify set true", and "Use of weak random
+    # number generator (math/rand instead of crypto/rand)" in tests.
+    - path: (.+)_test.go
+      text: G401|G402|G404
+      linters:
+        - gosec

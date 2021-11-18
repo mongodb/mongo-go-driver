@@ -16,6 +16,9 @@ type LockedRand struct {
 // values. It is safe to use from multiple goroutines.
 func NewLockedRand(src rand.Source) *LockedRand {
 	return &LockedRand{
+		// Ignore gosec warning "Use of weak random number generator (math/rand instead of
+		// crypto/rand)". We intentionally use a pseudo-random number generator.
+		/* #nosec G404 */
 		r: rand.New(src),
 	}
 }
