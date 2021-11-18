@@ -16,7 +16,7 @@ import (
 type ClientEncryptionOptions struct {
 	KeyVaultNamespace string
 	KmsProviders      map[string]map[string]interface{}
-	TLSConfig         map[string]tls.Config
+	TLSConfig         map[string]*tls.Config
 }
 
 // ClientEncryption creates a new ClientEncryptionOptions instance.
@@ -36,39 +36,34 @@ func (c *ClientEncryptionOptions) SetKmsProviders(providers map[string]map[strin
 	return c
 }
 
-// SetTLSConfig applies custom TLS options to configure connections with each KMS provider.
-func (c *ClientEncryptionOptions) SetTLSConfig(tlsOptsMap map[string]map[string]interface{}) (*ClientEncryptionOptions, error) {
-	c.TLSConfig = make(map[string]tls.Config)
-
-	for provider, tlsOpts := range tlsOptsMap {
-		var cfg tls.Config
-		
-		for cert := range tlsOpts {
-			var err error
-			switch cert {
-			case "tlsCertificateKeyFile":
-				clientCertPath, _ := tlsOpts[cert].(string)
-				// apply custom key file password if found, otherwise use empty string
-				if keyPwd, found := tlsOpts["tlsCertificateKeyFilePassword"].(string); found {
-					_, err = addClientCertFromConcatenatedFile(&cfg, clientCertPath, keyPwd)
-				} else {
-					_, err = addClientCertFromConcatenatedFile(&cfg, clientCertPath, "")
-				}
-			case "tlsCertificateKeyFilePassword":
-				continue
-			case "tlsCAFile":
-				CApath, _ := tlsOpts[cert].(string)
-				err = addCACertFromFile(&cfg, CApath)
-			default:
-				return c, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", cert, provider))
-			}
-			
-			if err != nil {
-				return c, err
-			}
-		}
-
-		c.TLSConfig[provider] = cfg
+// SetTLSOptions specifies tls.Config instances for each KMS provider to use to configure TLS on all connections created
+// to the cluster. The input map should contain a mapping from each KMS provider to a document containing the necessary 
+// options, as follows:
+//
+// {
+//		"kmip": {
+//			"tlsCertificateKeyFile": "foo.pem",
+// 			"tlsCAFile": "fooCA.pem"
+//		}
+// }
+//
+// Currently, the following TLS options are supported:
+//
+// 1. "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile"): The "tlsCertificateKeyFile" option specifies a path to 
+// the client certificate and private key, which must be concatenated into one file. 
+//
+// 2. "tlsCertificateKeyFilePassword" (or "sslClientCertificateKeyPassword"): Specify the password to decrypt the client
+// private key file (e.g. "tlsCertificateKeyFilePassword=password").
+//
+// 3. "tlsCaFile" (or "sslCertificateAuthorityFile"): Specify the path to a single or bundle of certificate authorities
+// to be considered trusted when making a TLS connection (e.g. "tlsCaFile=/path/to/caFile").
+//
+// This should only be used to set custom TLS options. By default, the connection will use an empty tls.Config{}.
+func (c *ClientEncryptionOptions) SetTLSOptions(tlsOpts map[string]map[string]interface{}) (*ClientEncryptionOptions, error) {
+	c.TLSConfig = make(map[string]*tls.Config)
+	_, err := applyTLSOptions(tlsOpts, c.TLSConfig)
+	if err != nil {
+		return c, err
 	}
 	return c, nil
 }
@@ -93,4 +88,41 @@ func MergeClientEncryptionOptions(opts ...*ClientEncryptionOptions) *ClientEncry
 	}
 
 	return ceo
+}
+
+// Used by both ClientEncryptionOptions.SetTLSOptions() and AutoEncryptionOptions.SetTLSOptions()
+func applyTLSOptions(tlsOpts map[string]map[string]interface{}, tlsConfigs map[string]*tls.Config) (map[string]*tls.Config, error) {
+	for provider, opts := range tlsOpts {
+		cfg := &tls.Config{MinVersion: tls.VersionTLS12}
+		
+		for cert := range opts {
+			var err error
+			switch cert {
+			case "tlsCertificateKeyFile", "sslClientCertificateKeyFile":
+				clientCertPath, _ := opts[cert].(string)
+				// apply custom key file password if found, otherwise use empty string
+				if keyPwd, found := opts["tlsCertificateKeyFilePassword"].(string); found {
+					_, err = addClientCertFromConcatenatedFile(cfg, clientCertPath, keyPwd)
+				} else if keyPwd, found := opts["sslClientCertificateKeyPassword"].(string); found {
+					_, err = addClientCertFromConcatenatedFile(cfg, clientCertPath, keyPwd)
+				} else {
+					_, err = addClientCertFromConcatenatedFile(cfg, clientCertPath, "")
+				}
+			case "tlsCertificateKeyFilePassword", "sslClientCertificateKeyPassword":
+				continue
+			case "tlsCAFile", "sslCertificateAuthorityFile":
+				CApath, _ := opts[cert].(string)
+				err = addCACertFromFile(cfg, CApath)
+			default:
+				return tlsConfigs, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", cert, provider))
+			}
+			
+			if err != nil {
+				return tlsConfigs, err
+			}
+		}
+
+		tlsConfigs[provider] = cfg
+	}
+	return tlsConfigs, nil
 }

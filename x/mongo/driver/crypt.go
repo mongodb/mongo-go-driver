@@ -40,7 +40,7 @@ type CryptOptions struct {
 	MarkFn               MarkCommandFn
 	KmsProviders         bsoncore.Document
 	SchemaMap            map[string]bsoncore.Document
-	TlsCfg               map[string]tls.Config
+	TLSConfig            map[string]*tls.Config
 	BypassAutoEncryption bool
 }
 
@@ -73,7 +73,7 @@ type crypt struct {
 	collInfoFn CollectionInfoFn
 	keyFn      KeyRetrieverFn
 	markFn     MarkCommandFn
-	tlsCfg     map[string]tls.Config
+	tlsCfg     map[string]*tls.Config
 
 	bypassAutoEncryption bool
 }
@@ -84,8 +84,8 @@ func NewCrypt(opts *CryptOptions) (Crypt, error) {
 		collInfoFn:           opts.CollInfoFn,
 		keyFn:                opts.KeyFn,
 		markFn:               opts.MarkFn,
+		tlsCfg:               opts.TLSConfig,
 		bypassAutoEncryption: opts.BypassAutoEncryption,
-		tlsCfg:               opts.TlsCfg,
 	}
 
 	mongocryptOpts := options.MongoCrypt().SetKmsProviders(opts.KmsProviders).SetLocalSchemaMap(opts.SchemaMap)
@@ -298,7 +298,7 @@ func (c *crypt) decryptKey(ctx context.Context, kmsCtx *mongocrypt.KmsContext) e
 
 	kmsProvider, err := kmsCtx.KMSProvider()
 	tlsCfg := c.tlsCfg[kmsProvider]
-	conn, err := tls.Dial("tcp", addr, &tlsCfg)
+	conn, err := tls.Dial("tcp", addr, tlsCfg)
 	if err != nil {
 		return err
 	}

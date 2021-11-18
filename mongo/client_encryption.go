@@ -54,7 +54,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 		KeyFn:        kr.cryptKeys,
 		CollInfoFn:   cir.cryptCollInfo,
 		KmsProviders: kmsProviders,
-		TlsCfg:       ceo.TLSConfig,
+		TLSConfig:    ceo.TLSConfig,
 	})
 	if err != nil {
 		return nil, err

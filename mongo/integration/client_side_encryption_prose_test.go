@@ -101,12 +101,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKmsProviders(fullKmsProvidersMap).
 			SetKeyVaultNamespace(kvNamespace).
 			SetSchemaMap(schemaMap)
-		_, err := aeo.SetTLSConfig(tlsMap)
+		_, err := aeo.SetTLSOptions(tlsMap)
 		assert.Nil(mt, err, "expected no error, got error: %v", err)
 		ceo := options.ClientEncryption().
 			SetKmsProviders(fullKmsProvidersMap).
 			SetKeyVaultNamespace(kvNamespace)
-		_, err = ceo.SetTLSConfig(tlsMap)
+		_, err = ceo.SetTLSOptions(tlsMap)
 		assert.Nil(mt, err, "expected no error, got error: %v", err)
 
 		awsMasterKey := bson.D{
@@ -410,7 +410,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			aeo := options.AutoEncryption().
 				SetKmsProviders(fullKmsProvidersMap).
 				SetKeyVaultNamespace(kvNamespace)
-			_, err := aeo.SetTLSConfig(tlsMap)
+			_, err := aeo.SetTLSOptions(tlsMap)
 			assert.Nil(mt, err, "expected no error, got error: %v", err)
 
 			return aeo
@@ -430,7 +430,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				ceo := options.ClientEncryption().
 					SetKmsProviders(fullKmsProvidersMap).
 					SetKeyVaultNamespace(kvNamespace)
-				_, err := ceo.SetTLSConfig(tlsMap)
+				_, err := ceo.SetTLSOptions(tlsMap)
 				assert.Nil(mt, err, "expected no error, got error: %v", err)
 
 				cpt := setup(mt, tc.aeo, defaultKvClientOptions, ceo)
@@ -659,7 +659,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKmsProviders(validKmsProviders).
 			SetKeyVaultNamespace(kvNamespace)
 
-		_, err := validClientEncryptionOptions.SetTLSConfig(tlsMap)
+		_, err := validClientEncryptionOptions.SetTLSOptions(tlsMap)
 		assert.Nil(mt, err, "expected no error, got error: %v", err)
 
 		invalidKmsProviders := map[string]map[string]interface{}{
@@ -681,7 +681,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		invalidClientEncryptionOptions := options.ClientEncryption().
 			SetKmsProviders(invalidKmsProviders).
 			SetKeyVaultNamespace(kvNamespace)
-		_, err = invalidClientEncryptionOptions.SetTLSConfig(tlsMap)
+		_, err = invalidClientEncryptionOptions.SetTLSOptions(tlsMap)
 		assert.Nil(mt, err, "expected no error, got error: %v", err)
 
 		awsSuccessWithoutEndpoint := map[string]interface{}{
@@ -1248,7 +1248,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKmsProviders(validKmsProviders).
 			SetKeyVaultNamespace(kvNamespace)
 
-		_, err := validClientEncryptionOptionsWithTLS.SetTLSConfig(tlsOptsMap)
+		_, err := validClientEncryptionOptionsWithTLS.SetTLSOptions(tlsOptsMap)
 		assert.Nil(mt, err, "expected no error, got error: %v", err)
 
 		// make TLS opts containing only CA file
@@ -1262,7 +1262,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKmsProviders(expiredKmsProviders).
 			SetKeyVaultNamespace(kvNamespace)
 
-		_, err = expiredClientEncryptionOptions.SetTLSConfig(tlsOptsMap)
+		_, err = expiredClientEncryptionOptions.SetTLSOptions(tlsOptsMap)
 		assert.Nil(mt, err, "expected no error, got error: %v", err)
 
 		// create invalid Client Encryption options with invalid hostnames
@@ -1270,7 +1270,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKmsProviders(invalidKmsProviders).
 			SetKeyVaultNamespace(kvNamespace)
 
-		_, err = invalidHostnameClientEncryptionOptions.SetTLSConfig(tlsOptsMap)
+		_, err = invalidHostnameClientEncryptionOptions.SetTLSOptions(tlsOptsMap)
 		assert.Nil(mt, err, "expected no error, got error: %v", err)
 
 		awsMasterKey := map[string]interface{}{

@@ -8,8 +8,6 @@ package options
 
 import (
 	"crypto/tls"
-	"errors"
-	"fmt"
 )
 
 // AutoEncryptionOptions represents options used to configure auto encryption/decryption behavior for a mongo.Client
@@ -33,7 +31,7 @@ type AutoEncryptionOptions struct {
 	SchemaMap             map[string]interface{}
 	BypassAutoEncryption  *bool
 	ExtraOptions          map[string]interface{}
-	TLSConfig             map[string]tls.Config
+	TLSConfig             map[string]*tls.Config
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -98,39 +96,34 @@ func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}
 	return a
 }
 
-// SetTLSConfig applies custom TLS options to configure connections with each KMS provider.
-func (a *AutoEncryptionOptions) SetTLSConfig(tlsOptsMap map[string]map[string]interface{}) (*AutoEncryptionOptions, error) {
-	a.TLSConfig = make(map[string]tls.Config)
-
-	for provider, tlsOpts := range tlsOptsMap {
-		var cfg tls.Config
-		
-		for cert := range tlsOpts {
-			var err error
-			switch cert {
-			case "tlsCertificateKeyFile":
-				clientCertPath, _ := tlsOpts[cert].(string)
-				// apply custom key file password if found, otherwise use empty string
-				if keyPwd, found := tlsOpts["tlsCertificateKeyFilePassword"].(string); found {
-					_, err = addClientCertFromConcatenatedFile(&cfg, clientCertPath, keyPwd)
-				} else {
-					_, err = addClientCertFromConcatenatedFile(&cfg, clientCertPath, "")
-				}
-			case "tlsCertificateKeyFilePassword":
-				continue
-			case "tlsCAFile":
-				CApath, _ := tlsOpts[cert].(string)
-				err = addCACertFromFile(&cfg, CApath)
-			default:
-				return a, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", cert, provider))
-			}
-			
-			if err != nil {
-				return a, err
-			}
-		}
-
-		a.TLSConfig[provider] = cfg
+// SetTLSOptions specifies tls.Config instances for each KMS provider to use to configure TLS on all connections created
+// to the cluster. The input map should contain a mapping from each KMS provider to a document containing the necessary 
+// options, as follows:
+//
+// {
+//		"kmip": {
+//			"tlsCertificateKeyFile": "foo.pem",
+// 			"tlsCAFile": "fooCA.pem"
+//		}
+// }
+//
+// Currently, the following TLS options are supported:
+//
+// 1. "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile"): The "tlsCertificateKeyFile" option specifies a path to 
+// the client certificate and private key, which must be concatenated into one file. 
+//
+// 2. "tlsCertificateKeyFilePassword" (or "sslClientCertificateKeyPassword"): Specify the password to decrypt the client
+// private key file (e.g. "tlsCertificateKeyFilePassword=password").
+//
+// 3. "tlsCaFile" (or "sslCertificateAuthorityFile"): Specify the path to a single or bundle of certificate authorities
+// to be considered trusted when making a TLS connection (e.g. "tlsCaFile=/path/to/caFile").
+//
+// This should only be used to set custom TLS options. By default, the connection will use an empty tls.Config{}.
+func (a *AutoEncryptionOptions) SetTLSOptions(tlsOpts map[string]map[string]interface{}) (*AutoEncryptionOptions, error) {
+	a.TLSConfig = make(map[string]*tls.Config)
+	_, err := applyTLSOptions(tlsOpts, a.TLSConfig)
+	if err != nil {
+		return a, err
 	}
 	return a, nil
 }
