@@ -36,8 +36,8 @@ var (
 	azureClientSecret           = os.Getenv("AZURE_CLIENT_SECRET")
 	gcpEmail                    = os.Getenv("GCP_EMAIL")
 	gcpPrivateKey               = os.Getenv("GCP_PRIVATE_KEY")
-	sslCertificateAuthorityFile = os.Getenv("CSFLE_TLS_CA_FILE")
-	sslClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CERTIFICATE_KEY_FILE")
+	tlsCAFile                   = os.Getenv("CSFLE_TLS_CA_FILE")
+	tlsClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CERTIFICATE_KEY_FILE")
 )
 
 // Helper functions to do read JSON spec test files and convert JSON objects into the appropriate driver types.
@@ -179,8 +179,8 @@ func createTLSOptsMap(t testing.TB, opts bson.Raw) map[string]map[string]interfa
 
 		if provider == "kmip" {
 			tlsOptsMap := map[string]interface{}{
-				"tlsCertificateKeyFile": sslClientCertificateKeyFile,
-				"tlsCAFile":             sslCertificateAuthorityFile,
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
 			}
 
 			tlsMap[provider] = tlsOptsMap

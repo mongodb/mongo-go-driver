@@ -120,12 +120,10 @@ func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}
 //
 // This should only be used to set custom TLS options. By default, the connection will use an empty tls.Config{}.
 func (a *AutoEncryptionOptions) SetTLSOptions(tlsOpts map[string]map[string]interface{}) (*AutoEncryptionOptions, error) {
-	a.TLSConfig = make(map[string]*tls.Config)
-	_, err := applyTLSOptions(tlsOpts, a.TLSConfig)
-	if err != nil {
-		return a, err
-	}
-	return a, nil
+	tlsConfig := make(map[string]*tls.Config)
+	tlsConfig, err := applyTLSOptions(tlsOpts, tlsConfig)
+	a.TLSConfig = tlsConfig
+	return a, err
 }
 
 // MergeAutoEncryptionOptions combines the argued AutoEncryptionOptions in a last-one wins fashion.

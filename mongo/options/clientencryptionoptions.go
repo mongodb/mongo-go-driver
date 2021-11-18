@@ -60,12 +60,10 @@ func (c *ClientEncryptionOptions) SetKmsProviders(providers map[string]map[strin
 //
 // This should only be used to set custom TLS options. By default, the connection will use an empty tls.Config{}.
 func (c *ClientEncryptionOptions) SetTLSOptions(tlsOpts map[string]map[string]interface{}) (*ClientEncryptionOptions, error) {
-	c.TLSConfig = make(map[string]*tls.Config)
-	_, err := applyTLSOptions(tlsOpts, c.TLSConfig)
-	if err != nil {
-		return c, err
-	}
-	return c, nil
+	tlsConfig := make(map[string]*tls.Config)
+	tlsConfig, err := applyTLSOptions(tlsOpts, tlsConfig)
+	c.TLSConfig = tlsConfig
+	return c, err
 }
 
 // MergeClientEncryptionOptions combines the argued ClientEncryptionOptions in a last-one wins fashion.
@@ -93,13 +91,17 @@ func MergeClientEncryptionOptions(opts ...*ClientEncryptionOptions) *ClientEncry
 // Used by both ClientEncryptionOptions.SetTLSOptions() and AutoEncryptionOptions.SetTLSOptions()
 func applyTLSOptions(tlsOpts map[string]map[string]interface{}, tlsConfigs map[string]*tls.Config) (map[string]*tls.Config, error) {
 	for provider, opts := range tlsOpts {
+		// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
 		cfg := &tls.Config{MinVersion: tls.VersionTLS12}
 		
 		for cert := range opts {
 			var err error
 			switch cert {
 			case "tlsCertificateKeyFile", "sslClientCertificateKeyFile":
-				clientCertPath, _ := opts[cert].(string)
+				clientCertPath, ok := opts[cert].(string)
+				if !ok {
+					return tlsConfigs, fmt.Errorf("expected %q value to be of type string, got %T", cert, opts[cert])
+				}
 				// apply custom key file password if found, otherwise use empty string
 				if keyPwd, found := opts["tlsCertificateKeyFilePassword"].(string); found {
 					_, err = addClientCertFromConcatenatedFile(cfg, clientCertPath, keyPwd)
@@ -111,10 +113,13 @@ func applyTLSOptions(tlsOpts map[string]map[string]interface{}, tlsConfigs map[s
 			case "tlsCertificateKeyFilePassword", "sslClientCertificateKeyPassword":
 				continue
 			case "tlsCAFile", "sslCertificateAuthorityFile":
-				CApath, _ := opts[cert].(string)
-				err = addCACertFromFile(cfg, CApath)
+				caPath, ok := opts[cert].(string)
+				if !ok {
+					return tlsConfigs, fmt.Errorf("expected %q value to be of type string, got %T", cert, opts[cert])
+				}
+				err = addCACertFromFile(cfg, caPath)
 			default:
-				return tlsConfigs, errors.New(fmt.Sprintf("Error setting TLS option %v for %v.", cert, provider))
+				return tlsConfigs, errors.New(fmt.Sprintf("unrecognized TLS option %v for %v.", cert, provider))
 			}
 			
 			if err != nil {

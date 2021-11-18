@@ -92,8 +92,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		schemaMap := map[string]interface{}{"db.coll": schema}
 		tlsMap := make(map[string]map[string]interface{})
 		tlsOptsMap := map[string]interface{}{
-			"tlsCertificateKeyFile": sslClientCertificateKeyFile,
-			"tlsCAFile":             sslCertificateAuthorityFile,
+			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+			"tlsCAFile":             tlsCAFile,
 		}
 		tlsMap["kmip"] = tlsOptsMap
 
@@ -102,12 +102,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace).
 			SetSchemaMap(schemaMap)
 		_, err := aeo.SetTLSOptions(tlsMap)
-		assert.Nil(mt, err, "expected no error, got error: %v", err)
+		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
 		ceo := options.ClientEncryption().
 			SetKmsProviders(fullKmsProvidersMap).
 			SetKeyVaultNamespace(kvNamespace)
 		_, err = ceo.SetTLSOptions(tlsMap)
-		assert.Nil(mt, err, "expected no error, got error: %v", err)
+		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
 
 		awsMasterKey := bson.D{
 			{"region", "us-east-1"},
@@ -401,8 +401,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		tlsMap := make(map[string]map[string]interface{})
 		tlsOptsMap := map[string]interface{}{
-			"tlsCertificateKeyFile": sslClientCertificateKeyFile,
-			"tlsCAFile":             sslCertificateAuthorityFile,
+			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+			"tlsCAFile":             tlsCAFile,
 		}
 		tlsMap["kmip"] = tlsOptsMap
 
@@ -411,7 +411,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				SetKmsProviders(fullKmsProvidersMap).
 				SetKeyVaultNamespace(kvNamespace)
 			_, err := aeo.SetTLSOptions(tlsMap)
-			assert.Nil(mt, err, "expected no error, got error: %v", err)
+			assert.Nil(mt, err, "SetTLSOptions error: %v", err)
 
 			return aeo
 		}
@@ -431,7 +431,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					SetKmsProviders(fullKmsProvidersMap).
 					SetKeyVaultNamespace(kvNamespace)
 				_, err := ceo.SetTLSOptions(tlsMap)
-				assert.Nil(mt, err, "expected no error, got error: %v", err)
+				assert.Nil(mt, err, "SetTLSOptions error: %v", err)
 
 				cpt := setup(mt, tc.aeo, defaultKvClientOptions, ceo)
 				defer cpt.teardown(mt)
@@ -650,8 +650,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		tlsMap := make(map[string]map[string]interface{})
 		tlsOptsMap := map[string]interface{}{
-			"tlsCertificateKeyFile": sslClientCertificateKeyFile,
-			"tlsCAFile":             sslCertificateAuthorityFile,
+			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+			"tlsCAFile":             tlsCAFile,
 		}
 		tlsMap["kmip"] = tlsOptsMap
 
@@ -660,7 +660,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace)
 
 		_, err := validClientEncryptionOptions.SetTLSOptions(tlsMap)
-		assert.Nil(mt, err, "expected no error, got error: %v", err)
+		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
 
 		invalidKmsProviders := map[string]map[string]interface{}{
 			"azure": {
@@ -1164,7 +1164,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server is running. See specification for port numbers and necessary arguments:
+	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are running. See specification for port numbers and necessary arguments:
 	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.rst#kms-tls-options-tests
 	mt.RunOpts("kms tls options tests", noClientOpts, func(mt *mtest.T) {
 		validKmsProviders := map[string]map[string]interface{}{
@@ -1238,8 +1238,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		// make TLS opts containing client certificate and CA file
 		tlsOptsMap := make(map[string]map[string]interface{})
 		clientAndCATlsMap := map[string]interface{}{
-			"tlsCertificateKeyFile": sslClientCertificateKeyFile,
-			"tlsCAFile":             sslCertificateAuthorityFile,
+			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+			"tlsCAFile":             tlsCAFile,
 		}
 		tlsOptsMap["kmip"] = clientAndCATlsMap
 
@@ -1249,11 +1249,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace)
 
 		_, err := validClientEncryptionOptionsWithTLS.SetTLSOptions(tlsOptsMap)
-		assert.Nil(mt, err, "expected no error, got error: %v", err)
+		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
 
 		// make TLS opts containing only CA file
 		caTlsMap := map[string]interface{}{
-			"tlsCAFile": sslCertificateAuthorityFile,
+			"tlsCAFile": tlsCAFile,
 		}
 		tlsOptsMap["kmip"] = caTlsMap
 
@@ -1263,7 +1263,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace)
 
 		_, err = expiredClientEncryptionOptions.SetTLSOptions(tlsOptsMap)
-		assert.Nil(mt, err, "expected no error, got error: %v", err)
+		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
 
 		// create invalid Client Encryption options with invalid hostnames
 		invalidHostnameClientEncryptionOptions := options.ClientEncryption().
@@ -1271,7 +1271,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace)
 
 		_, err = invalidHostnameClientEncryptionOptions.SetTLSOptions(tlsOptsMap)
-		assert.Nil(mt, err, "expected no error, got error: %v", err)
+		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
 
 		awsMasterKey := map[string]interface{}{
 			"region":   "us-east-1",
