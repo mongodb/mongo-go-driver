@@ -2542,30 +2542,24 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 	// Start Causal Consistency Example 1
 
 	// Use a causally-consistent session to run some operations
-	opts := options.Session().SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(
-		writeconcern.New(writeconcern.WMajority()))
+	opts := options.Session().
+		SetDefaultReadConcern(readconcern.Majority()).
+		SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority()))
 	session1, err := client.StartSession(opts)
-
 	if err != nil {
 		return err
 	}
 
-	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
-		// Run an update with our causally-consistent session
-		_, err = coll.UpdateOne(sctx, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", currentDate}}}})
-		if err != nil {
-			return err
-		}
+	sctx1 := mongo.NewSessionContext(context.TODO(), session1)
 
-		// Run an insert with our causally-consistent session
-		_, err = coll.InsertOne(sctx, bson.D{{"sku", "nuts-111"}, {"name", "Pecans"}, {"start", currentDate}})
-		if err != nil {
-			return err
-		}
+	// Run an update with our causally-consistent session
+	_, err = coll.UpdateOne(sctx1, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", currentDate}}}})
+	if err != nil {
+		return err
+	}
 
-		return nil
-	})
-
+	// Run an insert with our causally-consistent session
+	_, err = coll.InsertOne(sctx1, bson.D{{"sku", "nuts-111"}, {"name", "Pecans"}, {"start", currentDate}})
 	if err != nil {
 		return err
 	}
@@ -2575,40 +2569,40 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 	// Start Causal Consistency Example 2
 
 	// Make a new session that is causally consistent with session1 so session2 reads what session1 writes
-	opts = options.Session().SetDefaultReadPreference(readpref.Secondary()).SetDefaultReadConcern(
-		readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority()))
+	opts = options.Session().
+		SetDefaultReadPreference(readpref.Secondary()).
+		SetDefaultReadConcern(readconcern.Majority()).
+		SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority()))
 	session2, err := client.StartSession(opts)
-
 	if err != nil {
 		return err
 	}
 
-	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
-		// Set cluster time of session2 to session1's cluster time
-		clusterTime := session1.ClusterTime()
-		session2.AdvanceClusterTime(clusterTime)
+	// Set cluster time of session2 to session1's cluster time
+	clusterTime := session1.ClusterTime()
+	session2.AdvanceClusterTime(clusterTime)
 
-		// Set operation time of session2 to session1's operation time
-		operationTime := session1.OperationTime()
-		session2.AdvanceOperationTime(operationTime)
-		// Run a find on session2, which should find all the writes from session1
-		cursor, err := coll.Find(sctx, bson.D{{"end", nil}})
+	// Set operation time of session2 to session1's operation time
+	operationTime := session1.OperationTime()
+	session2.AdvanceOperationTime(operationTime)
 
-		if err != nil {
-			return err
-		}
+	sctx2 := mongo.NewSessionContext(context.TODO(), session2)
 
-		for cursor.Next(sctx) {
-			doc := cursor.Current
-			fmt.Printf("Document: %v\n", doc.String())
-		}
-
-		return cursor.Err()
-	})
-
+	// Run a find on session2, which should find all the writes from session1
+	cursor, err := coll.Find(sctx2, bson.D{{"end", nil}})
 	if err != nil {
 		return err
 	}
+
+	for cursor.Next(sctx2) {
+		doc := cursor.Current
+		fmt.Printf("Document: %v\n", doc.String())
+	}
+
+	if err := cursor.Err(); err != nil {
+		return err
+	}
+
 	// End Causal Consistency Example 2
 
 	return nil
