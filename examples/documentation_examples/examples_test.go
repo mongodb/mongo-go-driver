@@ -120,6 +120,12 @@ func TestCausalConsistencyExamples(t *testing.T) {
 	require.NoError(t, err)
 	defer client.Disconnect(ctx)
 
+	// TODO(GODRIVER-2238): Remove skip once failures on MongoDB v4.0 sharded clusters are fixed.
+	ver, err := getServerVersion(ctx, client)
+	if err != nil || testutil.CompareVersions(t, ver, "4.0") == 0 {
+		t.Skip("TODO(GODRIVER-2238): Skip until failures on MongoDB v4.0 sharded clusters are fixed")
+	}
+
 	err = documentation_examples.CausalConsistencyExamples(client)
 	require.NoError(t, err)
 }
