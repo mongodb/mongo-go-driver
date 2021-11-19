@@ -96,8 +96,23 @@ func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}
 	return a
 }
 
-// SetTLSOptions specifies tls.Config instances for each KMS provider to use to configure TLS on all connections created
-// to the cluster. The input map should contain a mapping from each KMS provider to a document containing the necessary 
+// SetTLSConfig specifies tls.Config instances for each KMS provider to use to configure TLS on all connections created
+// to the KMS provider.
+//
+// This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
+func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *AutoEncryptionOptions {
+	tlsConfigs := make(map[string]*tls.Config)
+	for provider, config := range tlsOpts {
+		// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
+		config.MinVersion = tls.VersionTLS12
+		tlsConfigs[provider] = config
+	}
+	a.TLSConfig = tlsConfigs
+	return a
+}
+
+// BuildTLSConfig specifies tls.Config options for each KMS provider to use to configure TLS on all connections created
+// to the KMS provider. The input map should contain a mapping from each KMS provider to a document containing the necessary 
 // options, as follows:
 //
 // {
@@ -118,12 +133,9 @@ func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}
 // 3. "tlsCaFile" (or "sslCertificateAuthorityFile"): Specify the path to a single or bundle of certificate authorities
 // to be considered trusted when making a TLS connection (e.g. "tlsCaFile=/path/to/caFile").
 //
-// This should only be used to set custom TLS options. By default, the connection will use an empty tls.Config{}.
-func (a *AutoEncryptionOptions) SetTLSOptions(tlsOpts map[string]map[string]interface{}) (*AutoEncryptionOptions, error) {
-	tlsConfig := make(map[string]*tls.Config)
-	tlsConfig, err := applyTLSOptions(tlsOpts, tlsConfig)
-	a.TLSConfig = tlsConfig
-	return a, err
+// This should only be used to set custom TLS options. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
+func (a *AutoEncryptionOptions) BuildTLSConfig(tlsOpts map[string]map[string]interface{}) (map[string]*tls.Config, error) {
+	return applyTLSOptions(tlsOpts)
 }
 
 // MergeAutoEncryptionOptions combines the argued AutoEncryptionOptions in a last-one wins fashion.

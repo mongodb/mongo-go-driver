@@ -96,17 +96,20 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		tlsMap["kmip"] = tlsOptsMap
 
-		aeo := options.AutoEncryption().
-			SetKmsProviders(fullKmsProvidersMap).
+		aeo := options.AutoEncryption()
+		tlsConfig, err := aeo.BuildTLSConfig(tlsMap)
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+		aeo.SetKmsProviders(fullKmsProvidersMap).
 			SetKeyVaultNamespace(kvNamespace).
-			SetSchemaMap(schemaMap)
-		_, err := aeo.SetTLSOptions(tlsMap)
-		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
-		ceo := options.ClientEncryption().
-			SetKmsProviders(fullKmsProvidersMap).
-			SetKeyVaultNamespace(kvNamespace)
-		_, err = ceo.SetTLSOptions(tlsMap)
-		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
+			SetSchemaMap(schemaMap).
+			SetTLSConfig(tlsConfig)
+		
+		ceo := options.ClientEncryption()
+		tlsConfig, err = ceo.BuildTLSConfig(tlsMap)
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+		ceo.SetKmsProviders(fullKmsProvidersMap).
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
 
 		awsMasterKey := bson.D{
 			{"region", "us-east-1"},
@@ -406,11 +409,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		tlsMap["kmip"] = tlsOptsMap
 
 		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptions {
-			aeo := options.AutoEncryption().
-				SetKmsProviders(fullKmsProvidersMap).
-				SetKeyVaultNamespace(kvNamespace)
-			_, err := aeo.SetTLSOptions(tlsMap)
-			assert.Nil(mt, err, "SetTLSOptions error: %v", err)
+			aeo := options.AutoEncryption()
+			
+			tlsConfig, err := aeo.BuildTLSConfig(tlsMap)
+			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+
+			aeo.SetKmsProviders(fullKmsProvidersMap).
+				SetKeyVaultNamespace(kvNamespace).
+				SetTLSConfig(tlsConfig)
 
 			return aeo
 		}
@@ -426,11 +432,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				ceo := options.ClientEncryption().
-					SetKmsProviders(fullKmsProvidersMap).
-					SetKeyVaultNamespace(kvNamespace)
-				_, err := ceo.SetTLSOptions(tlsMap)
-				assert.Nil(mt, err, "SetTLSOptions error: %v", err)
+				ceo := options.ClientEncryption()
+
+				tlsConfig, err := ceo.BuildTLSConfig(tlsMap)
+				assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+
+				ceo.SetKmsProviders(fullKmsProvidersMap).
+					SetKeyVaultNamespace(kvNamespace).
+					SetTLSConfig(tlsConfig)
 
 				cpt := setup(mt, tc.aeo, defaultKvClientOptions, ceo)
 				defer cpt.teardown(mt)
@@ -654,12 +663,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		tlsMap["kmip"] = tlsOptsMap
 
-		validClientEncryptionOptions := options.ClientEncryption().
-			SetKmsProviders(validKmsProviders).
-			SetKeyVaultNamespace(kvNamespace)
-
-		_, err := validClientEncryptionOptions.SetTLSOptions(tlsMap)
-		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
+		validClientEncryptionOptions := options.ClientEncryption()
+		tlsConfig, err := validClientEncryptionOptions.BuildTLSConfig(tlsMap)
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+		validClientEncryptionOptions.SetKmsProviders(validKmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
 
 		invalidKmsProviders := map[string]map[string]interface{}{
 			"azure": {
@@ -677,11 +686,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"endpoint": "doesnotexist.local:5698",
 			},
 		}
-		invalidClientEncryptionOptions := options.ClientEncryption().
-			SetKmsProviders(invalidKmsProviders).
-			SetKeyVaultNamespace(kvNamespace)
-		_, err = invalidClientEncryptionOptions.SetTLSOptions(tlsMap)
-		assert.Nil(mt, err, "expected no error, got error: %v", err)
+
+		invalidClientEncryptionOptions := options.ClientEncryption()
+		tlsConfig, err = invalidClientEncryptionOptions.BuildTLSConfig(tlsMap)
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+		invalidClientEncryptionOptions.SetKmsProviders(invalidKmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
+		
 
 		awsSuccessWithoutEndpoint := map[string]interface{}{
 			"region": "us-east-1",
@@ -1229,8 +1241,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			},
 		}
 
-		// create valid Client Encryption options without TLS options
-		validClientEncryptionOptionsWithoutTLS := options.ClientEncryption().
+		// create valid Client Encryption options without a client certificate
+		validClientEncryptionOptionsWithoutClientCert := options.ClientEncryption().
 			SetKmsProviders(validKmsProviders).
 			SetKeyVaultNamespace(kvNamespace)
 
@@ -1240,42 +1252,63 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
 			"tlsCAFile":             tlsCAFile,
 		}
+		tlsOptsMap["aws"] = clientAndCATlsMap
+		tlsOptsMap["azure"] = clientAndCATlsMap
+		tlsOptsMap["gcp"] = clientAndCATlsMap
 		tlsOptsMap["kmip"] = clientAndCATlsMap
 
 		// create valid Client Encryption options and set valid TLS options
-		validClientEncryptionOptionsWithTLS := options.ClientEncryption().
-			SetKmsProviders(validKmsProviders).
-			SetKeyVaultNamespace(kvNamespace)
-
-		_, err := validClientEncryptionOptionsWithTLS.SetTLSOptions(tlsOptsMap)
-		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
+		validClientEncryptionOptionsWithTLS := options.ClientEncryption()
+		tlsConfig, err := validClientEncryptionOptionsWithTLS.BuildTLSConfig(tlsOptsMap)
+		validClientEncryptionOptionsWithTLS.SetKmsProviders(validKmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
 		// make TLS opts containing only CA file
 		caTlsMap := map[string]interface{}{
 			"tlsCAFile": tlsCAFile,
 		}
+		tlsOptsMap["aws"] = caTlsMap
+		tlsOptsMap["azure"] = caTlsMap
+		tlsOptsMap["gcp"] = caTlsMap
 		tlsOptsMap["kmip"] = caTlsMap
 
 		// create invalid Client Encryption options with expired credentials
-		expiredClientEncryptionOptions := options.ClientEncryption().
-			SetKmsProviders(expiredKmsProviders).
-			SetKeyVaultNamespace(kvNamespace)
-
-		_, err = expiredClientEncryptionOptions.SetTLSOptions(tlsOptsMap)
-		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
+		expiredClientEncryptionOptions := options.ClientEncryption()
+		tlsConfig, err = expiredClientEncryptionOptions.BuildTLSConfig(tlsOptsMap)
+		expiredClientEncryptionOptions.SetKmsProviders(expiredKmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
 		// create invalid Client Encryption options with invalid hostnames
-		invalidHostnameClientEncryptionOptions := options.ClientEncryption().
-			SetKmsProviders(invalidKmsProviders).
-			SetKeyVaultNamespace(kvNamespace)
+		invalidHostnameClientEncryptionOptions := options.ClientEncryption()
+		tlsConfig, err = invalidHostnameClientEncryptionOptions.BuildTLSConfig(tlsOptsMap)
+		invalidHostnameClientEncryptionOptions.SetKmsProviders(invalidKmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
-		_, err = invalidHostnameClientEncryptionOptions.SetTLSOptions(tlsOptsMap)
-		assert.Nil(mt, err, "SetTLSOptions error: %v", err)
-
-		awsMasterKey := map[string]interface{}{
+		awsMasterKeyNoClientCert := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "127.0.0.1:8002",
+		}
+		awsMasterKeyWithTLS := map[string]interface{}{
+			"region": "us-east-1",
+			"key": "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "127.0.0.1:8002",
+		}
+		awsMasterKeyExpired := map[string]interface{}{
+			"region": "us-east-1",
+			"key": "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "127.0.0.1:8000",
+		}
+		awsMasterKeyInvalidHostname := map[string]interface{}{
+			"region": "us-east-1",
+			"key": "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "127.0.0.1:8001",
 		}
 		azureMasterKey := map[string]interface{}{
 			"keyVaultEndpoint": "doesnotexist.local",
@@ -1291,23 +1324,27 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		testCases := []struct {
 			name                 string
-			masterKey            interface{}
+			masterKeyNoClientCert   interface{}
+			masterKeyWithTLS        interface{}
+			masterKeyExpired        interface{}
+			masterKeyInvalidHostname interface{}
+			tlsError string
 			expiredError         string
 			invalidHostnameError string
 		}{
-			{"aws", awsMasterKey, "certificate signed by unknown authority", "certificate signed by unknown authority"},
-			{"azure", azureMasterKey, "certificate has expired", "cannot validate certificate"},
-			{"gcp", gcpMasterKey, "certificate has expired", "cannot validate certificate"},
-			{"kmip", kmipMasterKey, "certificate has expired", "cannot validate certificate"},
+			{"aws", awsMasterKeyNoClientCert, awsMasterKeyWithTLS, awsMasterKeyExpired, awsMasterKeyInvalidHostname, "parse error", "certificate has expired", "cannot validate certificate"},
+			{"azure", azureMasterKey, azureMasterKey, azureMasterKey, azureMasterKey, "HTTP status=404", "certificate has expired", "cannot validate certificate"},
+			{"gcp", gcpMasterKey, gcpMasterKey, gcpMasterKey, gcpMasterKey, "HTTP status=404", "certificate has expired", "cannot validate certificate"},
+			{"kmip", kmipMasterKey, kmipMasterKey, kmipMasterKey, kmipMasterKey, "", "certificate has expired", "cannot validate certificate"},
 		}
 
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				// call CreateDataKey with CEO no TLS with each provider and corresponding master key
-				cpt := setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptionsWithoutTLS)
+				cpt := setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptionsWithoutClientCert)
 				defer cpt.teardown(mt)
 
-				dkOpts := options.DataKey().SetMasterKey(tc.masterKey)
+				dkOpts := options.DataKey().SetMasterKey(tc.masterKeyNoClientCert)
 				_, err := cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
 
 				assert.NotNil(mt, err, "expected error, got nil")
@@ -1317,21 +1354,21 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				// call CreateDataKey with CEO & TLS with each provider and corresponding master key
 				cpt = setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptionsWithTLS)
 
-				dkOpts = options.DataKey().SetMasterKey(tc.masterKey)
+				dkOpts = options.DataKey().SetMasterKey(tc.masterKeyWithTLS)
 				_, err = cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
 				// check if current test case is KMIP, which should pass
 				if tc.name == "kmip" {
 					assert.Nil(mt, err, "expected no error, got err: %v", err)
 				} else {
 					assert.NotNil(mt, err, "expected error, got nil")
-					assert.True(mt, strings.Contains(err.Error(), "certificate signed by unknown authority"),
-						"expected error '%s' to contain '%s'", err.Error(), "certificate signed by unknown authority")
+					assert.True(mt, strings.Contains(err.Error(), tc.tlsError),
+						"expected error '%s' to contain '%s'", err.Error(), tc.tlsError)
 				}
 
 				// call CreateDataKey with expired CEO each provider and same masterKey
 				cpt = setup(mt, nil, defaultKvClientOptions, expiredClientEncryptionOptions)
 
-				dkOpts = options.DataKey().SetMasterKey(tc.masterKey)
+				dkOpts = options.DataKey().SetMasterKey(tc.masterKeyExpired)
 				_, err = cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
 				assert.NotNil(mt, err, "expected error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), tc.expiredError),
@@ -1340,7 +1377,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				// call CreateDataKey with invalid hostname CEO with each provider and same masterKey
 				cpt = setup(mt, nil, defaultKvClientOptions, invalidHostnameClientEncryptionOptions)
 
-				dkOpts = options.DataKey().SetMasterKey(tc.masterKey)
+				dkOpts = options.DataKey().SetMasterKey(tc.masterKeyInvalidHostname)
 				_, err = cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
 				assert.NotNil(mt, err, "expected error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), tc.invalidHostnameError),
