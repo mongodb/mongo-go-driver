@@ -853,13 +853,14 @@ functions:
           ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT} --require_client_cert
 
   start-kms-kmip-server:
-     - command: shell.exec
+    - command: shell.exec
       params:
         script: |
           ${PREPARE_SHELL}
 
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           . ./activate_venv.sh
+          # TODO: Stabilize this pip install with a non-forked version of PyKMIP in https://jira.mongodb.org/browse/GODRIVER-2239
           pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
     - command: shell.exec
       params:
@@ -896,7 +897,7 @@ functions:
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
   run-kmip-tests:
-  - command: shell.exec
+    - command: shell.exec
       type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
@@ -1779,7 +1780,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
 
-    - name: "test-kms-kmip"
+  - name: "test-kms-kmip"
     tags: ["kms-kmip"]
     commands:
       - func: bootstrap-mongo-orchestration
