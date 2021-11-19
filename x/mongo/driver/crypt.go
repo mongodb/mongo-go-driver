@@ -3,6 +3,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+//go:build cse
+// +build cse
 
 package driver
 
@@ -298,6 +301,9 @@ func (c *crypt) decryptKey(ctx context.Context, kmsCtx *mongocrypt.KmsContext) e
 
 	kmsProvider := kmsCtx.KMSProvider()
 	tlsCfg := c.tlsConfig[kmsProvider]
+	if tlsCfg == nil {
+		tlsCfg = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
 	conn, err := tls.Dial("tcp", addr, tlsCfg)
 	if err != nil {
 		return err

@@ -21,6 +21,11 @@ func (kc *KmsContext) Message() ([]byte, error) {
 	panic(cseNotSupportedMsg)
 }
 
+// KMSProvider gets the KMS providr of the KMS context.
+func (kc *KmsContext) KMSProvider() string {
+	panic(cseNotSupportedMsg)
+}
+
 // BytesNeeded returns the number of bytes that should be received from the KMS.
 // After sending the message to the KMS, this message should be called in a loop until the number returned is 0.
 func (kc *KmsContext) BytesNeeded() int32 {
