@@ -51,7 +51,7 @@ func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *
 }
 
 // BuildTLSConfig specifies tls.Config options for each KMS provider to use to configure TLS on all connections created
-// to the KMS provider. The input map should contain a mapping from each KMS provider to a document containing the necessary 
+// to the KMS provider. The input map should contain a mapping from each KMS provider to a document containing the necessary
 // options, as follows:
 //
 // {
@@ -63,8 +63,8 @@ func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *
 //
 // Currently, the following TLS options are supported:
 //
-// 1. "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile"): The "tlsCertificateKeyFile" option specifies a path to 
-// the client certificate and private key, which must be concatenated into one file. 
+// 1. "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile"): The "tlsCertificateKeyFile" option specifies a path to
+// the client certificate and private key, which must be concatenated into one file.
 //
 // 2. "tlsCertificateKeyFilePassword" (or "sslClientCertificateKeyPassword"): Specify the password to decrypt the client
 // private key file (e.g. "tlsCertificateKeyFilePassword=password").
@@ -105,7 +105,7 @@ func applyTLSOptions(tlsOpts map[string]map[string]interface{}) (map[string]*tls
 	for provider, opts := range tlsOpts {
 		// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
 		cfg := &tls.Config{MinVersion: tls.VersionTLS12}
-		
+
 		for name := range opts {
 			var err error
 			switch name {
@@ -133,7 +133,7 @@ func applyTLSOptions(tlsOpts map[string]map[string]interface{}) (map[string]*tls
 			default:
 				return tlsConfigs, fmt.Errorf("unrecognized TLS option %v for %v", name, provider)
 			}
-			
+
 			if err != nil {
 				return tlsConfigs, err
 			}

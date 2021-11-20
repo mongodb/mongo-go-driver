@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build cse
 // +build cse
 
 package integration
@@ -103,7 +104,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace).
 			SetSchemaMap(schemaMap).
 			SetTLSConfig(tlsConfig)
-		
+
 		ceo := options.ClientEncryption()
 		tlsConfig, err = ceo.BuildTLSConfig(tlsMap)
 		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -410,7 +411,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptions {
 			aeo := options.AutoEncryption()
-			
+
 			tlsConfig, err := aeo.BuildTLSConfig(tlsMap)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
@@ -693,7 +694,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		invalidClientEncryptionOptions.SetKmsProviders(invalidKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
 			SetTLSConfig(tlsConfig)
-		
 
 		awsSuccessWithoutEndpoint := map[string]interface{}{
 			"region": "us-east-1",
@@ -1296,18 +1296,18 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"endpoint": "127.0.0.1:8002",
 		}
 		awsMasterKeyWithTLS := map[string]interface{}{
-			"region": "us-east-1",
-			"key": "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "127.0.0.1:8002",
 		}
 		awsMasterKeyExpired := map[string]interface{}{
-			"region": "us-east-1",
-			"key": "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "127.0.0.1:8000",
 		}
 		awsMasterKeyInvalidHostname := map[string]interface{}{
-			"region": "us-east-1",
-			"key": "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "127.0.0.1:8001",
 		}
 		azureMasterKey := map[string]interface{}{
@@ -1323,14 +1323,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		kmipMasterKey := map[string]interface{}{}
 
 		testCases := []struct {
-			name                 string
-			masterKeyNoClientCert   interface{}
-			masterKeyWithTLS        interface{}
-			masterKeyExpired        interface{}
+			name                     string
+			masterKeyNoClientCert    interface{}
+			masterKeyWithTLS         interface{}
+			masterKeyExpired         interface{}
 			masterKeyInvalidHostname interface{}
-			tlsError string
-			expiredError         string
-			invalidHostnameError string
+			tlsError                 string
+			expiredError             string
+			invalidHostnameError     string
 		}{
 			{"aws", awsMasterKeyNoClientCert, awsMasterKeyWithTLS, awsMasterKeyExpired, awsMasterKeyInvalidHostname, "parse error", "certificate has expired", "cannot validate certificate"},
 			{"azure", azureMasterKey, azureMasterKey, azureMasterKey, azureMasterKey, "HTTP status=404", "certificate has expired", "cannot validate certificate"},

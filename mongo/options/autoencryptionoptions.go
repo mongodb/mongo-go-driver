@@ -112,7 +112,7 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 }
 
 // BuildTLSConfig specifies tls.Config options for each KMS provider to use to configure TLS on all connections created
-// to the KMS provider. The input map should contain a mapping from each KMS provider to a document containing the necessary 
+// to the KMS provider. The input map should contain a mapping from each KMS provider to a document containing the necessary
 // options, as follows:
 //
 // {
@@ -124,8 +124,8 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 //
 // Currently, the following TLS options are supported:
 //
-// 1. "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile"): The "tlsCertificateKeyFile" option specifies a path to 
-// the client certificate and private key, which must be concatenated into one file. 
+// 1. "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile"): The "tlsCertificateKeyFile" option specifies a path to
+// the client certificate and private key, which must be concatenated into one file.
 //
 // 2. "tlsCertificateKeyFilePassword" (or "sslClientCertificateKeyPassword"): Specify the password to decrypt the client
 // private key file (e.g. "tlsCertificateKeyFilePassword=password").
