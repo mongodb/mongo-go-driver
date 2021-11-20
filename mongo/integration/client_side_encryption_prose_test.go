@@ -91,11 +91,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		schemaMap := map[string]interface{}{"db.coll": schema}
 		tlsMap := make(map[string]map[string]interface{})
-		tlsOptsMap := map[string]interface{}{
-			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-			"tlsCAFile":             tlsCAFile,
+		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+			tlsOptsMap := map[string]interface{}{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			}
+			tlsMap["kmip"] = tlsOptsMap
 		}
-		tlsMap["kmip"] = tlsOptsMap
 
 		aeo := options.AutoEncryption()
 		tlsConfig, err := aeo.BuildTLSConfig(tlsMap)
@@ -403,11 +405,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 
 		tlsMap := make(map[string]map[string]interface{})
-		tlsOptsMap := map[string]interface{}{
-			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-			"tlsCAFile":             tlsCAFile,
+		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+			tlsOptsMap := map[string]interface{}{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			}
+			tlsMap["kmip"] = tlsOptsMap
 		}
-		tlsMap["kmip"] = tlsOptsMap
 
 		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptions {
 			aeo := options.AutoEncryption()
@@ -658,11 +662,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 
 		tlsMap := make(map[string]map[string]interface{})
-		tlsOptsMap := map[string]interface{}{
-			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-			"tlsCAFile":             tlsCAFile,
+		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+			tlsOptsMap := map[string]interface{}{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			}
+			tlsMap["kmip"] = tlsOptsMap
 		}
-		tlsMap["kmip"] = tlsOptsMap
 
 		validClientEncryptionOptions := options.ClientEncryption()
 		tlsConfig, err := validClientEncryptionOptions.BuildTLSConfig(tlsMap)
@@ -1248,14 +1254,16 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// make TLS opts containing client certificate and CA file
 		tlsOptsMap := make(map[string]map[string]interface{})
-		clientAndCATlsMap := map[string]interface{}{
-			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-			"tlsCAFile":             tlsCAFile,
+		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+			clientAndCATlsMap := map[string]interface{}{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			}
+			tlsOptsMap["aws"] = clientAndCATlsMap
+			tlsOptsMap["azure"] = clientAndCATlsMap
+			tlsOptsMap["gcp"] = clientAndCATlsMap
+			tlsOptsMap["kmip"] = clientAndCATlsMap
 		}
-		tlsOptsMap["aws"] = clientAndCATlsMap
-		tlsOptsMap["azure"] = clientAndCATlsMap
-		tlsOptsMap["gcp"] = clientAndCATlsMap
-		tlsOptsMap["kmip"] = clientAndCATlsMap
 
 		// create valid Client Encryption options and set valid TLS options
 		validClientEncryptionOptionsWithTLS := options.ClientEncryption()
@@ -1266,13 +1274,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
 		// make TLS opts containing only CA file
-		caTlsMap := map[string]interface{}{
-			"tlsCAFile": tlsCAFile,
+		if tlsCAFile != "" {
+			caTlsMap := map[string]interface{}{
+				"tlsCAFile": tlsCAFile,
+			}
+			tlsOptsMap["aws"] = caTlsMap
+			tlsOptsMap["azure"] = caTlsMap
+			tlsOptsMap["gcp"] = caTlsMap
+			tlsOptsMap["kmip"] = caTlsMap
 		}
-		tlsOptsMap["aws"] = caTlsMap
-		tlsOptsMap["azure"] = caTlsMap
-		tlsOptsMap["gcp"] = caTlsMap
-		tlsOptsMap["kmip"] = caTlsMap
 
 		// create invalid Client Encryption options with expired credentials
 		expiredClientEncryptionOptions := options.ClientEncryption()
