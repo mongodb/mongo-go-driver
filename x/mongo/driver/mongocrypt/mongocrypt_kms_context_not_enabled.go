@@ -21,7 +21,7 @@ func (kc *KmsContext) Message() ([]byte, error) {
 	panic(cseNotSupportedMsg)
 }
 
-// KMSProvider gets the KMS providr of the KMS context.
+// KMSProvider gets the KMS provider of the KMS context.
 func (kc *KmsContext) KMSProvider() string {
 	panic(cseNotSupportedMsg)
 }

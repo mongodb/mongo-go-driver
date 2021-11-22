@@ -104,38 +104,13 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 	tlsConfigs := make(map[string]*tls.Config)
 	for provider, config := range tlsOpts {
 		// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
-		config.MinVersion = tls.VersionTLS12
+		if config.MinVersion == 0 {
+			config.MinVersion = tls.VersionTLS12
+		}
 		tlsConfigs[provider] = config
 	}
 	a.TLSConfig = tlsConfigs
 	return a
-}
-
-// BuildTLSConfig specifies tls.Config options for each KMS provider to use to configure TLS on all connections created
-// to the KMS provider. The input map should contain a mapping from each KMS provider to a document containing the necessary
-// options, as follows:
-//
-// {
-//		"kmip": {
-//			"tlsCertificateKeyFile": "foo.pem",
-// 			"tlsCAFile": "fooCA.pem"
-//		}
-// }
-//
-// Currently, the following TLS options are supported:
-//
-// 1. "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile"): The "tlsCertificateKeyFile" option specifies a path to
-// the client certificate and private key, which must be concatenated into one file.
-//
-// 2. "tlsCertificateKeyFilePassword" (or "sslClientCertificateKeyPassword"): Specify the password to decrypt the client
-// private key file (e.g. "tlsCertificateKeyFilePassword=password").
-//
-// 3. "tlsCaFile" (or "sslCertificateAuthorityFile"): Specify the path to a single or bundle of certificate authorities
-// to be considered trusted when making a TLS connection (e.g. "tlsCaFile=/path/to/caFile").
-//
-// This should only be used to set custom TLS options. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
-func (a *AutoEncryptionOptions) BuildTLSConfig(tlsOpts map[string]map[string]interface{}) (map[string]*tls.Config, error) {
-	return applyTLSOptions(tlsOpts)
 }
 
 // MergeAutoEncryptionOptions combines the argued AutoEncryptionOptions in a last-one wins fashion.

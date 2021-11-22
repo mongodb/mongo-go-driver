@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -139,11 +140,8 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 
 		switch name {
 		case "kmsProviders":
-			tlsConfig, err := aeo.BuildTLSConfig(createTLSOptsMap(t, opt.Document()))
-			if err != nil {
-				t.Fatalf("error building TLS config map: %v", err)
-			}
-			aeo.SetKmsProviders(createKmsProvidersMap(t, opt.Document())).SetTLSConfig(tlsConfig)
+			tlsConfigs := createTLSOptsMap(t, opt.Document())
+			aeo.SetKmsProviders(createKmsProvidersMap(t, opt.Document())).SetTLSConfig(tlsConfigs)
 		case "schemaMap":
 			var schemaMap map[string]interface{}
 			err := bson.Unmarshal(opt.Document(), &schemaMap)
@@ -168,10 +166,10 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 	return aeo
 }
 
-func createTLSOptsMap(t testing.TB, opts bson.Raw) map[string]map[string]interface{} {
+func createTLSOptsMap(t testing.TB, opts bson.Raw) map[string]*tls.Config {
 	t.Helper()
 
-	tlsMap := make(map[string]map[string]interface{})
+	tlsMap := make(map[string]*tls.Config)
 	elems, _ := opts.Elements()
 
 	for _, elem := range elems {
@@ -183,10 +181,14 @@ func createTLSOptsMap(t testing.TB, opts bson.Raw) map[string]map[string]interfa
 				"tlsCAFile":             tlsCAFile,
 			}
 
-			tlsMap[provider] = tlsOptsMap
+			cfg, err := options.BuildTLSConfig(tlsOptsMap)
+			if err != nil {
+				t.Fatalf("error building TLS config map: %v", err)
+			}
+
+			tlsMap["kmip"] = cfg
 		}
 	}
-
 	return tlsMap
 }
 
