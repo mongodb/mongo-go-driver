@@ -6,6 +6,10 @@
 
 package options
 
+import (
+	"crypto/tls"
+)
+
 // AutoEncryptionOptions represents options used to configure auto encryption/decryption behavior for a mongo.Client
 // instance.
 //
@@ -27,6 +31,7 @@ type AutoEncryptionOptions struct {
 	SchemaMap             map[string]interface{}
 	BypassAutoEncryption  *bool
 	ExtraOptions          map[string]interface{}
+	TLSConfig             map[string]*tls.Config
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -91,6 +96,23 @@ func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}
 	return a
 }
 
+// SetTLSConfig specifies tls.Config instances for each KMS provider to use to configure TLS on all connections created
+// to the KMS provider.
+//
+// This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
+func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *AutoEncryptionOptions {
+	tlsConfigs := make(map[string]*tls.Config)
+	for provider, config := range tlsOpts {
+		// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
+		if config.MinVersion == 0 {
+			config.MinVersion = tls.VersionTLS12
+		}
+		tlsConfigs[provider] = config
+	}
+	a.TLSConfig = tlsConfigs
+	return a
+}
+
 // MergeAutoEncryptionOptions combines the argued AutoEncryptionOptions in a last-one wins fashion.
 func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionOptions {
 	aeo := AutoEncryption()
@@ -116,6 +138,9 @@ func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionO
 		}
 		if opt.ExtraOptions != nil {
 			aeo.ExtraOptions = opt.ExtraOptions
+		}
+		if opt.TLSConfig != nil {
+			aeo.TLSConfig = opt.TLSConfig
 		}
 	}
 

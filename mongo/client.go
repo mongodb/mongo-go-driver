@@ -790,11 +790,13 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 	if !bypass {
 		cir = collInfoRetriever{client: c.metadataClientFLE}
 	}
+
 	cryptOpts := &driver.CryptOptions{
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptdFLE.markCommand,
 		KmsProviders:         kmsProviders,
+		TLSConfig:            opts.TLSConfig,
 		BypassAutoEncryption: bypass,
 		SchemaMap:            cryptSchemaMap,
 	}

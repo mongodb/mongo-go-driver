@@ -32,6 +32,12 @@ func (kc *KmsContext) HostName() (string, error) {
 	return C.GoString(hostname), nil
 }
 
+// KMSProvider gets the KMS provider of the KMS context.
+func (kc *KmsContext) KMSProvider() string {
+	kmsProvider := C.mongocrypt_kms_ctx_get_kms_provider(kc.wrapped, nil)
+	return C.GoString(kmsProvider)
+}
+
 // Message returns the message to send to the KMS.
 func (kc *KmsContext) Message() ([]byte, error) {
 	msgBinary := newBinary()

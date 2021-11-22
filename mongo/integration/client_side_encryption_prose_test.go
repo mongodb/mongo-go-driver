@@ -4,12 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build cse
 // +build cse
 
 package integration
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -69,6 +71,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"privateKey": gcpPrivateKey,
 		},
 		"local": {"key": localMasterKey},
+		"kmip": {
+			"endpoint": "localhost:5698",
+		},
 	}
 
 	mt.RunOpts("data key and double encryption", noClientOpts, func(mt *mtest.T) {
@@ -86,13 +91,27 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}},
 		}
 		schemaMap := map[string]interface{}{"db.coll": schema}
+		tlsConfig := make(map[string]*tls.Config)
+		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+			tlsOpts := map[string]interface{}{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			}
+			kmipConfig, err := options.BuildTLSConfig(tlsOpts)
+			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+			tlsConfig["kmip"] = kmipConfig
+		}
+
 		aeo := options.AutoEncryption().
 			SetKmsProviders(fullKmsProvidersMap).
 			SetKeyVaultNamespace(kvNamespace).
-			SetSchemaMap(schemaMap)
+			SetSchemaMap(schemaMap).
+			SetTLSConfig(tlsConfig)
+
 		ceo := options.ClientEncryption().
 			SetKmsProviders(fullKmsProvidersMap).
-			SetKeyVaultNamespace(kvNamespace)
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
 
 		awsMasterKey := bson.D{
 			{"region", "us-east-1"},
@@ -108,6 +127,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{"keyRing", "key-ring-csfle"},
 			{"keyName", "key-name-csfle"},
 		}
+		kmipMasterKey := bson.D{}
 		testCases := []struct {
 			provider  string
 			masterKey interface{}
@@ -116,6 +136,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{"aws", awsMasterKey},
 			{"azure", azureMasterKey},
 			{"gcp", gcpMasterKey},
+			{"kmip", kmipMasterKey},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.provider, func(mt *mtest.T) {
@@ -381,10 +402,23 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		localSchemaMap := map[string]interface{}{
 			"db.coll": corpusSchema,
 		}
+
+		tlsConfig := make(map[string]*tls.Config)
+		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+			tlsOpts := map[string]interface{}{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			}
+			kmipConfig, err := options.BuildTLSConfig(tlsOpts)
+			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+			tlsConfig["kmip"] = kmipConfig
+		}
+
 		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptions {
 			return options.AutoEncryption().
 				SetKmsProviders(fullKmsProvidersMap).
-				SetKeyVaultNamespace(kvNamespace)
+				SetKeyVaultNamespace(kvNamespace).
+				SetTLSConfig(tlsConfig)
 		}
 
 		testCases := []struct {
@@ -400,7 +434,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				ceo := options.ClientEncryption().
 					SetKmsProviders(fullKmsProvidersMap).
-					SetKeyVaultNamespace(kvNamespace)
+					SetKeyVaultNamespace(kvNamespace).
+					SetTLSConfig(tlsConfig)
+
 				cpt := setup(mt, tc.aeo, defaultKvClientOptions, ceo)
 				defer cpt.teardown(mt)
 
@@ -422,6 +458,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					readJSONFile(mt, "corpus-key-aws.json"),
 					readJSONFile(mt, "corpus-key-azure.json"),
 					readJSONFile(mt, "corpus-key-gcp.json"),
+					readJSONFile(mt, "corpus-key-kmip.json"),
 				})
 				assert.Nil(mt, err, "InsertMany error for key vault: %v", err)
 
@@ -438,6 +475,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					"altname_local": {},
 					"altname_azure": {},
 					"altname_gcp":   {},
+					"altname_kmip":  {},
 				}
 
 				for _, elem := range elems {
@@ -482,6 +520,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							keyID = "AZUREAAAAAAAAAAAAAAAAA=="
 						case "gcp":
 							keyID = "GCPAAAAAAAAAAAAAAAAAAA=="
+						case "kmip":
+							keyID = "KMIPAAAAAAAAAAAAAAAAAA=="
 						default:
 							mt.Fatalf("unrecognized KMS provider %q", kms)
 						}
@@ -607,10 +647,26 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"privateKey": gcpPrivateKey,
 				"endpoint":   "oauth2.googleapis.com:443",
 			},
+			"kmip": {
+				"endpoint": "localhost:5698",
+			},
 		}
+
+		tlsConfig := make(map[string]*tls.Config)
+		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+			tlsOpts := map[string]interface{}{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			}
+			kmipConfig, err := options.BuildTLSConfig(tlsOpts)
+			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+			tlsConfig["kmip"] = kmipConfig
+		}
+
 		validClientEncryptionOptions := options.ClientEncryption().
 			SetKmsProviders(validKmsProviders).
-			SetKeyVaultNamespace(kvNamespace)
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
 
 		invalidKmsProviders := map[string]map[string]interface{}{
 			"azure": {
@@ -624,10 +680,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"privateKey": gcpPrivateKey,
 				"endpoint":   "example.com:443",
 			},
+			"kmip": {
+				"endpoint": "doesnotexist.local:5698",
+			},
 		}
+
 		invalidClientEncryptionOptions := options.ClientEncryption().
 			SetKmsProviders(invalidKmsProviders).
-			SetKeyVaultNamespace(kvNamespace)
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
 
 		awsSuccessWithoutEndpoint := map[string]interface{}{
 			"region": "us-east-1",
@@ -676,23 +737,38 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"keyName":   "key-name-csfle",
 			"endpoint":  "example.com:443",
 		}
+		kmipSuccessWithoutEndpoint := map[string]interface{}{
+			"keyId": "1",
+		}
+		kmipSuccessWithEndpoint := map[string]interface{}{
+			"keyId":    "1",
+			"endpoint": "localhost:5698",
+		}
+		kmipFailureInvalidEndpoint := map[string]interface{}{
+			"keyId":    "1",
+			"endpoint": "doesnotexist.local:5698",
+		}
 
 		testCases := []struct {
-			name                        string
-			provider                    string
-			masterKey                   interface{}
-			errorSubstring              string
-			testInvalidClientEncryption bool
+			name                                  string
+			provider                              string
+			masterKey                             interface{}
+			errorSubstring                        string
+			testInvalidClientEncryption           bool
+			invalidClientEncryptionErrorSubstring string
 		}{
-			{"aws success without endpoint", "aws", awsSuccessWithoutEndpoint, "", false},
-			{"aws success with endpoint", "aws", awsSuccessWithEndpoint, "", false},
-			{"aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false},
-			{"aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false},
-			{"aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "us-east-1", false},
-			{"aws failure with parse error", "aws", awsFailureParseError, "parse error", false},
-			{"azure success", "azure", azure, "", true},
-			{"gcp success", "gcp", gcpSuccess, "", true},
-			{"gcp failure", "gcp", gcpFailure, "Invalid KMS response", false},
+			{"aws success without endpoint", "aws", awsSuccessWithoutEndpoint, "", false, ""},
+			{"aws success with endpoint", "aws", awsSuccessWithEndpoint, "", false, ""},
+			{"aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false, ""},
+			{"aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false, ""},
+			{"aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "us-east-1", false, ""},
+			{"aws failure with parse error", "aws", awsFailureParseError, "parse error", false, ""},
+			{"azure success", "azure", azure, "", true, "parse error"},
+			{"gcp success", "gcp", gcpSuccess, "", true, "parse error"},
+			{"gcp failure", "gcp", gcpFailure, "Invalid KMS response", false, ""},
+			{"kmip success without endpoint", "kmip", kmipSuccessWithoutEndpoint, "", true, "no such host"},
+			{"kmip success with endpoint", "kmip", kmipSuccessWithEndpoint, "", false, ""},
+			{"kmip failure with invalid endpoint", "kmip", kmipFailureInvalidEndpoint, "no such host", false, ""},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -737,8 +813,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				invalidKeyOpts := options.DataKey().SetMasterKey(tc.masterKey)
 				_, err = invalidClientEncryption.CreateDataKey(mtest.Background, tc.provider, invalidKeyOpts)
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
-				assert.True(mt, strings.Contains(err.Error(), "parse error"),
-					"expected error %v to contain substring 'parse error'", err)
+				assert.True(mt, strings.Contains(err.Error(), tc.invalidClientEncryptionErrorSubstring),
+					"expected error %v to contain substring '%v'", err, tc.invalidClientEncryptionErrorSubstring)
 			})
 		}
 	})
@@ -1085,6 +1161,219 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), tc.errMessage),
 					"expected CreateDataKey error to contain %v, got %v", tc.errMessage, err.Error())
+			})
+		}
+	})
+
+	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are running. See specification for port numbers and necessary arguments:
+	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.rst#kms-tls-options-tests
+	mt.RunOpts("kms tls options tests", noClientOpts, func(mt *mtest.T) {
+		validKmsProviders := map[string]map[string]interface{}{
+			"aws": {
+				"accessKeyId":     awsAccessKeyID,
+				"secretAccessKey": awsSecretAccessKey,
+			},
+			"azure": {
+				"tenantId":                 azureTenantID,
+				"clientId":                 azureClientID,
+				"clientSecret":             azureClientSecret,
+				"identityPlatformEndpoint": "127.0.0.1:8002",
+			},
+			"gcp": {
+				"email":      gcpEmail,
+				"privateKey": gcpPrivateKey,
+				"endpoint":   "127.0.0.1:8002",
+			},
+			"kmip": {
+				"endpoint": "127.0.0.1:5698",
+			},
+		}
+
+		expiredKmsProviders := map[string]map[string]interface{}{
+			"aws": {
+				"accessKeyId":     awsAccessKeyID,
+				"secretAccessKey": awsSecretAccessKey,
+			},
+			"azure": {
+				"tenantId":                 azureTenantID,
+				"clientId":                 azureClientID,
+				"clientSecret":             azureClientSecret,
+				"identityPlatformEndpoint": "127.0.0.1:8000",
+			},
+			"gcp": {
+				"email":      gcpEmail,
+				"privateKey": gcpPrivateKey,
+				"endpoint":   "127.0.0.1:8000",
+			},
+			"kmip": {
+				"endpoint": "127.0.0.1:8000",
+			},
+		}
+
+		invalidKmsProviders := map[string]map[string]interface{}{
+			"aws": {
+				"accessKeyId":     awsAccessKeyID,
+				"secretAccessKey": awsSecretAccessKey,
+			},
+			"azure": {
+				"tenantId":                 azureTenantID,
+				"clientId":                 azureClientID,
+				"clientSecret":             azureClientSecret,
+				"identityPlatformEndpoint": "127.0.0.1:8001",
+			},
+			"gcp": {
+				"email":      gcpEmail,
+				"privateKey": gcpPrivateKey,
+				"endpoint":   "127.0.0.1:8001",
+			},
+			"kmip": {
+				"endpoint": "127.0.0.1:8001",
+			},
+		}
+
+		// create valid Client Encryption options without a client certificate
+		validClientEncryptionOptionsWithoutClientCert := options.ClientEncryption().
+			SetKmsProviders(validKmsProviders).
+			SetKeyVaultNamespace(kvNamespace)
+
+		// make TLS opts containing client certificate and CA file
+		tlsConfig := make(map[string]*tls.Config)
+		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+			clientAndCATlsMap := map[string]interface{}{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			}
+			certConfig, err := options.BuildTLSConfig(clientAndCATlsMap)
+			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+			tlsConfig["aws"] = certConfig
+			tlsConfig["azure"] = certConfig
+			tlsConfig["gcp"] = certConfig
+			tlsConfig["kmip"] = certConfig
+		}
+
+		// create valid Client Encryption options and set valid TLS options
+		validClientEncryptionOptionsWithTLS := options.ClientEncryption().
+			SetKmsProviders(validKmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
+
+		// make TLS opts containing only CA file
+		if tlsCAFile != "" {
+			caTlsMap := map[string]interface{}{
+				"tlsCAFile": tlsCAFile,
+			}
+			certConfig, err := options.BuildTLSConfig(caTlsMap)
+			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+			tlsConfig["aws"] = certConfig
+			tlsConfig["azure"] = certConfig
+			tlsConfig["gcp"] = certConfig
+			tlsConfig["kmip"] = certConfig
+		}
+
+		// create invalid Client Encryption options with expired credentials
+		expiredClientEncryptionOptions := options.ClientEncryption().
+			SetKmsProviders(expiredKmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
+
+		// create invalid Client Encryption options with invalid hostnames
+		invalidHostnameClientEncryptionOptions := options.ClientEncryption().
+			SetKmsProviders(invalidKmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetTLSConfig(tlsConfig)
+
+		awsMasterKeyNoClientCert := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "127.0.0.1:8002",
+		}
+		awsMasterKeyWithTLS := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "127.0.0.1:8002",
+		}
+		awsMasterKeyExpired := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "127.0.0.1:8000",
+		}
+		awsMasterKeyInvalidHostname := map[string]interface{}{
+			"region":   "us-east-1",
+			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+			"endpoint": "127.0.0.1:8001",
+		}
+		azureMasterKey := map[string]interface{}{
+			"keyVaultEndpoint": "doesnotexist.local",
+			"keyName":          "foo",
+		}
+		gcpMasterKey := map[string]interface{}{
+			"projectId": "foo",
+			"location":  "bar",
+			"keyRing":   "baz",
+			"keyName":   "foo",
+		}
+		kmipMasterKey := map[string]interface{}{}
+
+		testCases := []struct {
+			name                     string
+			masterKeyNoClientCert    interface{}
+			masterKeyWithTLS         interface{}
+			masterKeyExpired         interface{}
+			masterKeyInvalidHostname interface{}
+			tlsError                 string
+			expiredError             string
+			invalidHostnameError     string
+		}{
+			{"aws", awsMasterKeyNoClientCert, awsMasterKeyWithTLS, awsMasterKeyExpired, awsMasterKeyInvalidHostname, "parse error", "certificate has expired", "cannot validate certificate"},
+			{"azure", azureMasterKey, azureMasterKey, azureMasterKey, azureMasterKey, "HTTP status=404", "certificate has expired", "cannot validate certificate"},
+			{"gcp", gcpMasterKey, gcpMasterKey, gcpMasterKey, gcpMasterKey, "HTTP status=404", "certificate has expired", "cannot validate certificate"},
+			{"kmip", kmipMasterKey, kmipMasterKey, kmipMasterKey, kmipMasterKey, "", "certificate has expired", "cannot validate certificate"},
+		}
+
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				// call CreateDataKey with CEO no TLS with each provider and corresponding master key
+				cpt := setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptionsWithoutClientCert)
+				defer cpt.teardown(mt)
+
+				dkOpts := options.DataKey().SetMasterKey(tc.masterKeyNoClientCert)
+				_, err := cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
+
+				assert.NotNil(mt, err, "expected error, got nil")
+				assert.True(mt, strings.Contains(err.Error(), "certificate signed by unknown authority"),
+					"expected error '%s' to contain '%s'", err.Error(), "certificate signed by unknown authority")
+
+				// call CreateDataKey with CEO & TLS with each provider and corresponding master key
+				cpt = setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptionsWithTLS)
+
+				dkOpts = options.DataKey().SetMasterKey(tc.masterKeyWithTLS)
+				_, err = cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
+				// check if current test case is KMIP, which should pass
+				if tc.name == "kmip" {
+					assert.Nil(mt, err, "expected no error, got err: %v", err)
+				} else {
+					assert.NotNil(mt, err, "expected error, got nil")
+					assert.True(mt, strings.Contains(err.Error(), tc.tlsError),
+						"expected error '%s' to contain '%s'", err.Error(), tc.tlsError)
+				}
+
+				// call CreateDataKey with expired CEO each provider and same masterKey
+				cpt = setup(mt, nil, defaultKvClientOptions, expiredClientEncryptionOptions)
+
+				dkOpts = options.DataKey().SetMasterKey(tc.masterKeyExpired)
+				_, err = cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
+				assert.NotNil(mt, err, "expected error, got nil")
+				assert.True(mt, strings.Contains(err.Error(), tc.expiredError),
+					"expected error '%s' to contain '%s'", err.Error(), tc.expiredError)
+
+				// call CreateDataKey with invalid hostname CEO with each provider and same masterKey
+				cpt = setup(mt, nil, defaultKvClientOptions, invalidHostnameClientEncryptionOptions)
+
+				dkOpts = options.DataKey().SetMasterKey(tc.masterKeyInvalidHostname)
+				_, err = cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
+				assert.NotNil(mt, err, "expected error, got nil")
+				assert.True(mt, strings.Contains(err.Error(), tc.invalidHostnameError),
+					"expected error '%s' to contain '%s'", err.Error(), tc.invalidHostnameError)
 			})
 		}
 	})

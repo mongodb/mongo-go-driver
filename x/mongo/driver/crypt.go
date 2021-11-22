@@ -40,6 +40,7 @@ type CryptOptions struct {
 	MarkFn               MarkCommandFn
 	KmsProviders         bsoncore.Document
 	SchemaMap            map[string]bsoncore.Document
+	TLSConfig            map[string]*tls.Config
 	BypassAutoEncryption bool
 }
 
@@ -72,6 +73,7 @@ type crypt struct {
 	collInfoFn CollectionInfoFn
 	keyFn      KeyRetrieverFn
 	markFn     MarkCommandFn
+	tlsConfig  map[string]*tls.Config
 
 	bypassAutoEncryption bool
 }
@@ -82,6 +84,7 @@ func NewCrypt(opts *CryptOptions) (Crypt, error) {
 		collInfoFn:           opts.CollInfoFn,
 		keyFn:                opts.KeyFn,
 		markFn:               opts.MarkFn,
+		tlsConfig:            opts.TLSConfig,
 		bypassAutoEncryption: opts.BypassAutoEncryption,
 	}
 
@@ -293,7 +296,12 @@ func (c *crypt) decryptKey(ctx context.Context, kmsCtx *mongocrypt.KmsContext) e
 		addr = fmt.Sprintf("%s:%d", host, defaultKmsPort)
 	}
 
-	conn, err := tls.Dial("tcp", addr, &tls.Config{MinVersion: tls.VersionTLS12})
+	kmsProvider := kmsCtx.KMSProvider()
+	tlsCfg := c.tlsConfig[kmsProvider]
+	if tlsCfg == nil {
+		tlsCfg = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+	conn, err := tls.Dial("tcp", addr, tlsCfg)
 	if err != nil {
 		return err
 	}
