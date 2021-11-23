@@ -1804,6 +1804,7 @@ tasks:
       - func: start-kms-kmip-server
       - func: run-kmip-tests
         vars:
+          KMS_MOCK_SERVERS_RUNNING: "true"
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
