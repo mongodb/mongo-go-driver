@@ -1344,7 +1344,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				if tc.name =="kmip" && "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
+				if tc.name == "kmip" && "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
 					mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 				}
 				// call CreateDataKey with CEO no TLS with each provider and corresponding master key
