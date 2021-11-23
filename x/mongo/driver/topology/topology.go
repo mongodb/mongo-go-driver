@@ -586,11 +586,14 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 	}
 
 	// Now that we've removed all the hosts that disappeared from the SRV record, we need to add any
-	// new hosts added to the SRV record. Shuffle the list of added hosts so we add them in random
-	// order. Stop adding hosts whenever we reach srvMaxHosts.
-	random.Shuffle(len(diff.Added), func(i, j int) {
-		diff.Added[i], diff.Added[j] = diff.Added[j], diff.Added[i]
-	})
+	// new hosts added to the SRV record. If adding all of the new hosts would increase the number
+	// of servers past srvMaxHosts, shuffle the list of added hosts.
+	if t.cfg.srvMaxHosts > 0 && len(t.servers)+len(diff.Added) > t.cfg.srvMaxHosts {
+		random.Shuffle(len(diff.Added), func(i, j int) {
+			diff.Added[i], diff.Added[j] = diff.Added[j], diff.Added[i]
+		})
+	}
+	// Add all added hosts until the number of servers reaches srvMaxHosts.
 	for _, a := range diff.Added {
 		if t.cfg.srvMaxHosts > 0 && len(t.servers) >= t.cfg.srvMaxHosts {
 			break
