@@ -105,8 +105,8 @@
 //
 // Note: Auto encryption is an enterprise-only feature.
 //
-// The libmongocrypt C library is required when using client-side encryption. libmongocrypt version 1.1.0 or higher is
-// required when using driver version 1.5.0 or higher. To install libmongocrypt, follow the instructions for your
+// The libmongocrypt C library is required when using client-side encryption. libmongocrypt version 1.3.0 or higher is
+// required when using driver version 1.8.0 or higher. To install libmongocrypt, follow the instructions for your
 // operating system:
 //
 // 1. Linux: follow the instructions listed at
