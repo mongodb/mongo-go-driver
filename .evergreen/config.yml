@@ -903,7 +903,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          KMS_MOCK_SERVERS_RUNNING="true"
+          export KMS_MOCK_SERVERS_RUNNING="true"
 
           export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
