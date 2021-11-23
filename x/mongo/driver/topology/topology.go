@@ -547,19 +547,6 @@ func (t *Topology) pollSRVRecords() {
 			t.pollHeartbeatTime.Store(false)
 		}
 
-		// If t.cfg.srvMaxHosts is non-zero and is less than the number of hosts, randomly
-		// select srvMaxHosts hosts from parsedHosts using the modern Fisher-Yates
-		// algorithm.
-		if t.cfg.srvMaxHosts != 0 && t.cfg.srvMaxHosts < len(parsedHosts) {
-			// TODO(GODRIVER-1876): Use rand#Shuffle after dropping Go 1.9 support.
-			n := len(parsedHosts)
-			for i := 0; i < n-1; i++ {
-				j := i + random.Intn(n-i)
-				parsedHosts[j], parsedHosts[i] = parsedHosts[i], parsedHosts[j]
-			}
-			parsedHosts = parsedHosts[:t.cfg.srvMaxHosts]
-		}
-
 		cont := t.processSRVResults(parsedHosts)
 		if !cont {
 			break
@@ -598,11 +585,25 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		t.fsm.removeServerByAddr(addr)
 		t.publishServerClosedEvent(s.address)
 	}
+
+	// Now that we've removed all the hosts that disappeared from the SRV record, we need to add any
+	// new hosts added to the SRV record. If adding all of the new hosts would increase the number
+	// of servers past srvMaxHosts, shuffle the list of added hosts.
+	if t.cfg.srvMaxHosts > 0 && len(t.servers)+len(diff.Added) > t.cfg.srvMaxHosts {
+		random.Shuffle(len(diff.Added), func(i, j int) {
+			diff.Added[i], diff.Added[j] = diff.Added[j], diff.Added[i]
+		})
+	}
+	// Add all added hosts until the number of servers reaches srvMaxHosts.
 	for _, a := range diff.Added {
+		if t.cfg.srvMaxHosts > 0 && len(t.servers) >= t.cfg.srvMaxHosts {
+			break
+		}
 		addr := address.Address(a).Canonicalize()
 		_ = t.addServer(addr)
 		t.fsm.addServer(addr)
 	}
+
 	//store new description
 	newDesc := description.Topology{
 		Kind:                  t.fsm.Kind,
