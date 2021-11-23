@@ -13,6 +13,7 @@ EXAMPLES_TEST_PKGS = $(shell etc/list_test_pkgs.sh ./examples)
 PKGS = $(BSON_PKGS) $(EVENT_PKGS) $(MONGO_PKGS) $(UNSTABLE_PKGS) $(TAG_PKG) $(EXAMPLES_PKGS)
 TEST_PKGS = $(BSON_TEST_PKGS) $(EVENT_TEST_PKGS) $(MONGO_TEST_PKGS) $(UNSTABLE_TEST_PKGS) $(TAG_PKG) $(EXAMPLES_TEST_PKGS)
 ATLAS_URIS = "$(ATLAS_FREE)" "$(ATLAS_REPLSET)" "$(ATLAS_SHARD)" "$(ATLAS_TLS11)" "$(ATLAS_TLS12)" "$(ATLAS_FREE_SRV)" "$(ATLAS_REPLSET_SRV)" "$(ATLAS_SHARD_SRV)" "$(ATLAS_TLS11_SRV)" "$(ATLAS_TLS12_SRV)" "$(ATLAS_SERVERLESS)" "$(ATLAS_SERVERLESS_SRV)"
+GODISTS=linux/amd64 linux/386 linux/arm64 linux/arm linux/s390x
 
 TEST_TIMEOUT = 1800
 
@@ -59,7 +60,13 @@ fmt:
 
 .PHONY: lint
 lint:
-	golangci-lint run --config .golangci.yml ./...
+	for dist in $(GODISTS); do \
+		goos=$$(echo $$dist | cut -d/ -f 1) ; \
+		goarch=$$(echo $$dist | cut -d/ -f 2) ; \
+		command="GOOS=$$goos GOARCH=$$goarch golangci-lint run --config .golangci.yml ./..." ; \
+		echo $$command ; \
+		eval $$command ; \
+	done
 
 .PHONY: test
 test:
