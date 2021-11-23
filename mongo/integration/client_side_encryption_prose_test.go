@@ -140,6 +140,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.provider, func(mt *mtest.T) {
+				if tc.provider == "kmip" && "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
+					mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
+				}
 				var startedEvents []*event.CommandStartedEvent
 				monitor := &event.CommandMonitor{
 					Started: func(_ context.Context, evt *event.CommandStartedEvent) {
@@ -398,6 +401,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"expected error '%v' to contain substring '%v'", errStr, viewErrSubstr)
 	})
 	mt.RunOpts("corpus", noClientOpts, func(mt *mtest.T) {
+		if "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
+			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
+		}
 		corpusSchema := readJSONFile(mt, "corpus-schema.json")
 		localSchemaMap := map[string]interface{}{
 			"db.coll": corpusSchema,
@@ -772,6 +778,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
+				if strings.Contains(tc.name, "kmip") && "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
+					mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
+				}
 				cpt := setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptions)
 				defer cpt.teardown(mt)
 
@@ -1332,6 +1341,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
+				if tc.name =="kmip" && "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
+					mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
+				}
 				// call CreateDataKey with CEO no TLS with each provider and corresponding master key
 				cpt := setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptionsWithoutClientCert)
 				defer cpt.teardown(mt)

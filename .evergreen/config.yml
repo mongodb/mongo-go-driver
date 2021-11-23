@@ -903,6 +903,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          export KMS_MOCK_SERVERS_RUNNING="${KMS_MOCK_SERVERS_RUNNING}"
 
           export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
@@ -1803,6 +1804,7 @@ tasks:
       - func: start-kms-kmip-server
       - func: run-kmip-tests
         vars:
+          KMS_MOCK_SERVERS_RUNNING: "true"
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
