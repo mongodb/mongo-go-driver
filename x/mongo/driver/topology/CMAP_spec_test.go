@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package topology
 
 import (
@@ -39,6 +45,7 @@ type cmapTestFile struct {
 	Description string                   `json:"description"`
 	SkipReason  string                   `json:"skipReason"`
 	PoolOptions poolOptions              `json:"poolOptions"`
+	FailPoint   json.RawMessage          `json:"failPoint"`
 	Operations  []map[string]interface{} `json:"operations"`
 	Error       *cmapTestError           `json:"error"`
 	Events      []cmapEvent              `json:"events"`
@@ -87,6 +94,14 @@ func runCMAPTest(t *testing.T, testFileName string) {
 
 	if test.SkipReason != "" {
 		t.Skip(test.SkipReason)
+	}
+
+	// CMAP spec integration tests that require server failpoints are not currently supported. The
+	// only practical way to manage server failpoints is using a "mongo.Client", but importing the
+	// "mongo" package here creates an import cycle.
+	// TODO(GODRIVER-2257): Run CMAP spec integration tests in the "mongo/integration" package.
+	if len(test.FailPoint) > 0 {
+		t.Skip("failpoints are not currently supported in the CMAP spec test runner")
 	}
 
 	testInfo := &testInfo{

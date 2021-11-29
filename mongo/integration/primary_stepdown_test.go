@@ -29,6 +29,7 @@ const (
 type testPoolMonitor struct {
 	*event.PoolMonitor
 
+	subs   []chan<- *event.PoolEvent
 	events []*event.PoolEvent
 	mu     sync.RWMutex
 }
@@ -39,12 +40,27 @@ func newTestPoolMonitor() *testPoolMonitor {
 	}
 	tpm.PoolMonitor = &event.PoolMonitor{
 		Event: func(evt *event.PoolEvent) {
+			tpm.mu.RLock()
+			for _, sub := range tpm.subs {
+				select {
+				case sub <- evt:
+				default:
+				}
+			}
+			tpm.mu.RUnlock()
+
 			tpm.mu.Lock()
-			defer tpm.mu.Unlock()
 			tpm.events = append(tpm.events, evt)
+			tpm.mu.Unlock()
 		},
 	}
 	return tpm
+}
+
+func (tpm *testPoolMonitor) Subscribe(ch chan<- *event.PoolEvent) {
+	tpm.mu.Lock()
+	defer tpm.mu.Unlock()
+	tpm.subs = append(tpm.subs, ch)
 }
 
 // Events returns a copy of the events collected by the testPoolMonitor. Filters can optionally be
