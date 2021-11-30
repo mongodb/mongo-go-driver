@@ -34,6 +34,7 @@ type DropCollection struct {
 	serverAPI    *driver.ServerAPIOptions
 }
 
+// DropCollectionResult represents a dropCollection result returned by the server.
 type DropCollectionResult struct {
 	// The number of indexes in the dropped collection.
 	NIndexesWas int32

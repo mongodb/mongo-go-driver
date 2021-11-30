@@ -50,6 +50,7 @@ type FindAndModify struct {
 	result FindAndModifyResult
 }
 
+// LastErrorObject represents information about updates and upserts returned by the server.
 type LastErrorObject struct {
 	// True if an update modified an existing document
 	UpdatedExisting bool
@@ -57,6 +58,7 @@ type LastErrorObject struct {
 	Upserted interface{}
 }
 
+// FindAndModifyResult represents a findAndModify result returned by the server.
 type FindAndModifyResult struct {
 	// Either the old or modified document, depending on the value of the new parameter.
 	Value bsoncore.Document

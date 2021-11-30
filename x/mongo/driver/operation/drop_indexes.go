@@ -36,6 +36,7 @@ type DropIndexes struct {
 	serverAPI    *driver.ServerAPIOptions
 }
 
+// DropIndexesResult represents a dropIndexes result returned by the server.
 type DropIndexesResult struct {
 	// Number of indexes that existed before the drop was executed.
 	NIndexesWas int32

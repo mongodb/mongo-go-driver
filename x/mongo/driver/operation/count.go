@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-// Performs a count operation
+// Count represents a count operation.
 type Count struct {
 	maxTimeMS      *int64
 	query          bsoncore.Document
@@ -39,6 +39,7 @@ type Count struct {
 	serverAPI      *driver.ServerAPIOptions
 }
 
+// CountResult represents a count result returned by the server.
 type CountResult struct {
 	// The number of documents found
 	N int64

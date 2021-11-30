@@ -70,7 +70,7 @@ func (es *EndSessions) command(dst []byte, desc description.SelectedServer) ([]b
 	return dst, nil
 }
 
-// sessionIDs specify the sessions to be expired.
+// SessionIDs specifies the sessions to be expired.
 func (es *EndSessions) SessionIDs(sessionIDs bsoncore.Document) *EndSessions {
 	if es == nil {
 		es = new(EndSessions)
