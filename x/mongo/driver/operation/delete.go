@@ -43,7 +43,7 @@ type DeleteResult struct {
 	N int32
 }
 
-func buildDeleteResult(response bsoncore.Document, srvr driver.Server) (DeleteResult, error) {
+func buildDeleteResult(response bsoncore.Document) (DeleteResult, error) {
 	elements, err := response.Elements()
 	if err != nil {
 		return DeleteResult{}, err
@@ -73,7 +73,7 @@ func NewDelete(deletes ...bsoncore.Document) *Delete {
 func (d *Delete) Result() DeleteResult { return d.result }
 
 func (d *Delete) processResponse(info driver.ResponseInfo) error {
-	dr, err := buildDeleteResult(info.ServerResponse, info.Server)
+	dr, err := buildDeleteResult(info.ServerResponse)
 	d.result.N += dr.N
 	return err
 }

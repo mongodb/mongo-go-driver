@@ -52,7 +52,7 @@ type databaseRecord struct {
 	Empty      bool
 }
 
-func buildListDatabasesResult(response bsoncore.Document, srvr driver.Server) (ListDatabasesResult, error) {
+func buildListDatabasesResult(response bsoncore.Document) (ListDatabasesResult, error) {
 	elements, err := response.Elements()
 	if err != nil {
 		return ListDatabasesResult{}, err
@@ -133,7 +133,7 @@ func (ld *ListDatabases) Result() ListDatabasesResult { return ld.result }
 func (ld *ListDatabases) processResponse(info driver.ResponseInfo) error {
 	var err error
 
-	ld.result, err = buildListDatabasesResult(info.ServerResponse, info.Server)
+	ld.result, err = buildListDatabasesResult(info.ServerResponse)
 	return err
 
 }

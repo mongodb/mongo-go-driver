@@ -76,7 +76,7 @@ func (ac *awsConversation) Step(challenge []byte) (response []byte, err error) {
 	switch ac.state {
 	case clientStarting:
 		ac.state = clientFirst
-		response, err = ac.firstMsg()
+		response = ac.firstMsg()
 	case clientFirst:
 		ac.state = clientFinal
 		response, err = ac.finalMsg(challenge)
@@ -270,7 +270,7 @@ func (ac *awsConversation) getCredentials() (*awsv4.StaticProvider, error) {
 	return creds, err
 }
 
-func (ac *awsConversation) firstMsg() ([]byte, error) {
+func (ac *awsConversation) firstMsg() []byte {
 	// Values are cached for use in final message parameters
 	ac.nonce = make([]byte, 32)
 	_, _ = rand.Read(ac.nonce)
@@ -279,7 +279,7 @@ func (ac *awsConversation) firstMsg() ([]byte, error) {
 	msg = bsoncore.AppendInt32Element(msg, "p", 110)
 	msg = bsoncore.AppendBinaryElement(msg, "r", 0x00, ac.nonce)
 	msg, _ = bsoncore.AppendDocumentEnd(msg, idx)
-	return msg, nil
+	return msg
 }
 
 func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {

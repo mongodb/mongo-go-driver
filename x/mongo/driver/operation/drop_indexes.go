@@ -41,7 +41,7 @@ type DropIndexesResult struct {
 	NIndexesWas int32
 }
 
-func buildDropIndexesResult(response bsoncore.Document, srvr driver.Server) (DropIndexesResult, error) {
+func buildDropIndexesResult(response bsoncore.Document) (DropIndexesResult, error) {
 	elements, err := response.Elements()
 	if err != nil {
 		return DropIndexesResult{}, err
@@ -72,7 +72,7 @@ func (di *DropIndexes) Result() DropIndexesResult { return di.result }
 
 func (di *DropIndexes) processResponse(info driver.ResponseInfo) error {
 	var err error
-	di.result, err = buildDropIndexesResult(info.ServerResponse, info.Server)
+	di.result, err = buildDropIndexesResult(info.ServerResponse)
 	return err
 }
 

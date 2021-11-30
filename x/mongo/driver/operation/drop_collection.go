@@ -41,7 +41,7 @@ type DropCollectionResult struct {
 	Ns string
 }
 
-func buildDropCollectionResult(response bsoncore.Document, srvr driver.Server) (DropCollectionResult, error) {
+func buildDropCollectionResult(response bsoncore.Document) (DropCollectionResult, error) {
 	elements, err := response.Elements()
 	if err != nil {
 		return DropCollectionResult{}, err
@@ -76,7 +76,7 @@ func (dc *DropCollection) Result() DropCollectionResult { return dc.result }
 
 func (dc *DropCollection) processResponse(info driver.ResponseInfo) error {
 	var err error
-	dc.result, err = buildDropCollectionResult(info.ServerResponse, info.Server)
+	dc.result, err = buildDropCollectionResult(info.ServerResponse)
 	return err
 }
 

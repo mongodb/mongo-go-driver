@@ -57,7 +57,7 @@ type UpdateResult struct {
 	Upserted []Upsert
 }
 
-func buildUpdateResult(response bsoncore.Document, srvr driver.Server) (UpdateResult, error) {
+func buildUpdateResult(response bsoncore.Document) (UpdateResult, error) {
 	elements, err := response.Elements()
 	if err != nil {
 		return UpdateResult{}, err
@@ -116,7 +116,7 @@ func NewUpdate(updates ...bsoncore.Document) *Update {
 func (u *Update) Result() UpdateResult { return u.result }
 
 func (u *Update) processResponse(info driver.ResponseInfo) error {
-	ur, err := buildUpdateResult(info.ServerResponse, info.Server)
+	ur, err := buildUpdateResult(info.ServerResponse)
 
 	u.result.N += ur.N
 	u.result.NModified += ur.NModified

@@ -3040,15 +3040,15 @@ func TestDefaultValueDecoders(t *testing.T) {
 					doc = appendArrayElement(doc, "e", bsoncore.AppendInt64Element(nil, "0", 101112))
 					doc = appendArrayElement(doc, "f", bsoncore.AppendDoubleElement(nil, "0", 3.14159))
 					doc = appendArrayElement(doc, "g", bsoncore.AppendStringElement(nil, "0", "Hello, world"))
-					doc = appendArrayElement(doc, "h", buildDocumentElement("0", bsoncore.AppendStringElement(nil, "foo", "bar")))
+					doc = appendArrayElement(doc, "h", bsoncore.BuildDocumentElement(nil, "0", bsoncore.AppendStringElement(nil, "foo", "bar")))
 					doc = appendArrayElement(doc, "i", bsoncore.AppendBinaryElement(nil, "0", 0x00, []byte{0x01, 0x02, 0x03}))
 					doc = appendArrayElement(doc, "k",
-						buildArrayElement("0",
+						appendArrayElement(nil, "0",
 							bsoncore.AppendStringElement(bsoncore.AppendStringElement(nil, "0", "baz"), "1", "qux")),
 					)
-					doc = appendArrayElement(doc, "l", buildDocumentElement("0", bsoncore.AppendStringElement(nil, "m", "foobar")))
+					doc = appendArrayElement(doc, "l", bsoncore.BuildDocumentElement(nil, "0", bsoncore.AppendStringElement(nil, "m", "foobar")))
 					doc = appendArrayElement(doc, "n",
-						buildArrayElement("0",
+						appendArrayElement(nil, "0",
 							bsoncore.AppendStringElement(bsoncore.AppendStringElement(nil, "0", "foo"), "1", "bar")),
 					)
 					doc = appendArrayElement(doc, "r",
@@ -3062,7 +3062,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					doc = bsoncore.AppendNullElement(doc, "t")
 					doc = bsoncore.AppendNullElement(doc, "w")
 					doc = appendArrayElement(doc, "x", nil)
-					doc = appendArrayElement(doc, "y", buildDocumentElement("0", nil))
+					doc = appendArrayElement(doc, "y", bsoncore.BuildDocumentElement(nil, "0", nil))
 					doc = appendArrayElement(doc, "z",
 						bsoncore.AppendDateTimeElement(
 							bsoncore.AppendDateTimeElement(
@@ -3103,15 +3103,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 					)
 					doc = appendArrayElement(doc, "ak",
 						bsoncore.AppendNullElement(
-							buildArrayElement("0",
+							appendArrayElement(nil, "0",
 								bsoncore.AppendStringElement(bsoncore.AppendStringElement(nil, "0", "foo"), "1", "bar"),
 							),
 							"1",
 						),
 					)
 					doc = appendArrayElement(doc, "al",
-						buildDocumentElement(
-							"0",
+						bsoncore.BuildDocumentElement(nil, "0",
 							bsoncore.AppendDoubleElement(bsoncore.AppendStringElement(nil, "hello", "world"), "pi", 3.14159),
 						),
 					)
@@ -3779,10 +3778,6 @@ func buildArray(vals []byte) []byte {
 	return doc
 }
 
-func buildArrayElement(key string, vals []byte) []byte {
-	return appendArrayElement(nil, key, vals)
-}
-
 func appendArrayElement(dst []byte, key string, vals []byte) []byte {
 	aix, doc := bsoncore.AppendArrayElementStart(dst, key)
 	doc = append(doc, vals...)
@@ -3793,13 +3788,6 @@ func appendArrayElement(dst []byte, key string, vals []byte) []byte {
 // buildDocument inserts elems inside of a document.
 func buildDocument(elems []byte) []byte {
 	idx, doc := bsoncore.AppendDocumentStart(nil)
-	doc = append(doc, elems...)
-	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
-	return doc
-}
-
-func buildDocumentElement(key string, elems []byte) []byte {
-	idx, doc := bsoncore.AppendDocumentElementStart(nil, key)
 	doc = append(doc, elems...)
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 	return doc

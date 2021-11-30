@@ -555,7 +555,7 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 	version, err := getServerVersion(client.Database("admin"))
 	assert.Nil(t, err, "getServerVersion error: %v", err)
 	topoKind := client.deployment.(*topology.Topology).Kind()
-	if compareVersions(t, version, "4.1") < 0 || topoKind == description.Single {
+	if compareVersions(version, "4.1") < 0 || topoKind == description.Single {
 		t.Skip("skipping standalones and versions < 4.1")
 	}
 
@@ -594,7 +594,7 @@ func getServerVersion(db *Database) (string, error) {
 //
 // Returns a positive int if version1 is greater than version2, a negative int if version1 is less
 // than version2, and 0 if version1 is equal to version2.
-func compareVersions(t *testing.T, v1 string, v2 string) int {
+func compareVersions(v1 string, v2 string) int {
 	n1 := strings.Split(v1, ".")
 	n2 := strings.Split(v2, ".")
 

@@ -40,7 +40,7 @@ func TestSpeculativeX509(t *testing.T) {
 
 		numResponses := 1
 		responses := make(chan []byte, numResponses)
-		writeReplies(t, responses, createSpeculativeX509Handshake()...)
+		writeReplies(responses, createSpeculativeX509Handshake()...)
 
 		conn := &drivertest.ChannelConn{
 			Written:  make(chan []byte, numResponses),
@@ -84,7 +84,7 @@ func TestSpeculativeX509(t *testing.T) {
 
 		numResponses := 2
 		responses := make(chan []byte, numResponses)
-		writeReplies(t, responses, createRegularX509Handshake()...)
+		writeReplies(responses, createRegularX509Handshake()...)
 
 		conn := &drivertest.ChannelConn{
 			Written:  make(chan []byte, numResponses),

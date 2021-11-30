@@ -773,7 +773,7 @@ func TestCollection(t *testing.T) {
 			testAggregateWithOptions(mt, true, options.Aggregate().SetHint(hint))
 		})
 		mt.RunOpts("multikey map hint", mtest.NewOptions().MinServerVersion("3.6"), func(mt *mtest.T) {
-			pipeline := mongo.Pipeline{{{"$out", mt.Coll.Name()}}}
+			pipeline := mongo.Pipeline{bson.D{{"$out", mt.Coll.Name()}}}
 			cursor, err := mt.Coll.Aggregate(mtest.Background, pipeline, options.Aggregate().SetHint(bson.M{"x": 1, "y": 1}))
 			assert.Nil(mt, cursor, "expected cursor nil, got %v", cursor)
 			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"hint"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"hint"}, err)

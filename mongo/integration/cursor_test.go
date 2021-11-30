@@ -73,7 +73,7 @@ func TestCursor(t *testing.T) {
 			// TryNext should attempt one getMore
 			mt.ClearEvents()
 			assert.False(mt, cursor.TryNext(mtest.Background), "unexpected document %v", cursor.Current)
-			verifyOneGetmoreSent(mt, cursor)
+			verifyOneGetmoreSent(mt)
 		})
 		mt.RunOpts("getMore error", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			findRes := mtest.CreateCursorResponse(50, "foo.bar", mtest.FirstBatch)
@@ -265,7 +265,7 @@ func tryNextExistingBatchTest(mt *mtest.T, cursor tryNextCursor) {
 }
 
 // use command monitoring to verify that a single getMore was sent
-func verifyOneGetmoreSent(mt *mtest.T, cursor tryNextCursor) {
+func verifyOneGetmoreSent(mt *mtest.T) {
 	mt.Helper()
 
 	evt := mt.GetStartedEvent()

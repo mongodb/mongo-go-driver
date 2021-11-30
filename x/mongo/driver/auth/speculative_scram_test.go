@@ -73,7 +73,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 					DBUser:        "admin.user",
 				})
 				responses := make(chan []byte, len(tc.payloads))
-				writeReplies(t, responses, createSpeculativeSCRAMHandshake(tc.payloads)...)
+				writeReplies(responses, createSpeculativeSCRAMHandshake(tc.payloads)...)
 
 				conn := &drivertest.ChannelConn{
 					Written:  make(chan []byte, len(tc.payloads)),
@@ -154,7 +154,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 				})
 				numResponses := len(tc.payloads) + 1 // +1 for hello response
 				responses := make(chan []byte, numResponses)
-				writeReplies(t, responses, createRegularSCRAMHandshake(tc.payloads)...)
+				writeReplies(responses, createRegularSCRAMHandshake(tc.payloads)...)
 
 				conn := &drivertest.ChannelConn{
 					Written:  make(chan []byte, numResponses),

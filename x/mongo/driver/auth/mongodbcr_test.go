@@ -28,7 +28,7 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 	}
 
 	resps := make(chan []byte, 2)
-	writeReplies(t, resps, bsoncore.BuildDocumentFromElements(nil,
+	writeReplies(resps, bsoncore.BuildDocumentFromElements(nil,
 		bsoncore.AppendInt32Element(nil, "ok", 1),
 		bsoncore.AppendStringElement(nil, "nonce", "2375531c32080ae8"),
 	), bsoncore.BuildDocumentFromElements(nil,
@@ -67,7 +67,7 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	resps := make(chan []byte, 2)
-	writeReplies(t, resps, bsoncore.BuildDocumentFromElements(nil,
+	writeReplies(resps, bsoncore.BuildDocumentFromElements(nil,
 		bsoncore.AppendInt32Element(nil, "ok", 1),
 		bsoncore.AppendStringElement(nil, "nonce", "2375531c32080ae8"),
 	), bsoncore.BuildDocumentFromElements(nil,
@@ -106,7 +106,7 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 	compareResponses(t, <-c.Written, expectedAuthenticateDoc, "source")
 }
 
-func writeReplies(t *testing.T, c chan []byte, docs ...bsoncore.Document) {
+func writeReplies(c chan []byte, docs ...bsoncore.Document) {
 	for _, doc := range docs {
 		reply := drivertest.MakeReply(doc)
 		c <- reply

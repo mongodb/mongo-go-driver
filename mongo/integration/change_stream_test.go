@@ -488,7 +488,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			for i := 0; i < 2; i++ {
 				assert.False(mt, cs.TryNext(mtest.Background), "TryNext returned true on iteration %v", i)
 			}
-			verifyOneGetmoreSent(mt, cs)
+			verifyOneGetmoreSent(mt)
 		})
 		mt.RunOpts("getMore error", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			// If the getMore attempt errors with a non-resumable error, TryNext returns false

@@ -223,7 +223,7 @@ func (r *reflectionFreeDCodec) decodeValue(dc bsoncodec.DecodeContext, vr bsonrw
 func (r *reflectionFreeDCodec) encodeDocumentValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, v interface{}) error {
 	switch val := v.(type) {
 	case int:
-		return r.encodeInt(ec, vw, val)
+		return r.encodeInt(vw, val)
 	case int8:
 		return vw.WriteInt32(int32(val))
 	case int16:
@@ -292,69 +292,69 @@ func (r *reflectionFreeDCodec) encodeDocumentValue(ec bsoncodec.EncodeContext, v
 	case []primitive.D:
 		return r.encodeSliceD(ec, vw, val)
 	case []int:
-		return r.encodeSliceInt(ec, vw, val)
+		return r.encodeSliceInt(vw, val)
 	case []int8:
-		return r.encodeSliceInt8(ec, vw, val)
+		return r.encodeSliceInt8(vw, val)
 	case []int16:
-		return r.encodeSliceInt16(ec, vw, val)
+		return r.encodeSliceInt16(vw, val)
 	case []int32:
-		return r.encodeSliceInt32(ec, vw, val)
+		return r.encodeSliceInt32(vw, val)
 	case []int64:
 		return r.encodeSliceInt64(ec, vw, val)
 	case []uint:
 		return r.encodeSliceUint(ec, vw, val)
 	case []uint16:
-		return r.encodeSliceUint16(ec, vw, val)
+		return r.encodeSliceUint16(vw, val)
 	case []uint32:
 		return r.encodeSliceUint32(ec, vw, val)
 	case []uint64:
 		return r.encodeSliceUint64(ec, vw, val)
 	case [][]byte:
-		return r.encodeSliceByteSlice(ec, vw, val)
+		return r.encodeSliceByteSlice(vw, val)
 	case []primitive.Binary:
-		return r.encodeSliceBinary(ec, vw, val)
+		return r.encodeSliceBinary(vw, val)
 	case []bool:
-		return r.encodeSliceBoolean(ec, vw, val)
+		return r.encodeSliceBoolean(vw, val)
 	case []primitive.CodeWithScope:
 		return r.encodeSliceCWS(ec, vw, val)
 	case []primitive.DBPointer:
-		return r.encodeSliceDBPointer(ec, vw, val)
+		return r.encodeSliceDBPointer(vw, val)
 	case []primitive.DateTime:
-		return r.encodeSliceDateTime(ec, vw, val)
+		return r.encodeSliceDateTime(vw, val)
 	case []time.Time:
-		return r.encodeSliceTimeTime(ec, vw, val)
+		return r.encodeSliceTimeTime(vw, val)
 	case []primitive.Decimal128:
-		return r.encodeSliceDecimal128(ec, vw, val)
+		return r.encodeSliceDecimal128(vw, val)
 	case []float32:
-		return r.encodeSliceFloat32(ec, vw, val)
+		return r.encodeSliceFloat32(vw, val)
 	case []float64:
-		return r.encodeSliceFloat64(ec, vw, val)
+		return r.encodeSliceFloat64(vw, val)
 	case []primitive.JavaScript:
-		return r.encodeSliceJavaScript(ec, vw, val)
+		return r.encodeSliceJavaScript(vw, val)
 	case []primitive.MinKey:
-		return r.encodeSliceMinKey(ec, vw, val)
+		return r.encodeSliceMinKey(vw, val)
 	case []primitive.MaxKey:
-		return r.encodeSliceMaxKey(ec, vw, val)
+		return r.encodeSliceMaxKey(vw, val)
 	case []primitive.Null:
-		return r.encodeSliceNull(ec, vw, val)
+		return r.encodeSliceNull(vw, val)
 	case []primitive.ObjectID:
-		return r.encodeSliceObjectID(ec, vw, val)
+		return r.encodeSliceObjectID(vw, val)
 	case []primitive.Regex:
-		return r.encodeSliceRegex(ec, vw, val)
+		return r.encodeSliceRegex(vw, val)
 	case []string:
-		return r.encodeSliceString(ec, vw, val)
+		return r.encodeSliceString(vw, val)
 	case []primitive.Symbol:
-		return r.encodeSliceSymbol(ec, vw, val)
+		return r.encodeSliceSymbol(vw, val)
 	case []primitive.Timestamp:
-		return r.encodeSliceTimestamp(ec, vw, val)
+		return r.encodeSliceTimestamp(vw, val)
 	case []primitive.Undefined:
-		return r.encodeSliceUndefined(ec, vw, val)
+		return r.encodeSliceUndefined(vw, val)
 	default:
 		return fmt.Errorf("value of type %T not supported", v)
 	}
 }
 
-func (r *reflectionFreeDCodec) encodeInt(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val int) error {
+func (r *reflectionFreeDCodec) encodeInt(vw bsonrw.ValueWriter, val int) error {
 	if fitsIn32Bits(int64(val)) {
 		return vw.WriteInt32(int32(val))
 	}
@@ -399,7 +399,7 @@ func (r *reflectionFreeDCodec) encodeDocument(ec bsoncodec.EncodeContext, vw bso
 	return dw.WriteDocumentEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceByteSlice(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr [][]byte) error {
+func (r *reflectionFreeDCodec) encodeSliceByteSlice(vw bsonrw.ValueWriter, arr [][]byte) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -419,7 +419,7 @@ func (r *reflectionFreeDCodec) encodeSliceByteSlice(ec bsoncodec.EncodeContext, 
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceBinary(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.Binary) error {
+func (r *reflectionFreeDCodec) encodeSliceBinary(vw bsonrw.ValueWriter, arr []primitive.Binary) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -439,7 +439,7 @@ func (r *reflectionFreeDCodec) encodeSliceBinary(ec bsoncodec.EncodeContext, vw 
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceBoolean(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []bool) error {
+func (r *reflectionFreeDCodec) encodeSliceBoolean(vw bsonrw.ValueWriter, arr []bool) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -479,7 +479,7 @@ func (r *reflectionFreeDCodec) encodeSliceCWS(ec bsoncodec.EncodeContext, vw bso
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceDBPointer(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.DBPointer) error {
+func (r *reflectionFreeDCodec) encodeSliceDBPointer(vw bsonrw.ValueWriter, arr []primitive.DBPointer) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -499,7 +499,7 @@ func (r *reflectionFreeDCodec) encodeSliceDBPointer(ec bsoncodec.EncodeContext, 
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceDateTime(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.DateTime) error {
+func (r *reflectionFreeDCodec) encodeSliceDateTime(vw bsonrw.ValueWriter, arr []primitive.DateTime) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -519,7 +519,7 @@ func (r *reflectionFreeDCodec) encodeSliceDateTime(ec bsoncodec.EncodeContext, v
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceTimeTime(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []time.Time) error {
+func (r *reflectionFreeDCodec) encodeSliceTimeTime(vw bsonrw.ValueWriter, arr []time.Time) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -540,7 +540,7 @@ func (r *reflectionFreeDCodec) encodeSliceTimeTime(ec bsoncodec.EncodeContext, v
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceDecimal128(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.Decimal128) error {
+func (r *reflectionFreeDCodec) encodeSliceDecimal128(vw bsonrw.ValueWriter, arr []primitive.Decimal128) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -560,7 +560,7 @@ func (r *reflectionFreeDCodec) encodeSliceDecimal128(ec bsoncodec.EncodeContext,
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceFloat32(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []float32) error {
+func (r *reflectionFreeDCodec) encodeSliceFloat32(vw bsonrw.ValueWriter, arr []float32) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -580,7 +580,7 @@ func (r *reflectionFreeDCodec) encodeSliceFloat32(ec bsoncodec.EncodeContext, vw
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceFloat64(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []float64) error {
+func (r *reflectionFreeDCodec) encodeSliceFloat64(vw bsonrw.ValueWriter, arr []float64) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -600,7 +600,7 @@ func (r *reflectionFreeDCodec) encodeSliceFloat64(ec bsoncodec.EncodeContext, vw
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceJavaScript(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.JavaScript) error {
+func (r *reflectionFreeDCodec) encodeSliceJavaScript(vw bsonrw.ValueWriter, arr []primitive.JavaScript) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -620,7 +620,7 @@ func (r *reflectionFreeDCodec) encodeSliceJavaScript(ec bsoncodec.EncodeContext,
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceMinKey(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.MinKey) error {
+func (r *reflectionFreeDCodec) encodeSliceMinKey(vw bsonrw.ValueWriter, arr []primitive.MinKey) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -640,7 +640,7 @@ func (r *reflectionFreeDCodec) encodeSliceMinKey(ec bsoncodec.EncodeContext, vw 
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceMaxKey(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.MaxKey) error {
+func (r *reflectionFreeDCodec) encodeSliceMaxKey(vw bsonrw.ValueWriter, arr []primitive.MaxKey) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -660,7 +660,7 @@ func (r *reflectionFreeDCodec) encodeSliceMaxKey(ec bsoncodec.EncodeContext, vw 
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceNull(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.Null) error {
+func (r *reflectionFreeDCodec) encodeSliceNull(vw bsonrw.ValueWriter, arr []primitive.Null) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -680,7 +680,7 @@ func (r *reflectionFreeDCodec) encodeSliceNull(ec bsoncodec.EncodeContext, vw bs
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceObjectID(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.ObjectID) error {
+func (r *reflectionFreeDCodec) encodeSliceObjectID(vw bsonrw.ValueWriter, arr []primitive.ObjectID) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -700,7 +700,7 @@ func (r *reflectionFreeDCodec) encodeSliceObjectID(ec bsoncodec.EncodeContext, v
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceRegex(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.Regex) error {
+func (r *reflectionFreeDCodec) encodeSliceRegex(vw bsonrw.ValueWriter, arr []primitive.Regex) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -720,7 +720,7 @@ func (r *reflectionFreeDCodec) encodeSliceRegex(ec bsoncodec.EncodeContext, vw b
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceString(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []string) error {
+func (r *reflectionFreeDCodec) encodeSliceString(vw bsonrw.ValueWriter, arr []string) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -740,7 +740,7 @@ func (r *reflectionFreeDCodec) encodeSliceString(ec bsoncodec.EncodeContext, vw 
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceSymbol(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.Symbol) error {
+func (r *reflectionFreeDCodec) encodeSliceSymbol(vw bsonrw.ValueWriter, arr []primitive.Symbol) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -760,7 +760,7 @@ func (r *reflectionFreeDCodec) encodeSliceSymbol(ec bsoncodec.EncodeContext, vw 
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceTimestamp(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.Timestamp) error {
+func (r *reflectionFreeDCodec) encodeSliceTimestamp(vw bsonrw.ValueWriter, arr []primitive.Timestamp) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -780,7 +780,7 @@ func (r *reflectionFreeDCodec) encodeSliceTimestamp(ec bsoncodec.EncodeContext, 
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceUndefined(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []primitive.Undefined) error {
+func (r *reflectionFreeDCodec) encodeSliceUndefined(vw bsonrw.ValueWriter, arr []primitive.Undefined) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -840,7 +840,7 @@ func (r *reflectionFreeDCodec) encodeSliceD(ec bsoncodec.EncodeContext, vw bsonr
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceInt(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []int) error {
+func (r *reflectionFreeDCodec) encodeSliceInt(vw bsonrw.ValueWriter, arr []int) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -852,7 +852,7 @@ func (r *reflectionFreeDCodec) encodeSliceInt(ec bsoncodec.EncodeContext, vw bso
 			return err
 		}
 
-		if err := r.encodeInt(ec, arrayValWriter, val); err != nil {
+		if err := r.encodeInt(arrayValWriter, val); err != nil {
 			return err
 		}
 	}
@@ -860,27 +860,7 @@ func (r *reflectionFreeDCodec) encodeSliceInt(ec bsoncodec.EncodeContext, vw bso
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceInt8(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []int8) error {
-	aw, err := vw.WriteArray()
-	if err != nil {
-		return err
-	}
-
-	for _, val := range arr {
-		arrayValWriter, err := aw.WriteArrayElement()
-		if err != nil {
-			return err
-		}
-
-		if err := arrayValWriter.WriteInt32(int32(val)); err != nil {
-			return err
-		}
-	}
-
-	return aw.WriteArrayEnd()
-}
-
-func (r *reflectionFreeDCodec) encodeSliceInt16(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []int16) error {
+func (r *reflectionFreeDCodec) encodeSliceInt8(vw bsonrw.ValueWriter, arr []int8) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -900,7 +880,27 @@ func (r *reflectionFreeDCodec) encodeSliceInt16(ec bsoncodec.EncodeContext, vw b
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceInt32(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []int32) error {
+func (r *reflectionFreeDCodec) encodeSliceInt16(vw bsonrw.ValueWriter, arr []int16) error {
+	aw, err := vw.WriteArray()
+	if err != nil {
+		return err
+	}
+
+	for _, val := range arr {
+		arrayValWriter, err := aw.WriteArrayElement()
+		if err != nil {
+			return err
+		}
+
+		if err := arrayValWriter.WriteInt32(int32(val)); err != nil {
+			return err
+		}
+	}
+
+	return aw.WriteArrayEnd()
+}
+
+func (r *reflectionFreeDCodec) encodeSliceInt32(vw bsonrw.ValueWriter, arr []int32) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
@@ -960,7 +960,7 @@ func (r *reflectionFreeDCodec) encodeSliceUint(ec bsoncodec.EncodeContext, vw bs
 	return aw.WriteArrayEnd()
 }
 
-func (r *reflectionFreeDCodec) encodeSliceUint16(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, arr []uint16) error {
+func (r *reflectionFreeDCodec) encodeSliceUint16(vw bsonrw.ValueWriter, arr []uint16) error {
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err

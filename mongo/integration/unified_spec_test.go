@@ -247,7 +247,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 
 		// work around for SERVER-39704: run a non-transactional distinct against each shard in a sharded cluster
 		if mtest.ClusterTopologyKind() == mtest.Sharded && test.Description == "distinct" {
-			err := runCommandOnAllServers(mt, func(mongosClient *mongo.Client) error {
+			err := runCommandOnAllServers(func(mongosClient *mongo.Client) error {
 				coll := mongosClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
 				_, err := coll.Distinct(mtest.Background, "x", bson.D{})
 				return err
@@ -487,13 +487,13 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 			return fmt.Errorf("expected last two lsids to be not equal but both were %v", first)
 		}
 	case "assertCollectionExists":
-		return verifyCollectionState(mt, op, true)
+		return verifyCollectionState(op, true)
 	case "assertCollectionNotExists":
-		return verifyCollectionState(mt, op, false)
+		return verifyCollectionState(op, false)
 	case "assertIndexExists":
-		return verifyIndexState(mt, op, true)
+		return verifyIndexState(op, true)
 	case "assertIndexNotExists":
-		return verifyIndexState(mt, op, false)
+		return verifyIndexState(op, false)
 	case "wait":
 		time.Sleep(convertValueToMilliseconds(mt, op.Arguments.Lookup("ms")))
 	case "waitForEvent":
@@ -529,12 +529,12 @@ func verifyDirtySessionState(clientSession *session.Client, expectedDirty bool) 
 	return nil
 }
 
-func verifyIndexState(mt *mtest.T, op *operation, shouldExist bool) error {
+func verifyIndexState(op *operation, shouldExist bool) error {
 	db := op.Arguments.Lookup("database").StringValue()
 	coll := op.Arguments.Lookup("collection").StringValue()
 	index := op.Arguments.Lookup("index").StringValue()
 
-	exists, err := indexExists(mt, db, coll, index)
+	exists, err := indexExists(db, coll, index)
 	if err != nil {
 		return err
 	}
@@ -545,7 +545,7 @@ func verifyIndexState(mt *mtest.T, op *operation, shouldExist bool) error {
 	return nil
 }
 
-func indexExists(mt *mtest.T, dbName, collName, indexName string) (bool, error) {
+func indexExists(dbName, collName, indexName string) (bool, error) {
 	// Use global client because listIndexes cannot be executed inside a transaction.
 	iv := mtest.GlobalClient().Database(dbName).Collection(collName).Indexes()
 	cursor, err := iv.List(mtest.Background)
@@ -562,11 +562,11 @@ func indexExists(mt *mtest.T, dbName, collName, indexName string) (bool, error) 
 	return false, cursor.Err()
 }
 
-func verifyCollectionState(mt *mtest.T, op *operation, shouldExist bool) error {
+func verifyCollectionState(op *operation, shouldExist bool) error {
 	db := op.Arguments.Lookup("database").StringValue()
 	coll := op.Arguments.Lookup("collection").StringValue()
 
-	exists, err := collectionExists(mt, db, coll)
+	exists, err := collectionExists(db, coll)
 	if err != nil {
 		return err
 	}
@@ -577,7 +577,7 @@ func verifyCollectionState(mt *mtest.T, op *operation, shouldExist bool) error {
 	return nil
 }
 
-func collectionExists(mt *mtest.T, dbName, collName string) (bool, error) {
+func collectionExists(dbName, collName string) (bool, error) {
 	filter := bson.D{
 		{"name", collName},
 	}

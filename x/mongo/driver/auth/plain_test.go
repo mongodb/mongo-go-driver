@@ -28,7 +28,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	}
 
 	resps := make(chan []byte, 1)
-	writeReplies(t, resps, bsoncore.BuildDocumentFromElements(nil,
+	writeReplies(resps, bsoncore.BuildDocumentFromElements(nil,
 		bsoncore.AppendInt32Element(nil, "ok", 1),
 		bsoncore.AppendInt32Element(nil, "conversationId", 1),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, []byte{}),
@@ -67,7 +67,7 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	}
 
 	resps := make(chan []byte, 2)
-	writeReplies(t, resps, bsoncore.BuildDocumentFromElements(nil,
+	writeReplies(resps, bsoncore.BuildDocumentFromElements(nil,
 		bsoncore.AppendInt32Element(nil, "ok", 1),
 		bsoncore.AppendInt32Element(nil, "conversationId", 1),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, []byte{}),
@@ -110,7 +110,7 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	resps := make(chan []byte, 1)
-	writeReplies(t, resps, bsoncore.BuildDocumentFromElements(nil,
+	writeReplies(resps, bsoncore.BuildDocumentFromElements(nil,
 		bsoncore.AppendInt32Element(nil, "ok", 1),
 		bsoncore.AppendInt32Element(nil, "conversationId", 1),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, []byte{}),

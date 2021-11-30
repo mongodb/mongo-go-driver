@@ -104,7 +104,7 @@ func killSessions(mt *mtest.T) {
 
 	// killAllSessions has to be run against each mongos in a sharded cluster, so we use the runCommandOnAllServers
 	// helper.
-	err := runCommandOnAllServers(mt, func(client *mongo.Client) error {
+	err := runCommandOnAllServers(func(client *mongo.Client) error {
 		return client.Database("admin").RunCommand(mtest.Background, cmd, runCmdOpts).Err()
 	})
 
@@ -118,7 +118,7 @@ func killSessions(mt *mtest.T) {
 
 // Utility function to run a command on all servers. For standalones, the command is run against the one server. For
 // replica sets, the command is run against the primary. sharded clusters, the command is run against each mongos.
-func runCommandOnAllServers(mt *mtest.T, commandFn func(client *mongo.Client) error) error {
+func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 	opts := options.Client().ApplyURI(mtest.ClusterURI())
 	testutil.AddTestServerAPIVersion(opts)
 
@@ -337,7 +337,7 @@ func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.I
 	return mt.Coll.InsertMany(mtest.Background, docs, opts)
 }
 
-func setFindModifiers(mt *mtest.T, modifiersDoc bson.Raw, opts *options.FindOptions) {
+func setFindModifiers(modifiersDoc bson.Raw, opts *options.FindOptions) {
 	elems, _ := modifiersDoc.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -387,7 +387,7 @@ func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor,
 		case "collation":
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
 		case "modifiers":
-			setFindModifiers(mt, val.Document(), opts)
+			setFindModifiers(val.Document(), opts)
 		case "allowDiskUse":
 			opts = opts.SetAllowDiskUse(val.Boolean())
 		case "projection":
