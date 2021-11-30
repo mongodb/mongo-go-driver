@@ -40,6 +40,7 @@ type Delete struct {
 	serverAPI    *driver.ServerAPIOptions
 }
 
+// DeleteResult represents a delete result returned by the server.
 type DeleteResult struct {
 	// Number of documents successfully deleted.
 	N int32

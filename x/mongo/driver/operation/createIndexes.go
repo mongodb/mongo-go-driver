@@ -40,6 +40,7 @@ type CreateIndexes struct {
 	serverAPI    *driver.ServerAPIOptions
 }
 
+// CreateIndexesResult represents a createIndexes result returned by the server.
 type CreateIndexesResult struct {
 	// If the collection was created automatically.
 	CreatedCollectionAutomatically bool
@@ -135,9 +136,9 @@ func (ci *CreateIndexes) command(dst []byte, desc description.SelectedServer) ([
 	return dst, nil
 }
 
-// The number of data-bearing members of a replica set, including the primary, that must complete the index builds
-// successfully before the primary marks the indexes as ready. This should either be a string or int32 value.
-//
+// CommitQuorum specifies the number of data-bearing members of a replica set, including the primary, that must
+// complete the index builds successfully before the primary marks the indexes as ready. This should either be a
+// string or int32 value.
 func (ci *CreateIndexes) CommitQuorum(commitQuorum bsoncore.Value) *CreateIndexes {
 	if ci == nil {
 		ci = new(CreateIndexes)
@@ -147,7 +148,7 @@ func (ci *CreateIndexes) CommitQuorum(commitQuorum bsoncore.Value) *CreateIndexe
 	return ci
 }
 
-// An array containing index specification documents for the indexes being created.
+// Indexes specifies an array containing index specification documents for the indexes being created.
 func (ci *CreateIndexes) Indexes(indexes bsoncore.Document) *CreateIndexes {
 	if ci == nil {
 		ci = new(CreateIndexes)

@@ -23,7 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-// Performs an aggregate operation
+// Aggregate represents an aggregate operation.
 type Aggregate struct {
 	allowDiskUse             *bool
 	batchSize                *int32
@@ -68,6 +68,8 @@ func (a *Aggregate) Result(opts driver.CursorOptions) (*driver.BatchCursor, erro
 	return driver.NewBatchCursor(a.result, clientSession, clock, opts)
 }
 
+// ResultCursorResponse returns the underlying CursorResponse result of executing this
+// operation.
 func (a *Aggregate) ResultCursorResponse() driver.CursorResponse {
 	return a.result
 }

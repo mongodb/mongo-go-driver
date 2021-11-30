@@ -323,7 +323,7 @@ func (f *Find) OplogReplay(oplogReplay bool) *Find {
 	return f
 }
 
-// Project limits the fields returned for all documents.
+// Projection limits the fields returned for all documents.
 func (f *Find) Projection(projection bsoncore.Document) *Find {
 	if f == nil {
 		f = new(Find)

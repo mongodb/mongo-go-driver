@@ -42,6 +42,7 @@ type Distinct struct {
 	serverAPI      *driver.ServerAPIOptions
 }
 
+// DistinctResult represents a distinct result returned by the server.
 type DistinctResult struct {
 	// The distinct values for the field.
 	Values bsoncore.Value

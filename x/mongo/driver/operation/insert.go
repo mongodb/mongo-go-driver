@@ -40,6 +40,7 @@ type Insert struct {
 	serverAPI                *driver.ServerAPIOptions
 }
 
+// InsertResult represents an insert result returned by the server.
 type InsertResult struct {
 	// Number of documents successfully inserted.
 	N int32
