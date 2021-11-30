@@ -147,7 +147,7 @@ func TestCausalConsistency_Supported(t *testing.T) {
 		checkOperationTime(mt, evt.Command, false)
 	})
 	mt.Run("default read concern", func(mt *mtest.T) {
-		// when using the deafult server read concern, the readConcern parameter in the command sent to the server should
+		// when using the default server read concern, the readConcern parameter in the command sent to the server should
 		// not include a level field
 
 		sess, err := mt.Client.StartSession()

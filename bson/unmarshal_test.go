@@ -140,7 +140,7 @@ func TestUnmarshalExtJSONWithContext(t *testing.T) {
 			want:  &fooString{Foo: "�"},
 		},
 		{
-			name:  "Low surrogate value with no preceeding high surrogate value",
+			name:  "Low surrogate value with no preceding high surrogate value",
 			sType: reflect.TypeOf(fooString{}),
 			data:  []byte(`{"foo":"abc \uDd1e 123"}`),
 			want:  &fooString{Foo: "abc � 123"},

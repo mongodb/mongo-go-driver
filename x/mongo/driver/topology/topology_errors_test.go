@@ -55,7 +55,7 @@ func TestTopologyErrors(t *testing.T) {
 				_, serverSelectionErr = topo.selectServerFromSubscription(ctx, subCh, state)
 			}
 			assert.Soon(t, callback, 150*time.Millisecond)
-			assert.True(t, errors.Is(serverSelectionErr, context.DeadlineExceeded), "expected %v, recieved %v",
+			assert.True(t, errors.Is(serverSelectionErr, context.DeadlineExceeded), "expected %v, received %v",
 				context.DeadlineExceeded, serverSelectionErr)
 		})
 	})

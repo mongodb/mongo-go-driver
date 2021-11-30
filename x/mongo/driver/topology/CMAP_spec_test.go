@@ -126,7 +126,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 	for _, op := range test.Operations {
 		if tempErr := runOperation(t, op, testInfo, s, test.PoolOptions.WaitQueueTimeoutMS); tempErr != nil {
 			if err != nil {
-				t.Fatalf("recieved multiple errors in primary thread: %v and %v", err, tempErr)
+				t.Fatalf("received multiple errors in primary thread: %v and %v", err, tempErr)
 			}
 			err = tempErr
 		}
@@ -171,7 +171,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 				}
 			}
 			if !erroredCorrectly {
-				t.Fatalf("error differed from expected error, expected: %v, actual errors recieved: %v", test.Error.Message, errs)
+				t.Fatalf("error differed from expected error, expected: %v, actual errors received: %v", test.Error.Message, errs)
 			}
 		}
 	}
@@ -196,22 +196,22 @@ func checkEvents(t *testing.T, expectedEvents []cmapEvent, actualEvents chan *ev
 			if validEvent.Type == "ConnectionCheckOutFailed" {
 				reason = ": " + validEvent.Reason
 			}
-			t.Fatalf("unexpected event occured: expected: %v, actual: %v%v", expectedEvent.EventType, validEvent.Type, reason)
+			t.Fatalf("unexpected event occurred: expected: %v, actual: %v%v", expectedEvent.EventType, validEvent.Type, reason)
 		}
 
 		if expectedEvent.Address != nil {
 
 			if expectedEvent.Address == float64(42) { // can be any address
 				if validEvent.Address == "" {
-					t.Fatalf("expected address in event, instead recieved none in %v", expectedEvent.EventType)
+					t.Fatalf("expected address in event, instead received none in %v", expectedEvent.EventType)
 				}
 			} else { // must be specific address
 				addr, ok := expectedEvent.Address.(string)
 				if !ok {
-					t.Fatalf("recieved non string address: %v", expectedEvent.Address)
+					t.Fatalf("received non string address: %v", expectedEvent.Address)
 				}
 				if addr != validEvent.Address {
-					t.Fatalf("recieved unexpected address: %v, expected: %v", validEvent.Address, expectedEvent.Address)
+					t.Fatalf("received unexpected address: %v, expected: %v", validEvent.Address, expectedEvent.Address)
 				}
 			}
 		}
@@ -264,7 +264,7 @@ EventsLeft:
 				continue EventsLeft
 			}
 		}
-		t.Fatalf("extra event occured: %v", event.Type)
+		t.Fatalf("extra event occurred: %v", event.Type)
 	}
 }
 
@@ -273,7 +273,7 @@ func nextValidEvent(t *testing.T, events chan *event.PoolEvent, ignoreEvents []s
 NextEvent:
 	for {
 		if len(events) == 0 {
-			t.Fatalf("unable to get next event. too few events occured")
+			t.Fatalf("unable to get next event. too few events occurred")
 		}
 
 		event := <-events

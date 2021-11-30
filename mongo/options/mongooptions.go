@@ -22,7 +22,7 @@ type Collation struct {
 	Locale          string `bson:",omitempty"` // The locale
 	CaseLevel       bool   `bson:",omitempty"` // The case level
 	CaseFirst       string `bson:",omitempty"` // The case ordering
-	Strength        int    `bson:",omitempty"` // The number of comparision levels to use
+	Strength        int    `bson:",omitempty"` // The number of comparison levels to use
 	NumericOrdering bool   `bson:",omitempty"` // Whether to order numbers based on numerical order and not collation order
 	Alternate       string `bson:",omitempty"` // Whether spaces and punctuation are considered base characters
 	MaxVariable     string `bson:",omitempty"` // Which characters are affected by alternate: "shifted"

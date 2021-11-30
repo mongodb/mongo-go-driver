@@ -261,7 +261,7 @@ func contactResponders(ctx context.Context, cfg config) (*ResponseDetails, error
 			//
 			// 2. If any other errors occurred, including the defaultRequestTimeout expiring, or the response has a
 			// non-200 status code, suppress the error because we want to ignore this responder and wait for a different
-			// one to responsd.
+			// one to respond.
 			httpResponse, err := http.DefaultClient.Do(request)
 			if err != nil {
 				urlErr, ok := err.(*url.Error)

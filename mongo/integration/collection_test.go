@@ -1701,7 +1701,7 @@ func TestCollection(t *testing.T) {
 				deleteModels = append(deleteModels, mongo.NewDeleteOneModel().SetFilter(bson.D{}))
 			}
 
-			// Seed mock responses. Both insert and delete respones look like {ok: 1, n: <inserted/deleted count>}.
+			// Seed mock responses. Both insert and delete responses look like {ok: 1, n: <inserted/deleted count>}.
 			// This loop only creates one set of responses, but the sets for insert and delete should be equivalent,
 			// so we can duplicate the generated set before calling mt.AddMockResponses().
 			var responses []bson.D

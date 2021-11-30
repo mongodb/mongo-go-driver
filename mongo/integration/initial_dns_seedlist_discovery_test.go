@@ -191,7 +191,7 @@ func setSSLSettings(mt *mtest.T, cs *connstring.ConnString, test seedlistTest) {
 
 	// Skip SSL tests if the server is running without SSL.
 	if testCaseExpectsSSL && !envSSL {
-		mt.Skip("skipping test that expectes ssl in a non-ssl environment")
+		mt.Skip("skipping test that expects ssl in a non-ssl environment")
 	}
 
 	// If SSL tests are running, set the CA file.

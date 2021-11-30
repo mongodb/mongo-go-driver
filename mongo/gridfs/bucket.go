@@ -554,7 +554,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 
 	_, err = docRes.DecodeBytes()
 	if err != mongo.ErrNoDocuments {
-		// nil, or error that occured during the FindOne operation
+		// nil, or error that occurred during the FindOne operation
 		return err
 	}
 
