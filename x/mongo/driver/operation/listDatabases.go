@@ -39,6 +39,7 @@ type ListDatabases struct {
 	result ListDatabasesResult
 }
 
+// ListDatabasesResult represents a listDatabases result returned by the server.
 type ListDatabasesResult struct {
 	// An array of documents, one document for each database
 	Databases []databaseRecord

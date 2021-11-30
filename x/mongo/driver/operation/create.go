@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-// Create a create operation
+// Create represents a create operation.
 type Create struct {
 	capped              *bool
 	collation           bsoncore.Document
@@ -127,7 +127,7 @@ func (c *Create) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	return dst, nil
 }
 
-// Specifies if the collection is capped.
+// Capped specifies if the collection is capped.
 func (c *Create) Capped(capped bool) *Create {
 	if c == nil {
 		c = new(Create)
@@ -147,7 +147,7 @@ func (c *Create) Collation(collation bsoncore.Document) *Create {
 	return c
 }
 
-// Specifies the name of the collection to create.
+// CollectionName specifies the name of the collection to create.
 func (c *Create) CollectionName(collectionName string) *Create {
 	if c == nil {
 		c = new(Create)
@@ -157,7 +157,7 @@ func (c *Create) CollectionName(collectionName string) *Create {
 	return c
 }
 
-// Specifies a default configuration for indexes on the collection.
+// IndexOptionDefaults specifies a default configuration for indexes on the collection.
 func (c *Create) IndexOptionDefaults(indexOptionDefaults bsoncore.Document) *Create {
 	if c == nil {
 		c = new(Create)
@@ -167,7 +167,7 @@ func (c *Create) IndexOptionDefaults(indexOptionDefaults bsoncore.Document) *Cre
 	return c
 }
 
-// Specifies the maximum number of documents allowed in a capped collection.
+// Max specifies the maximum number of documents allowed in a capped collection.
 func (c *Create) Max(max int64) *Create {
 	if c == nil {
 		c = new(Create)
@@ -177,7 +177,7 @@ func (c *Create) Max(max int64) *Create {
 	return c
 }
 
-// Specifies the agggregtion pipeline to be run against the source to create the view.
+// Pipeline specifies the agggregtion pipeline to be run against the source to create the view.
 func (c *Create) Pipeline(pipeline bsoncore.Document) *Create {
 	if c == nil {
 		c = new(Create)
@@ -187,7 +187,7 @@ func (c *Create) Pipeline(pipeline bsoncore.Document) *Create {
 	return c
 }
 
-// Specifies the maximum size in bytes for a capped collection.
+// Size specifies the maximum size in bytes for a capped collection.
 func (c *Create) Size(size int64) *Create {
 	if c == nil {
 		c = new(Create)
@@ -197,7 +197,7 @@ func (c *Create) Size(size int64) *Create {
 	return c
 }
 
-// Specifies the storage engine to use for the index.
+// StorageEngine specifies the storage engine to use for the index.
 func (c *Create) StorageEngine(storageEngine bsoncore.Document) *Create {
 	if c == nil {
 		c = new(Create)
@@ -207,7 +207,7 @@ func (c *Create) StorageEngine(storageEngine bsoncore.Document) *Create {
 	return c
 }
 
-// Specifies what should happen if a document being inserted does not pass validation.
+// ValidationAction specifies what should happen if a document being inserted does not pass validation.
 func (c *Create) ValidationAction(validationAction string) *Create {
 	if c == nil {
 		c = new(Create)
@@ -217,7 +217,8 @@ func (c *Create) ValidationAction(validationAction string) *Create {
 	return c
 }
 
-// Specifies how strictly the server applies validation rules to existing documents in the collection during update operations.
+// ValidationLevel specifies how strictly the server applies validation rules to existing documents in the collection
+// during update operations.
 func (c *Create) ValidationLevel(validationLevel string) *Create {
 	if c == nil {
 		c = new(Create)
@@ -227,7 +228,7 @@ func (c *Create) ValidationLevel(validationLevel string) *Create {
 	return c
 }
 
-// Specifies validation rules for the collection.
+// Validator specifies validation rules for the collection.
 func (c *Create) Validator(validator bsoncore.Document) *Create {
 	if c == nil {
 		c = new(Create)
@@ -237,7 +238,7 @@ func (c *Create) Validator(validator bsoncore.Document) *Create {
 	return c
 }
 
-// Specifies the name of the source collection or view on which the view will be created.
+// ViewOn specifies the name of the source collection or view on which the view will be created.
 func (c *Create) ViewOn(viewOn string) *Create {
 	if c == nil {
 		c = new(Create)
