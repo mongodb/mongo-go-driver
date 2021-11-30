@@ -24,7 +24,7 @@ import (
 
 // AutoCreateIndexes creates an index in the test cluster.
 func AutoCreateIndexes(t *testing.T, keys []string) {
-	var elems [][]byte
+	elems := make([][]byte, 0, len(keys))
 	for _, k := range keys {
 		elems = append(elems, bsoncore.AppendInt32Element(nil, k, 1))
 	}

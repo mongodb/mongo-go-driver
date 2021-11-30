@@ -16,6 +16,7 @@ linters:
     - makezero
     # - misspell
     - nakedret
+    - prealloc
     - revive
     - staticcheck
     - structcheck

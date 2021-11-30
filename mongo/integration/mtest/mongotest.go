@@ -794,7 +794,7 @@ func (t *T) verifyConstraints() error {
 
 	// Stop once we find a RunOnBlock that matches the current environment. Record all errors as we go because if we
 	// don't find any matching blocks, we want to report the comparison errors for each block.
-	var runOnErrors []error
+	runOnErrors := make([]error, 0, len(t.runOn))
 	for _, runOn := range t.runOn {
 		err := verifyRunOnBlockConstraint(runOn)
 		if err == nil {

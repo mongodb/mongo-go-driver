@@ -234,7 +234,7 @@ func (ctx *signingCtx) buildCredentialString() {
 }
 
 func (ctx *signingCtx) buildCanonicalHeaders(r rule, header http.Header) {
-	var headers []string
+	headers := make([]string, 0, len(header))
 	headers = append(headers, "host")
 	for k, v := range header {
 		if !r.IsValid(k) {
