@@ -1858,7 +1858,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		got := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: NewRegistryBuilder().Build()}, llvrw, val)
 		want := ErrNoEncoder{Type: tInt64}
 		if !compareErrors(got, want) {
-			t.Errorf("Did not recieve expected error. got %v; want %v", got, want)
+			t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 		}
 	})
 }

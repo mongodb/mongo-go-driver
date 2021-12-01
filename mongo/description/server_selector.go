@@ -143,7 +143,7 @@ func readPrefSelector(rp *readpref.ReadPref, isOutputAggregate bool) ServerSelec
 	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
 		if t.Kind == LoadBalanced {
 			// In LoadBalanced mode, there should only be one server in the topology and it must be selected. We check
-			// this before checking MaxStaleness support becuase there's no monitoring in this mode, so the candidate
+			// this before checking MaxStaleness support because there's no monitoring in this mode, so the candidate
 			// server wouldn't have a wire version set, which would result in an error.
 			return candidates, nil
 		}

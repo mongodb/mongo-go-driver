@@ -957,7 +957,7 @@ func TestUnmarshalSetterErrors(t *testing.T) {
 	assert.Nil(t, m["def"], "expected value to be nil, got: %v", m["def"])
 	assert.Nil(t, m["ghi"], "expected value to be nil, got: %v", m["ghi"])
 
-	assert.Equal(t, "1", m["abc"].Received, "expected m[\"abc\"].recieved to be: %v, got: %v", "1", m["abc"].Received)
+	assert.Equal(t, "1", m["abc"].Received, "expected m[\"abc\"].Received to be: %v, got: %v", "1", m["abc"].Received)
 }
 
 func TestDMap(t *testing.T) {

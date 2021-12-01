@@ -995,7 +995,7 @@ func TestConnection(t *testing.T) {
 // nc.continueChan <- struct{}{}
 //
 // By default, the read/write methods will error after they can read from continueChan to simulate a connection being
-// closed after context cancellation. This type also supports skipping to allow a number of successfull read/write calls
+// closed after context cancellation. This type also supports skipping to allow a number of successful read/write calls
 // before one fails.
 type cancellationTestNetConn struct {
 	net.Conn

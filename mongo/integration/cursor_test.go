@@ -133,7 +133,7 @@ func TestCursor(t *testing.T) {
 		})
 		mt.RunOpts("first batch is empty", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			// Test that the cursor reports the correct value for RemainingBatchLength if the first batch is empty.
-			// Using a mock deployment simplifies this test becuase the server won't create a valid cursor if the
+			// Using a mock deployment simplifies this test because the server won't create a valid cursor if the
 			// collection is empty when the find is run.
 
 			cursorID := int64(50)

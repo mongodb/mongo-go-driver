@@ -40,7 +40,7 @@ var ErrAbortTwice = errors.New("cannot call abortTransaction twice")
 // ErrCommitAfterAbort is returned if commit is called after an abort.
 var ErrCommitAfterAbort = errors.New("cannot call commitTransaction after calling abortTransaction")
 
-// ErrUnackWCUnsupported is returned if an unacknowledged write concern is supported for a transaciton.
+// ErrUnackWCUnsupported is returned if an unacknowledged write concern is supported for a transaction.
 var ErrUnackWCUnsupported = errors.New("transactions do not support unacknowledged write concerns")
 
 // ErrSnapshotTransaction is returned if an transaction is started on a snapshot session.
@@ -364,7 +364,7 @@ func (c *Client) TransactionRunning() bool {
 	return c != nil && (c.TransactionState == Starting || c.TransactionState == InProgress)
 }
 
-// TransactionCommitted returns true of the client session just committed a transaciton.
+// TransactionCommitted returns true of the client session just committed a transaction.
 func (c *Client) TransactionCommitted() bool {
 	return c.TransactionState == Committed
 }

@@ -282,7 +282,7 @@ func TestDocument(t *testing.T) {
 				rets = fn.Call(params)
 			}
 			if len(rets) != len(tc.rets) {
-				t.Fatalf("mismatched number of returns. recieved %d; expected %d", len(rets), len(tc.rets))
+				t.Fatalf("mismatched number of returns. received %d; expected %d", len(rets), len(tc.rets))
 			}
 			for idx := range rets {
 				got, want := rets[idx].Interface(), tc.rets[idx]

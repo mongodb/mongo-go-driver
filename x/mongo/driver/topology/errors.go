@@ -11,7 +11,7 @@ type ConnectionError struct {
 	ConnectionID string
 	Wrapped      error
 
-	// init will be set to true if this error occured during connection initialization or
+	// init will be set to true if this error occurred during connection initialization or
 	// during a connection handshake.
 	init    bool
 	message string
@@ -21,7 +21,7 @@ type ConnectionError struct {
 func (e ConnectionError) Error() string {
 	message := e.message
 	if e.init {
-		fullMsg := "error occured during connection handshake"
+		fullMsg := "error occurred during connection handshake"
 		if message != "" {
 			fullMsg = fmt.Sprintf("%s: %s", fullMsg, message)
 		}

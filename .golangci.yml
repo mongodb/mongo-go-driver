@@ -14,7 +14,7 @@ linters:
     - govet
     - ineffassign
     - makezero
-    # - misspell
+    - misspell
     - nakedret
     - prealloc
     - revive
