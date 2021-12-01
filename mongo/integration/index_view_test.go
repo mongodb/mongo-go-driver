@@ -263,6 +263,19 @@ func TestIndexView(t *testing.T) {
 				})
 			}
 		})
+		unackClientOpts := options.Client().
+			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+		unackMtOpts := mtest.NewOptions().
+			ClientOptions(unackClientOpts).
+			MinServerVersion("3.6")
+		mt.RunOpts("unacknowledged write", unackMtOpts, func(mt *mtest.T) {
+			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{Keys: bson.D{{"x", 1}}})
+			if err != mongo.ErrUnacknowledgedWrite {
+				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
+				// so the assertion would succeed even if the error had not been wrapped.
+				mt.Fatalf("expected CreateOne error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
+			}
+		})
 		// Needs to run on these versions for failpoints
 		mt.RunOpts("replace error", mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0"), func(mt *mtest.T) {
 			mt.SetFailPoint(mtest.FailPoint{
