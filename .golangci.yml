@@ -41,7 +41,31 @@ linters-settings:
     ]
 
 issues:
+  exclude-use-default: false
   exclude:
+    # Add all default excluded issues except issues related to exported types/functions not having
+    # comments; we want those warnings.
+    ## Defaults ##
+    # EXC0001 errcheck: Almost all programs ignore errors on these functions and in most cases it's ok
+    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+    # EXC0003 golint: False positive when tests are defined in package 'test'
+    - func name will be used as test\.Test.* by other packages, and that stutters; consider calling this
+    # EXC0004 govet: Common false positives
+    - (possible misuse of unsafe.Pointer|should have signature)
+    # EXC0005 staticcheck: Developers tend to write in C-style with an explicit 'break' in a 'switch', so it's ok to ignore
+    - ineffective break statement. Did you mean to break out of the outer loop
+    # EXC0006 gosec: Too many false-positives on 'unsafe' usage
+    - Use of unsafe calls should be audited
+    # EXC0007 gosec: Too many false-positives for parametrized shell calls
+    - Subprocess launch(ed with variable|ing should be audited)
+    # EXC0008 gosec: Duplicated errcheck checks
+    - (G104|G307)
+    # EXC0009 gosec: Too many issues in popular repos
+    - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
+    # EXC0010 gosec: False positive is triggered by 'src, err := ioutil.ReadFile(filename)'
+    - Potential file inclusion via variable
+    ## End Defaults ##
+
     # Ignore capitalization warning for this weird field name.
     - "var-naming: struct field CqCssWxW should be CqCSSWxW"
     # Ignore warnings for common "wiremessage.Read..." usage because the safest way to use that API
@@ -50,6 +74,7 @@ issues:
     - "SA4006: this value of `rem` is never used"
     - "ineffectual assignment to wm"
     - "ineffectual assignment to rem"
+
   skip-dirs-use-default: false
   skip-dirs:
     - (^|/)vendor($|/)
@@ -74,7 +99,11 @@ issues:
         - unused
     # Ignore "TLS MinVersion too low", "TLS InsecureSkipVerify set true", and "Use of weak random
     # number generator (math/rand instead of crypto/rand)" in tests.
-    - path: (.+)_test.go
+    - path: _test\.go
       text: G401|G402|G404
       linters:
         - gosec
+    # Ignore missing comments for exported variable/function/type for code in the "internal" and
+    # "benchmark" directories.
+    - path: (internal\/|benchmark\/)
+      text: exported (.+) should have comment( \(or a comment on this block\))? or be unexported
