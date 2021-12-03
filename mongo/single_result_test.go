@@ -57,7 +57,7 @@ func TestNewSingleResultFromBytes(t *testing.T) {
 	findOneResponseBytes, err := bson.Marshal(findOneResponse)
 	assert.Nil(t, err, "Marshal error: %v", err)
 
-	res := NewSingleResultFromBytes(findOneResponseBytes)
+	res := NewSingleResultFromBytes(findOneResponseBytes, nil, nil)
 
 	// Assert that decoded first batch is as expected.
 	expectedDecoded := bson.Raw(findOneResponseBytes)

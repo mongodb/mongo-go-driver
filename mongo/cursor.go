@@ -67,6 +67,24 @@ func newEmptyCursor() *Cursor {
 	return &Cursor{bc: driver.NewEmptyBatchCursor()}
 }
 
+// NewCursorFromBytes creates a new Cursor pre-loaded with the provided contents, error and registry.
+func NewCursorFromBytes(contents []byte, err error, registry *bsoncodec.Registry) *Cursor {
+	if registry == nil {
+		registry = bson.DefaultRegistry
+	}
+
+	c := &Cursor{
+		bc:       driver.NewBatchCursorFromBytes(contents),
+		registry: registry,
+		err:      err,
+	}
+
+	// Initialize just the batchLength here so RemainingBatchLength will return an accurate result. The actual batch
+	// will be pulled up by the first Next/TryNext call.
+	c.batchLength = c.bc.Batch().DocumentCount()
+	return c
+}
+
 // ID returns the ID of this cursor, or 0 if the cursor has been closed or exhausted.
 func (c *Cursor) ID() int64 { return c.bc.ID() }
 

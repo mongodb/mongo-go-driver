@@ -12,7 +12,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // ErrNoDocuments is returned by SingleResult methods when the operation that created the SingleResult did not return
@@ -29,19 +28,17 @@ type SingleResult struct {
 	reg *bsoncodec.Registry
 }
 
-// NewSingleResultFromBytes creates a SingleResult with an underlying Cursor pre-loaded with the provided contents.
-func NewSingleResultFromBytes(contents []byte) *SingleResult {
-	c := &Cursor{
-		bc:       driver.NewBatchCursorFromBytes(contents),
-		registry: bson.DefaultRegistry,
-		Current:  bson.Raw(contents),
+// NewSingleResultFromBytes creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
+// the provided contents, error and registry.
+func NewSingleResultFromBytes(contents []byte, err error, registry *bsoncodec.Registry) *SingleResult {
+	if registry == nil {
+		registry = bson.DefaultRegistry
 	}
 
-	// Initialize just the batchLength here so RemainingBatchLength will return an accurate result.
-	c.batchLength = c.bc.Batch().DocumentCount()
 	return &SingleResult{
-		cur: c,
-		reg: bson.DefaultRegistry,
+		cur: NewCursorFromBytes(contents, err, registry),
+		err: err,
+		reg: registry,
 	}
 }
 
