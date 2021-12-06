@@ -52,16 +52,16 @@ func TestSingleResult(t *testing.T) {
 	})
 }
 
-func TestNewSingleResultFromBytes(t *testing.T) {
+func TestNewMockSingleResult(t *testing.T) {
 	// Mock a document returned by FindOne in SingleResult.
-	t.Run("simple mock FindOne", func(t *testing.T) {
+	t.Run("mock FindOne", func(t *testing.T) {
 		findOneResult := bson.D{{"_id", 2}, {"foo", "bar"}}
-		findOneResultBytes, err := bson.Marshal(findOneResult)
-		assert.Nil(t, err, "Marshal error: %v", err)
-
-		res := NewSingleResultFromBytes(findOneResultBytes, nil, nil)
+		res, err := NewMockSingleResult([]interface{}{findOneResult}, nil, nil)
+		assert.Nil(t, err, "NewMockSingleResult error: %v", err)
 
 		// Assert that first, decoded document is as expected.
+		findOneResultBytes, err := bson.Marshal(findOneResult)
+		assert.Nil(t, err, "Marshal error: %v", err)
 		expectedDecoded := bson.Raw(findOneResultBytes)
 		decoded, err := res.DecodeBytes()
 		assert.Nil(t, err, "DecodeBytes error: %v", err)
@@ -74,7 +74,7 @@ func TestNewSingleResultFromBytes(t *testing.T) {
 			"expected RDR contents to be %v, got %v", expectedDecoded, res.rdr)
 
 		// Assert that a call to cur.Next will return false, as there was only one document in
-		// the contents passed to NewSingleResultFromBytes.
+		// the slice passed to NewMockSingleResult.
 		next := res.cur.Next(context.Background())
 		assert.False(t, next, "expected call to Next to return false, got true")
 
@@ -87,12 +87,13 @@ func TestNewSingleResultFromBytes(t *testing.T) {
 	})
 
 	// Mock an error in SingleResult.
-	t.Run("simple mock FindOne with error", func(t *testing.T) {
+	t.Run("mock FindOne with error", func(t *testing.T) {
 		mockErr := fmt.Errorf("mock error")
-		res := NewSingleResultFromBytes(nil, mockErr, nil)
+		res, err := NewMockSingleResult(nil, mockErr, nil)
+		assert.Nil(t, err, "NewMockSingleResult error: %v", err)
 
 		// Assert that decoding returns the mocked error.
-		_, err := res.DecodeBytes()
+		_, err = res.DecodeBytes()
 		assert.NotNil(t, err, "expected DecodeBytes error, got nil")
 		assert.Equal(t, mockErr, err, "expected error %v, got %v", mockErr, err)
 

@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -67,14 +68,34 @@ func newEmptyCursor() *Cursor {
 	return &Cursor{bc: driver.NewEmptyBatchCursor()}
 }
 
-// NewCursorFromBytes creates a new Cursor pre-loaded with the provided contents, error and registry.
-func NewCursorFromBytes(contents []byte, err error, registry *bsoncodec.Registry) *Cursor {
+// NewMockCursor creates a new Cursor pre-loaded with the provided documents, error and registry. If no registry is provided,
+// bson.DefaultRegistry will be used.
+//
+// The documents parameter must be a slice of documents.
+func NewMockCursor(documents []interface{}, err error, registry *bsoncodec.Registry) (*Cursor, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
 
+	// Convert documents slice to a sequence-style byte array.
+	var docsBytes []byte
+	for _, doc := range documents {
+		switch t := doc.(type) {
+		case bsonx.Doc:
+			doc = t.Copy()
+		case []byte:
+			// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
+			doc = bson.Raw(t)
+		}
+		var marshalErr error
+		docsBytes, marshalErr = bson.MarshalAppendWithRegistry(registry, docsBytes, doc)
+		if marshalErr != nil {
+			return nil, marshalErr
+		}
+	}
+
 	c := &Cursor{
-		bc:       driver.NewBatchCursorFromBytes(contents),
+		bc:       driver.NewMockBatchCursor(docsBytes),
 		registry: registry,
 		err:      err,
 	}
@@ -83,7 +104,7 @@ func NewCursorFromBytes(contents []byte, err error, registry *bsoncodec.Registry
 	// provided contents, and thus already has a batch before calls to Next/TryNext.
 	c.batch = c.bc.Batch()
 	c.batchLength = c.bc.Batch().DocumentCount()
-	return c
+	return c, nil
 }
 
 // ID returns the ID of this cursor, or 0 if the cursor has been closed or exhausted.

@@ -28,18 +28,25 @@ type SingleResult struct {
 	reg *bsoncodec.Registry
 }
 
-// NewSingleResultFromBytes creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
-// the provided contents, error and registry.
-func NewSingleResultFromBytes(contents []byte, err error, registry *bsoncodec.Registry) *SingleResult {
+// NewMockSingleResult creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
+// the provided documents, error and registry. If no registry is provided, bson.DefaultRegistry will be used.
+//
+// The documents parameter must be a slice of documents.
+func NewMockSingleResult(documents []interface{}, err error, registry *bsoncodec.Registry) (*SingleResult, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
 
+	cur, createErr := NewMockCursor(documents, err, registry)
+	if createErr != nil {
+		return nil, createErr
+	}
+
 	return &SingleResult{
-		cur: NewCursorFromBytes(contents, err, registry),
+		cur: cur,
 		err: err,
 		reg: registry,
-	}
+	}, nil
 }
 
 // Decode will unmarshal the document represented by this SingleResult into v. If there was an error from the operation
