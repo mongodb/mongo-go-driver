@@ -79,8 +79,9 @@ func NewCursorFromBytes(contents []byte, err error, registry *bsoncodec.Registry
 		err:      err,
 	}
 
-	// Initialize just the batchLength here so RemainingBatchLength will return an accurate result. The actual batch
-	// will be pulled up by the first Next/TryNext call.
+	// Initialize batch and batchLength here. The underlying batch cursor will be preloaded with the
+	// provided contents, and thus already has a batch before calls to Next/TryNext.
+	c.batch = c.bc.Batch()
 	c.batchLength = c.bc.Batch().DocumentCount()
 	return c
 }

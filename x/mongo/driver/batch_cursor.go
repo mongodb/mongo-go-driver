@@ -187,7 +187,8 @@ func NewEmptyBatchCursor() *BatchCursor {
 // NewBatchCursorFromBytes returns a batch cursor with current batch set to the provided contents.
 func NewBatchCursorFromBytes(contents []byte) *BatchCursor {
 	return &BatchCursor{currentBatch: &bsoncore.DocumentSequence{
-		Data: contents,
+		Data:  contents,
+		Style: bsoncore.SequenceStyle,
 	}}
 }
 
