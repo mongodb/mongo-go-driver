@@ -93,11 +93,6 @@ func (sr *SingleResult) setRdrContents() error {
 	case sr.cur != nil:
 		defer sr.cur.Close(context.TODO())
 
-		// Set contents of rdr to cur.Current if non-nil. Otherwise, iterate underlying
-		// cursor.
-		if sr.rdr = sr.cur.Current; sr.rdr != nil {
-			return nil
-		}
 		if !sr.cur.Next(context.TODO()) {
 			if err := sr.cur.Err(); err != nil {
 				return err
