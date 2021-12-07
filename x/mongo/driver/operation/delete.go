@@ -79,7 +79,7 @@ func (d *Delete) processResponse(info driver.ResponseInfo) error {
 	return err
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (d *Delete) Execute(ctx context.Context) error {
 	if d.deployment == nil {
 		return errors.New("the Delete operation must have a Deployment set before Execute can be called")

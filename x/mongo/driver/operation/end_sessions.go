@@ -42,7 +42,7 @@ func (es *EndSessions) processResponse(driver.ResponseInfo) error {
 	return err
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (es *EndSessions) Execute(ctx context.Context) error {
 	if es.deployment == nil {
 		return errors.New("the EndSessions operation must have a Deployment set before Execute can be called")

@@ -44,7 +44,7 @@ func (ct *CommitTransaction) processResponse(driver.ResponseInfo) error {
 	return err
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (ct *CommitTransaction) Execute(ctx context.Context) error {
 	if ct.deployment == nil {
 		return errors.New("the CommitTransaction operation must have a Deployment set before Execute can be called")

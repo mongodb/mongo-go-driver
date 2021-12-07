@@ -81,7 +81,7 @@ func (dc *DropCollection) processResponse(info driver.ResponseInfo) error {
 	return err
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (dc *DropCollection) Execute(ctx context.Context) error {
 	if dc.deployment == nil {
 		return errors.New("the DropCollection operation must have a Deployment set before Execute can be called")

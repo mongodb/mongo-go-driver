@@ -81,7 +81,7 @@ func (a *Aggregate) processResponse(info driver.ResponseInfo) error {
 
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (a *Aggregate) Execute(ctx context.Context) error {
 	if a.deployment == nil {
 		return errors.New("the Aggregate operation must have a Deployment set before Execute can be called")

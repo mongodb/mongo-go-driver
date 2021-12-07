@@ -63,7 +63,7 @@ func (lc *ListCollections) processResponse(info driver.ResponseInfo) error {
 	return err
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (lc *ListCollections) Execute(ctx context.Context) error {
 	if lc.deployment == nil {
 		return errors.New("the ListCollections operation must have a Deployment set before Execute can be called")

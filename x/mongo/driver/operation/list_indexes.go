@@ -58,7 +58,7 @@ func (li *ListIndexes) processResponse(info driver.ResponseInfo) error {
 
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (li *ListIndexes) Execute(ctx context.Context) error {
 	if li.deployment == nil {
 		return errors.New("the ListIndexes operation must have a Deployment set before Execute can be called")
