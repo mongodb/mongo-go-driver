@@ -28,16 +28,19 @@ type SingleResult struct {
 	reg *bsoncodec.Registry
 }
 
-// NewMockSingleResult creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
-// the provided documents, error and registry. If no registry is provided, bson.DefaultRegistry will be used.
+// NewSingleResultFromDocument creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
+// the provided document, error and registry. If no registry is provided, bson.DefaultRegistry will be used.
 //
-// The documents parameter must be a slice of documents.
-func NewMockSingleResult(documents []interface{}, err error, registry *bsoncodec.Registry) (*SingleResult, error) {
+// The document parameter must be a non-nil document.
+func NewSingleResultFromDocument(document interface{}, err error, registry *bsoncodec.Registry) (*SingleResult, error) {
+	if document == nil {
+		return nil, ErrNilDocument
+	}
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
 
-	cur, createErr := NewMockCursor(documents, err, registry)
+	cur, createErr := NewCursorFromDocuments([]interface{}{document}, err, registry)
 	if createErr != nil {
 		return nil, createErr
 	}

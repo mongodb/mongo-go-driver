@@ -184,9 +184,9 @@ func NewEmptyBatchCursor() *BatchCursor {
 	return &BatchCursor{currentBatch: new(bsoncore.DocumentSequence)}
 }
 
-// NewMockBatchCursor returns a batch cursor with current batch set to a sequence-style
+// NewBatchCursorFromDocuments returns a batch cursor with current batch set to a sequence-style
 // DocumentSequence containing the provided documents.
-func NewMockBatchCursor(documents []byte) *BatchCursor {
+func NewBatchCursorFromDocuments(documents []byte) *BatchCursor {
 	return &BatchCursor{currentBatch: &bsoncore.DocumentSequence{
 		Data:  documents,
 		Style: bsoncore.SequenceStyle,

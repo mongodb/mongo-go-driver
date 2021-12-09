@@ -68,11 +68,11 @@ func newEmptyCursor() *Cursor {
 	return &Cursor{bc: driver.NewEmptyBatchCursor()}
 }
 
-// NewMockCursor creates a new Cursor pre-loaded with the provided documents, error and registry. If no registry is provided,
+// NewCursorFromDocuments creates a new Cursor pre-loaded with the provided documents, error and registry. If no registry is provided,
 // bson.DefaultRegistry will be used.
 //
-// The documents parameter must be a slice of documents.
-func NewMockCursor(documents []interface{}, err error, registry *bsoncodec.Registry) (*Cursor, error) {
+// The documents parameter must be a slice of documents. The slice may be nil or empty, but all elements must be non-nil.
+func NewCursorFromDocuments(documents []interface{}, err error, registry *bsoncodec.Registry) (*Cursor, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
@@ -81,6 +81,8 @@ func NewMockCursor(documents []interface{}, err error, registry *bsoncodec.Regis
 	var docsBytes []byte
 	for _, doc := range documents {
 		switch t := doc.(type) {
+		case nil:
+			return nil, ErrNilDocument
 		case bsonx.Doc:
 			doc = t.Copy()
 		case []byte:
@@ -95,7 +97,7 @@ func NewMockCursor(documents []interface{}, err error, registry *bsoncodec.Regis
 	}
 
 	c := &Cursor{
-		bc:       driver.NewMockBatchCursor(docsBytes),
+		bc:       driver.NewBatchCursorFromDocuments(docsBytes),
 		registry: registry,
 		err:      err,
 	}

@@ -181,7 +181,7 @@ func TestCursor(t *testing.T) {
 	})
 }
 
-func TestNewMockCursor(t *testing.T) {
+func TestNewCursorFromDocuments(t *testing.T) {
 	// Mock documents returned by Find in a Cursor.
 	t.Run("mock Find", func(t *testing.T) {
 		findResult := []interface{}{
@@ -189,8 +189,8 @@ func TestNewMockCursor(t *testing.T) {
 			bson.D{{"_id", 1}, {"baz", "qux"}},
 			bson.D{{"_id", 2}, {"quux", "quuz"}},
 		}
-		cur, err := NewMockCursor(findResult, nil, nil)
-		assert.Nil(t, err, "NewMockCursor error: %v", err)
+		cur, err := NewCursorFromDocuments(findResult, nil, nil)
+		assert.Nil(t, err, "NewCursorFromDocuments error: %v", err)
 
 		// Assert that decoded documents are as expected.
 		var i int
@@ -221,8 +221,8 @@ func TestNewMockCursor(t *testing.T) {
 	t.Run("mock Find with error", func(t *testing.T) {
 		mockErr := fmt.Errorf("mock error")
 		findResult := []interface{}{bson.D{{"_id", 0}, {"foo", "bar"}}}
-		cur, err := NewMockCursor(findResult, mockErr, nil)
-		assert.Nil(t, err, "NewMockCursor error: %v", err)
+		cur, err := NewCursorFromDocuments(findResult, mockErr, nil)
+		assert.Nil(t, err, "NewCursorFromDocuments error: %v", err)
 
 		// Assert that a call to Next will return false because of existing error.
 		next := cur.Next(context.Background())

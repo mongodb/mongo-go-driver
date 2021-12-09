@@ -31,9 +31,9 @@ type mockFinder struct {
 	registry *bsoncodec.Registry
 }
 
-// FindOne mocks a findOne operation using NewMockSingleResult.
+// FindOne mocks a findOne operation using NewSingleResultFromDocument.
 func (mf *mockFinder) FindOne(_ context.Context, _ interface{}, _ ...*options.FindOneOptions) *mongo.SingleResult {
-	res, err := mongo.NewMockSingleResult(mf.docs, mf.err, mf.registry)
+	res, err := mongo.NewSingleResultFromDocument(mf.docs[0], mf.err, mf.registry)
 
 	// If there was an error in SingleResult creation, override the error of SingleResult.
 	if err != nil {
@@ -42,9 +42,9 @@ func (mf *mockFinder) FindOne(_ context.Context, _ interface{}, _ ...*options.Fi
 	return res
 }
 
-// Find mocks a find operation using NewMockCursor.
+// Find mocks a find operation using NewCursorFromDocuments.
 func (mf *mockFinder) Find(context.Context, interface{}, ...*options.FindOptions) (*mongo.Cursor, error) {
-	return mongo.NewMockCursor(mf.docs, mf.err, mf.registry)
+	return mongo.NewCursorFromDocuments(mf.docs, mf.err, mf.registry)
 }
 
 // ShopItem is an item with an associated ID and price.

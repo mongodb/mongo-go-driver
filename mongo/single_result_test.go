@@ -52,12 +52,12 @@ func TestSingleResult(t *testing.T) {
 	})
 }
 
-func TestNewMockSingleResult(t *testing.T) {
+func TestNewSingleResultFromDocument(t *testing.T) {
 	// Mock a document returned by FindOne in SingleResult.
 	t.Run("mock FindOne", func(t *testing.T) {
 		findOneResult := bson.D{{"_id", 2}, {"foo", "bar"}}
-		res, err := NewMockSingleResult([]interface{}{findOneResult}, nil, nil)
-		assert.Nil(t, err, "NewMockSingleResult error: %v", err)
+		res, err := NewSingleResultFromDocument(findOneResult, nil, nil)
+		assert.Nil(t, err, "NewSingleResultFromDocument error: %v", err)
 
 		// Assert that first, decoded document is as expected.
 		findOneResultBytes, err := bson.Marshal(findOneResult)
@@ -74,7 +74,7 @@ func TestNewMockSingleResult(t *testing.T) {
 			"expected RDR contents to be %v, got %v", expectedDecoded, res.rdr)
 
 		// Assert that a call to cur.Next will return false, as there was only one document in
-		// the slice passed to NewMockSingleResult.
+		// the slice passed to NewSingleResultFromDocument.
 		next := res.cur.Next(context.Background())
 		assert.False(t, next, "expected call to Next to return false, got true")
 
@@ -89,8 +89,8 @@ func TestNewMockSingleResult(t *testing.T) {
 	// Mock an error in SingleResult.
 	t.Run("mock FindOne with error", func(t *testing.T) {
 		mockErr := fmt.Errorf("mock error")
-		res, err := NewMockSingleResult(nil, mockErr, nil)
-		assert.Nil(t, err, "NewMockSingleResult error: %v", err)
+		res, err := NewSingleResultFromDocument(bson.D{}, mockErr, nil)
+		assert.Nil(t, err, "NewSingleResultFromDocument error: %v", err)
 
 		// Assert that decoding returns the mocked error.
 		_, err = res.DecodeBytes()
