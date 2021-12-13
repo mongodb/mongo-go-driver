@@ -130,7 +130,7 @@ func (u *Update) processResponse(info driver.ResponseInfo) error {
 
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (u *Update) Execute(ctx context.Context) error {
 	if u.deployment == nil {
 		return errors.New("the Update operation must have a Deployment set before Execute can be called")

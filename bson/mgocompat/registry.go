@@ -39,7 +39,7 @@ var Registry = NewRegistryBuilder().Build()
 var RegistryRespectNilValues = NewRespectNilValuesRegistryBuilder().Build()
 
 // NewRegistryBuilder creates a new bsoncodec.RegistryBuilder configured with the default encoders and
-// deocders from the bsoncodec.DefaultValueEncoders and bsoncodec.DefaultValueDecoders types and the
+// decoders from the bsoncodec.DefaultValueEncoders and bsoncodec.DefaultValueDecoders types and the
 // PrimitiveCodecs type in this package.
 func NewRegistryBuilder() *bsoncodec.RegistryBuilder {
 	rb := bsoncodec.NewRegistryBuilder()

@@ -69,7 +69,7 @@ func (c *Command) ResultCursor() (*driver.BatchCursor, error) {
 	return c.resultCursor, nil
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (c *Command) Execute(ctx context.Context) error {
 	if c.deployment == nil {
 		return errors.New("the Command operation must have a Deployment set before Execute can be called")

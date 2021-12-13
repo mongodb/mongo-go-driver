@@ -44,7 +44,7 @@ func (at *AbortTransaction) processResponse(driver.ResponseInfo) error {
 	return err
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (at *AbortTransaction) Execute(ctx context.Context) error {
 	if at.deployment == nil {
 		return errors.New("the AbortTransaction operation must have a Deployment set before Execute can be called")

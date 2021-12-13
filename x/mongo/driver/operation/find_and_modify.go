@@ -116,7 +116,7 @@ func (fam *FindAndModify) processResponse(info driver.ResponseInfo) error {
 
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (fam *FindAndModify) Execute(ctx context.Context) error {
 	if fam.deployment == nil {
 		return errors.New("the FindAndModify operation must have a Deployment set before Execute can be called")
