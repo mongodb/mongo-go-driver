@@ -175,7 +175,7 @@ func ensureDollarKey(doc bsoncore.Document) error {
 
 func ensureNoDollarKey(doc bsoncore.Document) error {
 	if elem, err := doc.IndexErr(0); err == nil && strings.HasPrefix(elem.Key(), "$") {
-		return errors.New("replacement document cannot contains keys beginning with '$")
+		return errors.New("replacement document cannot contain keys beginning with '$'")
 	}
 
 	return nil
