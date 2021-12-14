@@ -187,10 +187,16 @@ func NewEmptyBatchCursor() *BatchCursor {
 // NewBatchCursorFromDocuments returns a batch cursor with current batch set to a sequence-style
 // DocumentSequence containing the provided documents.
 func NewBatchCursorFromDocuments(documents []byte) *BatchCursor {
-	return &BatchCursor{currentBatch: &bsoncore.DocumentSequence{
-		Data:  documents,
-		Style: bsoncore.SequenceStyle,
-	}}
+	return &BatchCursor{
+		currentBatch: &bsoncore.DocumentSequence{
+			Data:  documents,
+			Style: bsoncore.SequenceStyle,
+		},
+		// BatchCursors created with this function have no associated ID nor server, so no getMore
+		// calls will be made.
+		id:     0,
+		server: nil,
+	}
 }
 
 // ID returns the cursor ID for this batch cursor.
