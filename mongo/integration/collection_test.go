@@ -1737,11 +1737,12 @@ func TestCollection(t *testing.T) {
 			deletes := len(mt.GetAllStartedEvents())
 			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
 		})
-		mt.Run("update with batches", func(mt *mtest.T) {
+		mt.RunOpts("update with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
+			maxBatchCount := int(mtest.MockDescription.MaxBatchCount)
+			numModels := maxBatchCount + 50
 			var models []mongo.WriteModel
-			numModels := 100050
 
-			// it's significantly faster to upsert one model and modify the rest than to upsert all of them
+			// It's significantly faster to upsert the first model and only modify the rest than to upsert all of them.
 			for i := 0; i < numModels-1; i++ {
 				update := bson.D{
 					{"$set", bson.D{
@@ -1755,12 +1756,32 @@ func TestCollection(t *testing.T) {
 					SetUpdate(update).SetUpsert(true)
 				models = append(models, model)
 			}
-			// add one last upsert
+			// Add one last upsert for second batch.
 			models = append(models, mongo.NewUpdateOneModel().
 				SetFilter(bson.D{{"x", int32(1)}}).
 				SetUpdate(bson.D{{"$set", bson.D{{"x", int32(1)}}}}).
 				SetUpsert(true),
 			)
+
+			// Seed mock responses for the BulkWrite.
+			//
+			// The response from the first batch should look like:
+			// {ok: 1, n: 100000, nModified: 99999, upserted: [{index: 0, _id: <id>}]}
+			firstBatchUpserted := bson.A{bson.D{{"index", 0}, {"_id", primitive.NewObjectID()}}}
+			firstBatchResponse := mtest.CreateSuccessResponse(
+				bson.E{"n", 100000},
+				bson.E{"nModified", 99999},
+				bson.E{"upserted", firstBatchUpserted},
+			)
+			// The response from the second batch should look like:
+			// {ok: 1, n: 50, nModified: 49, upserted: [{index: 49, _id: <id>}]}
+			secondBatchUpserted := bson.A{bson.D{{"index", 49}, {"_id", primitive.NewObjectID()}}}
+			secondBatchResponse := mtest.CreateSuccessResponse(
+				bson.E{"n", 50},
+				bson.E{"nModified", 49},
+				bson.E{"upserted", secondBatchUpserted},
+			)
+			mt.AddMockResponses([]primitive.D{firstBatchResponse, secondBatchResponse}...)
 
 			mt.ClearEvents()
 			res, err := mt.Coll.BulkWrite(mtest.Background, models)
@@ -1769,7 +1790,8 @@ func TestCollection(t *testing.T) {
 			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 				return evt.CommandName == "update"
 			})
-			// MaxWriteBatchSize changed between 3.4 and 3.6, so there isn't a given number of batches that this will be split into
+			// MaxWriteBatchSize changed between 3.4 and 3.6, so there isn't a given number of batches that
+			// this will be split into.
 			updates := len(mt.GetAllStartedEvents())
 			assert.True(mt, updates > 1, "expected multiple batches, got %v", updates)
 
@@ -1778,29 +1800,11 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, int64(2), res.UpsertedCount, "expected %v upserted documents, got %v", 2, res.UpsertedCount)
 			assert.Equal(mt, 2, len(res.UpsertedIDs), "expected %v upserted ids, got %v", 2, len(res.UpsertedIDs))
 
-			// find the upserted documents and check their contents
-			id1, ok := res.UpsertedIDs[0]
+			// Check that IDs exist in result for upserted documents.
+			_, ok := res.UpsertedIDs[0]
 			assert.True(mt, ok, "expected id at key 0")
-			id2, ok := res.UpsertedIDs[int64(numModels-1)]
+			_, ok = res.UpsertedIDs[int64(numModels-1)]
 			assert.True(mt, ok, "expected id at key %v", numModels-1)
-
-			doc, err := mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id1}}).DecodeBytes()
-			assert.Nil(mt, err, "FindOne error: %v", err)
-			a, ok := doc.Lookup("a").Int32OK()
-			assert.True(mt, ok, "expected a to be an int32")
-			assert.Equal(mt, int32(numModels-1), a, "expected a value %v, got %v", numModels-1, a)
-			b, ok := doc.Lookup("b").Int32OK()
-			assert.True(mt, ok, "expected b to be an int32")
-			assert.Equal(mt, int32((numModels-2)*2), b, "expected b value %v, got %v", (numModels-2)*2, b)
-			c, ok := doc.Lookup("c").Int32OK()
-			assert.True(mt, ok, "expected c to be an int32")
-			assert.Equal(mt, int32((numModels-2)*3), c, "expected b value %v, got %v", (numModels-2)*3, c)
-
-			doc, err = mt.Coll.FindOne(mtest.Background, bson.D{{"_id", id2}}).DecodeBytes()
-			assert.Nil(mt, err, "FindOne error: %v", err)
-			x, ok := doc.Lookup("x").Int32OK()
-			assert.True(mt, ok, "expected x to be an int32")
-			assert.Equal(mt, int32(1), x, "expected a value 1, got %v", x)
 		})
 		mt.RunOpts("map hint", noClientOpts, func(mt *mtest.T) {
 			filter := bson.D{{"_id", "foo"}}
