@@ -32,9 +32,9 @@ type SingleResult struct {
 // the provided document, error and registry. If no registry is provided, bson.DefaultRegistry will be used.
 //
 // The document parameter must be a non-nil document.
-func NewSingleResultFromDocument(document interface{}, err error, registry *bsoncodec.Registry) (*SingleResult, error) {
+func NewSingleResultFromDocument(document interface{}, err error, registry *bsoncodec.Registry) *SingleResult {
 	if document == nil {
-		return nil, ErrNilDocument
+		return &SingleResult{err: ErrNilDocument}
 	}
 	if registry == nil {
 		registry = bson.DefaultRegistry
@@ -42,14 +42,14 @@ func NewSingleResultFromDocument(document interface{}, err error, registry *bson
 
 	cur, createErr := NewCursorFromDocuments([]interface{}{document}, err, registry)
 	if createErr != nil {
-		return nil, createErr
+		return &SingleResult{err: createErr}
 	}
 
 	return &SingleResult{
 		cur: cur,
 		err: err,
 		reg: registry,
-	}, nil
+	}
 }
 
 // Decode will unmarshal the document represented by this SingleResult into v. If there was an error from the operation

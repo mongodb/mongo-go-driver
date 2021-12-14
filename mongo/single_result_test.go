@@ -56,8 +56,7 @@ func TestNewSingleResultFromDocument(t *testing.T) {
 	// Mock a document returned by FindOne in SingleResult.
 	t.Run("mock FindOne", func(t *testing.T) {
 		findOneResult := bson.D{{"_id", 2}, {"foo", "bar"}}
-		res, err := NewSingleResultFromDocument(findOneResult, nil, nil)
-		assert.Nil(t, err, "NewSingleResultFromDocument error: %v", err)
+		res := NewSingleResultFromDocument(findOneResult, nil, nil)
 
 		// Assert that first, decoded document is as expected.
 		findOneResultBytes, err := bson.Marshal(findOneResult)
@@ -89,11 +88,10 @@ func TestNewSingleResultFromDocument(t *testing.T) {
 	// Mock an error in SingleResult.
 	t.Run("mock FindOne with error", func(t *testing.T) {
 		mockErr := fmt.Errorf("mock error")
-		res, err := NewSingleResultFromDocument(bson.D{}, mockErr, nil)
-		assert.Nil(t, err, "NewSingleResultFromDocument error: %v", err)
+		res := NewSingleResultFromDocument(bson.D{}, mockErr, nil)
 
 		// Assert that decoding returns the mocked error.
-		_, err = res.DecodeBytes()
+		_, err := res.DecodeBytes()
 		assert.NotNil(t, err, "expected DecodeBytes error, got nil")
 		assert.Equal(t, mockErr, err, "expected error %v, got %v", mockErr, err)
 

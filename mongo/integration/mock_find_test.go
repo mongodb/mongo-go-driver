@@ -33,13 +33,7 @@ type mockFinder struct {
 
 // FindOne mocks a findOne operation using NewSingleResultFromDocument.
 func (mf *mockFinder) FindOne(_ context.Context, _ interface{}, _ ...*options.FindOneOptions) *mongo.SingleResult {
-	res, err := mongo.NewSingleResultFromDocument(mf.docs[0], mf.err, mf.registry)
-
-	// If there was an error in SingleResult creation, override the error of SingleResult.
-	if err != nil {
-		mf.err = err
-	}
-	return res
+	return mongo.NewSingleResultFromDocument(mf.docs[0], mf.err, mf.registry)
 }
 
 // Find mocks a find operation using NewCursorFromDocuments.
