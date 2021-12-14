@@ -274,7 +274,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"int32/fast path - overflow", int32(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(2147483648)}, bsonrwtest.ReadInt64,
-					fmt.Errorf("%d overflows int32", 2147483648),
+					fmt.Errorf("%d overflows int32", int64(2147483648)),
 				},
 				{
 					"int8/fast path - overflow (negative)", int8(0), nil,
@@ -289,7 +289,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"int32/fast path - overflow (negative)", int32(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(-2147483649)}, bsonrwtest.ReadInt64,
-					fmt.Errorf("%d overflows int32", -2147483649),
+					fmt.Errorf("%d overflows int32", int64(-2147483649)),
 				},
 				{
 					"int8/reflection path", myint8(127), nil,
@@ -329,7 +329,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"int32/reflection path - overflow", myint32(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(2147483648)}, bsonrwtest.ReadInt64,
-					fmt.Errorf("%d overflows int32", 2147483648),
+					fmt.Errorf("%d overflows int32", int64(2147483648)),
 				},
 				{
 					"int8/reflection path - overflow (negative)", myint8(0), nil,
@@ -344,7 +344,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"int32/reflection path - overflow (negative)", myint32(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(-2147483649)}, bsonrwtest.ReadInt64,
-					fmt.Errorf("%d overflows int32", -2147483649),
+					fmt.Errorf("%d overflows int32", int64(-2147483649)),
 				},
 				{
 					"can set false",
@@ -506,7 +506,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"uint32/fast path - overflow", uint32(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1 << 32)}, bsonrwtest.ReadInt64,
-					fmt.Errorf("%d overflows uint32", 1<<32),
+					fmt.Errorf("%d overflows uint32", int64(1<<32)),
 				},
 				{
 					"uint8/fast path - overflow (negative)", uint8(0), nil,
@@ -571,7 +571,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"uint32/reflection path - overflow", myuint32(0), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1 << 32)}, bsonrwtest.ReadInt64,
-					fmt.Errorf("%d overflows uint32", 1<<32),
+					fmt.Errorf("%d overflows uint32", int64(1<<32)),
 				},
 				{
 					"uint8/reflection path - overflow (negative)", myuint8(0), nil,
