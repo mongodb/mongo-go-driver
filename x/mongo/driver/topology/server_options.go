@@ -27,6 +27,7 @@ type serverConfig struct {
 	heartbeatTimeout          time.Duration
 	maxConns                  uint64
 	minConns                  uint64
+	maxConnecting             uint64
 	poolMonitor               *event.PoolMonitor
 	serverMonitor             *event.ServerMonitor
 	connectionPoolMaxIdleTime time.Duration
@@ -120,6 +121,16 @@ func WithMaxConnections(fn func(uint64) uint64) ServerOption {
 func WithMinConnections(fn func(uint64) uint64) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.minConns = fn(cfg.minConns)
+		return nil
+	}
+}
+
+// WithMaxConnecting configures the maximum number of connections a connection
+// pool may establish simultaneously. If maxConnecting is 0, the default value
+// of 2 is used.
+func WithMaxConnecting(fn func(uint64) uint64) ServerOption {
+	return func(cfg *serverConfig) error {
+		cfg.maxConnecting = fn(cfg.maxConnecting)
 		return nil
 	}
 }

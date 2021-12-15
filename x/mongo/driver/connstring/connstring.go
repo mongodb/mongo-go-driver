@@ -85,6 +85,8 @@ type ConnString struct {
 	MaxPoolSizeSet                     bool
 	MinPoolSize                        uint64
 	MinPoolSizeSet                     bool
+	MaxConnecting                      uint64
+	MaxConnectingSet                   bool
 	Password                           string
 	PasswordSet                        bool
 	ReadConcernLevel                   string
@@ -731,6 +733,13 @@ func (p *parser) addOption(pair string) error {
 		}
 		p.MinPoolSize = uint64(n)
 		p.MinPoolSizeSet = true
+	case "maxconnecting":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.MaxConnecting = uint64(n)
+		p.MaxConnectingSet = true
 	case "readconcernlevel":
 		p.ReadConcernLevel = value
 	case "readpreference":

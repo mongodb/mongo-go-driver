@@ -546,6 +546,13 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			topology.WithMinConnections(func(uint64) uint64 { return *opts.MinPoolSize }),
 		)
 	}
+	// MaxConnecting
+	if opts.MaxConnecting != nil {
+		serverOpts = append(
+			serverOpts,
+			topology.WithMaxConnecting(func(uint64) uint64 { return *opts.MaxConnecting }),
+		)
+	}
 	// PoolMonitor
 	if opts.PoolMonitor != nil {
 		serverOpts = append(

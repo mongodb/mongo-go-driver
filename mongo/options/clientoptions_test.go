@@ -69,6 +69,7 @@ func TestClientOptions(t *testing.T) {
 			{"MaxConnIdleTime", (*ClientOptions).SetMaxConnIdleTime, 5 * time.Second, "MaxConnIdleTime", true},
 			{"MaxPoolSize", (*ClientOptions).SetMaxPoolSize, uint64(250), "MaxPoolSize", true},
 			{"MinPoolSize", (*ClientOptions).SetMinPoolSize, uint64(10), "MinPoolSize", true},
+			{"MaxConnecting", (*ClientOptions).SetMaxConnecting, uint64(10), "MaxConnecting", true},
 			{"PoolMonitor", (*ClientOptions).SetPoolMonitor, &event.PoolMonitor{}, "PoolMonitor", false},
 			{"Monitor", (*ClientOptions).SetMonitor, &event.CommandMonitor{}, "Monitor", false},
 			{"ReadConcern", (*ClientOptions).SetReadConcern, readconcern.Majority(), "ReadConcern", false},
@@ -337,6 +338,16 @@ func TestClientOptions(t *testing.T) {
 				"MaxPoolSize",
 				"mongodb://localhost/?maxPoolSize=256",
 				baseClient().SetMaxPoolSize(256),
+			},
+			{
+				"MinPoolSize",
+				"mongodb://localhost/?minPoolSize=256",
+				baseClient().SetMinPoolSize(256),
+			},
+			{
+				"MaxConnecting",
+				"mongodb://localhost/?maxConnecting=10",
+				baseClient().SetMaxConnecting(10),
 			},
 			{
 				"ReadConcern",
