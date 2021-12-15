@@ -590,7 +590,7 @@ func (c *ClientOptions) SetMinPoolSize(u uint64) *ClientOptions {
 
 // SetMaxConnecting specifies the maximum number of connections a connection pool may establish simultaneously. This can
 // also be set through the "maxConnecting" URI option (e.g. "maxConnecting=2"). If this is 0, the default is used. The
-// defaults is 2. Values greater than 100 are not recommended.
+// default is 2. Values greater than 100 are not recommended.
 func (c *ClientOptions) SetMaxConnecting(u uint64) *ClientOptions {
 	c.MaxConnecting = &u
 	return c
