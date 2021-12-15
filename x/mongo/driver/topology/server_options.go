@@ -106,7 +106,7 @@ func WithHeartbeatTimeout(fn func(time.Duration) time.Duration) ServerOption {
 }
 
 // WithMaxConnections configures the maximum number of connections to allow for
-// a given server. If max is 0, then the default will be math.MaxInt64.
+// a given server. If max is 0, then maximum connection pool size is not limited.
 func WithMaxConnections(fn func(uint64) uint64) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.maxConns = fn(cfg.maxConns)

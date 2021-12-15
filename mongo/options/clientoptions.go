@@ -569,7 +569,7 @@ func (c *ClientOptions) SetMaxConnIdleTime(d time.Duration) *ClientOptions {
 
 // SetMaxPoolSize specifies that maximum number of connections allowed in the driver's connection pool to each server.
 // Requests to a server will block if this maximum is reached. This can also be set through the "maxPoolSize" URI option
-// (e.g. "maxPoolSize=100"). The default is 100. If this is 0, it will be set to math.MaxInt64.
+// (e.g. "maxPoolSize=100"). If this is 0, maximum connection pool size is not limited. The default is 100.
 func (c *ClientOptions) SetMaxPoolSize(u uint64) *ClientOptions {
 	c.MaxPoolSize = &u
 	return c
