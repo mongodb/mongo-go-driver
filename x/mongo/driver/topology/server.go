@@ -178,11 +178,12 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 	s.rttMonitor = newRTTMonitor(rttCfg)
 
 	pc := poolConfig{
-		Address:     addr,
-		MinPoolSize: cfg.minConns,
-		MaxPoolSize: cfg.maxConns,
-		MaxIdleTime: cfg.connectionPoolMaxIdleTime,
-		PoolMonitor: cfg.poolMonitor,
+		Address:       addr,
+		MinPoolSize:   cfg.minConns,
+		MaxPoolSize:   cfg.maxConns,
+		MaxConnecting: cfg.maxConnecting,
+		MaxIdleTime:   cfg.connectionPoolMaxIdleTime,
+		PoolMonitor:   cfg.poolMonitor,
 	}
 
 	connectionOpts := copyConnectionOpts(cfg.connectionOpts)

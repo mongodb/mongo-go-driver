@@ -38,11 +38,12 @@ func (pe PoolError) Error() string { return string(pe) }
 
 // poolConfig contains all aspects of the pool that can be configured
 type poolConfig struct {
-	Address     address.Address
-	MinPoolSize uint64
-	MaxPoolSize uint64
-	MaxIdleTime time.Duration
-	PoolMonitor *event.PoolMonitor
+	Address       address.Address
+	MinPoolSize   uint64
+	MaxPoolSize   uint64
+	MaxConnecting uint64
+	MaxIdleTime   time.Duration
+	PoolMonitor   *event.PoolMonitor
 }
 
 type pool struct {
@@ -100,11 +101,16 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		connOpts = append(connOpts, WithIdleTimeout(func(_ time.Duration) time.Duration { return config.MaxIdleTime }))
 	}
 
+	var maxConnecting uint64 = 2
+	if config.MaxConnecting > 0 {
+		maxConnecting = config.MaxConnecting
+	}
+
 	pool := &pool{
 		address:          config.Address,
 		minSize:          config.MinPoolSize,
 		maxSize:          config.MaxPoolSize,
-		maxConnecting:    2,
+		maxConnecting:    maxConnecting,
 		monitor:          config.PoolMonitor,
 		connOpts:         connOpts,
 		generation:       newPoolGenerationMap(),
