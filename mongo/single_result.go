@@ -28,6 +28,31 @@ type SingleResult struct {
 	reg *bsoncodec.Registry
 }
 
+// NewSingleResultFromDocument creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
+// the provided document, error and registry. If no registry is provided, bson.DefaultRegistry will be used. If an error distinct
+// from the one provided occurs during creation of the SingleResult, that error will be stored on the returned SingleResult.
+//
+// The document parameter must be a non-nil document.
+func NewSingleResultFromDocument(document interface{}, err error, registry *bsoncodec.Registry) *SingleResult {
+	if document == nil {
+		return &SingleResult{err: ErrNilDocument}
+	}
+	if registry == nil {
+		registry = bson.DefaultRegistry
+	}
+
+	cur, createErr := NewCursorFromDocuments([]interface{}{document}, err, registry)
+	if createErr != nil {
+		return &SingleResult{err: createErr}
+	}
+
+	return &SingleResult{
+		cur: cur,
+		err: err,
+		reg: registry,
+	}
+}
+
 // Decode will unmarshal the document represented by this SingleResult into v. If there was an error from the operation
 // that created this SingleResult, that error will be returned. If the operation returned no documents, Decode will
 // return ErrNoDocuments.
@@ -71,6 +96,7 @@ func (sr *SingleResult) setRdrContents() error {
 		return nil
 	case sr.cur != nil:
 		defer sr.cur.Close(context.TODO())
+
 		if !sr.cur.Next(context.TODO()) {
 			if err := sr.cur.Err(); err != nil {
 				return err
