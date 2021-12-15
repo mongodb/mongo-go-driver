@@ -319,6 +319,33 @@ func TestMinPoolSize(t *testing.T) {
 	}
 }
 
+func TestMaxConnecting(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected uint64
+		err      bool
+	}{
+		{s: "maxConnecting=10", expected: 10},
+		{s: "maxConnecting=100", expected: 100},
+		{s: "maxConnecting=-2", err: true},
+		{s: "maxConnecting=gsdge", err: true},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.ParseAndValidate(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.True(t, cs.MaxConnectingSet)
+				require.Equal(t, test.expected, cs.MaxConnecting)
+			}
+		})
+	}
+}
+
 func TestReadPreference(t *testing.T) {
 	tests := []struct {
 		s        string
