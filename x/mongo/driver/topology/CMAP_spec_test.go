@@ -100,8 +100,13 @@ func runCMAPTest(t *testing.T, testFileName string) {
 	// only practical way to manage server failpoints is using a "mongo.Client", but importing the
 	// "mongo" package here creates an import cycle.
 	// TODO(GODRIVER-2257): Run CMAP spec integration tests in the "mongo/integration" package.
-	if len(test.FailPoint) > 0 {
-		t.Skip("failpoints are not currently supported in the CMAP spec test runner")
+	prohibited := map[string]bool{
+		"waiting on maxConnecting is limited by WaitQueueTimeoutMS":       true,
+		"maxConnecting is enforced":                                       true,
+		"threads blocked by maxConnecting check out returned connections": true,
+	}
+	if prohibited[test.Description] {
+		t.Skip("failpoints are not currently supported in the CMAP spec test runner. See GODRIVER-2257.")
 	}
 
 	testInfo := &testInfo{
