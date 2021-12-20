@@ -48,7 +48,8 @@ func TestCMAPSpec(t *testing.T) {
 		tpm := newTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
-			SetMaxPoolSize(10))
+			SetMaxPoolSize(10).
+			SetMaxConnecting(2))
 
 		events := make(chan *event.PoolEvent, 20)
 		tpm.Subscribe(events)
@@ -141,7 +142,8 @@ func TestCMAPSpec(t *testing.T) {
 		tpm := newTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
-			SetMaxPoolSize(10))
+			SetMaxPoolSize(10).
+			SetMaxConnecting(2))
 
 		events := make(chan *event.PoolEvent, 20)
 		tpm.Subscribe(events)
@@ -236,7 +238,8 @@ func TestCMAPSpec(t *testing.T) {
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
 			SetMaxPoolSize(10).
-			SetMinPoolSize(3))
+			SetMinPoolSize(3).
+			SetMaxConnecting(2))
 
 		events := make(chan *event.PoolEvent, 20)
 		tpm.Subscribe(events)
