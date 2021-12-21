@@ -282,12 +282,15 @@ func TestCMAPSpec(t *testing.T) {
 			}
 		}
 
-		// Wait for about half of the 750ms operation delay, then start 2 new insert operations.
-		// That should allow 2 new connections to start establishing. Expect that those 2 new
-		// connections won't complete before the 3 previously started inserts check their
-		// connections back into the pool.
+		// Wait for about half of the 750ms operation delay, then start 3 new insert operations.
+		// The first 2 should start establishing 2 new connections that won't complete before the 3
+		// previously started inserts check their connections back into the pool. The 3rd insert
+		// should find an empty connection pool and block on maxConnecting waiting to create a new
+		// connection. One of the first 3 insert operations should complete before the first 2
+		// inserts can complete creating their connections. The 3rd insert should take one of those
+		// checked-in connections instead of creating a new one.
 		time.Sleep(300 * time.Millisecond)
-		for i := 0; i < 2; i++ {
+		for i := 0; i < 3; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -296,31 +299,6 @@ func TestCMAPSpec(t *testing.T) {
 				assert.NoErrorf(mt, err, "InsertOne error")
 			}()
 		}
-
-		// Wait for 2 connection created events so we know that the next operation should block on
-		// maxConnecting for about 750ms before it can start creating a new connection.
-		count = 2
-		for evt := range events {
-			if evt.Type == "ConnectionCreated" {
-				count--
-			}
-			if count <= 0 {
-				break
-			}
-		}
-
-		// Start one more insert operation that should try to check out a connection, find an empty
-		// pool, and block on maxConnecting waiting to create a new connection. One of the first 3
-		// insert operations should complete before the number of connections being created is less
-		// than maxConnecting. This last insert should take one of those connections instead of
-		// creating a new one.
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"key", "value"}})
-			assert.NoErrorf(mt, err, "InsertOne error")
-		}()
 
 		wg.Wait()
 
