@@ -24,7 +24,10 @@ import (
 func TestCMAPSpec(t *testing.T) {
 	mtOpts := mtest.NewOptions().
 		CreateClient(false).
-		MinServerVersion("4.4.0")
+		MinServerVersion("4.4.0").
+		// Don't run tests on sharded clusters because the failpoint and insert commands may be
+		// sent to different servers, preventing the tests from working correctly.
+		Topologies(mtest.Single, mtest.ReplicaSet)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
@@ -282,14 +285,14 @@ func TestCMAPSpec(t *testing.T) {
 			}
 		}
 
-		// Wait for about half of the 750ms operation delay, then start 3 new insert operations.
-		// The first 2 should start establishing 2 new connections that won't complete before the 3
-		// previously started inserts check their connections back into the pool. The 3rd insert
-		// should find an empty connection pool and block on maxConnecting waiting to create a new
-		// connection. One of the first 3 insert operations should complete before the first 2
-		// inserts can complete creating their connections. The 3rd insert should take one of those
-		// checked-in connections instead of creating a new one.
-		time.Sleep(300 * time.Millisecond)
+		// Wait for 100ms, then start 3 new insert operations. The first 2 should start establishing
+		// 2 new connections that won't complete before the 3 previously started inserts check their
+		// connections back into the pool. The 3rd insert should find an empty connection pool and
+		// block on maxConnecting waiting to create a new connection. One of the first 3 insert
+		// operations should complete before the first 2 inserts can complete creating their
+		// connections. The 3rd insert should take one of those checked-in connections instead of
+		// creating a new one.
+		time.Sleep(100 * time.Millisecond)
 		for i := 0; i < 3; i++ {
 			wg.Add(1)
 			go func() {
