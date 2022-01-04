@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/internal"
+	"github.com/mailgun/mongo-go-driver/mongo/description"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 var (

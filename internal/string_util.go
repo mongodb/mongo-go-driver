@@ -9,7 +9,7 @@ package internal
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/mailgun/mongo-go-driver/bson"
 )
 
 // StringSliceFromRawElement decodes the provided BSON element into a []string. This internally calls

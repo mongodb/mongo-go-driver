@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"github.com/mailgun/mongo-go-driver/bson/bsontype"
 )
 
 // MalformedElementError represents a class of errors that RawElement methods return.

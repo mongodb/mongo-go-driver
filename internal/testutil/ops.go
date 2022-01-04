@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package testutil // import "go.mongodb.org/mongo-driver/internal/testutil"
+package testutil // import "github.com/mailgun/mongo-go-driver/internal/testutil"
 
 import (
 	"context"
@@ -13,13 +13,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"github.com/mailgun/mongo-go-driver/mongo/description"
+	"github.com/mailgun/mongo-go-driver/mongo/options"
+	"github.com/mailgun/mongo-go-driver/mongo/writeconcern"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/operation"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/topology"
 )
 
 // AutoCreateIndexes creates an index in the test cluster.

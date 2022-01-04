@@ -9,10 +9,10 @@ package bsoncodec
 import (
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/bson/bsonoptions"
+	"github.com/mailgun/mongo-go-driver/bson/bsonrw"
+	"github.com/mailgun/mongo-go-driver/bson/bsontype"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
 )
 
 // EmptyInterfaceCodec is the Codec used for interface{} values.

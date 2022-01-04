@@ -12,12 +12,12 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	cryptOpts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/mongo/options"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver"
+	cryptOpts "github.com/mailgun/mongo-go-driver/x/mongo/driver/mongocrypt/options"
 )
 
 // ClientEncryption is used to create data keys and explicitly encrypt and decrypt BSON values.

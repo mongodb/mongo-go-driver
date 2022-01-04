@@ -1,4 +1,4 @@
-module go.mongodb.org/mongo-driver
+module github.com/mailgun/mongo-go-driver
 
 go 1.10
 

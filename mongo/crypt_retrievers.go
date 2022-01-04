@@ -9,7 +9,7 @@ package mongo
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // keyRetriever gets keys from the key vault collection.

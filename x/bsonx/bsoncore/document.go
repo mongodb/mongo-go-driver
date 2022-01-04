@@ -14,7 +14,7 @@ import (
 	"strconv"
 
 	"github.com/go-stack/stack"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"github.com/mailgun/mongo-go-driver/bson/bsontype"
 )
 
 // ValidationError is an error type returned when attempting to validate a document or array.

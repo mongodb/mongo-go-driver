@@ -9,10 +9,10 @@ package unified
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/mailgun/mongo-go-driver/bson"
+	testhelpers "github.com/mailgun/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mailgun/mongo-go-driver/mongo"
+	"github.com/mailgun/mongo-go-driver/mongo/options"
 )
 
 // This file provides helper functions to convert BSON documents to WriteModel instances.

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"github.com/mailgun/mongo-go-driver/mongo/address"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/operation"
 )
 
 func TestPool(t *testing.T) {

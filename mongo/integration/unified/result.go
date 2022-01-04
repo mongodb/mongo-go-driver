@@ -10,8 +10,8 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/bson/bsontype"
 )
 
 // operationResult holds the result and/or error returned by an op.

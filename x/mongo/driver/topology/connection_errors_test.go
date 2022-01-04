@@ -14,9 +14,9 @@ import (
 	"net"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
+	"github.com/mailgun/mongo-go-driver/internal/testutil/assert"
+	"github.com/mailgun/mongo-go-driver/mongo/address"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/auth"
 )
 
 func TestConnectionErrors(t *testing.T) {

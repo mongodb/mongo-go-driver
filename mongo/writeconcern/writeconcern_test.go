@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"github.com/mailgun/mongo-go-driver/mongo/writeconcern"
 )
 
 func TestWriteConcernWithOptions(t *testing.T) {

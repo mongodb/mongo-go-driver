@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/kr/pretty"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/mongo/address"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/topology"
 )
 
 func main() {

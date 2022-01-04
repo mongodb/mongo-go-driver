@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/internal/testutil/assert"
+	"github.com/mailgun/mongo-go-driver/mongo/integration/mtest"
+	"github.com/mailgun/mongo-go-driver/mongo/options"
 )
 
 func TestAtlasDataLake(t *testing.T) {

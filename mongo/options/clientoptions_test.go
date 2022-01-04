@@ -17,15 +17,15 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/bson/bsoncodec"
+	"github.com/mailgun/mongo-go-driver/event"
+	"github.com/mailgun/mongo-go-driver/internal"
+	"github.com/mailgun/mongo-go-driver/internal/testutil/assert"
+	"github.com/mailgun/mongo-go-driver/mongo/readconcern"
+	"github.com/mailgun/mongo-go-driver/mongo/readpref"
+	"github.com/mailgun/mongo-go-driver/mongo/writeconcern"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/connstring"
 )
 
 var tClientOptions = reflect.TypeOf(&ClientOptions{})

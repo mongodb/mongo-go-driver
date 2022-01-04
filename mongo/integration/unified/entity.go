@@ -13,10 +13,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/mongo"
+	"github.com/mailgun/mongo-go-driver/mongo/gridfs"
+	"github.com/mailgun/mongo-go-driver/mongo/options"
 )
 
 // ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open

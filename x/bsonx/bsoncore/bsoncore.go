@@ -23,7 +23,7 @@
 // given dst slice. If the slice has enough capacity, it will not grow the
 // slice. The Append*Element functions within this package operate in the same
 // way, but additionally append the BSON type and the key before the value.
-package bsoncore // import "go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+package bsoncore // import "github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
 
 import (
 	"bytes"
@@ -33,8 +33,8 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/bson/bsontype"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
 )
 
 const (

@@ -9,8 +9,8 @@ package mongo
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/internal/testutil/assert"
 )
 
 func TestResults(t *testing.T) {

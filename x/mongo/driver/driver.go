@@ -1,13 +1,13 @@
-package driver // import "go.mongodb.org/mongo-driver/x/mongo/driver"
+package driver // import "github.com/mailgun/mongo-go-driver/x/mongo/driver"
 
 import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"github.com/mailgun/mongo-go-driver/mongo/address"
+	"github.com/mailgun/mongo-go-driver/mongo/description"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/session"
 )
 
 // Deployment is implemented by types that can select a server from a deployment.

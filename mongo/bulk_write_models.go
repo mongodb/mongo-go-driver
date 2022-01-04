@@ -7,7 +7,7 @@
 package mongo
 
 import (
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/mailgun/mongo-go-driver/mongo/options"
 )
 
 // WriteModel is an interface implemented by models that can be used in a BulkWrite operation. Each WriteModel

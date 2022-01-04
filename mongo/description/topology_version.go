@@ -9,8 +9,8 @@ package description
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
 )
 
 // TopologyVersion represents a software version.

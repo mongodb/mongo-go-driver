@@ -7,7 +7,7 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // MongoCryptOptions specifies options to configure a MongoCrypt instance.

@@ -12,14 +12,14 @@ import (
 	"runtime"
 	"strconv"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/version"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/internal"
+	"github.com/mailgun/mongo-go-driver/mongo/address"
+	"github.com/mailgun/mongo-go-driver/mongo/description"
+	"github.com/mailgun/mongo-go-driver/version"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/session"
 )
 
 // Hello is used to run the handshake operation.

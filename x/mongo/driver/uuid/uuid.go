@@ -4,14 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package uuid // import "go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
+package uuid // import "github.com/mailgun/mongo-go-driver/x/mongo/driver/uuid"
 
 import (
 	"io"
 	"math/rand"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/randutil"
+	"github.com/mailgun/mongo-go-driver/internal/randutil"
 )
 
 // UUID represents a UUID.

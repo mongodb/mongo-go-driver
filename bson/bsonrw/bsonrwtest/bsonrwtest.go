@@ -4,15 +4,15 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package bsonrwtest // import "go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
+package bsonrwtest // import "github.com/mailgun/mongo-go-driver/bson/bsonrw/bsonrwtest"
 
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/bson/bsonrw"
+	"github.com/mailgun/mongo-go-driver/bson/bsontype"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 var _ bsonrw.ValueReader = (*ValueReaderWriter)(nil)

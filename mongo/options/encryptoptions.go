@@ -7,7 +7,7 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
 )
 
 // EncryptOptions represents options to explicitly encrypt a value.

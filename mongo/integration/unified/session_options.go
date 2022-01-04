@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/mongo/options"
 )
 
 // transactionOptions is a wrapper for *options.transactionOptions. This type implements the bson.Unmarshaler interface

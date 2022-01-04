@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"github.com/mailgun/mongo-go-driver/internal/testutil/assert"
 )
 
 func TestNew(t *testing.T) {

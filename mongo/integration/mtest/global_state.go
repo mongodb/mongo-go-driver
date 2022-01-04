@@ -9,10 +9,10 @@ package mtest
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/mongo"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/connstring"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/topology"
 )
 
 // AuthEnabled returns whether or not the cluster requires auth.

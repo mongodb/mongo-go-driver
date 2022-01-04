@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/internal/testutil/assert"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func TestBatches(t *testing.T) {

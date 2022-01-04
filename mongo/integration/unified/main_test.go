@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal"
-	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"github.com/mailgun/mongo-go-driver/internal"
+	"github.com/mailgun/mongo-go-driver/mongo/integration/mtest"
 )
 
 func TestMain(m *testing.M) {

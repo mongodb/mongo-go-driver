@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"net"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/auth/internal/gssapi"
 )
 
 // GSSAPI is the mechanism name for GSSAPI.

@@ -18,14 +18,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"github.com/mailgun/mongo-go-driver/event"
+	"github.com/mailgun/mongo-go-driver/mongo/description"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/connstring"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/ocsp"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/operation"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/session"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/topology"
 )
 
 var connectionString connstring.ConnString

@@ -10,9 +10,9 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/mailgun/mongo-go-driver/bson"
+	"github.com/mailgun/mongo-go-driver/mongo"
+	"github.com/mailgun/mongo-go-driver/mongo/options"
 )
 
 func executeAbortTransaction(ctx context.Context, operation *operation) (*operationResult, error) {

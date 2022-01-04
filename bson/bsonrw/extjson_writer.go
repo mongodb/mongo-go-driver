@@ -19,7 +19,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
 )
 
 // ExtJSONValueWriterPool is a pool for ExtJSON ValueWriters.

@@ -9,7 +9,7 @@ package bsonx
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
 )
 
 func noerr(t *testing.T, err error) {

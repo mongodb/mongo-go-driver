@@ -4,11 +4,11 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package readconcern // import "go.mongodb.org/mongo-driver/mongo/readconcern"
+package readconcern // import "github.com/mailgun/mongo-go-driver/mongo/readconcern"
 
 import (
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/bson/bsontype"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // ReadConcern for replica sets and replica set shards determines which data to return from a query.

@@ -14,7 +14,7 @@ import (
 	"io"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"github.com/mailgun/mongo-go-driver/bson/bsontype"
 )
 
 const maxNestingDepth = 200

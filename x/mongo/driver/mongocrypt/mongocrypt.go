@@ -18,8 +18,8 @@ import (
 	"errors"
 	"unsafe"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/mongocrypt/options"
 )
 
 type MongoCrypt struct {

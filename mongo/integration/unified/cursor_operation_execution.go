@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/mailgun/mongo-go-driver/bson"
 )
 
 func executeClose(ctx context.Context, operation *operation) error {

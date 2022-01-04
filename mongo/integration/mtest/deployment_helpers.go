@@ -7,7 +7,7 @@
 package mtest
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/mailgun/mongo-go-driver/bson"
 )
 
 // BatchIdentifier specifies the keyword to identify the batch in a cursor response.

@@ -9,7 +9,7 @@ package bsoncodec
 import (
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"github.com/mailgun/mongo-go-driver/bson/bsonrw"
 )
 
 // condAddrEncoder is the encoder used when a pointer to the encoding value has an encoder.

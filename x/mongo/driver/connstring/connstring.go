@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package connstring // import "go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+package connstring // import "github.com/mailgun/mongo-go-driver/x/mongo/driver/connstring"
 
 import (
 	"errors"
@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal"
-	"go.mongodb.org/mongo-driver/internal/randutil"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"github.com/mailgun/mongo-go-driver/internal"
+	"github.com/mailgun/mongo-go-driver/internal/randutil"
+	"github.com/mailgun/mongo-go-driver/mongo/writeconcern"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/dns"
+	"github.com/mailgun/mongo-go-driver/x/mongo/driver/wiremessage"
 )
 
 // random is a package-global pseudo-random number generator.

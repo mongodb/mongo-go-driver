@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package address // import "go.mongodb.org/mongo-driver/mongo/address"
+package address // import "github.com/mailgun/mongo-go-driver/mongo/address"
 
 import (
 	"net"

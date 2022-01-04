@@ -10,7 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/mailgun/mongo-go-driver/bson/primitive"
 )
 
 // generationStats represents the version of a pool. It tracks the generation number as well as the number of

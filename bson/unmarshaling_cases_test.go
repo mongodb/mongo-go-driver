@@ -9,7 +9,7 @@ package bson
 import (
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"github.com/mailgun/mongo-go-driver/bson/bsoncodec"
 )
 
 type unmarshalingTestCase struct {

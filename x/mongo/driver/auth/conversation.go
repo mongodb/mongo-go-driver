@@ -9,7 +9,7 @@ package auth
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/mailgun/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // SpeculativeConversation represents an authentication conversation that can be merged with the initial connection
