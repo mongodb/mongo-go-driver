@@ -1001,7 +1001,8 @@ func addClientCertFromConcatenatedFile(cfg *tls.Config, certKeyFile, keyPassword
 // containing file and returns the certificate's subject name.
 func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (string, error) {
 	var currentBlock *pem.Block
-	var certBlock, certDecodedBlock, keyBlock []byte
+	var certDecodedBlock []byte
+	var certBlocks, keyBlocks [][]byte
 
 	remaining := data
 	start := 0
@@ -1012,7 +1013,8 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 		}
 
 		if currentBlock.Type == "CERTIFICATE" {
-			certBlock = data[start : len(data)-len(remaining)]
+			certBlock := data[start : len(data)-len(remaining)]
+			certBlocks = append(certBlocks, certBlock)
 			certDecodedBlock = currentBlock.Bytes
 			start += len(certBlock)
 		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
@@ -1044,22 +1046,24 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 				}
 				var encoded bytes.Buffer
 				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
-				keyBlock = encoded.Bytes()
+				keyBlock := encoded.Bytes()
+				keyBlocks = append(keyBlocks, keyBlock)
 				start = len(data) - len(remaining)
 			} else {
-				keyBlock = data[start : len(data)-len(remaining)]
+				keyBlock := data[start : len(data)-len(remaining)]
+				keyBlocks = append(keyBlocks, keyBlock)
 				start += len(keyBlock)
 			}
 		}
 	}
-	if len(certBlock) == 0 {
+	if len(certBlocks) == 0 {
 		return "", fmt.Errorf("failed to find CERTIFICATE")
 	}
-	if len(keyBlock) == 0 {
+	if len(keyBlocks) == 0 {
 		return "", fmt.Errorf("failed to find PRIVATE KEY")
 	}
 
-	cert, err := tls.X509KeyPair(certBlock, keyBlock)
+	cert, err := tls.X509KeyPair(bytes.Join(certBlocks, []byte("\n")), bytes.Join(keyBlocks, []byte("\n")))
 	if err != nil {
 		return "", err
 	}
