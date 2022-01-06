@@ -20,20 +20,21 @@ import (
 
 // ListCollections performs a listCollections operation.
 type ListCollections struct {
-	filter         bsoncore.Document
-	nameOnly       *bool
-	session        *session.Client
-	clock          *session.ClusterClock
-	monitor        *event.CommandMonitor
-	crypt          driver.Crypt
-	database       string
-	deployment     driver.Deployment
-	readPreference *readpref.ReadPref
-	selector       description.ServerSelector
-	retry          *driver.RetryMode
-	result         driver.CursorResponse
-	batchSize      *int32
-	serverAPI      *driver.ServerAPIOptions
+	filter                bsoncore.Document
+	nameOnly              *bool
+	authorizedCollections *bool
+	session               *session.Client
+	clock                 *session.ClusterClock
+	monitor               *event.CommandMonitor
+	crypt                 driver.Crypt
+	database              string
+	deployment            driver.Deployment
+	readPreference        *readpref.ReadPref
+	selector              description.ServerSelector
+	retry                 *driver.RetryMode
+	result                driver.CursorResponse
+	batchSize             *int32
+	serverAPI             *driver.ServerAPIOptions
 }
 
 // NewListCollections constructs and returns a new ListCollections.
@@ -89,7 +90,6 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 }
 
 func (lc *ListCollections) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
-
 	dst = bsoncore.AppendInt32Element(dst, "listCollections", 1)
 	if lc.filter != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "filter", lc.filter)
@@ -97,6 +97,10 @@ func (lc *ListCollections) command(dst []byte, desc description.SelectedServer) 
 	if lc.nameOnly != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "nameOnly", *lc.nameOnly)
 	}
+	if lc.authorizedCollections != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "authorizedCollections", *lc.authorizedCollections)
+	}
+
 	cursorDoc := bsoncore.NewDocumentBuilder()
 	if lc.batchSize != nil {
 		cursorDoc.AppendInt32("batchSize", *lc.batchSize)
@@ -123,6 +127,17 @@ func (lc *ListCollections) NameOnly(nameOnly bool) *ListCollections {
 	}
 
 	lc.nameOnly = &nameOnly
+	return lc
+}
+
+// AuthorizedCollections specifies whether to only return collections the user
+// is authorized to use.
+func (lc *ListCollections) AuthorizedCollections(authorizedCollections bool) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.authorizedCollections = &authorizedCollections
 	return lc
 }
 
