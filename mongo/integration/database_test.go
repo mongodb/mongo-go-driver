@@ -249,19 +249,10 @@ func TestDatabase(t *testing.T) {
 			assert.Nil(mt, err, "expected command %s to contain key 'batchSize'", evt.Command)
 		})
 		mt.RunOpts("authorizedCollections", mtest.NewOptions().MinServerVersion("4.0"), func(mt *mtest.T) {
-			// Create two new collections so there will be three total.
-			createCollections(mt, 2)
-
 			mt.ClearEvents()
 			lcOpts := options.ListCollections().SetAuthorizedCollections(true)
-			cur, err := mt.DB.ListCollections(mtest.Background, bson.D{}, lcOpts)
+			_, err := mt.DB.ListCollections(mtest.Background, bson.D{}, lcOpts)
 			assert.Nil(mt, err, "ListCollections error: %v", err)
-
-			var numColls int
-			for cur.Next(mtest.Background) {
-				numColls++
-			}
-			assert.Equal(mt, 3, numColls, "expected 3 collections to be returned, got %v", numColls)
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "listCollections", evt.CommandName,
