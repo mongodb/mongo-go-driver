@@ -17,7 +17,7 @@ import (
 )
 
 func TestUnmarshal(t *testing.T) {
-	for _, tc := range unmarshalingTestCases {
+	for _, tc := range unmarshalingTestCases() {
 		t.Run(tc.name, func(t *testing.T) {
 			got := reflect.New(tc.sType).Interface()
 			err := Unmarshal(tc.data, got)
@@ -28,7 +28,7 @@ func TestUnmarshal(t *testing.T) {
 }
 
 func TestUnmarshalWithRegistry(t *testing.T) {
-	for _, tc := range unmarshalingTestCases {
+	for _, tc := range unmarshalingTestCases() {
 		t.Run(tc.name, func(t *testing.T) {
 			got := reflect.New(tc.sType).Interface()
 			err := UnmarshalWithRegistry(DefaultRegistry, tc.data, got)
@@ -39,7 +39,7 @@ func TestUnmarshalWithRegistry(t *testing.T) {
 }
 
 func TestUnmarshalWithContext(t *testing.T) {
-	for _, tc := range unmarshalingTestCases {
+	for _, tc := range unmarshalingTestCases() {
 		t.Run(tc.name, func(t *testing.T) {
 			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
 			got := reflect.New(tc.sType).Interface()

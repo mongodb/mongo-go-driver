@@ -20,23 +20,23 @@ type unmarshalingTestCase struct {
 	data  []byte
 }
 
-var unmarshalingTestCases = func() []unmarshalingTestCase {
-	var zeroMyStruct myStruct
+func unmarshalingTestCases() []unmarshalingTestCase {
+	var zeroPtrStruct unmarshalerPtrStruct
 	{
 		i := myInt64(0)
 		m := myMap{}
 		b := myBytes{}
 		s := myString("")
-		zeroMyStruct = myStruct{I: &i, M: &m, B: &b, S: &s}
+		zeroPtrStruct = unmarshalerPtrStruct{I: &i, M: &m, B: &b, S: &s}
 	}
 
-	var valMyStruct myStruct
+	var valPtrStruct unmarshalerPtrStruct
 	{
 		i := myInt64(5)
 		m := myMap{"key": "value"}
 		b := myBytes{0x00, 0x01}
 		s := myString("test")
-		valMyStruct = myStruct{I: &i, M: &m, B: &b, S: &s}
+		valPtrStruct = unmarshalerPtrStruct{I: &i, M: &m, B: &b, S: &s}
 	}
 
 	return []unmarshalingTestCase{
@@ -96,33 +96,36 @@ var unmarshalingTestCases = func() []unmarshalingTestCase {
 		// Test that a struct of pointer types with UnmarshalBSON functions defined marshal and
 		// unmarshal to the same Go values when the pointer values are "nil".
 		{
-			name:  "fields with UnmarshalBSON function should marshal and unmarshal to the same values",
-			sType: reflect.TypeOf(myStruct{}),
-			want:  &myStruct{},
-			data:  docToBytes(myStruct{}),
+			name:  "nil pointer fields with UnmarshalBSON function should marshal and unmarshal to the same values",
+			sType: reflect.TypeOf(unmarshalerPtrStruct{}),
+			want:  &unmarshalerPtrStruct{},
+			data:  docToBytes(unmarshalerPtrStruct{}),
 		},
 		// GODRIVER-2252
 		// Test that a struct of pointer types with UnmarshalBSON functions defined marshal and
 		// unmarshal to the same Go values when the pointer values are the respective zero values.
 		{
-			name:  "TODO",
-			sType: reflect.TypeOf(myStruct{}),
-			want:  &zeroMyStruct,
-			data:  docToBytes(zeroMyStruct),
+			name:  "zero-value pointer fields with UnmarshalBSON function should marshal and unmarshal to the same values",
+			sType: reflect.TypeOf(unmarshalerPtrStruct{}),
+			want:  &zeroPtrStruct,
+			data:  docToBytes(zeroPtrStruct),
 		},
 		// GODRIVER-2252
 		// Test that a struct of pointer types with UnmarshalBSON functions defined marshal and
 		// unmarshal to the same Go values when the pointer values are non-zero values.
 		{
-			name:  "TODO",
-			sType: reflect.TypeOf(myStruct{}),
-			want:  &valMyStruct,
-			data:  docToBytes(valMyStruct),
+			name:  "non-zero-value pointer fields with UnmarshalBSON function should marshal and unmarshal to the same values",
+			sType: reflect.TypeOf(unmarshalerPtrStruct{}),
+			want:  &valPtrStruct,
+			data:  docToBytes(valPtrStruct),
 		},
 	}
-}()
+}
 
-type myStruct struct {
+// unmarshalerPtrStruct contains a collection of fields that are all pointers to custom types that
+// implement the bson.Unmarshaler interface. It is used to test the BSON unmarshal behavior for
+// pointer types with custom UnmarshalBSON functions.
+type unmarshalerPtrStruct struct {
 	I *myInt64
 	M *myMap
 	B *myBytes
@@ -132,6 +135,9 @@ type myStruct struct {
 type myInt64 int64
 
 func (mi *myInt64) UnmarshalBSON(bytes []byte) error {
+	if len(bytes) == 0 {
+		return nil
+	}
 	i, err := bsonrw.NewBSONValueReader(bsontype.Int64, bytes).ReadInt64()
 	if err != nil {
 		return err
@@ -143,6 +149,9 @@ func (mi *myInt64) UnmarshalBSON(bytes []byte) error {
 type myMap map[string]string
 
 func (mm *myMap) UnmarshalBSON(bytes []byte) error {
+	if len(bytes) == 0 {
+		return nil
+	}
 	var m map[string]string
 	err := Unmarshal(bytes, &m)
 	*mm = myMap(m)
@@ -152,6 +161,9 @@ func (mm *myMap) UnmarshalBSON(bytes []byte) error {
 type myBytes []byte
 
 func (mb *myBytes) UnmarshalBSON(bytes []byte) error {
+	if len(bytes) == 0 {
+		return nil
+	}
 	b, _, err := bsonrw.NewBSONValueReader(bsontype.Binary, bytes).ReadBinary()
 	if err != nil {
 		return err
@@ -163,6 +175,9 @@ func (mb *myBytes) UnmarshalBSON(bytes []byte) error {
 type myString string
 
 func (ms *myString) UnmarshalBSON(bytes []byte) error {
+	if len(bytes) == 0 {
+		return nil
+	}
 	s, err := bsonrw.NewBSONValueReader(bsontype.String, bytes).ReadString()
 	if err != nil {
 		return err

@@ -22,7 +22,7 @@ import (
 )
 
 func TestBasicDecode(t *testing.T) {
-	for _, tc := range unmarshalingTestCases {
+	for _, tc := range unmarshalingTestCases() {
 		t.Run(tc.name, func(t *testing.T) {
 			got := reflect.New(tc.sType).Elem()
 			vr := bsonrw.NewBSONDocumentReader(tc.data)
@@ -38,7 +38,7 @@ func TestBasicDecode(t *testing.T) {
 
 func TestDecoderv2(t *testing.T) {
 	t.Run("Decode", func(t *testing.T) {
-		for _, tc := range unmarshalingTestCases {
+		for _, tc := range unmarshalingTestCases() {
 			t.Run(tc.name, func(t *testing.T) {
 				got := reflect.New(tc.sType).Interface()
 				vr := bsonrw.NewBSONDocumentReader(tc.data)
@@ -147,7 +147,6 @@ func TestDecoderv2(t *testing.T) {
 			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 				t.Errorf("Was expecting error but got different error. got %v; want %v", got, want)
 			}
-
 		})
 		t.Run("success", func(t *testing.T) {
 			got, err := NewDecoderWithContext(bsoncodec.DecodeContext{}, bsonrw.NewBSONDocumentReader([]byte{}))
