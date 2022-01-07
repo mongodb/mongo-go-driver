@@ -382,6 +382,9 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		cursorOpts.BatchSize = *lco.BatchSize
 		op = op.BatchSize(*lco.BatchSize)
 	}
+	if lco.AuthorizedCollections != nil {
+		op = op.AuthorizedCollections(*lco.AuthorizedCollections)
+	}
 
 	retry := driver.RetryNone
 	if db.client.retryReads {

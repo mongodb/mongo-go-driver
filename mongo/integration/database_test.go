@@ -248,6 +248,19 @@ func TestDatabase(t *testing.T) {
 			_, err = evt.Command.LookupErr("cursor", "batchSize")
 			assert.Nil(mt, err, "expected command %s to contain key 'batchSize'", evt.Command)
 		})
+		mt.RunOpts("authorizedCollections", mtest.NewOptions().MinServerVersion("4.0"), func(mt *mtest.T) {
+			mt.ClearEvents()
+			lcOpts := options.ListCollections().SetAuthorizedCollections(true)
+			_, err := mt.DB.ListCollections(mtest.Background, bson.D{}, lcOpts)
+			assert.Nil(mt, err, "ListCollections error: %v", err)
+
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "listCollections", evt.CommandName,
+				"expected 'listCollections' command to be sent, got %q", evt.CommandName)
+			_, err = evt.Command.LookupErr("authorizedCollections")
+			assert.Nil(mt, err, "expected command to contain key 'authorizedCollections'")
+
+		})
 		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
 			createCollections(mt, 2)
 			assertGetMoreCommandsAreMonitored(mt, cmdMonitoringCmdName, func() (*mongo.Cursor, error) {
