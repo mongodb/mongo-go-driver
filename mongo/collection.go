@@ -555,6 +555,13 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(uo.Hint != nil).
 		ArrayFilters(uo.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI)
+	if uo.Let != nil {
+		let, err := transformBsoncoreDocument(coll.registry, uo.Let, true, "let")
+		if err != nil {
+			return nil, err
+		}
+		op = op.Let(let)
+	}
 
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
@@ -1500,6 +1507,13 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		}
 		op = op.Hint(hint)
 	}
+	if fo.Let != nil {
+		let, err := transformBsoncoreDocument(coll.registry, fo.Let, true, "let")
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Let(let)
+	}
 
 	return coll.findAndModify(ctx, op)
 }
@@ -1582,6 +1596,13 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 			return &SingleResult{err: err}
 		}
 		op = op.Hint(hint)
+	}
+	if fo.Let != nil {
+		let, err := transformBsoncoreDocument(coll.registry, fo.Let, true, "let")
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Let(let)
 	}
 
 	return coll.findAndModify(ctx, op)

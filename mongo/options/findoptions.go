@@ -639,6 +639,12 @@ type FindOneAndReplaceOptions struct {
 	// will return an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
 	// will be sent.
 	Hint interface{}
+
+	// Specifies parameters for the find one and replace expression. This option is only valid for MongoDB versions >= 5.0. Older
+	// servers will report an error for using this option. This must be a document mapping parameter names to values.
+	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
+	// accessed as variables in an aggregate expression context (e.g. "$$var").
+	Let interface{}
 }
 
 // FindOneAndReplace creates a new FindOneAndReplaceOptions instance.
@@ -694,6 +700,12 @@ func (f *FindOneAndReplaceOptions) SetHint(hint interface{}) *FindOneAndReplaceO
 	return f
 }
 
+// SetLet sets the value for the Let field.
+func (f *FindOneAndReplaceOptions) SetLet(let interface{}) *FindOneAndReplaceOptions {
+	f.Let = let
+	return f
+}
+
 // MergeFindOneAndReplaceOptions combines the given FindOneAndReplaceOptions instances into a single
 // FindOneAndReplaceOptions in a last-one-wins fashion.
 func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAndReplaceOptions {
@@ -725,6 +737,9 @@ func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAn
 		}
 		if opt.Hint != nil {
 			fo.Hint = opt.Hint
+		}
+		if opt.Let != nil {
+			fo.Let = opt.Let
 		}
 	}
 
@@ -777,6 +792,12 @@ type FindOneAndUpdateOptions struct {
 	// will return an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
 	// will be sent.
 	Hint interface{}
+
+	// Specifies parameters for the find one and update expression. This option is only valid for MongoDB versions >= 5.0. Older
+	// servers will report an error for using this option. This must be a document mapping parameter names to values.
+	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
+	// accessed as variables in an aggregate expression context (e.g. "$$var").
+	Let interface{}
 }
 
 // FindOneAndUpdate creates a new FindOneAndUpdateOptions instance.
@@ -838,6 +859,12 @@ func (f *FindOneAndUpdateOptions) SetHint(hint interface{}) *FindOneAndUpdateOpt
 	return f
 }
 
+// SetLet sets the value for the Let field.
+func (f *FindOneAndUpdateOptions) SetLet(let interface{}) *FindOneAndUpdateOptions {
+	f.Let = let
+	return f
+}
+
 // MergeFindOneAndUpdateOptions combines the given FindOneAndUpdateOptions instances into a single
 // FindOneAndUpdateOptions in a last-one-wins fashion.
 func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndUpdateOptions {
@@ -872,6 +899,9 @@ func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndU
 		}
 		if opt.Hint != nil {
 			fo.Hint = opt.Hint
+		}
+		if opt.Let != nil {
+			fo.Let = opt.Let
 		}
 	}
 

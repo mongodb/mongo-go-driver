@@ -39,6 +39,7 @@ type Update struct {
 	result                   UpdateResult
 	crypt                    driver.Crypt
 	serverAPI                *driver.ServerAPIOptions
+	let                      bsoncore.Document
 }
 
 // Upsert contains the information for an upsert in an Update operation.
@@ -184,6 +185,9 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(6) {
 			return nil, errors.New("the 'arrayFilters' command parameter requires a minimum server wire version of 6")
 		}
+	}
+	if u.let != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "let", u.let)
 	}
 
 	return dst, nil
@@ -355,5 +359,15 @@ func (u *Update) ServerAPI(serverAPI *driver.ServerAPIOptions) *Update {
 	}
 
 	u.serverAPI = serverAPI
+	return u
+}
+
+// Let specifies the let document to use. This option is only valid for server versions 5.0 and above.
+func (u *Update) Let(let bsoncore.Document) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.let = let
 	return u
 }

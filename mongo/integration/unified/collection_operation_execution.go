@@ -567,6 +567,8 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 				return nil, fmt.Errorf("error creating hint: %v", err)
 			}
 			opts.SetHint(hint)
+		case "let":
+			opts.SetLet(val.Document())
 		case "maxTimeMS":
 			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "projection":
@@ -637,6 +639,8 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 				return nil, fmt.Errorf("error creating hint: %v", err)
 			}
 			opts.SetHint(hint)
+		case "let":
+			opts.SetLet(val.Document())
 		case "maxTimeMS":
 			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "projection":

@@ -59,6 +59,8 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 				return nil, fmt.Errorf("error creating hint: %v", err)
 			}
 			ua.opts.SetHint(hint)
+		case "let":
+			ua.opts.SetLet(val.Document())
 		case "update":
 			ua.update, err = createUpdateValue(val)
 			if err != nil {

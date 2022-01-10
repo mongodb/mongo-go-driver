@@ -35,6 +35,12 @@ type UpdateOptions struct {
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
 	// default value is false.
 	Upsert *bool
+
+	// Specifies parameters for the update expression. This option is only valid for MongoDB versions >= 5.0. Older
+	// servers will report an error for using this option. This must be a document mapping parameter names to values.
+	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
+	// accessed as variables in an aggregate expression context (e.g. "$$var").
+	Let interface{}
 }
 
 // Update creates a new UpdateOptions instance.
@@ -72,6 +78,12 @@ func (uo *UpdateOptions) SetUpsert(b bool) *UpdateOptions {
 	return uo
 }
 
+// SetLet sets the value for the Let field.
+func (uo *UpdateOptions) SetLet(l interface{}) *UpdateOptions {
+	uo.Let = l
+	return uo
+}
+
 // MergeUpdateOptions combines the given UpdateOptions instances into a single UpdateOptions in a last-one-wins fashion.
 func MergeUpdateOptions(opts ...*UpdateOptions) *UpdateOptions {
 	uOpts := Update()
@@ -93,6 +105,9 @@ func MergeUpdateOptions(opts ...*UpdateOptions) *UpdateOptions {
 		}
 		if uo.Upsert != nil {
 			uOpts.Upsert = uo.Upsert
+		}
+		if uo.Let != nil {
+			uOpts.Let = uo.Let
 		}
 	}
 
