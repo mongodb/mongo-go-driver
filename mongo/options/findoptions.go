@@ -99,6 +99,12 @@ type FindOptions struct {
 	// A document specifying the order in which documents should be returned.  The driver will return an error if the
 	// sort parameter is a multi-key map.
 	Sort interface{}
+
+	// Specifies parameters for the find expression. This option is only valid for MongoDB versions >= 5.0. Older
+	// servers will report an error for using this option. This must be a document mapping parameter names to values.
+	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
+	// accessed as variables in an aggregate expression context (e.g. "$$var").
+	Let interface{}
 }
 
 // Find creates a new FindOptions instance.
@@ -145,6 +151,12 @@ func (f *FindOptions) SetCursorType(ct CursorType) *FindOptions {
 // SetHint sets the value for the Hint field.
 func (f *FindOptions) SetHint(hint interface{}) *FindOptions {
 	f.Hint = hint
+	return f
+}
+
+// SetLet sets the value for the Let field.
+func (f *FindOptions) SetLet(let interface{}) *FindOptions {
+	f.Let = let
 	return f
 }
 
@@ -257,6 +269,9 @@ func MergeFindOptions(opts ...*FindOptions) *FindOptions {
 		}
 		if opt.Hint != nil {
 			fo.Hint = opt.Hint
+		}
+		if opt.Let != nil {
+			fo.Let = opt.Let
 		}
 		if opt.Limit != nil {
 			fo.Limit = opt.Limit
@@ -890,6 +905,12 @@ type FindOneAndDeleteOptions struct {
 	// will return an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
 	// will be sent.
 	Hint interface{}
+
+	// Specifies parameters for the find one and delete expression. This option is only valid for MongoDB versions >= 5.0. Older
+	// servers will report an error for using this option. This must be a document mapping parameter names to values.
+	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
+	// accessed as variables in an aggregate expression context (e.g. "$$var").
+	Let interface{}
 }
 
 // FindOneAndDelete creates a new FindOneAndDeleteOptions instance.
@@ -927,6 +948,12 @@ func (f *FindOneAndDeleteOptions) SetHint(hint interface{}) *FindOneAndDeleteOpt
 	return f
 }
 
+// SetLet sets the value for the Let field.
+func (f *FindOneAndDeleteOptions) SetLet(let interface{}) *FindOneAndDeleteOptions {
+	f.Let = let
+	return f
+}
+
 // MergeFindOneAndDeleteOptions combines the given FindOneAndDeleteOptions instances into a single
 // FindOneAndDeleteOptions in a last-one-wins fashion.
 func MergeFindOneAndDeleteOptions(opts ...*FindOneAndDeleteOptions) *FindOneAndDeleteOptions {
@@ -949,6 +976,9 @@ func MergeFindOneAndDeleteOptions(opts ...*FindOneAndDeleteOptions) *FindOneAndD
 		}
 		if opt.Hint != nil {
 			fo.Hint = opt.Hint
+		}
+		if opt.Let != nil {
+			fo.Let = opt.Let
 		}
 	}
 

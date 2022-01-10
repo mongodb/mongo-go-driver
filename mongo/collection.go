@@ -454,6 +454,13 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	if do.Hint != nil {
 		op = op.Hint(true)
 	}
+	if do.Let != nil {
+		let, err := transformBsoncoreDocument(coll.registry, do.Let, true, "let")
+		if err != nil {
+			return nil, err
+		}
+		op = op.Let(let)
+	}
 
 	// deleteMany cannot be retried
 	retryMode := driver.RetryNone
@@ -1174,6 +1181,14 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 		op.Hint(hint)
 	}
+	if fo.Let != nil {
+		let, err := transformBsoncoreDocument(coll.registry, fo.Let, true, "let")
+		if err != nil {
+			closeImplicitSession(sess)
+			return nil, err
+		}
+		op.Let(let)
+	}
 	if fo.Limit != nil {
 		limit := *fo.Limit
 		if limit < 0 {
@@ -1405,6 +1420,13 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 			return &SingleResult{err: err}
 		}
 		op = op.Hint(hint)
+	}
+	if fod.Let != nil {
+		let, err := transformBsoncoreDocument(coll.registry, fod.Let, true, "let")
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Let(let)
 	}
 
 	return coll.findAndModify(ctx, op)

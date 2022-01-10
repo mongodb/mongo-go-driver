@@ -36,6 +36,7 @@ type Delete struct {
 	hint         *bool
 	result       DeleteResult
 	serverAPI    *driver.ServerAPIOptions
+	let          bsoncore.Document
 }
 
 // DeleteResult represents a delete result returned by the server.
@@ -121,6 +122,9 @@ func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		if !d.writeConcern.Acknowledged() {
 			return nil, errUnacknowledgedHint
 		}
+	}
+	if d.let != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "let", d.let)
 	}
 	return dst, nil
 }
@@ -268,5 +272,15 @@ func (d *Delete) ServerAPI(serverAPI *driver.ServerAPIOptions) *Delete {
 	}
 
 	d.serverAPI = serverAPI
+	return d
+}
+
+// Let specifies the let document to use. This option is only valid for server versions 5.0 and above.
+func (d *Delete) Let(let bsoncore.Document) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.let = let
 	return d
 }

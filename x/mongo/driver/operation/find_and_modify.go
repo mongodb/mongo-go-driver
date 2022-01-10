@@ -46,6 +46,7 @@ type FindAndModify struct {
 	crypt                    driver.Crypt
 	hint                     bsoncore.Value
 	serverAPI                *driver.ServerAPIOptions
+	let                      bsoncore.Document
 
 	result FindAndModifyResult
 }
@@ -201,6 +202,9 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 			return nil, errUnacknowledgedHint
 		}
 		dst = bsoncore.AppendValueElement(dst, "hint", fam.hint)
+	}
+	if fam.let != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "let", fam.let)
 	}
 
 	return dst, nil
@@ -436,5 +440,15 @@ func (fam *FindAndModify) ServerAPI(serverAPI *driver.ServerAPIOptions) *FindAnd
 	}
 
 	fam.serverAPI = serverAPI
+	return fam
+}
+
+// Let specifies the let document to use. This option is only valid for server versions 5.0 and above.
+func (fam *FindAndModify) Let(let bsoncore.Document) *FindAndModify {
+	if fam == nil {
+		fam = new(FindAndModify)
+	}
+
+	fam.let = let
 	return fam
 }
