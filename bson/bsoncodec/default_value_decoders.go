@@ -1485,6 +1485,20 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(dc DecodeContext, vr bson
 		return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
 	}
 
+	if val.Kind() == reflect.Ptr && val.IsNil() {
+		if !val.CanSet() {
+			return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
+		}
+		val.Set(reflect.New(val.Type().Elem()))
+	}
+
+	if !val.Type().Implements(tUnmarshaler) {
+		if !val.CanAddr() {
+			return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
+		}
+		val = val.Addr() // If they type doesn't implement the interface, a pointer to it must.
+	}
+
 	_, src, err := bsonrw.Copier{}.CopyValueToBytes(vr)
 	if err != nil {
 		return err
@@ -1500,20 +1514,6 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(dc DecodeContext, vr bson
 	if val.Kind() == reflect.Ptr && len(src) == 0 {
 		val.Set(reflect.Zero(val.Type()))
 		return nil
-	}
-
-	if val.Kind() == reflect.Ptr && val.IsNil() {
-		if !val.CanSet() {
-			return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
-		}
-		val.Set(reflect.New(val.Type().Elem()))
-	}
-
-	if !val.Type().Implements(tUnmarshaler) {
-		if !val.CanAddr() {
-			return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
-		}
-		val = val.Addr() // If they type doesn't implement the interface, a pointer to it must.
 	}
 
 	fn := val.Convert(tUnmarshaler).MethodByName("UnmarshalBSON")
