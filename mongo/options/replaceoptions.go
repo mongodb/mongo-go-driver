@@ -30,6 +30,12 @@ type ReplaceOptions struct {
 	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
 	// default value is false.
 	Upsert *bool
+
+	// Specifies parameters for the aggregate expression. This option is only valid for MongoDB versions >= 5.0. Older
+	// servers will report an error for using this option. This must be a document mapping parameter names to values.
+	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
+	// accessed as variables in an aggregate expression context (e.g. "$$var").
+	Let interface{}
 }
 
 // Replace creates a new ReplaceOptions instance.
@@ -61,6 +67,12 @@ func (ro *ReplaceOptions) SetUpsert(b bool) *ReplaceOptions {
 	return ro
 }
 
+// SetLet sets the value for the Let field.
+func (ro *ReplaceOptions) SetLet(l interface{}) *ReplaceOptions {
+	ro.Let = l
+	return ro
+}
+
 // MergeReplaceOptions combines the given ReplaceOptions instances into a single ReplaceOptions in a last-one-wins
 // fashion.
 func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
@@ -80,6 +92,9 @@ func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
 		}
 		if ro.Upsert != nil {
 			rOpts.Upsert = ro.Upsert
+		}
+		if ro.Let != nil {
+			rOpts.Let = ro.Let
 		}
 	}
 

@@ -712,6 +712,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		uOpts.Collation = opt.Collation
 		uOpts.Upsert = opt.Upsert
 		uOpts.Hint = opt.Hint
+		uOpts.Let = opt.Let
 		updateOptions = append(updateOptions, uOpts)
 	}
 
