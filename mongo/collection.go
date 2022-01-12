@@ -752,7 +752,6 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 
 // aggreate is the helper method for Aggregate
 func aggregate(a aggregateParams) (*Cursor, error) {
-
 	if a.ctx == nil {
 		a.ctx = context.Background()
 	}
@@ -763,6 +762,12 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	}
 
 	sess := sessionFromContext(a.ctx)
+	// Always close any created implicit sessions if aggregate returns an error.
+	defer func() {
+		if err != nil && sess != nil {
+			closeImplicitSession(sess)
+		}
+	}()
 	if sess == nil && a.client.sessionPool != nil {
 		sess, err = session.NewClientSession(a.client.sessionPool, a.client.id, session.Implicit)
 		if err != nil {
@@ -836,7 +841,6 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	if ao.Hint != nil {
 		hintVal, err := transformValue(a.registry, ao.Hint, false, "hint")
 		if err != nil {
-			closeImplicitSession(sess)
 			return nil, err
 		}
 		op.Hint(hintVal)
@@ -844,7 +848,6 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 	if ao.Let != nil {
 		let, err := transformBsoncoreDocument(a.registry, ao.Let, true, "let")
 		if err != nil {
-			closeImplicitSession(sess)
 			return nil, err
 		}
 		op.Let(let)
@@ -858,7 +861,6 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 
 	err = op.Execute(a.ctx)
 	if err != nil {
-		closeImplicitSession(sess)
 		if wce, ok := err.(driver.WriteCommandError); ok && wce.WriteConcernError != nil {
 			return nil, *convertDriverWriteConcernError(wce.WriteConcernError)
 		}
@@ -867,7 +869,6 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 
 	bc, err := op.Result(cursorOpts)
 	if err != nil {
-		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
 	cursor, err := newCursorWithSession(bc, a.registry, sess)
@@ -1127,6 +1128,12 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	}
 
 	sess := sessionFromContext(ctx)
+	// Always close any created implicit sessions if Find returns an error.
+	defer func() {
+		if err != nil && sess != nil {
+			closeImplicitSession(sess)
+		}
+	}()
 	if sess == nil && coll.client.sessionPool != nil {
 		var err error
 		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
@@ -1137,7 +1144,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 
 	err = coll.client.validSession(sess)
 	if err != nil {
-		closeImplicitSession(sess)
 		return nil, err
 	}
 
@@ -1184,7 +1190,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.Hint != nil {
 		hint, err := transformValue(coll.registry, fo.Hint, false, "hint")
 		if err != nil {
-			closeImplicitSession(sess)
 			return nil, err
 		}
 		op.Hint(hint)
@@ -1192,7 +1197,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.Let != nil {
 		let, err := transformBsoncoreDocument(coll.registry, fo.Let, true, "let")
 		if err != nil {
-			closeImplicitSession(sess)
 			return nil, err
 		}
 		op.Let(let)
@@ -1209,7 +1213,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.Max != nil {
 		max, err := transformBsoncoreDocument(coll.registry, fo.Max, true, "max")
 		if err != nil {
-			closeImplicitSession(sess)
 			return nil, err
 		}
 		op.Max(max)
@@ -1223,7 +1226,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.Min != nil {
 		min, err := transformBsoncoreDocument(coll.registry, fo.Min, true, "min")
 		if err != nil {
-			closeImplicitSession(sess)
 			return nil, err
 		}
 		op.Min(min)
@@ -1237,7 +1239,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.Projection != nil {
 		proj, err := transformBsoncoreDocument(coll.registry, fo.Projection, true, "projection")
 		if err != nil {
-			closeImplicitSession(sess)
 			return nil, err
 		}
 		op.Projection(proj)
@@ -1257,7 +1258,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.Sort != nil {
 		sort, err := transformBsoncoreDocument(coll.registry, fo.Sort, false, "sort")
 		if err != nil {
-			closeImplicitSession(sess)
 			return nil, err
 		}
 		op.Sort(sort)
@@ -1269,13 +1269,11 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	op = op.Retry(retry)
 
 	if err = op.Execute(ctx); err != nil {
-		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
 
 	bc, err := op.Result(cursorOpts)
 	if err != nil {
-		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
 	return newCursorWithSession(bc, coll.registry, sess)
