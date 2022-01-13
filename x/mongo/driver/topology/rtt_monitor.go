@@ -80,11 +80,11 @@ func (r *rttMonitor) start() {
 	var conn *connection
 	defer func() {
 		if conn != nil {
-			// If the connection exists, we need to wait for it to be connected. We can ignore the
-			// error from conn.wait(). If the connection wasn't successfully opened, its state was
-			// set back to disconnected, so calling conn.close() will be a noop.
+			// If the connection exists, we need to wait for it to be connected. If the connection
+			// wasn't successfully opened, its state was set back to disconnected, so calling
+			// conn.close() will be a noop.
 			conn.closeConnectContext()
-			_ = conn.wait()
+			conn.wait()
 			_ = conn.close()
 		}
 	}()
@@ -111,10 +111,8 @@ func (r *rttMonitor) runHello(conn *connection) *connection {
 			return nil
 		}
 
-		conn.connect(r.ctx)
-		err = conn.wait()
+		err = conn.connect(r.ctx)
 		if err != nil {
-			_ = conn.close()
 			return nil
 		}
 

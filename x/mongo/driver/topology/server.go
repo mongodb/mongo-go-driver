@@ -155,6 +155,8 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 
 	globalCtx, globalCtxCancel := context.WithCancel(context.Background())
 	s := &Server{
+		connectionstate: disconnected,
+
 		cfg:     cfg,
 		address: addr,
 
@@ -178,16 +180,17 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 	s.rttMonitor = newRTTMonitor(rttCfg)
 
 	pc := poolConfig{
-		Address:       addr,
-		MinPoolSize:   cfg.minConns,
-		MaxPoolSize:   cfg.maxConns,
-		MaxConnecting: cfg.maxConnecting,
-		MaxIdleTime:   cfg.connectionPoolMaxIdleTime,
-		PoolMonitor:   cfg.poolMonitor,
+		Address:          addr,
+		MinPoolSize:      cfg.minConns,
+		MaxPoolSize:      cfg.maxConns,
+		MaxConnecting:    cfg.maxConnecting,
+		MaxIdleTime:      cfg.connectionPoolMaxIdleTime,
+		MaintainInterval: cfg.connectionPoolMaintainInterval,
+		PoolMonitor:      cfg.poolMonitor,
+		handshakeErrFn:   s.ProcessHandshakeError,
 	}
 
 	connectionOpts := copyConnectionOpts(cfg.connectionOpts)
-	connectionOpts = append(connectionOpts, withErrorHandlingCallback(s.ProcessHandshakeError))
 	s.pool = newPool(pc, connectionOpts...)
 	s.publishServerOpeningEvent(s.address)
 
@@ -214,7 +217,7 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 		s.closewg.Add(1)
 		go s.update()
 	}
-	return s.pool.connect()
+	return s.pool.ready()
 }
 
 // Disconnect closes sockets to the server referenced by this Server.
@@ -242,10 +245,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 	s.cancelCheck()
 
 	s.rttMonitor.disconnect()
-	err := s.pool.disconnect(ctx)
-	if err != nil {
-		return err
-	}
+	s.pool.close(ctx)
 
 	s.closewg.Wait()
 	atomic.StoreInt64(&s.connectionstate, disconnected)
@@ -299,7 +299,7 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	// the description.Server appropriately. The description should not have a TopologyVersion because the staleness
 	// checking logic above has already determined that this description is not stale.
 	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, nil))
-	s.pool.clear(serviceID)
+	s.pool.clear(err, serviceID)
 	s.cancelCheck()
 }
 
@@ -403,7 +403,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			res = driver.ConnectionPoolCleared
-			s.pool.clear(desc.ServiceID)
+			s.pool.clear(cerr, desc.ServiceID)
 		}
 		return res
 	}
@@ -421,7 +421,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			res = driver.ConnectionPoolCleared
-			s.pool.clear(desc.ServiceID)
+			s.pool.clear(wcerr, desc.ServiceID)
 		}
 		return res
 	}
@@ -443,7 +443,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	// monitoring check. The check is cancelled last to avoid a post-cancellation reconnect racing with
 	// updateDescription.
 	s.updateDescription(description.NewServerFromError(s.address, err, nil))
-	s.pool.clear(desc.ServiceID)
+	s.pool.clear(err, desc.ServiceID)
 	s.cancelCheck()
 	return driver.ConnectionPoolCleared
 }
@@ -532,11 +532,11 @@ func (s *Server) update() {
 		}
 
 		s.updateDescription(desc)
-		if desc.LastError != nil {
+		if err := desc.LastError; err != nil {
 			// Clear the pool once the description has been updated to Unknown. Pass in a nil service ID to clear
 			// because the monitoring routine only runs for non-load balanced deployments in which servers don't return
 			// IDs.
-			s.pool.clear(nil)
+			s.pool.clear(err, nil)
 		}
 
 		// If the server supports streaming or we're already streaming, we want to move to streaming the next response
@@ -566,6 +566,12 @@ func (s *Server) updateDescription(desc description.Server) {
 		// In load balanced mode, there are no updates from the monitoring routine. For errors encountered in pooled
 		// connections, the server should not be marked Unknown to ensure that the LB remains selectable.
 		return
+	}
+
+	if desc.Kind != description.Unknown {
+		// If the check was successful, set the pool to "ready". If the pool is already ready,
+		// this operation is a no-op.
+		_ = s.pool.ready()
 	}
 
 	defer func() {
@@ -635,8 +641,12 @@ func (s *Server) setupHeartbeatConnection() error {
 	s.conn = conn
 	s.heartbeatLock.Unlock()
 
-	s.conn.connect(s.heartbeatCtx)
-	return s.conn.wait()
+	err = s.conn.connect(s.heartbeatCtx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // cancelCheck cancels in-progress connection dials and reads. It does not set any fields on the server.
@@ -655,11 +665,11 @@ func (s *Server) cancelCheck() {
 		return
 	}
 
-	// If the connection exists, we need to wait for it to be connected conn.connect() and conn.close() cannot be called
-	// concurrently. We can ignore the error from conn.wait(). If the connection wasn't successfully opened, its state
-	// was set back to disconnected, so calling conn.close() will be a noop.
+	// If the connection exists, we need to wait for it to be connected conn.connect() and
+	// conn.close() cannot be called concurrently. If the connection wasn't successfully opened, its
+	// state was set back to disconnected, so calling conn.close() will be a noop.
 	conn.closeConnectContext()
-	_ = conn.wait()
+	conn.wait()
 	_ = conn.close()
 }
 

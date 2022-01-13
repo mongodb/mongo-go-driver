@@ -127,6 +127,17 @@ func (p *poolGenerationMap) getGeneration(serviceIDPtr *primitive.ObjectID) uint
 	return 0
 }
 
+func (p *poolGenerationMap) getNumConns(serviceIDPtr *primitive.ObjectID) uint64 {
+	serviceID := getServiceID(serviceIDPtr)
+	p.Lock()
+	defer p.Unlock()
+
+	if stats, ok := p.generationMap[serviceID]; ok {
+		return stats.numConns
+	}
+	return 0
+}
+
 func getServiceID(oid *primitive.ObjectID) primitive.ObjectID {
 	if oid == nil {
 		return primitive.NilObjectID

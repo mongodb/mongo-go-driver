@@ -353,6 +353,7 @@ func (t *Topology) RequestImmediateCheck() {
 // server selection spec, and will time out after severSelectionTimeout or when the
 // parent context is done.
 func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelector) (driver.Server, error) {
+	// fmt.Println("SELECTSERVER")
 	if atomic.LoadInt64(&t.connectionstate) != connected {
 		return nil, ErrTopologyClosed
 	}
@@ -395,9 +396,11 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		}
 
 		if len(suitable) == 0 {
+			// fmt.Println("SELECTSERVER: none suitable, waiting")
 			// try again if there are no servers available
 			continue
 		}
+		// fmt.Println("SELECTSERVER: suitable:", suitable)
 
 		selected := suitable[random.Intn(len(suitable))]
 		selectedS, err := t.FindServer(selected)
@@ -429,6 +432,7 @@ func (t *Topology) FindServer(selected description.Server) (*SelectedServer, err
 	}
 
 	desc := t.Description()
+	// fmt.Println("FindServer: Topology:", t.Kind(), "Selected:", desc.String())
 	return &SelectedServer{
 		Server: server,
 		Kind:   desc.Kind,

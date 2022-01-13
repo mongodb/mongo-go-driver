@@ -18,6 +18,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 )
 
+var skippedTestDescriptions = map[string]string{
+	// GODRIVER-1827: These 2 tests assert that in-use connections are not closed until checked
+	// back into a closed pool, but the Go connection pool aggressively closes in-use
+	// connections. That behavior is currently required by the "Client.Disconnect" API.
+	"When a pool is closed, it MUST first destroy all available connections in that pool": "test requires that close does not aggressively close used connections",
+	"must destroy checked in connection if pool has been closed":                          "test requires that close does not aggressively close used connections",
+}
+
 type cmapEvent struct {
 	EventType    string      `json:"type"`
 	Address      interface{} `json:"address"`
@@ -27,10 +35,11 @@ type cmapEvent struct {
 }
 
 type poolOptions struct {
-	MaxPoolSize        int32 `json:"maxPoolSize"`
-	MinPoolSize        int32 `json:"minPoolSize"`
-	MaxIdleTimeMS      int32 `json:"maxIdleTimeMS"`
-	WaitQueueTimeoutMS int32 `json:"waitQueueTimeoutMS"`
+	MaxPoolSize                int32 `json:"maxPoolSize"`
+	MinPoolSize                int32 `json:"minPoolSize"`
+	MaxIdleTimeMS              int32 `json:"maxIdleTimeMS"`
+	WaitQueueTimeoutMS         int32 `json:"waitQueueTimeoutMS"`
+	BackgroundThreadIntervalMS int32 `json:"backgroundThreadIntervalMS"`
 }
 
 type cmapTestFile struct {
@@ -88,6 +97,9 @@ func runCMAPTest(t *testing.T, testFileName string) {
 	if test.SkipReason != "" {
 		t.Skip(test.SkipReason)
 	}
+	if msg, ok := skippedTestDescriptions[test.Description]; ok {
+		t.Skip(msg)
+	}
 
 	testInfo := &testInfo{
 		objects:                make(map[string]interface{}),
@@ -112,16 +124,16 @@ func runCMAPTest(t *testing.T, testFileName string) {
 		WithConnectionPoolMaxIdleTime(func(duration time.Duration) time.Duration {
 			return time.Duration(test.PoolOptions.MaxIdleTimeMS) * time.Millisecond
 		}),
+		WithConnectionPoolMaintainInterval(func(duration time.Duration) time.Duration {
+			return time.Duration(test.PoolOptions.BackgroundThreadIntervalMS) * time.Millisecond
+		}),
 		WithConnectionPoolMonitor(func(monitor *event.PoolMonitor) *event.PoolMonitor {
 			return &event.PoolMonitor{func(event *event.PoolEvent) { testInfo.originalEventChan <- event }}
 		}))
 	testHelpers.RequireNil(t, err, "error creating server: %v", err)
 	s.connectionstate = connected
-	err = s.pool.connect()
 	testHelpers.RequireNil(t, err, "error connecting connection pool: %v", err)
-	defer func() {
-		_ = s.pool.disconnect(context.Background())
-	}()
+	defer s.pool.close(context.Background())
 
 	for _, op := range test.Operations {
 		if tempErr := runOperation(t, op, testInfo, s, test.PoolOptions.WaitQueueTimeoutMS); tempErr != nil {
@@ -422,9 +434,11 @@ func runOperationInThread(t *testing.T, operation map[string]interface{}, testIn
 		}
 		return c.Close()
 	case "clear":
-		s.pool.clear(nil)
+		s.pool.clear(nil, nil)
 	case "close":
-		return s.pool.disconnect(context.Background())
+		s.pool.close(context.Background())
+	case "ready":
+		return s.pool.ready()
 	default:
 		t.Fatalf("unknown operation: %v", name)
 	}
