@@ -20,6 +20,12 @@ type DeleteOptions struct {
 	// operation. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
 	// which means that no hint will be sent.
 	Hint interface{}
+
+	// Specifies parameters for the delete expression. This option is only valid for MongoDB versions >= 5.0. Older
+	// servers will report an error for using this option. This must be a document mapping parameter names to values.
+	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
+	// accessed as variables in an aggregate expression context (e.g. "$$var").
+	Let interface{}
 }
 
 // Delete creates a new DeleteOptions instance.
@@ -39,6 +45,12 @@ func (do *DeleteOptions) SetHint(hint interface{}) *DeleteOptions {
 	return do
 }
 
+// SetLet sets the value for the Let field.
+func (do *DeleteOptions) SetLet(let interface{}) *DeleteOptions {
+	do.Let = let
+	return do
+}
+
 // MergeDeleteOptions combines the given DeleteOptions instances into a single DeleteOptions in a last-one-wins fashion.
 func MergeDeleteOptions(opts ...*DeleteOptions) *DeleteOptions {
 	dOpts := Delete()
@@ -51,6 +63,9 @@ func MergeDeleteOptions(opts ...*DeleteOptions) *DeleteOptions {
 		}
 		if do.Hint != nil {
 			dOpts.Hint = do.Hint
+		}
+		if do.Let != nil {
+			dOpts.Let = do.Let
 		}
 	}
 

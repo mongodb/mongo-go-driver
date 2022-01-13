@@ -30,6 +30,7 @@ type Find struct {
 	comment             *string
 	filter              bsoncore.Document
 	hint                bsoncore.Value
+	let                 bsoncore.Document
 	limit               *int64
 	max                 bsoncore.Document
 	maxTimeMS           *int64
@@ -135,6 +136,9 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 	}
 	if f.hint.Type != bsontype.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "hint", f.hint)
+	}
+	if f.let != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "let", f.let)
 	}
 	if f.limit != nil {
 		dst = bsoncore.AppendInt64Element(dst, "limit", *f.limit)
@@ -258,6 +262,16 @@ func (f *Find) Hint(hint bsoncore.Value) *Find {
 	}
 
 	f.hint = hint
+	return f
+}
+
+// Let specifies the let document to use. This option is only valid for server versions 5.0 and above.
+func (f *Find) Let(let bsoncore.Document) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.let = let
 	return f
 }
 
