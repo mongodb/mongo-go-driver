@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
@@ -21,7 +22,7 @@ import (
 )
 
 func TestBasicDecode(t *testing.T) {
-	for _, tc := range unmarshalingTestCases {
+	for _, tc := range unmarshalingTestCases() {
 		t.Run(tc.name, func(t *testing.T) {
 			got := reflect.New(tc.sType).Elem()
 			vr := bsonrw.NewBSONDocumentReader(tc.data)
@@ -30,34 +31,22 @@ func TestBasicDecode(t *testing.T) {
 			noerr(t, err)
 			err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: reg}, vr, got)
 			noerr(t, err)
-
-			if !reflect.DeepEqual(got.Addr().Interface(), tc.want) {
-				t.Errorf("Results do not match. got %+v; want %+v", got, tc.want)
-			}
+			assert.Equal(t, tc.want, got.Addr().Interface(), "Results do not match.")
 		})
 	}
 }
 
 func TestDecoderv2(t *testing.T) {
 	t.Run("Decode", func(t *testing.T) {
-		for _, tc := range unmarshalingTestCases {
+		for _, tc := range unmarshalingTestCases() {
 			t.Run(tc.name, func(t *testing.T) {
 				got := reflect.New(tc.sType).Interface()
 				vr := bsonrw.NewBSONDocumentReader(tc.data)
-				var reg *bsoncodec.Registry
-				if tc.reg != nil {
-					reg = tc.reg
-				} else {
-					reg = DefaultRegistry
-				}
-				dec, err := NewDecoderWithContext(bsoncodec.DecodeContext{Registry: reg}, vr)
+				dec, err := NewDecoderWithContext(bsoncodec.DecodeContext{Registry: DefaultRegistry}, vr)
 				noerr(t, err)
 				err = dec.Decode(got)
 				noerr(t, err)
-
-				if !reflect.DeepEqual(got, tc.want) {
-					t.Errorf("Results do not match. got %+v; want %+v", got, tc.want)
-				}
+				assert.Equal(t, tc.want, got, "Results do not match.")
 			})
 		}
 		t.Run("lookup error", func(t *testing.T) {
@@ -70,9 +59,7 @@ func TestDecoderv2(t *testing.T) {
 			noerr(t, err)
 			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(cdeih)}
 			got := dec.Decode(&cdeih)
-			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
-				t.Errorf("Received unexpected error. got %v; want %v", got, want)
-			}
+			assert.Equal(t, want, got, "Received unexpected error.")
 		})
 		t.Run("Unmarshaler", func(t *testing.T) {
 			testCases := []struct {
@@ -191,9 +178,7 @@ func TestDecoderv2(t *testing.T) {
 		err = dec.Decode(&got)
 		noerr(t, err)
 		want := foo{Item: "canvas", Qty: 4, Bonus: 2}
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("Results do not match. got %+v; want %+v", got, want)
-		}
+		assert.Equal(t, want, got, "Results do not match.")
 	})
 	t.Run("Reset", func(t *testing.T) {
 		vr1, vr2 := bsonrw.NewBSONDocumentReader([]byte{}), bsonrw.NewBSONDocumentReader([]byte{})
