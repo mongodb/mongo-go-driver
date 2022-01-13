@@ -751,7 +751,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 }
 
 // aggreate is the helper method for Aggregate
-func aggregate(a aggregateParams) (*Cursor, error) {
+func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	if a.ctx == nil {
 		a.ctx = context.Background()
 	}
@@ -1116,7 +1116,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
-	opts ...*options.FindOptions) (*Cursor, error) {
+	opts ...*options.FindOptions) (cur *Cursor, err error) {
 
 	if ctx == nil {
 		ctx = context.Background()
