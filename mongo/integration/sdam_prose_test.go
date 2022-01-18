@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -107,5 +108,38 @@ func TestSDAMProse(t *testing.T) {
 			}
 			assert.Soon(t, callback, defaultCallbackTimeout)
 		})
+	})
+
+	mt.RunOpts("client waits between failed Hellos", mtest.NewOptions().MinServerVersion("4.9"), func(mt *mtest.T) {
+		// Force hello requests to fail 5 times.
+		mt.SetFailPoint(mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: mtest.FailPointMode{
+				Times: 5,
+			},
+			Data: mtest.FailPointData{
+				FailCommands: []string{internal.LegacyHello, "hello"},
+				ErrorCode:    1234,
+				AppName:      "SDAMMinHeartbeatFrequencyTest",
+			},
+		})
+
+		// Create Client and Connect after setting failpoint and before Ping.
+		clientOpts := options.Client().SetDirect(true).
+			SetAppName("SDAMMinHeartbeatFrequencyTest").
+			SetServerSelectionTimeout(5 * time.Second)
+		client, err := mongo.NewClient(clientOpts)
+		assert.Nil(mt, err, "NewClient error: %v", err)
+		err = client.Connect(mtest.Background)
+		assert.Nil(mt, err, "Connect error: %v", err)
+
+		// Assert that Ping completes successfully within 2 to 3.5 seconds.
+		start := time.Now()
+		err = client.Ping(mtest.Background, nil)
+		assert.Nil(mt, err, "Ping error: %v", err)
+		pingTime := time.Since(start)
+		assert.True(mt, pingTime > 2000*time.Millisecond && pingTime < 3500*time.Millisecond,
+			"expected Ping to take between 2 and 3.5 seconds, took %v seconds", pingTime.Seconds())
+
 	})
 }
