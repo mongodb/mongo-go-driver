@@ -22,34 +22,51 @@ func TestSDAMProse(t *testing.T) {
 	mt := mtest.New(t)
 	defer mt.Close()
 
-	lowHeartbeatFrequency := 50 * time.Millisecond
-	heartbeatFrequencyClientOpts := options.Client().
-		SetHeartbeatInterval(lowHeartbeatFrequency)
-	heartbeatFrequencyMtOpts := mtest.NewOptions().
-		ClientOptions(heartbeatFrequencyClientOpts).
+	// Server limits non-streaming heartbeats and explicit server transition checks to at most one
+	// per 500ms. Set the test interval to 500ms to minimize the difference between the behavior of
+	// streaming and non-streaming heartbeat intervals.
+	heartbeatInterval := 500 * time.Millisecond
+	heartbeatIntervalClientOpts := options.Client().
+		SetHeartbeatInterval(heartbeatInterval)
+	heartbeatIntervalMtOpts := mtest.NewOptions().
+		ClientOptions(heartbeatIntervalClientOpts).
 		CreateCollection(false).
 		ClientType(mtest.Proxy)
-	mt.RunOpts("heartbeats processed more frequently", heartbeatFrequencyMtOpts, func(mt *mtest.T) {
-		// Test that lowering heartbeat frequency to 50ms causes the client to process heartbeats more frequently.
+	mt.RunOpts("heartbeats processed more frequently", heartbeatIntervalMtOpts, func(mt *mtest.T) {
+		// Test that setting heartbeat interval to 500ms causes the client to process heartbeats
+		// approximately every 500ms instead of the default 10s. Note that a Client doesn't
+		// guarantee that it will process heartbeats exactly every 500ms, just that it will wait at
+		// least 500ms between heartbeats (and should process heartbeats more frequently for shorter
+		// interval settings).
 		//
-		// In X ms, tests on 4.4+ should process at least numberOfNodes * (1 + X/frequency + X/frequency) hello
-		// responses:
-		// Each node should process 1 normal response (connection handshake) + X/frequency awaitable responses.
-		// Each node should also process X/frequency RTT hello responses.
+		// For number of nodes N, interval I, and duration D, a Client should process at most X
+		// operations:
 		//
-		// Tests on < 4.4 should process at least numberOfNodes * X/frequency messages.
+		//   X = (N * (1 handshake + D/I heartbeats + D/I RTTs))
+		//
+		// Assert that a Client processes the expected number of operations for heartbeats sent at
+		// an interval between I and 2*I to account for different actual heartbeat intervals under
+		// different runtime conditions.
+
+		duration := 2 * time.Second
 
 		numNodes := len(options.Client().ApplyURI(mtest.ClusterURI()).Hosts)
-		timeDuration := 250 * time.Millisecond
-		numExpectedResponses := numNodes * int(timeDuration/lowHeartbeatFrequency)
-		if mtest.CompareServerVersions(mtest.ServerVersion(), "4.4") >= 0 {
-			numExpectedResponses = numNodes * (2*int(timeDuration/lowHeartbeatFrequency) + 1)
-		}
+		maxExpected := numNodes * (1 + 2*int(duration/heartbeatInterval))
+		minExpected := numNodes * (1 + 2*int(duration/(heartbeatInterval*2)))
 
-		time.Sleep(timeDuration + 50*time.Millisecond)
+		time.Sleep(duration)
 		messages := mt.GetProxiedMessages()
-		assert.True(mt, len(messages) >= numExpectedResponses, "expected at least %d responses, got %d",
-			numExpectedResponses, len(messages))
+		assert.True(
+			mt,
+			len(messages) >= minExpected && len(messages) <= maxExpected,
+			"expected number of messages to be in range [%d, %d], got %d"+
+				" (num nodes = %d, duration = %v, interval = %v)",
+			minExpected,
+			maxExpected,
+			len(messages),
+			numNodes,
+			duration,
+			heartbeatInterval)
 	})
 
 	mt.RunOpts("rtt tests", noClientOpts, func(mt *mtest.T) {
