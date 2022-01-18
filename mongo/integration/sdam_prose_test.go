@@ -109,7 +109,7 @@ func TestSDAMProse(t *testing.T) {
 		})
 	})
 
-	mt.RunOpts("client waits between failed Hellos", mtest.NewOptions().MinServerVersion("4.9"), func(mt *mtest.T) {
+	mt.RunOpts("client waits between failed Hellos", mtest.NewOptions().MinServerVersion("4.9").Topologies(mtest.Single), func(mt *mtest.T) {
 		// Force hello requests to fail 5 times.
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
