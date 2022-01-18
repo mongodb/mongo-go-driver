@@ -13,7 +13,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -124,18 +123,15 @@ func TestSDAMProse(t *testing.T) {
 			},
 		})
 
-		// Create Client and Connect after setting failpoint and before Ping.
+		// Reset client options to use direct connection, app name, and 5s SS timeout.
 		clientOpts := options.Client().SetDirect(true).
 			SetAppName("SDAMMinHeartbeatFrequencyTest").
 			SetServerSelectionTimeout(5 * time.Second)
-		client, err := mongo.NewClient(clientOpts)
-		assert.Nil(mt, err, "NewClient error: %v", err)
-		err = client.Connect(mtest.Background)
-		assert.Nil(mt, err, "Connect error: %v", err)
+		mt.ResetClient(clientOpts)
 
 		// Assert that Ping completes successfully within 2 to 3.5 seconds.
 		start := time.Now()
-		err = client.Ping(mtest.Background, nil)
+		err := mt.Client.Ping(mtest.Background, nil)
 		assert.Nil(mt, err, "Ping error: %v", err)
 		pingTime := time.Since(start)
 		assert.True(mt, pingTime > 2000*time.Millisecond && pingTime < 3500*time.Millisecond,
