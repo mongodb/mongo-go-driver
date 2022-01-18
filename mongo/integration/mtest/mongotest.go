@@ -26,8 +26,6 @@ import (
 )
 
 var (
-	// Background is a no-op context.
-	Background = context.Background()
 	// MajorityWc is the majority write concern.
 	MajorityWc = writeconcern.New(writeconcern.WMajority())
 	// PrimaryRp is the primary read preference.
@@ -190,7 +188,7 @@ func (t *T) Close() {
 
 	// always disconnect the client regardless of clientType because Client.Disconnect will work against
 	// all deployments
-	_ = t.Client.Disconnect(Background)
+	_ = t.Client.Disconnect(context.Background())
 }
 
 // Run creates a new T instance for a sub-test and runs the given callback. It also creates a new collection using the
@@ -245,7 +243,7 @@ func (t *T) RunOpts(name string, opts *Options, callback func(*T)) {
 			}
 			// only disconnect client if it's not being shared
 			if sub.shareClient == nil || !*sub.shareClient {
-				_ = sub.Client.Disconnect(Background)
+				_ = sub.Client.Disconnect(context.Background())
 			}
 			assert.Equal(sub, 0, sessions, "%v sessions checked out", sessions)
 			assert.Equal(sub, 0, conns, "%v connections checked out", conns)
@@ -394,7 +392,7 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 		t.clientOpts = opts
 	}
 
-	_ = t.Client.Disconnect(Background)
+	_ = t.Client.Disconnect(context.Background())
 	t.createTestClient()
 	t.DB = t.Client.Database(t.dbName)
 	t.Coll = t.DB.Collection(t.collName, t.collOpts)
@@ -446,7 +444,7 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 		cmd := bson.D{{"create", coll.Name}}
 		cmd = append(cmd, coll.CreateOpts...)
 
-		if err := db.RunCommand(Background, cmd).Err(); err != nil {
+		if err := db.RunCommand(context.Background(), cmd).Err(); err != nil {
 			// ignore NamespaceExists errors for idempotency
 
 			cmdErr, ok := err.(mongo.CommandError)
@@ -466,7 +464,7 @@ func (t *T) ClearCollections() {
 	// Collections should not be dropped when testing against Atlas Data Lake because the data is pre-inserted.
 	if !testContext.dataLake {
 		for _, coll := range t.createdColls {
-			_ = coll.created.Drop(Background)
+			_ = coll.created.Drop(context.Background())
 		}
 	}
 	t.createdColls = t.createdColls[:0]
@@ -527,7 +525,7 @@ func (t *T) ClearFailPoints() {
 			{"configureFailPoint", fp},
 			{"mode", "off"},
 		}
-		err := db.RunCommand(Background, cmd).Err()
+		err := db.RunCommand(context.Background(), cmd).Err()
 		if err != nil {
 			t.Fatalf("error clearing fail point %s: %v", fp, err)
 		}
@@ -643,7 +641,7 @@ func (t *T) createTestClient() {
 	if err != nil {
 		t.Fatalf("error creating client: %v", err)
 	}
-	if err := t.Client.Connect(Background); err != nil {
+	if err := t.Client.Connect(context.Background()); err != nil {
 		t.Fatalf("error connecting client: %v", err)
 	}
 }

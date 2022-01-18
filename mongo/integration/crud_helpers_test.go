@@ -105,7 +105,7 @@ func killSessions(mt *mtest.T) {
 	// killAllSessions has to be run against each mongos in a sharded cluster, so we use the runCommandOnAllServers
 	// helper.
 	err := runCommandOnAllServers(func(client *mongo.Client) error {
-		return client.Database("admin").RunCommand(mtest.Background, cmd, runCmdOpts).Err()
+		return client.Database("admin").RunCommand(context.Background(), cmd, runCmdOpts).Err()
 	})
 
 	if err == nil {
@@ -123,23 +123,23 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 	testutil.AddTestServerAPIVersion(opts)
 
 	if mtest.ClusterTopologyKind() != mtest.Sharded {
-		client, err := mongo.Connect(mtest.Background, opts)
+		client, err := mongo.Connect(context.Background(), opts)
 		if err != nil {
 			return fmt.Errorf("error creating replica set client: %v", err)
 		}
-		defer func() { _ = client.Disconnect(mtest.Background) }()
+		defer func() { _ = client.Disconnect(context.Background()) }()
 
 		return commandFn(client)
 	}
 
 	for _, host := range opts.Hosts {
-		shardClient, err := mongo.Connect(mtest.Background, opts.SetHosts([]string{host}))
+		shardClient, err := mongo.Connect(context.Background(), opts.SetHosts([]string{host}))
 		if err != nil {
 			return fmt.Errorf("error creating client for mongos %v: %v", host, err)
 		}
 
 		err = commandFn(shardClient)
-		_ = shardClient.Disconnect(mtest.Background)
+		_ = shardClient.Disconnect(context.Background())
 		if err != nil {
 			return err
 		}
@@ -188,14 +188,14 @@ func executeAggregate(mt *mtest.T, agg aggregator, sess mongo.Session, args bson
 
 	if sess != nil {
 		var cur *mongo.Cursor
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var aerr error
 			cur, aerr = agg.Aggregate(sc, pipeline, opts)
 			return aerr
 		})
 		return cur, err
 	}
-	return agg.Aggregate(mtest.Background, pipeline, opts)
+	return agg.Aggregate(context.Background(), pipeline, opts)
 }
 
 func executeWatch(mt *mtest.T, w watcher, sess mongo.Session, args bson.Raw) (*mongo.ChangeStream, error) {
@@ -217,14 +217,14 @@ func executeWatch(mt *mtest.T, w watcher, sess mongo.Session, args bson.Raw) (*m
 
 	if sess != nil {
 		var stream *mongo.ChangeStream
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var csErr error
 			stream, csErr = w.Watch(sc, pipeline)
 			return csErr
 		})
 		return stream, err
 	}
-	return w.Watch(mtest.Background, pipeline)
+	return w.Watch(context.Background(), pipeline)
 }
 
 func executeCountDocuments(mt *mtest.T, sess mongo.Session, args bson.Raw) (int64, error) {
@@ -255,14 +255,14 @@ func executeCountDocuments(mt *mtest.T, sess mongo.Session, args bson.Raw) (int6
 
 	if sess != nil {
 		var count int64
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var countErr error
 			count, countErr = mt.Coll.CountDocuments(sc, filter, opts)
 			return countErr
 		})
 		return count, err
 	}
-	return mt.Coll.CountDocuments(mtest.Background, filter, opts)
+	return mt.Coll.CountDocuments(context.Background(), filter, opts)
 }
 
 func executeInsertOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.InsertOneResult, error) {
@@ -289,14 +289,14 @@ func executeInsertOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.In
 
 	if sess != nil {
 		var res *mongo.InsertOneResult
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var insertErr error
 			res, insertErr = mt.Coll.InsertOne(sc, doc, opts)
 			return insertErr
 		})
 		return res, err
 	}
-	return mt.Coll.InsertOne(mtest.Background, doc, opts)
+	return mt.Coll.InsertOne(context.Background(), doc, opts)
 }
 
 func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.InsertManyResult, error) {
@@ -327,14 +327,14 @@ func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.I
 
 	if sess != nil {
 		var res *mongo.InsertManyResult
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var insertErr error
 			res, insertErr = mt.Coll.InsertMany(sc, docs, opts)
 			return insertErr
 		})
 		return res, err
 	}
-	return mt.Coll.InsertMany(mtest.Background, docs, opts)
+	return mt.Coll.InsertMany(context.Background(), docs, opts)
 }
 
 func setFindModifiers(modifiersDoc bson.Raw, opts *options.FindOptions) {
@@ -400,14 +400,14 @@ func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor,
 
 	if sess != nil {
 		var c *mongo.Cursor
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var findErr error
 			c, findErr = mt.Coll.Find(sc, filter, opts)
 			return findErr
 		})
 		return c, err
 	}
-	return mt.Coll.Find(mtest.Background, filter, opts)
+	return mt.Coll.Find(context.Background(), filter, opts)
 }
 
 func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
@@ -434,13 +434,13 @@ func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.Si
 
 	if sess != nil {
 		var sr *mongo.SingleResult
-		_ = mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			sr = mt.DB.RunCommand(sc, cmd, opts)
 			return nil
 		})
 		return sr
 	}
-	return mt.DB.RunCommand(mtest.Background, cmd, opts)
+	return mt.DB.RunCommand(context.Background(), cmd, opts)
 }
 
 func executeListCollections(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
@@ -462,14 +462,14 @@ func executeListCollections(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mo
 
 	if sess != nil {
 		var c *mongo.Cursor
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var lcErr error
 			c, lcErr = mt.DB.ListCollections(sc, filter)
 			return lcErr
 		})
 		return c, err
 	}
-	return mt.DB.ListCollections(mtest.Background, filter)
+	return mt.DB.ListCollections(context.Background(), filter)
 }
 
 func executeListCollectionNames(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]string, error) {
@@ -491,14 +491,14 @@ func executeListCollectionNames(mt *mtest.T, sess mongo.Session, args bson.Raw) 
 
 	if sess != nil {
 		var res []string
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var lcErr error
 			res, lcErr = mt.DB.ListCollectionNames(sc, filter)
 			return lcErr
 		})
 		return res, err
 	}
-	return mt.DB.ListCollectionNames(mtest.Background, filter)
+	return mt.DB.ListCollectionNames(context.Background(), filter)
 }
 
 func executeListDatabaseNames(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]string, error) {
@@ -520,14 +520,14 @@ func executeListDatabaseNames(mt *mtest.T, sess mongo.Session, args bson.Raw) ([
 
 	if sess != nil {
 		var res []string
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var ldErr error
 			res, ldErr = mt.Client.ListDatabaseNames(sc, filter)
 			return ldErr
 		})
 		return res, err
 	}
-	return mt.Client.ListDatabaseNames(mtest.Background, filter)
+	return mt.Client.ListDatabaseNames(context.Background(), filter)
 }
 
 func executeListDatabases(mt *mtest.T, sess mongo.Session, args bson.Raw) (mongo.ListDatabasesResult, error) {
@@ -549,14 +549,14 @@ func executeListDatabases(mt *mtest.T, sess mongo.Session, args bson.Raw) (mongo
 
 	if sess != nil {
 		var res mongo.ListDatabasesResult
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var ldErr error
 			res, ldErr = mt.Client.ListDatabases(sc, filter)
 			return ldErr
 		})
 		return res, err
 	}
-	return mt.Client.ListDatabases(mtest.Background, filter)
+	return mt.Client.ListDatabases(context.Background(), filter)
 }
 
 func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
@@ -578,13 +578,13 @@ func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.Singl
 
 	if sess != nil {
 		var res *mongo.SingleResult
-		_ = mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOne(sc, filter)
 			return nil
 		})
 		return res
 	}
-	return mt.Coll.FindOne(mtest.Background, filter)
+	return mt.Coll.FindOne(context.Background(), filter)
 }
 
 func executeListIndexes(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
@@ -594,14 +594,14 @@ func executeListIndexes(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.
 	assert.Equal(mt, 0, len(args), "unexpected listIndexes arguments: %v", args)
 	if sess != nil {
 		var cursor *mongo.Cursor
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var listErr error
 			cursor, listErr = mt.Coll.Indexes().List(sc)
 			return listErr
 		})
 		return cursor, err
 	}
-	return mt.Coll.Indexes().List(mtest.Background)
+	return mt.Coll.Indexes().List(context.Background())
 }
 
 func executeDistinct(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]interface{}, error) {
@@ -631,14 +631,14 @@ func executeDistinct(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]interfac
 
 	if sess != nil {
 		var res []interface{}
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var derr error
 			res, derr = mt.Coll.Distinct(sc, fieldName, filter, opts)
 			return derr
 		})
 		return res, err
 	}
-	return mt.Coll.Distinct(mtest.Background, fieldName, filter, opts)
+	return mt.Coll.Distinct(context.Background(), fieldName, filter, opts)
 }
 
 func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
@@ -671,13 +671,13 @@ func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 
 	if sess != nil {
 		var res *mongo.SingleResult
-		_ = mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOneAndDelete(sc, filter, opts)
 			return nil
 		})
 		return res
 	}
-	return mt.Coll.FindOneAndDelete(mtest.Background, filter, opts)
+	return mt.Coll.FindOneAndDelete(context.Background(), filter, opts)
 }
 
 func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
@@ -728,13 +728,13 @@ func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 
 	if sess != nil {
 		var res *mongo.SingleResult
-		_ = mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOneAndUpdate(sc, filter, update, opts)
 			return nil
 		})
 		return res
 	}
-	return mt.Coll.FindOneAndUpdate(mtest.Background, filter, update, opts)
+	return mt.Coll.FindOneAndUpdate(context.Background(), filter, update, opts)
 }
 
 func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
@@ -781,13 +781,13 @@ func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *m
 
 	if sess != nil {
 		var res *mongo.SingleResult
-		_ = mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOneAndReplace(sc, filter, replacement, opts)
 			return nil
 		})
 		return res
 	}
-	return mt.Coll.FindOneAndReplace(mtest.Background, filter, replacement, opts)
+	return mt.Coll.FindOneAndReplace(context.Background(), filter, replacement, opts)
 }
 
 func executeDeleteOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.DeleteResult, error) {
@@ -816,14 +816,14 @@ func executeDeleteOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.De
 
 	if sess != nil {
 		var res *mongo.DeleteResult
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var derr error
 			res, derr = mt.Coll.DeleteOne(sc, filter, opts)
 			return derr
 		})
 		return res, err
 	}
-	return mt.Coll.DeleteOne(mtest.Background, filter, opts)
+	return mt.Coll.DeleteOne(context.Background(), filter, opts)
 }
 
 func executeDeleteMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.DeleteResult, error) {
@@ -852,14 +852,14 @@ func executeDeleteMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.D
 
 	if sess != nil {
 		var res *mongo.DeleteResult
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var derr error
 			res, derr = mt.Coll.DeleteMany(sc, filter, opts)
 			return derr
 		})
 		return res, err
 	}
-	return mt.Coll.DeleteMany(mtest.Background, filter, opts)
+	return mt.Coll.DeleteMany(context.Background(), filter, opts)
 }
 
 func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.UpdateResult, error) {
@@ -900,14 +900,14 @@ func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Up
 
 	if sess != nil {
 		var res *mongo.UpdateResult
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var uerr error
 			res, uerr = mt.Coll.UpdateOne(sc, filter, update, opts)
 			return uerr
 		})
 		return res, err
 	}
-	return mt.Coll.UpdateOne(mtest.Background, filter, update, opts)
+	return mt.Coll.UpdateOne(context.Background(), filter, update, opts)
 }
 
 func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.UpdateResult, error) {
@@ -948,14 +948,14 @@ func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 
 	if sess != nil {
 		var res *mongo.UpdateResult
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var uerr error
 			res, uerr = mt.Coll.UpdateMany(sc, filter, update, opts)
 			return uerr
 		})
 		return res, err
 	}
-	return mt.Coll.UpdateMany(mtest.Background, filter, update, opts)
+	return mt.Coll.UpdateMany(context.Background(), filter, update, opts)
 }
 
 func executeReplaceOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.UpdateResult, error) {
@@ -992,14 +992,14 @@ func executeReplaceOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 
 	if sess != nil {
 		var res *mongo.UpdateResult
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var uerr error
 			res, uerr = mt.Coll.ReplaceOne(sc, filter, replacement, opts)
 			return uerr
 		})
 		return res, err
 	}
-	return mt.Coll.ReplaceOne(mtest.Background, filter, replacement, opts)
+	return mt.Coll.ReplaceOne(context.Background(), filter, replacement, opts)
 }
 
 type withTransactionArgs struct {
@@ -1076,14 +1076,14 @@ func executeBulkWrite(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Bu
 
 	if sess != nil {
 		var res *mongo.BulkWriteResult
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var bwerr error
 			res, bwerr = mt.Coll.BulkWrite(sc, models, opts)
 			return bwerr
 		})
 		return res, err
 	}
-	return mt.Coll.BulkWrite(mtest.Background, models, opts)
+	return mt.Coll.BulkWrite(context.Background(), models, opts)
 }
 
 func createBulkWriteModels(mt *mtest.T, rawModels bson.Raw) []mongo.WriteModel {
@@ -1205,14 +1205,14 @@ func executeEstimatedDocumentCount(mt *mtest.T, sess mongo.Session, args bson.Ra
 
 	if sess != nil {
 		var res int64
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var countErr error
 			res, countErr = mt.Coll.EstimatedDocumentCount(sc)
 			return countErr
 		})
 		return res, err
 	}
-	return mt.Coll.EstimatedDocumentCount(mtest.Background)
+	return mt.Coll.EstimatedDocumentCount(context.Background())
 }
 
 func executeGridFSDownload(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (int64, error) {
@@ -1281,13 +1281,13 @@ func executeRenameCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) (*m
 
 	if sess != nil {
 		var res *mongo.SingleResult
-		_ = mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = admin.RunCommand(sc, renameCmd)
 			return nil
 		})
 		return res, toName
 	}
-	return admin.RunCommand(mtest.Background, renameCmd), toName
+	return admin.RunCommand(context.Background(), renameCmd), toName
 }
 
 func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string, error) {
@@ -1314,14 +1314,14 @@ func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string,
 
 	if sess != nil {
 		var indexName string
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var indexErr error
 			indexName, indexErr = mt.Coll.Indexes().CreateOne(sc, model)
 			return indexErr
 		})
 		return indexName, err
 	}
-	return mt.Coll.Indexes().CreateOne(mtest.Background, model)
+	return mt.Coll.Indexes().CreateOne(context.Background(), model)
 }
 
 func executeDropIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.Raw, error) {
@@ -1343,14 +1343,14 @@ func executeDropIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.Raw,
 
 	if sess != nil {
 		var res bson.Raw
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var indexErr error
 			res, indexErr = mt.Coll.Indexes().DropOne(sc, name)
 			return indexErr
 		})
 		return res, err
 	}
-	return mt.Coll.Indexes().DropOne(mtest.Background, name)
+	return mt.Coll.Indexes().DropOne(context.Background(), name)
 }
 
 func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
@@ -1372,12 +1372,12 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 
 	coll := mt.DB.Collection(collName)
 	if sess != nil {
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			return coll.Drop(sc)
 		})
 		return err
 	}
-	return coll.Drop(mtest.Background)
+	return coll.Drop(context.Background())
 }
 
 func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
@@ -1402,22 +1402,22 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 		{"create", collName},
 	}
 	if sess != nil {
-		err := mongo.WithSession(mtest.Background, sess, func(sc mongo.SessionContext) error {
+		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			return mt.DB.RunCommand(sc, createCmd).Err()
 		})
 		return err
 	}
-	return mt.DB.RunCommand(mtest.Background, createCmd).Err()
+	return mt.DB.RunCommand(context.Background(), createCmd).Err()
 }
 
 func executeAdminCommand(mt *mtest.T, op *operation) {
 	// Per the streamable hello test format description, a separate client must be used to execute this operation.
 	clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
 	testutil.AddTestServerAPIVersion(clientOpts)
-	client, err := mongo.Connect(mtest.Background, clientOpts)
+	client, err := mongo.Connect(context.Background(), clientOpts)
 	assert.Nil(mt, err, "Connect error: %v", err)
 	defer func() {
-		_ = client.Disconnect(mtest.Background)
+		_ = client.Disconnect(context.Background())
 	}()
 
 	cmd := op.Arguments.Lookup("command").Document()
@@ -1441,14 +1441,14 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 	}
 
 	db := client.Database("admin")
-	err = db.RunCommand(mtest.Background, cmd, rco).Err()
+	err = db.RunCommand(context.Background(), cmd, rco).Err()
 	assert.Nil(mt, err, "RunCommand error for command %q: %v", op.CommandName, err)
 }
 
 func executeAdminCommandWithRetry(mt *mtest.T, client *mongo.Client, cmd interface{}, opts ...*options.RunCmdOptions) {
 	mt.Helper()
 
-	ctx, cancel := context.WithTimeout(mtest.Background, 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	for {
@@ -1651,7 +1651,7 @@ func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
 	// To account for this, we fetch all documents via cursor.All and then compare them to the result if it's non-nil.
 	assert.NotNil(mt, cur, "expected cursor to not be nil")
 	var actual []bson.Raw
-	err := cur.All(mtest.Background, &actual)
+	err := cur.All(context.Background(), &actual)
 	assert.Nil(mt, err, "All error: %v", err)
 
 	if result == nil {

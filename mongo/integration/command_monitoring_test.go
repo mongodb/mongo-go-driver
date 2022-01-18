@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -100,7 +101,7 @@ func runMonitoringOperation(mt *mtest.T, operation monitoringOperation) {
 		if err != nil {
 			return
 		}
-		for cursor.Next(mtest.Background) {
+		for cursor.Next(context.Background()) {
 		}
 	case "bulkWrite":
 		_, _ = executeBulkWrite(mt, nil, operation.Arguments)
@@ -113,7 +114,7 @@ func runMonitoringOperation(mt *mtest.T, operation monitoringOperation) {
 		if err != nil {
 			return
 		}
-		for cursor.Next(mtest.Background) {
+		for cursor.Next(context.Background()) {
 		}
 	case "deleteOne":
 		_, _ = executeDeleteOne(mt, nil, operation.Arguments)

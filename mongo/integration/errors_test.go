@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build go1.13
 // +build go1.13
 
 package integration
@@ -84,26 +85,26 @@ func TestErrors(t *testing.T) {
 
 			clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
 			testutil.AddTestServerAPIVersion(clientOpts)
-			client, err := mongo.Connect(mtest.Background, clientOpts)
+			client, err := mongo.Connect(context.Background(), clientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
-			defer client.Disconnect(mtest.Background)
+			defer client.Disconnect(context.Background())
 
 			// A connection getting closed should manifest as an io.EOF error.
-			err = client.Ping(mtest.Background, mtest.PrimaryRp)
+			err = client.Ping(context.Background(), mtest.PrimaryRp)
 			assert.True(mt, errors.Is(err, io.EOF), "expected error %v, got %v", io.EOF, err)
 		})
 	})
 
 	mt.RunOpts("network timeouts", noClientOpts, func(mt *mtest.T) {
 		mt.Run("context timeouts return DeadlineExceeded", func(mt *mtest.T) {
-			_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 
 			mt.ClearEvents()
 			filter := bson.M{
 				"$where": "function() { sleep(1000); return false; }",
 			}
-			timeoutCtx, cancel := context.WithTimeout(mtest.Background, 100*time.Millisecond)
+			timeoutCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			defer cancel()
 			_, err = mt.Coll.Find(timeoutCtx, filter)
 
@@ -114,7 +115,7 @@ func TestErrors(t *testing.T) {
 		})
 
 		mt.Run("socketTimeoutMS timeouts return network errors", func(mt *mtest.T) {
-			_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 
 			// Reset the test client to have a 100ms socket timeout. We do this here rather than passing it in as a
@@ -127,7 +128,7 @@ func TestErrors(t *testing.T) {
 			filter := bson.M{
 				"$where": "function() { sleep(1000); return false; }",
 			}
-			_, err = mt.Coll.Find(mtest.Background, filter)
+			_, err = mt.Coll.Find(context.Background(), filter)
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)

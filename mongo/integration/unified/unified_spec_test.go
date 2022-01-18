@@ -7,10 +7,9 @@
 package unified
 
 import (
+	"context"
 	"path"
 	"testing"
-
-	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
 
 var (
@@ -37,7 +36,7 @@ const (
 
 func TestUnifiedSpec(t *testing.T) {
 	// Ensure the cluster is in a clean state before test execution begins.
-	if err := terminateOpenSessions(mtest.Background); err != nil {
+	if err := terminateOpenSessions(context.Background()); err != nil {
 		t.Fatalf("error terminating open transactions: %v", err)
 	}
 

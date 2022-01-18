@@ -34,10 +34,10 @@ func TestLoadBalancerSupport(t *testing.T) {
 			{"filter", bson.D{}},
 			{"batchSize", 2},
 		}
-		cursor, err := mt.DB.RunCommandCursor(mtest.Background, findCmd)
+		cursor, err := mt.DB.RunCommandCursor(context.Background(), findCmd)
 		assert.Nil(mt, err, "RunCommandCursor error: %v", err)
 		defer func() {
-			_ = cursor.Close(mtest.Background)
+			_ = cursor.Close(context.Background())
 		}()
 
 		assert.True(mt, cursor.ID() > 0, "expected cursor ID to be non-zero")
@@ -69,13 +69,13 @@ func TestLoadBalancerSupport(t *testing.T) {
 		mt.RunOpts("cursors", maxPoolSizeMtOpts, func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			findOpts := options.Find().SetBatchSize(2)
-			cursor, err := mt.Coll.Find(mtest.Background, bson.M{}, findOpts)
+			cursor, err := mt.Coll.Find(context.Background(), bson.M{}, findOpts)
 			assert.Nil(mt, err, "Find error: %v", err)
 			defer func() {
-				_ = cursor.Close(mtest.Background)
+				_ = cursor.Close(context.Background())
 			}()
 
-			ctx, cancel := context.WithTimeout(mtest.Background, 5*time.Millisecond)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
 			defer cancel()
 			_, err = mt.Coll.InsertOne(ctx, bson.M{"x": 1})
 			assertErrorHasInfo(mt, err, 1, 0, 0)
@@ -83,7 +83,7 @@ func TestLoadBalancerSupport(t *testing.T) {
 		mt.RunOpts("transactions", maxPoolSizeMtOpts, func(mt *mtest.T) {
 			sess, err := mt.Client.StartSession()
 			assert.Nil(mt, err, "StartSession error: %v", err)
-			defer sess.EndSession(mtest.Background)
+			defer sess.EndSession(context.Background())
 			sessCtx := mongo.NewSessionContext(context.Background(), sess)
 
 			// Start a transaction and perform one transactional operation to pin a connection.
@@ -92,7 +92,7 @@ func TestLoadBalancerSupport(t *testing.T) {
 			_, err = mt.Coll.InsertOne(sessCtx, bson.M{"x": 1})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 
-			ctx, cancel := context.WithTimeout(mtest.Background, 5*time.Millisecond)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
 			defer cancel()
 			_, err = mt.Coll.InsertOne(ctx, bson.M{"x": 1})
 			assertErrorHasInfo(mt, err, 0, 1, 0)

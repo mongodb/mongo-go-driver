@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -111,7 +112,7 @@ func runCrudFile(t *testing.T, file string) {
 func runCrudTest(mt *mtest.T, test crudTest, testFile crudTestFile) {
 	if len(testFile.Data) > 0 {
 		docs := rawSliceToInterfaceSlice(testFile.Data)
-		_, err := mt.Coll.InsertMany(mtest.Background, docs)
+		_, err := mt.Coll.InsertMany(context.Background(), docs)
 		assert.Nil(mt, err, "InsertMany error: %v", err)
 	}
 

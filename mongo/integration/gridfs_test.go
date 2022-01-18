@@ -121,7 +121,7 @@ func TestGridFS(x *testing.T) {
 		_, err = bucket.UploadFromStream("filename", r)
 		assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
-		findCtx, cancel := context.WithTimeout(mtest.Background, 5*time.Second)
+		findCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		findIndex(findCtx, mt, mt.DB.Collection("fs.files"), false, "key", "filename")
 		findIndex(findCtx, mt, mt.DB.Collection("fs.chunks"), true, "key", "files_id")
@@ -299,7 +299,7 @@ func TestGridFS(x *testing.T) {
 					// The uploadDate field is calculated when the upload is complete. Manually fetch it from the
 					// fs.files collection to use in assertions.
 					filesColl := mt.DB.Collection("fs.files")
-					uploadedFileDoc, err := filesColl.FindOne(mtest.Background, bson.D{}).DecodeBytes()
+					uploadedFileDoc, err := filesColl.FindOne(context.Background(), bson.D{}).DecodeBytes()
 					assert.Nil(mt, err, "FindOne error: %v", err)
 					uploadTime := uploadedFileDoc.Lookup("uploadDate").Time().UTC()
 
@@ -360,7 +360,7 @@ func TestGridFS(x *testing.T) {
 				{"length", 10},
 				{"filename", "filename"},
 			}
-			_, err := mt.DB.Collection("fs.files").InsertOne(mtest.Background, filesDoc)
+			_, err := mt.DB.Collection("fs.files").InsertOne(context.Background(), filesDoc)
 			assert.Nil(mt, err, "InsertOne error for files collection: %v", err)
 
 			bucket, err := gridfs.NewBucket(mt.DB)
@@ -534,7 +534,7 @@ func assertGridFSCollectionState(mt *mtest.T, coll *mongo.Collection, expectedNa
 	mt.Helper()
 
 	assert.Equal(mt, expectedName, coll.Name(), "expected collection name %v, got %v", expectedName, coll.Name())
-	count, err := coll.CountDocuments(mtest.Background, bson.D{})
+	count, err := coll.CountDocuments(context.Background(), bson.D{})
 	assert.Nil(mt, err, "CountDocuments error: %v", err)
 	assert.Equal(mt, expectedNumDocuments, count, "expected %d documents in collection, got %d", expectedNumDocuments,
 		count)

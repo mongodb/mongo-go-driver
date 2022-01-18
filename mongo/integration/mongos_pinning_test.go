@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -31,7 +32,7 @@ func TestMongosPinning(t *testing.T) {
 
 	mt.Run("unpin for next transaction", func(mt *mtest.T) {
 		addresses := map[string]struct{}{}
-		_ = mt.Client.UseSession(mtest.Background, func(sc mongo.SessionContext) error {
+		_ = mt.Client.UseSession(context.Background(), func(sc mongo.SessionContext) error {
 			// Insert a document in a transaction to pin session to a mongos
 			err := sc.StartTransaction()
 			assert.Nil(mt, err, "StartTransaction error: %v", err)
@@ -47,9 +48,9 @@ func TestMongosPinning(t *testing.T) {
 
 				cursor, err := mt.Coll.Find(sc, bson.D{})
 				assert.Nil(mt, err, iterationErrmsg("Find", i, err))
-				assert.True(mt, cursor.Next(mtest.Background), "Next returned false on iteration %v", i)
+				assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
 
-				descConn, err := mongo.BatchCursorFromCursor(cursor).Server().Connection(mtest.Background)
+				descConn, err := mongo.BatchCursorFromCursor(cursor).Server().Connection(context.Background())
 				assert.Nil(mt, err, iterationErrmsg("Connection", i, err))
 				addresses[descConn.Description().Addr.String()] = struct{}{}
 				err = descConn.Close()
@@ -64,7 +65,7 @@ func TestMongosPinning(t *testing.T) {
 	})
 	mt.Run("unpin for non transaction operation", func(mt *mtest.T) {
 		addresses := map[string]struct{}{}
-		_ = mt.Client.UseSession(mtest.Background, func(sc mongo.SessionContext) error {
+		_ = mt.Client.UseSession(context.Background(), func(sc mongo.SessionContext) error {
 			// Insert a document in a transaction to pin session to a mongos
 			err := sc.StartTransaction()
 			assert.Nil(mt, err, "StartTransaction error: %v", err)
@@ -77,9 +78,9 @@ func TestMongosPinning(t *testing.T) {
 				// Call Find with the session but outside of a transaction
 				cursor, err := mt.Coll.Find(sc, bson.D{})
 				assert.Nil(mt, err, iterationErrmsg("Find", i, err))
-				assert.True(mt, cursor.Next(mtest.Background), "Next returned false on iteration %v", i)
+				assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
 
-				descConn, err := mongo.BatchCursorFromCursor(cursor).Server().Connection(mtest.Background)
+				descConn, err := mongo.BatchCursorFromCursor(cursor).Server().Connection(context.Background())
 				assert.Nil(mt, err, iterationErrmsg("Connection", i, err))
 				addresses[descConn.Description().Addr.String()] = struct{}{}
 				err = descConn.Close()

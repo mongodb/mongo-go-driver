@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"sync"
 	"testing"
 
@@ -119,10 +120,10 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 		clearPoolChan()
 
 		initCollection(mt, mt.Coll)
-		cur, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(2))
+		cur, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
 		assert.Nil(mt, err, "Find error: %v", err)
-		defer cur.Close(mtest.Background)
-		assert.True(mt, cur.Next(mtest.Background), "expected Next true, got false")
+		defer cur.Close(context.Background())
+		assert.True(mt, cur.Next(context.Background()), "expected Next true, got false")
 
 		// replSetStepDown can fail with transient errors, so we use executeAdminCommandWithRetry to handle them and
 		// retry until a timeout is hit.
@@ -133,7 +134,7 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 		stepDownOpts := options.RunCmd().SetReadPreference(mtest.PrimaryRp)
 		executeAdminCommandWithRetry(mt, mt.Client, stepDownCmd, stepDownOpts)
 
-		assert.True(mt, cur.Next(mtest.Background), "expected Next true, got false")
+		assert.True(mt, cur.Next(context.Background()), "expected Next true, got false")
 		assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
 	})
 	mt.RunOpts("server errors", noClientOpts, func(mt *mtest.T) {
@@ -174,7 +175,7 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 					},
 				})
 
-				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"test", 1}})
+				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"test", 1}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				cerr, ok := err.(mongo.CommandError)
 				assert.True(mt, ok, "expected error type %v, got %v", mongo.CommandError{}, err)
@@ -186,7 +187,7 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 				}
 
 				// if pool shouldn't be cleared, another operation should succeed
-				_, err = mt.Coll.InsertOne(mtest.Background, bson.D{{"test", 1}})
+				_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"test", 1}})
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 				assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
 			})

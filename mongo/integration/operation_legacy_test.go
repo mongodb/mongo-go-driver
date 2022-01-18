@@ -8,6 +8,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"testing"
 	"time"
 
@@ -79,64 +80,64 @@ func TestOperationLegacy(t *testing.T) {
 	mt.RunOpts("verify results", noClientOpts, func(mt *mtest.T) {
 		mt.RunOpts("find", mtest.NewOptions().MaxServerVersion("3.0"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetSort(bson.D{{"x", 1}}))
+			cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetSort(bson.D{{"x", 1}}))
 			assert.Nil(mt, err, "Find error: %v", err)
 
 			for i := 1; i <= 5; i++ {
-				assert.True(mt, cursor.Next(mtest.Background), "Next returned false on iteration %v", i)
+				assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
 				got := cursor.Current.Lookup("x").Int32()
 				assert.Equal(mt, int32(i), got, "expected x value %v, got %v", i, got)
 			}
-			assert.False(mt, cursor.Next(mtest.Background), "found extra document %v", cursor.Current)
+			assert.False(mt, cursor.Next(context.Background()), "found extra document %v", cursor.Current)
 			err = cursor.Err()
 			assert.Nil(mt, err, "cursor error: %v", err)
 		})
 		mt.RunOpts("list collections", mtest.NewOptions().MaxServerVersion("2.7.6").DatabaseName("test_legacy"), func(mt *mtest.T) {
 			// run on a separate database to avoid finding other collections if we run these tests in parallel
-			cursor, err := mt.DB.ListCollections(mtest.Background, bson.D{})
+			cursor, err := mt.DB.ListCollections(context.Background(), bson.D{})
 			assert.Nil(mt, err, "ListCollections error: %v", err)
 
 			for i := 0; i < 2; i++ {
-				assert.True(mt, cursor.Next(mtest.Background), "Next returned false on iteration %v", i)
+				assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
 				collName := cursor.Current.Lookup("name").StringValue()
 				assert.True(mt, collName == mt.Coll.Name() || collName == "system.indexes",
 					"unexpected collection %v", collName)
 			}
-			assert.False(mt, cursor.Next(mtest.Background), "found extra document %v", cursor.Current)
+			assert.False(mt, cursor.Next(context.Background()), "found extra document %v", cursor.Current)
 			err = cursor.Err()
 			assert.Nil(mt, err, "cursor error: %v", err)
 		})
 		mt.RunOpts("list indexes", mtest.NewOptions().MaxServerVersion("2.7.6"), func(mt *mtest.T) {
 			// create index so an index besides _id is found
 			iv := mt.Coll.Indexes()
-			indexName, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+			indexName, err := iv.CreateOne(context.Background(), mongo.IndexModel{
 				Keys: bson.D{{"x", 1}},
 			})
 			assert.Nil(mt, err, "CreateOne error: %v", err)
 
-			cursor, err := iv.List(mtest.Background)
+			cursor, err := iv.List(context.Background())
 			expectedNs := fullCollName(mt, mt.Coll.Name())
 			assert.Nil(mt, err, "List error: %v", err)
 			for i := 0; i < 2; i++ {
-				assert.True(mt, cursor.Next(mtest.Background), "Next returned false on iteration %v", i)
+				assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
 				ns := cursor.Current.Lookup("ns").StringValue()
 				assert.Equal(mt, expectedNs, ns, "expected ns %v, got %v", expectedNs, ns)
 
 				name := cursor.Current.Lookup("name").StringValue()
 				assert.True(mt, name == "_id_" || name == indexName, "unexpected index %v", name)
 			}
-			assert.False(mt, cursor.Next(mtest.Background), "found extra document %v", cursor.Current)
+			assert.False(mt, cursor.Next(context.Background()), "found extra document %v", cursor.Current)
 			err = cursor.Err()
 			assert.Nil(mt, err, "cursor error: %v", err)
 		})
 		mt.RunOpts("find and killCursors", mtest.NewOptions().MaxServerVersion("3.0"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			// set batch size to force multiple batches
-			cursor, err := mt.Coll.Find(mtest.Background, bson.D{}, options.Find().SetBatchSize(2))
+			cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
 			assert.Nil(mt, err, "Find error: %v", err)
 			// close cursor to force a killCursors to be sent
 			mt.ClearEvents()
-			err = cursor.Close(mtest.Background)
+			err = cursor.Close(context.Background())
 			assert.Nil(mt, err, "Close error: %v", err)
 			evt := mt.GetStartedEvent()
 			assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
@@ -181,7 +182,7 @@ func runFindWithOptions(mt *mtest.T) opQuery {
 		SetSkip(1).
 		SetSnapshot(false).
 		SetSort(sort)
-	_, _ = mt.Coll.Find(mtest.Background, filter, opts)
+	_, _ = mt.Coll.Find(context.Background(), filter, opts)
 
 	// find expectations
 	findQueryDoc := bson.D{
@@ -207,7 +208,7 @@ func runFindWithOptions(mt *mtest.T) opQuery {
 }
 
 func runListCollectionsWithOptions(mt *mtest.T) opQuery {
-	_, _ = mt.DB.ListCollections(mtest.Background, bson.D{{"name", "foo"}})
+	_, _ = mt.DB.ListCollections(context.Background(), bson.D{{"name", "foo"}})
 
 	regexDoc := bson.D{{"name", primitive.Regex{Pattern: "^[^$]*$"}}}
 	modifiedFilterDoc := bson.D{{"name", fullCollName(mt, "foo")}}
@@ -222,7 +223,7 @@ func runListCollectionsWithOptions(mt *mtest.T) opQuery {
 }
 
 func runListIndexesWithOptions(mt *mtest.T) opQuery {
-	_, _ = mt.Coll.Indexes().List(mtest.Background, options.ListIndexes().SetBatchSize(2).SetMaxTime(10000*time.Millisecond))
+	_, _ = mt.Coll.Indexes().List(context.Background(), options.ListIndexes().SetBatchSize(2).SetMaxTime(10000*time.Millisecond))
 
 	listIndexesDoc := bson.D{
 		{"$query", bson.D{{"ns", fullCollName(mt, mt.Coll.Name())}}},

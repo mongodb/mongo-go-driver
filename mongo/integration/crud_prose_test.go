@@ -44,7 +44,7 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 			},
 		})
 
-		_, err := mt.Coll.InsertMany(mtest.Background,
+		_, err := mt.Coll.InsertMany(context.Background(),
 			[]interface{}{
 				bson.D{
 					{"a", 1},
@@ -75,7 +75,7 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 			},
 		})
 
-		_, err := mt.Coll.DeleteMany(mtest.Background, bson.D{{"a", 1}})
+		_, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"a", 1}})
 		assert.NotNil(mt, err, "expected non-nil error, got nil")
 
 		we, ok := err.(mongo.WriteException)
@@ -102,7 +102,7 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 			&mongo.InsertOneModel{bson.D{{"a", 2}}},
 			&mongo.DeleteOneModel{bson.D{{"a", 2}}, nil, nil},
 		}
-		_, err := mt.Coll.BulkWrite(mtest.Background, models)
+		_, err := mt.Coll.BulkWrite(context.Background(), models)
 		assert.NotNil(mt, err, "expected non-nil error, got nil")
 
 		we, ok := err.(mongo.BulkWriteException)
@@ -299,7 +299,7 @@ func TestHintErrors(t *testing.T) {
 	expected := errors.New("the 'hint' command parameter requires a minimum server wire version of 5")
 	mt.Run("UpdateMany", func(mt *mtest.T) {
 
-		_, got := mt.Coll.UpdateMany(mtest.Background, bson.D{{"a", 1}}, bson.D{{"$inc", bson.D{{"a", 1}}}},
+		_, got := mt.Coll.UpdateMany(context.Background(), bson.D{{"a", 1}}, bson.D{{"$inc", bson.D{{"a", 1}}}},
 			options.Update().SetHint("_id_"))
 		assert.NotNil(mt, got, "expected non-nil error, got nil")
 		assert.Equal(mt, got, expected, "expected: %v got: %v", expected, got)
@@ -307,7 +307,7 @@ func TestHintErrors(t *testing.T) {
 
 	mt.Run("ReplaceOne", func(mt *mtest.T) {
 
-		_, got := mt.Coll.ReplaceOne(mtest.Background, bson.D{{"a", 1}}, bson.D{{"a", 2}},
+		_, got := mt.Coll.ReplaceOne(context.Background(), bson.D{{"a", 1}}, bson.D{{"a", 2}},
 			options.Replace().SetHint("_id_"))
 		assert.NotNil(mt, got, "expected non-nil error, got nil")
 		assert.Equal(mt, got, expected, "expected: %v got: %v", expected, got)
@@ -318,7 +318,7 @@ func TestHintErrors(t *testing.T) {
 			&mongo.InsertOneModel{bson.D{{"_id", 2}}},
 			&mongo.ReplaceOneModel{Filter: bson.D{{"_id", 2}}, Replacement: bson.D{{"a", 2}}, Hint: "_id_"},
 		}
-		_, got := mt.Coll.BulkWrite(mtest.Background, models)
+		_, got := mt.Coll.BulkWrite(context.Background(), models)
 		assert.NotNil(mt, got, "expected non-nil error, got nil")
 		assert.Equal(mt, got, expected, "expected: %v got: %v", expected, got)
 	})
@@ -355,7 +355,7 @@ func TestWriteConcernError(t *testing.T) {
 		}
 		mt.SetFailPoint(fp)
 
-		_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.NotNil(mt, err, "expected InsertOne error, got nil")
 		writeException, ok := err.(mongo.WriteException)
 		assert.True(mt, ok, "expected WriteException, got error %v of type %T", err, err)
@@ -382,7 +382,7 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 			{"insert", mt.Coll.Name()},
 			{"documents", []bson.D{}},
 		}
-		err := mt.DB.RunCommand(mtest.Background, cmd).Err()
+		err := mt.DB.RunCommand(context.Background(), cmd).Err()
 		assert.NotNil(mt, err, "expected RunCommand error, got nil")
 
 		ce, ok := err.(mongo.CommandError)
@@ -398,7 +398,7 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 	mt.RunOpts("write concern error", wcMtOpts, func(mt *mtest.T) {
 		// codeName is propagated for write concern errors.
 
-		_, err := mt.Coll.InsertOne(mtest.Background, bson.D{})
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		assert.NotNil(mt, err, "expected InsertOne error, got nil")
 
 		we, ok := err.(mongo.WriteException)

@@ -80,7 +80,7 @@ func TestMockFind(t *testing.T) {
 
 	mt.Run("mongo.Collection can be passed as interface", func(mt *mtest.T) {
 		// Actually insert documents to collection.
-		_, err := mt.Coll.InsertMany(mtest.Background, insertItems)
+		_, err := mt.Coll.InsertMany(context.Background(), insertItems)
 		assert.Nil(mt, err, "InsertMany error: %v", err)
 
 		// Assert that FindOne behaves as expected.
