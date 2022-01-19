@@ -144,7 +144,7 @@ func waitForPrimaryChange(mt *mtest.T, testCase *testCase, op *operation) {
 func getPrimaryAddress(mt *mtest.T, topo *topology.Topology, failFast bool) address.Address {
 	mt.Helper()
 
-	ctx, cancel := context.WithCancel(mtest.Background)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if failFast {
 		cancel()

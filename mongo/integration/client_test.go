@@ -101,17 +101,17 @@ func TestClient(t *testing.T) {
 	registryOpts := options.Client().
 		SetRegistry(bson.NewRegistryBuilder().RegisterCodec(reflect.TypeOf(int64(0)), &negateCodec{}).Build())
 	mt.RunOpts("registry passed to cursors", mtest.NewOptions().ClientOptions(registryOpts), func(mt *mtest.T) {
-		_, err := mt.Coll.InsertOne(mtest.Background, negateCodec{ID: 10})
+		_, err := mt.Coll.InsertOne(context.Background(), negateCodec{ID: 10})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 		var got negateCodec
-		err = mt.Coll.FindOne(mtest.Background, bson.D{}).Decode(&got)
+		err = mt.Coll.FindOne(context.Background(), bson.D{}).Decode(&got)
 		assert.Nil(mt, err, "Find error: %v", err)
 
 		assert.Equal(mt, int64(-10), got.ID, "expected ID -10, got %v", got.ID)
 	})
 	mt.RunOpts("tls connection", mtest.NewOptions().MinServerVersion("3.0").SSL(true), func(mt *mtest.T) {
 		var result bson.Raw
-		err := mt.Coll.Database().RunCommand(mtest.Background, bson.D{
+		err := mt.Coll.Database().RunCommand(context.Background(), bson.D{
 			{"serverStatus", 1},
 		}).Decode(&result)
 		assert.Nil(mt, err, "serverStatus error: %v", err)
@@ -149,11 +149,11 @@ func TestClient(t *testing.T) {
 
 				// We don't care if the user doesn't already exist.
 				_ = db.RunCommand(
-					mtest.Background,
+					context.Background(),
 					bson.D{{"dropUser", user}},
 				)
 				err := db.RunCommand(
-					mtest.Background,
+					context.Background(),
 					bson.D{
 						{"createUser", user},
 						{"roles", bson.A{
@@ -178,11 +178,11 @@ func TestClient(t *testing.T) {
 				)
 				authClientOpts := options.Client().ApplyURI(cs)
 				testutil.AddTestServerAPIVersion(authClientOpts)
-				authClient, err := mongo.Connect(mtest.Background, authClientOpts)
+				authClient, err := mongo.Connect(context.Background(), authClientOpts)
 				assert.Nil(mt, err, "authClient Connect error: %v", err)
-				defer func() { _ = authClient.Disconnect(mtest.Background) }()
+				defer func() { _ = authClient.Disconnect(context.Background()) }()
 
-				rdr, err := authClient.Database("test").RunCommand(mtest.Background, bson.D{
+				rdr, err := authClient.Database("test").RunCommand(context.Background(), bson.D{
 					{"connectionStatus", 1},
 				}).DecodeBytes()
 				assert.Nil(mt, err, "connectionStatus error: %v", err)
@@ -228,7 +228,7 @@ func TestClient(t *testing.T) {
 				}
 
 				mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
-					res, err := mt.Client.ListDatabases(mtest.Background, tc.filter)
+					res, err := mt.Client.ListDatabases(context.Background(), tc.filter)
 					assert.Nil(mt, err, "ListDatabases error: %v", err)
 
 					var found bool
@@ -246,7 +246,7 @@ func TestClient(t *testing.T) {
 			allOpts := options.ListDatabases().SetNameOnly(true).SetAuthorizedDatabases(true)
 			mt.ClearEvents()
 
-			_, err := mt.Client.ListDatabases(mtest.Background, bson.D{}, allOpts)
+			_, err := mt.Client.ListDatabases(context.Background(), bson.D{}, allOpts)
 			assert.Nil(mt, err, "ListDatabases error: %v", err)
 
 			evt := mt.GetStartedEvent()
@@ -279,7 +279,7 @@ func TestClient(t *testing.T) {
 				}
 
 				mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
-					dbs, err := mt.Client.ListDatabaseNames(mtest.Background, tc.filter)
+					dbs, err := mt.Client.ListDatabaseNames(context.Background(), tc.filter)
 					assert.Nil(mt, err, "ListDatabaseNames error: %v", err)
 
 					var found bool
@@ -297,7 +297,7 @@ func TestClient(t *testing.T) {
 			allOpts := options.ListDatabases().SetNameOnly(true).SetAuthorizedDatabases(true)
 			mt.ClearEvents()
 
-			_, err := mt.Client.ListDatabaseNames(mtest.Background, bson.D{}, allOpts)
+			_, err := mt.Client.ListDatabaseNames(context.Background(), bson.D{}, allOpts)
 			assert.Nil(mt, err, "ListDatabaseNames error: %v", err)
 
 			evt := mt.GetStartedEvent()
@@ -313,7 +313,7 @@ func TestClient(t *testing.T) {
 	})
 	mt.RunOpts("ping", noClientOpts, func(mt *mtest.T) {
 		mt.Run("default read preference", func(mt *mtest.T) {
-			err := mt.Client.Ping(mtest.Background, nil)
+			err := mt.Client.Ping(context.Background(), nil)
 			assert.Nil(mt, err, "Ping error: %v", err)
 		})
 		mt.Run("invalid host", func(mt *mtest.T) {
@@ -323,11 +323,11 @@ func TestClient(t *testing.T) {
 				SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"}).
 				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond)
 			testutil.AddTestServerAPIVersion(invalidClientOpts)
-			client, err := mongo.Connect(mtest.Background, invalidClientOpts)
+			client, err := mongo.Connect(context.Background(), invalidClientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
-			err = client.Ping(mtest.Background, readpref.Primary())
+			err = client.Ping(context.Background(), readpref.Primary())
 			assert.NotNil(mt, err, "expected error for pinging invalid host, got nil")
-			_ = client.Disconnect(mtest.Background)
+			_ = client.Disconnect(context.Background())
 		})
 	})
 	mt.RunOpts("disconnect", noClientOpts, func(mt *mtest.T) {
@@ -340,23 +340,23 @@ func TestClient(t *testing.T) {
 		mt.Run("disconnected", func(mt *mtest.T) {
 			c, err := mongo.NewClient(options.Client().ApplyURI(mtest.ClusterURI()))
 			assert.Nil(mt, err, "NewClient error: %v", err)
-			_, err = c.Watch(mtest.Background, mongo.Pipeline{})
+			_, err = c.Watch(context.Background(), mongo.Pipeline{})
 			assert.Equal(mt, mongo.ErrClientDisconnected, err, "expected error %v, got %v", mongo.ErrClientDisconnected, err)
 		})
 	})
 	mt.RunOpts("end sessions", mtest.NewOptions().MinServerVersion("3.6"), func(mt *mtest.T) {
-		_, err := mt.Client.ListDatabases(mtest.Background, bson.D{})
+		_, err := mt.Client.ListDatabases(context.Background(), bson.D{})
 		assert.Nil(mt, err, "ListDatabases error: %v", err)
 
 		mt.ClearEvents()
-		err = mt.Client.Disconnect(mtest.Background)
+		err = mt.Client.Disconnect(context.Background())
 		assert.Nil(mt, err, "Disconnect error: %v", err)
 
 		started := mt.GetStartedEvent()
 		assert.Equal(mt, "endSessions", started.CommandName, "expected cmd name endSessions, got %v", started.CommandName)
 	})
 	mt.RunOpts("hello lastWriteDate", mtest.NewOptions().Topologies(mtest.ReplicaSet), func(mt *mtest.T) {
-		_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 	})
 	sessionOpts := mtest.NewOptions().MinServerVersion("3.6.0").CreateClient(false)
@@ -375,7 +375,7 @@ func TestClient(t *testing.T) {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				sess, err := mt.Client.StartSession(tc.opts)
 				assert.Nil(mt, err, "StartSession error: %v", err)
-				defer sess.EndSession(mtest.Background)
+				defer sess.EndSession(context.Background())
 				xs := sess.(mongo.XSession)
 				consistent := xs.ClientSession().Consistent
 				assert.Equal(mt, tc.consistent, consistent, "expected consistent to be %v, got %v", tc.consistent, consistent)
@@ -428,9 +428,9 @@ func TestClient(t *testing.T) {
 
 				sess, err := mt.Client.StartSession()
 				assert.Nil(mt, err, "StartSession error: %v", err)
-				defer sess.EndSession(mtest.Background)
+				defer sess.EndSession(context.Background())
 
-				_, err = mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+				_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 				assert.NotNil(mt, err, "expected err but got nil")
 				if tc.expectUnsupportedMsg {
 					assert.Equal(mt, driver.ErrUnsupportedStorageEngine.Error(), err.Error(),
@@ -451,7 +451,7 @@ func TestClient(t *testing.T) {
 		ClientOptions(appNameClientOpts).
 		Topologies(mtest.Single)
 	mt.RunOpts("app name is always sent", appNameMtOpts, func(mt *mtest.T) {
-		err := mt.Client.Ping(mtest.Background, mtest.PrimaryRp)
+		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
 		msgPairs := mt.GetProxiedMessages()
@@ -489,7 +489,7 @@ func TestClient(t *testing.T) {
 		MinServerVersion("3.6").     // Minimum server version 3.6 to force OP_MSG.
 		Topologies(mtest.ReplicaSet) // Read preference isn't sent to standalones so we can test on replica sets.
 	mt.RunOpts("direct connection made", mtOpts, func(mt *mtest.T) {
-		_, err := mt.Coll.Find(mtest.Background, bson.D{})
+		_, err := mt.Coll.Find(context.Background(), bson.D{})
 		assert.Nil(mt, err, "Find error: %v", err)
 
 		// When connected directly, the primary read preference should be overwritten to primaryPreferred.

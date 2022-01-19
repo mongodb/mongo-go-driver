@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -41,7 +42,7 @@ func TestDatabase(t *testing.T) {
 
 	mt.RunOpts("run command", noClientOpts, func(mt *mtest.T) {
 		mt.Run("decode raw", func(mt *mtest.T) {
-			res, err := mt.DB.RunCommand(mtest.Background, bson.D{{internal.LegacyHello, 1}}).DecodeBytes()
+			res, err := mt.DB.RunCommand(context.Background(), bson.D{{internal.LegacyHello, 1}}).DecodeBytes()
 			assert.Nil(mt, err, "RunCommand error: %v", err)
 
 			ok, err := res.LookupErr("ok")
@@ -58,7 +59,7 @@ func TestDatabase(t *testing.T) {
 			result := struct {
 				Ok float64 `bson:"ok"`
 			}{}
-			err := mt.DB.RunCommand(mtest.Background, bson.D{{"ping", 1}}).Decode(&result)
+			err := mt.DB.RunCommand(context.Background(), bson.D{{"ping", 1}}).Decode(&result)
 			assert.Nil(mt, err, "RunCommand error: %v", err)
 			assert.Equal(mt, 1.0, result.Ok, "expected ok value 1.0, got %v", result.Ok)
 		})
@@ -75,7 +76,7 @@ func TestDatabase(t *testing.T) {
 
 			runCmdOpts := options.RunCmd().
 				SetReadPreference(readpref.SecondaryPreferred())
-			err := mt.DB.RunCommand(mtest.Background, bson.D{{internal.LegacyHello, 1}}, runCmdOpts).Err()
+			err := mt.DB.RunCommand(context.Background(), bson.D{{internal.LegacyHello, 1}}, runCmdOpts).Err()
 			assert.Nil(mt, err, "RunCommand error: %v", err)
 
 			expected := bson.Raw(bsoncore.NewDocumentBuilder().
@@ -105,7 +106,7 @@ func TestDatabase(t *testing.T) {
 				{"insert", "test"},
 				{"documents", bson.A{bson.D{{"a", 1}}}},
 			}
-			res, gotErr := mt.DB.RunCommand(mtest.Background, cmd).DecodeBytes()
+			res, gotErr := mt.DB.RunCommand(context.Background(), cmd).DecodeBytes()
 
 			n, ok := res.Lookup("n").Int32OK()
 			assert.True(mt, ok, "expected n in response")
@@ -117,17 +118,17 @@ func TestDatabase(t *testing.T) {
 			assert.Equal(mt, writeExcept.WriteConcernError.Code, 100, "expected error code 100, got %v", writeExcept.WriteConcernError.Code)
 		})
 		mt.Run("multi key map command", func(mt *mtest.T) {
-			err := mt.DB.RunCommand(mtest.Background, bson.M{"insert": "test", "documents": bson.A{bson.D{{"a", 1}}}}).Err()
+			err := mt.DB.RunCommand(context.Background(), bson.M{"insert": "test", "documents": bson.A{bson.D{{"a", 1}}}}).Err()
 			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"cmd"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"cmd"}, err)
 		})
 	})
 
 	dropOpts := mtest.NewOptions().DatabaseName("dropDb")
 	mt.RunOpts("drop", dropOpts, func(mt *mtest.T) {
-		err := mt.DB.Drop(mtest.Background)
+		err := mt.DB.Drop(context.Background())
 		assert.Nil(mt, err, "Drop error: %v", err)
 
-		list, err := mt.Client.ListDatabaseNames(mtest.Background, bson.D{})
+		list, err := mt.Client.ListDatabaseNames(context.Background(), bson.D{})
 		assert.Nil(mt, err, "ListDatabaseNames error: %v", err)
 		for _, db := range list {
 			if db == "dropDb" {
@@ -152,7 +153,7 @@ func TestDatabase(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				colls, err := mt.DB.ListCollectionNames(mtest.Background, tc.filter)
+				colls, err := mt.DB.ListCollectionNames(context.Background(), tc.filter)
 				assert.Nil(mt, err, "ListCollectionNames error: %v", err)
 
 				var found bool
@@ -208,7 +209,7 @@ func TestDatabase(t *testing.T) {
 
 					var err error
 					for i := 0; i < 1; i++ {
-						cursor, err := mt.DB.ListCollections(mtest.Background, filter)
+						cursor, err := mt.DB.ListCollections(context.Background(), filter)
 						assert.Nil(mt, err, "ListCollections error (iteration %v): %v", i, err)
 
 						err = verifyListCollections(cursor, tc.cappedOnly)
@@ -234,7 +235,7 @@ func TestDatabase(t *testing.T) {
 
 			mt.ClearEvents()
 			lcOpts := options.ListCollections().SetBatchSize(2)
-			_, err := mt.DB.ListCollectionNames(mtest.Background, bson.D{}, lcOpts)
+			_, err := mt.DB.ListCollectionNames(context.Background(), bson.D{}, lcOpts)
 			assert.Nil(mt, err, "ListCollectionNames error: %v", err)
 
 			evt := mt.GetStartedEvent()
@@ -251,7 +252,7 @@ func TestDatabase(t *testing.T) {
 		mt.RunOpts("authorizedCollections", mtest.NewOptions().MinServerVersion("4.0"), func(mt *mtest.T) {
 			mt.ClearEvents()
 			lcOpts := options.ListCollections().SetAuthorizedCollections(true)
-			_, err := mt.DB.ListCollections(mtest.Background, bson.D{}, lcOpts)
+			_, err := mt.DB.ListCollections(context.Background(), bson.D{}, lcOpts)
 			assert.Nil(mt, err, "ListCollections error: %v", err)
 
 			evt := mt.GetStartedEvent()
@@ -264,13 +265,13 @@ func TestDatabase(t *testing.T) {
 		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
 			createCollections(mt, 2)
 			assertGetMoreCommandsAreMonitored(mt, cmdMonitoringCmdName, func() (*mongo.Cursor, error) {
-				return mt.DB.ListCollections(mtest.Background, bson.D{}, options.ListCollections().SetBatchSize(2))
+				return mt.DB.ListCollections(context.Background(), bson.D{}, options.ListCollections().SetBatchSize(2))
 			})
 		})
 		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
 			createCollections(mt, 2)
 			assertKillCursorsCommandsAreMonitored(mt, cmdMonitoringCmdName, func() (*mongo.Cursor, error) {
-				return mt.DB.ListCollections(mtest.Background, bson.D{}, options.ListCollections().SetBatchSize(2))
+				return mt.DB.ListCollections(context.Background(), bson.D{}, options.ListCollections().SetBatchSize(2))
 			})
 		})
 	})
@@ -290,10 +291,10 @@ func TestDatabase(t *testing.T) {
 			filter := bson.M{
 				"options.capped": true,
 			}
-			cursor, err := mt.DB.ListCollections(mtest.Background, filter)
+			cursor, err := mt.DB.ListCollections(context.Background(), filter)
 			assert.Nil(mt, err, "ListCollections error: %v", err)
-			defer cursor.Close(mtest.Background)
-			assert.True(mt, cursor.Next(mtest.Background), "expected Next to return true, got false; cursor error: %v",
+			defer cursor.Close(context.Background())
+			assert.True(mt, cursor.Next(context.Background()), "expected Next to return true, got false; cursor error: %v",
 				cursor.Err())
 
 			optionsDoc := bsoncore.NewDocumentBuilder().
@@ -323,7 +324,7 @@ func TestDatabase(t *testing.T) {
 				}
 			}
 
-			specs, err := mt.DB.ListCollectionSpecifications(mtest.Background, filter)
+			specs, err := mt.DB.ListCollectionSpecifications(context.Background(), filter)
 			assert.Nil(mt, err, "ListCollectionSpecifications error: %v", err)
 			assert.Equal(mt, 1, len(specs), "expected 1 CollectionSpecification, got %d", len(specs))
 			assert.Equal(mt, expectedSpec, specs[0], "expected specification %v, got %v", expectedSpec, specs[0])
@@ -333,7 +334,7 @@ func TestDatabase(t *testing.T) {
 			// Test that ListCollectionSpecifications correctly uses the supplied options.
 
 			opts := options.ListCollections().SetNameOnly(true)
-			_, err := mt.DB.ListCollectionSpecifications(mtest.Background, bson.D{}, opts)
+			_, err := mt.DB.ListCollectionSpecifications(context.Background(), bson.D{}, opts)
 			assert.Nil(mt, err, "ListCollectionSpecifications error: %v", err)
 
 			evt := mt.GetStartedEvent()
@@ -382,18 +383,18 @@ func TestDatabase(t *testing.T) {
 
 			mt.RunOpts(tc.name, tcOpts, func(mt *mtest.T) {
 				if len(tc.toInsert) > 0 {
-					_, err := mt.Coll.InsertMany(mtest.Background, tc.toInsert)
+					_, err := mt.Coll.InsertMany(context.Background(), tc.toInsert)
 					assert.Nil(mt, err, "InsertMany error: %v", err)
 				}
 
-				cursor, err := mt.DB.RunCommandCursor(mtest.Background, tc.cmd)
+				cursor, err := mt.DB.RunCommandCursor(context.Background(), tc.cmd)
 				assert.Equal(mt, tc.expectedErr, err, "expected error %v, got %v", tc.expectedErr, err)
 				if tc.expectedErr != nil {
 					return
 				}
 
 				var count int
-				for cursor.Next(mtest.Background) {
+				for cursor.Next(context.Background()) {
 					count++
 				}
 				assert.Equal(mt, tc.numExpected, count, "expected document count %v, got %v", tc.numExpected, count)
@@ -409,7 +410,7 @@ func TestDatabase(t *testing.T) {
 					{"find", mt.Coll.Name()},
 					{"batchSize", 2},
 				}
-				return mt.DB.RunCommandCursor(mtest.Background, findCmd)
+				return mt.DB.RunCommandCursor(context.Background(), findCmd)
 			})
 		})
 		mt.RunOpts("killCursors commands are monitored", cmdMonitoringMtOpts, func(mt *mtest.T) {
@@ -419,7 +420,7 @@ func TestDatabase(t *testing.T) {
 					{"find", mt.Coll.Name()},
 					{"batchSize", 2},
 				}
-				return mt.DB.RunCommandCursor(mtest.Background, findCmd)
+				return mt.DB.RunCommandCursor(context.Background(), findCmd)
 			})
 		})
 	})
@@ -492,7 +493,7 @@ func TestDatabase(t *testing.T) {
 						Name: collectionName,
 					}, false)
 
-					err := mt.DB.CreateCollection(mtest.Background, collectionName, tc.createOpts)
+					err := mt.DB.CreateCollection(context.Background(), collectionName, tc.createOpts)
 					assert.Nil(mt, err, "CreateCollection error: %v", err)
 
 					actualOpts := getCollectionOptions(mt, collectionName)
@@ -510,7 +511,7 @@ func TestDatabase(t *testing.T) {
 			createOpts := options.CreateCollection().SetCollation(&options.Collation{
 				Locale: locale,
 			})
-			err := mt.DB.CreateCollection(mtest.Background, collectionName, createOpts)
+			err := mt.DB.CreateCollection(context.Background(), collectionName, createOpts)
 			assert.Nil(mt, err, "CreateCollection error: %v", err)
 
 			actualOpts := getCollectionOptions(mt, collectionName)
@@ -524,7 +525,7 @@ func TestDatabase(t *testing.T) {
 				Name: collectionName,
 			}, false)
 
-			err := mt.DB.CreateCollection(mtest.Background, collectionName)
+			err := mt.DB.CreateCollection(context.Background(), collectionName)
 			assert.Nil(mt, err, "CreateCollection error: %v", err)
 
 			evt := mt.GetStartedEvent()
@@ -549,7 +550,7 @@ func TestDatabase(t *testing.T) {
 				Name: viewName,
 			}, false)
 
-			err := mt.DB.CreateView(mtest.Background, viewName, sourceCollectionName, pipeline)
+			err := mt.DB.CreateView(context.Background(), viewName, sourceCollectionName, pipeline)
 			assert.Nil(mt, err, "CreateView error: %v", err)
 
 			expectedOpts := bson.M{
@@ -569,7 +570,7 @@ func TestDatabase(t *testing.T) {
 			viewOpts := options.CreateView().SetCollation(&options.Collation{
 				Locale: locale,
 			})
-			err := mt.DB.CreateView(mtest.Background, viewName, sourceCollectionName, mongo.Pipeline{}, viewOpts)
+			err := mt.DB.CreateView(context.Background(), viewName, sourceCollectionName, mongo.Pipeline{}, viewOpts)
 			assert.Nil(mt, err, "CreateView error: %v", err)
 
 			actualOpts := getCollectionOptions(mt, viewName)
@@ -587,10 +588,10 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 	filter := bson.M{
 		"name": collectionName,
 	}
-	cursor, err := mt.DB.ListCollections(mtest.Background, filter)
+	cursor, err := mt.DB.ListCollections(context.Background(), filter)
 	assert.Nil(mt, err, "ListCollections error: %v", err)
-	defer cursor.Close(mtest.Background)
-	assert.True(mt, cursor.Next(mtest.Background), "expected Next to return true, got false")
+	defer cursor.Close(context.Background())
+	assert.True(mt, cursor.Next(context.Background()), "expected Next to return true, got false")
 
 	var actualOpts bson.M
 	err = bson.UnmarshalWithRegistry(interfaceAsMapRegistry, cursor.Current.Lookup("options").Document(), &actualOpts)
@@ -602,7 +603,7 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 func verifyListCollections(cursor *mongo.Cursor, cappedOnly bool) error {
 	var cappedFound, uncappedFound bool
 
-	for cursor.Next(mtest.Background) {
+	for cursor.Next(context.Background()) {
 		nameElem, err := cursor.Current.LookupErr("name")
 		if err != nil {
 			return fmt.Errorf("name element not found in document %v", cursor.Current)

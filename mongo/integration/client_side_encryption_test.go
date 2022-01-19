@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build cse
 // +build cse
 
 package integration
@@ -42,11 +43,11 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 		"local": {"key": localMasterKey},
 	}
 
-	kvClient, err := mongo.Connect(mtest.Background, kvClientOpts)
-	defer kvClient.Disconnect(mtest.Background)
+	kvClient, err := mongo.Connect(context.Background(), kvClientOpts)
+	defer kvClient.Disconnect(context.Background())
 	assert.Nil(mt, err, "Connect error: %v", err)
 
-	err = kvClient.Database("keyvault").Collection("datakeys").Drop(mtest.Background)
+	err = kvClient.Database("keyvault").Collection("datakeys").Drop(context.Background())
 	assert.Nil(mt, err, "Drop error: %v", err)
 
 	ceOpts := options.ClientEncryption().
@@ -57,7 +58,7 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 	assert.Nil(mt, err, "NewClientEncryption error: %v", err)
 
 	dkOpts := options.DataKey().SetKeyAltNames([]string{keyName})
-	_, err = ce.CreateDataKey(mtest.Background, "local", dkOpts)
+	_, err = ce.CreateDataKey(context.Background(), "local", dkOpts)
 	assert.Nil(mt, err, "CreateDataKey error: %v", err)
 
 	in := bson.RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "test")}
@@ -65,7 +66,7 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 		SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Random").
 		SetKeyAltName(keyName)
 
-	ciphertext, err := ce.Encrypt(mtest.Background, in, eOpts)
+	ciphertext, err := ce.Encrypt(context.Background(), in, eOpts)
 	assert.Nil(mt, err, "Encrypt error: %v", err)
 	return ciphertext
 }
@@ -134,17 +135,17 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		testutil.AddTestServerAPIVersion(clientOpts)
 
-		client, err := mongo.Connect(mtest.Background, clientOpts)
+		client, err := mongo.Connect(context.Background(), clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
-		defer client.Disconnect(mtest.Background)
+		defer client.Disconnect(context.Background())
 
 		coll := client.Database("db").Collection("coll")
-		err = coll.Drop(mtest.Background)
+		err = coll.Drop(context.Background())
 		assert.Nil(mt, err, "Drop error: %v", err)
 
 		session, err := client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
-		sessionCtx := mongo.NewSessionContext(mtest.Background, session)
+		sessionCtx := mongo.NewSessionContext(context.Background(), session)
 
 		capturedEvents = make([]event.CommandStartedEvent, 0)
 		_, err = coll.InsertOne(sessionCtx, bson.D{{"encryptMe", "test"}, {"keyName", "myKey"}})
@@ -196,19 +197,19 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		testutil.AddTestServerAPIVersion(clientOpts)
 
-		client, err := mongo.Connect(mtest.Background, clientOpts)
+		client, err := mongo.Connect(context.Background(), clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
-		defer client.Disconnect(mtest.Background)
+		defer client.Disconnect(context.Background())
 
 		coll := client.Database("db").Collection("coll")
-		err = coll.Drop(mtest.Background)
+		err = coll.Drop(context.Background())
 		assert.Nil(mt, err, "Drop error: %v", err)
-		_, err = coll.InsertOne(mtest.Background, bson.D{{"encryptMe", ciphertext}})
+		_, err = coll.InsertOne(context.Background(), bson.D{{"encryptMe", ciphertext}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 
 		session, err := client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
-		sessionCtx := mongo.NewSessionContext(mtest.Background, session)
+		sessionCtx := mongo.NewSessionContext(context.Background(), session)
 
 		capturedEvents = make([]event.CommandStartedEvent, 0)
 		res := coll.FindOne(sessionCtx, bson.D{{}})
@@ -343,18 +344,18 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 		clientOpts.Crypt = cc
 		testutil.AddTestServerAPIVersion(clientOpts)
 
-		client, err := mongo.Connect(mtest.Background, clientOpts)
-		defer client.Disconnect(mtest.Background)
+		client, err := mongo.Connect(context.Background(), clientOpts)
+		defer client.Disconnect(context.Background())
 		assert.Nil(mt, err, "Connect error: %v", err)
 
 		coll := client.Database("db").Collection("coll")
-		defer func() { _ = coll.Drop(mtest.Background) }()
+		defer func() { _ = coll.Drop(context.Background()) }()
 
 		doc := bson.D{{"foo", "bar"}, {"ssn", mySSN}}
-		_, err = coll.InsertOne(mtest.Background, doc)
+		_, err = coll.InsertOne(context.Background(), doc)
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 
-		res := coll.FindOne(mtest.Background, bson.D{{"foo", "bar"}})
+		res := coll.FindOne(context.Background(), bson.D{{"foo", "bar"}})
 		assert.Nil(mt, res.Err(), "FindOne error: %v", err)
 
 		rawRes, err := res.DecodeBytes()

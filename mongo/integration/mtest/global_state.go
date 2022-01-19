@@ -7,6 +7,7 @@
 package mtest
 
 import (
+	"context"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -72,7 +73,7 @@ func ServerVersion() string {
 // SetFailPoint configures the provided fail point on the cluster under test using the provided Client.
 func SetFailPoint(fp FailPoint, client *mongo.Client) error {
 	admin := client.Database("admin")
-	if err := admin.RunCommand(Background, fp).Err(); err != nil {
+	if err := admin.RunCommand(context.Background(), fp).Err(); err != nil {
 		return fmt.Errorf("error creating fail point: %v", err)
 	}
 	return nil
@@ -82,7 +83,7 @@ func SetFailPoint(fp FailPoint, client *mongo.Client) error {
 // provided Client
 func SetRawFailPoint(fp bson.Raw, client *mongo.Client) error {
 	admin := client.Database("admin")
-	if err := admin.RunCommand(Background, fp).Err(); err != nil {
+	if err := admin.RunCommand(context.Background(), fp).Err(); err != nil {
 		return fmt.Errorf("error creating fail point: %v", err)
 	}
 	return nil

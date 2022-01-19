@@ -106,7 +106,7 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	assert.Nil(mt, err, "topology.New error: %v", err)
 	err = topo.Connect()
 	assert.Nil(mt, err, "topology.Connect error: %v", err)
-	defer func() { _ = topo.Disconnect(mtest.Background) }()
+	defer func() { _ = topo.Disconnect(context.Background()) }()
 
 	// If NumHosts is set, check number of hosts currently stored on the Topology.
 	if test.NumHosts != nil {

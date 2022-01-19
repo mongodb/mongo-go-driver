@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"runtime"
 	"testing"
 	"time"
@@ -148,7 +149,7 @@ func TestSDAMProse(t *testing.T) {
 
 		// Assert that Ping completes successfully within 2 to 3.5 seconds.
 		start := time.Now()
-		err := mt.Client.Ping(mtest.Background, nil)
+		err := mt.Client.Ping(context.Background(), nil)
 		assert.Nil(mt, err, "Ping error: %v", err)
 		pingTime := time.Since(start)
 		assert.True(mt, pingTime > 2000*time.Millisecond && pingTime < 3500*time.Millisecond,

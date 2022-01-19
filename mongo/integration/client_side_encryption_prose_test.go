@@ -160,18 +160,18 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				if tc.masterKey != nil {
 					dataKeyOpts.SetMasterKey(tc.masterKey)
 				}
-				dataKeyID, err := cpt.clientEnc.CreateDataKey(mtest.Background, tc.provider, dataKeyOpts)
+				dataKeyID, err := cpt.clientEnc.CreateDataKey(context.Background(), tc.provider, dataKeyOpts)
 				assert.Nil(mt, err, "CreateDataKey error: %v", err)
 				assert.Equal(mt, keySubtype, dataKeyID.Subtype,
 					"expected data key subtype %v, got %v", keySubtype, dataKeyID.Subtype)
 
 				// assert that the key exists in the key vault
-				cursor, err := cpt.keyVaultColl.Find(mtest.Background, bson.D{{"_id", dataKeyID}})
+				cursor, err := cpt.keyVaultColl.Find(context.Background(), bson.D{{"_id", dataKeyID}})
 				assert.Nil(mt, err, "key vault Find error: %v", err)
-				assert.True(mt, cursor.Next(mtest.Background), "no keys found in key vault")
+				assert.True(mt, cursor.Next(context.Background()), "no keys found in key vault")
 				provider := cursor.Current.Lookup("masterKey", "provider").StringValue()
 				assert.Equal(mt, tc.provider, provider, "expected provider %v, got %v", tc.provider, provider)
-				assert.False(mt, cursor.Next(mtest.Background), "unexpected document in key vault: %v", cursor.Current)
+				assert.False(mt, cursor.Next(context.Background()), "unexpected document in key vault: %v", cursor.Current)
 
 				// verify that the key was inserted using write concern majority
 				assert.Equal(mt, 1, len(startedEvents), "expected 1 CommandStartedEvent, got %v", len(startedEvents))
@@ -185,24 +185,24 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				// encrypt a value with the new key by ID
 				valueToEncrypt := fmt.Sprintf("hello %s", tc.provider)
 				rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
-				encrypted, err := cpt.clientEnc.Encrypt(mtest.Background, rawVal,
+				encrypted, err := cpt.clientEnc.Encrypt(context.Background(), rawVal,
 					options.Encrypt().SetAlgorithm(deterministicAlgorithm).SetKeyID(dataKeyID))
 				assert.Nil(mt, err, "Encrypt error while encrypting value by ID: %v", err)
 				assert.Equal(mt, encryptedValueSubtype, encrypted.Subtype,
 					"expected encrypted value subtype %v, got %v", encryptedValueSubtype, encrypted.Subtype)
 
 				// insert an encrypted value. the value shouldn't be encrypted again because it's not in the schema.
-				_, err = cpt.cseColl.InsertOne(mtest.Background, bson.D{{"_id", tc.provider}, {"value", encrypted}})
+				_, err = cpt.cseColl.InsertOne(context.Background(), bson.D{{"_id", tc.provider}, {"value", encrypted}})
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
 				// find the inserted document. the value should be decrypted automatically
-				resBytes, err := cpt.cseColl.FindOne(mtest.Background, bson.D{{"_id", tc.provider}}).DecodeBytes()
+				resBytes, err := cpt.cseColl.FindOne(context.Background(), bson.D{{"_id", tc.provider}}).DecodeBytes()
 				assert.Nil(mt, err, "Find error: %v", err)
 				foundVal := resBytes.Lookup("value").StringValue()
 				assert.Equal(mt, valueToEncrypt, foundVal, "expected value %v, got %v", valueToEncrypt, foundVal)
 
 				// encrypt a value with an alternate name for the new key
-				altEncrypted, err := cpt.clientEnc.Encrypt(mtest.Background, rawVal,
+				altEncrypted, err := cpt.clientEnc.Encrypt(context.Background(), rawVal,
 					options.Encrypt().SetAlgorithm(deterministicAlgorithm).SetKeyAltName(keyAltName))
 				assert.Nil(mt, err, "Encrypt error while encrypting value by alt key name: %v", err)
 				assert.Equal(mt, encryptedValueSubtype, altEncrypted.Subtype,
@@ -211,7 +211,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					"expected data %v, got %v", encrypted.Data, altEncrypted.Data)
 
 				// insert an encrypted value for an auto-encrypted field
-				_, err = cpt.cseColl.InsertOne(mtest.Background, bson.D{{"encrypted_placeholder", encrypted}})
+				_, err = cpt.cseColl.InsertOne(context.Background(), bson.D{{"encrypted_placeholder", encrypted}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 			})
 		}
@@ -252,15 +252,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				// manually insert data key
 				key := readJSONFile(mt, "external-key.json")
-				_, err := cpt.keyVaultColl.InsertOne(mtest.Background, key)
+				_, err := cpt.keyVaultColl.InsertOne(context.Background(), key)
 				assert.Nil(mt, err, "InsertOne error for data key: %v", err)
 				subtype, data := key.Lookup("_id").Binary()
 				dataKeyID := primitive.Binary{Subtype: subtype, Data: data}
 
 				doc := bson.D{{"encrypted", "test"}}
-				_, insertErr := cpt.cseClient.Database("db").Collection("coll").InsertOne(mtest.Background, doc)
+				_, insertErr := cpt.cseClient.Database("db").Collection("coll").InsertOne(context.Background(), doc)
 				rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "test")}
-				_, encErr := cpt.clientEnc.Encrypt(mtest.Background, rawVal,
+				_, encErr := cpt.clientEnc.Encrypt(context.Background(), rawVal,
 					options.Encrypt().SetKeyID(dataKeyID).SetAlgorithm(deterministicAlgorithm))
 
 				if tc.externalVault {
@@ -288,7 +288,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		defer cpt.teardown(mt)
 
 		// create coll with JSON schema
-		err := mt.Client.Database("db").RunCommand(mtest.Background, bson.D{
+		err := mt.Client.Database("db").RunCommand(context.Background(), bson.D{
 			{"create", "coll"},
 			{"validator", bson.D{
 				{"$jsonSchema", readJSONFile(mt, "limits-schema.json")},
@@ -298,7 +298,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// insert key
 		key := readJSONFile(mt, "limits-key.json")
-		_, err = cpt.keyVaultColl.InsertOne(mtest.Background, key)
+		_, err = cpt.keyVaultColl.InsertOne(context.Background(), key)
 		assert.Nil(mt, err, "InsertOne error for key: %v", err)
 
 		var builder2mb, builder16mb strings.Builder
@@ -313,7 +313,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// insert a document over 2MiB
 		doc := bson.D{{"over_2mib_under_16mib", complete2mbStr}}
-		_, err = cpt.cseColl.InsertOne(mtest.Background, doc)
+		_, err = cpt.cseColl.InsertOne(context.Background(), doc)
 		assert.Nil(mt, err, "InsertOne error for 2MiB document: %v", err)
 
 		str := complete2mbStr[:cryptMaxBatchSizeBytes-2000] // remove last 2000 bytes
@@ -326,7 +326,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		extendedLimitsDoc = bsoncore.AppendStringElement(extendedLimitsDoc, "_id", "encryption_exceeds_2mib")
 		extendedLimitsDoc = bsoncore.AppendStringElement(extendedLimitsDoc, "unencrypted", str)
 		extendedLimitsDoc, _ = bsoncore.AppendDocumentEnd(extendedLimitsDoc, 0)
-		_, err = cpt.cseColl.InsertOne(mtest.Background, extendedLimitsDoc)
+		_, err = cpt.cseColl.InsertOne(context.Background(), extendedLimitsDoc)
 		assert.Nil(mt, err, "error inserting extended limits document: %v", err)
 
 		// bulk insert two 2MiB documents, each over 2 MiB
@@ -335,7 +335,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		cpt.cseStarted = cpt.cseStarted[:0]
 		firstDoc := bson.D{{"_id", "over_2mib_1"}, {"unencrypted", complete2mbStr}}
 		secondDoc := bson.D{{"_id", "over_2mib_2"}, {"unencrypted", complete2mbStr}}
-		_, err = cpt.cseColl.InsertMany(mtest.Background, []interface{}{firstDoc, secondDoc})
+		_, err = cpt.cseColl.InsertMany(context.Background(), []interface{}{firstDoc, secondDoc})
 		assert.Nil(mt, err, "InsertMany error for small documents: %v", err)
 		assert.Equal(mt, 2, len(cpt.cseStarted), "expected 2 insert events, got %d", len(cpt.cseStarted))
 
@@ -356,13 +356,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		secondBulkDoc, _ = bsoncore.AppendDocumentEnd(secondBulkDoc, 0)
 
 		cpt.cseStarted = cpt.cseStarted[:0]
-		_, err = cpt.cseColl.InsertMany(mtest.Background, []interface{}{firstBulkDoc, secondBulkDoc})
+		_, err = cpt.cseColl.InsertMany(context.Background(), []interface{}{firstBulkDoc, secondBulkDoc})
 		assert.Nil(mt, err, "InsertMany error for large documents: %v", err)
 		assert.Equal(mt, 2, len(cpt.cseStarted), "expected 2 insert events, got %d", len(cpt.cseStarted))
 
 		// insert a document slightly smaller than 16MiB and expect the operation to succeed
 		doc = bson.D{{"_id", "under_16mib"}, {"unencrypted", complete16mbStr[:maxBsonObjSize-2000]}}
-		_, err = cpt.cseColl.InsertOne(mtest.Background, doc)
+		_, err = cpt.cseColl.InsertOne(context.Background(), doc)
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 
 		// insert a document over 16MiB and expect the operation to fail
@@ -372,7 +372,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		over16mb = bsoncore.AppendStringElement(over16mb, "_id", "encryption_exceeds_16mib")
 		over16mb = bsoncore.AppendStringElement(over16mb, "unencrypted", complete16mbStr[:maxBsonObjSize-2000])
 		over16mb, _ = bsoncore.AppendDocumentEnd(over16mb, 0)
-		_, err = cpt.cseColl.InsertOne(mtest.Background, over16mb)
+		_, err = cpt.cseColl.InsertOne(context.Background(), over16mb)
 		assert.NotNil(mt, err, "expected InsertOne error for document over 16MiB, got nil")
 	})
 	mt.Run("views are prohibited", func(mt *mtest.T) {
@@ -393,7 +393,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}, true)
 
 		view := cpt.cseColl.Database().Collection("view")
-		_, err := view.InsertOne(mtest.Background, bson.D{{"_id", "insert_on_view"}})
+		_, err := view.InsertOne(context.Background(), bson.D{{"_id", "insert_on_view"}})
 		assert.NotNil(mt, err, "expected InsertOne error on view, got nil")
 		errStr := strings.ToLower(err.Error())
 		viewErrSubstr := "cannot auto encrypt a view"
@@ -449,7 +449,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				// create collection with JSON schema
 				if tc.schema != nil {
 					db := cpt.coll.Database()
-					err := db.RunCommand(mtest.Background, bson.D{
+					err := db.RunCommand(context.Background(), bson.D{
 						{"create", "coll"},
 						{"validator", bson.D{
 							{"$jsonSchema", readJSONFile(mt, "corpus-schema.json")},
@@ -459,7 +459,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}
 
 				// Manually insert keys for each KMS provider into the key vault.
-				_, err := cpt.keyVaultColl.InsertMany(mtest.Background, []interface{}{
+				_, err := cpt.keyVaultColl.InsertMany(context.Background(), []interface{}{
 					readJSONFile(mt, "corpus-key-local.json"),
 					readJSONFile(mt, "corpus-key-aws.json"),
 					readJSONFile(mt, "corpus-key-azure.json"),
@@ -556,7 +556,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							continue
 						}
 
-						encrypted, err := cpt.clientEnc.Encrypt(mtest.Background, deVal, eo)
+						encrypted, err := cpt.clientEnc.Encrypt(context.Background(), deVal, eo)
 						if !doc.Lookup("allowed").Boolean() {
 							// if allowed is false, encryption should error. in this case, the unencrypted value should be
 							// copied over
@@ -574,17 +574,17 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				copied, _ = bsoncore.AppendDocumentEnd(copied, cidx)
 
 				// insert document with encrypted values
-				_, err = cpt.cseColl.InsertOne(mtest.Background, copied)
+				_, err = cpt.cseColl.InsertOne(context.Background(), copied)
 				assert.Nil(mt, err, "InsertOne error for corpus document: %v", err)
 
 				// find document using client with encryption and assert it matches original
-				decryptedDoc, err := cpt.cseColl.FindOne(mtest.Background, bson.D{}).DecodeBytes()
+				decryptedDoc, err := cpt.cseColl.FindOne(context.Background(), bson.D{}).DecodeBytes()
 				assert.Nil(mt, err, "Find error with encrypted client: %v", err)
 				assert.Equal(mt, corpus, decryptedDoc, "expected document %v, got %v", corpus, decryptedDoc)
 
 				// find document using a client without encryption enabled and assert fields remain encrypted
 				corpusEncrypted := readJSONFile(mt, "corpus-encrypted.json")
-				foundDoc, err := cpt.coll.FindOne(mtest.Background, bson.D{}).DecodeBytes()
+				foundDoc, err := cpt.coll.FindOne(context.Background(), bson.D{}).DecodeBytes()
 				assert.Nil(mt, err, "Find error with unencrypted client: %v", err)
 
 				encryptedElems, _ := corpusEncrypted.Elements()
@@ -617,10 +617,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					// if allowed is true, decrypt both values with clientEnc and validate equality
 					if allowed {
 						sub, data := expectedVal.Binary()
-						expectedDecrypted, err := cpt.clientEnc.Decrypt(mtest.Background, primitive.Binary{Subtype: sub, Data: data})
+						expectedDecrypted, err := cpt.clientEnc.Decrypt(context.Background(), primitive.Binary{Subtype: sub, Data: data})
 						assert.Nil(mt, err, "Decrypt error: %v", err)
 						sub, data = foundVal.Binary()
-						actualDecrypted, err := cpt.clientEnc.Decrypt(mtest.Background, primitive.Binary{Subtype: sub, Data: data})
+						actualDecrypted, err := cpt.clientEnc.Decrypt(context.Background(), primitive.Binary{Subtype: sub, Data: data})
 						assert.Nil(mt, err, "Decrypt error: %v", err)
 
 						assert.True(mt, expectedDecrypted.Equal(actualDecrypted),
@@ -785,7 +785,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				defer cpt.teardown(mt)
 
 				dkOpts := options.DataKey().SetMasterKey(tc.masterKey)
-				createdKey, err := cpt.clientEnc.CreateDataKey(mtest.Background, tc.provider, dkOpts)
+				createdKey, err := cpt.clientEnc.CreateDataKey(context.Background(), tc.provider, dkOpts)
 				if tc.errorSubstring != "" {
 					assert.NotNil(mt, err, "expected error, got nil")
 					errSubstr := tc.errorSubstring
@@ -805,9 +805,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					Type:  bson.TypeString,
 					Value: bsoncore.AppendString(nil, "test"),
 				}
-				encrypted, err := cpt.clientEnc.Encrypt(mtest.Background, testVal, encOpts)
+				encrypted, err := cpt.clientEnc.Encrypt(context.Background(), testVal, encOpts)
 				assert.Nil(mt, err, "Encrypt error: %v", err)
-				decrypted, err := cpt.clientEnc.Decrypt(mtest.Background, encrypted)
+				decrypted, err := cpt.clientEnc.Decrypt(context.Background(), encrypted)
 				assert.Nil(mt, err, "Decrypt error: %v", err)
 				assert.Equal(mt, testVal, decrypted, "expected value %s, got %s", testVal, decrypted)
 
@@ -817,10 +817,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				invalidClientEncryption, err := mongo.NewClientEncryption(cpt.kvClient, invalidClientEncryptionOptions)
 				assert.Nil(mt, err, "error creating invalidClientEncryption object: %v", err)
-				defer invalidClientEncryption.Close(mtest.Background)
+				defer invalidClientEncryption.Close(context.Background())
 
 				invalidKeyOpts := options.DataKey().SetMasterKey(tc.masterKey)
-				_, err = invalidClientEncryption.CreateDataKey(mtest.Background, tc.provider, invalidKeyOpts)
+				_, err = invalidClientEncryption.CreateDataKey(context.Background(), tc.provider, invalidKeyOpts)
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), tc.invalidClientEncryptionErrorSubstring),
 					"expected error %v to contain substring '%v'", err, tc.invalidClientEncryptionErrorSubstring)
@@ -876,7 +876,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				cpt := setup(mt, aeo, nil, nil)
 				defer cpt.teardown(mt)
 
-				_, err := cpt.cseColl.InsertOne(mtest.Background, bson.D{{"unencrypted", "test"}})
+				_, err := cpt.cseColl.InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
 
 				// Check for mongocryptd server selection error if auto encryption was not bypassed.
 				if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) {
@@ -895,10 +895,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").
 					SetServerSelectionTimeout(1 * time.Second)
 				testutil.AddTestServerAPIVersion(mcryptOpts)
-				mcryptClient, err := mongo.Connect(mtest.Background, mcryptOpts)
+				mcryptClient, err := mongo.Connect(context.Background(), mcryptOpts)
 				assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
 
-				err = mcryptClient.Database("admin").RunCommand(mtest.Background, bson.D{{internal.LegacyHelloLowercase, 1}}).Err()
+				err = mcryptClient.Database("admin").RunCommand(context.Background(), bson.D{{internal.LegacyHelloLowercase, 1}}).Err()
 				assert.NotNil(mt, err, "expected mongocryptd legacy hello error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), "server selection error"),
 					"expected mongocryptd server selection error, got %v", err)
@@ -955,7 +955,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					cpt := setup(mt, autoEncryptionOpts, nil, nil)
 					defer cpt.teardown(mt)
 
-					_, err := getWatcher(mt, tc.streamType, cpt).Watch(mtest.Background, mongo.Pipeline{})
+					_, err := getWatcher(mt, tc.streamType, cpt).Watch(context.Background(), mongo.Pipeline{})
 					assert.NotNil(mt, err, "expected Watch error: %v", err)
 				})
 			}
@@ -974,13 +974,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					// Insert key vault data so the key can be accessed when starting the change stream.
 					insertDocuments(mt, cpt.keyVaultColl, testConfig.KeyVaultData)
 
-					stream, err := getWatcher(mt, tc.streamType, cpt).Watch(mtest.Background, mongo.Pipeline{})
+					stream, err := getWatcher(mt, tc.streamType, cpt).Watch(context.Background(), mongo.Pipeline{})
 					assert.Nil(mt, err, "Watch error: %v", err)
-					defer stream.Close(mtest.Background)
+					defer stream.Close(context.Background())
 
 					// Insert already encrypted data and verify that it is automatically decrypted by Next().
 					insertDocuments(mt, cpt.coll, []bson.Raw{testConfig.EncryptedDocument})
-					assert.True(mt, stream.Next(mtest.Background), "expected Next to return true, got false")
+					assert.True(mt, stream.Next(context.Background()), "expected Next to return true, got false")
 					gotDocument := stream.Current.Lookup("fullDocument").Document()
 					err = compareDocs(mt, testConfig.DecryptedDocument, gotDocument)
 					assert.Nil(mt, err, "compareDocs error: %v", err)
@@ -1094,20 +1094,20 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					SetAutoEncryptionOptions(aeOpts)
 
 				testutil.AddTestServerAPIVersion(ceOpts)
-				clientEncrypted, err := mongo.Connect(mtest.Background, ceOpts)
-				defer clientEncrypted.Disconnect(mtest.Background)
+				clientEncrypted, err := mongo.Connect(context.Background(), ceOpts)
+				defer clientEncrypted.Disconnect(context.Background())
 				assert.Nil(mt, err, "Connect error: %v", err)
 
 				coll := clientEncrypted.Database("db").Collection("coll")
 				if !tc.bypassAutoEncryption {
-					_, err = coll.InsertOne(mtest.Background, bson.M{"_id": 0, "encrypted": "string0"})
+					_, err = coll.InsertOne(context.Background(), bson.M{"_id": 0, "encrypted": "string0"})
 				} else {
 					unencryptedColl := d.clientTest.Database("db").Collection("coll")
-					_, err = unencryptedColl.InsertOne(mtest.Background, bson.M{"_id": 0, "encrypted": d.ciphertext})
+					_, err = unencryptedColl.InsertOne(context.Background(), bson.M{"_id": 0, "encrypted": d.ciphertext})
 				}
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
-				raw, err := coll.FindOne(mtest.Background, bson.M{"_id": 0}).DecodeBytes()
+				raw, err := coll.FindOne(context.Background(), bson.M{"_id": 0}).DecodeBytes()
 				assert.Nil(mt, err, "FindOne error: %v", err)
 
 				expected := bsoncore.NewDocumentBuilder().
@@ -1352,7 +1352,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				defer cpt.teardown(mt)
 
 				dkOpts := options.DataKey().SetMasterKey(tc.masterKeyNoClientCert)
-				_, err := cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
+				_, err := cpt.clientEnc.CreateDataKey(context.Background(), tc.name, dkOpts)
 
 				assert.NotNil(mt, err, "expected error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), "certificate signed by unknown authority"),
@@ -1362,7 +1362,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				cpt = setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptionsWithTLS)
 
 				dkOpts = options.DataKey().SetMasterKey(tc.masterKeyWithTLS)
-				_, err = cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
+				_, err = cpt.clientEnc.CreateDataKey(context.Background(), tc.name, dkOpts)
 				// check if current test case is KMIP, which should pass
 				if tc.name == "kmip" {
 					assert.Nil(mt, err, "expected no error, got err: %v", err)
@@ -1376,7 +1376,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				cpt = setup(mt, nil, defaultKvClientOptions, expiredClientEncryptionOptions)
 
 				dkOpts = options.DataKey().SetMasterKey(tc.masterKeyExpired)
-				_, err = cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
+				_, err = cpt.clientEnc.CreateDataKey(context.Background(), tc.name, dkOpts)
 				assert.NotNil(mt, err, "expected error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), tc.expiredError),
 					"expected error '%s' to contain '%s'", err.Error(), tc.expiredError)
@@ -1385,7 +1385,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				cpt = setup(mt, nil, defaultKvClientOptions, invalidHostnameClientEncryptionOptions)
 
 				dkOpts = options.DataKey().SetMasterKey(tc.masterKeyInvalidHostname)
-				_, err = cpt.clientEnc.CreateDataKey(mtest.Background, tc.name, dkOpts)
+				_, err = cpt.clientEnc.CreateDataKey(context.Background(), tc.name, dkOpts)
 				assert.NotNil(mt, err, "expected error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), tc.invalidHostnameError),
 					"expected error '%s' to contain '%s'", err.Error(), tc.invalidHostnameError)
@@ -1447,12 +1447,12 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc).
 			SetReadPreference(mtest.PrimaryRp).SetAutoEncryptionOptions(aeo).SetMonitor(cseMonitor)
 		testutil.AddTestServerAPIVersion(opts)
-		cpt.cseClient, err = mongo.Connect(mtest.Background, opts)
+		cpt.cseClient, err = mongo.Connect(context.Background(), opts)
 		assert.Nil(mt, err, "Connect error for encrypted client: %v", err)
 		cpt.cseColl = cpt.cseClient.Database("db").Collection("coll")
 	}
 	if ceo != nil {
-		cpt.kvClient, err = mongo.Connect(mtest.Background, kvClientOpts)
+		cpt.kvClient, err = mongo.Connect(context.Background(), kvClientOpts)
 		assert.Nil(mt, err, "Connect error for ClientEncryption key vault client: %v", err)
 		cpt.clientEnc, err = mongo.NewClientEncryption(cpt.kvClient, ceo)
 		assert.Nil(mt, err, "NewClientEncryption error: %v", err)
@@ -1464,10 +1464,10 @@ func (cpt *cseProseTest) teardown(mt *mtest.T) {
 	mt.Helper()
 
 	if cpt.cseClient != nil {
-		_ = cpt.cseClient.Disconnect(mtest.Background)
+		_ = cpt.cseClient.Disconnect(context.Background())
 	}
 	if cpt.clientEnc != nil {
-		_ = cpt.clientEnc.Close(mtest.Background)
+		_ = cpt.clientEnc.Close(context.Background())
 	}
 }
 
@@ -1520,7 +1520,7 @@ func newDeadlockTest(mt *mtest.T) *deadlockTest {
 
 	clientTestOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc)
 	testutil.AddTestServerAPIVersion(clientTestOpts)
-	if d.clientTest, err = mongo.Connect(mtest.Background, clientTestOpts); err != nil {
+	if d.clientTest, err = mongo.Connect(context.Background(), clientTestOpts); err != nil {
 		mt.Fatalf("Connect error: %v", err)
 	}
 
@@ -1536,19 +1536,19 @@ func newDeadlockTest(mt *mtest.T) *deadlockTest {
 
 	keyvaultColl := d.clientTest.Database("keyvault").Collection("datakeys")
 	dataColl := d.clientTest.Database("db").Collection("coll")
-	err = dataColl.Drop(mtest.Background)
+	err = dataColl.Drop(context.Background())
 	assert.Nil(mt, err, "Drop error for collection db.coll: %v", err)
 
-	err = keyvaultColl.Drop(mtest.Background)
+	err = keyvaultColl.Drop(context.Background())
 	assert.Nil(mt, err, "Drop error for key vault collection: %v", err)
 
 	keyDoc := readJSONFile(mt, "external-key.json")
-	_, err = keyvaultColl.InsertOne(mtest.Background, keyDoc)
+	_, err = keyvaultColl.InsertOne(context.Background(), keyDoc)
 	assert.Nil(mt, err, "InsertOne error into key vault collection: %v", err)
 
 	schemaDoc := readJSONFile(mt, "external-schema.json")
 	createOpts := options.CreateCollection().SetValidator(bson.M{"$jsonSchema": schemaDoc})
-	err = d.clientTest.Database("db").CreateCollection(mtest.Background, "coll", createOpts)
+	err = d.clientTest.Database("db").CreateCollection(context.Background(), "coll", createOpts)
 	assert.Nil(mt, err, "CreateCollection error: %v", err)
 
 	kmsProviders := map[string]map[string]interface{}{
@@ -1562,7 +1562,7 @@ func newDeadlockTest(mt *mtest.T) *deadlockTest {
 	assert.Nil(mt, err, "MarshalValue error: %v", err)
 	in := bson.RawValue{Type: t, Value: value}
 	eopts := options.Encrypt().SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic").SetKeyAltName("local")
-	d.ciphertext, err = d.clientEncryption.Encrypt(mtest.Background, in, eopts)
+	d.ciphertext, err = d.clientEncryption.Encrypt(context.Background(), in, eopts)
 	assert.Nil(mt, err, "Encrypt error: %v", err)
 
 	return &d
@@ -1570,8 +1570,8 @@ func newDeadlockTest(mt *mtest.T) *deadlockTest {
 
 func (d *deadlockTest) disconnect(mt *mtest.T) {
 	mt.Helper()
-	err := d.clientEncryption.Close(mtest.Background)
+	err := d.clientEncryption.Close(context.Background())
 	assert.Nil(mt, err, "clientEncryption Close error: %v", err)
-	d.clientTest.Disconnect(mtest.Background)
+	d.clientTest.Disconnect(context.Background())
 	assert.Nil(mt, err, "clientTest Disconnect error: %v", err)
 }

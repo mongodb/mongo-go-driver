@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -43,7 +44,7 @@ func TestIndexView(t *testing.T) {
 				})
 			}
 
-			_, err := mt.Coll.Indexes().CreateMany(mtest.Background, models)
+			_, err := mt.Coll.Indexes().CreateMany(context.Background(), models)
 			assert.Nil(mt, err, "CreateMany error: %v", err)
 		}
 
@@ -63,13 +64,13 @@ func TestIndexView(t *testing.T) {
 		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
 			createIndexes(mt, 2)
 			assertGetMoreCommandsAreMonitored(mt, cmdName, func() (*mongo.Cursor, error) {
-				return mt.Coll.Indexes().List(mtest.Background, options.ListIndexes().SetBatchSize(2))
+				return mt.Coll.Indexes().List(context.Background(), options.ListIndexes().SetBatchSize(2))
 			})
 		})
 		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
 			createIndexes(mt, 2)
 			assertKillCursorsCommandsAreMonitored(mt, cmdName, func() (*mongo.Cursor, error) {
-				return mt.Coll.Indexes().List(mtest.Background, options.ListIndexes().SetBatchSize(2))
+				return mt.Coll.Indexes().List(context.Background(), options.ListIndexes().SetBatchSize(2))
 			})
 		})
 	})
@@ -82,7 +83,7 @@ func TestIndexView(t *testing.T) {
 			}
 			expectedName := "foo_1_bar_-1"
 
-			indexName, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+			indexName, err := iv.CreateOne(context.Background(), mongo.IndexModel{
 				Keys: keysDoc,
 			})
 			assert.Nil(mt, err, "CreateOne error: %v", err)
@@ -98,7 +99,7 @@ func TestIndexView(t *testing.T) {
 			keysDoc := bson.D{{"foo", int32(-1)}}
 			name := "testname"
 
-			indexName, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+			indexName, err := iv.CreateOne(context.Background(), mongo.IndexModel{
 				Keys:    keysDoc,
 				Options: options.Index().SetName(name),
 			})
@@ -138,7 +139,7 @@ func TestIndexView(t *testing.T) {
 				opts.SetBucketSize(1)
 			}
 			// Omits collation option because it's incompatible with version option
-			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{
+			_, err := mt.Coll.Indexes().CreateOne(context.Background(), mongo.IndexModel{
 				Keys:    bson.D{{"foo", "text"}},
 				Options: opts,
 			})
@@ -146,7 +147,7 @@ func TestIndexView(t *testing.T) {
 		})
 		mt.RunOpts("collation", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 			// collation invalid for server versions < 3.4
-			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{
+			_, err := mt.Coll.Indexes().CreateOne(context.Background(), mongo.IndexModel{
 				Keys: bson.D{{"bar", "text"}},
 				Options: options.Index().SetCollation(&options.Collation{
 					Locale: "simple",
@@ -159,7 +160,7 @@ func TestIndexView(t *testing.T) {
 
 			mt.Run("no options", func(mt *mtest.T) {
 				iv := mt.Coll.Indexes()
-				indexName, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+				indexName, err := iv.CreateOne(context.Background(), mongo.IndexModel{
 					Keys: keysDoc,
 				})
 				assert.Nil(mt, err, "CreateOne error: %v", err)
@@ -176,7 +177,7 @@ func TestIndexView(t *testing.T) {
 				// document and the format of the document returned by listIndexes was changed in 4.5.x to explicitly
 				// include "_id: false", so we include it here too.
 				proj := bson.D{{"a", true}, {"_id", false}}
-				_, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+				_, err := iv.CreateOne(context.Background(), mongo.IndexModel{
 					Keys:    keysDoc,
 					Options: options.Index().SetWildcardProjection(proj),
 				})
@@ -198,7 +199,7 @@ func TestIndexView(t *testing.T) {
 				Options: options.Index().SetHidden(true),
 			}
 
-			_, err := iv.CreateOne(mtest.Background, model)
+			_, err := iv.CreateOne(context.Background(), model)
 			assert.Nil(mt, err, "CreateOne error: %v", err)
 
 			indexDoc := getIndexDoc(mt, iv, keysDoc)
@@ -209,7 +210,7 @@ func TestIndexView(t *testing.T) {
 			})
 		})
 		mt.Run("nil keys", func(mt *mtest.T) {
-			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{
+			_, err := mt.Coll.Indexes().CreateOne(context.Background(), mongo.IndexModel{
 				Keys: nil,
 			})
 			assert.NotNil(mt, err, "expected CreateOne error, got nil")
@@ -243,7 +244,7 @@ func TestIndexView(t *testing.T) {
 				mtOpts := mtest.NewOptions().MinServerVersion(tc.minServerVersion).MaxServerVersion(tc.maxServerVersion)
 				mt.RunOpts(tc.name, mtOpts, func(mt *mtest.T) {
 					mt.ClearEvents()
-					_, err := mt.Coll.Indexes().CreateOne(mtest.Background, indexModel, tc.opts)
+					_, err := mt.Coll.Indexes().CreateOne(context.Background(), indexModel, tc.opts)
 					if tc.expectError {
 						assert.NotNil(mt, err, "expected CreateOne error, got nil")
 						return
@@ -269,7 +270,7 @@ func TestIndexView(t *testing.T) {
 			ClientOptions(unackClientOpts).
 			MinServerVersion("3.6")
 		mt.RunOpts("unacknowledged write", unackMtOpts, func(mt *mtest.T) {
-			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{Keys: bson.D{{"x", 1}}})
+			_, err := mt.Coll.Indexes().CreateOne(context.Background(), mongo.IndexModel{Keys: bson.D{{"x", 1}}})
 			if err != mongo.ErrUnacknowledgedWrite {
 				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
 				// so the assertion would succeed even if the error had not been wrapped.
@@ -287,7 +288,7 @@ func TestIndexView(t *testing.T) {
 				},
 			})
 
-			_, err := mt.Coll.Indexes().CreateOne(mtest.Background, mongo.IndexModel{Keys: bson.D{{"x", 1}}})
+			_, err := mt.Coll.Indexes().CreateOne(context.Background(), mongo.IndexModel{Keys: bson.D{{"x", 1}}})
 			assert.NotNil(mt, err, "expected CreateOne error, got nil")
 			cmdErr, ok := err.(mongo.CommandError)
 			assert.True(mt, ok, "expected mongo.CommandError, got %T", err)
@@ -297,7 +298,7 @@ func TestIndexView(t *testing.T) {
 		mt.Run("multi-key map", func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
 
-			_, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+			_, err := iv.CreateOne(context.Background(), mongo.IndexModel{
 				Keys: bson.M{"foo": 1, "bar": -1},
 			})
 			assert.NotNil(mt, err, "expected CreateOne error, got nil")
@@ -307,7 +308,7 @@ func TestIndexView(t *testing.T) {
 			iv := mt.Coll.Indexes()
 			expectedName := "foo_1"
 
-			indexName, err := iv.CreateOne(mtest.Background, mongo.IndexModel{
+			indexName, err := iv.CreateOne(context.Background(), mongo.IndexModel{
 				Keys: bson.M{"foo": 1},
 			})
 			assert.Nil(mt, err, "CreateOne error: %v", err)
@@ -325,7 +326,7 @@ func TestIndexView(t *testing.T) {
 			firstKeysDoc := bson.D{{"foo", int32(-1)}}
 			secondKeysDoc := bson.D{{"bar", int32(1)}, {"baz", int32(-1)}}
 			expectedNames := []string{"foo_-1", "bar_1_baz_-1"}
-			indexNames, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+			indexNames, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
 				{
 					Keys: firstKeysDoc,
 				},
@@ -349,7 +350,7 @@ func TestIndexView(t *testing.T) {
 		wcMtOpts := mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(wc))
 		mt.RunOpts("uses writeconcern", wcMtOpts, func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
-			_, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+			_, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
 				{
 					Keys: bson.D{{"foo", -1}},
 				},
@@ -402,7 +403,7 @@ func TestIndexView(t *testing.T) {
 				mtOpts := mtest.NewOptions().MinServerVersion(tc.minServerVersion).MaxServerVersion(tc.maxServerVersion)
 				mt.RunOpts(tc.name, mtOpts, func(mt *mtest.T) {
 					mt.ClearEvents()
-					_, err := mt.Coll.Indexes().CreateMany(mtest.Background, []mongo.IndexModel{indexModel1, indexModel2}, tc.opts)
+					_, err := mt.Coll.Indexes().CreateMany(context.Background(), []mongo.IndexModel{indexModel1, indexModel2}, tc.opts)
 					if tc.expectError {
 						assert.NotNil(mt, err, "expected CreateMany error, got nil")
 						return
@@ -433,7 +434,7 @@ func TestIndexView(t *testing.T) {
 				},
 			})
 
-			_, err := mt.Coll.Indexes().CreateMany(mtest.Background, []mongo.IndexModel{
+			_, err := mt.Coll.Indexes().CreateMany(context.Background(), []mongo.IndexModel{
 				{
 					Keys: bson.D{{"foo", int32(-1)}},
 				},
@@ -449,7 +450,7 @@ func TestIndexView(t *testing.T) {
 		})
 		mt.Run("multi-key map", func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
-			_, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+			_, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
 				{
 					Keys: bson.M{"foo": 1, "bar": -1},
 				},
@@ -465,7 +466,7 @@ func TestIndexView(t *testing.T) {
 			firstKeysDoc := bson.M{"foo": -1}
 			secondKeysDoc := bson.D{{"bar", int32(1)}, {"baz", int32(-1)}}
 			expectedNames := []string{"foo_-1", "bar_1_baz_-1"}
-			indexNames, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+			indexNames, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
 				{
 					Keys: firstKeysDoc,
 				},
@@ -489,7 +490,7 @@ func TestIndexView(t *testing.T) {
 	mt.RunOpts("list specifications", noClientOpts, func(mt *mtest.T) {
 		mt.Run("verify results", func(mt *mtest.T) {
 			// Create a handful of indexes
-			_, err := mt.Coll.Indexes().CreateMany(mtest.Background, []mongo.IndexModel{
+			_, err := mt.Coll.Indexes().CreateMany(context.Background(), []mongo.IndexModel{
 				{
 					Keys:    bson.D{{"foo", int32(-1)}},
 					Options: options.Index().SetUnique(true),
@@ -562,14 +563,14 @@ func TestIndexView(t *testing.T) {
 				}
 			}
 
-			specs, err := mt.Coll.Indexes().ListSpecifications(mtest.Background)
+			specs, err := mt.Coll.Indexes().ListSpecifications(context.Background())
 			assert.Nil(mt, err, "ListSpecifications error: %v", err)
 			assert.Equal(mt, len(expectedSpecs), len(specs), "expected %d specification, got %d", len(expectedSpecs), len(specs))
 			assert.True(mt, cmp.Equal(specs, expectedSpecs), "expected specifications to match: %v", cmp.Diff(specs, expectedSpecs))
 		})
 		mt.RunOpts("options passed to listIndexes", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
 			opts := options.ListIndexes().SetMaxTime(100 * time.Millisecond)
-			_, err := mt.Coll.Indexes().ListSpecifications(mtest.Background, opts)
+			_, err := mt.Coll.Indexes().ListSpecifications(context.Background(), opts)
 			assert.Nil(mt, err, "ListSpecifications error: %v", err)
 
 			evt := mt.GetStartedEvent()
@@ -582,7 +583,7 @@ func TestIndexView(t *testing.T) {
 	})
 	mt.Run("drop one", func(mt *mtest.T) {
 		iv := mt.Coll.Indexes()
-		indexNames, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+		indexNames, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
 			{
 				Keys: bson.D{{"foo", -1}},
 			},
@@ -593,12 +594,12 @@ func TestIndexView(t *testing.T) {
 		assert.Nil(mt, err, "CreateMany error: %v", err)
 		assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
 
-		_, err = iv.DropOne(mtest.Background, indexNames[1])
+		_, err = iv.DropOne(context.Background(), indexNames[1])
 		assert.Nil(mt, err, "DropOne error: %v", err)
 
-		cursor, err := iv.List(mtest.Background)
+		cursor, err := iv.List(context.Background())
 		assert.Nil(mt, err, "List error: %v", err)
-		for cursor.Next(mtest.Background) {
+		for cursor.Next(context.Background()) {
 			var idx index
 			err = cursor.Decode(&idx)
 			assert.Nil(mt, err, "Decode error: %v (document %v)", err, cursor.Current)
@@ -608,7 +609,7 @@ func TestIndexView(t *testing.T) {
 	})
 	mt.Run("drop all", func(mt *mtest.T) {
 		iv := mt.Coll.Indexes()
-		names, err := iv.CreateMany(mtest.Background, []mongo.IndexModel{
+		names, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
 			{
 				Keys: bson.D{{"foo", -1}},
 			},
@@ -618,12 +619,12 @@ func TestIndexView(t *testing.T) {
 		})
 		assert.Nil(mt, err, "CreateMany error: %v", err)
 		assert.Equal(mt, 2, len(names), "expected 2 index names, got %v", len(names))
-		_, err = iv.DropAll(mtest.Background)
+		_, err = iv.DropAll(context.Background())
 		assert.Nil(mt, err, "DropAll error: %v", err)
 
-		cursor, err := iv.List(mtest.Background)
+		cursor, err := iv.List(context.Background())
 		assert.Nil(mt, err, "List error: %v", err)
-		for cursor.Next(mtest.Background) {
+		for cursor.Next(context.Background()) {
 			var idx index
 			err = cursor.Decode(&idx)
 			assert.Nil(mt, err, "Decode error: %v (document %v)", err, cursor.Current)
@@ -635,10 +636,10 @@ func TestIndexView(t *testing.T) {
 }
 
 func getIndexDoc(mt *mtest.T, iv mongo.IndexView, expectedKeyDoc bson.D) bson.D {
-	c, err := iv.List(mtest.Background)
+	c, err := iv.List(context.Background())
 	assert.Nil(mt, err, "List error: %v", err)
 
-	for c.Next(mtest.Background) {
+	for c.Next(context.Background()) {
 		var index bson.D
 		err = c.Decode(&index)
 		assert.Nil(mt, err, "Decode error: %v", err)
@@ -672,11 +673,11 @@ func checkIndexDocContains(mt *mtest.T, indexDoc bson.D, expectedElem bson.E) {
 func verifyIndexExists(mt *mtest.T, iv mongo.IndexView, expected index) {
 	mt.Helper()
 
-	cursor, err := iv.List(mtest.Background)
+	cursor, err := iv.List(context.Background())
 	assert.Nil(mt, err, "List error: %v", err)
 
 	var found bool
-	for cursor.Next(mtest.Background) {
+	for cursor.Next(context.Background()) {
 		var idx index
 		err = cursor.Decode(&idx)
 		assert.Nil(mt, err, "Decode error: %v", err)

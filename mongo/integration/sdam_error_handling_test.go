@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build go1.13
 // +build go1.13
 
 package integration
@@ -138,7 +139,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					tpm := newTestPoolMonitor()
 					mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
 
-					_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+					_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 					assert.NotNil(mt, err, "expected InsertOne error, got nil")
 					assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 					assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared but was not")
@@ -167,7 +168,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				tpm := newTestPoolMonitor()
 				mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
 
-				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"test", 1}})
+				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"test", 1}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 				assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared but was not")
@@ -176,13 +177,13 @@ func TestSDAMErrorHandling(t *testing.T) {
 				tpm := newTestPoolMonitor()
 				mt.ResetClient(baseClientOpts().SetPoolMonitor(tpm.PoolMonitor))
 
-				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
 				filter := bson.M{
 					"$where": "function() { sleep(1000); return false; }",
 				}
-				timeoutCtx, cancel := context.WithTimeout(mtest.Background, 100*time.Millisecond)
+				timeoutCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 				defer cancel()
 				_, err = mt.Coll.Find(timeoutCtx, filter)
 				assert.NotNil(mt, err, "expected Find error, got %v", err)
@@ -193,10 +194,10 @@ func TestSDAMErrorHandling(t *testing.T) {
 				tpm := newTestPoolMonitor()
 				mt.ResetClient(baseClientOpts().SetPoolMonitor(tpm.PoolMonitor))
 
-				_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
-				findCtx, cancel := context.WithCancel(mtest.Background)
+				findCtx, cancel := context.WithCancel(context.Background())
 				go func() {
 					time.Sleep(100 * time.Millisecond)
 					cancel()
@@ -300,7 +301,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 func runServerErrorsTest(mt *mtest.T, isShutdownError bool, tpm *testPoolMonitor) {
 	mt.Helper()
 
-	_, err := mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+	_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 	assert.NotNil(mt, err, "expected InsertOne error, got nil")
 
 	// The pool should always be cleared for shutdown errors, regardless of server version.

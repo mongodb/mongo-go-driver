@@ -65,7 +65,7 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 	}
 	// for sharded clusters, pin to one host. Due to how the cache is implemented on 4.0 and 4.2, behavior
 	// can be inconsistent when multiple mongoses are used
-	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority).SetHosts(cs.Hosts[:1]))
+	return mongo.Connect(context.Background(), opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority).SetHosts(cs.Hosts[:1]))
 }
 
 // Setup initializes the current testing context.
@@ -124,7 +124,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		return fmt.Errorf("error connecting test client: %v", err)
 	}
 
-	pingCtx, cancel := context.WithTimeout(Background, 2*time.Second)
+	pingCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	if err := testContext.client.Ping(pingCtx, readpref.Primary()); err != nil {
 		return fmt.Errorf("ping error: %v; make sure the deployment is running on URI %v", err,
@@ -151,16 +151,16 @@ func Setup(setupOpts ...*SetupOptions) error {
 	// If we're connected to a sharded cluster, determine if the cluster is backed by replica sets.
 	if testContext.topoKind == Sharded {
 		// Run a find against config.shards and get each document in the collection.
-		cursor, err := testContext.client.Database("config").Collection("shards").Find(Background, bson.D{})
+		cursor, err := testContext.client.Database("config").Collection("shards").Find(context.Background(), bson.D{})
 		if err != nil {
 			return fmt.Errorf("error running find against config.shards: %v", err)
 		}
-		defer cursor.Close(Background)
+		defer cursor.Close(context.Background())
 
 		var shards []struct {
 			Host string `bson:"host"`
 		}
-		if err := cursor.All(Background, &shards); err != nil {
+		if err := cursor.All(context.Background(), &shards); err != nil {
 			return fmt.Errorf("error getting results find against config.shards: %v", err)
 		}
 
@@ -204,7 +204,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 	testContext.authEnabled = os.Getenv("AUTH") == "auth"
 	testContext.sslEnabled = os.Getenv("SSL") == "ssl"
 	testContext.serverless = os.Getenv("SERVERLESS") == "serverless"
-	biRes, err := testContext.client.Database("admin").RunCommand(Background, bson.D{{"buildInfo", 1}}).DecodeBytes()
+	biRes, err := testContext.client.Database("admin").RunCommand(context.Background(), bson.D{{"buildInfo", 1}}).DecodeBytes()
 	if err != nil {
 		return fmt.Errorf("buildInfo error: %v", err)
 	}
@@ -223,7 +223,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 	// Get server parameters if test is not running against ADL; ADL does not have "getParameter" command.
 	if !testContext.dataLake {
 		db := testContext.client.Database("admin")
-		testContext.serverParameters, err = db.RunCommand(Background, bson.D{{"getParameter", "*"}}).DecodeBytes()
+		testContext.serverParameters, err = db.RunCommand(context.Background(), bson.D{{"getParameter", "*"}}).DecodeBytes()
 		if err != nil {
 			return fmt.Errorf("error getting serverParameters: %v", err)
 		}
@@ -236,14 +236,14 @@ func Setup(setupOpts ...*SetupOptions) error {
 func Teardown() error {
 	// Dropping the test database causes an error against Atlas Data Lake.
 	if !testContext.dataLake {
-		if err := testContext.client.Database(TestDb).Drop(Background); err != nil {
+		if err := testContext.client.Database(TestDb).Drop(context.Background()); err != nil {
 			return fmt.Errorf("error dropping test database: %v", err)
 		}
 	}
-	if err := testContext.client.Disconnect(Background); err != nil {
+	if err := testContext.client.Disconnect(context.Background()); err != nil {
 		return fmt.Errorf("error disconnecting test client: %v", err)
 	}
-	if err := testContext.topo.Disconnect(Background); err != nil {
+	if err := testContext.topo.Disconnect(context.Background()); err != nil {
 		return fmt.Errorf("error disconnecting test topology: %v", err)
 	}
 	return nil
@@ -252,7 +252,7 @@ func Teardown() error {
 func getServerVersion() (string, error) {
 	var serverStatus bson.Raw
 	err := testContext.client.Database(TestDb).RunCommand(
-		Background,
+		context.Background(),
 		bson.D{{"buildInfo", 1}},
 	).Decode(&serverStatus)
 	if err != nil {

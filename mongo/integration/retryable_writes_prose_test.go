@@ -8,6 +8,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -79,14 +80,14 @@ func TestRetryableWritesProse(t *testing.T) {
 	})
 	errorOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt.RunOpts("wrap mmapv1 error", errorOpts, func(mt *mtest.T) {
-		res, err := mt.DB.RunCommand(mtest.Background, bson.D{{"serverStatus", 1}}).DecodeBytes()
+		res, err := mt.DB.RunCommand(context.Background(), bson.D{{"serverStatus", 1}}).DecodeBytes()
 		assert.Nil(mt, err, "serverStatus error: %v", err)
 		storageEngine, ok := res.Lookup("storageEngine", "name").StringValueOK()
 		if !ok || storageEngine != "mmapv1" {
 			mt.Skip("skipping because storage engine is not mmapv1")
 		}
 
-		_, err = mt.Coll.InsertOne(mtest.Background, bson.D{{"x", 1}})
+		_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.Equal(mt, driver.ErrUnsupportedStorageEngine, err,
 			"expected error %v, got %v", driver.ErrUnsupportedStorageEngine, err)
 	})
@@ -98,11 +99,11 @@ func TestRetryableWritesProse(t *testing.T) {
 
 			sess, err := mt.Client.StartSession()
 			assert.Nil(mt, err, "StartSession error: %v", err)
-			defer sess.EndSession(mtest.Background)
+			defer sess.EndSession(context.Background())
 
 			mt.ClearEvents()
 
-			err = mongo.WithSession(mtest.Background, sess, func(ctx mongo.SessionContext) error {
+			err = mongo.WithSession(context.Background(), sess, func(ctx mongo.SessionContext) error {
 				doc := bson.D{{"foo", 1}}
 				_, err := mt.Coll.InsertOne(ctx, doc)
 				return err
@@ -124,7 +125,7 @@ func TestRetryableWritesProse(t *testing.T) {
 			mt.ClearEvents()
 
 			doc := bson.D{{"foo", 1}}
-			_, err := mt.Coll.InsertOne(mtest.Background, doc)
+			_, err := mt.Coll.InsertOne(context.Background(), doc)
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 
 			command := mt.GetStartedEvent().Command

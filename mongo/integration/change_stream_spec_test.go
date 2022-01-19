@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"context"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -133,20 +134,20 @@ func runChangeStreamTest(mt *mtest.T, test changeStreamTest, testFile changeStre
 			mt.Fatalf("unrecognized change stream target: %v", test.Target)
 		}
 		csOpts := createChangeStreamOptions(mt, test.Options)
-		changeStream, err := watcher.Watch(mtest.Background, test.Pipeline, csOpts)
+		changeStream, err := watcher.Watch(context.Background(), test.Pipeline, csOpts)
 		if err == nil {
 			err = runChangeStreamOperations(mt, test)
 		}
 		if err == nil && test.Result.Error != nil {
 			// if there was no error and an error is expected, capture the result from iterating the stream once
-			changeStream.Next(mtest.Background)
+			changeStream.Next(context.Background())
 			err = changeStream.Err()
 		}
 		if err == nil && len(test.Result.Success) != 0 {
 			// if there was no error and success array is non-empty, iterate stream until it returns as many changes
 			// as there are elements in the success array or an error is thrown
 			for i := 0; i < len(test.Result.Success); i++ {
-				if !changeStream.Next(mtest.Background) {
+				if !changeStream.Next(context.Background()) {
 					break
 				}
 
@@ -158,7 +159,7 @@ func runChangeStreamTest(mt *mtest.T, test changeStreamTest, testFile changeStre
 			err = changeStream.Err()
 		}
 		if changeStream != nil {
-			closeErr := changeStream.Close(mtest.Background)
+			closeErr := changeStream.Close(context.Background())
 			assert.Nil(mt, closeErr, "Close error: %v", err)
 		}
 
@@ -213,7 +214,7 @@ func runChangeStreamOperations(mt *mtest.T, test changeStreamTest) error {
 			}, false)
 			err = res.Err()
 		case "drop":
-			err = mt.Coll.Drop(mtest.Background)
+			err = mt.Coll.Drop(context.Background())
 		default:
 			mt.Fatalf("unrecognized operation: %v", op.Name)
 		}
