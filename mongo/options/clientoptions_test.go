@@ -538,6 +538,11 @@ func TestClientOptions(t *testing.T) {
 				baseClient().SetSRVMaxHosts(2).
 					SetHosts([]string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"}),
 			},
+			{
+				"GODRIVER-2263 regression test",
+				"mongodb://localhost/?tlsCertificateKeyFile=testdata/one-pk-multiple-certs.pem",
+				baseClient().SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
+			},
 		}
 
 		for _, tc := range testCases {
