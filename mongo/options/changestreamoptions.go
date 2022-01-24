@@ -46,6 +46,10 @@ type ChangeStreamOptions struct {
 	// corresponding to an oplog entry immediately after the specified token will be returned. If this is specified,
 	// ResumeAfter and StartAtOperationTime must not be set. This option is only valid for MongoDB versions >= 4.1.1.
 	StartAfter interface{}
+
+	// Custom options to be added to the initial aggregate for the change stream. Key-value pairs should correlate with
+	// desired option names and values. Values must be Marshalable.
+	CustomOptions map[string]interface{}
 }
 
 // ChangeStream creates a new ChangeStreamOptions instance.
@@ -97,6 +101,13 @@ func (cso *ChangeStreamOptions) SetStartAfter(sa interface{}) *ChangeStreamOptio
 	return cso
 }
 
+// SetCustomOptions sets the value for the CustomOptions field. Key-value pairs should correlate with
+// desired option names and values. Values must be Marshalable.
+func (cso *ChangeStreamOptions) SetCustomOptions(co map[string]interface{}) *ChangeStreamOptions {
+	cso.CustomOptions = co
+	return cso
+}
+
 // MergeChangeStreamOptions combines the given ChangeStreamOptions instances into a single ChangeStreamOptions in a
 // last-one-wins fashion.
 func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions {
@@ -125,6 +136,9 @@ func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions
 		}
 		if cso.StartAfter != nil {
 			csOpts.StartAfter = cso.StartAfter
+		}
+		if cso.CustomOptions != nil {
+			csOpts.CustomOptions = cso.CustomOptions
 		}
 	}
 

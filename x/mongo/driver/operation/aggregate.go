@@ -46,6 +46,7 @@ type Aggregate struct {
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
 	hasOutputStage           bool
+	customOptions            map[string]bsoncore.Value
 
 	result driver.CursorResponse
 }
@@ -154,6 +155,9 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 	}
 	if a.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", a.let)
+	}
+	for optionName, optionValue := range a.customOptions {
+		dst = bsoncore.AppendValueElement(dst, optionName, optionValue)
 	}
 	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
 	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc)
@@ -391,5 +395,15 @@ func (a *Aggregate) HasOutputStage(hos bool) *Aggregate {
 	}
 
 	a.hasOutputStage = hos
+	return a
+}
+
+// CustomOptions specifies extra options to use in the aggregate command.
+func (a *Aggregate) CustomOptions(co map[string]bsoncore.Value) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.customOptions = co
 	return a
 }
