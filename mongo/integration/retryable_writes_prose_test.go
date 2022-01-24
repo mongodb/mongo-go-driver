@@ -9,9 +9,11 @@ package integration
 import (
 	"bytes"
 	"context"
+	"sync"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -136,5 +138,73 @@ func TestRetryableWritesProse(t *testing.T) {
 			txnNumber, err := command.LookupErr("txnNumber")
 			assert.NotNil(mt, err, "expected no txnNumber, got %v", txnNumber)
 		})
+	})
+
+	tpm := newTestPoolMonitor()
+	pceOpts := options.Client().SetMaxPoolSize(1).SetRetryWrites(true).
+		SetPoolMonitor(tpm.PoolMonitor)
+	mtPceOpts := mtest.NewOptions().ClientOptions(pceOpts).MinServerVersion("4.3")
+	mt.RunOpts("PoolClearedError retryability", mtPceOpts, func(mt *mtest.T) {
+		// Force Find to block for 1 second once.
+		mt.SetFailPoint(mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: mtest.FailPointMode{
+				Times: 1,
+			},
+			Data: mtest.FailPointData{
+				FailCommands:    []string{"insert"},
+				ErrorCode:       91,
+				BlockConnection: true,
+				BlockTimeMS:     1000,
+				ErrorLabels:     &[]string{"RetryableWriteError"},
+			},
+		})
+
+		// Clear CMAP and command events.
+		tpm.ClearEvents()
+		mt.ClearEvents()
+
+		// Perform an InsertOne on two different threads and assert both operations are
+		// successful.
+		var wg sync.WaitGroup
+		for i := 0; i < 2; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+				// FIXME-1910: InsertOne fails and errors because of the failpoint; it looks
+				// like retry logic is not working.
+				assert.Nil(mt, err, "InsertOne error: %v", err)
+			}()
+		}
+		wg.Wait()
+
+		// Gather GetSucceeded, GetFailed and PoolCleared pool events.
+		events := tpm.Events(func(e *event.PoolEvent) bool {
+			getSucceeded := e.Type == event.GetSucceeded
+			getFailed := e.Type == event.GetFailed
+			poolCleared := e.Type == event.PoolCleared
+			return getSucceeded || getFailed || poolCleared
+		})
+
+		// Assert that first check out succeeds, pool is cleared, and second check
+		// out fails due to connection error.
+		assert.Equal(mt, 3, len(events), "expected 3 events, got %v", len(events))
+		assert.Equal(mt, event.GetSucceeded, events[0].Type,
+			"expected ConnectionCheckedOut event, got %v", events[0].Type)
+		assert.Equal(mt, event.PoolCleared, events[1].Type,
+			"expected ConnectionPoolCleared event, got %v", events[1].Type)
+		assert.Equal(mt, event.GetFailed, events[2].Type,
+			"expected ConnectionCheckedOutFailed event, got %v", events[2].Type)
+		assert.Equal(mt, event.ReasonConnectionErrored, events[2].Reason,
+			"expected check out failure due to connection error, failed due to %q", events[2].Reason)
+
+		// Assert that three insert CommandStartedEvents were observed.
+		for i := 0; i < 3; i++ {
+			cmdEvt := mt.GetStartedEvent()
+			assert.NotNil(mt, cmdEvt, "expected an insert event, got nil")
+			assert.Equal(mt, cmdEvt.CommandName, "insert",
+				"expected an insert event, got a(n) %v event", cmdEvt.CommandName)
+		}
 	})
 }

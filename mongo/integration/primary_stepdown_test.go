@@ -72,6 +72,13 @@ func (tpm *testPoolMonitor) Events(filters ...func(*event.PoolEvent) bool) []*ev
 	return filtered
 }
 
+// ClearEvents will reset the events collected by the testPoolMonitor.
+func (tpm *testPoolMonitor) ClearEvents() {
+	tpm.mu.Lock()
+	defer tpm.mu.Unlock()
+	tpm.events = nil
+}
+
 // IsPoolCleared returns true if there are any events of type "event.PoolCleared" in the events
 // recorded by the testPoolMonitor.
 func (tpm *testPoolMonitor) IsPoolCleared() bool {
