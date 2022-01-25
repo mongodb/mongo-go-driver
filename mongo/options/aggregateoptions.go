@@ -52,7 +52,8 @@ type AggregateOptions struct {
 	Let interface{}
 
 	// Custom options to be added to aggregate expression. Key-value pairs should correlate with desired option names
-	// and values. Values must be Marshalable.
+	// and values. Values must be Marshalable. Custom options may conflict with non-custom options, and custom options
+	// bypass client-side validation. Prefer using non-custom options where possible.
 	CustomOptions map[string]interface{}
 }
 
@@ -116,7 +117,9 @@ func (ao *AggregateOptions) SetLet(let interface{}) *AggregateOptions {
 }
 
 // SetCustomOptions sets the value for the CustomOptions field. Key-value pairs should correlate with
-// desired option names and values. Values must be Marshalable.
+// desired option names and values. Values must be Marshalable. Custom options may conflict with
+// non-custom options, and custom options bypass client-side validation. Prefer using non-custom
+// options where possible.
 func (ao *AggregateOptions) SetCustomOptions(co map[string]interface{}) *AggregateOptions {
 	ao.CustomOptions = co
 	return ao

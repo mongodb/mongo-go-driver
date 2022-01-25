@@ -48,7 +48,8 @@ type ChangeStreamOptions struct {
 	StartAfter interface{}
 
 	// Custom options to be added to the initial aggregate for the change stream. Key-value pairs should correlate with
-	// desired option names and values. Values must be Marshalable.
+	// desired option names and values. Values must be Marshalable. Custom options may conflict with non-custom options,
+	// and custom options bypass client-side validation. Prefer using non-custom options where possible.
 	CustomOptions map[string]interface{}
 }
 
@@ -102,7 +103,9 @@ func (cso *ChangeStreamOptions) SetStartAfter(sa interface{}) *ChangeStreamOptio
 }
 
 // SetCustomOptions sets the value for the CustomOptions field. Key-value pairs should correlate with
-// desired option names and values. Values must be Marshalable.
+// desired option names and values. Values must be Marshalable. Custom options may conflict with
+// non-custom options, and custom options bypass client-side validation. Prefer using non-custom
+// options where possible.
 func (cso *ChangeStreamOptions) SetCustomOptions(co map[string]interface{}) *ChangeStreamOptions {
 	cso.CustomOptions = co
 	return cso
