@@ -151,6 +151,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
 			if err != nil {
 				cs.err = err
+				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
 			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
