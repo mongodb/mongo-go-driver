@@ -9,6 +9,7 @@ package options
 import (
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -47,10 +48,10 @@ type ChangeStreamOptions struct {
 	// ResumeAfter and StartAtOperationTime must not be set. This option is only valid for MongoDB versions >= 4.1.1.
 	StartAfter interface{}
 
-	// Custom options to be added to the initial aggregate for the change stream. Key-value pairs should correlate with
-	// desired option names and values. Values must be Marshalable. Custom options may conflict with non-custom options,
-	// and custom options bypass client-side validation. Prefer using non-custom options where possible.
-	CustomOptions map[string]interface{}
+	// Custom options to be added to the initial aggregate for the change stream. Key-value pairs of the BSON map should
+	// correlate with desired option names and values. Values must be Marshalable. Custom options may conflict with
+	// non-custom options, and custom options bypass client-side validation. Prefer using non-custom options where possible.
+	CustomOptions bson.M
 }
 
 // ChangeStream creates a new ChangeStreamOptions instance.
@@ -102,11 +103,11 @@ func (cso *ChangeStreamOptions) SetStartAfter(sa interface{}) *ChangeStreamOptio
 	return cso
 }
 
-// SetCustomOptions sets the value for the CustomOptions field. Key-value pairs should correlate with
-// desired option names and values. Values must be Marshalable. Custom options may conflict with
-// non-custom options, and custom options bypass client-side validation. Prefer using non-custom
-// options where possible.
-func (cso *ChangeStreamOptions) SetCustomOptions(co map[string]interface{}) *ChangeStreamOptions {
+// SetCustomOptions sets the value for the CustomOptions field. Key-value pairs of the BSON map
+// should correlate with desired option names and values. Values must be Marshalable. Custom options
+// may conflict with non-custom options, and custom options bypass client-side validation. Prefer
+// using non-custom options where possible.
+func (cso *ChangeStreamOptions) SetCustomOptions(co bson.M) *ChangeStreamOptions {
 	cso.CustomOptions = co
 	return cso
 }

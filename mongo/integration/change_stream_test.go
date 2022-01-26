@@ -635,10 +635,9 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
 	})
 	mt.Run("CustomOptions", func(mt *mtest.T) {
-		// Custom options should be a map of option names (strings) to Marshalable option values.
+		// Custom options should be a BSON map of option names to Marshalable option values.
 		// We use "allowDiskUse" as an example.
-		customOpts := make(map[string]interface{})
-		customOpts["allowDiskUse"] = true
+		customOpts := bson.M{"allowDiskUse": true}
 		opts := options.ChangeStream().SetCustomOptions(customOpts)
 
 		// Create change stream with custom options set.

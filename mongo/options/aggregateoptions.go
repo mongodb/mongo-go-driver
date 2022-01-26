@@ -6,7 +6,11 @@
 
 package options
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+)
 
 // AggregateOptions represents options that can be used to configure an Aggregate operation.
 type AggregateOptions struct {
@@ -51,10 +55,10 @@ type AggregateOptions struct {
 	// accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
 
-	// Custom options to be added to aggregate expression. Key-value pairs should correlate with desired option names
-	// and values. Values must be Marshalable. Custom options may conflict with non-custom options, and custom options
-	// bypass client-side validation. Prefer using non-custom options where possible.
-	CustomOptions map[string]interface{}
+	// Custom options to be added to aggregate expression. Key-value pairs of the BSON map should correlate with desired
+	// option names and values. Values must be Marshalable. Custom options may conflict with non-custom options, and custom
+	// options bypass client-side validation. Prefer using non-custom options where possible.
+	CustomOptions bson.M
 }
 
 // Aggregate creates a new AggregateOptions instance.
@@ -116,11 +120,11 @@ func (ao *AggregateOptions) SetLet(let interface{}) *AggregateOptions {
 	return ao
 }
 
-// SetCustomOptions sets the value for the CustomOptions field. Key-value pairs should correlate with
-// desired option names and values. Values must be Marshalable. Custom options may conflict with
-// non-custom options, and custom options bypass client-side validation. Prefer using non-custom
-// options where possible.
-func (ao *AggregateOptions) SetCustomOptions(co map[string]interface{}) *AggregateOptions {
+// SetCustomOptions sets the value for the CustomOptions field. Key-value pairs of the BSON map
+// should correlate with desired option names and values. Values must be Marshalable. Custom options
+// may conflict with non-custom options, and custom options bypass client-side validation. Prefer
+// using non-custom options where possible.
+func (ao *AggregateOptions) SetCustomOptions(co bson.M) *AggregateOptions {
 	ao.CustomOptions = co
 	return ao
 }

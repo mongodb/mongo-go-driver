@@ -800,10 +800,9 @@ func TestCollection(t *testing.T) {
 			})
 		})
 		mt.Run("CustomOptions", func(mt *mtest.T) {
-			// Custom options should be a map of option names (strings) to Marshalable option values.
+			// Custom options should be a BSON map of option names to Marshalable option values.
 			// We use "allowDiskUse" as an example.
-			customOpts := make(map[string]interface{})
-			customOpts["allowDiskUse"] = true
+			customOpts := bson.M{"allowDiskUse": true}
 			opts := options.Aggregate().SetCustomOptions(customOpts)
 
 			// Run aggregate with custom options set.
