@@ -328,6 +328,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 
+	var srvr Server
+	var conn Connection
 	var res bsoncore.Document
 	var operationErr WriteCommandError
 	var prevErr error
@@ -337,28 +339,35 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	first := true
 	currIndex := 0
 	for {
-		srvr, conn, err := op.getServerAndConnection(ctx)
-		if err != nil {
-			if conn != nil {
-				conn.Close()
-			}
+		// If the server or connection are nil, try to select a new server and get a new connection.
+		if srvr == nil || conn == nil {
+			srvr, conn, err = op.getServerAndConnection(ctx)
+			if err != nil {
+				if conn != nil {
+					conn.Close()
+				}
 
-			// If the returned error is retryable and there are retries remaining (negative retries
-			// means retry indefinitely), then retry the operation.
-			if rerr, ok := err.(interface{ Retryable() bool }); ok && rerr.Retryable() && retries != 0 {
-				prevErr = err
-				retries--
-				continue
-			}
+				// If the returned error is retryable and there are retries remaining (negative
+				// retries means retry indefinitely), then retry the operation. Set the server
+				// and connection to nil to request a new server and connection.
+				if rerr, ok := err.(interface{ Retryable() bool }); ok && rerr.Retryable() && retries != 0 {
+					retries--
+					prevErr = err
+					// Set the server and connection to nil to request a new server and connection.
+					srvr = nil
+					conn = nil
+					continue
+				}
 
-			// If this is a retry and there's an error from a previous attempt, return the previous
-			// error instead of the current connection error.
-			if prevErr != nil {
-				return prevErr
+				// If this is a retry and there's an error from a previous attempt, return the previous
+				// error instead of the current connection error.
+				if prevErr != nil {
+					return prevErr
+				}
+				return err
 			}
-			return err
+			defer conn.Close()
 		}
-		defer conn.Close()
 
 		// Run steps that must only be run on the first attempt, but not again for retries.
 		if first {
@@ -520,6 +529,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				retries--
 				prevErr = tt
+				// Set the server and connection to nil to request a new server and connection.
+				srvr = nil
+				conn = nil
 				continue
 			}
 
@@ -606,6 +618,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				retries--
 				prevErr = tt
+				// Set the server and connection to nil to request a new server and connection.
+				srvr = nil
+				conn = nil
 				continue
 			}
 
@@ -657,6 +672,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			return err
 		}
 
+		// If we're batching and there are batches remaining, advance to the next batch. This isn't
+		// a retry, so increment the transaction number, reset the retries number, and don't set
+		// server or connection to nil to continue using the same connection.
 		if batching && len(op.Batches.Documents) > 0 {
 			if retrySupported && op.Client != nil && op.RetryMode != nil {
 				if *op.RetryMode > RetryNone {

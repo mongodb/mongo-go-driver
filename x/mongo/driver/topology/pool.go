@@ -46,18 +46,18 @@ func (pe PoolError) Error() string { return string(pe) }
 // poolClearedError is an error returned when the connection pool is cleared or currently paused. It
 // is a retryable error.
 type poolClearedError struct {
-	Err     error
-	Address address.Address
+	err     string
+	address address.Address
 }
 
 func (pce poolClearedError) Error() string {
 	return fmt.Sprintf(
-		"connection pool for %v was cleared because another operation failed with: %v",
-		pce.Address,
-		pce.Err)
+		"connection pool for %v was cleared because another operation failed with: %s",
+		pce.address,
+		pce.err)
 }
 
-// Retryable returns true. All PoolClearedErrors are retryable.
+// Retryable returns true. All poolClearedErrors are retryable.
 func (poolClearedError) Retryable() bool { return true }
 
 // poolConfig contains all aspects of the pool that can be configured
@@ -376,7 +376,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return nil, ErrPoolClosed
 	case poolPaused:
-		err := poolClearedError{Err: p.lastClearErr, Address: p.address}
+		err := poolClearedError{err: p.lastClearErr.Error(), address: p.address}
 		p.createConnectionsCond.L.Unlock()
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
@@ -633,7 +633,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, poolClearedError{Err: err, Address: p.address})
+			w.tryDeliver(nil, poolClearedError{err: err.Error(), address: p.address})
 		}
 		p.idleMu.Unlock()
 
@@ -644,7 +644,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, poolClearedError{Err: err, Address: p.address})
+			w.tryDeliver(nil, poolClearedError{err: err.Error(), address: p.address})
 		}
 		p.createConnectionsCond.L.Unlock()
 	}
