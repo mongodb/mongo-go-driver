@@ -613,13 +613,8 @@ func TestClient(t *testing.T) {
 		// application connection. These handshakes should use OP_QUERY as their OpCode, as wire version is not yet
 		// known.
 		for idx, pair := range msgPairs[:2] {
-			helloCommand := internal.LegacyHello
-			//  Expect "hello" command name with API version.
-			if os.Getenv("REQUIRE_API_VERSION") == "true" {
-				helloCommand = "hello"
-			}
-			assert.Equal(mt, helloCommand, pair.CommandName, "expected command name %s at index %d, got %s", helloCommand, idx,
-				pair.CommandName)
+			assert.Equal(mt, internal.LegacyHello, pair.CommandName, "expected command name %s at index %d, got %s",
+				internal.LegacyHello, idx, pair.CommandName)
 
 			// Assert that appended OpCode is OP_QUERY.
 			assert.Equal(mt, wiremessage.OpQuery, pair.Sent.OpCode,
