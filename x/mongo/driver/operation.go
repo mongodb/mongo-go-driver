@@ -305,40 +305,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 
-	srvr, conn, err := op.getServerAndConnection(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
-	scratch = scratch[:0]
-
-	if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
-		switch op.Legacy {
-		case LegacyFind:
-			return op.legacyFind(ctx, scratch, srvr, conn, desc)
-		case LegacyGetMore:
-			return op.legacyGetMore(ctx, scratch, srvr, conn, desc)
-		case LegacyKillCursors:
-			return op.legacyKillCursors(ctx, scratch, srvr, conn, desc)
-		}
-	}
-	if desc.WireVersion == nil || desc.WireVersion.Max < 3 {
-		switch op.Legacy {
-		case LegacyListCollections:
-			return op.legacyListCollections(ctx, scratch, srvr, conn, desc)
-		case LegacyListIndexes:
-			return op.legacyListIndexes(ctx, scratch, srvr, conn, desc)
-		}
-	}
-
-	var res bsoncore.Document
-	var operationErr WriteCommandError
-	var original error
 	var retries int
-	retryable := op.retryable(desc.Server)
-	if retryable && op.RetryMode != nil {
+	if op.RetryMode != nil {
 		switch op.Type {
 		case Write:
 			if op.Client == nil {
@@ -350,15 +318,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			case RetryContext:
 				retries = -1
 			}
-
-			op.Client.RetryWrite = false
-			if *op.RetryMode > RetryNone {
-				op.Client.RetryWrite = true
-				if !op.Client.Committing && !op.Client.Aborting {
-					op.Client.IncrementTxnNumber()
-				}
-			}
-
 		case Read:
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
@@ -368,10 +327,72 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		}
 	}
+
+	var res bsoncore.Document
+	var operationErr WriteCommandError
+	var prevErr error
 	batching := op.Batches.Valid()
 	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
 	currIndex := 0
+	incTxnOnce := true
 	for {
+		srvr, conn, err := op.getServerAndConnection(ctx)
+		if err != nil {
+			if conn != nil {
+				conn.Close()
+			}
+
+			// If the returned error is retryable and there are retries remaining (negative retries
+			// means retry indefinitely), then retry the operation.
+			if rerr, ok := err.(interface{ Retryable() bool }); ok && rerr.Retryable() && retries != 0 {
+				prevErr = err
+				retries--
+				continue
+			}
+
+			if prevErr != nil {
+				return prevErr
+			}
+			return err
+		}
+		defer conn.Close()
+
+		// If client retries are enabled, the operation type is write, retries are supported for the
+		// current operation for the current server description, and we haven't incremented the txn
+		// number yet, enable retry writes on the session and increment the txn number. Disable
+		// this check for all future retries to keep retried writes in the same transaction. TODO: Accurate?
+		if op.RetryMode != nil && op.Type == Write && op.retryable(conn.Description()) && op.Client != nil && incTxnOnce {
+			op.Client.RetryWrite = false
+			if *op.RetryMode > RetryNone {
+				op.Client.RetryWrite = true
+				if !op.Client.Committing && !op.Client.Aborting {
+					op.Client.IncrementTxnNumber()
+				}
+			}
+			incTxnOnce = false
+		}
+
+		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
+		scratch = scratch[:0]
+		if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
+			switch op.Legacy {
+			case LegacyFind:
+				return op.legacyFind(ctx, scratch, srvr, conn, desc)
+			case LegacyGetMore:
+				return op.legacyGetMore(ctx, scratch, srvr, conn, desc)
+			case LegacyKillCursors:
+				return op.legacyKillCursors(ctx, scratch, srvr, conn, desc)
+			}
+		}
+		if desc.WireVersion == nil || desc.WireVersion.Max < 3 {
+			switch op.Legacy {
+			case LegacyListCollections:
+				return op.legacyListCollections(ctx, scratch, srvr, conn, desc)
+			case LegacyListIndexes:
+				return op.legacyListIndexes(ctx, scratch, srvr, conn, desc)
+			}
+		}
+
 		if batching {
 			targetBatchSize := desc.MaxDocumentSize
 			maxDocSize := desc.MaxDocumentSize
@@ -455,11 +476,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		var perr error
 		switch tt := err.(type) {
 		case WriteCommandError:
-			if e := err.(WriteCommandError); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
+			connDesc := conn.Description()
+
+			if e := err.(WriteCommandError); op.retryable(connDesc) && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
 
-			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 			inTransaction := op.Client != nil &&
@@ -470,23 +492,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
 
-			if retryable && retryableErr && retries != 0 {
-				retries--
-				original = err
-				conn.Close() // Avoid leaking the connection.
-				srvr, conn, err = op.getServerAndConnection(ctx)
-				if err != nil || conn == nil || !op.retryable(conn.Description()) {
-					if conn != nil {
-						conn.Close()
-					}
-					return original
-				}
-				defer conn.Close() // Avoid leaking the new connection.
+			// If retries are supported for the current operation for the current server
+			// description, the error is considered retryable, and there are retries remaining
+			// (negative retries means retry indefinitely), then retry the operation.
+			if op.retryable(connDesc) && retryableErr && retries != 0 {
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
 					op.WriteConcern = op.Client.CurrentWc
 				}
+				retries--
+				prevErr = err
 				continue
 			}
 
@@ -540,11 +556,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return err
 				}
 			}
-			if e := err.(Error); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
+
+			connDesc := conn.Description()
+			if e := err.(Error); op.retryable(connDesc) && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
 
-			connDesc := conn.Description()
 			var retryableErr bool
 			if op.Type == Write {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
@@ -561,23 +578,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				retryableErr = tt.RetryableRead()
 			}
 
-			if retryable && retryableErr && retries != 0 {
-				retries--
-				original = err
-				conn.Close() // Avoid leaking the connection.
-				srvr, conn, err = op.getServerAndConnection(ctx)
-				if err != nil || conn == nil || !op.retryable(conn.Description()) {
-					if conn != nil {
-						conn.Close()
-					}
-					return original
-				}
-				defer conn.Close() // Avoid leaking the new connection.
+			// If retries are supported for the current operation for the current server
+			// description, the error is considered retryable, and there are retries remaining
+			// (negative retries means retry indefinitely), then retry the operation.
+			if op.retryable(connDesc) && retryableErr && retries != 0 {
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
 					op.WriteConcern = op.Client.CurrentWc
 				}
+				retries--
+				prevErr = err
 				continue
 			}
 
@@ -630,7 +641,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		if batching && len(op.Batches.Documents) > 0 {
-			if retryable && op.Client != nil && op.RetryMode != nil {
+			if op.retryable(conn.Description()) && op.Client != nil && op.RetryMode != nil {
 				if *op.RetryMode > RetryNone {
 					op.Client.IncrementTxnNumber()
 				}
