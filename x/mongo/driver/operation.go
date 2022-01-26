@@ -814,7 +814,9 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 func (op Operation) createWireMessage(ctx context.Context, dst []byte,
 	desc description.SelectedServer, conn Connection) ([]byte, startedInformation, error) {
 
-	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
+	// If API version is not declared and wire version is unknown or less than 6, use OP_QUERY.
+	// Otherwise, use OP_MSG.
+	if op.ServerAPI == nil && (desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion) {
 		return op.createQueryWireMessage(dst, desc)
 	}
 	return op.createMsgWireMessage(ctx, dst, desc, conn)
