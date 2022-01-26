@@ -343,16 +343,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if srvr == nil || conn == nil {
 			srvr, conn, err = op.getServerAndConnection(ctx)
 			if err != nil {
-				if conn != nil {
-					conn.Close()
-				}
-
 				// If the returned error is retryable and there are retries remaining (negative
 				// retries means retry indefinitely), then retry the operation. Set the server
 				// and connection to nil to request a new server and connection.
 				if rerr, ok := err.(interface{ Retryable() bool }); ok && rerr.Retryable() && retries != 0 {
 					retries--
 					prevErr = err
+					// If we got a connection, close it immediately to release pool resources for
+					// subsequent retries.
+					if conn != nil {
+						conn.Close()
+					}
 					// Set the server and connection to nil to request a new server and connection.
 					srvr = nil
 					conn = nil
@@ -529,6 +530,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				retries--
 				prevErr = tt
+				// If we got a connection, close it immediately to release pool resources for
+				// subsequent retries.
+				if conn != nil {
+					conn.Close()
+				}
 				// Set the server and connection to nil to request a new server and connection.
 				srvr = nil
 				conn = nil
@@ -618,6 +624,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				retries--
 				prevErr = tt
+				// If we got a connection, close it immediately to release pool resources for
+				// subsequent retries.
+				if conn != nil {
+					conn.Close()
+				}
 				// Set the server and connection to nil to request a new server and connection.
 				srvr = nil
 				conn = nil
