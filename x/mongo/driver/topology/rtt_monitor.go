@@ -80,9 +80,10 @@ func (r *rttMonitor) start() {
 	var conn *connection
 	defer func() {
 		if conn != nil {
-			// If the connection exists, we need to wait for it to be connected. If the connection
+			// If the connection exists, we need to wait for it to be connected because
+			// conn.connect() and conn.close() cannot be called concurrently. If the connection
 			// wasn't successfully opened, its state was set back to disconnected, so calling
-			// conn.close() will be a noop.
+			// conn.close() will be a no-op.
 			conn.closeConnectContext()
 			conn.wait()
 			_ = conn.close()

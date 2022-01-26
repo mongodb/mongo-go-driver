@@ -43,19 +43,22 @@ type PoolError string
 
 func (pe PoolError) Error() string { return string(pe) }
 
-type PoolClearedError struct {
+// poolClearedError is an error returned when the connection pool is cleared or currently paused. It
+// is a retryable error.
+type poolClearedError struct {
 	Err     error
 	Address address.Address
 }
 
-func (pce PoolClearedError) Error() string {
+func (pce poolClearedError) Error() string {
 	return fmt.Sprintf(
 		"connection pool for %v was cleared because another operation failed with: %v",
 		pce.Address,
 		pce.Err)
 }
 
-func (PoolClearedError) Retryable() bool { return true }
+// Retryable returns true. All PoolClearedErrors are retryable.
+func (poolClearedError) Retryable() bool { return true }
 
 // poolConfig contains all aspects of the pool that can be configured
 type poolConfig struct {
@@ -79,11 +82,14 @@ type pool struct {
 	pinnedCursorConnections      uint64
 	pinnedTransactionConnections uint64
 
-	address        address.Address
-	minSize        uint64
-	maxSize        uint64
-	maxConnecting  uint64
-	monitor        *event.PoolMonitor
+	address       address.Address
+	minSize       uint64
+	maxSize       uint64
+	maxConnecting uint64
+	monitor       *event.PoolMonitor
+
+	// handshakeErrFn is used to handle any errors that happen during connection establishment and
+	// handshaking.
 	handshakeErrFn func(error, uint64, *primitive.ObjectID)
 
 	connOpts   []ConnectionOption
@@ -167,6 +173,8 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	}
 	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
+	pool.generation.connect()
+
 	// Create a Context with cancellation that's used to signal the createConnections() and
 	// maintain() background goroutines to stop. Also create a "backgroundDone" WaitGroup that is
 	// used to wait for the background goroutines to return.
@@ -204,7 +212,8 @@ func (p *pool) stale(conn *connection) bool {
 // connected pool must be closed or it will leak goroutines and will not be garbage collected.
 func (p *pool) ready() error {
 	// While holding the createConnectionsCond lock, set the pool to "ready" if it is currently
-	// "paused"
+	// "paused". Broadcast to the createConnectionsCond to wake up the waiting createConnections()
+	// goroutines.
 	p.createConnectionsCond.L.Lock()
 	if p.state == poolReady {
 		p.createConnectionsCond.L.Unlock()
@@ -225,8 +234,6 @@ func (p *pool) ready() error {
 			Address: p.address.String(),
 		})
 	}
-
-	p.generation.connect()
 
 	return nil
 }
@@ -369,7 +376,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return nil, ErrPoolClosed
 	case poolPaused:
-		err := PoolClearedError{Err: p.lastClearErr, Address: p.address}
+		err := poolClearedError{Err: p.lastClearErr, Address: p.address}
 		p.createConnectionsCond.L.Unlock()
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
@@ -626,7 +633,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, PoolClearedError{Err: err, Address: p.address})
+			w.tryDeliver(nil, poolClearedError{Err: err, Address: p.address})
 		}
 		p.idleMu.Unlock()
 
@@ -637,7 +644,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, PoolClearedError{Err: err, Address: p.address})
+			w.tryDeliver(nil, poolClearedError{Err: err, Address: p.address})
 		}
 		p.createConnectionsCond.L.Unlock()
 	}

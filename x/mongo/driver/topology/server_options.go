@@ -19,23 +19,25 @@ import (
 var defaultRegistry = bson.NewRegistryBuilder().Build()
 
 type serverConfig struct {
-	clock                          *session.ClusterClock
-	compressionOpts                []string
-	connectionOpts                 []ConnectionOption
-	appname                        string
-	heartbeatInterval              time.Duration
-	heartbeatTimeout               time.Duration
-	maxConns                       uint64
-	minConns                       uint64
-	maxConnecting                  uint64
-	poolMonitor                    *event.PoolMonitor
-	serverMonitor                  *event.ServerMonitor
-	connectionPoolMaxIdleTime      time.Duration
-	connectionPoolMaintainInterval time.Duration
-	registry                       *bsoncodec.Registry
-	monitoringDisabled             bool
-	serverAPI                      *driver.ServerAPIOptions
-	loadBalanced                   bool
+	clock              *session.ClusterClock
+	compressionOpts    []string
+	connectionOpts     []ConnectionOption
+	appname            string
+	heartbeatInterval  time.Duration
+	heartbeatTimeout   time.Duration
+	serverMonitor      *event.ServerMonitor
+	registry           *bsoncodec.Registry
+	monitoringDisabled bool
+	serverAPI          *driver.ServerAPIOptions
+	loadBalanced       bool
+
+	// Connection pool options.
+	maxConns             uint64
+	minConns             uint64
+	maxConnecting        uint64
+	poolMonitor          *event.PoolMonitor
+	poolMaxIdleTime      time.Duration
+	poolMaintainInterval time.Duration
 }
 
 func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
@@ -141,15 +143,16 @@ func WithMaxConnecting(fn func(uint64) uint64) ServerOption {
 // because of their age
 func WithConnectionPoolMaxIdleTime(fn func(time.Duration) time.Duration) ServerOption {
 	return func(cfg *serverConfig) error {
-		cfg.connectionPoolMaxIdleTime = fn(cfg.connectionPoolMaxIdleTime)
+		cfg.poolMaxIdleTime = fn(cfg.poolMaxIdleTime)
 		return nil
 	}
 }
 
-// WithConnectionPoolMaintainInterval ... TODO
+// WithConnectionPoolMaintainInterval configures the interval that the background connection pool
+// maintenance goroutine runs.
 func WithConnectionPoolMaintainInterval(fn func(time.Duration) time.Duration) ServerOption {
 	return func(cfg *serverConfig) error {
-		cfg.connectionPoolMaintainInterval = fn(cfg.connectionPoolMaintainInterval)
+		cfg.poolMaintainInterval = fn(cfg.poolMaintainInterval)
 		return nil
 	}
 }

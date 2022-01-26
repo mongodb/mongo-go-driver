@@ -333,8 +333,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	var prevErr error
 	batching := op.Batches.Valid()
 	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
+	retrySupported := false
+	first := true
 	currIndex := 0
-	incTxnOnce := true
 	for {
 		srvr, conn, err := op.getServerAndConnection(ctx)
 		if err != nil {
@@ -350,6 +351,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				continue
 			}
 
+			// If this is a retry and there's an error from a previous attempt, return the previous
+			// error instead of the current connection error.
 			if prevErr != nil {
 				return prevErr
 			}
@@ -357,19 +360,34 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 		defer conn.Close()
 
-		// If client retries are enabled, the operation type is write, retries are supported for the
-		// current operation for the current server description, and we haven't incremented the txn
-		// number yet, enable retry writes on the session and increment the txn number. Disable
-		// this check for all future retries to keep retried writes in the same transaction. TODO: Accurate?
-		if op.RetryMode != nil && op.Type == Write && op.retryable(conn.Description()) && op.Client != nil && incTxnOnce {
-			op.Client.RetryWrite = false
-			if *op.RetryMode > RetryNone {
-				op.Client.RetryWrite = true
-				if !op.Client.Committing && !op.Client.Aborting {
-					op.Client.IncrementTxnNumber()
+		// Run steps that must only be run on the first attempt, but not again for retries.
+		if first {
+			// Determine if retries are supported for the current operation on the current server
+			// description. Per the retryable writes specification, only determine this for the
+			// first server selected:
+			//
+			//   If the server selected for the first attempt of a retryable write operation does
+			//   not support retryable writes, drivers MUST execute the write as if retryable writes
+			//   were not enabled.
+			retrySupported = op.retryable(conn.Description())
+
+			// If retries are supported for the current operation on the current server description,
+			// client retries are enabled, the operation type is write, and we haven't incremented
+			// the txn number yet, enable retry writes on the session and increment the txn number.
+			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
+			// support retries (e.g. standalone topologies) will cause server errors. Only do this
+			// check for the first attempt to keep retried writes in the same transaction.
+			if retrySupported && op.RetryMode != nil && op.Type == Write && op.Client != nil {
+				op.Client.RetryWrite = false
+				if op.RetryMode.Enabled() {
+					op.Client.RetryWrite = true
+					if !op.Client.Committing && !op.Client.Aborting {
+						op.Client.IncrementTxnNumber()
+					}
 				}
 			}
-			incTxnOnce = false
+
+			first = false
 		}
 
 		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
@@ -476,12 +494,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		var perr error
 		switch tt := err.(type) {
 		case WriteCommandError:
-			connDesc := conn.Description()
-
-			if e := err.(WriteCommandError); op.retryable(connDesc) && op.Type == Write && e.UnsupportedStorageEngine() {
+			if e := err.(WriteCommandError); retrySupported && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
 
+			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 			inTransaction := op.Client != nil &&
@@ -492,17 +509,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
 
-			// If retries are supported for the current operation for the current server
-			// description, the error is considered retryable, and there are retries remaining
-			// (negative retries means retry indefinitely), then retry the operation.
-			if op.retryable(connDesc) && retryableErr && retries != 0 {
+			// If retries are supported for the current operation on the first server description,
+			// the error is considered retryable, and there are retries remaining (negative retries
+			// means retry indefinitely), then retry the operation.
+			if retrySupported && retryableErr && retries != 0 {
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
 					op.WriteConcern = op.Client.CurrentWc
 				}
 				retries--
-				prevErr = err
+				prevErr = tt
 				continue
 			}
 
@@ -557,11 +574,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 			}
 
-			connDesc := conn.Description()
-			if e := err.(Error); op.retryable(connDesc) && op.Type == Write && e.UnsupportedStorageEngine() {
+			if e := err.(Error); retrySupported && op.Type == Write && e.UnsupportedStorageEngine() {
 				return ErrUnsupportedStorageEngine
 			}
 
+			connDesc := conn.Description()
 			var retryableErr bool
 			if op.Type == Write {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
@@ -578,17 +595,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				retryableErr = tt.RetryableRead()
 			}
 
-			// If retries are supported for the current operation for the current server
-			// description, the error is considered retryable, and there are retries remaining
-			// (negative retries means retry indefinitely), then retry the operation.
-			if op.retryable(connDesc) && retryableErr && retries != 0 {
+			// If retries are supported for the current operation on the first server description,
+			// the error is considered retryable, and there are retries remaining (negative retries
+			// means retry indefinitely), then retry the operation.
+			if retrySupported && retryableErr && retries != 0 {
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
 					op.WriteConcern = op.Client.CurrentWc
 				}
 				retries--
-				prevErr = err
+				prevErr = tt
 				continue
 			}
 
@@ -641,7 +658,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		if batching && len(op.Batches.Documents) > 0 {
-			if op.retryable(conn.Description()) && op.Client != nil && op.RetryMode != nil {
+			if retrySupported && op.Client != nil && op.RetryMode != nil {
 				if *op.RetryMode > RetryNone {
 					op.Client.IncrementTxnNumber()
 				}

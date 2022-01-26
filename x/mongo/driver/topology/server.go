@@ -184,8 +184,8 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		MinPoolSize:      cfg.minConns,
 		MaxPoolSize:      cfg.maxConns,
 		MaxConnecting:    cfg.maxConnecting,
-		MaxIdleTime:      cfg.connectionPoolMaxIdleTime,
-		MaintainInterval: cfg.connectionPoolMaintainInterval,
+		MaxIdleTime:      cfg.poolMaxIdleTime,
+		MaintainInterval: cfg.poolMaintainInterval,
 		PoolMonitor:      cfg.poolMonitor,
 		handshakeErrFn:   s.ProcessHandshakeError,
 	}
@@ -568,16 +568,16 @@ func (s *Server) updateDescription(desc description.Server) {
 		return
 	}
 
-	if desc.Kind != description.Unknown {
-		// If the check was successful, set the pool to "ready". If the pool is already ready,
-		// this operation is a no-op.
-		_ = s.pool.ready()
-	}
-
 	defer func() {
 		//  ¯\_(ツ)_/¯
 		_ = recover()
 	}()
+
+	// Anytime we update the server description to something other than "unknown", set the pool to
+	// "ready". If the pool is already ready, this operation is a no-op.
+	if desc.Kind != description.Unknown {
+		_ = s.pool.ready()
+	}
 
 	// Use the updateTopologyCallback to update the parent Topology and get the description that should be stored.
 	callback, ok := s.updateTopologyCallback.Load().(updateTopologyCallback)
@@ -665,9 +665,9 @@ func (s *Server) cancelCheck() {
 		return
 	}
 
-	// If the connection exists, we need to wait for it to be connected conn.connect() and
+	// If the connection exists, we need to wait for it to be connected because conn.connect() and
 	// conn.close() cannot be called concurrently. If the connection wasn't successfully opened, its
-	// state was set back to disconnected, so calling conn.close() will be a noop.
+	// state was set back to disconnected, so calling conn.close() will be a no-op.
 	conn.closeConnectContext()
 	conn.wait()
 	_ = conn.close()
