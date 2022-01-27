@@ -255,14 +255,6 @@ func (s *Server) Disconnect(ctx context.Context) error {
 
 // Connection gets a connection to the server.
 func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
-
-	if s.pool.monitor != nil {
-		s.pool.monitor.Event(&event.PoolEvent{
-			Type:    "ConnectionCheckOutStarted",
-			Address: s.pool.address.String(),
-		})
-	}
-
 	if atomic.LoadInt64(&s.connectionstate) != connected {
 		return nil, ErrServerClosed
 	}

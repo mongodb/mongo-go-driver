@@ -368,6 +368,13 @@ func (p *pool) unpinConnectionFromTransaction() {
 // ready, checkOut returns an error.
 // Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
 func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
+	if p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:    event.GetStarted,
+			Address: p.address.String(),
+		})
+	}
+
 	p.createConnectionsCond.L.Lock()
 	switch p.state {
 	case poolClosed:

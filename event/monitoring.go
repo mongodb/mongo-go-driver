@@ -81,6 +81,7 @@ const (
 	ConnectionCreated  = "ConnectionCreated"
 	ConnectionReady    = "ConnectionReady"
 	ConnectionClosed   = "ConnectionClosed"
+	GetStarted         = "ConnectionCheckOutStarted"
 	GetFailed          = "ConnectionCheckOutFailed"
 	GetSucceeded       = "ConnectionCheckedOut"
 	ConnectionReturned = "ConnectionCheckedIn"

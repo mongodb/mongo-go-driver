@@ -18,10 +18,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 )
 
+// skippedTestDescriptions is a collection of test descriptions that the test runner will skip. The
+// map format is {"test description": "reason", }.
 var skippedTestDescriptions = map[string]string{
 	// GODRIVER-1827: These 2 tests assert that in-use connections are not closed until checked
-	// back into a closed pool, but the Go connection pool aggressively closes in-use
-	// connections. That behavior is currently required by the "Client.Disconnect" API.
+	// back into a closed pool, but the Go connection pool aggressively closes in-use connections.
+	// That behavior is currently required by the "Client.Disconnect" API, so skip the tests.
 	"When a pool is closed, it MUST first destroy all available connections in that pool": "test requires that close does not aggressively close used connections",
 	"must destroy checked in connection if pool has been closed":                          "test requires that close does not aggressively close used connections",
 }
