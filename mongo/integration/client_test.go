@@ -30,6 +30,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -596,6 +597,59 @@ func TestClient(t *testing.T) {
 		// Assert that the Ping timeouts result in no connections being closed.
 		closed := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionClosed }))
 		assert.Equal(t, 0, closed, "expected no connections to be closed")
+	})
+
+	// Test that OP_MSG is used for authentication-related commands on 3.6+ (WV 6+). Do not test when API version is
+	// set, as handshakes will always use OP_MSG.
+	opMsgOpts := mtest.NewOptions().ClientType(mtest.Proxy).MinServerVersion("3.6").Auth(true).RequireAPIVersion(false)
+	mt.RunOpts("OP_MSG used for authentication on 3.6+", opMsgOpts, func(mt *mtest.T) {
+		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
+		assert.Nil(mt, err, "Ping error: %v", err)
+
+		msgPairs := mt.GetProxiedMessages()
+		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
+
+		// First message should a be connection handshake. This handshake should use OP_QUERY as the OpCode, as wire
+		// version is not yet known.
+		pair := msgPairs[0]
+		assert.Equal(mt, internal.LegacyHello, pair.CommandName, "expected command name %s at index 0, got %s",
+			internal.LegacyHello, pair.CommandName)
+		assert.Equal(mt, wiremessage.OpQuery, pair.Sent.OpCode,
+			"expected 'OP_QUERY' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+
+		// Look for a saslContinue in the remaining proxied messages and assert that it uses the OP_MSG OpCode, as wire
+		// version is now known to be >= 6.
+		var saslContinueFound bool
+		for _, pair := range msgPairs[1:] {
+			if pair.CommandName == "saslContinue" {
+				saslContinueFound = true
+				assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
+					"expected 'OP_MSG' OpCode in wire message, got %s", pair.Sent.OpCode.String())
+				break
+			}
+		}
+		assert.True(mt, saslContinueFound, "did not find 'saslContinue' command in proxied messages")
+	})
+
+	// Test that OP_MSG is used for handshakes when API version is declared.
+	opMsgSAPIOpts := mtest.NewOptions().ClientType(mtest.Proxy).MinServerVersion("5.0").RequireAPIVersion(true)
+	mt.RunOpts("OP_MSG used for handshakes when API version declared", opMsgSAPIOpts, func(mt *mtest.T) {
+		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
+		assert.Nil(mt, err, "Ping error: %v", err)
+
+		msgPairs := mt.GetProxiedMessages()
+		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
+
+		// First three messages should be connection handshakes: one for the heartbeat connection, another for the
+		// application connection, and a final one for the RTT monitor connection.
+		for idx, pair := range msgPairs[:3] {
+			assert.Equal(mt, "hello", pair.CommandName, "expected command name 'hello' at index %d, got %s", idx,
+				pair.CommandName)
+
+			// Assert that appended OpCode is OP_MSG when API version is set.
+			assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
+				"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+		}
 	})
 }
 

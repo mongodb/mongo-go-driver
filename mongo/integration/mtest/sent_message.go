@@ -19,6 +19,7 @@ type SentMessage struct {
 	RequestID  int32
 	RawMessage wiremessage.WireMessage
 	Command    bsoncore.Document
+	OpCode     wiremessage.OpCode
 
 	// The $readPreference document. This is separated into its own field even though it's included in the larger
 	// command document in both OP_QUERY and OP_MSG because OP_QUERY separates the command into a $query sub-document
@@ -65,6 +66,7 @@ func parseSentMessage(wm []byte) (*SentMessage, error) {
 
 	sent.RequestID = requestID
 	sent.RawMessage = wm
+	sent.OpCode = opcode
 	return sent, nil
 }
 
