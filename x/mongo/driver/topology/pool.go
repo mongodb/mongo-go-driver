@@ -231,7 +231,10 @@ func (p *pool) ready() error {
 	p.createConnectionsCond.L.Unlock()
 
 	// Signal maintain() to wake up immediately when marking the pool "ready".
-	p.maintainReady <- struct{}{}
+	select {
+	case p.maintainReady <- struct{}{}:
+	default:
+	}
 
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
@@ -803,8 +806,6 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		// establishment so shutdown doesn't block indefinitely if connectTimeout=0.
 		err := conn.connect(ctx)
 		if err != nil {
-			_ = p.removeConnection(conn, event.ReasonConnectionErrored)
-			_ = p.closeConnection(conn)
 			w.tryDeliver(nil, err)
 
 			// If there's an error connecting the new connection, call the handshake error handler
@@ -816,6 +817,9 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			if p.handshakeErrFn != nil {
 				p.handshakeErrFn(err, conn.generation, conn.desc.ServiceID)
 			}
+
+			_ = p.removeConnection(conn, event.ReasonConnectionErrored)
+			_ = p.closeConnection(conn)
 			continue
 		}
 

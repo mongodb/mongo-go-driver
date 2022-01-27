@@ -565,18 +565,18 @@ func (s *Server) updateDescription(desc description.Server) {
 		_ = recover()
 	}()
 
-	// Anytime we update the server description to something other than "unknown", set the pool to
-	// "ready". If the pool is already ready, this operation is a no-op.
-	if desc.Kind != description.Unknown {
-		_ = s.pool.ready()
-	}
-
 	// Use the updateTopologyCallback to update the parent Topology and get the description that should be stored.
 	callback, ok := s.updateTopologyCallback.Load().(updateTopologyCallback)
 	if ok && callback != nil {
 		desc = callback(desc)
 	}
 	s.desc.Store(desc)
+
+	// Anytime we update the server description to something other than "unknown", set the pool to
+	// "ready". If the pool is already ready, this operation is a no-op.
+	if desc.Kind != description.Unknown {
+		_ = s.pool.ready()
+	}
 
 	s.subLock.Lock()
 	for _, c := range s.subscribers {
