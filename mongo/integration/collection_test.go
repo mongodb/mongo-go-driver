@@ -799,6 +799,27 @@ func TestCollection(t *testing.T) {
 				return mt.Coll.Aggregate(context.Background(), mongo.Pipeline{}, options.Aggregate().SetBatchSize(3))
 			})
 		})
+		mt.Run("CustomOptions", func(mt *mtest.T) {
+			// Custom options should be a BSON map of option names to Marshalable option values.
+			// We use "allowDiskUse" as an example.
+			customOpts := bson.M{"allowDiskUse": true}
+			opts := options.Aggregate().SetCustomOptions(customOpts)
+
+			// Run aggregate with custom options set.
+			mt.ClearEvents()
+			_, err := mt.Coll.Aggregate(context.Background(), mongo.Pipeline{}, opts)
+			assert.Nil(mt, err, "Aggregate error: %v", err)
+
+			// Assert that custom option is passed to the aggregate expression.
+			evt := mt.GetStartedEvent()
+			assert.Equal(mt, "aggregate", evt.CommandName, "expected command 'aggregate' got, %q", evt.CommandName)
+
+			aduVal, err := evt.Command.LookupErr("allowDiskUse")
+			assert.Nil(mt, err, "expected field 'allowDiskUse' in started command not found")
+			adu, ok := aduVal.BooleanOK()
+			assert.True(mt, ok, "expected field 'allowDiskUse' to be boolean, got %v", aduVal.Type.String())
+			assert.True(mt, adu, "expected field 'allowDiskUse' to be true, got false")
+		})
 	})
 	mt.RunOpts("count documents", noClientOpts, func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {

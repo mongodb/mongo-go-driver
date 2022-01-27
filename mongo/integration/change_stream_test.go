@@ -634,6 +634,28 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		evt := mt.GetStartedEvent()
 		assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
 	})
+	mt.Run("CustomOptions", func(mt *mtest.T) {
+		// Custom options should be a BSON map of option names to Marshalable option values.
+		// We use "allowDiskUse" as an example.
+		customOpts := bson.M{"allowDiskUse": true}
+		opts := options.ChangeStream().SetCustomOptions(customOpts)
+
+		// Create change stream with custom options set.
+		mt.ClearEvents()
+		cs, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{}, opts)
+		assert.Nil(mt, err, "Watch error: %v", err)
+		defer closeStream(cs)
+
+		// Assert that custom option is passed to the initial aggregate.
+		evt := mt.GetStartedEvent()
+		assert.Equal(mt, "aggregate", evt.CommandName, "expected command 'aggregate' got, %q", evt.CommandName)
+
+		aduVal, err := evt.Command.LookupErr("allowDiskUse")
+		assert.Nil(mt, err, "expected field 'allowDiskUse' in started command not found")
+		adu, ok := aduVal.BooleanOK()
+		assert.True(mt, ok, "expected field 'allowDiskUse' to be boolean, got %v", aduVal.Type.String())
+		assert.True(mt, adu, "expected field 'allowDiskUse' to be true, got false")
+	})
 }
 
 func closeStream(cs *mongo.ChangeStream) {
