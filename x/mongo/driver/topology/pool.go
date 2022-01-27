@@ -46,13 +46,13 @@ func (pe PoolError) Error() string { return string(pe) }
 // poolClearedError is an error returned when the connection pool is cleared or currently paused. It
 // is a retryable error.
 type poolClearedError struct {
-	err     string
+	err     error
 	address address.Address
 }
 
 func (pce poolClearedError) Error() string {
 	return fmt.Sprintf(
-		"connection pool for %v was cleared because another operation failed with: %s",
+		"connection pool for %v was cleared because another operation failed with: %v",
 		pce.address,
 		pce.err)
 }
@@ -96,6 +96,7 @@ type pool struct {
 	generation *poolGenerationMap
 
 	maintainInterval time.Duration   // maintainInterval is the maintain() loop interval.
+	maintainReady    chan struct{}   // maintainReady is a signal channel that starts the maintain() loop when ready() is called.
 	backgroundDone   *sync.WaitGroup // backgroundDone waits for all background goroutines to return.
 
 	// createConnectionsCond is the condition variable that controls when the createConnections()
@@ -166,6 +167,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		generation:            newPoolGenerationMap(),
 		state:                 poolPaused,
 		maintainInterval:      maintainInterval,
+		maintainReady:         make(chan struct{}, 1),
 		backgroundDone:        &sync.WaitGroup{},
 		createConnectionsCond: sync.NewCond(&sync.Mutex{}),
 		conns:                 make(map[uint64]*connection, config.MaxPoolSize),
@@ -227,6 +229,9 @@ func (p *pool) ready() error {
 	p.state = poolReady
 	p.createConnectionsCond.Broadcast()
 	p.createConnectionsCond.L.Unlock()
+
+	// Signal maintain() to wake up immediately when marking the pool "ready".
+	p.maintainReady <- struct{}{}
 
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
@@ -376,7 +381,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return nil, ErrPoolClosed
 	case poolPaused:
-		err := poolClearedError{err: p.lastClearErr.Error(), address: p.address}
+		err := poolClearedError{err: p.lastClearErr, address: p.address}
 		p.createConnectionsCond.L.Unlock()
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
@@ -633,7 +638,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, poolClearedError{err: err.Error(), address: p.address})
+			w.tryDeliver(nil, poolClearedError{err: err, address: p.address})
 		}
 		p.idleMu.Unlock()
 
@@ -644,7 +649,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, poolClearedError{err: err.Error(), address: p.address})
+			w.tryDeliver(nil, poolClearedError{err: err, address: p.address})
 		}
 		p.createConnectionsCond.L.Unlock()
 	}
@@ -860,45 +865,46 @@ func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
 	}()
 
 	for {
-		// Only maintain the pool while it's in the "ready" state. TODO: Figure out how to allow the first maintain on startup.
-		if p.getState() == poolReady {
-			p.removePerishedConns()
-
-			// Remove any wantConns that are no longer waiting.
-			wantConns = removeNotWaiting(wantConns)
-
-			// Figure out how many more wantConns we need to satisfy minPoolSize. Assume that the
-			// outstanding wantConns (i.e. the ones that weren't removed from the slice) will all return
-			// connections when they're ready, so only add wantConns to make up the difference. Limit
-			// the number of connections requested to max 10 at a time to prevent overshooting
-			// minPoolSize in case other checkOut() calls are requesting new connections, too.
-			total := p.totalConnectionCount()
-			n := int(p.minSize) - total - len(wantConns)
-			if n > 10 {
-				n = 10
-			}
-
-			for i := 0; i < n; i++ {
-				w := newWantConn()
-				p.queueForNewConn(w)
-				wantConns = append(wantConns, w)
-
-				// Start a goroutine for each new wantConn, waiting for it to be ready.
-				go func() {
-					<-w.ready
-					if w.conn != nil {
-						_ = p.checkInNoEvent(w.conn)
-					}
-				}()
-			}
-		}
-
-		// Wait for the next tick at the bottom of the loop so that maintain() runs once immediately
-		// after connect() is called. Exit the loop if the Context is cancelled.
 		select {
 		case <-ticker.C:
+		case <-p.maintainReady:
 		case <-ctx.Done():
 			return
+		}
+
+		// Only maintain the pool while it's in the "ready" state.
+		if p.getState() != poolReady {
+			continue
+		}
+
+		p.removePerishedConns()
+
+		// Remove any wantConns that are no longer waiting.
+		wantConns = removeNotWaiting(wantConns)
+
+		// Figure out how many more wantConns we need to satisfy minPoolSize. Assume that the
+		// outstanding wantConns (i.e. the ones that weren't removed from the slice) will all return
+		// connections when they're ready, so only add wantConns to make up the difference. Limit
+		// the number of connections requested to max 10 at a time to prevent overshooting
+		// minPoolSize in case other checkOut() calls are requesting new connections, too.
+		total := p.totalConnectionCount()
+		n := int(p.minSize) - total - len(wantConns)
+		if n > 10 {
+			n = 10
+		}
+
+		for i := 0; i < n; i++ {
+			w := newWantConn()
+			p.queueForNewConn(w)
+			wantConns = append(wantConns, w)
+
+			// Start a goroutine for each new wantConn, waiting for it to be ready.
+			go func() {
+				<-w.ready
+				if w.conn != nil {
+					_ = p.checkInNoEvent(w.conn)
+				}
+			}()
 		}
 	}
 }
