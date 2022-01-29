@@ -287,6 +287,12 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 		return
 	}
 
+	// Must hold the processErrorLock while updating the server description and clearing the pool.
+	// Not holding the lock leads to possible out-of-order processing of pool.clear() and
+	// pool.ready() calls from concurrent server description updates.
+	s.processErrorLock.Lock()
+	defer s.processErrorLock.Unlock()
+
 	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization error, we should set
 	// the description.Server appropriately. The description should not have a TopologyVersion because the staleness
 	// checking logic above has already determined that this description is not stale.
@@ -371,6 +377,9 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 		return driver.NoChange
 	}
 
+	// Must hold the processErrorLock while updating the server description and clearing the pool.
+	// Not holding the lock leads to possible out-of-order processing of pool.clear() and
+	// pool.ready() calls from concurrent server description updates.
 	s.processErrorLock.Lock()
 	defer s.processErrorLock.Unlock()
 
@@ -395,8 +404,9 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			res = driver.ConnectionPoolCleared
-			s.pool.clear(cerr, desc.ServiceID)
+			s.pool.clear(err, desc.ServiceID)
 		}
+
 		return res
 	}
 	if wcerr, ok := getWriteConcernErrorForProcessing(err); ok {
@@ -413,7 +423,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			res = driver.ConnectionPoolCleared
-			s.pool.clear(wcerr, desc.ServiceID)
+			s.pool.clear(err, desc.ServiceID)
 		}
 		return res
 	}
@@ -523,6 +533,10 @@ func (s *Server) update() {
 			continue
 		}
 
+		// Must hold the processErrorLock while updating the server description and clearing the
+		// pool. Not holding the lock leads to possible out-of-order processing of pool.clear() and
+		// pool.ready() calls from concurrent server description updates.
+		s.processErrorLock.Lock()
 		s.updateDescription(desc)
 		if err := desc.LastError; err != nil {
 			// Clear the pool once the description has been updated to Unknown. Pass in a nil service ID to clear
@@ -530,6 +544,7 @@ func (s *Server) update() {
 			// IDs.
 			s.pool.clear(err, nil)
 		}
+		s.processErrorLock.Unlock()
 
 		// If the server supports streaming or we're already streaming, we want to move to streaming the next response
 		// without waiting. If the server has transitioned to Unknown from a network error, we want to do another
@@ -565,18 +580,24 @@ func (s *Server) updateDescription(desc description.Server) {
 		_ = recover()
 	}()
 
+	// Anytime we update the server description to something other than "unknown", set the pool to
+	// "ready". Do this before updating the description so that connections can be checked out as
+	// soon as the server is selectable. If the pool is already ready, this operation is a no-op.
+	// Note that this behavior is roughly consistent with the current Go driver behavior (connects
+	// to all servers, even non-data-bearing nodes) but deviates slightly from CMAP spec, which
+	// specifies a more restricted set of server descriptions and topologies that should mark the
+	// pool ready. We don't have access to the topology here, so prefer the current Go driver
+	// behavior for simplicity.
+	if desc.Kind != description.Unknown {
+		_ = s.pool.ready()
+	}
+
 	// Use the updateTopologyCallback to update the parent Topology and get the description that should be stored.
 	callback, ok := s.updateTopologyCallback.Load().(updateTopologyCallback)
 	if ok && callback != nil {
 		desc = callback(desc)
 	}
 	s.desc.Store(desc)
-
-	// Anytime we update the server description to something other than "unknown", set the pool to
-	// "ready". If the pool is already ready, this operation is a no-op.
-	if desc.Kind != description.Unknown {
-		_ = s.pool.ready()
-	}
 
 	s.subLock.Lock()
 	for _, c := range s.subscribers {

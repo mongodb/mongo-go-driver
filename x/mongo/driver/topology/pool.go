@@ -630,7 +630,8 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 	sendEvent := true
 	if serviceID == nil {
 		// While holding the createConnectionsCond lock, set the pool state to "paused" if it's
-		// currently "ready" and set lastClearErr to the error that caused the pool to be cleared.
+		// currently "ready", set lastClearErr to the error that caused the pool to be cleared, and
+		// clear the new connections wait queue.
 		p.createConnectionsCond.L.Lock()
 		if p.state == poolPaused {
 			sendEvent = false
@@ -639,6 +640,13 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			p.state = poolPaused
 		}
 		p.lastClearErr = err
+		for {
+			w := p.newConnWait.popFront()
+			if w == nil {
+				break
+			}
+			w.tryDeliver(nil, poolClearedError{err: err, address: p.address})
+		}
 		p.createConnectionsCond.L.Unlock()
 
 		// Clear the idle connections wait queue.
@@ -651,17 +659,6 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			w.tryDeliver(nil, poolClearedError{err: err, address: p.address})
 		}
 		p.idleMu.Unlock()
-
-		// Clear the new connections wait queue.
-		p.createConnectionsCond.L.Lock()
-		for {
-			w := p.newConnWait.popFront()
-			if w == nil {
-				break
-			}
-			w.tryDeliver(nil, poolClearedError{err: err, address: p.address})
-		}
-		p.createConnectionsCond.L.Unlock()
 	}
 
 	if sendEvent && p.monitor != nil {
