@@ -99,14 +99,16 @@ type pool struct {
 	maintainReady    chan struct{}   // maintainReady is a signal channel that starts the maintain() loop when ready() is called.
 	backgroundDone   *sync.WaitGroup // backgroundDone waits for all background goroutines to return.
 
+	stateMu      sync.RWMutex // stateMu guards state, lastClearErr
+	state        int          // state is the current state of the connection pool.
+	lastClearErr error        // lastClearErr is the last error that caused the pool to be cleared.
+
 	// createConnectionsCond is the condition variable that controls when the createConnections()
-	// loop runs or waits. Its lock guards cancelBackgroundCtx, state, lastClearErr, conns, and
-	// newConnWait. Any changes to the state of the guarded values must be made while holding the
-	// lock to prevent undefined behavior in the createConnections() waiting logic.
+	// loop runs or waits. Its lock guards cancelBackgroundCtx, conns, and newConnWait. Any changes
+	// to the state of the guarded values must be made while holding the lock to prevent undefined
+	// behavior in the createConnections() waiting logic.
 	createConnectionsCond *sync.Cond
 	cancelBackgroundCtx   context.CancelFunc     // cancelBackground is called to signal background goroutines to stop.
-	state                 int                    // state is the current state of the connection pool.
-	lastClearErr          error                  // lastClearErr is the last error that caused the pool to be cleared.
 	conns                 map[uint64]*connection // conns holds all currently open connections.
 	newConnWait           wantConnQueue          // newConnWait holds all wantConn requests for new connections.
 
@@ -115,11 +117,10 @@ type pool struct {
 	idleConnWait wantConnQueue // idleConnWait holds all wantConn requests for idle connections.
 }
 
-// getState returns the current state of the pool. Callers must not hold the createConnectionsCond
-// lock.
+// getState returns the current state of the pool. Callers must not hold the stateMu lock.
 func (p *pool) getState() int {
-	p.createConnectionsCond.L.Lock()
-	defer p.createConnectionsCond.L.Unlock()
+	p.stateMu.RLock()
+	defer p.stateMu.RUnlock()
 
 	return p.state
 }
@@ -213,22 +214,19 @@ func (p *pool) stale(conn *connection) bool {
 // monitoring goroutines. ready must be called before connections can be checked out. An unused,
 // connected pool must be closed or it will leak goroutines and will not be garbage collected.
 func (p *pool) ready() error {
-	// While holding the createConnectionsCond lock, set the pool to "ready" if it is currently
-	// "paused". Broadcast to the createConnectionsCond to wake up the waiting createConnections()
-	// goroutines.
-	p.createConnectionsCond.L.Lock()
+	// While holding the stateMu lock, set the pool to "ready" if it is currently "paused".
+	p.stateMu.Lock()
 	if p.state == poolReady {
-		p.createConnectionsCond.L.Unlock()
+		p.stateMu.Unlock()
 		return nil
 	}
 	if p.state != poolPaused {
-		p.createConnectionsCond.L.Unlock()
+		p.stateMu.Unlock()
 		return ErrPoolNotPaused
 	}
 	p.lastClearErr = nil
 	p.state = poolReady
-	p.createConnectionsCond.Broadcast()
-	p.createConnectionsCond.L.Unlock()
+	p.stateMu.Unlock()
 
 	// Signal maintain() to wake up immediately when marking the pool "ready".
 	select {
@@ -250,26 +248,25 @@ func (p *pool) ready() error {
 // goroutines. All subsequent checkOut requests will return an error. An unused, ready pool must be
 // closed or it will leak goroutines and will not be garbage collected.
 func (p *pool) close(ctx context.Context) {
-	p.createConnectionsCond.L.Lock()
+	p.stateMu.Lock()
 	if p.state == poolClosed {
-		p.createConnectionsCond.L.Unlock()
+		p.stateMu.Unlock()
 		return
 	}
 	p.state = poolClosed
-	p.createConnectionsCond.L.Unlock()
+	p.stateMu.Unlock()
 
 	// Call cancelBackgroundCtx() to exit the maintain() and createConnections() background
-	// goroutines. Broadcast to the connsCond to wake up all createConnections() goroutines. We must
-	// hold the connsCond lock here because we're changing the condition by cancelling the
-	// "background goroutine" Context, even tho cancelling the Context is also synchronized by a
-	// lock. Otherwise, we run into an intermittent bug that prevents the createConnections()
-	// goroutines from exiting.
+	// goroutines. Broadcast to the createConnectionsCond to wake up all createConnections()
+	// goroutines. We must hold the createConnectionsCond lock here because we're changing the
+	// condition by cancelling the "background goroutine" Context, even tho cancelling the Context
+	// is also synchronized by a lock. Otherwise, we run into an intermittent bug that prevents the
+	// createConnections() goroutines from exiting.
 	p.createConnectionsCond.L.Lock()
-	if p.cancelBackgroundCtx != nil {
-		p.cancelBackgroundCtx()
-	}
+	p.cancelBackgroundCtx()
 	p.createConnectionsCond.Broadcast()
 	p.createConnectionsCond.L.Unlock()
+
 	// Wait for all background goroutines to exit.
 	p.backgroundDone.Wait()
 
@@ -317,8 +314,8 @@ func (p *pool) close(ctx context.Context) {
 	p.idleMu.Unlock()
 
 	// Collect all conns from the pool and try to deliver ErrPoolClosed to any waiting wantConns
-	// from newConnWait while holding the connsCond lock. We can't call removeConnection on the
-	// connections while holding any locks, so do that after we release the lock.
+	// from newConnWait while holding the createConnectionsCond lock. We can't call removeConnection
+	// on the connections while holding any locks, so do that after we release the lock.
 	p.createConnectionsCond.L.Lock()
 	conns := make([]*connection, 0, len(p.conns))
 	for _, conn := range p.conns {
@@ -378,10 +375,10 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		})
 	}
 
-	p.createConnectionsCond.L.Lock()
+	p.stateMu.RLock()
 	switch p.state {
 	case poolClosed:
-		p.createConnectionsCond.L.Unlock()
+		p.stateMu.RUnlock()
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
@@ -392,7 +389,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		return nil, ErrPoolClosed
 	case poolPaused:
 		err := poolClearedError{err: p.lastClearErr, address: p.address}
-		p.createConnectionsCond.L.Unlock()
+		p.stateMu.RUnlock()
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
@@ -402,7 +399,6 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return nil, err
 	}
-	p.createConnectionsCond.L.Unlock()
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -421,8 +417,11 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 	// Get in the queue for an idle connection. If getOrQueueForIdleConn returns true, it was able to
 	// immediately deliver an idle connection to the wantConn, so we can return the connection or
-	// error from the wantConn without waiting for "ready".
+	// error from the wantConn without waiting for "ready". Do this while holding the stateMu read
+	// lock to prevent a state change between checking the state above and entering the wait queue.
 	if delivered := p.getOrQueueForIdleConn(w); delivered {
+		p.stateMu.RUnlock()
+
 		if w.err != nil {
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
@@ -445,8 +444,10 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	}
 
 	// If we didn't get an immediately available idle connection, also get in the queue for a new
-	// connection while we're waiting for an idle connection.
+	// connection while we're waiting for an idle connection. Do this while holding the stateMu read
+	// lock to prevent a state change between checking the state above and entering the wait queue.
 	p.queueForNewConn(w)
+	p.stateMu.RUnlock()
 
 	// Wait for either the wantConn to be ready or for the Context to time out.
 	select {
@@ -530,8 +531,8 @@ func (p *pool) removeConnection(conn *connection, reason string) error {
 		return nil
 	}
 	delete(p.conns, conn.poolID)
-	// Signal the connsCond so any goroutines waiting for a new connection slot in the pool will
-	// proceed.
+	// Signal the createConnectionsCond so any goroutines waiting for a new connection slot in the
+	// pool will proceed.
 	p.createConnectionsCond.Signal()
 	p.createConnectionsCond.L.Unlock()
 
@@ -629,10 +630,10 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 	// to "paused".
 	sendEvent := true
 	if serviceID == nil {
-		// While holding the createConnectionsCond lock, set the pool state to "paused" if it's
-		// currently "ready", set lastClearErr to the error that caused the pool to be cleared, and
-		// clear the new connections wait queue.
-		p.createConnectionsCond.L.Lock()
+		// While holding the stateMu lock, set the pool state to "paused" if it's currently "ready",
+		// and set lastClearErr to the error that caused the pool to be cleared. If the pool is
+		// already paused, don't send another "ConnectionPoolCleared" event.
+		p.stateMu.Lock()
 		if p.state == poolPaused {
 			sendEvent = false
 		}
@@ -640,14 +641,9 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			p.state = poolPaused
 		}
 		p.lastClearErr = err
-		for {
-			w := p.newConnWait.popFront()
-			if w == nil {
-				break
-			}
-			w.tryDeliver(nil, poolClearedError{err: err, address: p.address})
-		}
-		p.createConnectionsCond.L.Unlock()
+		p.stateMu.Unlock()
+
+		pcErr := poolClearedError{err: err, address: p.address}
 
 		// Clear the idle connections wait queue.
 		p.idleMu.Lock()
@@ -656,9 +652,22 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, poolClearedError{err: err, address: p.address})
+			w.tryDeliver(nil, pcErr)
 		}
 		p.idleMu.Unlock()
+
+		// Clear the new connections wait queue. This effectively pauses the createConnections()
+		// background goroutine because newConnWait is empty and checkOut() won't insert any more
+		// wantConns into newConnWait until the pool is marked "ready" again.
+		p.createConnectionsCond.L.Lock()
+		for {
+			w := p.newConnWait.popFront()
+			if w == nil {
+				break
+			}
+			w.tryDeliver(nil, pcErr)
+		}
+		p.createConnectionsCond.L.Unlock()
 	}
 
 	if sendEvent && p.monitor != nil {
@@ -742,12 +751,10 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 	// wait. Note that the condition also listens for Context cancellation, which also causes the
 	// loop to continue, allowing for a subsequent check to return from createConnections().
 	condition := func() bool {
-		// We already hold the connsCond lock, so we can check p.state directly.
-		ready := p.state == poolReady
 		checkOutWaiting := p.newConnWait.len() > 0
 		poolHasSpace := p.maxSize == 0 || uint64(len(p.conns)) < p.maxSize
 		cancelled := ctx.Err() != nil
-		return (ready && checkOutWaiting && poolHasSpace) || cancelled
+		return (checkOutWaiting && poolHasSpace) || cancelled
 	}
 
 	// wait waits for there to be an available wantConn and for the pool to have space for a new
