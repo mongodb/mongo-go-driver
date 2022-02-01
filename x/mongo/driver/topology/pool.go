@@ -128,8 +128,6 @@ func (p *pool) getState() int {
 // connectionPerished checks if a given connection is perished and should be removed from the pool.
 func connectionPerished(conn *connection) (string, bool) {
 	switch {
-	case conn.pool.getState() == poolClosed:
-		return event.ReasonPoolClosed, true
 	case conn.closed():
 		// A connection would only be closed if it encountered a network error during an operation and closed itself.
 		return event.ReasonConnectionErrored, true
@@ -301,8 +299,6 @@ func (p *pool) close(ctx context.Context) {
 	// Empty the idle connections stack and try to deliver ErrPoolClosed to any waiting wantConns
 	// from idleConnWait while holding the idleMu lock.
 	p.idleMu.Lock()
-	idleConns := make([]*connection, len(p.idleConns))
-	copy(idleConns, p.idleConns)
 	p.idleConns = p.idleConns[:0]
 	for {
 		w := p.idleConnWait.popFront()
@@ -375,6 +371,11 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		})
 	}
 
+	// Check the pool state while holding a stateMu read lock. If the pool state is not "ready",
+	// return an error. Do all of this while holding the stateMu read lock to prevent a state change between
+	// checking the state and entering the wait queue. Not holding the stateMu read lock here may
+	// allow a checkOut() to enter the wait queue after clear() pauses the pool and clears the wait
+	// queue, resulting in checkOut() being stuck waiting for a connection from a paused pool.
 	p.stateMu.RLock()
 	switch p.state {
 	case poolClosed:
@@ -417,9 +418,10 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 	// Get in the queue for an idle connection. If getOrQueueForIdleConn returns true, it was able to
 	// immediately deliver an idle connection to the wantConn, so we can return the connection or
-	// error from the wantConn without waiting for "ready". Do this while holding the stateMu read
-	// lock to prevent a state change between checking the state above and entering the wait queue.
+	// error from the wantConn without waiting for "ready".
 	if delivered := p.getOrQueueForIdleConn(w); delivered {
+		// If delivered = true, we didn't enter the wait queue and will return either a connection
+		// or an error, so unlock the stateMu lock here.
 		p.stateMu.RUnlock()
 
 		if w.err != nil {
@@ -444,8 +446,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	}
 
 	// If we didn't get an immediately available idle connection, also get in the queue for a new
-	// connection while we're waiting for an idle connection. Do this while holding the stateMu read
-	// lock to prevent a state change between checking the state above and entering the wait queue.
+	// connection while we're waiting for an idle connection.
 	p.queueForNewConn(w)
 	p.stateMu.RUnlock()
 
@@ -588,6 +589,14 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 
 	if reason, perished := connectionPerished(conn); perished {
 		_ = p.removeConnection(conn, reason)
+		go func() {
+			_ = p.closeConnection(conn)
+		}()
+		return nil
+	}
+
+	if conn.pool.getState() == poolClosed {
+		_ = p.removeConnection(conn, event.ReasonPoolClosed)
 		go func() {
 			_ = p.closeConnection(conn)
 		}()
