@@ -15,6 +15,8 @@ import (
 
 type tlsConn interface {
 	net.Conn
+
+	// Only require Handshake on the interface for Go 1.16 and less.
 	Handshake() error
 	ConnectionState() tls.ConnectionState
 }

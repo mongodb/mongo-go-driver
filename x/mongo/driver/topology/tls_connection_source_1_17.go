@@ -1,4 +1,4 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
+// Copyright (C) MongoDB, Inc. 2022-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
@@ -16,6 +16,8 @@ import (
 
 type tlsConn interface {
 	net.Conn
+
+	// Require HandshakeContext on the interface for Go 1.17 and higher.
 	HandshakeContext(ctx context.Context) error
 	ConnectionState() tls.ConnectionState
 }
