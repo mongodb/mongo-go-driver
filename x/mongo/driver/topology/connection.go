@@ -822,7 +822,7 @@ func configureTLS(ctx context.Context,
 	client := tlsConnSource.Client(nc, config)
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- client.Handshake()
+		errChan <- clientHandshake(client, ctx)
 	}()
 
 	select {
