@@ -821,9 +821,9 @@ func configureTLS(ctx context.Context,
 
 	client := tlsConnSource.Client(nc, config)
 	errChan := make(chan error, 1)
-	go func() {
-		errChan <- clientHandshake(client, ctx)
-	}()
+
+	// Start the handshake goroutine with clientHandshake.
+	clientHandshake(ctx, client, errChan)
 
 	select {
 	case err := <-errChan:
