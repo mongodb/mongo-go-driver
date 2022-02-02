@@ -293,9 +293,9 @@ func (we WriteError) HasErrorCode(code int) bool {
 }
 
 // HasErrorLabel returns true if the error contains the specified label. WriteErrors do not contain labels,
-// so we inspect the message for the provided label instead.
+// so we always return false.
 func (we WriteError) HasErrorLabel(label string) bool {
-	return strings.Contains(we.Message, label)
+	return false
 }
 
 // HasErrorMessage returns true if the error contains the specified message.
