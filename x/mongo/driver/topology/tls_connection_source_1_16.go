@@ -9,6 +9,7 @@
 package topology
 
 import (
+	"context"
 	"crypto/tls"
 	"net"
 )
@@ -41,7 +42,7 @@ var defaultTLSConnectionSource tlsConnectionSourceFn = func(nc net.Conn, cfg *tl
 
 // clientHandshake will start a handshake goroutine on Go 1.16 and less when HandshakeContext
 // is not available.
-func clientHandshake(_ context.Context, client tlsConn, errChan chan error) {
+func clientHandshake(ctx context.Context, client tlsConn, errChan chan error) {
 	go func() {
 		errChan <- client.Handshake()
 	}()
