@@ -289,7 +289,7 @@ func (we WriteError) Error() string {
 
 // HasErrorCode returns true if the error has the specified code.
 func (we WriteError) HasErrorCode(code int) bool {
-	return int(we.Code) == code
+	return we.Code == code
 }
 
 // HasErrorLabel returns true if the error contains the specified label. WriteErrors do not contain labels,
@@ -305,7 +305,7 @@ func (we WriteError) HasErrorMessage(message string) bool {
 
 // HasErrorCodeWithMessage returns true if the error has the specified code and Message contains the specified message.
 func (we WriteError) HasErrorCodeWithMessage(code int, message string) bool {
-	return int(we.Code) == code && strings.Contains(we.Message, message)
+	return we.Code == code && strings.Contains(we.Message, message)
 }
 
 // serverError implements the ServerError interface.
