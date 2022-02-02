@@ -41,20 +41,25 @@ func TestSDAMProse(t *testing.T) {
 		// For number of nodes N, interval I, and duration D, a Client should process at most X
 		// operations:
 		//
-		//   X = (N * (1 handshake + D/I heartbeats + D/I RTTs))
+		//   X = (N * (2 handshakes + D/I heartbeats + D/I RTTs))
 		//
 		// Assert that a Client processes the expected number of operations for heartbeats sent at
 		// an interval between I and 2*I to account for different actual heartbeat intervals under
 		// different runtime conditions.
 
-		duration := 2 * time.Second
+		// Measure the actual amount of time between the start of the test and when we inspect the
+		// sent messages. The sleep duration will be at least the specified duration but
+		// possibly longer, which could lead to extra heartbeat messages, so account for that in
+		// the assertions.
+		start := time.Now()
+		time.Sleep(2 * time.Second)
+		messages := mt.GetProxiedMessages()
+		duration := time.Since(start)
 
 		numNodes := len(options.Client().ApplyURI(mtest.ClusterURI()).Hosts)
-		maxExpected := numNodes * (1 + 2*int(duration/heartbeatInterval))
-		minExpected := numNodes * (1 + 2*int(duration/(heartbeatInterval*2)))
+		maxExpected := numNodes * (2 + 2*int(duration/heartbeatInterval))
+		minExpected := numNodes * (2 + 2*int(duration/(heartbeatInterval*2)))
 
-		time.Sleep(duration)
-		messages := mt.GetProxiedMessages()
 		assert.True(
 			mt,
 			len(messages) >= minExpected && len(messages) <= maxExpected,
