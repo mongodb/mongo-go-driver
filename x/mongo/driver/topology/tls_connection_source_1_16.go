@@ -40,10 +40,18 @@ var defaultTLSConnectionSource tlsConnectionSourceFn = func(nc net.Conn, cfg *tl
 	return tls.Client(nc, cfg)
 }
 
-// clientHandshake will start a handshake goroutine on Go 1.16 and less when HandshakeContext
-// is not available.
-func clientHandshake(ctx context.Context, client tlsConn, errChan chan error) {
+// clientHandshake will perform a handshake with a goroutine and wait for its completion on Go 1.16 and less
+// when HandshakeContext is not available.
+func clientHandshake(ctx context.Context, client tlsConn) error {
+	errChan := make(chan error, 1)
 	go func() {
 		errChan <- client.Handshake()
 	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }

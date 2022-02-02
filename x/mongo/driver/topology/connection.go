@@ -806,7 +806,6 @@ func configureTLS(ctx context.Context,
 	config *tls.Config,
 	ocspOpts *ocsp.VerifyOptions,
 ) (net.Conn, error) {
-
 	// Ensure config.ServerName is always set for SNI.
 	if config.ServerName == "" {
 		hostname := addr.String()
@@ -820,25 +819,15 @@ func configureTLS(ctx context.Context,
 	}
 
 	client := tlsConnSource.Client(nc, config)
-	errChan := make(chan error, 1)
-	clientHandshake(ctx, client, errChan)
+	if err := clientHandshake(ctx, client); err != nil {
+		return nil, err
+	}
 
-	select {
-	case err := <-errChan:
-		if err != nil {
-			return nil, err
-		}
-
-		// Only do OCSP verification if TLS verification is requested.
-		if config.InsecureSkipVerify {
-			break
-		}
-
+	// Only do OCSP verification if TLS verification is requested.
+	if !config.InsecureSkipVerify {
 		if ocspErr := ocsp.Verify(ctx, client.ConnectionState(), ocspOpts); ocspErr != nil {
 			return nil, ocspErr
 		}
-	case <-ctx.Done():
-		return nil, ctx.Err()
 	}
 	return client, nil
 }
