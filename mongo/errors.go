@@ -207,6 +207,7 @@ type ServerError interface {
 }
 
 var _ ServerError = CommandError{}
+var _ ServerError = WriteError{}
 var _ ServerError = WriteException{}
 var _ ServerError = BulkWriteException{}
 
@@ -285,6 +286,30 @@ func (we WriteError) Error() string {
 	}
 	return msg
 }
+
+// HasErrorCode returns true if the error has the specified code.
+func (we WriteError) HasErrorCode(code int) bool {
+	return we.Code == code
+}
+
+// HasErrorLabel returns true if the error contains the specified label. WriteErrors do not contain labels,
+// so we always return false.
+func (we WriteError) HasErrorLabel(label string) bool {
+	return false
+}
+
+// HasErrorMessage returns true if the error contains the specified message.
+func (we WriteError) HasErrorMessage(message string) bool {
+	return strings.Contains(we.Message, message)
+}
+
+// HasErrorCodeWithMessage returns true if the error has the specified code and Message contains the specified message.
+func (we WriteError) HasErrorCodeWithMessage(code int, message string) bool {
+	return we.Code == code && strings.Contains(we.Message, message)
+}
+
+// serverError implements the ServerError interface.
+func (we WriteError) serverError() {}
 
 // WriteErrors is a group of write errors that occurred during execution of a write operation.
 type WriteErrors []WriteError

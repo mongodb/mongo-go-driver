@@ -333,6 +333,8 @@ func TestErrors(t *testing.T) {
 			}{
 				{"CommandError true", mongo.CommandError{11000, "", nil, "blah", nil}, true},
 				{"CommandError false", mongo.CommandError{100, "", nil, "blah", nil}, false},
+				{"WriteError true", mongo.WriteError{0, 11000, "", nil}, true},
+				{"WriteError false", mongo.WriteError{0, 100, "", nil}, false},
 				{
 					"WriteException true in writeConcernError",
 					mongo.WriteException{
