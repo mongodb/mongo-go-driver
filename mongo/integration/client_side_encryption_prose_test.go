@@ -763,18 +763,18 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			testInvalidClientEncryption           bool
 			invalidClientEncryptionErrorSubstring string
 		}{
-			{"aws success without endpoint", "aws", awsSuccessWithoutEndpoint, "", false, ""},
-			{"aws success with endpoint", "aws", awsSuccessWithEndpoint, "", false, ""},
-			{"aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false, ""},
-			{"aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false, ""},
-			{"aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "us-east-1", false, ""},
-			{"aws failure with parse error", "aws", awsFailureParseError, "parse error", false, ""},
-			{"azure success", "azure", azure, "", true, "parse error"},
-			{"gcp success", "gcp", gcpSuccess, "", true, "parse error"},
-			{"gcp failure", "gcp", gcpFailure, "Invalid KMS response", false, ""},
-			{"kmip success without endpoint", "kmip", kmipSuccessWithoutEndpoint, "", true, "no such host"},
-			{"kmip success with endpoint", "kmip", kmipSuccessWithEndpoint, "", false, ""},
-			{"kmip failure with invalid endpoint", "kmip", kmipFailureInvalidEndpoint, "no such host", false, ""},
+			{"Case 1: aws success without endpoint", "aws", awsSuccessWithoutEndpoint, "", false, ""},
+			{"Case 2: aws success with endpoint", "aws", awsSuccessWithEndpoint, "", false, ""},
+			{"Case 3: aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false, ""},
+			{"Case 4: aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false, ""},
+			{"Case 5: aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "us-east-1", false, ""},
+			{"Case 6: aws failure with parse error", "aws", awsFailureParseError, "parse error", false, ""},
+			{"Case 7: azure success", "azure", azure, "", true, "parse error"},
+			{"Case 8: gcp success", "gcp", gcpSuccess, "", true, "parse error"},
+			{"Case 9: gcp failure", "gcp", gcpFailure, "Invalid KMS response", false, ""},
+			{"Case 10: kmip success without endpoint", "kmip", kmipSuccessWithoutEndpoint, "", true, "no such host"},
+			{"Case 11: kmip success with endpoint", "kmip", kmipSuccessWithEndpoint, "", false, ""},
+			{"Case 12: kmip failure with invalid endpoint", "kmip", kmipFailureInvalidEndpoint, "no such host", false, ""},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
