@@ -679,12 +679,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"tenantId":                 azureTenantID,
 				"clientId":                 azureClientID,
 				"clientSecret":             azureClientSecret,
-				"identityPlatformEndpoint": "example.com:443",
+				"identityPlatformEndpoint": "doesnotexist.invalid:443",
 			},
 			"gcp": {
 				"email":      gcpEmail,
 				"privateKey": gcpPrivateKey,
-				"endpoint":   "example.com:443",
+				"endpoint":   "doesnotexist.invalid:443",
 			},
 			"kmip": {
 				"endpoint": "doesnotexist.local:5698",
@@ -723,7 +723,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		awsFailureParseError := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "example.com",
+			"endpoint": "doesnotexist.invalid",
 		}
 		azure := map[string]interface{}{
 			"keyVaultEndpoint": "key-vault-csfle.vault.azure.net",
@@ -741,7 +741,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"location":  "global",
 			"keyRing":   "key-ring-csfle",
 			"keyName":   "key-name-csfle",
-			"endpoint":  "example.com:443",
+			"endpoint":  "doesnotexist.invalid:443",
 		}
 		kmipSuccessWithoutEndpoint := map[string]interface{}{
 			"keyId": "1",
@@ -768,9 +768,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{"Case 3: aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false, ""},
 			{"Case 4: aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false, ""},
 			{"Case 5: aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "us-east-1", false, ""},
-			{"Case 6: aws failure with parse error", "aws", awsFailureParseError, "parse error", false, ""},
-			{"Case 7: azure success", "azure", azure, "", true, "parse error"},
-			{"Case 8: gcp success", "gcp", gcpSuccess, "", true, "parse error"},
+			{"Case 6: aws failure with parse error", "aws", awsFailureParseError, "no such host", false, ""},
+			{"Case 7: azure success", "azure", azure, "", true, "no such host"},
+			{"Case 8: gcp success", "gcp", gcpSuccess, "", true, "no such host"},
 			{"Case 9: gcp failure", "gcp", gcpFailure, "Invalid KMS response", false, ""},
 			{"Case 10: kmip success without endpoint", "kmip", kmipSuccessWithoutEndpoint, "", true, "no such host"},
 			{"Case 11: kmip success with endpoint", "kmip", kmipSuccessWithEndpoint, "", false, ""},
