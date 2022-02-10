@@ -359,10 +359,10 @@ func ExampleConnect_aWS() {
 	_ = ecClient
 }
 
-func ExampleConnect_versionedAPI() {
-	// Configure a Client with versioned API.
+func ExampleConnect_stableAPI() {
+	// Configure a Client with stable API.
 	//
-	// Versioned API is a new feature in MongoDB 5.0 that allows user-selectable
+	// Stable API is a new feature in MongoDB 5.0 that allows user-selectable
 	// API versions, subsets of MongoDB server semantics, to be declared on a
 	// Client. During communication with a server, Clients with a declared API
 	// version will force that server to behave in a manner compatible with the
@@ -372,7 +372,7 @@ func ExampleConnect_versionedAPI() {
 	//
 	// The declared API version is applied to all commands run through the
 	// Client, including those sent through the generic RunCommand helper.
-	// Specifying versioned API options in the command document AND declaring
+	// Specifying stable API options in the command document AND declaring
 	// an API version on the Client is not supported and will lead to undefined
 	// behavior. To run any command with a different API version or without
 	// declaring one, create a separate Client that declares the appropriate API
