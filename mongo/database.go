@@ -303,6 +303,9 @@ func (db *Database) Drop(ctx context.Context) error {
 // documentation).
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
+//
+// BUG(benjirewis): ListCollectionSpecifications prevents listing more than 100 collections per database when running
+// against MongoDB version 2.6.
 func (db *Database) ListCollectionSpecifications(ctx context.Context, filter interface{},
 	opts ...*options.ListCollectionsOptions) ([]*CollectionSpecification, error) {
 
@@ -337,6 +340,9 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 // documentation).
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
+//
+// BUG(benjirewis): ListCollections prevents listing more than 100 collections per database when running against
+// MongoDB version 2.6.
 func (db *Database) ListCollections(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -418,6 +424,9 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 // documentation).
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
+//
+// BUG(benjirewis): ListCollectionNames prevents listing more than 100 collections per database when running against
+// MongoDB version 2.6.
 func (db *Database) ListCollectionNames(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
 
