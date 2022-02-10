@@ -1273,24 +1273,3 @@ func (tcl *testCancellationListener) assertCalledOnce(t *testing.T) {
 	assert.Equal(t, 1, tcl.numListen, "expected Listen to be called once, got %d", tcl.numListen)
 	assert.Equal(t, 1, tcl.numStopListening, "expected StopListening to be called once, got %d", tcl.numListen)
 }
-
-// hangingTLSConn is an implementation of tlsConn that wraps the tls.Conn type and overrides the Handshake function to
-// sleep for a fixed amount of time.
-type hangingTLSConn struct {
-	*tls.Conn
-	sleepTime time.Duration
-}
-
-var _ tlsConn = (*hangingTLSConn)(nil)
-
-func newHangingTLSConn(conn *tls.Conn, sleepTime time.Duration) *hangingTLSConn {
-	return &hangingTLSConn{
-		Conn:      conn,
-		sleepTime: sleepTime,
-	}
-}
-
-func (h *hangingTLSConn) Handshake() error {
-	time.Sleep(h.sleepTime)
-	return h.Conn.Handshake()
-}
