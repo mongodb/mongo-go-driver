@@ -2804,8 +2804,8 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 // Start Versioned API Example 1
 
-// VersionedAPIExample is an example of creating a client with versioned API.
-func VersionedAPIExample() {
+// StableAPIExample is an example of creating a client with stable API.
+func StableAPIExample() {
 	ctx := context.Background()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
@@ -2826,8 +2826,8 @@ func VersionedAPIExample() {
 
 // Start Versioned API Example 2
 
-// VersionedAPIStrictExample is an example of creating a client with strict versioned API.
-func VersionedAPIStrictExample() {
+// StableAPIStrictExample is an example of creating a client with strict stable API.
+func StableAPIStrictExample() {
 	ctx := context.Background()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
@@ -2848,8 +2848,8 @@ func VersionedAPIStrictExample() {
 
 // Start Versioned API Example 3
 
-// VersionedAPINonStrictExample is an example of creating a client with non-strict versioned API.
-func VersionedAPINonStrictExample() {
+// StableAPINonStrictExample is an example of creating a client with non-strict stable API.
+func StableAPINonStrictExample() {
 	ctx := context.Background()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
@@ -2870,9 +2870,9 @@ func VersionedAPINonStrictExample() {
 
 // Start Versioned API Example 4
 
-// VersionedAPIDeprecationErrorsExample is an example of creating a client with versioned API
+// StableAPIDeprecationErrorsExample is an example of creating a client with stable API
 // with deprecation errors.
-func VersionedAPIDeprecationErrorsExample() {
+func StableAPIDeprecationErrorsExample() {
 	ctx := context.Background()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
@@ -2891,9 +2891,9 @@ func VersionedAPIDeprecationErrorsExample() {
 
 // End Versioned API Example 4
 
-// VersionedAPIStrictCountExample is an example of using CountDocuments instead of a traditional count
-// with a strict API version since the count command does not belong to API version 1.
-func VersionedAPIStrictCountExample(t *testing.T) {
+// StableAPIStrictCountExample is an example of using CountDocuments instead of a traditional count
+// with a strict stable API since the count command does not belong to API version 1.
+func StableAPIStrictCountExample(t *testing.T) {
 	uri := "mongodb://localhost:27017"
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
@@ -2949,10 +2949,10 @@ func VersionedAPIStrictCountExample(t *testing.T) {
 	// End Versioned API Example 8
 }
 
-// VersionedAPIExamples runs all versioned API examples.
-func VersionedAPIExamples() {
-	VersionedAPIExample()
-	VersionedAPIStrictExample()
-	VersionedAPINonStrictExample()
-	VersionedAPIDeprecationErrorsExample()
+// StableAPIExamples runs all stable API examples.
+func StableAPIExamples() {
+	StableAPIExample()
+	StableAPIStrictExample()
+	StableAPINonStrictExample()
+	StableAPIDeprecationErrorsExample()
 }
