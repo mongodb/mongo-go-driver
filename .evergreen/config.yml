@@ -189,6 +189,7 @@ functions:
           SSL=${SSL} \
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
           REQUIRE_API_VERSION=${REQUIRE_API_VERSION} \
+          LOAD_BALANCER=${LOAD_BALANCER} \
           sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
@@ -1446,6 +1447,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+          LOAD_BALANCER: "true"
       - func: run-load-balancer
       - func: run-load-balancer-tests
 
@@ -1457,6 +1459,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+          LOAD_BALANCER: "true"
       - func: run-load-balancer
       - func: run-load-balancer-tests
 
@@ -1855,6 +1858,10 @@ axes:
         display_name: "2.6"
         variables:
           VERSION: "2.6"
+      - id: "rapid"
+        display_name: "rapid"
+        variables:
+          VERSION: "rapid"
       - id: "latest"
         display_name: "latest"
         variables:
@@ -2155,7 +2162,10 @@ buildvariants:
 
   - matrix_name: "load-balancer-test"
     # The LB software is only available on Ubuntu 18.04, so we don't test on all OSes.
-    matrix_spec: { version: ["5.0", "latest"], os-ssl-40: ["ubuntu1804-64-go-1-16"] }
+    # The new "loadBalancerPort" option is supported starting with server 5.2, which responds
+    # correctly to "hello" commands with a service ID when behind a load balancer. Only run load
+    # balancer tests on server 5.2+ ("rapid", "latest" are always 5.2+).
+    matrix_spec: { version: ["rapid", "latest"], os-ssl-40: ["ubuntu1804-64-go-1-16"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
