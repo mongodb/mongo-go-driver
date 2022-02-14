@@ -49,6 +49,8 @@ To get started with the driver, import the `mongo` package and create a `mongo.C
 
 ```go
 import (
+    "context"
+
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
     "go.mongodb.org/mongo-driver/mongo/readpref"
@@ -101,6 +103,8 @@ Your import statement should now look like this:
 
 ```go
 import (
+    "context"
+
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
