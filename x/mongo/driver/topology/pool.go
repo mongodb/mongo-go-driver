@@ -108,7 +108,7 @@ type pool struct {
 	// to the state of the guarded values must be made while holding the lock to prevent undefined
 	// behavior in the createConnections() waiting logic.
 	createConnectionsCond *sync.Cond
-	cancelBackgroundCtx   context.CancelFunc     // cancelBackground is called to signal background goroutines to stop.
+	cancelBackgroundCtx   context.CancelFunc     // cancelBackgroundCtx is called to signal background goroutines to stop.
 	conns                 map[uint64]*connection // conns holds all currently open connections.
 	newConnWait           wantConnQueue          // newConnWait holds all wantConn requests for new connections.
 
@@ -629,9 +629,13 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 // clear marks all connections as stale by incrementing the generation number, stops all background
 // goroutines, removes all requests from idleConnWait and newConnWait, and sets the pool state to
 // "paused". If serviceID is nil, clear marks all connections as stale. If serviceID is not nil,
-// clear marks only connections associated with the given serviceID nil (for use in load balancer
+// clear marks only connections associated with the given serviceID stale (for use in load balancer
 // mode).
 func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
+	if p.getState() == poolClosed {
+		return
+	}
+
 	p.generation.clear(serviceID)
 
 	// If serviceID is nil (i.e. not in load balancer mode), transition the pool to a paused state

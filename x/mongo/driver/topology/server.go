@@ -261,7 +261,6 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 
 	connImpl, err := s.pool.checkOut(ctx)
 	if err != nil {
-		// The error has already been handled by connection.connect, which calls Server.ProcessHandshakeError.
 		return nil, err
 	}
 
@@ -654,12 +653,7 @@ func (s *Server) setupHeartbeatConnection() error {
 	s.conn = conn
 	s.heartbeatLock.Unlock()
 
-	err = s.conn.connect(s.heartbeatCtx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.conn.connect(s.heartbeatCtx)
 }
 
 // cancelCheck cancels in-progress connection dials and reads. It does not set any fields on the server.

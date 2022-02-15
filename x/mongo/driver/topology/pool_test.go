@@ -369,58 +369,58 @@ func TestPool(t *testing.T) {
 
 			p.close(context.Background())
 		})
-		// t.Run("can clear and ready multiple times concurrently", func(t *testing.T) {
-		// 	t.Parallel()
+		t.Run("can clear and ready multiple times concurrently", func(t *testing.T) {
+			t.Parallel()
 
-		// 	cleanup := make(chan struct{})
-		// 	defer close(cleanup)
-		// 	addr := bootstrapConnections(t, 2, func(nc net.Conn) {
-		// 		<-cleanup
-		// 		_ = nc.Close()
-		// 	})
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 2, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
 
-		// 	p := newPool(poolConfig{
-		// 		Address: address.Address(addr.String()),
-		// 	})
-		// 	err := p.ready()
-		// 	noerr(t, err)
+			p := newPool(poolConfig{
+				Address: address.Address(addr.String()),
+			})
+			err := p.ready()
+			noerr(t, err)
 
-		// 	c, err := p.checkOut(context.Background())
-		// 	noerr(t, err)
-		// 	err = p.checkIn(c)
-		// 	noerr(t, err)
+			c, err := p.checkOut(context.Background())
+			noerr(t, err)
+			err = p.checkIn(c)
+			noerr(t, err)
 
-		// 	var wg sync.WaitGroup
-		// 	for i := 0; i < 10; i++ {
-		// 		wg.Add(1)
-		// 		go func() {
-		// 			defer wg.Done()
-		// 			for i := 0; i < 1000; i++ {
-		// 				err := p.ready()
-		// 				noerr(t, err)
-		// 			}
-		// 		}()
+			var wg sync.WaitGroup
+			for i := 0; i < 10; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for i := 0; i < 1000; i++ {
+						err := p.ready()
+						noerr(t, err)
+					}
+				}()
 
-		// 		wg.Add(1)
-		// 		go func() {
-		// 			defer wg.Done()
-		// 			for i := 0; i < 1000; i++ {
-		// 				p.clear(nil)
-		// 			}
-		// 		}()
-		// 	}
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for i := 0; i < 1000; i++ {
+						p.clear(errors.New("test error"), nil)
+					}
+				}()
+			}
 
-		// 	wg.Wait()
-		// 	err = p.ready()
-		// 	noerr(t, err)
+			wg.Wait()
+			err = p.ready()
+			noerr(t, err)
 
-		// 	c, err = p.checkOut(context.Background())
-		// 	noerr(t, err)
-		// 	err = p.checkIn(c)
-		// 	noerr(t, err)
+			c, err = p.checkOut(context.Background())
+			noerr(t, err)
+			err = p.checkIn(c)
+			noerr(t, err)
 
-		// 	p.close(context.Background())
-		// })
+			p.close(context.Background())
+		})
 	})
 	t.Run("checkOut", func(t *testing.T) {
 		t.Parallel()

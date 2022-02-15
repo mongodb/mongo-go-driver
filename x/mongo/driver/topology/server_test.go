@@ -418,7 +418,7 @@ func TestServer(t *testing.T) {
 					// With the default maxConnecting (2), there are multiple goroutines creating
 					// connections. Because handshake errors are processed after returning the error
 					// to checkOut(), it's possible for extra connection requests to be processed
-					// after a handshake erorr before the connection pool is cleared and paused. Set
+					// after a handshake error before the connection pool is cleared and paused. Set
 					// maxConnecting=1 to minimize the number of extra connection requests processed
 					// before the connection pool is cleared and paused.
 					WithMaxConnecting(func(uint64) uint64 { return 1 }),
