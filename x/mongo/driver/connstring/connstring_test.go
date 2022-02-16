@@ -382,8 +382,8 @@ func TestReadPreferenceTags(t *testing.T) {
 		{s: "readPreferenceTags=one:1,two:2", expected: []map[string]string{{"one": "1", "two": "2"}}},
 		{s: "readPreferenceTags=one:1&readPreferenceTags=two:2", expected: []map[string]string{{"one": "1"}, {"two": "2"}}},
 		{s: "readPreferenceTags=one:1:3,two:2", err: true},
-		{s: "readPreferenceTags=one:1&readPreferenceTags=two:2&readPreferenceTags=", expected: []map[string]string{{"one": "1"}, {"two": "2"}}},
-		{s: "readPreferenceTags=", expected: nil},
+		{s: "readPreferenceTags=one:1&readPreferenceTags=two:2&readPreferenceTags=", expected: []map[string]string{{"one": "1"}, {"two": "2"}, {}}},
+		{s: "readPreferenceTags=", expected: []map[string]string{{}}},
 	}
 
 	for _, test := range tests {
