@@ -296,12 +296,13 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("found on capped collection", mtest.NewOptions().MinServerVersion("5.3"), func(mt *mtest.T) {
-			// Deletions should be allowed on capped collections on MongoDB 5.3+.
+			// Deletes should be allowed on capped collections on MongoDB 5.3+.
 			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
 			capped := mt.CreateCollection(mtest.Collection{
 				Name:       "deleteOne_capped",
 				CreateOpts: cappedOpts,
 			}, true)
+			initCollection(mt, capped)
 			res, err := capped.DeleteOne(context.Background(), bson.D{{"x", 1}})
 			assert.Nil(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
@@ -320,7 +321,7 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("write error on capped collection", mtest.NewOptions().MaxServerVersion("5.2"), func(mt *mtest.T) {
-			// Deletsion are not not allowed on capped collections on MongoDB 5.2-.
+			// Deletes are not not allowed on capped collections on MongoDB 5.2-.
 			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
 			capped := mt.CreateCollection(mtest.Collection{
 				Name:       "deleteOne_capped",
@@ -381,6 +382,7 @@ func TestCollection(t *testing.T) {
 				Name:       "deleteMany_capped",
 				CreateOpts: cappedOpts,
 			}, true)
+			initCollection(mt, capped)
 			res, err := capped.DeleteMany(context.Background(), bson.D{{"x", bson.D{{"$gte", 3}}}})
 			assert.Nil(mt, err, "DeleteMany error: %v", err)
 			assert.Equal(mt, int64(3), res.DeletedCount, "expected DeletedCount 3, got %v", res.DeletedCount)
