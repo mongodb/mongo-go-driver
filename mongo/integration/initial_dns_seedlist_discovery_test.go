@@ -76,6 +76,15 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		mt.Skip("skipping to avoid go1.11 problem with multiple strings in one TXT record")
 	}
 
+	// TODO(GODRIVER-2312): Unskip these tests when the DNS SRV records are updated to point to the
+	// load balancer instead of directly to the mongos.
+	if strings.HasSuffix(file, "load-balanced/loadBalanced-directConnection.json") ||
+		strings.HasSuffix(file, "load-balanced/loadBalanced-true-txt.json") ||
+		strings.HasSuffix(file, "load-balanced/srvMaxHosts-zero-txt.json") ||
+		strings.HasSuffix(file, "load-balanced/srvMaxHosts-zero.json") {
+		mt.Skip("skipping because the DNS SRV records need to be updated to work correctly (GODRIVER-2312)")
+	}
+
 	cs, err := connstring.ParseAndValidate(test.URI)
 	if test.Error {
 		assert.NotNil(mt, err, "expected URI parsing error, got nil")
@@ -116,7 +125,7 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	}
 	for _, host := range test.Hosts {
 		_, err := getServerByAddress(host, topo)
-		assert.Nil(mt, err, "did not find host %v", host)
+		assert.Nil(mt, err, "error finding host %q: %v", host, err)
 	}
 }
 
