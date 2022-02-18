@@ -20,10 +20,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -122,8 +122,8 @@ func TestServerConnectionTimeout(t *testing.T) {
 					return c, err
 				})
 			},
-			operationTimeout:  100 * time.Millisecond,
-			connectTimeout:    1 * time.Second,
+			operationTimeout:  1 * time.Millisecond,
+			connectTimeout:    100 * time.Millisecond,
 			expectErr:         true,
 			expectPoolCleared: true,
 		},
@@ -134,22 +134,6 @@ func TestServerConnectionTimeout(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 
-			// Start a goroutine that pulls events from the events channel and inserts them into the
-			// events slice. Use a sync.WaitGroup to allow the test code to block until the events
-			// channel loop exits, guaranteeing that all events were copied from the channel.
-			// TODO(GODRIVER-2068): Consider using the "testPoolMonitor" from the "mongo/integration"
-			// package. Requires moving "testPoolMonitor" into a test utilities package.
-			events := make([]*event.PoolEvent, 0)
-			eventsCh := make(chan *event.PoolEvent)
-			var eventsWg sync.WaitGroup
-			eventsWg.Add(1)
-			go func() {
-				defer eventsWg.Done()
-				for evt := range eventsCh {
-					events = append(events, evt)
-				}
-			}()
-
 			// Create a TCP listener on a random port. The listener will accept connections but not
 			// read or write to them.
 			l, err := net.Listen("tcp", "127.0.0.1:0")
@@ -157,6 +141,10 @@ func TestServerConnectionTimeout(t *testing.T) {
 			defer func() {
 				_ = l.Close()
 			}()
+
+			// Create a pool events channel with space for up to 100 events and configure a pool
+			// event monitor to send events to the channel.
+			eventsCh := make(chan *event.PoolEvent, 100)
 
 			server, err := NewServer(
 				address.Address(l.Addr().String()),
@@ -205,30 +193,37 @@ func TestServerConnectionTimeout(t *testing.T) {
 				assert.Nil(t, err, "expected no error but got %s", err)
 			}
 
+			// If we expect the pool to be cleared, watch for all events until we get a
+			// "ConnectionPoolCleared" event or until we hit a 10s time limit.
+			if tc.expectPoolCleared {
+				assert.Eventually(t,
+					func() bool {
+						for evt := range eventsCh {
+							if evt.Type == event.PoolCleared {
+								return true
+							}
+						}
+						return false
+					},
+					10*time.Second,
+					100*time.Millisecond,
+					"expected pool to be cleared within 10s but was not cleared")
+			}
+
 			// Disconnect the server then close the events channel and expect that no more events
-			// are sent on the channel. Then wait for the events channel loop to return before
-			// inspecting the events slice.
+			// are sent on the channel.
 			_ = server.Disconnect(context.Background())
-
 			close(eventsCh)
-			eventsWg.Wait()
-			require.NotEmpty(t, events, "expected more than 0 connection pool monitor events")
 
-			// Look for any "ConnectionPoolCleared" events in the events slice so we can assert that
-			// the Server connection pool was or wasn't cleared, depending on the test expectations.
-			poolCleared := false
-			for _, evt := range events {
-				if evt.Type == event.PoolCleared {
-					poolCleared = true
+			// If we don't expect the pool to be cleared, check all events after the server is
+			// disconnected and make sure none were "ConnectionPoolCleared".
+			if !tc.expectPoolCleared {
+				for evt := range eventsCh {
+					if evt.Type == event.PoolCleared {
+						t.Error("expected pool to not be cleared but was cleared")
+					}
 				}
 			}
-			assert.Equal(
-				t,
-				tc.expectPoolCleared,
-				poolCleared,
-				"want pool cleared: %t, actual pool cleared: %t",
-				tc.expectPoolCleared,
-				poolCleared)
 		})
 	}
 }
