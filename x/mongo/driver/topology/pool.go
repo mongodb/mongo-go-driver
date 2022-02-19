@@ -155,7 +155,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	}
 
 	maintainInterval := 10 * time.Second
-	if config.MaintainInterval > 0 {
+	if config.MaintainInterval != 0 {
 		maintainInterval = config.MaintainInterval
 	}
 
@@ -190,8 +190,13 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		pool.backgroundDone.Add(1)
 		go pool.createConnections(ctx, pool.backgroundDone)
 	}
-	pool.backgroundDone.Add(1)
-	go pool.maintain(ctx, pool.backgroundDone)
+
+	// If maintainInterval is not positive, don't start the maintain() goroutine. Expect that
+	// negative values are only used in testing; this config value is not user-configurable.
+	if maintainInterval > 0 {
+		pool.backgroundDone.Add(1)
+		go pool.maintain(ctx, pool.backgroundDone)
+	}
 
 	if pool.monitor != nil {
 		pool.monitor.Event(&event.PoolEvent{
@@ -379,7 +384,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	// return an error. Do all of this while holding the stateMu read lock to prevent a state change between
 	// checking the state and entering the wait queue. Not holding the stateMu read lock here may
 	// allow a checkOut() to enter the wait queue after clear() pauses the pool and clears the wait
-	// queue, resulting in checkOut() being stuck waiting for a connection from a paused pool.
+	// queue, resulting in createConnections() doing work while the pool is "paused".
 	p.stateMu.RLock()
 	switch p.state {
 	case poolClosed:
@@ -904,14 +909,15 @@ func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
 			return
 		}
 
-		// Only maintain the pool while it's in the "ready" state.
-		// Note that there is a possible race condition between checking the pool state here and
-		// setting the pool to "paused" and clearing the wait queues in clear(). The impact if that
-		// happens is maintain() may request up to 10 wantConns (the maximum batch size below) after
-		// clear() is called that will cause createConnections() to create new connections while the
-		// pool is "paused". The probability of that happening with the default 10-second maintain
-		// interval is very low.
-		if p.getState() != poolReady {
+		// Only maintain the pool while it's in the "ready" state. If the pool state is not "ready",
+		// wait for the next tick or "ready" signal. Do all of this while holding the stateMu read
+		// lock to prevent a state change between checking the state and entering the wait queue.
+		// Not holding the stateMu read lock here may allow maintain() to request wantConns after
+		// clear() pauses the pool and clears the wait queue, resulting in createConnections()
+		// doing work while the pool is "paused".
+		p.stateMu.RLock()
+		if p.state != poolReady {
+			p.stateMu.RUnlock()
 			continue
 		}
 
@@ -944,6 +950,7 @@ func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
 				}
 			}()
 		}
+		p.stateMu.RUnlock()
 	}
 }
 
