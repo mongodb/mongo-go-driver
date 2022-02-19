@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -48,8 +49,17 @@ func TestCMAPProse(t *testing.T) {
 		assertConnectionCounts := func(t *testing.T, p *pool, numCreated, numClosed int) {
 			t.Helper()
 
-			assert.Equal(t, numCreated, len(created), "expected %d creation events, got %d", numCreated, len(created))
-			assert.Equal(t, numClosed, len(closed), "expected %d closed events, got %d", numClosed, len(closed))
+			require.Eventuallyf(t,
+				func() bool {
+					return numCreated == len(created) && numClosed == len(closed)
+				},
+				1*time.Second,
+				10*time.Millisecond,
+				"expected %d creation events, got %d; expected %d closed events, got %d",
+				numCreated,
+				len(created),
+				numClosed,
+				len(closed))
 
 			netCount := numCreated - numClosed
 			assert.Equal(t, netCount, p.totalConnectionCount(), "expected %d total connections, got %d", netCount,
