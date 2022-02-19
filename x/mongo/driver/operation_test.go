@@ -690,3 +690,67 @@ func (m *mockConnection) ReadWireMessage(_ context.Context, dst []byte) ([]byte,
 	m.pReadDst = dst
 	return m.rReadWM, m.rReadErr
 }
+
+type retryableError struct {
+	error
+}
+
+func (retryableError) Retryable() bool { return true }
+
+var _ RetryablePoolError = retryableError{}
+
+// mockRetryServer is used to test retry of connection checkout. Returns a retryable error from
+// Connection().
+type mockRetryServer struct {
+	numCallsToConnection int
+}
+
+// Connection records the number of calls and returns retryable errors until the provided context
+// times out or is cancelled, then returns the context error.
+func (ms *mockRetryServer) Connection(ctx context.Context) (Connection, error) {
+	ms.numCallsToConnection++
+
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
+	time.Sleep(1 * time.Millisecond)
+	return nil, retryableError{error: errors.New("test error")}
+}
+
+func (ms *mockRetryServer) MinRTT() time.Duration {
+	return 0
+}
+
+func TestRetry(t *testing.T) {
+	t.Run("retries multiple times with RetryContext", func(t *testing.T) {
+		d := new(mockDeployment)
+		ms := new(mockRetryServer)
+		d.returns.server = ms
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+
+		retry := RetryContext
+		err := Operation{
+			CommandFn:  func([]byte, description.SelectedServer) ([]byte, error) { return nil, nil },
+			Deployment: d,
+			Database:   "testing",
+			RetryMode:  &retry,
+			Type:       Read,
+		}.Execute(ctx, nil)
+		assert.NotNil(t, err, "expected an error from Execute()")
+
+		// Expect Connection() to be called at least 3 times. The first call is the initial attempt
+		// to run the operation and the second is the retry. The third indicates that we retried
+		// more than once, which is the behavior we want to assert.
+		assert.True(t,
+			ms.numCallsToConnection >= 3,
+			"expected Connection() to be called at least 3 times")
+
+		deadline, _ := ctx.Deadline()
+		assert.True(t,
+			time.Now().After(deadline),
+			"expected operation to complete only after the context deadline is exceeded")
+	})
+}

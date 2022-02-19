@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // Connection pool state constants.
@@ -59,6 +60,9 @@ func (pce poolClearedError) Error() string {
 
 // Retryable returns true. All poolClearedErrors are retryable.
 func (poolClearedError) Retryable() bool { return true }
+
+// Assert that poolClearedError is a driver.RetryablePoolError.
+var _ driver.RetryablePoolError = poolClearedError{}
 
 // poolConfig contains all aspects of the pool that can be configured
 type poolConfig struct {
@@ -901,6 +905,12 @@ func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		// Only maintain the pool while it's in the "ready" state.
+		// Note that there is a possible race condition between checking the pool state here and
+		// setting the pool to "paused" and clearing the wait queues in clear(). The impact if that
+		// happens is maintain() may request up to 10 wantConns (the maximum batch size below) after
+		// clear() is called that will cause createConnections() to create new connections while the
+		// pool is "paused". The probability of that happening with the default 10-second maintain
+		// interval is very low.
 		if p.getState() != poolReady {
 			continue
 		}

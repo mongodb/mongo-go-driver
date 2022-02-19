@@ -47,6 +47,11 @@ const (
 	readSnapshotMinWireVersion int32 = 13
 )
 
+// RetryablePoolError is a connection pool error that can be retried while executing an operation.
+type RetryablePoolError interface {
+	Retryable() bool
+}
+
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
 // from an instance of Operation.
 type InvalidOperationError struct{ MissingField string }
@@ -346,7 +351,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				// If the returned error is retryable and there are retries remaining (negative
 				// retries means retry indefinitely), then retry the operation. Set the server
 				// and connection to nil to request a new server and connection.
-				if rerr, ok := err.(interface{ Retryable() bool }); ok && rerr.Retryable() && retries != 0 {
+				if rerr, ok := err.(RetryablePoolError); ok && rerr.Retryable() && retries != 0 {
 					retries--
 					prevErr = err
 					// If we got a connection, close it immediately to release pool resources for

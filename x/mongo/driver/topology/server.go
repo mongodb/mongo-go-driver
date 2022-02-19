@@ -217,6 +217,14 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 		s.closewg.Add(1)
 		go s.update()
 	}
+
+	// The CMAP spec describes that pools should only be marked "ready" when the server description
+	// is updated to something other than "Unknown". However, we maintain the previous Server
+	// behavior here and immediately mark the pool as ready during Connect() to simplify and speed
+	// up the Client startup behavior. The risk of marking a pool as ready proactively during
+	// Connect() is that we could attempt to create connections to a server that was configured
+	// erroneously until the first server check or checkOut() failure occurs, when the SDAM error
+	// handler would transition the Server back to "Unknown" and set the pool to "paused".
 	return s.pool.ready()
 }
 
