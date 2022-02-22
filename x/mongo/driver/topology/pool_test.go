@@ -567,7 +567,17 @@ func TestPool(t *testing.T) {
 					"unable to write wire message to network: Write error",
 					"expected error to contain string")
 			}
-			assert.Equalf(t, 0, p.totalConnectionCount(), "pool should have 0 total connections")
+			assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 available connections")
+			// On connect() failure, the connection is removed and closed after delivering the error
+			// to checkOut(), so it may still count toward the total connection count briefly. Wait
+			// up to 100ms for the total connection count to reach 0.
+			assert.Eventually(t,
+				func() bool {
+					return p.totalConnectionCount() == 0
+				},
+				100*time.Millisecond,
+				1*time.Millisecond,
+				"expected pool to have 0 total connections within 100ms")
 
 			p.close(context.Background())
 		})
