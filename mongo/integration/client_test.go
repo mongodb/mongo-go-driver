@@ -651,6 +651,27 @@ func TestClient(t *testing.T) {
 				"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
 		}
 	})
+
+	// Test that OP_MSG is used for handshakes when loadBalanced is true.
+	opMsgLBOpts := mtest.NewOptions().ClientType(mtest.Proxy).MinServerVersion("5.0").Topologies(mtest.LoadBalanced)
+	mt.RunOpts("OP_MSG used for handshakes when loadBalanced is true", opMsgLBOpts, func(mt *mtest.T) {
+		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
+		assert.Nil(mt, err, "Ping error: %v", err)
+
+		msgPairs := mt.GetProxiedMessages()
+		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
+
+		// First three messages should be connection handshakes: one for the heartbeat connection, another for the
+		// application connection, and a final one for the RTT monitor connection.
+		for idx, pair := range msgPairs[:3] {
+			assert.Equal(mt, "hello", pair.CommandName, "expected command name 'hello' at index %d, got %s", idx,
+				pair.CommandName)
+
+			// Assert that appended OpCode is OP_MSG when loadBalanced is true.
+			assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
+				"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+		}
+	})
 }
 
 func TestClientStress(t *testing.T) {
