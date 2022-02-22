@@ -54,7 +54,12 @@ type Connection interface {
 	WriteWireMessage(context.Context, []byte) error
 	ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error)
 	Description() description.Server
+
+	// Close closes any underlying connection and returns or frees any resources held by the
+	// connection. Close is idempotent and can be called multiple times, although subsequent calls
+	// to Close may return an error. A connection cannot be used after it is closed.
 	Close() error
+
 	ID() string
 	ServerConnectionID() *int32
 	Address() address.Address

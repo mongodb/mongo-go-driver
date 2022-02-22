@@ -343,6 +343,22 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	retrySupported := false
 	first := true
 	currIndex := 0
+
+	// resetForRetry records the error that caused the retry, decrements retries, and resets the
+	// retry loop variables to request a new server and a new connection for the next attempt.
+	resetForRetry := func(err error) {
+		retries--
+		prevErr = err
+		// If we got a connection, close it immediately to release pool resources for
+		// subsequent retries.
+		if conn != nil {
+			conn.Close()
+		}
+		// Set the server and connection to nil to request a new server and connection.
+		srvr = nil
+		conn = nil
+	}
+
 	for {
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
@@ -352,16 +368,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				// retries means retry indefinitely), then retry the operation. Set the server
 				// and connection to nil to request a new server and connection.
 				if rerr, ok := err.(RetryablePoolError); ok && rerr.Retryable() && retries != 0 {
-					retries--
-					prevErr = err
-					// If we got a connection, close it immediately to release pool resources for
-					// subsequent retries.
-					if conn != nil {
-						conn.Close()
-					}
-					// Set the server and connection to nil to request a new server and connection.
-					srvr = nil
-					conn = nil
+					resetForRetry(err)
 					continue
 				}
 
@@ -533,16 +540,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					op.Client.UpdateCommitTransactionWriteConcern()
 					op.WriteConcern = op.Client.CurrentWc
 				}
-				retries--
-				prevErr = tt
-				// If we got a connection, close it immediately to release pool resources for
-				// subsequent retries.
-				if conn != nil {
-					conn.Close()
-				}
-				// Set the server and connection to nil to request a new server and connection.
-				srvr = nil
-				conn = nil
+				resetForRetry(tt)
 				continue
 			}
 
@@ -627,16 +625,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					op.Client.UpdateCommitTransactionWriteConcern()
 					op.WriteConcern = op.Client.CurrentWc
 				}
-				retries--
-				prevErr = tt
-				// If we got a connection, close it immediately to release pool resources for
-				// subsequent retries.
-				if conn != nil {
-					conn.Close()
-				}
-				// Set the server and connection to nil to request a new server and connection.
-				srvr = nil
-				conn = nil
+				resetForRetry(tt)
 				continue
 			}
 
