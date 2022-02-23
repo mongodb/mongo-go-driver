@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build go1.13
 // +build go1.13
 
 package topology
@@ -19,10 +20,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -121,8 +122,8 @@ func TestServerConnectionTimeout(t *testing.T) {
 					return c, err
 				})
 			},
-			operationTimeout:  100 * time.Millisecond,
-			connectTimeout:    1 * time.Second,
+			operationTimeout:  1 * time.Millisecond,
+			connectTimeout:    100 * time.Millisecond,
 			expectErr:         true,
 			expectPoolCleared: true,
 		},
@@ -133,22 +134,6 @@ func TestServerConnectionTimeout(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 
-			// Start a goroutine that pulls events from the events channel and inserts them into the
-			// events slice. Use a sync.WaitGroup to allow the test code to block until the events
-			// channel loop exits, guaranteeing that all events were copied from the channel.
-			// TODO(GODRIVER-2068): Consider using the "testPoolMonitor" from the "mongo/integration"
-			// package. Requires moving "testPoolMonitor" into a test utilities package.
-			events := make([]*event.PoolEvent, 0)
-			eventsCh := make(chan *event.PoolEvent)
-			var eventsWg sync.WaitGroup
-			eventsWg.Add(1)
-			go func() {
-				defer eventsWg.Done()
-				for evt := range eventsCh {
-					events = append(events, evt)
-				}
-			}()
-
 			// Create a TCP listener on a random port. The listener will accept connections but not
 			// read or write to them.
 			l, err := net.Listen("tcp", "127.0.0.1:0")
@@ -156,6 +141,10 @@ func TestServerConnectionTimeout(t *testing.T) {
 			defer func() {
 				_ = l.Close()
 			}()
+
+			// Create a pool events channel with space for up to 100 events and configure a pool
+			// event monitor to send events to the channel.
+			eventsCh := make(chan *event.PoolEvent, 100)
 
 			server, err := NewServer(
 				address.Address(l.Addr().String()),
@@ -204,30 +193,37 @@ func TestServerConnectionTimeout(t *testing.T) {
 				assert.Nil(t, err, "expected no error but got %s", err)
 			}
 
+			// If we expect the pool to be cleared, watch for all events until we get a
+			// "ConnectionPoolCleared" event or until we hit a 10s time limit.
+			if tc.expectPoolCleared {
+				assert.Eventually(t,
+					func() bool {
+						for evt := range eventsCh {
+							if evt.Type == event.PoolCleared {
+								return true
+							}
+						}
+						return false
+					},
+					10*time.Second,
+					100*time.Millisecond,
+					"expected pool to be cleared within 10s but was not cleared")
+			}
+
 			// Disconnect the server then close the events channel and expect that no more events
-			// are sent on the channel. Then wait for the events channel loop to return before
-			// inspecting the events slice.
+			// are sent on the channel.
 			_ = server.Disconnect(context.Background())
-
 			close(eventsCh)
-			eventsWg.Wait()
-			require.NotEmpty(t, events, "expected more than 0 connection pool monitor events")
 
-			// Look for any "ConnectionPoolCleared" events in the events slice so we can assert that
-			// the Server connection pool was or wasn't cleared, depending on the test expectations.
-			poolCleared := false
-			for _, evt := range events {
-				if evt.Type == event.PoolCleared {
-					poolCleared = true
+			// If we don't expect the pool to be cleared, check all events after the server is
+			// disconnected and make sure none were "ConnectionPoolCleared".
+			if !tc.expectPoolCleared {
+				for evt := range eventsCh {
+					if evt.Type == event.PoolCleared {
+						t.Error("expected pool to not be cleared but was cleared")
+					}
 				}
 			}
-			assert.Equal(
-				t,
-				tc.expectPoolCleared,
-				poolCleared,
-				"want pool cleared: %t, actual pool cleared: %t",
-				tc.expectPoolCleared,
-				poolCleared)
 		})
 	}
 }
@@ -286,11 +282,10 @@ func TestServer(t *testing.T) {
 				desc = &descript
 				require.Nil(t, desc.LastError)
 			}
-			err = s.pool.connect()
-			require.NoError(t, err, "unable to connect to pool")
-			defer func() {
-				_ = s.pool.disconnect(context.Background())
-			}()
+			err = s.pool.ready()
+			require.NoError(t, err, "pool.ready() error")
+			defer s.pool.close(context.Background())
+
 			s.connectionstate = connected
 
 			// The internal connection pool resets the generation number once the number of connections in a generation
@@ -324,13 +319,25 @@ func TestServer(t *testing.T) {
 	}
 
 	t.Run("multiple connection initialization errors are processed correctly", func(t *testing.T) {
-		assertGenerationStats := func(t *testing.T, server *Server, serviceID primitive.ObjectID, generation, numConns uint64) {
+		assertGenerationStats := func(t *testing.T, server *Server, serviceID primitive.ObjectID, wantGeneration, wantNumConns uint64) {
 			t.Helper()
 
-			stats, ok := server.pool.generation.generationMap[serviceID]
-			assert.True(t, ok, "entry for serviceID not found")
-			assert.Equal(t, generation, stats.generation, "expected generation number %d, got %d", generation, stats.generation)
-			assert.Equal(t, numConns, stats.numConns, "expected connection count %d, got %d", numConns, stats.numConns)
+			// On connection failure, the connection is removed and closed after delivering the
+			// error to Connection(), so it may still count toward the generation connection count
+			// briefly. Wait up to 100ms for the generation connection count to reach the target.
+			assert.Eventuallyf(t,
+				func() bool {
+					generation := server.pool.generation.getGeneration(&serviceID)
+					numConns := server.pool.generation.getNumConns(&serviceID)
+					return generation == wantGeneration && numConns == wantNumConns
+				},
+				100*time.Millisecond,
+				1*time.Millisecond,
+				"expected generation number %v, got %v; expected connection count %v, got %v",
+				wantGeneration,
+				server.pool.generation.getGeneration(&serviceID),
+				wantNumConns,
+				server.pool.generation.getNumConns(&serviceID))
 		}
 
 		testCases := []struct {
@@ -343,16 +350,23 @@ func TestServer(t *testing.T) {
 			numNewConns        uint64
 		}{
 			// For LB clusters, errors for dialing and the initial handshake are ignored.
-			{"dial errors are ignored for load balancers", true, netErr.Wrapped, nil, nil, 0, 0},
-			{"initial handshake errors are ignored for load balancers", true, nil, netErr.Wrapped, nil, 0, 0},
-			{"post-handshake errors are not ignored for load balancers", true, nil, nil, netErr.Wrapped, 2, 0},
+			{"dial errors are ignored for load balancers", true, netErr.Wrapped, nil, nil, 0, 1},
+			{"initial handshake errors are ignored for load balancers", true, nil, netErr.Wrapped, nil, 0, 1},
 
-			// For non-LB clusters, all errors are processed.
-			{"dial errors are not ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 2, 0},
-			{"initial handshake errors are not ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 2, 0},
-			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, netErr.Wrapped, 2, 0},
+			// For LB clusters, post-handshake errors clear the pool, but do not update the server
+			// description or pause the pool.
+			{"post-handshake errors are not ignored for load balancers", true, nil, nil, netErr.Wrapped, 5, 1},
+
+			// For non-LB clusters, the first error sets the server to Unknown and clears and pauses
+			// the pool. All subsequent attempts to check out a connection without updating the
+			// server description return an error because the pool is paused.
+			{"dial errors are not ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 1, 1},
+			{"initial handshake errors are not ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 1, 1},
+			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, netErr.Wrapped, 1, 1},
 		}
 		for _, tc := range testCases {
+			tc := tc // Capture range variable.
+
 			t.Run(tc.name, func(t *testing.T) {
 				var returnConnectionError bool
 				var serviceID primitive.ObjectID
@@ -408,17 +422,27 @@ func TestServer(t *testing.T) {
 					withMonitoringDisabled(func(bool) bool {
 						return true
 					}),
+					// With the default maxConnecting (2), there are multiple goroutines creating
+					// connections. Because handshake errors are processed after returning the error
+					// to checkOut(), it's possible for extra connection requests to be processed
+					// after a handshake error before the connection pool is cleared and paused. Set
+					// maxConnecting=1 to minimize the number of extra connection requests processed
+					// before the connection pool is cleared and paused.
+					WithMaxConnecting(func(uint64) uint64 { return 1 }),
 				}
 
 				server, err := ConnectServer(address.Address("localhost:27017"), nil, primitive.NewObjectID(), serverOpts...)
 				assert.Nil(t, err, "ConnectServer error: %v", err)
+				defer func() {
+					_ = server.Disconnect(context.Background())
+				}()
 
 				_, err = server.Connection(context.Background())
 				assert.Nil(t, err, "Connection error: %v", err)
 				assertGenerationStats(t, server, serviceID, 0, 1)
 
 				returnConnectionError = true
-				for i := 0; i < 2; i++ {
+				for i := 0; i < 5; i++ {
 					_, err = server.Connection(context.Background())
 					switch {
 					case tc.dialErr != nil || tc.getInfoErr != nil || tc.finishHandshakeErr != nil:
@@ -427,8 +451,7 @@ func TestServer(t *testing.T) {
 						assert.Nil(t, err, "Connection error at iteration %d: %v", i, err)
 					}
 				}
-				// The final number of connections should be numNewConns+1 to account for the extra one we create above.
-				assertGenerationStats(t, server, serviceID, tc.finalGeneration, tc.numNewConns+1)
+				assertGenerationStats(t, server, serviceID, tc.finalGeneration, tc.numNewConns)
 			})
 		}
 	})
@@ -450,11 +473,9 @@ func TestServer(t *testing.T) {
 			}))
 		noerr(t, err)
 		s.connectionstate = connected
-		err = s.pool.connect()
+		err = s.pool.ready()
 		noerr(t, err)
-		defer func() {
-			_ = s.pool.disconnect(context.Background())
-		}()
+		defer s.pool.close(context.Background())
 
 		conn, err := s.Connection(context.Background())
 		noerr(t, err)
@@ -586,7 +607,9 @@ func TestServer(t *testing.T) {
 				assert.Nil(t, err, "NewServer error: %v", err)
 
 				server.connectionstate = connected
-				server.pool.connected = connected
+				err = server.pool.ready()
+				assert.Nil(t, err, "pool.ready() error: %v", err)
+
 				originalDesc := description.Server{
 					// The actual Kind value does not matter as long as it's not Unknown so we can detect that it is
 					// properly changed to Unknown during the ProcessError call if needed.

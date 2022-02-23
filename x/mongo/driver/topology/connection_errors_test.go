@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build go1.13
 // +build go1.13
 
 package topology
@@ -29,8 +30,7 @@ func TestConnectionErrors(t *testing.T) {
 			}))
 			assert.Nil(t, err, "newConnection error: %v", err)
 
-			conn.connect(context.Background())
-			err = conn.wait()
+			err = conn.connect(context.Background())
 			assert.True(t, errors.Is(err, dialError), "expected error %v, got %v", dialError, err)
 		})
 		t.Run("handshake error", func(t *testing.T) {
@@ -49,9 +49,7 @@ func TestConnectionErrors(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			conn.connect(ctx)
-			err = conn.wait()
-
+			err = conn.connect(ctx)
 			assert.True(t, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
 		})
 		t.Run("write error", func(t *testing.T) {

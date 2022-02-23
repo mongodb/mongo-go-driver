@@ -56,7 +56,6 @@ type connection struct {
 	zliblevel            int
 	zstdLevel            int
 	connectDone          chan struct{}
-	connectErr           error
 	config               *connectionConfig
 	cancelConnectContext context.CancelFunc
 	connectContextMade   chan struct{}
@@ -102,18 +101,6 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 	return c, nil
 }
 
-func (c *connection) processInitializationError(err error) {
-	atomic.StoreInt64(&c.connected, disconnected)
-	if c.nc != nil {
-		_ = c.nc.Close()
-	}
-
-	c.connectErr = ConnectionError{Wrapped: err, init: true}
-	if c.config.errorHandlingCallback != nil {
-		c.config.errorHandlingCallback(c.connectErr, c.generation, c.desc.ServiceID)
-	}
-}
-
 // setGenerationNumber sets the connection's generation number if a callback has been provided to do so in connection
 // configuration.
 func (c *connection) setGenerationNumber() {
@@ -135,13 +122,27 @@ func (c *connection) hasGenerationNumber() bool {
 	return c.desc.LoadBalanced()
 }
 
-// connect handles the I/O for a connection. It will dial, configure TLS, and perform
-// initialization handshakes.
-func (c *connection) connect(ctx context.Context) {
+// connect handles the I/O for a connection. It will dial, configure TLS, and perform initialization
+// handshakes. All errors returned by connect are considered "before the handshake completes" and
+// must be handled by calling the appropriate SDAM handshake error handler.
+func (c *connection) connect(ctx context.Context) (err error) {
 	if !atomic.CompareAndSwapInt64(&c.connected, initialized, connected) {
-		return
+		return nil
 	}
+
 	defer close(c.connectDone)
+
+	// If connect returns an error, set the connection status as disconnected and close the
+	// underlying net.Conn if it was created.
+	defer func() {
+		if err != nil {
+			atomic.StoreInt64(&c.connected, disconnected)
+
+			if c.nc != nil {
+				_ = c.nc.Close()
+			}
+		}
+	}()
 
 	// Create separate contexts for dialing a connection and doing the MongoDB/auth handshakes.
 	//
@@ -181,12 +182,9 @@ func (c *connection) connect(ctx context.Context) {
 	close(c.connectContextMade)
 
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
-	var err error
-	var tempNc net.Conn
-	tempNc, err = c.config.dialer.DialContext(dialCtx, c.addr.Network(), c.addr.String())
+	tempNc, err := c.config.dialer.DialContext(dialCtx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		c.processInitializationError(err)
-		return
+		return ConnectionError{Wrapped: err, init: true}
 	}
 	c.nc = tempNc
 
@@ -201,8 +199,7 @@ func (c *connection) connect(ctx context.Context) {
 		}
 		tlsNc, err := configureTLS(dialCtx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
-			c.processInitializationError(err)
-			return
+			return ConnectionError{Wrapped: err, init: true}
 		}
 		c.nc = tlsNc
 	}
@@ -212,7 +209,7 @@ func (c *connection) connect(ctx context.Context) {
 	// running hello and authentication is handled by a handshaker on the configuration instance.
 	handshaker := c.config.handshaker
 	if handshaker == nil {
-		return
+		return nil
 	}
 
 	var handshakeInfo driver.HandshakeInformation
@@ -247,8 +244,7 @@ func (c *connection) connect(ctx context.Context) {
 
 	// We have a failed handshake here
 	if err != nil {
-		c.processInitializationError(err)
-		return
+		return ConnectionError{Wrapped: err, init: true}
 	}
 
 	if len(c.desc.Compression) > 0 {
@@ -279,13 +275,13 @@ func (c *connection) connect(ctx context.Context) {
 			}
 		}
 	}
+	return nil
 }
 
-func (c *connection) wait() error {
+func (c *connection) wait() {
 	if c.connectDone != nil {
 		<-c.connectDone
 	}
-	return c.connectErr
 }
 
 func (c *connection) closeConnectContext() {

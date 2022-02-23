@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -18,17 +17,13 @@ func TestPool(t *testing.T) {
 	t.Run("newPool", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("should be connected", func(t *testing.T) {
+		t.Run("should be paused", func(t *testing.T) {
 			t.Parallel()
 
 			p := newPool(poolConfig{})
-			err := p.connect()
-			noerr(t, err)
+			assert.Equalf(t, poolPaused, p.getState(), "expected new pool to be paused")
 
-			assert.Equalf(t, connected, p.connected, "expected new pool to be connected")
-
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 	})
 	t.Run("closeConnection", func(t *testing.T) {
@@ -47,45 +42,35 @@ func TestPool(t *testing.T) {
 			p1 := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			})
-			err := p1.connect()
+			err := p1.ready()
 			noerr(t, err)
 
 			c, err := p1.checkOut(context.Background())
 			noerr(t, err)
 
 			p2 := newPool(poolConfig{})
-			err = p2.connect()
+			err = p2.ready()
 			noerr(t, err)
 
 			err = p2.closeConnection(c)
 			assert.Equalf(t, ErrWrongPool, err, "expected ErrWrongPool error")
 
-			err = p1.disconnect(context.Background())
-			noerr(t, err)
-			err = p2.disconnect(context.Background())
-			noerr(t, err)
+			p1.close(context.Background())
+			p2.close(context.Background())
 		})
 	})
-	t.Run("disconnect", func(t *testing.T) {
+	t.Run("close", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("cannot disconnect multiple times without connect", func(t *testing.T) {
+		t.Run("calling close multiple times does not panic", func(t *testing.T) {
 			t.Parallel()
 
 			p := newPool(poolConfig{})
-			err := p.connect()
-			noerr(t, err)
-
-			err = p.disconnect(context.Background())
+			err := p.ready()
 			noerr(t, err)
 
 			for i := 0; i < 5; i++ {
-				err = p.disconnect(context.Background())
-				assert.Equalf(
-					t,
-					ErrPoolDisconnected,
-					err,
-					"disconnecting an already disconnected pool should return ErrPoolDisconnected")
+				p.close(context.Background())
 			}
 		})
 		t.Run("closes idle connections", func(t *testing.T) {
@@ -102,7 +87,7 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			}, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			conns := make([]*connection, 3)
@@ -119,8 +104,7 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 3, p.availableConnectionCount(), "should have 3 available connections")
 			assert.Equalf(t, 3, p.totalConnectionCount(), "should have 3 total connections")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 			assertConnectionsClosed(t, d, 3)
 			assert.Equalf(t, 0, p.availableConnectionCount(), "should have 0 available connections")
 			assert.Equalf(t, 0, p.availableConnectionCount(), "should have 0 total connections")
@@ -139,7 +123,7 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			}, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			conns := make([]*connection, 3)
@@ -156,8 +140,7 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 2, p.availableConnectionCount(), "should have 2 available connections")
 			assert.Equalf(t, 3, p.totalConnectionCount(), "should have 3 total connections")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 			assertConnectionsClosed(t, d, 3)
 			assert.Equalf(t, 0, p.availableConnectionCount(), "should have 0 available connections")
 			assert.Equalf(t, 0, p.totalConnectionCount(), "should have 0 total connections")
@@ -175,20 +158,20 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			})
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			_, err = p.checkOut(context.Background())
 			noerr(t, err)
 
-			disconnected := make(chan struct{})
+			closed := make(chan struct{})
 			started := make(chan struct{})
 			go func() {
 				close(started)
 
 				for {
 					select {
-					case <-disconnected:
+					case <-closed:
 						return
 					default:
 						c, _ := p.checkOut(context.Background())
@@ -198,16 +181,15 @@ func TestPool(t *testing.T) {
 				}
 			}()
 
-			// Wait for the background goroutine to start running before trying to disconnect the
+			// Wait for the background goroutine to start running before trying to close the
 			// connection pool.
 			<-started
 			_, err = p.checkOut(context.Background())
 			noerr(t, err)
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 
-			close(disconnected)
+			close(closed)
 		})
 		t.Run("shuts down gracefully if Context has a deadline", func(t *testing.T) {
 			t.Parallel()
@@ -222,7 +204,7 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			})
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			// Check out 2 connections from the pool and add them to a conns slice.
@@ -242,11 +224,11 @@ func TestPool(t *testing.T) {
 			err = p.checkIn(c)
 			noerr(t, err)
 
-			// Start a goroutine that waits for the pool to start disconnecting, then checks in the
+			// Start a goroutine that waits for the pool to start closing, then checks in the
 			// 2 in-use connections. Assert that both connections are still connected during
 			// graceful shutdown before they are checked in.
 			go func() {
-				for atomic.LoadInt64(&p.connected) == connected {
+				for p.getState() == poolReady {
 					time.Sleep(time.Millisecond)
 				}
 				for _, c := range conns {
@@ -257,15 +239,14 @@ func TestPool(t *testing.T) {
 				}
 			}()
 
-			// Disconnect the pool with a 1-hour graceful shutdown timeout. Expect that the call to
-			// disconnect() returns when all of the connections are checked in. If disconnect()
-			// doesn't return when all of the connections are checked in, the test will time out.
+			// Close the pool with a 1-hour graceful shutdown timeout. Expect that the call to
+			// close() returns when all of the connections are checked in. If close() doesn't return
+			// when all of the connections are checked in, the test will time out.
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
 			defer cancel()
-			err = p.disconnect(ctx)
-			noerr(t, err)
+			p.close(ctx)
 		})
-		t.Run("closing a Connection does not cause an error after pool is disconnected", func(t *testing.T) {
+		t.Run("closing a Connection does not cause an error after pool is closed", func(t *testing.T) {
 			t.Parallel()
 
 			cleanup := make(chan struct{})
@@ -278,24 +259,23 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			})
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			c, err := p.checkOut(context.Background())
 			noerr(t, err)
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 
 			c1 := &Connection{connection: c}
 			err = c1.Close()
 			noerr(t, err)
 		})
 	})
-	t.Run("connect", func(t *testing.T) {
+	t.Run("ready", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("can reconnect a disconnected pool", func(t *testing.T) {
+		t.Run("can ready a paused pool", func(t *testing.T) {
 			t.Parallel()
 
 			cleanup := make(chan struct{})
@@ -308,22 +288,27 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			})
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
-			for i := 0; i < 3; i++ {
-				_, err := p.checkOut(context.Background())
+			conns := make([]*connection, 3)
+			for i := range conns {
+				conn, err := p.checkOut(context.Background())
 				noerr(t, err)
+				conns[i] = conn
 			}
 			assert.Equalf(t, 0, p.availableConnectionCount(), "should have 0 available connections")
 			assert.Equalf(t, 3, p.totalConnectionCount(), "should have 3 total connections")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.clear(nil, nil)
+			for _, conn := range conns {
+				err = p.checkIn(conn)
+				noerr(t, err)
+			}
 			assert.Equalf(t, 0, p.availableConnectionCount(), "should have 0 available connections")
 			assert.Equalf(t, 0, p.totalConnectionCount(), "should have 0 total connections")
 
-			err = p.connect()
+			err = p.ready()
 			noerr(t, err)
 
 			for i := 0; i < 3; i++ {
@@ -333,39 +318,108 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 0, p.availableConnectionCount(), "should have 0 available connections")
 			assert.Equalf(t, 3, p.totalConnectionCount(), "should have 3 total connections")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
-		t.Run("cannot connect multiple times without disconnect", func(t *testing.T) {
+		t.Run("calling ready multiple times does not return an error", func(t *testing.T) {
 			t.Parallel()
 
 			p := newPool(poolConfig{})
-			err := p.connect()
-			noerr(t, err)
-
 			for i := 0; i < 5; i++ {
-				err := p.connect()
-				assert.Equalf(
-					t,
-					ErrPoolConnected,
-					err,
-					"connecting an already connected pool should return ErrPoolConnected")
+				err := p.ready()
+				noerr(t, err)
 			}
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
-		t.Run("can disconnect and reconnect multiple times", func(t *testing.T) {
+		t.Run("can clear and ready multiple times", func(t *testing.T) {
 			t.Parallel()
 
-			p := newPool(poolConfig{})
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 2, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+
+			p := newPool(poolConfig{
+				Address: address.Address(addr.String()),
+			})
+			err := p.ready()
+			noerr(t, err)
+
+			c, err := p.checkOut(context.Background())
+			noerr(t, err)
+			err = p.checkIn(c)
+			noerr(t, err)
+
 			for i := 0; i < 100; i++ {
-				err := p.connect()
+				err = p.ready()
 				noerr(t, err)
 
-				err = p.disconnect(context.Background())
-				noerr(t, err)
+				p.clear(nil, nil)
 			}
+
+			err = p.ready()
+			noerr(t, err)
+
+			c, err = p.checkOut(context.Background())
+			noerr(t, err)
+			err = p.checkIn(c)
+			noerr(t, err)
+
+			p.close(context.Background())
+		})
+		t.Run("can clear and ready multiple times concurrently", func(t *testing.T) {
+			t.Parallel()
+
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 2, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+
+			p := newPool(poolConfig{
+				Address: address.Address(addr.String()),
+			})
+			err := p.ready()
+			noerr(t, err)
+
+			c, err := p.checkOut(context.Background())
+			noerr(t, err)
+			err = p.checkIn(c)
+			noerr(t, err)
+
+			var wg sync.WaitGroup
+			for i := 0; i < 10; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for i := 0; i < 1000; i++ {
+						err := p.ready()
+						noerr(t, err)
+					}
+				}()
+
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for i := 0; i < 1000; i++ {
+						p.clear(errors.New("test error"), nil)
+					}
+				}()
+			}
+
+			wg.Wait()
+			err = p.ready()
+			noerr(t, err)
+
+			c, err = p.checkOut(context.Background())
+			noerr(t, err)
+			err = p.checkIn(c)
+			noerr(t, err)
+
+			p.close(context.Background())
 		})
 	})
 	t.Run("checkOut", func(t *testing.T) {
@@ -380,7 +434,7 @@ func TestPool(t *testing.T) {
 					return nil, dialErr
 				})
 			}))
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			_, err = p.checkOut(context.Background())
@@ -388,8 +442,7 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, want, err, "should return error from calling checkOut()")
 			assert.Equalf(t, 0, p.totalConnectionCount(), "pool should have 0 total connections")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 		t.Run("closes perished connections", func(t *testing.T) {
 			t.Parallel()
@@ -409,7 +462,7 @@ func TestPool(t *testing.T) {
 				},
 				WithDialer(func(Dialer) Dialer { return d }),
 			)
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			// Check out a connection and assert that the idle timeout is properly set then check it
@@ -433,8 +486,7 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 2, d.lenopened(), "should have opened 2 connections")
 			assert.Equalf(t, 1, p.totalConnectionCount(), "pool should have 1 total connection")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 		t.Run("recycles connections", func(t *testing.T) {
 			t.Parallel()
@@ -450,7 +502,7 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			}, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			for i := 0; i < 100; i++ {
@@ -461,8 +513,10 @@ func TestPool(t *testing.T) {
 				noerr(t, err)
 			}
 			assert.Equalf(t, 1, d.lenopened(), "should have opened 1 connection")
+
+			p.close(context.Background())
 		})
-		t.Run("cannot checkOut from disconnected pool", func(t *testing.T) {
+		t.Run("cannot checkOut from closed pool", func(t *testing.T) {
 			t.Parallel()
 
 			cleanup := make(chan struct{})
@@ -475,18 +529,17 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			})
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 
 			_, err = p.checkOut(context.Background())
 			assert.Equalf(
 				t,
-				ErrPoolDisconnected,
+				ErrPoolClosed,
 				err,
-				"expected an error from checkOut() from a disconnected pool")
+				"expected an error from checkOut() from a closed pool")
 		})
 		t.Run("handshaker i/o fails", func(t *testing.T) {
 			t.Parallel()
@@ -502,7 +555,7 @@ func TestPool(t *testing.T) {
 					})
 				}),
 			)
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			_, err = p.checkOut(context.Background())
@@ -514,10 +567,19 @@ func TestPool(t *testing.T) {
 					"unable to write wire message to network: Write error",
 					"expected error to contain string")
 			}
-			assert.Equalf(t, 0, p.totalConnectionCount(), "pool should have 0 total connections")
+			assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 available connections")
+			// On connect() failure, the connection is removed and closed after delivering the error
+			// to checkOut(), so it may still count toward the total connection count briefly. Wait
+			// up to 100ms for the total connection count to reach 0.
+			assert.Eventually(t,
+				func() bool {
+					return p.totalConnectionCount() == 0
+				},
+				100*time.Millisecond,
+				1*time.Millisecond,
+				"expected pool to have 0 total connections within 100ms")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 		// Test that if a checkOut() times out, it returns a WaitQueueTimeout error that wraps a
 		// context.DeadlineExceeded error.
@@ -535,7 +597,7 @@ func TestPool(t *testing.T) {
 				Address:     address.Address(addr.String()),
 				MaxPoolSize: 1,
 			})
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			// check out first connection.
@@ -554,8 +616,7 @@ func TestPool(t *testing.T) {
 				assert.Equalf(t, context.DeadlineExceeded, err.Unwrap(), "expected wrapped error to be a context.Timeout")
 			}
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 		// Test that an indefinitely blocked checkOut() doesn't cause the wait queue to overflow
 		// if there are many other checkOut() calls that time out. This tests a scenario where a
@@ -575,7 +636,7 @@ func TestPool(t *testing.T) {
 				Address:     address.Address(addr.String()),
 				MaxPoolSize: 1,
 			})
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			// Check out the 1 connection that the pool will create.
@@ -609,6 +670,8 @@ func TestPool(t *testing.T) {
 			err = p.checkIn(c)
 			noerr(t, err)
 			wg.Wait()
+
+			p.close(context.Background())
 		})
 		// Test that checkOut() on a full connection pool creates and returns a new connection
 		// immediately as soon as the pool is no longer full.
@@ -630,7 +693,7 @@ func TestPool(t *testing.T) {
 				},
 				WithDialer(func(Dialer) Dialer { return d }),
 			)
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			// Check out two connections (MaxPoolSize) so that subsequent checkOut() calls should
@@ -657,7 +720,7 @@ func TestPool(t *testing.T) {
 			// Start a goroutine that closes one of the checked-out conections and checks it in.
 			// Expect that the checked-in connection is closed and allows blocked checkOut() to
 			// complete. Assert that the time between checking in the closed connection and when the
-			// checkOut() completes is within 50ms.
+			// checkOut() completes is within 100ms.
 			var start time.Time
 			go func() {
 				c.close()
@@ -671,16 +734,15 @@ func TestPool(t *testing.T) {
 				t,
 				time.Now(),
 				start,
-				50*time.Millisecond,
-				"expected checkOut to complete within 50ms of checking in a closed connection")
+				100*time.Millisecond,
+				"expected checkOut to complete within 100ms of checking in a closed connection")
 
 			assert.Equalf(t, 1, d.lenclosed(), "should have closed 1 connection")
 			assert.Equalf(t, 3, d.lenopened(), "should have opened 3 connection")
 			assert.Equalf(t, 2, p.totalConnectionCount(), "pool should have 2 total connection")
 			assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 idle connection")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 	})
 	t.Run("checkIn", func(t *testing.T) {
@@ -699,7 +761,7 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			})
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			c, err := p.checkOut(context.Background())
@@ -716,8 +778,7 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 1, p.availableConnectionCount(), "should have returned 1 idle connection to the pool")
 			assert.Equalf(t, 1, p.totalConnectionCount(), "should have 1 total connection in pool")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 		t.Run("closes connections if the pool is closed", func(t *testing.T) {
 			t.Parallel()
@@ -733,7 +794,7 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			}, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			c, err := p.checkOut(context.Background())
@@ -742,8 +803,7 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 0, p.availableConnectionCount(), "should have 0 idle connections in pool")
 			assert.Equalf(t, 1, p.totalConnectionCount(), "should have 1 total connection in pool")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 
 			err = p.checkIn(c)
 			noerr(t, err)
@@ -764,29 +824,27 @@ func TestPool(t *testing.T) {
 			p1 := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 			})
-			err := p1.connect()
+			err := p1.ready()
 			noerr(t, err)
 
 			c, err := p1.checkOut(context.Background())
 			noerr(t, err)
 
 			p2 := newPool(poolConfig{})
-			err = p2.connect()
+			err = p2.ready()
 			noerr(t, err)
 
 			err = p2.checkIn(c)
 			assert.Equalf(t, ErrWrongPool, err, "expected ErrWrongPool error")
 
-			err = p1.disconnect(context.Background())
-			noerr(t, err)
-			err = p2.disconnect(context.Background())
-			noerr(t, err)
+			p1.close(context.Background())
+			p2.close(context.Background())
 		})
 	})
 	t.Run("maintain", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("creates MinPoolSize connections shortly after calling connect()", func(t *testing.T) {
+		t.Run("creates MinPoolSize connections shortly after calling ready", func(t *testing.T) {
 			t.Parallel()
 
 			cleanup := make(chan struct{})
@@ -801,15 +859,14 @@ func TestPool(t *testing.T) {
 				Address:     address.Address(addr.String()),
 				MinPoolSize: 3,
 			}, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			assertConnectionsOpened(t, d, 3)
 			assert.Equalf(t, 3, p.availableConnectionCount(), "should be 3 idle connections in pool")
 			assert.Equalf(t, 3, p.totalConnectionCount(), "should be 3 total connection in pool")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 		t.Run("when MinPoolSize > MaxPoolSize should not exceed MaxPoolSize connections", func(t *testing.T) {
 			t.Parallel()
@@ -827,15 +884,14 @@ func TestPool(t *testing.T) {
 				MinPoolSize: 20,
 				MaxPoolSize: 2,
 			}, WithDialer(func(Dialer) Dialer { return d }))
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			assertConnectionsOpened(t, d, 2)
 			assert.Equalf(t, 2, p.availableConnectionCount(), "should be 2 idle connections in pool")
 			assert.Equalf(t, 2, p.totalConnectionCount(), "should be 2 total connection in pool")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 		t.Run("removes perished connections", func(t *testing.T) {
 			t.Parallel()
@@ -850,10 +906,10 @@ func TestPool(t *testing.T) {
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
+				// Set the pool's maintain interval to 10ms so that it allows the test to run quickly.
+				MaintainInterval: 10 * time.Millisecond,
 			}, WithDialer(func(Dialer) Dialer { return d }))
-			// Set the pool's maintain interval to 10ms so that it allows the test to run quickly.
-			p.maintainInterval = 10 * time.Millisecond
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 
 			// Check out and check in 3 connections. Assert that there are 3 total and 3 idle
@@ -884,8 +940,7 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 1, p.availableConnectionCount(), "should be 1 idle connections in pool")
 			assert.Equalf(t, 1, p.totalConnectionCount(), "should be 1 total connection in pool")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 		t.Run("removes perished connections and replaces them to maintain MinPoolSize", func(t *testing.T) {
 			t.Parallel()
@@ -901,10 +956,10 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
 				MinPoolSize: 3,
+				// Set the pool's maintain interval to 10ms so that it allows the test to run quickly.
+				MaintainInterval: 10 * time.Millisecond,
 			}, WithDialer(func(Dialer) Dialer { return d }))
-			// Set the pool's maintain interval to 10ms so that it allows the test to run quickly.
-			p.maintainInterval = 10 * time.Millisecond
-			err := p.connect()
+			err := p.ready()
 			noerr(t, err)
 			assertConnectionsOpened(t, d, 3)
 			assert.Equalf(t, 3, p.availableConnectionCount(), "should be 3 idle connections in pool")
@@ -921,8 +976,7 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 3, p.availableConnectionCount(), "should be 3 idle connections in pool")
 			assert.Equalf(t, 3, p.totalConnectionCount(), "should be 3 total connection in pool")
 
-			err = p.disconnect(context.Background())
-			noerr(t, err)
+			p.close(context.Background())
 		})
 	})
 }

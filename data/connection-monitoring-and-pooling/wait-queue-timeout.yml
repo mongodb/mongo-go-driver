@@ -5,6 +5,7 @@ poolOptions:
   maxPoolSize: 1
   waitQueueTimeoutMS: 50
 operations:
+  - name: ready
   # Check out only possible connection
   - name: checkOut
     label: conn0
@@ -44,3 +45,4 @@ ignore:
   - ConnectionReady
   - ConnectionClosed
   - ConnectionPoolCreated
+  - ConnectionPoolReady

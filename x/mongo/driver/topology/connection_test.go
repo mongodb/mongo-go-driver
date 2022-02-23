@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -76,8 +75,7 @@ func TestConnection(t *testing.T) {
 				if got != nil {
 					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
 				}
-				conn.connect(context.Background())
-				got = conn.wait()
+				got = conn.connect(context.Background())
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
@@ -104,42 +102,12 @@ func TestConnection(t *testing.T) {
 				if got != nil {
 					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
 				}
-				conn.connect(context.Background())
-				got = conn.wait()
+				got = conn.connect(context.Background())
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
 				connState := atomic.LoadInt64(&conn.connected)
 				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
-			})
-			t.Run("calls error callback", func(t *testing.T) {
-				handshakerError := errors.New("handshaker error")
-				var got error
-
-				conn, err := newConnection(address.Address(""),
-					WithHandshaker(func(Handshaker) Handshaker {
-						return &testHandshaker{
-							getHandshakeInformation: func(context.Context, address.Address, driver.Connection) (driver.HandshakeInformation, error) {
-								return driver.HandshakeInformation{}, handshakerError
-							},
-						}
-					}),
-					WithDialer(func(Dialer) Dialer {
-						return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
-							return &net.TCPConn{}, nil
-						})
-					}),
-					withErrorHandlingCallback(func(err error, _ uint64, _ *primitive.ObjectID) {
-						got = err
-					}),
-				)
-				noerr(t, err)
-				conn.connect(context.Background())
-
-				var want error = ConnectionError{Wrapped: handshakerError, init: true}
-				err = conn.wait()
-				assert.NotNil(t, err, "expected connect error %v, got nil", want)
-				assert.Equal(t, want, got, "expected error %v, got %v", want, got)
 			})
 			t.Run("context is not pinned by connect", func(t *testing.T) {
 				// connect creates a cancel-able version of the context passed to it and stores the CancelFunc on the
@@ -161,8 +129,7 @@ func TestConnection(t *testing.T) {
 					)
 					assert.Nil(t, err, "newConnection error: %v", err)
 
-					conn.connect(context.Background())
-					err = conn.wait()
+					err = conn.connect(context.Background())
 					assert.Nil(t, err, "error establishing connection: %v", err)
 					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
 				})
@@ -191,7 +158,7 @@ func TestConnection(t *testing.T) {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
-						conn.connect(context.Background())
+						_ = conn.connect(context.Background())
 					}()
 
 					// Simulate cancelling connection establishment and assert that this cleares the CancelFunc.
@@ -244,8 +211,7 @@ func TestConnection(t *testing.T) {
 							conn, err := newConnection(tc.addr, connOpts...)
 							assert.Nil(t, err, "newConnection error: %v", err)
 
-							conn.connect(context.Background())
-							_ = conn.wait()
+							_ = conn.connect(context.Background())
 							assert.NotNil(t, sentCfg, "expected TLS config to be set, but was not")
 							assert.Equal(t, tc.expectedServerName, sentCfg.ServerName, "expected ServerName %s, got %s",
 								tc.expectedServerName, sentCfg.ServerName)
@@ -291,8 +257,7 @@ func TestConnection(t *testing.T) {
 						defer cancel()
 						var connectErr error
 						callback := func() {
-							conn.connect(ctx)
-							connectErr = conn.wait()
+							connectErr = conn.connect(ctx)
 						}
 						assert.Soon(t, callback, tc.maxConnectTime)
 
@@ -333,8 +298,7 @@ func TestConnection(t *testing.T) {
 						defer cancel()
 						var connectErr error
 						callback := func() {
-							conn.connect(ctx)
-							connectErr = conn.wait()
+							connectErr = conn.connect(ctx)
 						}
 						assert.Soon(t, callback, tc.maxConnectTime)
 
@@ -376,8 +340,7 @@ func TestConnection(t *testing.T) {
 						assert.Nil(t, err, "newConnection error: %v", err)
 
 						bgCtx := context.Background()
-						conn.connect(bgCtx)
-						err = conn.wait()
+						err = conn.connect(bgCtx)
 						assert.Nil(t, err, "connect error: %v", err)
 
 						assertNoContextTimeout := func(t *testing.T, ctx context.Context) {
@@ -750,9 +713,8 @@ func TestConnection(t *testing.T) {
 				)
 				assert.Nil(t, err, "newConnection error: %v", err)
 
-				conn.connect(context.Background())
-				err = conn.wait()
-				assert.NotNil(t, err, "expected handshake error from wait, got nil")
+				err = conn.connect(context.Background())
+				assert.NotNil(t, err, "expected handshake error from connect, got nil")
 				connState := atomic.LoadInt64(&conn.connected)
 				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
 
@@ -843,7 +805,7 @@ func TestConnection(t *testing.T) {
 				pool := newPool(poolConfig{
 					Address: address.Address(addr.String()),
 				})
-				err := pool.connect()
+				err := pool.ready()
 				assert.Nil(t, err, "pool.connect() error: %v", err)
 
 				conns := make([]*Connection, 0, numConns)
@@ -853,8 +815,7 @@ func TestConnection(t *testing.T) {
 					conns = append(conns, &Connection{connection: conn})
 				}
 				disconnect := func() {
-					err := pool.disconnect(context.Background())
-					assert.Nil(t, err, "unexpected pool.disconnect() error: %v", err)
+					pool.close(context.Background())
 				}
 				return pool, conns, disconnect
 			}
