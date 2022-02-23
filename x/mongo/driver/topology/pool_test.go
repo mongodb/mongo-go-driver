@@ -720,7 +720,7 @@ func TestPool(t *testing.T) {
 			// Start a goroutine that closes one of the checked-out conections and checks it in.
 			// Expect that the checked-in connection is closed and allows blocked checkOut() to
 			// complete. Assert that the time between checking in the closed connection and when the
-			// checkOut() completes is within 50ms.
+			// checkOut() completes is within 100ms.
 			var start time.Time
 			go func() {
 				c.close()
@@ -734,8 +734,8 @@ func TestPool(t *testing.T) {
 				t,
 				time.Now(),
 				start,
-				50*time.Millisecond,
-				"expected checkOut to complete within 50ms of checking in a closed connection")
+				100*time.Millisecond,
+				"expected checkOut to complete within 100ms of checking in a closed connection")
 
 			assert.Equalf(t, 1, d.lenclosed(), "should have closed 1 connection")
 			assert.Equalf(t, 3, d.lenopened(), "should have opened 3 connection")
