@@ -319,13 +319,25 @@ func TestServer(t *testing.T) {
 	}
 
 	t.Run("multiple connection initialization errors are processed correctly", func(t *testing.T) {
-		assertGenerationStats := func(t *testing.T, server *Server, serviceID primitive.ObjectID, wantMinGeneration, wantMaxConns uint64) {
+		assertGenerationStats := func(t *testing.T, server *Server, serviceID primitive.ObjectID, wantGeneration, wantNumConns uint64) {
 			t.Helper()
 
-			generation := server.pool.generation.getGeneration(&serviceID)
-			numConns := server.pool.generation.getNumConns(&serviceID)
-			assert.True(t, generation >= wantMinGeneration, "expected generation number to be at least %d, got %d", wantMinGeneration, generation)
-			assert.True(t, numConns <= wantMaxConns, "expected connection count to be at most %d, got %d", wantMaxConns, numConns)
+			// On connection failure, the connection is removed and closed after delivering the
+			// error to Connection(), so it may still count toward the generation connection count
+			// briefly. Wait up to 100ms for the generation connection count to reach the target.
+			assert.Eventuallyf(t,
+				func() bool {
+					generation := server.pool.generation.getGeneration(&serviceID)
+					numConns := server.pool.generation.getNumConns(&serviceID)
+					return generation == wantGeneration && numConns == wantNumConns
+				},
+				100*time.Millisecond,
+				1*time.Millisecond,
+				"expected generation number %v, got %v; expected connection count %v, got %v",
+				wantGeneration,
+				server.pool.generation.getGeneration(&serviceID),
+				wantNumConns,
+				server.pool.generation.getNumConns(&serviceID))
 		}
 
 		testCases := []struct {
@@ -334,8 +346,8 @@ func TestServer(t *testing.T) {
 			dialErr            error
 			getInfoErr         error
 			finishHandshakeErr error
-			minFinalGeneration uint64
-			maxConns           uint64
+			finalGeneration    uint64
+			numNewConns        uint64
 		}{
 			// For LB clusters, errors for dialing and the initial handshake are ignored.
 			{"dial errors are ignored for load balancers", true, netErr.Wrapped, nil, nil, 0, 1},
@@ -343,14 +355,14 @@ func TestServer(t *testing.T) {
 
 			// For LB clusters, post-handshake errors clear the pool, but do not update the server
 			// description or pause the pool.
-			{"post-handshake errors are not ignored for load balancers", true, nil, nil, netErr.Wrapped, 4, 2},
+			{"post-handshake errors are not ignored for load balancers", true, nil, nil, netErr.Wrapped, 5, 1},
 
 			// For non-LB clusters, the first error sets the server to Unknown and clears and pauses
 			// the pool. All subsequent attempts to check out a connection without updating the
 			// server description return an error because the pool is paused.
-			{"dial errors are not ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 1, 2},
-			{"initial handshake errors are not ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 1, 2},
-			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, netErr.Wrapped, 1, 2},
+			{"dial errors are not ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 1, 1},
+			{"initial handshake errors are not ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 1, 1},
+			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, netErr.Wrapped, 1, 1},
 		}
 		for _, tc := range testCases {
 			tc := tc // Capture range variable.
@@ -439,7 +451,7 @@ func TestServer(t *testing.T) {
 						assert.Nil(t, err, "Connection error at iteration %d: %v", i, err)
 					}
 				}
-				assertGenerationStats(t, server, serviceID, tc.minFinalGeneration, tc.maxConns)
+				assertGenerationStats(t, server, serviceID, tc.finalGeneration, tc.numNewConns)
 			})
 		}
 	})
