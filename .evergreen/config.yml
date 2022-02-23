@@ -134,14 +134,21 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
-          # Install any go tools that we need. Use "go install" instead of "go get" to prevent
-          # modifying the go.mod file.
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          go install github.com/walle/lll/...@latest
-
           # initialize submodules
           git submodule init
           git submodule update
+
+  install-linters:
+    - command: shell.exec
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+
+          # Install linters. Use "go install" instead of "go get" to prevent modifying the go.mod
+          # file.
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install github.com/walle/lll/...@latest
 
   upload-mo-artifacts:
     - command: shell.exec
@@ -953,6 +960,7 @@ tasks:
   - name: sa-lint
     tags: ["static-analysis"]
     commands:
+      - func: install-linters
       - func: run-make
         vars:
           targets: lint
