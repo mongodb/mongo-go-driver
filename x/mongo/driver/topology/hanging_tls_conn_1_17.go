@@ -33,6 +33,12 @@ func newHangingTLSConn(conn *tls.Conn, sleepTime time.Duration) *hangingTLSConn 
 
 // HandshakeContext implements the tlsConn interface on Go 1.17 and higher.
 func (h *hangingTLSConn) HandshakeContext(ctx context.Context) error {
-	time.Sleep(h.sleepTime)
+	timer := time.NewTimer(h.sleepTime)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
+	}
+
 	return h.Conn.HandshakeContext(ctx)
 }
