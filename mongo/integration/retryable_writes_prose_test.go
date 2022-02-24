@@ -172,8 +172,6 @@ func TestRetryableWritesProse(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
-				// FIXME-1910: InsertOne fails and errors because of the failpoint; it looks
-				// like retry logic is not working.
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 			}()
 		}
@@ -189,7 +187,7 @@ func TestRetryableWritesProse(t *testing.T) {
 
 		// Assert that first check out succeeds, pool is cleared, and second check
 		// out fails due to connection error.
-		assert.Equal(mt, 3, len(events), "expected 3 events, got %v", len(events))
+		assert.True(mt, len(events) >= 3, "expected at least 3 events, got %v", len(events))
 		assert.Equal(mt, event.GetSucceeded, events[0].Type,
 			"expected ConnectionCheckedOut event, got %v", events[0].Type)
 		assert.Equal(mt, event.PoolCleared, events[1].Type,
