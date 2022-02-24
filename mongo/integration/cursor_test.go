@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -47,6 +48,11 @@ func TestCursor(t *testing.T) {
 		assert.Equal(mt, int32(errorCursorNotFound), ce.Code, "expected error code %v, got %v", errorCursorNotFound, ce.Code)
 	})
 	mt.RunOpts("try next", noClientOpts, func(mt *mtest.T) {
+		// Skip tests if running against serverless, as capped collections are banned.
+		if os.Getenv("SERVERLESS") == "serverless" {
+			mt.Skip("skipping as serverless forbids capped collections")
+		}
+
 		mt.Run("existing non-empty batch", func(mt *mtest.T) {
 			// If there's already documents in the current batch, TryNext should return true without doing a getMore
 
@@ -86,6 +92,11 @@ func TestCursor(t *testing.T) {
 	})
 	mt.RunOpts("RemainingBatchLength", noClientOpts, func(mt *mtest.T) {
 		cappedMtOpts := mtest.NewOptions().CollectionCreateOptions(cappedCollectionOpts)
+		// Skip test if running against serverless, as capped collections are banned.
+		if os.Getenv("SERVERLESS") == "serverless" {
+			mt.Skip("skipping as serverless forbids capped collections")
+		}
+
 		mt.RunOpts("first batch is non empty", cappedMtOpts, func(mt *mtest.T) {
 			// Test that the cursor reports the correct value for RemainingBatchLength at various execution points if
 			// the first batch from the server is non-empty.
