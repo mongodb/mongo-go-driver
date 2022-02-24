@@ -92,7 +92,7 @@ func TestCursor(t *testing.T) {
 	})
 	mt.RunOpts("RemainingBatchLength", noClientOpts, func(mt *mtest.T) {
 		cappedMtOpts := mtest.NewOptions().CollectionCreateOptions(cappedCollectionOpts)
-		// Skip test if running against serverless, as capped collections are banned.
+		// Skip tests if running against serverless, as capped collections are banned.
 		if os.Getenv("SERVERLESS") == "serverless" {
 			mt.Skip("skipping as serverless forbids capped collections")
 		}
