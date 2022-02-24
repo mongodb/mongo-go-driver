@@ -285,7 +285,7 @@ func TestConnection(t *testing.T) {
 								})
 							}),
 							WithTLSConfig(func(*tls.Config) *tls.Config {
-								return &tls.Config{}
+								return &tls.Config{ServerName: "test"}
 							}),
 							withTLSConnectionSource(func(tlsConnectionSource) tlsConnectionSource {
 								return hangingTLSConnectionSource
