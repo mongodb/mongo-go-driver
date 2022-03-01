@@ -331,6 +331,8 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 }
 
 // ListCollections executes a listCollections command and returns a cursor over the collections in the database.
+// The command will always be run with primary read preference, as a call to listCollections against a secondary
+// may result in a list that is not up-to-date.
 //
 // The filter parameter must be a document containing query operators and can be used to select which collections
 // are included in the result. It cannot be nil. An empty document (e.g. bson.D{}) should be used to include all
@@ -375,7 +377,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 
 	lco := options.MergeListCollectionsOptions(opts...)
 	op := operation.NewListCollections(filterDoc).
-		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
+		Session(sess).ReadPreference(readpref.Primary()).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
 		ServerAPI(db.client.serverAPI)
