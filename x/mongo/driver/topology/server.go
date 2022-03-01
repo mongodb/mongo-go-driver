@@ -620,7 +620,7 @@ func (s *Server) updateDescription(desc description.Server) {
 
 // createConnection creates a new connection instance but does not call connect on it. The caller must call connect
 // before the connection can be used for network operations.
-func (s *Server) createConnection() (*connection, error) {
+func (s *Server) createConnection() *connection {
 	opts := copyConnectionOpts(s.cfg.connectionOpts)
 	opts = append(opts,
 		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
@@ -646,10 +646,7 @@ func copyConnectionOpts(opts []ConnectionOption) []ConnectionOption {
 }
 
 func (s *Server) setupHeartbeatConnection() error {
-	conn, err := s.createConnection()
-	if err != nil {
-		return err
-	}
+	conn := s.createConnection()
 
 	// Take the lock when assigning the context and connection because they're accessed by cancelCheck.
 	s.heartbeatLock.Lock()

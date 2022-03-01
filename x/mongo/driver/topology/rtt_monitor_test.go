@@ -64,7 +64,7 @@ func TestRTTMonitor(t *testing.T) {
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Millisecond,
-			createConnectionFn: func() (*connection, error) {
+			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
 			createOperationFn: func(conn driver.Connection) *operation.Hello {
@@ -135,7 +135,7 @@ func TestRTTMonitor(t *testing.T) {
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Second,
-			createConnectionFn: func() (*connection, error) {
+			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer {
 					return dialer
 				}))
@@ -158,7 +158,7 @@ func TestRTTMonitor(t *testing.T) {
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Millisecond,
-			createConnectionFn: func() (*connection, error) {
+			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
 			createOperationFn: func(conn driver.Connection) *operation.Hello {

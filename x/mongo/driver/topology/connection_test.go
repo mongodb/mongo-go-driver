@@ -50,16 +50,8 @@ var _ driver.Handshaker = &testHandshaker{}
 func TestConnection(t *testing.T) {
 	t.Run("connection", func(t *testing.T) {
 		t.Run("newConnection", func(t *testing.T) {
-			t.Run("config error", func(t *testing.T) {
-				want := errors.New("config error")
-				_, got := newConnection(address.Address(""), ConnectionOption(func(*connectionConfig) error { return want }))
-				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
-					t.Errorf("errors do not match. got %v; want %v", got, want)
-				}
-			})
 			t.Run("no default idle timeout", func(t *testing.T) {
-				conn, err := newConnection(address.Address(""))
-				assert.Nil(t, err, "newConnection error: %v", err)
+				conn := newConnection(address.Address(""))
 				wantTimeout := time.Duration(0)
 				assert.Equal(t, wantTimeout, conn.idleTimeout, "expected idle timeout %v, got %v", wantTimeout,
 					conn.idleTimeout)
@@ -69,13 +61,10 @@ func TestConnection(t *testing.T) {
 			t.Run("dialer error", func(t *testing.T) {
 				err := errors.New("dialer error")
 				var want error = ConnectionError{Wrapped: err, init: true}
-				conn, got := newConnection(address.Address(""), WithDialer(func(Dialer) Dialer {
+				conn := newConnection(address.Address(""), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))
-				if got != nil {
-					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
-				}
-				got = conn.connect(context.Background())
+				got := conn.connect(context.Background())
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
@@ -85,7 +74,7 @@ func TestConnection(t *testing.T) {
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")
 				var want error = ConnectionError{Wrapped: err, init: true}
-				conn, got := newConnection(address.Address(""),
+				conn := newConnection(address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{
 							finishHandshake: func(context.Context, driver.Connection) error {
@@ -99,10 +88,7 @@ func TestConnection(t *testing.T) {
 						})
 					}),
 				)
-				if got != nil {
-					t.Errorf("newConnection shouldn't error. got %v; want nil", got)
-				}
-				got = conn.connect(context.Background())
+				got := conn.connect(context.Background())
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
@@ -117,7 +103,7 @@ func TestConnection(t *testing.T) {
 				t.Run("connect succeeds", func(t *testing.T) {
 					// In the case where connect finishes successfully, it unpins the CancelFunc.
 
-					conn, err := newConnection(address.Address(""),
+					conn := newConnection(address.Address(""),
 						WithDialer(func(Dialer) Dialer {
 							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
 								return &net.TCPConn{}, nil
@@ -127,9 +113,8 @@ func TestConnection(t *testing.T) {
 							return &testHandshaker{}
 						}),
 					)
-					assert.Nil(t, err, "newConnection error: %v", err)
 
-					err = conn.connect(context.Background())
+					err := conn.connect(context.Background())
 					assert.Nil(t, err, "error establishing connection: %v", err)
 					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
 				})
@@ -140,7 +125,7 @@ func TestConnection(t *testing.T) {
 					// Create a connection that will block in connect until doneChan is closed. This prevents
 					// connect from succeeding and unpinning the CancelFunc.
 					doneChan := make(chan struct{})
-					conn, err := newConnection(address.Address(""),
+					conn := newConnection(address.Address(""),
 						WithDialer(func(Dialer) Dialer {
 							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
 								<-doneChan
@@ -151,7 +136,6 @@ func TestConnection(t *testing.T) {
 							return &testHandshaker{}
 						}),
 					)
-					assert.Nil(t, err, "newConnection error: %v", err)
 
 					// Call connect in a goroutine because it will block.
 					var wg sync.WaitGroup
@@ -170,8 +154,7 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("tls", func(t *testing.T) {
 				t.Run("connection source is set to default if unspecified", func(t *testing.T) {
-					conn, err := newConnection(address.Address(""))
-					assert.Nil(t, err, "newConnection error: %v", err)
+					conn := newConnection(address.Address(""))
 					assert.NotNil(t, conn.config.tlsConnectionSource, "expected tlsConnectionSource to be set but was not")
 				})
 				t.Run("server name", func(t *testing.T) {
@@ -208,8 +191,7 @@ func TestConnection(t *testing.T) {
 									return testTLSConnectionSource
 								}),
 							}
-							conn, err := newConnection(tc.addr, connOpts...)
-							assert.Nil(t, err, "newConnection error: %v", err)
+							conn := newConnection(tc.addr, connOpts...)
 
 							_ = conn.connect(context.Background())
 							assert.NotNil(t, sentCfg, "expected TLS config to be set, but was not")
@@ -250,8 +232,7 @@ func TestConnection(t *testing.T) {
 								return tc.connectTimeout
 							}),
 						}
-						conn, err := newConnection("", connOpts...)
-						assert.Nil(t, err, "newConnection error: %v", err)
+						conn := newConnection("", connOpts...)
 
 						ctx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
 						defer cancel()
@@ -291,8 +272,7 @@ func TestConnection(t *testing.T) {
 								return hangingTLSConnectionSource
 							}),
 						}
-						conn, err := newConnection("", connOpts...)
-						assert.Nil(t, err, "newConnection error: %v", err)
+						conn := newConnection("", connOpts...)
 
 						ctx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
 						defer cancel()
@@ -336,11 +316,10 @@ func TestConnection(t *testing.T) {
 								return handshaker
 							}),
 						}
-						conn, err := newConnection("", connOpts...)
-						assert.Nil(t, err, "newConnection error: %v", err)
+						conn := newConnection("", connOpts...)
 
 						bgCtx := context.Background()
-						err = conn.connect(bgCtx)
+						err := conn.connect(bgCtx)
 						assert.Nil(t, err, "connect error: %v", err)
 
 						assertNoContextTimeout := func(t *testing.T, ctx context.Context) {
@@ -697,7 +676,7 @@ func TestConnection(t *testing.T) {
 		})
 		t.Run("close", func(t *testing.T) {
 			t.Run("can close a connection that failed handshaking", func(t *testing.T) {
-				conn, err := newConnection(address.Address(""),
+				conn := newConnection(address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{
 							finishHandshake: func(context.Context, driver.Connection) error {
@@ -711,9 +690,8 @@ func TestConnection(t *testing.T) {
 						})
 					}),
 				)
-				assert.Nil(t, err, "newConnection error: %v", err)
 
-				err = conn.connect(context.Background())
+				err := conn.connect(context.Background())
 				assert.NotNil(t, err, "expected handshake error from connect, got nil")
 				connState := atomic.LoadInt64(&conn.connected)
 				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)

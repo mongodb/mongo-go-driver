@@ -25,16 +25,15 @@ func TestConnectionErrors(t *testing.T) {
 		t.Run("dial error", func(t *testing.T) {
 			dialError := errors.New("foo")
 
-			conn, err := newConnection(address.Address(""), WithDialer(func(Dialer) Dialer {
+			conn := newConnection(address.Address(""), WithDialer(func(Dialer) Dialer {
 				return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, dialError })
 			}))
-			assert.Nil(t, err, "newConnection error: %v", err)
 
-			err = conn.connect(context.Background())
+			err := conn.connect(context.Background())
 			assert.True(t, errors.Is(err, dialError), "expected error %v, got %v", dialError, err)
 		})
 		t.Run("handshake error", func(t *testing.T) {
-			conn, err := newConnection(address.Address(""),
+			conn := newConnection(address.Address(""),
 				WithHandshaker(func(Handshaker) Handshaker {
 					return auth.Handshaker(nil, &auth.HandshakeOptions{})
 				}),
@@ -44,12 +43,11 @@ func TestConnectionErrors(t *testing.T) {
 					})
 				}),
 			)
-			assert.Nil(t, err, "newConnection error: %v", err)
 			defer conn.close()
 
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			err = conn.connect(ctx)
+			err := conn.connect(ctx)
 			assert.True(t, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
 		})
 		t.Run("write error", func(t *testing.T) {

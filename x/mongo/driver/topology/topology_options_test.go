@@ -102,8 +102,7 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 			assert.Nil(t, err, "NewServer error: %v", err)
 			assert.Equal(t, tc.loadBalanced, srvr.cfg.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, srvr.cfg.loadBalanced)
 
-			conn, err := newConnection("", srvr.cfg.connectionOpts...)
-			assert.Nil(t, err, "newConnection error: %v", err)
+			conn := newConnection("", srvr.cfg.connectionOpts...)
 			assert.Equal(t, tc.loadBalanced, conn.config.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, conn.config.loadBalanced)
 		})
 	}

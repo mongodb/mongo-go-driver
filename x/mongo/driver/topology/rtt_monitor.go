@@ -25,7 +25,7 @@ const (
 type rttConfig struct {
 	interval           time.Duration
 	minRTTWindow       time.Duration // Window size to calculate minimum RTT over.
-	createConnectionFn func() (*connection, error)
+	createConnectionFn func() *connection
 	createOperationFn  func(driver.Connection) *operation.Hello
 }
 
@@ -107,12 +107,9 @@ func (r *rttMonitor) start() {
 // error, runHello closes the connection.
 func (r *rttMonitor) runHello(conn *connection) *connection {
 	if conn == nil || conn.closed() {
-		conn, err := r.cfg.createConnectionFn()
-		if err != nil {
-			return nil
-		}
+		conn := r.cfg.createConnectionFn()
 
-		err = conn.connect(r.ctx)
+		err := conn.connect(r.ctx)
 		if err != nil {
 			return nil
 		}

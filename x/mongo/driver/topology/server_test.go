@@ -828,9 +828,7 @@ func TestServer(t *testing.T) {
 		)
 		assert.Nil(t, err, "NewServer error: %v", err)
 
-		conn, err := s.createConnection()
-		assert.Nil(t, err, "createConnection error: %v", err)
-
+		conn := s.createConnection()
 		assert.Equal(t, s.cfg.heartbeatTimeout, 10*time.Second, "expected heartbeatTimeout to be: %v, got: %v", 10*time.Second, s.cfg.heartbeatTimeout)
 		assert.Equal(t, s.cfg.heartbeatTimeout, conn.readTimeout, "expected readTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.readTimeout)
 		assert.Equal(t, s.cfg.heartbeatTimeout, conn.writeTimeout, "expected writeTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.writeTimeout)
