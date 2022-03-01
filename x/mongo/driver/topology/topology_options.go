@@ -190,6 +190,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 					AppName:       cs.AppName,
 					Authenticator: authenticator,
 					Compressors:   cs.Compressors,
+					LoadBalanced:  cs.LoadBalancedSet && cs.LoadBalanced,
 				}
 				if cs.AuthMechanism == "" {
 					// Required for SASL mechanism negotiation during handshake
@@ -200,7 +201,10 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		} else {
 			// We need to add a non-auth Handshaker to the connection options
 			connOpts = append(connOpts, WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
-				return operation.NewHello().AppName(cs.AppName).Compressors(cs.Compressors)
+				return operation.NewHello().
+					AppName(cs.AppName).
+					Compressors(cs.Compressors).
+					LoadBalanced(cs.LoadBalancedSet && cs.LoadBalanced)
 			}))
 		}
 
