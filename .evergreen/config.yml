@@ -72,13 +72,13 @@ functions:
              export HOME=$USERPROFILE
           fi
 
-          # Set actual PATH. PATH should contain binaries from GOROOT, GCC_PATH and mongodb.
+          # Set actual PATH. PATH should contain binaries from GOROOT, GOPATH, GCC_PATH and mongodb.
           # Adding GOROOT's bin to PATH on Windows requires a cygpath conversion.
           export GOROOTBIN="$GOROOT/bin"
           if [ "Windows_NT" = "$OS" ]; then
              export GOROOTBIN=$(cygpath -m $GOROOTBIN)
           fi
-          export PATH="$GOROOTBIN:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
+          export PATH="$GOROOTBIN:$GOPATH/bin:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
 
           # Check Go installation.
           go version
