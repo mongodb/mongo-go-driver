@@ -34,44 +34,57 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
-          if [ "Windows_NT" = "$OS" ]; then
-             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-          else
-             export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
-          fi;
-
-          # Get the current unique version of this checkout
+          # Get the current unique version of this checkout.
           if [ "${is_patch}" = "true" ]; then
              CURRENT_VERSION=$(git describe)-patch-${version_id}
           else
              CURRENT_VERSION=latest
           fi
 
-          export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
-          export PROJECT_DIRECTORY="$(pwd)"
+          # Set Golang environment vars. GOROOT is wherever current Go distribution is; GOPATH is always 3
+          # directories up from pwd; GOCACHE is under .cache in the pwd.
+          export GOROOT="${GO_DIST}"
+          export GOPATH="$(dirname $(dirname $(dirname `pwd`)))"
           export GOCACHE="$(pwd)/.cache"
 
-          # Python has cygwin path problems on Windows. Detect prospective mongo-orchestration home directory
-          if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
-             export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
-             export PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
-             export GOCACHE=$(cygpath -m $GOCACHE)
-          fi
-
+          # Set other relevant variables for Evergreen processes.
+          export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
+          export PROJECT_DIRECTORY="$(pwd)"
           export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
           export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
           export UPLOAD_BUCKET="${project}"
-          export PATH="${GO_DIST}/bin:${GCC_PATH}:$GOPATH/bin:$MONGODB_BINARIES:$PATH"
           export PROJECT="${project}"
 
+          # If on Windows, convert paths with cygpath. GOROOT should not be converted as Windows expects it
+          # to be separated with '\'.
           if [ "Windows_NT" = "$OS" ]; then
+             export GOPATH=$(cygpath -m $GOPATH)
+             export GOCACHE=$(cygpath -m $GOCACHE)
+             export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
+             export PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
+             export MONGO_ORCHESTRATION_HOME=$(cygpath -m $MONGO_ORCHESTRATION_HOME)
+             export MONGODB_BINARIES=$(cygpath -m $MONGODB_BINARIES)
+             export UPLOAD_BUCKET=$(cygpath -m $UPLOAD_BUCKET)
+             export PROJECT=$(cygpath -m $PROJECT)
+
+             # Set home variables for Windows, too.
              export USERPROFILE=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-             export HOME=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+             export HOME=$USERPROFILE
           fi
 
+          # Set actual PATH. PATH should contain binaries from GOROOT, GOPATH, GCC_PATH and mongodb.
+          # Adding GOROOT's bin to PATH on Windows requires a cygpath conversion.
+          export GOROOTBIN="$GOROOT/bin"
+          if [ "Windows_NT" = "$OS" ]; then
+             export GOROOTBIN=$(cygpath -m $GOROOTBIN)
+          fi
+          export PATH="$GOROOTBIN:$GOPATH/bin:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
+
+          # Check Go installation.
           go version
           go env
 
+          # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
              mkdir -p c:/libmongocrypt/bin
@@ -94,21 +107,21 @@ functions:
           PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
           PREPARE_SHELL: |
              set -o errexit
+             export GOROOT="$GOROOT"
              export GOPATH="$GOPATH"
-             export GOROOT="${GO_DIST}"
              export GOCACHE="$GOCACHE"
              export DRIVERS_TOOLS="$DRIVERS_TOOLS"
+             export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
              export MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
              export MONGODB_BINARIES="$MONGODB_BINARIES"
              export UPLOAD_BUCKET="$UPLOAD_BUCKET"
-             export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
-             export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
-             export PATH="$PATH"
              export PROJECT="$PROJECT"
+             export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
+             export PATH="$PATH"
           EOT
-          # See what we've done
+          # See what we variables we've set.
           cat expansion.yml
     # Load the expansion file to make an evergreen variable with the current unique version
     - command: expansions.update
