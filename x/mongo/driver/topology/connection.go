@@ -72,11 +72,8 @@ type connection struct {
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
-func newConnection(addr address.Address, opts ...ConnectionOption) (*connection, error) {
-	cfg, err := newConnectionConfig(opts...)
-	if err != nil {
-		return nil, err
-	}
+func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
+	cfg := newConnectionConfig(opts...)
 
 	id := fmt.Sprintf("%s[-%d]", addr, nextConnectionID())
 
@@ -98,7 +95,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) (*connection,
 	}
 	atomic.StoreInt64(&c.connected, initialized)
 
-	return c, nil
+	return c
 }
 
 // setGenerationNumber sets the connection's generation number if a callback has been provided to do so in connection

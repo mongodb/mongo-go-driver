@@ -801,12 +801,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			return nil, nil, false
 		}
 
-		conn, err := newConnection(p.address, p.connOpts...)
-		if err != nil {
-			w.tryDeliver(nil, err)
-			return nil, nil, false
-		}
-
+		conn := newConnection(p.address, p.connOpts...)
 		conn.pool = p
 		conn.poolID = atomic.AddUint64(&p.nextID, 1)
 		p.conns[conn.poolID] = conn
