@@ -63,6 +63,7 @@ type Client struct {
 	serverAPI       *driver.ServerAPIOptions
 	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
+	timeout         *time.Duration
 
 	// client-side encryption fields
 	keyVaultClientFLE *Client
@@ -623,6 +624,10 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			topology.WithReadTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
 			topology.WithWriteTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
 		)
+	}
+	// Timeout
+	if opts.Timeout != nil {
+		c.timeout = opts.Timeout
 	}
 	// TLSConfig
 	if opts.TLSConfig != nil {

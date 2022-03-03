@@ -211,6 +211,10 @@ type Operation struct {
 	// read preference will not be added to the command on wire versions < 13.
 	IsOutputAggregate bool
 
+	// Timeout is the amount of time that this operation can execute before returning an error. The default value
+	// nil, which means that the timeout of the operation's caller will be used.
+	Timeout *time.Duration
+
 	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
 }
@@ -302,6 +306,16 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	err := op.Validate()
 	if err != nil {
 		return err
+	}
+
+	// If no deadline is set on the passed-in context, and op.Timeout is set, honor op.Timeout
+	// in new context for operation execution.
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil {
+		newCtx, cancelFunc := context.WithTimeout(ctx, *op.Timeout)
+		// Redefine ctx to be the new timeout-derived context.
+		ctx = newCtx
+		// Cancel the timeout-derived context at the end of Find to avoid a context leak.
+		defer cancelFunc()
 	}
 
 	if op.Client != nil {
@@ -458,6 +472,21 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, conn)
 		if err != nil {
 			return err
+		}
+		// Append a 'maxTimeMS' field to wire message based on current deadline if op.Timeout is set.
+		if op.Timeout != nil {
+			// Retrieve current deadline from context, convert it to timeout and append
+			// maxTimeMS as (timeout - 90th percentile RTT).
+			if deadline, deadlineSet := ctx.Deadline(); deadlineSet {
+				remainingTimeout := time.Until(deadline)
+				// If 90th percentile RTT is less than remainingTimeout, error instead
+				// of attempting to send message to server.
+				if desc.RTT90 < remainingTimeout {
+					return ErrDeadlineWouldBeExceeded
+				}
+				maxTimeMS := remainingTimeout.Milliseconds() - desc.RTT90.Milliseconds()
+				wm = bsoncore.AppendInt64Element(wm, "maxTimeMS", maxTimeMS)
+			}
 		}
 
 		// set extra data and send event if possible

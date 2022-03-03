@@ -122,6 +122,8 @@ type ConnString struct {
 	SSLCaFileSet                       bool
 	SSLDisableOCSPEndpointCheck        bool
 	SSLDisableOCSPEndpointCheckSet     bool
+	Timeout                            time.Duration
+	TimeoutSet                         bool
 	WString                            string
 	WNumber                            int
 	WNumberSet                         bool
@@ -883,6 +885,13 @@ func (p *parser) addOption(pair string) error {
 		p.SSLSet = true
 		p.SSLCaFile = value
 		p.SSLCaFileSet = true
+	case "timeoutms":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.Timeout = time.Duration(n) * time.Millisecond
+		p.TimeoutSet = true
 	case "tlsdisableocspendpointcheck":
 		p.SSL = true
 		p.SSLSet = true
