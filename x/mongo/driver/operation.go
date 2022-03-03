@@ -484,7 +484,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				if desc.RTT90 < remainingTimeout {
 					return ErrDeadlineWouldBeExceeded
 				}
-				maxTimeMS := remainingTimeout.Milliseconds() - desc.RTT90.Milliseconds()
+				maxTimeMS := int64(remainingTimeout/time.Millisecond) - int64(desc.RTT90/time.Millisecond)
 				wm = bsoncore.AppendInt64Element(wm, "maxTimeMS", maxTimeMS)
 			}
 		}
