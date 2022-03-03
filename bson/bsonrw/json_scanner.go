@@ -82,7 +82,7 @@ func (js *jsonScanner) nextToken() (*jsonToken, error) {
 		return js.scanString()
 	default:
 		// check if it's a number
-		if c == '-' || isDigit(c) {
+		if c == '-' || c == 'I' || isDigit(c) {
 			return js.scanNumber(c)
 		} else if c == 't' || c == 'f' || c == 'n' {
 			// maybe a literal
@@ -358,6 +358,8 @@ const (
 	nssSawExponentDigits
 	nssDone
 	nssInvalid
+	nssSawLeadingI
+	nssSawInfinity
 )
 
 // scanNumber reads a JSON number (according to RFC-8259)
@@ -377,6 +379,8 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 		s = nssSawLeadingMinus
 	case '0':
 		s = nssSawLeadingZero
+	case 'I':
+		s = nssSawLeadingI
 	default:
 		s = nssSawIntegerDigits
 	}
@@ -393,6 +397,9 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 			switch c {
 			case '0':
 				s = nssSawLeadingZero
+				b.WriteByte(c)
+			case 'I':
+				s = nssSawLeadingI
 				b.WriteByte(c)
 			default:
 				if isDigit(c) {
@@ -499,6 +506,29 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 					s = nssInvalid
 				}
 			}
+		case nssSawLeadingI:
+			switch c {
+			case 'n':
+				nextb := make([]byte, 6)
+				err := js.readNNextBytes(nextb, 6, 0)
+				if err != nil {
+					return nil, fmt.Errorf("invalid JSON infinity. Position %d", start)
+				}
+				if bytes.Equal([]byte("finity"), nextb) {
+					b.Write([]byte("nfinity"))
+					s = nssSawInfinity
+				} else {
+					s = nssInvalid
+				}
+			default:
+				s = nssInvalid
+			}
+		case nssSawInfinity:
+			if isValueTerminator(c) || err == io.EOF {
+				s = nssDone
+			} else {
+				s = nssInvalid
+			}
 		}
 
 		switch s {
@@ -515,6 +545,12 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 
 					return &jsonToken{t: jttInt32, v: int32(v), p: start}, nil
 				}
+			}
+
+			if b.String() == "Infinity" {
+				return &jsonToken{t: jttDouble, v: math.Inf(1), p: start}, nil
+			} else if b.String() == "-Infinity" {
+				return &jsonToken{t: jttDouble, v: math.Inf(-1), p: start}, nil
 			}
 
 			v, err := strconv.ParseFloat(b.String(), 64)
