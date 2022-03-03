@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -38,6 +39,7 @@ type Database struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	registry       *bsoncodec.Registry
+	timeout        *time.Duration
 }
 
 func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
@@ -63,6 +65,11 @@ func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) 
 		reg = dbOpt.Registry
 	}
 
+	to := client.timeout
+	if dbOpt.Timeout != nil {
+		to = dbOpt.Timeout
+	}
+
 	db := &Database{
 		client:         client,
 		name:           name,
@@ -70,6 +77,7 @@ func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) 
 		readConcern:    rc,
 		writeConcern:   wc,
 		registry:       reg,
+		timeout:        to,
 	}
 
 	db.readSelector = description.CompositeSelector([]description.ServerSelector{

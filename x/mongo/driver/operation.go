@@ -217,6 +217,10 @@ type Operation struct {
 	// read preference will not be added to the command on wire versions < 13.
 	IsOutputAggregate bool
 
+	// Timeout is the amount of time that this operation can execute before returning an error. The default value
+	// nil, which means that the timeout of the operation's caller will be used.
+	Timeout *time.Duration
+
 	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
 }
@@ -308,6 +312,16 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	err := op.Validate()
 	if err != nil {
 		return err
+	}
+
+	// If no deadline is set on the passed-in context, and op.Timeout is set and non-zero, honor op.Timeout
+	// in new context for operation execution.
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && *op.Timeout != 0 {
+		newCtx, cancelFunc := context.WithTimeout(ctx, *op.Timeout)
+		// Redefine ctx to be the new timeout-derived context.
+		ctx = newCtx
+		// Cancel the timeout-derived context at the end of Find to avoid a context leak.
+		defer cancelFunc()
 	}
 
 	if op.Client != nil {
@@ -495,6 +509,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			redacted:     startedInfo.redacted,
 			serviceID:    startedInfo.serviceID,
 		}
+
+		// TODO(CSOT): Replace the short-circuit logic below with the following logic that checks 90th
+		// percentile RTT instead of minimum RTT.
+		// if deadline, ok := ctx.Deadline(); ok && time.Now().Add(conn.Description().RTT90).After(deadline) {
+		// 	err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+		// 		"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", remainingTimeout)
+		// }
 
 		// Check if there's enough time to perform a best-case network round trip before the Context
 		// deadline. If not, create a network error that wraps a context.DeadlineExceeded error and
@@ -872,13 +893,25 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 
 func (op Operation) createWireMessage(ctx context.Context, dst []byte,
 	desc description.SelectedServer, conn Connection) ([]byte, startedInformation, error) {
+	// Calculate value of 'maxTimeMS' field to append to the wire message based on the current
+	// context's deadline and the 90th percentile RTT if op.Timeout is set.
+	var maxTimeMS *int64
+	if op.Timeout != nil {
+		if deadline, ok := ctx.Deadline(); ok {
+			remainingTimeout := time.Until(deadline)
+			maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
+				int64(desc.RTT90/time.Millisecond)
+			maxTimeMS = &maxTimeMSVal
+		}
+	}
+
 	// If topology is not LoadBalanced, API version is not declared, and wire version is unknown
 	// or less than 6, use OP_QUERY. Otherwise, use OP_MSG.
 	if desc.Kind != description.LoadBalanced && op.ServerAPI == nil &&
 		(desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion) {
-		return op.createQueryWireMessage(dst, desc)
+		return op.createQueryWireMessage(maxTimeMS, dst, desc)
 	}
-	return op.createMsgWireMessage(ctx, dst, desc, conn)
+	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn)
 }
 
 func (op Operation) addBatchArray(dst []byte) []byte {
@@ -890,7 +923,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 	return dst
 }
 
-func (op Operation) createQueryWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createQueryWireMessage(maxTimeMS *int64, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	var info startedInformation
 	flags := op.secondaryOK(desc)
 	var wmindex int32
@@ -940,6 +973,10 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 
 	dst = op.addClusterTime(dst, desc)
 	dst = op.addServerAPI(dst)
+	// If maxTimeMS was passed in, append it to wire message.
+	if maxTimeMS != nil {
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *maxTimeMS)
+	}
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 	// Command monitoring only reports the document inside $query
@@ -957,7 +994,7 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
 }
 
-func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc description.SelectedServer,
+func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS *int64, dst []byte, desc description.SelectedServer,
 	conn Connection) ([]byte, startedInformation, error) {
 
 	var info startedInformation
@@ -1001,6 +1038,10 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 
 	dst = op.addClusterTime(dst, desc)
 	dst = op.addServerAPI(dst)
+	// If maxTimeMS was passed in append it to wire message.
+	if maxTimeMS != nil {
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *maxTimeMS)
+	}
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
 	rp, err := op.createReadPref(desc, false)

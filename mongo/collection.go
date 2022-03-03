@@ -38,6 +38,7 @@ type Collection struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	registry       *bsoncodec.Registry
+	timeout        *time.Duration
 }
 
 // aggregateParams is used to store information to configure an Aggregate operation.
@@ -86,6 +87,11 @@ func newCollection(db *Database, name string, opts ...*options.CollectionOptions
 		reg = collOpt.Registry
 	}
 
+	to := db.timeout
+	if collOpt.Timeout != nil {
+		to = collOpt.Timeout
+	}
+
 	readSelector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(rp),
 		description.LatencySelector(db.client.localThreshold),
@@ -106,6 +112,7 @@ func newCollection(db *Database, name string, opts ...*options.CollectionOptions
 		readSelector:   readSelector,
 		writeSelector:  writeSelector,
 		registry:       reg,
+		timeout:        to,
 	}
 
 	return coll
@@ -122,6 +129,7 @@ func (coll *Collection) copy() *Collection {
 		readSelector:   coll.readSelector,
 		writeSelector:  coll.writeSelector,
 		registry:       coll.registry,
+		timeout:        coll.timeout,
 	}
 }
 
@@ -146,6 +154,10 @@ func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, 
 
 	if optsColl.Registry != nil {
 		copyColl.registry = optsColl.Registry
+	}
+
+	if optsColl.Timeout != nil {
+		copyColl.timeout = optsColl.Timeout
 	}
 
 	copyColl.readSelector = description.CompositeSelector([]description.ServerSelector{
@@ -1217,7 +1229,8 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
+		Timeout(coll.timeout)
 
 	fo := options.MergeFindOptions(opts...)
 	cursorOpts := coll.client.createBaseCursorOptions()
