@@ -7,6 +7,7 @@
 package bsonrw
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"testing/iotest"
@@ -262,14 +263,23 @@ func TestJsonScannerValidInputs(t *testing.T) {
 			tokens: []jsonToken{{t: jttDouble, v: float64(8005332285744496613785600)}},
 		},
 		{
+			desc: "valid infinity: Infinity", input: "Infinity",
+			tokens: []jsonToken{{t: jttDouble, v: math.Inf(1)}},
+		},
+		{
+			desc: "valid infinity: -Infinity", input: "-Infinity",
+			tokens: []jsonToken{{t: jttDouble, v: math.Inf(-1)}},
+		},
+		{
 			desc:  "valid object, only spaces",
-			input: `{"key": "string", "key2": 2, "key3": {}, "key4": [], "key5": false }`,
+			input: `{"key": "string", "key2": 2, "key3": {}, "key4": [], "key5": false, "key6": Infinity }`,
 			tokens: []jsonToken{
 				{t: jttBeginObject, v: byte('{')}, {t: jttString, v: "key"}, {t: jttColon, v: byte(':')}, {t: jttString, v: "string"},
 				{t: jttComma, v: byte(',')}, {t: jttString, v: "key2"}, {t: jttColon, v: byte(':')}, {t: jttInt32, v: int32(2)},
 				{t: jttComma, v: byte(',')}, {t: jttString, v: "key3"}, {t: jttColon, v: byte(':')}, {t: jttBeginObject, v: byte('{')}, {t: jttEndObject, v: byte('}')},
 				{t: jttComma, v: byte(',')}, {t: jttString, v: "key4"}, {t: jttColon, v: byte(':')}, {t: jttBeginArray, v: byte('[')}, {t: jttEndArray, v: byte(']')},
-				{t: jttComma, v: byte(',')}, {t: jttString, v: "key5"}, {t: jttColon, v: byte(':')}, {t: jttBool, v: false}, {t: jttEndObject, v: byte('}')},
+				{t: jttComma, v: byte(',')}, {t: jttString, v: "key5"}, {t: jttColon, v: byte(':')}, {t: jttBool, v: false},
+				{t: jttComma, v: byte(',')}, {t: jttString, v: "key6"}, {t: jttColon, v: byte(':')}, {t: jttDouble, v: math.Inf(1)}, {t: jttEndObject, v: byte('}')},
 			},
 		},
 		{
@@ -362,6 +372,10 @@ func TestJsonScannerInvalidInputs(t *testing.T) {
 		{desc: "invalid number: 0e+.1", input: "0e+.1"},
 		{desc: "invalid number: 0e+1.", input: "0e+1."},
 		{desc: "invalid number: 0e+1e", input: "0e+1e"},
+		{desc: "invalid infinity: Infinety", input: "Infinety"},
+		{desc: "invalid infinity: Infinetyy", input: "Infinetyy"},
+		{desc: "invalid infinity: -Infinety", input: "-Infinety"},
+		{desc: "invalid infinity: -Infinetyy", input: "-Infinetyy"},
 	}
 
 	for _, tc := range cases {
