@@ -134,7 +134,7 @@ func connectionPerished(conn *connection) (string, bool) {
 	switch {
 	case conn.closed():
 		// A connection would only be closed if it encountered a network error during an operation and closed itself.
-		return event.ReasonConnectionErrored, true
+		return event.ReasonError, true
 	case conn.idleTimeoutExpired():
 		return event.ReasonIdle, true
 	case conn.pool.stale(conn):

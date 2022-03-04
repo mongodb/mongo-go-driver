@@ -17,21 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 )
 
-var (
-	connectionClosedReasons = map[string]string{
-		"stale":      event.ReasonStale,
-		"idle":       event.ReasonIdle,
-		"error":      event.ReasonConnectionErrored,
-		"poolClosed": event.ReasonPoolClosed,
-	}
-
-	checkOutFailedReasons = map[string]string{
-		"poolClosed":      event.ReasonPoolClosed,
-		"timeout":         event.ReasonTimedOut,
-		"connectionError": event.ReasonConnectionErrored,
-	}
-)
-
 type commandMonitoringEvent struct {
 	CommandStartedEvent *struct {
 		Command               bson.Raw `bson:"command"`
@@ -293,13 +278,9 @@ func verifyCMAPEvents(client *clientEntity, expected []cmapEvent) error {
 				return newEventVerificationError(idx, client, err.Error())
 			}
 
-			if reason := evt.ConnectionClosedEvent.Reason; reason != nil {
-				expectedReason, ok := connectionClosedReasons[*reason]
-				if !ok {
-					return newEventVerificationError(idx, client, "unrecognized reason %q", *reason)
-				}
-				if expectedReason != actual.Reason {
-					return newEventVerificationError(idx, client, "expected reason %q, got %q", expectedReason, actual.Reason)
+			if expectedReason := evt.ConnectionClosedEvent.Reason; expectedReason != nil {
+				if *expectedReason != actual.Reason {
+					return newEventVerificationError(idx, client, "expected reason %q, got %q", *expectedReason, actual.Reason)
 				}
 			}
 		case evt.ConnectionCheckedOutEvent != nil:
@@ -312,13 +293,9 @@ func verifyCMAPEvents(client *clientEntity, expected []cmapEvent) error {
 				return newEventVerificationError(idx, client, err.Error())
 			}
 
-			if reason := evt.ConnectionCheckOutFailedEvent.Reason; reason != nil {
-				expectedReason, ok := checkOutFailedReasons[*reason]
-				if !ok {
-					return newEventVerificationError(idx, client, "unrecognized reason %q", *reason)
-				}
-				if expectedReason != actual.Reason {
-					return newEventVerificationError(idx, client, "expected reason %q, got %q", expectedReason, actual.Reason)
+			if expectedReason := evt.ConnectionCheckOutFailedEvent.Reason; expectedReason != nil {
+				if *expectedReason != actual.Reason {
+					return newEventVerificationError(idx, client, "expected reason %q, got %q", *expectedReason, actual.Reason)
 				}
 			}
 		case evt.ConnectionCheckedInEvent != nil:
