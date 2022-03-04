@@ -33,6 +33,15 @@ var skippedTestDescriptions = map[string]string{
 	// That behavior is currently required by the "Client.Disconnect" API, so skip the tests.
 	"When a pool is closed, it MUST first destroy all available connections in that pool": "test requires that close does not aggressively close used connections",
 	"must destroy checked in connection if pool has been closed":                          "test requires that close does not aggressively close used connections",
+	// GODRIVER-1826: The load-balancer SDAM error handling test "errors during authentication are
+	// processed" currently asserts that handshake errors trigger events "pool cleared" then
+	// "connection closed". However, the "error during minPoolSize population clears pool" test
+	// asserts that handshake errors trigger events "connection closed" then "pool cleared". The Go
+	// driver uses the same code path for creating all application connections, so those opposing
+	// event orders cannot be satisfied simultaneously.
+	// TODO(DRIVERS-1785): Re-enable this test once the spec test is updated to use the same event
+	// order as the "errors during authentication are processed" load-balancer SDAM spec test.
+	"error during minPoolSize population clears pool": "event ordering is incompatible with load-balancer SDAM spec test (DRIVERS-1785)",
 	// GODRIVER-1826: The Go connection pool does not currently always deliver connections created
 	// by maintain() to waiting check-outs. There is a race condition between the goroutine started
 	// by maintain() to check-in a requested connection and createConnections() picking up the next

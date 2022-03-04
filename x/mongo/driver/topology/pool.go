@@ -829,9 +829,6 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		if err != nil {
 			w.tryDeliver(nil, err)
 
-			_ = p.removeConnection(conn, event.ReasonError)
-			_ = p.closeConnection(conn)
-
 			// If there's an error connecting the new connection, call the handshake error handler
 			// that implements the SDAM handshake error handling logic. This must be called after
 			// delivering the connection error to the waiting wantConn. If it's called before, the
@@ -841,6 +838,9 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			if p.handshakeErrFn != nil {
 				p.handshakeErrFn(err, conn.generation, conn.desc.ServiceID)
 			}
+
+			_ = p.removeConnection(conn, event.ReasonError)
+			_ = p.closeConnection(conn)
 			continue
 		}
 
