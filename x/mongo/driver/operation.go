@@ -473,21 +473,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if err != nil {
 			return err
 		}
-		// Append a 'maxTimeMS' field to wire message based on current deadline if op.Timeout is set.
-		if op.Timeout != nil {
-			// Retrieve current deadline from context, convert it to timeout and append
-			// maxTimeMS as (timeout - 90th percentile RTT).
-			if deadline, deadlineSet := ctx.Deadline(); deadlineSet {
-				remainingTimeout := time.Until(deadline)
-				// If 90th percentile RTT is less than remainingTimeout, error instead
-				// of attempting to send message to server.
-				if desc.RTT90 < remainingTimeout {
-					return ErrDeadlineWouldBeExceeded
-				}
-				maxTimeMS := int64(remainingTimeout/time.Millisecond) - int64(desc.RTT90/time.Millisecond)
-				wm = bsoncore.AppendInt64Element(wm, "maxTimeMS", maxTimeMS)
-			}
-		}
 
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
@@ -897,7 +882,7 @@ func (op Operation) createWireMessage(ctx context.Context, dst []byte,
 	// or less than 6, use OP_QUERY. Otherwise, use OP_MSG.
 	if desc.Kind != description.LoadBalanced && op.ServerAPI == nil &&
 		(desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion) {
-		return op.createQueryWireMessage(dst, desc)
+		return op.createQueryWireMessage(ctx, dst, desc)
 	}
 	return op.createMsgWireMessage(ctx, dst, desc, conn)
 }
@@ -911,7 +896,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 	return dst
 }
 
-func (op Operation) createQueryWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createQueryWireMessage(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	var info startedInformation
 	flags := op.secondaryOK(desc)
 	var wmindex int32
@@ -961,6 +946,7 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 
 	dst = op.addClusterTime(dst, desc)
 	dst = op.addServerAPI(dst)
+	dst = op.addMaxTimeMS(ctx, dst, desc)
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 	// Command monitoring only reports the document inside $query
@@ -1022,6 +1008,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 
 	dst = op.addClusterTime(dst, desc)
 	dst = op.addServerAPI(dst)
+	dst = op.addMaxTimeMS(ctx, dst, desc)
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
 	rp, err := op.createReadPref(desc, false)
@@ -1103,6 +1090,27 @@ func (op Operation) addServerAPI(dst []byte) []byte {
 	}
 	if sa.DeprecationErrors != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "apiDeprecationErrors", *sa.DeprecationErrors)
+	}
+	return dst
+}
+
+// addMaxTimeMS adds a 'maxTimeMS' field to the wire message in dst based on the current context's deadline
+// and the 90th percentile RTT if op.Timeout is set.
+func (op Operation) addMaxTimeMS(ctx context.Context, dst []byte, desc description.SelectedServer) []byte {
+	if op.Timeout != nil {
+		// Retrieve current deadline from context, convert it to timeout and append
+		// maxTimeMS as (timeout - 90th percentile RTT).
+		if deadline, deadlineSet := ctx.Deadline(); deadlineSet {
+			remainingTimeout := time.Until(deadline)
+			// If 90th percentile RTT is less than remainingTimeout, error instead
+			// of attempting to send message to server.
+			// TODO(CSOT): Uncomment this once RTT90 is actually being calculated.
+			// if desc.RTT90 < remainingTimeout {
+			//	return ErrDeadlineWouldBeExceeded
+			// }
+			maxTimeMS := int64(remainingTimeout/time.Millisecond) - int64(desc.RTT90/time.Millisecond)
+			dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", maxTimeMS)
+		}
 	}
 	return dst
 }

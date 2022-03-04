@@ -258,6 +258,12 @@ func (f *FindOptions) SetSort(sort interface{}) *FindOptions {
 	return f
 }
 
+// SetTimeout sets the value for the Timeout field.
+func (f *FindOptions) SetTimeout(to time.Duration) *FindOptions {
+	f.Timeout = &to
+	return f
+}
+
 // MergeFindOptions combines the given FindOptions instances into a single FindOptions in a last-one-wins fashion.
 func MergeFindOptions(opts ...*FindOptions) *FindOptions {
 	fo := Find()
