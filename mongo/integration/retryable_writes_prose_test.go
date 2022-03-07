@@ -11,6 +11,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
@@ -141,9 +142,13 @@ func TestRetryableWritesProse(t *testing.T) {
 	})
 
 	tpm := newTestPoolMonitor()
+	// Client options with MaxPoolSize of 1 and RetryWrites used per the test description.
+	// Lower HeartbeatInterval used to speed the test up for any server that uses streaming
+	// heartbeats.
 	pceOpts := options.Client().SetMaxPoolSize(1).SetRetryWrites(true).
-		SetPoolMonitor(tpm.PoolMonitor)
-	mtPceOpts := mtest.NewOptions().ClientOptions(pceOpts).MinServerVersion("4.3")
+		SetPoolMonitor(tpm.PoolMonitor).SetHeartbeatInterval(500 * time.Millisecond)
+	mtPceOpts := mtest.NewOptions().ClientOptions(pceOpts).MinServerVersion("4.3").
+		Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt.RunOpts("PoolClearedError retryability", mtPceOpts, func(mt *mtest.T) {
 		// Force Find to block for 1 second once.
 		mt.SetFailPoint(mtest.FailPoint{

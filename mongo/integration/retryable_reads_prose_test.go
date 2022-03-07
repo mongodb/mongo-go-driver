@@ -10,6 +10,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,8 +21,12 @@ import (
 
 func TestRetryableReadsProse(t *testing.T) {
 	tpm := newTestPoolMonitor()
+
+	// Client options with MaxPoolSize of 1 and RetryReads used per the test description.
+	// Lower HeartbeatInterval used to speed the test up for any server that uses streaming
+	// heartbeats.
 	clientOpts := options.Client().SetMaxPoolSize(1).SetRetryReads(true).
-		SetPoolMonitor(tpm.PoolMonitor)
+		SetPoolMonitor(tpm.PoolMonitor).SetHeartbeatInterval(500 * time.Millisecond)
 	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.3")
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
