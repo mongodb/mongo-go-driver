@@ -7,6 +7,7 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -56,8 +57,8 @@ func TestTimeoutClient(t *testing.T) {
 		// Since there is no deadline on the provided context, the operation should honor the
 		// Timeout of 0, and the operation should fail due to an exceeded deadline.
 		_, err = mt.Coll.Find(context.Background(), bson.D{})
-		assert.True(mt, err.Error() == context.DeadlineExceeded.Error(),
-			"expected context.DeadlineExceeded error, got %v", err.Error())
+		assert.True(mt, strings.Contains(err.Error(), "context deadline exceeded"),
+			"expected error to contain 'context deadline exceeded', got %v", err.Error())
 	})
 	mt.RunOpts("context with deadline supersedes Timeout", mtOpts, func(mt *mtest.T) {
 		// Normally, a Timeout of 0 on the client would cause context deadline exceeded errors
