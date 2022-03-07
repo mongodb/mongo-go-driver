@@ -1600,6 +1600,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 
 	failedEvent := &event.CommandFailedEvent{
 		Failure:              info.cmdErr.Error(),
+		FailureRawErr:        info.cmdErr,
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)

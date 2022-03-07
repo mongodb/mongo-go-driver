@@ -53,7 +53,8 @@ type CommandSucceededEvent struct {
 // CommandFailedEvent represents an event generated when a command's execution fails.
 type CommandFailedEvent struct {
 	CommandFinishedEvent
-	Failure string
+	Failure       string
+	FailureRawErr error
 }
 
 // CommandMonitor represents a monitor that is triggered for different events.
