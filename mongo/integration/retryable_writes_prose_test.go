@@ -144,9 +144,12 @@ func TestRetryableWritesProse(t *testing.T) {
 	tpm := newTestPoolMonitor()
 	// Client options with MaxPoolSize of 1 and RetryWrites used per the test description.
 	// Lower HeartbeatInterval used to speed the test up for any server that uses streaming
-	// heartbeats.
+	// heartbeats. Only connect to first host in list for sharded clusters.
+	hosts := mtest.ClusterConnString().Hosts
 	pceOpts := options.Client().SetMaxPoolSize(1).SetRetryWrites(true).
-		SetPoolMonitor(tpm.PoolMonitor).SetHeartbeatInterval(500 * time.Millisecond)
+		SetPoolMonitor(tpm.PoolMonitor).SetHeartbeatInterval(500 * time.Millisecond).
+		SetHosts(hosts[:1])
+
 	mtPceOpts := mtest.NewOptions().ClientOptions(pceOpts).MinServerVersion("4.3").
 		Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt.RunOpts("PoolClearedError retryability", mtPceOpts, func(mt *mtest.T) {

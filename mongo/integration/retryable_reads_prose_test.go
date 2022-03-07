@@ -24,9 +24,12 @@ func TestRetryableReadsProse(t *testing.T) {
 
 	// Client options with MaxPoolSize of 1 and RetryReads used per the test description.
 	// Lower HeartbeatInterval used to speed the test up for any server that uses streaming
-	// heartbeats.
+	// heartbeats. Only connect to first host in list for sharded clusters.
+	hosts := mtest.ClusterConnString().Hosts
 	clientOpts := options.Client().SetMaxPoolSize(1).SetRetryReads(true).
-		SetPoolMonitor(tpm.PoolMonitor).SetHeartbeatInterval(500 * time.Millisecond)
+		SetPoolMonitor(tpm.PoolMonitor).SetHeartbeatInterval(500 * time.Millisecond).
+		SetHosts(hosts[:1])
+
 	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.3")
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
