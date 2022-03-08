@@ -85,6 +85,7 @@ type pool struct {
 	nextID                       uint64 // nextID is the next pool ID for a new connection.
 	pinnedCursorConnections      uint64
 	pinnedTransactionConnections uint64
+	inUseConnections             int64
 
 	address       address.Address
 	minSize       uint64
@@ -451,6 +452,8 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				ConnectionID: w.conn.poolID,
 			})
 		}
+
+		atomic.AddInt64(&p.inUseConnections, 1)
 		return w.conn, nil
 	}
 
@@ -480,6 +483,8 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				ConnectionID: w.conn.poolID,
 			})
 		}
+
+		atomic.AddInt64(&p.inUseConnections, 1)
 		return w.conn, nil
 	case <-ctx.Done():
 		if p.monitor != nil {
@@ -582,6 +587,13 @@ func (p *pool) checkIn(conn *connection) error {
 			Address:      conn.addr.String(),
 		})
 	}
+
+	// Decrement the number of in-use connections once we know we have a non-nil connection that
+	// came from this pool. Do this in checkIn() instead of checkInNoEvent() because the latter is
+	// called by createConnections() and is not necessarily a check-in of an in-use connection. Use
+	// an int64 instead of a uint64 to mitigate the impact of any possible bugs that could cause the
+	// uint64 to underflow, which would effectively make the server unselectable.
+	atomic.AddInt64(&p.inUseConnections, -1)
 
 	return p.checkInNoEvent(conn)
 }
@@ -763,6 +775,10 @@ func (p *pool) availableConnectionCount() int {
 	defer p.idleMu.Unlock()
 
 	return len(p.idleConns)
+}
+
+func (p *pool) inUseConnectionCount() int64 {
+	return atomic.LoadInt64(&p.inUseConnections)
 }
 
 // createConnections creates connections for wantConn requests on the newConnWait queue.
