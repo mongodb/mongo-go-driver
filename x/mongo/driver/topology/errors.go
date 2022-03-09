@@ -4,7 +4,11 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
+
+// Assert that ConnectionError satisfies driver.RetryablePoolError.
+var _ driver.RetryablePoolError = ConnectionError{}
 
 // ConnectionError represents a connection error.
 type ConnectionError struct {
@@ -39,6 +43,12 @@ func (e ConnectionError) Error() string {
 // Unwrap returns the underlying error.
 func (e ConnectionError) Unwrap() error {
 	return e.Wrapped
+}
+
+// Retryable returns true if the ConnectionError happened during initialization or handshake. It
+// satisfies the driver.RetryablePoolError interface.
+func (e ConnectionError) Retryable() bool {
+	return e.init
 }
 
 // ServerSelectionError represents a Server Selection error.

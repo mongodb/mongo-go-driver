@@ -64,6 +64,8 @@ type cmapEvent struct {
 		Reason *string `bson:"reason"`
 	} `bson:"connectionClosedEvent"`
 
+	ConnectionCheckOutStartedEvent *struct{} `bson:"connectionCheckOutStartedEvent"`
+
 	ConnectionCheckedOutEvent *struct{} `bson:"connectionCheckedOutEvent"`
 
 	ConnectionCheckOutFailedEvent *struct {
@@ -301,6 +303,10 @@ func verifyCMAPEvents(client *clientEntity, expected []cmapEvent) error {
 				if expectedReason != actual.Reason {
 					return newEventVerificationError(idx, client, "expected reason %q, got %q", expectedReason, actual.Reason)
 				}
+			}
+		case evt.ConnectionCheckOutStartedEvent != nil:
+			if _, pooled, err = getNextPoolEvent(pooled, event.GetStarted); err != nil {
+				return newEventVerificationError(idx, client, err.Error())
 			}
 		case evt.ConnectionCheckedOutEvent != nil:
 			if _, pooled, err = getNextPoolEvent(pooled, event.GetSucceeded); err != nil {
