@@ -596,6 +596,8 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 		return ErrWrongPool
 	}
 
+	conn.bumpIdleDeadline()
+
 	if reason, perished := connectionPerished(conn); perished {
 		_ = p.removeConnection(conn, reason)
 		go func() {
