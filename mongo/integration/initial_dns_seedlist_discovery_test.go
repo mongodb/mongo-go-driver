@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -115,7 +116,7 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 			*test.NumHosts, actualNumHosts)
 	}
 	for _, host := range test.Hosts {
-		_, err := getServerByAddress(host, topo)
+		_, err := selectServerByAddress(host, topo)
 		assert.Nil(mt, err, "error finding host %q: %v", host, err)
 	}
 }
@@ -200,7 +201,7 @@ func setSSLSettings(mt *mtest.T, cs *connstring.ConnString, test seedlistTest) {
 	}
 }
 
-func getServerByAddress(address string, topo *topology.Topology) (description.Server, error) {
+func selectServerByAddress(address string, topo *topology.Topology) (driver.Server, error) {
 	selectByName := description.ServerSelectorFunc(func(_ description.Topology, servers []description.Server) ([]description.Server, error) {
 		for _, s := range servers {
 			if s.Addr.String() == address {
@@ -210,14 +211,5 @@ func getServerByAddress(address string, topo *topology.Topology) (description.Se
 		return []description.Server{}, nil
 	})
 
-	selectedServer, err := topo.SelectServer(context.Background(), selectByName)
-	if err != nil {
-		return description.Server{}, err
-	}
-	selectedServerConnection, err := selectedServer.Connection(context.Background())
-	if err != nil {
-		return description.Server{}, err
-	}
-	defer selectedServerConnection.Close()
-	return selectedServerConnection.Description(), nil
+	return topo.SelectServer(context.Background(), selectByName)
 }
