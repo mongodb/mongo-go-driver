@@ -82,6 +82,7 @@ type WriteCommandError struct {
 	WriteConcernError *WriteConcernError
 	WriteErrors       WriteErrors
 	Labels            []string
+	Raw               bsoncore.Document
 }
 
 // UnsupportedStorageEngine returns whether or not the WriteCommandError comes from a retryable write being attempted
@@ -129,6 +130,7 @@ type WriteConcernError struct {
 	Details         bsoncore.Document
 	Labels          []string
 	TopologyVersion *description.TopologyVersion
+	Raw             bsoncore.Document
 }
 
 func (wce WriteConcernError) Error() string {
@@ -189,6 +191,7 @@ type WriteError struct {
 	Code    int64
 	Message string
 	Details bsoncore.Document
+	Raw     bsoncore.Document
 }
 
 func (we WriteError) Error() string { return we.Message }
@@ -218,6 +221,7 @@ type Error struct {
 	Name            string
 	Wrapped         error
 	TopologyVersion *description.TopologyVersion
+	Raw             bsoncore.Document
 }
 
 // UnsupportedStorageEngine returns whether e came as a result of an unsupported storage engine
@@ -417,6 +421,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 					we.Details = make([]byte, len(info))
 					copy(we.Details, info)
 				}
+				we.Raw = doc
 				wcError.WriteErrors = append(wcError.WriteErrors, we)
 			}
 		case "writeConcernError":
@@ -425,6 +430,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 				break
 			}
 			wcError.WriteConcernError = new(WriteConcernError)
+			wcError.WriteConcernError.Raw = doc
 			if code, exists := doc.Lookup("code").AsInt64OK(); exists {
 				wcError.WriteConcernError.Code = code
 			}
@@ -472,6 +478,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			Name:            codeName,
 			Labels:          labels,
 			TopologyVersion: tv,
+			Raw:             doc,
 		}
 	}
 
@@ -480,6 +487,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 		if wcError.WriteConcernError != nil {
 			wcError.WriteConcernError.TopologyVersion = tv
 		}
+		wcError.Raw = doc
 		return wcError
 	}
 
