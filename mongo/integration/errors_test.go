@@ -327,9 +327,10 @@ func TestErrors(t *testing.T) {
 			})
 		}
 
-		mt.Run("RawResponse", func(mt *mtest.T) {
+		mtOpts := mtest.NewOptions().MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
+		mt.RunOpts("RawResponse", mtOpts, func(mt *mtest.T) {
 			mt.Run("CommandError", func(mt *mtest.T) {
-				// Mock a CommandError via failpoint with an arbitrary code and label.
+				// Mock a CommandError via failpoint with an arbitrary code.
 				mt.SetFailPoint(mtest.FailPoint{
 					ConfigureFailPoint: "failCommand",
 					Mode: mtest.FailPointMode{
@@ -338,7 +339,6 @@ func TestErrors(t *testing.T) {
 					Data: mtest.FailPointData{
 						FailCommands: []string{"find"},
 						ErrorCode:    123,
-						ErrorLabels:  &[]string{"foo"},
 					},
 				})
 
@@ -347,17 +347,17 @@ func TestErrors(t *testing.T) {
 				se, ok := res.Err().(mongo.ServerError)
 				assert.True(mt, ok, "expected FindOne error to be ServerError")
 
-				// Assert that raw response exists and contains error label "foo".
+				// Assert that raw response exists and contains error code 123.
 				raw := se.RawResponse()[0]
 				assert.NotNil(mt, raw, "expected RawResponse, got nil")
-				val, err := raw.LookupErr("errorLabels", "0")
-				assert.Nil(mt, err, "expected 'errorLabels' field in RawResponse, got %v", raw)
-				labelVal, ok := val.StringValueOK()
-				assert.True(mt, ok, "expected error label to be string, got %v", val)
-				assert.Equal(mt, labelVal, "foo", "expected label 'foo', got %q", labelVal)
+				val, err := raw.LookupErr("code")
+				assert.Nil(mt, err, "expected 'code' field in RawResponse, got %v", raw)
+				code, ok := val.AsInt64OK()
+				assert.True(mt, ok, "expected 'code' to be int64, got %v", val)
+				assert.Equal(mt, code, int64(123), "expected 'code' 123, got %d", code)
 			})
 			mt.Run("WriteError", func(mt *mtest.T) {
-				// Mock a WriteError via failpoint with an arbitrary code and label.
+				// Mock a WriteError via failpoint with an arbitrary code.
 				mt.SetFailPoint(mtest.FailPoint{
 					ConfigureFailPoint: "failCommand",
 					Mode: mtest.FailPointMode{
@@ -366,7 +366,6 @@ func TestErrors(t *testing.T) {
 					Data: mtest.FailPointData{
 						FailCommands: []string{"delete"},
 						ErrorCode:    123,
-						ErrorLabels:  &[]string{"foo"},
 					},
 				})
 
@@ -375,14 +374,14 @@ func TestErrors(t *testing.T) {
 				se, ok := err.(mongo.ServerError)
 				assert.True(mt, ok, "expected DeleteOne error to be ServerError")
 
-				// Assert that raw response exists and contains error label "foo".
+				// Assert that raw response exists and contains error code 123.
 				raw := se.RawResponse()[0]
 				assert.NotNil(mt, raw, "expected RawResponse, got nil")
-				val, err := raw.LookupErr("errorLabels", "0")
-				assert.Nil(mt, err, "expected 'errorLabels' field in RawResponse, got %v", raw)
-				labelVal, ok := val.StringValueOK()
-				assert.True(mt, ok, "expected error label to be string, got %v", val)
-				assert.Equal(mt, labelVal, "foo", "expected label 'foo', got %q", labelVal)
+				val, err := raw.LookupErr("code")
+				assert.Nil(mt, err, "expected 'code' field in RawResponse, got %v", raw)
+				code, ok := val.AsInt64OK()
+				assert.True(mt, ok, "expected 'code' to be int64, got %v", val)
+				assert.Equal(mt, code, int64(123), "expected 'code' 123, got %d", code)
 			})
 			mt.Run("WriteException", func(mt *mtest.T) {
 				// Mock a WriteException via failpoint with an arbitrary WriteConcernError.
@@ -394,8 +393,7 @@ func TestErrors(t *testing.T) {
 					Data: mtest.FailPointData{
 						FailCommands: []string{"delete"},
 						WriteConcernError: &mtest.WriteConcernErrorData{
-							Code:        123,
-							ErrorLabels: &[]string{"foo"},
+							Code: 123,
 						},
 					},
 				})
@@ -405,14 +403,14 @@ func TestErrors(t *testing.T) {
 				se, ok := err.(mongo.ServerError)
 				assert.True(mt, ok, "expected DeleteMany error to be ServerError")
 
-				// Assert that raw response exists and contains error label "foo".
+				// Assert that raw response exists and contains error code 123.
 				raw := se.RawResponse()[0]
 				assert.NotNil(mt, raw, "expected RawResponse, got nil")
-				val, err := raw.LookupErr("writeConcernError", "errorLabels", "0")
-				assert.Nil(mt, err, "expected 'errorLabels' field in RawResponse, got %v", raw)
-				labelVal, ok := val.StringValueOK()
-				assert.True(mt, ok, "expected error label to be string, got %v", val)
-				assert.Equal(mt, labelVal, "foo", "expected label 'foo', got %q", labelVal)
+				val, err := raw.LookupErr("writeConcernError", "code")
+				assert.Nil(mt, err, "expected 'code' field in RawResponse, got %v", raw)
+				code, ok := val.AsInt64OK()
+				assert.True(mt, ok, "expected 'code' to be int64, got %v", val)
+				assert.Equal(mt, code, int64(123), "expected 'code' 123, got %d", code)
 			})
 			mt.Run("BulkWriteException", func(mt *mtest.T) {
 				// Mock a BulkWriteException via failpoint with an arbitrary WriteConcernError.
@@ -424,8 +422,7 @@ func TestErrors(t *testing.T) {
 					Data: mtest.FailPointData{
 						FailCommands: []string{"delete"},
 						WriteConcernError: &mtest.WriteConcernErrorData{
-							Code:        123,
-							ErrorLabels: &[]string{"foo"},
+							Code: 123,
 						},
 					},
 				})
@@ -439,14 +436,14 @@ func TestErrors(t *testing.T) {
 				se, ok := err.(mongo.ServerError)
 				assert.True(mt, ok, "expected BulkWrite error to be ServerError")
 
-				// Assert that raw response exists and contains error label "foo".
+				// Assert that raw response exists and contains error code 123.
 				raw := se.RawResponse()[0]
 				assert.NotNil(mt, raw, "expected RawResponse, got nil")
-				val, err := raw.LookupErr("errorLabels", "0")
-				assert.Nil(mt, err, "expected 'errorLabels' field in RawResponse, got %v", raw)
-				labelVal, ok := val.StringValueOK()
-				assert.True(mt, ok, "expected error label to be string, got %v", val)
-				assert.Equal(mt, labelVal, "foo", "expected label 'foo', got %q", labelVal)
+				val, err := raw.LookupErr("code")
+				assert.Nil(mt, err, "expected 'code' field in RawResponse, got %v", raw)
+				code, ok := val.AsInt64OK()
+				assert.True(mt, ok, "expected 'code' to be int64, got %v", val)
+				assert.Equal(mt, code, int64(123), "expected 'code' 123, got %d", code)
 			})
 		})
 	})

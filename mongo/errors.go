@@ -581,7 +581,7 @@ func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) 
 
 // RawResponse returns the original server responses containing the errors.
 func (bwe BulkWriteException) RawResponse() []bsoncore.Document {
-	var responses []bsoncore.Document
+	responses := make([]bsoncore.Document, 0)
 	if bwe.WriteConcernError != nil {
 		responses = append(responses, bwe.WriteConcernError.Raw)
 	}
