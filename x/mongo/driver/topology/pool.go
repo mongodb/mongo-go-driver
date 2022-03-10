@@ -505,7 +505,7 @@ func (p *pool) closeConnection(conn *connection) error {
 		return ErrWrongPool
 	}
 
-	if atomic.LoadInt64(&conn.connected) == connected {
+	if atomic.LoadInt64(&conn.state) == connConnected {
 		conn.closeConnectContext()
 		conn.wait() // Make sure that the connection has finished connecting.
 	}

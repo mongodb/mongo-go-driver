@@ -286,7 +286,7 @@ func TestServer(t *testing.T) {
 			require.NoError(t, err, "pool.ready() error")
 			defer s.pool.close(context.Background())
 
-			s.connectionstate = connected
+			s.state = serverConnected
 
 			// The internal connection pool resets the generation number once the number of connections in a generation
 			// reaches zero, which will cause some of these tests to fail because they assert that the generation
@@ -472,7 +472,7 @@ func TestServer(t *testing.T) {
 				return 1
 			}))
 		noerr(t, err)
-		s.connectionstate = connected
+		s.state = serverConnected
 		err = s.pool.ready()
 		noerr(t, err)
 		defer s.pool.close(context.Background())
@@ -606,7 +606,7 @@ func TestServer(t *testing.T) {
 				server, err := NewServer(address.Address("localhost"), primitive.NewObjectID())
 				assert.Nil(t, err, "NewServer error: %v", err)
 
-				server.connectionstate = connected
+				server.state = serverConnected
 				err = server.pool.ready()
 				assert.Nil(t, err, "pool.ready() error: %v", err)
 

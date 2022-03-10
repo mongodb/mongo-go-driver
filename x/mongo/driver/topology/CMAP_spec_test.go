@@ -133,7 +133,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 			return &event.PoolMonitor{func(event *event.PoolEvent) { testInfo.originalEventChan <- event }}
 		}))
 	testHelpers.RequireNil(t, err, "error creating server: %v", err)
-	s.connectionstate = connected
+	s.state = serverConnected
 	testHelpers.RequireNil(t, err, "error connecting connection pool: %v", err)
 	defer s.pool.close(context.Background())
 
