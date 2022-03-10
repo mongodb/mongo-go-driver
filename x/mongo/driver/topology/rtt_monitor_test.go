@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"math"
-	"math/rand"
 	"net"
 	"testing"
 	"time"
@@ -31,8 +30,8 @@ type mockSlowConn struct {
 }
 
 // newMockSlowConn returns a net.Conn that reads from the specified response after blocking for a
-// delay duration plus a 0-10ms random "jitter". Calls to Write() reset the read buffer, so
-// subsequent Read() calls read from the beginning of the provided response.
+// delay duration. Calls to Write() reset the read buffer, so subsequent Read() calls read from the
+// beginning of the provided response.
 func newMockSlowConn(response []byte, delay time.Duration) *mockSlowConn {
 	return &mockSlowConn{
 		reader: bytes.NewReader(response),
@@ -42,8 +41,7 @@ func newMockSlowConn(response []byte, delay time.Duration) *mockSlowConn {
 }
 
 func (msc *mockSlowConn) Read(b []byte) (int, error) {
-	jitter := time.Duration(rand.Int63n(10)) * time.Millisecond
-	time.Sleep(msc.delay + jitter)
+	time.Sleep(msc.delay)
 	if msc.closed {
 		return 0, io.ErrUnexpectedEOF
 	}

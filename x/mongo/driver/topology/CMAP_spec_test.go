@@ -453,7 +453,7 @@ func runOperationInThread(t *testing.T, operation map[string]interface{}, testIn
 
 		// If there is a timeout specified in the "waitForEvent" operation, then use that timeout.
 		// Otherwise, use a default timeout of 10s when waiting for events. Using a default timeout
-		// prevent the Go test runner from timing out, which just prints a stack trace and no
+		// prevents the Go test runner from timing out, which just prints a stack trace and no
 		// information about what event the test was waiting for.
 		timeout := 10 * time.Second
 		if timeoutMS, ok := operation["timeout"].(float64); ok {
