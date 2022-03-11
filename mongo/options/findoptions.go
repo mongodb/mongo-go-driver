@@ -111,10 +111,6 @@ type FindOptions struct {
 	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
 	// accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
-
-	// Timeout is the amount of time that this Find run on the Collection can execute before returning an error. The default value
-	// is nil, which means that the timeout of the Database used to configure the Collection will be used.
-	Timeout *time.Duration
 }
 
 // Find creates a new FindOptions instance.
@@ -258,12 +254,6 @@ func (f *FindOptions) SetSort(sort interface{}) *FindOptions {
 	return f
 }
 
-// SetTimeout sets the value for the Timeout field.
-func (f *FindOptions) SetTimeout(to time.Duration) *FindOptions {
-	f.Timeout = &to
-	return f
-}
-
 // MergeFindOptions combines the given FindOptions instances into a single FindOptions in a last-one-wins fashion.
 func MergeFindOptions(opts ...*FindOptions) *FindOptions {
 	fo := Find()
@@ -333,9 +323,6 @@ func MergeFindOptions(opts ...*FindOptions) *FindOptions {
 		}
 		if opt.Sort != nil {
 			fo.Sort = opt.Sort
-		}
-		if opt.Timeout != nil {
-			fo.Timeout = opt.Timeout
 		}
 	}
 

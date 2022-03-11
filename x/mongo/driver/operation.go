@@ -308,9 +308,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		return err
 	}
 
-	// If no deadline is set on the passed-in context, and op.Timeout is set, honor op.Timeout
+	// If no deadline is set on the passed-in context, and op.Timeout is set and non-zero, honor op.Timeout
 	// in new context for operation execution.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil {
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && *op.Timeout != 0 {
 		newCtx, cancelFunc := context.WithTimeout(ctx, *op.Timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
@@ -1106,7 +1106,8 @@ func (op Operation) addMaxTimeMS(ctx context.Context, dst []byte, desc descripti
 			// of attempting to send message to server.
 			// TODO(CSOT): Uncomment this once RTT90 is actually being calculated.
 			// if desc.RTT90 < remainingTimeout {
-			//	return ErrDeadlineWouldBeExceeded
+			//	return dst, internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+			//		"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", remainingTimeout)
 			// }
 			maxTimeMS := int64(remainingTimeout/time.Millisecond) - int64(desc.RTT90/time.Millisecond)
 			dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", maxTimeMS)

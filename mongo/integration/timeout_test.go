@@ -45,23 +45,23 @@ func TestTimeoutClient(t *testing.T) {
 			"expected 'maxTimeMS' to be within 9500 and 10000 ms, got %v", mtms)
 	})
 
-	lowTOCliOpts := options.Client().SetTimeout(0)
+	lowTOCliOpts := options.Client().SetTimeout(1 * time.Nanosecond)
 	mtOpts = mtest.NewOptions().ClientOptions(lowTOCliOpts)
 	mt.RunOpts("deadline exceeded error", mtOpts, func(mt *mtest.T) {
-		// Normally, a Timeout of 0 on the client would cause context deadline exceeded errors
+		// Normally, a Timeout of 1ns on the client would cause context deadline exceeded errors
 		// on the below InsertOne and the preceding setup commands. For now, though, Timeout is
 		// only passed down to Find.
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 
 		// Since there is no deadline on the provided context, the operation should honor the
-		// Timeout of 0, and the operation should fail due to an exceeded deadline.
+		// Timeout of 1ns, and the operation should fail due to an exceeded deadline.
 		_, err = mt.Coll.Find(context.Background(), bson.D{})
 		assert.True(mt, strings.Contains(err.Error(), "context deadline exceeded"),
 			"expected error to contain 'context deadline exceeded', got %v", err.Error())
 	})
 	mt.RunOpts("context with deadline supersedes Timeout", mtOpts, func(mt *mtest.T) {
-		// Normally, a Timeout of 0 on the client would cause context deadline exceeded errors
+		// Normally, a Timeout of 1ns on the client would cause context deadline exceeded errors
 		// on the below InsertOne and the preceding setup commands. For now, though, Timeout is
 		// only passed down to Find.
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
@@ -70,7 +70,7 @@ func TestTimeoutClient(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancelFunc()
 
-		// Using a new context with a deadline should ignore the Timeout of 0, and the operation
+		// Using a new context with a deadline should ignore the Timeout of 1ns, and the operation
 		// should succeed.
 		_, err = mt.Coll.Find(ctx, bson.D{})
 		assert.Nil(mt, err, "Find error: %v", err)
@@ -126,34 +126,6 @@ func TestTimeoutCollection(t *testing.T) {
 
 		mt.ClearEvents()
 		_, err = coll.Find(context.Background(), bson.D{})
-		assert.Nil(mt, err, "Find error: %v", err)
-		evt := mt.GetStartedEvent()
-
-		val, err := evt.Command.LookupErr("maxTimeMS")
-		assert.Nil(mt, err, "'maxTimeMS' not present in Find command")
-		mtms, ok := val.AsInt64OK()
-		assert.True(mt, ok, "expected 'maxTimeMS' to be of type int64, got %T", mtms)
-
-		// Remaining timeout appended to Find command should be somewhere between 9500 and 10000
-		// milliseconds because a few milliseconds will have passed between the start of the
-		// operation and the appension of 'maxTimeMS'.
-		timeoutWithinBounds := 9500 < mtms && mtms < 10000
-		assert.True(mt, timeoutWithinBounds,
-			"expected 'maxTimeMS' to be within 9500 and 10000 ms, got %v", mtms)
-	})
-}
-
-func TestTimeoutFind(t *testing.T) {
-	mt := mtest.New(t)
-	defer mt.Close()
-
-	mt.Run("maxTimeMS is appended", func(mt *mtest.T) {
-		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
-		assert.Nil(mt, err, "InsertOne error: %v", err)
-
-		mt.ClearEvents()
-		findOpts := options.Find().SetTimeout(10 * time.Second)
-		_, err = mt.Coll.Find(context.Background(), bson.D{}, findOpts)
 		assert.Nil(mt, err, "Find error: %v", err)
 		evt := mt.GetStartedEvent()
 

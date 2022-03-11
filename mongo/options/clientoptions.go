@@ -725,6 +725,9 @@ func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 // SetTimeout specifies the amount of time that a single operation run on this Client can execute before returning an error.
 // This can also be set through the "timeoutMS" URI option (e.g. "timeoutMS=1000"). The default value is 0, meaning no
 // timeout is used and operations will not inherit a timeout from the Client.
+//
+// If any Timeout is set on the Client, the values of other, deprecated timeout-related options will be ignored. In particular:
+// ClientOptions.SocketTimeout, WriteConcern.wTimeout, Operation.MaxTime and TransactionOptions.MaxCommitTime.
 func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
 	c.Timeout = &d
 	return c

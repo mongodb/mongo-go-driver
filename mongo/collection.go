@@ -1289,9 +1289,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 		op.Sort(sort)
 	}
-	if fo.Timeout != nil {
-		op.Timeout(fo.Timeout)
-	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
