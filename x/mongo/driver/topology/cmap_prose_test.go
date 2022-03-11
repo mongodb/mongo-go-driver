@@ -183,8 +183,8 @@ func TestCMAPProse(t *testing.T) {
 
 				assertConnectionCounts(t, pool, 1, 1)
 				evt := <-closed
-				assert.Equal(t, event.ReasonConnectionErrored, evt.Reason, "expected reason %q, got %q",
-					event.ReasonConnectionErrored, evt.Reason)
+				assert.Equal(t, event.ReasonError, evt.Reason, "expected reason %q, got %q",
+					event.ReasonError, evt.Reason)
 			})
 			t.Run("expired connection", func(t *testing.T) {
 				// If the connection being returned to the pool is expired, it should be removed from the pool and an

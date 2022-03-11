@@ -23,32 +23,46 @@ func makeHelloReply() []byte {
 
 var _ net.Conn = &mockSlowConn{}
 
-// mockSlowConn is a net.Conn that delays all calls to Read() by the given delay duration. After the
-// delay, Read() reads the given response. Calls to Write() reset the read buffer, so subsequent
-// Read() calls read from the beginning of the provided response.
 type mockSlowConn struct {
 	reader *bytes.Reader
 	delay  time.Duration
+	closed bool
 }
 
+// newMockSlowConn returns a net.Conn that reads from the specified response after blocking for a
+// delay duration. Calls to Write() reset the read buffer, so subsequent Read() calls read from the
+// beginning of the provided response.
 func newMockSlowConn(response []byte, delay time.Duration) *mockSlowConn {
 	return &mockSlowConn{
 		reader: bytes.NewReader(response),
 		delay:  delay,
+		closed: false,
 	}
 }
 
 func (msc *mockSlowConn) Read(b []byte) (int, error) {
 	time.Sleep(msc.delay)
+	if msc.closed {
+		return 0, io.ErrUnexpectedEOF
+	}
 	return msc.reader.Read(b)
 }
 
 func (msc *mockSlowConn) Write(b []byte) (int, error) {
+	if msc.closed {
+		return 0, io.ErrUnexpectedEOF
+	}
 	_, err := msc.reader.Seek(0, io.SeekStart)
 	return len(b), err
 }
 
-func (*mockSlowConn) Close() error                       { return nil }
+// Close closes the mock connection. All subsequent calls to Read or Write return error
+// io.ErrUnexpectedEOF. It is not safe to call Close concurrently with Read or Write.
+func (msc *mockSlowConn) Close() error {
+	msc.closed = true
+	return nil
+}
+
 func (*mockSlowConn) LocalAddr() net.Addr                { return nil }
 func (*mockSlowConn) RemoteAddr() net.Addr               { return nil }
 func (*mockSlowConn) SetDeadline(_ time.Time) error      { return nil }

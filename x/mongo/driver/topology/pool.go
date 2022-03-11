@@ -134,7 +134,7 @@ func connectionPerished(conn *connection) (string, bool) {
 	switch {
 	case conn.closed():
 		// A connection would only be closed if it encountered a network error during an operation and closed itself.
-		return event.ReasonConnectionErrored, true
+		return event.ReasonError, true
 	case conn.idleTimeoutExpired():
 		return event.ReasonIdle, true
 	case conn.pool.stale(conn):
@@ -839,7 +839,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 				p.handshakeErrFn(err, conn.generation, conn.desc.ServiceID)
 			}
 
-			_ = p.removeConnection(conn, event.ReasonConnectionErrored)
+			_ = p.removeConnection(conn, event.ReasonError)
 			_ = p.closeConnection(conn)
 			continue
 		}
@@ -1109,8 +1109,7 @@ func (q *wantConnQueue) peekFront() *wantConn {
 	return nil
 }
 
-// cleanFront pops any wantConns that are no longer waiting from the head of the
-// queue, reporting whether any were popped.
+// cleanFront pops any wantConns that are no longer waiting from the head of the queue.
 func (q *wantConnQueue) cleanFront() {
 	for {
 		w := q.peekFront()
