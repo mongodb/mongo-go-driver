@@ -252,7 +252,9 @@ func (s *Server) Disconnect(ctx context.Context) error {
 	close(s.done)
 	s.cancelCheck()
 
-	s.rttMonitor.disconnect()
+	if !s.cfg.monitoringDisabled && !s.cfg.loadBalanced {
+		s.rttMonitor.disconnect()
+	}
 	s.pool.close(ctx)
 
 	s.closewg.Wait()
