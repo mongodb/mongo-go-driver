@@ -125,7 +125,7 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 		},
 		// GODRIVER-2311
 		// Test that an unmarshaled struct that has a byte slice value does not reference the same
-		// underlying as the input.
+		// underlying array as the input.
 		{
 			name:  "struct with byte slice",
 			sType: reflect.TypeOf(fooBytes{}),
