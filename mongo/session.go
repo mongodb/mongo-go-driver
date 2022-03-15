@@ -106,7 +106,10 @@ func SessionFromContext(ctx context.Context) Session {
 //
 // EndSession method should abort any existing transactions and close the session.
 //
-// AdvanceClusterTime and AdvanceOperationTime are for internal use only and must not be called.
+// AdvanceClusterTime advances the cluster time for a session. This method will return an error if the session has ended.
+//
+// AdvanceOperationTime advances the operation time for a session. This method will return an error if the session has
+// ended.
 type Session interface {
 	// Functions to modify session state.
 	StartTransaction(...*options.TransactionOptions) error
