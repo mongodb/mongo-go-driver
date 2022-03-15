@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -57,7 +56,7 @@ func replaceErrors(err error) error {
 			Labels:  de.Labels,
 			Name:    de.Name,
 			Wrapped: de.Wrapped,
-			Raw:     de.Raw,
+			Raw:     bson.Raw(de.Raw),
 		}
 	}
 	if qe, ok := err.(driver.QueryFailureError); ok {
@@ -65,7 +64,7 @@ func replaceErrors(err error) error {
 		ce := CommandError{
 			Name:    qe.Message,
 			Wrapped: qe.Wrapped,
-			Raw:     qe.Response,
+			Raw:     bson.Raw(qe.Response),
 		}
 
 		dollarErr, err := qe.Response.LookupErr("$err")
@@ -205,8 +204,6 @@ type ServerError interface {
 	HasErrorMessage(string) bool
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 	HasErrorCodeWithMessage(int, string) bool
-	// RawResponse returns the original response(s) from the server that contained the error(s).
-	RawResponse() []bsoncore.Document
 
 	serverError()
 }
@@ -220,10 +217,10 @@ var _ ServerError = BulkWriteException{}
 type CommandError struct {
 	Code    int32
 	Message string
-	Labels  []string          // Categories to which the error belongs
-	Name    string            // A human-readable name corresponding to the error code
-	Wrapped error             // The underlying error, if one exists.
-	Raw     bsoncore.Document // The original server response containing the error.
+	Labels  []string // Categories to which the error belongs
+	Name    string   // A human-readable name corresponding to the error code
+	Wrapped error    // The underlying error, if one exists.
+	Raw     bson.Raw // The original server response containing the error.
 }
 
 // Error implements the error interface.
@@ -271,11 +268,6 @@ func (e CommandError) IsMaxTimeMSExpiredError() bool {
 	return e.Code == 50 || e.Name == "MaxTimeMSExpired"
 }
 
-// RawResponse returns the original server response containing the error.
-func (e CommandError) RawResponse() []bsoncore.Document {
-	return []bsoncore.Document{e.Raw}
-}
-
 // serverError implements the ServerError interface.
 func (e CommandError) serverError() {}
 
@@ -288,7 +280,9 @@ type WriteError struct {
 	Code    int
 	Message string
 	Details bson.Raw
-	Raw     bsoncore.Document // The original server response containing the error.
+
+	// The original write error from the server response.
+	Raw bson.Raw
 }
 
 func (we WriteError) Error() string {
@@ -320,11 +314,6 @@ func (we WriteError) HasErrorCodeWithMessage(code int, message string) bool {
 	return we.Code == code && strings.Contains(we.Message, message)
 }
 
-// RawResponse returns the original server response containing the error.
-func (we WriteError) RawResponse() []bsoncore.Document {
-	return []bsoncore.Document{we.Raw}
-}
-
 // serverError implements the ServerError interface.
 func (we WriteError) serverError() {}
 
@@ -349,7 +338,7 @@ func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
 			Code:    int(err.Code),
 			Message: err.Message,
 			Details: bson.Raw(err.Details),
-			Raw:     err.Raw,
+			Raw:     bson.Raw(err.Raw),
 		})
 	}
 	return wes
@@ -362,7 +351,7 @@ type WriteConcernError struct {
 	Code    int
 	Message string
 	Details bson.Raw
-	Raw     bsoncore.Document // The original server response containing the error.
+	Raw     bson.Raw // The original server response containing the error.
 }
 
 // Error implements the error interface.
@@ -386,7 +375,7 @@ type WriteException struct {
 	Labels []string
 
 	// The original server response containing the error.
-	Raw bsoncore.Document
+	Raw bson.Raw
 }
 
 // Error implements the error interface.
@@ -460,11 +449,6 @@ func (mwe WriteException) HasErrorCodeWithMessage(code int, message string) bool
 	return false
 }
 
-// RawResponse returns the original server response containing the error.
-func (mwe WriteException) RawResponse() []bsoncore.Document {
-	return []bsoncore.Document{mwe.Raw}
-}
-
 // serverError implements the ServerError interface.
 func (mwe WriteException) serverError() {}
 
@@ -478,7 +462,7 @@ func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcern
 		Code:    int(wce.Code),
 		Message: wce.Message,
 		Details: bson.Raw(wce.Details),
-		Raw:     wce.Raw,
+		Raw:     bson.Raw(wce.Raw),
 	}
 }
 
@@ -579,18 +563,6 @@ func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) 
 	return false
 }
 
-// RawResponse returns the original server responses containing the errors.
-func (bwe BulkWriteException) RawResponse() []bsoncore.Document {
-	responses := make([]bsoncore.Document, 0)
-	if bwe.WriteConcernError != nil {
-		responses = append(responses, bwe.WriteConcernError.Raw)
-	}
-	for _, we := range bwe.WriteErrors {
-		responses = append(responses, we.RawResponse()[0])
-	}
-	return responses
-}
-
 // serverError implements the ServerError interface.
 func (bwe BulkWriteException) serverError() {}
 
@@ -624,7 +596,7 @@ func processWriteError(err error) (returnResult, error) {
 				WriteConcernError: convertDriverWriteConcernError(tt.WriteConcernError),
 				WriteErrors:       writeErrorsFromDriverWriteErrors(tt.WriteErrors),
 				Labels:            tt.Labels,
-				Raw:               tt.Raw,
+				Raw:               bson.Raw(tt.Raw),
 			}
 		default:
 			return rrNone, replaceErrors(err)

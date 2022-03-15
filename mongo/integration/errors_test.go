@@ -328,7 +328,7 @@ func TestErrors(t *testing.T) {
 		}
 
 		mtOpts := mtest.NewOptions().MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
-		mt.RunOpts("RawResponse", mtOpts, func(mt *mtest.T) {
+		mt.RunOpts("Raw response", mtOpts, func(mt *mtest.T) {
 			mt.Run("CommandError", func(mt *mtest.T) {
 				// Mock a CommandError via failpoint with an arbitrary code.
 				mt.SetFailPoint(mtest.FailPoint{
@@ -344,44 +344,38 @@ func TestErrors(t *testing.T) {
 
 				res := mt.Coll.FindOne(context.Background(), bson.D{})
 				assert.NotNil(mt, res.Err(), "expected FindOne error, got nil")
-				se, ok := res.Err().(mongo.ServerError)
-				assert.True(mt, ok, "expected FindOne error to be ServerError")
+				ce, ok := res.Err().(mongo.CommandError)
+				assert.True(mt, ok, "expected FindOne error to be CommandError, got %T", res.Err())
 
 				// Assert that raw response exists and contains error code 123.
-				raw := se.RawResponse()[0]
-				assert.NotNil(mt, raw, "expected RawResponse, got nil")
-				val, err := raw.LookupErr("code")
-				assert.Nil(mt, err, "expected 'code' field in RawResponse, got %v", raw)
+				assert.NotNil(mt, ce.Raw, "ce.Raw is nil")
+				val, err := ce.Raw.LookupErr("code")
+				assert.Nil(mt, err, "expected 'code' field in ce.Raw, got %v", ce.Raw)
 				code, ok := val.AsInt64OK()
 				assert.True(mt, ok, "expected 'code' to be int64, got %v", val)
 				assert.Equal(mt, code, int64(123), "expected 'code' 123, got %d", code)
 			})
 			mt.Run("WriteError", func(mt *mtest.T) {
-				// Mock a WriteError via failpoint with an arbitrary code.
-				mt.SetFailPoint(mtest.FailPoint{
-					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
-						Times: 1,
-					},
-					Data: mtest.FailPointData{
-						FailCommands: []string{"delete"},
-						ErrorCode:    123,
-					},
-				})
+				// Mock a WriteError by inserting documents with duplicate _id fields.
+				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"_id", 1}})
+				assert.Nil(mt, err, "InsertOne error: %v", err)
 
-				_, err := mt.Coll.DeleteOne(context.Background(), bson.D{})
-				assert.NotNil(mt, err, "expected DeleteOne error, got nil")
-				se, ok := err.(mongo.ServerError)
-				assert.True(mt, ok, "expected DeleteOne error to be ServerError")
+				_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"_id", 1}})
+				assert.NotNil(mt, err, "expected InsertOne error, got nil")
+				we, ok := err.(mongo.WriteException)
+				assert.True(mt, ok, "expected InsertOne error to be WriteException, got %T", err)
 
-				// Assert that raw response exists and contains error code 123.
-				raw := se.RawResponse()[0]
-				assert.NotNil(mt, raw, "expected RawResponse, got nil")
+				assert.NotNil(mt, we.WriteErrors, "expected we.WriteErrors, got nil")
+				assert.NotNil(mt, we.WriteErrors[0], "expected at least one WriteError")
+
+				// Assert that raw response exists for the WriteError and contains error code 123.
+				raw := we.WriteErrors[0].Raw
+				assert.NotNil(mt, raw, "Raw of WriteError is nil")
 				val, err := raw.LookupErr("code")
-				assert.Nil(mt, err, "expected 'code' field in RawResponse, got %v", raw)
+				assert.Nil(mt, err, "expected 'code' field in Raw field, got %v", raw)
 				code, ok := val.AsInt64OK()
 				assert.True(mt, ok, "expected 'code' to be int64, got %v", val)
-				assert.Equal(mt, code, int64(123), "expected 'code' 123, got %d", code)
+				assert.Equal(mt, code, int64(11000), "expected 'code' 11000, got %d", code)
 			})
 			mt.Run("WriteException", func(mt *mtest.T) {
 				// Mock a WriteException via failpoint with an arbitrary WriteConcernError.
@@ -400,47 +394,13 @@ func TestErrors(t *testing.T) {
 
 				_, err := mt.Coll.DeleteMany(context.Background(), bson.D{})
 				assert.NotNil(mt, err, "expected DeleteMany error, got nil")
-				se, ok := err.(mongo.ServerError)
-				assert.True(mt, ok, "expected DeleteMany error to be ServerError")
+				we, ok := err.(mongo.WriteException)
+				assert.True(mt, ok, "expected DeleteMany error to be WriteException, got %T", err)
 
 				// Assert that raw response exists and contains error code 123.
-				raw := se.RawResponse()[0]
-				assert.NotNil(mt, raw, "expected RawResponse, got nil")
-				val, err := raw.LookupErr("writeConcernError", "code")
-				assert.Nil(mt, err, "expected 'code' field in RawResponse, got %v", raw)
-				code, ok := val.AsInt64OK()
-				assert.True(mt, ok, "expected 'code' to be int64, got %v", val)
-				assert.Equal(mt, code, int64(123), "expected 'code' 123, got %d", code)
-			})
-			mt.Run("BulkWriteException", func(mt *mtest.T) {
-				// Mock a BulkWriteException via failpoint with an arbitrary WriteConcernError.
-				mt.SetFailPoint(mtest.FailPoint{
-					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
-						Times: 1,
-					},
-					Data: mtest.FailPointData{
-						FailCommands: []string{"delete"},
-						WriteConcernError: &mtest.WriteConcernErrorData{
-							Code: 123,
-						},
-					},
-				})
-
-				models := []mongo.WriteModel{
-					&mongo.InsertOneModel{bson.D{{"x", 1}}},
-					&mongo.DeleteOneModel{bson.D{{"x", 1}}, nil, nil},
-				}
-				_, err := mt.Coll.BulkWrite(context.Background(), models)
-				assert.NotNil(mt, err, "expected BulkWrite error, got nil")
-				se, ok := err.(mongo.ServerError)
-				assert.True(mt, ok, "expected BulkWrite error to be ServerError")
-
-				// Assert that raw response exists and contains error code 123.
-				raw := se.RawResponse()[0]
-				assert.NotNil(mt, raw, "expected RawResponse, got nil")
-				val, err := raw.LookupErr("code")
-				assert.Nil(mt, err, "expected 'code' field in RawResponse, got %v", raw)
+				assert.NotNil(mt, we.Raw, "expected RawResponse, got nil")
+				val, err := we.Raw.LookupErr("writeConcernError", "code")
+				assert.Nil(mt, err, "expected 'code' field in RawResponse, got %v", we.Raw)
 				code, ok := val.AsInt64OK()
 				assert.True(mt, ok, "expected 'code' to be int64, got %v", val)
 				assert.Equal(mt, code, int64(123), "expected 'code' 123, got %d", code)
