@@ -154,9 +154,9 @@ type ClientOptions struct {
 
 	// SocketTimeout specifies the timeout to be used for the Client's socket reads and writes.
 	//
-	// Deprecated: This option is deprecated and will eventually be removed. The more general Timeout option should be
-	// used in its place to control the amount of time that a single operation can run on the Client before returning an
-	// error.
+	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+	// Timeout option should be used in its place to control the amount of time that a single operation can run on the Client
+	// before returning an error. SocketTimeout is still usable through the deprecated setter.
 	SocketTimeout *time.Duration
 }
 
@@ -714,9 +714,9 @@ func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOption
 // network error. This can also be set through the "socketTimeoutMS" URI option (e.g. "socketTimeoutMS=1000"). The
 // default value is 0, meaning no timeout is used and socket operations can block indefinitely.
 //
-// Deprecated: This option is deprecated and will eventually be removed. The more general Timeout option should be
-// used in its place to control the amount of time that a single operation can run on the Client before returning an
-// error.
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+// Timeout option should be used in its place to control the amount of time that a single operation can run on the Client
+// before returning an error.
 func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 	c.SocketTimeout = &d
 	return c
