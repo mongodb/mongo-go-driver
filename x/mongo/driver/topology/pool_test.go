@@ -857,6 +857,7 @@ func TestPool(t *testing.T) {
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
+			defer p.close(context.Background())
 
 			c, err := p.checkOut(context.Background())
 			noerr(t, err)
@@ -871,8 +872,6 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 0, d.lenclosed(), "should have closed 0 connections")
 			assert.Equalf(t, 1, p.availableConnectionCount(), "should have 1 idle connections in pool")
 			assert.Equalf(t, 1, p.totalConnectionCount(), "should have 1 total connection in pool")
-
-			p.close(context.Background())
 		})
 		t.Run("sets minPoolSize connection idle deadline", func(t *testing.T) {
 			t.Parallel()
@@ -892,14 +891,15 @@ func TestPool(t *testing.T) {
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
+			defer p.close(context.Background())
 
 			// Wait for maintain() to open 3 connections.
 			assertConnectionsOpened(t, d, 3)
 
 			// Sleep for 100ms, which will exceed the 10ms connection idle timeout, then try to check
 			// out a connection. Expect that all minPoolSize connections checked into the pool by
-			// maintain() have passed their idle deadline, so checkOut() close all 3 connections and
-			// try to create a new connection.
+			// maintain() have passed their idle deadline, so checkOut() closes all 3 connections
+			// and tries to create a new connection.
 			time.Sleep(100 * time.Millisecond)
 			_, err = p.checkOut(context.Background())
 			noerr(t, err)
@@ -908,8 +908,6 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 4, d.lenopened(), "should have opened 4 connections")
 			assert.Equalf(t, 0, p.availableConnectionCount(), "should have 0 idle connections in pool")
 			assert.Equalf(t, 1, p.totalConnectionCount(), "should have 1 total connection in pool")
-
-			p.close(context.Background())
 		})
 	})
 	t.Run("maintain", func(t *testing.T) {
