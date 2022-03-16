@@ -853,7 +853,7 @@ func TestPool(t *testing.T) {
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
-				MaxIdleTime: 1 * time.Millisecond,
+				MaxIdleTime: 100 * time.Millisecond,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -862,10 +862,10 @@ func TestPool(t *testing.T) {
 			c, err := p.checkOut(context.Background())
 			noerr(t, err)
 
-			// Sleep for 10ms, which will exceed the 1ms connection idle timeout. Then check the
+			// Sleep for 110ms, which will exceed the 100ms connection idle timeout. Then check the
 			// connection back in and expect that it is not closed because checkIn() should bump the
 			// connection idle deadline.
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(110 * time.Millisecond)
 			err = p.checkIn(c)
 			noerr(t, err)
 
