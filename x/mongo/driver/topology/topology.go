@@ -448,7 +448,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		// Of the two randomly selected suitable servers, pick the one with fewer in-use connections.
 		// We use in-use connections as an analog for in-progress operations because they are almost
 		// always the same value for a given server.
-		if server1.pool.inUseConnectionCount() < server2.pool.inUseConnectionCount() {
+		if server1.OperationCount() < server2.OperationCount() {
 			return server1, nil
 		}
 		return server2, nil
@@ -686,7 +686,6 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 	t.subLock.Unlock()
 
 	return true
-
 }
 
 // apply updates the Topology and its underlying FSM based on the provided server description and returns the server

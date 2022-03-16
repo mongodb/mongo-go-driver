@@ -1,4 +1,4 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
+// Copyright (C) MongoDB, Inc. 2022-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
@@ -10,6 +10,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,6 +51,13 @@ func TestServerSelectionProse(t *testing.T) {
 				AppName:         "loadBalancingTest",
 			},
 		})
+		// The automatic failpoint clearing may not clear failpoints set on specific hosts, so
+		// manually clear the failpoint we set on the specific mongos when the test is done.
+		defer func() {
+			mt.ResetClient(options.Client().
+				SetHosts([]string{failpointHost}))
+			mt.ClearFailPoints()
+		}()
 
 		// Reset the client with exactly 2 mongos hosts.
 		tpm := newTestPoolMonitor()
@@ -106,6 +114,11 @@ func TestServerSelectionProse(t *testing.T) {
 		mt.ResetClient(options.Client().
 			SetHosts(hosts[:2]).
 			SetPoolMonitor(tpm.PoolMonitor))
+
+		// Sleep for 100ms to allow all server state discovery to complete. We need both servers to
+		// be selectable when we start running the test or the distribution of selected servers will
+		// be skewed. Unfortunately there's not currently another signal we can block on.
+		time.Sleep(100 * time.Millisecond)
 
 		// Start 25 goroutines that each run 10 findOne operations. Run 25 goroutines instead of the
 		// 10 that the prose test specifies to reduce intermittent test failures caused by the

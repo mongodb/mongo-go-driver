@@ -76,11 +76,13 @@ func (ss *SelectedServer) Description() description.SelectedServer {
 
 // Server is a single server within a topology.
 type Server struct {
-	// state must be accessed using the atomic package and should be at the beginning of
-	// the struct.
+	// The following integer fields must be accessed using the atomic package and should be at the
+	// beginning of the struct.
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
-	state int64
+
+	state          int64
+	operationCount int64
 
 	cfg     *serverConfig
 	address address.Address
@@ -261,12 +263,28 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		return nil, ErrServerClosed
 	}
 
-	connImpl, err := s.pool.checkOut(ctx)
+	// Increment the operation count before calling checkOut to make sure that all connection
+	// requests are included in the operation count, including those in the wait queue. If we got an
+	// error insted of a connection, immediately decrement the operation count.
+	atomic.AddInt64(&s.operationCount, 1)
+	conn, err := s.pool.checkOut(ctx)
 	if err != nil {
+		atomic.AddInt64(&s.operationCount, -1)
 		return nil, err
 	}
 
-	return &Connection{connection: connImpl}, nil
+	return &Connection{
+		connection: conn,
+		cleanupServerFn: func() {
+			// Decrement the operation count whenever the caller is done with the connection. Note
+			// that cleanupServerFn() is not called while the connection is pinned to a cursor or
+			// transaction, so the operation count is not decremented until the cursor is closed or
+			// the transaction is committed or aborted. Use an int64 instead of a uint64 to mitigate
+			// the impact of any possible bugs that could cause the uint64 to underflow, which would
+			// make the server much less selectable.
+			atomic.AddInt64(&s.operationCount, -1)
+		},
+	}, nil
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection
@@ -806,6 +824,11 @@ func extractTopologyVersion(err error) *description.TopologyVersion {
 // MinRTT returns the minimum round-trip time to the server observed over the last 5 minutes.
 func (s *Server) MinRTT() time.Duration {
 	return s.rttMonitor.getMinRTT()
+}
+
+// OperationCount returns the current number of in-progress operations for this server.
+func (s *Server) OperationCount() int64 {
+	return atomic.LoadInt64(&s.operationCount)
 }
 
 // String implements the Stringer interface.

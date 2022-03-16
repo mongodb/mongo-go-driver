@@ -722,7 +722,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 	// For each server state in the test's "mocked_topology_state", set the connection pool's
 	// in-use connections count to the test operation count value.
 	for _, state := range test.MockedTopologyState {
-		servers[state.Address].pool.inUseConnections = state.OperationCount
+		servers[state.Address].operationCount = state.OperationCount
 	}
 
 	// Create a new Topology, set the state to "connected", store a topology description
@@ -730,7 +730,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 	// all *Server instances to the Topology's servers list.
 	topology, err := New()
 	require.NoError(t, err, "error creating new Topology")
-	topology.connectionstate = connected
+	topology.state = topologyConnected
 	topology.desc.Store(description.Topology{
 		Kind:    topologyKindFromString(t, test.TopologyDescription.Type),
 		Servers: descriptions,
@@ -775,6 +775,8 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 		}
 
 		// Otherwise, check if the expected frequency is within the given tolerance range.
+		// TODO(GODRIVER-2179): Use assert.Deltaf() when we migrate all test code to the
+		// "testify/assert" or an API-compatible library for assertions.
 		low := expected - test.Outcome.Tolerance
 		high := expected + test.Outcome.Tolerance
 		assert.True(
