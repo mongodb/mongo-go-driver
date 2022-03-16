@@ -368,7 +368,7 @@ func TestErrors(t *testing.T) {
 				assert.NotNil(mt, we.WriteErrors, "expected we.WriteErrors, got nil")
 				assert.NotNil(mt, we.WriteErrors[0], "expected at least one WriteError")
 
-				// Assert that raw response exists for the WriteError and contains error code 123.
+				// Assert that raw response exists for the WriteError and contains error code 11000.
 				raw := we.WriteErrors[0].Raw
 				assert.NotNil(mt, raw, "Raw of WriteError is nil")
 				val, err := raw.LookupErr("code")
