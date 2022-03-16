@@ -351,7 +351,7 @@ type WriteConcernError struct {
 	Code    int
 	Message string
 	Details bson.Raw
-	Raw     bson.Raw // The original server response containing the error.
+	Raw     bson.Raw // The original write concern error from the server response.
 }
 
 // Error implements the error interface.
