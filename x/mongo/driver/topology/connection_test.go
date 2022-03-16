@@ -68,8 +68,8 @@ func TestConnection(t *testing.T) {
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
-				connState := atomic.LoadInt64(&conn.connected)
-				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
+				connState := atomic.LoadInt64(&conn.state)
+				assert.Equal(t, connDisconnected, connState, "expected connection state %v, got %v", connDisconnected, connState)
 			})
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")
@@ -92,8 +92,8 @@ func TestConnection(t *testing.T) {
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
-				connState := atomic.LoadInt64(&conn.connected)
-				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
+				connState := atomic.LoadInt64(&conn.state)
+				assert.Equal(t, connDisconnected, connState, "expected connection state %v, got %v", connDisconnected, connState)
 			})
 			t.Run("context is not pinned by connect", func(t *testing.T) {
 				// connect creates a cancel-able version of the context passed to it and stores the CancelFunc on the
@@ -345,7 +345,7 @@ func TestConnection(t *testing.T) {
 			t.Run("completed context", func(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				conn := &connection{id: "foobar", nc: &net.TCPConn{}, connected: connected}
+				conn := &connection{id: "foobar", nc: &net.TCPConn{}, state: connConnected}
 				want := ConnectionError{ConnectionID: "foobar", Wrapped: ctx.Err(), message: "failed to write"}
 				got := conn.writeWireMessage(ctx, []byte{})
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
@@ -380,7 +380,7 @@ func TestConnection(t *testing.T) {
 							message:      "failed to set write deadline",
 						}
 						tnc := &testNetConn{deadlineerr: errors.New("set writeDeadline error")}
-						conn := &connection{id: "foobar", nc: tnc, writeTimeout: tc.timeout, connected: connected}
+						conn := &connection{id: "foobar", nc: tnc, writeTimeout: tc.timeout, state: connConnected}
 						got := conn.writeWireMessage(ctx, []byte{})
 						if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 							t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -397,7 +397,7 @@ func TestConnection(t *testing.T) {
 				t.Run("error", func(t *testing.T) {
 					err := errors.New("Write error")
 					tnc := &testNetConn{writeerr: err}
-					conn := &connection{id: "foobar", nc: tnc, connected: connected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -413,7 +413,7 @@ func TestConnection(t *testing.T) {
 				})
 				t.Run("success", func(t *testing.T) {
 					tnc := &testNetConn{}
-					conn := &connection{id: "foobar", nc: tnc, connected: connected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -430,7 +430,7 @@ func TestConnection(t *testing.T) {
 					// Simulate context cancellation during a network write.
 
 					nc := newCancellationWriteConn(&testNetConn{}, 0)
-					conn := &connection{id: "foobar", nc: nc, connected: connected}
+					conn := &connection{id: "foobar", nc: nc, state: connConnected}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -451,8 +451,8 @@ func TestConnection(t *testing.T) {
 					wg.Wait()
 					want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: writeErrMsg}
 					assert.Equal(t, want, err, "expected error %v, got %v", want, err)
-					assert.Equal(t, disconnected, conn.connected, "expected connection state %v, got %v", disconnected,
-						conn.connected)
+					assert.Equal(t, connDisconnected, conn.state, "expected connection state %v, got %v", connDisconnected,
+						conn.state)
 				})
 				t.Run("connection is closed if context is cancelled even if network write succeeds", func(t *testing.T) {
 					// Test the race condition between Write and the cancellation listener. The socket write will
@@ -460,15 +460,15 @@ func TestConnection(t *testing.T) {
 					// cancelled immediately after the Write finishes.
 
 					tnc := &testNetConn{}
-					conn := &connection{id: "foobar", nc: tnc, connected: connected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 					listener := newTestCancellationListener(true)
 					conn.cancellationListener = listener
 
 					want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: writeErrMsg}
 					err := conn.writeWireMessage(context.Background(), []byte("foobar"))
 					assert.Equal(t, want, err, "expected error %v, got %v", want, err)
-					assert.Equal(t, conn.connected, disconnected, "expected connection state %v, got %v", disconnected,
-						conn.connected)
+					assert.Equal(t, conn.state, connDisconnected, "expected connection state %v, got %v", connDisconnected,
+						conn.state)
 				})
 			})
 		})
@@ -484,7 +484,7 @@ func TestConnection(t *testing.T) {
 			t.Run("completed context", func(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				conn := &connection{id: "foobar", nc: &net.TCPConn{}, connected: connected}
+				conn := &connection{id: "foobar", nc: &net.TCPConn{}, state: connConnected}
 				want := ConnectionError{ConnectionID: "foobar", Wrapped: ctx.Err(), message: "failed to read"}
 				_, got := conn.readWireMessage(ctx, []byte{})
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
@@ -519,7 +519,7 @@ func TestConnection(t *testing.T) {
 							message:      "failed to set read deadline",
 						}
 						tnc := &testNetConn{deadlineerr: errors.New("set readDeadline error")}
-						conn := &connection{id: "foobar", nc: tnc, readTimeout: tc.timeout, connected: connected}
+						conn := &connection{id: "foobar", nc: tnc, readTimeout: tc.timeout, state: connConnected}
 						_, got := conn.readWireMessage(ctx, []byte{})
 						if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 							t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -534,7 +534,7 @@ func TestConnection(t *testing.T) {
 				t.Run("size read errors", func(t *testing.T) {
 					err := errors.New("Read error")
 					tnc := &testNetConn{readerr: err}
-					conn := &connection{id: "foobar", nc: tnc, connected: connected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -551,7 +551,7 @@ func TestConnection(t *testing.T) {
 				t.Run("full message read errors", func(t *testing.T) {
 					err := errors.New("Read error")
 					tnc := &testNetConn{readerr: err, buf: []byte{0x11, 0x00, 0x00, 0x00}}
-					conn := &connection{id: "foobar", nc: tnc, connected: connected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -587,7 +587,7 @@ func TestConnection(t *testing.T) {
 							err := errors.New("length of read message too large")
 							tnc := &testNetConn{buf: make([]byte, len(tc.buffer))}
 							copy(tnc.buf, tc.buffer)
-							conn := &connection{id: "foobar", nc: tnc, connected: connected, desc: tc.desc}
+							conn := &connection{id: "foobar", nc: tnc, state: connConnected, desc: tc.desc}
 							listener := newTestCancellationListener(false)
 							conn.cancellationListener = listener
 
@@ -604,7 +604,7 @@ func TestConnection(t *testing.T) {
 					want := []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}
 					tnc := &testNetConn{buf: make([]byte, len(want))}
 					copy(tnc.buf, want)
-					conn := &connection{id: "foobar", nc: tnc, connected: connected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -634,7 +634,7 @@ func TestConnection(t *testing.T) {
 							readBuf := []byte{10, 0, 0, 0}
 							nc := newCancellationReadConn(&testNetConn{}, tc.skip, readBuf)
 
-							conn := &connection{id: "foobar", nc: nc, connected: connected}
+							conn := &connection{id: "foobar", nc: nc, state: connConnected}
 							listener := newTestCancellationListener(false)
 							conn.cancellationListener = listener
 
@@ -655,22 +655,22 @@ func TestConnection(t *testing.T) {
 							wg.Wait()
 							want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: tc.errmsg}
 							assert.Equal(t, want, err, "expected error %v, got %v", want, err)
-							assert.Equal(t, disconnected, conn.connected, "expected connection state %v, got %v", disconnected,
-								conn.connected)
+							assert.Equal(t, connDisconnected, conn.state, "expected connection state %v, got %v", connDisconnected,
+								conn.state)
 						})
 					}
 				})
 				t.Run("closes connection if context is cancelled even if the socket read succeeds", func(t *testing.T) {
 					tnc := &testNetConn{buf: []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}}
-					conn := &connection{id: "foobar", nc: tnc, connected: connected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 					listener := newTestCancellationListener(true)
 					conn.cancellationListener = listener
 
 					want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: "unable to read server response"}
 					_, err := conn.readWireMessage(context.Background(), nil)
 					assert.Equal(t, want, err, "expected error %v, got %v", want, err)
-					assert.Equal(t, disconnected, conn.connected, "expected connection state %v, got %v", disconnected,
-						conn.connected)
+					assert.Equal(t, connDisconnected, conn.state, "expected connection state %v, got %v", connDisconnected,
+						conn.state)
 				})
 			})
 		})
@@ -693,8 +693,8 @@ func TestConnection(t *testing.T) {
 
 				err := conn.connect(context.Background())
 				assert.NotNil(t, err, "expected handshake error from connect, got nil")
-				connState := atomic.LoadInt64(&conn.connected)
-				assert.Equal(t, disconnected, connState, "expected connection state %v, got %v", disconnected, connState)
+				connState := atomic.LoadInt64(&conn.state)
+				assert.Equal(t, connDisconnected, connState, "expected connection state %v, got %v", connDisconnected, connState)
 
 				err = conn.close()
 				assert.Nil(t, err, "close error: %v", err)
@@ -703,11 +703,11 @@ func TestConnection(t *testing.T) {
 		t.Run("cancellation listener callback", func(t *testing.T) {
 			t.Run("closes connection", func(t *testing.T) {
 				tnc := &testNetConn{}
-				conn := &connection{connected: connected, nc: tnc}
+				conn := &connection{state: connConnected, nc: tnc}
 
 				conn.cancellationListenerCallback()
-				assert.True(t, conn.connected == disconnected, "expected connection state %v, got %v", disconnected,
-					conn.connected)
+				assert.True(t, conn.state == connDisconnected, "expected connection state %v, got %v", connDisconnected,
+					conn.state)
 				assert.True(t, tnc.closed, "expected net.Conn to be closed but was not")
 			})
 		})

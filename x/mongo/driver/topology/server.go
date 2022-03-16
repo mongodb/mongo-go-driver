@@ -25,6 +25,26 @@ import (
 
 const minHeartbeatInterval = 500 * time.Millisecond
 
+// Server state constants.
+const (
+	serverDisconnected int64 = iota
+	serverDisconnecting
+	serverConnected
+)
+
+func serverStateString(state int64) string {
+	switch state {
+	case serverDisconnected:
+		return "Disconnected"
+	case serverDisconnecting:
+		return "Disconnecting"
+	case serverConnected:
+		return "Connected"
+	}
+
+	return ""
+}
+
 var (
 	// ErrServerClosed occurs when an attempt to Get a connection is made after
 	// the server has been closed.
@@ -54,39 +74,13 @@ func (ss *SelectedServer) Description() description.SelectedServer {
 	}
 }
 
-// These constants represent the connection states of a server.
-const (
-	disconnected int64 = iota
-	disconnecting
-	connected
-	connecting
-	initialized
-)
-
-func connectionStateString(state int64) string {
-	switch state {
-	case 0:
-		return "Disconnected"
-	case 1:
-		return "Disconnecting"
-	case 2:
-		return "Connected"
-	case 3:
-		return "Connecting"
-	case 4:
-		return "Initialized"
-	}
-
-	return ""
-}
-
 // Server is a single server within a topology.
 type Server struct {
-	// connectionstate must be accessed using the atomic package and should be at the beginning of
+	// state must be accessed using the atomic package and should be at the beginning of
 	// the struct.
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
-	connectionstate int64
+	state int64
 
 	cfg     *serverConfig
 	address address.Address
@@ -155,7 +149,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 
 	globalCtx, globalCtxCancel := context.WithCancel(context.Background())
 	s := &Server{
-		connectionstate: disconnected,
+		state: serverDisconnected,
 
 		cfg:     cfg,
 		address: addr,
@@ -200,7 +194,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 // Connect initializes the Server by starting background monitoring goroutines.
 // This method must be called before a Server can be used.
 func (s *Server) Connect(updateCallback updateTopologyCallback) error {
-	if !atomic.CompareAndSwapInt64(&s.connectionstate, disconnected, connected) {
+	if !atomic.CompareAndSwapInt64(&s.state, serverDisconnected, serverConnected) {
 		return ErrServerConnected
 	}
 
@@ -238,7 +232,7 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 // any in flight read or write operations. If this method returns with no
 // errors, all connections associated with this Server have been closed.
 func (s *Server) Disconnect(ctx context.Context) error {
-	if !atomic.CompareAndSwapInt64(&s.connectionstate, connected, disconnecting) {
+	if !atomic.CompareAndSwapInt64(&s.state, serverConnected, serverDisconnecting) {
 		return ErrServerClosed
 	}
 
@@ -256,14 +250,14 @@ func (s *Server) Disconnect(ctx context.Context) error {
 	s.pool.close(ctx)
 
 	s.closewg.Wait()
-	atomic.StoreInt64(&s.connectionstate, disconnected)
+	atomic.StoreInt64(&s.state, serverDisconnected)
 
 	return nil
 }
 
 // Connection gets a connection to the server.
 func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
-	if atomic.LoadInt64(&s.connectionstate) != connected {
+	if atomic.LoadInt64(&s.state) != serverConnected {
 		return nil, ErrServerClosed
 	}
 
@@ -328,7 +322,7 @@ func (s *Server) SelectedDescription() description.SelectedServer {
 // updated server descriptions will be sent. The channel will have a buffer
 // size of one, and will be pre-populated with the current description.
 func (s *Server) Subscribe() (*ServerSubscription, error) {
-	if atomic.LoadInt64(&s.connectionstate) != connected {
+	if atomic.LoadInt64(&s.state) != serverConnected {
 		return nil, ErrSubscribeAfterClosed
 	}
 	ch := make(chan description.Server, 1)
@@ -530,7 +524,7 @@ func (s *Server) update() {
 		// Perform the next check.
 		desc, err := s.check()
 		if err == errCheckCancelled {
-			if atomic.LoadInt64(&s.connectionstate) != connected {
+			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue
 			}
 
@@ -817,13 +811,13 @@ func (s *Server) MinRTT() time.Duration {
 // String implements the Stringer interface.
 func (s *Server) String() string {
 	desc := s.Description()
-	connState := atomic.LoadInt64(&s.connectionstate)
+	state := atomic.LoadInt64(&s.state)
 	str := fmt.Sprintf("Addr: %s, Type: %s, State: %s",
-		s.address, desc.Kind, connectionStateString(connState))
+		s.address, desc.Kind, serverStateString(state))
 	if len(desc.Tags) != 0 {
 		str += fmt.Sprintf(", Tag sets: %s", desc.Tags)
 	}
-	if connState == connected {
+	if state == serverConnected {
 		str += fmt.Sprintf(", Average RTT: %s, Min RTT: %s", desc.AverageRTT, s.MinRTT())
 	}
 	if desc.LastError != nil {

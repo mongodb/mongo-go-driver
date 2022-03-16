@@ -211,7 +211,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 
 	s, err := NewServer(address.Address(l.Addr().String()), primitive.NewObjectID(), sOpts...)
 	testHelpers.RequireNil(t, err, "error creating server: %v", err)
-	s.connectionstate = connected
+	s.state = serverConnected
 	testHelpers.RequireNil(t, err, "error connecting connection pool: %v", err)
 	defer s.pool.close(context.Background())
 

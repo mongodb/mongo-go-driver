@@ -232,7 +232,7 @@ func TestPool(t *testing.T) {
 					time.Sleep(time.Millisecond)
 				}
 				for _, c := range conns {
-					assert.Equalf(t, connected, c.connected, "expected conn to still be connected")
+					assert.Equalf(t, connConnected, c.state, "expected conn to still be connected")
 
 					err := p.checkIn(c)
 					noerr(t, err)

@@ -30,6 +30,14 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 )
 
+// Topology state constants.
+const (
+	topologyDisconnected int64 = iota
+	topologyDisconnecting
+	topologyConnected
+	topologyConnecting
+)
+
 // ErrSubscribeAfterClosed is returned when a user attempts to subscribe to a
 // closed Server or Topology.
 var ErrSubscribeAfterClosed = errors.New("cannot subscribe after closeConnection")
@@ -60,7 +68,7 @@ const (
 
 // Topology represents a MongoDB deployment.
 type Topology struct {
-	connectionstate int64
+	state int64
 
 	cfg *config
 
@@ -148,7 +156,7 @@ func New(opts ...Option) (*Topology, error) {
 // Connect initializes a Topology and starts the monitoring process. This function
 // must be called to properly monitor the topology.
 func (t *Topology) Connect() error {
-	if !atomic.CompareAndSwapInt64(&t.connectionstate, disconnected, connecting) {
+	if !atomic.CompareAndSwapInt64(&t.state, topologyDisconnected, topologyConnecting) {
 		return ErrTopologyConnected
 	}
 
@@ -230,14 +238,14 @@ func (t *Topology) Connect() error {
 
 	t.subscriptionsClosed = false // explicitly set in case topology was disconnected and then reconnected
 
-	atomic.StoreInt64(&t.connectionstate, connected)
+	atomic.StoreInt64(&t.state, topologyConnected)
 	return nil
 }
 
 // Disconnect closes the topology. It stops the monitoring thread and
 // closes all open subscriptions.
 func (t *Topology) Disconnect(ctx context.Context) error {
-	if !atomic.CompareAndSwapInt64(&t.connectionstate, connected, disconnecting) {
+	if !atomic.CompareAndSwapInt64(&t.state, topologyConnected, topologyDisconnecting) {
 		return ErrTopologyClosed
 	}
 
@@ -269,7 +277,7 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 
 	t.desc.Store(description.Topology{})
 
-	atomic.StoreInt64(&t.connectionstate, disconnected)
+	atomic.StoreInt64(&t.state, topologyDisconnected)
 	t.publishTopologyClosedEvent()
 	return nil
 }
@@ -291,7 +299,7 @@ func (t *Topology) Kind() description.TopologyKind { return t.Description().Kind
 // and will be pre-populated with the current description.Topology.
 // Subscribe implements the driver.Subscriber interface.
 func (t *Topology) Subscribe() (*driver.Subscription, error) {
-	if atomic.LoadInt64(&t.connectionstate) != connected {
+	if atomic.LoadInt64(&t.state) != topologyConnected {
 		return nil, errors.New("cannot subscribe to Topology that is not connected")
 	}
 	ch := make(chan description.Topology, 1)
@@ -339,7 +347,7 @@ func (t *Topology) Unsubscribe(sub *driver.Subscription) error {
 // RequestImmediateCheck will send heartbeats to all the servers in the
 // topology right away, instead of waiting for the heartbeat timeout.
 func (t *Topology) RequestImmediateCheck() {
-	if atomic.LoadInt64(&t.connectionstate) != connected {
+	if atomic.LoadInt64(&t.state) != topologyConnected {
 		return
 	}
 	t.serversLock.Lock()
@@ -353,7 +361,7 @@ func (t *Topology) RequestImmediateCheck() {
 // server selection spec, and will time out after severSelectionTimeout or when the
 // parent context is done.
 func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelector) (driver.Server, error) {
-	if atomic.LoadInt64(&t.connectionstate) != connected {
+	if atomic.LoadInt64(&t.state) != topologyConnected {
 		return nil, ErrTopologyClosed
 	}
 	var ssTimeoutCh <-chan time.Time
@@ -418,7 +426,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 // FindServer will attempt to find a server that fits the given server description.
 // This method will return nil, nil if a matching server could not be found.
 func (t *Topology) FindServer(selected description.Server) (*SelectedServer, error) {
-	if atomic.LoadInt64(&t.connectionstate) != connected {
+	if atomic.LoadInt64(&t.state) != topologyConnected {
 		return nil, ErrTopologyClosed
 	}
 	t.serversLock.Lock()
