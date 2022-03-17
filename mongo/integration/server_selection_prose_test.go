@@ -10,12 +10,12 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -59,17 +59,29 @@ func TestServerSelectionProse(t *testing.T) {
 			mt.ClearFailPoints()
 		}()
 
-		// Reset the client with exactly 2 mongos hosts.
+		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos
+		// host descriptions to move from kind "Unknown" to kind "Mongos".
+		topologyEvents := make(chan *event.TopologyDescriptionChangedEvent, 10)
 		tpm := newTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetHosts(hosts[:2]).
 			SetPoolMonitor(tpm.PoolMonitor).
-			SetAppName("loadBalancingTest"))
+			SetAppName("loadBalancingTest").
+			SetServerMonitor(&event.ServerMonitor{
+				TopologyDescriptionChanged: func(evt *event.TopologyDescriptionChangedEvent) {
+					topologyEvents <- evt
+				},
+			}))
+		for evt := range topologyEvents {
+			servers := evt.NewDescription.Servers
+			if len(servers) == 2 && servers[0].Kind == description.Mongos && servers[1].Kind == description.Mongos {
+				break
+			}
+		}
 
-		// Start 25 goroutines that each run 10 findOne operations. Run more operations than the
-		// prose test specifies to get more samples and reduce intermittent test failures.
+		// Start 10 goroutines that each run 10 findOne operations.
 		var wg sync.WaitGroup
-		for i := 0; i < 25; i++ {
+		for i := 0; i < 10; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -112,18 +124,24 @@ func TestServerSelectionProse(t *testing.T) {
 		hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
 		require.GreaterOrEqualf(mt, len(hosts), 2, "test cluster must have at least 2 mongos hosts")
 
-		// Reset the client with exactly 2 mongos hosts.
+		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos
+		// host descriptions to move from kind "Unknown" to kind "Mongos".
+		topologyEvents := make(chan *event.TopologyDescriptionChangedEvent, 10)
 		tpm := newTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetHosts(hosts[:2]).
 			SetPoolMonitor(tpm.PoolMonitor).
-			SetHeartbeatInterval(500 * time.Millisecond))
-
-		// Sleep for 1s to allow server state discovery and at least 1 heartbeat to complete. We
-		// need both servers to be selectable when we start running the test or the distribution of
-		// selected servers will be skewed. Unfortunately there's not currently another signal we
-		// can wait on.
-		time.Sleep(1 * time.Second)
+			SetServerMonitor(&event.ServerMonitor{
+				TopologyDescriptionChanged: func(evt *event.TopologyDescriptionChangedEvent) {
+					topologyEvents <- evt
+				},
+			}))
+		for evt := range topologyEvents {
+			servers := evt.NewDescription.Servers
+			if len(servers) == 2 && servers[0].Kind == description.Mongos && servers[1].Kind == description.Mongos {
+				break
+			}
+		}
 
 		// Start 25 goroutines that each run 200 findOne operations. Run more operations than the
 		// prose test specifies to get more samples and reduce intermittent test failures.

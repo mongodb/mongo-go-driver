@@ -265,7 +265,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 
 	// Increment the operation count before calling checkOut to make sure that all connection
 	// requests are included in the operation count, including those in the wait queue. If we got an
-	// error insted of a connection, immediately decrement the operation count.
+	// error instead of a connection, immediately decrement the operation count.
 	atomic.AddInt64(&s.operationCount, 1)
 	conn, err := s.pool.checkOut(ctx)
 	if err != nil {
