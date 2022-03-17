@@ -22,6 +22,7 @@ timeout:
     params:
       script: |
         ls -la
+
 functions:
   fetch-source:
     # Executes git clone and applies the submitted patch, if any
