@@ -596,6 +596,14 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 		return ErrWrongPool
 	}
 
+	// Bump the connection idle deadline here because we're about to make the connection "available".
+	// The idle deadline is used to determine when a connection has reached its max idle time and
+	// should be closed. A connection reaches its max idle time when it has been "available" in the
+	// idle connections stack for more than the configured duration (maxIdleTimeMS). Set it before
+	// we call connectionPerished(), which checks the idle deadline, because a newly "available"
+	// connection should never be perished due to max idle time.
+	conn.bumpIdleDeadline()
+
 	if reason, perished := connectionPerished(conn); perished {
 		_ = p.removeConnection(conn, reason)
 		go func() {

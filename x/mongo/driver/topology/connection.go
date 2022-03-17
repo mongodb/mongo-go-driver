@@ -208,8 +208,6 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		c.nc = tlsNc
 	}
 
-	c.bumpIdleDeadline()
-
 	// running hello and authentication is handled by a handshaker on the configuration instance.
 	handshaker := c.config.handshaker
 	if handshaker == nil {
@@ -364,7 +362,6 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 		}
 	}
 
-	c.bumpIdleDeadline()
 	return nil
 }
 
@@ -429,7 +426,6 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 		}
 	}
 
-	c.bumpIdleDeadline()
 	return dst, nil
 }
 

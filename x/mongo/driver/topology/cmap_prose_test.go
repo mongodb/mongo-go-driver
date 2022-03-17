@@ -186,40 +186,6 @@ func TestCMAPProse(t *testing.T) {
 				assert.Equal(t, event.ReasonError, evt.Reason, "expected reason %q, got %q",
 					event.ReasonError, evt.Reason)
 			})
-			t.Run("expired connection", func(t *testing.T) {
-				// If the connection being returned to the pool is expired, it should be removed from the pool and an
-				// event should be published.
-				clearEvents()
-
-				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
-					return &testNetConn{}, nil
-				}
-
-				// We don't use the WithHandshaker option so the connection won't error during handshaking.
-				// WithIdleTimeout must be used because the connection.idleTimeoutExpired() function only checks the
-				// deadline if the idleTimeout option is greater than 0.
-				connOpts := []ConnectionOption{
-					WithDialer(func(Dialer) Dialer { return dialer }),
-					WithIdleTimeout(func(time.Duration) time.Duration { return 1 * time.Second }),
-				}
-				pool := createTestPool(t, getConfig(), connOpts...)
-				defer pool.close(context.Background())
-
-				conn, err := pool.checkOut(context.Background())
-				assert.Nil(t, err, "checkOut() error: %v", err)
-
-				// Set the idleDeadline to a time in the past to simulate expiration.
-				pastTime := time.Now().Add(-10 * time.Second)
-				conn.idleDeadline.Store(pastTime)
-
-				err = pool.checkIn(conn)
-				assert.Nil(t, err, "checkIn() error: %v", err)
-
-				assertConnectionCounts(t, pool, 1, 1)
-				evt := <-closed
-				assert.Equal(t, event.ReasonIdle, evt.Reason, "expected reason %q, got %q",
-					event.ReasonIdle, evt.Reason)
-			})
 		})
 		t.Run("close", func(t *testing.T) {
 			t.Run("connections returned gracefully", func(t *testing.T) {

@@ -840,6 +840,75 @@ func TestPool(t *testing.T) {
 			p1.close(context.Background())
 			p2.close(context.Background())
 		})
+		t.Run("bumps the connection idle deadline", func(t *testing.T) {
+			t.Parallel()
+
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+
+			d := newdialer(&net.Dialer{})
+			p := newPool(poolConfig{
+				Address:     address.Address(addr.String()),
+				MaxIdleTime: 100 * time.Millisecond,
+			}, WithDialer(func(Dialer) Dialer { return d }))
+			err := p.ready()
+			noerr(t, err)
+			defer p.close(context.Background())
+
+			c, err := p.checkOut(context.Background())
+			noerr(t, err)
+
+			// Sleep for 110ms, which will exceed the 100ms connection idle timeout. Then check the
+			// connection back in and expect that it is not closed because checkIn() should bump the
+			// connection idle deadline.
+			time.Sleep(110 * time.Millisecond)
+			err = p.checkIn(c)
+			noerr(t, err)
+
+			assert.Equalf(t, 0, d.lenclosed(), "should have closed 0 connections")
+			assert.Equalf(t, 1, p.availableConnectionCount(), "should have 1 idle connections in pool")
+			assert.Equalf(t, 1, p.totalConnectionCount(), "should have 1 total connection in pool")
+		})
+		t.Run("sets minPoolSize connection idle deadline", func(t *testing.T) {
+			t.Parallel()
+
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 4, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+
+			d := newdialer(&net.Dialer{})
+			p := newPool(poolConfig{
+				Address:     address.Address(addr.String()),
+				MinPoolSize: 3,
+				MaxIdleTime: 10 * time.Millisecond,
+			}, WithDialer(func(Dialer) Dialer { return d }))
+			err := p.ready()
+			noerr(t, err)
+			defer p.close(context.Background())
+
+			// Wait for maintain() to open 3 connections.
+			assertConnectionsOpened(t, d, 3)
+
+			// Sleep for 100ms, which will exceed the 10ms connection idle timeout, then try to check
+			// out a connection. Expect that all minPoolSize connections checked into the pool by
+			// maintain() have passed their idle deadline, so checkOut() closes all 3 connections
+			// and tries to create a new connection.
+			time.Sleep(100 * time.Millisecond)
+			_, err = p.checkOut(context.Background())
+			noerr(t, err)
+
+			assertConnectionsClosed(t, d, 3)
+			assert.Equalf(t, 4, d.lenopened(), "should have opened 4 connections")
+			assert.Equalf(t, 0, p.availableConnectionCount(), "should have 0 idle connections in pool")
+			assert.Equalf(t, 1, p.totalConnectionCount(), "should have 1 total connection in pool")
+		})
 	})
 	t.Run("maintain", func(t *testing.T) {
 		t.Parallel()
