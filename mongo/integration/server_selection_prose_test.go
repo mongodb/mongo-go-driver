@@ -62,13 +62,12 @@ func TestServerSelectionProse(t *testing.T) {
 		// Reset the client with exactly 2 mongos hosts.
 		tpm := newTestPoolMonitor()
 		mt.ResetClient(options.Client().
-			SetAppName("loadBalancingTest").
 			SetHosts(hosts[:2]).
-			SetPoolMonitor(tpm.PoolMonitor))
+			SetPoolMonitor(tpm.PoolMonitor).
+			SetAppName("loadBalancingTest"))
 
-		// Start 25 goroutines that each run 10 findOne operations. Run 25 goroutines instead of the
-		// 10 that the prose test specifies to reduce intermittent test failures caused by the
-		// random selections not being perfectly even over small numbers of operations.
+		// Start 25 goroutines that each run 10 findOne operations. Run more operations than the
+		// prose test specifies to get more samples and reduce intermittent test failures.
 		var wg sync.WaitGroup
 		for i := 0; i < 25; i++ {
 			wg.Add(1)
@@ -98,7 +97,11 @@ func TestServerSelectionProse(t *testing.T) {
 		// Calculate the frequency that the server with the failpoint was selected. Assert that it
 		// was selected less than 25% of the time.
 		frequency := float64(counts[failpointHost]) / float64(len(checkOutEvents))
-		assert.Lessf(mt, frequency, 0.25, "expected failpoint host %q to be selected less than 25%% of the time", failpointHost)
+		assert.Lessf(mt,
+			frequency,
+			0.25,
+			"expected failpoint host %q to be selected less than 25%% of the time",
+			failpointHost)
 	})
 
 	mtOpts = mtest.NewOptions().Topologies(mtest.Sharded)
@@ -113,23 +116,24 @@ func TestServerSelectionProse(t *testing.T) {
 		tpm := newTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetHosts(hosts[:2]).
-			SetPoolMonitor(tpm.PoolMonitor))
+			SetPoolMonitor(tpm.PoolMonitor).
+			SetHeartbeatInterval(500 * time.Millisecond))
 
-		// Sleep for 100ms to allow all server state discovery to complete. We need both servers to
-		// be selectable when we start running the test or the distribution of selected servers will
-		// be skewed. Unfortunately there's not currently another signal we can block on.
-		time.Sleep(100 * time.Millisecond)
+		// Sleep for 1s to allow server state discovery and at least 1 heartbeat to complete. We
+		// need both servers to be selectable when we start running the test or the distribution of
+		// selected servers will be skewed. Unfortunately there's not currently another signal we
+		// can wait on.
+		time.Sleep(1 * time.Second)
 
-		// Start 25 goroutines that each run 10 findOne operations. Run 25 goroutines instead of the
-		// 10 that the prose test specifies to reduce intermittent test failures caused by the
-		// random selections not being perfectly even over small numbers of operations.
+		// Start 25 goroutines that each run 200 findOne operations. Run more operations than the
+		// prose test specifies to get more samples and reduce intermittent test failures.
 		var wg sync.WaitGroup
 		for i := 0; i < 25; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 
-				for i := 0; i < 10; i++ {
+				for i := 0; i < 200; i++ {
 					res := mt.Coll.FindOne(context.Background(), bson.D{})
 					assert.NoError(mt, res.Err(), "FindOne() error")
 				}
