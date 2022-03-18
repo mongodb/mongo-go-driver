@@ -143,11 +143,11 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	if cs.options.MaxAwaitTime != nil {
 		cs.cursorOptions.MaxTimeMS = int64(*cs.options.MaxAwaitTime / time.Millisecond)
 	}
-	if cs.options.CustomOptions != nil {
+	if cs.options.Custom != nil {
 		// Marshal all custom options before passing to the initial aggregate. Return
 		// any errors from Marshaling.
 		customOptions := make(map[string]bsoncore.Value)
-		for optionName, optionValue := range cs.options.CustomOptions {
+		for optionName, optionValue := range cs.options.Custom {
 			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
 			if err != nil {
 				cs.err = err
