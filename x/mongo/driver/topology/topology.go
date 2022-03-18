@@ -13,13 +13,12 @@ package topology // import "go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
@@ -407,20 +406,71 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 			continue
 		}
 
-		selected := suitable[random.Intn(len(suitable))]
-		selectedS, err := t.FindServer(selected)
-		switch {
-		case err != nil:
-			return nil, err
-		case selectedS != nil:
-			return selectedS, nil
-		default:
-			// We don't have an actual server for the provided description.
-			// This could happen for a number of reasons, including that the
-			// server has since stopped being a part of this topology, or that
-			// the server selector returned no suitable servers.
+		// If there's only one suitable server description, try to find the associated server and
+		// return it. This is an optimization primarily for standalone and load-balanced deployments.
+		if len(suitable) == 1 {
+			server, err := t.FindServer(suitable[0])
+			if err != nil {
+				return nil, err
+			}
+			if server == nil {
+				continue
+			}
+			return server, nil
 		}
+
+		// Randomly select 2 suitable server descriptions and find servers for them. We select two
+		// so we can pick the one with the one with fewer in-progress operations below.
+		desc1, desc2 := pick2(suitable)
+		server1, err := t.FindServer(desc1)
+		if err != nil {
+			return nil, err
+		}
+		server2, err := t.FindServer(desc2)
+		if err != nil {
+			return nil, err
+		}
+
+		// If we don't have an actual server for one or both of the provided descriptions, either
+		// return the one server we have, or try again if they're both nil. This could happen for a
+		// number of reasons, including that the server has since stopped being a part of this
+		// topology.
+		if server1 == nil || server2 == nil {
+			if server1 == nil && server2 == nil {
+				continue
+			}
+			if server1 != nil {
+				return server1, nil
+			}
+			return server2, nil
+		}
+
+		// Of the two randomly selected suitable servers, pick the one with fewer in-use connections.
+		// We use in-use connections as an analog for in-progress operations because they are almost
+		// always the same value for a given server.
+		if server1.OperationCount() < server2.OperationCount() {
+			return server1, nil
+		}
+		return server2, nil
 	}
+}
+
+// pick2 returns 2 random server descriptions from the input slice of server descriptions,
+// guaranteeing that the same element from the slice is not picked twice. The order of server
+// descriptions in the input slice may be modified. If fewer than 2 server descriptions are
+// provided, pick2 will panic.
+func pick2(ds []description.Server) (description.Server, description.Server) {
+	// Select a random index from the input slice and keep the server description from that index.
+	idx := random.Intn(len(ds))
+	s1 := ds[idx]
+
+	// Swap the selected index to the end and reslice to remove it so we don't pick the same server
+	// description twice.
+	ds[idx], ds[len(ds)-1] = ds[len(ds)-1], ds[idx]
+	ds = ds[:len(ds)-1]
+
+	// Select another random index from the input slice and return both selected server descriptions.
+	return s1, ds[random.Intn(len(ds))]
 }
 
 // FindServer will attempt to find a server that fits the given server description.
@@ -636,7 +686,6 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 	t.subLock.Unlock()
 
 	return true
-
 }
 
 // apply updates the Topology and its underlying FSM based on the provided server description and returns the server

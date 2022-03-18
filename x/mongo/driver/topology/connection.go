@@ -596,6 +596,10 @@ type Connection struct {
 	refCount      int
 	cleanupPoolFn func()
 
+	// cleanupServerFn resets the server state when a connection is returned to the connection pool
+	// via Close() or expired via Expire().
+	cleanupServerFn func()
+
 	mu sync.RWMutex
 }
 
@@ -696,6 +700,10 @@ func (c *Connection) cleanupReferences() error {
 	if c.cleanupPoolFn != nil {
 		c.cleanupPoolFn()
 		c.cleanupPoolFn = nil
+	}
+	if c.cleanupServerFn != nil {
+		c.cleanupServerFn()
+		c.cleanupServerFn = nil
 	}
 	c.connection = nil
 	return err

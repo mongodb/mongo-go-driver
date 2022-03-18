@@ -8,16 +8,23 @@ package topology
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"path"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
@@ -628,4 +635,209 @@ func TestTopologyConstruction(t *testing.T) {
 			})
 		}
 	})
+}
+
+type inWindowServer struct {
+	Address  string `json:"address"`
+	Type     string `json:"type"`
+	AvgRTTMS int64  `json:"avg_rtt_ms"`
+}
+
+type inWindowTopology struct {
+	Type    string           `json:"type"`
+	Servers []inWindowServer `json:"servers"`
+}
+
+type inWindowOutcome struct {
+	Tolerance           float64            `json:"tolerance"`
+	ExpectedFrequencies map[string]float64 `json:"expected_frequencies"`
+}
+
+type inWindowTopologyState struct {
+	Address        string `json:"address"`
+	OperationCount int64  `json:"operation_count"`
+}
+
+type inWindowTestCase struct {
+	TopologyDescription inWindowTopology        `json:"topology_description"`
+	MockedTopologyState []inWindowTopologyState `json:"mocked_topology_state"`
+	Iterations          int                     `json:"iterations"`
+	Outcome             inWindowOutcome         `json:"outcome"`
+}
+
+// TestServerSelectionSpecInWindow runs the "in_window" server selection spec tests. This test is
+// in the "topology" package instead of the "description" package (where the rest of the server
+// selection spec tests are) because it primarily tests load-based server selection. Load-based
+// server selection is implemented in Topology.SelectServer() because it requires knowledge of the
+// current "operation count" (the number of currently running operations) for each server, so it
+// can't be effectively accomplished just with server descriptions like most other server selection
+// algorithms.
+func TestServerSelectionSpecInWindow(t *testing.T) {
+	const testsDir = "../../../../data/server-selection/in_window"
+
+	files := testhelpers.FindJSONFilesInDir(t, testsDir)
+
+	for _, file := range files {
+		t.Run(file, func(t *testing.T) {
+			runInWindowTest(t, testsDir, file)
+		})
+	}
+}
+
+func runInWindowTest(t *testing.T, directory string, filename string) {
+	filepath := path.Join(directory, filename)
+	content, err := ioutil.ReadFile(filepath)
+	require.NoError(t, err)
+
+	var test inWindowTestCase
+	require.NoError(t, json.Unmarshal(content, &test))
+
+	// For each server described in the test's "topology_description", create both a *Server and
+	// description.Server, which are both required to run Topology.SelectServer().
+	servers := make(map[string]*Server, len(test.TopologyDescription.Servers))
+	descriptions := make([]description.Server, 0, len(test.TopologyDescription.Servers))
+	for _, testDesc := range test.TopologyDescription.Servers {
+		server, err := NewServer(
+			address.Address(testDesc.Address),
+			primitive.NilObjectID,
+			withMonitoringDisabled(func(bool) bool { return true }))
+		require.NoError(t, err, "error creating new server")
+		servers[testDesc.Address] = server
+
+		desc := description.Server{
+			Kind:          serverKindFromString(t, testDesc.Type),
+			Addr:          address.Address(testDesc.Address),
+			AverageRTT:    time.Duration(testDesc.AvgRTTMS) * time.Millisecond,
+			AverageRTTSet: true,
+		}
+
+		if testDesc.AvgRTTMS > 0 {
+			desc.AverageRTT = time.Duration(testDesc.AvgRTTMS) * time.Millisecond
+			desc.AverageRTTSet = true
+		}
+
+		descriptions = append(descriptions, desc)
+	}
+
+	// For each server state in the test's "mocked_topology_state", set the connection pool's
+	// in-use connections count to the test operation count value.
+	for _, state := range test.MockedTopologyState {
+		servers[state.Address].operationCount = state.OperationCount
+	}
+
+	// Create a new Topology, set the state to "connected", store a topology description
+	// containing all server descriptions created from the test server descriptions, and copy
+	// all *Server instances to the Topology's servers list.
+	topology, err := New()
+	require.NoError(t, err, "error creating new Topology")
+	topology.state = topologyConnected
+	topology.desc.Store(description.Topology{
+		Kind:    topologyKindFromString(t, test.TopologyDescription.Type),
+		Servers: descriptions,
+	})
+	for addr, server := range servers {
+		topology.servers[address.Address(addr)] = server
+	}
+
+	// Run server selection the required number of times and record how many times each server
+	// address was selected.
+	counts := make(map[string]int, len(test.TopologyDescription.Servers))
+	for i := 0; i < test.Iterations; i++ {
+		selected, err := topology.SelectServer(
+			context.Background(),
+			description.ReadPrefSelector(readpref.Nearest()))
+		require.NoError(t, err, "error selecting server")
+		counts[string(selected.(*SelectedServer).address)]++
+	}
+
+	// Convert the server selection counts to selection frequencies by dividing the counts by
+	// the total number of server selection attempts.
+	frequencies := make(map[string]float64, len(counts))
+	for addr, count := range counts {
+		frequencies[addr] = float64(count) / float64(test.Iterations)
+	}
+
+	// Assert that the observed server selection frequency for each server address matches the
+	// expected server selection frequency.
+	for addr, expected := range test.Outcome.ExpectedFrequencies {
+		actual := frequencies[addr]
+
+		// If the expected frequency for a given server is 1 or 0, then the observed frequency
+		// MUST be exactly equal to the expected one.
+		if expected == 1 || expected == 0 {
+			assert.Equal(
+				t,
+				expected,
+				actual,
+				"expected frequency of %q to be equal to %f, but is %f",
+				addr, expected, actual)
+			continue
+		}
+
+		// Otherwise, check if the expected frequency is within the given tolerance range.
+		// TODO(GODRIVER-2179): Use assert.Deltaf() when we migrate all test code to the
+		// "testify/assert" or an API-compatible library for assertions.
+		low := expected - test.Outcome.Tolerance
+		high := expected + test.Outcome.Tolerance
+		assert.True(
+			t,
+			actual >= low && actual <= high,
+			"expected frequency of %q to be in range [%f, %f], but is %f",
+			addr, low, high, actual)
+	}
+}
+
+func topologyKindFromString(t *testing.T, s string) description.TopologyKind {
+	t.Helper()
+
+	switch s {
+	case "Single":
+		return description.Single
+	case "ReplicaSet":
+		return description.ReplicaSet
+	case "ReplicaSetNoPrimary":
+		return description.ReplicaSetNoPrimary
+	case "ReplicaSetWithPrimary":
+		return description.ReplicaSetWithPrimary
+	case "Sharded":
+		return description.Sharded
+	case "LoadBalanced":
+		return description.LoadBalanced
+	case "Unknown":
+		return description.Unknown
+	default:
+		t.Fatalf("unrecognized topology kind: %q", s)
+	}
+
+	return description.Unknown
+}
+
+func serverKindFromString(t *testing.T, s string) description.ServerKind {
+	t.Helper()
+
+	switch s {
+	case "Standalone":
+		return description.Standalone
+	case "RSOther":
+		return description.RSMember
+	case "RSPrimary":
+		return description.RSPrimary
+	case "RSSecondary":
+		return description.RSSecondary
+	case "RSArbiter":
+		return description.RSArbiter
+	case "RSGhost":
+		return description.RSGhost
+	case "Mongos":
+		return description.Mongos
+	case "LoadBalancer":
+		return description.LoadBalancer
+	case "PossiblePrimary", "Unknown":
+		// Go does not have a PossiblePrimary server type and per the SDAM spec, this type is synonymous with Unknown.
+		return description.Unknown
+	default:
+		t.Fatalf("unrecognized server kind: %q", s)
+	}
+
+	return description.Unknown
 }
