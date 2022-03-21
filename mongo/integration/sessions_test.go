@@ -346,17 +346,20 @@ func TestSessions(t *testing.T) {
 	unackWcOpts := options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(0)))
 	mt.RunOpts("unacknowledged write", mtest.NewOptions().CollectionOptions(unackWcOpts), func(mt *mtest.T) {
 		// unacknowledged write during a session should result in an error
+		var sess mongo.Session
+		var err error
 
-		sess, err := mt.Client.StartSession()
-		assert.Nil(mt, err, "StartSession error: %v", err)
+		if sess, err = mt.Client.StartSession(); err != nil {
+			assert.Nil(mt, err, "StartSession error: %v", err)
+		}
 		defer sess.EndSession(context.Background())
 
-		unackErr := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			_, insertOneErr := mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
-			return insertOneErr
+		err = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
+			_, err := mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
+			return err
 		})
 
-		assert.Equal(mt, unackErr, mongo.ErrUnacknowledgedWrite, "expected error on unacknowledge session write")
+		assert.Equal(mt, err, mongo.ErrUnacknowledgedWrite, "expected error on unacknowledge session write")
 	})
 }
 
