@@ -356,8 +356,7 @@ func TestSessions(t *testing.T) {
 			return insertOneErr
 		})
 
-		assertMsg := "expected error on unacknowledge session write"
-		assert.Equal(mt, unackErr, mongo.ErrUnacknowledgedWrite, assertMsg)
+		assert.Equal(mt, unackErr, mongo.ErrUnacknowledgedWrite, "expected error on unacknowledge session write")
 	})
 }
 
