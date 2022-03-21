@@ -69,22 +69,21 @@ type ChangeStream struct {
 	// TryNext. If continued access is required, a copy must be made.
 	Current bson.Raw
 
-	aggregate       *operation.Aggregate
-	pipelineSlice   []bsoncore.Document
-	pipelineOptions map[string]bsoncore.Value
-	cursor          changeStreamCursor
-	cursorOptions   driver.CursorOptions
-	batch           []bsoncore.Document
-	resumeToken     bson.Raw
-	err             error
-	sess            *session.Client
-	client          *Client
-	registry        *bsoncodec.Registry
-	streamType      StreamType
-	options         *options.ChangeStreamOptions
-	selector        description.ServerSelector
-	operationTime   *primitive.Timestamp
-	wireVersion     *description.VersionRange
+	aggregate     *operation.Aggregate
+	pipelineSlice []bsoncore.Document
+	cursor        changeStreamCursor
+	cursorOptions driver.CursorOptions
+	batch         []bsoncore.Document
+	resumeToken   bson.Raw
+	err           error
+	sess          *session.Client
+	client        *Client
+	registry      *bsoncodec.Registry
+	streamType    StreamType
+	options       *options.ChangeStreamOptions
+	selector      description.ServerSelector
+	operationTime *primitive.Timestamp
+	wireVersion   *description.VersionRange
 }
 
 type changeStreamConfig struct {
@@ -144,11 +143,11 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	if cs.options.MaxAwaitTime != nil {
 		cs.cursorOptions.MaxTimeMS = int64(*cs.options.MaxAwaitTime / time.Millisecond)
 	}
-	if cs.options.Custom != nil {
+	if cs.options.CustomOptions != nil {
 		// Marshal all custom options before passing to the initial aggregate. Return
 		// any errors from Marshaling.
 		customOptions := make(map[string]bsoncore.Value)
-		for optionName, optionValue := range cs.options.Custom {
+		for optionName, optionValue := range cs.options.CustomOptions {
 			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
 			if err != nil {
 				cs.err = err
@@ -159,21 +158,6 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 			customOptions[optionName] = optionValueBSON
 		}
 		cs.aggregate.CustomOptions(customOptions)
-	}
-	if cs.options.CustomPipeline != nil {
-		// Marshal all custom pipeline options before building pipeline slice. Return
-		// any errors from Marshaling.
-		cs.pipelineOptions = make(map[string]bsoncore.Value)
-		for optionName, optionValue := range cs.options.CustomPipeline {
-			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
-			if err != nil {
-				cs.err = err
-				closeImplicitSession(cs.sess)
-				return nil, cs.Err()
-			}
-			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
-			cs.pipelineOptions[optionName] = optionValueBSON
-		}
 	}
 
 	switch cs.streamType {
@@ -420,11 +404,6 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 
 	if cs.options.StartAtOperationTime != nil {
 		plDoc = bsoncore.AppendTimestampElement(plDoc, "startAtOperationTime", cs.options.StartAtOperationTime.T, cs.options.StartAtOperationTime.I)
-	}
-
-	// Append custom pipeline options.
-	for optionName, optionValue := range cs.pipelineOptions {
-		plDoc = bsoncore.AppendValueElement(plDoc, optionName, optionValue)
 	}
 
 	if plDoc, cs.err = bsoncore.AppendDocumentEnd(plDoc, plDocIdx); cs.err != nil {
