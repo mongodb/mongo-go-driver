@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -340,6 +341,23 @@ func TestSessions(t *testing.T) {
 			assert.Nil(mt, err, "CommitTransaction error: %v", err)
 			assertCollectionCount(mt, int64(numDocs))
 		})
+	})
+
+	unackWcOpts := options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+	mt.RunOpts("unacknowledged write", mtest.NewOptions().CollectionOptions(unackWcOpts), func(mt *mtest.T) {
+		// unacknowledged write during a session should result in an error
+
+		sess, err := mt.Client.StartSession()
+		assert.Nil(mt, err, "StartSession error: %v", err)
+		defer sess.EndSession(context.Background())
+
+		unackErr := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
+			_, insertOneErr := mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
+			return insertOneErr
+		})
+
+		assertMsg := "expected error on unacknowledge session write"
+		assert.Equal(mt, unackErr, mongo.ErrUnacknowledgedWrite, assertMsg)
 	})
 }
 
