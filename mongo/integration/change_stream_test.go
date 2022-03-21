@@ -656,7 +656,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		assert.True(mt, ok, "expected field 'allowDiskUse' to be boolean, got %v", aduVal.Type.String())
 		assert.True(mt, adu, "expected field 'allowDiskUse' to be true, got false")
 	})
-	mt.Run("CustomPipeline", func(mt *mtest.T) {
+	mt.RunOpts("CustomPipeline", mtest.NewOptions().MinServerVersion("4.0"), func(mt *mtest.T) {
 		// Custom pipeline options should be a BSON map of option names to Marshalable option values.
 		// We use "allChangesForCluster" as an example.
 		customPipelineOpts := bson.M{"allChangesForCluster": false}

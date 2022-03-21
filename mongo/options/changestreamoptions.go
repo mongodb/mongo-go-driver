@@ -53,7 +53,7 @@ type ChangeStreamOptions struct {
 	// non-custom options, and custom options bypass client-side validation. Prefer using non-custom options where possible.
 	Custom bson.M
 
-	// Custom options to be added to the $changeStream stage in the intial aggregate. Key-value pairs of the BSON map should
+	// Custom options to be added to the $changeStream stage in the initial aggregate. Key-value pairs of the BSON map should
 	// correlate with desired option names and values. Values must be Marshalable. Custom pipeline options bypass client-side
 	// validation. Prefer using non-custom options where possible.
 	CustomPipeline bson.M
