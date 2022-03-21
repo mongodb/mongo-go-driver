@@ -51,7 +51,12 @@ type ChangeStreamOptions struct {
 	// Custom options to be added to the initial aggregate for the change stream. Key-value pairs of the BSON map should
 	// correlate with desired option names and values. Values must be Marshalable. Custom options may conflict with
 	// non-custom options, and custom options bypass client-side validation. Prefer using non-custom options where possible.
-	CustomOptions bson.M
+	Custom bson.M
+
+	// Custom options to be added to the $changeStream stage in the initial aggregate. Key-value pairs of the BSON map should
+	// correlate with desired option names and values. Values must be Marshalable. Custom pipeline options bypass client-side
+	// validation. Prefer using non-custom options where possible.
+	CustomPipeline bson.M
 }
 
 // ChangeStream creates a new ChangeStreamOptions instance.
@@ -103,12 +108,20 @@ func (cso *ChangeStreamOptions) SetStartAfter(sa interface{}) *ChangeStreamOptio
 	return cso
 }
 
-// SetCustomOptions sets the value for the CustomOptions field. Key-value pairs of the BSON map
-// should correlate with desired option names and values. Values must be Marshalable. Custom options
-// may conflict with non-custom options, and custom options bypass client-side validation. Prefer
-// using non-custom options where possible.
-func (cso *ChangeStreamOptions) SetCustomOptions(co bson.M) *ChangeStreamOptions {
-	cso.CustomOptions = co
+// SetCustom sets the value for the Custom field. Key-value pairs of the BSON map should correlate
+// with desired option names and values. Values must be Marshalable. Custom options may conflict
+// with non-custom options, and custom options bypass client-side validation. Prefer using non-custom
+// options where possible.
+func (cso *ChangeStreamOptions) SetCustom(c bson.M) *ChangeStreamOptions {
+	cso.Custom = c
+	return cso
+}
+
+// SetCustomPipeline sets the value for the CustomPipeline field. Key-value pairs of the BSON map
+// should correlate with desired option names and values. Values must be Marshalable. Custom pipeline
+// options bypass client-side validation. Prefer using non-custom options where possible.
+func (cso *ChangeStreamOptions) SetCustomPipeline(cp bson.M) *ChangeStreamOptions {
+	cso.CustomPipeline = cp
 	return cso
 }
 
@@ -141,8 +154,11 @@ func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions
 		if cso.StartAfter != nil {
 			csOpts.StartAfter = cso.StartAfter
 		}
-		if cso.CustomOptions != nil {
-			csOpts.CustomOptions = cso.CustomOptions
+		if cso.Custom != nil {
+			csOpts.Custom = cso.Custom
+		}
+		if cso.CustomPipeline != nil {
+			csOpts.CustomPipeline = cso.CustomPipeline
 		}
 	}
 

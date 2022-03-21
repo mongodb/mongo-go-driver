@@ -803,11 +803,11 @@ func TestCollection(t *testing.T) {
 				return mt.Coll.Aggregate(context.Background(), mongo.Pipeline{}, options.Aggregate().SetBatchSize(3))
 			})
 		})
-		mt.Run("CustomOptions", func(mt *mtest.T) {
+		mt.Run("Custom", func(mt *mtest.T) {
 			// Custom options should be a BSON map of option names to Marshalable option values.
 			// We use "allowDiskUse" as an example.
 			customOpts := bson.M{"allowDiskUse": true}
-			opts := options.Aggregate().SetCustomOptions(customOpts)
+			opts := options.Aggregate().SetCustom(customOpts)
 
 			// Run aggregate with custom options set.
 			mt.ClearEvents()
