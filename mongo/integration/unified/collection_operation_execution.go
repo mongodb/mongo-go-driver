@@ -115,6 +115,8 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 			if err != nil {
 				return nil, fmt.Errorf("error creating write models: %v", err)
 			}
+		case "let":
+			opts.SetLet(val.Document())
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}
