@@ -37,18 +37,19 @@ func TestDocumentationExamples(t *testing.T) {
 
 	db := client.Database("documentation_examples")
 
-	documentation_examples.InsertExamples(t, db)
-	documentation_examples.QueryToplevelFieldsExamples(t, db)
-	documentation_examples.QueryEmbeddedDocumentsExamples(t, db)
-	documentation_examples.QueryArraysExamples(t, db)
-	documentation_examples.QueryArrayEmbeddedDocumentsExamples(t, db)
-	documentation_examples.QueryNullMissingFieldsExamples(t, db)
-	documentation_examples.ProjectionExamples(t, db)
-	documentation_examples.UpdateExamples(t, db)
-	documentation_examples.DeleteExamples(t, db)
-	documentation_examples.RunCommandExamples(t, db)
-	documentation_examples.IndexExamples(t, db)
-	documentation_examples.StableAPIExamples()
+	stw := newSubtestWrapper(t, db)
+	stw.run("InsertExamples", documentation_examples.InsertExamples)
+	stw.run("QueryToplevelFieldsExamples", documentation_examples.QueryToplevelFieldsExamples)
+	stw.run("QueryEmbeddedDocumentsExamples", documentation_examples.QueryEmbeddedDocumentsExamples)
+	stw.run("QueryArraysExamples", documentation_examples.QueryArraysExamples)
+	stw.run("QueryArrayEmbeddedDocumentsExamples", documentation_examples.QueryArrayEmbeddedDocumentsExamples)
+	stw.run("QueryNullMissingFieldssExamples", documentation_examples.QueryNullMissingFieldsExamples)
+	stw.run("ProjectionExamples", documentation_examples.ProjectionExamples)
+	stw.run("UpdateExamples", documentation_examples.UpdateExamples)
+	stw.run("DeleteExamples", documentation_examples.DeleteExamples)
+	stw.run("RunCommandExamples", documentation_examples.RunCommandExamples)
+	stw.run("IndexExamples", documentation_examples.IndexExamples)
+	stw.runEmpty("StableAPExamples", documentation_examples.StableAPIExamples)
 
 	// Because it uses RunCommand with an apiVersion, the strict count example can only be
 	// run on 5.0+ without auth. It also cannot be run on 6.0+ since the count command was
@@ -156,4 +157,30 @@ func createTopology(t *testing.T) *topology.Topology {
 		t.Fatalf("topology.New error: %v", err)
 	}
 	return topo
+}
+
+// subtestWrapper maintains testing state for subtest operations
+type subtestWrapper struct {
+	t  *testing.T
+	db *mongo.Database
+}
+
+func newSubtestWrapper(t *testing.T, db *mongo.Database) subtestWrapper {
+	stw := new(subtestWrapper)
+	stw.t = t
+	stw.db = db
+	return *stw
+}
+
+type subtest func(*testing.T, *mongo.Database)
+type subtestEmpty func()
+
+// run wraps a subtest using an `stw` object
+func (stw subtestWrapper) run(name string, st subtest) {
+	stw.t.Run(name, func(t *testing.T) { st(stw.t, stw.db) })
+}
+
+// runEmpty wraps a subtest without functional arguments from an `stw` object.
+func (stw subtestWrapper) runEmpty(name string, st subtestEmpty) {
+	stw.t.Run(name, func(t *testing.T) { st() })
 }
