@@ -225,6 +225,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		collection:               coll,
 		selector:                 selector,
 		writeConcern:             wc,
+		let:                      bwo.Let,
 	}
 
 	err = op.execute(ctx)

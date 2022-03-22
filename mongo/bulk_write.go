@@ -35,6 +35,7 @@ type bulkWrite struct {
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	result                   BulkWriteResult
+	let                      interface{}
 }
 
 func (bw *bulkWrite) execute(ctx context.Context) error {
@@ -228,6 +229,13 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		Database(bw.collection.db.name).Collection(bw.collection.name).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
 		ServerAPI(bw.collection.client.serverAPI)
+	if bw.let != nil {
+		let, err := transformBsoncoreDocument(bw.collection.registry, bw.let, true, "let")
+		if err != nil {
+			return operation.DeleteResult{}, err
+		}
+		op = op.Let(let)
+	}
 	if bw.ordered != nil {
 		op = op.Ordered(*bw.ordered)
 	}
@@ -309,6 +317,13 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		Database(bw.collection.db.name).Collection(bw.collection.name).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
 		ArrayFilters(hasArrayFilters).ServerAPI(bw.collection.client.serverAPI)
+	if bw.let != nil {
+		let, err := transformBsoncoreDocument(bw.collection.registry, bw.let, true, "let")
+		if err != nil {
+			return operation.UpdateResult{}, err
+		}
+		op = op.Let(let)
+	}
 	if bw.ordered != nil {
 		op = op.Ordered(*bw.ordered)
 	}

@@ -19,6 +19,12 @@ type BulkWriteOptions struct {
 
 	// If true, no writes will be executed after one fails. The default value is true.
 	Ordered *bool
+
+	// Specifies parameters for all update and delete commands in the BulkWrite. This option is only valid for MongoDB
+	// versions >= 5.0. Older servers will report an error for using this option. This must be a document mapping
+	// parameter names to values. Values must be constant or closed expressions that do not reference document fields.
+	// Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
+	Let interface{}
 }
 
 // BulkWrite creates a new *BulkWriteOptions instance.
@@ -40,6 +46,15 @@ func (b *BulkWriteOptions) SetBypassDocumentValidation(bypass bool) *BulkWriteOp
 	return b
 }
 
+// SetLet sets the value for the Let field. Let specifies parameters for all update and delete commands in the BulkWrite.
+// This option is only valid for MongoDB versions >= 5.0. Older servers will report an error for using this option.
+// This must be a document mapping parameter names to values. Values must be constant or closed expressions that do not
+// reference document fields. Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
+func (b *BulkWriteOptions) SetLet(let interface{}) *BulkWriteOptions {
+	b.Let = &let
+	return b
+}
+
 // MergeBulkWriteOptions combines the given BulkWriteOptions instances into a single BulkWriteOptions in a last-one-wins
 // fashion.
 func MergeBulkWriteOptions(opts ...*BulkWriteOptions) *BulkWriteOptions {
@@ -53,6 +68,9 @@ func MergeBulkWriteOptions(opts ...*BulkWriteOptions) *BulkWriteOptions {
 		}
 		if opt.BypassDocumentValidation != nil {
 			b.BypassDocumentValidation = opt.BypassDocumentValidation
+		}
+		if opt.Let != nil {
+			b.Let = opt.Let
 		}
 	}
 
