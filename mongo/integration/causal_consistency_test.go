@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 // set of operations that support read concerns taken from read/write concern spec.
@@ -192,21 +191,6 @@ func TestCausalConsistency_Supported(t *testing.T) {
 		assert.Equal(mt, "local", level, "expected read concern level 'local', got %s", level)
 		assert.NotNil(mt, sentOptime, "expected operation time on command, got nil")
 		assert.True(mt, currOptime.Equal(*sentOptime), "expected operation time %v, got %v", currOptime, sentOptime)
-	})
-	unackWcOpts := options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(0)))
-	mt.RunOpts("unacknowledged write", mtest.NewOptions().CollectionOptions(unackWcOpts), func(mt *mtest.T) {
-		// unacknowledged write should not update the operationTime of a session
-
-		sess, err := mt.Client.StartSession()
-		assert.Nil(mt, err, "StartSession error: %v", err)
-		defer sess.EndSession(context.Background())
-
-		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			_, _ = mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
-			return nil
-		})
-		optime := sess.OperationTime()
-		assert.Nil(mt, optime, "expected operation time nil, got %v", optime)
 	})
 	mt.Run("clusterTime included", func(mt *mtest.T) {
 		// $clusterTime should be included in commands if the deployment supports cluster times
