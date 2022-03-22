@@ -2956,3 +2956,43 @@ func StableAPIExamples() {
 	StableAPINonStrictExample()
 	StableAPIDeprecationErrorsExample()
 }
+
+func SnapshotQueryExamples(t *testing.T, _ *mongo.Database) {
+	ctx := context.Background()
+
+	// Set client options
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+
+	// Connect to MongoDB
+	client, err := mongo.Connect(ctx, clientOptions)
+	require.NoError(t, err)
+	defer client.Disconnect(ctx)
+
+	// Check the connection
+	err = client.Ping(ctx, nil)
+	require.NoError(t, err)
+
+	{
+		// Start Snapshot Query Example 1
+
+		// Connect to database
+		// db := client.Database("pets")
+
+		// Set session options
+		sessionOptions := new(options.SessionOptions)
+		sessionOptions.SetSnapshot(true)
+
+		// Start a session
+		sess, err := client.StartSession(sessionOptions)
+		require.NoError(t, err)
+		defer sess.EndSession(ctx)
+
+		fmt.Println(sess)
+
+		// err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
+		// 	_, err := mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
+		// 	return err
+		// })
+		// require.NoError(t, err)
+	}
+}

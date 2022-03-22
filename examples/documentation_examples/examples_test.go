@@ -37,18 +37,20 @@ func TestDocumentationExamples(t *testing.T) {
 
 	db := client.Database("documentation_examples")
 
-	documentation_examples.InsertExamples(t, db)
-	documentation_examples.QueryToplevelFieldsExamples(t, db)
-	documentation_examples.QueryEmbeddedDocumentsExamples(t, db)
-	documentation_examples.QueryArraysExamples(t, db)
-	documentation_examples.QueryArrayEmbeddedDocumentsExamples(t, db)
-	documentation_examples.QueryNullMissingFieldsExamples(t, db)
-	documentation_examples.ProjectionExamples(t, db)
-	documentation_examples.UpdateExamples(t, db)
-	documentation_examples.DeleteExamples(t, db)
-	documentation_examples.RunCommandExamples(t, db)
-	documentation_examples.IndexExamples(t, db)
-	documentation_examples.StableAPIExamples()
+	exw := newExampleTestWrapper(t, db)
+	exw.run("InsertExamples", documentation_examples.InsertExamples)
+	exw.run("QueryToplevelFieldsExamples", documentation_examples.QueryToplevelFieldsExamples)
+	exw.run("QueryEmbeddedDocumentsExamples", documentation_examples.QueryEmbeddedDocumentsExamples)
+	exw.run("QueryArraysExamples", documentation_examples.QueryArraysExamples)
+	exw.run("QueryArrayEmbeddedDocumentsExamples", documentation_examples.QueryArrayEmbeddedDocumentsExamples)
+	exw.run("QueryNullMissingFieldssExamples", documentation_examples.QueryNullMissingFieldsExamples)
+	exw.run("ProjectionExamples", documentation_examples.ProjectionExamples)
+	exw.run("UpdateExamples", documentation_examples.UpdateExamples)
+	exw.run("DeleteExamples", documentation_examples.DeleteExamples)
+	exw.run("RunCommandExamples", documentation_examples.RunCommandExamples)
+	exw.run("IndexExamples", documentation_examples.IndexExamples)
+	exw.run("SnapshotQueryExamples", documentation_examples.SnapshotQueryExamples)
+	exw.runEmpty("StableAPExamples", documentation_examples.StableAPIExamples)
 
 	// Because it uses RunCommand with an apiVersion, the strict count example can only be
 	// run on 5.0+ without auth. It also cannot be run on 6.0+ since the count command was
@@ -156,4 +158,30 @@ func createTopology(t *testing.T) *topology.Topology {
 		t.Fatalf("topology.New error: %v", err)
 	}
 	return topo
+}
+
+// exampleTestWrapper maintains testing state for subtest operations
+type exampleTestWrapper struct {
+	t  *testing.T
+	db *mongo.Database
+}
+
+func newExampleTestWrapper(t *testing.T, db *mongo.Database) exampleTestWrapper {
+	exw := new(exampleTestWrapper)
+	exw.t = t
+	exw.db = db
+	return *exw
+}
+
+type subtest func(*testing.T, *mongo.Database)
+type subtestEmpty func()
+
+// run wraps a subtest from an `exw` object, allowing for single-line subtest implementations which can be
+// run individually in the parent test using `go test -run TestParent/Subtest`.
+func (exw exampleTestWrapper) run(name string, st subtest) {
+	exw.t.Run(name, func(t *testing.T) { st(exw.t, exw.db) })
+}
+
+func (exw exampleTestWrapper) runEmpty(name string, st subtestEmpty) {
+	exw.t.Run(name, func(t *testing.T) { st() })
 }
