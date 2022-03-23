@@ -37,20 +37,57 @@ func TestDocumentationExamples(t *testing.T) {
 
 	db := client.Database("documentation_examples")
 
-	exw := newExampleTestWrapper(t, db)
-	exw.run("InsertExamples", documentation_examples.InsertExamples)
-	exw.run("QueryToplevelFieldsExamples", documentation_examples.QueryToplevelFieldsExamples)
-	exw.run("QueryEmbeddedDocumentsExamples", documentation_examples.QueryEmbeddedDocumentsExamples)
-	exw.run("QueryArraysExamples", documentation_examples.QueryArraysExamples)
-	exw.run("QueryArrayEmbeddedDocumentsExamples", documentation_examples.QueryArrayEmbeddedDocumentsExamples)
-	exw.run("QueryNullMissingFieldssExamples", documentation_examples.QueryNullMissingFieldsExamples)
-	exw.run("ProjectionExamples", documentation_examples.ProjectionExamples)
-	exw.run("UpdateExamples", documentation_examples.UpdateExamples)
-	exw.run("DeleteExamples", documentation_examples.DeleteExamples)
-	exw.run("RunCommandExamples", documentation_examples.RunCommandExamples)
-	exw.run("IndexExamples", documentation_examples.IndexExamples)
-	exw.run("SnapshotQueryExamples", documentation_examples.SnapshotQueryExamples)
-	exw.runEmpty("StableAPExamples", documentation_examples.StableAPIExamples)
+	t.Run("InsertExamples", func(t *testing.T) {
+		documentation_examples.InsertExamples(t, db)
+	})
+
+	t.Run("QueryArraysExamples", func(t *testing.T) {
+		documentation_examples.QueryArraysExamples(t, db)
+	})
+
+	t.Run("ProjectionExamples", func(t *testing.T) {
+		documentation_examples.ProjectionExamples(t, db)
+	})
+
+	t.Run("UpdateExamples", func(t *testing.T) {
+		documentation_examples.UpdateExamples(t, db)
+	})
+
+	t.Run("DeleteExamples", func(t *testing.T) {
+		documentation_examples.DeleteExamples(t, db)
+	})
+
+	t.Run("RunCommandExamples", func(t *testing.T) {
+		documentation_examples.RunCommandExamples(t, db)
+	})
+
+	t.Run("IndexExamples", func(t *testing.T) {
+		documentation_examples.IndexExamples(t, db)
+	})
+
+	t.Run("SnapshotQueryExamples", func(t *testing.T) {
+		documentation_examples.SnapshotQueryExamples(t, db)
+	})
+
+	t.Run("StableAPExamples", func(t *testing.T) {
+		documentation_examples.StableAPIExamples()
+	})
+
+	t.Run("QueryToplevelFieldsExamples", func(t *testing.T) {
+		documentation_examples.QueryToplevelFieldsExamples(t, db)
+	})
+
+	t.Run("QueryEmbeddedDocumentsExamples", func(t *testing.T) {
+		documentation_examples.QueryEmbeddedDocumentsExamples(t, db)
+	})
+
+	t.Run("QueryArrayEmbeddedDocumentsExamples", func(t *testing.T) {
+		documentation_examples.QueryArrayEmbeddedDocumentsExamples(t, db)
+	})
+
+	t.Run("QueryNullMissingFieldssExamples", func(t *testing.T) {
+		documentation_examples.QueryNullMissingFieldsExamples(t, db)
+	})
 
 	// Because it uses RunCommand with an apiVersion, the strict count example can only be
 	// run on 5.0+ without auth. It also cannot be run on 6.0+ since the count command was
@@ -158,30 +195,4 @@ func createTopology(t *testing.T) *topology.Topology {
 		t.Fatalf("topology.New error: %v", err)
 	}
 	return topo
-}
-
-// exampleTestWrapper maintains testing state for subtest operations
-type exampleTestWrapper struct {
-	t  *testing.T
-	db *mongo.Database
-}
-
-func newExampleTestWrapper(t *testing.T, db *mongo.Database) exampleTestWrapper {
-	exw := new(exampleTestWrapper)
-	exw.t = t
-	exw.db = db
-	return *exw
-}
-
-type subtest func(*testing.T, *mongo.Database)
-type subtestEmpty func()
-
-// run wraps a subtest from an `exw` object, allowing for single-line subtest implementations which can be
-// run individually in the parent test using `go test -run TestParent/Subtest`.
-func (exw exampleTestWrapper) run(name string, st subtest) {
-	exw.t.Run(name, func(t *testing.T) { st(exw.t, exw.db) })
-}
-
-func (exw exampleTestWrapper) runEmpty(name string, st subtestEmpty) {
-	exw.t.Run(name, func(t *testing.T) { st() })
 }

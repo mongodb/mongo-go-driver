@@ -2957,9 +2957,173 @@ func StableAPIExamples() {
 	StableAPIDeprecationErrorsExample()
 }
 
-func SnapshotQueryExamples(t *testing.T, _ *mongo.Database) {
-	ctx := context.Background()
+func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mongo.Client) {
+	_, err := client.Database("pets").Collection("cats").InsertMany(ctx, []interface{}{
+		bson.D{
+			{"adoptable", false},
+			{"name", "Miyagi"},
+			{"color", "grey-white"},
+			{"age", 14},
+		},
+		bson.D{
+			{"adoptable", true},
+			{"name", "Joyce"},
+			{"color", "black"},
+			{"age", 10},
+		},
+	})
+	require.NoError(t, err)
 
+	_, err = client.Database("pets").Collection("dogs").InsertMany(ctx, []interface{}{
+		bson.D{
+			{"adoptable", true},
+			{"name", "Cormac"},
+			{"color", "rust"},
+			{"age", 7},
+		},
+		bson.D{
+			{"adoptable", true},
+			{"name", "Frank"},
+			{"color", "yellow"},
+			{"age", 2},
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = client.Database("retail").Collection("sales").InsertMany(ctx, []interface{}{
+		bson.D{
+			{"shoeType", "hiking boot"},
+			{"price", 30.0},
+			{"saleDate", time.Now()},
+		},
+	})
+	require.NoError(t, err)
+}
+
+func rollbackSnapshotQueryTestData(ctx context.Context, client *mongo.Client) {
+	client.Database("pets").Drop(ctx)
+	client.Database("retail").Drop(ctx)
+}
+
+func snapshotQueryPetExample(t *testing.T, client *mongo.Client) error {
+	// Start Snapshot Query Example 1
+	ctx := context.TODO()
+
+	// Connect to the pets database
+	db := client.Database("pets")
+
+	// Start a session with snapshotting
+	sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
+	if err != nil {
+		return err
+	}
+	defer sess.EndSession(ctx)
+
+	var adoptablePetsCount int32
+	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
+		// count the adoptable cats
+		adoptableCatsOuput := "adoptableCatsCount"
+		cursor, err := db.Collection("cats").Aggregate(sc, mongo.Pipeline{
+			bson.D{{"$match", bson.D{{"adoptable", true}}}},
+			bson.D{{"$count", adoptableCatsOuput}},
+		})
+		if err != nil {
+			return err
+		}
+
+		cursor.Next(sc)
+		resp, err := cursor.Current.LookupErr(adoptableCatsOuput)
+		if err != nil {
+			return err
+		}
+		adoptableCatsCount, _ := resp.Int32OK()
+		adoptablePetsCount += adoptableCatsCount
+
+		// count the adoptable dogs
+		adoptableDogsOuput := "adoptableDogsCount"
+		cursor, err = db.Collection("dogs").Aggregate(sc, mongo.Pipeline{
+			bson.D{{"$match", bson.D{{"adoptable", true}}}},
+			bson.D{{"$count", adoptableDogsOuput}},
+		})
+		if err != nil {
+			return err
+		}
+
+		cursor.Next(sc)
+		resp, err = cursor.Current.LookupErr(adoptableDogsOuput)
+		if err != nil {
+			return err
+		}
+		adoptableDogsCount, _ := resp.Int32OK()
+		adoptablePetsCount += adoptableDogsCount
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// End Snapshot Query Example 1
+	require.Equal(t, int32(3), adoptablePetsCount, "Expected adoptablePetsCount to be 3, got %v", adoptablePetsCount)
+	return nil
+}
+
+func snapshotQueryRetailExample(t *testing.T, client *mongo.Client) error {
+	// Start Snapshot Query Example 2
+	ctx := context.TODO()
+
+	// Connect to the retail database
+	db := client.Database("retail")
+
+	// Start a session with snapshotting
+	sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
+	if err != nil {
+		return err
+	}
+	defer sess.EndSession(ctx)
+
+	var totalDailySales int32
+	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
+		// count the total daily sales
+		totalDailySalesOutput := "totalDailySales"
+		cursor, err := db.Collection("sales").Aggregate(sc, mongo.Pipeline{
+			bson.D{{"$match",
+				bson.D{{"$expr",
+					bson.D{{"$gt",
+						bson.A{"$saleDate",
+							bson.D{{"$dateSubtract",
+								bson.D{
+									{"startDate", "$$NOW"},
+									{"unit", "day"},
+									{"amount", 1},
+								},
+							}},
+						},
+					}},
+				}},
+			}},
+			bson.D{{"$count", totalDailySalesOutput}},
+		})
+		if err != nil {
+			return err
+		}
+
+		cursor.Next(sc)
+		resp, err := cursor.Current.LookupErr(totalDailySalesOutput)
+		if err != nil {
+			return err
+		}
+		totalDailySales, _ = resp.Int32OK()
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// End Snapshot Query Example 2
+	require.Equal(t, int32(1), totalDailySales, "Expected total to be 1, got %v", totalDailySales)
+	return nil
+}
+
+func SnapshotQueryExamples(t *testing.T, _ *mongo.Database) {
+	ctx := context.TODO()
 	// Set client options
 	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
 
@@ -2972,27 +3136,11 @@ func SnapshotQueryExamples(t *testing.T, _ *mongo.Database) {
 	err = client.Ping(ctx, nil)
 	require.NoError(t, err)
 
-	{
-		// Start Snapshot Query Example 1
+	insertSnapshotQueryTestData(ctx, t, client)
 
-		// Connect to database
-		// db := client.Database("pets")
+	// Run the snapshot query tests
+	require.NoError(t, snapshotQueryPetExample(t, client))
+	require.NoError(t, snapshotQueryRetailExample(t, client))
 
-		// Set session options
-		sessionOptions := new(options.SessionOptions)
-		sessionOptions.SetSnapshot(true)
-
-		// Start a session
-		sess, err := client.StartSession(sessionOptions)
-		require.NoError(t, err)
-		defer sess.EndSession(ctx)
-
-		fmt.Println(sess)
-
-		// err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
-		// 	_, err := mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
-		// 	return err
-		// })
-		// require.NoError(t, err)
-	}
+	rollbackSnapshotQueryTestData(ctx, client)
 }
