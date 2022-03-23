@@ -11,7 +11,7 @@ package documentation_examples_test
 
 import (
 	"context"
-	"os"
+	"log"
 	"testing"
 	"time"
 
@@ -20,11 +20,18 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
+
+func init() {
+	if err := mtest.Setup(); err != nil {
+		log.Fatal(err)
+	}
+}
 
 func TestDocumentationExamples(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -92,14 +99,11 @@ func TestDocumentationExamples(t *testing.T) {
 	// Because it uses RunCommand with an apiVersion, the strict count example can only be
 	// run on 5.0+ without auth. It also cannot be run on 6.0+ since the count command was
 	// added to API version 1 and no longer results in an error when strict is enabled.
-	ver, err := getServerVersion(ctx, client)
-	require.NoError(t, err, "getServerVersion error: %v", err)
-	auth := os.Getenv("AUTH") == "auth"
-	if testutil.CompareVersions(t, ver, "5.0") >= 0 && testutil.CompareVersions(t, ver, "6.0") < 0 && !auth {
-		documentation_examples.StableAPIStrictCountExample(t)
-	} else {
-		t.Log("skipping stable API strict count example")
-	}
+	mtOpts := mtest.NewOptions().MinServerVersion("5.0").MaxServerVersion("6.0").Auth(true)
+	mtest.New(t).RunOpts("StableAPIStrictCountExample", mtOpts, func(t *mtest.T) {
+		documentation_examples.StableAPIStrictCountExample(t.T)
+	})
+
 }
 
 func TestAggregationExamples(t *testing.T) {
