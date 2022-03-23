@@ -3136,6 +3136,9 @@ func SnapshotQueryExamples(t *testing.T, _ *mongo.Database) {
 	err = client.Ping(ctx, nil)
 	require.NoError(t, err)
 
+	// rollback before inserting just in case the previous insert was not
+	// stopped gracefully
+	rollbackSnapshotQueryTestData(ctx, client)
 	insertSnapshotQueryTestData(ctx, t, client)
 
 	// Run the snapshot query tests

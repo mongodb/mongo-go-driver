@@ -12,6 +12,7 @@ package documentation_examples_test
 import (
 	"context"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -27,8 +28,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-func init() {
+func TestMain(m *testing.M) {
 	if err := mtest.Setup(); err != nil {
+		log.Fatal(err)
+	}
+	defer os.Exit(m.Run())
+	if err := mtest.Teardown(); err != nil {
 		log.Fatal(err)
 	}
 }
