@@ -40,7 +40,7 @@ type serverConfig struct {
 	poolMaintainInterval time.Duration
 }
 
-func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
+func newServerConfig(opts ...ServerOption) *serverConfig {
 	cfg := &serverConfig{
 		heartbeatInterval: 10 * time.Second,
 		heartbeatTimeout:  10 * time.Second,
@@ -52,72 +52,62 @@ func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
 		if opt == nil {
 			continue
 		}
-		err := opt(cfg)
-		if err != nil {
-			return nil, err
-		}
+		opt(cfg)
 	}
 
-	return cfg, nil
+	return cfg
 }
 
 // ServerOption configures a server.
-type ServerOption func(*serverConfig) error
+type ServerOption func(*serverConfig)
 
 func withMonitoringDisabled(fn func(bool) bool) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.monitoringDisabled = fn(cfg.monitoringDisabled)
-		return nil
 	}
 }
 
 // WithConnectionOptions configures the server's connections.
 func WithConnectionOptions(fn func(...ConnectionOption) []ConnectionOption) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.connectionOpts = fn(cfg.connectionOpts...)
-		return nil
 	}
 }
 
 // WithCompressionOptions configures the server's compressors.
 func WithCompressionOptions(fn func(...string) []string) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.compressionOpts = fn(cfg.compressionOpts...)
-		return nil
 	}
 }
 
 // WithServerAppName configures the server's application name.
 func WithServerAppName(fn func(string) string) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.appname = fn(cfg.appname)
-		return nil
 	}
 }
 
 // WithHeartbeatInterval configures a server's heartbeat interval.
 func WithHeartbeatInterval(fn func(time.Duration) time.Duration) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.heartbeatInterval = fn(cfg.heartbeatInterval)
-		return nil
 	}
 }
 
 // WithHeartbeatTimeout configures how long to wait for a heartbeat socket to
 // connection.
 func WithHeartbeatTimeout(fn func(time.Duration) time.Duration) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.heartbeatTimeout = fn(cfg.heartbeatTimeout)
-		return nil
 	}
 }
 
 // WithMaxConnections configures the maximum number of connections to allow for
 // a given server. If max is 0, then maximum connection pool size is not limited.
 func WithMaxConnections(fn func(uint64) uint64) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.maxConns = fn(cfg.maxConns)
-		return nil
 	}
 }
 
@@ -125,9 +115,8 @@ func WithMaxConnections(fn func(uint64) uint64) ServerOption {
 // a given server. If min is 0, then there is no lower limit to the number of
 // connections.
 func WithMinConnections(fn func(uint64) uint64) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.minConns = fn(cfg.minConns)
-		return nil
 	}
 }
 
@@ -135,9 +124,8 @@ func WithMinConnections(fn func(uint64) uint64) ServerOption {
 // pool may establish simultaneously. If maxConnecting is 0, the default value
 // of 2 is used.
 func WithMaxConnecting(fn func(uint64) uint64) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.maxConnecting = fn(cfg.maxConnecting)
-		return nil
 	}
 }
 
@@ -145,66 +133,58 @@ func WithMaxConnecting(fn func(uint64) uint64) ServerOption {
 // before being removed. If connectionPoolMaxIdleTime is 0, then no idle time is set and connections will not be removed
 // because of their age
 func WithConnectionPoolMaxIdleTime(fn func(time.Duration) time.Duration) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.poolMaxIdleTime = fn(cfg.poolMaxIdleTime)
-		return nil
 	}
 }
 
 // WithConnectionPoolMaintainInterval configures the interval that the background connection pool
 // maintenance goroutine runs.
 func WithConnectionPoolMaintainInterval(fn func(time.Duration) time.Duration) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.poolMaintainInterval = fn(cfg.poolMaintainInterval)
-		return nil
 	}
 }
 
 // WithConnectionPoolMonitor configures the monitor for all connection pool actions
 func WithConnectionPoolMonitor(fn func(*event.PoolMonitor) *event.PoolMonitor) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.poolMonitor = fn(cfg.poolMonitor)
-		return nil
 	}
 }
 
 // WithServerMonitor configures the monitor for all SDAM events for a server
 func WithServerMonitor(fn func(*event.ServerMonitor) *event.ServerMonitor) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.serverMonitor = fn(cfg.serverMonitor)
-		return nil
 	}
 }
 
 // WithClock configures the ClusterClock for the server to use.
 func WithClock(fn func(clock *session.ClusterClock) *session.ClusterClock) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.clock = fn(cfg.clock)
-		return nil
 	}
 }
 
 // WithRegistry configures the registry for the server to use when creating
 // cursors.
 func WithRegistry(fn func(*bsoncodec.Registry) *bsoncodec.Registry) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.registry = fn(cfg.registry)
-		return nil
 	}
 }
 
 // WithServerAPI configures the server API options for the server to use.
 func WithServerAPI(fn func(serverAPI *driver.ServerAPIOptions) *driver.ServerAPIOptions) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.serverAPI = fn(cfg.serverAPI)
-		return nil
 	}
 }
 
 // WithServerLoadBalanced specifies whether or not the server is behind a load balancer.
 func WithServerLoadBalanced(fn func(bool) bool) ServerOption {
-	return func(cfg *serverConfig) error {
+	return func(cfg *serverConfig) {
 		cfg.loadBalanced = fn(cfg.loadBalanced)
-		return nil
 	}
 }

@@ -130,11 +130,8 @@ type updateTopologyCallback func(description.Server) description.Server
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
 func ConnectServer(addr address.Address, updateCallback updateTopologyCallback, topologyID primitive.ObjectID, opts ...ServerOption) (*Server, error) {
-	srvr, err := NewServer(addr, topologyID, opts...)
-	if err != nil {
-		return nil, err
-	}
-	err = srvr.Connect(updateCallback)
+	srvr := NewServer(addr, topologyID, opts...)
+	err := srvr.Connect(updateCallback)
 	if err != nil {
 		return nil, err
 	}
@@ -143,12 +140,8 @@ func ConnectServer(addr address.Address, updateCallback updateTopologyCallback, 
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...ServerOption) (*Server, error) {
-	cfg, err := newServerConfig(opts...)
-	if err != nil {
-		return nil, err
-	}
-
+func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...ServerOption) *Server {
+	cfg := newServerConfig(opts...)
 	globalCtx, globalCtxCancel := context.WithCancel(context.Background())
 	s := &Server{
 		state: serverDisconnected,
@@ -190,7 +183,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 	s.pool = newPool(pc, connectionOpts...)
 	s.publishServerOpeningEvent(s.address)
 
-	return s, nil
+	return s
 }
 
 // Connect initializes the Server by starting background monitoring goroutines.

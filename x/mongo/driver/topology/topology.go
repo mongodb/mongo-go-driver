@@ -556,7 +556,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 func (t *Topology) pollSRVRecords() {
 	defer t.pollingwg.Done()
 
-	serverConfig, _ := newServerConfig(t.cfg.serverOpts...)
+	serverConfig := newServerConfig(t.cfg.serverOpts...)
 	heartbeatInterval := serverConfig.heartbeatInterval
 
 	pollTicker := time.NewTicker(t.rescanSRVInterval)
