@@ -634,11 +634,11 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		evt := mt.GetStartedEvent()
 		assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
 	})
-	mt.Run("CustomOptions", func(mt *mtest.T) {
+	mt.Run("Custom", func(mt *mtest.T) {
 		// Custom options should be a BSON map of option names to Marshalable option values.
 		// We use "allowDiskUse" as an example.
 		customOpts := bson.M{"allowDiskUse": true}
-		opts := options.ChangeStream().SetCustomOptions(customOpts)
+		opts := options.ChangeStream().SetCustom(customOpts)
 
 		// Create change stream with custom options set.
 		mt.ClearEvents()
@@ -655,6 +655,28 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		adu, ok := aduVal.BooleanOK()
 		assert.True(mt, ok, "expected field 'allowDiskUse' to be boolean, got %v", aduVal.Type.String())
 		assert.True(mt, adu, "expected field 'allowDiskUse' to be true, got false")
+	})
+	mt.RunOpts("CustomPipeline", mtest.NewOptions().MinServerVersion("4.0"), func(mt *mtest.T) {
+		// Custom pipeline options should be a BSON map of option names to Marshalable option values.
+		// We use "allChangesForCluster" as an example.
+		customPipelineOpts := bson.M{"allChangesForCluster": false}
+		opts := options.ChangeStream().SetCustomPipeline(customPipelineOpts)
+
+		// Create change stream with custom pipeline options set.
+		mt.ClearEvents()
+		cs, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{}, opts)
+		assert.Nil(mt, err, "Watch error: %v", err)
+		defer closeStream(cs)
+
+		// Assert that custom pipeline option is included in the $changeStream stage.
+		evt := mt.GetStartedEvent()
+		assert.Equal(mt, "aggregate", evt.CommandName, "expected command 'aggregate' got, %q", evt.CommandName)
+
+		acfcVal, err := evt.Command.LookupErr("pipeline", "0", "$changeStream", "allChangesForCluster")
+		assert.Nil(mt, err, "expected field 'allChangesForCluster' in $changeStream stage not found")
+		acfc, ok := acfcVal.BooleanOK()
+		assert.True(mt, ok, "expected field 'allChangesForCluster' to be boolean, got %v", acfcVal.Type.String())
+		assert.False(mt, acfc, "expected field 'allChangesForCluster' to be false, got %v", acfc)
 	})
 }
 
