@@ -3041,14 +3041,15 @@ func snapshotQueryPetExample(ctx context.Context, t *testing.T, client *mongo.Cl
 	db := client.Database("pets")
 
 	// Start a session with snapshotting
-	sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
+	sessOptions := new(options.SessionOptions).SetSnapshot(true).SetDefaultReadConcern(readconcern.Snapshot())
+	sess, err := client.StartSession(sessOptions)
 	if err != nil {
 		return err
 	}
 	defer sess.EndSession(ctx)
 
 	var adoptablePetsCount int32
-	err = mongo.WithSession(context.TODO(), sess, func(sc mongo.SessionContext) error {
+	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
 		// count the adoptable cats
 		adoptableCatsOuput := "adoptableCatsCount"
 		cursor, err := db.Collection("cats").Aggregate(sc, mongo.Pipeline{
@@ -3100,14 +3101,15 @@ func snapshotQueryRetailExample(ctx context.Context, t *testing.T, client *mongo
 	db := client.Database("retail")
 
 	// Start a session with snapshotting
-	sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
+	sessOptions := new(options.SessionOptions).SetSnapshot(true).SetDefaultReadConcern(readconcern.Snapshot())
+	sess, err := client.StartSession(sessOptions)
 	if err != nil {
 		return err
 	}
 	defer sess.EndSession(ctx)
 
 	var totalDailySales int32
-	err = mongo.WithSession(context.TODO(), sess, func(sc mongo.SessionContext) error {
+	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
 		// count the total daily sales
 		totalDailySalesOutput := "totalDailySales"
 		cursor, err := db.Collection("sales").Aggregate(sc, mongo.Pipeline{
