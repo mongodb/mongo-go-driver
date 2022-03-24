@@ -78,7 +78,7 @@ func TestDocumentationExamples(t *testing.T) {
 	})
 
 	t.Run("SnapshotQueryExamples", func(t *testing.T) {
-		documentation_examples.SnapshotQueryExamples(t, db)
+		documentation_examples.SnapshotQueryExamples(t)
 	})
 
 	t.Run("StableAPExamples", func(t *testing.T) {
@@ -101,14 +101,20 @@ func TestDocumentationExamples(t *testing.T) {
 		documentation_examples.QueryNullMissingFieldsExamples(t, db)
 	})
 
+	mt := mtest.New(t)
+
 	// Because it uses RunCommand with an apiVersion, the strict count example can only be
 	// run on 5.0+ without auth. It also cannot be run on 6.0+ since the count command was
 	// added to API version 1 and no longer results in an error when strict is enabled.
 	mtOpts := mtest.NewOptions().MinServerVersion("5.0").MaxServerVersion("6.0").Auth(true)
-	mtest.New(t).RunOpts("StableAPIStrictCountExample", mtOpts, func(t *mtest.T) {
+	mt.RunOpts("StableAPIStrictCountExample", mtOpts, func(t *mtest.T) {
 		documentation_examples.StableAPIStrictCountExample(t.T)
 	})
 
+	mtOpts = mtest.NewOptions().MinServerVersion("5.0")
+	mt.RunOpts("SnapshotQueryExamples", mtOpts, func(t *mtest.T) {
+		documentation_examples.SnapshotQueryExamples(t.T)
+	})
 }
 
 func TestAggregationExamples(t *testing.T) {

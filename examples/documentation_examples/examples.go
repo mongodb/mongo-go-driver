@@ -2957,8 +2957,8 @@ func StableAPIExamples() {
 	StableAPIDeprecationErrorsExample()
 }
 
-func insertSnapshotQueryTestData(t *testing.T, client *mongo.Client) {
-	_, err := client.Database("pets").Collection("cats").InsertMany(context.TODO(), []interface{}{
+func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mongo.Client) {
+	_, err := client.Database("pets").Collection("cats").InsertMany(ctx, []interface{}{
 		bson.D{
 			{"adoptable", false},
 			{"name", "Miyagi"},
@@ -2974,7 +2974,7 @@ func insertSnapshotQueryTestData(t *testing.T, client *mongo.Client) {
 	})
 	require.NoError(t, err)
 
-	_, err = client.Database("pets").Collection("dogs").InsertMany(context.TODO(), []interface{}{
+	_, err = client.Database("pets").Collection("dogs").InsertMany(ctx, []interface{}{
 		bson.D{
 			{"adoptable", true},
 			{"name", "Cormac"},
@@ -2990,7 +2990,7 @@ func insertSnapshotQueryTestData(t *testing.T, client *mongo.Client) {
 	})
 	require.NoError(t, err)
 
-	_, err = client.Database("retail").Collection("sales").InsertMany(context.TODO(), []interface{}{
+	_, err = client.Database("retail").Collection("sales").InsertMany(ctx, []interface{}{
 		bson.D{
 			{"shoeType", "hiking boot"},
 			{"price", 30.0},
@@ -3000,15 +3000,13 @@ func insertSnapshotQueryTestData(t *testing.T, client *mongo.Client) {
 	require.NoError(t, err)
 }
 
-func rollbackSnapshotQueryTestData(client *mongo.Client) {
-	client.Database("pets").Drop(context.TODO())
-	client.Database("retail").Drop(context.TODO())
+func rollbackSnapshotQueryTestData(ctx context.Context, client *mongo.Client) {
+	client.Database("pets").Drop(ctx)
+	client.Database("retail").Drop(ctx)
 }
 
-func snapshotQueryPetExample(t *testing.T, client *mongo.Client) error {
+func snapshotQueryPetExample(ctx context.Context, t *testing.T, client *mongo.Client) error {
 	// Start Snapshot Query Example 1
-	ctx := context.TODO()
-
 	// Connect to the pets database
 	db := client.Database("pets")
 
@@ -3066,10 +3064,8 @@ func snapshotQueryPetExample(t *testing.T, client *mongo.Client) error {
 	return nil
 }
 
-func snapshotQueryRetailExample(t *testing.T, client *mongo.Client) error {
+func snapshotQueryRetailExample(ctx context.Context, t *testing.T, client *mongo.Client) error {
 	// Start Snapshot Query Example 2
-	ctx := context.TODO()
-
 	// Connect to the retail database
 	db := client.Database("retail")
 
@@ -3122,7 +3118,7 @@ func snapshotQueryRetailExample(t *testing.T, client *mongo.Client) error {
 	return nil
 }
 
-func SnapshotQueryExamples(t *testing.T, _ *mongo.Database) {
+func SnapshotQueryExamples(t *testing.T) {
 	ctx := context.TODO()
 
 	// Connect to MongoDB
@@ -3136,12 +3132,12 @@ func SnapshotQueryExamples(t *testing.T, _ *mongo.Database) {
 
 	// rollback before inserting just in case the previous insert was not
 	// stopped gracefully
-	rollbackSnapshotQueryTestData(client)
-	insertSnapshotQueryTestData(t, client)
+	rollbackSnapshotQueryTestData(ctx, client)
+	insertSnapshotQueryTestData(ctx, t, client)
 
 	// Run the snapshot query tests
-	require.NoError(t, snapshotQueryPetExample(t, client))
-	require.NoError(t, snapshotQueryRetailExample(t, client))
+	require.NoError(t, snapshotQueryPetExample(ctx, t, client))
+	require.NoError(t, snapshotQueryRetailExample(ctx, t, client))
 
-	rollbackSnapshotQueryTestData(client)
+	rollbackSnapshotQueryTestData(ctx, client)
 }
