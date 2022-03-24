@@ -77,10 +77,6 @@ func TestDocumentationExamples(t *testing.T) {
 		documentation_examples.IndexExamples(t, db)
 	})
 
-	t.Run("SnapshotQueryExamples", func(t *testing.T) {
-		documentation_examples.SnapshotQueryExamples(t)
-	})
-
 	t.Run("StableAPExamples", func(t *testing.T) {
 		documentation_examples.StableAPIExamples()
 	})

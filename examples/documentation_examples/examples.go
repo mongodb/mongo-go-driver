@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -2894,7 +2895,7 @@ func StableAPIDeprecationErrorsExample() {
 // StableAPIStrictCountExample is an example of using CountDocuments instead of a traditional count
 // with a strict stable API since the count command does not belong to API version 1.
 func StableAPIStrictCountExample(t *testing.T) {
-	uri := "mongodb://localhost:27017"
+	uri := mtest.ClusterURI()
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
@@ -3122,7 +3123,7 @@ func SnapshotQueryExamples(t *testing.T) {
 	ctx := context.TODO()
 
 	// Connect to MongoDB
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mtest.ClusterURI()))
 	require.NoError(t, err)
 	defer client.Disconnect(ctx)
 
