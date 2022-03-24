@@ -107,7 +107,7 @@ func TestDocumentationExamples(t *testing.T) {
 		documentation_examples.StableAPIStrictCountExample(t.T)
 	})
 
-	mtOpts = mtest.NewOptions().MinServerVersion("5.0")
+	mtOpts = mtest.NewOptions().MinServerVersion("5.0").Topologies(mtest.ReplicaSet)
 	mt.RunOpts("SnapshotQueryExamples", mtOpts, func(t *mtest.T) {
 		documentation_examples.SnapshotQueryExamples(t.T)
 	})
