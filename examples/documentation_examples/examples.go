@@ -2959,6 +2959,10 @@ func StableAPIExamples() {
 }
 
 func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mongo.Client) {
+	if err := client.Database("pets").RunCommand(ctx, bson.D{{"create", "cats"}}); err != nil {
+		log.Fatal(err)
+	}
+
 	_, err := client.Database("pets").Collection("cats").InsertMany(ctx, []interface{}{
 		bson.D{
 			{"adoptable", false},
@@ -2975,6 +2979,10 @@ func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mong
 	})
 	require.NoError(t, err)
 
+	if err := client.Database("pets").RunCommand(ctx, bson.D{{"create", "dogs"}}); err != nil {
+		log.Fatal(err)
+	}
+
 	_, err = client.Database("pets").Collection("dogs").InsertMany(ctx, []interface{}{
 		bson.D{
 			{"adoptable", true},
@@ -2990,6 +2998,10 @@ func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mong
 		},
 	})
 	require.NoError(t, err)
+
+	if err := client.Database("retail").RunCommand(ctx, bson.D{{"create", "sales"}}); err != nil {
+		log.Fatal(err)
+	}
 
 	_, err = client.Database("retail").Collection("sales").InsertMany(ctx, []interface{}{
 		bson.D{
