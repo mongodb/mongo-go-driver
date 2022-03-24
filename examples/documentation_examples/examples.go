@@ -3120,7 +3120,8 @@ func snapshotQueryRetailExample(ctx context.Context, t *testing.T, client *mongo
 }
 
 func SnapshotQueryExamples(t *testing.T) {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	// Connect to MongoDB
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mtest.ClusterURI()))
