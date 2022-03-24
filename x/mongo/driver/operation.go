@@ -574,6 +574,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					Code:    int32(tt.WriteConcernError.Code),
 					Message: tt.WriteConcernError.Message,
 					Labels:  tt.Labels,
+					Raw:     tt.Raw,
 				}
 				// The UnknownTransactionCommitResult label is added to all writeConcernErrors besides unknownReplWriteConcernCode
 				// and unsatisfiableWriteConcernCode
@@ -588,6 +589,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			operationErr.WriteConcernError = tt.WriteConcernError
 			operationErr.WriteErrors = append(operationErr.WriteErrors, tt.WriteErrors...)
 			operationErr.Labels = tt.Labels
+			operationErr.Raw = tt.Raw
 		case Error:
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				if err := op.Client.ClearPinnedResources(); err != nil {

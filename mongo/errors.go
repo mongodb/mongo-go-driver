@@ -56,6 +56,7 @@ func replaceErrors(err error) error {
 			Labels:  de.Labels,
 			Name:    de.Name,
 			Wrapped: de.Wrapped,
+			Raw:     bson.Raw(de.Raw),
 		}
 	}
 	if qe, ok := err.(driver.QueryFailureError); ok {
@@ -63,6 +64,7 @@ func replaceErrors(err error) error {
 		ce := CommandError{
 			Name:    qe.Message,
 			Wrapped: qe.Wrapped,
+			Raw:     bson.Raw(qe.Response),
 		}
 
 		dollarErr, err := qe.Response.LookupErr("$err")
@@ -218,6 +220,7 @@ type CommandError struct {
 	Labels  []string // Categories to which the error belongs
 	Name    string   // A human-readable name corresponding to the error code
 	Wrapped error    // The underlying error, if one exists.
+	Raw     bson.Raw // The original server response containing the error.
 }
 
 // Error implements the error interface.
@@ -277,6 +280,9 @@ type WriteError struct {
 	Code    int
 	Message string
 	Details bson.Raw
+
+	// The original write error from the server response.
+	Raw bson.Raw
 }
 
 func (we WriteError) Error() string {
@@ -332,6 +338,7 @@ func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
 			Code:    int(err.Code),
 			Message: err.Message,
 			Details: bson.Raw(err.Details),
+			Raw:     bson.Raw(err.Raw),
 		})
 	}
 	return wes
@@ -344,6 +351,7 @@ type WriteConcernError struct {
 	Code    int
 	Message string
 	Details bson.Raw
+	Raw     bson.Raw // The original write concern error from the server response.
 }
 
 // Error implements the error interface.
@@ -365,6 +373,9 @@ type WriteException struct {
 
 	// The categories to which the exception belongs.
 	Labels []string
+
+	// The original server response containing the error.
+	Raw bson.Raw
 }
 
 // Error implements the error interface.
@@ -451,6 +462,7 @@ func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcern
 		Code:    int(wce.Code),
 		Message: wce.Message,
 		Details: bson.Raw(wce.Details),
+		Raw:     bson.Raw(wce.Raw),
 	}
 }
 
@@ -584,6 +596,7 @@ func processWriteError(err error) (returnResult, error) {
 				WriteConcernError: convertDriverWriteConcernError(tt.WriteConcernError),
 				WriteErrors:       writeErrorsFromDriverWriteErrors(tt.WriteErrors),
 				Labels:            tt.Labels,
+				Raw:               bson.Raw(tt.Raw),
 			}
 		default:
 			return rrNone, replaceErrors(err)
