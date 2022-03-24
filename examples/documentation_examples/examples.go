@@ -2959,10 +2959,6 @@ func StableAPIExamples() {
 }
 
 func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mongo.Client) {
-	if err := client.Database("pets").RunCommand(ctx, bson.D{{"create", "cats"}}); err != nil {
-		log.Fatal(err)
-	}
-
 	_, err := client.Database("pets").Collection("cats").InsertMany(ctx, []interface{}{
 		bson.D{
 			{"adoptable", false},
@@ -2978,10 +2974,6 @@ func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mong
 		},
 	})
 	require.NoError(t, err)
-
-	if err := client.Database("pets").RunCommand(ctx, bson.D{{"create", "dogs"}}); err != nil {
-		log.Fatal(err)
-	}
 
 	_, err = client.Database("pets").Collection("dogs").InsertMany(ctx, []interface{}{
 		bson.D{
@@ -2999,10 +2991,6 @@ func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mong
 	})
 	require.NoError(t, err)
 
-	if err := client.Database("retail").RunCommand(ctx, bson.D{{"create", "sales"}}); err != nil {
-		log.Fatal(err)
-	}
-
 	_, err = client.Database("retail").Collection("sales").InsertMany(ctx, []interface{}{
 		bson.D{
 			{"shoeType", "hiking boot"},
@@ -3011,6 +2999,35 @@ func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mong
 		},
 	})
 	require.NoError(t, err)
+
+	// Wait for snapshot reads to become available to prevent error 246:SnapshotUnavailable
+	// sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
+	// require.NoError(t, err)
+	// defer sess.EndSession(ctx)
+
+	// for {
+	// 	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
+	// 		validateStructure := func(db, name string) error {
+	// 			_, err := client.
+	// 				Database(db).
+	// 				Collection(name).
+	// 				Aggregate(sc, mongo.Pipeline{bson.D{{"$match", bson.D{{"any", true}}}}})
+	// 			return err
+	// 		}
+	// 		for _, structures := range [][]string{{"pets", "cats"}, {"pets", "dogs"}, {"retail", "sales"}} {
+	// 			if err := validateStructure(structures[0], structures[1]); err != nil {
+	// 				return err
+	// 			}
+	// 		}
+	// 		return nil
+	// 	})
+	// 	if err == nil {
+	// 		break
+	// 	}
+	// 	if !errors.Is(err, internal.ErrSnapshotUnavailable) {
+	// 		require.NoError(t, err)
+	// 	}
+	// }
 }
 
 func rollbackSnapshotQueryTestData(ctx context.Context, client *mongo.Client) {
@@ -3031,7 +3048,7 @@ func snapshotQueryPetExample(ctx context.Context, t *testing.T, client *mongo.Cl
 	defer sess.EndSession(ctx)
 
 	var adoptablePetsCount int32
-	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
+	err = mongo.WithSession(context.TODO(), sess, func(sc mongo.SessionContext) error {
 		// count the adoptable cats
 		adoptableCatsOuput := "adoptableCatsCount"
 		cursor, err := db.Collection("cats").Aggregate(sc, mongo.Pipeline{
@@ -3090,7 +3107,7 @@ func snapshotQueryRetailExample(ctx context.Context, t *testing.T, client *mongo
 	defer sess.EndSession(ctx)
 
 	var totalDailySales int32
-	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
+	err = mongo.WithSession(context.TODO(), sess, func(sc mongo.SessionContext) error {
 		// count the total daily sales
 		totalDailySalesOutput := "totalDailySales"
 		cursor, err := db.Collection("sales").Aggregate(sc, mongo.Pipeline{
