@@ -3038,7 +3038,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 		adoptablePetsCount += adoptableCatsCount
 
 		// Count the adoptable dogs
-		adoptableDogsOutput := "adoptableDogsCount"
+		const adoptableDogsOutput = "adoptableDogsCount"
 		cursor, err = db.Collection("dogs").Aggregate(ctx, mongo.Pipeline{
 			bson.D{{"$match", bson.D{{"adoptable", true}}}},
 			bson.D{{"$count", adoptableDogsOutput}},
