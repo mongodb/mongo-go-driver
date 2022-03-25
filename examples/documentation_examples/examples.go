@@ -2960,7 +2960,7 @@ func StableAPIExamples() {
 
 func insertSnapshotQueryTestData(mt *mtest.T) {
 	catColl := mt.CreateCollection(mtest.Collection{Name: "cats"}, true)
-	_, err := catColl.InsertMany(context.TODO(), []interface{}{
+	_, err := catColl.InsertMany(context.Background(), []interface{}{
 		bson.D{
 			{"adoptable", false},
 			{"name", "Miyagi"},
@@ -2977,7 +2977,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 	require.NoError(mt.T, err)
 
 	dogColl := mt.CreateCollection(mtest.Collection{Name: "dogs"}, true)
-	_, err = dogColl.InsertMany(context.TODO(), []interface{}{
+	_, err = dogColl.InsertMany(context.Background(), []interface{}{
 		bson.D{
 			{"adoptable", true},
 			{"name", "Cormac"},
@@ -2994,7 +2994,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 	require.NoError(mt.T, err)
 
 	salesColl := mt.CreateCollection(mtest.Collection{Name: "sales"}, true)
-	_, err = salesColl.InsertMany(context.TODO(), []interface{}{
+	_, err = salesColl.InsertMany(context.Background(), []interface{}{
 		bson.D{
 			{"shoeType", "hiking boot"},
 			{"price", 30.0},
@@ -3018,10 +3018,10 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 	defer sess.EndSession(ctx)
 
 	var adoptablePetsCount int32
-	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
+	err = mongo.WithSession(ctx, sess, func(ctx mongo.SessionContext) error {
 		// Count the adoptable cats
 		adoptableCatsOutput := "adoptableCatsCount"
-		cursor, err := db.Collection("cats").Aggregate(sc, mongo.Pipeline{
+		cursor, err := db.Collection("cats").Aggregate(ctx, mongo.Pipeline{
 			bson.D{{"$match", bson.D{{"adoptable", true}}}},
 			bson.D{{"$count", adoptableCatsOutput}},
 		})
@@ -3029,7 +3029,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 			return err
 		}
 
-		cursor.Next(sc)
+		cursor.Next(ctx)
 		resp := cursor.Current.Lookup(adoptableCatsOutput)
 		adoptableCatsCount, ok := resp.Int32OK()
 		if !ok {
@@ -3039,7 +3039,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 
 		// Count the adoptable dogs
 		adoptableDogsOutput := "adoptableDogsCount"
-		cursor, err = db.Collection("dogs").Aggregate(sc, mongo.Pipeline{
+		cursor, err = db.Collection("dogs").Aggregate(ctx, mongo.Pipeline{
 			bson.D{{"$match", bson.D{{"adoptable", true}}}},
 			bson.D{{"$count", adoptableDogsOutput}},
 		})
@@ -3047,7 +3047,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 			return err
 		}
 
-		cursor.Next(sc)
+		cursor.Next(ctx)
 		resp = cursor.Current.Lookup(adoptableDogsOutput)
 		adoptableDogsCount, ok := resp.Int32OK()
 		if !ok {
@@ -3078,10 +3078,10 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 	defer sess.EndSession(ctx)
 
 	var totalDailySales int32
-	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
+	err = mongo.WithSession(ctx, sess, func(ctx mongo.SessionContext) error {
 		// Count the total daily sales
 		totalDailySalesOutput := "totalDailySales"
-		cursor, err := db.Collection("sales").Aggregate(sc, mongo.Pipeline{
+		cursor, err := db.Collection("sales").Aggregate(ctx, mongo.Pipeline{
 			bson.D{{"$match",
 				bson.D{{"$expr",
 					bson.D{{"$gt",
@@ -3103,7 +3103,7 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 			return err
 		}
 
-		cursor.Next(sc)
+		cursor.Next(ctx)
 		resp := cursor.Current.Lookup(totalDailySalesOutput)
 
 		var ok bool
