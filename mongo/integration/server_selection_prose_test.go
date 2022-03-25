@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -62,7 +63,7 @@ func TestServerSelectionProse(t *testing.T) {
 		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos
 		// host descriptions to move from kind "Unknown" to kind "Mongos".
 		topologyEvents := make(chan *event.TopologyDescriptionChangedEvent, 10)
-		tpm := newTestPoolMonitor()
+		tpm := monitor.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetHosts(hosts[:2]).
 			SetPoolMonitor(tpm.PoolMonitor).
@@ -127,7 +128,7 @@ func TestServerSelectionProse(t *testing.T) {
 		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos
 		// host descriptions to move from kind "Unknown" to kind "Mongos".
 		topologyEvents := make(chan *event.TopologyDescriptionChangedEvent, 10)
-		tpm := newTestPoolMonitor()
+		tpm := monitor.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetHosts(hosts[:2]).
 			SetPoolMonitor(tpm.PoolMonitor).

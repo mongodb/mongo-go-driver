@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -142,21 +143,12 @@ func TestServerConnectionTimeout(t *testing.T) {
 				_ = l.Close()
 			}()
 
-			// Create a pool events channel with space for up to 100 events and configure a pool
-			// event monitor to send events to the channel.
-			eventsCh := make(chan *event.PoolEvent, 100)
-
+			tpm := monitor.NewTestPoolMonitor()
 			server := NewServer(
 				address.Address(l.Addr().String()),
 				primitive.NewObjectID(),
-				// Create a connection pool event monitor that sends all events to an events channel
-				// so we can assert on the connection pool events later.
-				WithConnectionPoolMonitor(func(_ *event.PoolMonitor) *event.PoolMonitor {
-					return &event.PoolMonitor{
-						Event: func(event *event.PoolEvent) {
-							eventsCh <- event
-						},
-					}
+				WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor {
+					return tpm.PoolMonitor
 				}),
 				// Replace the default dialer and handshaker with the test dialer and handshaker, if
 				// present.
@@ -196,14 +188,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			// "ConnectionPoolCleared" event or until we hit a 10s time limit.
 			if tc.expectPoolCleared {
 				assert.Eventually(t,
-					func() bool {
-						for evt := range eventsCh {
-							if evt.Type == event.PoolCleared {
-								return true
-							}
-						}
-						return false
-					},
+					tpm.IsPoolCleared,
 					10*time.Second,
 					100*time.Millisecond,
 					"expected pool to be cleared within 10s but was not cleared")
@@ -212,16 +197,11 @@ func TestServerConnectionTimeout(t *testing.T) {
 			// Disconnect the server then close the events channel and expect that no more events
 			// are sent on the channel.
 			_ = server.Disconnect(context.Background())
-			close(eventsCh)
 
 			// If we don't expect the pool to be cleared, check all events after the server is
 			// disconnected and make sure none were "ConnectionPoolCleared".
 			if !tc.expectPoolCleared {
-				for evt := range eventsCh {
-					if evt.Type == event.PoolCleared {
-						t.Error("expected pool to not be cleared but was cleared")
-					}
-				}
+				assert.False(t, tpm.IsPoolCleared(), "expected pool to not be cleared but was cleared")
 			}
 		})
 	}

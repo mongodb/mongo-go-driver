@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -558,7 +559,7 @@ func TestClient(t *testing.T) {
 
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
 		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
-		tpm := newTestPoolMonitor()
+		tpm := monitor.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
 			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
@@ -733,7 +734,7 @@ func TestClientStress(t *testing.T) {
 		// pool configurations.
 		maxPoolSizes := []uint64{1, 10, 100}
 		for _, maxPoolSize := range maxPoolSizes {
-			tpm := newTestPoolMonitor()
+			tpm := monitor.NewTestPoolMonitor()
 			maxPoolSizeOpt := mtest.NewOptions().ClientOptions(
 				options.Client().
 					SetPoolMonitor(tpm.PoolMonitor).
