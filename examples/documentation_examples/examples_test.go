@@ -103,7 +103,7 @@ func TestDocumentationExamples(t *testing.T) {
 	// Because it uses RunCommand with an apiVersion, the strict count example can only be
 	// run on 5.0+ without auth. It also cannot be run on 6.0+ since the count command was
 	// added to API version 1 and no longer results in an error when strict is enabled.
-	mtOpts := mtest.NewOptions().MinServerVersion("5.0").MaxServerVersion("6.0")
+	mtOpts := mtest.NewOptions().MinServerVersion("5.0").MaxServerVersion("6.0").Auth(false)
 	mt.RunOpts("StableAPIStrictCountExample", mtOpts, func(t *mtest.T) {
 		documentation_examples.StableAPIStrictCountExample(t.T)
 	})

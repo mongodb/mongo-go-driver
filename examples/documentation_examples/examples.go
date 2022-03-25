@@ -2974,7 +2974,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 			{"age", 10},
 		},
 	})
-	require.NoError(mt.T, err)
+	require.NoError(mt, err)
 
 	dogColl := mt.CreateCollection(mtest.Collection{Name: "dogs"}, true)
 	_, err = dogColl.InsertMany(context.Background(), []interface{}{
@@ -2991,7 +2991,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 			{"age", 2},
 		},
 	})
-	require.NoError(mt.T, err)
+	require.NoError(mt, err)
 
 	salesColl := mt.CreateCollection(mtest.Collection{Name: "sales"}, true)
 	_, err = salesColl.InsertMany(context.Background(), []interface{}{
@@ -3001,7 +3001,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 			{"saleDate", time.Now()},
 		},
 	})
-	require.NoError(mt.T, err)
+	require.NoError(mt, err)
 }
 
 func snapshotQueryPetExample(mt *mtest.T) error {
@@ -3011,7 +3011,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 	// Start Snapshot Query Example 1
 	ctx := context.TODO()
 
-	sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
+	sess, err := client.StartSession(options.Session().SetSnapshot(true))
 	if err != nil {
 		return err
 	}
@@ -3020,7 +3020,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 	var adoptablePetsCount int32
 	err = mongo.WithSession(ctx, sess, func(ctx mongo.SessionContext) error {
 		// Count the adoptable cats
-		adoptableCatsOutput := "adoptableCatsCount"
+		const adoptableCatsOutput = "adoptableCatsCount"
 		cursor, err := db.Collection("cats").Aggregate(ctx, mongo.Pipeline{
 			bson.D{{"$match", bson.D{{"adoptable", true}}}},
 			bson.D{{"$count", adoptableCatsOutput}},
@@ -3060,7 +3060,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 		return err
 	}
 	// End Snapshot Query Example 1
-	require.Equal(mt.T, int32(3), adoptablePetsCount, "expected adoptablePetsCount to be 3, got %v", adoptablePetsCount)
+	require.Equal(mt, int32(3), adoptablePetsCount, "expected 3 total adoptable pets")
 	return nil
 }
 
@@ -3071,7 +3071,7 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 	// Start Snapshot Query Example 2
 	ctx := context.TODO()
 
-	sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
+	sess, err := client.StartSession(options.Session().SetSnapshot(true))
 	if err != nil {
 		return err
 	}
@@ -3080,7 +3080,7 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 	var totalDailySales int32
 	err = mongo.WithSession(ctx, sess, func(ctx mongo.SessionContext) error {
 		// Count the total daily sales
-		totalDailySalesOutput := "totalDailySales"
+		const totalDailySalesOutput = "totalDailySales"
 		cursor, err := db.Collection("sales").Aggregate(ctx, mongo.Pipeline{
 			bson.D{{"$match",
 				bson.D{{"$expr",
@@ -3117,7 +3117,7 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 		return err
 	}
 	// End Snapshot Query Example 2
-	require.Equal(mt.T, int32(1), totalDailySales, "expected total to be 1, got %v", totalDailySales)
+	require.Equal(mt, int32(1), totalDailySales, "expected 1 total daily sale")
 	return nil
 }
 
