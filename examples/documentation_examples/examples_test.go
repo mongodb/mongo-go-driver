@@ -93,7 +93,7 @@ func TestDocumentationExamples(t *testing.T) {
 		documentation_examples.QueryArrayEmbeddedDocumentsExamples(t, db)
 	})
 
-	t.Run("QueryNullMissingFieldssExamples", func(t *testing.T) {
+	t.Run("QueryNullMissingFieldsExamples", func(t *testing.T) {
 		documentation_examples.QueryNullMissingFieldsExamples(t, db)
 	})
 
@@ -107,9 +107,9 @@ func TestDocumentationExamples(t *testing.T) {
 		documentation_examples.StableAPIStrictCountExample(t.T)
 	})
 
-	mtOpts = mtest.NewOptions().MinServerVersion("5.0").Topologies(mtest.ReplicaSet)
+	mtOpts = mtest.NewOptions().MinServerVersion("5.0").Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt.RunOpts("SnapshotQueryExamples", mtOpts, func(t *mtest.T) {
-		documentation_examples.SnapshotQueryExamples(t.T)
+		documentation_examples.SnapshotQueryExamples(t)
 	})
 }
 

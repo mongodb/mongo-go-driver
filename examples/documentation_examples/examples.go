@@ -2958,8 +2958,9 @@ func StableAPIExamples() {
 	StableAPIDeprecationErrorsExample()
 }
 
-func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mongo.Client) {
-	_, err := client.Database("pets").Collection("cats").InsertMany(ctx, []interface{}{
+func insertSnapshotQueryTestData(mt *mtest.T) {
+	catColl := mt.CreateCollection(mtest.Collection{Name: "cats"}, true)
+	_, err := catColl.InsertMany(context.TODO(), []interface{}{
 		bson.D{
 			{"adoptable", false},
 			{"name", "Miyagi"},
@@ -2973,9 +2974,10 @@ func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mong
 			{"age", 10},
 		},
 	})
-	require.NoError(t, err)
+	require.NoError(mt.T, err)
 
-	_, err = client.Database("pets").Collection("dogs").InsertMany(ctx, []interface{}{
+	dogColl := mt.CreateCollection(mtest.Collection{Name: "dogs"}, true)
+	_, err = dogColl.InsertMany(context.TODO(), []interface{}{
 		bson.D{
 			{"adoptable", true},
 			{"name", "Cormac"},
@@ -2989,60 +2991,27 @@ func insertSnapshotQueryTestData(ctx context.Context, t *testing.T, client *mong
 			{"age", 2},
 		},
 	})
-	require.NoError(t, err)
+	require.NoError(mt.T, err)
 
-	_, err = client.Database("retail").Collection("sales").InsertMany(ctx, []interface{}{
+	salesColl := mt.CreateCollection(mtest.Collection{Name: "sales"}, true)
+	_, err = salesColl.InsertMany(context.TODO(), []interface{}{
 		bson.D{
 			{"shoeType", "hiking boot"},
 			{"price", 30.0},
 			{"saleDate", time.Now()},
 		},
 	})
-	require.NoError(t, err)
-
-	// Wait for snapshot reads to become available to prevent error 246:SnapshotUnavailable
-	// sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
-	// require.NoError(t, err)
-	// defer sess.EndSession(ctx)
-
-	// for {
-	// 	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
-	// 		validateStructure := func(db, name string) error {
-	// 			_, err := client.
-	// 				Database(db).
-	// 				Collection(name).
-	// 				Aggregate(sc, mongo.Pipeline{bson.D{{"$match", bson.D{{"any", true}}}}})
-	// 			return err
-	// 		}
-	// 		for _, structures := range [][]string{{"pets", "cats"}, {"pets", "dogs"}, {"retail", "sales"}} {
-	// 			if err := validateStructure(structures[0], structures[1]); err != nil {
-	// 				return err
-	// 			}
-	// 		}
-	// 		return nil
-	// 	})
-	// 	if err == nil {
-	// 		break
-	// 	}
-	// 	if !errors.Is(err, internal.ErrSnapshotUnavailable) {
-	// 		require.NoError(t, err)
-	// 	}
-	// }
+	require.NoError(mt.T, err)
 }
 
-func rollbackSnapshotQueryTestData(ctx context.Context, client *mongo.Client) {
-	client.Database("pets").Drop(ctx)
-	client.Database("retail").Drop(ctx)
-}
+func snapshotQueryPetExample(mt *mtest.T) error {
+	client := mt.Client
+	db := mt.DB
 
-func snapshotQueryPetExample(ctx context.Context, t *testing.T, client *mongo.Client) error {
 	// Start Snapshot Query Example 1
-	// Connect to the pets database
-	db := client.Database("pets")
+	ctx := context.TODO()
 
-	// Start a session with snapshotting
-	sessOptions := new(options.SessionOptions).SetSnapshot(true).SetDefaultReadConcern(readconcern.Snapshot())
-	sess, err := client.StartSession(sessOptions)
+	sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
 	if err != nil {
 		return err
 	}
@@ -3050,40 +3019,40 @@ func snapshotQueryPetExample(ctx context.Context, t *testing.T, client *mongo.Cl
 
 	var adoptablePetsCount int32
 	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
-		// count the adoptable cats
-		adoptableCatsOuput := "adoptableCatsCount"
+		// Count the adoptable cats
+		adoptableCatsOutput := "adoptableCatsCount"
 		cursor, err := db.Collection("cats").Aggregate(sc, mongo.Pipeline{
 			bson.D{{"$match", bson.D{{"adoptable", true}}}},
-			bson.D{{"$count", adoptableCatsOuput}},
+			bson.D{{"$count", adoptableCatsOutput}},
 		})
 		if err != nil {
 			return err
 		}
 
 		cursor.Next(sc)
-		resp, err := cursor.Current.LookupErr(adoptableCatsOuput)
-		if err != nil {
-			return err
+		resp := cursor.Current.Lookup(adoptableCatsOutput)
+		adoptableCatsCount, ok := resp.Int32OK()
+		if !ok {
+			return fmt.Errorf("failed to find int32 field %q in document %v", adoptableCatsOutput, cursor.Current)
 		}
-		adoptableCatsCount, _ := resp.Int32OK()
 		adoptablePetsCount += adoptableCatsCount
 
-		// count the adoptable dogs
-		adoptableDogsOuput := "adoptableDogsCount"
+		// Count the adoptable dogs
+		adoptableDogsOutput := "adoptableDogsCount"
 		cursor, err = db.Collection("dogs").Aggregate(sc, mongo.Pipeline{
 			bson.D{{"$match", bson.D{{"adoptable", true}}}},
-			bson.D{{"$count", adoptableDogsOuput}},
+			bson.D{{"$count", adoptableDogsOutput}},
 		})
 		if err != nil {
 			return err
 		}
 
 		cursor.Next(sc)
-		resp, err = cursor.Current.LookupErr(adoptableDogsOuput)
-		if err != nil {
-			return err
+		resp = cursor.Current.Lookup(adoptableDogsOutput)
+		adoptableDogsCount, ok := resp.Int32OK()
+		if !ok {
+			return fmt.Errorf("failed to find int32 field %q in document %v", adoptableDogsOutput, cursor.Current)
 		}
-		adoptableDogsCount, _ := resp.Int32OK()
 		adoptablePetsCount += adoptableDogsCount
 		return nil
 	})
@@ -3091,18 +3060,18 @@ func snapshotQueryPetExample(ctx context.Context, t *testing.T, client *mongo.Cl
 		return err
 	}
 	// End Snapshot Query Example 1
-	require.Equal(t, int32(3), adoptablePetsCount, "Expected adoptablePetsCount to be 3, got %v", adoptablePetsCount)
+	require.Equal(mt.T, int32(3), adoptablePetsCount, "expected adoptablePetsCount to be 3, got %v", adoptablePetsCount)
 	return nil
 }
 
-func snapshotQueryRetailExample(ctx context.Context, t *testing.T, client *mongo.Client) error {
-	// Start Snapshot Query Example 2
-	// Connect to the retail database
-	db := client.Database("retail")
+func snapshotQueryRetailExample(mt *mtest.T) error {
+	client := mt.Client
+	db := mt.DB
 
-	// Start a session with snapshotting
-	sessOptions := new(options.SessionOptions).SetSnapshot(true).SetDefaultReadConcern(readconcern.Snapshot())
-	sess, err := client.StartSession(sessOptions)
+	// Start Snapshot Query Example 2
+	ctx := context.TODO()
+
+	sess, err := client.StartSession(new(options.SessionOptions).SetSnapshot(true))
 	if err != nil {
 		return err
 	}
@@ -3110,7 +3079,7 @@ func snapshotQueryRetailExample(ctx context.Context, t *testing.T, client *mongo
 
 	var totalDailySales int32
 	err = mongo.WithSession(ctx, sess, func(sc mongo.SessionContext) error {
-		// count the total daily sales
+		// Count the total daily sales
 		totalDailySalesOutput := "totalDailySales"
 		cursor, err := db.Collection("sales").Aggregate(sc, mongo.Pipeline{
 			bson.D{{"$match",
@@ -3135,42 +3104,25 @@ func snapshotQueryRetailExample(ctx context.Context, t *testing.T, client *mongo
 		}
 
 		cursor.Next(sc)
-		resp, err := cursor.Current.LookupErr(totalDailySalesOutput)
-		if err != nil {
-			return err
+		resp := cursor.Current.Lookup(totalDailySalesOutput)
+
+		var ok bool
+		totalDailySales, ok = resp.Int32OK()
+		if !ok {
+			return fmt.Errorf("failed to find int32 field %q in document %v", totalDailySalesOutput, cursor.Current)
 		}
-		totalDailySales, _ = resp.Int32OK()
 		return nil
 	})
 	if err != nil {
 		return err
 	}
 	// End Snapshot Query Example 2
-	require.Equal(t, int32(1), totalDailySales, "Expected total to be 1, got %v", totalDailySales)
+	require.Equal(mt.T, int32(1), totalDailySales, "expected total to be 1, got %v", totalDailySales)
 	return nil
 }
 
-func SnapshotQueryExamples(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	// Connect to MongoDB
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mtest.ClusterURI()))
-	require.NoError(t, err)
-	defer client.Disconnect(ctx)
-
-	// Check the connection
-	err = client.Ping(ctx, nil)
-	require.NoError(t, err)
-
-	// rollback before inserting just in case the previous insert was not
-	// stopped gracefully
-	rollbackSnapshotQueryTestData(ctx, client)
-	insertSnapshotQueryTestData(ctx, t, client)
-
-	// Run the snapshot query tests
-	require.NoError(t, snapshotQueryPetExample(ctx, t, client))
-	require.NoError(t, snapshotQueryRetailExample(ctx, t, client))
-
-	rollbackSnapshotQueryTestData(ctx, client)
+func SnapshotQueryExamples(mt *mtest.T) {
+	insertSnapshotQueryTestData(mt)
+	require.NoError(mt.T, snapshotQueryPetExample(mt))
+	require.NoError(mt.T, snapshotQueryRetailExample(mt))
 }
