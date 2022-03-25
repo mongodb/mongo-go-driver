@@ -3123,6 +3123,6 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 
 func SnapshotQueryExamples(mt *mtest.T) {
 	insertSnapshotQueryTestData(mt)
-	require.NoError(mt.T, snapshotQueryPetExample(mt))
-	require.NoError(mt.T, snapshotQueryRetailExample(mt))
+	require.NoError(mt, snapshotQueryPetExample(mt))
+	require.NoError(mt, snapshotQueryRetailExample(mt))
 }
