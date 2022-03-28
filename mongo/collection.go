@@ -708,6 +708,9 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 
 	updateOptions := make([]*options.UpdateOptions, 0, len(opts))
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		uOpts := options.Update()
 		uOpts.BypassDocumentValidation = opt.BypassDocumentValidation
 		uOpts.Collation = opt.Collation
@@ -1312,6 +1315,9 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 
 	findOpts := make([]*options.FindOptions, 0, len(opts))
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		findOpts = append(findOpts, &options.FindOptions{
 			AllowPartialResults: opt.AllowPartialResults,
 			BatchSize:           opt.BatchSize,

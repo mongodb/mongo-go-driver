@@ -66,6 +66,9 @@ func newConnectionConfig(opts ...ConnectionOption) *connectionConfig {
 	}
 
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		opt(cfg)
 	}
 
