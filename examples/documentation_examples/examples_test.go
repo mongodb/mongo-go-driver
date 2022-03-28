@@ -52,47 +52,36 @@ func TestDocumentationExamples(t *testing.T) {
 	t.Run("InsertExamples", func(t *testing.T) {
 		documentation_examples.InsertExamples(t, db)
 	})
-
 	t.Run("QueryArraysExamples", func(t *testing.T) {
 		documentation_examples.QueryArraysExamples(t, db)
 	})
-
 	t.Run("ProjectionExamples", func(t *testing.T) {
 		documentation_examples.ProjectionExamples(t, db)
 	})
-
 	t.Run("UpdateExamples", func(t *testing.T) {
 		documentation_examples.UpdateExamples(t, db)
 	})
-
 	t.Run("DeleteExamples", func(t *testing.T) {
 		documentation_examples.DeleteExamples(t, db)
 	})
-
 	t.Run("RunCommandExamples", func(t *testing.T) {
 		documentation_examples.RunCommandExamples(t, db)
 	})
-
 	t.Run("IndexExamples", func(t *testing.T) {
 		documentation_examples.IndexExamples(t, db)
 	})
-
 	t.Run("StableAPExamples", func(t *testing.T) {
 		documentation_examples.StableAPIExamples()
 	})
-
 	t.Run("QueryToplevelFieldsExamples", func(t *testing.T) {
 		documentation_examples.QueryToplevelFieldsExamples(t, db)
 	})
-
 	t.Run("QueryEmbeddedDocumentsExamples", func(t *testing.T) {
 		documentation_examples.QueryEmbeddedDocumentsExamples(t, db)
 	})
-
 	t.Run("QueryArrayEmbeddedDocumentsExamples", func(t *testing.T) {
 		documentation_examples.QueryArrayEmbeddedDocumentsExamples(t, db)
 	})
-
 	t.Run("QueryNullMissingFieldsExamples", func(t *testing.T) {
 		documentation_examples.QueryNullMissingFieldsExamples(t, db)
 	})
@@ -105,7 +94,7 @@ func TestDocumentationExamples(t *testing.T) {
 	// added to API version 1 and no longer results in an error when strict is enabled.
 	mtOpts := mtest.NewOptions().MinServerVersion("5.0").MaxServerVersion("6.0").Auth(false)
 	mt.RunOpts("StableAPIStrictCountExample", mtOpts, func(t *mtest.T) {
-		documentation_examples.StableAPIStrictCountExample(t.T)
+		documentation_examples.StableAPIStrictCountExample(mt.T)
 	})
 
 	mtOpts = mtest.NewOptions().MinServerVersion("5.0").Topologies(mtest.ReplicaSet, mtest.Sharded)
