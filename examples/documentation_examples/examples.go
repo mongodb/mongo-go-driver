@@ -3030,6 +3030,10 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 		}
 
 		cursor.Next(ctx)
+		if !cursor.Next(ctx) {
+			return fmt.Errorf("expected aggregate to return a document, but got none")
+		}
+
 		resp := cursor.Current.Lookup(adoptableCatsOutput)
 		adoptableCatsCount, ok := resp.Int32OK()
 		if !ok {
@@ -3048,6 +3052,10 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 		}
 
 		cursor.Next(ctx)
+		if !cursor.Next(ctx) {
+			return fmt.Errorf("expected aggregate to return a document, but got none")
+		}
+
 		resp = cursor.Current.Lookup(adoptableDogsOutput)
 		adoptableDogsCount, ok := resp.Int32OK()
 		if !ok {
@@ -3104,6 +3112,10 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 		}
 
 		cursor.Next(ctx)
+		if !cursor.Next(ctx) {
+			return fmt.Errorf("expected aggregate to return a document, but got none")
+		}
+
 		resp := cursor.Current.Lookup(totalDailySalesOutput)
 
 		var ok bool
