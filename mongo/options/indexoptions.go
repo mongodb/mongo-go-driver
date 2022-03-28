@@ -389,6 +389,9 @@ func MergeIndexOptions(opts ...*IndexOptions) *IndexOptions {
 	i := Index()
 
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		if opt.Background != nil {
 			i.Background = opt.Background
 		}

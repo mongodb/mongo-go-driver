@@ -40,7 +40,7 @@ func (ld *ListDatabasesOptions) SetAuthorizedDatabases(b bool) *ListDatabasesOpt
 func MergeListDatabasesOptions(opts ...*ListDatabasesOptions) *ListDatabasesOptions {
 	ld := ListDatabases()
 	for _, opt := range opts {
-		if opts == nil {
+		if opt == nil {
 			continue
 		}
 		if opt.NameOnly != nil {

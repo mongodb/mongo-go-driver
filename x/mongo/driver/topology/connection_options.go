@@ -67,6 +67,10 @@ func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 	}
 
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
 		err := opt(cfg)
 		if err != nil {
 			return nil, err

@@ -48,6 +48,9 @@ func newConfig(opts ...Option) (*config, error) {
 	}
 
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		err := opt(cfg)
 		if err != nil {
 			return nil, err
