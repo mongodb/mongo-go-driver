@@ -3028,8 +3028,6 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 		if err != nil {
 			return err
 		}
-
-		cursor.Next(ctx)
 		if !cursor.Next(ctx) {
 			return fmt.Errorf("expected aggregate to return a document, but got none")
 		}
@@ -3050,8 +3048,6 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 		if err != nil {
 			return err
 		}
-
-		cursor.Next(ctx)
 		if !cursor.Next(ctx) {
 			return fmt.Errorf("expected aggregate to return a document, but got none")
 		}
@@ -3110,8 +3106,6 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 		if err != nil {
 			return err
 		}
-
-		cursor.Next(ctx)
 		if !cursor.Next(ctx) {
 			return fmt.Errorf("expected aggregate to return a document, but got none")
 		}
