@@ -50,7 +50,7 @@ var ErrServerSelectionTimeout = errors.New("server selection timeout")
 type MonitorMode uint8
 
 // random is a package-global pseudo-random number generator.
-var random = randutil.NewLockedRand(rand.NewSource(time.Now().UnixNano()))
+var random = randutil.NewLockedRand(rand.NewSource(randutil.CryptoSeed()))
 
 // These constants are the available monitoring modes.
 const (

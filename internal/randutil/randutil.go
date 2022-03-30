@@ -1,7 +1,16 @@
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 // Package randutil provides common random number utilities.
 package randutil
 
 import (
+	crand "crypto/rand"
+	"fmt"
+	"io"
 	"math/rand"
 	"sync"
 )
@@ -51,4 +60,18 @@ func (lr *LockedRand) Shuffle(n int, swap func(i, j int)) {
 	lr.mu.Lock()
 	lr.r.Shuffle(n, swap)
 	lr.mu.Unlock()
+}
+
+// CryptoSeed returns a random int64 read from the "crypto/rand" random number generator. It is
+// intended to be used to seed pseudorandom number generators at package initialization. It panics
+// if it encounters any errors.
+func CryptoSeed() int64 {
+	var b [8]byte
+	_, err := io.ReadFull(crand.Reader, b[:])
+	if err != nil {
+		panic(fmt.Errorf("failed to read 8 bytes from a \"crypto/rand\".Reader: %v", err))
+	}
+
+	return (int64(b[0]) << 0) | (int64(b[1]) << 8) | (int64(b[2]) << 16) | (int64(b[3]) << 24) |
+		(int64(b[4]) << 32) | (int64(b[5]) << 40) | (int64(b[6]) << 48) | (int64(b[7]) << 56)
 }
