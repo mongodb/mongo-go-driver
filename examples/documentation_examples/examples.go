@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -2894,7 +2895,7 @@ func StableAPIDeprecationErrorsExample() {
 // StableAPIStrictCountExample is an example of using CountDocuments instead of a traditional count
 // with a strict stable API since the count command does not belong to API version 1.
 func StableAPIStrictCountExample(t *testing.T) {
-	uri := "mongodb://localhost:27017"
+	uri := mtest.ClusterURI()
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
@@ -2955,4 +2956,179 @@ func StableAPIExamples() {
 	StableAPIStrictExample()
 	StableAPINonStrictExample()
 	StableAPIDeprecationErrorsExample()
+}
+
+func insertSnapshotQueryTestData(mt *mtest.T) {
+	catColl := mt.CreateCollection(mtest.Collection{Name: "cats"}, true)
+	_, err := catColl.InsertMany(context.Background(), []interface{}{
+		bson.D{
+			{"adoptable", false},
+			{"name", "Miyagi"},
+			{"color", "grey-white"},
+			{"age", 14},
+		},
+		bson.D{
+			{"adoptable", true},
+			{"name", "Joyce"},
+			{"color", "black"},
+			{"age", 10},
+		},
+	})
+	require.NoError(mt, err)
+
+	dogColl := mt.CreateCollection(mtest.Collection{Name: "dogs"}, true)
+	_, err = dogColl.InsertMany(context.Background(), []interface{}{
+		bson.D{
+			{"adoptable", true},
+			{"name", "Cormac"},
+			{"color", "rust"},
+			{"age", 7},
+		},
+		bson.D{
+			{"adoptable", true},
+			{"name", "Frank"},
+			{"color", "yellow"},
+			{"age", 2},
+		},
+	})
+	require.NoError(mt, err)
+
+	salesColl := mt.CreateCollection(mtest.Collection{Name: "sales"}, true)
+	_, err = salesColl.InsertMany(context.Background(), []interface{}{
+		bson.D{
+			{"shoeType", "hiking boot"},
+			{"price", 30.0},
+			{"saleDate", time.Now()},
+		},
+	})
+	require.NoError(mt, err)
+}
+
+func snapshotQueryPetExample(mt *mtest.T) error {
+	client := mt.Client
+	db := mt.DB
+
+	// Start Snapshot Query Example 1
+	ctx := context.TODO()
+
+	sess, err := client.StartSession(options.Session().SetSnapshot(true))
+	if err != nil {
+		return err
+	}
+	defer sess.EndSession(ctx)
+
+	var adoptablePetsCount int32
+	err = mongo.WithSession(ctx, sess, func(ctx mongo.SessionContext) error {
+		// Count the adoptable cats
+		const adoptableCatsOutput = "adoptableCatsCount"
+		cursor, err := db.Collection("cats").Aggregate(ctx, mongo.Pipeline{
+			bson.D{{"$match", bson.D{{"adoptable", true}}}},
+			bson.D{{"$count", adoptableCatsOutput}},
+		})
+		if err != nil {
+			return err
+		}
+		if !cursor.Next(ctx) {
+			return fmt.Errorf("expected aggregate to return a document, but got none")
+		}
+
+		resp := cursor.Current.Lookup(adoptableCatsOutput)
+		adoptableCatsCount, ok := resp.Int32OK()
+		if !ok {
+			return fmt.Errorf("failed to find int32 field %q in document %v", adoptableCatsOutput, cursor.Current)
+		}
+		adoptablePetsCount += adoptableCatsCount
+
+		// Count the adoptable dogs
+		const adoptableDogsOutput = "adoptableDogsCount"
+		cursor, err = db.Collection("dogs").Aggregate(ctx, mongo.Pipeline{
+			bson.D{{"$match", bson.D{{"adoptable", true}}}},
+			bson.D{{"$count", adoptableDogsOutput}},
+		})
+		if err != nil {
+			return err
+		}
+		if !cursor.Next(ctx) {
+			return fmt.Errorf("expected aggregate to return a document, but got none")
+		}
+
+		resp = cursor.Current.Lookup(adoptableDogsOutput)
+		adoptableDogsCount, ok := resp.Int32OK()
+		if !ok {
+			return fmt.Errorf("failed to find int32 field %q in document %v", adoptableDogsOutput, cursor.Current)
+		}
+		adoptablePetsCount += adoptableDogsCount
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// End Snapshot Query Example 1
+	require.Equal(mt, int32(3), adoptablePetsCount, "expected 3 total adoptable pets")
+	return nil
+}
+
+func snapshotQueryRetailExample(mt *mtest.T) error {
+	client := mt.Client
+	db := mt.DB
+
+	// Start Snapshot Query Example 2
+	ctx := context.TODO()
+
+	sess, err := client.StartSession(options.Session().SetSnapshot(true))
+	if err != nil {
+		return err
+	}
+	defer sess.EndSession(ctx)
+
+	var totalDailySales int32
+	err = mongo.WithSession(ctx, sess, func(ctx mongo.SessionContext) error {
+		// Count the total daily sales
+		const totalDailySalesOutput = "totalDailySales"
+		cursor, err := db.Collection("sales").Aggregate(ctx, mongo.Pipeline{
+			bson.D{{"$match",
+				bson.D{{"$expr",
+					bson.D{{"$gt",
+						bson.A{"$saleDate",
+							bson.D{{"$dateSubtract",
+								bson.D{
+									{"startDate", "$$NOW"},
+									{"unit", "day"},
+									{"amount", 1},
+								},
+							}},
+						},
+					}},
+				}},
+			}},
+			bson.D{{"$count", totalDailySalesOutput}},
+		})
+		if err != nil {
+			return err
+		}
+		if !cursor.Next(ctx) {
+			return fmt.Errorf("expected aggregate to return a document, but got none")
+		}
+
+		resp := cursor.Current.Lookup(totalDailySalesOutput)
+
+		var ok bool
+		totalDailySales, ok = resp.Int32OK()
+		if !ok {
+			return fmt.Errorf("failed to find int32 field %q in document %v", totalDailySalesOutput, cursor.Current)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// End Snapshot Query Example 2
+	require.Equal(mt, int32(1), totalDailySales, "expected 1 total daily sale")
+	return nil
+}
+
+func SnapshotQueryExamples(mt *mtest.T) {
+	insertSnapshotQueryTestData(mt)
+	require.NoError(mt, snapshotQueryPetExample(mt))
+	require.NoError(mt, snapshotQueryRetailExample(mt))
 }

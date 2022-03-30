@@ -11,6 +11,7 @@ package documentation_examples_test
 
 import (
 	"context"
+	"log"
 	"os"
 	"testing"
 	"time"
@@ -20,11 +21,22 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
+
+func TestMain(m *testing.M) {
+	if err := mtest.Setup(); err != nil {
+		log.Fatal(err)
+	}
+	defer os.Exit(m.Run())
+	if err := mtest.Teardown(); err != nil {
+		log.Fatal(err)
+	}
+}
 
 func TestDocumentationExamples(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -37,30 +49,58 @@ func TestDocumentationExamples(t *testing.T) {
 
 	db := client.Database("documentation_examples")
 
-	documentation_examples.InsertExamples(t, db)
-	documentation_examples.QueryToplevelFieldsExamples(t, db)
-	documentation_examples.QueryEmbeddedDocumentsExamples(t, db)
-	documentation_examples.QueryArraysExamples(t, db)
-	documentation_examples.QueryArrayEmbeddedDocumentsExamples(t, db)
-	documentation_examples.QueryNullMissingFieldsExamples(t, db)
-	documentation_examples.ProjectionExamples(t, db)
-	documentation_examples.UpdateExamples(t, db)
-	documentation_examples.DeleteExamples(t, db)
-	documentation_examples.RunCommandExamples(t, db)
-	documentation_examples.IndexExamples(t, db)
-	documentation_examples.StableAPIExamples()
+	t.Run("InsertExamples", func(t *testing.T) {
+		documentation_examples.InsertExamples(t, db)
+	})
+	t.Run("QueryArraysExamples", func(t *testing.T) {
+		documentation_examples.QueryArraysExamples(t, db)
+	})
+	t.Run("ProjectionExamples", func(t *testing.T) {
+		documentation_examples.ProjectionExamples(t, db)
+	})
+	t.Run("UpdateExamples", func(t *testing.T) {
+		documentation_examples.UpdateExamples(t, db)
+	})
+	t.Run("DeleteExamples", func(t *testing.T) {
+		documentation_examples.DeleteExamples(t, db)
+	})
+	t.Run("RunCommandExamples", func(t *testing.T) {
+		documentation_examples.RunCommandExamples(t, db)
+	})
+	t.Run("IndexExamples", func(t *testing.T) {
+		documentation_examples.IndexExamples(t, db)
+	})
+	t.Run("StableAPExamples", func(t *testing.T) {
+		documentation_examples.StableAPIExamples()
+	})
+	t.Run("QueryToplevelFieldsExamples", func(t *testing.T) {
+		documentation_examples.QueryToplevelFieldsExamples(t, db)
+	})
+	t.Run("QueryEmbeddedDocumentsExamples", func(t *testing.T) {
+		documentation_examples.QueryEmbeddedDocumentsExamples(t, db)
+	})
+	t.Run("QueryArrayEmbeddedDocumentsExamples", func(t *testing.T) {
+		documentation_examples.QueryArrayEmbeddedDocumentsExamples(t, db)
+	})
+	t.Run("QueryNullMissingFieldsExamples", func(t *testing.T) {
+		documentation_examples.QueryNullMissingFieldsExamples(t, db)
+	})
+
+	mt := mtest.New(t)
+	defer mt.Close()
 
 	// Because it uses RunCommand with an apiVersion, the strict count example can only be
 	// run on 5.0+ without auth. It also cannot be run on 6.0+ since the count command was
 	// added to API version 1 and no longer results in an error when strict is enabled.
-	ver, err := getServerVersion(ctx, client)
-	require.NoError(t, err, "getServerVersion error: %v", err)
-	auth := os.Getenv("AUTH") == "auth"
-	if testutil.CompareVersions(t, ver, "5.0") >= 0 && testutil.CompareVersions(t, ver, "6.0") < 0 && !auth {
-		documentation_examples.StableAPIStrictCountExample(t)
-	} else {
-		t.Log("skipping stable API strict count example")
-	}
+	mtOpts := mtest.NewOptions().MinServerVersion("5.0").MaxServerVersion("5.3")
+	mt.RunOpts("StableAPIStrictCountExample", mtOpts, func(t *mtest.T) {
+		documentation_examples.StableAPIStrictCountExample(mt.T)
+	})
+
+	mtOpts = mtest.NewOptions().MinServerVersion("5.0").Topologies(mtest.ReplicaSet, mtest.Sharded)
+	mt.RunOpts("SnapshotQueryExamples", mtOpts, func(t *mtest.T) {
+		documentation_examples.SnapshotQueryExamples(t)
+	})
 }
 
 func TestAggregationExamples(t *testing.T) {
