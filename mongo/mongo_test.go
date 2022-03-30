@@ -459,20 +459,6 @@ func TestMongoHelpers(t *testing.T) {
 	})
 }
 
-var _ bson.Marshaler = bMarsh{}
-
-type bMarsh struct {
-	bson.D
-}
-
-func (b bMarsh) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(b)
-}
-
-type reflectStruct struct {
-	Foo string
-}
-
 var _ bsoncodec.ValueMarshaler = bvMarsh{}
 
 type bvMarsh struct {

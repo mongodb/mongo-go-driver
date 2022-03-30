@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 // UploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
@@ -138,11 +137,7 @@ func (us *UploadStream) Abort() error {
 		defer cancel()
 	}
 
-	id, err := convertFileID(us.FileID)
-	if err != nil {
-		return err
-	}
-	_, err = us.chunksColl.DeleteMany(ctx, bson.D{{"files_id", id}})
+	_, err := us.chunksColl.DeleteMany(ctx, bson.D{{"files_id", us.FileID}})
 	if err != nil {
 		return err
 	}
@@ -164,10 +159,6 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 
 	docs := make([]interface{}, numChunks)
 
-	id, err := convertFileID(us.FileID)
-	if err != nil {
-		return err
-	}
 	begChunkIndex := us.chunkIndex
 	for i := 0; i < us.bufferIndex; i += int(us.chunkSize) {
 		endIndex := i + int(us.chunkSize)
@@ -181,16 +172,15 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 		chunkData := us.buffer[i:endIndex]
 		docs[us.chunkIndex-begChunkIndex] = bson.D{
 			{"_id", primitive.NewObjectID()},
-			{"files_id", id},
+			{"files_id", us.FileID},
 			{"n", int32(us.chunkIndex)},
-			{"data", bsonx.Binary(0x00, chunkData)},
-			// {"data", bsoncore.BuildDocumentValue(chunkData)},
+			{"data", primitive.Binary{Subtype: 0x00, Data: chunkData}},
 		}
 		us.chunkIndex++
 		us.fileLen += int64(len(chunkData))
 	}
 
-	_, err = us.chunksColl.InsertMany(ctx, docs)
+	_, err := us.chunksColl.InsertMany(ctx, docs)
 	if err != nil {
 		return err
 	}
@@ -205,15 +195,11 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 }
 
 func (us *UploadStream) createFilesCollDoc(ctx context.Context) error {
-	id, err := convertFileID(us.FileID)
-	if err != nil {
-		return err
-	}
 	doc := bson.D{
-		{"_id", id},
+		{"_id", us.FileID},
 		{"length", us.fileLen},
 		{"chunkSize", us.chunkSize},
-		{"uploadDate", bsonx.DateTime(time.Now().UnixNano() / int64(time.Millisecond))},
+		{"uploadDate", primitive.DateTime(time.Now().UnixNano() / int64(time.Millisecond))},
 		{"filename", us.filename},
 	}
 
@@ -221,7 +207,7 @@ func (us *UploadStream) createFilesCollDoc(ctx context.Context) error {
 		doc = append(doc, bson.E{"metadata", us.metadata})
 	}
 
-	_, err = us.filesColl.InsertOne(ctx, doc)
+	_, err := us.filesColl.InsertOne(ctx, doc)
 	if err != nil {
 		return err
 	}

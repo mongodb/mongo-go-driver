@@ -438,13 +438,7 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 
 	names := make([]string, 0)
 	for res.Next(ctx) {
-		next := &bsoncore.Document{}
-		err = res.Decode(next)
-		if err != nil {
-			return nil, err
-		}
-
-		elem, err := next.LookupErr("name")
+		elem, err := res.Current.LookupErr("name")
 		if err != nil {
 			return nil, err
 		}
