@@ -697,11 +697,10 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 	servers := make(map[string]*Server, len(test.TopologyDescription.Servers))
 	descriptions := make([]description.Server, 0, len(test.TopologyDescription.Servers))
 	for _, testDesc := range test.TopologyDescription.Servers {
-		server, err := NewServer(
+		server := NewServer(
 			address.Address(testDesc.Address),
 			primitive.NilObjectID,
 			withMonitoringDisabled(func(bool) bool { return true }))
-		require.NoError(t, err, "error creating new server")
 		servers[testDesc.Address] = server
 
 		desc := description.Server{
