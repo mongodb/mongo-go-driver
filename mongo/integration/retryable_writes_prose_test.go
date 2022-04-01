@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -141,7 +142,7 @@ func TestRetryableWritesProse(t *testing.T) {
 		})
 	})
 
-	tpm := newTestPoolMonitor()
+	tpm := monitor.NewTestPoolMonitor()
 	// Client options with MaxPoolSize of 1 and RetryWrites used per the test description.
 	// Lower HeartbeatInterval used to speed the test up for any server that uses streaming
 	// heartbeats. Only connect to first host in list for sharded clusters.
