@@ -1,6 +1,6 @@
 #!/bin/sh
 
-copyright=$'// Copyright (C) MongoDB, Inc. 2017-present.
+copyright=$'// Copyright (C) MongoDB, Inc. 2022-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
@@ -8,8 +8,9 @@ copyright=$'// Copyright (C) MongoDB, Inc. 2017-present.
 '
 
 add_copyright() {
-    local line=$(head -n 1 $1)
-    if [ "$line" == "// Copyright (C) MongoDB, Inc. 2017-present." ]; then
+    # Check if first 24 bytes match first 24 bytes of copyright notice.
+    local line=$(head -c 24 $1)
+    if [ "$line" == "// Copyright (C) MongoDB" ]; then
         echo "$1 already has copyright notice" >&2
         return
     fi
