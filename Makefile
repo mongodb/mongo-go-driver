@@ -68,6 +68,13 @@ lint:
 		eval $$command ; \
 	done
 
+.PHONY: add-license
+add-license:
+	# Find all .go files not in the vendor directory and try to write a license notice.
+	find . -path ./vendor -prune -o -type f -name "*.go" -print | xargs ./etc/add-license.sh
+	# Check for any changes made; exit with a non-zero exit code if there is a diff.
+	git diff --quiet
+
 .PHONY: test
 test:
 	for TEST in $(TEST_PKGS) ; do \
