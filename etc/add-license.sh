@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 year=$(date +"%Y")
 copyright=$"// Copyright (C) MongoDB, Inc. $year-present.
