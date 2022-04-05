@@ -261,6 +261,11 @@ func (t *T) AddMockResponses(responses ...bson.D) {
 	t.mockDeployment.addResponses(responses...)
 }
 
+// GetMockResponses get a list of the current responses.
+func (t *T) GetMockResponses(responses ...bson.D) []bson.D {
+	return t.mockDeployment.conn.responses
+}
+
 // ClearMockResponses clears all responses in the mock deployment.
 func (t *T) ClearMockResponses() {
 	t.mockDeployment.clearResponses()
