@@ -767,7 +767,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{"Case 2: aws success with endpoint", "aws", awsSuccessWithEndpoint, "", false, ""},
 			{"Case 3: aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false, ""},
 			{"Case 4: aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false, ""},
-			{"Case 5: aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "us-east-1", false, ""},
+			{"Case 5: aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "mongocrypt error", false, ""},
 			{"Case 6: aws failure with parse error", "aws", awsFailureParseError, "no such host", false, ""},
 			{"Case 7: azure success", "azure", azure, "", true, "no such host"},
 			{"Case 8: gcp success", "gcp", gcpSuccess, "", true, "no such host"},
