@@ -976,7 +976,7 @@ tasks:
       - func: install-linters
       - func: run-make
         vars:
-          targets: lint
+          targets: "lint add-license"
 
   - name: perf
     tags: ["performance"]
