@@ -18,7 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -439,19 +438,13 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 
 	names := make([]string, 0)
 	for res.Next(ctx) {
-		next := &bsonx.Doc{}
-		err = res.Decode(next)
+		elem, err := res.Current.LookupErr("name")
 		if err != nil {
 			return nil, err
 		}
 
-		elem, err := next.LookupErr("name")
-		if err != nil {
-			return nil, err
-		}
-
-		if elem.Type() != bson.TypeString {
-			return nil, fmt.Errorf("incorrect type for 'name'. got %v. want %v", elem.Type(), bson.TypeString)
+		if elem.Type != bson.TypeString {
+			return nil, fmt.Errorf("incorrect type for 'name'. got %v. want %v", elem.Type, bson.TypeString)
 		}
 
 		elemName := elem.StringValue()

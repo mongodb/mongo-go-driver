@@ -123,17 +123,6 @@ func transformAndEnsureID(registry *bsoncodec.Registry, val interface{}) (bsonco
 	return doc, id, nil
 }
 
-func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc, error) {
-	if doc, ok := val.(bsonx.Doc); ok {
-		return doc.Copy(), nil
-	}
-	b, err := transformBsoncoreDocument(registry, val, true, "document")
-	if err != nil {
-		return nil, err
-	}
-	return bsonx.ReadDoc(b)
-}
-
 func transformBsoncoreDocument(registry *bsoncodec.Registry, val interface{}, mapAllowed bool, paramName string) (bsoncore.Document, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry

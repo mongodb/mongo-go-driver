@@ -21,7 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -59,7 +58,7 @@ type Bucket struct {
 // Upload contains options to upload a file to a bucket.
 type Upload struct {
 	chunkSize int32
-	metadata  bsonx.Doc
+	metadata  bson.D
 }
 
 // NewBucket creates a GridFS bucket.
@@ -186,12 +185,8 @@ func (b *Bucket) UploadFromStreamWithID(fileID interface{}, filename string, sou
 
 // OpenDownloadStream creates a stream from which the contents of the file can be read.
 func (b *Bucket) OpenDownloadStream(fileID interface{}) (*DownloadStream, error) {
-	id, err := convertFileID(fileID)
-	if err != nil {
-		return nil, err
-	}
-	return b.openDownloadStream(bsonx.Doc{
-		{"_id", id},
+	return b.openDownloadStream(bson.D{
+		{"_id", fileID},
 	})
 }
 
@@ -224,9 +219,9 @@ func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...*options.Name
 		numSkip = (-1 * numSkip) - 1
 	}
 
-	findOpts := options.Find().SetSkip(int64(numSkip)).SetSort(bsonx.Doc{{"uploadDate", bsonx.Int32(sortOrder)}})
+	findOpts := options.Find().SetSkip(int64(numSkip)).SetSort(bson.D{{"uploadDate", sortOrder}})
 
-	return b.openDownloadStream(bsonx.Doc{{"filename", bsonx.String(filename)}}, findOpts)
+	return b.openDownloadStream(bson.D{{"filename", filename}}, findOpts)
 }
 
 // DownloadToStreamByName downloads the file with the given name to the given io.Writer.
@@ -254,11 +249,7 @@ func (b *Bucket) Delete(fileID interface{}) error {
 		defer cancel()
 	}
 
-	id, err := convertFileID(fileID)
-	if err != nil {
-		return err
-	}
-	res, err := b.filesColl.DeleteOne(ctx, bsonx.Doc{{"_id", id}})
+	res, err := b.filesColl.DeleteOne(ctx, bson.D{{"_id", fileID}})
 	if err == nil && res.DeletedCount == 0 {
 		err = ErrFileNotFound
 	}
@@ -317,13 +308,9 @@ func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
 		defer cancel()
 	}
 
-	id, err := convertFileID(fileID)
-	if err != nil {
-		return err
-	}
 	res, err := b.filesColl.UpdateOne(ctx,
-		bsonx.Doc{{"_id", id}},
-		bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"filename", bsonx.String(newFilename)}})}},
+		bson.D{{"_id", fileID}},
+		bson.D{{"$set", bson.D{{"filename", newFilename}}}},
 	)
 	if err != nil {
 		return err
@@ -426,11 +413,7 @@ func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, 
 }
 
 func (b *Bucket) deleteChunks(ctx context.Context, fileID interface{}) error {
-	id, err := convertFileID(fileID)
-	if err != nil {
-		return err
-	}
-	_, err = b.chunksColl.DeleteMany(ctx, bsonx.Doc{{"files_id", id}})
+	_, err := b.chunksColl.DeleteMany(ctx, bson.D{{"files_id", fileID}})
 	return err
 }
 
@@ -449,13 +432,9 @@ func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*opti
 }
 
 func (b *Bucket) findChunks(ctx context.Context, fileID interface{}) (*mongo.Cursor, error) {
-	id, err := convertFileID(fileID)
-	if err != nil {
-		return nil, err
-	}
 	chunksCursor, err := b.chunksColl.Find(ctx,
-		bsonx.Doc{{"files_id", id}},
-		options.Find().SetSort(bsonx.Doc{{"n", bsonx.Int32(1)}})) // sort by chunk index
+		bson.D{{"files_id", fileID}},
+		options.Find().SetSort(bson.D{{"n", 1}})) // sort by chunk index
 	if err != nil {
 		return nil, err
 	}
@@ -550,7 +529,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 		return err
 	}
 
-	docRes := cloned.FindOne(ctx, bsonx.Doc{}, options.FindOne().SetProjection(bsonx.Doc{{"_id", bsonx.Int32(1)}}))
+	docRes := cloned.FindOne(ctx, bson.D{}, options.FindOne().SetProjection(bson.D{{"_id", 1}}))
 
 	_, err = docRes.DecodeBytes()
 	if err != mongo.ErrNoDocuments {
@@ -617,31 +596,13 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 		if err != nil {
 			return nil, err
 		}
-		doc, err := bsonx.ReadDoc(raw)
-		if err != nil {
-			return nil, err
+		var doc bson.D
+		unMarErr := bson.UnmarshalWithRegistry(uo.Registry, raw, &doc)
+		if unMarErr != nil {
+			return nil, unMarErr
 		}
 		upload.metadata = doc
 	}
 
 	return upload, nil
-}
-
-type _convertFileID struct {
-	ID interface{} `bson:"_id"`
-}
-
-func convertFileID(fileID interface{}) (bsonx.Val, error) {
-	id := _convertFileID{
-		ID: fileID,
-	}
-
-	b, err := bson.Marshal(id)
-	if err != nil {
-		return bsonx.Val{}, err
-	}
-	val := bsoncore.Document(b).Lookup("_id")
-	var res bsonx.Val
-	err = res.UnmarshalBSONValue(val.Type, val.Data)
-	return res, err
 }
