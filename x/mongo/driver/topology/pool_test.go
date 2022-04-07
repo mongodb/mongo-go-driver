@@ -440,7 +440,16 @@ func TestPool(t *testing.T) {
 			_, err = p.checkOut(context.Background())
 			var want error = ConnectionError{Wrapped: dialErr, init: true}
 			assert.Equalf(t, want, err, "should return error from calling checkOut()")
-			assert.Equalf(t, 0, p.totalConnectionCount(), "pool should have 0 total connections")
+			// If a connection initialization error occurs during checkOut, removing and closing the
+			// failed connection both happen asynchronously with the checkOut. Wait for up to 2s for
+			// the failed connection to be removed from the pool.
+			assert.Eventuallyf(t,
+				func() bool {
+					return p.totalConnectionCount() == 0
+				},
+				2*time.Second,
+				100*time.Millisecond,
+				"expected pool to have 0 total connections within 10s")
 
 			p.close(context.Background())
 		})
