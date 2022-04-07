@@ -596,12 +596,12 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 		if err != nil {
 			return nil, err
 		}
-		doc := &bson.D{}
-		unMarErr := bson.UnmarshalWithRegistry(uo.Registry, raw, doc)
+		var doc bson.D
+		unMarErr := bson.UnmarshalWithRegistry(uo.Registry, raw, &doc)
 		if unMarErr != nil {
 			return nil, unMarErr
 		}
-		upload.metadata = *doc
+		upload.metadata = doc
 	}
 
 	return upload, nil
