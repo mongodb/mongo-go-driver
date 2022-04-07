@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build cse
 // +build cse
 
 package integration
@@ -687,7 +688,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{"aws success with endpoint", "aws", awsSuccessWithEndpoint, "", false},
 			{"aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false},
 			{"aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false},
-			{"aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "us-east-1", false},
+			{"aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "mongocrypt", false},
 			{"aws failure with parse error", "aws", awsFailureParseError, "parse error", false},
 			{"azure success", "azure", azure, "", true},
 			{"gcp success", "gcp", gcpSuccess, "", true},
