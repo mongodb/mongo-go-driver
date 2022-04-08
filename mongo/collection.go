@@ -582,8 +582,8 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 
 	opRes := op.Result()
 	res := &UpdateResult{
-		MatchedCount:  int64(opRes.N),
-		ModifiedCount: int64(opRes.NModified),
+		MatchedCount:  opRes.N,
+		ModifiedCount: opRes.NModified,
 		UpsertedCount: int64(len(opRes.Upserted)),
 	}
 	if len(opRes.Upserted) > 0 {

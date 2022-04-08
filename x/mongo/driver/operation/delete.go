@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -42,7 +43,7 @@ type Delete struct {
 // DeleteResult represents a delete result returned by the server.
 type DeleteResult struct {
 	// Number of documents successfully deleted.
-	N int32
+	N int64
 }
 
 func buildDeleteResult(response bsoncore.Document) (DeleteResult, error) {
@@ -54,10 +55,13 @@ func buildDeleteResult(response bsoncore.Document) (DeleteResult, error) {
 	for _, element := range elements {
 		switch element.Key() {
 		case "n":
-			var ok bool
-			dr.N, ok = element.Value().AsInt32OK()
-			if !ok {
-				return dr, fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
+			switch element.Value().Type {
+			case bson.TypeInt32:
+				dr.N = int64(element.Value().Int32())
+			case bson.TypeInt64:
+				dr.N = element.Value().Int64()
+			default:
+				return dr, fmt.Errorf("response field 'n' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		}
 	}

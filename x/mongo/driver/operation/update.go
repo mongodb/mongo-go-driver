@@ -51,9 +51,9 @@ type Upsert struct {
 // UpdateResult contains information for the result of an Update operation.
 type UpdateResult struct {
 	// Number of documents matched.
-	N int32
+	N int64
 	// Number of documents modified.
-	NModified int32
+	NModified int64
 	// Information about upserted documents.
 	Upserted []Upsert
 }
@@ -67,16 +67,22 @@ func buildUpdateResult(response bsoncore.Document) (UpdateResult, error) {
 	for _, element := range elements {
 		switch element.Key() {
 		case "nModified":
-			var ok bool
-			ur.NModified, ok = element.Value().Int32OK()
-			if !ok {
-				return ur, fmt.Errorf("response field 'nModified' is type int32, but received BSON type %s", element.Value().Type)
+			switch element.Value().Type {
+			case bson.TypeInt32:
+				ur.NModified = int64(element.Value().Int32())
+			case bson.TypeInt64:
+				ur.NModified = element.Value().Int64()
+			default:
+				return ur, fmt.Errorf("response field 'nModified' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		case "n":
-			var ok bool
-			ur.N, ok = element.Value().Int32OK()
-			if !ok {
-				return ur, fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
+			switch element.Value().Type {
+			case bson.TypeInt32:
+				ur.N = int64(element.Value().Int32())
+			case bson.TypeInt64:
+				ur.N = element.Value().Int64()
+			default:
+				return ur, fmt.Errorf("response field 'n' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		case "upserted":
 			arr, ok := element.Value().ArrayOK()
