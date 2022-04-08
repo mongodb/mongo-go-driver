@@ -47,6 +47,8 @@ type InsertManyResult struct {
 	InsertedIDs []interface{}
 }
 
+// TODO(GODRIVER-2367): Remove the BSON struct tags on DeleteResult.
+
 // DeleteResult is the result type returned by DeleteOne and DeleteMany operations.
 type DeleteResult struct {
 	DeletedCount int64 `bson:"n"` // The number of documents deleted.
@@ -91,7 +93,11 @@ type UpdateResult struct {
 }
 
 // UnmarshalBSON implements the bson.Unmarshaler interface.
+//
+// Deprecated: Unmarshaling an UpdateResult directly from BSON is not suported and may produce
+// different results compared to running Update* operations directly.
 func (result *UpdateResult) UnmarshalBSON(b []byte) error {
+	// TODO(GODRIVER-2367): Remove the ability to unmarshal BSON directly to an UpdateResult.
 	elems, err := bson.Raw(b).Elements()
 	if err != nil {
 		return err
