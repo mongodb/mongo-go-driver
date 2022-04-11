@@ -473,7 +473,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
-	return &DeleteResult{DeletedCount: int64(op.Result().N)}, err
+	return &DeleteResult{DeletedCount: op.Result().N}, err
 }
 
 // DeleteOne executes a delete command to delete at most one document from the collection.
