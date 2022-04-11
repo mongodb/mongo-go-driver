@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -55,12 +54,9 @@ func buildDeleteResult(response bsoncore.Document) (DeleteResult, error) {
 	for _, element := range elements {
 		switch element.Key() {
 		case "n":
-			switch element.Value().Type {
-			case bson.TypeInt32:
-				dr.N = int64(element.Value().Int32())
-			case bson.TypeInt64:
-				dr.N = element.Value().Int64()
-			default:
+			var ok bool
+			dr.N, ok = element.Value().AsInt64OK()
+			if !ok {
 				return dr, fmt.Errorf("response field 'n' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		}

@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -55,12 +54,9 @@ func buildCountResult(response bsoncore.Document) (CountResult, error) {
 	for _, element := range elements {
 		switch element.Key() {
 		case "n": // for count using original command
-			switch element.Value().Type {
-			case bson.TypeInt32:
-				cr.N = int64(element.Value().Int32())
-			case bson.TypeInt64:
-				cr.N = element.Value().Int64()
-			default:
+			var ok bool
+			cr.N, ok = element.Value().AsInt64OK()
+			if !ok {
 				return cr, fmt.Errorf("response field 'n' is type int64, but received BSON type %s",
 					element.Value().Type)
 			}

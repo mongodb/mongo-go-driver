@@ -67,21 +67,15 @@ func buildUpdateResult(response bsoncore.Document) (UpdateResult, error) {
 	for _, element := range elements {
 		switch element.Key() {
 		case "nModified":
-			switch element.Value().Type {
-			case bson.TypeInt32:
-				ur.NModified = int64(element.Value().Int32())
-			case bson.TypeInt64:
-				ur.NModified = element.Value().Int64()
-			default:
+			var ok bool
+			ur.NModified, ok = element.Value().AsInt64OK()
+			if !ok {
 				return ur, fmt.Errorf("response field 'nModified' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		case "n":
-			switch element.Value().Type {
-			case bson.TypeInt32:
-				ur.N = int64(element.Value().Int32())
-			case bson.TypeInt64:
-				ur.N = element.Value().Int64()
-			default:
+			var ok bool
+			ur.N, ok = element.Value().AsInt64OK()
+			if !ok {
 				return ur, fmt.Errorf("response field 'n' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		case "upserted":

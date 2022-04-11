@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -54,12 +53,9 @@ func buildInsertResult(response bsoncore.Document) (InsertResult, error) {
 	for _, element := range elements {
 		switch element.Key() {
 		case "n":
-			switch element.Value().Type {
-			case bson.TypeInt32:
-				ir.N = int64(element.Value().Int32())
-			case bson.TypeInt64:
-				ir.N = element.Value().Int64()
-			default:
+			var ok bool
+			ir.N, ok = element.Value().AsInt64OK()
+			if !ok {
 				return ir, fmt.Errorf("response field 'n' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		}
