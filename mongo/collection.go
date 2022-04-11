@@ -473,7 +473,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
-	return &DeleteResult{DeletedCount: int64(op.Result().N)}, err
+	return &DeleteResult{DeletedCount: op.Result().N}, err
 }
 
 // DeleteOne executes a delete command to delete at most one document from the collection.
@@ -582,8 +582,8 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 
 	opRes := op.Result()
 	res := &UpdateResult{
-		MatchedCount:  int64(opRes.N),
-		ModifiedCount: int64(opRes.NModified),
+		MatchedCount:  opRes.N,
+		ModifiedCount: opRes.NModified,
 		UpsertedCount: int64(len(opRes.Upserted)),
 	}
 	if len(opRes.Upserted) > 0 {

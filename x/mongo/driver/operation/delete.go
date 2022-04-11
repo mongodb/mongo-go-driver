@@ -42,7 +42,7 @@ type Delete struct {
 // DeleteResult represents a delete result returned by the server.
 type DeleteResult struct {
 	// Number of documents successfully deleted.
-	N int32
+	N int64
 }
 
 func buildDeleteResult(response bsoncore.Document) (DeleteResult, error) {
@@ -55,9 +55,9 @@ func buildDeleteResult(response bsoncore.Document) (DeleteResult, error) {
 		switch element.Key() {
 		case "n":
 			var ok bool
-			dr.N, ok = element.Value().AsInt32OK()
+			dr.N, ok = element.Value().AsInt64OK()
 			if !ok {
-				return dr, fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
+				return dr, fmt.Errorf("response field 'n' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		}
 	}
