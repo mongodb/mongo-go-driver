@@ -41,7 +41,7 @@ type Insert struct {
 // InsertResult represents an insert result returned by the server.
 type InsertResult struct {
 	// Number of documents successfully inserted.
-	N int32
+	N int64
 }
 
 func buildInsertResult(response bsoncore.Document) (InsertResult, error) {
@@ -54,9 +54,9 @@ func buildInsertResult(response bsoncore.Document) (InsertResult, error) {
 		switch element.Key() {
 		case "n":
 			var ok bool
-			ir.N, ok = element.Value().AsInt32OK()
+			ir.N, ok = element.Value().AsInt64OK()
 			if !ok {
-				return ir, fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
+				return ir, fmt.Errorf("response field 'n' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		}
 	}
