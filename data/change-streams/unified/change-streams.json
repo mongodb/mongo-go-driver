@@ -1,10 +1,22 @@
 {
   "description": "change-streams",
   "schemaVersion": "1.0",
+  "runOnRequirements": [
+    {
+      "minServerVersion": "3.6",
+      "topologies": [
+        "replicaset",
+        "sharded-replicaset"
+      ]
+    }
+  ],
   "createEntities": [
     {
       "client": {
-        "id": "client0"
+        "id": "client0",
+        "observeEvents": [
+          "commandStartedEvent"
+        ]
       }
     },
     {
@@ -34,10 +46,7 @@
       "description": "Test array truncation",
       "runOnRequirements": [
         {
-          "minServerVersion": "4.7",
-          "topologies": [
-            "replicaset"
-          ]
+          "minServerVersion": "4.7"
         }
       ],
       "operations": [
@@ -107,6 +116,53 @@
                   "newSize": 2
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "description": "to field is set in a rename change event",
+      "runOnRequirements": [
+        {
+          "minServerVersion": "4.0.1"
+        }
+      ],
+      "operations": [
+        {
+          "name": "createChangeStream",
+          "object": "collection0",
+          "arguments": {
+            "pipeline": []
+          },
+          "saveResultAsEntity": "changeStream0"
+        },
+        {
+          "name": "dropCollection",
+          "object": "database0",
+          "arguments": {
+            "collection": "collection1"
+          }
+        },
+        {
+          "name": "rename",
+          "object": "collection0",
+          "arguments": {
+            "to": "collection1"
+          }
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "changeStream0",
+          "expectResult": {
+            "operationType": "rename",
+            "ns": {
+              "db": "database0",
+              "coll": "collection0"
+            },
+            "to": {
+              "db": "database0",
+              "coll": "collection1"
             }
           }
         }
