@@ -91,10 +91,8 @@ type Server struct {
 	pool *pool
 
 	// goroutine management fields
-	done          chan struct{}
-	checkNow      chan struct{}
-	disconnecting chan struct{}
-	closewg       sync.WaitGroup
+	checkNow chan struct{}
+	closewg  sync.WaitGroup
 
 	// description related fields
 	desc                   atomic.Value // holds a description.Server
@@ -149,9 +147,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		cfg:     cfg,
 		address: addr,
 
-		done:          make(chan struct{}),
-		checkNow:      make(chan struct{}, 1),
-		disconnecting: make(chan struct{}),
+		checkNow: make(chan struct{}, 1),
 
 		topologyID: topologyID,
 
@@ -204,7 +200,7 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 	if !s.cfg.monitoringDisabled && !s.cfg.loadBalanced {
 		s.rttMonitor.connect()
 		s.closewg.Add(1)
-		go s.update()
+		go s.update(s.globalCtx)
 	}
 
 	// The CMAP spec describes that pools should only be marked "ready" when the server description
@@ -238,7 +234,6 @@ func (s *Server) Disconnect(ctx context.Context) error {
 	// The done channel is closed before cancelling the check so the update routine() will immediately detect that it
 	// can stop rather than trying to create new connections until the read from done succeeds.
 	s.globalCtxCancel()
-	close(s.done)
 	s.cancelCheck()
 
 	s.rttMonitor.disconnect()
@@ -464,28 +459,15 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 
 // update handles performing heartbeats and updating any subscribers of the
 // newest description.Server retrieved.
-func (s *Server) update() {
+func (s *Server) update(ctx context.Context) {
 	defer s.closewg.Done()
 	heartbeatTicker := time.NewTicker(s.cfg.heartbeatInterval)
 	rateLimiter := time.NewTicker(minHeartbeatInterval)
 	defer heartbeatTicker.Stop()
 	defer rateLimiter.Stop()
 	checkNow := s.checkNow
-	done := s.done
-
-	var doneOnce bool
-	defer func() {
-		if r := recover(); r != nil {
-			if doneOnce {
-				return
-			}
-			// We keep this goroutine alive attempting to read from the done channel.
-			<-done
-		}
-	}()
 
 	closeServer := func() {
-		doneOnce = true
 		s.subLock.Lock()
 		for id, c := range s.subscribers {
 			close(c)
@@ -507,7 +489,7 @@ func (s *Server) update() {
 		select {
 		case <-heartbeatTicker.C:
 		case <-checkNow:
-		case <-done:
+		case <-ctx.Done():
 			// Return because the next update iteration will check the done channel again and clean up.
 			return
 		}
@@ -515,7 +497,7 @@ func (s *Server) update() {
 		// Ensure we only return if minHeartbeatFrequency has elapsed or the server is disconnecting.
 		select {
 		case <-rateLimiter.C:
-		case <-done:
+		case <-ctx.Done():
 			return
 		}
 	}
@@ -524,7 +506,7 @@ func (s *Server) update() {
 		// Check if the server is disconnecting. Even if waitForNextCheck has already read from the done channel, we
 		// can safely read from it again because Disconnect closes the channel.
 		select {
-		case <-done:
+		case <-ctx.Done():
 			closeServer()
 			return
 		default:
@@ -586,11 +568,6 @@ func (s *Server) updateDescription(desc description.Server) {
 		// connections, the server should not be marked Unknown to ensure that the LB remains selectable.
 		return
 	}
-
-	defer func() {
-		//  ¯\_(ツ)_/¯
-		_ = recover()
-	}()
 
 	// Anytime we update the server description to something other than "unknown", set the pool to
 	// "ready". Do this before updating the description so that connections can be checked out as

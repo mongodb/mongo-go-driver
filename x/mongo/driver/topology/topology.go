@@ -75,10 +75,8 @@ type Topology struct {
 
 	dnsResolver *dns.Resolver
 
-	done chan struct{}
-
 	pollingRequired   bool
-	pollingDone       chan struct{}
+	cancelPollingCtx  context.CancelFunc
 	pollingwg         sync.WaitGroup
 	rescanSRVInterval time.Duration
 	pollHeartbeatTime atomic.Value // holds a bool
@@ -129,8 +127,6 @@ func New(opts ...Option) (*Topology, error) {
 
 	t := &Topology{
 		cfg:               cfg,
-		done:              make(chan struct{}),
-		pollingDone:       make(chan struct{}),
 		rescanSRVInterval: 60 * time.Second,
 		fsm:               newFSM(),
 		subscribers:       make(map[uint64]chan description.Topology),
@@ -230,9 +226,12 @@ func (t *Topology) Connect() error {
 	}
 
 	t.serversLock.Unlock()
+
 	if t.pollingRequired {
-		go t.pollSRVRecords()
+		ctx, cancel := context.WithCancel(context.Background())
+		t.cancelPollingCtx = cancel
 		t.pollingwg.Add(1)
+		go t.pollSRVRecords(ctx)
 	}
 
 	t.subscriptionsClosed = false // explicitly set in case topology was disconnected and then reconnected
@@ -270,7 +269,7 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 	t.subLock.Unlock()
 
 	if t.pollingRequired {
-		t.pollingDone <- struct{}{}
+		t.cancelPollingCtx()
 		t.pollingwg.Wait()
 	}
 
@@ -553,7 +552,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 	return suitable, nil
 }
 
-func (t *Topology) pollSRVRecords() {
+func (t *Topology) pollSRVRecords(ctx context.Context) {
 	defer t.pollingwg.Done()
 
 	serverConfig := newServerConfig(t.cfg.serverOpts...)
@@ -562,13 +561,6 @@ func (t *Topology) pollSRVRecords() {
 	pollTicker := time.NewTicker(t.rescanSRVInterval)
 	defer pollTicker.Stop()
 	t.pollHeartbeatTime.Store(false)
-	var doneOnce bool
-	defer func() {
-		//  ¯\_(ツ)_/¯
-		if r := recover(); r != nil && !doneOnce {
-			<-t.pollingDone
-		}
-	}()
 
 	// remove the scheme
 	uri := t.cfg.uri[14:]
@@ -580,8 +572,7 @@ func (t *Topology) pollSRVRecords() {
 	for {
 		select {
 		case <-pollTicker.C:
-		case <-t.pollingDone:
-			doneOnce = true
+		case <-ctx.Done():
 			return
 		}
 		topoKind := t.Description().Kind
@@ -610,8 +601,6 @@ func (t *Topology) pollSRVRecords() {
 			break
 		}
 	}
-	<-t.pollingDone
-	doneOnce = true
 }
 
 func (t *Topology) processSRVResults(parsedHosts []string) bool {
