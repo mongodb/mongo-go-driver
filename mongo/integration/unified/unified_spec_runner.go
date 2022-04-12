@@ -262,6 +262,17 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 			}
 		}
 	}
+	// Add 'admin' database as entity for use in rename operations if a client entity is specified.
+	if tc.entities != nil && tc.entities.clientEntities != nil {
+		eo := entityOptions{
+			ID:           "admin",
+			DatabaseName: "admin",
+			ClientID:     "client0",
+		}
+		if err := tc.entities.addEntity(testCtx, "database", &eo); err != nil {
+			return fmt.Errorf("error creating 'admin' database entity: %v", err)
+		}
+	}
 
 	// Work around SERVER-39704.
 	if mtest.ClusterTopologyKind() == mtest.Sharded && tc.performsDistinct() {

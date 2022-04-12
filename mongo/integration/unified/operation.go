@@ -97,6 +97,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeListCollections(ctx, op)
 	case "listCollectionNames":
 		return executeListCollectionNames(ctx, op)
+	case "rename":
+		return executeRenameCollection(ctx, op)
 	case "runCommand":
 		return executeRunCommand(ctx, op)
 

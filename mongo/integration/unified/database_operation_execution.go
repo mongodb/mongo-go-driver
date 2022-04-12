@@ -143,6 +143,40 @@ func executeListCollectionNames(ctx context.Context, operation *operation) (*ope
 	return newValueResult(bsontype.Array, data, nil), nil
 }
 
+func executeRenameCollection(ctx context.Context, operation *operation) (*operationResult, error) {
+	// rename can only be run on the 'admin' database.
+	admin, err := entities(ctx).database("admin")
+	if err != nil {
+		return nil, err
+	}
+
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var toName string
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "to":
+			toName = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized rename option %q", key)
+		}
+	}
+
+	renameCmd := bson.D{
+		{"renameCollection", coll.Database().Name() + "." + coll.Name()},
+		{"to", coll.Database().Name() + "." + toName},
+	}
+	res, err := admin.RunCommand(context.Background(), renameCmd).DecodeBytes()
+	return newDocumentResult(res, err), nil
+}
+
 func executeRunCommand(ctx context.Context, operation *operation) (*operationResult, error) {
 	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
