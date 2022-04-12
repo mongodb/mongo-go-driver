@@ -510,18 +510,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			serviceID:    startedInfo.serviceID,
 		}
 
-		// TODO(CSOT): Replace the short-circuit logic below with the following logic that checks 90th
-		// percentile RTT instead of minimum RTT.
-		// if deadline, ok := ctx.Deadline(); ok && time.Now().Add(conn.Description().RTT90).After(deadline) {
-		// 	err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-		// 		"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", remainingTimeout)
-		// }
-
-		// Check if there's enough time to perform a best-case network round trip before the Context
-		// deadline. If not, create a network error that wraps a context.DeadlineExceeded error and
-		// skip the actual round trip.
-		if deadline, ok := ctx.Deadline(); ok && time.Now().Add(srvr.MinRTT()).After(deadline) {
-			err = op.networkError(context.DeadlineExceeded)
+		// Check if there's enough time to perform a 90th percentile round trip before the Context
+		// deadline. If not, return ErrDeadlineWouldBeExceeded and skip the actual round trip.
+		if deadline, ok := ctx.Deadline(); ok && time.Now().Add(conn.Description().RTT90).After(deadline) {
+			err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+				"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", time.Until(deadline))
 		} else {
 			// roundtrip using either the full roundTripper or a special one for when the moreToCome
 			// flag is set

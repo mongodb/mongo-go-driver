@@ -52,7 +52,6 @@ type Server struct {
 	Primary               address.Address
 	ReadOnly              bool
 	RTT90                 time.Duration
-	RTT90Set              bool
 	ServiceID             *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
 	SessionTimeoutMinutes uint32
 	SetName               string
@@ -353,7 +352,6 @@ func (s Server) SetAverageRTT(rtt time.Duration) Server {
 // SetRTT90 sets the 90th percentile round trip time for this server description.
 func (s Server) SetRTT90(rtt time.Duration) Server {
 	s.RTT90 = rtt
-	s.RTT90Set = true
 	return s
 }
 

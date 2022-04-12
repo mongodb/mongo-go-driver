@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 func TestTimeoutClient(t *testing.T) {
@@ -55,10 +56,11 @@ func TestTimeoutClient(t *testing.T) {
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 
 		// Since there is no deadline on the provided context, the operation should honor the
-		// Timeout of 1ns, and the operation should fail due to an exceeded deadline.
+		// Timeout of 1ns, and the operation should short-circuit before being sent to the server
+		// with ErrDeadlineWouldBeExceeded.
 		_, err = mt.Coll.Find(context.Background(), bson.D{})
-		assert.True(mt, strings.Contains(err.Error(), "context deadline exceeded"),
-			"expected error to contain 'context deadline exceeded', got %v", err.Error())
+		assert.True(mt, strings.Contains(err.Error(), driver.ErrDeadlineWouldBeExceeded.Error()),
+			"expected error to contain ErrDeadlineWouldBeExceeded, got %v", err.Error())
 	})
 	mt.RunOpts("context with deadline supersedes Timeout", mtOpts, func(mt *mtest.T) {
 		// Normally, a Timeout of 1ns on the client would cause context deadline exceeded errors

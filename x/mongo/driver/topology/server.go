@@ -780,7 +780,7 @@ func (s *Server) check() (description.Server, error) {
 		// The check was successful. Set the average RTT and the 90th percentile RTT and return.
 		desc := *descPtr
 		desc = desc.SetAverageRTT(s.rttMonitor.getRTT())
-		// TODO(CSOT): Set 90th percentile RTT with SetRTT90.
+		desc = desc.SetRTT90(s.rttMonitor.getRTT90())
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
 		return desc, nil
 	}
