@@ -103,7 +103,13 @@
                             "x": "$$x"
                           }
                         }
-                      ]
+                      ],
+                      "multi": {
+                        "$$unsetOrMatches": false
+                      },
+                      "upsert": {
+                        "$$unsetOrMatches": false
+                      }
                     }
                   ],
                   "let": {
@@ -136,7 +142,7 @@
       "description": "UpdateOne with let option unsupported (server-side error)",
       "runOnRequirements": [
         {
-          "minServerVersion": "3.6.0",
+          "minServerVersion": "4.2.0",
           "maxServerVersion": "4.4.99"
         }
       ],
@@ -184,7 +190,13 @@
                             "x": "$$x"
                           }
                         }
-                      ]
+                      ],
+                      "multi": {
+                        "$$unsetOrMatches": false
+                      },
+                      "upsert": {
+                        "$$unsetOrMatches": false
+                      }
                     }
                   ],
                   "let": {
