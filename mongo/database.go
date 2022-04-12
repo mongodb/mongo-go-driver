@@ -106,12 +106,12 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 // The pipeline parameter must be a slice of documents, each representing an aggregation stage. The pipeline
 // cannot be nil but can be empty. The stage documents must all be non-nil. For a pipeline of bson.D documents, the
 // mongo.Pipeline type can be used. See
-// https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/#db-aggregate-stages for a list of valid
+// https://www.mongodb.com/docs/manual/reference/operator/aggregation-pipeline/#db-aggregate-stages for a list of valid
 // stages in database-level aggregations.
 //
 // The opts parameter can be used to specify options for this operation (see the options.AggregateOptions documentation).
 //
-// For more information about the command, see https://docs.mongodb.com/manual/reference/command/aggregate/.
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/aggregate/.
 func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 	opts ...*options.AggregateOptions) (*Cursor, error) {
 	a := aggregateParams{
@@ -301,7 +301,7 @@ func (db *Database) Drop(ctx context.Context) error {
 // The opts parameter can be used to specify options for the operation (see the options.ListCollectionsOptions
 // documentation).
 //
-// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listCollections/.
 //
 // BUG(benjirewis): ListCollectionSpecifications prevents listing more than 100 collections per database when running
 // against MongoDB version 2.6.
@@ -338,7 +338,7 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 // The opts parameter can be used to specify options for the operation (see the options.ListCollectionsOptions
 // documentation).
 //
-// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listCollections/.
 //
 // BUG(benjirewis): ListCollections prevents listing more than 100 collections per database when running against
 // MongoDB version 2.6.
@@ -422,7 +422,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 // The opts parameter can be used to specify options for the operation (see the options.ListCollectionsOptions
 // documentation).
 //
-// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listCollections/.
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listCollections/.
 //
 // BUG(benjirewis): ListCollectionNames prevents listing more than 100 collections per database when running against
 // MongoDB version 2.6.
@@ -471,13 +471,13 @@ func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 }
 
 // Watch returns a change stream for all changes to the corresponding database. See
-// https://docs.mongodb.com/manual/changeStreams/ for more information about change streams.
+// https://www.mongodb.com/docs/manual/changeStreams/ for more information about change streams.
 //
 // The Database must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
 // The pipeline parameter must be a slice of documents, each representing a pipeline stage. The pipeline cannot be
-// nil but can be empty. The stage documents must all be non-nil. See https://docs.mongodb.com/manual/changeStreams/ for
+// nil but can be empty. The stage documents must all be non-nil. See https://www.mongodb.com/docs/manual/changeStreams/ for
 // a list of pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the
 // mongo.Pipeline{} type can be used.
 //
@@ -505,7 +505,7 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 // The opts parameter can be used to specify options for the operation (see the options.CreateCollectionOptions
 // documentation).
 //
-// For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
@@ -585,7 +585,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 }
 
 // CreateView executes a create command to explicitly create a view on the server. See
-// https://docs.mongodb.com/manual/core/views/ for more information about views. This method requires driver version >=
+// https://www.mongodb.com/docs/manual/core/views/ for more information about views. This method requires driver version >=
 // 1.4.0 and MongoDB version >= 3.4.
 //
 // The viewName parameter specifies the name of the view to create.

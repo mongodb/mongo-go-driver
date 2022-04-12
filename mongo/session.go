@@ -77,9 +77,9 @@ func SessionFromContext(ctx context.Context) Session {
 // for a group of operations or to execute operations in an ACID transaction. A new Session can be created from a Client
 // instance. A Session created from a Client must only be used to execute operations using that Client or a Database or
 // Collection created from that Client. Custom implementations of this interface should not be used in production. For
-// more information about sessions, and their use cases, see https://docs.mongodb.com/manual/reference/server-sessions/,
-// https://docs.mongodb.com/manual/core/read-isolation-consistency-recency/#causal-consistency, and
-// https://docs.mongodb.com/manual/core/transactions/.
+// more information about sessions, and their use cases, see https://www.mongodb.com/docs/manual/reference/server-sessions/,
+// https://www.mongodb.com/docs/manual/core/read-isolation-consistency-recency/#causal-consistency, and
+// https://www.mongodb.com/docs/manual/core/transactions/.
 //
 // StartTransaction starts a new transaction, configured with the given options, on this session. This method will
 // return an error if there is already a transaction in-progress for this session.

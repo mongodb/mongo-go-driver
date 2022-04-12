@@ -10,7 +10,7 @@ Introduction
 ============
 
 The YAML and JSON files in this directory tree are platform-independent tests
-that drivers can use to assert compatibility with `Atlas Data Lake <https://docs.mongodb.com/datalake>`_.
+that drivers can use to assert compatibility with `Atlas Data Lake <https://www.mongodb.com/docs/datalake>`_.
 
 Running these integration tests will require a running ``mongohoused``
 with data available in its ``test.driverdata`` collection. See the
@@ -42,7 +42,7 @@ The following tests MUST be implemented to fully test compatibility with
 Atlas Data Lake.
 
 #. Test that the driver properly constructs and issues a
-   `killCursors <https://docs.mongodb.com/manual/reference/command/killCursors/>`_
+   `killCursors <https://www.mongodb.com/docs/manual/reference/command/killCursors/>`_
    command to Atlas Data Lake. For this test, configure an APM listener on a
    client and execute a query on the ``test.driverdata`` collection that will
    leave a cursor open on the server (e.g. specify ``batchSize=2`` for a query

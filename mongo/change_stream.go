@@ -63,7 +63,7 @@ var (
 // ChangeStream is used to iterate over a stream of events. Each event can be decoded into a Go type via the Decode
 // method or accessed as raw BSON via the Current field. This type is not goroutine safe and must not be used
 // concurrently by multiple goroutines. For more information about change streams, see
-// https://docs.mongodb.com/manual/changeStreams/.
+// https://www.mongodb.com/docs/manual/changeStreams/.
 type ChangeStream struct {
 	// Current is the BSON bytes of the current event. This property is only valid until the next call to Next or
 	// TryNext. If continued access is required, a copy must be made.

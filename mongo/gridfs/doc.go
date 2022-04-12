@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// Package gridfs provides a MongoDB GridFS API. See https://docs.mongodb.com/manual/core/gridfs/ for more
+// Package gridfs provides a MongoDB GridFS API. See https://www.mongodb.com/docs/manual/core/gridfs/ for more
 // information about GridFS and its use cases.
 //
 // Buckets

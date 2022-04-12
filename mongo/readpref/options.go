@@ -61,7 +61,7 @@ func WithTagSets(tagSets ...tag.Set) Option {
 
 // WithHedgeEnabled specifies whether or not hedged reads should be enabled in the server. This feature requires MongoDB
 // server version 4.4 or higher. For more information about hedged reads, see
-// https://docs.mongodb.com/manual/core/sharded-cluster-query-router/#mongos-hedged-reads. If not specified, the default
+// https://www.mongodb.com/docs/manual/core/sharded-cluster-query-router/#mongos-hedged-reads. If not specified, the default
 // is to not send a value to the server, which will result in the server defaults being used.
 func WithHedgeEnabled(hedgeEnabled bool) Option {
 	return func(rp *ReadPref) error {

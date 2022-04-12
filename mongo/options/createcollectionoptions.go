@@ -67,7 +67,7 @@ func (tso *TimeSeriesOptions) SetGranularity(granularity string) *TimeSeriesOpti
 
 // CreateCollectionOptions represents options that can be used to configure a CreateCollection operation.
 type CreateCollectionOptions struct {
-	// Specifies if the collection is capped (see https://docs.mongodb.com/manual/core/capped-collections/). If true,
+	// Specifies if the collection is capped (see https://www.mongodb.com/docs/manual/core/capped-collections/). If true,
 	// the SizeInBytes option must also be specified. The default value is false.
 	Capped *bool
 
@@ -94,33 +94,33 @@ type CreateCollectionOptions struct {
 	StorageEngine interface{}
 
 	// Specifies what should happen if a document being inserted does not pass validation. Valid values are "error" and
-	// "warn". See https://docs.mongodb.com/manual/core/schema-validation/#accept-or-reject-invalid-documents for more
+	// "warn". See https://www.mongodb.com/docs/manual/core/schema-validation/#accept-or-reject-invalid-documents for more
 	// information. This option is only valid for MongoDB versions >= 3.2. The default value is "error".
 	ValidationAction *string
 
 	// Specifies how strictly the server applies validation rules to existing documents in the collection during update
 	// operations. Valid values are "off", "strict", and "moderate". See
-	// https://docs.mongodb.com/manual/core/schema-validation/#existing-documents for more information. This option is
+	// https://www.mongodb.com/docs/manual/core/schema-validation/#existing-documents for more information. This option is
 	// only valid for MongoDB versions >= 3.2. The default value is "strict".
 	ValidationLevel *string
 
 	// A document specifying validation rules for the collection. See
-	// https://docs.mongodb.com/manual/core/schema-validation/ for more information about schema validation. This option
+	// https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about schema validation. This option
 	// is only valid for MongoDB versions >= 3.2. The default value is nil, meaning no validator will be used for the
 	// collection.
 	Validator interface{}
 
 	// Value indicating after how many seconds old time-series data should be deleted. See
-	// https://docs.mongodb.com/manual/reference/command/create/ for supported options, and
-	// https://docs.mongodb.com/manual/core/timeseries-collections/ for more information on time-series
+	// https://www.mongodb.com/docs/manual/reference/command/create/ for supported options, and
+	// https://www.mongodb.com/docs/manual/core/timeseries-collections/ for more information on time-series
 	// collections.
 	//
 	// This option is only valid for MongoDB versions >= 5.0
 	ExpireAfterSeconds *int64
 
 	// Options for specifying a time-series collection. See
-	// https://docs.mongodb.com/manual/reference/command/create/ for supported options, and
-	// https://docs.mongodb.com/manual/core/timeseries-collections/ for more information on time-series
+	// https://www.mongodb.com/docs/manual/reference/command/create/ for supported options, and
+	// https://www.mongodb.com/docs/manual/core/timeseries-collections/ for more information on time-series
 	// collections.
 	//
 	// This option is only valid for MongoDB versions >= 5.0
