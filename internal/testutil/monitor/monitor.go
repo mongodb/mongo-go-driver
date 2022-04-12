@@ -41,10 +41,10 @@ func NewTestPoolMonitor() *TestPoolMonitor {
 // applied to the returned events set and are applied using AND logic (i.e. all filters must return
 // true to include the event in the result).
 func (tpm *TestPoolMonitor) Events(filters ...func(*event.PoolEvent) bool) []*event.PoolEvent {
-	filtered := make([]*event.PoolEvent, 0, len(tpm.events))
 	tpm.mu.RLock()
 	defer tpm.mu.RUnlock()
 
+	filtered := make([]*event.PoolEvent, 0, len(tpm.events))
 	for _, evt := range tpm.events {
 		keep := true
 		for _, filter := range filters {
