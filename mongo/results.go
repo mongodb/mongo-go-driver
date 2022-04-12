@@ -94,7 +94,7 @@ type UpdateResult struct {
 
 // UnmarshalBSON implements the bson.Unmarshaler interface.
 //
-// Deprecated: Unmarshaling an UpdateResult directly from BSON is not supported and may produce
+// Deprecated: Unmarshalling an UpdateResult directly from BSON is not supported and may produce
 // different results compared to running Update* operations directly.
 func (result *UpdateResult) UnmarshalBSON(b []byte) error {
 	// TODO(GODRIVER-2367): Remove the ability to unmarshal BSON directly to an UpdateResult.
