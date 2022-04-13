@@ -97,8 +97,6 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeListCollections(ctx, op)
 	case "listCollectionNames":
 		return executeListCollectionNames(ctx, op)
-	case "rename":
-		return executeRenameCollection(ctx, op)
 	case "runCommand":
 		return executeRunCommand(ctx, op)
 
@@ -135,6 +133,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeInsertOne(ctx, op)
 	case "listIndexes":
 		return executeListIndexes(ctx, op)
+	case "rename":
+		return executeRenameCollection(ctx, op)
 	case "replaceOne":
 		return executeReplaceOne(ctx, op)
 	case "updateOne":
