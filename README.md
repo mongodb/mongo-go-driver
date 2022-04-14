@@ -3,7 +3,7 @@
   <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver"></a>
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo"><img src="etc/assets/godev-mongo-blue.svg" alt="docs"></a>
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/bson"><img src="etc/assets/godev-bson-blue.svg" alt="docs"></a>
-  <a href="https://docs.mongodb.com/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
+  <a href="https://www.mongodb.com/docs/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
 </p>
 
 # MongoDB Go Driver
@@ -153,7 +153,7 @@ if err == mongo.ErrNoDocuments {
 // Do something with result...
 ```
 
-Additional examples and documentation can be found under the examples directory and [on the MongoDB Documentation website](https://docs.mongodb.com/drivers/go/current/).
+Additional examples and documentation can be found under the examples directory and [on the MongoDB Documentation website](https://www.mongodb.com/docs/drivers/go/current/).
 
 -------------------------
 ## Feedback
@@ -222,7 +222,7 @@ The MongoDB Go Driver supports wire protocol compression using Snappy, zLib, or 
 MONGO_GO_DRIVER_COMPRESSOR=snappy make
 ```
 
-Ensure the [`--networkMessageCompressors` flag](https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors) on mongod or mongos includes `zlib` if testing zLib compression.
+Ensure the [`--networkMessageCompressors` flag](https://www.mongodb.com/docs/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors) on mongod or mongos includes `zlib` if testing zLib compression.
 
 -------------------------
 ## Contribution

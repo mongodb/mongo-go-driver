@@ -845,7 +845,7 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 //
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
-// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -918,7 +918,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions
 // documentation.)
 //
-// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
@@ -970,13 +970,13 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 }
 
 // Watch returns a change stream for all changes on the deployment. See
-// https://docs.mongodb.com/manual/changeStreams/ for more information about change streams.
+// https://www.mongodb.com/docs/manual/changeStreams/ for more information about change streams.
 //
 // The client must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
 // The pipeline parameter must be an array of documents, each representing a pipeline stage. The pipeline cannot be
-// nil or empty. The stage documents must all be non-nil. See https://docs.mongodb.com/manual/changeStreams/ for a list
+// nil or empty. The stage documents must all be non-nil. See https://www.mongodb.com/docs/manual/changeStreams/ for a list
 // of pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{}
 // type can be used.
 //

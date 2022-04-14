@@ -45,7 +45,7 @@ type ContextDialer interface {
 // AuthMechanism: the mechanism to use for authentication. Supported values include "SCRAM-SHA-256", "SCRAM-SHA-1",
 // "MONGODB-CR", "PLAIN", "GSSAPI", "MONGODB-X509", and "MONGODB-AWS". This can also be set through the "authMechanism"
 // URI option. (e.g. "authMechanism=PLAIN"). For more information, see
-// https://docs.mongodb.com/manual/core/authentication-mechanisms/.
+// https://www.mongodb.com/docs/manual/core/authentication-mechanisms/.
 //
 // AuthMechanismProperties can be used to specify additional configuration options for certain mechanisms. They can also
 // be set through the "authMechanismProperites" URI option
@@ -231,7 +231,7 @@ func (c *ClientOptions) GetURI() string {
 // If the URI format is incorrect or there are conflicting options specified in the URI an error will be recorded and
 // can be retrieved by calling Validate.
 //
-// For more information about the URI format, see https://docs.mongodb.com/manual/reference/connection-string/. See
+// For more information about the URI format, see https://www.mongodb.com/docs/manual/reference/connection-string/. See
 // mongo.Connect documentation for examples of using URIs for different Client configurations.
 func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	if c.err != nil {
@@ -475,7 +475,7 @@ func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
 //
 // If this option is specified, the driver will perform a negotiation with the server to determine a common list of of
 // compressors and will use the first one in that list when performing operations. See
-// https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors for more
+// https://www.mongodb.com/docs/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors for more
 // information about configuring compression on the server and the server-side defaults.
 //
 // This can also be set through the "compressors" URI option (e.g. "compressors=zstd,zlib,snappy"). The default is
@@ -636,7 +636,7 @@ func (c *ClientOptions) SetReadConcern(rc *readconcern.ReadConcern) *ClientOptio
 // 3. "maxStalenessSeconds" (or "maxStaleness"): Specify a maximum replication lag for reads from secondaries in a
 // replica set (e.g. "maxStalenessSeconds=10").
 //
-// The default is readpref.Primary(). See https://docs.mongodb.com/manual/core/read-preference/#read-preference for
+// The default is readpref.Primary(). See https://www.mongodb.com/docs/manual/core/read-preference/#read-preference for
 // more information about read preferences.
 func (c *ClientOptions) SetReadPreference(rp *readpref.ReadPref) *ClientOptions {
 	c.ReadPreference = rp

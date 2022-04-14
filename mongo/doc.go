@@ -141,5 +141,5 @@
 // See the ClientSideEncryption and ClientSideEncryptionCreateKey examples below for code samples about using this
 // feature.
 //
-// [1] See https://docs.mongodb.com/manual/reference/connection-string/#dns-seedlist-connection-format
+// [1] See https://www.mongodb.com/docs/manual/reference/connection-string/#dns-seedlist-connection-format
 package mongo

@@ -101,7 +101,7 @@ func ExampleConnect_sRV() {
 	// list of host names. The driver will resolve SRV records prefixed with
 	// "_mongodb_tcp" and use the returned host names to build its view of the
 	// deployment.
-	// See https://docs.mongodb.com/manual/reference/connection-string/ for more
+	// See https://www.mongodb.com/docs/manual/reference/connection-string/ for more
 	// information about SRV. Full support for SRV records with sharded clusters
 	// requires driver version 1.1.0 or higher.
 
@@ -129,7 +129,7 @@ func ExampleConnect_direct() {
 
 func ExampleConnect_sCRAM() {
 	// Configure a Client with SCRAM authentication
-	// (https://docs.mongodb.com/manual/core/security-scram/).
+	// (https://www.mongodb.com/docs/manual/core/security-scram/).
 	// The default authentication database for SCRAM is "admin". This can be
 	// configured via the authSource query parameter in the URI or the
 	// AuthSource field in the options.Credential struct. SCRAM is the default
@@ -152,7 +152,7 @@ func ExampleConnect_sCRAM() {
 
 func ExampleConnect_x509() {
 	// Configure a Client with X509 authentication
-	// (https://docs.mongodb.com/manual/core/security-x.509/).
+	// (https://www.mongodb.com/docs/manual/core/security-x.509/).
 
 	// X509 can be configured with different sets of options in the connection
 	// string:
@@ -188,7 +188,7 @@ func ExampleConnect_x509() {
 
 func ExampleConnect_pLAIN() {
 	// Configure a Client with LDAP authentication
-	// (https://docs.mongodb.com/manual/core/authentication-mechanisms-enterprise/#security-auth-ldap).
+	// (https://www.mongodb.com/docs/manual/core/authentication-mechanisms-enterprise/#security-auth-ldap).
 	// MongoDB Enterprise supports proxy authentication through an LDAP service
 	// that can be used through the PLAIN authentication mechanism.
 	// This auth mechanism sends the password in plaintext and therefore should
@@ -212,7 +212,7 @@ func ExampleConnect_pLAIN() {
 }
 
 func ExampleConnect_kerberos() {
-	// Configure a Client with GSSAPI/SSPI authentication (https://docs.mongodb.com/manual/core/kerberos/).
+	// Configure a Client with GSSAPI/SSPI authentication (https://www.mongodb.com/docs/manual/core/kerberos/).
 	// MongoDB Enterprise supports proxy authentication through a Kerberos
 	// service. Using Kerberos authentication requires the "gssapi" build tag
 	// and cgo support during compilation. The default service name for Kerberos

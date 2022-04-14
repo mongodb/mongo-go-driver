@@ -434,7 +434,7 @@ func TestDatabase(t *testing.T) {
 
 			// All possible options except collation. The collation is omitted here and tested below because the
 			// collation document reported by listCollections fills in extra fields and includes a "version" field
-			// that's not described in https://docs.mongodb.com/manual/reference/collation/.
+			// that's not described in https://www.mongodb.com/docs/manual/reference/collation/.
 			storageEngine := bson.M{
 				"wiredTiger": bson.M{
 					"configString": "block_compressor=zlib",
