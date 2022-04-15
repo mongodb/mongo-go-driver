@@ -20,18 +20,39 @@ import (
 )
 
 type collectionData struct {
-	DatabaseName   string     `bson:"databaseName"`
-	CollectionName string     `bson:"collectionName"`
-	Documents      []bson.Raw `bson:"documents"`
+	DatabaseName   string                 `bson:"databaseName"`
+	CollectionName string                 `bson:"collectionName"`
+	Documents      []bson.Raw             `bson:"documents"`
+	Options        *collectionDataOptions `bson:"collectionOptions"`
+}
+
+type collectionDataOptions struct {
+	Capped      *bool  `bson:"capped"`
+	SizeInBytes *int64 `bson:"size"`
 }
 
 // createCollection configures the collection represented by the receiver using the internal client. This function
-// first drops the collection and then creates it and inserts the seed data if needed.
+// first drops the collection and then creates it with specified options (if any) and inserts the seed data if needed.
 func (c *collectionData) createCollection(ctx context.Context) error {
 	db := mtest.GlobalClient().Database(c.DatabaseName)
 	coll := db.Collection(c.CollectionName, options.Collection().SetWriteConcern(mtest.MajorityWc))
 	if err := coll.Drop(ctx); err != nil {
 		return fmt.Errorf("error dropping collection: %v", err)
+	}
+
+	// Explicitly create collection if Options are specified.
+	if c.Options != nil {
+		createOpts := options.CreateCollection()
+		if c.Options.Capped != nil {
+			createOpts = createOpts.SetCapped(*c.Options.Capped)
+		}
+		if c.Options.SizeInBytes != nil {
+			createOpts = createOpts.SetSizeInBytes(*c.Options.SizeInBytes)
+		}
+
+		if err := db.CreateCollection(ctx, c.CollectionName, createOpts); err != nil {
+			return fmt.Errorf("error creating collection: %v", err)
+		}
 	}
 
 	// If no data is given, create the collection with write concern "majority".
