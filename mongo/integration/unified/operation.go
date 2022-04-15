@@ -151,6 +151,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	// Cursor operations
 	case "close":
 		return newEmptyResult(), executeClose(ctx, op)
+	case "iterateOnce":
+		return executeIterateOnce(ctx, op)
 	case "iterateUntilDocumentOrError":
 		return executeIterateUntilDocumentOrError(ctx, op)
 	default:
