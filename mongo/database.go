@@ -507,6 +507,10 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
+	return db.createCollectionHelper(ctx, name, opts...)
+}
+
+func (db *Database) createCollectionHelper(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
 
