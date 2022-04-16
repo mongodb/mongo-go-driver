@@ -65,12 +65,13 @@ type Client struct {
 	sessionPool     *session.Pool
 
 	// client-side encryption fields
-	keyVaultClientFLE *Client
-	keyVaultCollFLE   *Collection
-	mongocryptdFLE    *mcryptClient
-	cryptFLE          driver.Crypt
-	metadataClientFLE *Client
-	internalClientFLE *Client
+	keyVaultClientFLE       *Client
+	keyVaultCollFLE         *Collection
+	mongocryptdFLE          *mcryptClient
+	cryptFLE                driver.Crypt
+	metadataClientFLE       *Client
+	internalClientFLE       *Client
+	encryptedFieldConfigMap map[string]interface{}
 }
 
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
@@ -699,6 +700,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 }
 
 func (c *Client) configureAutoEncryption(clientOpts *options.ClientOptions) error {
+	c.encryptedFieldConfigMap = clientOpts.AutoEncryptionOptions.EncryptedFieldConfigMap
 	if err := c.configureKeyVaultClientFLE(clientOpts); err != nil {
 		return err
 	}

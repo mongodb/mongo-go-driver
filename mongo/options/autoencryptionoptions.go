@@ -25,13 +25,14 @@ import (
 // Enabling Client Side Encryption reduces the maximum document and message size (using a maxBsonObjectSize of 2MiB and
 // maxMessageSizeBytes of 6MB) and may have a negative performance impact.
 type AutoEncryptionOptions struct {
-	KeyVaultClientOptions *ClientOptions
-	KeyVaultNamespace     string
-	KmsProviders          map[string]map[string]interface{}
-	SchemaMap             map[string]interface{}
-	BypassAutoEncryption  *bool
-	ExtraOptions          map[string]interface{}
-	TLSConfig             map[string]*tls.Config
+	KeyVaultClientOptions   *ClientOptions
+	KeyVaultNamespace       string
+	KmsProviders            map[string]map[string]interface{}
+	SchemaMap               map[string]interface{}
+	BypassAutoEncryption    *bool
+	ExtraOptions            map[string]interface{}
+	TLSConfig               map[string]*tls.Config
+	EncryptedFieldConfigMap map[string]interface{}
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -113,6 +114,12 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 	return a
 }
 
+// SetEncryptedFieldConfigMap specifies a map from namespace to local EncryptedFieldConfigMap document.
+func (a *AutoEncryptionOptions) SetEncryptedFieldConfigMap(efc map[string]interface{}) *AutoEncryptionOptions {
+	a.EncryptedFieldConfigMap = efc
+	return a
+}
+
 // MergeAutoEncryptionOptions combines the argued AutoEncryptionOptions in a last-one wins fashion.
 func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionOptions {
 	aeo := AutoEncryption()
@@ -141,6 +148,9 @@ func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionO
 		}
 		if opt.TLSConfig != nil {
 			aeo.TLSConfig = opt.TLSConfig
+		}
+		if opt.EncryptedFieldConfigMap != nil {
+			aeo.EncryptedFieldConfigMap = opt.EncryptedFieldConfigMap
 		}
 	}
 
