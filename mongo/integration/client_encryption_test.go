@@ -32,16 +32,19 @@ func TestCreateEncryptedCollection(t *testing.T) {
 	mt.Run("createEncryptedCollection", func(mt *mtest.T) {
 		var encryptedFieldConfig bson.D
 		err := bson.UnmarshalExtJSON([]byte(`{
+			"escCollection": "foo_esc",
+			"eccCollection": "foo_ecc",
+			"ecocCollection": "foo_ecoc",
 			"fields": [
 				{
 					"path": "firstName",
 					"keyId": { "$binary": { "subType": "04", "base64": "AAAAAAAAAAAAAAAAAAAAAA==" }},
 					"bsonType": "string",
 					"queries": {"queryType": "equality"}
-				},
-	
+				}
 			]
-		}`), true /* canonical */, encryptedFieldConfig)
+		}`), true /* canonical */, &encryptedFieldConfig)
+		assert.Nil(mt, err, "error in UnmarshalExtJSON: %v", err)
 
 		encryptedFieldConfigMap := map[string]interface{}{
 			"db.coll": encryptedFieldConfig,
@@ -57,7 +60,7 @@ func TestCreateEncryptedCollection(t *testing.T) {
 		err = db.Drop(context.TODO())
 		assert.Nil(mt, err, "error in database Drop: %v", err)
 		err = db.CreateCollection(context.TODO(), "coll")
-		assert.Nil(mt, err, "error in CreateCollection")
+		assert.Nil(mt, err, "error in CreateCollection: %v", err)
 
 		// Check that expected data collection was created with encryptedFields. */
 		{

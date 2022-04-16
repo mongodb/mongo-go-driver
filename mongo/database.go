@@ -507,10 +507,114 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
-	return db.createCollectionHelper(ctx, name, opts...)
+	efcMap := db.client.encryptedFieldConfigMap
+	if efcMap != nil {
+		namespace := db.name + "." + name
+		efc, ok := efcMap[namespace]
+		if ok {
+			return db.createEncryptedCollection(ctx, name, efc, opts...)
+		}
+	}
+
+	op, err := db.createCollectionOperation(ctx, name, opts...)
+	if err != nil {
+		return err
+	}
+	return db.executeCreateOperation(ctx, op)
 }
 
-func (db *Database) createCollectionHelper(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
+// createEncryptedCollection creates a collection with a EncryptedFieldConfig.
+func (db *Database) createEncryptedCollection(ctx context.Context, name string, efc interface{}, opts ...*options.CreateCollectionOptions) error {
+	var efcBSON bsoncore.Document
+	efcBSON, err := transformBsoncoreDocument(db.registry, efc, true /* mapAllowed */, "encryptedFields")
+	if err != nil {
+		return fmt.Errorf("error in MarshalWithRegistry: %v", err)
+	}
+
+	// Create a data collection with the 'encryptedFields' option.
+	op, err := db.createCollectionOperation(ctx, name, opts...)
+	if err != nil {
+		return err
+	}
+
+	op.EncryptedFieldConfig(efcBSON)
+	err = db.executeCreateOperation(ctx, op)
+	if err != nil {
+		return err
+	}
+
+	// Creates an index on the __safeContent__ field in the collection @collectionName.
+	_, err = db.Collection(name).Indexes().CreateOne(ctx, IndexModel{Keys: bson.D{{"__safeContent__", 1}}})
+	if err != nil {
+		return fmt.Errorf("error in Indexes().CreateOne: %v", err)
+	}
+
+	// Creates the state collections ESCCollection, ECCCollection, and ECOCCollection.
+	// Create ESCCollection.
+	escCollection := "enxcol_." + name + ".esc"
+	val, err := efcBSON.LookupErr("escCollection")
+	var ok bool
+	if err == nil {
+		escCollection, ok = val.StringValueOK()
+		if !ok {
+			return fmt.Errorf("expected string for 'escCollection', got: %v", val.Type)
+		}
+	} else if err != bsoncore.ErrElementNotFound {
+		return err
+	}
+	op, err = db.createCollectionOperation(ctx, escCollection)
+	if err != nil {
+		return err
+	}
+	err = db.executeCreateOperation(ctx, op)
+	if err != nil {
+		return err
+	}
+
+	// Create ECCCollection.
+	eccCollection := "enxcol_." + name + ".ecc"
+	val, err = efcBSON.LookupErr("eccCollection")
+	if err == nil {
+		eccCollection, ok = val.StringValueOK()
+		if !ok {
+			return fmt.Errorf("expected string for 'eccCollection', got: %v", val.Type)
+		}
+	} else if err != bsoncore.ErrElementNotFound {
+		return err
+	}
+	op, err = db.createCollectionOperation(ctx, eccCollection)
+	if err != nil {
+		return err
+	}
+	err = db.executeCreateOperation(ctx, op)
+	if err != nil {
+		return err
+	}
+
+	// Create ECOCCollection.
+	ecocCollection := "enxcol_." + name + ".ecoc"
+	val, err = efcBSON.LookupErr("ecocCollection")
+	if err == nil {
+		ecocCollection, ok = val.StringValueOK()
+		if !ok {
+			return fmt.Errorf("expected string for 'ecocCollection', got: %v", val.Type)
+		}
+	} else if err != bsoncore.ErrElementNotFound {
+		return err
+	}
+	op, err = db.createCollectionOperation(ctx, ecocCollection)
+	if err != nil {
+		return err
+	}
+	err = db.executeCreateOperation(ctx, op)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Database) createCollectionOperation(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) (*operation.Create, error) {
 	cco := options.MergeCreateCollectionOptions(opts...)
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
 
@@ -525,14 +629,14 @@ func (db *Database) createCollectionHelper(ctx context.Context, name string, opt
 		if cco.DefaultIndexOptions.StorageEngine != nil {
 			storageEngine, err := transformBsoncoreDocument(db.registry, cco.DefaultIndexOptions.StorageEngine, true, "storageEngine")
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			doc = bsoncore.AppendDocumentElement(doc, "storageEngine", storageEngine)
 		}
 		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		op.IndexOptionDefaults(doc)
@@ -546,7 +650,7 @@ func (db *Database) createCollectionHelper(ctx context.Context, name string, opt
 	if cco.StorageEngine != nil {
 		storageEngine, err := transformBsoncoreDocument(db.registry, cco.StorageEngine, true, "storageEngine")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		op.StorageEngine(storageEngine)
 	}
@@ -559,7 +663,7 @@ func (db *Database) createCollectionHelper(ctx context.Context, name string, opt
 	if cco.Validator != nil {
 		validator, err := transformBsoncoreDocument(db.registry, cco.Validator, true, "validator")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		op.Validator(validator)
 	}
@@ -579,13 +683,13 @@ func (db *Database) createCollectionHelper(ctx context.Context, name string, opt
 
 		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		op.TimeSeries(doc)
 	}
 
-	return db.executeCreateOperation(ctx, op)
+	return op, nil
 }
 
 // CreateView executes a create command to explicitly create a view on the server. See
