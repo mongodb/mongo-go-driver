@@ -512,19 +512,15 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 		namespace := db.name + "." + name
 		efc, ok := efcMap[namespace]
 		if ok {
-			return db.createEncryptedCollection(ctx, name, efc, opts...)
+			return db.createCollectionWithEncryptedFieldConfig(ctx, name, efc, opts...)
 		}
 	}
 
-	op, err := db.createCollectionOperation(ctx, name, opts...)
-	if err != nil {
-		return err
-	}
-	return db.executeCreateOperation(ctx, op)
+	return db.createCollection(ctx, name, opts...)
 }
 
-// createEncryptedCollection creates a collection with a EncryptedFieldConfig.
-func (db *Database) createEncryptedCollection(ctx context.Context, name string, efc interface{}, opts ...*options.CreateCollectionOptions) error {
+// createCollectionWithEncryptedFieldConfig creates a collection with a EncryptedFieldConfig.
+func (db *Database) createCollectionWithEncryptedFieldConfig(ctx context.Context, name string, efc interface{}, opts ...*options.CreateCollectionOptions) error {
 	var efcBSON bsoncore.Document
 	efcBSON, err := transformBsoncoreDocument(db.registry, efc, true /* mapAllowed */, "encryptedFields")
 	if err != nil {
@@ -562,11 +558,7 @@ func (db *Database) createEncryptedCollection(ctx context.Context, name string, 
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	op, err = db.createCollectionOperation(ctx, escCollection)
-	if err != nil {
-		return err
-	}
-	err = db.executeCreateOperation(ctx, op)
+	err = db.createCollection(ctx, escCollection)
 	if err != nil {
 		return err
 	}
@@ -582,11 +574,7 @@ func (db *Database) createEncryptedCollection(ctx context.Context, name string, 
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	op, err = db.createCollectionOperation(ctx, eccCollection)
-	if err != nil {
-		return err
-	}
-	err = db.executeCreateOperation(ctx, op)
+	err = db.createCollection(ctx, eccCollection)
 	if err != nil {
 		return err
 	}
@@ -602,16 +590,21 @@ func (db *Database) createEncryptedCollection(ctx context.Context, name string, 
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	op, err = db.createCollectionOperation(ctx, ecocCollection)
-	if err != nil {
-		return err
-	}
-	err = db.executeCreateOperation(ctx, op)
+	err = db.createCollection(ctx, ecocCollection)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// createCollection creates a collection without a EncryptedFieldConfig.
+func (db *Database) createCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
+	op, err := db.createCollectionOperation(ctx, name, opts...)
+	if err != nil {
+		return err
+	}
+	return db.executeCreateOperation(ctx, op)
 }
 
 func (db *Database) createCollectionOperation(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) (*operation.Create, error) {
