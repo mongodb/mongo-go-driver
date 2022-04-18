@@ -120,264 +120,264 @@
               ]
             }
           }
+        }
+      ]
+    },
+    {
+      "description": "Test unknown operationType MUST NOT err",
+      "operations": [
+        {
+          "name": "createChangeStream",
+          "object": "collection0",
+          "arguments": {
+            "pipeline": [
+              {
+                "$project": {
+                  "operationType": "addedInFutureMongoDBVersion",
+                  "ns": 1
+                }
+              }
+            ]
+          },
+          "saveResultAsEntity": "changeStream0"
         },
         {
-          "description": "Test unknown operationType MUST NOT err",
-          "operations": [
-            {
-              "name": "createChangeStream",
-              "object": "collection0",
-              "arguments": {
-                "pipeline": [
-                  {
-                    "$project": {
-                      "operationType": "addedInFutureMongoDBVersion",
-                      "ns": 1
-                    }
-                  }
-                ]
-              },
-              "saveResultAsEntity": "changeStream0"
-            },
-            {
-              "name": "insertOne",
-              "object": "collection0",
-              "arguments": {
-                "document": {
-                  "_id": 1,
-                  "a": 1
-                }
-              }
-            },
-            {
-              "name": "iterateUntilDocumentOrError",
-              "object": "changeStream0",
-              "expectResult": {
-                "operationType": "addedInFutureMongoDBVersion",
-                "ns": {
-                  "db": "database0",
-                  "coll": "collection0"
-                }
-              }
+          "name": "insertOne",
+          "object": "collection0",
+          "arguments": {
+            "document": {
+              "_id": 1,
+              "a": 1
             }
-          ]
+          }
         },
         {
-          "description": "Test newField added in response MUST NOT err",
-          "operations": [
-            {
-              "name": "createChangeStream",
-              "object": "collection0",
-              "arguments": {
-                "pipeline": [
-                  {
-                    "$project": {
-                      "operationType": 1,
-                      "ns": 1,
-                      "newField": "newFieldValue"
-                    }
-                  }
-                ]
-              },
-              "saveResultAsEntity": "changeStream0"
-            },
-            {
-              "name": "insertOne",
-              "object": "collection0",
-              "arguments": {
-                "document": {
-                  "_id": 1,
-                  "a": 1
+          "name": "iterateUntilDocumentOrError",
+          "object": "changeStream0",
+          "expectResult": {
+            "operationType": "addedInFutureMongoDBVersion",
+            "ns": {
+              "db": "database0",
+              "coll": "collection0"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "description": "Test newField added in response MUST NOT err",
+      "operations": [
+        {
+          "name": "createChangeStream",
+          "object": "collection0",
+          "arguments": {
+            "pipeline": [
+              {
+                "$project": {
+                  "operationType": 1,
+                  "ns": 1,
+                  "newField": "newFieldValue"
                 }
               }
-            },
-            {
-              "name": "iterateUntilDocumentOrError",
-              "object": "changeStream0",
-              "expectResult": {
-                "operationType": "insert",
-                "ns": {
-                  "db": "database0",
-                  "coll": "collection0"
-                },
-                "newField": "newFieldValue"
-              }
-            }
-          ]
+            ]
+          },
+          "saveResultAsEntity": "changeStream0"
         },
         {
-          "description": "Test new structure in ns document MUST NOT err",
-          "operations": [
-            {
-              "name": "createChangeStream",
-              "object": "collection0",
-              "arguments": {
-                "pipeline": [
-                  {
-                    "$project": {
-                      "operationType": "insert",
-                      "ns.viewOn": "db.coll"
-                    }
-                  }
-                ]
-              },
-              "saveResultAsEntity": "changeStream0"
-            },
-            {
-              "name": "insertOne",
-              "object": "collection0",
-              "arguments": {
-                "document": {
-                  "_id": 1,
-                  "a": 1
-                }
-              }
-            },
-            {
-              "name": "iterateUntilDocumentOrError",
-              "object": "changeStream0",
-              "expectResult": {
-                "operationType": "insert",
-                "ns": {
-                  "viewOn": "db.coll"
-                }
-              }
+          "name": "insertOne",
+          "object": "collection0",
+          "arguments": {
+            "document": {
+              "_id": 1,
+              "a": 1
             }
-          ]
+          }
         },
         {
-          "description": "Test modified structure in ns document MUST NOT err",
-          "operations": [
-            {
-              "name": "createChangeStream",
-              "object": "collection0",
-              "arguments": {
-                "pipeline": [
-                  {
-                    "$project": {
-                      "operationType": "insert",
-                      "ns": {
-                        "db": "$ns.db",
-                        "coll": "$ns.coll",
-                        "viewOn": "db.coll"
-                      }
-                    }
-                  }
-                ]
-              },
-              "saveResultAsEntity": "changeStream0"
+          "name": "iterateUntilDocumentOrError",
+          "object": "changeStream0",
+          "expectResult": {
+            "operationType": "insert",
+            "ns": {
+              "db": "database0",
+              "coll": "collection0"
             },
-            {
-              "name": "insertOne",
-              "object": "collection0",
-              "arguments": {
-                "document": {
-                  "_id": 1,
-                  "a": 1
+            "newField": "newFieldValue"
+          }
+        }
+      ]
+    },
+    {
+      "description": "Test new structure in ns document MUST NOT err",
+      "operations": [
+        {
+          "name": "createChangeStream",
+          "object": "collection0",
+          "arguments": {
+            "pipeline": [
+              {
+                "$project": {
+                  "operationType": "insert",
+                  "ns.viewOn": "db.coll"
                 }
               }
-            },
-            {
-              "name": "iterateUntilDocumentOrError",
-              "object": "changeStream0",
-              "expectResult": {
-                "operationType": "insert",
-                "ns": {
-                  "db": "database0",
-                  "coll": "collection0",
-                  "viewOn": "db.coll"
-                }
-              }
-            }
-          ]
+            ]
+          },
+          "saveResultAsEntity": "changeStream0"
         },
         {
-          "description": "Test server error on projecting out _id",
-          "runOnRequirements": [
-            {
-              "minServerVersion": "4.2"
+          "name": "insertOne",
+          "object": "collection0",
+          "arguments": {
+            "document": {
+              "_id": 1,
+              "a": 1
             }
-          ],
-          "operations": [
-            {
-              "name": "createChangeStream",
-              "object": "collection0",
-              "arguments": {
-                "pipeline": [
-                  {
-                    "$project": {
-                      "_id": 0
-                    }
-                  }
-                ]
-              },
-              "saveResultAsEntity": "changeStream0"
-            },
-            {
-              "name": "insertOne",
-              "object": "collection0",
-              "arguments": {
-                "document": {
-                  "_id": 1,
-                  "a": 1
-                }
-              }
-            },
-            {
-              "name": "iterateUntilDocumentOrError",
-              "object": "changeStream0",
-              "expectError": {
-                "errorCode": 280,
-                "errorCodeName": "ChangeStreamFatalError",
-                "errorLabelsContain": [
-                  "NonResumableChangeStreamError"
-                ]
-              }
-            }
-          ]
+          }
         },
         {
-          "description": "Test projection in change stream returns expected fields",
-          "operations": [
-            {
-              "name": "createChangeStream",
-              "object": "collection0",
-              "arguments": {
-                "pipeline": [
-                  {
-                    "$project": {
-                      "optype": "$operationType",
-                      "ns": 1,
-                      "newField": "value"
-                    }
+          "name": "iterateUntilDocumentOrError",
+          "object": "changeStream0",
+          "expectResult": {
+            "operationType": "insert",
+            "ns": {
+              "viewOn": "db.coll"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "description": "Test modified structure in ns document MUST NOT err",
+      "operations": [
+        {
+          "name": "createChangeStream",
+          "object": "collection0",
+          "arguments": {
+            "pipeline": [
+              {
+                "$project": {
+                  "operationType": "insert",
+                  "ns": {
+                    "db": "$ns.db",
+                    "coll": "$ns.coll",
+                    "viewOn": "db.coll"
                   }
-                ]
-              },
-              "saveResultAsEntity": "changeStream0"
-            },
-            {
-              "name": "insertOne",
-              "object": "collection0",
-              "arguments": {
-                "document": {
-                  "_id": 1,
-                  "a": 1
                 }
               }
-            },
-            {
-              "name": "iterateUntilDocumentOrError",
-              "object": "changeStream0",
-              "expectResult": {
-                "optype": "insert",
-                "ns": {
-                  "db": "database0",
-                  "coll": "collection0"
-                },
-                "newField": "value"
-              }
+            ]
+          },
+          "saveResultAsEntity": "changeStream0"
+        },
+        {
+          "name": "insertOne",
+          "object": "collection0",
+          "arguments": {
+            "document": {
+              "_id": 1,
+              "a": 1
             }
-          ]
+          }
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "changeStream0",
+          "expectResult": {
+            "operationType": "insert",
+            "ns": {
+              "db": "database0",
+              "coll": "collection0",
+              "viewOn": "db.coll"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "description": "Test server error on projecting out _id",
+      "runOnRequirements": [
+        {
+          "minServerVersion": "4.2"
+        }
+      ],
+      "operations": [
+        {
+          "name": "createChangeStream",
+          "object": "collection0",
+          "arguments": {
+            "pipeline": [
+              {
+                "$project": {
+                  "_id": 0
+                }
+              }
+            ]
+          },
+          "saveResultAsEntity": "changeStream0"
+        },
+        {
+          "name": "insertOne",
+          "object": "collection0",
+          "arguments": {
+            "document": {
+              "_id": 1,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "changeStream0",
+          "expectError": {
+            "errorCode": 280,
+            "errorCodeName": "ChangeStreamFatalError",
+            "errorLabelsContain": [
+              "NonResumableChangeStreamError"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "description": "Test projection in change stream returns expected fields",
+      "operations": [
+        {
+          "name": "createChangeStream",
+          "object": "collection0",
+          "arguments": {
+            "pipeline": [
+              {
+                "$project": {
+                  "optype": "$operationType",
+                  "ns": 1,
+                  "newField": "value"
+                }
+              }
+            ]
+          },
+          "saveResultAsEntity": "changeStream0"
+        },
+        {
+          "name": "insertOne",
+          "object": "collection0",
+          "arguments": {
+            "document": {
+              "_id": 1,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "changeStream0",
+          "expectResult": {
+            "optype": "insert",
+            "ns": {
+              "db": "database0",
+              "coll": "collection0"
+            },
+            "newField": "value"
+          }
         }
       ]
     }
