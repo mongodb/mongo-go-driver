@@ -92,7 +92,6 @@ tests:
           ns:
             db: *database0
             coll: *collection0
-
   - description: "Test newField added in response MUST NOT err"
     operations:
       - name: createChangeStream
@@ -113,7 +112,6 @@ tests:
             db: *database0
             coll: *collection0
           newField: "newFieldValue"
-
   - description: "Test new structure in ns document MUST NOT err"
     operations:
       - name: createChangeStream
@@ -132,7 +130,6 @@ tests:
           operationType: "insert"
           ns:
             viewOn: "db.coll"
-
   - description: "Test modified structure in ns document MUST NOT err"
     operations:
       - name: createChangeStream
@@ -153,7 +150,6 @@ tests:
             db: *database0
             coll: *collection0
             viewOn: "db.coll"
-
   - description: "Test server error on projecting out _id"
     runOnRequirements:
       - minServerVersion: "4.2"
@@ -173,8 +169,6 @@ tests:
           errorCode: 280
           errorCodeName: "ChangeStreamFatalError"
           errorLabelsContain: [ "NonResumableChangeStreamError" ]
-
-
   - description: "Test projection in change stream returns expected fields"
     operations:
       - name: createChangeStream
