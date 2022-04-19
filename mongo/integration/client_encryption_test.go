@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -52,7 +53,9 @@ func TestCreateEncryptedCollection(t *testing.T) {
 		aeo := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetEncryptedFieldConfigMap(encryptedFieldConfigMap)
 
 		// Create a data client.
-		client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo))
+		co := options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo)
+		testutil.AddTestServerAPIVersion(co)
+		client, err := mongo.Connect(context.TODO(), co)
 		assert.Nil(t, err, "error in data client Connect: %v", err)
 		defer client.Disconnect(context.TODO())
 
@@ -139,7 +142,9 @@ func TestDropEncryptedCollection(t *testing.T) {
 		aeo := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetEncryptedFieldConfigMap(encryptedFieldConfigMap)
 
 		// Create a data client.
-		client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo))
+		co := options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo)
+		testutil.AddTestServerAPIVersion(co)
+		client, err := mongo.Connect(context.TODO(), co)
 		assert.Nil(t, err, "error in data client Connect: %v", err)
 		defer client.Disconnect(context.TODO())
 
