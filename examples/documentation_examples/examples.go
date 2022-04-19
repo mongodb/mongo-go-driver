@@ -51,6 +51,7 @@ func parseDate(t *testing.T, dateString string) time.Time {
 }
 
 // InsertExamples contains examples for insert operations.
+// Appears at https://www.mongodb.com/docs/manual/tutorial/insert-documents/.
 func InsertExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_insert")
 
@@ -140,6 +141,7 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 }
 
 // QueryToplevelFieldsExamples contains examples for querying top-level fields.
+// Appears at https://www.mongodb.com/docs/manual/tutorial/query-documents/.
 func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_top")
 
@@ -308,6 +310,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 }
 
 // QueryEmbeddedDocumentsExamples contains examples for querying embedded document fields.
+// Appears at https://www.mongodb.com/docs/manual/tutorial/query-embedded-documents/.
 func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_embedded")
 
@@ -469,6 +472,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 }
 
 // QueryArraysExamples contains examples for querying array fields.
+// Appears at https://www.mongodb.com/docs/manual/tutorial/query-arrays/.
 func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_array")
 
@@ -655,6 +659,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 }
 
 // QueryArrayEmbeddedDocumentsExamples contains examples for querying fields with arrays and embedded documents.
+// Appears at https://www.mongodb.com/docs/manual/tutorial/query-array-of-documents/.
 func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_array_embedded")
 
@@ -884,6 +889,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 }
 
 // QueryNullMissingFieldsExamples contains examples for querying fields that are null or missing.
+// Appears at https://www.mongodb.com/docs/manual/tutorial/query-for-null-fields/.
 func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_null_missing")
 
@@ -962,6 +968,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 }
 
 // ProjectionExamples contains examples for specifying projections in find operations.
+// Appears at https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/.
 func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_project")
 
@@ -1346,6 +1353,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 }
 
 // UpdateExamples contains examples of update operations.
+// Appears at https://www.mongodb.com/docs/manual/tutorial/update-documents/.
 func UpdateExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_update")
 
@@ -1626,6 +1634,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 }
 
 // DeleteExamples contains examples of delete operations.
+// Appears at https://www.mongodb.com/docs/manual/tutorial/remove-documents/.
 func DeleteExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_delete")
 
@@ -1741,6 +1750,8 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 }
 
 var log = logger.New(ioutil.Discard, "", logger.LstdFlags)
+
+// Transactions examples below all appear at https://www.mongodb.com/docs/manual/core/transactions-in-applications/.
 
 // Start Transactions Intro Example 1
 
@@ -1997,6 +2008,7 @@ func WithTransactionExample(ctx context.Context) error {
 // End Transactions withTxn API Example 1
 
 // ChangeStreamExamples contains examples of changestream operations.
+// Appears at https://www.mongodb.com/docs/manual/changeStreams/.
 func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 	ctx := context.Background()
 
@@ -2103,6 +2115,7 @@ func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 }
 
 // AggregationExamples contains examples of aggregation operations.
+// Appears at https://www.mongodb.com/docs/manual/aggregation/.
 func AggregationExamples(t *testing.T, db *mongo.Database) {
 	ctx := context.Background()
 
@@ -2523,6 +2536,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 }
 
 // CausalConsistencyExamples contains examples of causal consistency usage.
+// Appears at https://www.mongodb.com/docs/manual/core/read-isolation-consistency-recency/.
 func CausalConsistencyExamples(client *mongo.Client) error {
 	ctx := context.Background()
 	coll := client.Database("test").Collection("items")
@@ -2611,6 +2625,7 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 }
 
 // RunCommandExamples contains examples of RunCommand operations.
+// Appears at https://www.mongodb.com/docs/manual/reference/command/collStats/.
 func RunCommandExamples(t *testing.T, db *mongo.Database) {
 	ctx := context.Background()
 
@@ -2680,6 +2695,7 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 }
 
 // IndexExamples contains examples of Index operations.
+// Appears at https://www.mongodb.com/docs/manual/indexes/.
 func IndexExamples(t *testing.T, db *mongo.Database) {
 	ctx := context.Background()
 
@@ -2945,6 +2961,7 @@ func StableAPIStrictCountExample(t *testing.T) {
 }
 
 // StableAPIExamples runs all stable API examples.
+// These appear at https://www.mongodb.com/docs/manual/reference/stable-api/.
 func StableAPIExamples() {
 	StableAPIExample()
 	StableAPIStrictExample()
@@ -3121,6 +3138,8 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 	return nil
 }
 
+// SnapshotQuery examples runs examples of using sessions with Snapshot enabled.
+// These appear at https://www.mongodb.com/docs/manual/tutorial/long-running-queries/.
 func SnapshotQueryExamples(mt *mtest.T) {
 	insertSnapshotQueryTestData(mt)
 	require.NoError(mt, snapshotQueryPetExample(mt))
