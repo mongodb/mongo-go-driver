@@ -527,24 +527,6 @@ func (db *Database) createCollectionWithEncryptedFieldConfig(ctx context.Context
 		return fmt.Errorf("error in MarshalWithRegistry: %v", err)
 	}
 
-	// Create a data collection with the 'encryptedFields' option.
-	op, err := db.createCollectionOperation(ctx, name, opts...)
-	if err != nil {
-		return err
-	}
-
-	op.EncryptedFieldConfig(efcBSON)
-	err = db.executeCreateOperation(ctx, op)
-	if err != nil {
-		return err
-	}
-
-	// Creates an index on the __safeContent__ field in the collection @collectionName.
-	_, err = db.Collection(name).Indexes().CreateOne(ctx, IndexModel{Keys: bson.D{{"__safeContent__", 1}}})
-	if err != nil {
-		return fmt.Errorf("error in Indexes().CreateOne: %v", err)
-	}
-
 	// Creates the state collections ESCCollection, ECCCollection, and ECOCCollection.
 	// Create ESCCollection.
 	escCollection := "enxcol_." + name + ".esc"
@@ -593,6 +575,24 @@ func (db *Database) createCollectionWithEncryptedFieldConfig(ctx context.Context
 	err = db.createCollection(ctx, ecocCollection)
 	if err != nil {
 		return err
+	}
+
+	// Create a data collection with the 'encryptedFields' option.
+	op, err := db.createCollectionOperation(ctx, name, opts...)
+	if err != nil {
+		return err
+	}
+
+	op.EncryptedFieldConfig(efcBSON)
+	err = db.executeCreateOperation(ctx, op)
+	if err != nil {
+		return err
+	}
+
+	// Creates an index on the __safeContent__ field in the collection @collectionName.
+	_, err = db.Collection(name).Indexes().CreateOne(ctx, IndexModel{Keys: bson.D{{"__safeContent__", 1}}})
+	if err != nil {
+		return fmt.Errorf("error in Indexes().CreateOne: %v", err)
 	}
 
 	return nil
