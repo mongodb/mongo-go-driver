@@ -133,7 +133,11 @@ func TestTransactionExamples(t *testing.T) {
 	if err != nil || testutil.CompareVersions(t, ver, "4.0") < 0 || topo.Kind() != description.ReplicaSet {
 		t.Skip("server does not support transactions")
 	}
+
 	err = documentation_examples.TransactionsExamples(ctx, client)
+	require.NoError(t, err)
+
+	err = documentation_examples.WithTransactionExample(ctx)
 	require.NoError(t, err)
 }
 

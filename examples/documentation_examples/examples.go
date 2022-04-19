@@ -1948,18 +1948,17 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 // Start Transactions withTxn API Example 1
 
 // WithTransactionExample is an example of using the Session.WithTransaction function.
-func WithTransactionExample() {
-	ctx := context.TODO()
+func WithTransactionExample(ctx context.Context) error {
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
 	// uri := "mongodb://mongos0.example.com:27017,mongos1.example.com:27017/"
-	var uri string
+	uri := mtest.ClusterURI()
 
 	clientOpts := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer func() { _ = client.Disconnect(ctx) }()
 
@@ -1986,15 +1985,16 @@ func WithTransactionExample() {
 	// Step 2: Start a session and run the callback using WithTransaction.
 	session, err := client.StartSession()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer session.EndSession(ctx)
 
 	result, err := session.WithTransaction(ctx, callback)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	fmt.Printf("result: %v\n", result)
+	log.Printf("result: %v\n", result)
+	return nil
 }
 
 // End Transactions withTxn API Example 1
@@ -2809,7 +2809,7 @@ func StableAPIExample() {
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
 	// uri := "mongodb://mongos0.example.com:27017,mongos1.example.com:27017/"
-	uri := "mongodb://localhost:27017"
+	uri := mtest.ClusterURI()
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
@@ -2831,7 +2831,7 @@ func StableAPIStrictExample() {
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
 	// uri := "mongodb://mongos0.example.com:27017,mongos1.example.com:27017/"
-	uri := "mongodb://localhost:27017"
+	uri := mtest.ClusterURI()
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
@@ -2853,7 +2853,7 @@ func StableAPINonStrictExample() {
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
 	// uri := "mongodb://mongos0.example.com:27017,mongos1.example.com:27017/"
-	uri := "mongodb://localhost:27017"
+	uri := mtest.ClusterURI()
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(false)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
@@ -2876,7 +2876,7 @@ func StableAPIDeprecationErrorsExample() {
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
 	// uri := "mongodb://mongos0.example.com:27017,mongos1.example.com:27017/"
-	uri := "mongodb://localhost:27017"
+	uri := mtest.ClusterURI()
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
