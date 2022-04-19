@@ -34,8 +34,8 @@ type collectionDataOptions struct {
 // createCollection configures the collection represented by the receiver using the internal client. This function
 // first drops the collection and then creates it with specified options (if any) and inserts the seed data if needed.
 func (c *collectionData) createCollection(ctx context.Context) error {
-	db := mtest.GlobalClient().Database(c.DatabaseName)
-	coll := db.Collection(c.CollectionName, options.Collection().SetWriteConcern(mtest.MajorityWc))
+	db := mtest.GlobalClient().Database(c.DatabaseName, options.Database().SetWriteConcern(mtest.MajorityWc))
+	coll := db.Collection(c.CollectionName)
 	if err := coll.Drop(ctx); err != nil {
 		return fmt.Errorf("error dropping collection: %v", err)
 	}
@@ -55,8 +55,8 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 		}
 	}
 
-	// If no data is given, create the collection with write concern "majority".
-	if len(c.Documents) == 0 {
+	// If neither documents nor options are provided, still create the collection with write concern "majority".
+	if len(c.Documents) == 0 && c.Options == nil {
 		// The write concern has to be manually specified in the command document because RunCommand does not honor
 		// the database's write concern.
 		create := bson.D{
