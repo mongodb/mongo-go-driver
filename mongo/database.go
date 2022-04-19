@@ -578,7 +578,7 @@ func (db *Database) createCollectionWithEncryptedFieldConfig(ctx context.Context
 	}
 
 	// Create a data collection with the 'encryptedFields' option.
-	op, err := db.createCollectionOperation(ctx, name, opts...)
+	op, err := db.createCollectionOperation(name, opts...)
 	if err != nil {
 		return err
 	}
@@ -600,14 +600,14 @@ func (db *Database) createCollectionWithEncryptedFieldConfig(ctx context.Context
 
 // createCollection creates a collection without a EncryptedFieldConfig.
 func (db *Database) createCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
-	op, err := db.createCollectionOperation(ctx, name, opts...)
+	op, err := db.createCollectionOperation(name, opts...)
 	if err != nil {
 		return err
 	}
 	return db.executeCreateOperation(ctx, op)
 }
 
-func (db *Database) createCollectionOperation(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) (*operation.Create, error) {
+func (db *Database) createCollectionOperation(name string, opts ...*options.CreateCollectionOptions) (*operation.Create, error) {
 	cco := options.MergeCreateCollectionOptions(opts...)
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
 
