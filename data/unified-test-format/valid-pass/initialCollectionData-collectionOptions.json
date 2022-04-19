@@ -41,6 +41,11 @@
   "tests": [
     {
       "description": "collection is created with the correct options",
+      "runOnRequirements": [
+        {
+          "minServerVersion": "3.6"
+        }
+      ],
       "operations": [
         {
           "name": "runCommand",
