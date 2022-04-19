@@ -22,7 +22,7 @@ import (
 
 // TestCreateEncryptedCollection tests creating a collection with automatic encryption.
 func TestCreateEncryptedCollection(t *testing.T) {
-	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("5.0").Enterprise(true).CreateClient(false))
+	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("6.0").Enterprise(true).CreateClient(false).Topologies(mtest.ReplicaSet, mtest.Sharded))
 	defer mt.Close()
 
 	kmsProvidersMap := map[string]map[string]interface{}{
@@ -109,7 +109,7 @@ func TestCreateEncryptedCollection(t *testing.T) {
 }
 
 func TestDropEncryptedCollection(t *testing.T) {
-	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("5.0").Enterprise(true).CreateClient(false))
+	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("6.0").Enterprise(true).CreateClient(false).Topologies(mtest.ReplicaSet, mtest.Sharded))
 	defer mt.Close()
 
 	kmsProvidersMap := map[string]map[string]interface{}{
