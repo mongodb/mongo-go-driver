@@ -42,10 +42,7 @@ func requireCursorLength(t *testing.T, cursor *mongo.Cursor, length int) {
 
 func containsKey(doc bson.Raw, key ...string) bool {
 	_, err := doc.LookupErr(key...)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func parseDate(t *testing.T, dateString string) time.Time {
@@ -67,7 +64,7 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 1
 
 		result, err := coll.InsertOne(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"item", "canvas"},
 				{"qty", 100},
@@ -89,7 +86,7 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 2
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{{"item", "canvas"}},
 		)
 
@@ -104,7 +101,7 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 3
 
 		result, err := coll.InsertMany(
-			context.Background(),
+			context.TODO(),
 			[]interface{}{
 				bson.D{
 					{"item", "journal"},
@@ -208,7 +205,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := coll.InsertMany(context.Background(), docs)
+		result, err := coll.InsertMany(context.TODO(), docs)
 
 		// End Example 6
 
@@ -220,7 +217,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 7
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{},
 		)
 
@@ -234,7 +231,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 9
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{{"status", "D"}},
 		)
 
@@ -248,7 +245,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 10
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{{"status", bson.D{{"$in", bson.A{"A", "D"}}}}})
 
 		// End Example 10
@@ -261,7 +258,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 11
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 				{"qty", bson.D{{"$lt", 30}}},
@@ -277,7 +274,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 12
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"$or",
 					bson.A{
@@ -296,7 +293,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 13
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 				{"$or", bson.A{
@@ -376,7 +373,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := coll.InsertMany(context.Background(), docs)
+		result, err := coll.InsertMany(context.TODO(), docs)
 
 		// End Example 14
 
@@ -388,7 +385,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 15
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"size", bson.D{
 					{"h", 14},
@@ -407,7 +404,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 16
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"size", bson.D{
 					{"w", 21},
@@ -426,7 +423,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 17
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{{"size.uom", "in"}},
 		)
 
@@ -440,7 +437,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 18
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"size.h", bson.D{
 					{"$lt", 15},
@@ -457,7 +454,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 19
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"size.h", bson.D{
 					{"$lt", 15},
@@ -517,7 +514,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := coll.InsertMany(context.Background(), docs)
+		result, err := coll.InsertMany(context.TODO(), docs)
 
 		// End Example 20
 
@@ -529,7 +526,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 21
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{{"tags", bson.A{"red", "blank"}}},
 		)
 
@@ -543,7 +540,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 22
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"tags", bson.D{{"$all", bson.A{"red", "blank"}}}},
 			})
@@ -558,7 +555,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 23
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"tags", "red"},
 			})
@@ -573,7 +570,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 24
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"dim_cm", bson.D{
 					{"$gt", 25},
@@ -590,7 +587,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 25
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"dim_cm", bson.D{
 					{"$gt", 15},
@@ -608,7 +605,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 26
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"dim_cm", bson.D{
 					{"$elemMatch", bson.D{
@@ -628,7 +625,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 27
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"dim_cm.1", bson.D{
 					{"$gt", 25},
@@ -645,7 +642,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 28
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"tags", bson.D{
 					{"$size", 3},
@@ -734,7 +731,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := coll.InsertMany(context.Background(), docs)
+		result, err := coll.InsertMany(context.TODO(), docs)
 
 		// End Example 29
 
@@ -746,7 +743,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 30
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"instock", bson.D{
 					{"warehouse", "A"},
@@ -764,7 +761,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 31
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"instock", bson.D{
 					{"qty", 5},
@@ -782,7 +779,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 32
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"instock.0.qty", bson.D{
 					{"$lte", 20},
@@ -799,7 +796,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 33
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"instock.qty", bson.D{
 					{"$lte", 20},
@@ -816,7 +813,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 34
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"instock", bson.D{
 					{"$elemMatch", bson.D{
@@ -836,7 +833,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 35
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"instock", bson.D{
 					{"$elemMatch", bson.D{
@@ -858,7 +855,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 36
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"instock.qty", bson.D{
 					{"$gt", 10},
@@ -876,7 +873,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 37
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"instock.qty", 5},
 				{"instock.warehouse", "A"},
@@ -909,7 +906,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := coll.InsertMany(context.Background(), docs)
+		result, err := coll.InsertMany(context.TODO(), docs)
 
 		// End Example 38
 
@@ -921,7 +918,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 39
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"item", nil},
 			})
@@ -936,7 +933,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 40
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"item", bson.D{
 					{"$type", 10},
@@ -953,7 +950,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 41
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"item", bson.D{
 					{"$exists", false},
@@ -1059,7 +1056,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := coll.InsertMany(context.Background(), docs)
+		result, err := coll.InsertMany(context.TODO(), docs)
 
 		// End Example 42
 
@@ -1071,7 +1068,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 43
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{{"status", "A"}},
 		)
 
@@ -1090,7 +1087,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		}
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 			},
@@ -1124,7 +1121,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		}
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 			},
@@ -1157,7 +1154,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		}
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 			},
@@ -1191,7 +1188,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		}
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 			},
@@ -1228,7 +1225,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		}
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 			},
@@ -1267,7 +1264,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		}
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 			},
@@ -1320,7 +1317,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		}
 
 		cursor, err := coll.Find(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 			},
@@ -1464,7 +1461,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := coll.InsertMany(context.Background(), docs)
+		result, err := coll.InsertMany(context.TODO(), docs)
 
 		// End Example 51
 
@@ -1476,7 +1473,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 52
 
 		result, err := coll.UpdateOne(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"item", "paper"},
 			},
@@ -1526,7 +1523,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 53
 
 		result, err := coll.UpdateMany(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"qty", bson.D{
 					{"$lt", 50},
@@ -1580,7 +1577,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 54
 
 		result, err := coll.ReplaceOne(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"item", "paper"},
 			},
@@ -1693,7 +1690,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 			},
 		}
 
-		result, err := coll.InsertMany(context.Background(), docs)
+		result, err := coll.InsertMany(context.TODO(), docs)
 
 		// End Example 55
 
@@ -1705,7 +1702,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 57
 
 		result, err := coll.DeleteMany(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "A"},
 			},
@@ -1721,7 +1718,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 58
 
 		result, err := coll.DeleteOne(
-			context.Background(),
+			context.TODO(),
 			bson.D{
 				{"status", "D"},
 			},
@@ -1737,7 +1734,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 56
 
-		result, err := coll.DeleteMany(context.Background(), bson.D{})
+		result, err := coll.DeleteMany(context.TODO(), bson.D{})
 
 		// End Example 56
 
@@ -1952,7 +1949,7 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 
 // WithTransactionExample is an example of using the Session.WithTransaction function.
 func WithTransactionExample() {
-	ctx := context.Background()
+	ctx := context.TODO()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
@@ -2807,7 +2804,7 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 // StableAPIExample is an example of creating a client with stable API.
 func StableAPIExample() {
-	ctx := context.Background()
+	ctx := context.TODO()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
@@ -2829,7 +2826,7 @@ func StableAPIExample() {
 
 // StableAPIStrictExample is an example of creating a client with strict stable API.
 func StableAPIStrictExample() {
-	ctx := context.Background()
+	ctx := context.TODO()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
@@ -2851,7 +2848,7 @@ func StableAPIStrictExample() {
 
 // StableAPINonStrictExample is an example of creating a client with non-strict stable API.
 func StableAPINonStrictExample() {
-	ctx := context.Background()
+	ctx := context.TODO()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
@@ -2874,7 +2871,7 @@ func StableAPINonStrictExample() {
 // StableAPIDeprecationErrorsExample is an example of creating a client with stable API
 // with deprecation errors.
 func StableAPIDeprecationErrorsExample() {
-	ctx := context.Background()
+	ctx := context.TODO()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
