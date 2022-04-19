@@ -1398,16 +1398,13 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 		}
 	}
 
-	createCmd := bson.D{
-		{"create", collName},
-	}
 	if sess != nil {
 		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			return mt.DB.RunCommand(sc, createCmd).Err()
+			return mt.DB.CreateCollection(sc, collName)
 		})
 		return err
 	}
-	return mt.DB.RunCommand(context.Background(), createCmd).Err()
+	return mt.DB.CreateCollection(context.Background(), collName)
 }
 
 func executeAdminCommand(mt *mtest.T, op *operation) {
