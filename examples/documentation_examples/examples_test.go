@@ -96,8 +96,10 @@ func TestDocumentationExamples(t *testing.T) {
 		documentation_examples.SnapshotQueryExamples(mt)
 	})
 
-	// Only 3.6+ supports $lookup in aggregations as is used in aggregation examples.
-	mtOpts = mtest.NewOptions().MinServerVersion("3.6")
+	// Only 3.6+ supports $lookup in aggregations as is used in aggregation examples. No
+	// collection needs to be created, and collection creation can sometimes cause failures
+	// on sharded clusters.
+	mtOpts = mtest.NewOptions().MinServerVersion("3.6").CreateCollection(false)
 	mt.RunOpts("AggregationExamples", mtOpts, func(mt *mtest.T) {
 		documentation_examples.AggregationExamples(mt.T, db)
 	})
