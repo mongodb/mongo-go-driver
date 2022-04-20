@@ -507,16 +507,59 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
-	efcMap := db.client.encryptedFieldConfigMap
-	if efcMap != nil {
-		namespace := db.name + "." + name
-		efc, ok := efcMap[namespace]
-		if ok {
-			return db.createCollectionWithEncryptedFieldConfig(ctx, name, efc, opts...)
-		}
+	efc, err := db.getEncryptedFieldConfig(ctx, name, false /* useListCollections */)
+	if err != nil {
+		return err
+	}
+	if efc != nil {
+		return db.createCollectionWithEncryptedFieldConfig(ctx, name, efc, opts...)
 	}
 
 	return db.createCollection(ctx, name, opts...)
+}
+
+func (db *Database) getEncryptedFieldConfig(ctx context.Context, collectionName string, useListCollections bool) (interface{}, error) {
+	// Check the EncryptedFieldConfigMap
+	efcMap := db.client.encryptedFieldConfigMap
+	if efcMap == nil {
+		return nil, nil
+	}
+
+	namespace := db.name + "." + collectionName
+
+	efc, ok := efcMap[namespace]
+	if ok {
+		return efc, nil
+	}
+
+	if !useListCollections {
+		return nil, nil
+	}
+	// Check if collection has an EncryptedFieldConfig configured server-side.
+	collSpecs, err := db.ListCollectionSpecifications(ctx, bson.D{{"name", collectionName}})
+	if err != nil {
+		return nil, err
+	}
+	if len(collSpecs) == 0 {
+		return nil, nil
+	}
+	if len(collSpecs) > 1 {
+		return nil, fmt.Errorf("expected 1 or 0 results from listCollections, got %v", len(collSpecs))
+	}
+	collSpec := collSpecs[0]
+	rawValue, err := collSpec.Options.LookupErr("encryptedFields")
+	if err == bsoncore.ErrElementNotFound {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	encryptedFields, ok := rawValue.DocumentOK()
+	if !ok {
+		return nil, fmt.Errorf("expected encryptedFields of %v to be document, got %v", collectionName, rawValue.Type)
+	}
+
+	return &encryptedFields, nil
 }
 
 // createCollectionWithEncryptedFieldConfig creates a collection with a EncryptedFieldConfig.
