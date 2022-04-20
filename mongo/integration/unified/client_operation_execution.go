@@ -54,6 +54,8 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(*collation)
+		case "comment":
+			opts.SetComment(val.String())
 		case "fullDocument":
 			switch fd := val.StringValue(); fd {
 			case "default":
