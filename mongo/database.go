@@ -507,7 +507,8 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 //
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
-	efc, err := db.getEncryptedFieldConfig(ctx, name, false /* useListCollections */)
+	cco := options.MergeCreateCollectionOptions(opts...)
+	efc, err := db.getEncryptedFieldConfig(ctx, cco.EncryptedFieldConfig, name, false /* useListCollections */)
 	if err != nil {
 		return err
 	}
@@ -518,7 +519,10 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 	return db.createCollection(ctx, name, opts...)
 }
 
-func (db *Database) getEncryptedFieldConfig(ctx context.Context, collectionName string, useListCollections bool) (interface{}, error) {
+func (db *Database) getEncryptedFieldConfig(ctx context.Context, efcOption interface{}, collectionName string, useListCollections bool) (interface{}, error) {
+	if efcOption != nil {
+		return efcOption, nil
+	}
 	// Check the EncryptedFieldConfigMap
 	efcMap := db.client.encryptedFieldConfigMap
 	if efcMap == nil {

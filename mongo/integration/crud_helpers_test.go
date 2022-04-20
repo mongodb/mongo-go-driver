@@ -1383,6 +1383,8 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
 	mt.Helper()
 
+	cco := options.CreateCollection()
+
 	var collName string
 	elems, _ := args.Elements()
 	for _, elem := range elems {
@@ -1390,6 +1392,8 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 		val := elem.Value()
 
 		switch key {
+		case "encryptedFieldConfig":
+			cco.SetEncryptedFieldConfig(val.Document())
 		case "collection":
 			collName = val.StringValue()
 		case "session":
@@ -1400,11 +1404,11 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 
 	if sess != nil {
 		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			return mt.DB.CreateCollection(sc, collName)
+			return mt.DB.CreateCollection(sc, collName, cco)
 		})
 		return err
 	}
-	return mt.DB.CreateCollection(context.Background(), collName)
+	return mt.DB.CreateCollection(context.Background(), collName, cco)
 }
 
 func executeAdminCommand(mt *mtest.T, op *operation) {
