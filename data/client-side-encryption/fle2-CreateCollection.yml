@@ -12,7 +12,7 @@ tests:
       autoEncryptOpts:
         kmsProviders:
           aws: {} # Credentials filled in from environment.
-        encryptedFieldConfigMap:
+        encryptedFieldsMap:
           default.encryptedCollection: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
@@ -124,7 +124,7 @@ tests:
       autoEncryptOpts:
         kmsProviders:
           aws: {} # Credentials filled in from environment.
-        encryptedFieldConfigMap:
+        encryptedFieldsMap:
           default.encryptedCollection: {
                 "fields": [
                     {
@@ -239,7 +239,7 @@ tests:
       autoEncryptOpts:
         kmsProviders:
           aws: {} # Credentials filled in from environment.
-        encryptedFieldConfigMap:
+        encryptedFieldsMap:
           default.encryptedCollection: {
                 "fields": [
                     {
@@ -396,12 +396,12 @@ tests:
             commandName: drop
             databaseName: *database_name
         # events from dropCollection ... end
-  - description: "encryptedFieldConfigMap with cyclic entries does not loop"
+  - description: "encryptedFieldsMap with cyclic entries does not loop"
     clientOptions:
       autoEncryptOpts:
         kmsProviders:
           aws: {} # Credentials filled in from environment.
-        encryptedFieldConfigMap:
+        encryptedFieldsMap:
           # encryptedCollection has encryptedCollection.esc as the escCollection.
           # encryptedCollection.esc has encryptedCollection as the escCollection.
           default.encryptedCollection: {
@@ -520,12 +520,12 @@ tests:
             commandName: createIndexes
             databaseName: *database_name
         # events from createCollection ... end
-  - description: "CreateCollection without EncryptedFieldConfig."
+  - description: "CreateCollection without encryptedFields."
     clientOptions:
       autoEncryptOpts:
         kmsProviders:
           aws: {} # Credentials filled in from environment.
-        encryptedFieldConfigMap:
+        encryptedFieldsMap:
           default.encryptedCollection: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
@@ -556,7 +556,7 @@ tests:
 
     expectations:
         # events from dropCollection ... begin
-        # expect listCollections to be sent on drop to check for remote EncryptedFieldConfig.
+        # expect listCollections to be sent on drop to check for remote encryptedFields.
         - command_started_event:
             command:
               listCollections: 1
@@ -574,12 +574,12 @@ tests:
               create: "plaintextCollection"
             commandName: create
             databaseName: *database_name
-  - description: "CreateCollection from EncryptedFieldConfigMap."
+  - description: "CreateCollection from encryptedFieldsMap."
     clientOptions:
       autoEncryptOpts:
         kmsProviders:
           aws: {} # Credentials filled in from environment.
-        encryptedFieldConfigMap:
+        encryptedFieldsMap:
           default.encryptedCollection: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
@@ -685,7 +685,7 @@ tests:
             commandName: createIndexes
             databaseName: *database_name
         # events from createCollection ... end
-  - description: "CreateCollection from EncryptedFieldConfig."
+  - description: "CreateCollection from encryptedFields."
     clientOptions:
       autoEncryptOpts:
         kmsProviders:
@@ -696,7 +696,7 @@ tests:
         object: database
         arguments:
           collection: "encryptedCollection"
-          encryptedFieldConfig: {
+          encryptedFields: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
                 "ecocCollection": "encryptedCollection.ecoc",
@@ -712,7 +712,7 @@ tests:
         object: database
         arguments:
           collection: "encryptedCollection"
-          encryptedFieldConfig: {
+          encryptedFields: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
                 "ecocCollection": "encryptedCollection.ecoc",
@@ -808,12 +808,12 @@ tests:
             databaseName: *database_name
         # events from createCollection ... end
 
-  - description: "DropCollection from EncryptedFieldConfigMap"
+  - description: "DropCollection from encryptedFieldsMap"
     clientOptions:
       autoEncryptOpts:
         kmsProviders:
           aws: {} # Credentials filled in from environment.
-        encryptedFieldConfigMap:
+        encryptedFieldsMap:
           default.encryptedCollection: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
@@ -854,19 +854,19 @@ tests:
             commandName: drop
             databaseName: *database_name
         # events from dropCollection ... end
-  - description: "DropCollection from EncryptedFieldConfig"
+  - description: "DropCollection from encryptedFields"
     clientOptions:
       autoEncryptOpts:
         kmsProviders:
           aws: {} # Credentials filled in from environment.
-        encryptedFieldConfigMap: {}
+        encryptedFieldsMap: {}
     operations:
       # Do initial drops to remove collections that may exist from previous test runs.
       - name: dropCollection
         object: database
         arguments:
           collection: "encryptedCollection"
-          encryptedFieldConfig: {
+          encryptedFields: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
                 "ecocCollection": "encryptedCollection.ecoc",
@@ -882,7 +882,7 @@ tests:
         object: database
         arguments:
           collection: "encryptedCollection"
-          encryptedFieldConfig: {
+          encryptedFields: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
                 "ecocCollection": "encryptedCollection.ecoc",
@@ -924,7 +924,7 @@ tests:
         object: database
         arguments:
           collection: "encryptedCollection"
-          encryptedFieldConfig: {
+          encryptedFields: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
                 "ecocCollection": "encryptedCollection.ecoc",
@@ -1033,12 +1033,12 @@ tests:
             databaseName: *database_name
         # events from dropCollection ... end
 
-  - description: "DropCollection from remote EncryptedFieldConfig"
+  - description: "DropCollection from remote encryptedFields"
     clientOptions:
       autoEncryptOpts:
         kmsProviders:
           aws: {} # Credentials filled in from environment.
-        encryptedFieldConfigMap: {}
+        encryptedFieldsMap: {}
 
     operations:
       # Do initial drops to remove collections that may exist from previous test runs.
@@ -1046,7 +1046,7 @@ tests:
         object: database
         arguments:
           collection: "encryptedCollection"
-          encryptedFieldConfig: {
+          encryptedFields: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
                 "ecocCollection": "encryptedCollection.ecoc",
@@ -1062,7 +1062,7 @@ tests:
         object: database
         arguments:
           collection: "encryptedCollection"
-          encryptedFieldConfig: {
+          encryptedFields: {
                 "escCollection": "encryptedCollection.esc",
                 "eccCollection": "encryptedCollection.ecc",
                 "ecocCollection": "encryptedCollection.ecoc",

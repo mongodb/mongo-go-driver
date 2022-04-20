@@ -20,30 +20,30 @@ import (
 
 // Create represents a create operation.
 type Create struct {
-	capped               *bool
-	collation            bsoncore.Document
-	collectionName       *string
-	indexOptionDefaults  bsoncore.Document
-	max                  *int64
-	pipeline             bsoncore.Document
-	size                 *int64
-	storageEngine        bsoncore.Document
-	validationAction     *string
-	validationLevel      *string
-	validator            bsoncore.Document
-	viewOn               *string
-	session              *session.Client
-	clock                *session.ClusterClock
-	monitor              *event.CommandMonitor
-	crypt                driver.Crypt
-	database             string
-	deployment           driver.Deployment
-	selector             description.ServerSelector
-	writeConcern         *writeconcern.WriteConcern
-	serverAPI            *driver.ServerAPIOptions
-	expireAfterSeconds   *int64
-	timeSeries           bsoncore.Document
-	encryptedFieldConfig bsoncore.Document
+	capped              *bool
+	collation           bsoncore.Document
+	collectionName      *string
+	indexOptionDefaults bsoncore.Document
+	max                 *int64
+	pipeline            bsoncore.Document
+	size                *int64
+	storageEngine       bsoncore.Document
+	validationAction    *string
+	validationLevel     *string
+	validator           bsoncore.Document
+	viewOn              *string
+	session             *session.Client
+	clock               *session.ClusterClock
+	monitor             *event.CommandMonitor
+	crypt               driver.Crypt
+	database            string
+	deployment          driver.Deployment
+	selector            description.ServerSelector
+	writeConcern        *writeconcern.WriteConcern
+	serverAPI           *driver.ServerAPIOptions
+	expireAfterSeconds  *int64
+	timeSeries          bsoncore.Document
+	encryptedFields     bsoncore.Document
 }
 
 // NewCreate constructs and returns a new Create.
@@ -125,8 +125,8 @@ func (c *Create) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	if c.timeSeries != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "timeseries", c.timeSeries)
 	}
-	if c.encryptedFieldConfig != nil {
-		dst = bsoncore.AppendDocumentElement(dst, "encryptedFields", c.encryptedFieldConfig)
+	if c.encryptedFields != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "encryptedFields", c.encryptedFields)
 	}
 	return dst, nil
 }
@@ -362,12 +362,12 @@ func (c *Create) TimeSeries(timeSeries bsoncore.Document) *Create {
 	return c
 }
 
-// EncryptedFieldConfig sets the EncryptedFieldConfig for this operation.
-func (c *Create) EncryptedFieldConfig(efc bsoncore.Document) *Create {
+// EncryptedFields sets the EncryptedFields for this operation.
+func (c *Create) EncryptedFields(efc bsoncore.Document) *Create {
 	if c == nil {
 		c = new(Create)
 	}
 
-	c.encryptedFieldConfig = efc
+	c.encryptedFields = efc
 	return c
 }

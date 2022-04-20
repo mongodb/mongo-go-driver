@@ -18,7 +18,7 @@
           "kmsProviders": {
             "aws": {}
           },
-          "encryptedFieldConfigMap": {
+          "encryptedFieldsMap": {
             "default.encryptedCollection": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
@@ -195,7 +195,7 @@
           "kmsProviders": {
             "aws": {}
           },
-          "encryptedFieldConfigMap": {
+          "encryptedFieldsMap": {
             "default.encryptedCollection": {
               "fields": [
                 {
@@ -375,7 +375,7 @@
           "kmsProviders": {
             "aws": {}
           },
-          "encryptedFieldConfigMap": {
+          "encryptedFieldsMap": {
             "default.encryptedCollection": {
               "fields": [
                 {
@@ -625,13 +625,13 @@
       ]
     },
     {
-      "description": "encryptedFieldConfigMap with cyclic entries does not loop",
+      "description": "encryptedFieldsMap with cyclic entries does not loop",
       "clientOptions": {
         "autoEncryptOpts": {
           "kmsProviders": {
             "aws": {}
           },
-          "encryptedFieldConfigMap": {
+          "encryptedFieldsMap": {
             "default.encryptedCollection": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
@@ -819,13 +819,13 @@
       ]
     },
     {
-      "description": "CreateCollection without EncryptedFieldConfig.",
+      "description": "CreateCollection without encryptedFields.",
       "clientOptions": {
         "autoEncryptOpts": {
           "kmsProviders": {
             "aws": {}
           },
-          "encryptedFieldConfigMap": {
+          "encryptedFieldsMap": {
             "default.encryptedCollection": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
@@ -904,13 +904,13 @@
       ]
     },
     {
-      "description": "CreateCollection from EncryptedFieldConfigMap.",
+      "description": "CreateCollection from encryptedFieldsMap.",
       "clientOptions": {
         "autoEncryptOpts": {
           "kmsProviders": {
             "aws": {}
           },
-          "encryptedFieldConfigMap": {
+          "encryptedFieldsMap": {
             "default.encryptedCollection": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
@@ -1081,7 +1081,7 @@
       ]
     },
     {
-      "description": "CreateCollection from EncryptedFieldConfig.",
+      "description": "CreateCollection from encryptedFields.",
       "clientOptions": {
         "autoEncryptOpts": {
           "kmsProviders": {
@@ -1095,7 +1095,7 @@
           "object": "database",
           "arguments": {
             "collection": "encryptedCollection",
-            "encryptedFieldConfig": {
+            "encryptedFields": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
               "ecocCollection": "encryptedCollection.ecoc",
@@ -1119,7 +1119,7 @@
           "object": "database",
           "arguments": {
             "collection": "encryptedCollection",
-            "encryptedFieldConfig": {
+            "encryptedFields": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
               "ecocCollection": "encryptedCollection.ecoc",
@@ -1273,13 +1273,13 @@
       ]
     },
     {
-      "description": "DropCollection from EncryptedFieldConfigMap",
+      "description": "DropCollection from encryptedFieldsMap",
       "clientOptions": {
         "autoEncryptOpts": {
           "kmsProviders": {
             "aws": {}
           },
-          "encryptedFieldConfigMap": {
+          "encryptedFieldsMap": {
             "default.encryptedCollection": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
@@ -1349,13 +1349,13 @@
       ]
     },
     {
-      "description": "DropCollection from EncryptedFieldConfig",
+      "description": "DropCollection from encryptedFields",
       "clientOptions": {
         "autoEncryptOpts": {
           "kmsProviders": {
             "aws": {}
           },
-          "encryptedFieldConfigMap": {}
+          "encryptedFieldsMap": {}
         }
       },
       "operations": [
@@ -1364,7 +1364,7 @@
           "object": "database",
           "arguments": {
             "collection": "encryptedCollection",
-            "encryptedFieldConfig": {
+            "encryptedFields": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
               "ecocCollection": "encryptedCollection.ecoc",
@@ -1388,7 +1388,7 @@
           "object": "database",
           "arguments": {
             "collection": "encryptedCollection",
-            "encryptedFieldConfig": {
+            "encryptedFields": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
               "ecocCollection": "encryptedCollection.ecoc",
@@ -1453,7 +1453,7 @@
           "object": "database",
           "arguments": {
             "collection": "encryptedCollection",
-            "encryptedFieldConfig": {
+            "encryptedFields": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
               "ecocCollection": "encryptedCollection.ecoc",
@@ -1634,13 +1634,13 @@
       ]
     },
     {
-      "description": "DropCollection from remote EncryptedFieldConfig",
+      "description": "DropCollection from remote encryptedFields",
       "clientOptions": {
         "autoEncryptOpts": {
           "kmsProviders": {
             "aws": {}
           },
-          "encryptedFieldConfigMap": {}
+          "encryptedFieldsMap": {}
         }
       },
       "operations": [
@@ -1649,7 +1649,7 @@
           "object": "database",
           "arguments": {
             "collection": "encryptedCollection",
-            "encryptedFieldConfig": {
+            "encryptedFields": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
               "ecocCollection": "encryptedCollection.ecoc",
@@ -1673,7 +1673,7 @@
           "object": "database",
           "arguments": {
             "collection": "encryptedCollection",
-            "encryptedFieldConfig": {
+            "encryptedFields": {
               "escCollection": "encryptedCollection.esc",
               "eccCollection": "encryptedCollection.ecc",
               "ecocCollection": "encryptedCollection.ecoc",

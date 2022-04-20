@@ -508,23 +508,23 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
-	efc, err := db.getEncryptedFieldConfig(ctx, cco.EncryptedFieldConfig, name, false /* useListCollections */)
+	efc, err := db.getEncryptedFields(ctx, cco.EncryptedFields, name, false /* useListCollections */)
 	if err != nil {
 		return err
 	}
 	if efc != nil {
-		return db.createCollectionWithEncryptedFieldConfig(ctx, name, efc, opts...)
+		return db.createCollectionWithEncryptedFields(ctx, name, efc, opts...)
 	}
 
 	return db.createCollection(ctx, name, opts...)
 }
 
-func (db *Database) getEncryptedFieldConfig(ctx context.Context, efcOption interface{}, collectionName string, useListCollections bool) (interface{}, error) {
+func (db *Database) getEncryptedFields(ctx context.Context, efcOption interface{}, collectionName string, useListCollections bool) (interface{}, error) {
 	if efcOption != nil {
 		return efcOption, nil
 	}
-	// Check the EncryptedFieldConfigMap
-	efcMap := db.client.encryptedFieldConfigMap
+	// Check the EncryptedFieldsMap
+	efcMap := db.client.encryptedFieldsMap
 	if efcMap == nil {
 		return nil, nil
 	}
@@ -539,7 +539,7 @@ func (db *Database) getEncryptedFieldConfig(ctx context.Context, efcOption inter
 	if !useListCollections {
 		return nil, nil
 	}
-	// Check if collection has an EncryptedFieldConfig configured server-side.
+	// Check if collection has an EncryptedFields configured server-side.
 	collSpecs, err := db.ListCollectionSpecifications(ctx, bson.D{{"name", collectionName}})
 	if err != nil {
 		return nil, err
@@ -566,8 +566,8 @@ func (db *Database) getEncryptedFieldConfig(ctx context.Context, efcOption inter
 	return &encryptedFields, nil
 }
 
-// createCollectionWithEncryptedFieldConfig creates a collection with a EncryptedFieldConfig.
-func (db *Database) createCollectionWithEncryptedFieldConfig(ctx context.Context, name string, efc interface{}, opts ...*options.CreateCollectionOptions) error {
+// createCollectionWithEncryptedFields creates a collection with a EncryptedFields.
+func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, efc interface{}, opts ...*options.CreateCollectionOptions) error {
 	var efcBSON bsoncore.Document
 	efcBSON, err := transformBsoncoreDocument(db.registry, efc, true /* mapAllowed */, "encryptedFields")
 	if err != nil {
@@ -630,7 +630,7 @@ func (db *Database) createCollectionWithEncryptedFieldConfig(ctx context.Context
 		return err
 	}
 
-	op.EncryptedFieldConfig(efcBSON)
+	op.EncryptedFields(efcBSON)
 	err = db.executeCreateOperation(ctx, op)
 	if err != nil {
 		return err
@@ -645,7 +645,7 @@ func (db *Database) createCollectionWithEncryptedFieldConfig(ctx context.Context
 	return nil
 }
 
-// createCollection creates a collection without a EncryptedFieldConfig.
+// createCollection creates a collection without a EncryptedFields.
 func (db *Database) createCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	op, err := db.createCollectionOperation(name, opts...)
 	if err != nil {

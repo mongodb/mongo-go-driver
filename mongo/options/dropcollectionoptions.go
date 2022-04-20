@@ -8,10 +8,10 @@ package options
 
 // DropCollectionOptions represents options that can be used to configure a Drop operation.
 type DropCollectionOptions struct {
-	// EncryptedFieldConfig configures encrypted fields for FLE 2.0.
+	// EncryptedFields configures encrypted fields for FLE 2.0.
 	//
 	// This option is only valid for MongoDB versions >= 6.0
-	EncryptedFieldConfig interface{}
+	EncryptedFields interface{}
 }
 
 // DropCollection creates a new DropCollectionOptions instance.
@@ -19,9 +19,9 @@ func DropCollection() *DropCollectionOptions {
 	return &DropCollectionOptions{}
 }
 
-// SetEncryptedFieldConfig sets the encrypted fields for FLE 2.0 collections.
-func (c *DropCollectionOptions) SetEncryptedFieldConfig(encryptedFieldConfig interface{}) *DropCollectionOptions {
-	c.EncryptedFieldConfig = encryptedFieldConfig
+// SetEncryptedFields sets the encrypted fields for FLE 2.0 collections.
+func (c *DropCollectionOptions) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptions {
+	c.EncryptedFields = encryptedFields
 	return c
 }
 
@@ -35,8 +35,8 @@ func MergeDropCollectionOptions(opts ...*DropCollectionOptions) *DropCollectionO
 			continue
 		}
 
-		if opt.EncryptedFieldConfig != nil {
-			cc.EncryptedFieldConfig = opt.EncryptedFieldConfig
+		if opt.EncryptedFields != nil {
+			cc.EncryptedFields = opt.EncryptedFields
 		}
 	}
 

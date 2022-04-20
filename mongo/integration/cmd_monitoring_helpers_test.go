@@ -235,6 +235,11 @@ func checkExpectations(mt *mtest.T, expectations *[]*expectation, id0, id1 bson.
 		return
 	}
 
+	for idx, actual := range mt.GetAllStartedEvents() {
+		// bson.MarshalExtJSON(actual.Command,)
+		fmt.Printf("CommandStarted[%v]: %v\n", idx, actual.Command)
+	}
+
 	for idx, expectation := range *expectations {
 		var err error
 
@@ -267,6 +272,10 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bson.Ra
 	if expected.DatabaseName != "" && expected.DatabaseName != evt.DatabaseName {
 		return fmt.Errorf("database name mismatch; expected %s, got %s", expected.DatabaseName, evt.DatabaseName)
 	}
+
+	fmt.Printf("-- expected.Command = %v\n", expected.Command)
+	fmt.Printf("-- evt.Command = %v\n", evt.Command)
+	// fmt.Printf("expected.CommandName = %v, evt.CommandName = %v\n", expected.CommandName, evt.CommandName)
 
 	eElems, err := expected.Command.Elements()
 	if err != nil {

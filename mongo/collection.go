@@ -1666,12 +1666,12 @@ func (coll *Collection) Indexes() IndexView {
 // a collection that does not exist on the server.
 func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectionOptions) error {
 	dco := options.MergeDropCollectionOptions(opts...)
-	efc, err := coll.db.getEncryptedFieldConfig(ctx, dco.EncryptedFieldConfig, coll.name, true /* useListCollections */)
+	efc, err := coll.db.getEncryptedFields(ctx, dco.EncryptedFields, coll.name, true /* useListCollections */)
 	if err != nil {
 		return err
 	}
 	if efc != nil {
-		// Drop collection and state collections from EncryptedFieldConfig.
+		// Drop collection and state collections from EncryptedFields.
 		return coll.dropEncryptedCollection(ctx, efc)
 	}
 

@@ -1364,8 +1364,8 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 		val := elem.Value()
 
 		switch key {
-		case "encryptedFieldConfig":
-			dco.SetEncryptedFieldConfig(val.Document())
+		case "encryptedFields":
+			dco.SetEncryptedFields(val.Document())
 		case "collection":
 			collName = val.StringValue()
 		default:
@@ -1395,8 +1395,8 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 		val := elem.Value()
 
 		switch key {
-		case "encryptedFieldConfig":
-			cco.SetEncryptedFieldConfig(val.Document())
+		case "encryptedFields":
+			cco.SetEncryptedFields(val.Document())
 		case "collection":
 			collName = val.StringValue()
 		case "session":

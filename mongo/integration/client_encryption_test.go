@@ -31,7 +31,7 @@ func TestCreateEncryptedCollection(t *testing.T) {
 	}
 
 	mt.Run("createEncryptedCollection", func(mt *mtest.T) {
-		var encryptedFieldConfig bson.D
+		var encryptedFields bson.D
 		err := bson.UnmarshalExtJSON([]byte(`{
 			"escCollection": "foo_esc",
 			"eccCollection": "foo_ecc",
@@ -44,13 +44,13 @@ func TestCreateEncryptedCollection(t *testing.T) {
 					"queries": {"queryType": "equality"}
 				}
 			]
-		}`), true /* canonical */, &encryptedFieldConfig)
+		}`), true /* canonical */, &encryptedFields)
 		assert.Nil(mt, err, "error in UnmarshalExtJSON: %v", err)
 
-		encryptedFieldConfigMap := map[string]interface{}{
-			"db.coll": encryptedFieldConfig,
+		encryptedFieldsMap := map[string]interface{}{
+			"db.coll": encryptedFields,
 		}
-		aeo := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetEncryptedFieldConfigMap(encryptedFieldConfigMap)
+		aeo := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetEncryptedFieldsMap(encryptedFieldsMap)
 
 		// Create a data client.
 		co := options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo)
@@ -120,7 +120,7 @@ func TestDropEncryptedCollection(t *testing.T) {
 	}
 
 	mt.Run("createEncryptedCollection", func(mt *mtest.T) {
-		var encryptedFieldConfig bson.D
+		var encryptedFields bson.D
 		err := bson.UnmarshalExtJSON([]byte(`{
 			"escCollection": "foo_esc",
 			"eccCollection": "foo_ecc",
@@ -133,13 +133,13 @@ func TestDropEncryptedCollection(t *testing.T) {
 					"queries": {"queryType": "equality"}
 				}
 			]
-		}`), true /* canonical */, &encryptedFieldConfig)
+		}`), true /* canonical */, &encryptedFields)
 		assert.Nil(mt, err, "error in UnmarshalExtJSON: %v", err)
 
-		encryptedFieldConfigMap := map[string]interface{}{
-			"db.coll": encryptedFieldConfig,
+		encryptedFieldsMap := map[string]interface{}{
+			"db.coll": encryptedFields,
 		}
-		aeo := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetEncryptedFieldConfigMap(encryptedFieldConfigMap)
+		aeo := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetEncryptedFieldsMap(encryptedFieldsMap)
 
 		// Create a data client.
 		co := options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo)
