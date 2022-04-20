@@ -1,11 +1,6 @@
 {
-  "description": "find-allowdiskuse",
+  "description": "aggregate-allowdiskuse",
   "schemaVersion": "1.0",
-  "runOnRequirements": [
-    {
-      "minServerVersion": "4.3.1"
-    }
-  ],
   "createEntities": [
     {
       "client": {
@@ -19,26 +14,37 @@
       "database": {
         "id": "database0",
         "client": "client0",
-        "databaseName": "crud-v2"
+        "databaseName": "crud-tests"
       }
     },
     {
       "collection": {
         "id": "collection0",
         "database": "database0",
-        "collectionName": "test_find_allowdiskuse"
+        "collectionName": "coll0"
       }
+    }
+  ],
+  "initialData": [
+    {
+      "collectionName": "coll0",
+      "databaseName": "crud-tests",
+      "documents": []
     }
   ],
   "tests": [
     {
-      "description": "Find does not send allowDiskUse when value is not specified",
+      "description": "Aggregate does not send allowDiskUse when value is not specified",
       "operations": [
         {
           "object": "collection0",
-          "name": "find",
+          "name": "aggregate",
           "arguments": {
-            "filter": {}
+            "pipeline": [
+              {
+                "$match": {}
+              }
+            ]
           }
         }
       ],
@@ -49,11 +55,18 @@
             {
               "commandStartedEvent": {
                 "command": {
-                  "find": "test_find_allowdiskuse",
+                  "aggregate": "coll0",
+                  "pipeline": [
+                    {
+                      "$match": {}
+                    }
+                  ],
                   "allowDiskUse": {
                     "$$exists": false
                   }
-                }
+                },
+                "commandName": "aggregate",
+                "databaseName": "crud-tests"
               }
             }
           ]
@@ -61,13 +74,17 @@
       ]
     },
     {
-      "description": "Find sends allowDiskUse false when false is specified",
+      "description": "Aggregate sends allowDiskUse false when false is specified",
       "operations": [
         {
           "object": "collection0",
-          "name": "find",
+          "name": "aggregate",
           "arguments": {
-            "filter": {},
+            "pipeline": [
+              {
+                "$match": {}
+              }
+            ],
             "allowDiskUse": false
           }
         }
@@ -79,9 +96,16 @@
             {
               "commandStartedEvent": {
                 "command": {
-                  "find": "test_find_allowdiskuse",
+                  "aggregate": "coll0",
+                  "pipeline": [
+                    {
+                      "$match": {}
+                    }
+                  ],
                   "allowDiskUse": false
-                }
+                },
+                "commandName": "aggregate",
+                "databaseName": "crud-tests"
               }
             }
           ]
@@ -89,13 +113,17 @@
       ]
     },
     {
-      "description": "Find sends allowDiskUse true when true is specified",
+      "description": "Aggregate sends allowDiskUse true when true is specified",
       "operations": [
         {
           "object": "collection0",
-          "name": "find",
+          "name": "aggregate",
           "arguments": {
-            "filter": {},
+            "pipeline": [
+              {
+                "$match": {}
+              }
+            ],
             "allowDiskUse": true
           }
         }
@@ -107,9 +135,16 @@
             {
               "commandStartedEvent": {
                 "command": {
-                  "find": "test_find_allowdiskuse",
+                  "aggregate": "coll0",
+                  "pipeline": [
+                    {
+                      "$match": {}
+                    }
+                  ],
                   "allowDiskUse": true
-                }
+                },
+                "commandName": "aggregate",
+                "databaseName": "crud-tests"
               }
             }
           ]
