@@ -15,7 +15,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/examples/documentation_examples"
-	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -104,40 +103,42 @@ func TestDocumentationExamples(t *testing.T) {
 	})
 
 	// Transaction examples can only run on replica sets on 4.0+.
-	cliOpts := options.ClientOptions{Deployment: createTopology(t)}
-	mtOpts = mtest.NewOptions().ClientOptions(&cliOpts).MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
+	mtOpts = mtest.NewOptions().MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
 	mt.RunOpts("TransactionsExamples", mtOpts, func(mt *mtest.T) {
+		mt.ResetClient(&options.ClientOptions{Deployment: createTopology(mt)})
 		documentation_examples.TransactionsExamples(ctx, mt.Client)
 	})
 	mt.RunOpts("WithTransactionExample", mtOpts, func(mt *mtest.T) {
+		mt.ResetClient(&options.ClientOptions{Deployment: createTopology(mt)})
 		documentation_examples.WithTransactionExample(ctx)
 	})
 
 	// Change stream examples can only run on replica sets on 3.6+.
-	mtOpts = mtest.NewOptions().ClientOptions(&cliOpts).MinServerVersion("3.6").Topologies(mtest.ReplicaSet)
+	mtOpts = mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.ReplicaSet)
 	mt.RunOpts("ChangeStreamExamples", mtOpts, func(mt *mtest.T) {
+		mt.ResetClient(&options.ClientOptions{Deployment: createTopology(mt)})
 		csdb := client.Database("changestream_examples")
 		documentation_examples.ChangeStreamExamples(mt.T, csdb)
 	})
 
 	// Causal consistency examples cannot run on 4.0.
 	// TODO(GODRIVER-2238): Remove version filtering once failures on 4.0 sharded clusters are fixed.
-	mtOpts = mtest.NewOptions().ClientOptions(&cliOpts).MinServerVersion("4.2").Topologies(mtest.ReplicaSet)
+	mtOpts = mtest.NewOptions().MinServerVersion("4.2").Topologies(mtest.ReplicaSet)
 	mt.RunOpts("CausalConsistencyExamples/post4.2", mtOpts, func(mt *mtest.T) {
 		documentation_examples.CausalConsistencyExamples(mt.Client)
 	})
-	mtOpts = mtest.NewOptions().ClientOptions(&cliOpts).MaxServerVersion("4.0").Topologies(mtest.ReplicaSet)
+	mtOpts = mtest.NewOptions().MaxServerVersion("4.0").Topologies(mtest.ReplicaSet)
 	mt.RunOpts("CausalConsistencyExamples/pre4.0", mtOpts, func(mt *mtest.T) {
 		documentation_examples.CausalConsistencyExamples(mt.Client)
 	})
 }
 
-func createTopology(t *testing.T) *topology.Topology {
+func createTopology(mt *mtest.T) *topology.Topology {
 	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
-		return testutil.ConnString(t)
+		return mtest.ClusterConnString()
 	}))
 	if err != nil {
-		t.Fatalf("topology.New error: %v", err)
+		mt.Fatalf("topology.New error: %v", err)
 	}
 	return topo
 }

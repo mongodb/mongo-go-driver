@@ -2554,10 +2554,10 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 	opts := options.Session().SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(
 		writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
 	session1, err := client.StartSession(opts)
-
 	if err != nil {
 		return err
 	}
+	defer session1.EndSession(context.TODO())
 
 	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
 		// Run an update with our causally-consistent session
@@ -2588,10 +2588,10 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 		readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority(),
 		writeconcern.WTimeout(1000)))
 	session2, err := client.StartSession(opts)
-
 	if err != nil {
 		return err
 	}
+	defer session2.EndSession(context.TODO())
 
 	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
 		// Set cluster time of session2 to session1's cluster time
