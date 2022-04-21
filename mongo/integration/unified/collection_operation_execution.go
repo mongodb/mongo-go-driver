@@ -700,6 +700,8 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		val := elem.Value()
 
 		switch key {
+		case "comment":
+			opts.SetComment(val)
 		case "documents":
 			documents = testhelpers.RawToInterfaceSlice(val.Array())
 		case "ordered":
