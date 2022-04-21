@@ -20,15 +20,15 @@ func DropCollection() *DropCollectionOptions {
 }
 
 // SetEncryptedFields sets the encrypted fields for FLE 2.0 collections.
-func (c *DropCollectionOptions) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptions {
-	c.EncryptedFields = encryptedFields
-	return c
+func (d *DropCollectionOptions) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptions {
+	d.EncryptedFields = encryptedFields
+	return d
 }
 
 // MergeDropCollectionOptions combines the given DropCollectionOptions instances into a single
 // DropCollectionOptions in a last-one-wins fashion.
 func MergeDropCollectionOptions(opts ...*DropCollectionOptions) *DropCollectionOptions {
-	cc := DropCollection()
+	dc := DropCollection()
 
 	for _, opt := range opts {
 		if opt == nil {
@@ -36,9 +36,9 @@ func MergeDropCollectionOptions(opts ...*DropCollectionOptions) *DropCollectionO
 		}
 
 		if opt.EncryptedFields != nil {
-			cc.EncryptedFields = opt.EncryptedFields
+			dc.EncryptedFields = opt.EncryptedFields
 		}
 	}
 
-	return cc
+	return dc
 }
