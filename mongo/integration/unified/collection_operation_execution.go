@@ -644,6 +644,8 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":

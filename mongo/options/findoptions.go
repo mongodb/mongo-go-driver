@@ -777,6 +777,10 @@ type FindOneAndUpdateOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default is the empty interface, which means that no comment will be included in the logs.
+	Comment interface{}
+
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
 	MaxTime *time.Duration
@@ -833,6 +837,12 @@ func (f *FindOneAndUpdateOptions) SetArrayFilters(filters ArrayFilters) *FindOne
 // SetCollation sets the value for the Collation field.
 func (f *FindOneAndUpdateOptions) SetCollation(collation *Collation) *FindOneAndUpdateOptions {
 	f.Collation = collation
+	return f
+}
+
+// SetCollation sets the value for the Collation field.
+func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpdateOptions {
+	f.Comment = comment
 	return f
 }
 
@@ -894,6 +904,9 @@ func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndU
 		}
 		if opt.Collation != nil {
 			fo.Collation = opt.Collation
+		}
+		if opt.Comment != nil {
+			fo.Comment = opt.Comment
 		}
 		if opt.MaxTime != nil {
 			fo.MaxTime = opt.MaxTime

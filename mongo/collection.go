@@ -1611,6 +1611,13 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	if fo.Collation != nil {
 		op = op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
 	}
+	if fo.Comment != nil {
+		comment, err := transformValue(coll.registry, fo.Comment, false, "comment")
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op.Comment(comment)
+	}
 	if fo.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
 	}
