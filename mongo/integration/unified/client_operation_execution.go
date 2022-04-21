@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -55,7 +56,12 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 			}
 			opts.SetCollation(*collation)
 		case "comment":
-			opts.SetComment(val.String())
+			switch val.Type {
+			case bsontype.EmbeddedDocument:
+				opts.SetComment(val.String())
+			default:
+				opts.SetComment(val.StringValue())
+			}
 		case "fullDocument":
 			switch fd := val.StringValue(); fd {
 			case "default":

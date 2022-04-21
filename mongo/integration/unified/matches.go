@@ -26,16 +26,6 @@ type keyPathCtxKey struct{}
 // if the value for this key is true.
 type extraKeysAllowedCtxKey struct{}
 
-// keypath is used to type paths within the structure of a document.  This type will help avoid using string-literals in
-// key-dependent logic, such as comparing strings to documents.
-type keypath string
-
-const (
-	commentKeypath keypath = "comment"
-)
-
-func (kp keypath) equal(kp2 keypath) bool { return kp == kp2 }
-
 func makeMatchContext(ctx context.Context, keyPath string, extraKeysAllowed bool) context.Context {
 	ctx = context.WithValue(ctx, keyPathCtxKey{}, keyPath)
 	return context.WithValue(ctx, extraKeysAllowedCtxKey{}, extraKeysAllowed)
@@ -99,17 +89,20 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 				return newMatchingError(fullKeyPath, "key not found in actual document")
 			}
 
-			// Nested documents cannot have extra keys, so we unconditionally pass false for extraKeysAllowed.
-			comparisonCtx := makeMatchContext(ctx, fullKeyPath, false)
-
-			// Check to see if the keypath requires us to convert actual/expected to make a true comparison.
-			if kp := keypath(fullKeyPath); requiresMixedTypeComparison(kp) {
-				if err := evaluateMixedTypeComparison(comparisonCtx, kp, expectedValue, actualValue); err != nil {
-					return newMatchingError(fullKeyPath, "error doing mixed-type matching assertion: %v", err)
-				}
+			// Check to see if the keypath requires us to convert actual/expected to make a true comparison.  If the
+			// comparison is not supported for the keypath, continue with the recursive strategy.
+			//
+			// TODO(GODRIVER-2386) this branch of logic will be removed once we add document support for comments
+			compared, err := evaluateMixedTypeComparison(fullKeyPath, expectedValue, actualValue)
+			if err != nil {
+				return newMatchingError(fullKeyPath, "error doing mixed-type matching assertion: %v", err)
+			}
+			if compared {
 				continue
 			}
 
+			// Nested documents cannot have extra keys, so we unconditionally pass false for extraKeysAllowed.
+			comparisonCtx := makeMatchContext(ctx, fullKeyPath, false)
 			if err := verifyValuesMatchInner(comparisonCtx, expectedValue, actualValue); err != nil {
 				return err
 			}
@@ -184,7 +177,9 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 	return nil
 }
 
-func compareDocumentToString(ctx context.Context, expected, actual bson.RawValue) error {
+// compareDocumentToString will compare an expected document to an actual string by converting the document into a
+// string.
+func compareDocumentToString(expected, actual bson.RawValue) error {
 	expectedDocument, ok := expected.DocumentOK()
 	if !ok {
 		return fmt.Errorf("expected value to be a document but got a %s", expected.Type)
@@ -196,25 +191,20 @@ func compareDocumentToString(ctx context.Context, expected, actual bson.RawValue
 	}
 
 	if actualString != expectedDocument.String() {
-		return fmt.Errorf("expected$ value %s, got %s", expectedDocument.String(), actualString)
+		return fmt.Errorf("expected value %s, got %s", expectedDocument.String(), actualString)
 	}
 	return nil
 }
 
-func compareMixedTypeComment(ctx context.Context, expected, actual bson.RawValue) error {
-	if expected.IsType(bsontype.EmbeddedDocument) && actual.IsType(bsontype.String) {
-		return compareDocumentToString(ctx, expected, actual)
+func evaluateMixedTypeComparison(fullKeyPath string, expected, actual bson.RawValue) (compared bool, err error) {
+	switch fullKeyPath {
+	case "comment":
+		if expected.IsType(bsontype.EmbeddedDocument) && actual.IsType(bsontype.String) {
+			err = compareDocumentToString(expected, actual)
+			compared = true
+		}
 	}
-	return nil
-}
-
-func evaluateMixedTypeComparison(ctx context.Context, kp keypath, expected, actual bson.RawValue) error {
-	switch kp {
-	case commentKeypath:
-		return compareMixedTypeComment(ctx, expected, actual)
-	default:
-		return nil
-	}
+	return
 }
 
 func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actual bson.RawValue) error {
@@ -294,12 +284,6 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 func requiresSpecialMatching(doc bson.Raw) bool {
 	elems, _ := doc.Elements()
 	return len(elems) == 1 && strings.HasPrefix(elems[0].Key(), "$$")
-}
-
-// requiresMixedTypeComparison returns true if the value in the keypath requires a conversion for matching actual to
-// expected.
-func requiresMixedTypeComparison(kp keypath) bool {
-	return kp.equal(commentKeypath)
 }
 
 func getTypesArray(val bson.RawValue) ([]bsontype.Type, error) {
