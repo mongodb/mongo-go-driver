@@ -57,7 +57,12 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 			}
 			opts.SetCollation(collation)
 		case "comment":
-			opts.SetComment(val.StringValue())
+			switch val.Type {
+			case bsontype.EmbeddedDocument:
+				opts.SetComment(val.String())
+			default:
+				opts.SetComment(val.StringValue())
+			}
 		case "hint":
 			hint, err := createHint(val)
 			if err != nil {
