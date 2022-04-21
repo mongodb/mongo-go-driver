@@ -1434,6 +1434,13 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	if fod.Collation != nil {
 		op = op.Collation(bsoncore.Document(fod.Collation.ToDocument()))
 	}
+	if fod.Comment != nil {
+		comment, err := transformValue(coll.registry, fod.Comment, false, "comment")
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op.Comment(comment)
+	}
 	if fod.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*fod.MaxTime / time.Millisecond))
 	}
