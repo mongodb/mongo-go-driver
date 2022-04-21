@@ -1671,13 +1671,13 @@ func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectio
 		return err
 	}
 	if efc != nil {
-		// Drop collection and state collections from EncryptedFields.
 		return coll.dropEncryptedCollection(ctx, efc)
 	}
 
 	return coll.dropHelper(ctx)
 }
 
+// dropEncryptedCollection drops collection with EncryptedFields.
 func (coll *Collection) dropEncryptedCollection(ctx context.Context, efc interface{}) error {
 	var efcBSON bsoncore.Document
 	efcBSON, err := transformBsoncoreDocument(coll.registry, efc, true /* mapAllowed */, "encryptedFields")
@@ -1691,7 +1691,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, efc interfa
 		return err
 	}
 	// Drop the state collections ESCCollection, ECCCollection, and ECOCCollection.
-	// Create ESCCollection.
+	// Drop ESCCollection.
 	escCollection := "enxcol_." + coll.name + ".esc"
 	val, err := efcBSON.LookupErr("escCollection")
 	var ok bool
@@ -1708,7 +1708,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, efc interfa
 		return err
 	}
 
-	// Create ECCCollection.
+	// Drop ECCCollection.
 	eccCollection := "enxcol_." + coll.name + ".ecc"
 	val, err = efcBSON.LookupErr("eccCollection")
 	if err == nil {
@@ -1724,7 +1724,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, efc interfa
 		return err
 	}
 
-	// Create ECOCCollection.
+	// Drop ECOCCollection.
 	ecocCollection := "enxcol_." + coll.name + ".ecoc"
 	val, err = efcBSON.LookupErr("ecocCollection")
 	if err == nil {
