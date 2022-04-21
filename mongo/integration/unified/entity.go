@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -17,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
@@ -59,6 +61,13 @@ type entityOptions struct {
 	// Options that reference other entities.
 	ClientID   string `bson:"client"`
 	DatabaseID string `bson:"database"`
+
+	ClientEncryptionOpts *clientEncryptionOpts `bson:"clientEncryptionOpts"`
+}
+type clientEncryptionOpts struct {
+	KeyVaultClient    string              `bson:"keyVaultClient"`
+	KeyVaultNamespace string              `bson:"keyVaultNamespace"`
+	KmsProviders      map[string]bson.Raw `bson:"kmsProviders"`
 }
 
 // EntityMap is used to store entities during tests. This type enforces uniqueness so no two entities can have the same
@@ -66,21 +75,21 @@ type entityOptions struct {
 // references another (e.g. a database entity references a client) will fail if the referenced entity does not exist.
 // Accessors are available for the BSON entities.
 type EntityMap struct {
-	allEntities       map[string]struct{}
-	cursorEntities    map[string]cursor
-	clientEntities    map[string]*clientEntity
-	dbEntites         map[string]*mongo.Database
-	collEntities      map[string]*mongo.Collection
-	sessions          map[string]mongo.Session
-	gridfsBuckets     map[string]*gridfs.Bucket
-	bsonValues        map[string]bson.RawValue
-	eventListEntities map[string][]bson.Raw
-	bsonArrayEntities map[string][]bson.Raw // for storing errors and failures from a loop operation
-	successValues     map[string]int32
-	iterationValues   map[string]int32
-
-	evtLock sync.Mutex
-	closed  atomic.Value
+	allEntities              map[string]struct{}
+	cursorEntities           map[string]cursor
+	clientEntities           map[string]*clientEntity
+	dbEntites                map[string]*mongo.Database
+	collEntities             map[string]*mongo.Collection
+	sessions                 map[string]mongo.Session
+	gridfsBuckets            map[string]*gridfs.Bucket
+	bsonValues               map[string]bson.RawValue
+	eventListEntities        map[string][]bson.Raw
+	bsonArrayEntities        map[string][]bson.Raw // for storing errors and failures from a loop operation
+	successValues            map[string]int32
+	iterationValues          map[string]int32
+	clientEncryptionEntities map[string]*mongo.ClientEncryption
+	evtLock                  sync.Mutex
+	closed                   atomic.Value
 }
 
 func (em *EntityMap) isClosed() bool {
@@ -93,18 +102,19 @@ func (em *EntityMap) setClosed(val bool) {
 
 func newEntityMap() *EntityMap {
 	em := &EntityMap{
-		allEntities:       make(map[string]struct{}),
-		gridfsBuckets:     make(map[string]*gridfs.Bucket),
-		bsonValues:        make(map[string]bson.RawValue),
-		cursorEntities:    make(map[string]cursor),
-		clientEntities:    make(map[string]*clientEntity),
-		collEntities:      make(map[string]*mongo.Collection),
-		dbEntites:         make(map[string]*mongo.Database),
-		sessions:          make(map[string]mongo.Session),
-		eventListEntities: make(map[string][]bson.Raw),
-		bsonArrayEntities: make(map[string][]bson.Raw),
-		successValues:     make(map[string]int32),
-		iterationValues:   make(map[string]int32),
+		allEntities:              make(map[string]struct{}),
+		gridfsBuckets:            make(map[string]*gridfs.Bucket),
+		bsonValues:               make(map[string]bson.RawValue),
+		cursorEntities:           make(map[string]cursor),
+		clientEntities:           make(map[string]*clientEntity),
+		collEntities:             make(map[string]*mongo.Collection),
+		dbEntites:                make(map[string]*mongo.Database),
+		sessions:                 make(map[string]mongo.Session),
+		eventListEntities:        make(map[string][]bson.Raw),
+		bsonArrayEntities:        make(map[string][]bson.Raw),
+		successValues:            make(map[string]int32),
+		iterationValues:          make(map[string]int32),
+		clientEncryptionEntities: make(map[string]*mongo.ClientEncryption),
 	}
 	em.setClosed(false)
 	return em
@@ -222,6 +232,8 @@ func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOpt
 		err = em.addSessionEntity(entityOptions)
 	case "bucket":
 		err = em.addGridFSBucketEntity(entityOptions)
+	case "encryptedClient":
+		err = em.addClientEncryptionEntity(entityOptions)
 	default:
 		return fmt.Errorf("unrecognized entity type %q", entityType)
 	}
@@ -356,8 +368,15 @@ func (em *EntityMap) close(ctx context.Context) []error {
 	}
 
 	for id, client := range em.clientEntities {
+
 		if err := client.Disconnect(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
+		}
+	}
+
+	for id, clientEncryption := range em.clientEncryptionEntities {
+		if err := clientEncryption.Close(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("error closing clientEncryption with ID: %q: %v", id, err))
 		}
 	}
 
@@ -398,6 +417,175 @@ func (em *EntityMap) addDatabaseEntity(entityOptions *entityOptions) error {
 	}
 
 	em.dbEntites[entityOptions.ID] = client.Database(entityOptions.DatabaseName, dbOpts)
+	return nil
+}
+
+var (
+	envAwsAccessKeyID         = os.Getenv("AWS_ACCESS_KEY_ID")
+	envAwsSecretAccessKey     = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	envAwsTempAccessKeyID     = os.Getenv("CSFLE_AWS_TEMP_ACCESS_KEY_ID")
+	envAwsTempSecretAccessKey = os.Getenv("CSFLE_AWS_TEMP_SECRET_ACCESS_KEY")
+	envAwsTempSessionToken    = os.Getenv("CSFLE_AWS_TEMP_SESSION_TOKEN")
+	envAzureTenantID          = os.Getenv("AZURE_TENANT_ID")
+	envAzureClientID          = os.Getenv("AZURE_CLIENT_ID")
+	envAzureClientSecret      = os.Getenv("AZURE_CLIENT_SECRET")
+	envGcpEmail               = os.Getenv("GCP_EMAIL")
+	envGcpPrivateKey          = os.Getenv("GCP_PRIVATE_KEY")
+)
+
+// getKmsCredential processes a value of an input KMS provider credential.
+// An empty document returns from the environment.
+// A string is returned as-is.
+func getKmsCredential(kmsDocument bson.Raw, credentialName string, defaultValue string) (*string, error) {
+	credentialVal, err := kmsDocument.LookupErr(credentialName)
+	if err == nil {
+		if str, ok := credentialVal.StringValueOK(); ok {
+			return &str, nil
+		}
+
+		if doc, ok := credentialVal.DocumentOK(); ok {
+			// Check if document is empty.
+			if len(doc) != 5 {
+				return nil, fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
+			}
+			if defaultValue == "" {
+				return nil, fmt.Errorf("unable to get default value for %v. Please set CSFLE environment variables", credentialName)
+			}
+			return &defaultValue, nil
+		}
+
+		return nil, fmt.Errorf("expected String or Document for %v, got: %v", credentialName, credentialVal)
+	} else if err == bsoncore.ErrElementNotFound {
+		return nil, nil
+	}
+	return nil, err
+}
+
+func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) error {
+	// Construct KMS providers.
+	kmsProviders := make(map[string]map[string]interface{})
+	ceo := entityOptions.ClientEncryptionOpts
+	if aws, ok := ceo.KmsProviders["aws"]; ok {
+		kmsProviders["aws"] = make(map[string]interface{})
+
+		awsSessionToken, err := getKmsCredential(aws, "sessionToken", envAwsTempSessionToken)
+		if err != nil {
+			return err
+		}
+		if awsSessionToken != nil {
+			kmsProviders["aws"]["sessionToken"] = *awsSessionToken
+		}
+
+		defaultAccessKeyId := envAwsAccessKeyID
+		defaultSecretAccessKey := envAwsSecretAccessKey
+
+		if awsSessionToken != nil {
+			defaultAccessKeyId = envAwsTempAccessKeyID
+			defaultSecretAccessKey = envAwsTempSecretAccessKey
+		}
+
+		awsAccessKeyId, err := getKmsCredential(aws, "accessKeyId", defaultAccessKeyId)
+		if err != nil {
+			return err
+		}
+		if awsAccessKeyId != nil {
+			kmsProviders["aws"]["accessKeyId"] = *awsAccessKeyId
+		}
+
+		awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", defaultSecretAccessKey)
+		if err != nil {
+			return err
+		}
+		if awsSecretAccessKey != nil {
+			kmsProviders["aws"]["secretAccessKey"] = *awsSecretAccessKey
+		}
+	}
+
+	if azure, ok := ceo.KmsProviders["azure"]; ok {
+		kmsProviders["azure"] = make(map[string]interface{})
+
+		azureTenantId, err := getKmsCredential(azure, "tenantId", envAzureTenantID)
+		if err != nil {
+			return err
+		}
+		if azureTenantId != nil {
+			kmsProviders["azure"]["tenantId"] = *azureTenantId
+		}
+
+		azureClientId, err := getKmsCredential(azure, "clientId", envAzureClientID)
+		if err != nil {
+			return err
+		}
+		if azureClientId != nil {
+			kmsProviders["azure"]["clientId"] = *azureClientId
+		}
+
+		azureClientSecret, err := getKmsCredential(azure, "clientSecret", envAzureClientSecret)
+		if err != nil {
+			return err
+		}
+		if azureClientSecret != nil {
+			kmsProviders["azure"]["clientSecret"] = *azureClientSecret
+		}
+	}
+
+	if gcp, ok := ceo.KmsProviders["gcp"]; ok {
+		kmsProviders["gcp"] = make(map[string]interface{})
+
+		gcpEmail, err := getKmsCredential(gcp, "email", envGcpEmail)
+		if err != nil {
+			return err
+		}
+		if gcpEmail != nil {
+			kmsProviders["gcp"]["email"] = *gcpEmail
+		}
+
+		gcpPrivateKey, err := getKmsCredential(gcp, "privateKey", envGcpPrivateKey)
+		if err != nil {
+			return err
+		}
+		if gcpPrivateKey != nil {
+			kmsProviders["gcp"]["privateKey"] = *gcpPrivateKey
+		}
+	}
+
+	if kmip, ok := ceo.KmsProviders["kmip"]; ok {
+		kmsProviders["kmip"] = make(map[string]interface{})
+
+		kmipEndpoint, err := getKmsCredential(kmip, "endpoint", "localhost:5698")
+		if err != nil {
+			return err
+		}
+		if kmipEndpoint != nil {
+			kmsProviders["kmip"]["endpoint"] = *kmipEndpoint
+		}
+	}
+
+	if local, ok := ceo.KmsProviders["local"]; ok {
+		kmsProviders["local"] = make(map[string]interface{})
+
+		defaultLocalKeyBase64 := "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
+		localKey, err := getKmsCredential(local, "key", defaultLocalKeyBase64)
+		if err != nil {
+			return err
+		}
+		if localKey != nil {
+			kmsProviders["local"]["key"] = *localKey
+		}
+	}
+
+	keyVaultClient, ok := em.clientEntities[ceo.KeyVaultClient]
+	if !ok {
+		return newEntityNotFoundError("client", ceo.KeyVaultClient)
+	}
+
+	ce, err := mongo.NewClientEncryption(keyVaultClient.Client, options.ClientEncryption().SetKeyVaultNamespace(ceo.KeyVaultNamespace).SetKmsProviders(kmsProviders))
+	if err != nil {
+		return err
+	}
+
+	em.clientEncryptionEntities[entityOptions.ID] = ce
+
 	return nil
 }
 
