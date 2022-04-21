@@ -519,6 +519,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 	return db.createCollection(ctx, name, opts...)
 }
 
+// getEncryptedFields attempts to find an EncryptedFields associated with collectionName on this database.
 func (db *Database) getEncryptedFields(ctx context.Context, efcOption interface{}, collectionName string, useListCollections bool) (interface{}, error) {
 	if efcOption != nil {
 		return efcOption, nil
@@ -566,7 +567,7 @@ func (db *Database) getEncryptedFields(ctx context.Context, efcOption interface{
 	return &encryptedFields, nil
 }
 
-// createCollectionWithEncryptedFields creates a collection with a EncryptedFields.
+// createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
 func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, efc interface{}, opts ...*options.CreateCollectionOptions) error {
 	var efcBSON bsoncore.Document
 	efcBSON, err := transformBsoncoreDocument(db.registry, efc, true /* mapAllowed */, "encryptedFields")
