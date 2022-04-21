@@ -749,6 +749,8 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 			document = val.Document()
 		case "bypassDocumentValidation":
 			opts.SetBypassDocumentValidation(val.Boolean())
+		case "comment":
+			opts.SetComment(val)
 		default:
 			return nil, fmt.Errorf("unrecognized insertOne option %q", key)
 		}

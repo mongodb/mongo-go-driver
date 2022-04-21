@@ -286,6 +286,13 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
 	}
+	if imo.Comment != nil {
+		comment, err := transformValue(coll.registry, imo.Comment, false, "comment")
+		if err != nil {
+			return nil, err
+		}
+		op.Comment(comment)
+	}
 	if imo.Ordered != nil {
 		op = op.Ordered(*imo.Ordered)
 	}
@@ -333,6 +340,9 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 
 	if ioOpts.BypassDocumentValidation != nil && *ioOpts.BypassDocumentValidation {
 		imOpts.SetBypassDocumentValidation(*ioOpts.BypassDocumentValidation)
+	}
+	if ioOpts.Comment != nil {
+		imOpts.SetComment(ioOpts.Comment)
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 
