@@ -90,6 +90,10 @@ type EntityMap struct {
 	clientEncryptionEntities map[string]*mongo.ClientEncryption
 	evtLock                  sync.Mutex
 	closed                   atomic.Value
+	// keyVaultClientIDs tracks IDs of clients used as a keyVaultClient in ClientEncryption objects.
+	// ClientEncryption.Close() calls Disconnect on the keyVaultClient.
+	// EntityMap.close() must skip calling Disconnect on any client entity referenced in keyVaultClientIDs.
+	keyVaultClientIDs map[string]bool
 }
 
 func (em *EntityMap) isClosed() bool {
@@ -115,6 +119,7 @@ func newEntityMap() *EntityMap {
 		successValues:            make(map[string]int32),
 		iterationValues:          make(map[string]int32),
 		clientEncryptionEntities: make(map[string]*mongo.ClientEncryption),
+		keyVaultClientIDs:        make(map[string]bool),
 	}
 	em.setClosed(false)
 	return em
@@ -368,7 +373,10 @@ func (em *EntityMap) close(ctx context.Context) []error {
 	}
 
 	for id, client := range em.clientEntities {
-
+		if ok, _ := em.keyVaultClientIDs[id]; ok {
+			// Client will be closed in clientEncryption.Close()
+			continue
+		}
 		if err := client.Disconnect(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
 		}
@@ -574,6 +582,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		}
 	}
 
+	em.keyVaultClientIDs[ceo.KeyVaultClient] = true
 	keyVaultClient, ok := em.clientEntities[ceo.KeyVaultClient]
 	if !ok {
 		return newEntityNotFoundError("client", ceo.KeyVaultClient)
