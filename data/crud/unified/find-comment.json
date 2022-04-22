@@ -195,10 +195,11 @@
       ]
     },
     {
-      "description": "find with comment does not set comment on getMore",
+      "description": "find with comment does not set comment on getMore - pre 4.4",
       "runOnRequirements": [
         {
-          "minServerVersion": "3.6"
+          "minServerVersion": "3.6.0",
+          "maxServerVersion": "4.3.99"
         }
       ],
       "operations": [

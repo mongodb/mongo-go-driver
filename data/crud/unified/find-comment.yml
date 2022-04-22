@@ -76,7 +76,7 @@ tests:
         object: *collection0
         arguments:
           filter: *filter
-          comment: &comment { key: "value"}
+          comment: *comment
         expectError:
           isClientError: false
     expectEvents:
@@ -88,9 +88,10 @@ tests:
                 filter: *filter
                 comment: *comment
 
-  - description: "find with comment does not set comment on getMore"
+  - description: "find with comment does not set comment on getMore - pre 4.4"
     runOnRequirements:
-      - minServerVersion: "3.6"
+      - minServerVersion: "3.6.0"
+        maxServerVersion: "4.3.99"
     operations:
       - name: find
         object: *collection0
