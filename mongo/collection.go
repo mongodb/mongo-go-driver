@@ -56,6 +56,7 @@ type aggregateParams struct {
 	writeSelector  description.ServerSelector
 	readPreference *readpref.ReadPref
 	opts           []*options.AggregateOptions
+	timeout        *time.Duration
 }
 
 func closeImplicitSession(sess *session.Client) {
@@ -787,6 +788,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		readSelector:   coll.readSelector,
 		writeSelector:  coll.writeSelector,
 		readPreference: coll.readPreference,
+		timeout:        coll.timeout,
 		opts:           opts,
 	}
 	return aggregate(a)
@@ -855,7 +857,8 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		Deployment(a.client.deployment).
 		Crypt(a.client.cryptFLE).
 		ServerAPI(a.client.serverAPI).
-		HasOutputStage(hasOutputStage)
+		HasOutputStage(hasOutputStage).
+		Timeout(a.timeout)
 
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)

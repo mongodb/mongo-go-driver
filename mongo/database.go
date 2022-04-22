@@ -134,6 +134,7 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 		readSelector:   db.readSelector,
 		writeSelector:  db.writeSelector,
 		readPreference: db.readPreference,
+		timeout:        db.timeout,
 		opts:           opts,
 	}
 	return aggregate(a)
@@ -183,7 +184,8 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	return op.Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
-		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI), sess, nil
+		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
+		Timeout(db.timeout), sess, nil
 }
 
 // RunCommand executes the given command against the database. This function does not obey the Database's read
@@ -385,7 +387,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
-		ServerAPI(db.client.serverAPI)
+		ServerAPI(db.client.serverAPI).Timeout(db.timeout)
 
 	cursorOpts := db.client.createBaseCursorOptions()
 	if lco.NameOnly != nil {
