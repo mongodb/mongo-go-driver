@@ -123,6 +123,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeEstimatedDocumentCount(ctx, op)
 	case "find":
 		return executeFind(ctx, op)
+	case "findOne":
+		return executeFindOne(ctx, op)
 	case "findOneAndDelete":
 		return executeFindOneAndDelete(ctx, op)
 	case "findOneAndReplace":

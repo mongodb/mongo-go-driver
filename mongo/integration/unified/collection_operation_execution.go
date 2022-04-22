@@ -510,6 +510,53 @@ func executeFind(ctx context.Context, operation *operation) (*operationResult, e
 	return newCursorResult(docs), nil
 }
 
+func executeFindOne(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var filter bson.Raw
+	opts := options.FindOne()
+
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "collation":
+			collation, err := createCollation(val.Document())
+			if err != nil {
+				return nil, fmt.Errorf("error creating collation: %v", err)
+			}
+			opts.SetCollation(collation)
+		case "filter":
+			filter = val.Document()
+		case "hint":
+			hint, err := createHint(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating hint: %v", err)
+			}
+			opts.SetHint(hint)
+		case "maxTimeMS":
+			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		case "projection":
+			opts.SetProjection(val.Document())
+		case "sort":
+			opts.SetSort(val.Document())
+		default:
+			return nil, fmt.Errorf("unrecognized findOneAndDelete option %q", key)
+		}
+	}
+	if filter == nil {
+		return nil, newMissingArgumentError("filter")
+	}
+
+	res, err := coll.FindOne(ctx, filter, opts).DecodeBytes()
+	return newDocumentResult(res, err), nil
+}
+
 func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {

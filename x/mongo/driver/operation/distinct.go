@@ -9,6 +9,7 @@ package operation
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -38,6 +39,7 @@ type Distinct struct {
 	retry          *driver.RetryMode
 	result         DistinctResult
 	serverAPI      *driver.ServerAPIOptions
+	timeout        *time.Duration
 }
 
 // DistinctResult represents a distinct result returned by the server.
@@ -99,6 +101,7 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		ReadPreference:    d.readPreference,
 		Selector:          d.selector,
 		ServerAPI:         d.serverAPI,
+		Timeout:           d.timeout,
 	}.Execute(ctx, nil)
 
 }
@@ -281,5 +284,15 @@ func (d *Distinct) ServerAPI(serverAPI *driver.ServerAPIOptions) *Distinct {
 	}
 
 	d.serverAPI = serverAPI
+	return d
+}
+
+// Timeout sets the timeout for this operation.
+func (d *Distinct) Timeout(timeout *time.Duration) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.timeout = timeout
 	return d
 }

@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
@@ -39,6 +40,7 @@ type Count struct {
 	retry          *driver.RetryMode
 	result         CountResult
 	serverAPI      *driver.ServerAPIOptions
+	timeout        *time.Duration
 }
 
 // CountResult represents a count result returned by the server.
@@ -122,6 +124,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		ReadPreference:    c.readPreference,
 		Selector:          c.selector,
 		ServerAPI:         c.serverAPI,
+		Timeout:           c.timeout,
 	}.Execute(ctx, nil)
 
 	// Swallow error if NamespaceNotFound(26) is returned from aggregate on non-existent namespace
@@ -169,7 +172,8 @@ func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, er
 		dst = bsoncore.AppendArrayElement(dst, "pipeline", countPipeline)
 	}
 
-	if c.maxTimeMS != nil {
+	// Only append specified maxTimeMS if timeout is not also specified.
+	if c.maxTimeMS != nil && c.timeout == nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *c.maxTimeMS)
 	}
 	if c.comment.Type != bsontype.Type(0) {
@@ -326,5 +330,15 @@ func (c *Count) ServerAPI(serverAPI *driver.ServerAPIOptions) *Count {
 	}
 
 	c.serverAPI = serverAPI
+	return c
+}
+
+// Timeout sets the timeout for this operation.
+func (c *Count) Timeout(timeout *time.Duration) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.timeout = timeout
 	return c
 }

@@ -148,7 +148,9 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 
 		dst = bsoncore.AppendValueElement(dst, "hint", a.hint)
 	}
-	if a.maxTimeMS != nil {
+
+	// Only append specified maxTimeMS if timeout is not also specified.
+	if a.maxTimeMS != nil && a.timeout == nil {
 
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *a.maxTimeMS)
 	}
