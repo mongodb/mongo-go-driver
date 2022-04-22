@@ -86,7 +86,9 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "createChangeStream":
 		return executeCreateChangeStream(ctx, op)
 	case "listDatabases":
-		return executeListDatabases(ctx, op)
+		return executeListDatabases(ctx, op, false)
+	case "listDatabaseNames":
+		return executeListDatabases(ctx, op, true)
 
 	// Database operations
 	case "createCollection":

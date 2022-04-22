@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
@@ -35,6 +36,7 @@ type ListDatabases struct {
 	selector            description.ServerSelector
 	crypt               driver.Crypt
 	serverAPI           *driver.ServerAPIOptions
+	timeout             *time.Duration
 
 	result ListDatabasesResult
 }
@@ -160,6 +162,7 @@ func (ld *ListDatabases) Execute(ctx context.Context) error {
 		Selector:       ld.selector,
 		Crypt:          ld.crypt,
 		ServerAPI:      ld.serverAPI,
+		Timeout:        ld.timeout,
 	}.Execute(ctx, nil)
 
 }
@@ -310,5 +313,15 @@ func (ld *ListDatabases) ServerAPI(serverAPI *driver.ServerAPIOptions) *ListData
 	}
 
 	ld.serverAPI = serverAPI
+	return ld
+}
+
+// Timeout sets the timeout for this operation.
+func (ld *ListDatabases) Timeout(timeout *time.Duration) *ListDatabases {
+	if ld == nil {
+		ld = new(ListDatabases)
+	}
+
+	ld.timeout = timeout
 	return ld
 }
