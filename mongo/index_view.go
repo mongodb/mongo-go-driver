@@ -95,7 +95,8 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		Session(sess).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
-		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI)
+		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
+		Timeout(iv.coll.timeout)
 
 	cursorOpts := iv.coll.client.createBaseCursorOptions()
 	lio := options.MergeListIndexesOptions(opts...)
