@@ -839,6 +839,8 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":

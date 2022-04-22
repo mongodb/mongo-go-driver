@@ -577,6 +577,13 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
 	}
+	if uo.Comment != nil {
+		comment, err := transformValue(coll.registry, uo.Comment, false, "comment")
+		if err != nil {
+			return nil, err
+		}
+		op = op.Comment(comment)
+	}
 	retry := driver.RetryNone
 	// retryable writes are only enabled updateOne/replaceOne operations
 	if !multi && coll.client.retryWrites {
@@ -727,6 +734,9 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		uOpts.Upsert = opt.Upsert
 		uOpts.Hint = opt.Hint
 		uOpts.Let = opt.Let
+		if opt.Comment != nil {
+			uOpts.SetComment(opt.Comment)
+		}
 		updateOptions = append(updateOptions, uOpts)
 	}
 

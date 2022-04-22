@@ -19,6 +19,10 @@ type ReplaceOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default is the empty interface, which means that no comment will be included in the logs.
+	Comment interface{}
+
 	// The index to use for the operation. This should either be the index name as a string or the index specification
 	// as a document. This option is only valid for MongoDB versions >= 4.2. Server versions >= 3.4 will return an error
 	// if this option is specified. For server versions < 3.4, the driver will return a client-side error if this option
@@ -55,6 +59,12 @@ func (ro *ReplaceOptions) SetCollation(c *Collation) *ReplaceOptions {
 	return ro
 }
 
+// SetCollation sets the value for the Collation field.
+func (f *ReplaceOptions) SetComment(comment interface{}) *ReplaceOptions {
+	f.Comment = comment
+	return f
+}
+
 // SetHint sets the value for the Hint field.
 func (ro *ReplaceOptions) SetHint(h interface{}) *ReplaceOptions {
 	ro.Hint = h
@@ -86,6 +96,9 @@ func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
 		}
 		if ro.Collation != nil {
 			rOpts.Collation = ro.Collation
+		}
+		if ro.Comment != nil {
+			rOpts.Comment = ro.Comment
 		}
 		if ro.Hint != nil {
 			rOpts.Hint = ro.Hint

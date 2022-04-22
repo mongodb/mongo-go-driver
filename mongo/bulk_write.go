@@ -395,7 +395,6 @@ func createUpdateDoc(
 	}
 
 	updateDoc, _ = bsoncore.AppendDocumentEnd(updateDoc, uidx)
-
 	return updateDoc, nil
 }
 
