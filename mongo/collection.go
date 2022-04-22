@@ -218,6 +218,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	bwo := options.MergeBulkWriteOptions(opts...)
 
 	op := bulkWrite{
+		comment:                  bwo.Comment,
 		ordered:                  bwo.Ordered,
 		bypassDocumentValidation: bwo.BypassDocumentValidation,
 		models:                   models,
@@ -462,6 +463,13 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI)
+	if do.Comment != nil {
+		comment, err := transformValue(coll.registry, do.Comment, false, "comment")
+		if err != nil {
+			return nil, err
+		}
+		op = op.Comment(comment)
+	}
 	if do.Hint != nil {
 		op = op.Hint(true)
 	}

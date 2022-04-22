@@ -115,6 +115,8 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 		val := elem.Value()
 
 		switch key {
+		case "comment":
+			opts.SetComment(val)
 		case "ordered":
 			opts.SetOrdered(val.Boolean())
 		case "requests":
@@ -307,6 +309,8 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":
@@ -350,6 +354,8 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 		val := elem.Value()
 
 		switch key {
+		case "comment":
+			opts.SetComment(val)
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
