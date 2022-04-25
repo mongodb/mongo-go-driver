@@ -49,6 +49,7 @@ tests:
 
   - description: "insertOne with document comment"
     runOnRequirements:
+      - minServerVersion: "3.4.0"
       - minServerVersion: "4.4"
     operations:
       - name: insertOne

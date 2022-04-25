@@ -75,6 +75,7 @@ tests:
 
   - description: "deleteOne with comment - pre 4.4"
     runOnRequirements:
+      - minServerVersion: "3.4.0"
       - maxServerVersion: "4.2.99"
     operations:
       - name: deleteOne
