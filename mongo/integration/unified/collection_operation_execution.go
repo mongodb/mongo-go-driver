@@ -179,6 +179,15 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
+			// TODO with `opts.SetComment(val)`
+			switch val.Type {
+			case bsontype.EmbeddedDocument:
+				opts.SetComment(val.String())
+			default:
+				opts.SetComment(val.StringValue())
+			}
 		case "filter":
 			filter = val.Document()
 		case "hint":
@@ -453,6 +462,8 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 		val := elem.Value()
 
 		switch key {
+		case "comment":
+			opts.SetComment(val)
 		case "maxTimeMS":
 			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		default:

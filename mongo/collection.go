@@ -292,7 +292,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		if err != nil {
 			return nil, err
 		}
-		op.Comment(comment)
+		op = op.Comment(comment)
 	}
 	if imo.Ordered != nil {
 		op = op.Ordered(*imo.Ordered)
@@ -967,6 +967,9 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	if countOpts.Collation != nil {
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
+	if countOpts.Comment != nil {
+		op.Comment(*countOpts.Comment)
+	}
 	if countOpts.MaxTime != nil {
 		op.MaxTimeMS(int64(*countOpts.MaxTime / time.Millisecond))
 	}
@@ -1048,6 +1051,13 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 
 	co := options.MergeEstimatedDocumentCountOptions(opts...)
+	if co.Comment != nil {
+		comment, err := transformValue(coll.registry, co.Comment, false, "comment")
+		if err != nil {
+			return 0, err
+		}
+		op = op.Comment(comment)
+	}
 	if co.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*co.MaxTime / time.Millisecond))
 	}
@@ -1457,7 +1467,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op.Comment(comment)
+		op = op.Comment(comment)
 	}
 	if fod.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*fod.MaxTime / time.Millisecond))
@@ -1537,7 +1547,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op.Comment(comment)
+		op = op.Comment(comment)
 	}
 	if fo.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
@@ -1634,7 +1644,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op.Comment(comment)
+		op = op.Comment(comment)
 	}
 	if fo.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
