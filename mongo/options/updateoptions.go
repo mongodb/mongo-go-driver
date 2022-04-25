@@ -70,7 +70,7 @@ func (uo *UpdateOptions) SetCollation(c *Collation) *UpdateOptions {
 	return uo
 }
 
-// SetCollation sets the value for the Collation field.
+// SetComment sets the value for the Comment field.
 func (uo *UpdateOptions) SetComment(comment interface{}) *UpdateOptions {
 	uo.Comment = comment
 	return uo

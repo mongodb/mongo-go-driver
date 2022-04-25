@@ -31,9 +31,9 @@ func (ioo *InsertOneOptions) SetBypassDocumentValidation(b bool) *InsertOneOptio
 }
 
 // SetComment sets the value for the Comment field.
-func (f *InsertOneOptions) SetComment(comment interface{}) *InsertOneOptions {
-	f.Comment = comment
-	return f
+func (ioo *InsertOneOptions) SetComment(comment interface{}) *InsertOneOptions {
+	ioo.Comment = comment
+	return ioo
 }
 
 // MergeInsertOneOptions combines the given InsertOneOptions instances into a single InsertOneOptions in a last-one-wins

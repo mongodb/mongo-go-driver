@@ -668,7 +668,7 @@ func (f *FindOneAndReplaceOptions) SetCollation(collation *Collation) *FindOneAn
 	return f
 }
 
-// SetCollation sets the value for the Collation field.
+// SetComment sets the value for the Comment field.
 func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndReplaceOptions {
 	f.Comment = comment
 	return f
@@ -840,7 +840,7 @@ func (f *FindOneAndUpdateOptions) SetCollation(collation *Collation) *FindOneAnd
 	return f
 }
 
-// SetCollation sets the value for the Collation field.
+// SetComment sets the value for the Comment field.
 func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpdateOptions {
 	f.Comment = comment
 	return f
@@ -984,7 +984,7 @@ func (f *FindOneAndDeleteOptions) SetCollation(collation *Collation) *FindOneAnd
 	return f
 }
 
-// SetCollation sets the value for the Collation field.
+// SetComment sets the value for the Comment field.
 func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDeleteOptions {
 	f.Comment = comment
 	return f

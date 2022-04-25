@@ -38,7 +38,7 @@ func BulkWrite() *BulkWriteOptions {
 	}
 }
 
-// SetCollation sets the value for the Collation field.
+// SetComment sets the value for the Comment field.
 func (b *BulkWriteOptions) SetComment(comment interface{}) *BulkWriteOptions {
 	b.Comment = comment
 	return b
