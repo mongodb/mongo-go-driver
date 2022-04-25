@@ -92,12 +92,12 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 			// Check to see if the keypath requires us to convert actual/expected to make a true comparison.  If the
 			// comparison is not supported for the keypath, continue with the recursive strategy.
 			//
-			// TODO(GODRIVER-2386) this branch of logic will be removed once we add document support for comments
-			compared, err := evaluateMixedTypeComparison(expectedKey, expectedValue, actualValue)
+			// TODO(GODRIVER-2386): this branch of logic will be removed once we add document support for comments
+			mixedTypeEvaluated, err := evaluateMixedTypeComparison(expectedKey, expectedValue, actualValue)
 			if err != nil {
 				return newMatchingError(fullKeyPath, "error doing mixed-type matching assertion: %v", err)
 			}
-			if compared {
+			if mixedTypeEvaluated {
 				continue
 			}
 
@@ -196,12 +196,12 @@ func compareDocumentToString(expected, actual bson.RawValue) error {
 	return nil
 }
 
-func evaluateMixedTypeComparison(expectedKey string, expected, actual bson.RawValue) (compared bool, err error) {
+func evaluateMixedTypeComparison(expectedKey string, expected, actual bson.RawValue) (evaluated bool, err error) {
 	switch expectedKey {
 	case "comment":
-		if expected.IsType(bsontype.EmbeddedDocument) && actual.IsType(bsontype.String) {
+		if expected.Type == bsontype.EmbeddedDocument && actual.Type == bsontype.String {
 			err = compareDocumentToString(expected, actual)
-			compared = true
+			evaluated = true
 		}
 	}
 	return

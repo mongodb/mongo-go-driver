@@ -307,8 +307,3 @@ func (rv RawValue) Decimal128() primitive.Decimal128 { return convertToCoreValue
 func (rv RawValue) Decimal128OK() (primitive.Decimal128, bool) {
 	return convertToCoreValue(rv).Decimal128OK()
 }
-
-// IsType asserts that the specified RawValue.Type is t.
-func (rv RawValue) IsType(t bsontype.Type) bool {
-	return rv.Type == t
-}

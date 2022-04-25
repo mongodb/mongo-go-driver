@@ -57,7 +57,7 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 			}
 			opts.SetCollation(collation)
 		case "comment":
-			// TODO(GODRIVER-2386) when document support for comments is added, we can replace this switch condition
+			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
 			// TODO with `opts.SetComment(val)`
 			switch val.Type {
 			case bsontype.EmbeddedDocument:
@@ -965,7 +965,7 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			}
 			opts.SetCollation(collation)
 		case "comment":
-			// TODO(GODRIVER-2386) when document support for comments is added, we can replace this switch condition
+			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
 			// TODO with `opts.SetComment(val)`
 			switch val.Type {
 			case bsontype.EmbeddedDocument:
