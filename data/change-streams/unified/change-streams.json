@@ -165,6 +165,7 @@
     },
     {
       "description": "Test with document comment - pre 4.4",
+      "skipReason": "TODO(DRIVERS-2290): aggregate doesn't support document comments in any version",
       "runOnRequirements": [
         {
           "minServerVersion": "3.6.0",
