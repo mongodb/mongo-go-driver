@@ -60,9 +60,9 @@ func (ro *ReplaceOptions) SetCollation(c *Collation) *ReplaceOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (f *ReplaceOptions) SetComment(comment interface{}) *ReplaceOptions {
-	f.Comment = comment
-	return f
+func (ro *ReplaceOptions) SetComment(comment interface{}) *ReplaceOptions {
+	ro.Comment = comment
+	return ro
 }
 
 // SetHint sets the value for the Hint field.
