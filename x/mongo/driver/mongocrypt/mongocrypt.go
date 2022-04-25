@@ -46,6 +46,10 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 		return nil, err
 	}
 
+	if opts.BypassQueryAnalysis {
+		C.mongocrypt_setopt_bypass_query_analysis(wrapped)
+	}
+
 	// initialize handle
 	if !C.mongocrypt_init(crypt.wrapped) {
 		return nil, crypt.createErrorFromStatus()

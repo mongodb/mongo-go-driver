@@ -12,8 +12,9 @@ import (
 
 // MongoCryptOptions specifies options to configure a MongoCrypt instance.
 type MongoCryptOptions struct {
-	KmsProviders   bsoncore.Document
-	LocalSchemaMap map[string]bsoncore.Document
+	KmsProviders        bsoncore.Document
+	LocalSchemaMap      map[string]bsoncore.Document
+	BypassQueryAnalysis bool
 }
 
 // MongoCrypt creates a new MongoCryptOptions instance.
@@ -30,5 +31,11 @@ func (mo *MongoCryptOptions) SetKmsProviders(kmsProviders bsoncore.Document) *Mo
 // SetLocalSchemaMap specifies the local schema map.
 func (mo *MongoCryptOptions) SetLocalSchemaMap(localSchemaMap map[string]bsoncore.Document) *MongoCryptOptions {
 	mo.LocalSchemaMap = localSchemaMap
+	return mo
+}
+
+// SetBypassQueryAnalysis skips the NeedMongoMarkings state.
+func (mo *MongoCryptOptions) SetBypassQueryAnalysis(bypassQueryAnalysis bool) *MongoCryptOptions {
+	mo.BypassQueryAnalysis = bypassQueryAnalysis
 	return mo
 }
