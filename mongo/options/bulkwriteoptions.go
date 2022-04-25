@@ -17,6 +17,10 @@ type BulkWriteOptions struct {
 	// validation.
 	BypassDocumentValidation *bool
 
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default is the empty interface, which means that no comment will be included in the logs.
+	Comment interface{}
+
 	// If true, no writes will be executed after one fails. The default value is true.
 	Ordered *bool
 
@@ -32,6 +36,12 @@ func BulkWrite() *BulkWriteOptions {
 	return &BulkWriteOptions{
 		Ordered: &DefaultOrdered,
 	}
+}
+
+// SetComment sets the value for the Comment field.
+func (b *BulkWriteOptions) SetComment(comment interface{}) *BulkWriteOptions {
+	b.Comment = comment
+	return b
 }
 
 // SetOrdered sets the value for the Ordered field.
@@ -62,6 +72,9 @@ func MergeBulkWriteOptions(opts ...*BulkWriteOptions) *BulkWriteOptions {
 	for _, opt := range opts {
 		if opt == nil {
 			continue
+		}
+		if opt.Comment != nil {
+			b.Comment = opt.Comment
 		}
 		if opt.Ordered != nil {
 			b.Ordered = opt.Ordered

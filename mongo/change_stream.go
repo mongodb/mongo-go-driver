@@ -137,6 +137,9 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
 	}
+	if comment := cs.options.Comment; comment != nil {
+		cs.aggregate.Comment(*comment)
+	}
 	if cs.options.BatchSize != nil {
 		cs.aggregate.BatchSize(*cs.options.BatchSize)
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
@@ -395,7 +398,13 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 	}
 
 	if cs.options.FullDocument != nil {
-		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.options.FullDocument))
+		// TODO(GODRIVER-2294) merge PR for https://github.com/mongodb/mongo-go-driver/pull/917/files#diff-e167025d0c54c04fe112f526971955e98596621c3bdc99a4527311bc1025cf15R397
+		// Only append a default "fullDocument" field if wire version is less than 6 (3.6). Otherwise,
+		// the server will assume users want the default behavior, and "fullDocument" does not need to be
+		// specified.
+		if *cs.options.FullDocument != options.Default || (cs.wireVersion != nil && cs.wireVersion.Max < 6) {
+			plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.options.FullDocument))
+		}
 	}
 
 	if cs.options.ResumeAfter != nil {

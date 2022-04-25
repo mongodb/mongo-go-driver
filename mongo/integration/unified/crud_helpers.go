@@ -51,6 +51,8 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			ua.opts.SetCollation(collation)
+		case "comment":
+			ua.opts.SetComment(val)
 		case "filter":
 			ua.filter = val.Document()
 		case "hint":
