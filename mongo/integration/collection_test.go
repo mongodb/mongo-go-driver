@@ -137,8 +137,8 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, want2, res.InsertedIDs[2], "expected inserted ID %v, got %v", want2, res.InsertedIDs[2])
 		})
 		mt.Run("batches", func(mt *mtest.T) {
-			// TODO(GODRIVER-425): remove this as part a larger project to
-			// refactor integration and other longrunning tasks.
+			// TODO(GODRIVER-425): remove this as part a larger project to refactor integration and other longrunning
+			// TODO tasks.
 			if os.Getenv("EVR_TASK_ID") == "" {
 				mt.Skip("skipping long running integration test outside of evergreen")
 			}
@@ -167,8 +167,8 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, numDocs, len(res.InsertedIDs), "expected %v inserted IDs, got %v", numDocs, len(res.InsertedIDs))
 		})
 		mt.Run("large document batches", func(mt *mtest.T) {
-			// TODO(GODRIVER-425): remove this as part a larger project to
-			// refactor integration and other longrunning tasks.
+			// TODO(GODRIVER-425): remove this as part a larger project to refactor integration and other longrunning
+			// TODO tasks.
 			if os.Getenv("EVR_TASK_ID") == "" {
 				mt.Skip("skipping long running integration test outside of evergreen")
 			}
@@ -249,8 +249,8 @@ func TestCollection(t *testing.T) {
 			}
 		})
 		mt.Run("writeError index", func(mt *mtest.T) {
-			// TODO(GODRIVER-425): remove this as part a larger project to
-			// refactor integration and other longrunning tasks.
+			// TODO(GODRIVER-425): remove this as part a larger project to refactor integration and other longrunning
+			// TODO tasks.
 			if os.Getenv("EVR_TASK_ID") == "" {
 				mt.Skip("skipping long running integration test outside of evergreen")
 			}
