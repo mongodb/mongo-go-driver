@@ -24,6 +24,26 @@ func executeClose(ctx context.Context, operation *operation) error {
 	return nil
 }
 
+func executeIterateOnce(ctx context.Context, operation *operation) (*operationResult, error) {
+	cursor, err := entities(ctx).cursor(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	// TryNext will attempt to get the next document, potentially issuing a single 'getMore'.
+	if cursor.TryNext(ctx) {
+		// We don't expect the server to return malformed documents, so any errors from Decode here are treated
+		// as fatal.
+		var res bson.Raw
+		if err := cursor.Decode(&res); err != nil {
+			return nil, fmt.Errorf("error decoding cursor result: %v", err)
+		}
+
+		return newDocumentResult(res, nil), nil
+	}
+	return newErrorResult(cursor.Err()), nil
+}
+
 func executeIterateUntilDocumentOrError(ctx context.Context, operation *operation) (*operationResult, error) {
 	cursor, err := entities(ctx).cursor(operation.Object)
 	if err != nil {

@@ -274,6 +274,22 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 		if !bytes.Equal(expectedID, actualID) {
 			return fmt.Errorf("expected lsid %v, got %v", expectedID, actualID)
 		}
+	case "$$lte":
+		if assertionVal.Type != bsontype.Int32 && assertionVal.Type != bsontype.Int64 {
+			return fmt.Errorf("expected assertionVal to be an Int32 or Int64 but got a %s", assertionVal.Type)
+		}
+		if actual.Type != bsontype.Int32 && actual.Type != bsontype.Int64 {
+			return fmt.Errorf("expected value to be an Int32 or Int64 but got a %s", actual.Type)
+		}
+
+		// Numeric values can be compared even if their types are different (e.g. if expected is an int32 and actual
+		// is an int64).
+		expectedInt64 := assertionVal.AsInt64()
+		actualInt64 := actual.AsInt64()
+		if actualInt64 > expectedInt64 {
+			return fmt.Errorf("expected numeric value %d to be less than or equal %d", actualInt64, expectedInt64)
+		}
+		return nil
 	default:
 		return fmt.Errorf("unrecognized special matching assertion %q", assertion)
 	}
