@@ -196,12 +196,13 @@ func ReadString(src []byte) (string, []byte, bool) {
 
 // AppendDocumentStart reserves a document's length and returns the index where the length begins.
 // This index can later be used to write the length of the document.
-//
-// TODO(skriptble): We really need AppendDocumentStart and AppendDocumentEnd.  AppendDocumentStart would handle calling
-// TODO ReserveLength and providing the index of the start of the document. AppendDocumentEnd would handle taking that
-// TODO start index, adding the null byte, calculating the length, and filling in the length at the start of the
-// TODO document.
-func AppendDocumentStart(dst []byte) (index int32, b []byte) { return ReserveLength(dst) }
+func AppendDocumentStart(dst []byte) (index int32, b []byte) {
+	// TODO(skriptble): We really need AppendDocumentStart and AppendDocumentEnd.  AppendDocumentStart would handle calling
+	// TODO ReserveLength and providing the index of the start of the document. AppendDocumentEnd would handle taking that
+	// TODO start index, adding the null byte, calculating the length, and filling in the length at the start of the
+	// TODO document.
+	return ReserveLength(dst)
+}
 
 // AppendDocumentStartInline functions the same as AppendDocumentStart but takes a pointer to the
 // index int32 which allows this function to be used inline.
