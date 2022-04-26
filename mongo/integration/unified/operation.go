@@ -119,6 +119,10 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeDeleteMany(ctx, op)
 	case "distinct":
 		return executeDistinct(ctx, op)
+	case "dropIndex":
+		return executeDropIndex(ctx, op)
+	case "dropIndexes":
+		return executeDropIndexes(ctx, op)
 	case "estimatedDocumentCount":
 		return executeEstimatedDocumentCount(ctx, op)
 	case "find":

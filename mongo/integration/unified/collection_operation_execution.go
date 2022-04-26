@@ -444,6 +444,57 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 	return newValueResult(bsontype.Array, rawRes, nil), nil
 }
 
+func executeDropIndex(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var name string
+	dropIndexOpts := options.DropIndexes()
+
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "name":
+			name = val.StringValue()
+		case "maxTimeMS":
+			dropIndexOpts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		}
+	}
+	if name == "" {
+		return nil, newMissingArgumentError("name")
+	}
+
+	res, err := coll.Indexes().DropOne(ctx, name, dropIndexOpts)
+	return newDocumentResult(res, err), nil
+}
+
+func executeDropIndexes(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	dropIndexOpts := options.DropIndexes()
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "maxTimeMS":
+			dropIndexOpts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		}
+	}
+
+	res, err := coll.Indexes().DropAll(ctx, dropIndexOpts)
+	return newDocumentResult(res, err), nil
+}
+
 func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {

@@ -402,7 +402,8 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
-		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI)
+		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
+		Timeout(iv.coll.timeout)
 	if dio.MaxTime != nil {
 		op.MaxTimeMS(int64(*dio.MaxTime / time.Millisecond))
 	}
