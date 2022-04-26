@@ -295,7 +295,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.timeout)
 	imo := options.MergeInsertManyOptions(opts...)
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
@@ -475,7 +475,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.timeout)
 	if do.Comment != nil {
 		comment, err := transformValue(coll.registry, do.Comment, true, "comment")
 		if err != nil {
@@ -586,7 +586,8 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(uo.Hint != nil).
-		ArrayFilters(uo.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI)
+		ArrayFilters(uo.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI).
+		Timeout(coll.timeout)
 	if uo.Let != nil {
 		let, err := transformBsoncoreDocument(coll.registry, uo.Let, true, "let")
 		if err != nil {
@@ -1487,7 +1488,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		return &SingleResult{err: err}
 	}
 	fod := options.MergeFindOneAndDeleteOptions(opts...)
-	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI)
+	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.timeout)
 	if fod.Collation != nil {
 		op = op.Collation(bsoncore.Document(fod.Collation.ToDocument()))
 	}
@@ -1564,7 +1565,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 
 	fo := options.MergeFindOneAndReplaceOptions(opts...)
 	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: r}).
-		ServerAPI(coll.client.serverAPI)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.timeout)
 	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
 	}
@@ -1647,7 +1648,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 
 	fo := options.MergeFindOneAndUpdateOptions(opts...)
-	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI)
+	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.timeout)
 
 	u, err := transformUpdateValue(coll.registry, update, true)
 	if err != nil {
