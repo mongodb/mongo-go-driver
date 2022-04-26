@@ -594,7 +594,7 @@ func executeFindOne(ctx context.Context, operation *operation) (*operationResult
 		case "sort":
 			opts.SetSort(val.Document())
 		default:
-			return nil, fmt.Errorf("unrecognized findOneAndDelete option %q", key)
+			return nil, fmt.Errorf("unrecognized findOne option %q", key)
 		}
 	}
 	if filter == nil {
@@ -602,6 +602,11 @@ func executeFindOne(ctx context.Context, operation *operation) (*operationResult
 	}
 
 	res, err := coll.FindOne(ctx, filter, opts).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+
 	return newDocumentResult(res, err), nil
 }
 
@@ -653,6 +658,11 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 	}
 
 	res, err := coll.FindOneAndDelete(ctx, filter, opts).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+
 	return newDocumentResult(res, err), nil
 }
 
@@ -723,6 +733,11 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 	}
 
 	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+
 	return newDocumentResult(res, err), nil
 }
 
@@ -800,6 +815,11 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 	}
 
 	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+
 	return newDocumentResult(res, err), nil
 }
 
