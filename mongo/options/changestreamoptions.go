@@ -24,7 +24,7 @@ type ChangeStreamOptions struct {
 	Collation *Collation
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is the empty string, which means that no comment will be included in the logs.
+	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
 	// Specifies whether the updated document should be returned in change notifications for update operations along

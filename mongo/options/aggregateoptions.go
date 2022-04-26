@@ -41,7 +41,7 @@ type AggregateOptions struct {
 	MaxAwaitTime *time.Duration
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is the empty string, which means that no comment will be included in the logs.
+	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification

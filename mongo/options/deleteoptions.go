@@ -14,7 +14,7 @@ type DeleteOptions struct {
 	Collation *Collation
 
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default is the empty interface, which means that no comment will be included in the logs.
+	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification

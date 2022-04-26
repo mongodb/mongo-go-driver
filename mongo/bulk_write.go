@@ -181,7 +181,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).
 		ServerAPI(bw.collection.client.serverAPI)
 	if bw.comment != nil {
-		comment, err := transformValue(bw.collection.registry, bw.comment, false, "comment")
+		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {
 			return op.Result(), err
 		}
@@ -238,7 +238,7 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
 		ServerAPI(bw.collection.client.serverAPI)
 	if bw.comment != nil {
-		comment, err := transformValue(bw.collection.registry, bw.comment, false, "comment")
+		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {
 			return op.Result(), err
 		}
@@ -333,7 +333,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
 		ArrayFilters(hasArrayFilters).ServerAPI(bw.collection.client.serverAPI)
 	if bw.comment != nil {
-		comment, err := transformValue(bw.collection.registry, bw.comment, false, "comment")
+		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {
 			return op.Result(), err
 		}

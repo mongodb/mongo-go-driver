@@ -31,7 +31,7 @@ type FindOptions struct {
 	Collation *Collation
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is the empty string, which means that no comment will be included in the logs.
+	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
 	// Specifies the type of cursor that should be created for the operation. The default is NonTailable, which means
@@ -334,7 +334,7 @@ type FindOneOptions struct {
 	Collation *Collation
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is the empty string, which means that no comment will be included in the logs.
+	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
 	// Specifies the type of cursor that should be created for the operation. The default is NonTailable, which means
@@ -612,7 +612,7 @@ type FindOneAndReplaceOptions struct {
 	Collation *Collation
 
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default is the empty interface, which means that no comment will be included in the logs.
+	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
@@ -778,7 +778,7 @@ type FindOneAndUpdateOptions struct {
 	Collation *Collation
 
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default is the empty interface, which means that no comment will be included in the logs.
+	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
@@ -942,7 +942,7 @@ type FindOneAndDeleteOptions struct {
 	Collation *Collation
 
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default is the empty interface, which means that no comment will be included in the logs.
+	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
