@@ -609,10 +609,9 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 
 	// Decode treeless literal block.
 	if litType == literalsBlockTreeless {
-		// TODO: We could send the history early WITHOUT the stream history.
-		//   This would allow decoding treeless literals before the byte history is available.
-		//   Silencia stats: Treeless 4393, with: 32775, total: 37168, 11% treeless.
-		//   So not much obvious gain here.
+		// TODO: We could send the history early WITHOUT the stream history. This would allow decoding treeless literals
+		// TODO before the byte history is available. Silencia stats: Treeless 4393, with: 32775, total: 37168, 11%
+		// TODO treeless.  So not much obvious gain here.
 
 		if hist.huffTree == nil {
 			return errors.New("literal block was treeless, but no history was defined")

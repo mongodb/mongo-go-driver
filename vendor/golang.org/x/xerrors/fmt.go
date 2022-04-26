@@ -44,11 +44,9 @@ func Errorf(format string, a ...interface{}) error {
 		if err == nil {
 			return &noWrapError{fmt.Sprintf(format, a...), nil, Caller(1)}
 		}
-		// TODO: this is not entirely correct. The error value could be
-		// printed elsewhere in format if it mixes numbered with unnumbered
-		// substitutions. With relatively small changes to doPrintf we can
-		// have it optionally ignore extra arguments and pass the argument
-		// list in its entirety.
+		// TODO: this is not entirely correct. The error value could be printed elsewhere in format if it mixes numbered
+		// TODO with unnumbered substitutions. With relatively small changes to doPrintf we can have it optionally
+		// TODO ignore extra arguments and pass the argument list in its entirety.
 		msg := fmt.Sprintf(format[:len(format)-len(": %s")], a[:len(a)-1]...)
 		frame := Frame{}
 		if internal.EnableTrace {

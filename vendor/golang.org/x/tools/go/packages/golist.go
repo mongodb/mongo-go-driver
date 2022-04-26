@@ -684,8 +684,7 @@ func golistDriver(cfg *Config, words ...string) (*driverResponse, error) {
 		}
 
 		// Work around for pre-go.1.11 versions of go list.
-		// TODO(matloob): they should be handled by the fallback.
-		// Can we delete this?
+		// TODO(matloob): they should be handled by the fallback.  Can we delete this?
 		if len(pkg.CompiledGoFiles) == 0 {
 			pkg.CompiledGoFiles = pkg.GoFiles
 		}
@@ -811,7 +810,7 @@ func invokeGo(cfg *Config, args ...string) (*bytes.Buffer, error) {
 		// Do not fail in that case.
 		// The same is true if an ad-hoc package given to go list doesn't exist.
 		// TODO(matloob): Remove these once we can depend on go list to exit with a zero status with -e even when
-		// packages don't exist or a build fails.
+		// TODO packages don't exist or a build fails.
 		if !usesExportData(cfg) && !containsGoFile(args) {
 			return nil, fmt.Errorf("go %v: %s: %s", args, exitErr, stderr)
 		}

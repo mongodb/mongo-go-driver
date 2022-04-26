@@ -602,8 +602,8 @@ func String(t Transformer, s string) (result string, n int, err error) {
 		pDst += nDst
 		pSrc += nSrc
 
-		// TODO:  let transformers implement an optional Spanner interface, akin
-		// to norm's QuickSpan. This would even allow us to avoid any allocation.
+		// TODO:  let transformers implement an optional Spanner interface, akin to norm's QuickSpan. This would even
+		// TODO allow us to avoid any allocation.
 		if !bytes.Equal(dst[:nDst], src[:nSrc]) {
 			break
 		}

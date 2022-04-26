@@ -16,10 +16,10 @@ import (
 // files that don't exist on disk to an overlay. The results can be
 // sometimes incorrect.
 // TODO(matloob): Handle unsupported cases, including the following:
-// - test files
-// - adding test and non-test files to test variants of packages
-// - determining the correct package to add given a new import path
-// - creating packages that don't exist
+// TODO 	- test files
+// TODO 	- adding test and non-test files to test variants of packages
+// TODO 	- determining the correct package to add given a new import path
+// TODO 	- creating packages that don't exist
 func processGolistOverlay(cfg *Config, response *driverResponse) (modifiedPkgs, needPkgs []string, err error) {
 	havePkgs := make(map[string]string) // importPath -> non-test package ID
 	needPkgsSet := make(map[string]bool)
@@ -104,8 +104,8 @@ func processGolistOverlay(cfg *Config, response *driverResponse) (modifiedPkgs, 
 		}
 		if !fileExists {
 			pkg.GoFiles = append(pkg.GoFiles, opath)
-			// TODO(matloob): Adding the file to CompiledGoFiles can exhibit the wrong behavior
-			// if the file will be ignored due to its build tags.
+			// TODO(matloob): Adding the file to CompiledGoFiles can exhibit the wrong behavior if the file will be
+			// TODO ignored due to its build tags.
 			pkg.CompiledGoFiles = append(pkg.CompiledGoFiles, opath)
 			modifiedPkgsSet[pkg.ID] = true
 		}
@@ -117,8 +117,8 @@ func processGolistOverlay(cfg *Config, response *driverResponse) (modifiedPkgs, 
 		for _, imp := range imports {
 			_, found := pkg.Imports[imp]
 			if !found {
-				// TODO(matloob): Handle cases when the following block isn't correct.
-				// These include imports of test variants, imports of vendored packages, etc.
+				// TODO(matloob): Handle cases when the following block isn't correct.  These include imports of test
+				// TODO variants, imports of vendored packages, etc.
 				id, ok := havePkgs[imp]
 				if !ok {
 					id = imp
@@ -225,8 +225,7 @@ func extractImports(filename string, contents []byte) ([]string, error) {
 // If the package has errors and has no Name, GoFiles, or Imports,
 // then it's possible that it doesn't yet exist on disk.
 func reclaimPackage(pkg *Package, id string, filename string, contents []byte) bool {
-	// TODO(rstambler): Check the message of the actual error?
-	// It differs between $GOPATH and module mode.
+	// TODO(rstambler): Check the message of the actual error?  It differs between $GOPATH and module mode.
 	if pkg.ID != id {
 		return false
 	}
@@ -252,8 +251,7 @@ func reclaimPackage(pkg *Package, id string, filename string, contents []byte) b
 }
 
 func extractPackageName(filename string, contents []byte) (string, bool) {
-	// TODO(rstambler): Check the message of the actual error?
-	// It differs between $GOPATH and module mode.
+	// TODO(rstambler): Check the message of the actual error?  It differs between $GOPATH and module mode.
 	f, err := parser.ParseFile(token.NewFileSet(), filename, contents, parser.PackageClauseOnly) // TODO(matloob): reuse fileset?
 	if err != nil {
 		return "", false

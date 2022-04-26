@@ -60,9 +60,8 @@ func Is(err, target error) bool {
 		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
 			return true
 		}
-		// TODO: consider supporing target.Is(err). This would allow
-		// user-definable predicates, but also may allow for coping with sloppy
-		// APIs, thereby making it easier to get away with them.
+		// TODO: consider supporing target.Is(err). This would allow user-definable predicates, but also may allow for
+		// TODO coping with sloppy APIs, thereby making it easier to get away with them.
 		if err = Unwrap(err); err == nil {
 			return false
 		}

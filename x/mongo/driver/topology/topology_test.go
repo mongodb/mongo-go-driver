@@ -774,8 +774,8 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 		}
 
 		// Otherwise, check if the expected frequency is within the given tolerance range.
-		// TODO(GODRIVER-2179): Use assert.Deltaf() when we migrate all test code to the
-		// "testify/assert" or an API-compatible library for assertions.
+		// TODO(GODRIVER-2179): Use assert.Deltaf() when we migrate all test code to the "testify/assert" or an
+		// TODO API-compatible library for assertions.
 		low := expected - test.Outcome.Tolerance
 		high := expected + test.Outcome.Tolerance
 		assert.True(

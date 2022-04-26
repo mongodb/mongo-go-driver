@@ -525,8 +525,7 @@ func (p *importer) typ(parent *types.Package, tname *types.Named) types.Type {
 		// cannot expect the interface type to appear in a cycle, as any
 		// such cycle must contain a named type which would have been
 		// first defined earlier.
-		// TODO(gri) Is this still true now that we have type aliases?
-		// See issue #23225.
+		// TODO(gri) Is this still true now that we have type aliases?  See issue #23225.
 		n := len(p.typList)
 		if p.trackAllTypes {
 			p.record(nil)
@@ -776,8 +775,8 @@ func (p *importer) float() constant.Value {
 	}
 
 	// convert to little endian
-	// TODO(gri) go/constant should have a more direct conversion function
-	//           (e.g., once it supports a big.Float based implementation)
+	// TODO(gri) go/constant should have a more direct conversion function (e.g., once it supports a big.Float based
+	// TODO implementation)
 	for i, j := 0, len(mant)-1; i < j; i, j = i+1, j-1 {
 		mant[i], mant[j] = mant[j], mant[i]
 	}

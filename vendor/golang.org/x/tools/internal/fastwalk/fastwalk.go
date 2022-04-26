@@ -49,11 +49,9 @@ var SkipFiles = errors.New("fastwalk: skip remaining files in directory")
 //     sentinel error. It is the walkFn's responsibility to prevent
 //     fastWalk from going into symlink cycles.
 func Walk(root string, walkFn func(path string, typ os.FileMode) error) error {
-	// TODO(bradfitz): make numWorkers configurable? We used a
-	// minimum of 4 to give the kernel more info about multiple
-	// things we want, in hopes its I/O scheduling can take
-	// advantage of that. Hopefully most are in cache. Maybe 4 is
-	// even too low of a minimum. Profile more.
+	// TODO(bradfitz): make numWorkers configurable? We used a minimum of 4 to give the kernel more info about multiple
+	// TODO things we want, in hopes its I/O scheduling can take advantage of that. Hopefully most are in cache. Maybe 4
+	// TODO is even too low of a minimum. Profile more.
 	numWorkers := 4
 	if n := runtime.NumCPU(); n > numWorkers {
 		numWorkers = n
