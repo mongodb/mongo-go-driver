@@ -45,6 +45,9 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if err := crypt.setLocalSchemaMap(opts.LocalSchemaMap); err != nil {
 		return nil, err
 	}
+	if err := crypt.setEncryptedFieldsMap(opts.EncryptedFieldsMap); err != nil {
+		return nil, err
+	}
 
 	if opts.BypassQueryAnalysis {
 		C.mongocrypt_setopt_bypass_query_analysis(wrapped)
@@ -237,6 +240,28 @@ func (m *MongoCrypt) setLocalSchemaMap(schemaMap map[string]bsoncore.Document) e
 	defer schemaMapBinary.close()
 
 	if ok := C.mongocrypt_setopt_schema_map(m.wrapped, schemaMapBinary.wrapped); !ok {
+		return m.createErrorFromStatus()
+	}
+	return nil
+}
+
+// setEncryptedFieldsMap sets the encryptedfields map in mongocrypt.
+func (m *MongoCrypt) setEncryptedFieldsMap(encryptedfieldsMap map[string]bsoncore.Document) error {
+	if len(encryptedfieldsMap) == 0 {
+		return nil
+	}
+
+	// convert encryptedfields map to BSON document
+	midx, mdoc := bsoncore.AppendDocumentStart(nil)
+	for key, doc := range encryptedfieldsMap {
+		mdoc = bsoncore.AppendDocumentElement(mdoc, key, doc)
+	}
+	mdoc, _ = bsoncore.AppendDocumentEnd(mdoc, midx)
+
+	encryptedfieldsMapBinary := newBinaryFromBytes(mdoc)
+	defer encryptedfieldsMapBinary.close()
+
+	if ok := C.mongocrypt_setopt_encrypted_field_config_map(m.wrapped, encryptedfieldsMapBinary.wrapped); !ok {
 		return m.createErrorFromStatus()
 	}
 	return nil

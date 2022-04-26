@@ -15,6 +15,7 @@ type MongoCryptOptions struct {
 	KmsProviders        bsoncore.Document
 	LocalSchemaMap      map[string]bsoncore.Document
 	BypassQueryAnalysis bool
+	EncryptedFieldsMap  map[string]bsoncore.Document
 }
 
 // MongoCrypt creates a new MongoCryptOptions instance.
@@ -37,5 +38,11 @@ func (mo *MongoCryptOptions) SetLocalSchemaMap(localSchemaMap map[string]bsoncor
 // SetBypassQueryAnalysis skips the NeedMongoMarkings state.
 func (mo *MongoCryptOptions) SetBypassQueryAnalysis(bypassQueryAnalysis bool) *MongoCryptOptions {
 	mo.BypassQueryAnalysis = bypassQueryAnalysis
+	return mo
+}
+
+// SetEncryptedFieldsMap specifies the encrypted fields map.
+func (mo *MongoCryptOptions) SetEncryptedFieldsMap(efcMap map[string]bsoncore.Document) *MongoCryptOptions {
+	mo.EncryptedFieldsMap = efcMap
 	return mo
 }
