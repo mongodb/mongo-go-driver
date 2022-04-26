@@ -395,7 +395,16 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 	}
 
 	if cs.options.FullDocument != nil {
-		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.options.FullDocument))
+		// Only append a default "fullDocument" field if wire version is less than 6 (3.6). Otherwise,
+		// the server will assume users want the default behavior, and "fullDocument" does not need to be
+		// specified.
+		if *cs.options.FullDocument != options.Default || (cs.wireVersion != nil && cs.wireVersion.Max < 6) {
+			plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.options.FullDocument))
+		}
+	}
+
+	if cs.options.FullDocumentBeforeChange != nil {
+		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocumentBeforeChange", string(*cs.options.FullDocumentBeforeChange))
 	}
 
 	if cs.options.ResumeAfter != nil {

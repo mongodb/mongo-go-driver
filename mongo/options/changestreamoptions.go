@@ -23,10 +23,13 @@ type ChangeStreamOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
-	// Specifies whether the updated document should be returned in change notifications for update operations along
-	// with the deltas describing the changes made to the document. The default is options.Default, which means that
-	// the updated document will not be included in the change notification.
+	// Specifies how the updated document should be returned in change notifications for update operations. The default
+	// is options.Default, which means that only partial update deltas will be included in the change notification.
 	FullDocument *FullDocument
+
+	// Specifies how the pre-update document should be returned in change notifications for update operations. The default
+	// is options.Off, which means that the pre-update document will not be included in the change notification.
+	FullDocumentBeforeChange *FullDocument
 
 	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
 	MaxAwaitTime *time.Duration
@@ -81,6 +84,12 @@ func (cso *ChangeStreamOptions) SetCollation(c Collation) *ChangeStreamOptions {
 // SetFullDocument sets the value for the FullDocument field.
 func (cso *ChangeStreamOptions) SetFullDocument(fd FullDocument) *ChangeStreamOptions {
 	cso.FullDocument = &fd
+	return cso
+}
+
+// SetFullDocumentBeforeChange sets the value for the FullDocumentBeforeChange field.
+func (cso *ChangeStreamOptions) SetFullDocumentBeforeChange(fdbc FullDocument) *ChangeStreamOptions {
+	cso.FullDocumentBeforeChange = &fdbc
 	return cso
 }
 
@@ -141,6 +150,9 @@ func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions
 		}
 		if cso.FullDocument != nil {
 			csOpts.FullDocument = cso.FullDocument
+		}
+		if cso.FullDocumentBeforeChange != nil {
+			csOpts.FullDocumentBeforeChange = cso.FullDocumentBeforeChange
 		}
 		if cso.MaxAwaitTime != nil {
 			csOpts.MaxAwaitTime = cso.MaxAwaitTime
