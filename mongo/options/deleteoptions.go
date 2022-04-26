@@ -13,6 +13,10 @@ type DeleteOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default value is nil, which means that no comment will be included in the logs.
+	Comment interface{}
+
 	// The index to use for the operation. This should either be the index name as a string or the index specification
 	// as a document. This option is only valid for MongoDB versions >= 4.4. Server versions >= 3.4 will return an error
 	// if this option is specified. For server versions < 3.4, the driver will return a client-side error if this option
@@ -39,6 +43,12 @@ func (do *DeleteOptions) SetCollation(c *Collation) *DeleteOptions {
 	return do
 }
 
+// SetComment sets the value for the Comment field.
+func (do *DeleteOptions) SetComment(comment interface{}) *DeleteOptions {
+	do.Comment = comment
+	return do
+}
+
 // SetHint sets the value for the Hint field.
 func (do *DeleteOptions) SetHint(hint interface{}) *DeleteOptions {
 	do.Hint = hint
@@ -60,6 +70,9 @@ func MergeDeleteOptions(opts ...*DeleteOptions) *DeleteOptions {
 		}
 		if do.Collation != nil {
 			dOpts.Collation = do.Collation
+		}
+		if do.Comment != nil {
+			dOpts.Comment = do.Comment
 		}
 		if do.Hint != nil {
 			dOpts.Hint = do.Hint

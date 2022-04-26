@@ -218,6 +218,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	bwo := options.MergeBulkWriteOptions(opts...)
 
 	op := bulkWrite{
+		comment:                  bwo.Comment,
 		ordered:                  bwo.Ordered,
 		bypassDocumentValidation: bwo.BypassDocumentValidation,
 		models:                   models,
@@ -286,6 +287,13 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
 	}
+	if imo.Comment != nil {
+		comment, err := transformValue(coll.registry, imo.Comment, true, "comment")
+		if err != nil {
+			return nil, err
+		}
+		op.Comment(comment)
+	}
 	if imo.Ordered != nil {
 		op = op.Ordered(*imo.Ordered)
 	}
@@ -333,6 +341,9 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 
 	if ioOpts.BypassDocumentValidation != nil && *ioOpts.BypassDocumentValidation {
 		imOpts.SetBypassDocumentValidation(*ioOpts.BypassDocumentValidation)
+	}
+	if ioOpts.Comment != nil {
+		imOpts.SetComment(ioOpts.Comment)
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 
@@ -452,6 +463,13 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI)
+	if do.Comment != nil {
+		comment, err := transformValue(coll.registry, do.Comment, true, "comment")
+		if err != nil {
+			return nil, err
+		}
+		op = op.Comment(comment)
+	}
 	if do.Hint != nil {
 		op = op.Hint(true)
 	}
@@ -566,6 +584,13 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
+	}
+	if uo.Comment != nil {
+		comment, err := transformValue(coll.registry, uo.Comment, true, "comment")
+		if err != nil {
+			return nil, err
+		}
+		op = op.Comment(comment)
 	}
 	retry := driver.RetryNone
 	// retryable writes are only enabled updateOne/replaceOne operations
@@ -717,6 +742,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		uOpts.Upsert = opt.Upsert
 		uOpts.Hint = opt.Hint
 		uOpts.Let = opt.Let
+		uOpts.Comment = opt.Comment
 		updateOptions = append(updateOptions, uOpts)
 	}
 
@@ -1424,6 +1450,13 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	if fod.Collation != nil {
 		op = op.Collation(bsoncore.Document(fod.Collation.ToDocument()))
 	}
+	if fod.Comment != nil {
+		comment, err := transformValue(coll.registry, fod.Comment, true, "comment")
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op.Comment(comment)
+	}
 	if fod.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*fod.MaxTime / time.Millisecond))
 	}
@@ -1496,6 +1529,13 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	}
 	if fo.Collation != nil {
 		op = op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
+	}
+	if fo.Comment != nil {
+		comment, err := transformValue(coll.registry, fo.Comment, true, "comment")
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op.Comment(comment)
 	}
 	if fo.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
@@ -1586,6 +1626,13 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 	if fo.Collation != nil {
 		op = op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
+	}
+	if fo.Comment != nil {
+		comment, err := transformValue(coll.registry, fo.Comment, true, "comment")
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op.Comment(comment)
 	}
 	if fo.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))

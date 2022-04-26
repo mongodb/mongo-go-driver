@@ -23,6 +23,10 @@ type ChangeStreamOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
+	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
+	// The default is nil, which means that no comment will be included in the logs.
+	Comment *string
+
 	// Specifies how the updated document should be returned in change notifications for update operations. The default
 	// is options.Default, which means that only partial update deltas will be included in the change notification.
 	FullDocument *FullDocument
@@ -78,6 +82,12 @@ func (cso *ChangeStreamOptions) SetBatchSize(i int32) *ChangeStreamOptions {
 // SetCollation sets the value for the Collation field.
 func (cso *ChangeStreamOptions) SetCollation(c Collation) *ChangeStreamOptions {
 	cso.Collation = &c
+	return cso
+}
+
+// SetComment sets the value for the Comment field.
+func (cso *ChangeStreamOptions) SetComment(comment string) *ChangeStreamOptions {
+	cso.Comment = &comment
 	return cso
 }
 
@@ -147,6 +157,9 @@ func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions
 		}
 		if cso.Collation != nil {
 			csOpts.Collation = cso.Collation
+		}
+		if cso.Comment != nil {
+			csOpts.Comment = cso.Comment
 		}
 		if cso.FullDocument != nil {
 			csOpts.FullDocument = cso.FullDocument
