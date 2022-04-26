@@ -257,7 +257,8 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 	op := operation.NewCreateIndexes(indexes).
 		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
-		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI)
+		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
+		Timeout(iv.coll.timeout)
 
 	if option.MaxTime != nil {
 		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))

@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
@@ -36,6 +37,7 @@ type CreateIndexes struct {
 	writeConcern *writeconcern.WriteConcern
 	result       CreateIndexesResult
 	serverAPI    *driver.ServerAPIOptions
+	timeout      *time.Duration
 }
 
 // CreateIndexesResult represents a createIndexes result returned by the server.
@@ -113,6 +115,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Selector:          ci.selector,
 		WriteConcern:      ci.writeConcern,
 		ServerAPI:         ci.serverAPI,
+		Timeout:           ci.timeout,
 	}.Execute(ctx, nil)
 
 }
@@ -128,7 +131,8 @@ func (ci *CreateIndexes) command(dst []byte, desc description.SelectedServer) ([
 	if ci.indexes != nil {
 		dst = bsoncore.AppendArrayElement(dst, "indexes", ci.indexes)
 	}
-	if ci.maxTimeMS != nil {
+	// Only append specified maxTimeMS if timeout is not also specified.
+	if ci.maxTimeMS != nil && ci.timeout == nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *ci.maxTimeMS)
 	}
 	return dst, nil
@@ -263,5 +267,15 @@ func (ci *CreateIndexes) ServerAPI(serverAPI *driver.ServerAPIOptions) *CreateIn
 	}
 
 	ci.serverAPI = serverAPI
+	return ci
+}
+
+// Timeout sets the timeout for this operation.
+func (ci *CreateIndexes) Timeout(timeout *time.Duration) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.timeout = timeout
 	return ci
 }
