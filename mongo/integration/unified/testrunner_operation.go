@@ -236,8 +236,8 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 					case !args.failuresStored(): // store failures as errors if storeFailuressAsEntity isn't specified
 						appendErr = entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// errors are test runner errors
-					// TODO GODRIVER-1950: use error types to determine error vs failure instead of depending on the
-					// TODO fact that operation.execute prepends "execution failed" to test runner errors
+					// TODO GODRIVER-1950: use error types to determine error vs failure instead of depending on the fact that
+					// operation.execute prepends "execution failed" to test runner errors
 					case strings.Contains(loopErr.Error(), "execution failed: "):
 						appendErr = entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// failures are if an operation returns an incorrect result or error

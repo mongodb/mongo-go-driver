@@ -455,7 +455,8 @@ func (p *exporter) field(f *types.Var) {
 }
 
 func (p *exporter) iface(t *types.Interface) {
-	// TODO(gri): enable importer to load embedded interfaces, then emit Embeddeds and ExplicitMethods separately here.
+	// TODO(gri): enable importer to load embedded interfaces,
+	// then emit Embeddeds and ExplicitMethods separately here.
 	p.int(0)
 
 	n := t.NumMethods()

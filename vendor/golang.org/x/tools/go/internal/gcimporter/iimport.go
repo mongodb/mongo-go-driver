@@ -407,8 +407,8 @@ func (r *importReader) mpint(b *types.Basic) constant.Value {
 	io.ReadFull(&r.declReader, buf)
 
 	// convert to little endian
-	// TODO(gri) go/constant should have a more direct conversion function (e.g., once it supports a big.Float based
-	// TODO implementation)
+	// TODO(gri) go/constant should have a more direct conversion function
+	//           (e.g., once it supports a big.Float based implementation)
 	for i, j := 0, len(buf)-1; i < j; i, j = i+1, j-1 {
 		buf[i], buf[j] = buf[j], buf[i]
 	}
@@ -534,7 +534,8 @@ func (r *importReader) doType(base *types.Named) types.Type {
 			mpos := r.pos()
 			mname := r.ident()
 
-			// TODO(mdempsky): Matches bimport.go, but I don't agree with this.
+			// TODO(mdempsky): Matches bimport.go, but I
+			// don't agree with this.
 			var recv *types.Var
 			if base != nil {
 				recv = types.NewVar(token.NoPos, r.currPkg, "", base)

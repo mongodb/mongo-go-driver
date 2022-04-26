@@ -440,8 +440,8 @@ func (f Form) nextBoundary(src input, nsrc int, atEOF bool) int {
 			}
 			return -1
 		}
-		// TODO: Using streamSafe to determine the boundary isn't the same as using BoundaryBefore. Determine which
-		// TODO should be used.
+		// TODO: Using streamSafe to determine the boundary isn't the same as
+		// using BoundaryBefore. Determine which should be used.
 		if s := ss.next(info); s != ssSuccess {
 			return i
 		}

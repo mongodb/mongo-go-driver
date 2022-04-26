@@ -39,8 +39,8 @@ var skippedTestDescriptions = map[string]string{
 	// asserts that handshake errors trigger events "connection closed" then "pool cleared". The Go
 	// driver uses the same code path for creating all application connections, so those opposing
 	// event orders cannot be satisfied simultaneously.
-	// TODO(DRIVERS-1785): Re-enable this test once the spec test is updated to use the same event order as the "errors
-	// TODO during authentication are processed" load-balancer SDAM spec test.
+	// TODO(DRIVERS-1785): Re-enable this test once the spec test is updated to use the same event
+	// order as the "errors during authentication are processed" load-balancer SDAM spec test.
 	"error during minPoolSize population clears pool": "event ordering is incompatible with load-balancer SDAM spec test (DRIVERS-1785)",
 	// GODRIVER-1826: The Go connection pool does not currently always deliver connections created
 	// by maintain() to waiting check-outs. There is a race condition between the goroutine started
@@ -48,15 +48,16 @@ var skippedTestDescriptions = map[string]string{
 	// wantConn created by the waiting check-outs. Most of the time, createConnections() wins and
 	// starts creating new connections. That is not a problem for general use cases, but it prevents
 	// the "threads blocked by maxConnecting check out minPoolSize connections" test from passing.
-	// TODO(DRIVERS-2225): Re-enable this test once the spec test is updated to support the Go pool minPoolSize
-	// TODO maintain() behavior.
+	// TODO(DRIVERS-2225): Re-enable this test once the spec test is updated to support the Go pool
+	// minPoolSize maintain() behavior.
 	"threads blocked by maxConnecting check out minPoolSize connections": "test requires that connections established by minPoolSize are immediately used to satisfy check-out requests (DRIVERS-2225)",
 	// GODRIVER-1826: The Go connection pool currently delivers any available connection to the
 	// earliest waiting check-out request, independent of if that check-out request already
 	// requested a new connection. That behavior is currently incompatible with the "threads blocked
 	// by maxConnecting check out returned connections" test, which expects that check-out requests
 	// that request a new connection cannot be satisfied by a check-in.
-	// TODO(DRIVERS-2223): Re-enable this test once the spec test is updated to support the Go pool check-in behavior.
+	// TODO(DRIVERS-2223): Re-enable this test once the spec test is updated to support the Go pool
+	// check-in behavior.
 	"threads blocked by maxConnecting check out returned connections": "test requires a checked-in connections cannot satisfy a check-out waiting on a new connection (DRIVERS-2223)",
 }
 

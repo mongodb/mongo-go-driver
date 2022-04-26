@@ -200,8 +200,8 @@ func Import(packages map[string]*types.Package, path, srcDir string, lookup func
 			break
 		}
 
-		// TODO(gri): allow clients of go/importer to provide a FileSet.  Or, define a new standard
-		// TODO go/types/gcexportdata package.
+		// TODO(gri): allow clients of go/importer to provide a FileSet.
+		// Or, define a new standard go/types/gcexportdata package.
 		fset := token.NewFileSet()
 
 		// The indexed export format starts with an 'i'; the older
@@ -223,9 +223,11 @@ func Import(packages map[string]*types.Package, path, srcDir string, lookup func
 // ----------------------------------------------------------------------------
 // Parser
 
-// TODO(gri) Imported objects don't have position information.  Ideally use the debug table line info; alternatively
-// TODO create some fake position (or the position of the import). That way error messages referring to imported objects
-// TODO can print meaningful information.
+// TODO(gri) Imported objects don't have position information.
+//           Ideally use the debug table line info; alternatively
+//           create some fake position (or the position of the
+//           import). That way error messages referring to imported
+//           objects can print meaningful information.
 
 // parser parses the exports inside a gc compiler-produced
 // object/archive file and populates its scope with the results.

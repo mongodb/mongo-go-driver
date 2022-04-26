@@ -304,8 +304,8 @@ var allowedTimestampFormats = []string{
 // returns the timestamp and reports whether it succeeded.
 // Timestamp formats are defined at http://yaml.org/type/timestamp.html
 func parseTimestamp(s string) (time.Time, bool) {
-	// TODO write code to check all the formats supported by http://yaml.org/type/timestamp.html instead of using
-	// TODO time.Parse.
+	// TODO write code to check all the formats supported by
+	// http://yaml.org/type/timestamp.html instead of using time.Parse.
 
 	// Quick check: all date formats start with YYYY-.
 	i := 0

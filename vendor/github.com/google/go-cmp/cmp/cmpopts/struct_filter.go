@@ -19,7 +19,8 @@ import (
 // The name may be a dot-delimited string (e.g., "Foo.Bar") to select a
 // specific sub-field that is embedded or nested within the parent struct.
 func filterField(typ interface{}, name string, opt cmp.Option) cmp.Option {
-	// TODO: This is currently unexported over concerns of how helper filters can be composed together easily.
+	// TODO: This is currently unexported over concerns of how helper filters
+	// can be composed together easily.
 	// TODO: Add tests for FilterField.
 
 	sf := newStructFilter(typ, name)
@@ -32,10 +33,12 @@ type structFilter struct {
 }
 
 func newStructFilter(typ interface{}, names ...string) structFilter {
-	// TODO: Perhaps allow * as a special identifier to allow ignoring any number of path steps until the next field
-	// TODO match?  This could be useful when a concrete struct gets transformed into an anonymous struct where it is
-	// TODO not possible to specify that by type, but the transformer happens to provide guarantees about the names of
-	// TODO the transformed fields.
+	// TODO: Perhaps allow * as a special identifier to allow ignoring any
+	// number of path steps until the next field match?
+	// This could be useful when a concrete struct gets transformed into
+	// an anonymous struct where it is not possible to specify that by type,
+	// but the transformer happens to provide guarantees about the names of
+	// the transformed fields.
 
 	t := reflect.TypeOf(typ)
 	if t == nil || t.Kind() != reflect.Struct {

@@ -319,7 +319,8 @@ func (err Error) Error() string {
 // flatPackage is the JSON form of Package
 // It drops all the type and syntax fields, and transforms the Imports
 //
-// TODO(adonovan): identify this struct with Package, effectively publishing the JSON protocol.
+// TODO(adonovan): identify this struct with Package, effectively
+// publishing the JSON protocol.
 type flatPackage struct {
 	ID              string
 	Name            string            `json:",omitempty"`
@@ -409,10 +410,11 @@ type loader struct {
 	parseCacheMu sync.Mutex
 	exportMu     sync.Mutex // enforces mutual exclusion of exportdata operations
 
-	// TODO(matloob): Add an implied mode here and use that instead of mode. Implied mode would contain all the fields
-	// TODO we need the data for so we can get the actually requested fields. We'll zero them out before returning
-	// TODO packages to the user. This will make it easier for us to get the conditions where we need certain modes
-	// TODO right.
+	// TODO(matloob): Add an implied mode here and use that instead of mode.
+	// Implied mode would contain all the fields we need the data for so we can
+	// get the actually requested fields. We'll zero them out before returning
+	// packages to the user. This will make it easier for us to get the conditions
+	// where we need certain modes right.
 }
 
 type parseValue struct {
@@ -817,7 +819,8 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 	// or for any undefined C.f reference.
 	// We must detect this explicitly and correctly
 	// mark the package as IllTyped (by reporting an error).
-	// TODO(adonovan): if these errors are annoying, we could just set IllTyped quietly.
+	// TODO(adonovan): if these errors are annoying,
+	// we could just set IllTyped quietly.
 	if tc.FakeImportC {
 	outer:
 		for _, f := range lpkg.Syntax {
@@ -1027,8 +1030,10 @@ func (ld *loader) loadFromExportData(lpkg *loaderPackage) (*types.Package, error
 	// each dependency so that export data loading does not
 	// create new ones.
 	//
-	// TODO(adonovan): it would be simpler and more efficient aif the export data machinery invoked a callback to
-	// TODO get-or-create a package instead of a map.
+	// TODO(adonovan): it would be simpler and more efficient
+	// if the export data machinery invoked a callback to
+	// get-or-create a package instead of a map.
+	//
 	view := make(map[string]*types.Package) // view seen by gcexportdata
 	seen := make(map[*loaderPackage]bool)   // all visited packages
 	var visit func(pkgs map[string]*Package)
