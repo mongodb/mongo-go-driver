@@ -125,7 +125,7 @@ tests:
                 commandName: aggregate
                 databaseName: *database0Name
 
-    - description: "aggregate with comment does not set comment on getMore"
+    - description: "aggregate with comment sets comment on getMore"
       runOnRequirements:
         - minServerVersion: "3.6.0"
       operations:
@@ -154,7 +154,7 @@ tests:
                 databaseName: *database0Name
             - commandStartedEvent:
                 command:
-                  getMore: { $$type: [ int, long ] }
+                  comment: "comment"
                   collection: *collection0Name
                   batchSize: 2
                   comment: { $$exists: false }
@@ -165,6 +165,6 @@ tests:
                   getMore: { $$type: [ int, long ] }
                   collection: *collection0Name
                   batchSize: 2
-                  comment: { $$exists: false }
+                  comment: "comment"
                 commandName: getMore
                 databaseName: *database0Name

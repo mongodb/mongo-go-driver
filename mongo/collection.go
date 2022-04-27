@@ -867,6 +867,12 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	}
 	if ao.Comment != nil {
 		op.Comment(*ao.Comment)
+
+		commentVal, err := transformValue(a.registry, ao.Comment, true, "comment")
+		if err != nil {
+			return nil, err
+		}
+		cursorOpts.Comment = commentVal
 	}
 	if ao.Hint != nil {
 		hintVal, err := transformValue(a.registry, ao.Hint, false, "hint")
@@ -1221,6 +1227,12 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	}
 	if fo.Comment != nil {
 		op.Comment(*fo.Comment)
+
+		commentVal, err := transformValue(coll.registry, fo.Comment, true, "comment")
+		if err != nil {
+			return nil, err
+		}
+		cursorOpts.Comment = commentVal
 	}
 	if fo.CursorType != nil {
 		switch *fo.CursorType {

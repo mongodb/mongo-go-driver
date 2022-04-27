@@ -139,6 +139,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	}
 	if comment := cs.options.Comment; comment != nil {
 		cs.aggregate.Comment(*comment)
+
+		commentVal, err := transformValue(cs.registry, comment, true, "comment")
+		if err != nil {
+			return nil, err
+		}
+		cs.cursorOptions.Comment = commentVal
 	}
 	if cs.options.BatchSize != nil {
 		cs.aggregate.BatchSize(*cs.options.BatchSize)
