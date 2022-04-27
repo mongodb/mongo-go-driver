@@ -237,7 +237,7 @@ func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOpt
 		err = em.addSessionEntity(entityOptions)
 	case "bucket":
 		err = em.addGridFSBucketEntity(entityOptions)
-	case "encryptedClient":
+	case "clientEncryption":
 		err = em.addClientEncryptionEntity(entityOptions)
 	default:
 		return fmt.Errorf("unrecognized entity type %q", entityType)
