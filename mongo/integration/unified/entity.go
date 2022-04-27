@@ -7,6 +7,7 @@
 package unified
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -452,8 +453,10 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, defaultValue 
 		}
 
 		if doc, ok := credentialVal.DocumentOK(); ok {
-			// Check if document is empty.
-			if len(doc) != 5 {
+			placeholderDoc := bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
+
+			// Check if document is a placeholder.
+			if bytes.Compare(doc, placeholderDoc) != 0 {
 				return nil, fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
 			}
 			if defaultValue == "" {
