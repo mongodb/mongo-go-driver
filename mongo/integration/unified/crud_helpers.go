@@ -51,6 +51,8 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			ua.opts.SetCollation(collation)
+		case "comment":
+			ua.opts.SetComment(val)
 		case "filter":
 			ua.filter = val.Document()
 		case "hint":
@@ -156,4 +158,16 @@ func createHint(val bson.RawValue) (interface{}, error) {
 		return nil, fmt.Errorf("unrecognized hint value type %s", val.Type)
 	}
 	return hint, nil
+}
+
+func createCommentString(val bson.RawValue) (comment string, err error) {
+	switch val.Type {
+	case bsontype.String:
+		comment = val.StringValue()
+	case bsontype.EmbeddedDocument:
+		comment = val.String()
+	default:
+		err = fmt.Errorf("unrecognized 'comment' value type: %T", val)
+	}
+	return
 }
