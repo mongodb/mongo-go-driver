@@ -275,6 +275,7 @@ func executeInsertOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.In
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
+
 		switch key {
 		case "document":
 			doc = val.Document()

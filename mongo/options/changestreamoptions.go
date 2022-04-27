@@ -24,13 +24,16 @@ type ChangeStreamOptions struct {
 	Collation *Collation
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is the empty string, which means that no comment will be included in the logs.
+	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
-	// Specifies whether the updated document should be returned in change notifications for update operations along
-	// with the deltas describing the changes made to the document. The default is options.Default, which means that
-	// the updated document will not be included in the change notification.
+	// Specifies how the updated document should be returned in change notifications for update operations. The default
+	// is options.Default, which means that only partial update deltas will be included in the change notification.
 	FullDocument *FullDocument
+
+	// Specifies how the pre-update document should be returned in change notifications for update operations. The default
+	// is options.Off, which means that the pre-update document will not be included in the change notification.
+	FullDocumentBeforeChange *FullDocument
 
 	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
 	MaxAwaitTime *time.Duration
@@ -94,6 +97,12 @@ func (cso *ChangeStreamOptions) SetFullDocument(fd FullDocument) *ChangeStreamOp
 	return cso
 }
 
+// SetFullDocumentBeforeChange sets the value for the FullDocumentBeforeChange field.
+func (cso *ChangeStreamOptions) SetFullDocumentBeforeChange(fdbc FullDocument) *ChangeStreamOptions {
+	cso.FullDocumentBeforeChange = &fdbc
+	return cso
+}
+
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
 func (cso *ChangeStreamOptions) SetMaxAwaitTime(d time.Duration) *ChangeStreamOptions {
 	cso.MaxAwaitTime = &d
@@ -154,6 +163,9 @@ func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions
 		}
 		if cso.FullDocument != nil {
 			csOpts.FullDocument = cso.FullDocument
+		}
+		if cso.FullDocumentBeforeChange != nil {
+			csOpts.FullDocumentBeforeChange = cso.FullDocumentBeforeChange
 		}
 		if cso.MaxAwaitTime != nil {
 			csOpts.MaxAwaitTime = cso.MaxAwaitTime

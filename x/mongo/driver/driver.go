@@ -214,11 +214,11 @@ func (ssd SingleConnectionDeployment) MinRTT() time.Duration {
 	return 0
 }
 
-// TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using
-// 2 bits for the mode and 1 bit for the type. Although in the practical sense, we might not want to
-// do that since the type of retryability is tied to the operation itself and isn't going change,
-// e.g. and insert operation will always be a write, however some operations are both reads and
-// writes, for instance aggregate is a read but with a $out parameter it's a write.
+// TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using 2 bits for the mode and 1
+// TODO bit for the type. Although in the practical sense, we might not want to do that since the type of retryability
+// TODO is tied to the operation itself and isn't going change, e.g. and insert operation will always be a write,
+// TODO however some operations are both reads and  writes, for instance aggregate is a read but with a $out parameter
+// TODO it's a write.
 
 // Type specifies whether an operation is a read, write, or unknown.
 type Type uint

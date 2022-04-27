@@ -288,7 +288,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
 	}
 	if imo.Comment != nil {
-		comment, err := transformValue(coll.registry, imo.Comment, false, "comment")
+		comment, err := transformValue(coll.registry, imo.Comment, true, "comment")
 		if err != nil {
 			return nil, err
 		}
@@ -464,7 +464,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI)
 	if do.Comment != nil {
-		comment, err := transformValue(coll.registry, do.Comment, false, "comment")
+		comment, err := transformValue(coll.registry, do.Comment, true, "comment")
 		if err != nil {
 			return nil, err
 		}
@@ -586,7 +586,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
 	}
 	if uo.Comment != nil {
-		comment, err := transformValue(coll.registry, uo.Comment, false, "comment")
+		comment, err := transformValue(coll.registry, uo.Comment, true, "comment")
 		if err != nil {
 			return nil, err
 		}
@@ -742,9 +742,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		uOpts.Upsert = opt.Upsert
 		uOpts.Hint = opt.Hint
 		uOpts.Let = opt.Let
-		if opt.Comment != nil {
-			uOpts.SetComment(opt.Comment)
-		}
+		uOpts.Comment = opt.Comment
 		updateOptions = append(updateOptions, uOpts)
 	}
 
@@ -1463,7 +1461,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		op = op.Collation(bsoncore.Document(fod.Collation.ToDocument()))
 	}
 	if fod.Comment != nil {
-		comment, err := transformValue(coll.registry, fod.Comment, false, "comment")
+		comment, err := transformValue(coll.registry, fod.Comment, true, "comment")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1543,7 +1541,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		op = op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
 	}
 	if fo.Comment != nil {
-		comment, err := transformValue(coll.registry, fo.Comment, false, "comment")
+		comment, err := transformValue(coll.registry, fo.Comment, true, "comment")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1640,7 +1638,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		op = op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
 	}
 	if fo.Comment != nil {
-		comment, err := transformValue(coll.registry, fo.Comment, false, "comment")
+		comment, err := transformValue(coll.registry, fo.Comment, true, "comment")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
