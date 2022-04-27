@@ -20,7 +20,7 @@ import (
 )
 
 func TestContactResponders(t *testing.T) {
-	t.Run("cancelled cancellation is honored", func(t *testing.T) {
+	t.Run("context cancellation is honored", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithCancel(context.Background())
