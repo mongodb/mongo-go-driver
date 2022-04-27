@@ -753,7 +753,19 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	if err := verifyServerlessConstraint(rob.Serverless); err != nil {
 		return err
 	}
-	return verifyServerParametersConstraints(rob.ServerParameters)
+	if err := verifyServerParametersConstraints(rob.ServerParameters); err != nil {
+		return err
+	}
+
+	if rob.CSFLE != nil {
+		if *rob.CSFLE != CSFLEEnabled() {
+			if *rob.CSFLE {
+				return fmt.Errorf("runOnBlock requires CSFLE to be enabled. Build with the cse tag to enable")
+			}
+			return fmt.Errorf("runOnBlock requires CSFLE to be disabled. Build without the cse tag to disable")
+		}
+	}
+	return nil
 }
 
 // verifyConstraints returns an error if the current environment does not match the constraints specified for the test.
