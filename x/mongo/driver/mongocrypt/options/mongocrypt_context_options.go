@@ -34,11 +34,21 @@ func (dko *DataKeyOptions) SetMasterKey(key bsoncore.Document) *DataKeyOptions {
 	return dko
 }
 
+// QueryType describes the type of query the result of Encrypt is used for.
+type QueryType int
+
+// These constants specify valid values for QueryType
+const (
+	QueryTypeEquality QueryType = 1
+)
+
 // ExplicitEncryptionOptions specifies options for configuring an explicit encryption context.
 type ExplicitEncryptionOptions struct {
-	KeyID      *primitive.Binary
-	KeyAltName *string
-	Algorithm  string
+	KeyID            *primitive.Binary
+	KeyAltName       *string
+	Algorithm        string
+	QueryType        *QueryType
+	ContentionFactor *int64
 }
 
 // ExplicitEncryption creates a new ExplicitEncryptionOptions instance.
@@ -62,4 +72,15 @@ func (eeo *ExplicitEncryptionOptions) SetKeyAltName(keyAltName string) *Explicit
 func (eeo *ExplicitEncryptionOptions) SetAlgorithm(algorithm string) *ExplicitEncryptionOptions {
 	eeo.Algorithm = algorithm
 	return eeo
+}
+
+func (eoo *ExplicitEncryptionOptions) SetQueryType(queryType *QueryType) *ExplicitEncryptionOptions {
+	eoo.QueryType = queryType
+	return eoo
+}
+
+// SetContentionFactor specifies the contention factor.
+func (eoo *ExplicitEncryptionOptions) SetContentionFactor(contentionFactor *int64) *ExplicitEncryptionOptions {
+	eoo.ContentionFactor = contentionFactor
+	return eoo
 }
