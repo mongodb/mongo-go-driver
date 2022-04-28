@@ -329,6 +329,7 @@
     },
     {
       "description": "aggregate with comment sets comment on getMore",
+      "skipReason": "aggregate comments are string-only",
       "runOnRequirements": [
         {
           "minServerVersion": "4.4.0"
