@@ -149,6 +149,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 	bc := &BatchCursor{
 		clientSession:        clientSession,
 		clock:                clock,
+		comment:              opts.Comment,
 		database:             cr.Database,
 		collection:           cr.Collection,
 		id:                   cr.ID,
