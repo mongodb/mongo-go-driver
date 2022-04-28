@@ -110,8 +110,7 @@ func TestErrors(t *testing.T) {
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
-			assert.True(mt, errors.Is(err, context.DeadlineExceeded),
-				"errors.Is failure: expected error %v to be %v", err, context.DeadlineExceeded)
+			assert.True(mt, mongo.IsTimeout(err), "expected error to be a timeout, got %v", err)
 		})
 
 		mt.Run("socketTimeoutMS timeouts return network errors", func(mt *mtest.T) {
