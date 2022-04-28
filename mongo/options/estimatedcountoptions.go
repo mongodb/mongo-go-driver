@@ -10,6 +10,10 @@ import "time"
 
 // EstimatedDocumentCountOptions represents options that can be used to configure an EstimatedDocumentCount operation.
 type EstimatedDocumentCountOptions struct {
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default is the empty interface, which means that no comment will be included in the logs.
+	Comment interface{}
+
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
 	MaxTime *time.Duration
@@ -18,6 +22,12 @@ type EstimatedDocumentCountOptions struct {
 // EstimatedDocumentCount creates a new EstimatedDocumentCountOptions instance.
 func EstimatedDocumentCount() *EstimatedDocumentCountOptions {
 	return &EstimatedDocumentCountOptions{}
+}
+
+// SetComment sets the value for the Comment field.
+func (eco *EstimatedDocumentCountOptions) SetComment(comment interface{}) *EstimatedDocumentCountOptions {
+	eco.Comment = comment
+	return eco
 }
 
 // SetMaxTime sets the value for the MaxTime field.
@@ -34,7 +44,9 @@ func MergeEstimatedDocumentCountOptions(opts ...*EstimatedDocumentCountOptions) 
 		if opt == nil {
 			continue
 		}
-
+		if opt.Comment != nil {
+			e.Comment = opt.Comment
+		}
 		if opt.MaxTime != nil {
 			e.MaxTime = opt.MaxTime
 		}
