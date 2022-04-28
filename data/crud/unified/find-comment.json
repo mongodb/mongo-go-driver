@@ -150,6 +150,7 @@
     },
     {
       "description": "find with document comment - pre 4.4",
+      "skipReason": "aggregate comments are string-only",
       "runOnRequirements": [
         {
           "maxServerVersion": "4.2.99",
