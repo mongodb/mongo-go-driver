@@ -92,6 +92,9 @@ tests:
     runOnRequirements:
       - minServerVersion: "3.6.0"
         maxServerVersion: "4.4.13"
+        # Server does not raise an error if topology is sharded.
+        # https://jira.mongodb.org/browse/SERVER-65954
+        topologies: [ single, replicaset ]
     operations:
       - name: estimatedDocumentCount
         object: *collection0
