@@ -18,7 +18,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
-	"net/url"
 	"time"
 
 	"golang.org/x/crypto/ocsp"
@@ -28,9 +27,6 @@ import (
 var (
 	tlsFeatureExtensionOID = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 24}
 	mustStapleFeatureValue = big.NewInt(5)
-
-	defaultRequestTimeout = 5 * time.Second
-	errGotOCSPResponse    = errors.New("done")
 )
 
 // Error represents an OCSP verification error
@@ -126,10 +122,7 @@ func getParsedResponse(ctx context.Context, cfg config, connState tls.Connection
 	if cfg.disableEndpointChecking {
 		return nil, nil
 	}
-	externalResponse, err := contactResponders(ctx, cfg)
-	if err != nil {
-		return nil, err
-	}
+	externalResponse := contactResponders(ctx, cfg)
 	if externalResponse == nil {
 		// None of the responders were available.
 		return nil, nil
@@ -210,33 +203,21 @@ func isMustStapleCertificate(cert *x509.Certificate) (bool, error) {
 	return false, nil
 }
 
-// contactResponders will send a request to the OCSP responders reported by cfg.serverCert. The first response that
-// conclusively identifies cfg.serverCert as good or revoked will be returned. If all responders are unavailable or no
-// responder returns a conclusive status, (nil, nil) will be returned.
-func contactResponders(ctx context.Context, cfg config) (*ResponseDetails, error) {
+// contactResponders will send a request to all OCSP responders reported by cfg.serverCert. The
+// first response that conclusively identifies cfg.serverCert as good or revoked will be returned.
+// If all responders are unavailable or no responder returns a conclusive status, it returns nil.
+// contactResponders will wait for up to 5 seconds to get a certificate status response.
+func contactResponders(ctx context.Context, cfg config) *ResponseDetails {
 	if len(cfg.serverCert.OCSPServer) == 0 {
-		return nil, nil
+		return nil
 	}
 
-	requestCtx := ctx // Either ctx or a new context derived from ctx with a five second timeout.
-	userContextUsed := true
-	var cancelFn context.CancelFunc
+	// Limit all OCSP responder calls to a maximum of 5 seconds or when the passed-in context expires,
+	// whichever happens first.
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
-	// Use a context with defaultRequestTimeout if ctx does not have a deadline set or the current deadline is further
-	// out than defaultRequestTimeout. If the current deadline is less than less than defaultRequestTimeout out, respect
-	// it. Calling context.WithTimeout would do this for us, but we need to know which context we're using.
-	wantDeadline := time.Now().Add(defaultRequestTimeout)
-	if deadline, ok := ctx.Deadline(); !ok || deadline.After(wantDeadline) {
-		userContextUsed = false
-		requestCtx, cancelFn = context.WithDeadline(ctx, wantDeadline)
-	}
-	defer func() {
-		if cancelFn != nil {
-			cancelFn()
-		}
-	}()
-
-	group, groupCtx := errgroup.WithContext(requestCtx)
+	group, ctx := errgroup.WithContext(ctx)
 	ocspResponses := make(chan *ocsp.Response, len(cfg.serverCert.OCSPServer))
 	defer close(ocspResponses)
 
@@ -244,6 +225,11 @@ func contactResponders(ctx context.Context, cfg config) (*ResponseDetails, error
 		// Re-assign endpoint so it gets re-scoped rather than using the iteration variable in the goroutine. See
 		// https://golang.org/doc/faq#closures_and_goroutines.
 		endpoint := endpoint
+
+		// Start a group of goroutines that each attempt to request the certificate status from one
+		// of the OCSP endpoints listed in the server certificate. We want to "soft fail" on all
+		// errors, so this function never returns actual errors. Only a "done" error is returned
+		// when a response is received so the errgroup cancels any other in-progress requests.
 		group.Go(func() error {
 			// Use bytes.NewReader instead of bytes.NewBuffer because a bytes.Buffer is an owning representation and the
 			// docs recommend not using the underlying []byte after creating the buffer, so a new copy of the request
@@ -252,35 +238,16 @@ func contactResponders(ctx context.Context, cfg config) (*ResponseDetails, error
 			if err != nil {
 				return nil
 			}
-			request = request.WithContext(groupCtx)
+			request = request.WithContext(ctx)
 
-			// Execute the request and handle errors as follows:
-			//
-			// 1. If the original context expired or was cancelled, propagate the error up so the caller will abort the
-			// verification and return control to the user.
-			//
-			// 2. If any other errors occurred, including the defaultRequestTimeout expiring, or the response has a
-			// non-200 status code, suppress the error because we want to ignore this responder and wait for a different
-			// one to responsd.
 			httpResponse, err := http.DefaultClient.Do(request)
 			if err != nil {
-				urlErr, ok := err.(*url.Error)
-				if !ok {
-					return nil
-				}
-
-				timeout := urlErr.Timeout()
-				cancelled := urlErr.Err == context.Canceled // Timeout() does not return true for context.Cancelled.
-				if cancelled || (userContextUsed && timeout) {
-					// Handle the original context expiring or being cancelled. The url.Error type supports Unwrap, so
-					// users can use errors.Is to check for context errors.
-					return err
-				}
-				return nil // Ignore all other errors.
+				return nil
 			}
 			defer func() {
 				_ = httpResponse.Body.Close()
 			}()
+
 			if httpResponse.StatusCode != 200 {
 				return nil
 			}
@@ -292,26 +259,27 @@ func contactResponders(ctx context.Context, cfg config) (*ResponseDetails, error
 
 			ocspResponse, err := ocsp.ParseResponseForCert(httpBytes, cfg.serverCert, cfg.issuer)
 			if err != nil || verifyResponse(cfg, ocspResponse) != nil || ocspResponse.Status == ocsp.Unknown {
-				// If there was an error parsing/validating the response or the response was inconclusive, suppress
-				// the error because we want to ignore this responder.
+				// If there was an error parsing/validating the response or the response was
+				// inconclusive, suppress the error because we want to ignore this responder.
 				return nil
 			}
 
-			// Store the response and return a sentinel error so the error group will exit and any in-flight requests
-			// will be cancelled.
+			// Send the conclusive response on the response channel and return a "done" error that
+			// will cause the errgroup to cancel all other in-progress requests.
 			ocspResponses <- ocspResponse
-			return errGotOCSPResponse
+			return errors.New("done")
 		})
 	}
 
-	if err := group.Wait(); err != nil && err != errGotOCSPResponse {
-		return nil, err
+	_ = group.Wait()
+	select {
+	case res := <-ocspResponses:
+		return extractResponseDetails(res)
+	default:
+		// If there is no OCSP response on the response channel, all OCSP calls either failed or
+		// were inconclusive. Return nil.
+		return nil
 	}
-	if len(ocspResponses) == 0 {
-		// None of the responders gave a conclusive response.
-		return nil, nil
-	}
-	return extractResponseDetails(<-ocspResponses), nil
 }
 
 // verifyResponse checks that the provided OCSP response is valid.
