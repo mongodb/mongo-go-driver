@@ -75,6 +75,12 @@ type CreateCollectionOptions struct {
 	// For previous server versions, the driver will return an error if this option is used. The default value is nil.
 	Collation *Collation
 
+	// Specifies how change streams opened against the collection can return pre- and post-images of updated
+	// documents. The value must be a document in the form {<option name>: <options>}. This option is only valid for
+	// MongoDB versions >= 6.0. The default value is nil, which means that change streams opened against the collection
+	// will not return pre- and post-images of updated documents.
+	ChangeStreamPreAndPostImages interface{}
+
 	// Specifies a default configuration for indexes on the collection. This option is only valid for MongoDB versions
 	// >= 3.4. The default value is nil, meaning indexes will be configured using server defaults.
 	DefaultIndexOptions *DefaultIndexOptions
@@ -141,6 +147,12 @@ func (c *CreateCollectionOptions) SetCapped(capped bool) *CreateCollectionOption
 // SetCollation sets the value for the Collation field.
 func (c *CreateCollectionOptions) SetCollation(collation *Collation) *CreateCollectionOptions {
 	c.Collation = collation
+	return c
+}
+
+// SetChangeStreamPreAndPostImages sets the value for the ChangeStreamPreAndPostImages field.
+func (c *CreateCollectionOptions) SetChangeStreamPreAndPostImages(csppi interface{}) *CreateCollectionOptions {
+	c.ChangeStreamPreAndPostImages = &csppi
 	return c
 }
 
@@ -213,6 +225,9 @@ func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateColle
 		}
 		if opt.Collation != nil {
 			cc.Collation = opt.Collation
+		}
+		if opt.ChangeStreamPreAndPostImages != nil {
+			cc.ChangeStreamPreAndPostImages = opt.ChangeStreamPreAndPostImages
 		}
 		if opt.DefaultIndexOptions != nil {
 			cc.DefaultIndexOptions = opt.DefaultIndexOptions
