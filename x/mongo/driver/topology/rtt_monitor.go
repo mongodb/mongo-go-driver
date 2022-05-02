@@ -201,7 +201,7 @@ func min(samples []time.Duration, minSamples int) time.Duration {
 func percentile90(samples []time.Duration, minSamples int) time.Duration {
 	// Convert Durations to float64s.
 	var count int
-	floatSamples := make([]float64, len(samples))
+	floatSamples := make([]float64, 0)
 	for _, sample := range samples {
 		if sample > 0 {
 			count++

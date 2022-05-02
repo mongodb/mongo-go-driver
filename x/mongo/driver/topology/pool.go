@@ -378,7 +378,7 @@ func (p *pool) unpinConnectionFromTransaction() {
 // Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
 func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	// TODO(CSOT): If a Timeout was specified at any level, respect the Timeout is server selection, connection
-	// checkout and creation.
+	// TODO checkout and creation.
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
 			Type:    event.GetStarted,
