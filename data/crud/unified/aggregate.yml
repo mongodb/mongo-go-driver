@@ -130,7 +130,7 @@ tests:
     runOnRequirements:
       - minServerVersion: "4.4.0"
         topologies: [ single, replicaset ]
-    operations:
+       operations:
       - name: aggregate
         arguments:
           pipeline: [ { $match: { _id: { $gt: 1 } }} ]

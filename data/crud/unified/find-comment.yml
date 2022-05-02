@@ -75,30 +75,9 @@ tests:
       - name: find
         object: *collection0
         arguments:
-          filter: *filter
-          comment: &comment { key: "value"}
-        expectError:
-          isClientError: false
-    expectEvents:
-      - client: *client0
-        events:
-          - commandStartedEvent:
-              command:
-                find: *collection0Name
-                filter: *filter
-                comment: *comment
-
-  - description: "find with comment sets comment on getMore"
-    runOnRequirements:
-      - minServerVersion: "4.4.0"
-        topologies: [ single, replicaset ]
-    operations:
-      - name: find
-        object: *collection0
-        arguments:
           filter: &filter_get_more { _id: { $gt: 1 } }
           batchSize: 2
-          comment: "comment"
+          comment: *comment
         expectResult:
           - { _id: 2, x: 22 }
           - { _id: 3, x: 33 }
@@ -113,19 +92,19 @@ tests:
                 find: *collection0Name
                 filter: { _id: { $gt: 1 } }
                 batchSize: 2
-                comment: "comment"
+                comment: *comment
           - commandStartedEvent:
               command:
                 getMore: { $$type: [ int, long ] }
                 collection: *collection0Name
                 batchSize: 2
-                comment: "comment"
+                comment: *comment
           - commandStartedEvent:
               command:
                 getMore: { $$type: [ int, long ] }
                 collection: *collection0Name
                 batchSize: 2
-                comment: "comment"
+                comment: *comment
 
   - description: "find with comment does not set comment on getMore - pre 4.4"
     runOnRequirements:
