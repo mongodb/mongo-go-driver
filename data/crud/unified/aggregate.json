@@ -332,11 +332,7 @@
       "skipReason": "aggregate comments are string-only",
       "runOnRequirements": [
         {
-          "minServerVersion": "4.4.0",
-          "topologies": [
-            "single",
-            "replicaset"
-          ]
+          "minServerVersion": "4.4.0"
         }
       ],
       "operations": [
