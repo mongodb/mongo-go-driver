@@ -339,6 +339,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			if bc.maxTimeMS > 0 {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
 			}
+			// The getMore command does not support commenting pre-4.4.
 			if bc.comment.Type != bsontype.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
 				dst = bsoncore.AppendValueElement(dst, "comment", bc.comment)
 			}
