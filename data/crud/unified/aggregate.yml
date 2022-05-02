@@ -129,6 +129,7 @@ tests:
   - description: "aggregate with comment sets comment on getMore"
     runOnRequirements:
       - minServerVersion: "4.4.0"
+        topologies: [ single, replicaset ]
     operations:
       - name: aggregate
         arguments:
