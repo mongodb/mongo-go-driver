@@ -255,6 +255,7 @@
         {
           "minServerVersion": "4.4.0",
           "topologies": [
+            "single",
             "replicaset"
           ]
         }

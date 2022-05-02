@@ -199,7 +199,11 @@
       "description": "find with comment sets comment on getMore",
       "runOnRequirements": [
         {
-          "minServerVersion": "4.4.0"
+          "minServerVersion": "4.4.0",
+          "topologies": [
+            "single",
+            "replicaset"
+          ]
         }
       ],
       "operations": [
