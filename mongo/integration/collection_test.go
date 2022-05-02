@@ -308,8 +308,8 @@ func TestCollection(t *testing.T) {
 			assert.Nil(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
 		})
-		mt.RunOpts("write error", mtest.NewOptions().MaxServerVersion("5.2"), func(mt *mtest.T) {
-			// Deletes are not allowed on capped collections on MongoDB 5.2-. We use this
+		mt.RunOpts("write error", mtest.NewOptions().MaxServerVersion("5.0.7"), func(mt *mtest.T) {
+			// Deletes are not allowed on capped collections on MongoDB 5.0.6-. We use this
 			// behavior to test the processing of write errors.
 			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
 			capped := mt.CreateCollection(mtest.Collection{
@@ -377,8 +377,8 @@ func TestCollection(t *testing.T) {
 			assert.Nil(mt, err, "DeleteMany error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
 		})
-		mt.RunOpts("write error", mtest.NewOptions().MaxServerVersion("5.2"), func(mt *mtest.T) {
-			// Deletes are not allowed on capped collections on MongoDB 5.2-. We use this
+		mt.RunOpts("write error", mtest.NewOptions().MaxServerVersion("5.0.7"), func(mt *mtest.T) {
+			// Deletes are not allowed on capped collections on MongoDB 5.0.6-. We use this
 			// behavior to test the processing of write errors.
 			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
 			capped := mt.CreateCollection(mtest.Collection{
@@ -1505,8 +1505,8 @@ func TestCollection(t *testing.T) {
 				})
 			}
 		})
-		mt.RunOpts("delete write errors", mtest.NewOptions().MaxServerVersion("5.2"), func(mt *mtest.T) {
-			// Deletes are not allowed on capped collections on MongoDB 5.2-. We use this
+		mt.RunOpts("delete write errors", mtest.NewOptions().MaxServerVersion("5.0.7"), func(mt *mtest.T) {
+			// Deletes are not allowed on capped collections on MongoDB 5.0.6-. We use this
 			// behavior to test the processing of write errors.
 			doc := mongo.NewDeleteOneModel().SetFilter(bson.D{{"x", 1}})
 			models := []mongo.WriteModel{doc, doc}
@@ -1604,8 +1604,8 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, expectedModel, actualModel, "expected model %v in BulkWriteException, got %v",
 				expectedModel, actualModel)
 		})
-		mt.RunOpts("unordered writeError index", mtest.NewOptions().MaxServerVersion("5.2"), func(mt *mtest.T) {
-			// Deletes are not allowed on capped collections on MongoDB 5.2-. We use this
+		mt.RunOpts("unordered writeError index", mtest.NewOptions().MaxServerVersion("5.0.7"), func(mt *mtest.T) {
+			// Deletes are not allowed on capped collections on MongoDB 5.0.6-. We use this
 			// behavior to test the processing of write errors.
 			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
 			capped := mt.CreateCollection(mtest.Collection{
