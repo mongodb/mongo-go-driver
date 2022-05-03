@@ -181,12 +181,11 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 		case "comment":
 			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
 			// TODO with `opts.SetComment(val)`
-			switch val.Type {
-			case bsontype.EmbeddedDocument:
-				opts.SetComment(val.String())
-			default:
-				opts.SetComment(val.StringValue())
+			commentString, err := createCommentString(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating comment: %v", err)
 			}
+			opts.SetComment(commentString)
 		case "filter":
 			filter = val.Document()
 		case "hint":
