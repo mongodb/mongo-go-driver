@@ -15,11 +15,11 @@ type CountOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default is the empty interface, which means that no comment will be included in the logs.
-	//
 	// TODO(GODRIVER-2386): CountOptions executor uses aggregation under the hood, which means this type has to be
 	// TODO a string for now.  This can be replaced with `Comment interface{}` once 2386 is implemented.
+
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
