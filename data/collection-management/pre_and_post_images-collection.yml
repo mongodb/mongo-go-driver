@@ -1,6 +1,6 @@
 description: "pre_and_post_images-collection"
 
-schemaVersion: "1.9"
+schemaVersion: "1.0"
 
 runOnRequirements:
   - minServerVersion: "6.0"
@@ -17,11 +17,6 @@ createEntities:
       id: &collection0 collection0
       database: *database0
       collectionName: &collection0Name test
-
-initialData:
-  - collectionName: *collection0Name
-    databaseName: *database0Name
-    documents: []
 
 tests:
   - description: "createCollection with changeStreamPreAndPostImages enabled"
@@ -52,6 +47,7 @@ tests:
                 create: *collection0Name
                 changeStreamPreAndPostImages: { enabled: true }
               databaseName: *database0Name
+
   - description: "modifyCollection to changeStreamPreAndPostImages enabled"
     operations:
       - name: dropCollection

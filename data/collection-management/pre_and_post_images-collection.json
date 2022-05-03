@@ -1,6 +1,6 @@
 {
   "description": "pre_and_post_images-collection",
-  "schemaVersion": "1.9",
+  "schemaVersion": "1.0",
   "runOnRequirements": [
     {
       "minServerVersion": "6.0"
@@ -28,13 +28,6 @@
         "database": "database0",
         "collectionName": "test"
       }
-    }
-  ],
-  "initialData": [
-    {
-      "collectionName": "test",
-      "databaseName": "papi-tests",
-      "documents": []
     }
   ],
   "tests": [
