@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
+	url2 "go.mongodb.org/mongo-driver/x/mongo/driver/url"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
@@ -232,7 +233,7 @@ func (p *parser) parse(original string) error {
 		if strings.Contains(username, "/") {
 			return fmt.Errorf("unescaped slash in username")
 		}
-		p.Username, err = url.QueryUnescape(username)
+		p.Username, err = url2.Unescape(username, url2.EncodeUserPassword)
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid username")
 		}
@@ -245,7 +246,7 @@ func (p *parser) parse(original string) error {
 		if strings.Contains(password, "/") {
 			return fmt.Errorf("unescaped slash in password")
 		}
-		p.Password, err = url.QueryUnescape(password)
+		p.Password, err = url2.Unescape(password, url2.EncodeUserPassword)
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid password")
 		}
