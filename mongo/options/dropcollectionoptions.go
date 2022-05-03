@@ -8,7 +8,7 @@ package options
 
 // DropCollectionOptions represents options that can be used to configure a Drop operation.
 type DropCollectionOptions struct {
-	// EncryptedFields configures encrypted fields for FLE 2.0.
+	// EncryptedFields configures encrypted fields for encrypted collections.
 	//
 	// This option is only valid for MongoDB versions >= 6.0
 	EncryptedFields interface{}
@@ -19,7 +19,7 @@ func DropCollection() *DropCollectionOptions {
 	return &DropCollectionOptions{}
 }
 
-// SetEncryptedFields sets the encrypted fields for FLE 2.0 collections.
+// SetEncryptedFields sets the encrypted fields for encrypted collections.
 func (d *DropCollectionOptions) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptions {
 	d.EncryptedFields = encryptedFields
 	return d

@@ -126,7 +126,7 @@ type CreateCollectionOptions struct {
 	// This option is only valid for MongoDB versions >= 5.0
 	TimeSeriesOptions *TimeSeriesOptions
 
-	// EncryptedFields configures encrypted fields for FLE 2.0.
+	// EncryptedFields configures encrypted fields.
 	//
 	// This option is only valid for MongoDB versions >= 6.0
 	EncryptedFields interface{}
@@ -203,7 +203,7 @@ func (c *CreateCollectionOptions) SetTimeSeriesOptions(timeSeriesOpts *TimeSerie
 	return c
 }
 
-// SetEncryptedFields sets the encrypted fields for FLE 2.0 collections.
+// SetEncryptedFields sets the encrypted fields for encrypted collections.
 func (c *CreateCollectionOptions) SetEncryptedFields(encryptedFields interface{}) *CreateCollectionOptions {
 	c.EncryptedFields = encryptedFields
 	return c
