@@ -164,7 +164,7 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 	// Set the minRTT and 90th percentile RTT of all collected samples. Require at least 5 samples before
 	// setting these to prevent noisy samples on startup from artificially increasing RTT.
 	r.minRTT = min(r.samples, minSamples)
-	r.RTT90 = percentile90(r.samples, minSamples)
+	r.RTT90 = percentile(90.0, r.samples, minSamples)
 
 	if !r.averageRTTSet {
 		r.averageRTT = rtt
@@ -195,27 +195,26 @@ func min(samples []time.Duration, minSamples int) time.Duration {
 	return min
 }
 
-// percentile90 returns the 90th percentile value of the slice of duration samples. Zero values
+// percentile returns the specified percentile value of the slice of duration samples. Zero values
 // are not considered samples and are ignored. If no samples or fewer than minSamples are found
-// in the slice, percentile90 returns 0.
-func percentile90(samples []time.Duration, minSamples int) time.Duration {
+// in the slice, percentile returns 0.
+func percentile(perc float64, samples []time.Duration, minSamples int) time.Duration {
 	// Convert Durations to float64s.
 	var count int
 	floatSamples := make([]float64, 0)
 	for _, sample := range samples {
-		if sample > 0 {
-			count++
+		if sample != 0 {
+			count += 1
+			floatSamples = append(floatSamples, float64(sample))
 		}
-
-		floatSamples = append(floatSamples, float64(sample))
 	}
 	if count < minSamples {
 		return 0
 	}
 
-	p, err := stats.Percentile(floatSamples, float64(90))
+	p, err := stats.Percentile(floatSamples, perc)
 	if err != nil {
-		panic(fmt.Errorf("error calculating 90th percentile RTT: %v", err))
+		panic(fmt.Errorf("error calculating %f percentile RTT: %v", perc, err))
 	}
 	return time.Duration(p)
 }
