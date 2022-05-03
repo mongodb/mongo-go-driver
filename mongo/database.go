@@ -508,9 +508,13 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
-	efc, err := db.getEncryptedFields(ctx, cco.EncryptedFields, name, false /* useListCollections */)
-	if err != nil {
-		return err
+	efc := cco.EncryptedFields
+	var err error
+	if efc == nil {
+		efc, err = db.getEncryptedFieldsFromMap(ctx, name)
+		if err != nil {
+			return err
+		}
 	}
 	if efc != nil {
 		return db.createCollectionWithEncryptedFields(ctx, name, efc, opts...)
@@ -519,27 +523,9 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 	return db.createCollection(ctx, name, opts...)
 }
 
-// getEncryptedFields attempts to find an EncryptedFields associated with collectionName on this database.
-func (db *Database) getEncryptedFields(ctx context.Context, efcOption interface{}, collectionName string, useListCollections bool) (interface{}, error) {
-	if efcOption != nil {
-		return efcOption, nil
-	}
-	// Check the EncryptedFieldsMap
-	efcMap := db.client.encryptedFieldsMap
-	if efcMap == nil {
-		return nil, nil
-	}
-
-	namespace := db.name + "." + collectionName
-
-	efc, ok := efcMap[namespace]
-	if ok {
-		return efc, nil
-	}
-
-	if !useListCollections {
-		return nil, nil
-	}
+// getEncryptedFieldsFromServer tries to get an "encryptedFields" document associated with collectionName by running the "listCollections" command.
+// Returns nil and no error if the listCollections command succeeds, but "encryptedFields" is not present.
+func (db *Database) getEncryptedFieldsFromServer(ctx context.Context, collectionName string) (interface{}, error) {
 	// Check if collection has an EncryptedFields configured server-side.
 	collSpecs, err := db.ListCollectionSpecifications(ctx, bson.D{{"name", collectionName}})
 	if err != nil {
@@ -565,6 +551,24 @@ func (db *Database) getEncryptedFields(ctx context.Context, efcOption interface{
 	}
 
 	return &encryptedFields, nil
+}
+
+// getEncryptedFieldsFromServer tries to get an "encryptedFields" document associated with collectionName by checking the client EncryptedFieldsMap.
+// Returns nil and no error if an EncryptedFieldsMap is not configured, or does not contain an entry for collectionName.
+func (db *Database) getEncryptedFieldsFromMap(ctx context.Context, collectionName string) (interface{}, error) {
+	// Check the EncryptedFieldsMap
+	efcMap := db.client.encryptedFieldsMap
+	if efcMap == nil {
+		return nil, nil
+	}
+
+	namespace := db.name + "." + collectionName
+
+	efc, ok := efcMap[namespace]
+	if ok {
+		return efc, nil
+	}
+	return nil, nil
 }
 
 // createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
