@@ -1685,7 +1685,7 @@ func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectio
 		return coll.dropEncryptedCollection(ctx, efc)
 	}
 
-	return coll.dropHelper(ctx)
+	return coll.drop(ctx)
 }
 
 // dropEncryptedCollection drops collection with EncryptedFields.
@@ -1697,7 +1697,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, efc interfa
 	}
 
 	// Drop the data collection.
-	err = coll.dropHelper(ctx)
+	err = coll.drop(ctx)
 	if err != nil {
 		return err
 	}
@@ -1714,7 +1714,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, efc interfa
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	err = coll.db.Collection(escCollection).dropHelper(ctx)
+	err = coll.db.Collection(escCollection).drop(ctx)
 	if err != nil {
 		return err
 	}
@@ -1730,7 +1730,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, efc interfa
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	err = coll.db.Collection(eccCollection).dropHelper(ctx)
+	err = coll.db.Collection(eccCollection).drop(ctx)
 	if err != nil {
 		return err
 	}
@@ -1746,14 +1746,15 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, efc interfa
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	err = coll.db.Collection(ecocCollection).dropHelper(ctx)
+	err = coll.db.Collection(ecocCollection).drop(ctx)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (coll *Collection) dropHelper(ctx context.Context) error {
+// drop drops a collection without EncryptedFields.
+func (coll *Collection) drop(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
