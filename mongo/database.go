@@ -509,12 +509,8 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
 	efc := cco.EncryptedFields
-	var err error
 	if efc == nil {
-		efc, err = db.getEncryptedFieldsFromMap(ctx, name)
-		if err != nil {
-			return err
-		}
+		efc = db.getEncryptedFieldsFromMap(name)
 	}
 	if efc != nil {
 		return db.createCollectionWithEncryptedFields(ctx, name, efc, opts...)
@@ -555,20 +551,20 @@ func (db *Database) getEncryptedFieldsFromServer(ctx context.Context, collection
 
 // getEncryptedFieldsFromServer tries to get an "encryptedFields" document associated with collectionName by checking the client EncryptedFieldsMap.
 // Returns nil and no error if an EncryptedFieldsMap is not configured, or does not contain an entry for collectionName.
-func (db *Database) getEncryptedFieldsFromMap(ctx context.Context, collectionName string) (interface{}, error) {
+func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{} {
 	// Check the EncryptedFieldsMap
 	efcMap := db.client.encryptedFieldsMap
 	if efcMap == nil {
-		return nil, nil
+		return nil
 	}
 
 	namespace := db.name + "." + collectionName
 
 	efc, ok := efcMap[namespace]
 	if ok {
-		return efc, nil
+		return efc
 	}
-	return nil, nil
+	return nil
 }
 
 // createCollectionWithEncryptedFields creates a collection with an EncryptedFields.

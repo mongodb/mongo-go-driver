@@ -1669,10 +1669,7 @@ func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectio
 	efc := dco.EncryptedFields
 	var err error
 	if efc == nil {
-		efc, err = coll.db.getEncryptedFieldsFromMap(ctx, coll.name)
-		if err != nil {
-			return err
-		}
+		efc = coll.db.getEncryptedFieldsFromMap(coll.name)
 	}
 	if efc == nil {
 		efc, err = coll.db.getEncryptedFieldsFromServer(ctx, coll.name)
