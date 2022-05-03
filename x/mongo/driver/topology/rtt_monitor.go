@@ -200,15 +200,13 @@ func min(samples []time.Duration, minSamples int) time.Duration {
 // in the slice, percentile returns 0.
 func percentile(perc float64, samples []time.Duration, minSamples int) time.Duration {
 	// Convert Durations to float64s.
-	var count int
 	floatSamples := make([]float64, 0)
 	for _, sample := range samples {
-		if sample != 0 {
-			count += 1
+		if sample > 0 {
 			floatSamples = append(floatSamples, float64(sample))
 		}
 	}
-	if count < minSamples {
+	if len(floatSamples) < minSamples {
 		return 0
 	}
 
