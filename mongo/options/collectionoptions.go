@@ -70,7 +70,7 @@ func (c *CollectionOptions) SetRegistry(r *bsoncodec.Registry) *CollectionOption
 // SetTimeout sets the value for the Timeout field.
 //
 // If any Timeout is set on the Collection, the values of other, deprecated timeout-related options will be ignored. In particular:
-// ClientOptions.SocketTimeout, WriteConcern.wTimeout, Operation.MaxTime and TransactionOptions.MaxCommitTime.
+// ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operations, and TransactionOptions.MaxCommitTime.
 func (c *CollectionOptions) SetTimeout(to time.Duration) *CollectionOptions {
 	c.Timeout = &to
 	return c

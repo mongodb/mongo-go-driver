@@ -463,6 +463,8 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 			name = val.StringValue()
 		case "maxTimeMS":
 			dropIndexOpts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		default:
+			return nil, fmt.Errorf("unrecognized dropIndex option %q", key)
 		}
 	}
 	if name == "" {
@@ -488,6 +490,8 @@ func executeDropIndexes(ctx context.Context, operation *operation) (*operationRe
 		switch key {
 		case "maxTimeMS":
 			dropIndexOpts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		default:
+			return nil, fmt.Errorf("unrecognized dropIndexes option %q", key)
 		}
 	}
 

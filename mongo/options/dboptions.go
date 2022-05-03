@@ -70,7 +70,7 @@ func (d *DatabaseOptions) SetRegistry(r *bsoncodec.Registry) *DatabaseOptions {
 // SetTimeout sets the value for the Timeout field.
 //
 // If any Timeout is set on the Database, the values of other, deprecated timeout-related options will be ignored. In particular:
-// ClientOptions.SocketTimeout, WriteConcern.wTimeout, Operation.MaxTime and TransactionOptions.MaxCommitTime.
+// ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operations, and TransactionOptions.MaxCommitTime.
 func (d *DatabaseOptions) SetTimeout(to time.Duration) *DatabaseOptions {
 	d.Timeout = &to
 	return d

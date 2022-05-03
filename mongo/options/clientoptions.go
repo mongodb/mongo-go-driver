@@ -732,7 +732,7 @@ func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 // timeout is used and operations will not inherit a timeout from the Client.
 //
 // If any Timeout is set on the Client, the values of other, deprecated timeout-related options will be ignored. In particular:
-// ClientOptions.SocketTimeout, WriteConcern.wTimeout, Operation.MaxTime and TransactionOptions.MaxCommitTime.
+// ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operations, and TransactionOptions.MaxCommitTime.
 func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
 	c.Timeout = &d
 	return c
