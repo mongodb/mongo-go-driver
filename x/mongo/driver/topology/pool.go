@@ -176,6 +176,9 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		conns:                 make(map[uint64]*connection, config.MaxPoolSize),
 		idleConns:             make([]*connection, 0, config.MaxPoolSize),
 	}
+	if pool.maxSize != 0 && pool.minSize > pool.maxSize {
+		pool.minSize = pool.maxSize
+	}
 	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
 	pool.generation.connect()

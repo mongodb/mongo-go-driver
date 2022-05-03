@@ -7,6 +7,7 @@
 package topology
 
 import (
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -55,7 +56,15 @@ func newServerConfig(opts ...ServerOption) *serverConfig {
 		opt(cfg)
 	}
 
+	cfg.sanityCheck()
 	return cfg
+}
+
+func (cfg *serverConfig) sanityCheck() {
+	const tmpl = "x/mongo/driver/topology: internal error: serverConfig should be: %s"
+	if cfg.maxConns != 0 && cfg.minConns > cfg.maxConns {
+		panic(fmt.Sprintf(tmpl, "maxConns >= minConns"))
+	}
 }
 
 // ServerOption configures a server.
