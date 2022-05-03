@@ -650,7 +650,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	return nil
 }
 
-// createCollection creates a collection without a EncryptedFields.
+// createCollection creates a collection without EncryptedFields.
 func (db *Database) createCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	op, err := db.createCollectionOperation(name, opts...)
 	if err != nil {
