@@ -26,6 +26,8 @@ var (
 		// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It expects batchSize values of three for
 		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": {},
+		// The Go driver does not have a modifyCollection helper, so we skip this test.
+		"modifyCollection to changeStreamPreAndPostImages enabled": {},
 	}
 )
 

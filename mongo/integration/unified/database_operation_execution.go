@@ -33,6 +33,8 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 		switch key {
 		case "collection":
 			collName = val.StringValue()
+		case "changeStreamPreAndPostImages":
+			cco.SetChangeStreamPreAndPostImages(val.Document())
 		case "expireAfterSeconds":
 			cco.SetExpireAfterSeconds(int64(val.Int32()))
 		case "timeseries":
