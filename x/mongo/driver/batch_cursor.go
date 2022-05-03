@@ -42,7 +42,6 @@ type BatchCursor struct {
 	serverAPI            *ServerAPIOptions
 
 	// legacy server (< 3.2) fields
-	legacy      bool // This field is provided for ListCollectionsBatchCursor.
 	limit       int32
 	numReturned int32 // number of docs returned by server
 }
@@ -165,7 +164,6 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		bc.numReturned = int32(ds.DocumentCount())
 	}
 	if cr.Desc.WireVersion == nil || cr.Desc.WireVersion.Max < 4 {
-		bc.legacy = true
 		bc.limit = opts.Limit
 
 		// Take as many documents from the batch as needed.
