@@ -1671,7 +1671,7 @@ func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectio
 	if efc == nil {
 		efc = coll.db.getEncryptedFieldsFromMap(coll.name)
 	}
-	if efc == nil {
+	if efc == nil && coll.db.client.encryptedFieldsMap != nil {
 		efc, err = coll.db.getEncryptedFieldsFromServer(ctx, coll.name)
 		if err != nil {
 			return err
