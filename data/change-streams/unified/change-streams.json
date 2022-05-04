@@ -1,6 +1,6 @@
 {
   "description": "change-streams",
-  "schemaVersion": "1.7",
+  "schemaVersion": "1.4",
   "runOnRequirements": [
     {
       "minServerVersion": "3.6",
