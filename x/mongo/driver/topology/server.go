@@ -820,6 +820,7 @@ func (s *Server) MinRTT() time.Duration {
 	return s.rttMonitor.getMinRTT()
 }
 
+// RTT90 returns the 90th percentile round-trip time to the server observed over the last 5 minutes.
 func (s *Server) RTT90() time.Duration {
 	return s.rttMonitor.getRTT90()
 }
