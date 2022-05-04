@@ -72,7 +72,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	// Construct a ClientOptions instance by first applying the cluster URI and then the URIOptions map to ensure that
 	// the options specified in the test file take precedence.
-	uri := mtest.ClusterURI()
+	uri := getURIForClient(entityOptions)
 	clientOpts := options.Client().ApplyURI(uri)
 	if entityOptions.URIOptions != nil {
 		if err := setClientOptionsFromURIOptions(clientOpts, entityOptions.URIOptions); err != nil {
@@ -139,6 +139,21 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	entity.Client = client
 	return entity, nil
+}
+
+func getURIForClient(opts *entityOptions) string {
+	if mtest.ClusterTopologyKind() != mtest.LoadBalanced {
+		return mtest.ClusterURI()
+	}
+
+	// For load-balanced deployments, UseMultipleMongoses is used to determine the load balancer URI. If set to false,
+	// the LB fronts a single server. If unset or explicitly true, the LB fronts multiple mongos servers.
+	switch {
+	case opts.UseMultipleMongoses != nil && !*opts.UseMultipleMongoses:
+		return mtest.SingleMongosLoadBalancerURI()
+	default:
+		return mtest.MultiMongosLoadBalancerURI()
+	}
 }
 
 func (c *clientEntity) stopListeningForEvents() {
