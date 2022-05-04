@@ -160,62 +160,58 @@ func Client() *ClientOptions {
 
 // Validate validates the client options. This method will return the first error found.
 func (c *ClientOptions) Validate() error {
-	c.validateAndSetError()
+	if c.err != nil {
+		return c.err
+	}
+	c.err = c.validate()
 	return c.err
 }
 
-func (c *ClientOptions) validateAndSetError() {
-	if c.err != nil {
-		return
-	}
-
+func (c *ClientOptions) validate() error {
 	// Direct connections cannot be made if multiple hosts are specified or an SRV URI is used.
 	if c.Direct != nil && *c.Direct {
 		if len(c.Hosts) > 1 {
-			c.err = errors.New("a direct connection cannot be made if multiple hosts are specified")
-			return
+			return errors.New("a direct connection cannot be made if multiple hosts are specified")
 		}
 		if c.cs != nil && c.cs.Scheme == connstring.SchemeMongoDBSRV {
-			c.err = errors.New("a direct connection cannot be made if an SRV URI is used")
-			return
+			return errors.New("a direct connection cannot be made if an SRV URI is used")
 		}
 	}
 
 	if c.MaxPoolSize != nil && c.MinPoolSize != nil && *c.MaxPoolSize != 0 && *c.MinPoolSize > *c.MaxPoolSize {
-		c.err = fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d", *c.MinPoolSize, *c.MaxPoolSize)
-		return
+		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d", *c.MinPoolSize, *c.MaxPoolSize)
 	}
 
 	// verify server API version if ServerAPIOptions are passed in.
 	if c.ServerAPIOptions != nil {
-		c.err = c.ServerAPIOptions.ServerAPIVersion.Validate()
+		if err := c.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+			return err
+		}
 	}
 
 	// Validation for load-balanced mode.
 	if c.LoadBalanced != nil && *c.LoadBalanced {
 		if len(c.Hosts) > 1 {
-			c.err = internal.ErrLoadBalancedWithMultipleHosts
-			return
+			return internal.ErrLoadBalancedWithMultipleHosts
 		}
 		if c.ReplicaSet != nil {
-			c.err = internal.ErrLoadBalancedWithReplicaSet
-			return
+			return internal.ErrLoadBalancedWithReplicaSet
 		}
 		if c.Direct != nil {
-			c.err = internal.ErrLoadBalancedWithDirectConnection
-			return
+			return internal.ErrLoadBalancedWithDirectConnection
 		}
 	}
 
 	// Validation for srvMaxHosts.
 	if c.SRVMaxHosts != nil && *c.SRVMaxHosts > 0 {
 		if c.ReplicaSet != nil {
-			c.err = internal.ErrSRVMaxHostsWithReplicaSet
+			return internal.ErrSRVMaxHostsWithReplicaSet
 		}
 		if c.LoadBalanced != nil && *c.LoadBalanced {
-			c.err = internal.ErrSRVMaxHostsWithLoadBalanced
+			return internal.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
+	return nil
 }
 
 // GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
