@@ -1,12 +1,14 @@
 {
   "description": "change-streams",
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.7",
   "runOnRequirements": [
     {
+      "minServerVersion": "3.6",
       "topologies": [
         "replicaset",
         "sharded-replicaset"
-      ]
+      ],
+      "serverless": "forbid"
     }
   ],
   "createEntities": [
