@@ -820,6 +820,10 @@ func (s *Server) MinRTT() time.Duration {
 	return s.rttMonitor.getMinRTT()
 }
 
+func (s *Server) RTT90() time.Duration {
+	return s.rttMonitor.getRTT90()
+}
+
 // OperationCount returns the current number of in-progress operations for this server.
 func (s *Server) OperationCount() int64 {
 	return atomic.LoadInt64(&s.operationCount)
