@@ -31,7 +31,7 @@ type FindOptions struct {
 	Collation *Collation
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is the empty string, which means that no comment will be included in the logs.
+	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
 	// Specifies the type of cursor that should be created for the operation. The default is NonTailable, which means
@@ -334,7 +334,7 @@ type FindOneOptions struct {
 	Collation *Collation
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is the empty string, which means that no comment will be included in the logs.
+	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
 	// Specifies the type of cursor that should be created for the operation. The default is NonTailable, which means
@@ -611,6 +611,10 @@ type FindOneAndReplaceOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default value is nil, which means that no comment will be included in the logs.
+	Comment interface{}
+
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
 	MaxTime *time.Duration
@@ -661,6 +665,12 @@ func (f *FindOneAndReplaceOptions) SetBypassDocumentValidation(b bool) *FindOneA
 // SetCollation sets the value for the Collation field.
 func (f *FindOneAndReplaceOptions) SetCollation(collation *Collation) *FindOneAndReplaceOptions {
 	f.Collation = collation
+	return f
+}
+
+// SetComment sets the value for the Comment field.
+func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndReplaceOptions {
+	f.Comment = comment
 	return f
 }
 
@@ -720,6 +730,9 @@ func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAn
 		if opt.Collation != nil {
 			fo.Collation = opt.Collation
 		}
+		if opt.Comment != nil {
+			fo.Comment = opt.Comment
+		}
 		if opt.MaxTime != nil {
 			fo.MaxTime = opt.MaxTime
 		}
@@ -763,6 +776,10 @@ type FindOneAndUpdateOptions struct {
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
+
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default value is nil, which means that no comment will be included in the logs.
+	Comment interface{}
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
@@ -820,6 +837,12 @@ func (f *FindOneAndUpdateOptions) SetArrayFilters(filters ArrayFilters) *FindOne
 // SetCollation sets the value for the Collation field.
 func (f *FindOneAndUpdateOptions) SetCollation(collation *Collation) *FindOneAndUpdateOptions {
 	f.Collation = collation
+	return f
+}
+
+// SetComment sets the value for the Comment field.
+func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpdateOptions {
+	f.Comment = comment
 	return f
 }
 
@@ -882,6 +905,9 @@ func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndU
 		if opt.Collation != nil {
 			fo.Collation = opt.Collation
 		}
+		if opt.Comment != nil {
+			fo.Comment = opt.Comment
+		}
 		if opt.MaxTime != nil {
 			fo.MaxTime = opt.MaxTime
 		}
@@ -914,6 +940,10 @@ type FindOneAndDeleteOptions struct {
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
+
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default value is nil, which means that no comment will be included in the logs.
+	Comment interface{}
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
@@ -951,6 +981,12 @@ func FindOneAndDelete() *FindOneAndDeleteOptions {
 // SetCollation sets the value for the Collation field.
 func (f *FindOneAndDeleteOptions) SetCollation(collation *Collation) *FindOneAndDeleteOptions {
 	f.Collation = collation
+	return f
+}
+
+// SetComment sets the value for the Comment field.
+func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDeleteOptions {
+	f.Comment = comment
 	return f
 }
 
@@ -994,6 +1030,9 @@ func MergeFindOneAndDeleteOptions(opts ...*FindOneAndDeleteOptions) *FindOneAndD
 		}
 		if opt.Collation != nil {
 			fo.Collation = opt.Collation
+		}
+		if opt.Comment != nil {
+			fo.Comment = opt.Comment
 		}
 		if opt.MaxTime != nil {
 			fo.MaxTime = opt.MaxTime

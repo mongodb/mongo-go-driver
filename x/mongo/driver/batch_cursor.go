@@ -25,11 +25,13 @@ import (
 type BatchCursor struct {
 	clientSession        *session.Client
 	clock                *session.ClusterClock
+	comment              bsoncore.Value
 	database             string
 	collection           string
 	id                   int64
 	err                  error
 	server               Server
+	serverDescription    description.Server
 	errorProcessor       ErrorProcessor // This will only be set when pinning to a connection.
 	connection           PinnedConnection
 	batchSize            int32
@@ -132,6 +134,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 // CursorOptions are extra options that are required to construct a BatchCursor.
 type CursorOptions struct {
 	BatchSize      int32
+	Comment        bsoncore.Value
 	MaxTimeMS      int64
 	Limit          int32
 	CommandMonitor *event.CommandMonitor
@@ -145,6 +148,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 	bc := &BatchCursor{
 		clientSession:        clientSession,
 		clock:                clock,
+		comment:              opts.Comment,
 		database:             cr.Database,
 		collection:           cr.Collection,
 		id:                   cr.ID,
@@ -158,6 +162,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		postBatchResumeToken: cr.postBatchResumeToken,
 		crypt:                opts.Crypt,
 		serverAPI:            opts.ServerAPI,
+		serverDescription:    cr.Desc,
 	}
 
 	if ds != nil {
@@ -331,6 +336,10 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			}
 			if bc.maxTimeMS > 0 {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
+			}
+			// The getMore command does not support commenting pre-4.4.
+			if bc.comment.Type != bsontype.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
+				dst = bsoncore.AppendValueElement(dst, "comment", bc.comment)
 			}
 			return dst, nil
 		},

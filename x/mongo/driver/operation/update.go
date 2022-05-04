@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -23,6 +24,7 @@ import (
 // Update performs an update operation.
 type Update struct {
 	bypassDocumentValidation *bool
+	comment                  bsoncore.Value
 	ordered                  *bool
 	updates                  []bsoncore.Document
 	session                  *session.Client
@@ -168,6 +170,9 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *u.bypassDocumentValidation)
 	}
+	if u.comment.Type != bsontype.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "comment", u.comment)
+	}
 	if u.ordered != nil {
 
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *u.ordered)
@@ -287,6 +292,16 @@ func (u *Update) CommandMonitor(monitor *event.CommandMonitor) *Update {
 	}
 
 	u.monitor = monitor
+	return u
+}
+
+// Comment sets a value to help trace an operation.
+func (u *Update) Comment(comment bsoncore.Value) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.comment = comment
 	return u
 }
 
