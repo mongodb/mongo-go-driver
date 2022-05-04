@@ -1,4 +1,4 @@
-description: "pre_and_post_images-collection"
+description: "modifyCollection-pre_and_post_images"
 
 schemaVersion: "1.0"
 
@@ -19,35 +19,6 @@ createEntities:
       collectionName: &collection0Name test
 
 tests:
-  - description: "createCollection with changeStreamPreAndPostImages enabled"
-    operations:
-      - name: dropCollection
-        object: *database0
-        arguments:
-          collection: *collection0Name
-      - name: createCollection
-        object: *database0
-        arguments:
-          collection: *collection0Name
-          changeStreamPreAndPostImages: { enabled: true }
-      - name: assertCollectionExists
-        object: testRunner
-        arguments:
-          databaseName: *database0Name
-          collectionName: *collection0Name
-    expectEvents:
-      - client: *client0
-        events:
-          - commandStartedEvent: &dropEvent
-              command:
-                drop: *collection0Name
-              databaseName: *database0Name
-          - commandStartedEvent:
-              command:
-                create: *collection0Name
-                changeStreamPreAndPostImages: { enabled: true }
-              databaseName: *database0Name
-
   - description: "modifyCollection to changeStreamPreAndPostImages enabled"
     operations:
       - name: dropCollection
@@ -72,7 +43,10 @@ tests:
     expectEvents:
       - client: *client0
         events:
-          - commandStartedEvent: *dropEvent
+          - commandStartedEvent:
+              command:
+                drop: *collection0Name
+              databaseName: *database0Name
           - commandStartedEvent:
               command:
                 create: *collection0Name
