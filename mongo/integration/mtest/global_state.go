@@ -36,18 +36,6 @@ func ClusterURI() string {
 	return testContext.connString.Original
 }
 
-// SingleMongosLoadBalancerURI returns the URI for a load balancer fronting a single mongos. This will only be set
-// if the cluster is load balanced.
-func SingleMongosLoadBalancerURI() string {
-	return testContext.singleMongosLoadBalancerURI
-}
-
-// MultiMongosLoadBalancerURI returns the URI for a load balancer fronting multiple mongoses. This will only be set
-// if the cluster is load balanced.
-func MultiMongosLoadBalancerURI() string {
-	return testContext.multiMongosLoadBalancerURI
-}
-
 // ClusterConnString returns the parsed ConnString for the cluster.
 func ClusterConnString() connstring.ConnString {
 	return testContext.connString

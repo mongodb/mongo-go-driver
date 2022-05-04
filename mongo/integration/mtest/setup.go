@@ -43,18 +43,16 @@ var testContext struct {
 	// shardedReplicaSet will be true if we're connected to a sharded cluster and each shard is backed by a replica set.
 	// We track this as a separate boolean rather than setting topoKind to ShardedReplicaSet because a general
 	// "Sharded" constraint in a test should match both Sharded and ShardedReplicaSet.
-	shardedReplicaSet           bool
-	client                      *mongo.Client // client used for setup and teardown
-	serverVersion               string
-	authEnabled                 bool
-	sslEnabled                  bool
-	enterpriseServer            bool
-	dataLake                    bool
-	requireAPIVersion           bool
-	serverParameters            bson.Raw
-	singleMongosLoadBalancerURI string
-	multiMongosLoadBalancerURI  string
-	serverless                  bool
+	shardedReplicaSet bool
+	client            *mongo.Client // client used for setup and teardown
+	serverVersion     string
+	authEnabled       bool
+	sslEnabled        bool
+	enterpriseServer  bool
+	dataLake          bool
+	requireAPIVersion bool
+	serverParameters  bson.Raw
+	serverless        bool
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
@@ -176,28 +174,6 @@ func Setup(setupOpts ...*SetupOptions) error {
 		}
 		if !foundStandalone {
 			testContext.shardedReplicaSet = true
-		}
-	}
-
-	// For load balanced clusters, retrieve the required LB URIs and add additional information (e.g. TLS options) to
-	// them if necessary.
-	if testContext.topoKind == LoadBalanced {
-		singleMongosURI := os.Getenv("SINGLE_MONGOS_LB_URI")
-		if singleMongosURI == "" {
-			return errors.New("SINGLE_MONGOS_LB_URI must be set when running against load balanced clusters")
-		}
-		testContext.singleMongosLoadBalancerURI, err = addNecessaryParamsToURI(singleMongosURI)
-		if err != nil {
-			return fmt.Errorf("error getting single mongos load balancer uri: %v", err)
-		}
-
-		multiMongosURI := os.Getenv("MULTI_MONGOS_LB_URI")
-		if multiMongosURI == "" {
-			return errors.New("MULTI_MONGOS_LB_URI must be set when running against load balanced clusters")
-		}
-		testContext.multiMongosLoadBalancerURI, err = addNecessaryParamsToURI(multiMongosURI)
-		if err != nil {
-			return fmt.Errorf("error getting multi mongos load balancer uri: %v", err)
 		}
 	}
 
