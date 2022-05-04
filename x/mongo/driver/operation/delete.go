@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -21,6 +22,7 @@ import (
 
 // Delete performs a delete operation
 type Delete struct {
+	comment      bsoncore.Value
 	deletes      []bsoncore.Document
 	ordered      *bool
 	session      *session.Client
@@ -112,6 +114,9 @@ func (d *Delete) Execute(ctx context.Context) error {
 
 func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "delete", d.collection)
+	if d.comment.Type != bsontype.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "comment", d.comment)
+	}
 	if d.ordered != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *d.ordered)
 	}
@@ -179,6 +184,16 @@ func (d *Delete) Collection(collection string) *Delete {
 	}
 
 	d.collection = collection
+	return d
+}
+
+// Comment sets a value to help trace an operation.
+func (d *Delete) Comment(comment bsoncore.Value) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.comment = comment
 	return d
 }
 

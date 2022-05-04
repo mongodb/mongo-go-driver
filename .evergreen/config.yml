@@ -1843,6 +1843,10 @@ axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "6.0"
+        display_name: "6.0"
+        variables:
+          VERSION: "6.0"
       - id: "5.0"
         display_name: "5.0"
         variables:
@@ -2129,7 +2133,7 @@ buildvariants:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-42-plus-zlib-zstd-support"
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "latest"], os-ssl-40: "*" }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "latest"], os-ssl-40: "*" }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2141,20 +2145,20 @@ buildvariants:
       - name: ".test .enterprise-auth"
 
   - matrix_name: "aws-auth-test"
-    matrix_spec: { version: ["4.4", "5.0", "latest"], os-aws-auth: "*" }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-aws-auth: "*" }
     display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-16"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-16"] }
     display_name: "OCSP ${version} ${ocsp-rhel-70}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "latest"], os-ssl-40: ["windows-64-go-1-16"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-16"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2162,7 +2166,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "latest"], os-ssl-40: ["osx-go-1-16"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["osx-go-1-16"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2170,7 +2174,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "versioned-api-test"
-    matrix_spec: { version: ["5.0", "latest"], os-ssl-40: "*" }
+    matrix_spec: { version: ["5.0", "6.0", "latest"], os-ssl-40: "*" }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"

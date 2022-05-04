@@ -57,7 +57,13 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 			}
 			opts.SetCollation(collation)
 		case "comment":
-			opts.SetComment(val.StringValue())
+			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
+			// TODO with `opts.SetComment(val)`
+			commentString, err := createCommentString(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating comment: %v", err)
+			}
+			opts.SetComment(commentString)
 		case "hint":
 			hint, err := createHint(val)
 			if err != nil {
@@ -108,6 +114,8 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 		val := elem.Value()
 
 		switch key {
+		case "comment":
+			opts.SetComment(val)
 		case "ordered":
 			opts.SetOrdered(val.Boolean())
 		case "requests":
@@ -170,6 +178,14 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
+			// TODO with `opts.SetComment(val)`
+			commentString, err := createCommentString(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating comment: %v", err)
+			}
+			opts.SetComment(commentString)
 		case "filter":
 			filter = val.Document()
 		case "hint":
@@ -300,6 +316,8 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":
@@ -343,6 +361,8 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 		val := elem.Value()
 
 		switch key {
+		case "comment":
+			opts.SetComment(val)
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
@@ -440,6 +460,8 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 		val := elem.Value()
 
 		switch key {
+		case "comment":
+			opts.SetComment(val)
 		case "maxTimeMS":
 			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		default:
@@ -509,6 +531,8 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":
@@ -561,6 +585,8 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":
@@ -633,6 +659,8 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":
@@ -695,6 +723,8 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		val := elem.Value()
 
 		switch key {
+		case "comment":
+			opts.SetComment(val)
 		case "documents":
 			documents = testhelpers.RawToInterfaceSlice(val.Array())
 		case "ordered":
@@ -744,6 +774,8 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 			document = val.Document()
 		case "bypassDocumentValidation":
 			opts.SetBypassDocumentValidation(val.Boolean())
+		case "comment":
+			opts.SetComment(val)
 		default:
 			return nil, fmt.Errorf("unrecognized insertOne option %q", key)
 		}
@@ -822,6 +854,8 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":
@@ -940,7 +974,13 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			}
 			opts.SetCollation(collation)
 		case "comment":
-			opts.SetComment(val.StringValue())
+			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
+			// TODO with `opts.SetComment(val)`
+			commentString, err := createCommentString(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating comment: %v", err)
+			}
+			opts.SetComment(commentString)
 		case "filter":
 			filter = val.Document()
 		case "hint":
