@@ -179,6 +179,26 @@ func TestClient(t *testing.T) {
 		client := setupClient(options.Client().SetReadConcern(rc))
 		assert.Equal(t, rc, client.readConcern, "expected read concern %v, got %v", rc, client.readConcern)
 	})
+	t.Run("min pool size", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			opts *options.ClientOptions
+			err  error
+		}{
+			{"minPoolSize < default maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=64"), nil},
+			{"minPoolSize > default maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128"), errors.New("options should be: MaxConnections >= MinConnections; got: 128 MinConnections, 100 MaxConnections")},
+			{"minPoolSize < maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=256"), nil},
+			{"minPoolSize == maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=128"), nil},
+			{"minPoolSize > maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=64&maxPoolSize=32"), errors.New("options should be: MaxConnections >= MinConnections; got: 64 MinConnections, 32 MaxConnections")},
+			{"maxPoolSize == 0", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=0"), nil},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := NewClient(tc.opts)
+				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
+			})
+		}
+	})
 	t.Run("retry writes", func(t *testing.T) {
 		retryWritesURI := "mongodb://localhost:27017/?retryWrites=false"
 		retryWritesErrorURI := "mongodb://localhost:27017/?retryWrites=foobar"

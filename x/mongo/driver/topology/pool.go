@@ -176,6 +176,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		conns:                 make(map[uint64]*connection, config.MaxPoolSize),
 		idleConns:             make([]*connection, 0, config.MaxPoolSize),
 	}
+	// minSize must not exceed maxSize if maxSize is not 0
 	if pool.maxSize != 0 && pool.minSize > pool.maxSize {
 		pool.minSize = pool.maxSize
 	}

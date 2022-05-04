@@ -681,6 +681,9 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
 		topology.WithConnectionOptions(func(...topology.ConnectionOption) []topology.ConnectionOption { return connOpts }),
 	)
+	if err := topology.ValidateServerOptions(serverOpts...); err != nil {
+		return err
+	}
 	c.topologyOptions = append(topologyOpts, topology.WithServerOptions(
 		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
 	))

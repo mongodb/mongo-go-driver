@@ -41,6 +41,11 @@ type serverConfig struct {
 	poolMaintainInterval time.Duration
 }
 
+// ValidateServerOptions validates the server options. This method will return the first error found.
+func ValidateServerOptions(opts ...ServerOption) error {
+	return newServerConfig(opts...).validate()
+}
+
 func newServerConfig(opts ...ServerOption) *serverConfig {
 	cfg := &serverConfig{
 		heartbeatInterval: 10 * time.Second,
@@ -56,15 +61,15 @@ func newServerConfig(opts ...ServerOption) *serverConfig {
 		opt(cfg)
 	}
 
-	cfg.sanityCheck()
 	return cfg
 }
 
-func (cfg *serverConfig) sanityCheck() {
-	const tmpl = "x/mongo/driver/topology: internal error: serverConfig should be: %s"
+func (cfg *serverConfig) validate() error {
+	const tmpl = "options should be: %s; got: %s"
 	if cfg.maxConns != 0 && cfg.minConns > cfg.maxConns {
-		panic(fmt.Sprintf(tmpl, "maxConns >= minConns"))
+		return fmt.Errorf(tmpl, "MaxConnections >= MinConnections", fmt.Sprintf("%d MinConnections, %d MaxConnections", cfg.minConns, cfg.maxConns))
 	}
+	return nil
 }
 
 // ServerOption configures a server.
