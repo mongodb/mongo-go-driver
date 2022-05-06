@@ -7,7 +7,6 @@
 package topology
 
 import (
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -41,16 +40,10 @@ type serverConfig struct {
 	poolMaintainInterval time.Duration
 }
 
-// ValidateServerOptions validates the server options. This method will return the first error found.
-func ValidateServerOptions(opts ...ServerOption) error {
-	return newServerConfig(opts...).validate()
-}
-
 func newServerConfig(opts ...ServerOption) *serverConfig {
 	cfg := &serverConfig{
 		heartbeatInterval: 10 * time.Second,
 		heartbeatTimeout:  10 * time.Second,
-		maxConns:          100,
 		registry:          defaultRegistry,
 	}
 
@@ -62,14 +55,6 @@ func newServerConfig(opts ...ServerOption) *serverConfig {
 	}
 
 	return cfg
-}
-
-func (cfg *serverConfig) validate() error {
-	const tmpl = "options should be: %s; got: %s"
-	if cfg.maxConns != 0 && cfg.minConns > cfg.maxConns {
-		return fmt.Errorf(tmpl, "MaxConnections >= MinConnections", fmt.Sprintf("%d MinConnections, %d MaxConnections", cfg.minConns, cfg.maxConns))
-	}
-	return nil
 }
 
 // ServerOption configures a server.

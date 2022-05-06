@@ -637,6 +637,40 @@ func TestClientOptions(t *testing.T) {
 			})
 		}
 	})
+	t.Run("minPoolSize validation", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			opts *ClientOptions
+			err  error
+		}{
+			{
+				"minPoolSize < maxPoolSize",
+				Client().SetMinPoolSize(128).SetMaxPoolSize(256),
+				nil,
+			},
+			{
+				"minPoolSize == maxPoolSize",
+				Client().SetMinPoolSize(128).SetMaxPoolSize(128),
+				nil,
+			},
+			{
+				"minPoolSize > maxPoolSize",
+				Client().SetMinPoolSize(64).SetMaxPoolSize(32),
+				errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=64 maxPoolSize=32"),
+			},
+			{
+				"maxPoolSize == 0",
+				Client().SetMinPoolSize(128).SetMaxPoolSize(0),
+				nil,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
+			})
+		}
+	})
 	t.Run("srvMaxHosts validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
