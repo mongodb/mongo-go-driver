@@ -352,6 +352,7 @@ func (c *Client) endSessions(ctx context.Context) {
 
 func (c *Client) configure(opts *options.ClientOptions) error {
 	var defaultOptions = 0
+	// Set default options
 	if opts.MaxPoolSize == nil {
 		defaultOptions++
 		opts.SetMaxPoolSize(defaultMaxPoolSize)

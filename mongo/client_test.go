@@ -185,12 +185,36 @@ func TestClient(t *testing.T) {
 			opts *options.ClientOptions
 			err  error
 		}{
-			{"minPoolSize < default maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=64"), nil},
-			{"minPoolSize > default maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128"), errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=128 maxPoolSize=100")},
-			{"minPoolSize < maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=256"), nil},
-			{"minPoolSize == maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=128"), nil},
-			{"minPoolSize > maxPoolSize", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=64&maxPoolSize=32"), errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=64 maxPoolSize=32")},
-			{"maxPoolSize == 0", options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=0"), nil},
+			{
+				name: "minPoolSize < default maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=64"),
+				err:  nil,
+			},
+			{
+				name: "minPoolSize > default maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128"),
+				err:  errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=128 maxPoolSize=100"),
+			},
+			{
+				name: "minPoolSize < maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=256"),
+				err:  nil,
+			},
+			{
+				name: "minPoolSize == maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=128"),
+				err:  nil,
+			},
+			{
+				name: "minPoolSize > maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=64&maxPoolSize=32"),
+				err:  errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=64 maxPoolSize=32"),
+			},
+			{
+				name: "maxPoolSize == 0",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=0"),
+				err:  nil,
+			},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
