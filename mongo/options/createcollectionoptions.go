@@ -78,7 +78,7 @@ type CreateCollectionOptions struct {
 	// Specifies how change streams opened against the collection can return pre- and post-images of updated
 	// documents. The value must be a document in the form {<option name>: <options>}. This option is only valid for
 	// MongoDB versions >= 6.0. The default value is nil, which means that change streams opened against the collection
-	// will not return pre- and post-images of updated documents.
+	// will not return pre- and post-images of updated documents in any way.
 	ChangeStreamPreAndPostImages interface{}
 
 	// Specifies a default configuration for indexes on the collection. This option is only valid for MongoDB versions
