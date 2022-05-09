@@ -22,13 +22,13 @@ The MongoDB supported driver for Go.
 -------------------------
 ## Requirements
 
-- Go 1.10 or higher if using the driver as a dependency. Go 1.16 or higher if building the driver yourself. We aim to support the latest supported versions of go.
+- Go 1.10 or higher if using the driver as a dependency. Go 1.17 or higher if building the driver yourself. We aim to support the latest versions of Go.
 - MongoDB 2.6 and higher.
 
 -------------------------
 ## Installation
 
-The recommended way to get started using the MongoDB Go driver is by using go modules to install the dependency in
+The recommended way to get started using the MongoDB Go driver is by using Go modules to install the dependency in
 your project. This can be done either by importing packages from `go.mongodb.org/mongo-driver` and having the build
 step install the dependency or by explicitly running
 

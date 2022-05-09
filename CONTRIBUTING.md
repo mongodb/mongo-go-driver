@@ -13,7 +13,7 @@ Before starting to write code, look for existing [tickets](https://jira.mongodb.
 The Go Driver team uses GitHub to manage and review all code changes. Patches should generally be made against the master (default) branch and include relevant tests, if
 applicable.
 
-Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.10 and requires Go 1.16 for development. Please run the following Make targets to validate your changes:
+Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.10 and requires Go 1.17 for development. Please run the following Make targets to validate your changes:
 - `make fmt`
 - `make lint` (requires [golangci-lint](https://github.com/golangci/golangci-lint) and [lll](https://github.com/walle/lll) to be installed and available in the `PATH`)
 - `make test`
