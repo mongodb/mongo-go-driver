@@ -1701,48 +1701,29 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	}
 	// Drop the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
 	// Drop ESCCollection.
-	escCollection := "enxcol_." + coll.name + ".esc"
-	val, err := efBSON.LookupErr("escCollection")
-	var ok bool
-	if err == nil {
-		escCollection, ok = val.StringValueOK()
-		if !ok {
-			return fmt.Errorf("expected string for 'escCollection', got: %v", val.Type)
-		}
-	} else if err != bsoncore.ErrElementNotFound {
+	escCollection, err := getEncryptedStateCollectionName(&efBSON, coll.name, "esc")
+	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(escCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(*escCollection).drop(ctx); err != nil {
 		return err
 	}
 
 	// Drop ECCCollection.
-	eccCollection := "enxcol_." + coll.name + ".ecc"
-	val, err = efBSON.LookupErr("eccCollection")
-	if err == nil {
-		eccCollection, ok = val.StringValueOK()
-		if !ok {
-			return fmt.Errorf("expected string for 'eccCollection', got: %v", val.Type)
-		}
-	} else if err != bsoncore.ErrElementNotFound {
+	eccCollection, err := getEncryptedStateCollectionName(&efBSON, coll.name, "ecc")
+	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(eccCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(*eccCollection).drop(ctx); err != nil {
 		return err
 	}
 
 	// Drop ECOCCollection.
-	ecocCollection := "enxcol_." + coll.name + ".ecoc"
-	val, err = efBSON.LookupErr("ecocCollection")
-	if err == nil {
-		ecocCollection, ok = val.StringValueOK()
-		if !ok {
-			return fmt.Errorf("expected string for 'ecocCollection', got: %v", val.Type)
-		}
-	} else if err != bsoncore.ErrElementNotFound {
+	ecocCollection, err := getEncryptedStateCollectionName(&efBSON, coll.name, "ecoc")
+	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(ecocCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(*ecocCollection).drop(ctx); err != nil {
 		return err
 	}
 	return nil

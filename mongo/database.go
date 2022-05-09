@@ -570,6 +570,28 @@ func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{}
 	return nil
 }
 
+// getEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
+func getEncryptedStateCollectionName(efBSON *bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (*string, error) {
+	if stateCollectionSuffix != "esc" && stateCollectionSuffix != "ecc" && stateCollectionSuffix != "ecoc" {
+		return nil, fmt.Errorf("Expected stateCollectionSuffix: esc, ecc, or ecoc. Got %v", stateCollectionSuffix)
+	}
+	fieldName := stateCollectionSuffix + "Collection"
+	if val, err := efBSON.LookupErr(fieldName); err != nil {
+		if err != bsoncore.ErrElementNotFound {
+			return nil, err
+		}
+		// Return default name.
+		defaultName := "enxcol_." + dataCollectionName + "." + stateCollectionSuffix
+		return &defaultName, nil
+	} else {
+		if stateCollectionName, ok := val.StringValueOK(); !ok {
+			return nil, fmt.Errorf("expected string for '%v', got: %v", fieldName, val.Type)
+		} else {
+			return &stateCollectionName, nil
+		}
+	}
+}
+
 // createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
 func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, ef interface{}, opts ...*options.CreateCollectionOptions) error {
 	var efBSON bsoncore.Document
@@ -580,48 +602,29 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 
 	// Create the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
 	// Create ESCCollection.
-	escCollection := "enxcol_." + name + ".esc"
-	val, err := efBSON.LookupErr("escCollection")
-	var ok bool
-	if err == nil {
-		escCollection, ok = val.StringValueOK()
-		if !ok {
-			return fmt.Errorf("expected string for 'escCollection', got: %v", val.Type)
-		}
-	} else if err != bsoncore.ErrElementNotFound {
+	escCollection, err := getEncryptedStateCollectionName(&efBSON, name, "esc")
+	if err != nil {
 		return err
 	}
-	if err := db.createCollection(ctx, escCollection); err != nil {
+	if err := db.createCollection(ctx, *escCollection); err != nil {
 		return err
 	}
 
 	// Create ECCCollection.
-	eccCollection := "enxcol_." + name + ".ecc"
-	val, err = efBSON.LookupErr("eccCollection")
-	if err == nil {
-		eccCollection, ok = val.StringValueOK()
-		if !ok {
-			return fmt.Errorf("expected string for 'eccCollection', got: %v", val.Type)
-		}
-	} else if err != bsoncore.ErrElementNotFound {
+	eccCollection, err := getEncryptedStateCollectionName(&efBSON, name, "ecc")
+	if err != nil {
 		return err
 	}
-	if err := db.createCollection(ctx, eccCollection); err != nil {
+	if err := db.createCollection(ctx, *eccCollection); err != nil {
 		return err
 	}
 
 	// Create ECOCCollection.
-	ecocCollection := "enxcol_." + name + ".ecoc"
-	val, err = efBSON.LookupErr("ecocCollection")
-	if err == nil {
-		ecocCollection, ok = val.StringValueOK()
-		if !ok {
-			return fmt.Errorf("expected string for 'ecocCollection', got: %v", val.Type)
-		}
-	} else if err != bsoncore.ErrElementNotFound {
+	ecocCollection, err := getEncryptedStateCollectionName(&efBSON, name, "ecoc")
+	if err != nil {
 		return err
 	}
-	if err := db.createCollection(ctx, ecocCollection); err != nil {
+	if err := db.createCollection(ctx, *ecocCollection); err != nil {
 		return err
 	}
 
