@@ -1664,9 +1664,8 @@ func (coll *Collection) Indexes() IndexView {
 
 // Drop drops the collection on the server. This method ignores "namespace not found" errors so it is safe to drop
 // a collection that does not exist on the server.
-func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectionOptions) error {
-	dco := options.MergeDropCollectionOptions(opts...)
-	efc := dco.EncryptedFields
+func (coll *Collection) Drop(ctx context.Context) error {
+	var efc interface{}
 	var err error
 	if efc == nil {
 		efc = coll.db.getEncryptedFieldsFromMap(coll.name)
