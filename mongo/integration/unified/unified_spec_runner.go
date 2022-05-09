@@ -33,19 +33,6 @@ var (
 		"timeoutMS can be set to 0 on a MongoDatabase - estimatedDocumentCount on collection":     {},
 		"timeoutMS can be configured on a MongoCollection - estimatedDocumentCount on collection": {},
 		"timeoutMS can be set to 0 on a MongoCollection - estimatedDocumentCount on collection":   {},
-		// The Go driver does not have a "count" or "listIndexNames" command, so skip these CSOT spec tests.
-		"timeoutMS can be configured on a MongoClient - count on collection":              {},
-		"timeoutMS can be set to 0 on a MongoClient - count on collection":                {},
-		"timeoutMS can be configured on a MongoDatabase - count on collection":            {},
-		"timeoutMS can be set to 0 on a MongoDatabase - count on collection":              {},
-		"timeoutMS can be configured on a MongoCollection - count on collection":          {},
-		"timeoutMS can be set to 0 on a MongoCollection - count on collection":            {},
-		"timeoutMS can be configured on a MongoClient - listIndexNames on collection":     {},
-		"timeoutMS can be set to 0 on a MongoClient - listIndexNames on collection":       {},
-		"timeoutMS can be configured on a MongoDatabase - listIndexNames on collection":   {},
-		"timeoutMS can be set to 0 on a MongoDatabase - listIndexNames on collection":     {},
-		"timeoutMS can be configured on a MongoCollection - listIndexNames on collection": {},
-		"timeoutMS can be set to 0 on a MongoCollection - listIndexNames on collection":   {},
 	}
 )
 
