@@ -84,6 +84,14 @@ if [ -z ${GO_BUILD_TAGS+x} ]; then
   GO_BUILD_TAGS="cse"
 fi
 
+# Find the csfle library file in the current directory and set the CSFLE_PATH to the path of that
+# file. Only look for .so, .dll, or .dylib files to prevent matching any other downloaded files.
+export CSFLE_PATH="$(find $(pwd) -maxdepth 1 -type f \
+  -name 'mongo_csfle_v1.so' -o \
+  -name 'mongo_csfle_v1.dll' -o \
+  -name 'mongo_csfle_v1.dylib')"
+echo "CSFLE_PATH=$CSFLE_PATH"
+
 AUTH=${AUTH} \
 SSL=${SSL} \
 MONGO_GO_DRIVER_CA_FILE=${MONGO_GO_DRIVER_CA_FILE} \

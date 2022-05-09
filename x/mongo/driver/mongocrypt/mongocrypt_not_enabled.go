@@ -49,6 +49,18 @@ func (m *MongoCrypt) CreateExplicitDecryptionContext(doc bsoncore.Document) (*Co
 	panic(cseNotSupportedMsg)
 }
 
+// CSFLEVersion returns the version number for the loaded csfle library, or 0 if the csfle library
+// was not loaded.
+func (m *MongoCrypt) CSFLEVersion() uint64 {
+	panic(cseNotSupportedMsg)
+}
+
+// CSFLEVersionString returns the version string  for the loaded csfle library, or an empty string
+// if the csfle library was not loaded.
+func (m *MongoCrypt) CSFLEVersionString() string {
+	panic(cseNotSupportedMsg)
+}
+
 // Close cleans up any resources associated with the given MongoCrypt instance.
 func (m *MongoCrypt) Close() {
 	panic(cseNotSupportedMsg)

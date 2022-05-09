@@ -93,6 +93,28 @@ func (a *AutoEncryptionOptions) SetBypassAutoEncryption(bypass bool) *AutoEncryp
 }
 
 // SetExtraOptions specifies a map of options to configure the mongocryptd process.
+//
+// Supported Extra Options
+//
+// "mongocryptdURI" - The mongocryptd URI. Allows setting a custom URI used to communicate with the
+// mongocryptd process. The default is "mongodb://localhost:27020", which works with the default
+// mongocryptd process spawned by the Client. Must be a string.
+//
+// "mongocryptdBypassSpawn" - If set to true, the Client will not attempt to spawn a mongocryptd
+// process. Must be a bool.
+//
+// "csfleRequired" - If set to true, Client creation will return an error if the csfle library is
+// not loaded. If unset or set to false, Client creation will not return an error if the csfle
+// library is not loaded. The default is unset. Must be a bool.
+//
+// "csflePath" - The csfle library override path. This must be the path to the csfle dynamic library
+// file (for example, a .so, .dll, or .dylib file), not the directory that contains it. If the
+// override path is a relative path, it will be resolved relative to the working directory of the
+// process. If the override path is a relative path and the first path component is the literal
+// string "$ORIGIN", the "$ORIGIN" component will be replaced by the absolute path to the directory
+// containing the linked libmongocrypt library. Setting an override path disables the default system
+// library search path. If an override path is specified but the csfle library cannot be loaded,
+// Client creation will return an error. Must be a string.
 func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}) *AutoEncryptionOptions {
 	a.ExtraOptions = extraOpts
 	return a

@@ -16,6 +16,8 @@ type MongoCryptOptions struct {
 	LocalSchemaMap      map[string]bsoncore.Document
 	BypassQueryAnalysis bool
 	EncryptedFieldsMap  map[string]bsoncore.Document
+	CSFLEDisabled       bool
+	CSFLEOverridePath   string
 }
 
 // MongoCrypt creates a new MongoCryptOptions instance.
@@ -44,5 +46,18 @@ func (mo *MongoCryptOptions) SetBypassQueryAnalysis(bypassQueryAnalysis bool) *M
 // SetEncryptedFieldsMap specifies the encrypted fields map.
 func (mo *MongoCryptOptions) SetEncryptedFieldsMap(efcMap map[string]bsoncore.Document) *MongoCryptOptions {
 	mo.EncryptedFieldsMap = efcMap
+	return mo
+}
+
+// SetCSFLEDisabled explicitly disables loading the csfle dynamic library if set to true.
+func (mo *MongoCryptOptions) SetCSFLEDisabled(disabled bool) *MongoCryptOptions {
+	mo.CSFLEDisabled = disabled
+	return mo
+}
+
+// SetCSFLEOverridePath sets the override path to the csfle dynamic library file. Setting an
+// override path disables the default operating system dynamic library search path.
+func (mo *MongoCryptOptions) SetCSFLEOverridePath(path string) *MongoCryptOptions {
+	mo.CSFLEOverridePath = path
 	return mo
 }

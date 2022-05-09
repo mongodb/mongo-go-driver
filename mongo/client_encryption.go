@@ -17,7 +17,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	cryptOpts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
+	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
 
 // ClientEncryption is used to create data keys and explicitly encrypt and decrypt BSON values.
@@ -47,18 +48,25 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 		return nil, fmt.Errorf("error creating KMS providers map: %v", err)
 	}
 
-	// create Crypt
-	kr := keyRetriever{coll: ce.keyVaultColl}
-	cir := collInfoRetriever{client: ce.keyVaultClient}
-	ce.crypt, err = driver.NewCrypt(&driver.CryptOptions{
-		KeyFn:        kr.cryptKeys,
-		CollInfoFn:   cir.cryptCollInfo,
-		KmsProviders: kmsProviders,
-		TLSConfig:    ceo.TLSConfig,
-	})
+	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
+		SetKmsProviders(kmsProviders).
+		// Explicitly disable loading the csfle library for the Crypt used for ClientEncryption
+		// because it's only need for AutoEncryption and we don't expect users to have the csfle
+		// library installed if they're using ClientEncryption.
+		SetCSFLEDisabled(true))
 	if err != nil {
 		return nil, err
 	}
+
+	// create Crypt
+	kr := keyRetriever{coll: ce.keyVaultColl}
+	cir := collInfoRetriever{client: ce.keyVaultClient}
+	ce.crypt = driver.NewCrypt(&driver.CryptOptions{
+		MongoCrypt: mc,
+		KeyFn:      kr.cryptKeys,
+		CollInfoFn: cir.cryptCollInfo,
+		TLSConfig:  ceo.TLSConfig,
+	})
 
 	return ce, nil
 }
@@ -66,9 +74,9 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 // CreateDataKey creates a new key document and inserts it into the key vault collection. Returns the _id of the
 // created document.
 func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string, opts ...*options.DataKeyOptions) (primitive.Binary, error) {
-	// translate opts to cryptOpts.DataKeyOptions
+	// translate opts to mcopts.DataKeyOptions
 	dko := options.MergeDataKeyOptions(opts...)
-	co := cryptOpts.DataKey().SetKeyAltNames(dko.KeyAltNames)
+	co := mcopts.DataKey().SetKeyAltNames(dko.KeyAltNames)
 	if dko.MasterKey != nil {
 		keyDoc, err := transformBsoncoreDocument(ce.keyVaultClient.registry, dko.MasterKey, true, "masterKey")
 		if err != nil {
@@ -97,7 +105,7 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 // Encrypt encrypts a BSON value with the given key and algorithm. Returns an encrypted value (BSON binary of subtype 6).
 func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue, opts ...*options.EncryptOptions) (primitive.Binary, error) {
 	eo := options.MergeEncryptOptions(opts...)
-	transformed := cryptOpts.ExplicitEncryption()
+	transformed := mcopts.ExplicitEncryption()
 	if eo.KeyID != nil {
 		transformed.SetKeyID(*eo.KeyID)
 	}
@@ -108,7 +116,7 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue, opts
 	if eo.QueryType != nil {
 		switch *eo.QueryType {
 		case options.QueryTypeEquality:
-			transformed.SetQueryType(cryptOpts.QueryTypeEquality)
+			transformed.SetQueryType(mcopts.QueryTypeEquality)
 		default:
 			return primitive.Binary{}, fmt.Errorf("unsupported value for QueryType: %v", *eo.QueryType)
 		}

@@ -283,6 +283,24 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
+
+		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither
+		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
+		// and require the csfle library.
+		if testClientOpts.AutoEncryptionOptions != nil {
+			bypassAutoEncryption := testClientOpts.AutoEncryptionOptions.BypassAutoEncryption != nil &&
+				*testClientOpts.AutoEncryptionOptions.BypassAutoEncryption
+			bypassQueryAnalysis := testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis != nil &&
+				*testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis
+			if !bypassAutoEncryption && !bypassQueryAnalysis {
+				if testClientOpts.AutoEncryptionOptions.ExtraOptions == nil {
+					testClientOpts.AutoEncryptionOptions.ExtraOptions = make(map[string]interface{})
+				}
+				testClientOpts.AutoEncryptionOptions.ExtraOptions["csfleRequired"] = true
+				testClientOpts.AutoEncryptionOptions.ExtraOptions["csflePath"] = mtest.GetCSFLEPath()
+			}
+		}
+
 		test.monitor = newUnifiedRunnerEventMonitor()
 		testClientOpts.SetPoolMonitor(&event.PoolMonitor{
 			Event: test.monitor.handlePoolEvent,
@@ -903,6 +921,10 @@ func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 
 	// key vault data
 	if len(testFile.KeyVaultData) > 0 {
+		// Drop the key vault collection in case it exists from a prior test run.
+		err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+		assert.Nil(mt, err, "error dropping key vault collection")
+
 		keyVaultColl := mt.CreateCollection(mtest.Collection{
 			Name: "datakeys",
 			DB:   "keyvault",

@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"os"
 	"testing"
 	"time"
 
@@ -472,5 +473,61 @@ func TestClient(t *testing.T) {
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
 				"unexpected modification to serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})
+	})
+	t.Run("mongocryptd or csfle", func(t *testing.T) {
+		csflePath := os.Getenv("CSFLE_PATH")
+		if csflePath == "" {
+			t.Skip("CSFLE_PATH not set, skipping")
+		}
+
+		testCases := []struct {
+			description string
+			useCSFLE    bool
+		}{
+			{
+				description: "when csfle is loaded, should not attempt to spawn mongocryptd",
+				useCSFLE:    true,
+			},
+			{
+				description: "when csfle is not loaded, should attempt to spawn mongocryptd",
+				useCSFLE:    false,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.description, func(t *testing.T) {
+				extraOptions := map[string]interface{}{
+					// Set a mongocryptd path that does not exist. If Connect() attempts to start
+					// mongocryptd, it will cause an error.
+					"mongocryptdPath": "/does/not/exist",
+				}
+
+				// If we're using the csfle library, set the "csfleRequired" option to true and the
+				// "csflePath" option to the csfle library path from the CSFLE_PATH environment
+				// variable. If we're not using the csfle library, explicitly disable loading the
+				// csfle library.
+				if tc.useCSFLE {
+					extraOptions["csfleRequired"] = true
+					extraOptions["csflePath"] = csflePath
+				} else {
+					extraOptions["__csfleDisabledForTestOnly"] = true
+				}
+
+				_, err := NewClient(options.Client().
+					SetAutoEncryptionOptions(options.AutoEncryption().
+						SetKmsProviders(map[string]map[string]interface{}{
+							"local": {"key": make([]byte, 96)},
+						}).
+						SetExtraOptions(extraOptions)))
+
+				// If we're using the csfle library, expect that Connect() doesn't attempt to spawn
+				// mongocryptd and no error is returned. If we're not using the csfle library,
+				// expect that Connect() tries to spawn mongocryptd and returns an error.
+				if tc.useCSFLE {
+					assert.Nil(t, err, "Connect() error: %v", err)
+				} else {
+					assert.NotNil(t, err, "expected Connect() error, but got nil")
+				}
+			})
+		}
 	})
 }

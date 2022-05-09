@@ -289,7 +289,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKmsProviders(fullKmsProvidersMap).
 			SetKeyVaultNamespace(kvNamespace).
 			SetSchemaMap(schemaMap).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(tlsConfig).
+			SetExtraOptions(getCSFLEExtraOptions())
 
 		ceo := options.ClientEncryption().
 			SetKmsProviders(fullKmsProvidersMap).
@@ -417,8 +418,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					},
 				}
 				schemaMap := map[string]interface{}{"db.coll": readJSONFile(mt, "external-schema.json")}
-				aeo := options.AutoEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace).SetSchemaMap(schemaMap)
-				ceo := options.ClientEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace)
+				aeo := options.AutoEncryption().
+					SetKmsProviders(kmsProviders).
+					SetKeyVaultNamespace(kvNamespace).
+					SetSchemaMap(schemaMap).
+					SetExtraOptions(getCSFLEExtraOptions())
+				ceo := options.ClientEncryption().
+					SetKmsProviders(kmsProviders).
+					SetKeyVaultNamespace(kvNamespace)
 				kvClientOpts := defaultKvClientOptions
 
 				if tc.externalVault {
@@ -466,7 +473,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"key": localMasterKey,
 			},
 		}
-		aeo := options.AutoEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace)
+		aeo := options.AutoEncryption().
+			SetKmsProviders(kmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetExtraOptions(getCSFLEExtraOptions())
 		cpt := setup(mt, aeo, nil, nil)
 		defer cpt.teardown(mt)
 
@@ -564,7 +574,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"key": localMasterKey,
 			},
 		}
-		aeo := options.AutoEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace)
+		aeo := options.AutoEncryption().
+			SetKmsProviders(kmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetExtraOptions(getCSFLEExtraOptions())
 		cpt := setup(mt, aeo, nil, nil)
 		defer cpt.teardown(mt)
 
@@ -608,7 +621,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			return options.AutoEncryption().
 				SetKmsProviders(fullKmsProvidersMap).
 				SetKeyVaultNamespace(kvNamespace).
-				SetTLSConfig(tlsConfig)
+				SetTLSConfig(tlsConfig).
+				SetExtraOptions(getCSFLEExtraOptions())
 		}
 
 		testCases := []struct {
@@ -1021,19 +1035,24 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"db.coll": readJSONFile(mt, "external-schema.json"),
 		}
 
-		// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference with mongocryptd
-		// instances spawned by previous tests.
+		// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference
+		// with mongocryptd instances spawned by previous tests. Explicitly disable loading the
+		// csfle library to make sure we're testing mongocryptd spawning behavior that is not
+		// influenced by loading csfle.
 		mongocryptdBypassSpawnTrue := map[string]interface{}{
-			"mongocryptdBypassSpawn": true,
-			"mongocryptdURI":         "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
-			"mongocryptdSpawnArgs":   []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"mongocryptdBypassSpawn":     true,
+			"mongocryptdURI":             "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
+			"mongocryptdSpawnArgs":       []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"__csfleDisabledForTestOnly": true, // Disable loading the csfle library.
 		}
 		mongocryptdBypassSpawnFalse := map[string]interface{}{
-			"mongocryptdBypassSpawn": false,
-			"mongocryptdSpawnArgs":   []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"mongocryptdBypassSpawn":     false,
+			"mongocryptdSpawnArgs":       []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"__csfleDisabledForTestOnly": true, // Disable loading the csfle library.
 		}
 		mongocryptdBypassSpawnNotSet := map[string]interface{}{
-			"mongocryptdSpawnArgs": []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"mongocryptdSpawnArgs":       []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"__csfleDisabledForTestOnly": true, // Disable loading the csfle library.
 		}
 
 		testCases := []struct {
@@ -1160,7 +1179,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					autoEncryptionOpts := options.AutoEncryption().
 						SetKmsProviders(kmsProviders).
 						SetKeyVaultNamespace(kvNamespace).
-						SetSchemaMap(schemaMap)
+						SetSchemaMap(schemaMap).
+						SetExtraOptions(getCSFLEExtraOptions())
 					cpt := setup(mt, autoEncryptionOpts, nil, nil)
 					defer cpt.teardown(mt)
 
@@ -1283,6 +1303,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				aeOpts.SetKeyVaultNamespace("keyvault.datakeys").
 					SetKmsProviders(kmsProviders).
 					SetBypassAutoEncryption(tc.bypassAutoEncryption)
+
+				// Only set the csfle library extra options if bypassAutoEncryption isn't true
+				// because it's invalid to set csfleRequired=true and bypassAutoEncryption=true
+				// together.
+				if !tc.bypassAutoEncryption {
+					aeOpts.SetExtraOptions(getCSFLEExtraOptions())
+				}
+
 				if tc.keyVaultClientSet {
 					testutil.AddTestServerAPIVersion(d.clientKeyVaultOpts)
 					aeOpts.SetKeyVaultClientOptions(d.clientKeyVaultOpts)
@@ -1304,8 +1332,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				testutil.AddTestServerAPIVersion(ceOpts)
 				clientEncrypted, err := mongo.Connect(context.Background(), ceOpts)
-				defer clientEncrypted.Disconnect(context.Background())
 				assert.Nil(mt, err, "Connect error: %v", err)
+				defer clientEncrypted.Disconnect(context.Background())
 
 				coll := clientEncrypted.Database("db").Collection("coll")
 				if !tc.bypassAutoEncryption {
@@ -1783,4 +1811,13 @@ func (d *deadlockTest) disconnect(mt *mtest.T) {
 	assert.Nil(mt, err, "clientEncryption Close error: %v", err)
 	d.clientTest.Disconnect(context.Background())
 	assert.Nil(mt, err, "clientTest Disconnect error: %v", err)
+}
+
+// getCSFLEExtraOptions returns an AutoEncryption extra options map with csfle required set and a
+// csfle library override path set if available.
+func getCSFLEExtraOptions() map[string]interface{} {
+	return map[string]interface{}{
+		"csfleRequired": true,
+		"csflePath":     mtest.GetCSFLEPath(),
+	}
 }
