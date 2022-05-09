@@ -26,19 +26,6 @@ var (
 		// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It expects batchSize values of three for
 		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": {},
-		// TODO(CSOT): Unskip these CSOT spec tests once createChangeStream operations are correctly formatted.
-		"timeoutMS can be configured on a MongoClient - createChangeStream on client":         {},
-		"timeoutMS can be set to 0 on a MongoClient - createChangeStream on client":           {},
-		"timeoutMS can be configured on a MongoClient - createChangeStream on database":       {},
-		"timeoutMS can be set to 0 on a MongoClient - createChangeStream on database":         {},
-		"timeoutMS can be configured on a MongoClient - createChangeStream on collection":     {},
-		"timeoutMS can be set to 0 on a MongoClient - createChangeStream on collection":       {},
-		"timeoutMS can be configured on a MongoDatabase - createChangeStream on database":     {},
-		"timeoutMS can be set to 0 on a MongoDatabase - createChangeStream on database":       {},
-		"timeoutMS can be configured on a MongoDatabase - createChangeStream on collection":   {},
-		"timeoutMS can be set to 0 on a MongoDatabase - createChangeStream on collection":     {},
-		"timeoutMS can be configured on a MongoCollection - createChangeStream on collection": {},
-		"timeoutMS can be set to 0 on a MongoCollection - createChangeStream on collection":   {},
 		// TODO(CSOT): Unskip these CSOT spec tests once estimatedDocumentCount correctly expects an aggregate instead of a count command.
 		"timeoutMS can be configured on a MongoClient - estimatedDocumentCount on collection":     {},
 		"timeoutMS can be set to 0 on a MongoClient - estimatedDocumentCount on collection":       {},

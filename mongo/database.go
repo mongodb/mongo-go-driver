@@ -504,6 +504,7 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 		streamType:     DatabaseStream,
 		databaseName:   db.Name(),
 		crypt:          db.client.cryptFLE,
+		timeout:        db.timeout,
 	}
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
