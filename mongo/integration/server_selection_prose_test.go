@@ -199,7 +199,7 @@ func TestServerSelectionProse(t *testing.T) {
 		}
 		awaitSaturation(mt, tpm, maxPoolSize)
 
-		counts, checkOutEvents := runsServerSelection(mt, tpm, 25, 200)
+		counts, checkOutEvents := runsServerSelection(mt, tpm, 10, 100)
 		// Calculate the frequency that each server was selected. Assert that each server was selected 50% (+/- 10%) of
 		// the time.
 		for addr, count := range counts {
