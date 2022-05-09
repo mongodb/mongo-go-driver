@@ -578,7 +578,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 		return fmt.Errorf("error transforming document: %v", err)
 	}
 
-	// Creates the state collections ESCCollection, ECCCollection, and ECOCCollection.
+	// Create the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
 	// Create ESCCollection.
 	escCollection := "enxcol_." + name + ".esc"
 	val, err := efBSON.LookupErr("escCollection")

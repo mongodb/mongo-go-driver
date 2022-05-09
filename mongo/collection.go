@@ -1699,7 +1699,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	if err := coll.drop(ctx); err != nil {
 		return err
 	}
-	// Drop the state collections ESCCollection, ECCCollection, and ECOCCollection.
+	// Drop the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
 	// Drop ESCCollection.
 	escCollection := "enxcol_." + coll.name + ".esc"
 	val, err := efBSON.LookupErr("escCollection")
