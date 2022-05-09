@@ -1696,8 +1696,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	}
 
 	// Drop the data collection.
-	err = coll.drop(ctx)
-	if err != nil {
+	if err := coll.drop(ctx); err != nil {
 		return err
 	}
 	// Drop the state collections ESCCollection, ECCCollection, and ECOCCollection.
@@ -1713,8 +1712,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	err = coll.db.Collection(escCollection).drop(ctx)
-	if err != nil {
+	if err := coll.db.Collection(escCollection).drop(ctx); err != nil {
 		return err
 	}
 
@@ -1729,8 +1727,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	err = coll.db.Collection(eccCollection).drop(ctx)
-	if err != nil {
+	if err := coll.db.Collection(eccCollection).drop(ctx); err != nil {
 		return err
 	}
 
@@ -1745,8 +1742,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	err = coll.db.Collection(ecocCollection).drop(ctx)
-	if err != nil {
+	if err := coll.db.Collection(ecocCollection).drop(ctx); err != nil {
 		return err
 	}
 	return nil

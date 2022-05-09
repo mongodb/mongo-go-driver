@@ -591,8 +591,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	err = db.createCollection(ctx, escCollection)
-	if err != nil {
+	if err := db.createCollection(ctx, escCollection); err != nil {
 		return err
 	}
 
@@ -607,8 +606,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	err = db.createCollection(ctx, eccCollection)
-	if err != nil {
+	if err := db.createCollection(ctx, eccCollection); err != nil {
 		return err
 	}
 
@@ -623,8 +621,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	} else if err != bsoncore.ErrElementNotFound {
 		return err
 	}
-	err = db.createCollection(ctx, ecocCollection)
-	if err != nil {
+	if err := db.createCollection(ctx, ecocCollection); err != nil {
 		return err
 	}
 
@@ -635,14 +632,12 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	op.EncryptedFields(efBSON)
-	err = db.executeCreateOperation(ctx, op)
-	if err != nil {
+	if err := db.executeCreateOperation(ctx, op); err != nil {
 		return err
 	}
 
 	// Creates an index on the __safeContent__ field in the collection @collectionName.
-	_, err = db.Collection(name).Indexes().CreateOne(ctx, IndexModel{Keys: bson.D{{"__safeContent__", 1}}})
-	if err != nil {
+	if _, err := db.Collection(name).Indexes().CreateOne(ctx, IndexModel{Keys: bson.D{{"__safeContent__", 1}}}); err != nil {
 		return fmt.Errorf("error in Indexes().CreateOne: %v", err)
 	}
 
