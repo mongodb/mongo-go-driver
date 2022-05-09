@@ -181,6 +181,11 @@ func (c *ClientOptions) validateAndSetError() {
 		}
 	}
 
+	if c.MaxPoolSize != nil && c.MinPoolSize != nil && *c.MaxPoolSize != 0 && *c.MinPoolSize > *c.MaxPoolSize {
+		c.err = fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d", *c.MinPoolSize, *c.MaxPoolSize)
+		return
+	}
+
 	// verify server API version if ServerAPIOptions are passed in.
 	if c.ServerAPIOptions != nil {
 		c.err = c.ServerAPIOptions.ServerAPIVersion.Validate()

@@ -32,7 +32,10 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
-const defaultLocalThreshold = 15 * time.Millisecond
+const (
+	defaultLocalThreshold        = 15 * time.Millisecond
+	defaultMaxPoolSize    uint64 = 100
+)
 
 var (
 	// keyVaultCollOpts specifies options used to communicate with the key vault collection
@@ -348,6 +351,12 @@ func (c *Client) endSessions(ctx context.Context) {
 }
 
 func (c *Client) configure(opts *options.ClientOptions) error {
+	var defaultOptions int
+	// Set default options
+	if opts.MaxPoolSize == nil {
+		defaultOptions++
+		opts.SetMaxPoolSize(defaultMaxPoolSize)
+	}
 	if err := opts.Validate(); err != nil {
 		return err
 	}
@@ -688,8 +697,8 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	// Deployment
 	if opts.Deployment != nil {
 		// topology options: WithSeedlist, WithURI, WithSRVServiceName and WithSRVMaxHosts
-		// server options: WithClock and WithConnectionOptions
-		if len(serverOpts) > 2 || len(topologyOpts) > 4 {
+		// server options: WithClock and WithConnectionOptions + default maxPoolSize
+		if len(serverOpts) > 2+defaultOptions || len(topologyOpts) > 4 {
 			return errors.New("cannot specify topology or server options with a deployment")
 		}
 		c.deployment = opts.Deployment
