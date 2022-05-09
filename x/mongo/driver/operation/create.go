@@ -363,11 +363,11 @@ func (c *Create) TimeSeries(timeSeries bsoncore.Document) *Create {
 }
 
 // EncryptedFields sets the EncryptedFields for this operation.
-func (c *Create) EncryptedFields(efc bsoncore.Document) *Create {
+func (c *Create) EncryptedFields(ef bsoncore.Document) *Create {
 	if c == nil {
 		c = new(Create)
 	}
 
-	c.encryptedFields = efc
+	c.encryptedFields = ef
 	return c
 }

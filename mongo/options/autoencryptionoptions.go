@@ -115,8 +115,8 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 }
 
 // SetEncryptedFieldsMap specifies a map from namespace to local EncryptedFieldsMap document.
-func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(efc map[string]interface{}) *AutoEncryptionOptions {
-	a.EncryptedFieldsMap = efc
+func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{}) *AutoEncryptionOptions {
+	a.EncryptedFieldsMap = ef
 	return a
 }
 

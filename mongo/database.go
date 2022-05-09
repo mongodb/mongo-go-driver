@@ -508,12 +508,12 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 // For more information about the command, see https://docs.mongodb.com/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
-	efc := cco.EncryptedFields
-	if efc == nil {
-		efc = db.getEncryptedFieldsFromMap(name)
+	ef := cco.EncryptedFields
+	if ef == nil {
+		ef = db.getEncryptedFieldsFromMap(name)
 	}
-	if efc != nil {
-		return db.createCollectionWithEncryptedFields(ctx, name, efc, opts...)
+	if ef != nil {
+		return db.createCollectionWithEncryptedFields(ctx, name, ef, opts...)
 	}
 
 	return db.createCollection(ctx, name, opts...)
@@ -553,24 +553,24 @@ func (db *Database) getEncryptedFieldsFromServer(ctx context.Context, collection
 // Returns nil and no error if an EncryptedFieldsMap is not configured, or does not contain an entry for collectionName.
 func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{} {
 	// Check the EncryptedFieldsMap
-	efcMap := db.client.encryptedFieldsMap
-	if efcMap == nil {
+	efMap := db.client.encryptedFieldsMap
+	if efMap == nil {
 		return nil
 	}
 
 	namespace := db.name + "." + collectionName
 
-	efc, ok := efcMap[namespace]
+	ef, ok := efMap[namespace]
 	if ok {
-		return efc
+		return ef
 	}
 	return nil
 }
 
 // createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
-func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, efc interface{}, opts ...*options.CreateCollectionOptions) error {
-	var efcBSON bsoncore.Document
-	efcBSON, err := transformBsoncoreDocument(db.registry, efc, true /* mapAllowed */, "encryptedFields")
+func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, ef interface{}, opts ...*options.CreateCollectionOptions) error {
+	var efBSON bsoncore.Document
+	efBSON, err := transformBsoncoreDocument(db.registry, ef, true /* mapAllowed */, "encryptedFields")
 	if err != nil {
 		return fmt.Errorf("error in MarshalWithRegistry: %v", err)
 	}
@@ -578,7 +578,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	// Creates the state collections ESCCollection, ECCCollection, and ECOCCollection.
 	// Create ESCCollection.
 	escCollection := "enxcol_." + name + ".esc"
-	val, err := efcBSON.LookupErr("escCollection")
+	val, err := efBSON.LookupErr("escCollection")
 	var ok bool
 	if err == nil {
 		escCollection, ok = val.StringValueOK()
@@ -595,7 +595,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 
 	// Create ECCCollection.
 	eccCollection := "enxcol_." + name + ".ecc"
-	val, err = efcBSON.LookupErr("eccCollection")
+	val, err = efBSON.LookupErr("eccCollection")
 	if err == nil {
 		eccCollection, ok = val.StringValueOK()
 		if !ok {
@@ -611,7 +611,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 
 	// Create ECOCCollection.
 	ecocCollection := "enxcol_." + name + ".ecoc"
-	val, err = efcBSON.LookupErr("ecocCollection")
+	val, err = efBSON.LookupErr("ecocCollection")
 	if err == nil {
 		ecocCollection, ok = val.StringValueOK()
 		if !ok {
@@ -631,7 +631,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 		return err
 	}
 
-	op.EncryptedFields(efcBSON)
+	op.EncryptedFields(efBSON)
 	err = db.executeCreateOperation(ctx, op)
 	if err != nil {
 		return err
