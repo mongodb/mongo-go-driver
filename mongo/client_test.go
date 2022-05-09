@@ -179,6 +179,94 @@ func TestClient(t *testing.T) {
 		client := setupClient(options.Client().SetReadConcern(rc))
 		assert.Equal(t, rc, client.readConcern, "expected read concern %v, got %v", rc, client.readConcern)
 	})
+	t.Run("min pool size from Set*PoolSize()", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			opts *options.ClientOptions
+			err  error
+		}{
+			{
+				name: "minPoolSize < default maxPoolSize",
+				opts: options.Client().SetMinPoolSize(64),
+				err:  nil,
+			},
+			{
+				name: "minPoolSize > default maxPoolSize",
+				opts: options.Client().SetMinPoolSize(128),
+				err:  errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=128 maxPoolSize=100"),
+			},
+			{
+				name: "minPoolSize < maxPoolSize",
+				opts: options.Client().SetMinPoolSize(128).SetMaxPoolSize(256),
+				err:  nil,
+			},
+			{
+				name: "minPoolSize == maxPoolSize",
+				opts: options.Client().SetMinPoolSize(128).SetMaxPoolSize(128),
+				err:  nil,
+			},
+			{
+				name: "minPoolSize > maxPoolSize",
+				opts: options.Client().SetMinPoolSize(64).SetMaxPoolSize(32),
+				err:  errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=64 maxPoolSize=32"),
+			},
+			{
+				name: "maxPoolSize == 0",
+				opts: options.Client().SetMinPoolSize(128).SetMaxPoolSize(0),
+				err:  nil,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := NewClient(tc.opts)
+				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
+			})
+		}
+	})
+	t.Run("min pool size from ApplyURI()", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			opts *options.ClientOptions
+			err  error
+		}{
+			{
+				name: "minPoolSize < default maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=64"),
+				err:  nil,
+			},
+			{
+				name: "minPoolSize > default maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128"),
+				err:  errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=128 maxPoolSize=100"),
+			},
+			{
+				name: "minPoolSize < maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=256"),
+				err:  nil,
+			},
+			{
+				name: "minPoolSize == maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=128"),
+				err:  nil,
+			},
+			{
+				name: "minPoolSize > maxPoolSize",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=64&maxPoolSize=32"),
+				err:  errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=64 maxPoolSize=32"),
+			},
+			{
+				name: "maxPoolSize == 0",
+				opts: options.Client().ApplyURI("mongodb://localhost:27017/?minPoolSize=128&maxPoolSize=0"),
+				err:  nil,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := NewClient(tc.opts)
+				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
+			})
+		}
+	})
 	t.Run("retry writes", func(t *testing.T) {
 		retryWritesURI := "mongodb://localhost:27017/?retryWrites=false"
 		retryWritesErrorURI := "mongodb://localhost:27017/?retryWrites=foobar"
