@@ -1688,12 +1688,11 @@ func (coll *Collection) Drop(ctx context.Context) error {
 	return coll.drop(ctx)
 }
 
-// dropEncryptedCollection drops collection with EncryptedFields.
+// dropEncryptedCollection drops a collection with EncryptedFields.
 func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interface{}) error {
-	var efBSON bsoncore.Document
 	efBSON, err := transformBsoncoreDocument(coll.registry, ef, true /* mapAllowed */, "encryptedFields")
 	if err != nil {
-		return fmt.Errorf("error in MarshalWithRegistry: %v", err)
+		return fmt.Errorf("error transforming document: %v", err)
 	}
 
 	// Drop the data collection.

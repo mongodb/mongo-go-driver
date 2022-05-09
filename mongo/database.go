@@ -575,7 +575,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	var efBSON bsoncore.Document
 	efBSON, err := transformBsoncoreDocument(db.registry, ef, true /* mapAllowed */, "encryptedFields")
 	if err != nil {
-		return fmt.Errorf("error in MarshalWithRegistry: %v", err)
+		return fmt.Errorf("error transforming document: %v", err)
 	}
 
 	// Creates the state collections ESCCollection, ECCCollection, and ECOCCollection.
