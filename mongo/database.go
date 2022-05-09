@@ -509,9 +509,12 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
 	ef := cco.EncryptedFields
+	// Follow Client-Side Encryption specification to check for encryptedFields.
+	// Check for encryptedFields from create options.
 	if ef == nil {
 		ef = db.getEncryptedFieldsFromMap(name)
 	}
+	// Check for encryptedFields from the client EncryptedFieldsMap.
 	if ef != nil {
 		return db.createCollectionWithEncryptedFields(ctx, name, ef, opts...)
 	}
