@@ -24,12 +24,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func TestBulk(t *testing.T) {
-	for i := 0; i < 10; i++ {
-		TestServerSelectionProse(t)
-	}
-}
-
 // ? do we want to extend saturation set as an mtest.T method?
 
 // saturationSet is used to maintain information about events with specific host+pool combinations.
