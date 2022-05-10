@@ -475,7 +475,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, conn)
+		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, srvr, conn)
 		if err != nil {
 			return err
 		}
@@ -891,7 +891,7 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 }
 
 func (op Operation) createWireMessage(ctx context.Context, dst []byte,
-	desc description.SelectedServer, conn Connection) ([]byte, startedInformation, error) {
+	desc description.SelectedServer, srvr Server, conn Connection) ([]byte, startedInformation, error) {
 	// Calculate value of 'maxTimeMS' field to append to the wire message based on the current
 	// context's deadline and the 90th percentile RTT if op.Timeout is set.
 	var maxTimeMS *int64
@@ -899,7 +899,7 @@ func (op Operation) createWireMessage(ctx context.Context, dst []byte,
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
 			maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
-				int64(desc.RTT90/time.Millisecond)
+				int64(srvr.RTT90()/time.Millisecond)
 			maxTimeMS = &maxTimeMSVal
 		}
 	}
