@@ -28,7 +28,7 @@ import (
 // saturationSet is used to maintain information about events with specific host+pool combinations.
 type saturationSet map[string]bool
 
-func (set saturationSet) load(host string, connectionID uint64) bool {
+func (set saturationSet) has(host string, connectionID uint64) bool {
 	return set[host+strconv.FormatInt(int64(connectionID), 10)]
 }
 
@@ -51,7 +51,7 @@ func awaitSaturation(mt *mtest.T, monitor *monitor.TestPoolMonitor, maxPoolSize 
 			mt.Fatal(err)
 		}
 		monitor.Events(func(evt *event.PoolEvent) bool {
-			if !set.load(evt.Address, evt.ConnectionID) {
+			if !set.has(evt.Address, evt.ConnectionID) {
 				set.add(evt.Address, evt.ConnectionID)
 			}
 			return true
