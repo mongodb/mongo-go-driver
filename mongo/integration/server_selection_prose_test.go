@@ -21,7 +21,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/sync/errgroup"
 )
+
+func TestBulk(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		TestServerSelectionProse(t)
+	}
+}
 
 // ? do we want to extend saturation set as an mtest.T method?
 
@@ -44,18 +51,30 @@ func (set saturationSet) isUnsaturated(mt *mtest.T, maxPoolSize uint64) bool {
 // awaitSaturation uses CMAP events to ensure that the client's connection pools for N-mongoses have been saturated.
 // The qualification for a host to be "saturated" is for that host to have the maximum number of connections allowed by
 // the test, in this case `maxPoolSize`.
-func awaitSaturation(mt *mtest.T, monitor *monitor.TestPoolMonitor, maxPoolSize uint64) {
-	set := make(saturationSet)
-	for set.isUnsaturated(mt, maxPoolSize) {
-		if err := mt.Coll.FindOne(context.TODO(), bson.D{}).Err(); err != nil {
-			mt.Fatal(err)
-		}
-		monitor.Events(func(evt *event.PoolEvent) bool {
-			if !set.has(evt.Address, evt.ConnectionID) {
-				set.add(evt.Address, evt.ConnectionID)
+func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor, maxPoolSize uint64) {
+	errs, ctx := errgroup.WithContext(ctx)
+	done := make(chan struct{}, 1)
+	errs.Go(func() error {
+		set := make(saturationSet)
+		for set.isUnsaturated(mt, maxPoolSize) {
+			if err := mt.Coll.FindOne(ctx, bson.D{}).Err(); err != nil {
+				return err
 			}
-			return true
-		})
+			monitor.Events(func(evt *event.PoolEvent) bool {
+				if !set.has(evt.Address, evt.ConnectionID) {
+					set.add(evt.Address, evt.ConnectionID)
+				}
+				return true
+			})
+		}
+		done <- struct{}{}
+		return nil
+	})
+	select {
+	case <-ctx.Done():
+		mt.Fatal(ctx.Err())
+	case <-done:
+		return
 	}
 }
 
@@ -77,14 +96,11 @@ func runsServerSelection(mt *mtest.T, monitor *monitor.TestPoolMonitor,
 
 	// Get all checkOut events and calculate the number of times each server was selected. The prose test spec says to
 	// use command monitoring events, but those don't include the server address, so use checkOut events instead.
-	checkOutStartedEvents := monitor.Events(func(evt *event.PoolEvent) bool {
+	checkOutEvents := monitor.Events(func(evt *event.PoolEvent) bool {
 		return evt.Type == event.GetStarted
 	})
-	checkOutEvents := monitor.Events(func(evt *event.PoolEvent) bool {
-		return evt.Type == event.GetSucceeded
-	})
 	counts := make(map[string]int)
-	for _, evt := range checkOutStartedEvents {
+	for _, evt := range checkOutEvents {
 		counts[evt.Address]++
 	}
 	assert.Equal(mt, 2, len(counts), "expected exactly 2 server addresses")
@@ -94,8 +110,8 @@ func runsServerSelection(mt *mtest.T, monitor *monitor.TestPoolMonitor,
 // TestServerSelectionProse implements the Server Selection prose tests:
 // https://github.com/mongodb/specifications/blob/master/source/server-selection/server-selection-tests.rst
 func TestServerSelectionProse(t *testing.T) {
-	var maxPoolSize uint64 = 10
-	localThreshold := 30 * time.Second
+	const maxPoolSize = 10
+	const localThreshold = 30 * time.Second
 
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 	defer mt.Close()
@@ -155,7 +171,10 @@ func TestServerSelectionProse(t *testing.T) {
 				break
 			}
 		}
-		awaitSaturation(mt, tpm, maxPoolSize)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		awaitSaturation(ctx, mt, tpm, maxPoolSize)
 
 		counts, checkOutEvents := runsServerSelection(mt, tpm, 10, 10)
 		// Calculate the frequency that the server with the failpoint was selected. Assert that it was selected less
@@ -197,7 +216,10 @@ func TestServerSelectionProse(t *testing.T) {
 				break
 			}
 		}
-		awaitSaturation(mt, tpm, maxPoolSize)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		awaitSaturation(ctx, mt, tpm, maxPoolSize)
 
 		counts, checkOutEvents := runsServerSelection(mt, tpm, 10, 100)
 		// Calculate the frequency that each server was selected. Assert that each server was selected 50% (+/- 10%) of
