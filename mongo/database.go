@@ -594,7 +594,6 @@ func getEncryptedStateCollectionName(efBSON *bsoncore.Document, dataCollectionNa
 
 // createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
 func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, ef interface{}, opts ...*options.CreateCollectionOptions) error {
-	var efBSON bsoncore.Document
 	efBSON, err := transformBsoncoreDocument(db.registry, ef, true /* mapAllowed */, "encryptedFields")
 	if err != nil {
 		return fmt.Errorf("error transforming document: %v", err)
