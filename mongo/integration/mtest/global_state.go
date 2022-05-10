@@ -36,6 +36,11 @@ func ClusterURI() string {
 	return testContext.connString.Original
 }
 
+// Serverless returns whether the test is running against a serverless instance.
+func Serverless() bool {
+	return testContext.serverless
+}
+
 // SingleMongosLoadBalancerURI returns the URI for a load balancer fronting a single mongos. This will only be set
 // if the cluster is load balanced.
 func SingleMongosLoadBalancerURI() string {

@@ -530,12 +530,10 @@ functions:
           export GOFLAGS=-mod=vendor
           AUTH="auth" \
           SSL="ssl" \
-          MONGODB_URI="${SINGLE_ATLASPROXY_SERVERLESS_URI}" \
+          MONGODB_URI="${SERVERLESS_URI}" \
           SERVERLESS="serverless" \
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
           SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
-          SINGLE_MONGOS_LB_URI="${SINGLE_ATLASPROXY_SERVERLESS_URI}" \
-          MULTI_MONGOS_LB_URI="${MULTI_ATLASPROXY_SERVERLESS_URI}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           make evg-test-serverless
 

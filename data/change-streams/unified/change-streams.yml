@@ -1,7 +1,12 @@
 description: "change-streams"
-schemaVersion: "1.0"
+
+schemaVersion: "1.4"
+
 runOnRequirements:
-  - topologies: [ replicaset, sharded-replicaset ]
+  - minServerVersion: "3.6"
+    topologies: [ replicaset, sharded-replicaset ]
+    serverless: forbid
+
 createEntities:
   - client:
       id: &client0 client0
