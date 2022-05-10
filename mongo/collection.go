@@ -1672,8 +1672,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 	ef := coll.db.getEncryptedFieldsFromMap(coll.name)
 	if ef == nil && coll.db.client.encryptedFieldsMap != nil {
 		var err error
-		ef, err = coll.db.getEncryptedFieldsFromServer(ctx, coll.name)
-		if err != nil {
+		if ef, err = coll.db.getEncryptedFieldsFromServer(ctx, coll.name); err != nil {
 			return err
 		}
 	}
