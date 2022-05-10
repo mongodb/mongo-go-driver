@@ -606,7 +606,9 @@ func executeFindOne(ctx context.Context, operation *operation) (*operationResult
 	}
 
 	res, err := coll.FindOne(ctx, filter, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes.
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
+	// returned in a find operation has no associated documents, DecodeBytes will
+	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
 	}
@@ -662,7 +664,9 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 	}
 
 	res, err := coll.FindOneAndDelete(ctx, filter, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes.
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
+	// returned in a find operation has no associated documents, DecodeBytes will
+	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
 	}
@@ -737,7 +741,9 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 	}
 
 	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes.
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
+	// returned in a find operation has no associated documents, DecodeBytes will
+	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
 	}
@@ -819,7 +825,9 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 	}
 
 	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes.
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
+	// returned in a find operation has no associated documents, DecodeBytes will
+	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
 	}
