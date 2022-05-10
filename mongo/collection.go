@@ -1665,14 +1665,11 @@ func (coll *Collection) Indexes() IndexView {
 // Drop drops the collection on the server. This method ignores "namespace not found" errors so it is safe to drop
 // a collection that does not exist on the server.
 func (coll *Collection) Drop(ctx context.Context) error {
-	var ef interface{}
 	// Follow Client-Side Encryption specification to check for encryptedFields.
 	// Drop does not have an encryptedFields option. See: GODRIVER-2413.
 	// Check for encryptedFields from the client EncryptedFieldsMap.
-	if ef == nil {
-		ef = coll.db.getEncryptedFieldsFromMap(coll.name)
-	}
 	// Check for encryptedFields from the server if EncryptedFieldsMap is set.
+	ef := coll.db.getEncryptedFieldsFromMap(coll.name)
 	if ef == nil && coll.db.client.encryptedFieldsMap != nil {
 		var err error
 		ef, err = coll.db.getEncryptedFieldsFromServer(ctx, coll.name)
