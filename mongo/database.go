@@ -573,7 +573,7 @@ func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{}
 // getEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
 func getEncryptedStateCollectionName(efBSON *bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (*string, error) {
 	if stateCollectionSuffix != "esc" && stateCollectionSuffix != "ecc" && stateCollectionSuffix != "ecoc" {
-		return nil, fmt.Errorf("Expected stateCollectionSuffix: esc, ecc, or ecoc. Got %v", stateCollectionSuffix)
+		return nil, fmt.Errorf("expected stateCollectionSuffix: esc, ecc, or ecoc. got %v", stateCollectionSuffix)
 	}
 	fieldName := stateCollectionSuffix + "Collection"
 	if val, err := efBSON.LookupErr(fieldName); err != nil {
