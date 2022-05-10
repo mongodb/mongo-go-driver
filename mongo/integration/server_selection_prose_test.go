@@ -74,7 +74,6 @@ func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPool
 	case <-ctx.Done():
 		mt.Fatal(ctx.Err())
 	case <-done:
-		return
 	}
 }
 
