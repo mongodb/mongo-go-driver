@@ -72,7 +72,7 @@ func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPool
 	})
 	select {
 	case <-ctx.Done():
-		mt.Fatal(ctx.Err())
+		mt.Fatalf("Await saturation timed out: %v", ctx.Err())
 	case <-done:
 	}
 }
