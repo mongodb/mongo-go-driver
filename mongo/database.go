@@ -640,7 +640,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 
 	// Create an index on the __safeContent__ field in the collection @collectionName.
 	if _, err := db.Collection(name).Indexes().CreateOne(ctx, IndexModel{Keys: bson.D{{"__safeContent__", 1}}}); err != nil {
-		return fmt.Errorf("error in Indexes().CreateOne: %v", err)
+		return fmt.Errorf("error creating safeContent index: %v", err)
 	}
 
 	return nil
