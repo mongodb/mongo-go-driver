@@ -73,12 +73,19 @@ functions:
           fi
 
           # Set actual PATH. PATH should contain binaries from GOROOT, GOPATH, GCC_PATH and mongodb.
-          # Adding GOROOT's bin to PATH on Windows requires a cygpath conversion.
           export GOROOTBIN="$GOROOT/bin"
+          export GOPATHBIN="$GOPATH/bin"
           if [ "Windows_NT" = "$OS" ]; then
-             export GOROOTBIN=$(cygpath -m $GOROOTBIN)
+             # Convert all Windows-style paths (e.g. C:/) to Bash-style Cygwin paths
+             # (e.g. /cygdrive/c/...) because PATH is interpreted by Bash, which uses ":" as a
+             # separator so doesn't support Windows-style paths. Other scripts or binaries that
+             # aren't part of Cygwin still need the environment variables to use Windows-style
+             # paths, so only convert them when setting PATH. Note that GCC_PATH is already a
+             # Bash-style Cygwin path for all Windows tasks.
+             export PATH="$(cygpath $GOROOTBIN):$(cygpath $GOPATHBIN):${GCC_PATH}:$(cygpath $MONGODB_BINARIES):$PATH"
+          else
+             export PATH="$GOROOTBIN:$GOPATHBIN:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
           fi
-          export PATH="$GOROOTBIN:$GOPATH/bin:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
 
           # Check Go installation.
           go version
