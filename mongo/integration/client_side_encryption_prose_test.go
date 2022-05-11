@@ -858,11 +858,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			mongocryptdOpts         map[string]interface{}
 			setBypassAutoEncryption bool
 			bypassAutoEncryption    bool
+			bypassQueryAnalysis     bool
 		}{
-			{"mongocryptdBypassSpawn only", mongocryptdBypassSpawnTrue, false, false},
-			{"bypassAutoEncryption only", mongocryptdBypassSpawnNotSet, true, true},
-			{"mongocryptdBypassSpawn false, bypassAutoEncryption true", mongocryptdBypassSpawnFalse, true, true},
-			{"mongocryptdBypassSpawn true, bypassAutoEncryption false", mongocryptdBypassSpawnTrue, true, false},
+			{"mongocryptdBypassSpawn only", mongocryptdBypassSpawnTrue, false, false, false},
+			{"bypassAutoEncryption only", mongocryptdBypassSpawnNotSet, true, true, false},
+			{"mongocryptdBypassSpawn false, bypassAutoEncryption true", mongocryptdBypassSpawnFalse, true, true, false},
+			{"mongocryptdBypassSpawn true, bypassAutoEncryption false", mongocryptdBypassSpawnTrue, true, false, false},
+			{"bypassQueryAnalysis only", mongocryptdBypassSpawnNotSet, false, false, true},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -874,13 +876,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				if tc.setBypassAutoEncryption {
 					aeo.SetBypassAutoEncryption(tc.bypassAutoEncryption)
 				}
+				aeo.SetBypassQueryAnalysis(tc.bypassQueryAnalysis)
 				cpt := setup(mt, aeo, nil, nil)
 				defer cpt.teardown(mt)
 
 				_, err := cpt.cseColl.InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
 
 				// Check for mongocryptd server selection error if auto encryption was not bypassed.
-				if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) {
+				if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) && !tc.bypassQueryAnalysis {
 					assert.NotNil(mt, err, "expected InsertOne error, got nil")
 					mcryptErr, ok := err.(mongo.MongocryptdError)
 					assert.True(mt, ok, "expected error type %T, got %v of type %T", mongo.MongocryptdError{}, err, err)
