@@ -136,6 +136,11 @@ type CreateCollectionOptions struct {
 	//
 	// This option is only valid for MongoDB versions >= 6.0
 	EncryptedFields interface{}
+
+	// ClusteredIndex is used to create a collection with a clustered index.
+	//
+	// This option is only valid for MongoDB versions >= 5.3
+	ClusteredIndex interface{}
 }
 
 // CreateCollection creates a new CreateCollectionOptions instance.
@@ -221,6 +226,12 @@ func (c *CreateCollectionOptions) SetEncryptedFields(encryptedFields interface{}
 	return c
 }
 
+// SetClusteredIndex sets the value for the ClusteredIndex field.
+func (c *CreateCollectionOptions) SetClusteredIndex(clusteredIndex interface{}) *CreateCollectionOptions {
+	c.ClusteredIndex = clusteredIndex
+	return c
+}
+
 // MergeCreateCollectionOptions combines the given CreateCollectionOptions instances into a single
 // CreateCollectionOptions in a last-one-wins fashion.
 func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateCollectionOptions {
@@ -269,6 +280,9 @@ func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateColle
 		}
 		if opt.EncryptedFields != nil {
 			cc.EncryptedFields = opt.EncryptedFields
+		}
+		if opt.ClusteredIndex != nil {
+			cc.ClusteredIndex = opt.ClusteredIndex
 		}
 	}
 
