@@ -8,7 +8,6 @@ package integration
 
 import (
 	"context"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -24,38 +23,47 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// ? do we want to extend saturation set as an mtest.T method?
+type hostconn struct {
+	host         string
+	connectionID uint64
+}
+
+func newhostconn(host string, connectionID uint64) hostconn {
+	return hostconn{host, connectionID}
+}
 
 // saturationSet is used to maintain information about events with specific host+pool combinations.
-type saturationSet map[string]bool
+type saturationSet map[hostconn]bool
 
 func (set saturationSet) has(host string, connectionID uint64) bool {
-	return set[host+strconv.FormatInt(int64(connectionID), 10)]
+	return set[newhostconn(host, connectionID)]
 }
 
 func (set saturationSet) add(host string, connectionID uint64) {
-	set[host+strconv.FormatInt(int64(connectionID), 10)] = true
+	set[newhostconn(host, connectionID)] = true
 }
 
-func (set saturationSet) isUnsaturated(mt *mtest.T, maxPoolSize uint64) bool {
+func (set saturationSet) isUnsaturated(mt *mtest.T, expectedConnectionCount uint64) bool {
 	hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
-	return uint64(len(set)) < maxPoolSize*uint64(len(hosts))
+	return uint64(len(set)) < expectedConnectionCount*uint64(len(hosts))
 }
 
 // awaitSaturation uses CMAP events to ensure that the client's connection pools for N-mongoses have been saturated.
-// The qualification for a host to be "saturated" is for that host to have the maximum number of connections allowed by
-// the test, in this case `maxPoolSize`.
-func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor, maxPoolSize uint64) {
+// The qualification for a host to be "saturated" is for that host to have the maximum number of connections expected by
+// the test, in this case `expectedConnectionCount`.
+func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor,
+	expectedConnectionCount uint64) {
 	errs, ctx := errgroup.WithContext(ctx)
 	done := make(chan struct{}, 1)
 	errs.Go(func() error {
 		set := make(saturationSet)
-		for set.isUnsaturated(mt, maxPoolSize) {
+		for set.isUnsaturated(mt, expectedConnectionCount) {
 			if err := mt.Coll.FindOne(ctx, bson.D{}).Err(); err != nil {
 				return err
 			}
 			monitor.Events(func(evt *event.PoolEvent) bool {
-				if !set.has(evt.Address, evt.ConnectionID) {
+				// Add host only when the connection is ready for use.
+				if evt.Type == event.ConnectionReady && !set.has(evt.Address, evt.ConnectionID) {
 					set.add(evt.Address, evt.ConnectionID)
 				}
 				return true
@@ -117,8 +125,8 @@ func TestServerSelectionProse(t *testing.T) {
 		hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
 		require.GreaterOrEqualf(mt, len(hosts), 2, "test cluster must have at least 2 mongos hosts")
 
-		// Set a failpoint on a specific mongos host that delays all "find" commands for 500ms. We need to know which
-		// mongos we set the failpoint on for our assertions later.
+		// Set a failpoint on a specific mongos host that delays all "find" commands for 500ms. We
+		// need to know which mongos we set the failpoint on for our assertions later.
 		failpointHost := hosts[0]
 		mt.ResetClient(options.Client().
 			SetHosts([]string{failpointHost}))
@@ -134,16 +142,16 @@ func TestServerSelectionProse(t *testing.T) {
 				AppName:         "loadBalancingTest",
 			},
 		})
-		// The automatic failpoint clearing may not clear failpoints set on specific hosts, so manually clear the
-		// failpoint we set on the specific mongos when the test is done.
+		// The automatic failpoint clearing may not clear failpoints set on specific hosts, so
+		// manually clear the failpoint we set on the specific mongos when the test is done.
 		defer func() {
 			mt.ResetClient(options.Client().
 				SetHosts([]string{failpointHost}))
 			mt.ClearFailPoints()
 		}()
 
-		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos host descriptions
-		// to move from kind "Unknown" to kind "Mongos".
+		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos
+		// host descriptions to move from kind "Unknown" to kind "Mongos".
 		topologyEvents := make(chan *event.TopologyDescriptionChangedEvent, 10)
 		tpm := monitor.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
@@ -170,8 +178,8 @@ func TestServerSelectionProse(t *testing.T) {
 		awaitSaturation(ctx, mt, tpm, maxPoolSize)
 
 		counts, checkOutEvents := runsServerSelection(mt, tpm, 10, 10)
-		// Calculate the frequency that the server with the failpoint was selected. Assert that it was selected less
-		// than 25% of the time.
+		// Calculate the frequency that the server with the failpoint was selected. Assert that it
+		// was selected less than 25% of the time.
 		frequency := float64(counts[failpointHost]) / float64(len(checkOutEvents))
 		assert.Lessf(mt,
 			frequency,
@@ -188,8 +196,8 @@ func TestServerSelectionProse(t *testing.T) {
 		hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
 		require.GreaterOrEqualf(mt, len(hosts), 2, "test cluster must have at least 2 mongos hosts")
 
-		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos host descriptions
-		// to move from kind "Unknown" to kind "Mongos".
+		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos
+		// host descriptions to move from kind "Unknown" to kind "Mongos".
 		topologyEvents := make(chan *event.TopologyDescriptionChangedEvent, 10)
 		tpm := monitor.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
@@ -215,8 +223,8 @@ func TestServerSelectionProse(t *testing.T) {
 		awaitSaturation(ctx, mt, tpm, maxPoolSize)
 
 		counts, checkOutEvents := runsServerSelection(mt, tpm, 10, 100)
-		// Calculate the frequency that each server was selected. Assert that each server was selected 50% (+/- 10%) of
-		// the time.
+		// Calculate the frequency that each server was selected. Assert that each server was
+		// selected 50% (+/- 10%) of the time.
 		for addr, count := range counts {
 			frequency := float64(count) / float64(len(checkOutEvents))
 			assert.InDeltaf(mt,
