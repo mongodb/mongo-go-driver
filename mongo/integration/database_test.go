@@ -432,9 +432,10 @@ func TestDatabase(t *testing.T) {
 			// Tests for various options combinations. The test creates a collection with some options and then verifies
 			// the result using the options document reported by listCollections.
 
-			// All possible options except collation. The collation is omitted here and tested below because the
-			// collation document reported by listCollections fills in extra fields and includes a "version" field
-			// that's not described in https://www.mongodb.com/docs/manual/reference/collation/.
+			// All possible options except collation and changeStreamPreAndPostImages. The collation is omitted here and tested below because the
+			// collation document reported by listCollections fills in extra fields and includes a "version" field that's not described in
+			// https://www.mongodb.com/docs/manual/reference/collation/. changeStreamPreAndPostImages is omitted here and tested in another testcase
+			// because it is only an available option on 6.0+.
 			storageEngine := bson.M{
 				"wiredTiger": bson.M{
 					"configString": "block_compressor=zlib",
@@ -473,6 +474,13 @@ func TestDatabase(t *testing.T) {
 				"validationLevel":  "moderate",
 			}
 
+			csppiOpts := options.CreateCollection().SetChangeStreamPreAndPostImages(bson.M{"enabled": true})
+			csppiExpected := bson.M{
+				"changeStreamPreAndPostImages": bson.M{
+					"enabled": true,
+				},
+			}
+
 			testCases := []struct {
 				name             string
 				minServerVersion string
@@ -480,7 +488,8 @@ func TestDatabase(t *testing.T) {
 				createOpts       *options.CreateCollectionOptions
 				expectedOpts     bson.M
 			}{
-				{"all options except collation", "3.2", "", nonCollationOpts, nonCollationExpected},
+				{"all options except collation and csppi", "3.2", "", nonCollationOpts, nonCollationExpected},
+				{"changeStreamPreAndPostImages", "6.0", "", csppiOpts, csppiExpected},
 			}
 
 			for _, tc := range testCases {

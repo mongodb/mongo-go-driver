@@ -516,6 +516,13 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 	if cco.Collation != nil {
 		op.Collation(bsoncore.Document(cco.Collation.ToDocument()))
 	}
+	if cco.ChangeStreamPreAndPostImages != nil {
+		csppi, err := transformBsoncoreDocument(db.registry, cco.ChangeStreamPreAndPostImages, true, "changeStreamPreAndPostImages")
+		if err != nil {
+			return err
+		}
+		op.ChangeStreamPreAndPostImages(csppi)
+	}
 	if cco.DefaultIndexOptions != nil {
 		idx, doc := bsoncore.AppendDocumentStart(nil)
 		if cco.DefaultIndexOptions.StorageEngine != nil {
