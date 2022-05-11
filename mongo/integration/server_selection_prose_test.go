@@ -23,41 +23,45 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type hostconn struct {
-	host         string
-	connectionID uint64
+type saturatedConnections map[uint64]bool
+
+// saturatedHosts is used to maintain information about events with specific host+pool combinations.
+type saturatedHosts map[string]saturatedConnections
+
+func (set saturatedHosts) has(host string, connectionID uint64) bool {
+	var b bool
+	if h := set[host]; h != nil {
+		b = h[connectionID]
+	}
+	return b
 }
 
-func newhostconn(host string, connectionID uint64) hostconn {
-	return hostconn{host, connectionID}
+func (set saturatedHosts) add(host string, connectionID uint64) {
+	if set[host] == nil {
+		set[host] = make(saturatedConnections)
+	}
+	set[host][connectionID] = true
 }
 
-// saturationSet is used to maintain information about events with specific host+pool combinations.
-type saturationSet map[hostconn]bool
-
-func (set saturationSet) has(host string, connectionID uint64) bool {
-	return set[newhostconn(host, connectionID)]
-}
-
-func (set saturationSet) add(host string, connectionID uint64) {
-	set[newhostconn(host, connectionID)] = true
-}
-
-func (set saturationSet) isUnsaturated(mt *mtest.T, expectedConnectionCount uint64) bool {
-	hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
-	return uint64(len(set)) < expectedConnectionCount*uint64(len(hosts))
+// isSaturated returns true when each client on the cluster URI has a tolerable number of ready connections.
+func (set saturatedHosts) isSaturated(mt *mtest.T, tolerance uint64) bool {
+	for _, host := range options.Client().ApplyURI(mtest.ClusterURI()).Hosts {
+		if cxns := set[host]; cxns == nil || uint64(len(cxns)) < tolerance {
+			return false
+		}
+	}
+	return true
 }
 
 // awaitSaturation uses CMAP events to ensure that the client's connection pools for N-mongoses have been saturated.
-// The qualification for a host to be "saturated" is for that host to have the maximum number of connections expected by
-// the test, in this case `expectedConnectionCount`.
-func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor,
-	expectedConnectionCount uint64) {
+// The qualification for a host to be "saturated" is for each host on the client to have a tolerable number of ready
+// connections.
+func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor, tolerance uint64) {
 	errs, ctx := errgroup.WithContext(ctx)
 	done := make(chan struct{}, 1)
 	errs.Go(func() error {
-		set := make(saturationSet)
-		for set.isUnsaturated(mt, expectedConnectionCount) {
+		set := make(saturatedHosts)
+		for !set.isSaturated(mt, tolerance) {
 			if err := mt.Coll.FindOne(ctx, bson.D{}).Err(); err != nil {
 				return err
 			}
@@ -79,15 +83,18 @@ func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPool
 	}
 }
 
+// runsServerSelection will run opCount-many `FindOne` operations within threadCount-many go routines.  The purpose of
+// this is to test the reliability of the server selection algorithm, which can be verified with the `counts` map and
+// `event.PoolEvent` slice.
 func runsServerSelection(mt *mtest.T, monitor *monitor.TestPoolMonitor,
-	threads, operations int) (map[string]int, []*event.PoolEvent) {
+	threadCount, opCount int) (map[string]int, []*event.PoolEvent) {
 	var wg sync.WaitGroup
-	for i := 0; i < threads; i++ {
+	for i := 0; i < threadCount; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
-			for i := 0; i < operations; i++ {
+			for i := 0; i < opCount; i++ {
 				res := mt.Coll.FindOne(context.Background(), bson.D{})
 				assert.NoError(mt.T, res.Err(), "FindOne() error for Collection '%s'", mt.Coll.Name())
 			}
