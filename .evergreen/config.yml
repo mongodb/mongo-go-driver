@@ -1896,18 +1896,19 @@ axes:
   - id: os-ssl-legacy
     display_name: OS
     values:
-      - id: "ubuntu1404-go-1-17"
+      - id: "ubuntu1404-go-1-16"
         display_name: "Ubuntu 14.04"
         run_on: ubuntu1404-test
         variables:
-          GO_DIST: "/opt/golang/go1.17"
+          # The latest Go version available on the Ubuntu 14.04 Evergreen CI image is Go 1.16.
+          GO_DIST: "/opt/golang/go1.16"
           # The GCC toolchain that comes with Ubuntu 14.04 is incompatible with the standard binary
           # release of Go 1.16. As a result, Cgo builds on Ubuntu 14.04 fail with a linking error
           # (see https://github.com/golang/go/issues/43996). On Ubuntu 14.04, we only run tests for
           # server v2.6 and 3.X, which don't support client-side encryption. Exclude all build tags
           # to prevent attempting to link the client-side encryption (libmongocrypt) binaries when
           # running Go tests.
-          # GO_BUILD_TAGS: ""
+          GO_BUILD_TAGS: ""
 
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
