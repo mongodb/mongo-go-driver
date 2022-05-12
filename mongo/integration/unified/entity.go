@@ -374,7 +374,7 @@ func (em *EntityMap) close(ctx context.Context) []error {
 	}
 
 	for id, client := range em.clientEntities {
-		if ok, _ := em.keyVaultClientIDs[id]; ok {
+		if ok := em.keyVaultClientIDs[id]; ok {
 			// Client will be closed in clientEncryption.Close()
 			continue
 		}
@@ -456,7 +456,7 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, defaultValue 
 			placeholderDoc := bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
 
 			// Check if document is a placeholder.
-			if bytes.Compare(doc, placeholderDoc) != 0 {
+			if !bytes.Equal(doc, placeholderDoc) {
 				return nil, fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
 			}
 			if defaultValue == "" {
@@ -487,20 +487,20 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 			kmsProviders["aws"]["sessionToken"] = *awsSessionToken
 		}
 
-		defaultAccessKeyId := envAwsAccessKeyID
+		defaultAccessKeyID := envAwsAccessKeyID
 		defaultSecretAccessKey := envAwsSecretAccessKey
 
 		if awsSessionToken != nil {
-			defaultAccessKeyId = envAwsTempAccessKeyID
+			defaultAccessKeyID = envAwsTempAccessKeyID
 			defaultSecretAccessKey = envAwsTempSecretAccessKey
 		}
 
-		awsAccessKeyId, err := getKmsCredential(aws, "accessKeyId", defaultAccessKeyId)
+		awsAccessKeyID, err := getKmsCredential(aws, "accessKeyId", defaultAccessKeyID)
 		if err != nil {
 			return err
 		}
-		if awsAccessKeyId != nil {
-			kmsProviders["aws"]["accessKeyId"] = *awsAccessKeyId
+		if awsAccessKeyID != nil {
+			kmsProviders["aws"]["accessKeyId"] = *awsAccessKeyID
 		}
 
 		awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", defaultSecretAccessKey)
@@ -515,20 +515,20 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	if azure, ok := ceo.KmsProviders["azure"]; ok {
 		kmsProviders["azure"] = make(map[string]interface{})
 
-		azureTenantId, err := getKmsCredential(azure, "tenantId", envAzureTenantID)
+		azureTenantID, err := getKmsCredential(azure, "tenantId", envAzureTenantID)
 		if err != nil {
 			return err
 		}
-		if azureTenantId != nil {
-			kmsProviders["azure"]["tenantId"] = *azureTenantId
+		if azureTenantID != nil {
+			kmsProviders["azure"]["tenantId"] = *azureTenantID
 		}
 
-		azureClientId, err := getKmsCredential(azure, "clientId", envAzureClientID)
+		azureClientID, err := getKmsCredential(azure, "clientId", envAzureClientID)
 		if err != nil {
 			return err
 		}
-		if azureClientId != nil {
-			kmsProviders["azure"]["clientId"] = *azureClientId
+		if azureClientID != nil {
+			kmsProviders["azure"]["clientId"] = *azureClientID
 		}
 
 		azureClientSecret, err := getKmsCredential(azure, "clientSecret", envAzureClientSecret)

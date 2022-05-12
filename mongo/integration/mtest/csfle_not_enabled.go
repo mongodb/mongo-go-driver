@@ -9,6 +9,8 @@
 
 package mtest
 
+// CSFLEEnabled returns true if driver is built with Client Side Field Level Encryption support.
+// Client Side Field Level Encryption support is enabled with the cse build tag.
 func CSFLEEnabled() bool {
 	return false
 }
