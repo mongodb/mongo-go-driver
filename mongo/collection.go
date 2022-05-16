@@ -1701,7 +1701,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(*escCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(escCollection).drop(ctx); err != nil {
 		return err
 	}
 
@@ -1710,7 +1710,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(*eccCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(eccCollection).drop(ctx); err != nil {
 		return err
 	}
 
@@ -1719,7 +1719,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(*ecocCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(ecocCollection).drop(ctx); err != nil {
 		return err
 	}
 	return nil

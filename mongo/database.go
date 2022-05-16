@@ -571,23 +571,23 @@ func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{}
 }
 
 // getEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
-func getEncryptedStateCollectionName(efBSON *bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (*string, error) {
+func getEncryptedStateCollectionName(efBSON *bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (string, error) {
 	if stateCollectionSuffix != "esc" && stateCollectionSuffix != "ecc" && stateCollectionSuffix != "ecoc" {
-		return nil, fmt.Errorf("expected stateCollectionSuffix: esc, ecc, or ecoc. got %v", stateCollectionSuffix)
+		return "", fmt.Errorf("expected stateCollectionSuffix: esc, ecc, or ecoc. got %v", stateCollectionSuffix)
 	}
 	fieldName := stateCollectionSuffix + "Collection"
 	if val, err := efBSON.LookupErr(fieldName); err != nil {
 		if err != bsoncore.ErrElementNotFound {
-			return nil, err
+			return "", err
 		}
 		// Return default name.
 		defaultName := "enxcol_." + dataCollectionName + "." + stateCollectionSuffix
-		return &defaultName, nil
+		return defaultName, nil
 	} else {
 		if stateCollectionName, ok := val.StringValueOK(); !ok {
-			return nil, fmt.Errorf("expected string for '%v', got: %v", fieldName, val.Type)
+			return "", fmt.Errorf("expected string for '%v', got: %v", fieldName, val.Type)
 		} else {
-			return &stateCollectionName, nil
+			return stateCollectionName, nil
 		}
 	}
 }
@@ -605,7 +605,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	if err != nil {
 		return err
 	}
-	if err := db.createCollection(ctx, *escCollection); err != nil {
+	if err := db.createCollection(ctx, escCollection); err != nil {
 		return err
 	}
 
@@ -614,7 +614,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	if err != nil {
 		return err
 	}
-	if err := db.createCollection(ctx, *eccCollection); err != nil {
+	if err := db.createCollection(ctx, eccCollection); err != nil {
 		return err
 	}
 
@@ -623,7 +623,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	if err != nil {
 		return err
 	}
-	if err := db.createCollection(ctx, *ecocCollection); err != nil {
+	if err := db.createCollection(ctx, ecocCollection); err != nil {
 		return err
 	}
 
