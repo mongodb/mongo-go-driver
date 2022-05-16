@@ -530,7 +530,7 @@ func TestOperation(t *testing.T) {
 						Kind: tc.server,
 					},
 				}
-				wm, _, err := op.createQueryWireMessage(nil, wm, desc)
+				wm, _, err := op.createQueryWireMessage(0, wm, desc)
 				noerr(t, err)
 
 				// We know where the $query would be within the OP_QUERY, so we'll just index into there.
