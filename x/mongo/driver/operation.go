@@ -471,11 +471,32 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		}
 
+		// Calculate value of 'maxTimeMS' field to potentially append to the wire message based on the current
+		// context's deadline and the 90th percentile RTT if op.Timeout is set.
+		var maxTimeMS *uint64
+		if op.Timeout != nil {
+			if deadline, ok := ctx.Deadline(); ok {
+				remainingTimeout := time.Until(deadline)
+
+				maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
+					int64(srvr.RTT90()/time.Millisecond)
+
+				// A non-positive maxTimeMS value indicates that we are already at or past the Context's
+				// deadline.
+				if maxTimeMSVal < 0 {
+					return internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+						"Context deadline has already been surpassed by %v", remainingTimeout)
+				}
+				umaxTimeMSVal := uint64(maxTimeMSVal)
+				maxTimeMS = &umaxTimeMSVal
+			}
+		}
+
 		// convert to wire message
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, srvr, conn)
+		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, maxTimeMS, conn)
 		if err != nil {
 			return err
 		}
@@ -890,19 +911,12 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	return append(header, uncompressed...), nil
 }
 
-func (op Operation) createWireMessage(ctx context.Context, dst []byte,
-	desc description.SelectedServer, srvr Server, conn Connection) ([]byte, startedInformation, error) {
-	// Calculate value of 'maxTimeMS' field to append to the wire message based on the current
-	// context's deadline and the 90th percentile RTT if op.Timeout is set.
-	var maxTimeMS *int64
-	if op.Timeout != nil {
-		if deadline, ok := ctx.Deadline(); ok {
-			remainingTimeout := time.Until(deadline)
-			maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
-				int64(srvr.RTT90()/time.Millisecond)
-			maxTimeMS = &maxTimeMSVal
-		}
-	}
+func (op Operation) createWireMessage(
+	ctx context.Context,
+	dst []byte,
+	desc description.SelectedServer,
+	maxTimeMS *uint64,
+	conn Connection) ([]byte, startedInformation, error) {
 
 	// If topology is not LoadBalanced, API version is not declared, and wire version is unknown
 	// or less than 6, use OP_QUERY. Otherwise, use OP_MSG.
@@ -922,7 +936,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 	return dst
 }
 
-func (op Operation) createQueryWireMessage(maxTimeMS *int64, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createQueryWireMessage(maxTimeMS *uint64, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	var info startedInformation
 	flags := op.secondaryOK(desc)
 	var wmindex int32
@@ -974,7 +988,7 @@ func (op Operation) createQueryWireMessage(maxTimeMS *int64, dst []byte, desc de
 	dst = op.addServerAPI(dst)
 	// If maxTimeMS was passed in, append it to wire message.
 	if maxTimeMS != nil {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *maxTimeMS)
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(*maxTimeMS))
 	}
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
@@ -993,7 +1007,7 @@ func (op Operation) createQueryWireMessage(maxTimeMS *int64, dst []byte, desc de
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
 }
 
-func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS *int64, dst []byte, desc description.SelectedServer,
+func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS *uint64, dst []byte, desc description.SelectedServer,
 	conn Connection) ([]byte, startedInformation, error) {
 
 	var info startedInformation
@@ -1039,7 +1053,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS *int64, 
 	dst = op.addServerAPI(dst)
 	// If maxTimeMS was passed in append it to wire message.
 	if maxTimeMS != nil {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *maxTimeMS)
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(*maxTimeMS))
 	}
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
