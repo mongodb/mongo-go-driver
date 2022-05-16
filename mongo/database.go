@@ -576,20 +576,23 @@ func getEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionNam
 		return "", fmt.Errorf("expected stateCollectionSuffix: esc, ecc, or ecoc. got %v", stateCollectionSuffix)
 	}
 	fieldName := stateCollectionSuffix + "Collection"
-	if val, err := efBSON.LookupErr(fieldName); err != nil {
+	var val bsoncore.Value
+	var err error
+	if val, err = efBSON.LookupErr(fieldName); err != nil {
 		if err != bsoncore.ErrElementNotFound {
 			return "", err
 		}
 		// Return default name.
 		defaultName := "enxcol_." + dataCollectionName + "." + stateCollectionSuffix
 		return defaultName, nil
-	} else {
-		if stateCollectionName, ok := val.StringValueOK(); !ok {
-			return "", fmt.Errorf("expected string for '%v', got: %v", fieldName, val.Type)
-		} else {
-			return stateCollectionName, nil
-		}
 	}
+
+	var stateCollectionName string
+	var ok bool
+	if stateCollectionName, ok = val.StringValueOK(); !ok {
+		return "", fmt.Errorf("expected string for '%v', got: %v", fieldName, val.Type)
+	}
+	return stateCollectionName, nil
 }
 
 // createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
