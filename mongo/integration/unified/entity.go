@@ -591,7 +591,11 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		return newEntityNotFoundError("client", ceo.KeyVaultClient)
 	}
 
-	ce, err := mongo.NewClientEncryption(keyVaultClient.Client, options.ClientEncryption().SetKeyVaultNamespace(ceo.KeyVaultNamespace).SetKmsProviders(kmsProviders))
+	ce, err := mongo.NewClientEncryption(
+		keyVaultClient.Client,
+		options.ClientEncryption().
+			SetKeyVaultNamespace(ceo.KeyVaultNamespace).
+			SetKmsProviders(kmsProviders))
 	if err != nil {
 		return err
 	}
