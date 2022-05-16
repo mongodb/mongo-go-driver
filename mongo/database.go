@@ -549,7 +549,7 @@ func (db *Database) getEncryptedFieldsFromServer(ctx context.Context, collection
 		return nil, fmt.Errorf("expected encryptedFields of %v to be document, got %v", collectionName, rawValue.Type)
 	}
 
-	return &encryptedFields, nil
+	return encryptedFields, nil
 }
 
 // getEncryptedFieldsFromServer tries to get an "encryptedFields" document associated with collectionName by checking the client EncryptedFieldsMap.
