@@ -445,11 +445,11 @@ var (
 // getKmsCredential processes a value of an input KMS provider credential.
 // An empty document returns from the environment.
 // A string is returned as-is.
-func getKmsCredential(kmsDocument bson.Raw, credentialName string, defaultValue string) (*string, error) {
+func getKmsCredential(kmsDocument bson.Raw, credentialName string, defaultValue string) (string, error) {
 	credentialVal, err := kmsDocument.LookupErr(credentialName)
 	if err == nil {
 		if str, ok := credentialVal.StringValueOK(); ok {
-			return &str, nil
+			return str, nil
 		}
 
 		if doc, ok := credentialVal.DocumentOK(); ok {
@@ -457,19 +457,19 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, defaultValue 
 
 			// Check if document is a placeholder.
 			if !bytes.Equal(doc, placeholderDoc) {
-				return nil, fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
+				return "", fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
 			}
 			if defaultValue == "" {
-				return nil, fmt.Errorf("unable to get default value for %v. Please set CSFLE environment variables", credentialName)
+				return "", fmt.Errorf("unable to get default value for %v. Please set CSFLE environment variables", credentialName)
 			}
-			return &defaultValue, nil
+			return defaultValue, nil
 		}
 
-		return nil, fmt.Errorf("expected String or Document for %v, got: %v", credentialName, credentialVal)
+		return "", fmt.Errorf("expected String or Document for %v, got: %v", credentialName, credentialVal)
 	} else if err == bsoncore.ErrElementNotFound {
-		return nil, nil
+		return "", nil
 	}
-	return nil, err
+	return "", err
 }
 
 func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) error {
@@ -483,14 +483,14 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		if err != nil {
 			return err
 		}
-		if awsSessionToken != nil {
-			kmsProviders["aws"]["sessionToken"] = *awsSessionToken
+		if awsSessionToken != "" {
+			kmsProviders["aws"]["sessionToken"] = awsSessionToken
 		}
 
 		defaultAccessKeyID := envAwsAccessKeyID
 		defaultSecretAccessKey := envAwsSecretAccessKey
 
-		if awsSessionToken != nil {
+		if awsSessionToken != "" {
 			defaultAccessKeyID = envAwsTempAccessKeyID
 			defaultSecretAccessKey = envAwsTempSecretAccessKey
 		}
@@ -499,16 +499,16 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		if err != nil {
 			return err
 		}
-		if awsAccessKeyID != nil {
-			kmsProviders["aws"]["accessKeyId"] = *awsAccessKeyID
+		if awsAccessKeyID != "" {
+			kmsProviders["aws"]["accessKeyId"] = awsAccessKeyID
 		}
 
 		awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", defaultSecretAccessKey)
 		if err != nil {
 			return err
 		}
-		if awsSecretAccessKey != nil {
-			kmsProviders["aws"]["secretAccessKey"] = *awsSecretAccessKey
+		if awsSecretAccessKey != "" {
+			kmsProviders["aws"]["secretAccessKey"] = awsSecretAccessKey
 		}
 	}
 
@@ -519,24 +519,24 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		if err != nil {
 			return err
 		}
-		if azureTenantID != nil {
-			kmsProviders["azure"]["tenantId"] = *azureTenantID
+		if azureTenantID != "" {
+			kmsProviders["azure"]["tenantId"] = azureTenantID
 		}
 
 		azureClientID, err := getKmsCredential(azure, "clientId", envAzureClientID)
 		if err != nil {
 			return err
 		}
-		if azureClientID != nil {
-			kmsProviders["azure"]["clientId"] = *azureClientID
+		if azureClientID != "" {
+			kmsProviders["azure"]["clientId"] = azureClientID
 		}
 
 		azureClientSecret, err := getKmsCredential(azure, "clientSecret", envAzureClientSecret)
 		if err != nil {
 			return err
 		}
-		if azureClientSecret != nil {
-			kmsProviders["azure"]["clientSecret"] = *azureClientSecret
+		if azureClientSecret != "" {
+			kmsProviders["azure"]["clientSecret"] = azureClientSecret
 		}
 	}
 
@@ -547,16 +547,16 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		if err != nil {
 			return err
 		}
-		if gcpEmail != nil {
-			kmsProviders["gcp"]["email"] = *gcpEmail
+		if gcpEmail != "" {
+			kmsProviders["gcp"]["email"] = gcpEmail
 		}
 
 		gcpPrivateKey, err := getKmsCredential(gcp, "privateKey", envGcpPrivateKey)
 		if err != nil {
 			return err
 		}
-		if gcpPrivateKey != nil {
-			kmsProviders["gcp"]["privateKey"] = *gcpPrivateKey
+		if gcpPrivateKey != "" {
+			kmsProviders["gcp"]["privateKey"] = gcpPrivateKey
 		}
 	}
 
@@ -567,8 +567,8 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		if err != nil {
 			return err
 		}
-		if kmipEndpoint != nil {
-			kmsProviders["kmip"]["endpoint"] = *kmipEndpoint
+		if kmipEndpoint != "" {
+			kmsProviders["kmip"]["endpoint"] = kmipEndpoint
 		}
 	}
 
@@ -580,8 +580,8 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		if err != nil {
 			return err
 		}
-		if localKey != nil {
-			kmsProviders["local"]["key"] = *localKey
+		if localKey != "" {
+			kmsProviders["local"]["key"] = localKey
 		}
 	}
 
