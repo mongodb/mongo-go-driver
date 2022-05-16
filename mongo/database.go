@@ -668,7 +668,7 @@ func (db *Database) createCollectionOperation(name string, opts ...*options.Crea
 	if cco.ChangeStreamPreAndPostImages != nil {
 		csppi, err := transformBsoncoreDocument(db.registry, cco.ChangeStreamPreAndPostImages, true, "changeStreamPreAndPostImages")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		op.ChangeStreamPreAndPostImages(csppi)
 	}
