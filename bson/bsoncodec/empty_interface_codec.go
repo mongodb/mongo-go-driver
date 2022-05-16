@@ -57,7 +57,7 @@ func (eic EmptyInterfaceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWrit
 
 func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, valueType bsontype.Type) (reflect.Type, error) {
 	isDocument := valueType == bsontype.Type(0) || valueType == bsontype.EmbeddedDocument
-	if isDocument && dc.Ancestor != nil {
+	if isDocument && dc.HasValidAncestor() {
 		// Using ancestor information rather than looking up the type map entry forces consistent decoding.
 		// If we're decoding into a bson.D, subdocuments should also be decoded as bson.D, even if a type map entry
 		// has been registered.

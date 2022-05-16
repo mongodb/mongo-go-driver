@@ -123,6 +123,20 @@ type DecodeContext struct {
 	// Ancestor is a bson.M, BSON embedded document values being decoded into an empty interface
 	// will be decoded into a bson.M.
 	Ancestor reflect.Type
+
+	// SkipAncestors is a set of types for which the decoder should avoid applying ancestor logic.  This field is
+	// required because the value of the context's ancestor could potentially change multiple times in it's lifecycle.
+	SkipAncestors map[reflect.Type]bool
+}
+
+// HasValidAncestor will return `true` if the ancestor type is valid and can be used with ancestor logic, and `false`
+// otherwise.  This will help us decode data with user-defined precision.
+func (dc DecodeContext) HasValidAncestor() bool {
+	skip := false
+	if skipSet := dc.SkipAncestors; skipSet != nil {
+		skip = skipSet[dc.Ancestor]
+	}
+	return dc.Ancestor != nil && !skip
 }
 
 // ValueCodec is the interface that groups the methods to encode and decode
