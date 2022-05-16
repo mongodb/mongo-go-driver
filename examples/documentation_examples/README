@@ -1,0 +1,8 @@
+Go Driver Documentation Examples
+================================
+
+examples.go contains numerous documentation examples that are rendered in various locations on www.mongodb.com/docs.
+Each example is delineated with starting and ending comments (// Start/End Example #). All examples in examples.go
+are valid Go driver code. Each example is run as part of our CI with examples_test.go, so all code is up-to-date and
+accurate. We recommend using www.mongodb.com/docs to interact with these examples rather than viewing these files
+directly.

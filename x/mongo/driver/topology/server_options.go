@@ -44,7 +44,6 @@ func newServerConfig(opts ...ServerOption) *serverConfig {
 	cfg := &serverConfig{
 		heartbeatInterval: 10 * time.Second,
 		heartbeatTimeout:  10 * time.Second,
-		maxConns:          100,
 		registry:          defaultRegistry,
 	}
 

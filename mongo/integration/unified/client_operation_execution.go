@@ -54,14 +54,33 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(*collation)
+		case "comment":
+			commentString, err := createCommentString(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating comment: %v", err)
+			}
+			opts.SetComment(commentString)
 		case "fullDocument":
 			switch fd := val.StringValue(); fd {
 			case "default":
 				opts.SetFullDocument(options.Default)
+			case "required":
+				opts.SetFullDocument(options.Required)
 			case "updateLookup":
 				opts.SetFullDocument(options.UpdateLookup)
+			case "whenAvailable":
+				opts.SetFullDocument(options.WhenAvailable)
 			default:
 				return nil, fmt.Errorf("unrecognized fullDocument value %q", fd)
+			}
+		case "fullDocumentBeforeChange":
+			switch fdbc := val.StringValue(); fdbc {
+			case "off":
+				opts.SetFullDocumentBeforeChange(options.Off)
+			case "required":
+				opts.SetFullDocumentBeforeChange(options.Required)
+			case "whenAvailable":
+				opts.SetFullDocumentBeforeChange(options.WhenAvailable)
 			}
 		case "maxAwaitTimeMS":
 			opts.SetMaxAwaitTime(time.Duration(val.Int32()) * time.Millisecond)

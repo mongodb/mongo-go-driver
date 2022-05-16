@@ -272,6 +272,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 
 	for idx, operation := range tc.Operations {
 		if err := operation.execute(testCtx, tc.loopDone); err != nil {
+			if isSkipTestError(err) {
+				ls.Skip(err)
+			}
+
 			return fmt.Errorf("error running operation %q at index %d: %v", operation.Name, idx, err)
 		}
 	}

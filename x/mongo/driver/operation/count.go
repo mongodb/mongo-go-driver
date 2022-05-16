@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -27,6 +28,7 @@ type Count struct {
 	session        *session.Client
 	clock          *session.ClusterClock
 	collection     string
+	comment        bsoncore.Value
 	monitor        *event.CommandMonitor
 	crypt          driver.Crypt
 	database       string
@@ -170,6 +172,9 @@ func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, er
 	if c.maxTimeMS != nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *c.maxTimeMS)
 	}
+	if c.comment.Type != bsontype.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "comment", c.comment)
+	}
 	return dst, nil
 }
 
@@ -220,6 +225,16 @@ func (c *Count) Collection(collection string) *Count {
 	}
 
 	c.collection = collection
+	return c
+}
+
+// Comment sets a value to help trace an operation.
+func (c *Count) Comment(comment bsoncore.Value) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.comment = comment
 	return c
 }
 

@@ -156,6 +156,23 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 			return fmt.Errorf("expected %d connections to be checked out, got %d", expected, actual)
 		}
 		return nil
+	case "createEntities":
+		entitiesRaw, err := args.LookupErr("entities")
+		if err != nil {
+			return fmt.Errorf("'entities' argument not found in createEntities operation")
+		}
+
+		var createEntities map[string]*entityOptions
+		if err := bson.Unmarshal(entitiesRaw.Value, &createEntities); err != nil {
+			return fmt.Errorf("error unmarshalling 'entities' argument to entityOptions: %v", err)
+		}
+
+		for entityType, entityOptions := range createEntities {
+			if err := entities(ctx).addEntity(ctx, entityType, entityOptions); err != nil {
+				return fmt.Errorf("error creating entity: %v", err)
+			}
+		}
+		return nil
 	default:
 		return fmt.Errorf("unrecognized testRunner operation %q", operation.Name)
 	}
@@ -219,8 +236,8 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 					case !args.failuresStored(): // store failures as errors if storeFailuressAsEntity isn't specified
 						appendErr = entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// errors are test runner errors
-					// TODO GODRIVER-1950: use error types to determine error vs failure instead of depending on the fact that
-					// operation.execute prepends "execution failed" to test runner errors
+					// TODO GODRIVER-1950: use error types to determine error vs failure instead of depending on the
+					// TODO fact that operation.execute prepends "execution failed" to test runner errors
 					case strings.Contains(loopErr.Error(), "execution failed: "):
 						appendErr = entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
 					// failures are if an operation returns an incorrect result or error

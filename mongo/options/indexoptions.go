@@ -210,7 +210,7 @@ type IndexOptions struct {
 	// of the DefaultLanguage option.
 	LanguageOverride *string
 
-	// The index version number for a text index. See https://docs.mongodb.com/manual/core/index-text/#text-versions for
+	// The index version number for a text index. See https://www.mongodb.com/docs/manual/core/index-text/#text-versions for
 	// information about different version numbers.
 	TextVersion *int32
 
@@ -220,7 +220,7 @@ type IndexOptions struct {
 	// that every field will have a weight of 1.
 	Weights interface{}
 
-	// The index version number for a 2D sphere index. See https://docs.mongodb.com/manual/core/2dsphere/#dsphere-v2 for
+	// The index version number for a 2D sphere index. See https://www.mongodb.com/docs/manual/core/2dsphere/#dsphere-v2 for
 	// information about different version numbers.
 	SphereVersion *int32
 
