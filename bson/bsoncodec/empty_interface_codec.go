@@ -64,6 +64,10 @@ func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, val
 		return dc.Ancestor, nil
 	}
 
+	// If the context has a foreced type defined, then use that type.  Otherwise, use the type map.
+	if ft := dc.ForceType(); ft != nil {
+		return ft, nil
+	}
 	rtype, err := dc.LookupTypeMapEntry(valueType)
 	if err == nil {
 		return rtype, nil
@@ -80,7 +84,7 @@ func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, val
 			lookupType = bsontype.Type(0)
 		}
 
-		rtype, err = dc.LookupTypeMapEntry(lookupType)
+		rtype, err := dc.LookupTypeMapEntry(lookupType)
 		if err == nil {
 			return rtype, nil
 		}

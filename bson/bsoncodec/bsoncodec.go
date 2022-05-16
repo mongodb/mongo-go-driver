@@ -124,19 +124,26 @@ type DecodeContext struct {
 	// will be decoded into a bson.M.
 	Ancestor reflect.Type
 
-	// SkipAncestors is a set of types for which the decoder should avoid applying ancestor logic.  This field is
-	// required because the value of the context's ancestor could potentially change multiple times in it's lifecycle.
-	SkipAncestors map[reflect.Type]bool
+	// TypeMap is a set of types for which the decoder should avoid applying ancestor logic.  These types will also
+	// be used as override for the principle types in decoding empty interfaces.
+	EmptyInterfaceTypeMap map[reflect.Type]reflect.Type
 }
 
 // HasValidAncestor will return `true` if the ancestor type is valid and can be used with ancestor logic, and `false`
 // otherwise.  This will help us decode data with user-defined precision.
 func (dc DecodeContext) HasValidAncestor() bool {
 	skip := false
-	if skipSet := dc.SkipAncestors; skipSet != nil {
-		skip = skipSet[dc.Ancestor]
+	if eiTypes := dc.EmptyInterfaceTypeMap; eiTypes != nil {
+		skip = eiTypes[dc.Ancestor] != nil
 	}
 	return dc.Ancestor != nil && !skip
+}
+
+func (dc DecodeContext) ForceType() reflect.Type {
+	if eiTypes := dc.EmptyInterfaceTypeMap; eiTypes != nil {
+		return eiTypes[dc.Ancestor]
+	}
+	return nil
 }
 
 // ValueCodec is the interface that groups the methods to encode and decode

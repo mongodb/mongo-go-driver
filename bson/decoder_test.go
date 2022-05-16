@@ -251,7 +251,9 @@ func TestDecoderv2(t *testing.T) {
 		var bsonOut someMap
 		dec, _ := NewDecoderWithContext(
 			bsoncodec.DecodeContext{
-				SkipAncestors: map[reflect.Type]bool{reflect.TypeOf(someMap{}): true},
+				EmptyInterfaceTypeMap: map[reflect.Type]reflect.Type{
+					reflect.TypeOf(someMap{}): reflect.TypeOf(map[string]interface{}{}),
+				},
 			},
 			bsonrw.NewBSONDocumentReader(bytes))
 		dec.Decode(&bsonOut)
@@ -260,7 +262,7 @@ func TestDecoderv2(t *testing.T) {
 		assert.Equal(t, inType, bsonOutType, "expected '%s' to equal '%s'", inType, bsonOutType)
 
 		bsonFooOutType := reflect.TypeOf(bsonOut["foo"]).String()
-		documentType := reflect.TypeOf(D{}).String()
+		documentType := reflect.TypeOf(map[string]interface{}{}).String()
 		assert.Equal(t, documentType, bsonFooOutType, "expected '%s' to equal '%s'", inFooType, bsonFooOutType)
 	})
 }
