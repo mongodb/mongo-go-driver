@@ -1697,7 +1697,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	}
 	// Drop the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
 	// Drop ESCCollection.
-	escCollection, err := getEncryptedStateCollectionName(&efBSON, coll.name, "esc")
+	escCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "esc")
 	if err != nil {
 		return err
 	}
@@ -1706,7 +1706,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	}
 
 	// Drop ECCCollection.
-	eccCollection, err := getEncryptedStateCollectionName(&efBSON, coll.name, "ecc")
+	eccCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "ecc")
 	if err != nil {
 		return err
 	}
@@ -1715,7 +1715,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	}
 
 	// Drop ECOCCollection.
-	ecocCollection, err := getEncryptedStateCollectionName(&efBSON, coll.name, "ecoc")
+	ecocCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "ecoc")
 	if err != nil {
 		return err
 	}

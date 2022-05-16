@@ -571,7 +571,7 @@ func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{}
 }
 
 // getEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
-func getEncryptedStateCollectionName(efBSON *bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (string, error) {
+func getEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (string, error) {
 	if stateCollectionSuffix != "esc" && stateCollectionSuffix != "ecc" && stateCollectionSuffix != "ecoc" {
 		return "", fmt.Errorf("expected stateCollectionSuffix: esc, ecc, or ecoc. got %v", stateCollectionSuffix)
 	}
@@ -601,7 +601,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 
 	// Create the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
 	// Create ESCCollection.
-	escCollection, err := getEncryptedStateCollectionName(&efBSON, name, "esc")
+	escCollection, err := getEncryptedStateCollectionName(efBSON, name, "esc")
 	if err != nil {
 		return err
 	}
@@ -610,7 +610,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	// Create ECCCollection.
-	eccCollection, err := getEncryptedStateCollectionName(&efBSON, name, "ecc")
+	eccCollection, err := getEncryptedStateCollectionName(efBSON, name, "ecc")
 	if err != nil {
 		return err
 	}
@@ -619,7 +619,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	// Create ECOCCollection.
-	ecocCollection, err := getEncryptedStateCollectionName(&efBSON, name, "ecoc")
+	ecocCollection, err := getEncryptedStateCollectionName(efBSON, name, "ecoc")
 	if err != nil {
 		return err
 	}
