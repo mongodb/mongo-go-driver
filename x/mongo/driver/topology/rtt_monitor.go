@@ -200,7 +200,7 @@ func min(samples []time.Duration, minSamples int) time.Duration {
 // in the slice, percentile returns 0.
 func percentile(perc float64, samples []time.Duration, minSamples int) time.Duration {
 	// Convert Durations to float64s.
-	floatSamples := make([]float64, 0)
+	floatSamples := make([]float64, 0, len(samples))
 	for _, sample := range samples {
 		if sample > 0 {
 			floatSamples = append(floatSamples, float64(sample))
@@ -212,7 +212,7 @@ func percentile(perc float64, samples []time.Duration, minSamples int) time.Dura
 
 	p, err := stats.Percentile(floatSamples, perc)
 	if err != nil {
-		panic(fmt.Errorf("error calculating %f percentile RTT: %v", perc, err))
+		panic(fmt.Errorf("x/mongo/driver/topology: error calculating %f percentile RTT: %v", perc, err))
 	}
 	return time.Duration(p)
 }
