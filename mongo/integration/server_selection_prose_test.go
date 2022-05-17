@@ -20,21 +20,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/sync/errgroup"
 )
 
 type saturatedConnections map[uint64]bool
 
 // saturatedHosts is used to maintain information about events with specific host+pool combinations.
 type saturatedHosts map[string]saturatedConnections
-
-func (set saturatedHosts) has(host string, connectionID uint64) bool {
-	var b bool
-	if h := set[host]; h != nil {
-		b = h[connectionID]
-	}
-	return b
-}
 
 func (set saturatedHosts) add(host string, connectionID uint64) {
 	if set[host] == nil {
@@ -56,31 +47,25 @@ func (set saturatedHosts) isSaturated(mt *mtest.T, tolerance uint64) bool {
 // awaitSaturation uses CMAP events to ensure that the client's connection pools for N-mongoses have been saturated.
 // The qualification for a host to be "saturated" is for each host on the client to have a tolerable number of ready
 // connections.
-func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor, tolerance uint64) {
-	errs, ctx := errgroup.WithContext(ctx)
-	done := make(chan struct{}, 1)
-	errs.Go(func() error {
-		set := make(saturatedHosts)
-		for !set.isSaturated(mt, tolerance) {
-			if err := mt.Coll.FindOne(ctx, bson.D{}).Err(); err != nil {
-				return err
-			}
-			monitor.Events(func(evt *event.PoolEvent) bool {
-				// Add host only when the connection is ready for use.
-				if evt.Type == event.ConnectionReady && !set.has(evt.Address, evt.ConnectionID) {
-					set.add(evt.Address, evt.ConnectionID)
-				}
-				return true
-			})
+func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor, tolerance uint64) error {
+	set := make(saturatedHosts)
+	var err error
+	for !set.isSaturated(mt, tolerance) {
+		if err = ctx.Err(); err != nil {
+			break
 		}
-		done <- struct{}{}
-		return nil
-	})
-	select {
-	case <-ctx.Done():
-		mt.Fatalf("Await saturation timed out: %v", ctx.Err())
-	case <-done:
+		if err = mt.Coll.FindOne(ctx, bson.D{}).Err(); err != nil {
+			break
+		}
+		monitor.Events(func(evt *event.PoolEvent) bool {
+			// Add host only when the connection is ready for use.
+			if evt.Type == event.ConnectionReady {
+				set.add(evt.Address, evt.ConnectionID)
+			}
+			return true
+		})
 	}
+	return err
 }
 
 // runsServerSelection will run opCount-many `FindOne` operations within threadCount-many go routines.  The purpose of
@@ -182,7 +167,9 @@ func TestServerSelectionProse(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		awaitSaturation(ctx, mt, tpm, maxPoolSize)
+		if err := awaitSaturation(ctx, mt, tpm, maxPoolSize); err != nil {
+			mt.Fatalf("Error awaiting saturation: %v", err.Error())
+		}
 
 		counts, checkOutEvents := runsServerSelection(mt, tpm, 10, 10)
 		// Calculate the frequency that the server with the failpoint was selected. Assert that it
@@ -227,7 +214,9 @@ func TestServerSelectionProse(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		awaitSaturation(ctx, mt, tpm, maxPoolSize)
+		if err := awaitSaturation(ctx, mt, tpm, maxPoolSize); err != nil {
+			mt.Fatalf("Error awaiting saturation: %v", err.Error())
+		}
 
 		counts, checkOutEvents := runsServerSelection(mt, tpm, 10, 100)
 		// Calculate the frequency that each server was selected. Assert that each server was
