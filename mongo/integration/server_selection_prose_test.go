@@ -35,7 +35,7 @@ func (set saturatedHosts) add(host string, connectionID uint64) {
 }
 
 // isSaturated returns true when each client on the cluster URI has a tolerable number of ready connections.
-func (set saturatedHosts) isSaturated(mt *mtest.T, tolerance uint64) bool {
+func (set saturatedHosts) isSaturated(tolerance uint64) bool {
 	for _, host := range options.Client().ApplyURI(mtest.ClusterURI()).Hosts {
 		if cxns := set[host]; cxns == nil || uint64(len(cxns)) < tolerance {
 			return false
@@ -50,7 +50,7 @@ func (set saturatedHosts) isSaturated(mt *mtest.T, tolerance uint64) bool {
 func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor, tolerance uint64) error {
 	set := make(saturatedHosts)
 	var err error
-	for !set.isSaturated(mt, tolerance) {
+	for !set.isSaturated(tolerance) {
 		if err = ctx.Err(); err != nil {
 			break
 		}
