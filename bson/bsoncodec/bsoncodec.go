@@ -123,6 +123,21 @@ type DecodeContext struct {
 	// Ancestor is a bson.M, BSON embedded document values being decoded into an empty interface
 	// will be decoded into a bson.M.
 	Ancestor reflect.Type
+
+	// DocumentDecodeType will decode embedded documents into the defined type, rather than into primitive.D.  This is
+	// work-around for custom typing and is All-Or-None.
+	DocumentDecodeType *reflect.Type
+}
+
+// HasValidAncestor will return true if the ancestor an be used in decoding logic.
+func (dc *DecodeContext) HasValidAncestor() bool {
+	return dc.Ancestor != nil && dc.DocumentDecodeType == nil
+}
+
+// SetDocumentDecodeType will set the DocumentDecodeType field on a DecodeContext.
+func (dc *DecodeContext) SetDocumentDecodeType(rtype reflect.Type) *DecodeContext {
+	dc.DocumentDecodeType = &rtype
+	return dc
 }
 
 // ValueCodec is the interface that groups the methods to encode and decode

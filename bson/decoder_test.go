@@ -199,12 +199,12 @@ func TestDecoderv2(t *testing.T) {
 		dc2 := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
 		dec, err := NewDecoderWithContext(dc1, bsonrw.NewBSONDocumentReader([]byte{}))
 		noerr(t, err)
-		if dec.dc != dc1 {
+		if !reflect.DeepEqual(dec.dc, dc1) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
 		}
 		err = dec.SetContext(dc2)
 		noerr(t, err)
-		if dec.dc != dc2 {
+		if !reflect.DeepEqual(dec.dc, dc2) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
 		}
 	})
@@ -214,12 +214,12 @@ func TestDecoderv2(t *testing.T) {
 		dc2 := bsoncodec.DecodeContext{Registry: r2}
 		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
 		noerr(t, err)
-		if dec.dc != dc1 {
+		if !reflect.DeepEqual(dec.dc, dc1) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
 		}
 		err = dec.SetRegistry(r2)
 		noerr(t, err)
-		if dec.dc != dc2 {
+		if !reflect.DeepEqual(dec.dc, dc2) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
 		}
 	})
@@ -234,6 +234,31 @@ func TestDecoderv2(t *testing.T) {
 		if err != ErrDecodeToNil {
 			t.Fatalf("Decode error mismatch; expected %v, got %v", ErrDecodeToNil, err)
 		}
+	})
+	t.Run("SetDocumentDecodeType", func(t *testing.T) {
+		type someMap map[string]interface{}
+
+		in := make(someMap)
+		in["foo"] = map[string]interface{}{"bar": "baz"}
+		inType := reflect.TypeOf(in).String()
+		inFooType := reflect.TypeOf(in["foo"]).String()
+
+		bytes, err := Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var bsonOut someMap
+		dc := new(bsoncodec.DecodeContext).SetDocumentDecodeType(reflect.TypeOf(map[string]interface{}{}))
+		dec, _ := NewDecoderWithContext(*dc, bsonrw.NewBSONDocumentReader(bytes))
+		dec.Decode(&bsonOut)
+
+		bsonOutType := reflect.TypeOf(bsonOut).String()
+		assert.Equal(t, inType, bsonOutType, "expected '%s' to equal '%s'", inType, bsonOutType)
+
+		bsonFooOutType := reflect.TypeOf(bsonOut["foo"]).String()
+		documentType := reflect.TypeOf(map[string]interface{}{}).String()
+		assert.Equal(t, documentType, bsonFooOutType, "expected '%s' to equal '%s'", inFooType, bsonFooOutType)
 	})
 }
 
