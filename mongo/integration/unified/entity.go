@@ -445,26 +445,29 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string
 		return str, nil
 	}
 
-	if doc, ok := credentialVal.DocumentOK(); ok {
-		placeholderDoc := bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
-
-		// Check if document is a placeholder.
-		if !bytes.Equal(doc, placeholderDoc) {
-			return "", fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
-		}
-		if envVar == "" {
-			return defaultValue, nil
-		}
-		if os.Getenv(envVar) == "" {
-			if defaultValue != "" {
-				return defaultValue, nil
-			}
-			return "", fmt.Errorf("unable to get environment value for %v. Please set the CSFLE environment variable: %v", credentialName, envVar)
-		}
-		return os.Getenv(envVar), nil
+	var ok bool
+	var doc bson.Raw
+	if doc, ok = credentialVal.DocumentOK(); !ok {
+		return "", fmt.Errorf("expected String or Document for %v, got: %v", credentialName, credentialVal)
 	}
 
-	return "", fmt.Errorf("expected String or Document for %v, got: %v", credentialName, credentialVal)
+	placeholderDoc := bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
+
+	// Check if document is a placeholder.
+	if !bytes.Equal(doc, placeholderDoc) {
+		return "", fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
+	}
+	if envVar == "" {
+		return defaultValue, nil
+	}
+	if os.Getenv(envVar) == "" {
+		if defaultValue != "" {
+			return defaultValue, nil
+		}
+		return "", fmt.Errorf("unable to get environment value for %v. Please set the CSFLE environment variable: %v", credentialName, envVar)
+	}
+	return os.Getenv(envVar), nil
+
 }
 
 func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) error {
