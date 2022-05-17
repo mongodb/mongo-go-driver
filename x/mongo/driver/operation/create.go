@@ -20,29 +20,30 @@ import (
 
 // Create represents a create operation.
 type Create struct {
-	capped              *bool
-	collation           bsoncore.Document
-	collectionName      *string
-	indexOptionDefaults bsoncore.Document
-	max                 *int64
-	pipeline            bsoncore.Document
-	size                *int64
-	storageEngine       bsoncore.Document
-	validationAction    *string
-	validationLevel     *string
-	validator           bsoncore.Document
-	viewOn              *string
-	session             *session.Client
-	clock               *session.ClusterClock
-	monitor             *event.CommandMonitor
-	crypt               driver.Crypt
-	database            string
-	deployment          driver.Deployment
-	selector            description.ServerSelector
-	writeConcern        *writeconcern.WriteConcern
-	serverAPI           *driver.ServerAPIOptions
-	expireAfterSeconds  *int64
-	timeSeries          bsoncore.Document
+	capped                       *bool
+	collation                    bsoncore.Document
+	changeStreamPreAndPostImages bsoncore.Document
+	collectionName               *string
+	indexOptionDefaults          bsoncore.Document
+	max                          *int64
+	pipeline                     bsoncore.Document
+	size                         *int64
+	storageEngine                bsoncore.Document
+	validationAction             *string
+	validationLevel              *string
+	validator                    bsoncore.Document
+	viewOn                       *string
+	session                      *session.Client
+	clock                        *session.ClusterClock
+	monitor                      *event.CommandMonitor
+	crypt                        driver.Crypt
+	database                     string
+	deployment                   driver.Deployment
+	selector                     description.ServerSelector
+	writeConcern                 *writeconcern.WriteConcern
+	serverAPI                    *driver.ServerAPIOptions
+	expireAfterSeconds           *int64
+	timeSeries                   bsoncore.Document
 }
 
 // NewCreate constructs and returns a new Create.
@@ -84,6 +85,9 @@ func (c *Create) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if c.capped != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "capped", *c.capped)
+	}
+	if c.changeStreamPreAndPostImages != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "changeStreamPreAndPostImages", c.changeStreamPreAndPostImages)
 	}
 	if c.collation != nil {
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
@@ -144,6 +148,17 @@ func (c *Create) Collation(collation bsoncore.Document) *Create {
 	}
 
 	c.collation = collation
+	return c
+}
+
+// ChangeStreamPreAndPostImages specifies how change streams opened against the collection can return pre-
+// and post-images of updated documents. This option is only valid for server versions 6.0 and above.
+func (c *Create) ChangeStreamPreAndPostImages(csppi bsoncore.Document) *Create {
+	if c == nil {
+		c = new(Create)
+	}
+
+	c.changeStreamPreAndPostImages = csppi
 	return c
 }
 

@@ -23,6 +23,22 @@ func TestPool(t *testing.T) {
 	t.Run("newPool", func(t *testing.T) {
 		t.Parallel()
 
+		t.Run("minPoolSize should not exceed maxPoolSize", func(t *testing.T) {
+			t.Parallel()
+
+			p := newPool(poolConfig{MinPoolSize: 100, MaxPoolSize: 10})
+			assert.Equalf(t, uint64(10), p.minSize, "expected minSize of a pool not to be greater than maxSize")
+
+			p.close(context.Background())
+		})
+		t.Run("minPoolSize may exceed maxPoolSize of 0", func(t *testing.T) {
+			t.Parallel()
+
+			p := newPool(poolConfig{MinPoolSize: 10, MaxPoolSize: 0})
+			assert.Equalf(t, uint64(10), p.minSize, "expected minSize of a pool to be greater than maxSize of 0")
+
+			p.close(context.Background())
+		})
 		t.Run("should be paused", func(t *testing.T) {
 			t.Parallel()
 

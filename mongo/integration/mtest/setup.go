@@ -179,9 +179,10 @@ func Setup(setupOpts ...*SetupOptions) error {
 		}
 	}
 
-	// For load balanced clusters, retrieve the required LB URIs and add additional information (e.g. TLS options) to
+	// For non-serverless, load balanced clusters, retrieve the required LB URIs and add additional information (e.g. TLS options) to
 	// them if necessary.
-	if testContext.topoKind == LoadBalanced {
+	testContext.serverless = os.Getenv("SERVERLESS") == "serverless"
+	if !testContext.serverless && testContext.topoKind == LoadBalanced {
 		singleMongosURI := os.Getenv("SINGLE_MONGOS_LB_URI")
 		if singleMongosURI == "" {
 			return errors.New("SINGLE_MONGOS_LB_URI must be set when running against load balanced clusters")
@@ -203,7 +204,6 @@ func Setup(setupOpts ...*SetupOptions) error {
 
 	testContext.authEnabled = os.Getenv("AUTH") == "auth"
 	testContext.sslEnabled = os.Getenv("SSL") == "ssl"
-	testContext.serverless = os.Getenv("SERVERLESS") == "serverless"
 	biRes, err := testContext.client.Database("admin").RunCommand(context.Background(), bson.D{{"buildInfo", 1}}).DecodeBytes()
 	if err != nil {
 		return fmt.Errorf("buildInfo error: %v", err)
