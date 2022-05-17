@@ -80,7 +80,7 @@ func (*mockSlowConn) SetReadDeadline(_ time.Time) error  { return nil }
 func (*mockSlowConn) SetWriteDeadline(_ time.Time) error { return nil }
 
 func TestRTTMonitor(t *testing.T) {
-	t.Run("measures the average and minimum RTT", func(t *testing.T) {
+	t.Run("measures the average, minimum and 90th percentile RTT", func(t *testing.T) {
 		t.Parallel()
 
 		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
@@ -100,10 +100,10 @@ func TestRTTMonitor(t *testing.T) {
 
 		assert.Eventuallyf(
 			t,
-			func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 },
+			func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 && rtt.getRTT90() > 0 },
 			1*time.Second,
 			10*time.Millisecond,
-			"expected getRTT() and getMinRTT() to return positive durations within 1 second")
+			"expected getRTT(), getMinRTT() and getRTT90() to return positive durations within 1 second")
 		assert.True(
 			t,
 			rtt.getRTT() > 0,
@@ -114,6 +114,11 @@ func TestRTTMonitor(t *testing.T) {
 			rtt.getMinRTT() > 0,
 			"expected getMinRTT() to return a positive duration, got %v",
 			rtt.getMinRTT())
+		assert.True(
+			t,
+			rtt.getRTT90() > 0,
+			"expected getRTT90() to return a positive duration, got %v",
+			rtt.getRTT90())
 	})
 
 	t.Run("creates the correct size samples slice", func(t *testing.T) {
@@ -132,7 +137,7 @@ func TestRTTMonitor(t *testing.T) {
 			{
 				desc:           "min",
 				interval:       10 * time.Minute,
-				wantSamplesLen: 5,
+				wantSamplesLen: 10,
 			},
 			{
 				desc:           "max",
@@ -195,10 +200,10 @@ func TestRTTMonitor(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			assert.Eventuallyf(
 				t,
-				func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 },
+				func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 && rtt.getRTT90() > 0 },
 				1*time.Second,
 				10*time.Millisecond,
-				"expected getRTT() and getMinRTT() to return positive durations within 1 second")
+				"expected getRTT(), getMinRTT() and getRTT90() to return positive durations within 1 second")
 			rtt.reset()
 		}
 	})
@@ -262,6 +267,91 @@ func TestMin(t *testing.T) {
 
 			got := min(tc.samples, tc.minSamples)
 			assert.Equal(t, tc.want, got, "unexpected result from min()")
+		})
+	}
+}
+
+func TestPercentile(t *testing.T) {
+	cases := []struct {
+		desc       string
+		samples    []time.Duration
+		minSamples int
+		percentile float64
+		want       time.Duration
+	}{
+		{
+			desc:       "Should return 0 for fewer than minSamples samples",
+			samples:    []time.Duration{1, 0, 0, 0},
+			minSamples: 2,
+			percentile: 90.0,
+			want:       0,
+		},
+		{
+			desc:       "Should return 0 for empty samples slice",
+			samples:    []time.Duration{},
+			minSamples: 0,
+			percentile: 90.0,
+			want:       0,
+		},
+		{
+			desc:       "Should return 0 for no valid samples",
+			samples:    []time.Duration{0, 0, 0},
+			minSamples: 0,
+			percentile: 90.0,
+			want:       0,
+		},
+		{
+			desc:       "First tertile when minSamples = 0",
+			samples:    []time.Duration{1, 2, 3, 0, 0, 0},
+			minSamples: 0,
+			percentile: 33.34,
+			want:       1,
+		},
+		{
+			desc: "90th percentile when there are enough samples",
+			samples: []time.Duration{
+				100 * time.Millisecond,
+				200 * time.Millisecond,
+				300 * time.Millisecond,
+				400 * time.Millisecond,
+				500 * time.Millisecond,
+				600 * time.Millisecond,
+				700 * time.Millisecond,
+				800 * time.Millisecond,
+				900 * time.Millisecond,
+				1 * time.Second,
+				0, 0, 0},
+			minSamples: 10,
+			percentile: 90.0,
+			want:       900 * time.Millisecond,
+		},
+		{
+			desc: "10th percentile when there are enough samples",
+			samples: []time.Duration{
+				100 * time.Millisecond,
+				200 * time.Millisecond,
+				300 * time.Millisecond,
+				400 * time.Millisecond,
+				500 * time.Millisecond,
+				600 * time.Millisecond,
+				700 * time.Millisecond,
+				800 * time.Millisecond,
+				900 * time.Millisecond,
+				1 * time.Second,
+				0, 0, 0},
+			minSamples: 10,
+			percentile: 10.0,
+			want:       100 * time.Millisecond,
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+
+			got := percentile(tc.percentile, tc.samples, tc.minSamples)
+			assert.Equal(t, tc.want, got, "unexpected result from percentile()")
 		})
 	}
 }

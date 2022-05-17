@@ -20,7 +20,7 @@ import (
 
 const (
 	rttAlphaValue = 0.2
-	minSamples    = 5
+	minSamples    = 10
 	maxSamples    = 500
 )
 
@@ -53,7 +53,7 @@ func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	// Determine the number of samples we need to keep to store the minWindow of RTT durations. The
-	// number of samples must be between [5, 500].
+	// number of samples must be between [10, 500].
 	numSamples := int(math.Max(minSamples, math.Min(maxSamples, float64((cfg.minRTTWindow)/cfg.interval))))
 
 	return &rttMonitor{
@@ -161,8 +161,9 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 
 	r.samples[r.offset] = rtt
 	r.offset = (r.offset + 1) % len(r.samples)
-	// Set the minRTT and 90th percentile RTT of all collected samples. Require at least 5 samples before
-	// setting these to prevent noisy samples on startup from artificially increasing RTT.
+	// Set the minRTT and 90th percentile RTT of all collected samples. Require at least 10 samples before
+	// setting these to prevent noisy samples on startup from artificially increasing RTT and to allow the
+	// calculation of a 90th percentile.
 	r.minRTT = min(r.samples, minSamples)
 	r.RTT90 = percentile(90.0, r.samples, minSamples)
 
@@ -206,7 +207,7 @@ func percentile(perc float64, samples []time.Duration, minSamples int) time.Dura
 			floatSamples = append(floatSamples, float64(sample))
 		}
 	}
-	if len(floatSamples) < minSamples {
+	if len(floatSamples) == 0 || len(floatSamples) < minSamples {
 		return 0
 	}
 
