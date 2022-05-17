@@ -9,6 +9,7 @@ package operation
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
@@ -47,6 +48,7 @@ type Aggregate struct {
 	let                      bsoncore.Document
 	hasOutputStage           bool
 	customOptions            map[string]bsoncore.Value
+	timeout                  *time.Duration
 
 	result driver.CursorResponse
 }
@@ -107,6 +109,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		MinimumWriteConcernWireVersion: 5,
 		ServerAPI:                      a.serverAPI,
 		IsOutputAggregate:              a.hasOutputStage,
+		Timeout:                        a.timeout,
 	}.Execute(ctx, nil)
 
 }
@@ -145,7 +148,9 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 
 		dst = bsoncore.AppendValueElement(dst, "hint", a.hint)
 	}
-	if a.maxTimeMS != nil {
+
+	// Only append specified maxTimeMS if timeout is not also specified.
+	if a.maxTimeMS != nil && a.timeout == nil {
 
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *a.maxTimeMS)
 	}
@@ -405,5 +410,15 @@ func (a *Aggregate) CustomOptions(co map[string]bsoncore.Value) *Aggregate {
 	}
 
 	a.customOptions = co
+	return a
+}
+
+// Timeout sets the timeout for this operation.
+func (a *Aggregate) Timeout(timeout *time.Duration) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.timeout = timeout
 	return a
 }

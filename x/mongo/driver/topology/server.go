@@ -777,7 +777,7 @@ func (s *Server) check() (description.Server, error) {
 	}
 
 	if descPtr != nil {
-		// The check was successful. Set the average RTT and return.
+		// The check was successful. Set the average RTT and the 90th percentile RTT and return.
 		desc := *descPtr
 		desc = desc.SetAverageRTT(s.rttMonitor.getRTT())
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
@@ -817,6 +817,11 @@ func extractTopologyVersion(err error) *description.TopologyVersion {
 // MinRTT returns the minimum round-trip time to the server observed over the last 5 minutes.
 func (s *Server) MinRTT() time.Duration {
 	return s.rttMonitor.getMinRTT()
+}
+
+// RTT90 returns the 90th percentile round-trip time to the server observed over the last 5 minutes.
+func (s *Server) RTT90() time.Duration {
+	return s.rttMonitor.getRTT90()
 }
 
 // OperationCount returns the current number of in-progress operations for this server.

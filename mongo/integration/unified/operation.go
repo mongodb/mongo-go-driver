@@ -107,7 +107,9 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "createChangeStream":
 		return executeCreateChangeStream(ctx, op)
 	case "listDatabases":
-		return executeListDatabases(ctx, op)
+		return executeListDatabases(ctx, op, false)
+	case "listDatabaseNames":
+		return executeListDatabases(ctx, op, true)
 
 	// Database operations
 	case "createCollection":
@@ -138,10 +140,16 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeDeleteMany(ctx, op)
 	case "distinct":
 		return executeDistinct(ctx, op)
+	case "dropIndex":
+		return executeDropIndex(ctx, op)
+	case "dropIndexes":
+		return executeDropIndexes(ctx, op)
 	case "estimatedDocumentCount":
 		return executeEstimatedDocumentCount(ctx, op)
 	case "find":
 		return executeFind(ctx, op)
+	case "findOne":
+		return executeFindOne(ctx, op)
 	case "findOneAndDelete":
 		return executeFindOneAndDelete(ctx, op)
 	case "findOneAndReplace":

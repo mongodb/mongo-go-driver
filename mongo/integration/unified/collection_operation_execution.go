@@ -301,10 +301,7 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		Options: indexOpts,
 	}
 	name, err := coll.Indexes().CreateOne(ctx, model)
-	if err != nil {
-		return nil, err
-	}
-	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), nil), nil
+	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), err), nil
 }
 
 func executeDeleteOne(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -468,6 +465,61 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 	return newValueResult(bsontype.Array, rawRes, nil), nil
 }
 
+func executeDropIndex(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var name string
+	dropIndexOpts := options.DropIndexes()
+
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "name":
+			name = val.StringValue()
+		case "maxTimeMS":
+			dropIndexOpts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		default:
+			return nil, fmt.Errorf("unrecognized dropIndex option %q", key)
+		}
+	}
+	if name == "" {
+		return nil, newMissingArgumentError("name")
+	}
+
+	res, err := coll.Indexes().DropOne(ctx, name, dropIndexOpts)
+	return newDocumentResult(res, err), nil
+}
+
+func executeDropIndexes(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	dropIndexOpts := options.DropIndexes()
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "maxTimeMS":
+			dropIndexOpts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		default:
+			return nil, fmt.Errorf("unrecognized dropIndexes option %q", key)
+		}
+	}
+
+	res, err := coll.Indexes().DropAll(ctx, dropIndexOpts)
+	return newDocumentResult(res, err), nil
+}
+
 func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
@@ -538,6 +590,60 @@ func executeFind(ctx context.Context, operation *operation) (*operationResult, e
 	return newCursorResult(docs), nil
 }
 
+func executeFindOne(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var filter bson.Raw
+	opts := options.FindOne()
+
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "collation":
+			collation, err := createCollation(val.Document())
+			if err != nil {
+				return nil, fmt.Errorf("error creating collation: %v", err)
+			}
+			opts.SetCollation(collation)
+		case "filter":
+			filter = val.Document()
+		case "hint":
+			hint, err := createHint(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating hint: %v", err)
+			}
+			opts.SetHint(hint)
+		case "maxTimeMS":
+			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+		case "projection":
+			opts.SetProjection(val.Document())
+		case "sort":
+			opts.SetSort(val.Document())
+		default:
+			return nil, fmt.Errorf("unrecognized findOne option %q", key)
+		}
+	}
+	if filter == nil {
+		return nil, newMissingArgumentError("filter")
+	}
+
+	res, err := coll.FindOne(ctx, filter, opts).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
+	// returned in a find operation has no associated documents, DecodeBytes will
+	// return ErrNoDocuments.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+
+	return newDocumentResult(res, err), nil
+}
+
 func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
@@ -589,6 +695,13 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 	}
 
 	res, err := coll.FindOneAndDelete(ctx, filter, opts).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
+	// returned in a find operation has no associated documents, DecodeBytes will
+	// return ErrNoDocuments.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+
 	return newDocumentResult(res, err), nil
 }
 
@@ -662,6 +775,13 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 	}
 
 	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
+	// returned in a find operation has no associated documents, DecodeBytes will
+	// return ErrNoDocuments.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+
 	return newDocumentResult(res, err), nil
 }
 
@@ -742,6 +862,13 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 	}
 
 	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
+	// returned in a find operation has no associated documents, DecodeBytes will
+	// return ErrNoDocuments.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+
 	return newDocumentResult(res, err), nil
 }
 

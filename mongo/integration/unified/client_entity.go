@@ -390,6 +390,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			wcSet = true
 		case "waitQueueTimeoutMS":
 			return newSkipTestError("the waitQueueTimeoutMS client option is not supported")
+		case "timeoutMS":
+			clientOpts.SetTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		default:
 			return fmt.Errorf("unrecognized URI option %s", key)
 		}
