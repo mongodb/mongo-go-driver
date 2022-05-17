@@ -10,6 +10,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,9 +22,90 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type saturatedConnections map[uint64]bool
+
+// saturatedHosts is used to maintain information about events with specific host+pool combinations.
+type saturatedHosts map[string]saturatedConnections
+
+func (set saturatedHosts) add(host string, connectionID uint64) {
+	if set[host] == nil {
+		set[host] = make(saturatedConnections)
+	}
+	set[host][connectionID] = true
+}
+
+// isSaturated returns true when each client on the cluster URI has a tolerable number of ready connections.
+func (set saturatedHosts) isSaturated(tolerance uint64) bool {
+	for _, host := range options.Client().ApplyURI(mtest.ClusterURI()).Hosts {
+		if cxns := set[host]; cxns == nil || uint64(len(cxns)) < tolerance {
+			return false
+		}
+	}
+	return true
+}
+
+// awaitSaturation uses CMAP events to ensure that the client's connection pools for N-mongoses have been saturated.
+// The qualification for a host to be "saturated" is for each host on the client to have a tolerable number of ready
+// connections.
+func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor, tolerance uint64) error {
+	set := make(saturatedHosts)
+	var err error
+	for !set.isSaturated(tolerance) {
+		if err = ctx.Err(); err != nil {
+			break
+		}
+		if err = mt.Coll.FindOne(ctx, bson.D{}).Err(); err != nil {
+			break
+		}
+		monitor.Events(func(evt *event.PoolEvent) bool {
+			// Add host only when the connection is ready for use.
+			if evt.Type == event.ConnectionReady {
+				set.add(evt.Address, evt.ConnectionID)
+			}
+			return true
+		})
+	}
+	return err
+}
+
+// runsServerSelection will run opCount-many `FindOne` operations within threadCount-many go routines.  The purpose of
+// this is to test the reliability of the server selection algorithm, which can be verified with the `counts` map and
+// `event.PoolEvent` slice.
+func runsServerSelection(mt *mtest.T, monitor *monitor.TestPoolMonitor,
+	threadCount, opCount int) (map[string]int, []*event.PoolEvent) {
+	var wg sync.WaitGroup
+	for i := 0; i < threadCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < opCount; i++ {
+				res := mt.Coll.FindOne(context.Background(), bson.D{})
+				assert.NoError(mt.T, res.Err(), "FindOne() error for Collection '%s'", mt.Coll.Name())
+			}
+		}()
+	}
+	wg.Wait()
+
+	// Get all checkOut events and calculate the number of times each server was selected. The prose test spec says to
+	// use command monitoring events, but those don't include the server address, so use checkOut events instead.
+	checkOutEvents := monitor.Events(func(evt *event.PoolEvent) bool {
+		return evt.Type == event.GetStarted
+	})
+	counts := make(map[string]int)
+	for _, evt := range checkOutEvents {
+		counts[evt.Address]++
+	}
+	assert.Equal(mt, 2, len(counts), "expected exactly 2 server addresses")
+	return counts, checkOutEvents
+}
+
 // TestServerSelectionProse implements the Server Selection prose tests:
 // https://github.com/mongodb/specifications/blob/master/source/server-selection/server-selection-tests.rst
 func TestServerSelectionProse(t *testing.T) {
+	const maxPoolSize = 10
+	const localThreshold = 30 * time.Second
+
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 	defer mt.Close()
 
@@ -65,6 +147,9 @@ func TestServerSelectionProse(t *testing.T) {
 		topologyEvents := make(chan *event.TopologyDescriptionChangedEvent, 10)
 		tpm := monitor.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
+			SetLocalThreshold(localThreshold).
+			SetMaxPoolSize(maxPoolSize).
+			SetMinPoolSize(maxPoolSize).
 			SetHosts(hosts[:2]).
 			SetPoolMonitor(tpm.PoolMonitor).
 			SetAppName("loadBalancingTest").
@@ -79,34 +164,14 @@ func TestServerSelectionProse(t *testing.T) {
 				break
 			}
 		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-		// Start 10 goroutines that each run 10 findOne operations.
-		var wg sync.WaitGroup
-		for i := 0; i < 10; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
-				for i := 0; i < 10; i++ {
-					res := mt.Coll.FindOne(context.Background(), bson.D{})
-					assert.NoError(t, res.Err(), "FindOne() error")
-				}
-			}()
+		if err := awaitSaturation(ctx, mt, tpm, maxPoolSize); err != nil {
+			mt.Fatalf("Error awaiting saturation: %v", err.Error())
 		}
-		wg.Wait()
 
-		// Get all checkOut events and calculate the number of times each server was selected. The
-		// prose test spec says to use command monitoring events, but those don't include the server
-		// address, so use checkOut events instead.
-		checkOutEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-			return evt.Type == event.GetStarted
-		})
-		counts := make(map[string]int)
-		for _, evt := range checkOutEvents {
-			counts[evt.Address]++
-		}
-		assert.Equal(mt, 2, len(counts), "expected exactly 2 server addresses")
-
+		counts, checkOutEvents := runsServerSelection(mt, tpm, 10, 10)
 		// Calculate the frequency that the server with the failpoint was selected. Assert that it
 		// was selected less than 25% of the time.
 		frequency := float64(counts[failpointHost]) / float64(len(checkOutEvents))
@@ -132,6 +197,9 @@ func TestServerSelectionProse(t *testing.T) {
 		mt.ResetClient(options.Client().
 			SetHosts(hosts[:2]).
 			SetPoolMonitor(tpm.PoolMonitor).
+			SetLocalThreshold(localThreshold).
+			SetMaxPoolSize(maxPoolSize).
+			SetMinPoolSize(maxPoolSize).
 			SetServerMonitor(&event.ServerMonitor{
 				TopologyDescriptionChanged: func(evt *event.TopologyDescriptionChangedEvent) {
 					topologyEvents <- evt
@@ -143,35 +211,14 @@ func TestServerSelectionProse(t *testing.T) {
 				break
 			}
 		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-		// Start 25 goroutines that each run 200 findOne operations. Run more operations than the
-		// prose test specifies to get more samples and reduce intermittent test failures.
-		var wg sync.WaitGroup
-		for i := 0; i < 25; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
-				for i := 0; i < 200; i++ {
-					res := mt.Coll.FindOne(context.Background(), bson.D{})
-					assert.NoError(mt, res.Err(), "FindOne() error")
-				}
-			}()
+		if err := awaitSaturation(ctx, mt, tpm, maxPoolSize); err != nil {
+			mt.Fatalf("Error awaiting saturation: %v", err.Error())
 		}
-		wg.Wait()
 
-		// Get all checkOut events and calculate the number of times each server was selected. The
-		// prose test spec says to use command monitoring events, but those don't include the server
-		// address, so use checkOut events instead.
-		checkOutEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-			return evt.Type == event.GetStarted
-		})
-		counts := make(map[string]int)
-		for _, evt := range checkOutEvents {
-			counts[evt.Address]++
-		}
-		assert.Equal(mt, 2, len(counts), "expected exactly 2 server addresses")
-
+		counts, checkOutEvents := runsServerSelection(mt, tpm, 10, 100)
 		// Calculate the frequency that each server was selected. Assert that each server was
 		// selected 50% (+/- 10%) of the time.
 		for addr, count := range counts {
