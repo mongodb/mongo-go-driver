@@ -16,8 +16,6 @@ import (
 
 var (
 	supportedSchemaVersions = map[int]string{
-		// TODO: 1.7 support will be added in GODRIVER-1986.
-		// TODO: Claim to support 1.8 to run tests added in GODRIVER-2352.
 		1: "1.8",
 	}
 )
