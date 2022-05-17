@@ -41,6 +41,7 @@ const (
 	gridFSChunks           = "fs.chunks"
 	spec1403SkipReason     = "servers less than 4.2 do not have mongocryptd; see SPEC-1403"
 	godriver2123SkipReason = "failpoints and timeouts together cause failures; see GODRIVER-2123"
+	godriver2413SkipReason = "encryptedFields argument is not supported on Collection.Drop; see GODRIVER-2413"
 )
 
 var (
@@ -55,6 +56,9 @@ var (
 		// i/o timeout.
 		"Ignore network timeout error on find":             godriver2123SkipReason,
 		"Network error on minPoolSize background creation": godriver2123SkipReason,
+		"CreateCollection from encryptedFields.":           godriver2413SkipReason,
+		"DropCollection from encryptedFields":              godriver2413SkipReason,
+		"DropCollection from remote encryptedFields":       godriver2413SkipReason,
 	}
 )
 

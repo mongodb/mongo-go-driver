@@ -155,6 +155,13 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 			aeo.SetKeyVaultNamespace(opt.StringValue())
 		case "bypassAutoEncryption":
 			aeo.SetBypassAutoEncryption(opt.Boolean())
+		case "encryptedFieldsMap":
+			var encryptedFieldsMap map[string]interface{}
+			err := bson.Unmarshal(opt.Document(), &encryptedFieldsMap)
+			if err != nil {
+				t.Fatalf("error creating encryptedFieldsMap: %v", err)
+			}
+			aeo.SetEncryptedFieldsMap(encryptedFieldsMap)
 		default:
 			t.Fatalf("unrecognized auto encryption option: %v", name)
 		}

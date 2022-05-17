@@ -1734,6 +1734,68 @@ func (coll *Collection) Indexes() IndexView {
 // Drop drops the collection on the server. This method ignores "namespace not found" errors so it is safe to drop
 // a collection that does not exist on the server.
 func (coll *Collection) Drop(ctx context.Context) error {
+	// Follow Client-Side Encryption specification to check for encryptedFields.
+	// Drop does not have an encryptedFields option. See: GODRIVER-2413.
+	// Check for encryptedFields from the client EncryptedFieldsMap.
+	// Check for encryptedFields from the server if EncryptedFieldsMap is set.
+	ef := coll.db.getEncryptedFieldsFromMap(coll.name)
+	if ef == nil && coll.db.client.encryptedFieldsMap != nil {
+		var err error
+		if ef, err = coll.db.getEncryptedFieldsFromServer(ctx, coll.name); err != nil {
+			return err
+		}
+	}
+
+	if ef != nil {
+		return coll.dropEncryptedCollection(ctx, ef)
+	}
+
+	return coll.drop(ctx)
+}
+
+// dropEncryptedCollection drops a collection with EncryptedFields.
+func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interface{}) error {
+	efBSON, err := transformBsoncoreDocument(coll.registry, ef, true /* mapAllowed */, "encryptedFields")
+	if err != nil {
+		return fmt.Errorf("error transforming document: %v", err)
+	}
+
+	// Drop the data collection.
+	if err := coll.drop(ctx); err != nil {
+		return err
+	}
+	// Drop the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
+	// Drop ESCCollection.
+	escCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "esc")
+	if err != nil {
+		return err
+	}
+	if err := coll.db.Collection(escCollection).drop(ctx); err != nil {
+		return err
+	}
+
+	// Drop ECCCollection.
+	eccCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "ecc")
+	if err != nil {
+		return err
+	}
+	if err := coll.db.Collection(eccCollection).drop(ctx); err != nil {
+		return err
+	}
+
+	// Drop ECOCCollection.
+	ecocCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "ecoc")
+	if err != nil {
+		return err
+	}
+	if err := coll.db.Collection(ecocCollection).drop(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+// drop drops a collection without EncryptedFields.
+func (coll *Collection) drop(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}

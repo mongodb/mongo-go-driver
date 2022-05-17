@@ -1363,6 +1363,8 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 		val := elem.Value()
 
 		switch key {
+		case "encryptedFields":
+			mt.Fatalf("unsupported field: encryptedFields")
 		case "collection":
 			collName = val.StringValue()
 		default:
@@ -1383,6 +1385,8 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
 	mt.Helper()
 
+	cco := options.CreateCollection()
+
 	var collName string
 	elems, _ := args.Elements()
 	for _, elem := range elems {
@@ -1390,6 +1394,8 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 		val := elem.Value()
 
 		switch key {
+		case "encryptedFields":
+			cco.SetEncryptedFields(val.Document())
 		case "collection":
 			collName = val.StringValue()
 		case "session":
@@ -1398,16 +1404,13 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 		}
 	}
 
-	createCmd := bson.D{
-		{"create", collName},
-	}
 	if sess != nil {
 		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			return mt.DB.RunCommand(sc, createCmd).Err()
+			return mt.DB.CreateCollection(sc, collName, cco)
 		})
 		return err
 	}
-	return mt.DB.RunCommand(context.Background(), createCmd).Err()
+	return mt.DB.CreateCollection(context.Background(), collName, cco)
 }
 
 func executeAdminCommand(mt *mtest.T, op *operation) {
