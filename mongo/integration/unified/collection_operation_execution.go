@@ -830,6 +830,36 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 	return newCursorResult(docs), nil
 }
 
+func executeRenameCollection(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var toName string
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "to":
+			toName = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized rename option %q", key)
+		}
+	}
+
+	renameCmd := bson.D{
+		{"renameCollection", coll.Database().Name() + "." + coll.Name()},
+		{"to", coll.Database().Name() + "." + toName},
+	}
+	// rename can only be run on the 'admin' database.
+	admin := coll.Database().Client().Database("admin")
+	res, err := admin.RunCommand(context.Background(), renameCmd).DecodeBytes()
+	return newDocumentResult(res, err), nil
+}
+
 func executeReplaceOne(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
