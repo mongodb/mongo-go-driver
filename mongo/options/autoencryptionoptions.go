@@ -32,6 +32,7 @@ type AutoEncryptionOptions struct {
 	BypassAutoEncryption  *bool
 	ExtraOptions          map[string]interface{}
 	TLSConfig             map[string]*tls.Config
+	EncryptedFieldsMap    map[string]interface{}
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -113,6 +114,12 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 	return a
 }
 
+// SetEncryptedFieldsMap specifies a map from namespace to local EncryptedFieldsMap document.
+func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{}) *AutoEncryptionOptions {
+	a.EncryptedFieldsMap = ef
+	return a
+}
+
 // MergeAutoEncryptionOptions combines the argued AutoEncryptionOptions in a last-one wins fashion.
 func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionOptions {
 	aeo := AutoEncryption()
@@ -141,6 +148,9 @@ func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionO
 		}
 		if opt.TLSConfig != nil {
 			aeo.TLSConfig = opt.TLSConfig
+		}
+		if opt.EncryptedFieldsMap != nil {
+			aeo.EncryptedFieldsMap = opt.EncryptedFieldsMap
 		}
 	}
 

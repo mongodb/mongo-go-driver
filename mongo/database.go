@@ -508,6 +508,158 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
 	cco := options.MergeCreateCollectionOptions(opts...)
+	// Follow Client-Side Encryption specification to check for encryptedFields.
+	// Check for encryptedFields from create options.
+	ef := cco.EncryptedFields
+	// Check for encryptedFields from the client EncryptedFieldsMap.
+	if ef == nil {
+		ef = db.getEncryptedFieldsFromMap(name)
+	}
+	if ef != nil {
+		return db.createCollectionWithEncryptedFields(ctx, name, ef, opts...)
+	}
+
+	return db.createCollection(ctx, name, opts...)
+}
+
+// getEncryptedFieldsFromServer tries to get an "encryptedFields" document associated with collectionName by running the "listCollections" command.
+// Returns nil and no error if the listCollections command succeeds, but "encryptedFields" is not present.
+func (db *Database) getEncryptedFieldsFromServer(ctx context.Context, collectionName string) (interface{}, error) {
+	// Check if collection has an EncryptedFields configured server-side.
+	collSpecs, err := db.ListCollectionSpecifications(ctx, bson.D{{"name", collectionName}})
+	if err != nil {
+		return nil, err
+	}
+	if len(collSpecs) == 0 {
+		return nil, nil
+	}
+	if len(collSpecs) > 1 {
+		return nil, fmt.Errorf("expected 1 or 0 results from listCollections, got %v", len(collSpecs))
+	}
+	collSpec := collSpecs[0]
+	rawValue, err := collSpec.Options.LookupErr("encryptedFields")
+	if err == bsoncore.ErrElementNotFound {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	encryptedFields, ok := rawValue.DocumentOK()
+	if !ok {
+		return nil, fmt.Errorf("expected encryptedFields of %v to be document, got %v", collectionName, rawValue.Type)
+	}
+
+	return encryptedFields, nil
+}
+
+// getEncryptedFieldsFromServer tries to get an "encryptedFields" document associated with collectionName by checking the client EncryptedFieldsMap.
+// Returns nil and no error if an EncryptedFieldsMap is not configured, or does not contain an entry for collectionName.
+func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{} {
+	// Check the EncryptedFieldsMap
+	efMap := db.client.encryptedFieldsMap
+	if efMap == nil {
+		return nil
+	}
+
+	namespace := db.name + "." + collectionName
+
+	ef, ok := efMap[namespace]
+	if ok {
+		return ef
+	}
+	return nil
+}
+
+// getEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
+func getEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (string, error) {
+	if stateCollectionSuffix != "esc" && stateCollectionSuffix != "ecc" && stateCollectionSuffix != "ecoc" {
+		return "", fmt.Errorf("expected stateCollectionSuffix: esc, ecc, or ecoc. got %v", stateCollectionSuffix)
+	}
+	fieldName := stateCollectionSuffix + "Collection"
+	var val bsoncore.Value
+	var err error
+	if val, err = efBSON.LookupErr(fieldName); err != nil {
+		if err != bsoncore.ErrElementNotFound {
+			return "", err
+		}
+		// Return default name.
+		defaultName := "enxcol_." + dataCollectionName + "." + stateCollectionSuffix
+		return defaultName, nil
+	}
+
+	var stateCollectionName string
+	var ok bool
+	if stateCollectionName, ok = val.StringValueOK(); !ok {
+		return "", fmt.Errorf("expected string for '%v', got: %v", fieldName, val.Type)
+	}
+	return stateCollectionName, nil
+}
+
+// createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
+func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, ef interface{}, opts ...*options.CreateCollectionOptions) error {
+	efBSON, err := transformBsoncoreDocument(db.registry, ef, true /* mapAllowed */, "encryptedFields")
+	if err != nil {
+		return fmt.Errorf("error transforming document: %v", err)
+	}
+
+	// Create the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
+	// Create ESCCollection.
+	escCollection, err := getEncryptedStateCollectionName(efBSON, name, "esc")
+	if err != nil {
+		return err
+	}
+	if err := db.createCollection(ctx, escCollection); err != nil {
+		return err
+	}
+
+	// Create ECCCollection.
+	eccCollection, err := getEncryptedStateCollectionName(efBSON, name, "ecc")
+	if err != nil {
+		return err
+	}
+	if err := db.createCollection(ctx, eccCollection); err != nil {
+		return err
+	}
+
+	// Create ECOCCollection.
+	ecocCollection, err := getEncryptedStateCollectionName(efBSON, name, "ecoc")
+	if err != nil {
+		return err
+	}
+	if err := db.createCollection(ctx, ecocCollection); err != nil {
+		return err
+	}
+
+	// Create a data collection with the 'encryptedFields' option.
+	op, err := db.createCollectionOperation(name, opts...)
+	if err != nil {
+		return err
+	}
+
+	op.EncryptedFields(efBSON)
+	if err := db.executeCreateOperation(ctx, op); err != nil {
+		return err
+	}
+
+	// Create an index on the __safeContent__ field in the collection @collectionName.
+	if _, err := db.Collection(name).Indexes().CreateOne(ctx, IndexModel{Keys: bson.D{{"__safeContent__", 1}}}); err != nil {
+		return fmt.Errorf("error creating safeContent index: %v", err)
+	}
+
+	return nil
+}
+
+// createCollection creates a collection without EncryptedFields.
+func (db *Database) createCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
+	op, err := db.createCollectionOperation(name, opts...)
+	if err != nil {
+		return err
+	}
+	return db.executeCreateOperation(ctx, op)
+}
+
+func (db *Database) createCollectionOperation(name string, opts ...*options.CreateCollectionOptions) (*operation.Create, error) {
+	cco := options.MergeCreateCollectionOptions(opts...)
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
 
 	if cco.Capped != nil {
@@ -519,7 +671,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 	if cco.ChangeStreamPreAndPostImages != nil {
 		csppi, err := transformBsoncoreDocument(db.registry, cco.ChangeStreamPreAndPostImages, true, "changeStreamPreAndPostImages")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		op.ChangeStreamPreAndPostImages(csppi)
 	}
@@ -528,14 +680,14 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 		if cco.DefaultIndexOptions.StorageEngine != nil {
 			storageEngine, err := transformBsoncoreDocument(db.registry, cco.DefaultIndexOptions.StorageEngine, true, "storageEngine")
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			doc = bsoncore.AppendDocumentElement(doc, "storageEngine", storageEngine)
 		}
 		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		op.IndexOptionDefaults(doc)
@@ -549,7 +701,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 	if cco.StorageEngine != nil {
 		storageEngine, err := transformBsoncoreDocument(db.registry, cco.StorageEngine, true, "storageEngine")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		op.StorageEngine(storageEngine)
 	}
@@ -562,7 +714,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 	if cco.Validator != nil {
 		validator, err := transformBsoncoreDocument(db.registry, cco.Validator, true, "validator")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		op.Validator(validator)
 	}
@@ -582,13 +734,13 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*
 
 		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		op.TimeSeries(doc)
 	}
 
-	return db.executeCreateOperation(ctx, op)
+	return op, nil
 }
 
 // CreateView executes a create command to explicitly create a view on the server. See
