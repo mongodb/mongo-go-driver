@@ -104,6 +104,9 @@ func IsTimeout(err error) bool {
 		if err == context.DeadlineExceeded {
 			return true
 		}
+		if err == driver.ErrDeadlineWouldBeExceeded {
+			return true
+		}
 		if ne, ok := err.(net.Error); ok {
 			return ne.Timeout()
 		}

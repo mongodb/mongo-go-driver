@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
@@ -39,6 +40,7 @@ type Delete struct {
 	result       DeleteResult
 	serverAPI    *driver.ServerAPIOptions
 	let          bsoncore.Document
+	timeout      *time.Duration
 }
 
 // DeleteResult represents a delete result returned by the server.
@@ -108,6 +110,7 @@ func (d *Delete) Execute(ctx context.Context) error {
 		Selector:          d.selector,
 		WriteConcern:      d.writeConcern,
 		ServerAPI:         d.serverAPI,
+		Timeout:           d.timeout,
 	}.Execute(ctx, nil)
 
 }
@@ -297,5 +300,15 @@ func (d *Delete) Let(let bsoncore.Document) *Delete {
 	}
 
 	d.let = let
+	return d
+}
+
+// Timeout sets the timeout for this operation.
+func (d *Delete) Timeout(timeout *time.Duration) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.timeout = timeout
 	return d
 }

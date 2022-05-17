@@ -460,6 +460,11 @@ func (lbcd *loadBalancedCursorDeployment) MinRTT() time.Duration {
 	return 0
 }
 
+// RTT90 always returns 0. It implements the driver.Server interface.
+func (lbcd *loadBalancedCursorDeployment) RTT90() time.Duration {
+	return 0
+}
+
 func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {
 	return lbcd.errorProcessor.ProcessError(err, conn)
 }

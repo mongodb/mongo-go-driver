@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -34,6 +35,7 @@ type DropIndexes struct {
 	writeConcern *writeconcern.WriteConcern
 	result       DropIndexesResult
 	serverAPI    *driver.ServerAPIOptions
+	timeout      *time.Duration
 }
 
 // DropIndexesResult represents a dropIndexes result returned by the server.
@@ -95,6 +97,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		Selector:          di.selector,
 		WriteConcern:      di.writeConcern,
 		ServerAPI:         di.serverAPI,
+		Timeout:           di.timeout,
 	}.Execute(ctx, nil)
 
 }
@@ -104,7 +107,8 @@ func (di *DropIndexes) command(dst []byte, desc description.SelectedServer) ([]b
 	if di.index != nil {
 		dst = bsoncore.AppendStringElement(dst, "index", *di.index)
 	}
-	if di.maxTimeMS != nil {
+	// Only append specified maxTimeMS if timeout is not also specified.
+	if di.maxTimeMS != nil && di.timeout == nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *di.maxTimeMS)
 	}
 	return dst, nil
@@ -228,5 +232,15 @@ func (di *DropIndexes) ServerAPI(serverAPI *driver.ServerAPIOptions) *DropIndexe
 	}
 
 	di.serverAPI = serverAPI
+	return di
+}
+
+// Timeout sets the timeout for this operation.
+func (di *DropIndexes) Timeout(timeout *time.Duration) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.timeout = timeout
 	return di
 }

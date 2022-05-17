@@ -66,6 +66,7 @@ type Client struct {
 	serverAPI       *driver.ServerAPIOptions
 	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
+	timeout         *time.Duration
 
 	// client-side encryption fields
 	keyVaultClientFLE  *Client
@@ -634,6 +635,10 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			topology.WithWriteTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
 		)
 	}
+	// Timeout
+	if opts.Timeout != nil {
+		c.timeout = opts.Timeout
+	}
 	// TLSConfig
 	if opts.TLSConfig != nil {
 		connOpts = append(connOpts, topology.WithTLSConfig(
@@ -909,7 +914,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
-		ServerAPI(c.serverAPI)
+		ServerAPI(c.serverAPI).Timeout(c.timeout)
 
 	if ldo.NameOnly != nil {
 		op = op.NameOnly(*ldo.NameOnly)
@@ -1019,6 +1024,7 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 		registry:       c.registry,
 		streamType:     ClientStream,
 		crypt:          c.cryptFLE,
+		timeout:        c.timeout,
 	}
 
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
