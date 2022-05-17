@@ -429,19 +429,6 @@ func (em *EntityMap) addDatabaseEntity(entityOptions *entityOptions) error {
 	return nil
 }
 
-var (
-	envVarAwsAccessKeyID         = "AWS_ACCESS_KEY_ID"
-	envVarAwsSecretAccessKey     = "AWS_SECRET_ACCESS_KEY"
-	envVarAwsTempAccessKeyID     = "CSFLE_AWS_TEMP_ACCESS_KEY_ID"
-	envVarAwsTempSecretAccessKey = "CSFLE_AWS_TEMP_SECRET_ACCESS_KEY"
-	envVarAwsTempSessionToken    = "CSFLE_AWS_TEMP_SESSION_TOKEN"
-	envVarAzureTenantID          = "AZURE_TENANT_ID"
-	envVarAzureClientID          = "AZURE_CLIENT_ID"
-	envVarAzureClientSecret      = "AZURE_CLIENT_SECRET"
-	envVarGcpEmail               = "GCP_EMAIL"
-	envVarGcpPrivateKey          = "GCP_PRIVATE_KEY"
-)
-
 // getKmsCredential processes a value of an input KMS provider credential.
 // An empty document returns from the environment.
 // A string is returned as-is.
@@ -485,14 +472,14 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	if aws, ok := ceo.KmsProviders["aws"]; ok {
 		kmsProviders["aws"] = make(map[string]interface{})
 
-		awsSessionToken, err := getKmsCredential(aws, "sessionToken", envVarAwsTempSessionToken, "")
+		awsSessionToken, err := getKmsCredential(aws, "sessionToken", "CSFLE_AWS_TEMP_SESSION_TOKEN", "")
 		if err != nil {
 			return err
 		}
 		if awsSessionToken != "" {
 			// Get temporary AWS credentials.
 			kmsProviders["aws"]["sessionToken"] = awsSessionToken
-			awsAccessKeyID, err := getKmsCredential(aws, "accessKeyId", envVarAwsTempAccessKeyID, "")
+			awsAccessKeyID, err := getKmsCredential(aws, "accessKeyId", "CSFLE_AWS_TEMP_ACCESS_KEY_ID", "")
 			if err != nil {
 				return err
 			}
@@ -500,7 +487,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 				kmsProviders["aws"]["accessKeyId"] = awsAccessKeyID
 			}
 
-			awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", envVarAwsTempSecretAccessKey, "")
+			awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", "CSFLE_AWS_TEMP_SECRET_ACCESS_KEY", "")
 			if err != nil {
 				return err
 			}
@@ -508,7 +495,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 				kmsProviders["aws"]["secretAccessKey"] = awsSecretAccessKey
 			}
 		} else {
-			awsAccessKeyID, err := getKmsCredential(aws, "accessKeyId", envVarAwsAccessKeyID, "")
+			awsAccessKeyID, err := getKmsCredential(aws, "accessKeyId", "AWS_ACCESS_KEY_ID", "")
 			if err != nil {
 				return err
 			}
@@ -516,7 +503,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 				kmsProviders["aws"]["accessKeyId"] = awsAccessKeyID
 			}
 
-			awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", envVarAwsSecretAccessKey, "")
+			awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", "AWS_SECRET_ACCESS_KEY", "")
 			if err != nil {
 				return err
 			}
@@ -530,7 +517,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	if azure, ok := ceo.KmsProviders["azure"]; ok {
 		kmsProviders["azure"] = make(map[string]interface{})
 
-		azureTenantID, err := getKmsCredential(azure, "tenantId", envVarAzureTenantID, "")
+		azureTenantID, err := getKmsCredential(azure, "tenantId", "AZURE_TENANT_ID", "")
 		if err != nil {
 			return err
 		}
@@ -538,7 +525,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 			kmsProviders["azure"]["tenantId"] = azureTenantID
 		}
 
-		azureClientID, err := getKmsCredential(azure, "clientId", envVarAzureClientID, "")
+		azureClientID, err := getKmsCredential(azure, "clientId", "AZURE_CLIENT_ID", "")
 		if err != nil {
 			return err
 		}
@@ -546,7 +533,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 			kmsProviders["azure"]["clientId"] = azureClientID
 		}
 
-		azureClientSecret, err := getKmsCredential(azure, "clientSecret", envVarAzureClientSecret, "")
+		azureClientSecret, err := getKmsCredential(azure, "clientSecret", "AZURE_CLIENT_SECRET", "")
 		if err != nil {
 			return err
 		}
@@ -558,7 +545,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	if gcp, ok := ceo.KmsProviders["gcp"]; ok {
 		kmsProviders["gcp"] = make(map[string]interface{})
 
-		gcpEmail, err := getKmsCredential(gcp, "email", envVarGcpEmail, "")
+		gcpEmail, err := getKmsCredential(gcp, "email", "GCP_EMAIL", "")
 		if err != nil {
 			return err
 		}
@@ -566,7 +553,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 			kmsProviders["gcp"]["email"] = gcpEmail
 		}
 
-		gcpPrivateKey, err := getKmsCredential(gcp, "privateKey", envVarGcpPrivateKey, "")
+		gcpPrivateKey, err := getKmsCredential(gcp, "privateKey", "GCP_PRIVATE_KEY", "")
 		if err != nil {
 			return err
 		}
