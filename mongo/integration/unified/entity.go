@@ -434,35 +434,37 @@ func (em *EntityMap) addDatabaseEntity(entityOptions *entityOptions) error {
 // A string is returned as-is.
 func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string, defaultValue string) (string, error) {
 	credentialVal, err := kmsDocument.LookupErr(credentialName)
-	if err == nil {
-		if str, ok := credentialVal.StringValueOK(); ok {
-			return str, nil
-		}
-
-		if doc, ok := credentialVal.DocumentOK(); ok {
-			placeholderDoc := bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
-
-			// Check if document is a placeholder.
-			if !bytes.Equal(doc, placeholderDoc) {
-				return "", fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
-			}
-			if envVar == "" {
-				return defaultValue, nil
-			}
-			if os.Getenv(envVar) == "" {
-				if defaultValue != "" {
-					return defaultValue, nil
-				}
-				return "", fmt.Errorf("unable to get environment value for %v. Please set the CSFLE environment variable: %v", credentialName, envVar)
-			}
-			return os.Getenv(envVar), nil
-		}
-
-		return "", fmt.Errorf("expected String or Document for %v, got: %v", credentialName, credentialVal)
-	} else if err == bsoncore.ErrElementNotFound {
+	if err == bsoncore.ErrElementNotFound {
 		return "", nil
 	}
-	return "", err
+	if err != nil {
+		return "", err
+	}
+
+	if str, ok := credentialVal.StringValueOK(); ok {
+		return str, nil
+	}
+
+	if doc, ok := credentialVal.DocumentOK(); ok {
+		placeholderDoc := bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
+
+		// Check if document is a placeholder.
+		if !bytes.Equal(doc, placeholderDoc) {
+			return "", fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
+		}
+		if envVar == "" {
+			return defaultValue, nil
+		}
+		if os.Getenv(envVar) == "" {
+			if defaultValue != "" {
+				return defaultValue, nil
+			}
+			return "", fmt.Errorf("unable to get environment value for %v. Please set the CSFLE environment variable: %v", credentialName, envVar)
+		}
+		return os.Getenv(envVar), nil
+	}
+
+	return "", fmt.Errorf("expected String or Document for %v, got: %v", credentialName, credentialVal)
 }
 
 func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) error {
