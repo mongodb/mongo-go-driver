@@ -540,6 +540,9 @@ func TestClient(t *testing.T) {
 		}, 10*time.Second)
 	})
 
+	// TODO(GODRIVER-2405): Add a similar test to ensure that 90th percentile RTT is used to prevent
+	// TODO sending requests when Timeout is set on the Client.
+	//
 	// Test that if the minimum RTT is greater than the remaining timeout for an operation, the
 	// operation is not sent to the server and no connections are closed.
 	mt.Run("minimum RTT used to prevent sending requests", func(mt *mtest.T) {

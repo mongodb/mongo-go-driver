@@ -9,6 +9,7 @@ package operation
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -36,6 +37,7 @@ type Command struct {
 	serverAPI      *driver.ServerAPIOptions
 	createCursor   bool
 	cursorOpts     driver.CursorOptions
+	timeout        *time.Duration
 }
 
 // NewCommand constructs and returns a new Command. Once the operation is executed, the result may only be accessed via
@@ -103,6 +105,7 @@ func (c *Command) Execute(ctx context.Context) error {
 		Selector:       c.selector,
 		Crypt:          c.crypt,
 		ServerAPI:      c.serverAPI,
+		Timeout:        c.timeout,
 	}.Execute(ctx, nil)
 }
 
@@ -203,5 +206,15 @@ func (c *Command) ServerAPI(serverAPI *driver.ServerAPIOptions) *Command {
 	}
 
 	c.serverAPI = serverAPI
+	return c
+}
+
+// Timeout sets the timeout for this operation.
+func (c *Command) Timeout(timeout *time.Duration) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.timeout = timeout
 	return c
 }

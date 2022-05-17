@@ -8,10 +8,12 @@ package topology
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"sync"
 	"time"
 
+	"github.com/montanaflynn/stats"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -34,6 +36,7 @@ type rttMonitor struct {
 	samples       []time.Duration
 	offset        int
 	minRTT        time.Duration
+	RTT90         time.Duration
 	averageRTT    time.Duration
 	averageRTTSet bool
 
@@ -145,6 +148,7 @@ func (r *rttMonitor) reset() {
 	}
 	r.offset = 0
 	r.minRTT = 0
+	r.RTT90 = 0
 	r.averageRTT = 0
 	r.averageRTTSet = false
 }
@@ -157,9 +161,10 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 
 	r.samples[r.offset] = rtt
 	r.offset = (r.offset + 1) % len(r.samples)
-	// Set the minRTT as the minimum of all collected samples. Require at least 5 samples before
-	// setting minRTT to prevent noisy samples on startup from artificially increasing minRTT.
+	// Set the minRTT and 90th percentile RTT of all collected samples. Require at least 5 samples before
+	// setting these to prevent noisy samples on startup from artificially increasing RTT.
 	r.minRTT = min(r.samples, minSamples)
+	r.RTT90 = percentile(90.0, r.samples, minSamples)
 
 	if !r.averageRTTSet {
 		r.averageRTT = rtt
@@ -190,6 +195,28 @@ func min(samples []time.Duration, minSamples int) time.Duration {
 	return min
 }
 
+// percentile returns the specified percentile value of the slice of duration samples. Zero values
+// are not considered samples and are ignored. If no samples or fewer than minSamples are found
+// in the slice, percentile returns 0.
+func percentile(perc float64, samples []time.Duration, minSamples int) time.Duration {
+	// Convert Durations to float64s.
+	floatSamples := make([]float64, 0, len(samples))
+	for _, sample := range samples {
+		if sample > 0 {
+			floatSamples = append(floatSamples, float64(sample))
+		}
+	}
+	if len(floatSamples) < minSamples {
+		return 0
+	}
+
+	p, err := stats.Percentile(floatSamples, perc)
+	if err != nil {
+		panic(fmt.Errorf("x/mongo/driver/topology: error calculating %f percentile RTT: %v for samples:\n%v", perc, err, floatSamples))
+	}
+	return time.Duration(p)
+}
+
 // getRTT returns the exponentially weighted moving average observed round-trip time.
 func (r *rttMonitor) getRTT() time.Duration {
 	r.mu.RLock()
@@ -204,4 +231,12 @@ func (r *rttMonitor) getMinRTT() time.Duration {
 	defer r.mu.RUnlock()
 
 	return r.minRTT
+}
+
+// getRTT90 returns the 90th percentile observed round-trip time over the window period.
+func (r *rttMonitor) getRTT90() time.Duration {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return r.RTT90
 }

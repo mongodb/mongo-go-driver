@@ -30,8 +30,13 @@ var ErrNegativeWTimeout = errors.New("write concern `wtimeout` field cannot be n
 // WriteConcern describes the level of acknowledgement requested from MongoDB for write operations
 // to a standalone mongod or to replica sets or to sharded clusters.
 type WriteConcern struct {
-	w        interface{}
-	j        bool
+	w interface{}
+	j bool
+
+	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the
+	// driver. The more general Client, Database or Collection Timeout options should be used in
+	// its place to control the amount of time that a single operation can run before returning an
+	// error. wTimeout is still usable through the deprecated setter.
 	wTimeout time.Duration
 }
 
@@ -82,6 +87,11 @@ func J(j bool) Option {
 }
 
 // WTimeout specifies specifies a time limit for the write concern.
+//
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0
+// of the driver. The more general Client, Database or Collection Timeout options should
+// be used in its place to control the amount of time that a single operation can run before
+// returning an error.
 func WTimeout(d time.Duration) Option {
 	return func(concern *WriteConcern) {
 		concern.wTimeout = d

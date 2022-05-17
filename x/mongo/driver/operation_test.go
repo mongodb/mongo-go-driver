@@ -530,7 +530,7 @@ func TestOperation(t *testing.T) {
 						Kind: tc.server,
 					},
 				}
-				wm, _, err := op.createQueryWireMessage(wm, desc)
+				wm, _, err := op.createQueryWireMessage(0, wm, desc)
 				noerr(t, err)
 
 				// We know where the $query would be within the OP_QUERY, so we'll just index into there.
@@ -725,6 +725,10 @@ func (ms *mockRetryServer) Connection(ctx context.Context) (Connection, error) {
 }
 
 func (ms *mockRetryServer) MinRTT() time.Duration {
+	return 0
+}
+
+func (ms *mockRetryServer) RTT90() time.Duration {
 	return 0
 }
 
