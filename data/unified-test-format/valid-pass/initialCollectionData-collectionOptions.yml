@@ -27,6 +27,8 @@ tests:
   - description: collection is created with the correct options
     runOnRequirements:
       - minServerVersion: "3.6"
+        # Capped collections cannot be created on serverless instances.
+        serverless: forbid
     operations:
       # Execute a collStats command to ensure the collection was created with the correct options.
       - name: runCommand
