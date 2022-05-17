@@ -131,6 +131,11 @@ type CreateCollectionOptions struct {
 	//
 	// This option is only valid for MongoDB versions >= 5.0
 	TimeSeriesOptions *TimeSeriesOptions
+
+	// EncryptedFields configures encrypted fields.
+	//
+	// This option is only valid for MongoDB versions >= 6.0
+	EncryptedFields interface{}
 }
 
 // CreateCollection creates a new CreateCollectionOptions instance.
@@ -210,6 +215,12 @@ func (c *CreateCollectionOptions) SetTimeSeriesOptions(timeSeriesOpts *TimeSerie
 	return c
 }
 
+// SetEncryptedFields sets the encrypted fields for encrypted collections.
+func (c *CreateCollectionOptions) SetEncryptedFields(encryptedFields interface{}) *CreateCollectionOptions {
+	c.EncryptedFields = encryptedFields
+	return c
+}
+
 // MergeCreateCollectionOptions combines the given CreateCollectionOptions instances into a single
 // CreateCollectionOptions in a last-one-wins fashion.
 func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateCollectionOptions {
@@ -255,6 +266,9 @@ func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateColle
 		}
 		if opt.TimeSeriesOptions != nil {
 			cc.TimeSeriesOptions = opt.TimeSeriesOptions
+		}
+		if opt.EncryptedFields != nil {
+			cc.EncryptedFields = opt.EncryptedFields
 		}
 	}
 
