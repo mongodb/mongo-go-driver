@@ -66,7 +66,7 @@ func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, val
 
 	if isDocument && dc.DocumentDecodeType != nil {
 		// If the bsontype is an embedded document and the DocumentDecodeType is set on the DecodeContext, then just
-		// return that type.  This gives users an "escape hatch" to avoid the 1-1 embeded document to primitive.D
+		// return that type.  This gives users an "escape hatch" to avoid the 1-1 embedded document to primitive.D
 		// decoding map, but this solution is AON.
 		return *dc.DocumentDecodeType, nil
 	}

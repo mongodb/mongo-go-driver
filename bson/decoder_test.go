@@ -251,7 +251,9 @@ func TestDecoderv2(t *testing.T) {
 		var bsonOut someMap
 		dc := new(bsoncodec.DecodeContext).SetDocumentDecodeType(reflect.TypeOf(map[string]interface{}{}))
 		dec, _ := NewDecoderWithContext(*dc, bsonrw.NewBSONDocumentReader(bytes))
-		dec.Decode(&bsonOut)
+		if err := dec.Decode(&bsonOut); err != nil {
+			t.Fatal(err)
+		}
 
 		bsonOutType := reflect.TypeOf(bsonOut).String()
 		assert.Equal(t, inType, bsonOutType, "expected '%s' to equal '%s'", inType, bsonOutType)
