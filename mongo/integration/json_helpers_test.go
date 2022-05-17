@@ -648,25 +648,6 @@ func createCollation(t testing.TB, m bson.Raw) *options.Collation {
 	return &collation
 }
 
-func createChangeStreamOptions(t testing.TB, opts bson.Raw) *options.ChangeStreamOptions {
-	t.Helper()
-
-	csOpts := options.ChangeStream()
-	elems, _ := opts.Elements()
-	for _, elem := range elems {
-		key := elem.Key()
-		opt := elem.Value()
-
-		switch key {
-		case "batchSize":
-			csOpts.SetBatchSize(opt.Int32())
-		default:
-			t.Fatalf("unrecognized change stream option: %v", key)
-		}
-	}
-	return csOpts
-}
-
 func convertValueToMilliseconds(t testing.TB, val bson.RawValue) time.Duration {
 	t.Helper()
 
