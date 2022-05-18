@@ -60,6 +60,8 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 				}
 			}
 			cco.SetTimeSeriesOptions(tso)
+		case "clusteredIndex":
+			cco.SetClusteredIndex(val.Document())
 		default:
 			return nil, fmt.Errorf("unrecognized createCollection option %q", key)
 		}
