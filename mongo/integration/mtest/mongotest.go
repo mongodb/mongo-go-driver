@@ -107,7 +107,7 @@ type T struct {
 	enterprise        *bool
 	dataLake          *bool
 	ssl               *bool
-	collCreateOpts    bson.D
+	collCreateOpts    *options.CreateCollectionOptions
 	requireAPIVersion *bool
 
 	// options copied to sub-tests
@@ -416,12 +416,13 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 
 // Collection is used to configure a new collection created during a test.
 type Collection struct {
-	Name       string
-	DB         string        // defaults to mt.DB.Name() if not specified
-	Client     *mongo.Client // defaults to mt.Client if not specified
-	Opts       *options.CollectionOptions
-	CreateOpts bson.D
-
+	Name               string
+	DB                 string        // defaults to mt.DB.Name() if not specified
+	Client             *mongo.Client // defaults to mt.Client if not specified
+	Opts               *options.CollectionOptions
+	CreateOpts         *options.CreateCollectionOptions
+	ViewOn             string
+	ViewPipeline       interface{}
 	hasDifferentClient bool
 	created            *mongo.Collection // the actual collection that was created
 }
@@ -441,15 +442,19 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 	db := coll.Client.Database(coll.DB)
 
 	if createOnServer && t.clientType != Mock {
-		cmd := bson.D{{"create", coll.Name}}
-		cmd = append(cmd, coll.CreateOpts...)
+		var err error
+		if coll.ViewOn != "" {
+			err = db.CreateView(context.Background(), coll.Name, coll.ViewOn, coll.ViewPipeline)
+		} else {
+			err = db.CreateCollection(context.Background(), coll.Name, coll.CreateOpts)
+		}
 
-		if err := db.RunCommand(context.Background(), cmd).Err(); err != nil {
+		if err != nil {
 			// ignore NamespaceExists errors for idempotency
 
 			cmdErr, ok := err.(mongo.CommandError)
 			if !ok || cmdErr.Code != namespaceExistsErrCode {
-				t.Fatalf("error creating collection %v on server: %v", coll.Name, err)
+				t.Fatalf("error creating collection or view: %v on server: %v", coll.Name, err)
 			}
 		}
 	}

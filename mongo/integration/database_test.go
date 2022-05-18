@@ -199,7 +199,7 @@ func TestDatabase(t *testing.T) {
 					mt.CreateCollection(mtest.Collection{Name: listCollUncapped}, true)
 					mt.CreateCollection(mtest.Collection{
 						Name:       listCollCapped,
-						CreateOpts: bson.D{{"capped", true}, {"size", 64 * 1024}},
+						CreateOpts: options.CreateCollection().SetCapped(true).SetSizeInBytes(64 * 1024),
 					}, true)
 
 					filter := bson.D{}
@@ -281,11 +281,8 @@ func TestDatabase(t *testing.T) {
 			// Test that ListCollectionSpecifications correctly uses the supplied filter.
 			cappedName := "list-collection-specs-capped"
 			mt.CreateCollection(mtest.Collection{
-				Name: cappedName,
-				CreateOpts: bson.D{
-					{"capped", true},
-					{"size", 4096},
-				},
+				Name:       cappedName,
+				CreateOpts: options.CreateCollection().SetCapped(true).SetSizeInBytes(4096),
 			}, true)
 
 			filter := bson.M{
