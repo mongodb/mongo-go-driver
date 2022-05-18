@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -36,6 +37,10 @@ func TestRetryableReadsProse(t *testing.T) {
 	defer mt.Close()
 
 	mt.Run("PoolClearedError retryability", func(mt *mtest.T) {
+		if os.Getenv("SERVERLESS") == "serverless" {
+			mt.Skip("skipping as serverless has different pool clearing behavior")
+		}
+
 		// Insert a document to test collection.
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
