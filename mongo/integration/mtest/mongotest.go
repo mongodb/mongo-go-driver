@@ -449,7 +449,8 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 			err = db.CreateCollection(context.Background(), coll.Name, coll.CreateOpts)
 		}
 
-		if err != nil {
+		// ignore ErrUnacknowledgedWrite. Client may be configured with unacknowledged write concern.
+		if err != nil && err != driver.ErrUnacknowledgedWrite {
 			// ignore NamespaceExists errors for idempotency
 
 			cmdErr, ok := err.(mongo.CommandError)
