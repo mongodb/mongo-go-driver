@@ -22,8 +22,8 @@ func TestGlobalSource(t *testing.T) {
 		const iterations = 1e6
 		uuids := new(sync.Map)
 		var wg sync.WaitGroup
-		for i := 1; i < iterations; i++ {
-			wg.Add(1)
+		wg.Add(iterations)
+		for i := 0; i < iterations; i++ {
 			go func(i int) {
 				defer wg.Done()
 				uuid, err := New()
