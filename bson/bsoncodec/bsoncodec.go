@@ -124,7 +124,7 @@ type DecodeContext struct {
 	// will be decoded into a bson.M.
 	Ancestor reflect.Type
 
-	// DocumentDecodeType will decode embedded documents into the defined type, rather than into primitive.D.  This is
+	// DocumentDecodeType will decode embedded documents into the defined type, rather than into primitive.D. This is a
 	// work-around for custom typing and is All-Or-None.
 	DocumentDecodeType *reflect.Type
 }
