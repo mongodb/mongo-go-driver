@@ -1,3 +1,5 @@
+// Copied from https://cs.opensource.google/go/x/exp/+/24438e51023af3bfc1db8aed43c1342817e8cfcd:rand/rng.go
+
 // Copyright 2017 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -60,12 +62,12 @@ func (pcg *PCGSource) Uint64() uint64 {
 
 func (pcg *PCGSource) add() {
 	var carry uint64
-	pcg.low, carry = bits.Add64(pcg.low, incLow, 0)
-	pcg.high, _ = bits.Add64(pcg.high, incHigh, carry)
+	pcg.low, carry = Add64(pcg.low, incLow, 0)
+	pcg.high, _ = Add64(pcg.high, incHigh, carry)
 }
 
 func (pcg *PCGSource) multiply() {
-	hi, lo := bits.Mul64(pcg.low, mulLow)
+	hi, lo := Mul64(pcg.low, mulLow)
 	hi += pcg.high * mulLow
 	hi += pcg.low * mulHigh
 	pcg.low = lo

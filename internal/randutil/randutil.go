@@ -15,13 +15,14 @@ import (
 	xrand "go.mongodb.org/mongo-driver/internal/randutil/rand"
 )
 
-// GlobalRand is a package-global "x/exp/rand" pseudo-random number generator seeded with a
+// NewLockedRand returns a new "x/exp/rand" pseudo-random number generator seeded with a
 // cryptographically-secure random number.
-var GlobalRand = func() *xrand.Rand {
+// It is safe to use from multiple goroutines.
+func NewLockedRand() *xrand.Rand {
 	var randSrc = new(xrand.LockedSource)
 	randSrc.Seed(cryptoSeed())
 	return xrand.New(randSrc)
-}()
+}
 
 // cryptoSeed returns a random uint64 read from the "crypto/rand" random number generator. It is
 // intended to be used to seed pseudorandom number generators at package initialization. It panics

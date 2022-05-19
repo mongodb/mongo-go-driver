@@ -22,6 +22,9 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
+// random is a package-global pseudo-random number generator.
+var random = randutil.NewLockedRand()
+
 // ParseAndValidate parses the provided URI into a ConnString object.
 // It check that all values are valid.
 func ParseAndValidate(s string) (ConnString, error) {
@@ -307,7 +310,7 @@ func (p *parser) parse(original string) error {
 		// If p.SRVMaxHosts is non-zero and is less than the number of hosts, randomly
 		// select SRVMaxHosts hosts from parsedHosts.
 		if p.SRVMaxHosts > 0 && p.SRVMaxHosts < len(parsedHosts) {
-			randutil.GlobalRand.Shuffle(len(parsedHosts), func(i, j int) {
+			random.Shuffle(len(parsedHosts), func(i, j int) {
 				parsedHosts[i], parsedHosts[j] = parsedHosts[j], parsedHosts[i]
 			})
 			parsedHosts = parsedHosts[:p.SRVMaxHosts]

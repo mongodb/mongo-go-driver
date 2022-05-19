@@ -55,6 +55,9 @@ var ErrServerSelectionTimeout = errors.New("server selection timeout")
 // MonitorMode represents the way in which a server is monitored.
 type MonitorMode uint8
 
+// random is a package-global pseudo-random number generator.
+var random = randutil.NewLockedRand()
+
 // These constants are the available monitoring modes.
 const (
 	AutomaticMode MonitorMode = iota
@@ -457,7 +460,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 // provided, pick2 will panic.
 func pick2(ds []description.Server) (description.Server, description.Server) {
 	// Select a random index from the input slice and keep the server description from that index.
-	idx := randutil.GlobalRand.Intn(len(ds))
+	idx := random.Intn(len(ds))
 	s1 := ds[idx]
 
 	// Swap the selected index to the end and reslice to remove it so we don't pick the same server
@@ -466,7 +469,7 @@ func pick2(ds []description.Server) (description.Server, description.Server) {
 	ds = ds[:len(ds)-1]
 
 	// Select another random index from the input slice and return both selected server descriptions.
-	return s1, ds[randutil.GlobalRand.Intn(len(ds))]
+	return s1, ds[random.Intn(len(ds))]
 }
 
 // FindServer will attempt to find a server that fits the given server description.
@@ -644,7 +647,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 	// new hosts added to the SRV record. If adding all of the new hosts would increase the number
 	// of servers past srvMaxHosts, shuffle the list of added hosts.
 	if t.cfg.srvMaxHosts > 0 && len(t.servers)+len(diff.Added) > t.cfg.srvMaxHosts {
-		randutil.GlobalRand.Shuffle(len(diff.Added), func(i, j int) {
+		random.Shuffle(len(diff.Added), func(i, j int) {
 			diff.Added[i], diff.Added[j] = diff.Added[j], diff.Added[i]
 		})
 	}
