@@ -256,11 +256,11 @@ func TestDecoderv2(t *testing.T) {
 		}
 
 		bsonOutType := reflect.TypeOf(bsonOut).String()
-		assert.Equal(t, inType, bsonOutType, "expected '%s' to equal '%s'", inType, bsonOutType)
+		assert.Equal(t, inType, bsonOutType, "expected %v to equal %v", inType, bsonOutType)
 
 		bsonFooOutType := reflect.TypeOf(bsonOut["foo"]).String()
 		documentType := reflect.TypeOf(map[string]interface{}{}).String()
-		assert.Equal(t, documentType, bsonFooOutType, "expected '%s' to equal '%s'", inFooType, bsonFooOutType)
+		assert.Equal(t, documentType, bsonFooOutType, "expected %v to equal %v", inFooType, bsonFooOutType)
 	})
 }
 

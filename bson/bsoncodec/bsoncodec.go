@@ -125,13 +125,8 @@ type DecodeContext struct {
 	Ancestor reflect.Type
 
 	// DocumentDecodeType will decode embedded documents into the defined type, rather than into primitive.D. This is a
-	// work-around for custom typing and is All-Or-None.
+	// work-around for custom typing.
 	DocumentDecodeType *reflect.Type
-}
-
-// HasValidAncestor will return true if the ancestor an be used in decoding logic.
-func (dc *DecodeContext) HasValidAncestor() bool {
-	return dc.Ancestor != nil && dc.DocumentDecodeType == nil
 }
 
 // SetDocumentDecodeType will set the DocumentDecodeType field on a DecodeContext.
