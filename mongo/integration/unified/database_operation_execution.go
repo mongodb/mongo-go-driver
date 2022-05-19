@@ -52,9 +52,6 @@ func executeCreateView(ctx context.Context, operation *operation) (*operationRes
 	if collName == "" {
 		return nil, newMissingArgumentError("collection")
 	}
-	if pipeline == nil {
-		return nil, newMissingArgumentError("pipeline")
-	}
 	if viewOn == "" {
 		return nil, newMissingArgumentError("viewOn")
 	}
