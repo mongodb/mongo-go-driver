@@ -173,7 +173,6 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 	}
 	eTypeDecoder, _ := decoder.(typeDecoder)
 
-	// TODO(GODRIVER-2407): Consider removing this.
 	if eType == tEmpty {
 		dc.Ancestor = val.Type()
 	}
