@@ -64,7 +64,7 @@ func executeCreateView(ctx context.Context, operation *operation) (*operationRes
 }
 
 func executeCreateCollection(ctx context.Context, operation *operation) (*operationResult, error) {
-	// In the Go driver there is a seperate method for creating views.  However, the unified test CRUD format does not
+	// In the Go driver there is a separate method for creating views.  However, the unified test CRUD format does not
 	// make this distinction.  If necessary, here we branch to create a view.
 	createView, err := operation.isCreateView()
 	if err != nil {
