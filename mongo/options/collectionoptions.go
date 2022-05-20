@@ -33,8 +33,10 @@ type CollectionOptions struct {
 	// is nil, which means that the registry of the Database used to configure the Collection will be used.
 	Registry *bsoncodec.Registry
 
-	// Timeout is the amount of time that a single operation run on the Collection can execute before returning an error. The default value
-	// is nil, which means that the timeout of the Database used to configure the Collection will be used.
+	// Timeout is the amount of time that a single operation run on the Collection can execute before returning an error. The deadline of
+	// any operation run on the Collection will be honored above any Timeout set on the Collection; Timeout will only be honored if there
+	// is no deadline on the operation Context. The default value is nil, which means that the timeout of the Database used to configure
+	// the Collection will be used.
 	Timeout *time.Duration
 }
 

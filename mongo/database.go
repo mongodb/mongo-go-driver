@@ -194,11 +194,13 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 //
 // The runCommand parameter must be a document for the command to be executed. It cannot be nil.
 // This must be an order-preserving type such as bson.D. Map types such as bson.M are not valid.
-// If the command document contains a session ID or any transaction-specific fields, the behavior is undefined.
-// Specifying API versioning options in the command document and declaring an API version on the client is not supported.
-// The behavior of RunCommand is undefined in this case.
 //
 // The opts parameter can be used to specify options for this operation (see the options.RunCmdOptions documentation).
+//
+// The behavior of RunCommand is undefined if the command document contains any of the following:
+// - A session ID or any transaction-specific fields
+// - API versioning options when an API version is already declared on the Client
+// - maxTimeMS when Timeout is set on either the Database or Client
 func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
@@ -227,9 +229,13 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 //
 // The runCommand parameter must be a document for the command to be executed. It cannot be nil.
 // This must be an order-preserving type such as bson.D. Map types such as bson.M are not valid.
-// If the command document contains a session ID or any transaction-specific fields, the behavior is undefined.
 //
 // The opts parameter can be used to specify options for this operation (see the options.RunCmdOptions documentation).
+//
+// The behavior of RunCommandCursor is undefined if the command document contains any of the following:
+// - A session ID or any transaction-specific fields
+// - API versioning options when an API version is already declared on the Client
+// - maxTimeMS when Timeout is set on either the Database or Client
 func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()

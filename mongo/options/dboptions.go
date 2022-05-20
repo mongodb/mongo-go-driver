@@ -33,8 +33,10 @@ type DatabaseOptions struct {
 	// is nil, which means that the registry of the Client used to configure the Database will be used.
 	Registry *bsoncodec.Registry
 
-	// Timeout is the amount of time that a single operation run on the Database can execute before returning an error. The default value
-	// nil, which means that the timeout of the Client used to configure the Database will be used.
+	// Timeout is the amount of time that a single operation run on the Database can execute before returning an error. The deadline of
+	// any operation run on the Database will be honored above any Timeout set on the Database; Timeout will only be honored if there
+	// is no deadline on the operation Context. The default value is nil, which means that the timeout of the Client used to configure the
+	// Database will be used.
 	Timeout *time.Duration
 }
 
