@@ -475,9 +475,13 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 	}
 
 	opts := options.EstimatedDocumentCount()
-	elems, err := operation.Arguments.Elements()
-	if err != nil {
-		return nil, err
+	var elems []bson.RawElement
+	// Some estimatedDocumentCount operations in the unified test format have no arguments.
+	if operation.Arguments != nil {
+		elems, err = operation.Arguments.Elements()
+		if err != nil {
+			return nil, err
+		}
 	}
 	for _, elem := range elems {
 		key := elem.Key()
