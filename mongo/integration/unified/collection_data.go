@@ -35,10 +35,10 @@ type collectionDataOptions struct {
 // first drops the collection and then creates it with specified options (if any) and inserts the seed data if needed.
 func (c *collectionData) createCollection(ctx context.Context) error {
 	db := mtest.GlobalClient().Database(c.DatabaseName, options.Database().SetWriteConcern(mtest.MajorityWc))
-	coll := db.Collection(c.CollectionName)
-	if err := coll.Drop(ctx); err != nil {
-		return fmt.Errorf("error dropping collection: %v", err)
+	if err := db.Drop(ctx); err != nil {
+		return err
 	}
+	coll := db.Collection(c.CollectionName)
 
 	// Explicitly create collection if Options are specified.
 	if c.Options != nil {
