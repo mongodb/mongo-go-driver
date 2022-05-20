@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -247,14 +248,14 @@ func TestDecoderv2(t *testing.T) {
 		}
 
 		var bsonOut someMap
-		documentType := reflect.TypeOf(reflect.TypeOf(map[string]interface{}{}))
+		documentType := reflect.TypeOf(map[string]interface{}{})
 		dc := new(bsoncodec.DecodeContext).SetDocumentType(documentType)
 		dec, _ := NewDecoderWithContext(*dc, bsonrw.NewBSONDocumentReader(bytes))
 		if err := dec.Decode(&bsonOut); err != nil {
 			t.Fatal(err)
 		}
 
-		// Ensure that top-level data is converted tot he document type.
+		// Ensure that interface{}-typed top-level data is converted to the document type.
 		bsonOutType := reflect.TypeOf(bsonOut)
 		inType := reflect.TypeOf(in)
 		assert.Equal(t, inType, bsonOutType,
@@ -264,6 +265,48 @@ func TestDecoderv2(t *testing.T) {
 		inFooType := reflect.TypeOf(in["foo"])
 		assert.Equal(t, documentType, bsonFooOutType,
 			"expected %v to equal %v", inFooType.String(), bsonFooOutType.String())
+	})
+	t.Run("SetDocumentType for decoding into interface{} alias", func(t *testing.T) {
+		var in interface{} = map[string]interface{}{"bar": "baz"}
+
+		bytes, err := Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var bsonOut interface{}
+		documentType := reflect.TypeOf(primitive.D{})
+		dc := new(bsoncodec.DecodeContext).SetDocumentType(documentType)
+		dec, _ := NewDecoderWithContext(*dc, bsonrw.NewBSONDocumentReader(bytes))
+		if err := dec.Decode(&bsonOut); err != nil {
+			t.Fatal(err)
+		}
+
+		// Ensure that interface{}-typed top-level data is converted to the document type.
+		bsonOutType := reflect.TypeOf(bsonOut)
+		assert.Equal(t, documentType, bsonOutType,
+			"expected %v to equal %v", documentType.String(), bsonOutType.String())
+	})
+	t.Run("SetDocumentType for decoding into non-interface{} alias", func(t *testing.T) {
+		var in interface{} = map[string]interface{}{"bar": "baz"}
+
+		bytes, err := Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var bsonOut struct{}
+		documentType := reflect.TypeOf(primitive.D{})
+		dc := new(bsoncodec.DecodeContext).SetDocumentType(documentType)
+		dec, _ := NewDecoderWithContext(*dc, bsonrw.NewBSONDocumentReader(bytes))
+		if err := dec.Decode(&bsonOut); err != nil {
+			t.Fatal(err)
+		}
+
+		// Ensure that typed top-level data is not converted to the document type.
+		bsonOutType := reflect.TypeOf(bsonOut)
+		assert.NotEqual(t, documentType, bsonOutType,
+			"expected %v to not equal %v", documentType.String(), bsonOutType.String())
 	})
 	t.Run("SetDocumentType errors on non-document types.", func(t *testing.T) {
 		type someMap map[string]interface{}
