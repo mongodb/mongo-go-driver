@@ -118,20 +118,25 @@ type EncodeContext struct {
 type DecodeContext struct {
 	*Registry
 	Truncate bool
+
 	// Ancestor is the type of a containing document. This is mainly used to determine what type
 	// should be used when decoding an embedded document into an empty interface. For example, if
 	// Ancestor is a bson.M, BSON embedded document values being decoded into an empty interface
 	// will be decoded into a bson.M.
+	//
+	// Deprecated: Use DefaultDocumentType instead.
 	Ancestor reflect.Type
 
-	// DocumentDecodeType will decode embedded documents into the defined type, rather than into primitive.D. This is a
-	// work-around for custom typing.
-	DocumentDecodeType *reflect.Type
+	// DocumentType specifies the Go type to decode nested BSON documents into. The use-case for this field is
+	// restricted to data typed as "interface{}" or "map[string]interface{}". DocumentType overrides the Ancestor field.
+	// If DocumentType is set to a type that a BSON document cannot be unmarshaled into (e.g. "string"), unmarshalling
+	// will result in an error.
+	DocumentType reflect.Type
 }
 
-// SetDocumentDecodeType will set the DocumentDecodeType field on a DecodeContext.
-func (dc *DecodeContext) SetDocumentDecodeType(rtype reflect.Type) *DecodeContext {
-	dc.DocumentDecodeType = &rtype
+// SetDocumentType will set the DocumentType field on a DecodeContext.
+func (dc *DecodeContext) SetDocumentType(rtype reflect.Type) *DecodeContext {
+	dc.DocumentType = rtype
 	return dc
 }
 

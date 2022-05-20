@@ -58,11 +58,11 @@ func (eic EmptyInterfaceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWrit
 func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, valueType bsontype.Type) (reflect.Type, error) {
 	isDocument := valueType == bsontype.Type(0) || valueType == bsontype.EmbeddedDocument
 	if isDocument {
-		if dc.DocumentDecodeType != nil {
-			// If the bsontype is an embedded document and the DocumentDecodeType is set on the DecodeContext, then just
+		if dc.DocumentType != nil {
+			// If the bsontype is an embedded document and the DocumentType is set on the DecodeContext, then just
 			// return that type. This gives users an "escape hatch" to avoid the 1-1 embedded document to primitive.D
 			// decoding map.
-			return *dc.DocumentDecodeType, nil
+			return dc.DocumentType, nil
 		}
 		if dc.Ancestor != nil {
 			// Using ancestor information rather than looking up the type map entry forces consistent decoding.

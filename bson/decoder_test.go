@@ -235,13 +235,11 @@ func TestDecoderv2(t *testing.T) {
 			t.Fatalf("Decode error mismatch; expected %v, got %v", ErrDecodeToNil, err)
 		}
 	})
-	t.Run("SetDocumentDecodeType", func(t *testing.T) {
+	t.Run("SetDocumentType embedded map as empty interface", func(t *testing.T) {
 		type someMap map[string]interface{}
 
 		in := make(someMap)
 		in["foo"] = map[string]interface{}{"bar": "baz"}
-		inType := reflect.TypeOf(in).String()
-		inFooType := reflect.TypeOf(in["foo"]).String()
 
 		bytes, err := Marshal(in)
 		if err != nil {
@@ -249,18 +247,66 @@ func TestDecoderv2(t *testing.T) {
 		}
 
 		var bsonOut someMap
-		dc := new(bsoncodec.DecodeContext).SetDocumentDecodeType(reflect.TypeOf(map[string]interface{}{}))
+		documentType := reflect.TypeOf(reflect.TypeOf(map[string]interface{}{}))
+		dc := new(bsoncodec.DecodeContext).SetDocumentType(documentType)
 		dec, _ := NewDecoderWithContext(*dc, bsonrw.NewBSONDocumentReader(bytes))
 		if err := dec.Decode(&bsonOut); err != nil {
 			t.Fatal(err)
 		}
 
-		bsonOutType := reflect.TypeOf(bsonOut).String()
-		assert.Equal(t, inType, bsonOutType, "expected %v to equal %v", inType, bsonOutType)
+		// Ensure that top-level data is converted tot he document type.
+		bsonOutType := reflect.TypeOf(bsonOut)
+		inType := reflect.TypeOf(in)
+		assert.Equal(t, inType, bsonOutType,
+			"expected %v to equal %v", inType.String(), bsonOutType.String())
 
-		bsonFooOutType := reflect.TypeOf(bsonOut["foo"]).String()
-		documentType := reflect.TypeOf(map[string]interface{}{}).String()
-		assert.Equal(t, documentType, bsonFooOutType, "expected %v to equal %v", inFooType, bsonFooOutType)
+		bsonFooOutType := reflect.TypeOf(bsonOut["foo"])
+		inFooType := reflect.TypeOf(in["foo"])
+		assert.Equal(t, documentType, bsonFooOutType,
+			"expected %v to equal %v", inFooType.String(), bsonFooOutType.String())
+	})
+	t.Run("SetDocumentType errors on non-document types.", func(t *testing.T) {
+		type someMap map[string]interface{}
+
+		in := make(someMap)
+		in["foo"] = map[string]interface{}{"bar": "baz"}
+
+		bytes, err := Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// We should only be able to decode data typed as interface{}, map[string]interface{}, or map[string]string.
+		nonDocumentTypes := []reflect.Type{
+			// Basic Types
+			reflect.TypeOf(uint8(1)),
+			reflect.TypeOf(uint16(1)),
+			reflect.TypeOf(uint64(1)),
+			reflect.TypeOf(int8(1)),
+			reflect.TypeOf(int16(1)),
+			reflect.TypeOf(int32(1)),
+			reflect.TypeOf(int64(1)),
+			reflect.TypeOf(true),
+			reflect.TypeOf(""),
+			reflect.TypeOf(float32(1)),
+			reflect.TypeOf(float64(1)),
+			reflect.TypeOf(complex64(1)),
+			reflect.TypeOf(complex128(1)),
+
+			// Composite Types
+			reflect.TypeOf(func() {}),
+			reflect.TypeOf([]interface{}{}),
+			reflect.TypeOf(make(chan bool, 1)),
+			reflect.TypeOf(map[string]int{}),
+			reflect.TypeOf(map[interface{}]interface{}{}),
+			reflect.TypeOf(map[string]map[string]interface{}{}),
+		}
+		for _, nonDocumentType := range nonDocumentTypes {
+			var bsonOut someMap
+			dc := new(bsoncodec.DecodeContext).SetDocumentType(nonDocumentType)
+			dec, _ := NewDecoderWithContext(*dc, bsonrw.NewBSONDocumentReader(bytes))
+			assert.Error(t, dec.Decode(&bsonOut))
+		}
 	})
 }
 
