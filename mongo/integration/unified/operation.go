@@ -9,6 +9,7 @@ package unified
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,6 +23,11 @@ type operation struct {
 	ExpectedError        *expectedError `bson:"expectError"`
 	ExpectedResult       *bson.RawValue `bson:"expectResult"`
 	ResultEntityID       *string        `bson:"saveResultAsEntity"`
+
+	// TimeoutOnCaller is used to determine if the operation's execute function should
+	// SetTimeout(0) on the caller of the operation to opt-in to behavior gated by the
+	// presence of the Timeout variable.
+	TimeoutOnCaller bool
 }
 
 // execute runs the operation and verifies the returned result and/or error. If the result needs to be saved as
@@ -86,6 +92,28 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		// Set op.Arguments to a new document that has the "session" field removed so individual operations do
 		// not have to account for it.
 		op.Arguments = removeFieldsFromDocument(op.Arguments, "session")
+	}
+
+	// Special handling for the "timeoutMS" field because it applies to (almost) all operations.
+	//
+	// For operation-level "timeoutMS", set a timeout on the context with the provided value.
+	// Inividual execute functions will call SetTimeout(0) on the caller of the operation to
+	// opt-in to behavior gated by the presence of the Timeout variable.
+	if tms, ok := op.Arguments.Lookup("timeoutMS").Int32OK(); ok {
+		timeout := time.Duration(tms) * time.Millisecond
+		if timeout > 0 {
+			newCtx, cancelFunc := context.WithTimeout(ctx, timeout)
+			// Redefine ctx to be the new timeout-derived context.
+			ctx = newCtx
+			// Cancel the timeout-derived context at the end of run to avoid a context leak.
+			defer cancelFunc()
+		}
+
+		// Set op.TimeoutOnCaller to true to allow execute functions to SetTimeout(0) on the caller
+		// of the operation. Set op.Arguments to a new document that has the "timeoutMS" field removed
+		// so individual operations do not have to account for it.
+		op.TimeoutOnCaller = true
+		op.Arguments = removeFieldsFromDocument(op.Arguments, "timeoutMS")
 	}
 
 	switch op.Name {

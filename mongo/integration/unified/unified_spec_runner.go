@@ -33,6 +33,8 @@ var (
 		"timeoutMS can be set to 0 on a MongoDatabase - estimatedDocumentCount on collection":     {},
 		"timeoutMS can be configured on a MongoCollection - estimatedDocumentCount on collection": {},
 		"timeoutMS can be set to 0 on a MongoCollection - estimatedDocumentCount on collection":   {},
+		"timeoutMS can be configured for an operation - estimatedDocumentCount on collection":     {},
+		"timeoutMS can be set to 0 for an operation - estimatedDocumentCount on collection":       {},
 	}
 )
 

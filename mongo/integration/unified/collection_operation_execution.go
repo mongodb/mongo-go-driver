@@ -24,6 +24,7 @@ import (
 func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
 		Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*mongo.Cursor, error)
+		SetZeroTimeout()
 	}
 	var err error
 
@@ -89,6 +90,10 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 		return nil, newMissingArgumentError("pipeline")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the aggregator.
+	if operation.TimeoutOnCaller {
+		aggregator.SetZeroTimeout()
+	}
 	cursor, err := aggregator.Aggregate(ctx, pipeline, opts)
 	if err != nil {
 		return newErrorResult(err), nil
@@ -139,6 +144,10 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 		return nil, newMissingArgumentError("requests")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.BulkWrite(ctx, models, opts)
 	raw := emptyCoreDocument
 	if res != nil {
@@ -217,6 +226,10 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 		return nil, newMissingArgumentError("filter")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	count, err := coll.CountDocuments(ctx, filter, opts)
 	if err != nil {
 		return newErrorResult(err), nil
@@ -295,10 +308,14 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 	if keys == nil {
 		return nil, newMissingArgumentError("keys")
 	}
-
 	model := mongo.IndexModel{
 		Keys:    keys,
 		Options: indexOpts,
+	}
+
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
 	}
 	name, err := coll.Indexes().CreateOne(ctx, model)
 	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), err), nil
@@ -348,6 +365,10 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 		return nil, newMissingArgumentError("filter")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.DeleteOne(ctx, filter, opts)
 	raw := emptyCoreDocument
 	if res != nil {
@@ -402,6 +423,10 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, newMissingArgumentError("filter")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.DeleteMany(ctx, filter, opts)
 	raw := emptyCoreDocument
 	if res != nil {
@@ -454,6 +479,10 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 		return nil, newMissingArgumentError("filter")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.Distinct(ctx, fieldName, filter, opts)
 	if err != nil {
 		return newErrorResult(err), nil
@@ -492,6 +521,10 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 		return nil, newMissingArgumentError("name")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.Indexes().DropOne(ctx, name, dropIndexOpts)
 	return newDocumentResult(res, err), nil
 }
@@ -516,6 +549,10 @@ func executeDropIndexes(ctx context.Context, operation *operation) (*operationRe
 		}
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.Indexes().DropAll(ctx, dropIndexOpts)
 	return newDocumentResult(res, err), nil
 }
@@ -549,6 +586,10 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 		}
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	count, err := coll.EstimatedDocumentCount(ctx, opts)
 	if err != nil {
 		return newErrorResult(err), nil
@@ -633,6 +674,10 @@ func executeFindOne(ctx context.Context, operation *operation) (*operationResult
 		return nil, newMissingArgumentError("filter")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.FindOne(ctx, filter, opts).DecodeBytes()
 	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
 	// returned in a find operation has no associated documents, DecodeBytes will
@@ -694,6 +739,10 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("filter")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.FindOneAndDelete(ctx, filter, opts).DecodeBytes()
 	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
 	// returned in a find operation has no associated documents, DecodeBytes will
@@ -774,6 +823,10 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 		return nil, newMissingArgumentError("replacement")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).DecodeBytes()
 	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
 	// returned in a find operation has no associated documents, DecodeBytes will
@@ -861,6 +914,10 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("update")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).DecodeBytes()
 	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
 	// returned in a find operation has no associated documents, DecodeBytes will
@@ -904,6 +961,10 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, newMissingArgumentError("documents")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.InsertMany(ctx, documents, opts)
 	raw := emptyCoreDocument
 	if res != nil {
@@ -954,6 +1015,10 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 		return nil, newMissingArgumentError("documents")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.InsertOne(ctx, document, opts)
 	raw := emptyCoreDocument
 	if res != nil {
@@ -995,6 +1060,10 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 		}
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	cursor, err := coll.Indexes().List(ctx, opts)
 	if err != nil {
 		return newErrorResult(err), nil
@@ -1036,6 +1105,10 @@ func executeRenameCollection(ctx context.Context, operation *operation) (*operat
 	renameCmd := bson.D{
 		{"renameCollection", coll.Database().Name() + "." + coll.Name()},
 		{"to", coll.Database().Name() + "." + toName},
+	}
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
 	}
 	// rename can only be run on the 'admin' database.
 	admin := coll.Database().Client().Database("admin")
@@ -1091,6 +1164,10 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 		}
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.ReplaceOne(ctx, filter, replacement, opts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
@@ -1110,6 +1187,10 @@ func executeUpdateOne(ctx context.Context, operation *operation) (*operationResu
 		return nil, err
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.UpdateOne(ctx, updateArgs.filter, updateArgs.update, updateArgs.opts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
@@ -1129,6 +1210,10 @@ func executeUpdateMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, err
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	res, err := coll.UpdateMany(ctx, updateArgs.filter, updateArgs.update, updateArgs.opts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
@@ -1242,6 +1327,10 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 		return nil, newMissingArgumentError("filter")
 	}
 
+	// If TimeoutOnCaller is true, set a Timeout of 0 on the Collection.
+	if operation.TimeoutOnCaller {
+		coll.SetZeroTimeout()
+	}
 	cursor, err := coll.Find(ctx, filter, opts)
 	res := &cursorResult{
 		cursor: cursor,

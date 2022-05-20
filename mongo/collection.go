@@ -1906,3 +1906,12 @@ func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, lo
 	})
 	return makePinnedSelector(sess, selector)
 }
+
+// SetZeroTimeout sets the Timeout to 0 for an existing collection.
+//
+// Deprecated: This setter is only used for internal testing of the Timeout feature. Modifying the Timeout of an existing
+// collection can result in undefined behavior.
+func (coll *Collection) SetZeroTimeout() {
+	zeroTimeout := time.Duration(0)
+	coll.timeout = &zeroTimeout
+}
