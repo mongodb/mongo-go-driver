@@ -176,6 +176,9 @@ type IndexSpecification struct {
 	// If true, the collection will not accept insertion or update of documents where the index key value matches an
 	// existing value in the index. The default is false.
 	Unique *bool
+
+	// The clustered index.
+	Clustered *bool
 }
 
 var _ bson.Unmarshaler = (*IndexSpecification)(nil)
@@ -188,6 +191,7 @@ type unmarshalIndexSpecification struct {
 	ExpireAfterSeconds *int32   `bson:"expireAfterSeconds"`
 	Sparse             *bool    `bson:"sparse"`
 	Unique             *bool    `bson:"unique"`
+	Clustered          *bool    `bson:"clustered"`
 }
 
 // UnmarshalBSON implements the bson.Unmarshaler interface.
@@ -204,6 +208,7 @@ func (i *IndexSpecification) UnmarshalBSON(data []byte) error {
 	i.ExpireAfterSeconds = temp.ExpireAfterSeconds
 	i.Sparse = temp.Sparse
 	i.Unique = temp.Unique
+	i.Clustered = temp.Clustered
 	return nil
 }
 

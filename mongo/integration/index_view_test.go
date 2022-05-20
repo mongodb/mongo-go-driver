@@ -633,6 +633,38 @@ func TestIndexView(t *testing.T) {
 		}
 		assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
 	})
+	mt.RunOpts("clustered indexes", mtest.NewOptions().MinServerVersion("5.3"), func(mt *mtest.T) {
+		const name = "clustered"
+		clustered := mt.CreateCollection(mtest.Collection{
+			Name:       name,
+			CreateOpts: bson.D{{"clusteredIndex", bson.D{{"key", bson.D{{"_id", 1}}}, {"unique", true}}}},
+		}, true)
+		mt.Run("create one", func(mt *mtest.T) {
+			_, err := clustered.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+				Keys: bson.D{{"foo", int32(-1)}},
+			})
+			assert.Nil(mt, err, "CreateOne error: %v", err)
+			specs, err := clustered.Indexes().ListSpecifications(context.Background())
+			assert.Nil(mt, err, "ListSpecifications error: %v", err)
+			expectedSpecs := []*mongo.IndexSpecification{
+				{
+					Name:         "_id_",
+					Namespace:    mt.DB.Name() + "." + name,
+					KeysDocument: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("_id", 1).Build()),
+					Version:      2,
+					Unique:       func(b bool) *bool { return &b }(true),
+					Clustered:    func(b bool) *bool { return &b }(true),
+				},
+				{
+					Name:         "foo_-1",
+					Namespace:    mt.DB.Name() + "." + name,
+					KeysDocument: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("foo", -1).Build()),
+					Version:      2,
+				},
+			}
+			assert.True(mt, cmp.Equal(specs, expectedSpecs), "expected specifications to match: %v", cmp.Diff(specs, expectedSpecs))
+		})
+	})
 }
 
 func getIndexDoc(mt *mtest.T, iv mongo.IndexView, expectedKeyDoc bson.D) bson.D {
