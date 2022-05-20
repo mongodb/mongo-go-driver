@@ -127,10 +127,10 @@ type DecodeContext struct {
 	// Deprecated: Use DefaultDocumentType instead.
 	Ancestor reflect.Type
 
-	// DocumentType specifies the Go type to decode nested BSON documents into. The use-case for this field is
-	// restricted to data typed as "interface{}" or "map[string]interface{}". DocumentType overrides the Ancestor field.
-	// If DocumentType is set to a type that a BSON document cannot be unmarshaled into (e.g. "string"), unmarshalling
-	// will result in an error.
+	// DocumentType specifies the Go type to decode top-level and nested BSON documents into. In particular, the
+	// usage for this field is restricted to data typed as "interface{}" or "map[string]interface{}". If DocumentType is
+	// set to a type that a BSON document cannot be unmarshaled into (e.g. "string"), unmarshalling will result in an
+	// error. DocumentType overrides the Ancestor field.
 	DocumentType reflect.Type
 }
 
