@@ -36,6 +36,10 @@ func TestRetryableReadsProse(t *testing.T) {
 	defer mt.Close()
 
 	mt.Run("PoolClearedError retryability", func(mt *mtest.T) {
+		if mtest.ClusterTopologyKind() == mtest.LoadBalanced {
+			mt.Skip("skipping as load balanced topology has different pool clearing behavior")
+		}
+
 		// Insert a document to test collection.
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
