@@ -64,6 +64,9 @@ type slowConnDialer struct {
 	delay  time.Duration
 }
 
+var slowConnDialerDelay = 300 * time.Millisecond
+var reducedHeartbeatInterval = 100 * time.Millisecond
+
 func newSlowConnDialer(delay time.Duration) *slowConnDialer {
 	return &slowConnDialer{
 		dialer: &net.Dialer{},
@@ -519,8 +522,8 @@ func TestClient(t *testing.T) {
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
 		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
 		mt.ResetClient(options.Client().
-			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
-			SetHeartbeatInterval(100 * time.Millisecond))
+			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
+			SetHeartbeatInterval(reducedHeartbeatInterval))
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
@@ -562,8 +565,8 @@ func TestClient(t *testing.T) {
 		tpm := monitor.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
-			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
-			SetHeartbeatInterval(100 * time.Millisecond))
+			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
+			SetHeartbeatInterval(reducedHeartbeatInterval))
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
@@ -608,8 +611,8 @@ func TestClient(t *testing.T) {
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
 		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
 		mt.ResetClient(options.Client().
-			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
-			SetHeartbeatInterval(100 * time.Millisecond))
+			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
+			SetHeartbeatInterval(reducedHeartbeatInterval))
 
 		// Assert that RTT90s are eventually >300ms.
 		topo := getTopologyFromClient(mt.Client)
@@ -653,8 +656,8 @@ func TestClient(t *testing.T) {
 		tpm := monitor.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
-			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
-			SetHeartbeatInterval(100 * time.Millisecond).
+			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
+			SetHeartbeatInterval(reducedHeartbeatInterval).
 			SetTimeout(0))
 
 		// Assert that RTT90s are eventually >300ms.
@@ -668,7 +671,7 @@ func TestClient(t *testing.T) {
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.MinRTT() <= 300*time.Millisecond {
+					if server.RTT90() <= 300*time.Millisecond {
 						done = false
 					}
 				}
