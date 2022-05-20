@@ -894,6 +894,9 @@ func executeRenameCollection(ctx context.Context, operation *operation) (*operat
 			return nil, fmt.Errorf("unrecognized rename option %q", key)
 		}
 	}
+	if toName == "" {
+		return nil, newMissingArgumentError("to")
+	}
 
 	renameCmd := bson.D{
 		{"renameCollection", coll.Database().Name() + "." + coll.Name()},
