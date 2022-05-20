@@ -387,9 +387,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// create view on db.coll
 		mt.CreateCollection(mtest.Collection{
-			Name:       "view",
-			DB:         cpt.cseColl.Database().Name(),
-			CreateOpts: bson.D{{"viewOn", "coll"}},
+			Name:         "view",
+			DB:           cpt.cseColl.Database().Name(),
+			ViewOn:       "coll",
+			ViewPipeline: mongo.Pipeline{},
 		}, true)
 
 		view := cpt.cseColl.Database().Collection("view")

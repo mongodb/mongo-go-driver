@@ -130,20 +130,19 @@ func TestWriteErrorsDetails(t *testing.T) {
 		// Create a JSON Schema validator document that requires properties "a" and "b". Use it in
 		// the collection creation options so that collections created for subtests have the JSON
 		// Schema validator applied.
-		validator := bson.D{{
-			Key: "validator",
-			Value: bson.M{
-				"$jsonSchema": bson.M{
-					"bsonType": "object",
-					"required": []string{"a", "b"},
-					"properties": bson.M{
-						"a": bson.M{"bsonType": "string"},
-						"b": bson.M{"bsonType": "int"},
-					},
+		validator := bson.M{
+			"$jsonSchema": bson.M{
+				"bsonType": "object",
+				"required": []string{"a", "b"},
+				"properties": bson.M{
+					"a": bson.M{"bsonType": "string"},
+					"b": bson.M{"bsonType": "int"},
 				},
 			},
-		}}
-		validatorOpts := mtest.NewOptions().CollectionCreateOptions(validator)
+		}
+
+		cco := options.CreateCollection().SetValidator(validator)
+		validatorOpts := mtest.NewOptions().CollectionCreateOptions(cco)
 
 		cases := []struct {
 			desc                string
