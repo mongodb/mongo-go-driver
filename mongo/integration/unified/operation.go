@@ -133,6 +133,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeInsertOne(ctx, op)
 	case "listIndexes":
 		return executeListIndexes(ctx, op)
+	case "rename":
+		return executeRenameCollection(ctx, op)
 	case "replaceOne":
 		return executeReplaceOne(ctx, op)
 	case "updateOne":

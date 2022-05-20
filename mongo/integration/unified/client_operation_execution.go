@@ -106,11 +106,12 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 		return newErrorResult(err), nil
 	}
 
-	if operation.ResultEntityID == nil {
-		return nil, fmt.Errorf("no entity name provided to store executeChangeStream result")
-	}
-	if err := entities(ctx).addCursorEntity(*operation.ResultEntityID, stream); err != nil {
-		return nil, fmt.Errorf("error storing result as cursor entity: %v", err)
+	// createChangeStream is sometimes used with no corresponding saveResultAsEntity field. Return an
+	// empty result in this case.
+	if operation.ResultEntityID != nil {
+		if err := entities(ctx).addCursorEntity(*operation.ResultEntityID, stream); err != nil {
+			return nil, fmt.Errorf("error storing result as cursor entity: %v", err)
+		}
 	}
 	return newEmptyResult(), nil
 }
