@@ -63,14 +63,15 @@ var (
 )
 
 type testFile struct {
-	RunOn          []mtest.RunOnBlock `bson:"runOn"`
-	DatabaseName   string             `bson:"database_name"`
-	CollectionName string             `bson:"collection_name"`
-	BucketName     string             `bson:"bucket_name"`
-	Data           testData           `bson:"data"`
-	JSONSchema     bson.Raw           `bson:"json_schema"`
-	KeyVaultData   []bson.Raw         `bson:"key_vault_data"`
-	Tests          []*testCase        `bson:"tests"`
+	RunOn           []mtest.RunOnBlock `bson:"runOn"`
+	DatabaseName    string             `bson:"database_name"`
+	CollectionName  string             `bson:"collection_name"`
+	BucketName      string             `bson:"bucket_name"`
+	Data            testData           `bson:"data"`
+	JSONSchema      bson.Raw           `bson:"json_schema"`
+	KeyVaultData    []bson.Raw         `bson:"key_vault_data"`
+	Tests           []*testCase        `bson:"tests"`
+	EncryptedFields bson.Raw           `bson:"encrypted_fields"`
 }
 
 type testData struct {
@@ -232,12 +233,20 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// pin to a single mongos
 		opts = opts.ClientType(mtest.Pinned)
 	}
+
+	cco := options.CreateCollection()
 	if len(testFile.JSONSchema) > 0 {
 		validator := bson.D{
 			{"$jsonSchema", testFile.JSONSchema},
 		}
-		opts.CollectionCreateOptions(options.CreateCollection().SetValidator(validator))
+		cco.SetValidator(validator)
 	}
+
+	if len(testFile.EncryptedFields) > 0 {
+		cco.SetEncryptedFields(testFile.EncryptedFields)
+	}
+
+	opts.CollectionCreateOptions(cco)
 
 	// Start the test without setting client options so the setup will be done with a default client.
 	mt.RunOpts(test.Description, opts, func(mt *mtest.T) {

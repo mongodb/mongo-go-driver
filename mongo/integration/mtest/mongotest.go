@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
@@ -465,11 +466,78 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 	return coll.created
 }
 
+// TODO: consider moving this to the 'internal' package to reuse.
+// getEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
+func getEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (string, error) {
+	if stateCollectionSuffix != "esc" && stateCollectionSuffix != "ecc" && stateCollectionSuffix != "ecoc" {
+		return "", fmt.Errorf("expected stateCollectionSuffix: esc, ecc, or ecoc. got %v", stateCollectionSuffix)
+	}
+	fieldName := stateCollectionSuffix + "Collection"
+	var val bsoncore.Value
+	var err error
+	if val, err = efBSON.LookupErr(fieldName); err != nil {
+		if err != bsoncore.ErrElementNotFound {
+			return "", err
+		}
+		// Return default name.
+		defaultName := "enxcol_." + dataCollectionName + "." + stateCollectionSuffix
+		return defaultName, nil
+	}
+
+	var stateCollectionName string
+	var ok bool
+	if stateCollectionName, ok = val.StringValueOK(); !ok {
+		return "", fmt.Errorf("expected string for '%v', got: %v", fieldName, val.Type)
+	}
+	return stateCollectionName, nil
+}
+
+// dropEncryptedCollection drops a collection with EncryptedFields.
+// The EncryptedFields option is not supported in Collection.Drop(). See GODRIVER-2413.
+func dropEncryptedCollection(t *T, coll *mongo.Collection, encryptedFields interface{}) {
+	t.Helper()
+
+	fmt.Println("dropEncryptedCollection ... begin")
+	defer func() {
+		fmt.Println("dropEncryptedCollection ... end")
+	}()
+
+	var efBSON bsoncore.Document
+	efBSON, err := bson.Marshal(encryptedFields)
+	assert.Nil(t, err, "error in Marshal: %v", err)
+
+	// Drop the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
+	// Drop ESCCollection.
+	escCollection, err := getEncryptedStateCollectionName(efBSON, coll.Name(), "esc")
+	assert.Nil(t, err, "error in getEncryptedStateCollectionName: %v", err)
+	err = coll.Database().Collection(escCollection).Drop(context.Background())
+	assert.Nil(t, err, "error in Drop: %v", err)
+
+	// Drop ECCCollection.
+	eccCollection, err := getEncryptedStateCollectionName(efBSON, coll.Name(), "ecc")
+	assert.Nil(t, err, "error in getEncryptedStateCollectionName: %v", err)
+	err = coll.Database().Collection(eccCollection).Drop(context.Background())
+	assert.Nil(t, err, "error in Drop: %v", err)
+
+	// Drop ECOCCollection.
+	ecocCollection, err := getEncryptedStateCollectionName(efBSON, coll.Name(), "ecoc")
+	assert.Nil(t, err, "error in getEncryptedStateCollectionName: %v", err)
+	err = coll.Database().Collection(ecocCollection).Drop(context.Background())
+	assert.Nil(t, err, "error in Drop: %v", err)
+
+	// Drop the data collection.
+	err = coll.Drop(context.Background())
+	assert.Nil(t, err, "error in Drop: %v", err)
+}
+
 // ClearCollections drops all collections previously created by this test.
 func (t *T) ClearCollections() {
 	// Collections should not be dropped when testing against Atlas Data Lake because the data is pre-inserted.
 	if !testContext.dataLake {
 		for _, coll := range t.createdColls {
+			if coll.CreateOpts != nil && coll.CreateOpts.EncryptedFields != nil {
+				dropEncryptedCollection(t, coll.created, coll.CreateOpts.EncryptedFields)
+			}
 			_ = coll.created.Drop(context.Background())
 		}
 	}
