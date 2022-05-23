@@ -46,7 +46,7 @@ func executeCreateView(ctx context.Context, operation *operation) (*operationRes
 		case "viewOn":
 			viewOn = val.StringValue()
 		default:
-			return nil, fmt.Errorf("unrecognized createCollection option %q", key)
+			return nil, fmt.Errorf("unrecognized createView option %q", key)
 		}
 	}
 	if collName == "" {
