@@ -9,7 +9,6 @@ package connstring // import "go.mongodb.org/mongo-driver/x/mongo/driver/connstr
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/url"
 	"strconv"
@@ -24,7 +23,7 @@ import (
 )
 
 // random is a package-global pseudo-random number generator.
-var random = randutil.NewLockedRand(rand.NewSource(randutil.CryptoSeed()))
+var random = randutil.NewLockedRand()
 
 // ParseAndValidate parses the provided URI into a ConnString object.
 // It check that all values are valid.

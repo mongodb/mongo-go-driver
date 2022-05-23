@@ -13,10 +13,10 @@ import (
 )
 
 func TestCryptoSeed(t *testing.T) {
-	seeds := make(map[int64]bool)
+	seeds := make(map[uint64]bool)
 	for i := 1; i < 1000000; i++ {
-		s := CryptoSeed()
-		require.False(t, seeds[s], "CryptoSeed returned a duplicate value %d", s)
+		s := cryptoSeed()
+		require.False(t, seeds[s], "cryptoSeed returned a duplicate value %d", s)
 		seeds[s] = true
 	}
 }

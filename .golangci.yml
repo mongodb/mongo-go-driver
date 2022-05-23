@@ -108,3 +108,9 @@ issues:
     # "benchmark" directories.
     - path: (internal\/|benchmark\/)
       text: exported (.+) should have comment( \(or a comment on this block\))? or be unexported
+    # Disable deadcode and unused linter for "golang.org/x/exp/rand" package in internal/randutil/rand.
+    - path: internal/randutil/rand
+      linters:
+        - deadcode
+        - unused
+        - varcheck
