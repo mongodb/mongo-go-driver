@@ -12,12 +12,29 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// GetEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
-func GetEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (string, error) {
-	if stateCollectionSuffix != "esc" && stateCollectionSuffix != "ecc" && stateCollectionSuffix != "ecoc" {
-		return "", fmt.Errorf("expected stateCollectionSuffix: esc, ecc, or ecoc. got %v", stateCollectionSuffix)
+type StateCollection uint8
+
+const (
+	EncryptedCacheCollection StateCollection = iota
+	EncryptedStateCollection
+	EncryptedCompactionCollection
+)
+
+func (sc StateCollection) suffix() string {
+	switch sc {
+	case EncryptedCacheCollection:
+		return "ecc"
+	case EncryptedStateCollection:
+		return "esc"
+	case EncryptedCompactionCollection:
+		return "ecoc"
 	}
-	fieldName := stateCollectionSuffix + "Collection"
+	return "unknown"
+}
+
+// GetEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
+func GetEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionName string, sc StateCollection) (string, error) {
+	fieldName := sc.suffix() + "Collection"
 	var val bsoncore.Value
 	var err error
 	if val, err = efBSON.LookupErr(fieldName); err != nil {
@@ -25,7 +42,7 @@ func GetEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionNam
 			return "", err
 		}
 		// Return default name.
-		defaultName := "enxcol_." + dataCollectionName + "." + stateCollectionSuffix
+		defaultName := "enxcol_." + dataCollectionName + "." + sc.suffix()
 		return defaultName, nil
 	}
 

@@ -580,7 +580,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 
 	// Create the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
 	// Create ESCCollection.
-	escCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, "esc")
+	escCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, internal.EncryptedStateCollection)
 	if err != nil {
 		return err
 	}
@@ -589,7 +589,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	// Create ECCCollection.
-	eccCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, "ecc")
+	eccCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, internal.EncryptedCacheCollection)
 	if err != nil {
 		return err
 	}
@@ -598,7 +598,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	// Create ECOCCollection.
-	ecocCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, "ecoc")
+	ecocCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, internal.EncryptedCompactionCollection)
 	if err != nil {
 		return err
 	}
