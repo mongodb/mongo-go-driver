@@ -39,7 +39,6 @@ func newMcryptClient(opts *options.AutoEncryptionOptions) (*mcryptClient, error)
 	// create mcryptClient instance and spawn process if necessary
 	var bypassSpawn bool
 	var bypassAutoEncryption bool
-	var bypassQueryAnalysis bool
 
 	if bypass, ok := opts.ExtraOptions["mongocryptdBypassSpawn"]; ok {
 		bypassSpawn = bypass.(bool)
@@ -48,9 +47,7 @@ func newMcryptClient(opts *options.AutoEncryptionOptions) (*mcryptClient, error)
 		bypassAutoEncryption = *opts.BypassAutoEncryption
 	}
 
-	if opts.BypassQueryAnalysis != nil {
-		bypassQueryAnalysis = *opts.BypassQueryAnalysis
-	}
+	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
 
 	mc := &mcryptClient{
 		// mongocryptd should not be spawned if any of these conditions are true:
