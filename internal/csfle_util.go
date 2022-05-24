@@ -35,9 +35,8 @@ func (sc StateCollection) suffix() string {
 // GetEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
 func GetEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionName string, sc StateCollection) (string, error) {
 	fieldName := sc.suffix() + "Collection"
-	var val bsoncore.Value
-	var err error
-	if val, err = efBSON.LookupErr(fieldName); err != nil {
+	val, err := efBSON.LookupErr(fieldName)
+	if err != nil {
 		if err != bsoncore.ErrElementNotFound {
 			return "", err
 		}
@@ -46,9 +45,8 @@ func GetEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionNam
 		return defaultName, nil
 	}
 
-	var stateCollectionName string
-	var ok bool
-	if stateCollectionName, ok = val.StringValueOK(); !ok {
+	stateCollectionName, ok := val.StringValueOK()
+	if !ok {
 		return "", fmt.Errorf("expected string for '%v', got: %v", fieldName, val.Type)
 	}
 	return stateCollectionName, nil
