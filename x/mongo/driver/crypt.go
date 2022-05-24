@@ -90,7 +90,11 @@ func NewCrypt(opts *CryptOptions) (Crypt, error) {
 		bypassAutoEncryption: opts.BypassAutoEncryption,
 	}
 
-	mongocryptOpts := options.MongoCrypt().SetKmsProviders(opts.KmsProviders).SetLocalSchemaMap(opts.SchemaMap).SetBypassQueryAnalysis(opts.BypassQueryAnalysis).SetEncryptedFieldsMap(opts.EncryptedFieldsMap)
+	mongocryptOpts := options.MongoCrypt().
+		SetKmsProviders(opts.KmsProviders).
+		SetLocalSchemaMap(opts.SchemaMap).
+		SetBypassQueryAnalysis(opts.BypassQueryAnalysis).
+		SetEncryptedFieldsMap(opts.EncryptedFieldsMap)
 	mc, err := mongocrypt.NewMongoCrypt(mongocryptOpts)
 	if err != nil {
 		return nil, err
