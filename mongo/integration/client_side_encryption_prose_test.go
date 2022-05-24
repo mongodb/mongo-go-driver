@@ -860,11 +860,33 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			bypassAutoEncryption    bool
 			bypassQueryAnalysis     bool
 		}{
-			{"mongocryptdBypassSpawn only", mongocryptdBypassSpawnTrue, false, false, false},
-			{"bypassAutoEncryption only", mongocryptdBypassSpawnNotSet, true, true, false},
-			{"mongocryptdBypassSpawn false, bypassAutoEncryption true", mongocryptdBypassSpawnFalse, true, true, false},
-			{"mongocryptdBypassSpawn true, bypassAutoEncryption false", mongocryptdBypassSpawnTrue, true, false, false},
-			{"bypassQueryAnalysis only", mongocryptdBypassSpawnNotSet, false, false, true},
+			{
+				name:            "mongocryptdBypassSpawn only",
+				mongocryptdOpts: mongocryptdBypassSpawnTrue,
+			},
+			{
+				name:                    "bypassAutoEncryption only",
+				mongocryptdOpts:         mongocryptdBypassSpawnNotSet,
+				setBypassAutoEncryption: true,
+				bypassAutoEncryption:    true,
+			},
+			{
+				name:                    "mongocryptdBypassSpawn false, bypassAutoEncryption true",
+				mongocryptdOpts:         mongocryptdBypassSpawnFalse,
+				setBypassAutoEncryption: true,
+				bypassAutoEncryption:    true,
+			},
+			{
+				name:                    "mongocryptdBypassSpawn true, bypassAutoEncryption false",
+				mongocryptdOpts:         mongocryptdBypassSpawnTrue,
+				setBypassAutoEncryption: true,
+				bypassAutoEncryption:    false,
+			},
+			{
+				name:                "bypassQueryAnalysis only",
+				mongocryptdOpts:     mongocryptdBypassSpawnNotSet,
+				bypassQueryAnalysis: true,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
