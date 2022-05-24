@@ -460,3 +460,128 @@ func TestFLE2CreateCollection(t *testing.T) {
 		}
 	})
 }
+
+func TestFLE2DocsExample(t *testing.T) {
+	// FLE 2 is not supported on Standalone topology.
+	mtOpts := mtest.NewOptions().
+		MinServerVersion("6.0").
+		Enterprise(true).
+		CreateClient(false).
+		Topologies(mtest.ReplicaSet,
+			mtest.Sharded,
+			mtest.LoadBalanced,
+			mtest.ShardedReplicaSet)
+	mt := mtest.New(t, mtOpts)
+	defer mt.Close()
+
+	mt.Run("Auto Encryption", func(mt *mtest.T) {
+		// Drop data from prior test runs.
+		{
+			err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+			err = mt.Client.Database("docsExamples").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+		}
+
+		kmsProvidersMap := map[string]map[string]interface{}{
+			"local": {"key": localMasterKey},
+		}
+
+		var key1ID primitive.Binary
+		var key2ID primitive.Binary
+
+		// Create two data keys.
+		{
+			cOpts := options.Client().ApplyURI(mtest.ClusterURI())
+			testutil.AddTestServerAPIVersion(cOpts)
+			keyVaultClient, err := mongo.Connect(context.Background(), cOpts)
+			assert.Nil(mt, err, "error in Connect: %v", err)
+			defer keyVaultClient.Disconnect(context.Background())
+			ceOpts := options.ClientEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys")
+			ce, err := mongo.NewClientEncryption(keyVaultClient, ceOpts)
+			assert.Nil(mt, err, "error in NewClientEncryption: %v", err)
+			defer ce.Close(context.Background())
+			key1ID, err = ce.CreateDataKey(context.Background(), "local")
+			assert.Nil(mt, err, "error in CreateDataKey: %v", err)
+			key2ID, err = ce.CreateDataKey(context.Background(), "local")
+			assert.Nil(mt, err, "error in CreateDataKey: %v", err)
+		}
+
+		// Create an encryptedFieldsMap.
+		encryptedFieldsMap := bson.M{
+			"docsExamples.encrypted": bson.M{
+				"fields": []bson.M{
+					{
+						"path":     "encryptedIndexed",
+						"bsonType": "string",
+						"keyId":    key1ID,
+						"queries": []bson.M{
+							{
+								"queryType": "equality",
+							},
+						},
+					},
+					{
+						"path":     "encryptedUnindexed",
+						"bsonType": "string",
+						"keyId":    key2ID,
+					},
+				},
+			},
+		}
+
+		// Create an FLE 2 collection.
+		var encryptedColl *mongo.Collection
+		{
+			cOpts := options.Client().ApplyURI(mtest.ClusterURI())
+			testutil.AddTestServerAPIVersion(cOpts)
+			aeOpts := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys").SetEncryptedFieldsMap(encryptedFieldsMap)
+			cOpts.SetAutoEncryptionOptions(aeOpts)
+			encryptedClient, err := mongo.Connect(context.Background(), cOpts)
+			defer encryptedClient.Disconnect(context.Background())
+			assert.Nil(mt, err, "error in Connect: %v", err)
+			// Create the FLE 2 collection docsExample.encrypted.
+			db := encryptedClient.Database("docsExamples")
+			// Because docsExample.encrypted is in encryptedFieldsMap, it is created with FLE 2 support.
+			err = db.CreateCollection(context.Background(), "encrypted")
+			assert.Nil(mt, err, "error in CreateCollection")
+			encryptedColl = db.Collection("encrypted")
+		}
+
+		// Auto encrypt an insert and find.
+		{
+			// Encrypt an insert.
+			_, err := encryptedColl.InsertOne(context.Background(), bson.M{
+				"_id":                1,
+				"encryptedIndexed":   "indexedValue",
+				"encryptedUnindexed": "unindexedValue",
+			})
+			assert.Nil(mt, err, "error in InsertOne")
+
+			// Encrypt a find.
+			res := encryptedColl.FindOne(context.Background(), bson.M{
+				"encryptedIndexed": "indexedValue",
+			})
+			assert.Nil(mt, res.Err(), "error in FindOne: %v", res.Err())
+			var resBSON bson.M
+			err = res.Decode(&resBSON)
+			assert.Nil(mt, err, "error in Decode: %v", err)
+			assert.Equal(mt, resBSON["encryptedIndexed"], "indexedValue", "expected 'indexedValue', got %q", resBSON["encryptedIndexed"])
+			assert.Equal(mt, resBSON["encryptedUnindexed"], "unindexedValue", "expected 'unindexedValue', got %q", resBSON["encryptedUnindexed"])
+		}
+
+		// Find documents without decryption.
+		{
+			unencryptedColl := mt.Client.Database("docsExamples").Collection("encrypted")
+			res := unencryptedColl.FindOne(context.Background(), bson.M{"_id": 1})
+			assert.Nil(mt, res.Err(), "error in FindOne: %v", res.Err())
+			resBSON, err := res.DecodeBytes()
+			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+
+			val := resBSON.Lookup("encryptedIndexed")
+			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedIndexed to be Binary, got %v", val.Type)
+			val = resBSON.Lookup("encryptedUnindexed")
+			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedUnindexed to be Binary, got %v", val.Type)
+		}
+	})
+}
