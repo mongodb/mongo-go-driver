@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -140,6 +141,29 @@ func (kb *keyBool) UnmarshalKey(key string) error {
 	return nil
 }
 
+type keyStruct struct {
+	val int64
+}
+
+func (k keyStruct) MarshalText() (text []byte, err error) {
+	str := strconv.FormatInt(k.val, 10)
+
+	return []byte(str), nil
+}
+
+func (k *keyStruct) UnmarshalText(text []byte) error {
+	val, err := strconv.ParseInt(string(text), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	*k = keyStruct{
+		val: val,
+	}
+
+	return nil
+}
+
 func TestMapCodec(t *testing.T) {
 	t.Run("EncodeKeysWithStringer", func(t *testing.T) {
 		strstr := stringerString("foo")
@@ -163,6 +187,7 @@ func TestMapCodec(t *testing.T) {
 			})
 		}
 	})
+
 	t.Run("keys implements keyMarshaler and keyUnmarshaler", func(t *testing.T) {
 		mapObj := map[keyBool]int{keyBool(true): 1}
 
@@ -174,6 +199,25 @@ func TestMapCodec(t *testing.T) {
 		assert.Equal(t, want, doc, "expected result %v, got %v", string(want), string(doc))
 
 		var got map[keyBool]int
+		err = Unmarshal(doc, &got)
+		assert.Nil(t, err, "Unmarshal error: %v", err)
+		assert.Equal(t, mapObj, got, "expected result %v, got %v", mapObj, got)
+
+	})
+
+	t.Run("keys implements encoding.TextMarshaler and encoding.TextUnmarshaler", func(t *testing.T) {
+		mapObj := map[keyStruct]int{
+			{val: 10}: 100,
+		}
+
+		doc, err := Marshal(mapObj)
+		assert.Nil(t, err, "Marshal error: %v", err)
+		idx, want := bsoncore.AppendDocumentStart(nil)
+		want = bsoncore.AppendInt32Element(want, "10", 100)
+		want, _ = bsoncore.AppendDocumentEnd(want, idx)
+		assert.Equal(t, want, doc, "expected result %v, got %v", string(want), string(doc))
+
+		var got map[keyStruct]int
 		err = Unmarshal(doc, &got)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, mapObj, got, "expected result %v, got %v", mapObj, got)

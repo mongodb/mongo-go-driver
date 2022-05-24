@@ -236,9 +236,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		validator := bson.D{
 			{"$jsonSchema", testFile.JSONSchema},
 		}
-		opts.CollectionCreateOptions(bson.D{
-			{"validator", validator},
-		})
+		opts.CollectionCreateOptions(options.CreateCollection().SetValidator(validator))
 	}
 
 	// Start the test without setting client options so the setup will be done with a default client.

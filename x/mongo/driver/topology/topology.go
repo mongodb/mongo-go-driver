@@ -14,7 +14,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -57,7 +56,7 @@ var ErrServerSelectionTimeout = errors.New("server selection timeout")
 type MonitorMode uint8
 
 // random is a package-global pseudo-random number generator.
-var random = randutil.NewLockedRand(rand.NewSource(randutil.CryptoSeed()))
+var random = randutil.NewLockedRand()
 
 // These constants are the available monitoring modes.
 const (

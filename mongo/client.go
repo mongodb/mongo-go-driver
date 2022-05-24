@@ -825,7 +825,7 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 
 // validSession returns an error if the session doesn't belong to the client
 func (c *Client) validSession(sess *session.Client) error {
-	if sess != nil && !uuid.Equal(sess.ClientID, c.id) {
+	if sess != nil && sess.ClientID != c.id {
 		return ErrWrongClient
 	}
 	return nil

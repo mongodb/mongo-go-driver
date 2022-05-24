@@ -47,65 +47,10 @@
   ],
   "tests": [
     {
-      "description": "estimatedDocumentCount with document comment - post 4.9",
+      "description": "estimatedDocumentCount with document comment",
       "runOnRequirements": [
         {
-          "minServerVersion": "4.9.0"
-        }
-      ],
-      "operations": [
-        {
-          "name": "estimatedDocumentCount",
-          "object": "collection0",
-          "arguments": {
-            "comment": {
-              "key": "value"
-            }
-          },
-          "expectResult": 3
-        }
-      ],
-      "expectEvents": [
-        {
-          "client": "client0",
-          "events": [
-            {
-              "commandStartedEvent": {
-                "command": {
-                  "aggregate": "coll0",
-                  "pipeline": [
-                    {
-                      "$collStats": {
-                        "count": {}
-                      }
-                    },
-                    {
-                      "$group": {
-                        "_id": 1,
-                        "n": {
-                          "$sum": "$count"
-                        }
-                      }
-                    }
-                  ],
-                  "comment": {
-                    "key": "value"
-                  }
-                },
-                "commandName": "aggregate",
-                "databaseName": "edc-comment-tests"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "description": "estimatedDocumentCount with document comment - pre 4.9",
-      "runOnRequirements": [
-        {
-          "minServerVersion": "4.4.14",
-          "maxServerVersion": "4.8.99"
+          "minServerVersion": "4.4.14"
         }
       ],
       "operations": [
@@ -141,11 +86,10 @@
       ]
     },
     {
-      "description": "estimatedDocumentCount with string comment - pre 4.9",
+      "description": "estimatedDocumentCount with string comment",
       "runOnRequirements": [
         {
-          "minServerVersion": "4.4.0",
-          "maxServerVersion": "4.8.99"
+          "minServerVersion": "4.4.0"
         }
       ],
       "operations": [

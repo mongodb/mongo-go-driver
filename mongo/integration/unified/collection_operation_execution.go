@@ -38,7 +38,10 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 	var pipeline []interface{}
 	opts := options.Aggregate()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -108,7 +111,10 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 	var models []mongo.WriteModel
 	opts := options.BulkWrite()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -166,7 +172,10 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 	var filter bson.Raw
 	opts := options.Count()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -224,7 +233,10 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 	var keys bson.Raw
 	indexOpts := options.Index()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -304,7 +316,10 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 	var filter bson.Raw
 	opts := options.Delete()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -355,7 +370,10 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 	var filter bson.Raw
 	opts := options.Delete()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -407,7 +425,10 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 	var filter bson.Raw
 	opts := options.Distinct()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -454,7 +475,14 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 	}
 
 	opts := options.EstimatedDocumentCount()
-	elems, _ := operation.Arguments.Elements()
+	var elems []bson.RawElement
+	// Some estimatedDocumentCount operations in the unified test format have no arguments.
+	if operation.Arguments != nil {
+		elems, err = operation.Arguments.Elements()
+		if err != nil {
+			return nil, err
+		}
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -519,7 +547,10 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 	var filter bson.Raw
 	opts := options.FindOneAndDelete()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -571,7 +602,10 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 	var replacement bson.Raw
 	opts := options.FindOneAndReplace()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -641,7 +675,10 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 	var update interface{}
 	opts := options.FindOneAndUpdate()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -717,7 +754,10 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 	var documents []interface{}
 	opts := options.InsertMany()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -764,7 +804,10 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 	var document bson.Raw
 	opts := options.InsertOne()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -805,7 +848,10 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 	}
 
 	opts := options.ListIndexes()
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -830,6 +876,42 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 	return newCursorResult(docs), nil
 }
 
+func executeRenameCollection(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var toName string
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "to":
+			toName = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized rename option %q", key)
+		}
+	}
+	if toName == "" {
+		return nil, newMissingArgumentError("to")
+	}
+
+	renameCmd := bson.D{
+		{"renameCollection", coll.Database().Name() + "." + coll.Name()},
+		{"to", coll.Database().Name() + "." + toName},
+	}
+	// rename can only be run on the 'admin' database.
+	admin := coll.Database().Client().Database("admin")
+	res, err := admin.RunCommand(context.Background(), renameCmd).DecodeBytes()
+	return newDocumentResult(res, err), nil
+}
+
 func executeReplaceOne(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
@@ -840,7 +922,10 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 	replacement := emptyDocument
 	opts := options.Replace()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
@@ -955,7 +1040,10 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 	var filter bson.Raw
 	opts := options.Find()
 
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()

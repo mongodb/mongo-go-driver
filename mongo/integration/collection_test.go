@@ -311,7 +311,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("write error", mtest.NewOptions().MaxServerVersion("5.0.7"), func(mt *mtest.T) {
 			// Deletes are not allowed on capped collections on MongoDB 5.0.6-. We use this
 			// behavior to test the processing of write errors.
-			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
+			cappedOpts := options.CreateCollection().SetCapped(true).SetSizeInBytes(64 * 1024)
 			capped := mt.CreateCollection(mtest.Collection{
 				Name:       "deleteOne_capped",
 				CreateOpts: cappedOpts,
@@ -380,7 +380,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("write error", mtest.NewOptions().MaxServerVersion("5.0.7"), func(mt *mtest.T) {
 			// Deletes are not allowed on capped collections on MongoDB 5.0.6-. We use this
 			// behavior to test the processing of write errors.
-			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
+			cappedOpts := options.CreateCollection().SetCapped(true).SetSizeInBytes(64 * 1024)
 			capped := mt.CreateCollection(mtest.Collection{
 				Name:       "deleteMany_capped",
 				CreateOpts: cappedOpts,
@@ -1531,7 +1531,7 @@ func TestCollection(t *testing.T) {
 			// behavior to test the processing of write errors.
 			doc := mongo.NewDeleteOneModel().SetFilter(bson.D{{"x", 1}})
 			models := []mongo.WriteModel{doc, doc}
-			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
+			cappedOpts := options.CreateCollection().SetCapped(true).SetSizeInBytes(64 * 1024)
 			capped := mt.CreateCollection(mtest.Collection{
 				Name:       "delete_write_errors",
 				CreateOpts: cappedOpts,
@@ -1628,7 +1628,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("unordered writeError index", mtest.NewOptions().MaxServerVersion("5.0.7"), func(mt *mtest.T) {
 			// Deletes are not allowed on capped collections on MongoDB 5.0.6-. We use this
 			// behavior to test the processing of write errors.
-			cappedOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
+			cappedOpts := options.CreateCollection().SetCapped(true).SetSizeInBytes(64 * 1024)
 			capped := mt.CreateCollection(mtest.Collection{
 				Name:       "deleteOne_capped",
 				CreateOpts: cappedOpts,

@@ -48,6 +48,27 @@ func (op *operation) execute(ctx context.Context, loopDone <-chan struct{}) erro
 	return nil
 }
 
+// isCreateView will return true if the operation is to create a collection with a view.
+func (op *operation) isCreateView() (bool, error) {
+	if op.Name != "createCollection" {
+		return false, nil
+	}
+
+	elements, err := op.Arguments.Elements()
+	if err != nil {
+		return false, err
+	}
+
+	var has bool
+	for _, elem := range elements {
+		if elem.Key() == "viewOn" {
+			has = true
+			break
+		}
+	}
+	return has, nil
+}
+
 func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operationResult, error) {
 	if op.Object == "testRunner" {
 		// testRunner operations don't have results or expected errors, so we use newEmptyResult to fake a result.
@@ -133,6 +154,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeInsertOne(ctx, op)
 	case "listIndexes":
 		return executeListIndexes(ctx, op)
+	case "rename":
+		return executeRenameCollection(ctx, op)
 	case "replaceOne":
 		return executeReplaceOne(ctx, op)
 	case "updateOne":

@@ -45,6 +45,7 @@ type Create struct {
 	expireAfterSeconds           *int64
 	timeSeries                   bsoncore.Document
 	encryptedFields              bsoncore.Document
+	clusteredIndex               bsoncore.Document
 }
 
 // NewCreate constructs and returns a new Create.
@@ -131,6 +132,9 @@ func (c *Create) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if c.encryptedFields != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "encryptedFields", c.encryptedFields)
+	}
+	if c.clusteredIndex != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "clusteredIndex", c.clusteredIndex)
 	}
 	return dst, nil
 }
@@ -384,5 +388,15 @@ func (c *Create) EncryptedFields(ef bsoncore.Document) *Create {
 	}
 
 	c.encryptedFields = ef
+	return c
+}
+
+// ClusteredIndex sets the ClusteredIndex option for this operation.
+func (c *Create) ClusteredIndex(ci bsoncore.Document) *Create {
+	if c == nil {
+		c = new(Create)
+	}
+
+	c.clusteredIndex = ci
 	return c
 }

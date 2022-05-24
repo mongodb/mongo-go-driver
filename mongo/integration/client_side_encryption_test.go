@@ -423,13 +423,13 @@ func TestFLE2CreateCollection(t *testing.T) {
 	mt.Run("CreateCollection from encryptedFields", func(mt *mtest.T) {
 		// Drop data and state collections to clean up from a prior test run.
 		{
-			err := mt.DB.Collection("coll").Drop(context.Background())
-			assert.Nil(mt, err, "error in Drop: %v", err)
 			err = mt.DB.Collection("encryptedCollection.esc").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
 			err = mt.DB.Collection("encryptedCollection.ecc").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
 			err = mt.DB.Collection("encryptedCollection.ecoc").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+			err := mt.DB.Collection("coll").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
 		}
 

@@ -43,7 +43,8 @@
       "description": "collection is created with the correct options",
       "runOnRequirements": [
         {
-          "minServerVersion": "3.6"
+          "minServerVersion": "3.6",
+          "serverless": "forbid"
         }
       ],
       "operations": [

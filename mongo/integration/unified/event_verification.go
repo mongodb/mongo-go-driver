@@ -63,9 +63,10 @@ type cmapEvent struct {
 }
 
 type expectedEvents struct {
-	ClientID      string `bson:"client"`
-	CommandEvents []commandMonitoringEvent
-	CMAPEvents    []cmapEvent
+	ClientID          string `bson:"client"`
+	CommandEvents     []commandMonitoringEvent
+	CMAPEvents        []cmapEvent
+	IgnoreExtraEvents *bool
 }
 
 var _ bson.Unmarshaler = (*expectedEvents)(nil)
@@ -75,10 +76,11 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 	// We use the "eventType" value to determine which struct field should be used to deserialize the "events" array.
 
 	var temp struct {
-		ClientID  string                 `bson:"client"`
-		EventType string                 `bson:"eventType"`
-		Events    bson.RawValue          `bson:"events"`
-		Extra     map[string]interface{} `bson:",inline"`
+		ClientID          string                 `bson:"client"`
+		EventType         string                 `bson:"eventType"`
+		Events            bson.RawValue          `bson:"events"`
+		IgnoreExtraEvents *bool                  `bson:"ignoreExtraEvents"`
+		Extra             map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary expectedEvents object: %v", err)
@@ -105,6 +107,10 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 	if err := temp.Events.Unmarshal(target); err != nil {
 		return fmt.Errorf("error unmarshalling events array: %v", err)
 	}
+
+	if temp.IgnoreExtraEvents != nil {
+		e.IgnoreExtraEvents = temp.IgnoreExtraEvents
+	}
 	return nil
 }
 
@@ -116,24 +122,24 @@ func verifyEvents(ctx context.Context, expectedEvents *expectedEvents) error {
 
 	switch {
 	case expectedEvents.CommandEvents != nil:
-		return verifyCommandEvents(ctx, client, expectedEvents.CommandEvents)
+		return verifyCommandEvents(ctx, client, expectedEvents)
 	case expectedEvents.CMAPEvents != nil:
-		return verifyCMAPEvents(client, expectedEvents.CMAPEvents)
+		return verifyCMAPEvents(client, expectedEvents)
 	}
 	return nil
 }
 
-func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEvents []commandMonitoringEvent) error {
+func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEvents *expectedEvents) error {
 	started := client.startedEvents()
 	succeeded := client.succeededEvents()
 	failed := client.failedEvents()
 
 	// If the Events array is nil, verify that no events were sent.
-	if len(expectedEvents) == 0 && (len(started)+len(succeeded)+len(failed) != 0) {
+	if len(expectedEvents.CommandEvents) == 0 && (len(started)+len(succeeded)+len(failed) != 0) {
 		return fmt.Errorf("expected no events to be sent but got %s", stringifyEventsForClient(client))
 	}
 
-	for idx, evt := range expectedEvents {
+	for idx, evt := range expectedEvents.CommandEvents {
 		switch {
 		case evt.CommandStartedEvent != nil:
 			if len(started) == 0 {
@@ -247,20 +253,21 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 		}
 	}
 
-	// Verify that there are no remaining events.
-	if len(started) > 0 || len(succeeded) > 0 || len(failed) > 0 {
+	// Verify that there are no remaining events if IgnoreExtraEvents is unset or false.
+	ignoreExtraEvents := expectedEvents.IgnoreExtraEvents != nil && *expectedEvents.IgnoreExtraEvents
+	if !ignoreExtraEvents && (len(started) > 0 || len(succeeded) > 0 || len(failed) > 0) {
 		return fmt.Errorf("extra events published; all events for client: %s", stringifyEventsForClient(client))
 	}
 	return nil
 }
 
-func verifyCMAPEvents(client *clientEntity, expected []cmapEvent) error {
+func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) error {
 	pooled := client.poolEvents()
-	if len(expected) == 0 && len(pooled) != 0 {
+	if len(expectedEvents.CMAPEvents) == 0 && len(pooled) != 0 {
 		return fmt.Errorf("expected no cmap events to be sent but got %s", stringifyEventsForClient(client))
 	}
 
-	for idx, evt := range expected {
+	for idx, evt := range expectedEvents.CMAPEvents {
 		var err error
 
 		switch {
@@ -317,8 +324,9 @@ func verifyCMAPEvents(client *clientEntity, expected []cmapEvent) error {
 		}
 	}
 
-	// Verify that there are no remaining events.
-	if len(pooled) > 0 {
+	// Verify that there are no remaining events if ignoreExtraEvents is unset or false.
+	ignoreExtraEvents := expectedEvents.IgnoreExtraEvents != nil && *expectedEvents.IgnoreExtraEvents
+	if !ignoreExtraEvents && len(pooled) > 0 {
 		return fmt.Errorf("extra events published; all events for client: %s", stringifyEventsForClient(client))
 	}
 	return nil

@@ -17,7 +17,7 @@ var (
 		"unified-test-format/valid-pass",
 		"versioned-api",
 		"crud/unified",
-		"change-streams/unified",
+		"change-streams",
 		"transactions/unified",
 		"load-balancers",
 		"collection-management",
