@@ -122,7 +122,7 @@ func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{})
 }
 
 // SetBypassQueryAnalysis specifies whether or not query analysis should be used for automatic encryption.
-// Use this option when using explicit encryption with FLE 2.
+// Use this option when using explicit encryption with Queryable Encryption.
 func (a *AutoEncryptionOptions) SetBypassQueryAnalysis(bypass bool) *AutoEncryptionOptions {
 	a.BypassQueryAnalysis = &bypass
 	return a

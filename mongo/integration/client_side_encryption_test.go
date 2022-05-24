@@ -383,7 +383,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 }
 
 func TestFLE2CreateCollection(t *testing.T) {
-	// FLE 2 is not supported on Standalone topology.
+	// FLE 2 (aka Queryable Encryption) is not supported on Standalone topology.
 	mtOpts := mtest.NewOptions().
 		MinServerVersion("6.0").
 		Enterprise(true).
