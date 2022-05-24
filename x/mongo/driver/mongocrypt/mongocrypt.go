@@ -17,8 +17,10 @@ package mongocrypt
 import "C"
 import (
 	"errors"
+	"fmt"
 	"unsafe"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
@@ -230,13 +232,12 @@ func (m *MongoCrypt) setLocalSchemaMap(schemaMap map[string]bsoncore.Document) e
 	}
 
 	// convert schema map to BSON document
-	midx, mdoc := bsoncore.AppendDocumentStart(nil)
-	for key, doc := range schemaMap {
-		mdoc = bsoncore.AppendDocumentElement(mdoc, key, doc)
+	schemaMapBSON, err := bson.Marshal(schemaMap)
+	if err != nil {
+		return fmt.Errorf("error marshalling SchemaMap: %v", err)
 	}
-	mdoc, _ = bsoncore.AppendDocumentEnd(mdoc, midx)
 
-	schemaMapBinary := newBinaryFromBytes(mdoc)
+	schemaMapBinary := newBinaryFromBytes(schemaMapBSON)
 	defer schemaMapBinary.close()
 
 	if ok := C.mongocrypt_setopt_schema_map(m.wrapped, schemaMapBinary.wrapped); !ok {
@@ -252,13 +253,12 @@ func (m *MongoCrypt) setEncryptedFieldsMap(encryptedfieldsMap map[string]bsoncor
 	}
 
 	// convert encryptedfields map to BSON document
-	midx, mdoc := bsoncore.AppendDocumentStart(nil)
-	for key, doc := range encryptedfieldsMap {
-		mdoc = bsoncore.AppendDocumentElement(mdoc, key, doc)
+	encryptedfieldsMapBSON, err := bson.Marshal(encryptedfieldsMap)
+	if err != nil {
+		return fmt.Errorf("error marshalling EncryptedFieldsMap: %v", err)
 	}
-	mdoc, _ = bsoncore.AppendDocumentEnd(mdoc, midx)
 
-	encryptedfieldsMapBinary := newBinaryFromBytes(mdoc)
+	encryptedfieldsMapBinary := newBinaryFromBytes(encryptedfieldsMapBSON)
 	defer encryptedfieldsMapBinary.close()
 
 	if ok := C.mongocrypt_setopt_encrypted_field_config_map(m.wrapped, encryptedfieldsMapBinary.wrapped); !ok {
