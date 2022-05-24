@@ -637,7 +637,7 @@ func TestIndexView(t *testing.T) {
 		const name = "clustered"
 		clustered := mt.CreateCollection(mtest.Collection{
 			Name:       name,
-			CreateOpts: bson.D{{"clusteredIndex", bson.D{{"key", bson.D{{"_id", 1}}}, {"unique", true}}}},
+			CreateOpts: options.CreateCollection().SetClusteredIndex(bson.D{{"clusteredIndex", bson.D{{"key", bson.D{{"_id", 1}}}, {"unique", true}}}}),
 		}, true)
 		mt.Run("create one", func(mt *mtest.T) {
 			_, err := clustered.Indexes().CreateOne(context.Background(), mongo.IndexModel{
