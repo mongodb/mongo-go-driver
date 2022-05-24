@@ -12,36 +12,22 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-type StateCollection uint8
-
 const (
-	EncryptedCacheCollection StateCollection = iota
-	EncryptedStateCollection
-	EncryptedCompactionCollection
+	EncryptedCacheCollection      = "ecc"
+	EncryptedStateCollection      = "esc"
+	EncryptedCompactionCollection = "ecoc"
 )
 
-func (sc StateCollection) suffix() string {
-	switch sc {
-	case EncryptedCacheCollection:
-		return "ecc"
-	case EncryptedStateCollection:
-		return "esc"
-	case EncryptedCompactionCollection:
-		return "ecoc"
-	}
-	return "unknown"
-}
-
 // GetEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
-func GetEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionName string, sc StateCollection) (string, error) {
-	fieldName := sc.suffix() + "Collection"
+func GetEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionName string, stateCollection string) (string, error) {
+	fieldName := stateCollection + "Collection"
 	val, err := efBSON.LookupErr(fieldName)
 	if err != nil {
 		if err != bsoncore.ErrElementNotFound {
 			return "", err
 		}
 		// Return default name.
-		defaultName := "enxcol_." + dataCollectionName + "." + sc.suffix()
+		defaultName := "enxcol_." + dataCollectionName + "." + stateCollection
 		return defaultName, nil
 	}
 
