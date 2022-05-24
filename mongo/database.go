@@ -603,12 +603,16 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	// Create the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
+
+	stateCollectionOpts := options.CreateCollection().
+		SetClusteredIndex(bson.D{{"key", bson.D{{"_id", 1}}}, {"unique", true}})
 	// Create ESCCollection.
 	escCollection, err := getEncryptedStateCollectionName(efBSON, name, "esc")
 	if err != nil {
 		return err
 	}
-	if err := db.createCollection(ctx, escCollection); err != nil {
+
+	if err := db.createCollection(ctx, escCollection, stateCollectionOpts); err != nil {
 		return err
 	}
 
@@ -617,7 +621,8 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	if err != nil {
 		return err
 	}
-	if err := db.createCollection(ctx, eccCollection); err != nil {
+
+	if err := db.createCollection(ctx, eccCollection, stateCollectionOpts); err != nil {
 		return err
 	}
 
@@ -626,7 +631,8 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	if err != nil {
 		return err
 	}
-	if err := db.createCollection(ctx, ecocCollection); err != nil {
+
+	if err := db.createCollection(ctx, ecocCollection, stateCollectionOpts); err != nil {
 		return err
 	}
 
@@ -738,6 +744,13 @@ func (db *Database) createCollectionOperation(name string, opts ...*options.Crea
 		}
 
 		op.TimeSeries(doc)
+	}
+	if cco.ClusteredIndex != nil {
+		clusteredIndex, err := transformBsoncoreDocument(db.registry, cco.ClusteredIndex, true, "clusteredIndex")
+		if err != nil {
+			return nil, err
+		}
+		op.ClusteredIndex(clusteredIndex)
 	}
 
 	return op, nil

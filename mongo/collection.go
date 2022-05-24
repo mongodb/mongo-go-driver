@@ -1760,10 +1760,6 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 		return fmt.Errorf("error transforming document: %v", err)
 	}
 
-	// Drop the data collection.
-	if err := coll.drop(ctx); err != nil {
-		return err
-	}
 	// Drop the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
 	// Drop ESCCollection.
 	escCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "esc")
@@ -1789,6 +1785,11 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 		return err
 	}
 	if err := coll.db.Collection(ecocCollection).drop(ctx); err != nil {
+		return err
+	}
+
+	// Drop the data collection.
+	if err := coll.drop(ctx); err != nil {
 		return err
 	}
 	return nil
