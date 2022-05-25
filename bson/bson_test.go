@@ -171,7 +171,7 @@ func (m *someMap) UnmarshalBSON(byts []byte) error {
 	return nil
 }
 
-type unaddressableMapStruc struct {
+type unaddressableMapStruct struct {
 	Map someMap
 }
 
@@ -235,11 +235,11 @@ func TestMapCodec(t *testing.T) {
 
 	})
 	t.Run("UnmarshalBSON should run for unaddressable map in addressable struct", func(t *testing.T) {
-		x := &unaddressableMapStruc{}
+		x := &unaddressableMapStruct{}
 		byts, err := Marshal(x)
 		assert.Nil(t, err, "expected no error. got %v", err)
 
-		y := &unaddressableMapStruc{}
+		y := &unaddressableMapStruct{}
 		err = Unmarshal(byts, y)
 		assert.Nil(t, err, "expected no error. got %v", err)
 	})
