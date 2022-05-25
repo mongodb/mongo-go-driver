@@ -74,13 +74,14 @@ func (eeo *ExplicitEncryptionOptions) SetAlgorithm(algorithm string) *ExplicitEn
 	return eeo
 }
 
-func (eoo *ExplicitEncryptionOptions) SetQueryType(queryType *QueryType) *ExplicitEncryptionOptions {
-	eoo.QueryType = queryType
-	return eoo
+// SetQueryType specifies the query type.
+func (eeo *ExplicitEncryptionOptions) SetQueryType(queryType *QueryType) *ExplicitEncryptionOptions {
+	eeo.QueryType = queryType
+	return eeo
 }
 
 // SetContentionFactor specifies the contention factor.
-func (eoo *ExplicitEncryptionOptions) SetContentionFactor(contentionFactor *int64) *ExplicitEncryptionOptions {
-	eoo.ContentionFactor = contentionFactor
-	return eoo
+func (eeo *ExplicitEncryptionOptions) SetContentionFactor(contentionFactor *int64) *ExplicitEncryptionOptions {
+	eeo.ContentionFactor = contentionFactor
+	return eeo
 }
