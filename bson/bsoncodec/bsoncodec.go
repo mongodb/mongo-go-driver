@@ -125,7 +125,7 @@ type DecodeContext struct {
 	// Ancestor is a bson.M, BSON embedded document values being decoded into an empty interface
 	// will be decoded into a bson.M.
 	//
-	// Deprecated: Use DefaultDocumentType instead.
+	// Deprecated: Use DefaultDocumentM or DefaultDocumentD instead.
 	Ancestor reflect.Type
 
 	// defaultDocumentType specifies the Go type to decode top-level and nested BSON documents into. In particular, the
@@ -135,15 +135,15 @@ type DecodeContext struct {
 	defaultDocumentType reflect.Type
 }
 
-// DefaultDocumentM will set the defaultDocumentType as primitive.M, to be used when decoding "interface{}" and
-// "map[string]interface{}".
+// DefaultDocumentM will decode empty documents using the primitive.M type. This behavior is restricted to data typed as
+// "interface{}" or "map[string]interface{}".
 func (dc *DecodeContext) DefaultDocumentM() error {
 	dc.defaultDocumentType = reflect.TypeOf(primitive.M{})
 	return nil
 }
 
-// DefaultDocumentD will set the defaultDocumentType as primitive.D, to be used when decoding "interface{}" and
-// "map[string]interface{}".
+// DefaultDocumentD will decode empty documents using the primitive.D type. This behavior is restricted to data typed as
+// "interface{}" or "map[string]interface{}".
 func (dc *DecodeContext) DefaultDocumentD() error {
 	dc.defaultDocumentType = reflect.TypeOf(primitive.D{})
 	return nil

@@ -31,8 +31,11 @@ var decPool = sync.Pool{
 // A Decoder reads and decodes BSON documents from a stream. It reads from a bsonrw.ValueReader as
 // the source of BSON data.
 type Decoder struct {
-	dc               bsoncodec.DecodeContext
-	vr               bsonrw.ValueReader
+	dc bsoncodec.DecodeContext
+	vr bsonrw.ValueReader
+
+	// We persist defaultDocumentM and defaultDocumentD on the Decoder to prevent overwriting from
+	// (*Decoder).SetContext.
 	defaultDocumentM bool
 	defaultDocumentD bool
 }
@@ -125,14 +128,14 @@ func (d *Decoder) SetContext(dc bsoncodec.DecodeContext) error {
 	return nil
 }
 
-// DefaultDocumentM will decode empty documents into primitive.M types. This behavior is restricted to data typed as
+// DefaultDocumentM will decode empty documents using the primitive.M type. This behavior is restricted to data typed as
 // "interface{}" or "map[string]interface{}".
 func (d *Decoder) DefaultDocumentM() error {
 	d.defaultDocumentM = true
 	return nil
 }
 
-// DefaultDocumentD will decode empty documents into primitive.D types.  This behavior is restricted to data typed as
+// DefaultDocumentD will decode empty documents using the primitive.D type. This behavior is restricted to data typed as
 // "interface{}" or "map[string]interface{}".
 func (d *Decoder) DefaultDocumentD() error {
 	d.defaultDocumentD = true
