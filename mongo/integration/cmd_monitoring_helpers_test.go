@@ -256,6 +256,11 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bson.Ra
 	mt.Helper()
 
 	expected := expectation.CommandStartedEvent
+
+	if len(expected.Extra) > 0 {
+		return fmt.Errorf("unrecognized fields for CommandStartedEvent: %v", expected.Extra)
+	}
+
 	evt := mt.GetStartedEvent()
 	if evt == nil {
 		return errors.New("expected CommandStartedEvent, got nil")
@@ -363,6 +368,9 @@ func compareSucceededEvent(mt *mtest.T, expectation *expectation) error {
 	mt.Helper()
 
 	expected := expectation.CommandSucceededEvent
+	if len(expected.Extra) > 0 {
+		return fmt.Errorf("unrecognized fields for CommandSucceededEvent: %v", expected.Extra)
+	}
 	evt := mt.GetSucceededEvent()
 	if evt == nil {
 		return errors.New("expected CommandSucceededEvent, got nil")
@@ -400,6 +408,9 @@ func compareFailedEvent(mt *mtest.T, expectation *expectation) error {
 	mt.Helper()
 
 	expected := expectation.CommandFailedEvent
+	if len(expected.Extra) > 0 {
+		return fmt.Errorf("unrecognized fields for CommandFailedEvent: %v", expected.Extra)
+	}
 	evt := mt.GetFailedEvent()
 	if evt == nil {
 		return errors.New("expected CommandFailedEvent, got nil")

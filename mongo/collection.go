@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -1762,7 +1763,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 
 	// Drop the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
 	// Drop ESCCollection.
-	escCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "esc")
+	escCollection, err := internal.GetEncryptedStateCollectionName(efBSON, coll.name, internal.EncryptedStateCollection)
 	if err != nil {
 		return err
 	}
@@ -1771,7 +1772,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	}
 
 	// Drop ECCCollection.
-	eccCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "ecc")
+	eccCollection, err := internal.GetEncryptedStateCollectionName(efBSON, coll.name, internal.EncryptedCacheCollection)
 	if err != nil {
 		return err
 	}
@@ -1780,7 +1781,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	}
 
 	// Drop ECOCCollection.
-	ecocCollection, err := getEncryptedStateCollectionName(efBSON, coll.name, "ecoc")
+	ecocCollection, err := internal.GetEncryptedStateCollectionName(efBSON, coll.name, internal.EncryptedCompactionCollection)
 	if err != nil {
 		return err
 	}

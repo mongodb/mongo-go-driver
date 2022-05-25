@@ -162,6 +162,8 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 				t.Fatalf("error creating encryptedFieldsMap: %v", err)
 			}
 			aeo.SetEncryptedFieldsMap(encryptedFieldsMap)
+		case "bypassQueryAnalysis":
+			aeo.SetBypassQueryAnalysis(opt.Boolean())
 		default:
 			t.Fatalf("unrecognized auto encryption option: %v", name)
 		}

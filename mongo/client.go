@@ -790,6 +790,17 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 		}
 		cryptSchemaMap[k] = schema
 	}
+
+	// convert schemas in EncryptedFieldsMap to bsoncore documents
+	cryptEncryptedFieldsMap := make(map[string]bsoncore.Document)
+	for k, v := range opts.EncryptedFieldsMap {
+		encryptedFields, err := transformBsoncoreDocument(c.registry, v, true, "encryptedFieldsMap")
+		if err != nil {
+			return err
+		}
+		cryptEncryptedFieldsMap[k] = encryptedFields
+	}
+
 	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders, true, "kmsProviders")
 	if err != nil {
 		return fmt.Errorf("error creating KMS providers document: %v", err)
@@ -817,6 +828,8 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 		TLSConfig:            opts.TLSConfig,
 		BypassAutoEncryption: bypass,
 		SchemaMap:            cryptSchemaMap,
+		BypassQueryAnalysis:  opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis,
+		EncryptedFieldsMap:   cryptEncryptedFieldsMap,
 	}
 
 	c.cryptFLE, err = driver.NewCrypt(cryptOpts)

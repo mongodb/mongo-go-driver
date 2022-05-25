@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -570,31 +571,6 @@ func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{}
 	return nil
 }
 
-// getEncryptedStateCollectionName returns the encrypted state collection name associated with dataCollectionName.
-func getEncryptedStateCollectionName(efBSON bsoncore.Document, dataCollectionName string, stateCollectionSuffix string) (string, error) {
-	if stateCollectionSuffix != "esc" && stateCollectionSuffix != "ecc" && stateCollectionSuffix != "ecoc" {
-		return "", fmt.Errorf("expected stateCollectionSuffix: esc, ecc, or ecoc. got %v", stateCollectionSuffix)
-	}
-	fieldName := stateCollectionSuffix + "Collection"
-	var val bsoncore.Value
-	var err error
-	if val, err = efBSON.LookupErr(fieldName); err != nil {
-		if err != bsoncore.ErrElementNotFound {
-			return "", err
-		}
-		// Return default name.
-		defaultName := "enxcol_." + dataCollectionName + "." + stateCollectionSuffix
-		return defaultName, nil
-	}
-
-	var stateCollectionName string
-	var ok bool
-	if stateCollectionName, ok = val.StringValueOK(); !ok {
-		return "", fmt.Errorf("expected string for '%v', got: %v", fieldName, val.Type)
-	}
-	return stateCollectionName, nil
-}
-
 // createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
 func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, ef interface{}, opts ...*options.CreateCollectionOptions) error {
 	efBSON, err := transformBsoncoreDocument(db.registry, ef, true /* mapAllowed */, "encryptedFields")
@@ -607,7 +583,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	stateCollectionOpts := options.CreateCollection().
 		SetClusteredIndex(bson.D{{"key", bson.D{{"_id", 1}}}, {"unique", true}})
 	// Create ESCCollection.
-	escCollection, err := getEncryptedStateCollectionName(efBSON, name, "esc")
+	escCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, internal.EncryptedStateCollection)
 	if err != nil {
 		return err
 	}
@@ -617,7 +593,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	// Create ECCCollection.
-	eccCollection, err := getEncryptedStateCollectionName(efBSON, name, "ecc")
+	eccCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, internal.EncryptedCacheCollection)
 	if err != nil {
 		return err
 	}
@@ -627,7 +603,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	// Create ECOCCollection.
-	ecocCollection, err := getEncryptedStateCollectionName(efBSON, name, "ecoc")
+	ecocCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, internal.EncryptedCompactionCollection)
 	if err != nil {
 		return err
 	}
