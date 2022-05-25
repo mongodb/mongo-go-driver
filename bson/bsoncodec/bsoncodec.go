@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var (
@@ -127,17 +128,25 @@ type DecodeContext struct {
 	// Deprecated: Use DefaultDocumentType instead.
 	Ancestor reflect.Type
 
-	// DocumentType specifies the Go type to decode top-level and nested BSON documents into. In particular, the
+	// defaultDocumentType specifies the Go type to decode top-level and nested BSON documents into. In particular, the
 	// usage for this field is restricted to data typed as "interface{}" or "map[string]interface{}". If DocumentType is
 	// set to a type that a BSON document cannot be unmarshaled into (e.g. "string"), unmarshalling will result in an
 	// error. DocumentType overrides the Ancestor field.
-	DocumentType reflect.Type
+	defaultDocumentType reflect.Type
 }
 
-// SetDocumentType will set the DocumentType field on a DecodeContext.
-func (dc *DecodeContext) SetDocumentType(rtype reflect.Type) *DecodeContext {
-	dc.DocumentType = rtype
-	return dc
+// DefaultDocumentM will set the defaultDocumentType as primitive.M, to be used when decoding "interface{}" and
+// "map[string]interface{}".
+func (dc *DecodeContext) DefaultDocumentM() error {
+	dc.defaultDocumentType = reflect.TypeOf(primitive.M{})
+	return nil
+}
+
+// DefaultDocumentD will set the defaultDocumentType as primitive.D, to be used when decoding "interface{}" and
+// "map[string]interface{}".
+func (dc *DecodeContext) DefaultDocumentD() error {
+	dc.defaultDocumentType = reflect.TypeOf(primitive.D{})
+	return nil
 }
 
 // ValueCodec is the interface that groups the methods to encode and decode
