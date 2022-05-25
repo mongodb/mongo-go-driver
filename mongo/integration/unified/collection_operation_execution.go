@@ -847,11 +847,15 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 		return nil, err
 	}
 
-	opts := options.ListIndexes()
-	elems, err := operation.Arguments.Elements()
-	if err != nil {
-		return nil, err
+	var elems []bson.RawElement
+	// Some listIndexes operations in the unified test format have no arguments.
+	if operation.Arguments != nil {
+		elems, err = operation.Arguments.Elements()
+		if err != nil {
+			return nil, err
+		}
 	}
+	opts := options.ListIndexes()
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
