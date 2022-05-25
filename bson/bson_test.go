@@ -164,6 +164,17 @@ func (k *keyStruct) UnmarshalText(text []byte) error {
 	return nil
 }
 
+type em map[string]interface{}
+
+func (m *em) UnmarshalBSON(byts []byte) error {
+	//Implementation not relevant
+	return nil
+}
+
+type emptyStruct struct {
+	Map em
+}
+
 func TestMapCodec(t *testing.T) {
 	t.Run("EncodeKeysWithStringer", func(t *testing.T) {
 		strstr := stringerString("foo")
@@ -222,6 +233,15 @@ func TestMapCodec(t *testing.T) {
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, mapObj, got, "expected result %v, got %v", mapObj, got)
 
+	})
+	t.Run("UnmarshalBSON nil map pointer", func(t *testing.T) {
+		x := &emptyStruct{}
+		byts, err := Marshal(x)
+		assert.Nil(t, err, "expected no error. got %v", err)
+
+		y := &emptyStruct{}
+		err = Unmarshal(byts, y)
+		assert.Nil(t, err, "expected no error. got %v", err)
 	})
 }
 

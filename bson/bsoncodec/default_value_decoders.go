@@ -1504,14 +1504,14 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(dc DecodeContext, vr bson
 		return err
 	}
 
-	// If the target Go value is a pointer and the BSON field value is empty, set the value to the
+	// If the target Go value is an addressable pointer and the BSON field value is empty, set the value to the
 	// zero value of the pointer (nil) and don't call UnmarshalBSON. UnmarshalBSON has no way to
 	// change the pointer value from within the function (only the value at the pointer address),
 	// so it can't set the pointer to "nil" itself. Since the most common Go value for an empty BSON
 	// field value is "nil", we set "nil" here and don't call UnmarshalBSON. This behavior matches
 	// the behavior of the Go "encoding/json" unmarshaler when the target Go value is a pointer and
 	// the JSON field value is "null".
-	if val.Kind() == reflect.Ptr && len(src) == 0 {
+	if val.CanSet() && val.Kind() == reflect.Ptr && len(src) == 0 {
 		val.Set(reflect.Zero(val.Type()))
 		return nil
 	}
