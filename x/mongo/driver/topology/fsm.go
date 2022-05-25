@@ -18,7 +18,7 @@ import (
 
 var (
 	// SupportedWireVersions is the range of wire versions supported by the driver.
-	SupportedWireVersions = description.NewVersionRange(2, 15)
+	SupportedWireVersions = description.NewVersionRange(2, 17)
 )
 
 const (
