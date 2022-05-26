@@ -208,7 +208,6 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 			if ok := C.mongocrypt_ctx_setopt_query_type(ctx.wrapped, 1); !ok {
 				return nil, ctx.createErrorFromStatus()
 			}
-			break
 		}
 	}
 
