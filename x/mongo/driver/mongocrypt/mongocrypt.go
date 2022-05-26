@@ -187,15 +187,16 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 	algoStr := C.CString(opts.Algorithm)
 	defer C.free(unsafe.Pointer(algoStr))
 
-	if opts.Algorithm == "Indexed" {
+	switch opts.Algorithm {
+	case "Indexed":
 		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeIndexed); !ok {
 			return nil, ctx.createErrorFromStatus()
 		}
-	} else if opts.Algorithm == "Unindexed" {
+	case "Unindexed":
 		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeUnindexed); !ok {
 			return nil, ctx.createErrorFromStatus()
 		}
-	} else {
+	default:
 		if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
 			return nil, ctx.createErrorFromStatus()
 		}
