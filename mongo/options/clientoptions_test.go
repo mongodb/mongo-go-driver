@@ -696,6 +696,41 @@ func TestClientOptions(t *testing.T) {
 			})
 		}
 	})
+	t.Run("srvMaxHosts validation", func(t *testing.T) {
+		t.Parallel()
+
+		testCases := []struct {
+			name string
+			opts *ClientOptions
+			err  error
+		}{
+			{
+				name: "valid ServerAPI",
+				opts: Client().SetServerAPIOptions(ServerAPI(ServerAPIVersion1)),
+				err:  nil,
+			},
+			{
+				name: "invalid ServerAPI",
+				opts: Client().SetServerAPIOptions(ServerAPI("nope")),
+				err:  errors.New(`api version "nope" not supported; this driver version only supports API version "1"`),
+			},
+			{
+				name: "invalid ServerAPI with other invalid options",
+				opts: Client().SetServerAPIOptions(ServerAPI("nope")).SetSRVMaxHosts(1).SetReplicaSet("foo"),
+				err:  errors.New(`api version "nope" not supported; this driver version only supports API version "1"`),
+			},
+		}
+		for _, tc := range testCases {
+			tc := tc // Capture range variable.
+
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "want error %v, got error %v", tc.err, err)
+			})
+		}
+	})
 }
 
 func createCertPool(t *testing.T, paths ...string) *x509.CertPool {
