@@ -111,7 +111,7 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue, opts
 			val := cryptOpts.QueryTypeEquality
 			transformed.SetQueryType(&val)
 		default:
-			return primitive.Binary{}, fmt.Errorf ("unsupported value for QueryType: %v", *eo.QueryType)
+			return primitive.Binary{}, fmt.Errorf("unsupported value for QueryType: %v", *eo.QueryType)
 		}
 	}
 
