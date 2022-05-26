@@ -105,8 +105,14 @@
 //
 // Note: Auto encryption is an enterprise-only feature.
 //
-// The libmongocrypt C library is required when using client-side encryption. libmongocrypt version 1.5.0 or higher is
-// required when using driver version 1.10.0 or higher. To install libmongocrypt, follow the instructions for your
+// The libmongocrypt C library is required when using client-side encryption. Specific versions of libmongocrypt
+// are required for different versions of the Go Driver:
+// - Go Driver v1.2.0 requires libmongocrypt v1.0.0 or higher
+// - Go Driver v1.5.0 requires libmongocrypt v1.1.0 or higher
+// - Go Driver v1.8.0 requires libmongocrypt v1.3.0 or higher
+// - Go Driver v1.10.0 requires libmongocrypt v1.5.0 or higher
+//
+// To install libmongocrypt, follow the instructions for your
 // operating system:
 //
 // 1. Linux: follow the instructions listed at
