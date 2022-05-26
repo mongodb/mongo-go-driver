@@ -56,14 +56,14 @@ func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
 }
 
 // SetQueryType specifies the intended query type. It is only valid to set if algorithm is "Indexed".
-func (e *EncryptOptions) SetQueryType(queryType *QueryType) *EncryptOptions {
-	e.QueryType = queryType
+func (e *EncryptOptions) SetQueryType(queryType QueryType) *EncryptOptions {
+	e.QueryType = &queryType
 	return e
 }
 
 // SetContentionFactor specifies the contention factor. It is only valid to set if algorithm is "Indexed".
-func (e *EncryptOptions) SetContentionFactor(contentionFactor *int64) *EncryptOptions {
-	e.ContentionFactor = contentionFactor
+func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOptions {
+	e.ContentionFactor = &contentionFactor
 	return e
 }
 
