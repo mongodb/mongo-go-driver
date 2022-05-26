@@ -137,16 +137,14 @@ type DecodeContext struct {
 
 // DefaultDocumentM will decode empty documents using the primitive.M type. This behavior is restricted to data typed as
 // "interface{}" or "map[string]interface{}".
-func (dc *DecodeContext) DefaultDocumentM() error {
+func (dc *DecodeContext) DefaultDocumentM() {
 	dc.defaultDocumentType = reflect.TypeOf(primitive.M{})
-	return nil
 }
 
 // DefaultDocumentD will decode empty documents using the primitive.D type. This behavior is restricted to data typed as
 // "interface{}" or "map[string]interface{}".
-func (dc *DecodeContext) DefaultDocumentD() error {
+func (dc *DecodeContext) DefaultDocumentD() {
 	dc.defaultDocumentType = reflect.TypeOf(primitive.D{})
-	return nil
 }
 
 // ValueCodec is the interface that groups the methods to encode and decode

@@ -130,14 +130,12 @@ func (d *Decoder) SetContext(dc bsoncodec.DecodeContext) error {
 
 // DefaultDocumentM will decode empty documents using the primitive.M type. This behavior is restricted to data typed as
 // "interface{}" or "map[string]interface{}".
-func (d *Decoder) DefaultDocumentM() error {
+func (d *Decoder) DefaultDocumentM() {
 	d.defaultDocumentM = true
-	return nil
 }
 
 // DefaultDocumentD will decode empty documents using the primitive.D type. This behavior is restricted to data typed as
 // "interface{}" or "map[string]interface{}".
-func (d *Decoder) DefaultDocumentD() error {
+func (d *Decoder) DefaultDocumentD() {
 	d.defaultDocumentD = true
-	return nil
 }
