@@ -1955,8 +1955,8 @@ axes:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-17"
-        display_name: "MacOS 10.14"
-        run_on: macos-1014
+        display_name: "MacOS 10.15"
+        run_on: macos-1015
         variables:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: python3
@@ -1981,8 +1981,8 @@ axes:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-17"
-        display_name: "MacOS 10.14"
-        run_on: macos-1014
+        display_name: "MacOS 10.15"
+        run_on: macos-1015
         variables:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: python3
@@ -2017,8 +2017,8 @@ axes:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3: python3
       - id: "osx-go-1-17"
-        display_name: "MacOS 10.14"
-        run_on: macos-1014
+        display_name: "MacOS 10.15"
+        run_on: macos-1015
         variables:
           GO_DIST: "/opt/golang/go1.17"
           SKIP_ECS_AUTH_TEST: true
