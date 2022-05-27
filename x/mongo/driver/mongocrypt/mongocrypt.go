@@ -209,7 +209,7 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 				return nil, ctx.createErrorFromStatus()
 			}
 		default:
-			return  nil, fmt.Errorf ("unsupported value for QueryType: %v", opts.QueryType)
+			return nil, fmt.Errorf("unsupported value for QueryType: %v", opts.QueryType)
 		}
 	}
 
