@@ -108,15 +108,14 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue, opts
 	if eo.QueryType != nil {
 		switch *eo.QueryType {
 		case options.QueryTypeEquality:
-			val := cryptOpts.QueryTypeEquality
-			transformed.SetQueryType(&val)
+			transformed.SetQueryType(cryptOpts.QueryTypeEquality)
 		default:
 			return primitive.Binary{}, fmt.Errorf("unsupported value for QueryType: %v", *eo.QueryType)
 		}
 	}
 
 	if eo.ContentionFactor != nil {
-		transformed.SetContentionFactor(eo.ContentionFactor)
+		transformed.SetContentionFactor(*eo.ContentionFactor)
 	}
 
 	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: val.Type, Data: val.Value}, transformed)
