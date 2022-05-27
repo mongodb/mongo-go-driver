@@ -467,9 +467,9 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 	return coll.created
 }
 
-// dropEncryptedCollection drops a collection with EncryptedFields.
+// DropEncryptedCollection drops a collection with EncryptedFields.
 // The EncryptedFields option is not supported in Collection.Drop(). See GODRIVER-2413.
-func dropEncryptedCollection(t *T, coll *mongo.Collection, encryptedFields interface{}) {
+func DropEncryptedCollection(t *T, coll *mongo.Collection, encryptedFields interface{}) {
 	t.Helper()
 
 	var efBSON bsoncore.Document
@@ -506,7 +506,7 @@ func (t *T) ClearCollections() {
 	if !testContext.dataLake {
 		for _, coll := range t.createdColls {
 			if coll.CreateOpts != nil && coll.CreateOpts.EncryptedFields != nil {
-				dropEncryptedCollection(t, coll.created, coll.CreateOpts.EncryptedFields)
+				DropEncryptedCollection(t, coll.created, coll.CreateOpts.EncryptedFields)
 			}
 			_ = coll.created.Drop(context.Background())
 		}

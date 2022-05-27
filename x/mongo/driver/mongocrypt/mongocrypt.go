@@ -157,6 +157,11 @@ func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.Data
 	return ctx, nil
 }
 
+const (
+	IndexTypeUnindexed = 1
+	IndexTypeIndexed   = 2
+)
+
 // CreateExplicitEncryptionContext creates a Context to use for explicit encryption.
 func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts *options.ExplicitEncryptionOptions) (*Context, error) {
 
@@ -181,8 +186,37 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 
 	algoStr := C.CString(opts.Algorithm)
 	defer C.free(unsafe.Pointer(algoStr))
-	if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
-		return nil, ctx.createErrorFromStatus()
+
+	switch opts.Algorithm {
+	case "Indexed":
+		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeIndexed); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
+	case "Unindexed":
+		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeUnindexed); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
+	default:
+		if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
+	}
+
+	if opts.QueryType != nil {
+		switch *opts.QueryType {
+		case options.QueryTypeEquality:
+			if ok := C.mongocrypt_ctx_setopt_query_type(ctx.wrapped, 1); !ok {
+				return nil, ctx.createErrorFromStatus()
+			}
+		default:
+			return nil, fmt.Errorf("unsupported value for QueryType: %v", opts.QueryType)
+		}
+	}
+
+	if opts.ContentionFactor != nil {
+		if ok := C.mongocrypt_ctx_setopt_contention_factor(ctx.wrapped, C.int64_t(*opts.ContentionFactor)); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
 	}
 
 	docBinary := newBinaryFromBytes(doc)
