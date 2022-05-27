@@ -211,6 +211,25 @@ func (c *ClientOptions) validate() error {
 			return internal.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
+
+	// Validation for AutoEncryption options.
+	// TODO: Error message? Create DRIVERS ticket? Cleaner logic?
+	if c.AutoEncryptionOptions != nil {
+		if csfleRequired, ok := c.AutoEncryptionOptions.ExtraOptions["csfleRequired"].(bool); ok &&
+			csfleRequired &&
+			c.AutoEncryptionOptions.BypassAutoEncryption != nil &&
+			*c.AutoEncryptionOptions.BypassAutoEncryption {
+			return errors.New(
+				`bypassAutoEncryption and AutoEncryption extra option "csfleRequired" cannot both be true`)
+		}
+		if csfleRequired, ok := c.AutoEncryptionOptions.ExtraOptions["csfleRequired"].(bool); ok &&
+			csfleRequired &&
+			c.AutoEncryptionOptions.BypassQueryAnalysis != nil &&
+			*c.AutoEncryptionOptions.BypassQueryAnalysis {
+			return errors.New(
+				`bypassQueryAnalysis and AutoEncryption extra option "csfleRequired" cannot both be true`)
+		}
+	}
 	return nil
 }
 

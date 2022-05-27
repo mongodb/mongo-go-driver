@@ -731,6 +731,9 @@ func TestClientOptions(t *testing.T) {
 			})
 		}
 	})
+	t.Run("AutoEncryption validation", func(t *testing.T) {
+
+	})
 }
 
 func createCertPool(t *testing.T, paths ...string) *x509.CertPool {
