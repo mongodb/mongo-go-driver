@@ -8,6 +8,7 @@ package topology
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -504,17 +505,23 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 }
 
 // closeConnection closes a connection.
-func (p *pool) closeConnection(conn *connection) error {
+func (p *pool) closeConnection(conn *connection) (err error) {
 	if conn.pool != p {
 		return ErrWrongPool
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("connection close panicked, reason: %v ", r))
+		}
+	}()
 
 	if atomic.LoadInt64(&conn.state) == connConnected {
 		conn.closeConnectContext()
 		conn.wait() // Make sure that the connection has finished connecting.
 	}
 
-	err := conn.close()
+	err = conn.close()
 	if err != nil {
 		return ConnectionError{ConnectionID: conn.id, Wrapped: err, message: "failed to close net.Conn"}
 	}
