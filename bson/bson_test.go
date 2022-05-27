@@ -234,15 +234,6 @@ func TestMapCodec(t *testing.T) {
 		assert.Equal(t, mapObj, got, "expected result %v, got %v", mapObj, got)
 
 	})
-	t.Run("UnmarshalBSON should run for unaddressable map in addressable struct", func(t *testing.T) {
-		x := &unaddressableMapStruct{}
-		byts, err := Marshal(x)
-		assert.Nil(t, err, "expected no error. got %v", err)
-
-		y := &unaddressableMapStruct{}
-		err = Unmarshal(byts, y)
-		assert.Nil(t, err, "expected no error. got %v", err)
-	})
 }
 
 func TestExtJSONEscapeKey(t *testing.T) {
