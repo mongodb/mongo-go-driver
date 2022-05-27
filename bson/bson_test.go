@@ -164,17 +164,6 @@ func (k *keyStruct) UnmarshalText(text []byte) error {
 	return nil
 }
 
-type someMap map[string]interface{}
-
-func (m *someMap) UnmarshalBSON(byts []byte) error {
-	//Implementation not relevant
-	return nil
-}
-
-type unaddressableMapStruct struct {
-	Map someMap
-}
-
 func TestMapCodec(t *testing.T) {
 	t.Run("EncodeKeysWithStringer", func(t *testing.T) {
 		strstr := stringerString("foo")
