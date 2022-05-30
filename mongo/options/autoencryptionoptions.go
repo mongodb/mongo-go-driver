@@ -32,6 +32,8 @@ type AutoEncryptionOptions struct {
 	BypassAutoEncryption  *bool
 	ExtraOptions          map[string]interface{}
 	TLSConfig             map[string]*tls.Config
+	EncryptedFieldsMap    map[string]interface{}
+	BypassQueryAnalysis   *bool
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -113,6 +115,19 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 	return a
 }
 
+// SetEncryptedFieldsMap specifies a map from namespace to local EncryptedFieldsMap document.
+func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{}) *AutoEncryptionOptions {
+	a.EncryptedFieldsMap = ef
+	return a
+}
+
+// SetBypassQueryAnalysis specifies whether or not query analysis should be used for automatic encryption.
+// Use this option when using explicit encryption with Queryable Encryption.
+func (a *AutoEncryptionOptions) SetBypassQueryAnalysis(bypass bool) *AutoEncryptionOptions {
+	a.BypassQueryAnalysis = &bypass
+	return a
+}
+
 // MergeAutoEncryptionOptions combines the argued AutoEncryptionOptions in a last-one wins fashion.
 func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionOptions {
 	aeo := AutoEncryption()
@@ -141,6 +156,12 @@ func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionO
 		}
 		if opt.TLSConfig != nil {
 			aeo.TLSConfig = opt.TLSConfig
+		}
+		if opt.EncryptedFieldsMap != nil {
+			aeo.EncryptedFieldsMap = opt.EncryptedFieldsMap
+		}
+		if opt.BypassQueryAnalysis != nil {
+			aeo.BypassQueryAnalysis = opt.BypassQueryAnalysis
 		}
 	}
 

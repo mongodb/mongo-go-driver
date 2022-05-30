@@ -26,7 +26,7 @@ const (
 func TestCursor(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 	defer mt.Close()
-	cappedCollectionOpts := bson.D{{"capped", true}, {"size", 64 * 1024}}
+	cappedCollectionOpts := options.CreateCollection().SetCapped(true).SetSizeInBytes(64 * 1024)
 
 	// Server versions 2.6 and 3.0 use OP_GET_MORE so this works on >= 3.2 and when RequireAPIVersion is false;
 	// getMore cannot be sent with RunCommand as server API options will be attached when they should not be.

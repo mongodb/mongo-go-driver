@@ -13,7 +13,7 @@ type ListDatabasesOptions struct {
 	NameOnly *bool
 
 	// If true, only the databases which the user is authorized to see will be returned. For more information about
-	// the behavior of this option, see https://docs.mongodb.com/manual/reference/privilege-actions/#find. The default
+	// the behavior of this option, see https://www.mongodb.com/docs/manual/reference/privilege-actions/#find. The default
 	// value is true.
 	AuthorizedDatabases *bool
 }
@@ -40,7 +40,7 @@ func (ld *ListDatabasesOptions) SetAuthorizedDatabases(b bool) *ListDatabasesOpt
 func MergeListDatabasesOptions(opts ...*ListDatabasesOptions) *ListDatabasesOptions {
 	ld := ListDatabases()
 	for _, opt := range opts {
-		if opts == nil {
+		if opt == nil {
 			continue
 		}
 		if opt.NameOnly != nil {

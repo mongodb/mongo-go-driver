@@ -76,6 +76,189 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		},
 	}
 
+	runOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	mt.RunOpts("explicit encryption", runOpts, func(mt *mtest.T) {
+		// Test Setup ... begin
+		encryptedFields := readJSONFile(mt, "encrypted-fields.json")
+		key1Document := readJSONFile(mt, "key1-document.json")
+		var key1ID primitive.Binary
+		{
+			subtype, data := key1Document.Lookup("_id").Binary()
+			key1ID = primitive.Binary{Subtype: subtype, Data: data}
+		}
+
+		testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
+			mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption"), encryptedFields)
+			cco := options.CreateCollection().SetEncryptedFields(encryptedFields)
+			err := mt.Client.Database("db").CreateCollection(context.Background(), "explicit_encryption", cco)
+			assert.Nil(mt, err, "error on CreateCollection: %v", err)
+			err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+			assert.Nil(mt, err, "error on Drop: %v", err)
+			keyVaultClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mtest.ClusterURI()))
+			assert.Nil(mt, err, "error on Connect: %v", err)
+			datakeysColl := keyVaultClient.Database("keyvault").Collection("datakeys", options.Collection().SetWriteConcern(mtest.MajorityWc))
+			_, err = datakeysColl.InsertOne(context.TODO(), key1Document)
+			assert.Nil(mt, err, "error on InsertOne: %v", err)
+			// Create a ClientEncryption.
+			ceo := options.ClientEncryption().
+				SetKeyVaultNamespace("keyvault.datakeys").
+				SetKmsProviders(fullKmsProvidersMap)
+			clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
+			assert.Nil(mt, err, "error on NewClientEncryption: %v", err)
+
+			// Create a MongoClient with AutoEncryptionOpts and bypassQueryAnalysis=true.
+			aeo := options.AutoEncryption().
+				SetKeyVaultNamespace("keyvault.datakeys").
+				SetKmsProviders(fullKmsProvidersMap).
+				SetBypassQueryAnalysis(true)
+			co := options.Client().SetAutoEncryptionOptions(aeo).ApplyURI(mtest.ClusterURI())
+			encryptedClient, err := mongo.Connect(context.Background(), co)
+			assert.Nil(mt, err, "error on Connect: %v", err)
+			return encryptedClient, clientEncryption
+		}
+		// Test Setup ... end
+
+		mt.Run("case 1: can insert encrypted indexed and find", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID)
+			valueToEncrypt := "encrypted indexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+			insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			// Insert.
+			coll := encryptedClient.Database("db").Collection("explicit_encryption")
+			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
+			assert.Nil(mt, err, "Error in InsertOne: %v", err)
+			// Explicit encrypt an indexed value to find.
+			eo = options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+			findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			// Find.
+			res := coll.FindOne(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
+			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
+			got, err := res.DecodeBytes()
+			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			gotValue, err := got.LookupErr("encryptedIndexed")
+			assert.Nil(mt, err, "error in LookupErr: %v", err)
+			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+		})
+		mt.Run("case 2: can insert encrypted indexed and find with non-zero contention", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			coll := encryptedClient.Database("db").Collection("explicit_encryption")
+			valueToEncrypt := "encrypted indexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+
+			for i := 0; i < 10; i++ {
+				// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetContentionFactor(10)
+				insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error in Encrypt: %v", err)
+				// Insert.
+				_, err = coll.InsertOne(context.Background(), bson.D{{"_id", i}, {"encryptedIndexed", insertPayload}})
+				assert.Nil(mt, err, "Error in InsertOne: %v", err)
+			}
+
+			// Explicit encrypt an indexed value to find with default contentionFactor 0.
+			{
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+				findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error in Encrypt: %v", err)
+				// Find with contentionFactor=0.
+				cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
+				assert.Nil(mt, err, "error in Find: %v", err)
+				var got []bson.Raw
+				err = cursor.All(context.Background(), &got)
+				assert.Nil(mt, err, "error in All: %v", err)
+				assert.True(mt, len(got) < 10, "expected len(got) < 10, got: %v", len(got))
+				for _, doc := range got {
+					gotValue, err := doc.LookupErr("encryptedIndexed")
+					assert.Nil(mt, err, "error in LookupErr: %v", err)
+					assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+				}
+			}
+
+			// Explicit encrypt an indexed value to find with contentionFactor 10.
+			{
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(10)
+				findPayload2, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error in Encrypt: %v", err)
+				// Find with contentionFactor=10.
+				cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload2}})
+				assert.Nil(mt, err, "error in Find: %v", err)
+				var got []bson.Raw
+				err = cursor.All(context.Background(), &got)
+				assert.Nil(mt, err, "error in All: %v", err)
+				assert.True(mt, len(got) == 10, "expected len(got) == 10, got: %v", len(got))
+				for _, doc := range got {
+					gotValue, err := doc.LookupErr("encryptedIndexed")
+					assert.Nil(mt, err, "error in LookupErr: %v", err)
+					assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+				}
+			}
+		})
+		mt.Run("case 3: can insert encrypted unindexed", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+			eo := options.Encrypt().SetAlgorithm("Unindexed").SetKeyID(key1ID)
+			valueToEncrypt := "encrypted unindexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+			insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			// Insert.
+			coll := encryptedClient.Database("db").Collection("explicit_encryption")
+			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedUnindexed", insertPayload}})
+			assert.Nil(mt, err, "Error in InsertOne: %v", err)
+			// Find.
+			res := coll.FindOne(context.Background(), bson.D{{"_id", 1}})
+			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
+			got, err := res.DecodeBytes()
+			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			gotValue, err := got.LookupErr("encryptedUnindexed")
+			assert.Nil(mt, err, "error in LookupErr: %v", err)
+			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+		})
+		mt.Run("case 4: can roundtrip encrypted indexed", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID)
+			valueToEncrypt := "encrypted indexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+			payload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			gotValue, err := clientEncryption.Decrypt(context.Background(), payload)
+			assert.Nil(mt, err, "error in Decrypt: %v", err)
+			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+		})
+		mt.Run("case 5: can roundtrip encrypted unindexed", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+			eo := options.Encrypt().SetAlgorithm("Unindexed").SetKeyID(key1ID)
+			valueToEncrypt := "encrypted unindexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+			payload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			gotValue, err := clientEncryption.Decrypt(context.Background(), payload)
+			assert.Nil(mt, err, "error in Decrypt: %v", err)
+			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+		})
+	})
+
 	mt.RunOpts("data key and double encryption", noClientOpts, func(mt *mtest.T) {
 		// set up options structs
 		schema := bson.D{
@@ -387,9 +570,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// create view on db.coll
 		mt.CreateCollection(mtest.Collection{
-			Name:       "view",
-			DB:         cpt.cseColl.Database().Name(),
-			CreateOpts: bson.D{{"viewOn", "coll"}},
+			Name:         "view",
+			DB:           cpt.cseColl.Database().Name(),
+			ViewOn:       "coll",
+			ViewPipeline: mongo.Pipeline{},
 		}, true)
 
 		view := cpt.cseColl.Database().Collection("view")
@@ -767,7 +951,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{"Case 2: aws success with endpoint", "aws", awsSuccessWithEndpoint, "", false, ""},
 			{"Case 3: aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false, ""},
 			{"Case 4: aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false, ""},
-			{"Case 5: aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "us-east-1", false, ""},
+			{"Case 5: aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "mongocrypt error", false, ""},
 			{"Case 6: aws failure with parse error", "aws", awsFailureParseError, "no such host", false, ""},
 			{"Case 7: azure success", "azure", azure, "", true, "no such host"},
 			{"Case 8: gcp success", "gcp", gcpSuccess, "", true, "no such host"},
@@ -857,11 +1041,35 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			mongocryptdOpts         map[string]interface{}
 			setBypassAutoEncryption bool
 			bypassAutoEncryption    bool
+			bypassQueryAnalysis     bool
 		}{
-			{"mongocryptdBypassSpawn only", mongocryptdBypassSpawnTrue, false, false},
-			{"bypassAutoEncryption only", mongocryptdBypassSpawnNotSet, true, true},
-			{"mongocryptdBypassSpawn false, bypassAutoEncryption true", mongocryptdBypassSpawnFalse, true, true},
-			{"mongocryptdBypassSpawn true, bypassAutoEncryption false", mongocryptdBypassSpawnTrue, true, false},
+			{
+				name:            "mongocryptdBypassSpawn only",
+				mongocryptdOpts: mongocryptdBypassSpawnTrue,
+			},
+			{
+				name:                    "bypassAutoEncryption only",
+				mongocryptdOpts:         mongocryptdBypassSpawnNotSet,
+				setBypassAutoEncryption: true,
+				bypassAutoEncryption:    true,
+			},
+			{
+				name:                    "mongocryptdBypassSpawn false, bypassAutoEncryption true",
+				mongocryptdOpts:         mongocryptdBypassSpawnFalse,
+				setBypassAutoEncryption: true,
+				bypassAutoEncryption:    true,
+			},
+			{
+				name:                    "mongocryptdBypassSpawn true, bypassAutoEncryption false",
+				mongocryptdOpts:         mongocryptdBypassSpawnTrue,
+				setBypassAutoEncryption: true,
+				bypassAutoEncryption:    false,
+			},
+			{
+				name:                "bypassQueryAnalysis only",
+				mongocryptdOpts:     mongocryptdBypassSpawnNotSet,
+				bypassQueryAnalysis: true,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -873,13 +1081,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				if tc.setBypassAutoEncryption {
 					aeo.SetBypassAutoEncryption(tc.bypassAutoEncryption)
 				}
+				aeo.SetBypassQueryAnalysis(tc.bypassQueryAnalysis)
 				cpt := setup(mt, aeo, nil, nil)
 				defer cpt.teardown(mt)
 
 				_, err := cpt.cseColl.InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
 
 				// Check for mongocryptd server selection error if auto encryption was not bypassed.
-				if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) {
+				if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) && !tc.bypassQueryAnalysis {
 					assert.NotNil(mt, err, "expected InsertOne error, got nil")
 					mcryptErr, ok := err.(mongo.MongocryptdError)
 					assert.True(mt, ok, "expected error type %T, got %v of type %T", mongo.MongocryptdError{}, err, err)

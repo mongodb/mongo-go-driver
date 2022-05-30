@@ -176,6 +176,10 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		conns:                 make(map[uint64]*connection, config.MaxPoolSize),
 		idleConns:             make([]*connection, 0, config.MaxPoolSize),
 	}
+	// minSize must not exceed maxSize if maxSize is not 0
+	if pool.maxSize != 0 && pool.minSize > pool.maxSize {
+		pool.minSize = pool.maxSize
+	}
 	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
 	pool.generation.connect()
@@ -505,7 +509,7 @@ func (p *pool) closeConnection(conn *connection) error {
 		return ErrWrongPool
 	}
 
-	if atomic.LoadInt64(&conn.connected) == connected {
+	if atomic.LoadInt64(&conn.state) == connConnected {
 		conn.closeConnectContext()
 		conn.wait() // Make sure that the connection has finished connecting.
 	}
@@ -595,6 +599,14 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	if conn.pool != p {
 		return ErrWrongPool
 	}
+
+	// Bump the connection idle deadline here because we're about to make the connection "available".
+	// The idle deadline is used to determine when a connection has reached its max idle time and
+	// should be closed. A connection reaches its max idle time when it has been "available" in the
+	// idle connections stack for more than the configured duration (maxIdleTimeMS). Set it before
+	// we call connectionPerished(), which checks the idle deadline, because a newly "available"
+	// connection should never be perished due to max idle time.
+	conn.bumpIdleDeadline()
 
 	if reason, perished := connectionPerished(conn); perished {
 		_ = p.removeConnection(conn, reason)

@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package topology
 
 import (
@@ -6,6 +12,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -26,30 +33,33 @@ var _ net.Conn = &mockSlowConn{}
 type mockSlowConn struct {
 	reader *bytes.Reader
 	delay  time.Duration
-	closed bool
+	closed atomic.Value
 }
 
 // newMockSlowConn returns a net.Conn that reads from the specified response after blocking for a
 // delay duration. Calls to Write() reset the read buffer, so subsequent Read() calls read from the
 // beginning of the provided response.
 func newMockSlowConn(response []byte, delay time.Duration) *mockSlowConn {
+	var closed atomic.Value
+	closed.Store(false)
+
 	return &mockSlowConn{
 		reader: bytes.NewReader(response),
 		delay:  delay,
-		closed: false,
+		closed: closed,
 	}
 }
 
 func (msc *mockSlowConn) Read(b []byte) (int, error) {
 	time.Sleep(msc.delay)
-	if msc.closed {
+	if msc.closed.Load().(bool) {
 		return 0, io.ErrUnexpectedEOF
 	}
 	return msc.reader.Read(b)
 }
 
 func (msc *mockSlowConn) Write(b []byte) (int, error) {
-	if msc.closed {
+	if msc.closed.Load().(bool) {
 		return 0, io.ErrUnexpectedEOF
 	}
 	_, err := msc.reader.Seek(0, io.SeekStart)
@@ -59,7 +69,7 @@ func (msc *mockSlowConn) Write(b []byte) (int, error) {
 // Close closes the mock connection. All subsequent calls to Read or Write return error
 // io.ErrUnexpectedEOF. It is not safe to call Close concurrently with Read or Write.
 func (msc *mockSlowConn) Close() error {
-	msc.closed = true
+	msc.closed.Store(true)
 	return nil
 }
 

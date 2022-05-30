@@ -27,6 +27,13 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
+// Connection state constants.
+const (
+	connDisconnected int64 = iota
+	connConnected
+	connInitialized
+)
+
 var globalConnectionID uint64 = 1
 
 var (
@@ -38,10 +45,10 @@ var (
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
 type connection struct {
-	// connected must be accessed using the atomic package and should be at the beginning of the struct.
+	// state must be accessed using the atomic package and should be at the beginning of the struct.
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
-	connected int64
+	state int64
 
 	id                   string
 	nc                   net.Conn // When nil, the connection is closed.
@@ -93,7 +100,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 	if !c.config.loadBalanced {
 		c.setGenerationNumber()
 	}
-	atomic.StoreInt64(&c.connected, initialized)
+	atomic.StoreInt64(&c.state, connInitialized)
 
 	return c
 }
@@ -123,7 +130,7 @@ func (c *connection) hasGenerationNumber() bool {
 // handshakes. All errors returned by connect are considered "before the handshake completes" and
 // must be handled by calling the appropriate SDAM handshake error handler.
 func (c *connection) connect(ctx context.Context) (err error) {
-	if !atomic.CompareAndSwapInt64(&c.connected, initialized, connected) {
+	if !atomic.CompareAndSwapInt64(&c.state, connInitialized, connConnected) {
 		return nil
 	}
 
@@ -133,7 +140,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// underlying net.Conn if it was created.
 	defer func() {
 		if err != nil {
-			atomic.StoreInt64(&c.connected, disconnected)
+			atomic.StoreInt64(&c.state, connDisconnected)
 
 			if c.nc != nil {
 				_ = c.nc.Close()
@@ -200,8 +207,6 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		}
 		c.nc = tlsNc
 	}
-
-	c.bumpIdleDeadline()
 
 	// running hello and authentication is handled by a handshaker on the configuration instance.
 	handshaker := c.config.handshaker
@@ -323,7 +328,7 @@ func (c *connection) cancellationListenerCallback() {
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	var err error
-	if atomic.LoadInt64(&c.connected) != connected {
+	if atomic.LoadInt64(&c.state) != connConnected {
 		return ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
 	select {
@@ -357,7 +362,6 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 		}
 	}
 
-	c.bumpIdleDeadline()
 	return nil
 }
 
@@ -380,7 +384,7 @@ func (c *connection) write(ctx context.Context, wm []byte) (err error) {
 
 // readWireMessage reads a wiremessage from the connection. The dst parameter will be overwritten.
 func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
-	if atomic.LoadInt64(&c.connected) != connected {
+	if atomic.LoadInt64(&c.state) != connConnected {
 		return dst, ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
 
@@ -422,7 +426,6 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 		}
 	}
 
-	c.bumpIdleDeadline()
 	return dst, nil
 }
 
@@ -483,7 +486,7 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 
 func (c *connection) close() error {
 	// Overwrite the connection state as the first step so only the first close call will execute.
-	if !atomic.CompareAndSwapInt64(&c.connected, connected, disconnected) {
+	if !atomic.CompareAndSwapInt64(&c.state, connConnected, connDisconnected) {
 		return nil
 	}
 
@@ -496,7 +499,7 @@ func (c *connection) close() error {
 }
 
 func (c *connection) closed() bool {
-	return atomic.LoadInt64(&c.connected) == disconnected
+	return atomic.LoadInt64(&c.state) == connDisconnected
 }
 
 func (c *connection) idleTimeoutExpired() bool {
@@ -592,6 +595,10 @@ type Connection struct {
 	*connection
 	refCount      int
 	cleanupPoolFn func()
+
+	// cleanupServerFn resets the server state when a connection is returned to the connection pool
+	// via Close() or expired via Expire().
+	cleanupServerFn func()
 
 	mu sync.RWMutex
 }
@@ -693,6 +700,10 @@ func (c *Connection) cleanupReferences() error {
 	if c.cleanupPoolFn != nil {
 		c.cleanupPoolFn()
 		c.cleanupPoolFn = nil
+	}
+	if c.cleanupServerFn != nil {
+		c.cleanupServerFn()
+		c.cleanupServerFn = nil
 	}
 	c.connection = nil
 	return err

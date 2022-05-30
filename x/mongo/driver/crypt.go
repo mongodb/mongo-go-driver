@@ -42,6 +42,8 @@ type CryptOptions struct {
 	SchemaMap            map[string]bsoncore.Document
 	TLSConfig            map[string]*tls.Config
 	BypassAutoEncryption bool
+	BypassQueryAnalysis  bool
+	EncryptedFieldsMap   map[string]bsoncore.Document
 }
 
 // Crypt is an interface implemented by types that can encrypt and decrypt instances of
@@ -88,7 +90,11 @@ func NewCrypt(opts *CryptOptions) (Crypt, error) {
 		bypassAutoEncryption: opts.BypassAutoEncryption,
 	}
 
-	mongocryptOpts := options.MongoCrypt().SetKmsProviders(opts.KmsProviders).SetLocalSchemaMap(opts.SchemaMap)
+	mongocryptOpts := options.MongoCrypt().
+		SetKmsProviders(opts.KmsProviders).
+		SetLocalSchemaMap(opts.SchemaMap).
+		SetBypassQueryAnalysis(opts.BypassQueryAnalysis).
+		SetEncryptedFieldsMap(opts.EncryptedFieldsMap)
 	mc, err := mongocrypt.NewMongoCrypt(mongocryptOpts)
 	if err != nil {
 		return nil, err

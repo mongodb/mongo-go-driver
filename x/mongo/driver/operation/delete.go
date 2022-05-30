@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -21,6 +22,7 @@ import (
 
 // Delete performs a delete operation
 type Delete struct {
+	comment      bsoncore.Value
 	deletes      []bsoncore.Document
 	ordered      *bool
 	session      *session.Client
@@ -42,7 +44,7 @@ type Delete struct {
 // DeleteResult represents a delete result returned by the server.
 type DeleteResult struct {
 	// Number of documents successfully deleted.
-	N int32
+	N int64
 }
 
 func buildDeleteResult(response bsoncore.Document) (DeleteResult, error) {
@@ -55,9 +57,9 @@ func buildDeleteResult(response bsoncore.Document) (DeleteResult, error) {
 		switch element.Key() {
 		case "n":
 			var ok bool
-			dr.N, ok = element.Value().AsInt32OK()
+			dr.N, ok = element.Value().AsInt64OK()
 			if !ok {
-				return dr, fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
+				return dr, fmt.Errorf("response field 'n' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		}
 	}
@@ -112,6 +114,9 @@ func (d *Delete) Execute(ctx context.Context) error {
 
 func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "delete", d.collection)
+	if d.comment.Type != bsontype.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "comment", d.comment)
+	}
 	if d.ordered != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *d.ordered)
 	}
@@ -179,6 +184,16 @@ func (d *Delete) Collection(collection string) *Delete {
 	}
 
 	d.collection = collection
+	return d
+}
+
+// Comment sets a value to help trace an operation.
+func (d *Delete) Comment(comment bsoncore.Value) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.comment = comment
 	return d
 }
 

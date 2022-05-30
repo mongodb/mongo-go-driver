@@ -89,16 +89,22 @@ const (
 	After
 )
 
-// FullDocument specifies whether a change stream should include a copy of the entire document that was changed from
-// some time after the change occurred.
+// FullDocument specifies how a change stream should return the modified document.
 type FullDocument string
 
 const (
-	// Default does not include a document copy
+	// Default does not include a document copy.
 	Default FullDocument = "default"
+	// Off is the same as sending no value for fullDocumentBeforeChange.
+	Off FullDocument = "off"
+	// Required is the same as WhenAvailable but raises a server-side error if the post-image is not available.
+	Required FullDocument = "required"
 	// UpdateLookup includes a delta describing the changes to the document and a copy of the entire document that
-	// was changed
+	// was changed.
 	UpdateLookup FullDocument = "updateLookup"
+	// WhenAvailable includes a post-image of the the modified document for replace and update change events
+	// if the post-image for this event is available.
+	WhenAvailable FullDocument = "whenAvailable"
 )
 
 // ArrayFilters is used to hold filters for the array filters CRUD option. If a registry is nil, bson.DefaultRegistry

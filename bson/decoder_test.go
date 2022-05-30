@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -199,12 +200,12 @@ func TestDecoderv2(t *testing.T) {
 		dc2 := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
 		dec, err := NewDecoderWithContext(dc1, bsonrw.NewBSONDocumentReader([]byte{}))
 		noerr(t, err)
-		if dec.dc != dc1 {
+		if !reflect.DeepEqual(dec.dc, dc1) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
 		}
 		err = dec.SetContext(dc2)
 		noerr(t, err)
-		if dec.dc != dc2 {
+		if !reflect.DeepEqual(dec.dc, dc2) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
 		}
 	})
@@ -214,12 +215,12 @@ func TestDecoderv2(t *testing.T) {
 		dc2 := bsoncodec.DecodeContext{Registry: r2}
 		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
 		noerr(t, err)
-		if dec.dc != dc1 {
+		if !reflect.DeepEqual(dec.dc, dc1) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
 		}
 		err = dec.SetRegistry(r2)
 		noerr(t, err)
-		if dec.dc != dc2 {
+		if !reflect.DeepEqual(dec.dc, dc2) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
 		}
 	})
@@ -234,6 +235,85 @@ func TestDecoderv2(t *testing.T) {
 		if err != ErrDecodeToNil {
 			t.Fatalf("Decode error mismatch; expected %v, got %v", ErrDecodeToNil, err)
 		}
+	})
+	t.Run("SetDocumentType embedded map as empty interface", func(t *testing.T) {
+		type someMap map[string]interface{}
+
+		in := make(someMap)
+		in["foo"] = map[string]interface{}{"bar": "baz"}
+
+		bytes, err := Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var bsonOut someMap
+		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(bytes))
+		if err != nil {
+			t.Fatal(err)
+		}
+		dec.DefaultDocumentM()
+		if err := dec.Decode(&bsonOut); err != nil {
+			t.Fatal(err)
+		}
+
+		// Ensure that interface{}-typed top-level data is converted to the document type.
+		bsonOutType := reflect.TypeOf(bsonOut)
+		inType := reflect.TypeOf(in)
+		assert.Equal(t, inType, bsonOutType, "expected %v to equal %v", inType.String(), bsonOutType.String())
+
+		// Ensure that the embedded type is a primitive map.
+		mType := reflect.TypeOf(primitive.M{})
+		bsonFooOutType := reflect.TypeOf(bsonOut["foo"])
+		assert.Equal(t, mType, bsonFooOutType, "expected %v to equal %v", mType.String(), bsonFooOutType.String())
+	})
+	t.Run("SetDocumentType for decoding into interface{} alias", func(t *testing.T) {
+		var in interface{} = map[string]interface{}{"bar": "baz"}
+
+		bytes, err := Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var bsonOut interface{}
+		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(bytes))
+		if err != nil {
+			t.Fatal(err)
+		}
+		dec.DefaultDocumentD()
+		if err := dec.Decode(&bsonOut); err != nil {
+			t.Fatal(err)
+		}
+
+		// Ensure that interface{}-typed top-level data is converted to the document type.
+		dType := reflect.TypeOf(primitive.D{})
+		bsonOutType := reflect.TypeOf(bsonOut)
+		assert.Equal(t, dType, bsonOutType,
+			"expected %v to equal %v", dType.String(), bsonOutType.String())
+	})
+	t.Run("SetDocumentType for decoding into non-interface{} alias", func(t *testing.T) {
+		var in interface{} = map[string]interface{}{"bar": "baz"}
+
+		bytes, err := Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var bsonOut struct{}
+		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(bytes))
+		if err != nil {
+			t.Fatal(err)
+		}
+		dec.DefaultDocumentD()
+		if err := dec.Decode(&bsonOut); err != nil {
+			t.Fatal(err)
+		}
+
+		// Ensure that typed top-level data is not converted to the document type.
+		dType := reflect.TypeOf(primitive.D{})
+		bsonOutType := reflect.TypeOf(bsonOut)
+		assert.NotEqual(t, dType, bsonOutType,
+			"expected %v to not equal %v", dType.String(), bsonOutType.String())
 	})
 }
 

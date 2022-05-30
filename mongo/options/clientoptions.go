@@ -45,7 +45,7 @@ type ContextDialer interface {
 // AuthMechanism: the mechanism to use for authentication. Supported values include "SCRAM-SHA-256", "SCRAM-SHA-1",
 // "MONGODB-CR", "PLAIN", "GSSAPI", "MONGODB-X509", and "MONGODB-AWS". This can also be set through the "authMechanism"
 // URI option. (e.g. "authMechanism=PLAIN"). For more information, see
-// https://docs.mongodb.com/manual/core/authentication-mechanisms/.
+// https://www.mongodb.com/docs/manual/core/authentication-mechanisms/.
 //
 // AuthMechanismProperties can be used to specify additional configuration options for certain mechanisms. They can also
 // be set through the "authMechanismProperites" URI option
@@ -160,57 +160,58 @@ func Client() *ClientOptions {
 
 // Validate validates the client options. This method will return the first error found.
 func (c *ClientOptions) Validate() error {
-	c.validateAndSetError()
+	if c.err != nil {
+		return c.err
+	}
+	c.err = c.validate()
 	return c.err
 }
 
-func (c *ClientOptions) validateAndSetError() {
-	if c.err != nil {
-		return
-	}
-
+func (c *ClientOptions) validate() error {
 	// Direct connections cannot be made if multiple hosts are specified or an SRV URI is used.
 	if c.Direct != nil && *c.Direct {
 		if len(c.Hosts) > 1 {
-			c.err = errors.New("a direct connection cannot be made if multiple hosts are specified")
-			return
+			return errors.New("a direct connection cannot be made if multiple hosts are specified")
 		}
 		if c.cs != nil && c.cs.Scheme == connstring.SchemeMongoDBSRV {
-			c.err = errors.New("a direct connection cannot be made if an SRV URI is used")
-			return
+			return errors.New("a direct connection cannot be made if an SRV URI is used")
 		}
+	}
+
+	if c.MaxPoolSize != nil && c.MinPoolSize != nil && *c.MaxPoolSize != 0 && *c.MinPoolSize > *c.MaxPoolSize {
+		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d", *c.MinPoolSize, *c.MaxPoolSize)
 	}
 
 	// verify server API version if ServerAPIOptions are passed in.
 	if c.ServerAPIOptions != nil {
-		c.err = c.ServerAPIOptions.ServerAPIVersion.Validate()
+		if err := c.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+			return err
+		}
 	}
 
 	// Validation for load-balanced mode.
 	if c.LoadBalanced != nil && *c.LoadBalanced {
 		if len(c.Hosts) > 1 {
-			c.err = internal.ErrLoadBalancedWithMultipleHosts
-			return
+			return internal.ErrLoadBalancedWithMultipleHosts
 		}
 		if c.ReplicaSet != nil {
-			c.err = internal.ErrLoadBalancedWithReplicaSet
-			return
+			return internal.ErrLoadBalancedWithReplicaSet
 		}
 		if c.Direct != nil {
-			c.err = internal.ErrLoadBalancedWithDirectConnection
-			return
+			return internal.ErrLoadBalancedWithDirectConnection
 		}
 	}
 
 	// Validation for srvMaxHosts.
 	if c.SRVMaxHosts != nil && *c.SRVMaxHosts > 0 {
 		if c.ReplicaSet != nil {
-			c.err = internal.ErrSRVMaxHostsWithReplicaSet
+			return internal.ErrSRVMaxHostsWithReplicaSet
 		}
 		if c.LoadBalanced != nil && *c.LoadBalanced {
-			c.err = internal.ErrSRVMaxHostsWithLoadBalanced
+			return internal.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
+	return nil
 }
 
 // GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
@@ -231,7 +232,7 @@ func (c *ClientOptions) GetURI() string {
 // If the URI format is incorrect or there are conflicting options specified in the URI an error will be recorded and
 // can be retrieved by calling Validate.
 //
-// For more information about the URI format, see https://docs.mongodb.com/manual/reference/connection-string/. See
+// For more information about the URI format, see https://www.mongodb.com/docs/manual/reference/connection-string/. See
 // mongo.Connect documentation for examples of using URIs for different Client configurations.
 func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	if c.err != nil {
@@ -475,7 +476,7 @@ func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
 //
 // If this option is specified, the driver will perform a negotiation with the server to determine a common list of of
 // compressors and will use the first one in that list when performing operations. See
-// https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors for more
+// https://www.mongodb.com/docs/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors for more
 // information about configuring compression on the server and the server-side defaults.
 //
 // This can also be set through the "compressors" URI option (e.g. "compressors=zstd,zlib,snappy"). The default is
@@ -636,7 +637,7 @@ func (c *ClientOptions) SetReadConcern(rc *readconcern.ReadConcern) *ClientOptio
 // 3. "maxStalenessSeconds" (or "maxStaleness"): Specify a maximum replication lag for reads from secondaries in a
 // replica set (e.g. "maxStalenessSeconds=10").
 //
-// The default is readpref.Primary(). See https://docs.mongodb.com/manual/core/read-preference/#read-preference for
+// The default is readpref.Primary(). See https://www.mongodb.com/docs/manual/core/read-preference/#read-preference for
 // more information about read preferences.
 func (c *ClientOptions) SetReadPreference(rp *readpref.ReadPref) *ClientOptions {
 	c.ReadPreference = rp

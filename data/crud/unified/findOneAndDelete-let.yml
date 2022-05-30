@@ -45,8 +45,7 @@ tests:
                 remove: true
                 let: *let0
     outcome:
-      -
-        collectionName: *collection0Name
+      - collectionName: *collection0Name
         databaseName: *database0Name
         documents:
           - { _id: 2 }
@@ -79,8 +78,7 @@ tests:
                 remove: true
                 let: *let1
     outcome:
-      -
-        collectionName: *collection0Name
+      - collectionName: *collection0Name
         databaseName: *database0Name
         documents:
           - { _id: 1 }

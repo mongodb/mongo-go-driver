@@ -89,6 +89,18 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 				return newMatchingError(fullKeyPath, "key not found in actual document")
 			}
 
+			// Check to see if the keypath requires us to convert actual/expected to make a true comparison.  If the
+			// comparison is not supported for the keypath, continue with the recursive strategy.
+			//
+			// TODO(GODRIVER-2386): this branch of logic will be removed once we add document support for comments
+			mixedTypeEvaluated, err := evaluateMixedTypeComparison(expectedKey, expectedValue, actualValue)
+			if err != nil {
+				return newMatchingError(fullKeyPath, "error doing mixed-type matching assertion: %v", err)
+			}
+			if mixedTypeEvaluated {
+				continue
+			}
+
 			// Nested documents cannot have extra keys, so we unconditionally pass false for extraKeysAllowed.
 			comparisonCtx := makeMatchContext(ctx, fullKeyPath, false)
 			if err := verifyValuesMatchInner(comparisonCtx, expectedValue, actualValue); err != nil {
@@ -165,6 +177,37 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 	return nil
 }
 
+// compareDocumentToString will compare an expected document to an actual string by converting the document into a
+// string.
+func compareDocumentToString(expected, actual bson.RawValue) error {
+	expectedDocument, ok := expected.DocumentOK()
+	if !ok {
+		return fmt.Errorf("expected value to be a document but got a %s", expected.Type)
+	}
+
+	actualString, ok := actual.StringValueOK()
+	if !ok {
+		return fmt.Errorf("expected value to be a string but got a %s", actual.Type)
+	}
+
+	if actualString != expectedDocument.String() {
+		return fmt.Errorf("expected value %s, got %s", expectedDocument.String(), actualString)
+	}
+	return nil
+}
+
+// evaluateMixedTypeComparison compares an expected document with an actual string.  If this comparison occurs, then
+// the function will return `true` along with any resulting error.
+func evaluateMixedTypeComparison(expectedKey string, expected, actual bson.RawValue) (bool, error) {
+	switch expectedKey {
+	case "comment":
+		if expected.Type == bsontype.EmbeddedDocument && actual.Type == bsontype.String {
+			return true, compareDocumentToString(expected, actual)
+		}
+	}
+	return false, nil
+}
+
 func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actual bson.RawValue) error {
 	assertionElem := assertionDoc.Index(0)
 	assertion := assertionElem.Key()
@@ -232,6 +275,22 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 		if !bytes.Equal(expectedID, actualID) {
 			return fmt.Errorf("expected lsid %v, got %v", expectedID, actualID)
 		}
+	case "$$lte":
+		if assertionVal.Type != bsontype.Int32 && assertionVal.Type != bsontype.Int64 {
+			return fmt.Errorf("expected assertionVal to be an Int32 or Int64 but got a %s", assertionVal.Type)
+		}
+		if actual.Type != bsontype.Int32 && actual.Type != bsontype.Int64 {
+			return fmt.Errorf("expected value to be an Int32 or Int64 but got a %s", actual.Type)
+		}
+
+		// Numeric values can be compared even if their types are different (e.g. if expected is an int32 and actual
+		// is an int64).
+		expectedInt64 := assertionVal.AsInt64()
+		actualInt64 := actual.AsInt64()
+		if actualInt64 > expectedInt64 {
+			return fmt.Errorf("expected numeric value %d to be less than or equal %d", actualInt64, expectedInt64)
+		}
+		return nil
 	default:
 		return fmt.Errorf("unrecognized special matching assertion %q", assertion)
 	}

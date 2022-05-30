@@ -12,12 +12,65 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // This file contains helpers to execute database operations.
 
+func executeCreateView(ctx context.Context, operation *operation) (*operationResult, error) {
+	db, err := entities(ctx).database(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var collName string
+	var cvo options.CreateViewOptions
+	var pipeline interface{}
+	var viewOn string
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "collection":
+			collName = val.StringValue()
+		case "pipeline":
+			pipeline = testhelpers.RawToInterfaceSlice(val.Array())
+		case "viewOn":
+			viewOn = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized createView option %q", key)
+		}
+	}
+	if collName == "" {
+		return nil, newMissingArgumentError("collection")
+	}
+	if viewOn == "" {
+		return nil, newMissingArgumentError("viewOn")
+	}
+
+	err = db.CreateView(ctx, collName, viewOn, pipeline, &cvo)
+	return newErrorResult(err), nil
+}
+
 func executeCreateCollection(ctx context.Context, operation *operation) (*operationResult, error) {
+	// In the Go driver there is a separate method for creating views.  However, the unified test CRUD format does not
+	// make this distinction.  If necessary, here we branch to create a view.
+	createView, err := operation.isCreateView()
+	if err != nil {
+		return nil, err
+	}
+	if createView {
+		return executeCreateView(ctx, operation)
+	}
+
 	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
 		return nil, err
@@ -33,6 +86,8 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 		switch key {
 		case "collection":
 			collName = val.StringValue()
+		case "changeStreamPreAndPostImages":
+			cco.SetChangeStreamPreAndPostImages(val.Document())
 		case "expireAfterSeconds":
 			cco.SetExpireAfterSeconds(int64(val.Int32()))
 		case "timeseries":
@@ -58,12 +113,14 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 				}
 			}
 			cco.SetTimeSeriesOptions(tso)
+		case "clusteredIndex":
+			cco.SetClusteredIndex(val.Document())
 		default:
 			return nil, fmt.Errorf("unrecognized createCollection option %q", key)
 		}
 	}
 	if collName == "" {
-		return nil, newMissingArgumentError("collName")
+		return nil, newMissingArgumentError("collection")
 	}
 
 	err = db.CreateCollection(ctx, collName, &cco)

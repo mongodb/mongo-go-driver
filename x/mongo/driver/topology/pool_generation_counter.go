@@ -13,6 +13,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// Pool generation state constants.
+const (
+	generationDisconnected int64 = iota
+	generationConnected
+)
+
 // generationStats represents the version of a pool. It tracks the generation number as well as the number of
 // connections that have been created in the generation.
 type generationStats struct {
@@ -42,11 +48,11 @@ func newPoolGenerationMap() *poolGenerationMap {
 }
 
 func (p *poolGenerationMap) connect() {
-	atomic.StoreInt64(&p.state, connected)
+	atomic.StoreInt64(&p.state, generationConnected)
 }
 
 func (p *poolGenerationMap) disconnect() {
-	atomic.StoreInt64(&p.state, disconnected)
+	atomic.StoreInt64(&p.state, generationDisconnected)
 }
 
 // addConnection increments the connection count for the generation associated with the given service ID and returns the
@@ -102,7 +108,7 @@ func (p *poolGenerationMap) clear(serviceIDPtr *primitive.ObjectID) {
 
 func (p *poolGenerationMap) stale(serviceIDPtr *primitive.ObjectID, knownGeneration uint64) bool {
 	// If the map has been disconnected, all connections should be considered stale to ensure that they're closed.
-	if atomic.LoadInt64(&p.state) == disconnected {
+	if atomic.LoadInt64(&p.state) == generationDisconnected {
 		return true
 	}
 

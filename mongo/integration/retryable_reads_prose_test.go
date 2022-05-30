@@ -15,12 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func TestRetryableReadsProse(t *testing.T) {
-	tpm := newTestPoolMonitor()
+	tpm := monitor.NewTestPoolMonitor()
 
 	// Client options with MaxPoolSize of 1 and RetryReads used per the test description.
 	// Lower HeartbeatInterval used to speed the test up for any server that uses streaming
@@ -35,6 +36,10 @@ func TestRetryableReadsProse(t *testing.T) {
 	defer mt.Close()
 
 	mt.Run("PoolClearedError retryability", func(mt *mtest.T) {
+		if mtest.ClusterTopologyKind() == mtest.LoadBalanced {
+			mt.Skip("skipping as load balanced topology has different pool clearing behavior")
+		}
+
 		// Insert a document to test collection.
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)

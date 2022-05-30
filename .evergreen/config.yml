@@ -73,12 +73,19 @@ functions:
           fi
 
           # Set actual PATH. PATH should contain binaries from GOROOT, GOPATH, GCC_PATH and mongodb.
-          # Adding GOROOT's bin to PATH on Windows requires a cygpath conversion.
           export GOROOTBIN="$GOROOT/bin"
+          export GOPATHBIN="$GOPATH/bin"
           if [ "Windows_NT" = "$OS" ]; then
-             export GOROOTBIN=$(cygpath -m $GOROOTBIN)
+             # Convert all Windows-style paths (e.g. C:/) to Bash-style Cygwin paths
+             # (e.g. /cygdrive/c/...) because PATH is interpreted by Bash, which uses ":" as a
+             # separator so doesn't support Windows-style paths. Other scripts or binaries that
+             # aren't part of Cygwin still need the environment variables to use Windows-style
+             # paths, so only convert them when setting PATH. Note that GCC_PATH is already a
+             # Bash-style Cygwin path for all Windows tasks.
+             export PATH="$(cygpath $GOROOTBIN):$(cygpath $GOPATHBIN):${GCC_PATH}:$(cygpath $MONGODB_BINARIES):$PATH"
+          else
+             export PATH="$GOROOTBIN:$GOPATHBIN:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
           fi
-          export PATH="$GOROOTBIN:$GOPATH/bin:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
 
           # Check Go installation.
           go version
@@ -88,13 +95,15 @@ functions:
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
              mkdir -p c:/libmongocrypt/bin
-             curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
+             # TODO (GODRIVER-2436): do not use alpha release of libmongocrypt.
+             curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt_unstable.tar.gz --output libmongocrypt.tar.gz
              tar -xvzf libmongocrypt.tar.gz
              cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
              cp ./include/mongocrypt/*.h c:/libmongocrypt/include
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
           else
-            git clone https://github.com/mongodb/libmongocrypt
+            # TODO (GODRIVER-2436): do not use alpha release of libmongocrypt.
+            git clone https://github.com/mongodb/libmongocrypt --branch 1.5.0-alpha2
             ./libmongocrypt/.evergreen/compile.sh
           fi
 
@@ -530,12 +539,10 @@ functions:
           export GOFLAGS=-mod=vendor
           AUTH="auth" \
           SSL="ssl" \
-          MONGODB_URI="${SINGLE_ATLASPROXY_SERVERLESS_URI}" \
+          MONGODB_URI="${SERVERLESS_URI}" \
           SERVERLESS="serverless" \
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
           SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
-          SINGLE_MONGOS_LB_URI="${SINGLE_ATLASPROXY_SERVERLESS_URI}" \
-          MULTI_MONGOS_LB_URI="${MULTI_ATLASPROXY_SERVERLESS_URI}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           make evg-test-serverless
 
@@ -976,7 +983,7 @@ tasks:
       - func: install-linters
       - func: run-make
         vars:
-          targets: lint
+          targets: "lint add-license"
 
   - name: perf
     tags: ["performance"]
@@ -1682,7 +1689,7 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build build-tests"
+          targets: "build"
           BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
 
   # Build with whatever the latest Go version is that we're using for tests
@@ -1843,6 +1850,10 @@ axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "6.0"
+        display_name: "6.0"
+        variables:
+          VERSION: "6.0"
       - id: "5.0"
         display_name: "5.0"
         variables:
@@ -1896,6 +1907,7 @@ axes:
         display_name: "Ubuntu 14.04"
         run_on: ubuntu1404-test
         variables:
+          # The latest Go version available on the Ubuntu 14.04 Evergreen CI image is Go 1.16.
           GO_DIST: "/opt/golang/go1.16"
           # The GCC toolchain that comes with Ubuntu 14.04 is incompatible with the standard binary
           # release of Go 1.16. As a result, Cgo builds on Ubuntu 14.04 fail with a linking error
@@ -1909,88 +1921,88 @@ axes:
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-16"
+      - id: "windows-64-go-1-17"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2017-test
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.16"
+          GO_DIST: "C:\\golang\\go1.17"
           PYTHON3_BINARY: "C:/python/Python38/python.exe"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1604-64-go-1-16"
+      - id: "ubuntu1604-64-go-1-17"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
-          GO_DIST: "/opt/golang/go1.16"
+          GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
-      - id: "osx-go-1-16"
+      - id: "osx-go-1-17"
         display_name: "MacOS 10.14"
         run_on: macos-1014
         variables:
-          GO_DIST: "/opt/golang/go1.16"
+          GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: python3
 
   # OSes that require >= 4.0 for SSL
   - id: os-ssl-40
     display_name: OS
     values:
-      - id: "windows-64-go-1-16"
+      - id: "windows-64-go-1-17"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2017-test
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.16"
+          GO_DIST: "C:\\golang\\go1.17"
           PYTHON3_BINARY: "C:/python/Python38/python.exe"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1804-64-go-1-16"
+      - id: "ubuntu1804-64-go-1-17"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-build
         variables:
-          GO_DIST: "/opt/golang/go1.16"
+          GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
-      - id: "osx-go-1-16"
+      - id: "osx-go-1-17"
         display_name: "MacOS 10.14"
         run_on: macos-1014
         variables:
-          GO_DIST: "/opt/golang/go1.16"
+          GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: python3
 
   # OCSP linux tasks need to run against this OS since stapling is disabled on Ubuntu 18.04 (SERVER-51364)
   - id: ocsp-rhel-70
     display_name: OS
     values:
-      - id: "rhel70-go-1-16"
+      - id: "rhel70-go-1-17"
         display_name: "RHEL 7.0"
         run_on: rhel70-build
         variables:
-          GO_DIST: "/opt/golang/go1.16"
+          GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: "/opt/python/3.6/bin/python3"
 
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vsMulti-small-go-1-16"
+      - id: "windows-64-vsMulti-small-go-1-17"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vsMulti-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.16"
+          GO_DIST: "C:\\golang\\go1.17"
           SKIP_ECS_AUTH_TEST: true
           PYTHON3: "C:/python/Python38/python.exe"
-      - id: "ubuntu1804-64-go-1-16"
+      - id: "ubuntu1804-64-go-1-17"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
         variables:
-          GO_DIST: "/opt/golang/go1.16"
+          GO_DIST: "/opt/golang/go1.17"
           PYTHON3: python3
-      - id: "osx-go-1-16"
+      - id: "osx-go-1-17"
         display_name: "MacOS 10.14"
         run_on: macos-1014
         variables:
-          GO_DIST: "/opt/golang/go1.16"
+          GO_DIST: "/opt/golang/go1.17"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           PYTHON3: python3
@@ -2052,7 +2064,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.16"
+      GO_DIST: "/opt/golang/go1.17"
     tasks:
       - name: ".static-analysis"
 
@@ -2061,7 +2073,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.16"
+      GO_DIST: "/opt/golang/go1.17"
     tasks:
       - name: ".performance"
 
@@ -2070,7 +2082,7 @@ buildvariants:
     run_on:
       - ubuntu1804-test
     expansions:
-      GO_DIST: "/opt/golang/go1.16"
+      GO_DIST: "/opt/golang/go1.17"
     tasks:
       - name: ".compile-check"
 
@@ -2079,7 +2091,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.16"
+      GO_DIST: "/opt/golang/go1.17"
     tasks:
       - name: "atlas-test"
 
@@ -2088,7 +2100,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.16"
+      GO_DIST: "/opt/golang/go1.17"
     tasks:
       - name: "test-atlas-data-lake"
 
@@ -2129,7 +2141,7 @@ buildvariants:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-42-plus-zlib-zstd-support"
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "latest"], os-ssl-40: "*" }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "latest"], os-ssl-40: "*" }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2141,20 +2153,20 @@ buildvariants:
       - name: ".test .enterprise-auth"
 
   - matrix_name: "aws-auth-test"
-    matrix_spec: { version: ["4.4", "5.0", "latest"], os-aws-auth: "*" }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-aws-auth: "*" }
     display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-16"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-17"] }
     display_name: "OCSP ${version} ${ocsp-rhel-70}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "latest"], os-ssl-40: ["windows-64-go-1-16"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-17"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2162,7 +2174,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "latest"], os-ssl-40: ["osx-go-1-16"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["osx-go-1-17"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2170,13 +2182,13 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "versioned-api-test"
-    matrix_spec: { version: ["5.0", "latest"], os-ssl-40: "*" }
+    matrix_spec: { version: ["5.0", "6.0", "latest"], os-ssl-40: "*" }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-16"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-17"] }
     display_name: "KMS TLS ${os-ssl-40}"
     tasks:
       - name: ".kms-tls"
@@ -2186,19 +2198,19 @@ buildvariants:
     # The new "loadBalancerPort" option is supported starting with server 5.2, which responds
     # correctly to "hello" commands with a service ID when behind a load balancer. Only run load
     # balancer tests on server 5.2+ ("rapid", "latest" are always 5.2+).
-    matrix_spec: { version: ["rapid", "latest"], os-ssl-40: ["ubuntu1804-64-go-1-16"] }
+    matrix_spec: { version: ["rapid", "latest"], os-ssl-40: ["ubuntu1804-64-go-1-17"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
-    matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-16"] }
+    matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-17"] }
     display_name: "Serverless ${os-ssl-40}"
     tasks:
       - "serverless_task_group"
 
   - matrix_name: "kms-kmip-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-16"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-17"] }
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"

@@ -152,7 +152,7 @@ func (rom *ReplaceOneModel) SetFilter(filter interface{}) *ReplaceOneModel {
 }
 
 // SetReplacement specifies a document that will be used to replace the selected document. It cannot be nil and cannot
-// contain any update operators (https://docs.mongodb.com/manual/reference/operator/update/).
+// contain any update operators (https://www.mongodb.com/docs/manual/reference/operator/update/).
 func (rom *ReplaceOneModel) SetReplacement(rep interface{}) *ReplaceOneModel {
 	rom.Replacement = rep
 	return rom
@@ -210,7 +210,7 @@ func (uom *UpdateOneModel) SetFilter(filter interface{}) *UpdateOneModel {
 }
 
 // SetUpdate specifies the modifications to be made to the selected document. The value must be a document containing
-// update operators (https://docs.mongodb.com/manual/reference/operator/update/). It cannot be nil or empty.
+// update operators (https://www.mongodb.com/docs/manual/reference/operator/update/). It cannot be nil or empty.
 func (uom *UpdateOneModel) SetUpdate(update interface{}) *UpdateOneModel {
 	uom.Update = update
 	return uom
@@ -274,7 +274,7 @@ func (umm *UpdateManyModel) SetFilter(filter interface{}) *UpdateManyModel {
 }
 
 // SetUpdate specifies the modifications to be made to the selected documents. The value must be a document containing
-// update operators (https://docs.mongodb.com/manual/reference/operator/update/). It cannot be nil or empty.
+// update operators (https://www.mongodb.com/docs/manual/reference/operator/update/). It cannot be nil or empty.
 func (umm *UpdateManyModel) SetUpdate(update interface{}) *UpdateManyModel {
 	umm.Update = update
 	return umm

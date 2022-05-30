@@ -1,0 +1,43 @@
+description: initialCollectionData-collectionOptions
+
+schemaVersion: '1.5'
+
+createEntities:
+  - client:
+      id: &client0 client0
+  - database:
+      id: &database0 database0
+      client: *client0
+      databaseName: &database0Name database0
+  - collection:
+      id: &collection0 collection0
+      database: *database0
+      collectionName: &collection0Name coll0
+
+initialData:
+  - collectionName: *collection0Name
+    databaseName: *database0Name
+    collectionOptions:
+      capped: true
+      size: &cappedSize 512
+    documents:
+      - { _id: 1, x: 11 }
+
+tests:
+  - description: collection is created with the correct options
+    runOnRequirements:
+      - minServerVersion: "3.6"
+        # Capped collections cannot be created on serverless instances.
+        serverless: forbid
+    operations:
+      # Execute a collStats command to ensure the collection was created with the correct options.
+      - name: runCommand
+        object: *database0
+        arguments:
+          commandName: collStats
+          command:
+            collStats: *collection0Name
+            scale: 1
+        expectResult:
+          capped: true
+          maxSize: *cappedSize

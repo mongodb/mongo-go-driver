@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package options
 
 import (
@@ -631,6 +637,40 @@ func TestClientOptions(t *testing.T) {
 			})
 		}
 	})
+	t.Run("minPoolSize validation", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			opts *ClientOptions
+			err  error
+		}{
+			{
+				"minPoolSize < maxPoolSize",
+				Client().SetMinPoolSize(128).SetMaxPoolSize(256),
+				nil,
+			},
+			{
+				"minPoolSize == maxPoolSize",
+				Client().SetMinPoolSize(128).SetMaxPoolSize(128),
+				nil,
+			},
+			{
+				"minPoolSize > maxPoolSize",
+				Client().SetMinPoolSize(64).SetMaxPoolSize(32),
+				errors.New("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=64 maxPoolSize=32"),
+			},
+			{
+				"maxPoolSize == 0",
+				Client().SetMinPoolSize(128).SetMaxPoolSize(0),
+				nil,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
+			})
+		}
+	})
 	t.Run("srvMaxHosts validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
@@ -653,6 +693,41 @@ func TestClientOptions(t *testing.T) {
 				tc.opts.SetSRVMaxHosts(2)
 				err = tc.opts.Validate()
 				assert.Equal(t, tc.err, err, "expected error %v when srvMaxHosts > 0, got %v", tc.err, err)
+			})
+		}
+	})
+	t.Run("srvMaxHosts validation", func(t *testing.T) {
+		t.Parallel()
+
+		testCases := []struct {
+			name string
+			opts *ClientOptions
+			err  error
+		}{
+			{
+				name: "valid ServerAPI",
+				opts: Client().SetServerAPIOptions(ServerAPI(ServerAPIVersion1)),
+				err:  nil,
+			},
+			{
+				name: "invalid ServerAPI",
+				opts: Client().SetServerAPIOptions(ServerAPI("nope")),
+				err:  errors.New(`api version "nope" not supported; this driver version only supports API version "1"`),
+			},
+			{
+				name: "invalid ServerAPI with other invalid options",
+				opts: Client().SetServerAPIOptions(ServerAPI("nope")).SetSRVMaxHosts(1).SetReplicaSet("foo"),
+				err:  errors.New(`api version "nope" not supported; this driver version only supports API version "1"`),
+			},
+		}
+		for _, tc := range testCases {
+			tc := tc // Capture range variable.
+
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "want error %v, got error %v", tc.err, err)
 			})
 		}
 	})

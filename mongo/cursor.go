@@ -125,7 +125,7 @@ func (c *Cursor) Next(ctx context.Context) bool {
 
 // TryNext attempts to get the next document for this cursor. It returns true if there were no errors and the next
 // document is available. This is only recommended for use with tailable cursors as a non-blocking alternative to
-// Next. See https://docs.mongodb.com/manual/core/tailable-cursors/ for more information about tailable cursors.
+// Next. See https://www.mongodb.com/docs/manual/core/tailable-cursors/ for more information about tailable cursors.
 //
 // TryNext returns false if the cursor is exhausted, an error occurs when getting results from the server, the next
 // document is not yet available, or ctx expires. If ctx expires, the error will be set to ctx.Err().

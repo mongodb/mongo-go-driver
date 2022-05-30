@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 func TestClientOptions_CustomDialer(t *testing.T) {
@@ -27,7 +27,7 @@ func TestClientOptions_CustomDialer(t *testing.T) {
 	require.NoError(t, err)
 	err = client.Connect(context.Background())
 	require.NoError(t, err)
-	_, err = client.ListDatabases(context.Background(), bsonx.Doc{})
+	_, err = client.ListDatabases(context.Background(), bson.D{})
 	require.NoError(t, err)
 	got := atomic.LoadInt32(&td.called)
 	if got < 1 {

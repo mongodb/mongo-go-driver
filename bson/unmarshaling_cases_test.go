@@ -39,6 +39,10 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 		valPtrStruct = unmarshalerPtrStruct{I: &i, M: &m, B: &b, S: &s}
 	}
 
+	type fooBytes struct {
+		Foo []byte
+	}
+
 	return []unmarshalingTestCase{
 		{
 			name: "small struct",
@@ -118,6 +122,19 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			sType: reflect.TypeOf(unmarshalerPtrStruct{}),
 			want:  &valPtrStruct,
 			data:  docToBytes(valPtrStruct),
+		},
+		// GODRIVER-2311
+		// Test that an unmarshaled struct that has a byte slice value does not reference the same
+		// underlying array as the input.
+		{
+			name:  "struct with byte slice",
+			sType: reflect.TypeOf(fooBytes{}),
+			want: &fooBytes{
+				Foo: []byte{0, 1, 2, 3, 4, 5},
+			},
+			data: docToBytes(fooBytes{
+				Foo: []byte{0, 1, 2, 3, 4, 5},
+			}),
 		},
 	}
 }

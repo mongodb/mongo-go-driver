@@ -21,7 +21,7 @@ var DefaultCausalConsistency = true
 type SessionOptions struct {
 	// If true, causal consistency will be enabled for the session. This option cannot be set to true if Snapshot is
 	// set to true. The default value is true unless Snapshot is set to true. See
-	// https://docs.mongodb.com/manual/core/read-isolation-consistency-recency/#sessions for more information.
+	// https://www.mongodb.com/docs/manual/core/read-isolation-consistency-recency/#sessions for more information.
 	CausalConsistency *bool
 
 	// The default read concern for transactions started in the session. The default value is nil, which means that

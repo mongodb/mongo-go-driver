@@ -30,7 +30,7 @@ func Example_clientSideEncryption() {
 			"key": localKey,
 		},
 	}
-	keyVaultNamespace := "admin.datakeys"
+	keyVaultNamespace := "encryption.__keyVault"
 
 	uri := "mongodb://localhost:27017"
 	autoEncryptionOpts := options.AutoEncryption().
@@ -68,7 +68,7 @@ func Example_clientSideEncryption() {
 }
 
 func Example_clientSideEncryptionCreateKey() {
-	keyVaultNamespace := "admin.datakeys"
+	keyVaultNamespace := "encryption.__keyVault"
 	uri := "mongodb://localhost:27017"
 	// kmsProviders would have to be populated with the correct KMS provider
 	// information before it's used.

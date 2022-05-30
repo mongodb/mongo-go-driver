@@ -15,6 +15,7 @@ import (
 
 func TestResults(t *testing.T) {
 	t.Run("delete result", func(t *testing.T) {
+		// TODO(GODRIVER-2367): Do not test the ability to unmarshal BSON directly to a DeleteResult.
 		t.Run("unmarshal into", func(t *testing.T) {
 			doc := bson.D{
 				{"n", int64(2)},
@@ -29,6 +30,7 @@ func TestResults(t *testing.T) {
 			assert.Nil(t, err, "Unmarshal error: %v", err)
 			assert.Equal(t, int64(2), result.DeletedCount, "expected DeletedCount 2, got %v", result.DeletedCount)
 		})
+		// TODO(GODRIVER-2367): Do not test the ability to marshal a DeleteResult to BSON.
 		t.Run("marshal from", func(t *testing.T) {
 			result := DeleteResult{DeletedCount: 1}
 			buf, err := bson.Marshal(result)
@@ -53,6 +55,7 @@ func TestResults(t *testing.T) {
 		})
 	})
 	t.Run("update result", func(t *testing.T) {
+		// TODO(GODRIVER-2367): Do not test the ability to unmarshal BSON directly to an UpdateResult.
 		t.Run("unmarshal into", func(t *testing.T) {
 			doc := bson.D{
 				{"n", 1},

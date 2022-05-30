@@ -52,6 +52,8 @@ tests:
                   -
                     q: *filter
                     u: *update
+                    multi: { $$unsetOrMatches: false }
+                    upsert: { $$unsetOrMatches: false }
                 let: *let0
     outcome:
       -
@@ -63,7 +65,7 @@ tests:
 
   - description: "UpdateOne with let option unsupported (server-side error)"
     runOnRequirements:
-      - minServerVersion: "3.6.0"
+      - minServerVersion: "4.2.0"
         maxServerVersion: "4.4.99"
     operations:
       - name: updateOne
@@ -88,6 +90,8 @@ tests:
                   -
                     q: *filter1
                     u: *update1
+                    multi: { $$unsetOrMatches: false }
+                    upsert: { $$unsetOrMatches: false }
                 let: *let1
     outcome:
       -

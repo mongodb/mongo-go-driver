@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package driver
 
 import (
@@ -19,11 +25,13 @@ import (
 type BatchCursor struct {
 	clientSession        *session.Client
 	clock                *session.ClusterClock
+	comment              bsoncore.Value
 	database             string
 	collection           string
 	id                   int64
 	err                  error
 	server               Server
+	serverDescription    description.Server
 	errorProcessor       ErrorProcessor // This will only be set when pinning to a connection.
 	connection           PinnedConnection
 	batchSize            int32
@@ -36,7 +44,6 @@ type BatchCursor struct {
 	serverAPI            *ServerAPIOptions
 
 	// legacy server (< 3.2) fields
-	legacy      bool // This field is provided for ListCollectionsBatchCursor.
 	limit       int32
 	numReturned int32 // number of docs returned by server
 }
@@ -127,6 +134,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 // CursorOptions are extra options that are required to construct a BatchCursor.
 type CursorOptions struct {
 	BatchSize      int32
+	Comment        bsoncore.Value
 	MaxTimeMS      int64
 	Limit          int32
 	CommandMonitor *event.CommandMonitor
@@ -140,6 +148,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 	bc := &BatchCursor{
 		clientSession:        clientSession,
 		clock:                clock,
+		comment:              opts.Comment,
 		database:             cr.Database,
 		collection:           cr.Collection,
 		id:                   cr.ID,
@@ -153,13 +162,13 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		postBatchResumeToken: cr.postBatchResumeToken,
 		crypt:                opts.Crypt,
 		serverAPI:            opts.ServerAPI,
+		serverDescription:    cr.Desc,
 	}
 
 	if ds != nil {
 		bc.numReturned = int32(ds.DocumentCount())
 	}
 	if cr.Desc.WireVersion == nil || cr.Desc.WireVersion.Max < 4 {
-		bc.legacy = true
 		bc.limit = opts.Limit
 
 		// Take as many documents from the batch as needed.
@@ -327,6 +336,10 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			}
 			if bc.maxTimeMS > 0 {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
+			}
+			// The getMore command does not support commenting pre-4.4.
+			if bc.comment.Type != bsontype.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
+				dst = bsoncore.AppendValueElement(dst, "comment", bc.comment)
 			}
 			return dst, nil
 		},

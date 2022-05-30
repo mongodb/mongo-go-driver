@@ -1255,41 +1255,6 @@ func executeGridFSDownloadByName(mt *mtest.T, bucket *gridfs.Bucket, args bson.R
 	return bucket.DownloadToStreamByName(file, new(bytes.Buffer))
 }
 
-// returns the result from the operation and the name of the target collection
-func executeRenameCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.SingleResult, string) {
-	mt.Helper()
-
-	var toName string
-	elems, _ := args.Elements()
-	for _, elem := range elems {
-		key := elem.Key()
-		opt := elem.Value()
-
-		switch key {
-		case "to":
-			toName = opt.StringValue()
-		default:
-			mt.Fatalf("unrecognized renameCollection option %v", key)
-		}
-	}
-
-	renameCmd := bson.D{
-		{"renameCollection", mt.DB.Name() + "." + mt.Coll.Name()},
-		{"to", mt.DB.Name() + "." + toName},
-	}
-	admin := mt.Client.Database("admin")
-
-	if sess != nil {
-		var res *mongo.SingleResult
-		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			res = admin.RunCommand(sc, renameCmd)
-			return nil
-		})
-		return res, toName
-	}
-	return admin.RunCommand(context.Background(), renameCmd), toName
-}
-
 func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string, error) {
 	mt.Helper()
 
@@ -1363,6 +1328,8 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 		val := elem.Value()
 
 		switch key {
+		case "encryptedFields":
+			mt.Fatalf("unsupported field: encryptedFields")
 		case "collection":
 			collName = val.StringValue()
 		default:
@@ -1383,6 +1350,8 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
 	mt.Helper()
 
+	cco := options.CreateCollection()
+
 	var collName string
 	elems, _ := args.Elements()
 	for _, elem := range elems {
@@ -1390,6 +1359,8 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 		val := elem.Value()
 
 		switch key {
+		case "encryptedFields":
+			cco.SetEncryptedFields(val.Document())
 		case "collection":
 			collName = val.StringValue()
 		case "session":
@@ -1398,16 +1369,13 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 		}
 	}
 
-	createCmd := bson.D{
-		{"create", collName},
-	}
 	if sess != nil {
 		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			return mt.DB.RunCommand(sc, createCmd).Err()
+			return mt.DB.CreateCollection(sc, collName, cco)
 		})
 		return err
 	}
-	return mt.DB.RunCommand(context.Background(), createCmd).Err()
+	return mt.DB.CreateCollection(context.Background(), collName, cco)
 }
 
 func executeAdminCommand(mt *mtest.T, op *operation) {

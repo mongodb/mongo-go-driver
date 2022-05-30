@@ -43,7 +43,7 @@ For example, the following matches a command_started_event for an insert of a do
       command_name: insert
 
 
-The values of `$$type` correspond to `these documented string representations of BSON types <https://docs.mongodb.com/manual/reference/bson-types/>`_.
+The values of `$$type` correspond to `these documented string representations of BSON types <https://www.mongodb.com/docs/manual/reference/bson-types/>`_.
 
 
 Each YAML file has the following keys:
@@ -548,7 +548,7 @@ The corpus test exhaustively enumerates all ways to encrypt all BSON value types
 5. Load `corpus/corpus.json <../corpus/corpus.json>`_ to a variable named ``corpus``. The corpus contains subdocuments with the following fields:
 
    - ``kms`` is either ``aws``, ``azure``, ``gcp``, or ``local``
-   - ``type`` is a BSON type string `names coming from here <https://docs.mongodb.com/manual/reference/operator/query/type/>`_)
+   - ``type`` is a BSON type string `names coming from here <https://www.mongodb.com/docs/manual/reference/operator/query/type/>`_)
    - ``algo`` is either ``rand`` or ``det`` for random or deterministic encryption
    - ``method`` is either ``auto``, for automatic encryption or ``explicit`` for  explicit encryption
    - ``identifier`` is either ``id`` or ``altname`` for the key identifier

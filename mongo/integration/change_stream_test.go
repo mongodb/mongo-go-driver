@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -503,15 +504,9 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		})
 	})
 
-	customDeploymentClientOpts := options.Client().
-		SetPoolMonitor(poolMonitor).
-		SetWriteConcern(mtest.MajorityWc).
-		SetReadConcern(mtest.MajorityRc).
-		SetRetryReads(false)
 	customDeploymentOpts := mtest.NewOptions().
 		Topologies(mtest.ReplicaSet). // Avoid complexity of sharded fail points.
 		MinServerVersion("4.0").      // 4.0 is needed to use replica set fail points.
-		ClientOptions(customDeploymentClientOpts).
 		CreateClient(false)
 	mt.RunOpts("custom deployment", customDeploymentOpts, func(mt *mtest.T) {
 		// Tests for the changeStreamDeployment type. These are written as integration tests for ChangeStream rather
@@ -519,7 +514,13 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// by ChangeStream when executing an aggregate.
 
 		mt.Run("errors are processed for SDAM on initial aggregate", func(mt *mtest.T) {
-			clearPoolChan()
+			tpm := monitor.NewTestPoolMonitor()
+			mt.ResetClient(options.Client().
+				SetPoolMonitor(tpm.PoolMonitor).
+				SetWriteConcern(mtest.MajorityWc).
+				SetReadConcern(mtest.MajorityRc).
+				SetRetryReads(false))
+
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
 				Mode: mtest.FailPointMode{
@@ -533,10 +534,16 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 			_, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{})
 			assert.NotNil(mt, err, "expected Watch error, got nil")
-			assert.True(mt, isPoolCleared(), "expected pool to be cleared after non-timeout network error but was not")
+			assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared after non-timeout network error but was not")
 		})
 		mt.Run("errors are processed for SDAM on getMore", func(mt *mtest.T) {
-			clearPoolChan()
+			tpm := monitor.NewTestPoolMonitor()
+			mt.ResetClient(options.Client().
+				SetPoolMonitor(tpm.PoolMonitor).
+				SetWriteConcern(mtest.MajorityWc).
+				SetReadConcern(mtest.MajorityRc).
+				SetRetryReads(false))
+
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
 				Mode: mtest.FailPointMode{
@@ -557,12 +564,13 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 			assert.True(mt, cs.Next(context.Background()), "expected Next to return true, got false (iteration error %v)",
 				cs.Err())
-			assert.True(mt, isPoolCleared(), "expected pool to be cleared after non-timeout network error but was not")
+			assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared after non-timeout network error but was not")
 		})
-		retryAggClientOpts := options.Client().SetRetryReads(true).SetPoolMonitor(poolMonitor)
-		retryAggMtOpts := mtest.NewOptions().ClientOptions(retryAggClientOpts)
-		mt.RunOpts("errors are processed for SDAM on retried aggregate", retryAggMtOpts, func(mt *mtest.T) {
-			clearPoolChan()
+		mt.Run("errors are processed for SDAM on retried aggregate", func(mt *mtest.T) {
+			tpm := monitor.NewTestPoolMonitor()
+			mt.ResetClient(options.Client().
+				SetPoolMonitor(tpm.PoolMonitor).
+				SetRetryReads(true))
 
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
@@ -578,14 +586,10 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			_, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{})
 			assert.NotNil(mt, err, "expected Watch error, got nil")
 
-			var numClearedEvents int
-			for len(poolChan) > 0 {
-				curr := <-poolChan
-				if curr.Type == event.PoolCleared {
-					numClearedEvents++
-				}
-			}
-			assert.Equal(mt, 2, numClearedEvents, "expected two PoolCleared events, got %d", numClearedEvents)
+			clearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+				return evt.Type == event.PoolCleared
+			})
+			assert.Equal(mt, 2, len(clearedEvents), "expected two PoolCleared events, got %d", len(clearedEvents))
 		})
 	})
 	// Setting min server version as 4.0 since v3.6 does not send a "dropEvent"
@@ -634,11 +638,11 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		evt := mt.GetStartedEvent()
 		assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
 	})
-	mt.Run("CustomOptions", func(mt *mtest.T) {
+	mt.Run("Custom", func(mt *mtest.T) {
 		// Custom options should be a BSON map of option names to Marshalable option values.
 		// We use "allowDiskUse" as an example.
 		customOpts := bson.M{"allowDiskUse": true}
-		opts := options.ChangeStream().SetCustomOptions(customOpts)
+		opts := options.ChangeStream().SetCustom(customOpts)
 
 		// Create change stream with custom options set.
 		mt.ClearEvents()
@@ -655,6 +659,28 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		adu, ok := aduVal.BooleanOK()
 		assert.True(mt, ok, "expected field 'allowDiskUse' to be boolean, got %v", aduVal.Type.String())
 		assert.True(mt, adu, "expected field 'allowDiskUse' to be true, got false")
+	})
+	mt.RunOpts("CustomPipeline", mtest.NewOptions().MinServerVersion("4.0"), func(mt *mtest.T) {
+		// Custom pipeline options should be a BSON map of option names to Marshalable option values.
+		// We use "allChangesForCluster" as an example.
+		customPipelineOpts := bson.M{"allChangesForCluster": false}
+		opts := options.ChangeStream().SetCustomPipeline(customPipelineOpts)
+
+		// Create change stream with custom pipeline options set.
+		mt.ClearEvents()
+		cs, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{}, opts)
+		assert.Nil(mt, err, "Watch error: %v", err)
+		defer closeStream(cs)
+
+		// Assert that custom pipeline option is included in the $changeStream stage.
+		evt := mt.GetStartedEvent()
+		assert.Equal(mt, "aggregate", evt.CommandName, "expected command 'aggregate' got, %q", evt.CommandName)
+
+		acfcVal, err := evt.Command.LookupErr("pipeline", "0", "$changeStream", "allChangesForCluster")
+		assert.Nil(mt, err, "expected field 'allChangesForCluster' in $changeStream stage not found")
+		acfc, ok := acfcVal.BooleanOK()
+		assert.True(mt, ok, "expected field 'allChangesForCluster' to be boolean, got %v", acfcVal.Type.String())
+		assert.False(mt, acfc, "expected field 'allChangesForCluster' to be false, got %v", acfc)
 	})
 }
 

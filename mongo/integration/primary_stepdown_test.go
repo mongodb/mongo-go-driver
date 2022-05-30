@@ -8,12 +8,11 @@ package integration
 
 import (
 	"context"
-	"sync"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -25,106 +24,16 @@ const (
 	errorInterruptedAtShutdown int32 = 11600
 )
 
-// testPoolMonitor exposes an *event.PoolMonitor and collects all events logged to that
-// *event.PoolMonitor. It is safe to use from multiple concurrent goroutines.
-type testPoolMonitor struct {
-	*event.PoolMonitor
-
-	events []*event.PoolEvent
-	mu     sync.RWMutex
-}
-
-func newTestPoolMonitor() *testPoolMonitor {
-	tpm := &testPoolMonitor{
-		events: make([]*event.PoolEvent, 0),
-	}
-	tpm.PoolMonitor = &event.PoolMonitor{
-		Event: func(evt *event.PoolEvent) {
-			tpm.mu.Lock()
-			defer tpm.mu.Unlock()
-			tpm.events = append(tpm.events, evt)
-		},
-	}
-	return tpm
-}
-
-// Events returns a copy of the events collected by the testPoolMonitor. Filters can optionally be
-// applied to the returned events set and are applied using AND logic (i.e. all filters must return
-// true to include the event in the result).
-func (tpm *testPoolMonitor) Events(filters ...func(*event.PoolEvent) bool) []*event.PoolEvent {
-	filtered := make([]*event.PoolEvent, 0, len(tpm.events))
-	tpm.mu.RLock()
-	defer tpm.mu.RUnlock()
-
-	for _, evt := range tpm.events {
-		keep := true
-		for _, filter := range filters {
-			if !filter(evt) {
-				keep = false
-				break
-			}
-		}
-		if keep {
-			filtered = append(filtered, evt)
-		}
-	}
-
-	return filtered
-}
-
-// ClearEvents will reset the events collected by the testPoolMonitor.
-func (tpm *testPoolMonitor) ClearEvents() {
-	tpm.mu.Lock()
-	defer tpm.mu.Unlock()
-	tpm.events = tpm.events[:0]
-}
-
-// IsPoolCleared returns true if there are any events of type "event.PoolCleared" in the events
-// recorded by the testPoolMonitor.
-func (tpm *testPoolMonitor) IsPoolCleared() bool {
-	poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-		return evt.Type == event.PoolCleared
-	})
-	return len(poolClearedEvents) > 0
-}
-
-var poolChan = make(chan *event.PoolEvent, 100)
-
-// TODO(GODRIVER-2068): Replace all uses of poolMonitor with individual instances of testPoolMonitor.
-var poolMonitor = &event.PoolMonitor{
-	Event: func(event *event.PoolEvent) {
-		poolChan <- event
-	},
-}
-
-func isPoolCleared() bool {
-	for len(poolChan) > 0 {
-		curr := <-poolChan
-		if curr.Type == event.PoolCleared {
-			return true
-		}
-	}
-	return false
-}
-
-func clearPoolChan() {
-	for len(poolChan) > 0 {
-		<-poolChan
-	}
-}
-
 func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false))
 	defer mt.Close()
 
-	clientOpts := options.Client().
-		ApplyURI(mtest.ClusterURI()).
-		SetRetryWrites(false).
-		SetPoolMonitor(poolMonitor)
-
-	getMoreOpts := mtest.NewOptions().MinServerVersion("4.2").ClientOptions(clientOpts)
+	getMoreOpts := mtest.NewOptions().MinServerVersion("4.2")
 	mt.RunOpts("getMore iteration", getMoreOpts, func(mt *mtest.T) {
-		clearPoolChan()
+		tpm := monitor.NewTestPoolMonitor()
+		mt.ResetClient(options.Client().
+			SetRetryWrites(false).
+			SetPoolMonitor(tpm.PoolMonitor))
 
 		initCollection(mt, mt.Coll)
 		cur, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
@@ -142,13 +51,9 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 		executeAdminCommandWithRetry(mt, mt.Client, stepDownCmd, stepDownOpts)
 
 		assert.True(mt, cur.Next(context.Background()), "expected Next true, got false")
-		assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
+		assert.False(mt, tpm.IsPoolCleared(), "expected pool to not be cleared but was")
 	})
 	mt.RunOpts("server errors", noClientOpts, func(mt *mtest.T) {
-		// Use a low heartbeat frequency so the Client will quickly recover when using failpoints that cause SDAM state
-		// changes.
-		clientOpts.SetHeartbeatInterval(defaultHeartbeatInterval)
-
 		testCases := []struct {
 			name                   string
 			minVersion, maxVersion string
@@ -161,15 +66,21 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 			{"interrupted at shutdown reset pool", "4.0", "", errorInterruptedAtShutdown, true},
 		}
 		for _, tc := range testCases {
-			tcOpts := mtest.NewOptions().ClientOptions(clientOpts)
+			opts := mtest.NewOptions()
 			if tc.minVersion != "" {
-				tcOpts.MinServerVersion(tc.minVersion)
+				opts.MinServerVersion(tc.minVersion)
 			}
 			if tc.maxVersion != "" {
-				tcOpts.MaxServerVersion(tc.maxVersion)
+				opts.MaxServerVersion(tc.maxVersion)
 			}
-			mt.RunOpts(tc.name, tcOpts, func(mt *mtest.T) {
-				clearPoolChan()
+			mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+				tpm := monitor.NewTestPoolMonitor()
+				mt.ResetClient(options.Client().
+					SetRetryWrites(false).
+					SetPoolMonitor(tpm.PoolMonitor).
+					// Use a low heartbeat frequency so the Client will quickly recover when using
+					// failpoints that cause SDAM state changes.
+					SetHeartbeatInterval(defaultHeartbeatInterval))
 
 				mt.SetFailPoint(mtest.FailPoint{
 					ConfigureFailPoint: "failCommand",
@@ -189,14 +100,14 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 				assert.Equal(mt, tc.errCode, cerr.Code, "expected error code %v, got %v", tc.errCode, cerr.Code)
 
 				if tc.poolCleared {
-					assert.True(mt, isPoolCleared(), "expected pool to be cleared but was not")
+					assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared but was not")
 					return
 				}
 
 				// if pool shouldn't be cleared, another operation should succeed
 				_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"test", 1}})
 				assert.Nil(mt, err, "InsertOne error: %v", err)
-				assert.False(mt, isPoolCleared(), "expected pool to not be cleared but was")
+				assert.False(mt, tpm.IsPoolCleared(), "expected pool to not be cleared but was")
 			})
 		}
 	})

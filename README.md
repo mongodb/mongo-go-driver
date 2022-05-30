@@ -3,7 +3,7 @@
   <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver"></a>
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo"><img src="etc/assets/godev-mongo-blue.svg" alt="docs"></a>
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/bson"><img src="etc/assets/godev-bson-blue.svg" alt="docs"></a>
-  <a href="https://docs.mongodb.com/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
+  <a href="https://www.mongodb.com/docs/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
 </p>
 
 # MongoDB Go Driver
@@ -22,13 +22,13 @@ The MongoDB supported driver for Go.
 -------------------------
 ## Requirements
 
-- Go 1.10 or higher if using the driver as a dependency. Go 1.16 or higher if building the driver yourself. We aim to support the latest supported versions of go.
+- Go 1.10 or higher if using the driver as a dependency. Go 1.17 or higher if building the driver yourself. We aim to support the latest versions of Go.
 - MongoDB 2.6 and higher.
 
 -------------------------
 ## Installation
 
-The recommended way to get started using the MongoDB Go driver is by using go modules to install the dependency in
+The recommended way to get started using the MongoDB Go driver is by using Go modules to install the dependency in
 your project. This can be done either by importing packages from `go.mongodb.org/mongo-driver` and having the build
 step install the dependency or by explicitly running
 
@@ -153,7 +153,7 @@ if err == mongo.ErrNoDocuments {
 // Do something with result...
 ```
 
-Additional examples and documentation can be found under the examples directory and [on the MongoDB Documentation website](https://docs.mongodb.com/drivers/go/current/).
+Additional examples and documentation can be found under the examples directory and [on the MongoDB Documentation website](https://www.mongodb.com/docs/drivers/go/current/).
 
 -------------------------
 ## Feedback
@@ -222,7 +222,7 @@ The MongoDB Go Driver supports wire protocol compression using Snappy, zLib, or 
 MONGO_GO_DRIVER_COMPRESSOR=snappy make
 ```
 
-Ensure the [`--networkMessageCompressors` flag](https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors) on mongod or mongos includes `zlib` if testing zLib compression.
+Ensure the [`--networkMessageCompressors` flag](https://www.mongodb.com/docs/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors) on mongod or mongos includes `zlib` if testing zLib compression.
 
 -------------------------
 ## Contribution

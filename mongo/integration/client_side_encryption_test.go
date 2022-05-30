@@ -381,3 +381,82 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 			"expected 2 calls to BypassAutoEncryption, got %v", cc.numBypassAutoEncryptionCalls)
 	})
 }
+
+func TestFLE2CreateCollection(t *testing.T) {
+	// FLE 2 (aka Queryable Encryption) is not supported on Standalone topology.
+	mtOpts := mtest.NewOptions().
+		MinServerVersion("6.0").
+		Enterprise(true).
+		CreateClient(false).
+		Topologies(mtest.ReplicaSet,
+			mtest.Sharded,
+			mtest.LoadBalanced,
+			mtest.ShardedReplicaSet)
+	mt := mtest.New(t, mtOpts)
+	defer mt.Close()
+
+	efJSON := `
+	{
+		"escCollection": "encryptedCollection.esc",
+		"eccCollection": "encryptedCollection.ecc",
+		"ecocCollection": "encryptedCollection.ecoc",
+		"fields": [
+		  {
+			"path": "firstName",
+			"bsonType": "string",
+			"keyId": {
+			  "$binary": {
+				"subType": "04",
+				"base64": "AAAAAAAAAAAAAAAAAAAAAA=="
+			  }
+			}
+		  }
+		]
+	  }
+	`
+	var efBSON bson.Raw
+	err := bson.UnmarshalExtJSON([]byte(efJSON), true /* canonical */, &efBSON)
+	assert.Nil(mt, err, "UnmarshalExtJSON error: %v", err)
+
+	// Test the behavior in the specification test fle2-CreateCollection.json: "CreateCollection from encryptedFields.".
+	// The Go driver does not support encryptedFields as an option to Drop. See: GODRIVER-2413.
+	mt.Run("CreateCollection from encryptedFields", func(mt *mtest.T) {
+		// Drop data and state collections to clean up from a prior test run.
+		{
+			err = mt.DB.Collection("encryptedCollection.esc").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+			err = mt.DB.Collection("encryptedCollection.ecc").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+			err = mt.DB.Collection("encryptedCollection.ecoc").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+			err := mt.DB.Collection("coll").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+		}
+
+		mt.DB.CreateCollection(context.Background(), "coll", options.CreateCollection().SetEncryptedFields(efBSON))
+
+		// Check expected collections and index exist.
+		{
+			got, err := mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "coll"}})
+			assert.Nil(mt, err, "error in ListCollectionNames")
+			assert.Equal(mt, got, []string{"coll"}, "expected ['coll'], got: %v", got)
+
+			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "encryptedCollection.esc"}})
+			assert.Nil(mt, err, "error in ListCollectionNames")
+			assert.Equal(mt, got, []string{"encryptedCollection.esc"}, "expected ['encryptedCollection.esc'], got: %v", got)
+
+			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "encryptedCollection.ecc"}})
+			assert.Nil(mt, err, "error in ListCollectionNames")
+			assert.Equal(mt, got, []string{"encryptedCollection.ecc"}, "expected ['encryptedCollection.ecc'], got: %v", got)
+
+			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "encryptedCollection.ecoc"}})
+			assert.Nil(mt, err, "error in ListCollectionNames")
+			assert.Equal(mt, got, []string{"encryptedCollection.ecoc"}, "expected ['encryptedCollection.ecoc'], got: %v", got)
+
+			indexSpecs, err := mt.DB.Collection("coll").Indexes().ListSpecifications(context.Background())
+			assert.Nil(mt, err, "error in Indexes().ListSpecifications: %v", err)
+			assert.Equal(mt, len(indexSpecs), 2, "expected two indexes on 'coll', got: %v", indexSpecs)
+			assert.Equal(mt, indexSpecs[1].Name, "__safeContent___1", "expected second index to be '__safeContent___1', got %v", indexSpecs[1].Name)
+		}
+	})
+}

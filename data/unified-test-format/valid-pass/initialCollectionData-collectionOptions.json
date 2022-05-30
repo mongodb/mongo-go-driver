@@ -1,0 +1,69 @@
+{
+  "description": "initialCollectionData-collectionOptions",
+  "schemaVersion": "1.5",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0"
+      }
+    },
+    {
+      "database": {
+        "id": "database0",
+        "client": "client0",
+        "databaseName": "database0"
+      }
+    },
+    {
+      "collection": {
+        "id": "collection0",
+        "database": "database0",
+        "collectionName": "coll0"
+      }
+    }
+  ],
+  "initialData": [
+    {
+      "collectionName": "coll0",
+      "databaseName": "database0",
+      "collectionOptions": {
+        "capped": true,
+        "size": 512
+      },
+      "documents": [
+        {
+          "_id": 1,
+          "x": 11
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "description": "collection is created with the correct options",
+      "runOnRequirements": [
+        {
+          "minServerVersion": "3.6",
+          "serverless": "forbid"
+        }
+      ],
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "collStats",
+            "command": {
+              "collStats": "coll0",
+              "scale": 1
+            }
+          },
+          "expectResult": {
+            "capped": true,
+            "maxSize": 512
+          }
+        }
+      ]
+    }
+  ]
+}

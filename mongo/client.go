@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -29,10 +30,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
-const defaultLocalThreshold = 15 * time.Millisecond
+const (
+	defaultLocalThreshold        = 15 * time.Millisecond
+	defaultMaxPoolSize    uint64 = 100
+)
 
 var (
 	// keyVaultCollOpts specifies options used to communicate with the key vault collection
@@ -65,12 +68,13 @@ type Client struct {
 	sessionPool     *session.Pool
 
 	// client-side encryption fields
-	keyVaultClientFLE *Client
-	keyVaultCollFLE   *Collection
-	mongocryptdFLE    *mcryptClient
-	cryptFLE          driver.Crypt
-	metadataClientFLE *Client
-	internalClientFLE *Client
+	keyVaultClientFLE  *Client
+	keyVaultCollFLE    *Collection
+	mongocryptdFLE     *mcryptClient
+	cryptFLE           driver.Crypt
+	metadataClientFLE  *Client
+	internalClientFLE  *Client
+	encryptedFieldsMap map[string]interface{}
 }
 
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
@@ -348,6 +352,12 @@ func (c *Client) endSessions(ctx context.Context) {
 }
 
 func (c *Client) configure(opts *options.ClientOptions) error {
+	var defaultOptions int
+	// Set default options
+	if opts.MaxPoolSize == nil {
+		defaultOptions++
+		opts.SetMaxPoolSize(defaultMaxPoolSize)
+	}
 	if err := opts.Validate(); err != nil {
 		return err
 	}
@@ -688,8 +698,8 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	// Deployment
 	if opts.Deployment != nil {
 		// topology options: WithSeedlist, WithURI, WithSRVServiceName and WithSRVMaxHosts
-		// server options: WithClock and WithConnectionOptions
-		if len(serverOpts) > 2 || len(topologyOpts) > 4 {
+		// server options: WithClock and WithConnectionOptions + default maxPoolSize
+		if len(serverOpts) > 2+defaultOptions || len(topologyOpts) > 4 {
 			return errors.New("cannot specify topology or server options with a deployment")
 		}
 		c.deployment = opts.Deployment
@@ -699,6 +709,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 }
 
 func (c *Client) configureAutoEncryption(clientOpts *options.ClientOptions) error {
+	c.encryptedFieldsMap = clientOpts.AutoEncryptionOptions.EncryptedFieldsMap
 	if err := c.configureKeyVaultClientFLE(clientOpts); err != nil {
 		return err
 	}
@@ -779,6 +790,17 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 		}
 		cryptSchemaMap[k] = schema
 	}
+
+	// convert schemas in EncryptedFieldsMap to bsoncore documents
+	cryptEncryptedFieldsMap := make(map[string]bsoncore.Document)
+	for k, v := range opts.EncryptedFieldsMap {
+		encryptedFields, err := transformBsoncoreDocument(c.registry, v, true, "encryptedFieldsMap")
+		if err != nil {
+			return err
+		}
+		cryptEncryptedFieldsMap[k] = encryptedFields
+	}
+
 	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders, true, "kmsProviders")
 	if err != nil {
 		return fmt.Errorf("error creating KMS providers document: %v", err)
@@ -806,6 +828,8 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 		TLSConfig:            opts.TLSConfig,
 		BypassAutoEncryption: bypass,
 		SchemaMap:            cryptSchemaMap,
+		BypassQueryAnalysis:  opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis,
+		EncryptedFieldsMap:   cryptEncryptedFieldsMap,
 	}
 
 	c.cryptFLE, err = driver.NewCrypt(cryptOpts)
@@ -814,7 +838,7 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 
 // validSession returns an error if the session doesn't belong to the client
 func (c *Client) validSession(sess *session.Client) error {
-	if sess != nil && !uuid.Equal(sess.ClientID, c.id) {
+	if sess != nil && sess.ClientID != c.id {
 		return ErrWrongClient
 	}
 	return nil
@@ -845,7 +869,7 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 //
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
-// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -918,7 +942,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions
 // documentation.)
 //
-// For more information about the command, see https://docs.mongodb.com/manual/reference/command/listDatabases/.
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
 func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
@@ -970,13 +994,13 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 }
 
 // Watch returns a change stream for all changes on the deployment. See
-// https://docs.mongodb.com/manual/changeStreams/ for more information about change streams.
+// https://www.mongodb.com/docs/manual/changeStreams/ for more information about change streams.
 //
 // The client must be configured with read concern majority or no read concern for a change stream to be created
 // successfully.
 //
 // The pipeline parameter must be an array of documents, each representing a pipeline stage. The pipeline cannot be
-// nil or empty. The stage documents must all be non-nil. See https://docs.mongodb.com/manual/changeStreams/ for a list
+// nil or empty. The stage documents must all be non-nil. See https://www.mongodb.com/docs/manual/changeStreams/ for a list
 // of pipeline stages that can be used with change streams. For a pipeline of bson.D documents, the mongo.Pipeline{}
 // type can be used.
 //

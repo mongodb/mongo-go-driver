@@ -26,6 +26,7 @@ type FindAndModify struct {
 	arrayFilters             bsoncore.Document
 	bypassDocumentValidation *bool
 	collation                bsoncore.Document
+	comment                  bsoncore.Value
 	fields                   bsoncore.Document
 	maxTimeMS                *int64
 	newDocument              *bool
@@ -162,6 +163,9 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", fam.collation)
 	}
+	if fam.comment.Type != bsontype.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "comment", fam.comment)
+	}
 	if fam.fields != nil {
 
 		dst = bsoncore.AppendDocumentElement(dst, "fields", fam.fields)
@@ -237,6 +241,16 @@ func (fam *FindAndModify) Collation(collation bsoncore.Document) *FindAndModify 
 	}
 
 	fam.collation = collation
+	return fam
+}
+
+// Comment sets a value to help trace an operation.
+func (fam *FindAndModify) Comment(comment bsoncore.Value) *FindAndModify {
+	if fam == nil {
+		fam = new(FindAndModify)
+	}
+
+	fam.comment = comment
 	return fam
 }
 

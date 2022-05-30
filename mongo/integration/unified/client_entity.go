@@ -142,11 +142,11 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 }
 
 func getURIForClient(opts *entityOptions) string {
-	if mtest.ClusterTopologyKind() != mtest.LoadBalanced {
+	if mtest.Serverless() || mtest.ClusterTopologyKind() != mtest.LoadBalanced {
 		return mtest.ClusterURI()
 	}
 
-	// For load-balanced deployments, UseMultipleMongoses is used to determine the load balancer URI. If set to false,
+	// For non-serverless load-balanced deployments, UseMultipleMongoses is used to determine the load balancer URI. If set to false,
 	// the LB fronts a single server. If unset or explicitly true, the LB fronts multiple mongos servers.
 	switch {
 	case opts.UseMultipleMongoses != nil && !*opts.UseMultipleMongoses:

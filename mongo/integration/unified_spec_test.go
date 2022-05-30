@@ -41,6 +41,7 @@ const (
 	gridFSChunks           = "fs.chunks"
 	spec1403SkipReason     = "servers less than 4.2 do not have mongocryptd; see SPEC-1403"
 	godriver2123SkipReason = "failpoints and timeouts together cause failures; see GODRIVER-2123"
+	godriver2413SkipReason = "encryptedFields argument is not supported on Collection.Drop; see GODRIVER-2413"
 )
 
 var (
@@ -55,18 +56,22 @@ var (
 		// i/o timeout.
 		"Ignore network timeout error on find":             godriver2123SkipReason,
 		"Network error on minPoolSize background creation": godriver2123SkipReason,
+		"CreateCollection from encryptedFields.":           godriver2413SkipReason,
+		"DropCollection from encryptedFields":              godriver2413SkipReason,
+		"DropCollection from remote encryptedFields":       godriver2413SkipReason,
 	}
 )
 
 type testFile struct {
-	RunOn          []mtest.RunOnBlock `bson:"runOn"`
-	DatabaseName   string             `bson:"database_name"`
-	CollectionName string             `bson:"collection_name"`
-	BucketName     string             `bson:"bucket_name"`
-	Data           testData           `bson:"data"`
-	JSONSchema     bson.Raw           `bson:"json_schema"`
-	KeyVaultData   []bson.Raw         `bson:"key_vault_data"`
-	Tests          []*testCase        `bson:"tests"`
+	RunOn           []mtest.RunOnBlock `bson:"runOn"`
+	DatabaseName    string             `bson:"database_name"`
+	CollectionName  string             `bson:"collection_name"`
+	BucketName      string             `bson:"bucket_name"`
+	Data            testData           `bson:"data"`
+	JSONSchema      bson.Raw           `bson:"json_schema"`
+	KeyVaultData    []bson.Raw         `bson:"key_vault_data"`
+	Tests           []*testCase        `bson:"tests"`
+	EncryptedFields bson.Raw           `bson:"encrypted_fields"`
 }
 
 type testData struct {
@@ -138,16 +143,19 @@ type operation struct {
 
 type expectation struct {
 	CommandStartedEvent *struct {
-		CommandName  string   `bson:"command_name"`
-		DatabaseName string   `bson:"database_name"`
-		Command      bson.Raw `bson:"command"`
+		CommandName  string                 `bson:"command_name"`
+		DatabaseName string                 `bson:"database_name"`
+		Command      bson.Raw               `bson:"command"`
+		Extra        map[string]interface{} `bson:",inline"`
 	} `bson:"command_started_event"`
 	CommandSucceededEvent *struct {
-		CommandName string   `bson:"command_name"`
-		Reply       bson.Raw `bson:"reply"`
+		CommandName string                 `bson:"command_name"`
+		Reply       bson.Raw               `bson:"reply"`
+		Extra       map[string]interface{} `bson:",inline"`
 	} `bson:"command_succeeded_event"`
 	CommandFailedEvent *struct {
-		CommandName string `bson:"command_name"`
+		CommandName string                 `bson:"command_name"`
+		Extra       map[string]interface{} `bson:",inline"`
 	} `bson:"command_failed_event"`
 }
 
@@ -228,14 +236,20 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// pin to a single mongos
 		opts = opts.ClientType(mtest.Pinned)
 	}
+
+	cco := options.CreateCollection()
 	if len(testFile.JSONSchema) > 0 {
 		validator := bson.D{
 			{"$jsonSchema", testFile.JSONSchema},
 		}
-		opts.CollectionCreateOptions(bson.D{
-			{"validator", validator},
-		})
+		cco.SetValidator(validator)
 	}
+
+	if len(testFile.EncryptedFields) > 0 {
+		cco.SetEncryptedFields(testFile.EncryptedFields)
+	}
+
+	opts.CollectionCreateOptions(cco)
 
 	// Start the test without setting client options so the setup will be done with a default client.
 	mt.RunOpts(test.Description, opts, func(mt *mtest.T) {

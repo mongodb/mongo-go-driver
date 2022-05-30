@@ -10,7 +10,7 @@ package options
 type ReplaceOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
 	// validation.
 	BypassDocumentValidation *bool
 
@@ -18,6 +18,10 @@ type ReplaceOptions struct {
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
+
+	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+	// the operation.  The default value is nil, which means that no comment will be included in the logs.
+	Comment interface{}
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification
 	// as a document. This option is only valid for MongoDB versions >= 4.2. Server versions >= 3.4 will return an error
@@ -55,6 +59,12 @@ func (ro *ReplaceOptions) SetCollation(c *Collation) *ReplaceOptions {
 	return ro
 }
 
+// SetComment sets the value for the Comment field.
+func (ro *ReplaceOptions) SetComment(comment interface{}) *ReplaceOptions {
+	ro.Comment = comment
+	return ro
+}
+
 // SetHint sets the value for the Hint field.
 func (ro *ReplaceOptions) SetHint(h interface{}) *ReplaceOptions {
 	ro.Hint = h
@@ -86,6 +96,9 @@ func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
 		}
 		if ro.Collation != nil {
 			rOpts.Collation = ro.Collation
+		}
+		if ro.Comment != nil {
+			rOpts.Comment = ro.Comment
 		}
 		if ro.Hint != nil {
 			rOpts.Hint = ro.Hint

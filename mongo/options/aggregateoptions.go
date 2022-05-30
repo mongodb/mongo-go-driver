@@ -23,7 +23,7 @@ type AggregateOptions struct {
 
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
 	// validation.
 	BypassDocumentValidation *bool
 
@@ -41,7 +41,7 @@ type AggregateOptions struct {
 	MaxAwaitTime *time.Duration
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is the empty string, which means that no comment will be included in the logs.
+	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
@@ -58,7 +58,7 @@ type AggregateOptions struct {
 	// Custom options to be added to aggregate expression. Key-value pairs of the BSON map should correlate with desired
 	// option names and values. Values must be Marshalable. Custom options may conflict with non-custom options, and custom
 	// options bypass client-side validation. Prefer using non-custom options where possible.
-	CustomOptions bson.M
+	Custom bson.M
 }
 
 // Aggregate creates a new AggregateOptions instance.
@@ -120,12 +120,12 @@ func (ao *AggregateOptions) SetLet(let interface{}) *AggregateOptions {
 	return ao
 }
 
-// SetCustomOptions sets the value for the CustomOptions field. Key-value pairs of the BSON map
-// should correlate with desired option names and values. Values must be Marshalable. Custom options
-// may conflict with non-custom options, and custom options bypass client-side validation. Prefer
-// using non-custom options where possible.
-func (ao *AggregateOptions) SetCustomOptions(co bson.M) *AggregateOptions {
-	ao.CustomOptions = co
+// SetCustom sets the value for the Custom field. Key-value pairs of the BSON map should correlate
+// with desired option names and values. Values must be Marshalable. Custom options may conflict
+// with non-custom options, and custom options bypass client-side validation. Prefer using non-custom
+// options where possible.
+func (ao *AggregateOptions) SetCustom(c bson.M) *AggregateOptions {
+	ao.Custom = c
 	return ao
 }
 
@@ -164,8 +164,8 @@ func MergeAggregateOptions(opts ...*AggregateOptions) *AggregateOptions {
 		if ao.Let != nil {
 			aggOpts.Let = ao.Let
 		}
-		if ao.CustomOptions != nil {
-			aggOpts.CustomOptions = ao.CustomOptions
+		if ao.Custom != nil {
+			aggOpts.Custom = ao.Custom
 		}
 	}
 

@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build cse
 // +build cse
 
 package mongocrypt
@@ -16,8 +17,10 @@ package mongocrypt
 import "C"
 import (
 	"errors"
+	"fmt"
 	"unsafe"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
@@ -43,6 +46,13 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	}
 	if err := crypt.setLocalSchemaMap(opts.LocalSchemaMap); err != nil {
 		return nil, err
+	}
+	if err := crypt.setEncryptedFieldsMap(opts.EncryptedFieldsMap); err != nil {
+		return nil, err
+	}
+
+	if opts.BypassQueryAnalysis {
+		C.mongocrypt_setopt_bypass_query_analysis(wrapped)
 	}
 
 	// initialize handle
@@ -147,6 +157,11 @@ func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.Data
 	return ctx, nil
 }
 
+const (
+	IndexTypeUnindexed = 1
+	IndexTypeIndexed   = 2
+)
+
 // CreateExplicitEncryptionContext creates a Context to use for explicit encryption.
 func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts *options.ExplicitEncryptionOptions) (*Context, error) {
 
@@ -171,8 +186,37 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 
 	algoStr := C.CString(opts.Algorithm)
 	defer C.free(unsafe.Pointer(algoStr))
-	if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
-		return nil, ctx.createErrorFromStatus()
+
+	switch opts.Algorithm {
+	case "Indexed":
+		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeIndexed); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
+	case "Unindexed":
+		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeUnindexed); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
+	default:
+		if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
+	}
+
+	if opts.QueryType != nil {
+		switch *opts.QueryType {
+		case options.QueryTypeEquality:
+			if ok := C.mongocrypt_ctx_setopt_query_type(ctx.wrapped, 1); !ok {
+				return nil, ctx.createErrorFromStatus()
+			}
+		default:
+			return nil, fmt.Errorf("unsupported value for QueryType: %v", opts.QueryType)
+		}
+	}
+
+	if opts.ContentionFactor != nil {
+		if ok := C.mongocrypt_ctx_setopt_contention_factor(ctx.wrapped, C.int64_t(*opts.ContentionFactor)); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
 	}
 
 	docBinary := newBinaryFromBytes(doc)
@@ -222,16 +266,36 @@ func (m *MongoCrypt) setLocalSchemaMap(schemaMap map[string]bsoncore.Document) e
 	}
 
 	// convert schema map to BSON document
-	midx, mdoc := bsoncore.AppendDocumentStart(nil)
-	for key, doc := range schemaMap {
-		mdoc = bsoncore.AppendDocumentElement(mdoc, key, doc)
+	schemaMapBSON, err := bson.Marshal(schemaMap)
+	if err != nil {
+		return fmt.Errorf("error marshalling SchemaMap: %v", err)
 	}
-	mdoc, _ = bsoncore.AppendDocumentEnd(mdoc, midx)
 
-	schemaMapBinary := newBinaryFromBytes(mdoc)
+	schemaMapBinary := newBinaryFromBytes(schemaMapBSON)
 	defer schemaMapBinary.close()
 
 	if ok := C.mongocrypt_setopt_schema_map(m.wrapped, schemaMapBinary.wrapped); !ok {
+		return m.createErrorFromStatus()
+	}
+	return nil
+}
+
+// setEncryptedFieldsMap sets the encryptedfields map in mongocrypt.
+func (m *MongoCrypt) setEncryptedFieldsMap(encryptedfieldsMap map[string]bsoncore.Document) error {
+	if len(encryptedfieldsMap) == 0 {
+		return nil
+	}
+
+	// convert encryptedfields map to BSON document
+	encryptedfieldsMapBSON, err := bson.Marshal(encryptedfieldsMap)
+	if err != nil {
+		return fmt.Errorf("error marshalling EncryptedFieldsMap: %v", err)
+	}
+
+	encryptedfieldsMapBinary := newBinaryFromBytes(encryptedfieldsMapBSON)
+	defer encryptedfieldsMapBinary.close()
+
+	if ok := C.mongocrypt_setopt_encrypted_field_config_map(m.wrapped, encryptedfieldsMapBinary.wrapped); !ok {
 		return m.createErrorFromStatus()
 	}
 	return nil

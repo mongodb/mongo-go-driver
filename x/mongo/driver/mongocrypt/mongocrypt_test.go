@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build cse
 // +build cse
 
 package mongocrypt
@@ -126,8 +127,8 @@ func testKmsCtx(t *testing.T, ctx *Context, keyAltName bool) {
 	hostname, err := kmsCtx.HostName()
 	noerr(t, err)
 
-	// TODO GODRIVER-2217: Simply check if hostname != expectedHost once all OSes build the latest
-	// libmongocrypt versions.
+	// TODO GODRIVER-2217: Simply check if hostname != expectedHost once all OSes build the latest libmongocrypt
+	// TODO versions.
 	//
 	// Only check for the hostname. libmongocrypt versions that do not include MONGOCRYPT-352 will not
 	// include the default port "443".

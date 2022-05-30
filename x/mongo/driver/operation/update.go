@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -23,6 +24,7 @@ import (
 // Update performs an update operation.
 type Update struct {
 	bypassDocumentValidation *bool
+	comment                  bsoncore.Value
 	ordered                  *bool
 	updates                  []bsoncore.Document
 	session                  *session.Client
@@ -51,9 +53,9 @@ type Upsert struct {
 // UpdateResult contains information for the result of an Update operation.
 type UpdateResult struct {
 	// Number of documents matched.
-	N int32
+	N int64
 	// Number of documents modified.
-	NModified int32
+	NModified int64
 	// Information about upserted documents.
 	Upserted []Upsert
 }
@@ -68,15 +70,15 @@ func buildUpdateResult(response bsoncore.Document) (UpdateResult, error) {
 		switch element.Key() {
 		case "nModified":
 			var ok bool
-			ur.NModified, ok = element.Value().Int32OK()
+			ur.NModified, ok = element.Value().AsInt64OK()
 			if !ok {
-				return ur, fmt.Errorf("response field 'nModified' is type int32, but received BSON type %s", element.Value().Type)
+				return ur, fmt.Errorf("response field 'nModified' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		case "n":
 			var ok bool
-			ur.N, ok = element.Value().Int32OK()
+			ur.N, ok = element.Value().AsInt64OK()
 			if !ok {
-				return ur, fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
+				return ur, fmt.Errorf("response field 'n' is type int32 or int64, but received BSON type %s", element.Value().Type)
 			}
 		case "upserted":
 			arr, ok := element.Value().ArrayOK()
@@ -167,6 +169,9 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		(desc.WireVersion != nil && desc.WireVersion.Includes(4)) {
 
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *u.bypassDocumentValidation)
+	}
+	if u.comment.Type != bsontype.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "comment", u.comment)
 	}
 	if u.ordered != nil {
 
@@ -287,6 +292,16 @@ func (u *Update) CommandMonitor(monitor *event.CommandMonitor) *Update {
 	}
 
 	u.monitor = monitor
+	return u
+}
+
+// Comment sets a value to help trace an operation.
+func (u *Update) Comment(comment bsoncore.Value) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.comment = comment
 	return u
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -142,21 +143,12 @@ func TestServerConnectionTimeout(t *testing.T) {
 				_ = l.Close()
 			}()
 
-			// Create a pool events channel with space for up to 100 events and configure a pool
-			// event monitor to send events to the channel.
-			eventsCh := make(chan *event.PoolEvent, 100)
-
-			server, err := NewServer(
+			tpm := monitor.NewTestPoolMonitor()
+			server := NewServer(
 				address.Address(l.Addr().String()),
 				primitive.NewObjectID(),
-				// Create a connection pool event monitor that sends all events to an events channel
-				// so we can assert on the connection pool events later.
-				WithConnectionPoolMonitor(func(_ *event.PoolMonitor) *event.PoolMonitor {
-					return &event.PoolMonitor{
-						Event: func(event *event.PoolEvent) {
-							eventsCh <- event
-						},
-					}
+				WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor {
+					return tpm.PoolMonitor
 				}),
 				// Replace the default dialer and handshaker with the test dialer and handshaker, if
 				// present.
@@ -176,7 +168,6 @@ func TestServerConnectionTimeout(t *testing.T) {
 				// heartbeats from unexpectedly clearing the connection pool.
 				withMonitoringDisabled(func(bool) bool { return true }),
 			)
-			require.NoError(t, err)
 			require.NoError(t, server.Connect(nil))
 
 			// Create a context with the operation timeout if one is specified in the test case.
@@ -197,14 +188,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			// "ConnectionPoolCleared" event or until we hit a 10s time limit.
 			if tc.expectPoolCleared {
 				assert.Eventually(t,
-					func() bool {
-						for evt := range eventsCh {
-							if evt.Type == event.PoolCleared {
-								return true
-							}
-						}
-						return false
-					},
+					tpm.IsPoolCleared,
 					10*time.Second,
 					100*time.Millisecond,
 					"expected pool to be cleared within 10s but was not cleared")
@@ -213,16 +197,11 @@ func TestServerConnectionTimeout(t *testing.T) {
 			// Disconnect the server then close the events channel and expect that no more events
 			// are sent on the channel.
 			_ = server.Disconnect(context.Background())
-			close(eventsCh)
 
 			// If we don't expect the pool to be cleared, check all events after the server is
 			// disconnected and make sure none were "ConnectionPoolCleared".
 			if !tc.expectPoolCleared {
-				for evt := range eventsCh {
-					if evt.Type == event.PoolCleared {
-						t.Error("expected pool to not be cleared but was cleared")
-					}
-				}
+				assert.False(t, tpm.IsPoolCleared(), "expected pool to not be cleared but was cleared")
 			}
 		})
 	}
@@ -246,7 +225,7 @@ func TestServer(t *testing.T) {
 	for _, tt := range serverTestTable {
 		t.Run(tt.name, func(t *testing.T) {
 			var returnConnectionError bool
-			s, err := NewServer(
+			s := NewServer(
 				address.Address("localhost"),
 				primitive.NewObjectID(),
 				WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
@@ -274,7 +253,6 @@ func TestServer(t *testing.T) {
 					)
 				}),
 			)
-			require.NoError(t, err)
 
 			var desc *description.Server
 			descript := s.Description()
@@ -282,11 +260,11 @@ func TestServer(t *testing.T) {
 				desc = &descript
 				require.Nil(t, desc.LastError)
 			}
-			err = s.pool.ready()
+			err := s.pool.ready()
 			require.NoError(t, err, "pool.ready() error")
 			defer s.pool.close(context.Background())
 
-			s.connectionstate = connected
+			s.state = serverConnected
 
 			// The internal connection pool resets the generation number once the number of connections in a generation
 			// reaches zero, which will cause some of these tests to fail because they assert that the generation
@@ -463,7 +441,7 @@ func TestServer(t *testing.T) {
 			_ = nc.Close()
 		})
 		d := newdialer(&net.Dialer{})
-		s, err := NewServer(address.Address(addr.String()),
+		s := NewServer(address.Address(addr.String()),
 			primitive.NewObjectID(),
 			WithConnectionOptions(func(option ...ConnectionOption) []ConnectionOption {
 				return []ConnectionOption{WithDialer(func(_ Dialer) Dialer { return d })}
@@ -471,9 +449,8 @@ func TestServer(t *testing.T) {
 			WithMaxConnections(func(u uint64) uint64 {
 				return 1
 			}))
-		noerr(t, err)
-		s.connectionstate = connected
-		err = s.pool.ready()
+		s.state = serverConnected
+		err := s.pool.ready()
 		noerr(t, err)
 		defer s.pool.close(context.Background())
 
@@ -603,11 +580,9 @@ func TestServer(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				server, err := NewServer(address.Address("localhost"), primitive.NewObjectID())
-				assert.Nil(t, err, "NewServer error: %v", err)
-
-				server.connectionstate = connected
-				err = server.pool.ready()
+				server := NewServer(address.Address("localhost"), primitive.NewObjectID())
+				server.state = serverConnected
+				err := server.pool.ready()
 				assert.Nil(t, err, "pool.ready() error: %v", err)
 
 				originalDesc := description.Server{
@@ -678,13 +653,10 @@ func TestServer(t *testing.T) {
 			return append(connOpts, dialerOpt)
 		})
 
-		s, err := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpt)
-		if err != nil {
-			t.Fatalf("error from NewServer: %v", err)
-		}
+		s := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpt)
 
 		// do a heartbeat with a nil connection so a new one will be dialed
-		_, err = s.check()
+		_, err := s.check()
 		assert.Nil(t, err, "check error: %v", err)
 		assert.NotNil(t, s.conn, "no connection dialed in check")
 
@@ -745,13 +717,10 @@ func TestServer(t *testing.T) {
 			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }),
 		}
 
-		s, err := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpts...)
-		if err != nil {
-			t.Fatalf("error from NewServer: %v", err)
-		}
+		s := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpts...)
 
 		// set up heartbeat connection, which doesn't send events
-		_, err = s.check()
+		_, err := s.check()
 		assert.Nil(t, err, "check error: %v", err)
 
 		channelConn := s.conn.nc.(*drivertest.ChannelNetConn)
@@ -806,16 +775,15 @@ func TestServer(t *testing.T) {
 	t.Run("WithServerAppName", func(t *testing.T) {
 		name := "test"
 
-		s, err := NewServer(address.Address("localhost"),
+		s := NewServer(address.Address("localhost"),
 			primitive.NewObjectID(),
 			WithServerAppName(func(string) string { return name }))
-		require.Nil(t, err, "error from NewServer: %v", err)
 		require.Equal(t, name, s.cfg.appname, "expected appname to be: %v, got: %v", name, s.cfg.appname)
 	})
 	t.Run("createConnection overwrites WithSocketTimeout", func(t *testing.T) {
 		socketTimeout := 40 * time.Second
 
-		s, err := NewServer(
+		s := NewServer(
 			address.Address("localhost"),
 			primitive.NewObjectID(),
 			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
@@ -826,7 +794,6 @@ func TestServer(t *testing.T) {
 				)
 			}),
 		)
-		assert.Nil(t, err, "NewServer error: %v", err)
 
 		conn := s.createConnection()
 		assert.Equal(t, s.cfg.heartbeatTimeout, 10*time.Second, "expected heartbeatTimeout to be: %v, got: %v", 10*time.Second, s.cfg.heartbeatTimeout)
