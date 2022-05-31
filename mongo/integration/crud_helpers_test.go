@@ -1363,6 +1363,8 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 			cco.SetEncryptedFields(val.Document())
 		case "collection":
 			collName = val.StringValue()
+		case "validator":
+			cco.SetValidator(val.Document())
 		case "session":
 		default:
 			mt.Fatalf("unrecognized createCollection option %v", key)
