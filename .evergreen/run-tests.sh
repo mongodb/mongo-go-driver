@@ -92,6 +92,13 @@ export CSFLE_PATH="$(find $(pwd) -maxdepth 1 -type f \
   -name 'mongo_csfle_v1.dylib')"
 echo "CSFLE_PATH=$CSFLE_PATH"
 
+# If the task doesn't have the SKIP_CSFLE_DOWNLOAD variable set, expect that we always find a csfle
+# library file and set the CSFLE_PATH environment variable.
+if [ "${SKIP_CSFLE_DOWNLOAD}" != "true" ] && [ -z "${CSFLE_PATH}" ]; then
+  echo 'SKIP_CSFLE_DOWNLOAD is not "true", but CSFLE_PATH is empty. Exiting.'
+  exit 1
+fi
+
 AUTH=${AUTH} \
 SSL=${SSL} \
 MONGO_GO_DRIVER_CA_FILE=${MONGO_GO_DRIVER_CA_FILE} \
