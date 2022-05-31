@@ -1043,12 +1043,3 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 		ServerAPI:      c.serverAPI,
 	}
 }
-
-// SetZeroTimeout sets the Timeout to 0 for an existing client.
-//
-// Deprecated: This setter is only used for internal testing of the Timeout feature. Modifying the Timeout of an existing
-// client can result in undefined behavior.
-func (c *Client) SetZeroTimeout() {
-	zeroTimeout := time.Duration(0)
-	c.timeout = &zeroTimeout
-}

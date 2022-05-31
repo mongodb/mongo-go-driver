@@ -123,10 +123,6 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("collection")
 	}
 
-	// If TimeoutOnCaller is true, set a Timeout of 0 on the Database.
-	if operation.TimeoutOnCaller {
-		db.SetZeroTimeout()
-	}
 	err = db.CreateCollection(ctx, collName, &cco)
 	return newErrorResult(err), nil
 }
@@ -154,10 +150,6 @@ func executeDropCollection(ctx context.Context, operation *operation) (*operatio
 		return nil, newMissingArgumentError("collection")
 	}
 
-	// If TimeoutOnCaller is true, set a Timeout of 0 on the Database.
-	if operation.TimeoutOnCaller {
-		db.SetZeroTimeout()
-	}
 	err = db.Collection(collName).Drop(ctx)
 	return newErrorResult(err), nil
 }
@@ -173,10 +165,6 @@ func executeListCollections(ctx context.Context, operation *operation) (*operati
 		return nil, err
 	}
 
-	// If TimeoutOnCaller is true, set a Timeout of 0 on the Database.
-	if operation.TimeoutOnCaller {
-		db.SetZeroTimeout()
-	}
 	cursor, err := db.ListCollections(ctx, listCollArgs.filter, listCollArgs.opts)
 	if err != nil {
 		return newErrorResult(err), nil
@@ -201,10 +189,6 @@ func executeListCollectionNames(ctx context.Context, operation *operation) (*ope
 		return nil, err
 	}
 
-	// If TimeoutOnCaller is true, set a Timeout of 0 on the Database.
-	if operation.TimeoutOnCaller {
-		db.SetZeroTimeout()
-	}
 	names, err := db.ListCollectionNames(ctx, listCollArgs.filter, listCollArgs.opts)
 	if err != nil {
 		return newErrorResult(err), nil
@@ -261,10 +245,6 @@ func executeRunCommand(ctx context.Context, operation *operation) (*operationRes
 		return nil, newMissingArgumentError("command")
 	}
 
-	// If TimeoutOnCaller is true, set a Timeout of 0 on the Database.
-	if operation.TimeoutOnCaller {
-		db.SetZeroTimeout()
-	}
 	res, err := db.RunCommand(ctx, command, opts).DecodeBytes()
 	return newDocumentResult(res, err), nil
 }

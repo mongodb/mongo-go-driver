@@ -23,7 +23,6 @@ import (
 func executeCreateChangeStream(ctx context.Context, operation *operation) (*operationResult, error) {
 	var watcher interface {
 		Watch(context.Context, interface{}, ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error)
-		SetZeroTimeout()
 	}
 	var err error
 
@@ -36,11 +35,6 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 	}
 	if err != nil {
 		return nil, fmt.Errorf("no client, database, or collection entity found with ID %q", operation.Object)
-	}
-
-	// If TimeoutOnCaller is true, set a Timeout of 0 on the watcher.
-	if operation.TimeoutOnCaller {
-		watcher.SetZeroTimeout()
 	}
 
 	var pipeline []interface{}
@@ -150,10 +144,6 @@ func executeListDatabases(ctx context.Context, operation *operation, nameOnly bo
 		}
 	}
 
-	// If TimeoutOnCaller is true, set a Timeout of 0 on the Client.
-	if operation.TimeoutOnCaller {
-		client.SetZeroTimeout()
-	}
 	res, err := client.ListDatabases(ctx, filter, opts)
 	if err != nil {
 		return newErrorResult(err), nil

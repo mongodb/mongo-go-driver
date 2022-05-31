@@ -812,12 +812,3 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 
 	return replaceErrors(op.Execute(ctx))
 }
-
-// SetZeroTimeout sets the Timeout to 0 for an existing database.
-//
-// Deprecated: This setter is only used for internal testing of the Timeout feature. Modifying the Timeout of an existing
-// database can result in undefined behavior.
-func (db *Database) SetZeroTimeout() {
-	zeroTimeout := time.Duration(0)
-	db.timeout = &zeroTimeout
-}
