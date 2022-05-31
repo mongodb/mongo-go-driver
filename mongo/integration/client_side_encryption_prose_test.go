@@ -1813,14 +1813,15 @@ func (d *deadlockTest) disconnect(mt *mtest.T) {
 	assert.Nil(mt, err, "clientTest Disconnect error: %v", err)
 }
 
-// getCSFLEExtraOptions returns an AutoEncryption extra options map with csfle required set and a
-// csfle library override path set if available.
+// getCSFLEExtraOptions returns an AutoEncryption extra options map with csfle library path
+// information if the CSFLE_PATH environment variable is set.
 func getCSFLEExtraOptions() map[string]interface{} {
-	if mtest.GetCSFLEPath() == "" {
-		return map[string]interface{}{}
+	path := mtest.GetCSFLEPath()
+	if path == "" {
+		return nil
 	}
 	return map[string]interface{}{
 		"csfleRequired": true,
-		"csflePath":     mtest.GetCSFLEPath(),
+		"csflePath":     path,
 	}
 }
