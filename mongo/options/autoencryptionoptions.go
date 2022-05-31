@@ -103,6 +103,12 @@ func (a *AutoEncryptionOptions) SetBypassAutoEncryption(bypass bool) *AutoEncryp
 // "mongocryptdBypassSpawn" - If set to true, the Client will not attempt to spawn a mongocryptd
 // process. Must be a bool.
 //
+// "mongocryptdSpawnPath" - The path used when spawning mongocryptd.
+// Defaults to empty string and spawns mongocryptd from system path. Must be a string.
+//
+// "mongocryptdSpawnArgs" - Command line arguments passed when spawning mongocryptd.
+// Defaults to ["--idleShutdownTimeoutSecs=60"]. Must be an array of strings.
+//
 // "csfleRequired" - If set to true, Client creation will return an error if the csfle library is
 // not loaded. If unset or set to false, Client creation will not return an error if the csfle
 // library is not loaded. The default is unset. Must be a bool.

@@ -1816,6 +1816,9 @@ func (d *deadlockTest) disconnect(mt *mtest.T) {
 // getCSFLEExtraOptions returns an AutoEncryption extra options map with csfle required set and a
 // csfle library override path set if available.
 func getCSFLEExtraOptions() map[string]interface{} {
+	if mtest.GetCSFLEPath() == "" {
+		return map[string]interface{}{}
+	}
 	return map[string]interface{}{
 		"csfleRequired": true,
 		"csflePath":     mtest.GetCSFLEPath(),

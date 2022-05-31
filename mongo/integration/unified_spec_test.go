@@ -296,7 +296,9 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 				if testClientOpts.AutoEncryptionOptions.ExtraOptions == nil {
 					testClientOpts.AutoEncryptionOptions.ExtraOptions = make(map[string]interface{})
 				}
-				testClientOpts.AutoEncryptionOptions.ExtraOptions["csfleRequired"] = true
+				if mtest.GetCSFLEPath() != "" { 
+				    testClientOpts.AutoEncryptionOptions.ExtraOptions["csfleRequired"] = true
+				}
 				testClientOpts.AutoEncryptionOptions.ExtraOptions["csflePath"] = mtest.GetCSFLEPath()
 			}
 		}
