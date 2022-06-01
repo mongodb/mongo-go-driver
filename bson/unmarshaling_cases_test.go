@@ -154,6 +154,9 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 				Foo: []byte{0, 1, 2, 3, 4, 5},
 			}),
 		},
+		// GODRIVER-2427
+		// Test that a struct of non-pointer types with UnmarshalBSON functions defined for the pointer of the field
+		// will marshal and unmarshal to the same Go values when the non-pointer values are teh respctive zero values.
 		{
 			name: `zero-value non-pointer fields with pointer UnmarshalBSON function should marshal and unmarshal to
 			the same values`,
@@ -161,6 +164,9 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			want:  &zeroNonPtrStruct,
 			data:  docToBytes(zeroNonPtrStruct),
 		},
+		// GODRIVER-2427
+		// Test that a struct of non-pointer types with UnmarshalBSON functions defined for the pointer of the field
+		// unmarshal to the same Go values when the non-pointer values are non-zero values.
 		{
 			name: `non-zero-value non-pointer fields with pointer UnmarshalBSON function should marshal and unmarshal
 			to the same values`,
