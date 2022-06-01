@@ -1463,7 +1463,7 @@ func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(dc DecodeContext, vr
 		if !val.CanAddr() {
 			return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 		}
-		val = val.Addr() // If they type doesn't implement the interface, a pointer to it must.
+		val = val.Addr() // If the type doesn't implement the interface, a pointer to it must.
 	}
 
 	t, src, err := bsonrw.Copier{}.CopyValueToBytes(vr)
@@ -1513,7 +1513,7 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(dc DecodeContext, vr bson
 		if !val.CanAddr() {
 			return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
 		}
-		val = val.Addr() // If they type doesn't implement the interface, a pointer to it must.
+		val = val.Addr() // If the type doesn't implement the interface, a pointer to it must.
 	}
 
 	fn := val.Convert(tUnmarshaler).MethodByName("UnmarshalBSON")

@@ -156,7 +156,7 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 		},
 		// GODRIVER-2427
 		// Test that a struct of non-pointer types with UnmarshalBSON functions defined for the pointer of the field
-		// will marshal and unmarshal to the same Go values when the non-pointer values are teh respctive zero values.
+		// will marshal and unmarshal to the same Go values when the non-pointer values are the respctive zero values.
 		{
 			name: `zero-value non-pointer fields with pointer UnmarshalBSON function should marshal and unmarshal to
 			the same values`,

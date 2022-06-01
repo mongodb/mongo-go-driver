@@ -66,7 +66,7 @@ func SetterDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val re
 		if !val.CanAddr() {
 			return bsoncodec.ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
 		}
-		val = val.Addr() // If they type doesn't implement the interface, a pointer to it must.
+		val = val.Addr() // If the type doesn't implement the interface, a pointer to it must.
 	}
 
 	t, src, err := bsonrw.Copier{}.CopyValueToBytes(vr)
