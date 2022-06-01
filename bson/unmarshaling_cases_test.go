@@ -30,6 +30,15 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 		zeroPtrStruct = unmarshalerPtrStruct{I: &i, M: &m, B: &b, S: &s}
 	}
 
+	var zeroNonPtrStruct unmarshalerNonPtrStruct
+	{
+		i := myInt64(0)
+		m := myMap{}
+		b := myBytes{}
+		s := myString("")
+		zeroNonPtrStruct = unmarshalerNonPtrStruct{I: i, M: m, B: b, S: s}
+	}
+
 	var valPtrStruct unmarshalerPtrStruct
 	{
 		i := myInt64(5)
@@ -37,6 +46,15 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 		b := myBytes{0x00, 0x01}
 		s := myString("test")
 		valPtrStruct = unmarshalerPtrStruct{I: &i, M: &m, B: &b, S: &s}
+	}
+
+	var valNonPtrStruct unmarshalerNonPtrStruct
+	{
+		i := myInt64(5)
+		m := myMap{"key": "value"}
+		b := myBytes{0x00, 0x01}
+		s := myString("test")
+		valNonPtrStruct = unmarshalerNonPtrStruct{I: i, M: m, B: b, S: s}
 	}
 
 	type fooBytes struct {
@@ -136,6 +154,26 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 				Foo: []byte{0, 1, 2, 3, 4, 5},
 			}),
 		},
+		// GODRIVER-2427
+		// Test that a struct of non-pointer types with UnmarshalBSON functions defined for the pointer of the field
+		// will marshal and unmarshal to the same Go values when the non-pointer values are the respctive zero values.
+		{
+			name: `zero-value non-pointer fields with pointer UnmarshalBSON function should marshal and unmarshal to
+			the same values`,
+			sType: reflect.TypeOf(unmarshalerNonPtrStruct{}),
+			want:  &zeroNonPtrStruct,
+			data:  docToBytes(zeroNonPtrStruct),
+		},
+		// GODRIVER-2427
+		// Test that a struct of non-pointer types with UnmarshalBSON functions defined for the pointer of the field
+		// unmarshal to the same Go values when the non-pointer values are non-zero values.
+		{
+			name: `non-zero-value non-pointer fields with pointer UnmarshalBSON function should marshal and unmarshal
+			to the same values`,
+			sType: reflect.TypeOf(unmarshalerNonPtrStruct{}),
+			want:  &valNonPtrStruct,
+			data:  docToBytes(valNonPtrStruct),
+		},
 	}
 }
 
@@ -147,6 +185,16 @@ type unmarshalerPtrStruct struct {
 	M *myMap
 	B *myBytes
 	S *myString
+}
+
+// unmarshalerNonPtrStruct contains a collection of non-pointer fields that are all to custom types that implement the
+// bson.Unmarshaler interface. It is used to test the BSON unmarshal behavior for types with custom UnmarshalBSON
+// functions.
+type unmarshalerNonPtrStruct struct {
+	I myInt64
+	M myMap
+	B myBytes
+	S myString
 }
 
 type myInt64 int64
