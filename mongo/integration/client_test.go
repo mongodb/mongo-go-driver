@@ -527,8 +527,15 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func() {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
+				// Stop loop if callback has been canceled.
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's minimum RTTs to be >250ms.
@@ -570,8 +577,15 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func() {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
+				// Stop loop if callback has been canceled.
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's minimum RTTs to be >250ms.
@@ -616,8 +630,15 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >300ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func() {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
+				// Stop loop if callback has been canceled.
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's RTT90s to be >300ms.
@@ -662,8 +683,15 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >300ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func() {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
+				// Stop loop if callback has been canceled.
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's RTT90s to be >300ms.

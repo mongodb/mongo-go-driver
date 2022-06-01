@@ -7,6 +7,7 @@
 package assert
 
 import (
+	"context"
 	"reflect"
 	"sync"
 	"testing"
@@ -81,13 +82,18 @@ func NotNil(t testing.TB, obj interface{}, msg string, args ...interface{}) {
 	}
 }
 
-// Soon runs the provided callback for a maximum of timeoutMS milliseconds.
-func Soon(t testing.TB, callback func(), timeout time.Duration) {
+// Soon runs the provided callback for a maximum of timeoutMS milliseconds. The provided callback
+// should respect the passed-in context and cease execution when it has expired.
+func Soon(t testing.TB, callback func(ctx context.Context), timeout time.Duration) {
 	t.Helper()
+
+	// Create context to manually cancel callback after Soon assertion.
+	callbackCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	done := make(chan struct{})
 	fullCallback := func() {
-		callback()
+		callback(callbackCtx)
 		done <- struct{}{}
 	}
 

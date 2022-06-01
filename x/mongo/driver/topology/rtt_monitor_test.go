@@ -200,10 +200,22 @@ func TestRTTMonitor(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			assert.Eventuallyf(
 				t,
-				func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 && rtt.getRTT90() > 0 },
+				func() bool { return rtt.getRTT() > 0 },
 				1*time.Second,
 				10*time.Millisecond,
-				"expected getRTT(), getMinRTT() and getRTT90() to return positive durations within 1 second")
+				"expected getRTT() to return a positive duration within 1 second")
+			assert.Eventuallyf(
+				t,
+				func() bool { return rtt.getMinRTT() > 0 },
+				1*time.Second,
+				10*time.Millisecond,
+				"expected getMinRTT() to return a positive duration within 1 second")
+			assert.Eventuallyf(
+				t,
+				func() bool { return rtt.getRTT90() > 0 },
+				1*time.Second,
+				10*time.Millisecond,
+				"expected getRTT90() to return a positive duration within 1 second")
 			rtt.reset()
 		}
 	})
