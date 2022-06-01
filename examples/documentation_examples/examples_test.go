@@ -8,6 +8,7 @@ package documentation_examples_test
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
 	"testing"
@@ -23,6 +24,15 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	// All tests that use mtest.Setup() are expected to be integration tests, so skip them when the
+	// -short flag is included in the "go test" command. Also, we have to parse flags here to use
+	// testing.Short() because flags aren't parsed before TestMain() is called.
+	flag.Parse()
+	if testing.Short() {
+		log.Print("skipping mtest integration test in short mode")
+		return
+	}
+
 	if err := mtest.Setup(); err != nil {
 		log.Fatal(err)
 	}

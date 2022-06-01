@@ -58,6 +58,10 @@ func skipIfBelow32(ctx context.Context, t *testing.T, topo *topology.Topology) {
 }
 
 func TestAggregate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	t.Run("TestMaxTimeMSInGetMore", func(t *testing.T) {
 		ctx := context.Background()
 		monitor, started, succeeded, failed := setUpMonitor()

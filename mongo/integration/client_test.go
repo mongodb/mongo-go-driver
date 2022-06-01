@@ -512,10 +512,6 @@ func TestClient(t *testing.T) {
 	})
 
 	mt.Run("minimum RTT is monitored", func(mt *mtest.T) {
-		if testing.Short() {
-			t.Skip("skipping integration test in short mode")
-		}
-
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
 		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
 		mt.ResetClient(options.Client().
@@ -547,10 +543,6 @@ func TestClient(t *testing.T) {
 	// Test that if the minimum RTT is greater than the remaining timeout for an operation, the
 	// operation is not sent to the server and no connections are closed.
 	mt.Run("minimum RTT used to prevent sending requests", func(mt *mtest.T) {
-		if testing.Short() {
-			t.Skip("skipping integration test in short mode")
-		}
-
 		// Assert that we can call Ping with a 250ms timeout.
 		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 		defer cancel()
@@ -676,10 +668,6 @@ func TestClient(t *testing.T) {
 }
 
 func TestClientStress(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	mtOpts := mtest.NewOptions().CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
