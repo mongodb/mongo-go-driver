@@ -295,11 +295,11 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 	if keys == nil {
 		return nil, newMissingArgumentError("keys")
 	}
+
 	model := mongo.IndexModel{
 		Keys:    keys,
 		Options: indexOpts,
 	}
-
 	name, err := coll.Indexes().CreateOne(ctx, model)
 	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), err), nil
 }
