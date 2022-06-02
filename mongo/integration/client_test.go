@@ -64,6 +64,9 @@ type slowConnDialer struct {
 	delay  time.Duration
 }
 
+var slowConnDialerDelay = 300 * time.Millisecond
+var reducedHeartbeatInterval = 100 * time.Millisecond
+
 func newSlowConnDialer(delay time.Duration) *slowConnDialer {
 	return &slowConnDialer{
 		dialer: &net.Dialer{},
@@ -515,13 +518,20 @@ func TestClient(t *testing.T) {
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
 		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
 		mt.ResetClient(options.Client().
-			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
-			SetHeartbeatInterval(100 * time.Millisecond))
+			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
+			SetHeartbeatInterval(reducedHeartbeatInterval))
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func() {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
+				// Stop loop if callback has been canceled.
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's minimum RTTs to be >250ms.
@@ -540,9 +550,6 @@ func TestClient(t *testing.T) {
 		}, 10*time.Second)
 	})
 
-	// TODO(GODRIVER-2405): Add a similar test to ensure that 90th percentile RTT is used to prevent
-	// TODO sending requests when Timeout is set on the Client.
-	//
 	// Test that if the minimum RTT is greater than the remaining timeout for an operation, the
 	// operation is not sent to the server and no connections are closed.
 	mt.Run("minimum RTT used to prevent sending requests", func(mt *mtest.T) {
@@ -557,13 +564,20 @@ func TestClient(t *testing.T) {
 		tpm := monitor.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
-			SetDialer(newSlowConnDialer(300 * time.Millisecond)).
-			SetHeartbeatInterval(100 * time.Millisecond))
+			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
+			SetHeartbeatInterval(reducedHeartbeatInterval))
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func() {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
+				// Stop loop if callback has been canceled.
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's minimum RTTs to be >250ms.
@@ -588,6 +602,113 @@ func TestClient(t *testing.T) {
 			err := mt.Client.Ping(ctx, nil)
 			cancel()
 			assert.NotNil(mt, err, "expected Ping to return an error")
+		}
+
+		// Assert that the Ping timeouts result in no connections being closed.
+		closed := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionClosed }))
+		assert.Equal(t, 0, closed, "expected no connections to be closed")
+	})
+
+	mt.Run("RTT90 is monitored", func(mt *mtest.T) {
+		if testing.Short() {
+			t.Skip("skipping integration test in short mode")
+		}
+
+		// Reset the client with a dialer that delays all network round trips by 300ms and set the
+		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
+		mt.ResetClient(options.Client().
+			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
+			SetHeartbeatInterval(reducedHeartbeatInterval))
+
+		// Assert that RTT90s are eventually >300ms.
+		topo := getTopologyFromClient(mt.Client)
+		assert.Soon(mt, func(ctx context.Context) {
+			for {
+				// Stop loop if callback has been canceled.
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
+				time.Sleep(100 * time.Millisecond)
+
+				// Wait for all of the server's RTT90s to be >300ms.
+				done := true
+				for _, desc := range topo.Description().Servers {
+					server, err := topo.FindServer(desc)
+					assert.Nil(mt, err, "FindServer error: %v", err)
+					if server.RTT90() <= 300*time.Millisecond {
+						done = false
+					}
+				}
+				if done {
+					return
+				}
+			}
+		}, 10*time.Second)
+	})
+
+	// Test that if Timeout is set and the RTT90 is greater than the remaining timeout for an operation, the
+	// operation is not sent to the server, fails with a timeout error, and no connections are closed.
+	mt.Run("RTT90 used to prevent sending requests", func(mt *mtest.T) {
+		if testing.Short() {
+			t.Skip("skipping integration test in short mode")
+		}
+
+		// Assert that we can call Ping with a 250ms timeout.
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
+		err := mt.Client.Ping(ctx, nil)
+		assert.Nil(mt, err, "Ping error: %v", err)
+
+		// Reset the client with a dialer that delays all network round trips by 300ms, set the
+		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples, and
+		// set a Timeout of 0 (infinite) on the Client to ensure that RTT90 is used as a sending
+		// threshold.
+		tpm := monitor.NewTestPoolMonitor()
+		mt.ResetClient(options.Client().
+			SetPoolMonitor(tpm.PoolMonitor).
+			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
+			SetHeartbeatInterval(reducedHeartbeatInterval).
+			SetTimeout(0))
+
+		// Assert that RTT90s are eventually >300ms.
+		topo := getTopologyFromClient(mt.Client)
+		assert.Soon(mt, func(ctx context.Context) {
+			for {
+				// Stop loop if callback has been canceled.
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
+				time.Sleep(100 * time.Millisecond)
+
+				// Wait for all of the server's RTT90s to be >300ms.
+				done := true
+				for _, desc := range topo.Description().Servers {
+					server, err := topo.FindServer(desc)
+					assert.Nil(mt, err, "FindServer error: %v", err)
+					if server.RTT90() <= 300*time.Millisecond {
+						done = false
+					}
+				}
+				if done {
+					return
+				}
+			}
+		}, 10*time.Second)
+
+		// Once we've waited for the RTT90 for the servers to be >300ms, run 10 Ping operations
+		// with a timeout of 300ms and expect that they return timeout errors.
+		for i := 0; i < 10; i++ {
+			ctx, cancel = context.WithTimeout(context.Background(), 300*time.Millisecond)
+			err := mt.Client.Ping(ctx, nil)
+			cancel()
+			assert.NotNil(mt, err, "expected Ping to return an error")
+			assert.True(mt, mongo.IsTimeout(err), "expected a timeout error: got %v", err)
 		}
 
 		// Assert that the Ping timeouts result in no connections being closed.

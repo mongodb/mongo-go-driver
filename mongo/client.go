@@ -636,9 +636,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		)
 	}
 	// Timeout
-	if opts.Timeout != nil {
-		c.timeout = opts.Timeout
-	}
+	c.timeout = opts.Timeout
 	// TLSConfig
 	if opts.TLSConfig != nil {
 		connOpts = append(connOpts, topology.WithTLSConfig(
