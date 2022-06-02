@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -273,13 +274,14 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.aggregate.Pipeline(plArr)
 	}
 
-	// If no deadline is set on the passed-in context, and cs.timeout is set and non-zero, honor cs.timeout
-	// in new context for change stream operation execution and potential retry.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && cs.timeout != nil && *cs.timeout != 0 {
-		newCtx, cancelFunc := context.WithTimeout(ctx, *cs.timeout)
+	// If no deadline is set on the passed-in context, cs.timeout is set, and context is not already
+	// a Timeout context, honor cs.timeout in new Timeout context for change stream operation execution
+	// and potential retry.
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && cs.timeout != nil && !internal.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *cs.timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
-		// Cancel the timeout-derived context at the end of Find to avoid a context leak.
+		// Cancel the timeout-derived context at the end of executeOperation to avoid a context leak.
 		defer cancelFunc()
 	}
 	if original := cs.aggregate.Execute(ctx); original != nil {

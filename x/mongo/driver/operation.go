@@ -314,13 +314,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		return err
 	}
 
-	// If no deadline is set on the passed-in context, and op.Timeout is set and non-zero, honor op.Timeout
-	// in new context for operation execution.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && *op.Timeout != 0 {
-		newCtx, cancelFunc := context.WithTimeout(ctx, *op.Timeout)
+	// If no deadline is set on the passed-in context, op.Timeout is set, and context is not already
+	// a Timeout context, honor op.Timeout in new Timeout context for operation execution.
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && !internal.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *op.Timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
-		// Cancel the timeout-derived context at the end of Find to avoid a context leak.
+		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
 		defer cancelFunc()
 	}
 
@@ -472,9 +472,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		// Calculate value of 'maxTimeMS' field to potentially append to the wire message based on the current
-		// context's deadline and the 90th percentile RTT if op.Timeout is set.
+		// context's deadline and the 90th percentile RTT if the ctx is a Timeout Context.
 		var maxTimeMS uint64
-		if op.Timeout != nil {
+		if internal.IsTimeoutContext(ctx) {
 			if deadline, ok := ctx.Deadline(); ok {
 				remainingTimeout := time.Until(deadline)
 
@@ -529,10 +529,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			serviceID:    startedInfo.serviceID,
 		}
 
-		// Check if there's enough time to perform a round trip before the Context deadline. If op.Timeout
-		// is set, use the 90th percentile RTT as a treshold. Otherwise, use the minimum observed RTT.
+		// Check if there's enough time to perform a round trip before the Context deadline. If ctx is
+		// a Timeout Context, use the 90th percentile RTT as a threshold. Otherwise, use the minimum observed
+		// RTT.
 		if deadline, ok := ctx.Deadline(); ok {
-			if op.Timeout != nil && time.Now().Add(srvr.RTT90()).After(deadline) {
+			if internal.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTT90()).After(deadline) {
 				err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
 					"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", time.Until(deadline))
 			} else if time.Now().Add(srvr.MinRTT()).After(deadline) {

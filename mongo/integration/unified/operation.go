@@ -9,8 +9,10 @@ package unified
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -86,6 +88,20 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		// Set op.Arguments to a new document that has the "session" field removed so individual operations do
 		// not have to account for it.
 		op.Arguments = removeFieldsFromDocument(op.Arguments, "session")
+	}
+
+	// Special handling for the "timeoutMS" field because it applies to (almost) all operations.
+	if tms, ok := op.Arguments.Lookup("timeoutMS").Int32OK(); ok {
+		timeout := time.Duration(tms) * time.Millisecond
+		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, timeout)
+		// Redefine ctx to be the new timeout-derived context.
+		ctx = newCtx
+		// Cancel the timeout-derived context at the end of run to avoid a context leak.
+		defer cancelFunc()
+
+		// Set op.Arguments to a new document that has the "timeoutMS" field removed
+		// so individual operations do not have to account for it.
+		op.Arguments = removeFieldsFromDocument(op.Arguments, "timeoutMS")
 	}
 
 	switch op.Name {
