@@ -368,6 +368,10 @@ func TestClient(t *testing.T) {
 			{"number of sessions does not divide evenly", endSessionsBatchSize + 1, []int{endSessionsBatchSize, 1}},
 		}
 		for _, tc := range testCases {
+			if testing.Short() {
+				t.Skip("skipping integration test in short mode")
+			}
+
 			t.Run(tc.name, func(t *testing.T) {
 				// Setup a client and skip the test based on server version.
 				var started []*event.CommandStartedEvent

@@ -165,6 +165,12 @@ func newT(wrapped *testing.T, opts ...*Options) *T {
 // New creates a new T instance with the given options. If the current environment does not satisfy constraints
 // specified in the options, the test will be skipped automatically.
 func New(wrapped *testing.T, opts ...*Options) *T {
+	// All tests that use mtest.New() are expected to be integration tests, so skip them when the
+	// -short flag is included in the "go test" command.
+	if testing.Short() {
+		wrapped.Skip("skipping mtest integration test in short mode")
+	}
+
 	t := newT(wrapped, opts...)
 
 	// only create a client if it needs to be shared in sub-tests

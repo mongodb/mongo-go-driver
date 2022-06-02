@@ -45,6 +45,10 @@ func (we wrappedError) Unwrap() error {
 }
 
 func TestConvenientTransactions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	client := setupConvenientTransactions(t)
 	db := client.Database("TestConvenientTransactions")
 	dbAdmin := client.Database("admin")

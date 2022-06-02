@@ -96,9 +96,7 @@ test-race:
 
 .PHONY: test-short
 test-short:
-	for TEST in $(TEST_PKGS) ; do \
-    	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(COVER_ARGS) $$TEST ; \
-    done
+	go test $(BUILD_TAGS) -timeout 60s -short $(COVER_ARGS) ./...
 
 .PHONY: update-bson-corpus-tests
 update-bson-corpus-tests:
