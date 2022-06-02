@@ -282,6 +282,72 @@ func TestOperation(t *testing.T) {
 			}
 		})
 	})
+	t.Run("calculateMaxTimeMS", func(t *testing.T) {
+		timeout := 5 * time.Second
+		maxTime := 2 * time.Second
+		negMaxTime := -2 * time.Second
+		shortRTT := 50 * time.Millisecond
+		longRTT := 10 * time.Second
+		timeoutCtx, cancel := internal.MakeTimeoutContext(context.Background(), timeout)
+		defer cancel()
+
+		testCases := []struct {
+			name  string
+			op    Operation
+			ctx   context.Context
+			rtt90 time.Duration
+			want  uint64
+			err   error
+		}{
+			{
+				name:  "uses context deadline and rtt90 with timeout",
+				op:    Operation{MaxTime: &maxTime},
+				ctx:   timeoutCtx,
+				rtt90: shortRTT,
+				want:  5000,
+				err:   nil,
+			},
+			{
+				name:  "uses MaxTime without timeout",
+				op:    Operation{MaxTime: &maxTime},
+				ctx:   context.Background(),
+				rtt90: longRTT,
+				want:  2000,
+				err:   nil,
+			},
+			{
+				name:  "errors when remaining timeout is less than rtt90",
+				op:    Operation{MaxTime: &maxTime},
+				ctx:   timeoutCtx,
+				rtt90: timeout,
+				want:  0,
+				err:   ErrDeadlineWouldBeExceeded,
+			},
+			{
+				name:  "errors when MaxTime is negative",
+				op:    Operation{MaxTime: &negMaxTime},
+				ctx:   context.Background(),
+				rtt90: longRTT,
+				want:  0,
+				err:   ErrNegativeMaxTime,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				got, err := tc.op.calculateMaxTimeMS(tc.ctx, tc.rtt90)
+
+				// Assert that the calculated maxTimeMS is less than or equal to the expected value. A few
+				// milliseconds will have elapsed toward the context deadline, and (remainingTimeout
+				// - rtt90) will be slightly smaller than the expected value.
+				if got > tc.want {
+					t.Errorf("maxTimeMS value higher than expected. got %v; wanted at most %v", got, tc.want)
+				}
+				if !errors.Is(err, tc.err) {
+					t.Errorf("error values do not match. got %v; want %v", err, tc.err)
+				}
+			})
+		}
+	})
 	t.Run("updateClusterTimes", func(t *testing.T) {
 		clustertime := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocumentFromElements(nil,

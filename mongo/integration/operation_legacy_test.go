@@ -190,12 +190,12 @@ func runFindWithOptions(mt *mtest.T) opQuery {
 		{"$comment", "hello"},
 		{"$hint", "hintFoo"},
 		{"$max", maxDoc},
-		{"$maxTimeMS", int64(10000)},
 		{"$min", minDoc},
 		{"$returnKey", false},
 		{"$showDiskLoc", false},
 		{"$snapshot", false},
 		{"$orderby", sort},
+		{"$maxTimeMS", int64(10000)},
 	}
 	return opQuery{
 		flags:                wiremessage.Partial | wiremessage.TailableCursor | wiremessage.NoCursorTimeout | wiremessage.OplogReplay | wiremessage.SecondaryOK,
