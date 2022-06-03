@@ -1600,7 +1600,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	// runOpts = mtest.NewOptions().MinServerVersion("6.0")
 	mt.Run("custom key material test", func(mt *mtest.T) {
 		const (
 			dkCollection = "datakeys"
