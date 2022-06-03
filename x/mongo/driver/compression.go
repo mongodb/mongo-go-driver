@@ -25,6 +25,32 @@ type CompressionOpts struct {
 	UncompressedSize int32
 }
 
+func calcZstdWindowSize(n int, l zstd.EncoderLevel) int {
+	windowSize := zstd.MinWindowSize
+	if n > windowSize {
+		// Map the window size with compression levels as the zstd package does.
+		switch l {
+		case zstd.SpeedFastest:
+			windowSize = 4 << 20
+		case zstd.SpeedDefault:
+			windowSize = 8 << 20
+		case zstd.SpeedBetterCompression:
+			windowSize = 16 << 20
+		case zstd.SpeedBestCompression:
+			windowSize = 32 << 20
+		}
+		if windowSize > zstd.MaxWindowSize {
+			windowSize = zstd.MaxWindowSize
+		}
+		// Reduce the window size to the closest power of 2 that can hold the input size
+		// if the default window size is larger than the input size.
+		for windowSize/2 > n {
+			windowSize /= 2
+		}
+	}
+	return windowSize
+}
+
 // CompressPayload takes a byte slice and compresses it according to the options passed
 func CompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 	switch opts.Compressor {
@@ -49,7 +75,9 @@ func CompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 		return b.Bytes(), nil
 	case wiremessage.CompressorZstd:
 		var b bytes.Buffer
-		w, err := zstd.NewWriter(&b, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(opts.ZstdLevel)))
+		level := zstd.EncoderLevelFromZstd(opts.ZstdLevel)
+		windowSize := calcZstdWindowSize(len(in), level)
+		w, err := zstd.NewWriter(&b, zstd.WithEncoderLevel(level), zstd.WithWindowSize(windowSize))
 		if err != nil {
 			return nil, err
 		}
