@@ -15,6 +15,7 @@ import (
 type DataKeyOptions struct {
 	KeyAltNames []string
 	MasterKey   bsoncore.Document
+	KeyMaterial *string
 }
 
 // DataKey creates a new DataKeyOptions instance.
@@ -31,6 +32,12 @@ func (dko *DataKeyOptions) SetKeyAltNames(names []string) *DataKeyOptions {
 // SetMasterKey specifies the master key.
 func (dko *DataKeyOptions) SetMasterKey(key bsoncore.Document) *DataKeyOptions {
 	dko.MasterKey = key
+	return dko
+}
+
+// SetKeyMaterial specifies the key material.
+func (dko *DataKeyOptions) SetKeyMaterial(key string) *DataKeyOptions {
+	dko.KeyMaterial = &key
 	return dko
 }
 

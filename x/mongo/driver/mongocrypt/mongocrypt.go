@@ -15,6 +15,7 @@ package mongocrypt
 // #include <stdlib.h>
 import "C"
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"unsafe"
@@ -117,6 +118,30 @@ func setAltName(ctx *Context, altName string) error {
 	return nil
 }
 
+func setKeyMaterial(ctx *Context, keyMaterial string) error {
+	// Decode the base64-encoded keyMaterial string.
+	data, err := base64.StdEncoding.DecodeString(keyMaterial)
+	if err != nil {
+		return err
+	}
+
+	// Create document {"keyMaterial": keyMaterial} using the generic binary sybtype 0x00.
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendBinaryElement(doc, "keyMaterial", 0x00, data)
+	doc, err = bsoncore.AppendDocumentEnd(doc, idx)
+	if err != nil {
+		return err
+	}
+
+	keyMaterialBinary := newBinaryFromBytes(doc)
+	defer keyMaterialBinary.close()
+
+	if ok := C.mongocrypt_ctx_setopt_key_material(ctx.wrapped, keyMaterialBinary.wrapped); !ok {
+		return ctx.createErrorFromStatus()
+	}
+	return nil
+}
+
 // CreateDataKeyContext creates a Context to use for creating a data key.
 func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.DataKeyOptions) (*Context, error) {
 	ctx := newContext(C.mongocrypt_ctx_new(m.wrapped))
@@ -146,6 +171,12 @@ func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.Data
 
 	for _, altName := range opts.KeyAltNames {
 		if err := setAltName(ctx, altName); err != nil {
+			return nil, err
+		}
+	}
+
+	if opts.KeyMaterial != nil {
+		if err := setKeyMaterial(ctx, *opts.KeyMaterial); err != nil {
 			return nil, err
 		}
 	}

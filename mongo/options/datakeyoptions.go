@@ -11,9 +11,9 @@ type DataKeyOptions struct {
 	MasterKey   interface{}
 	KeyAltNames []string
 
-	// keyMaterial is used to encrypt data. If omitted, keyMaterial is generated form a cryptographically secure random
+	// KeyMaterial is used to encrypt data. If omitted, keyMaterial is generated form a cryptographically secure random
 	// source. "Key Material" is used interchangeably with "dataKey" and "Data Encryption Key" (DEK).
-	keyMaterial string
+	KeyMaterial *string
 }
 
 // DataKey creates a new DataKeyOptions instance.
@@ -68,7 +68,7 @@ func (dk *DataKeyOptions) SetKeyAltNames(keyAltNames []string) *DataKeyOptions {
 
 // SetKeyMaterial will set a custom keyMaterial to DataKeyOptions which can be used to encrypt data.
 func (dk *DataKeyOptions) SetKeyMaterial(keyMaterial string) *DataKeyOptions {
-	dk.keyMaterial = keyMaterial
+	dk.KeyMaterial = &keyMaterial
 	return dk
 }
 
@@ -85,6 +85,9 @@ func MergeDataKeyOptions(opts ...*DataKeyOptions) *DataKeyOptions {
 		}
 		if opt.KeyAltNames != nil {
 			dko.KeyAltNames = opt.KeyAltNames
+		}
+		if opt.KeyMaterial != nil {
+			dko.KeyMaterial = opt.KeyMaterial
 		}
 	}
 

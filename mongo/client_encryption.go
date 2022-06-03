@@ -74,8 +74,10 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 		if err != nil {
 			return primitive.Binary{}, err
 		}
-
 		co.SetMasterKey(keyDoc)
+	}
+	if dko.KeyMaterial != nil {
+		co.SetKeyMaterial(*dko.KeyMaterial)
 	}
 
 	// create data key document
