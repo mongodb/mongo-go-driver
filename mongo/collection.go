@@ -781,7 +781,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	return aggregate(a)
 }
 
-// aggreate is the helper method for Aggregate
+// aggregate is the helper method for Aggregate
 func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	if a.ctx == nil {
 		a.ctx = context.Background()
