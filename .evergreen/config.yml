@@ -96,14 +96,14 @@ functions:
              mkdir -p c:/libmongocrypt/include
              mkdir -p c:/libmongocrypt/bin
              # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
-             git clone https://github.com/mongodb/libmongocrypt --branch 1.5.0-rc0
+             git clone https://github.com/mongodb/libmongocrypt --branch 1.5.0-rc1
              ./libmongocrypt/.evergreen/compile.sh
              cp ./install/libmongocrypt/bin/mongocrypt.dll c:/libmongocrypt/bin
              cp ./install/libmongocrypt/include/mongocrypt/*.h c:/libmongocrypt/include
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
           else
             # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
-            git clone https://github.com/mongodb/libmongocrypt --branch 1.5.0-rc0
+            git clone https://github.com/mongodb/libmongocrypt --branch 1.5.0-rc1
             ./libmongocrypt/.evergreen/compile.sh
           fi
 
