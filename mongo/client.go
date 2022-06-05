@@ -691,9 +691,6 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
 		topology.WithConnectionOptions(func(...topology.ConnectionOption) []topology.ConnectionOption { return connOpts }),
 	)
-	c.topologyOptions = append(topologyOpts, topology.WithServerOptions(
-		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
-	))
 
 	// Deployment
 	if opts.Deployment != nil {
@@ -704,6 +701,11 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		}
 		c.deployment = opts.Deployment
 	}
+
+	topologyOpts = append(topologyOpts, topology.WithServerOptions(
+		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
+	))
+	c.topologyOptions = topologyOpts
 
 	return nil
 }

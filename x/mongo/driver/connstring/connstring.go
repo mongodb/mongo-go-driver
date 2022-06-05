@@ -292,7 +292,10 @@ func (p *parser) parse(original string) error {
 	}
 
 	// add connection arguments from URI and TXT records to connstring
-	connectionArgPairs := append(connectionArgsFromTXT, connectionArgsFromQueryString...)
+	connectionArgPairs := make([]string, 0, len(connectionArgsFromTXT)+len(connectionArgsFromQueryString))
+	connectionArgPairs = append(connectionArgPairs, connectionArgsFromTXT...)
+	connectionArgPairs = append(connectionArgPairs, connectionArgsFromQueryString...)
+
 	for _, pair := range connectionArgPairs {
 		err := p.addOption(pair)
 		if err != nil {
