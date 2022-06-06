@@ -10,21 +10,6 @@ if [ "Windows_NT" = "$OS" ]; then
     export GOPATH=$(cygpath -m $GOPATH)
     export GOCACHE=$(cygpath -m $GOCACHE)
     export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
-
-    if [ ! -d "c:/libmongocrypt/include" ]; then
-        mkdir -p c:/libmongocrypt/include
-        mkdir -p c:/libmongocrypt/bin
-        curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
-        tar -xvzf libmongocrypt.tar.gz
-        cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
-        cp ./include/mongocrypt/*.h c:/libmongocrypt/include
-        export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-    fi
-else
-    if [ ! -d "libmongocrypt" ]; then
-        git clone https://github.com/mongodb/libmongocrypt
-        ./libmongocrypt/.evergreen/compile.sh
-    fi
 fi
 
 export GOROOT="${GOROOT}"
