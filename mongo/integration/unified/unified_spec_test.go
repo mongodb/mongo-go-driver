@@ -24,6 +24,7 @@ var (
 		"command-monitoring/unified",
 		"sessions/unified",
 		"retryable-writes/unified",
+		"client-side-encryption/unified",
 	}
 	failDirectories = []string{
 		"unified-test-format/valid-fail",

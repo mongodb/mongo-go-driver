@@ -14,8 +14,8 @@ import (
 // DataKeyOptions specifies options for creating a new data key.
 type DataKeyOptions struct {
 	KeyAltNames []string
+	KeyMaterial []byte
 	MasterKey   bsoncore.Document
-	KeyMaterial *string
 }
 
 // DataKey creates a new DataKeyOptions instance.
@@ -36,8 +36,8 @@ func (dko *DataKeyOptions) SetMasterKey(key bsoncore.Document) *DataKeyOptions {
 }
 
 // SetKeyMaterial specifies the key material.
-func (dko *DataKeyOptions) SetKeyMaterial(key string) *DataKeyOptions {
-	dko.KeyMaterial = &key
+func (dko *DataKeyOptions) SetKeyMaterial(keyMaterial []byte) *DataKeyOptions {
+	dko.KeyMaterial = keyMaterial
 	return dko
 }
 

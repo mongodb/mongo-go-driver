@@ -13,7 +13,7 @@ type DataKeyOptions struct {
 
 	// KeyMaterial is used to encrypt data. If omitted, keyMaterial is generated form a cryptographically secure random
 	// source. "Key Material" is used interchangeably with "dataKey" and "Data Encryption Key" (DEK).
-	KeyMaterial *string
+	KeyMaterial []byte
 }
 
 // DataKey creates a new DataKeyOptions instance.
@@ -67,8 +67,8 @@ func (dk *DataKeyOptions) SetKeyAltNames(keyAltNames []string) *DataKeyOptions {
 }
 
 // SetKeyMaterial will set a custom keyMaterial to DataKeyOptions which can be used to encrypt data.
-func (dk *DataKeyOptions) SetKeyMaterial(keyMaterial string) *DataKeyOptions {
-	dk.KeyMaterial = &keyMaterial
+func (dk *DataKeyOptions) SetKeyMaterial(keyMaterial []byte) *DataKeyOptions {
+	dk.KeyMaterial = keyMaterial
 	return dk
 }
 

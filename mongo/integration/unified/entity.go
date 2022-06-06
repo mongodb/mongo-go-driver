@@ -9,6 +9,7 @@ package unified
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"os"
@@ -24,6 +25,11 @@ import (
 
 // ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
 var ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
+
+var (
+	tlsCAFile                   = os.Getenv("CSFLE_TLS_CA_FILE")
+	tlsClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CERTIFICATE_KEY_FILE")
+)
 
 type storeEventsAsEntitiesConfig struct {
 	EventListID string   `bson:"id"`
@@ -275,6 +281,14 @@ func (em *EntityMap) client(id string) (*clientEntity, error) {
 	return client, nil
 }
 
+func (em *EntityMap) clientEncryption(id string) (*mongo.ClientEncryption, error) {
+	cee, ok := em.clientEncryptionEntities[id]
+	if !ok {
+		return nil, newEntityNotFoundError("client", id)
+	}
+	return cee, nil
+}
+
 func (em *EntityMap) clients() map[string]*clientEntity {
 	return em.clientEntities
 }
@@ -474,6 +488,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	// Construct KMS providers.
 	kmsProviders := make(map[string]map[string]interface{})
 	ceo := entityOptions.ClientEncryptionOpts
+	tlsconf := make(map[string]*tls.Config)
 	if aws, ok := ceo.KmsProviders["aws"]; ok {
 		kmsProviders["aws"] = make(map[string]interface{})
 
@@ -574,6 +589,16 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		if err != nil {
 			return err
 		}
+
+		cfg, err := options.BuildTLSConfig(map[string]interface{}{
+			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+			"tlsCAFile":             tlsCAFile,
+		})
+		if err != nil {
+			return err
+		}
+		tlsconf["kmip"] = cfg
+
 		if kmipEndpoint != "" {
 			kmsProviders["kmip"]["endpoint"] = kmipEndpoint
 		}
@@ -602,6 +627,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		keyVaultClient.Client,
 		options.ClientEncryption().
 			SetKeyVaultNamespace(ceo.KeyVaultNamespace).
+			SetTLSConfig(tlsconf).
 			SetKmsProviders(kmsProviders))
 	if err != nil {
 		return err

@@ -15,7 +15,6 @@ package mongocrypt
 // #include <stdlib.h>
 import "C"
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"unsafe"
@@ -118,17 +117,11 @@ func setAltName(ctx *Context, altName string) error {
 	return nil
 }
 
-func setKeyMaterial(ctx *Context, keyMaterial string) error {
-	// Decode the base64-encoded keyMaterial string.
-	data, err := base64.StdEncoding.DecodeString(keyMaterial)
-	if err != nil {
-		return err
-	}
-
+func setKeyMaterial(ctx *Context, keyMaterial []byte) error {
 	// Create document {"keyMaterial": keyMaterial} using the generic binary sybtype 0x00.
 	idx, doc := bsoncore.AppendDocumentStart(nil)
-	doc = bsoncore.AppendBinaryElement(doc, "keyMaterial", 0x00, data)
-	doc, err = bsoncore.AppendDocumentEnd(doc, idx)
+	doc = bsoncore.AppendBinaryElement(doc, "keyMaterial", 0x00, keyMaterial)
+	doc, err := bsoncore.AppendDocumentEnd(doc, idx)
 	if err != nil {
 		return err
 	}
@@ -176,7 +169,7 @@ func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.Data
 	}
 
 	if opts.KeyMaterial != nil {
-		if err := setKeyMaterial(ctx, *opts.KeyMaterial); err != nil {
+		if err := setKeyMaterial(ctx, opts.KeyMaterial); err != nil {
 			return nil, err
 		}
 	}

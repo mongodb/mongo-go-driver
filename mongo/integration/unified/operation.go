@@ -182,6 +182,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	// Unsupported operations
 	case "count", "listIndexNames", "modifyCollection":
 		return nil, newSkipTestError(fmt.Sprintf("the %q operation is not supported", op.Name))
+	case "createKey":
+		return executeCreateKey(ctx, op)
 	default:
 		return nil, fmt.Errorf("unrecognized entity operation %q", op.Name)
 	}

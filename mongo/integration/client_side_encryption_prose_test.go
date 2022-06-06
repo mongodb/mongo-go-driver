@@ -1625,7 +1625,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		{
 			const b64 = `xPTAjBRG5JiPm+d3fj6XLi2q5DMXUS/f1f+SMAlhhwkhDRL0kr8r9GDLIGTAGlvC+HVjSIgdL+RKwZCvpXSyxTICWSXT` +
 				`UYsWYPyu3IoHbuBZdmw2faM3WhcRIgbMReU5`
-			_, err := cse.clientEnc.CreateDataKey(context.Background(), "local", options.DataKey().SetKeyMaterial(b64))
+
+			// Decode the base64-encoded keyMaterial string.
+			km, err := base64.StdEncoding.DecodeString(b64)
+			assert.Nil(mt, err, "error decoding b64: %v", err)
+
+			_, err = cse.clientEnc.CreateDataKey(context.Background(), "local", options.DataKey().SetKeyMaterial(km))
 			assert.Nil(mt, err, "error creating data key: %v", err)
 		}
 

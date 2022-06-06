@@ -63,9 +63,16 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	return ce, nil
 }
 
-// CreateDataKey creates a new key document and inserts it into the key vault collection. Returns the _id of the
-// created document.
-func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string, opts ...*options.DataKeyOptions) (primitive.Binary, error) {
+// CreateDataKey is an alias function equivalent to CreateKey.
+func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
+	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
+	return ce.CreateKey(ctx, kmsProvider, opts...)
+}
+
+// CreateKey creates a new key document and inserts into the key vault collection. Returns the _id of the created
+// document as a UUID (BSON binary subtype 0x04).
+func (ce *ClientEncryption) CreateKey(ctx context.Context, kmsProvider string,
+	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
 	// translate opts to cryptOpts.DataKeyOptions
 	dko := options.MergeDataKeyOptions(opts...)
 	co := cryptOpts.DataKey().SetKeyAltNames(dko.KeyAltNames)
@@ -77,7 +84,7 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 		co.SetMasterKey(keyDoc)
 	}
 	if dko.KeyMaterial != nil {
-		co.SetKeyMaterial(*dko.KeyMaterial)
+		co.SetKeyMaterial(dko.KeyMaterial)
 	}
 
 	// create data key document
