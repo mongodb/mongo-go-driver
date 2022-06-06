@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -42,6 +43,7 @@ type Update struct {
 	crypt                    driver.Crypt
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
+	timeout                  *time.Duration
 }
 
 // Upsert contains the information for an upsert in an Update operation.
@@ -159,6 +161,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		WriteConcern:      u.writeConcern,
 		Crypt:             u.crypt,
 		ServerAPI:         u.serverAPI,
+		Timeout:           u.timeout,
 	}.Execute(ctx, nil)
 
 }
@@ -384,5 +387,15 @@ func (u *Update) Let(let bsoncore.Document) *Update {
 	}
 
 	u.let = let
+	return u
+}
+
+// Timeout sets the timeout for this operation.
+func (u *Update) Timeout(timeout *time.Duration) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.timeout = timeout
 	return u
 }

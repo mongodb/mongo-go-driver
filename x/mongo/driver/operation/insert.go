@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
@@ -38,6 +39,7 @@ type Insert struct {
 	retry                    *driver.RetryMode
 	result                   InsertResult
 	serverAPI                *driver.ServerAPIOptions
+	timeout                  *time.Duration
 }
 
 // InsertResult represents an insert result returned by the server.
@@ -107,6 +109,7 @@ func (i *Insert) Execute(ctx context.Context) error {
 		Selector:          i.selector,
 		WriteConcern:      i.writeConcern,
 		ServerAPI:         i.serverAPI,
+		Timeout:           i.timeout,
 	}.Execute(ctx, nil)
 
 }
@@ -276,5 +279,15 @@ func (i *Insert) ServerAPI(serverAPI *driver.ServerAPIOptions) *Insert {
 	}
 
 	i.serverAPI = serverAPI
+	return i
+}
+
+// Timeout sets the timeout for this operation.
+func (i *Insert) Timeout(timeout *time.Duration) *Insert {
+	if i == nil {
+		i = new(Insert)
+	}
+
+	i.timeout = timeout
 	return i
 }

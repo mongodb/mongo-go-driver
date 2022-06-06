@@ -116,7 +116,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 	return newEmptyResult(), nil
 }
 
-func executeListDatabases(ctx context.Context, operation *operation) (*operationResult, error) {
+func executeListDatabases(ctx context.Context, operation *operation, nameOnly bool) (*operationResult, error) {
 	client, err := entities(ctx).client(operation.Object)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func executeListDatabases(ctx context.Context, operation *operation) (*operation
 	// We set a default filter rather than erroring if the Arguments doc doesn't have a "filter" field because the
 	// spec says drivers should support this field, not must.
 	filter := emptyDocument
-	opts := options.ListDatabases()
+	opts := options.ListDatabases().SetNameOnly(nameOnly)
 
 	elems, _ := operation.Arguments.Elements()
 	for _, elem := range elems {

@@ -1,6 +1,6 @@
 {
-  "description": "timeoutMS can be overriden for an operation",
-  "schemaVersion": "1.0",
+  "description": "timeoutMS can be overridden for an operation",
+  "schemaVersion": "1.9",
   "runOnRequirements": [
     {
       "minServerVersion": "4.4",
@@ -189,8 +189,7 @@
           "name": "listDatabaseNames",
           "object": "client",
           "arguments": {
-            "timeoutMS": 1000,
-            "filter": {}
+            "timeoutMS": 1000
           }
         }
       ],
@@ -244,8 +243,7 @@
           "name": "listDatabaseNames",
           "object": "client",
           "arguments": {
-            "timeoutMS": 0,
-            "filter": {}
+            "timeoutMS": 0
           }
         }
       ],
@@ -741,7 +739,8 @@
             "timeoutMS": 1000,
             "command": {
               "ping": 1
-            }
+            },
+            "commandName": "ping"
           }
         }
       ],
@@ -798,7 +797,8 @@
             "timeoutMS": 0,
             "command": {
               "ping": 1
-            }
+            },
+            "commandName": "ping"
           }
         }
       ],
@@ -3386,7 +3386,6 @@
             "name": "x_1"
           },
           "expectError": {
-            "isClientError": false,
             "isTimeoutError": false
           }
         }
@@ -3445,7 +3444,6 @@
             "name": "x_1"
           },
           "expectError": {
-            "isClientError": false,
             "isTimeoutError": false
           }
         }

@@ -139,6 +139,11 @@ func (md *mockDeployment) MinRTT() time.Duration {
 	return 0
 }
 
+// RTT90 always returns 0. It implements the driver.Server interface.
+func (md *mockDeployment) RTT90() time.Duration {
+	return 0
+}
+
 // Connect is a no-op method which implements the driver.Connector interface.
 func (md *mockDeployment) Connect() error {
 	return nil
