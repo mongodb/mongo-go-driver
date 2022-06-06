@@ -78,7 +78,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	}
 
 	runOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
-	mt.RunOpts("explicit encryption", runOpts, func(mt *mtest.T) {
+	mt.RunOpts("12. explicit encryption", runOpts, func(mt *mtest.T) {
 		// Test Setup ... begin
 		encryptedFields := readJSONFile(mt, "encrypted-fields.json")
 		key1Document := readJSONFile(mt, "key1-document.json")
@@ -259,7 +259,112 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
 		})
 	})
-	mt.RunOpts("data key and double encryption", noClientOpts, func(mt *mtest.T) {
+	mt.Run("1. custom key material test", func(mt *mtest.T) {
+		const (
+			dkCollection = "datakeys"
+			idKey        = "_id"
+			kvDatabase   = "keyvault"
+		)
+
+		var cse *cseProseTest
+
+		// Create a ClientEncryption object (referred to as client_encryption) with client set as the keyVaultClient.
+		// Using client, drop the collection keyvault.datakeys.
+		{
+			cse = setup(mt, nil, defaultKvClientOptions, options.ClientEncryption().
+				SetKmsProviders(fullKmsProvidersMap).
+				SetKeyVaultNamespace(kvNamespace))
+
+			err := cse.kvClient.Database(kvDatabase).Collection(dkCollection).Drop(context.Background())
+			assert.Nil(mt, err, "error dropping %q namespace: %v", kvNamespace, err)
+		}
+
+		// Using client_encryption, create a data key with a local KMS provider and the declared b64 custom key material
+		// (given as base64).
+		{
+			const b64 = `xPTAjBRG5JiPm+d3fj6XLi2q5DMXUS/f1f+SMAlhhwkhDRL0kr8r9GDLIGTAGlvC+HVjSIgdL+RKwZCvpXSyxTICWSXT` +
+				`UYsWYPyu3IoHbuBZdmw2faM3WhcRIgbMReU5`
+
+			// Decode the base64-encoded keyMaterial string.
+			km, err := base64.StdEncoding.DecodeString(b64)
+			assert.Nil(mt, err, "error decoding b64: %v", err)
+
+			_, err = cse.clientEnc.CreateDataKey(context.Background(), "local", options.DataKey().SetKeyMaterial(km))
+			assert.Nil(mt, err, "error creating data key: %v", err)
+		}
+
+		var keydoc bson.Raw
+
+		// Find the resulting key document in keyvault.datakeys, save a copy of the key document, then remove the key
+		// document from the collection.
+		{
+			coll := cse.kvClient.Database(kvDatabase).Collection(dkCollection)
+
+			var err error
+			keydoc, err = coll.FindOne(context.Background(), bson.D{}).DecodeBytes()
+			assert.Nil(mt, err, "error in decoding bytes: %v", err)
+
+			// Remove the key document from the collection.
+			id, err := keydoc.LookupErr(idKey)
+			assert.Nil(mt, err, "error looking up %s: %v", idKey, err)
+
+			_, err = coll.DeleteOne(context.Background(), bson.D{{idKey, id}})
+			assert.Nil(mt, err, "error deleting key document: %v", err)
+		}
+
+		var alteredKeydoc bson.Raw
+
+		// Replace the _id field in the copied key document with a UUID with base64 value AAAAAAAAAAAAAAAAAAAAAA== (16
+		// bytes all equal to 0x00) and insert the modified key document into keyvault.datakeys with majority write
+		// concern.
+		{
+			var cidx int32
+			cidx, alteredKeydoc = bsoncore.AppendDocumentStart(nil)
+			docElems, _ := keydoc.Elements()
+			for _, element := range docElems {
+				if key := element.Key(); key != idKey {
+					alteredKeydoc = bsoncore.AppendValueElement(alteredKeydoc, key, rawValueToCoreValue(element.Value()))
+				}
+			}
+			empty := [16]byte{}
+			uuidSubtype, _ := keydoc.Lookup(idKey).Binary()
+			alteredKeydoc = bsoncore.AppendBinaryElement(alteredKeydoc, idKey, uuidSubtype, empty[:])
+			alteredKeydoc, _ = bsoncore.AppendDocumentEnd(alteredKeydoc, cidx)
+
+			// Insert the copied key document into keyvault.datakeys with majority write concern.
+			wcMajority := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
+			wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
+			wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
+			_, err := wcmColl.InsertOne(context.Background(), alteredKeydoc)
+			assert.Nil(mt, err, "error inserting altered key document: %v", err)
+
+		}
+
+		// Using client_encryption, encrypt the string "test" with the modified data key using the
+		// AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic algorithm and assert the resulting value is equal to the
+		// declared b64 constant.
+		{
+			const b64 = `AQAAAAAAAAAAAAAAAAAAAAACz0ZOLuuhEYi807ZXTdhbqhLaS2/t9wLifJnnNYwiw79d75QYIZ6M/aYC1h9nCzCjZ7pG` +
+				`UpAuNnkUhnIXM3PjrA==`
+
+			empty := [16]byte{}
+			keyid := primitive.Binary{Subtype: 0x04, Data: empty[:]}
+
+			encOpts := options.Encrypt().SetAlgorithm(deterministicAlgorithm).SetKeyID(keyid)
+			testVal := bson.RawValue{
+				Type:  bson.TypeString,
+				Value: bsoncore.AppendString(nil, "test"),
+			}
+			actual, err := cse.clientEnc.Encrypt(context.Background(), testVal, encOpts)
+			assert.Nil(mt, err, "error encrypting data: %v", err)
+
+			expected := primitive.Binary{Subtype: 0x06}
+			expected.Data, _ = base64.StdEncoding.DecodeString(b64)
+
+			assert.Equal(t, actual, expected, "expected: %v, got: %v", actual, expected)
+		}
+	})
+	mt.RunOpts("2. data key and double encryption", noClientOpts, func(mt *mtest.T) {
 		// set up options structs
 		schema := bson.D{
 			{"bsonType", "object"},
@@ -399,7 +504,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	mt.RunOpts("external key vault", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("3. external key vault", noClientOpts, func(mt *mtest.T) {
 		testCases := []struct {
 			name          string
 			externalVault bool
@@ -460,7 +565,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	mt.Run("bson size limits", func(mt *mtest.T) {
+	mt.Run("4. bson size limits", func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -558,7 +663,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		_, err = cpt.cseColl.InsertOne(context.Background(), over16mb)
 		assert.NotNil(mt, err, "expected InsertOne error for document over 16MiB, got nil")
 	})
-	mt.Run("views are prohibited", func(mt *mtest.T) {
+	mt.Run("5. views are prohibited", func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -584,7 +689,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		assert.True(mt, strings.Contains(errStr, viewErrSubstr),
 			"expected error '%v' to contain substring '%v'", errStr, viewErrSubstr)
 	})
-	mt.RunOpts("corpus", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("6. corpus test", noClientOpts, func(mt *mtest.T) {
 		if "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
 			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 		}
@@ -820,7 +925,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	mt.Run("custom endpoint", func(mt *mtest.T) {
+	mt.Run("7. custom endpoint", func(mt *mtest.T) {
 		validKmsProviders := map[string]map[string]interface{}{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
@@ -1011,7 +1116,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	mt.RunOpts("bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("8. bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -1197,7 +1302,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 		})
 	})
-	mt.RunOpts("deadlock tests", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("9. deadlock tests", noClientOpts, func(mt *mtest.T) {
 		testcases := []struct {
 			description                            string
 			maxPoolSize                            uint64
@@ -1332,7 +1437,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	})
 
 	// These tests only run when a KMS mock server is running on localhost:8000.
-	mt.RunOpts("kms tls tests", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("10. kms tls tests", noClientOpts, func(mt *mtest.T) {
 		kmsTlsTestcase := os.Getenv("KMS_TLS_TESTCASE")
 		if kmsTlsTestcase == "" {
 			mt.Skipf("Skipping test as KMS_TLS_TESTCASE is not set")
@@ -1384,7 +1489,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are running. See specification for port numbers and necessary arguments:
 	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.rst#kms-tls-options-tests
-	mt.RunOpts("kms tls options tests", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("11. kms tls options tests", noClientOpts, func(mt *mtest.T) {
 		if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
 			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 		}
@@ -1598,111 +1703,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.True(mt, strings.Contains(err.Error(), tc.invalidHostnameError),
 					"expected error '%s' to contain '%s'", err.Error(), tc.invalidHostnameError)
 			})
-		}
-	})
-	mt.Run("custom key material test", func(mt *mtest.T) {
-		const (
-			dkCollection = "datakeys"
-			idKey        = "_id"
-			kvDatabase   = "keyvault"
-		)
-
-		var cse *cseProseTest
-
-		// Create a ClientEncryption object (referred to as client_encryption) with client set as the keyVaultClient.
-		// Using client, drop the collection keyvault.datakeys.
-		{
-			cse = setup(mt, nil, defaultKvClientOptions, options.ClientEncryption().
-				SetKmsProviders(fullKmsProvidersMap).
-				SetKeyVaultNamespace(kvNamespace))
-
-			err := cse.kvClient.Database(kvDatabase).Collection(dkCollection).Drop(context.Background())
-			assert.Nil(mt, err, "error dropping %q namespace: %v", kvDatabase, err)
-		}
-
-		// Using client_encryption, create a data key with a local KMS provider and the declared b64 custom key material
-		// (given as base64).
-		{
-			const b64 = `xPTAjBRG5JiPm+d3fj6XLi2q5DMXUS/f1f+SMAlhhwkhDRL0kr8r9GDLIGTAGlvC+HVjSIgdL+RKwZCvpXSyxTICWSXT` +
-				`UYsWYPyu3IoHbuBZdmw2faM3WhcRIgbMReU5`
-
-			// Decode the base64-encoded keyMaterial string.
-			km, err := base64.StdEncoding.DecodeString(b64)
-			assert.Nil(mt, err, "error decoding b64: %v", err)
-
-			_, err = cse.clientEnc.CreateDataKey(context.Background(), "local", options.DataKey().SetKeyMaterial(km))
-			assert.Nil(mt, err, "error creating data key: %v", err)
-		}
-
-		var keydoc bson.Raw
-
-		// Find the resulting key document in keyvault.datakeys, save a copy of the key document, then remove the key
-		// document from the collection.
-		{
-			coll := cse.kvClient.Database(kvDatabase).Collection(dkCollection)
-
-			var err error
-			keydoc, err = coll.FindOne(context.Background(), bson.D{}).DecodeBytes()
-			assert.Nil(mt, err, "error in decoding bytes: %v", err)
-
-			// Remove the key document from the collection.
-			id, err := keydoc.LookupErr(idKey)
-			assert.Nil(mt, err, "error looking up %s: %v", idKey, err)
-
-			_, err = coll.DeleteOne(context.Background(), bson.D{{idKey, id}})
-			assert.Nil(mt, err, "error deleting key document: %v", err)
-		}
-
-		var alteredKeydoc bson.Raw
-
-		// Replace the _id field in the copied key document with a UUID with base64 value AAAAAAAAAAAAAAAAAAAAAA== (16
-		// bytes all equal to 0x00) and insert the modified key document into keyvault.datakeys with majority write
-		// concern.
-		{
-			var cidx int32
-			cidx, alteredKeydoc = bsoncore.AppendDocumentStart(nil)
-			docElems, _ := keydoc.Elements()
-			for _, element := range docElems {
-				if key := element.Key(); key != idKey {
-					alteredKeydoc = bsoncore.AppendValueElement(alteredKeydoc, key, rawValueToCoreValue(element.Value()))
-				}
-			}
-			empty := [16]byte{}
-			uuidSubtype, _ := keydoc.Lookup(idKey).Binary()
-			alteredKeydoc = bsoncore.AppendBinaryElement(alteredKeydoc, idKey, uuidSubtype, empty[:])
-			alteredKeydoc, _ = bsoncore.AppendDocumentEnd(alteredKeydoc, cidx)
-
-			// Insert the copied key document into keyvault.datakeys with majority write concern.
-			wcMajority := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
-			wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
-			wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
-			_, err := wcmColl.InsertOne(context.Background(), alteredKeydoc)
-			assert.Nil(mt, err, "error inserting altered key document: %v", err)
-
-		}
-
-		// Using client_encryption, encrypt the string "test" with the modified data key using the
-		// AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic algorithm and assert the resulting value is equal to the
-		// declared b64 constant.
-		{
-			const b64 = `AQAAAAAAAAAAAAAAAAAAAAACz0ZOLuuhEYi807ZXTdhbqhLaS2/t9wLifJnnNYwiw79d75QYIZ6M/aYC1h9nCzCjZ7pG` +
-				`UpAuNnkUhnIXM3PjrA==`
-
-			empty := [16]byte{}
-			keyid := primitive.Binary{Subtype: 0x04, Data: empty[:]}
-
-			encOpts := options.Encrypt().SetAlgorithm(deterministicAlgorithm).SetKeyID(keyid)
-			testVal := bson.RawValue{
-				Type:  bson.TypeString,
-				Value: bsoncore.AppendString(nil, "test"),
-			}
-			actual, err := cse.clientEnc.Encrypt(context.Background(), testVal, encOpts)
-			assert.Nil(mt, err, "error encrypting data: %v", err)
-
-			expected := primitive.Binary{Subtype: 0x06}
-			expected.Data, _ = base64.StdEncoding.DecodeString(b64)
-
-			assert.True(t, actual.Equal(expected), "expected true got: false")
 		}
 	})
 }

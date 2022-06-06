@@ -67,7 +67,9 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 		case "kmsProvider":
 			kmsProvider = val.StringValue()
 		case "opts":
-			setCreateKeyDKO(dko, elem)
+			if err := setCreateKeyDKO(dko, elem); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized CreateKey arg: %q", key)
 		}
