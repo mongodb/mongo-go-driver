@@ -114,8 +114,15 @@ func TestSDAMProse(t *testing.T) {
 					AppName:         "streamingRttTest",
 				},
 			})
-			callback := func() {
+			callback := func(ctx context.Context) {
 				for {
+					// Stop loop if callback has been canceled.
+					select {
+					case <-ctx.Done():
+						return
+					default:
+					}
+
 					// We don't know which server received the failpoint command, so we wait until any of the server
 					// RTTs cross the threshold.
 					for _, serverDesc := range testTopology.Description().Servers {

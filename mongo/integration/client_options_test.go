@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package mongo
+package integration
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -23,7 +24,7 @@ func TestClientOptions_CustomDialer(t *testing.T) {
 	cs := testutil.ConnString(t)
 	opts := options.Client().ApplyURI(cs.String()).SetDialer(td)
 	testutil.AddTestServerAPIVersion(opts)
-	client, err := NewClient(opts)
+	client, err := mongo.NewClient(opts)
 	require.NoError(t, err)
 	err = client.Connect(context.Background())
 	require.NoError(t, err)
@@ -37,7 +38,7 @@ func TestClientOptions_CustomDialer(t *testing.T) {
 
 type testDialer struct {
 	called int32
-	d      Dialer
+	d      mongo.Dialer
 }
 
 func (td *testDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {

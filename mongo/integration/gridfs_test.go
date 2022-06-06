@@ -12,7 +12,6 @@ import (
 	"io"
 	"math/rand"
 	"runtime"
-	"strings"
 	"testing"
 	"time"
 
@@ -395,8 +394,7 @@ func TestGridFS(x *testing.T) {
 			p := make([]byte, len(fileData))
 			_, err = ds.Read(p)
 			assert.NotNil(mt, err, "expected error from Read, got nil")
-			assert.True(mt, strings.Contains(err.Error(), "context deadline exceeded"),
-				"expected error to contain 'context deadline exceeded', got %v", err.Error())
+			assert.True(mt, mongo.IsTimeout(err), "expected error to be a timeout, got %v", err.Error())
 		})
 		mt.Run("cursor error during skip after downloading", func(mt *mtest.T) {
 			// To simulate a cursor error we upload a file larger than the 16MB default batch size,
@@ -422,8 +420,7 @@ func TestGridFS(x *testing.T) {
 
 			_, err = ds.Skip(int64(len(fileData)))
 			assert.NotNil(mt, err, "expected error from Skip, got nil")
-			assert.True(mt, strings.Contains(err.Error(), "context deadline exceeded"),
-				"expected error to contain 'context deadline exceeded', got %v", err.Error())
+			assert.True(mt, mongo.IsTimeout(err), "expected error to be a timeout, got %v", err.Error())
 		})
 	})
 

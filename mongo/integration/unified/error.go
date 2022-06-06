@@ -19,6 +19,7 @@ import (
 // test files because it is always true if it is specified, so the runner can simply assert that an error occurred.
 type expectedError struct {
 	IsClientError  *bool          `bson:"isClientError"`
+	IsTimeoutError *bool          `bson:"isTimeoutError"`
 	ErrorSubstring *string        `bson:"errorContains"`
 	Code           *int32         `bson:"errorCode"`
 	CodeName       *string        `bson:"errorCodeName"`
@@ -68,6 +69,13 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 		if *expected.IsClientError != isClientError {
 			return fmt.Errorf("expected error %v to be a client error: %v, is client error: %v", result.Err,
 				*expected.IsClientError, isClientError)
+		}
+	}
+	if expected.IsTimeoutError != nil {
+		isTimeoutError := mongo.IsTimeout(result.Err)
+		if *expected.IsTimeoutError != isTimeoutError {
+			return fmt.Errorf("expected error %v to be a timeout error: %v, is timeout error: %v", result.Err,
+				*expected.IsTimeoutError, isTimeoutError)
 		}
 	}
 	if !serverError {

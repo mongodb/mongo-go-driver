@@ -121,9 +121,9 @@ type ClientOptions struct {
 	RetryWrites              *bool
 	ServerAPIOptions         *ServerAPIOptions
 	ServerSelectionTimeout   *time.Duration
-	SocketTimeout            *time.Duration
 	SRVMaxHosts              *int
 	SRVServiceName           *string
+	Timeout                  *time.Duration
 	TLSConfig                *tls.Config
 	WriteConcern             *writeconcern.WriteConcern
 	ZlibLevel                *int
@@ -151,6 +151,13 @@ type ClientOptions struct {
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
 	Deployment driver.Deployment
+
+	// SocketTimeout specifies the timeout to be used for the Client's socket reads and writes.
+	//
+	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+	// Timeout option should be used in its place to control the amount of time that a single operation can run on the Client
+	// before returning an error. SocketTimeout is still usable through the deprecated setter.
+	SocketTimeout *time.Duration
 }
 
 // Client creates a new ClientOptions instance.
@@ -446,6 +453,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.DisableOCSPEndpointCheck = &cs.SSLDisableOCSPEndpointCheck
 	}
 
+	if cs.TimeoutSet {
+		c.Timeout = &cs.Timeout
+	}
+
 	return c
 }
 
@@ -471,8 +482,8 @@ func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
 //
 // 2. "zlib" - requires server version >= 3.6
 //
-// 3. "zstd" - requires server version >= 4.2, and driver version >= 1.2.0 with cgo support enabled or driver version >= 1.3.0
-//    without cgo
+// 3. "zstd" - requires server version >= 4.2, and driver version >= 1.2.0 with cgo support enabled or driver
+// version >= 1.3.0 without cgo.
 //
 // If this option is specified, the driver will perform a negotiation with the server to determine a common list of of
 // compressors and will use the first one in that list when performing operations. See
@@ -703,8 +714,23 @@ func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOption
 // SetSocketTimeout specifies how long the driver will wait for a socket read or write to return before returning a
 // network error. This can also be set through the "socketTimeoutMS" URI option (e.g. "socketTimeoutMS=1000"). The
 // default value is 0, meaning no timeout is used and socket operations can block indefinitely.
+//
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+// Timeout option should be used in its place to control the amount of time that a single operation can run on the Client
+// before returning an error.
 func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 	c.SocketTimeout = &d
+	return c
+}
+
+// SetTimeout specifies the amount of time that a single operation run on this Client can execute before returning an error.
+// This can also be set through the "timeoutMS" URI option (e.g. "timeoutMS=1000"). The default value is nil, meaning operations
+// do not inherit a timeout from the Client.
+//
+// If any Timeout is set (even 0) on the Client, the values of other, deprecated timeout-related options will be ignored. In particular:
+// ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operations, and TransactionOptions.MaxCommitTime.
+func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
+	c.Timeout = &d
 	return c
 }
 
@@ -920,6 +946,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.SRVServiceName != nil {
 			c.SRVServiceName = opt.SRVServiceName
+		}
+		if opt.Timeout != nil {
+			c.Timeout = opt.Timeout
 		}
 		if opt.TLSConfig != nil {
 			c.TLSConfig = opt.TLSConfig

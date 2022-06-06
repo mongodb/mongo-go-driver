@@ -162,14 +162,16 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 			return fmt.Errorf("'entities' argument not found in createEntities operation")
 		}
 
-		var createEntities map[string]*entityOptions
-		if err := bson.Unmarshal(entitiesRaw.Value, &createEntities); err != nil {
+		var createEntities []map[string]*entityOptions
+		if err := entitiesRaw.Unmarshal(&createEntities); err != nil {
 			return fmt.Errorf("error unmarshalling 'entities' argument to entityOptions: %v", err)
 		}
 
-		for entityType, entityOptions := range createEntities {
-			if err := entities(ctx).addEntity(ctx, entityType, entityOptions); err != nil {
-				return fmt.Errorf("error creating entity: %v", err)
+		for idx, entity := range createEntities {
+			for entityType, entityOptions := range entity {
+				if err := entities(ctx).addEntity(ctx, entityType, entityOptions); err != nil {
+					return fmt.Errorf("error creating entity at index %d: %v", idx, err)
+				}
 			}
 		}
 		return nil

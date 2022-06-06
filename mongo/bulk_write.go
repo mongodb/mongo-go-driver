@@ -179,7 +179,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).
-		ServerAPI(bw.collection.client.serverAPI)
+		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.timeout)
 	if bw.comment != nil {
 		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {
@@ -236,7 +236,7 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
-		ServerAPI(bw.collection.client.serverAPI)
+		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.timeout)
 	if bw.comment != nil {
 		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {
@@ -331,7 +331,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
-		ArrayFilters(hasArrayFilters).ServerAPI(bw.collection.client.serverAPI)
+		ArrayFilters(hasArrayFilters).ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.timeout)
 	if bw.comment != nil {
 		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {

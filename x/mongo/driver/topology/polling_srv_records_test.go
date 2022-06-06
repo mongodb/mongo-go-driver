@@ -125,9 +125,6 @@ func compareHosts(t *testing.T, received []description.Server, expected []string
 }
 
 func TestPollingSRVRecordsSpec(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
 	for _, tt := range srvPollingTests {
 		t.Run(tt.name, func(t *testing.T) {
 			cs, err := connstring.ParseAndValidate("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
@@ -159,9 +156,6 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 }
 
 func TestPollSRVRecords(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
 	t.Run("Not unknown or sharded topology", func(t *testing.T) {
 		cs, err := connstring.ParseAndValidate("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
 		require.NoError(t, err, "Problem parsing the uri: %v", err)
@@ -309,10 +303,6 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 }
 
 func TestPollSRVRecordsMaxHosts(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	// simulateSRVPoll creates a topology with srvMaxHosts, mocks the DNS changes described by
 	// recordsToAdd and recordsToRemove, and returns the the topology.
 	simulateSRVPoll := func(srvMaxHosts int, recordsToAdd []*net.SRV, recordsToRemove []*net.SRV) (*Topology, func(ctx context.Context) error) {
@@ -387,10 +377,6 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 }
 
 func TestPollSRVRecordsServiceName(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	// simulateSRVPoll creates a topology with srvServiceName, mocks the DNS changes described by
 	// recordsToAdd and recordsToRemove, and returns the topology.
 	simulateSRVPoll := func(srvServiceName string, recordsToAdd []*net.SRV, recordsToRemove []*net.SRV) (*Topology, func(ctx context.Context) error) {
