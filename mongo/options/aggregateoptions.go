@@ -42,10 +42,6 @@ type AggregateOptions struct {
 
 	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
 	// This option is only valid for MongoDB versions >= 3.2 and is ignored for previous server versions.
-	//
-	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time that the Aggregate operation can run before
-	// returning an error. MaxAwaitTime is still usable through the deprecated setter.
 	MaxAwaitTime *time.Duration
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
@@ -109,10 +105,6 @@ func (ao *AggregateOptions) SetMaxTime(d time.Duration) *AggregateOptions {
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-//
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver.
-// The more general Timeout option should be used in its place to control the amount of time that the
-// Aggregate operation can run before returning an error.
 func (ao *AggregateOptions) SetMaxAwaitTime(d time.Duration) *AggregateOptions {
 	ao.MaxAwaitTime = &d
 	return ao

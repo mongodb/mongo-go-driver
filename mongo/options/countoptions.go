@@ -35,7 +35,7 @@ type CountOptions struct {
 	// no time limit for query execution.
 	//
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time that the aggregate operation can run before
+	// Timeout option should be used in its place to control the amount of time that the count operation can run before
 	// returning an error. MaxTime is still usable through the deprecated setter.
 	MaxTime *time.Duration
 
@@ -75,7 +75,7 @@ func (co *CountOptions) SetLimit(i int64) *CountOptions {
 // SetMaxTime sets the value for the MaxTime field.
 //
 // Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-// Timeout option should be used in its place to control the amount of time that the aggregate operation can run before
+// Timeout option should be used in its place to control the amount of time that the count operation can run before
 // returning an error.
 func (co *CountOptions) SetMaxTime(d time.Duration) *CountOptions {
 	co.MaxTime = &d

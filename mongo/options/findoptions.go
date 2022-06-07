@@ -55,10 +55,6 @@ type FindOptions struct {
 	// MaxAwaitTime is the maximum amount of time that the server should wait for new documents to satisfy a tailable cursor
 	// query. This option is only valid for tailable await cursors (see the CursorType option for more information) and
 	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
-	//
-	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time that the Find operation can run before
-	// returning an error. MaxAwaitTime is still usable through the deprecated setter.
 	MaxAwaitTime *time.Duration
 
 	// MaxTime is the maximum amount of time that the query can run on the server. The default value is nil, meaning that there
@@ -181,10 +177,6 @@ func (f *FindOptions) SetMax(max interface{}) *FindOptions {
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-//
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver.
-// The more general Timeout option should be used in its place to control the amount of time that the
-// Find operation can run before returning an error.
 func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
 	f.MaxAwaitTime = &d
 	return f
@@ -371,8 +363,6 @@ type FindOneOptions struct {
 	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
 	// This option is only valid for tailable await cursors (see the CursorType option for more information) and
 	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
-	//
-	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 	MaxAwaitTime *time.Duration
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
@@ -477,8 +467,6 @@ func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-//
-// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
 func (f *FindOneOptions) SetMaxAwaitTime(d time.Duration) *FindOneOptions {
 	f.MaxAwaitTime = &d
 	return f

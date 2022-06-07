@@ -36,10 +36,6 @@ type ChangeStreamOptions struct {
 	FullDocumentBeforeChange *FullDocument
 
 	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
-	//
-	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time to wait for new documents before returning
-	// an error. MaxAwaitTime is still usable through the deprecated setter.
 	MaxAwaitTime *time.Duration
 
 	// A document specifying the logical starting point for the change stream. Only changes corresponding to an oplog
@@ -108,10 +104,6 @@ func (cso *ChangeStreamOptions) SetFullDocumentBeforeChange(fdbc FullDocument) *
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-//
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-// Timeout option should be used in its place to control the amount of time to wait for new documents before returning
-// an error.
 func (cso *ChangeStreamOptions) SetMaxAwaitTime(d time.Duration) *ChangeStreamOptions {
 	cso.MaxAwaitTime = &d
 	return cso
