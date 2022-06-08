@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
@@ -424,7 +425,10 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	// cancel the wantConn if checkOut() returned an error to make sure any delivered connections
 	// are returned to the pool (e.g. if a connection was delivered immediately after the Context
 	// timed out).
-	w := newWantConn()
+	//
+	// If checkOut context is a Timeout context, create a wantConn with createTimeoutCtx set to
+	// true to enable CSOT-gated features in potential handshakes.
+	w := newWantConn(internal.IsTimeoutContext(ctx))
 	defer func() {
 		if err != nil {
 			w.cancel(p, err)
@@ -837,8 +841,16 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			})
 		}
 
-		// Pass the createConnections context to connect to allow pool close to cancel connection
-		// establishment so shutdown doesn't block indefinitely if connectTimeout=0.
+		// If the wantConn received from wait() specifies createTimeoutCtx as true, create a Timeout
+		// context based on the createConnections context. Otherwise pass the createConnections
+		// context to connect to allow pool close to cancel connection establishment so shutdown
+		// doesn't block indefinitely if connectTimeout=0.
+		if w.createTimeoutCtx {
+			// Ignore returned CancelFunc, as we rely on pool close to potentially cancel connection
+			// establishment. We only want to create a Timeout context to enable CSOT-gated features
+			// in potential handshakes.
+			ctx, _ = internal.MakeTimeoutContext(ctx, 0)
+		}
 		err := conn.connect(ctx)
 		if err != nil {
 			w.tryDeliver(nil, err)
@@ -947,7 +959,8 @@ func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		for i := 0; i < n; i++ {
-			w := newWantConn()
+			// wantConns created by maintain do not need to have Timeout contexts.
+			w := newWantConn(false)
 			p.queueForNewConn(w)
 			wantConns = append(wantConns, w)
 
@@ -1011,11 +1024,16 @@ type wantConn struct {
 	mu   sync.Mutex // Guards conn, err
 	conn *connection
 	err  error
+
+	// Specifies whether to run potential handshakes with a Timeout context to enable CSOT-gated
+	// behavior.
+	createTimeoutCtx bool
 }
 
-func newWantConn() *wantConn {
+func newWantConn(createTimeoutCtx bool) *wantConn {
 	return &wantConn{
-		ready: make(chan struct{}, 1),
+		ready:            make(chan struct{}, 1),
+		createTimeoutCtx: createTimeoutCtx,
 	}
 }
 

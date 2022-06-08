@@ -338,7 +338,10 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	}
 
 	var deadline time.Time
-	if c.writeTimeout != 0 {
+	// Only respect set writeTimeout when context is not a Timeout context (global Timeout is not set).
+	// TODO(GODRIVER-2348): Remove the check for Timeout context once SocketTimeout is removed from
+	// the driver.
+	if !internal.IsTimeoutContext(ctx) && c.writeTimeout != 0 {
 		deadline = time.Now().Add(c.writeTimeout)
 	}
 
@@ -397,7 +400,10 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	}
 
 	var deadline time.Time
-	if c.readTimeout != 0 {
+	// Only respect set readTimeout when context is not a Timeout context (global Timeout is not set).
+	// TODO(GODRIVER-2348): Remove the check for Timeout context once SocketTimeout is removed from
+	// the driver.
+	if !internal.IsTimeoutContext(ctx) && c.readTimeout != 0 {
 		deadline = time.Now().Add(c.readTimeout)
 	}
 
