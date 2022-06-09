@@ -921,7 +921,7 @@ func (op Operation) createWireMessage(
 	// or less than 6, use OP_QUERY. Otherwise, use OP_MSG.
 	if desc.Kind != description.LoadBalanced && op.ServerAPI == nil &&
 		(desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion) {
-		return op.createQueryWireMessage(maxTimeMS, dst, desc)
+		return op.createQueryWireMessage(ctx, maxTimeMS, dst, desc)
 	}
 	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn)
 }
@@ -935,7 +935,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 	return dst
 }
 
-func (op Operation) createQueryWireMessage(maxTimeMS uint64, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createQueryWireMessage(ctx context.Context, maxTimeMS uint64, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	var info startedInformation
 	flags := op.secondaryOK(desc)
 	var wmindex int32
@@ -973,7 +973,7 @@ func (op Operation) createQueryWireMessage(maxTimeMS uint64, dst []byte, desc de
 		return dst, info, err
 	}
 
-	dst, err = op.addWriteConcern(dst, desc)
+	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1040,7 +1040,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, 
 	if err != nil {
 		return dst, info, err
 	}
-	dst, err = op.addWriteConcern(dst, desc)
+	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1192,13 +1192,19 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, error) {
 	if op.MinimumWriteConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumWriteConcernWireVersion)) {
 		return dst, nil
 	}
 	wc := op.WriteConcern
 	if wc == nil {
 		return dst, nil
+	}
+
+	// If context is a Timeout context, remove the deprecated wTimeout (set it to 0) on the write concern.
+	// TODO(GODRIVER-2348): Remove the check for op.Timeout once wTimeout is removed.
+	if internal.IsTimeoutContext(ctx) {
+		wc = wc.WithOptions(writeconcern.WTimeout(0))
 	}
 
 	t, data, err := wc.MarshalBSONValue()
