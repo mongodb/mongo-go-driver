@@ -120,6 +120,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		Crypt:             c.crypt,
 		Database:          c.database,
 		Deployment:        c.deployment,
+		MaxTimeMS:         c.maxTimeMS,
 		ReadConcern:       c.readConcern,
 		ReadPreference:    c.readPreference,
 		Selector:          c.selector,
@@ -141,11 +142,6 @@ func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, er
 	dst = bsoncore.AppendStringElement(dst, "count", c.collection)
 	if c.query != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "query", c.query)
-	}
-
-	// Only append specified maxTimeMS if timeout is not also specified.
-	if c.maxTimeMS != nil && c.timeout == nil {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *c.maxTimeMS)
 	}
 	if c.comment.Type != bsontype.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", c.comment)

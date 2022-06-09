@@ -98,6 +98,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		Crypt:             f.crypt,
 		Database:          f.database,
 		Deployment:        f.deployment,
+		MaxTimeMS:         f.maxTimeMS,
 		ReadConcern:       f.readConcern,
 		ReadPreference:    f.readPreference,
 		Selector:          f.selector,
@@ -148,10 +149,6 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 	}
 	if f.max != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "max", f.max)
-	}
-	// Only append specified maxTimeMS if timeout is not also specified.
-	if f.maxTimeMS != nil && f.timeout == nil {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *f.maxTimeMS)
 	}
 	if f.min != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "min", f.min)

@@ -99,6 +99,7 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		Crypt:             d.crypt,
 		Database:          d.database,
 		Deployment:        d.deployment,
+		MaxTimeMS:         d.maxTimeMS,
 		ReadConcern:       d.readConcern,
 		ReadPreference:    d.readPreference,
 		Selector:          d.selector,
@@ -121,9 +122,6 @@ func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte,
 	}
 	if d.key != nil {
 		dst = bsoncore.AppendStringElement(dst, "key", *d.key)
-	}
-	if d.maxTimeMS != nil {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *d.maxTimeMS)
 	}
 	if d.query != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "query", d.query)

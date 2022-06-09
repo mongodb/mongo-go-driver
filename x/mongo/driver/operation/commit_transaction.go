@@ -61,6 +61,7 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Crypt:             ct.crypt,
 		Database:          ct.database,
 		Deployment:        ct.deployment,
+		MaxTimeMS:         ct.maxTimeMS,
 		Selector:          ct.selector,
 		WriteConcern:      ct.writeConcern,
 		ServerAPI:         ct.serverAPI,
@@ -71,9 +72,6 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 func (ct *CommitTransaction) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 
 	dst = bsoncore.AppendInt32Element(dst, "commitTransaction", 1)
-	if ct.maxTimeMS != nil {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *ct.maxTimeMS)
-	}
 	if ct.recoveryToken != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "recoveryToken", ct.recoveryToken)
 	}

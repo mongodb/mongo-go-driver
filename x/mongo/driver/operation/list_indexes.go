@@ -75,6 +75,7 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		CommandMonitor: li.monitor,
 		Database:       li.database,
 		Deployment:     li.deployment,
+		MaxTimeMS:      li.maxTimeMS,
 		Selector:       li.selector,
 		Crypt:          li.crypt,
 		Legacy:         driver.LegacyListIndexes,
@@ -93,12 +94,6 @@ func (li *ListIndexes) command(dst []byte, desc description.SelectedServer) ([]b
 	if li.batchSize != nil {
 
 		cursorDoc = bsoncore.AppendInt32Element(cursorDoc, "batchSize", *li.batchSize)
-	}
-
-	// Only append specified maxTimeMS if timeout is not also specified.
-	if li.maxTimeMS != nil && li.timeout == nil {
-
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *li.maxTimeMS)
 	}
 	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
 	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc)

@@ -109,6 +109,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		MinimumWriteConcernWireVersion: 5,
 		ServerAPI:                      a.serverAPI,
 		IsOutputAggregate:              a.hasOutputStage,
+		MaxTimeMS:                      a.maxTimeMS,
 		Timeout:                        a.timeout,
 	}.Execute(ctx, nil)
 
@@ -147,12 +148,6 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 	if a.hint.Type != bsontype.Type(0) {
 
 		dst = bsoncore.AppendValueElement(dst, "hint", a.hint)
-	}
-
-	// Only append specified maxTimeMS if timeout is not also specified.
-	if a.maxTimeMS != nil && a.timeout == nil {
-
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *a.maxTimeMS)
 	}
 	if a.pipeline != nil {
 

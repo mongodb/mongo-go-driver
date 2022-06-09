@@ -137,6 +137,7 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		CommandMonitor: fam.monitor,
 		Database:       fam.database,
 		Deployment:     fam.deployment,
+		MaxTimeMS:      fam.maxTimeMS,
 		Selector:       fam.selector,
 		WriteConcern:   fam.writeConcern,
 		Crypt:          fam.crypt,
@@ -172,12 +173,6 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 	if fam.fields != nil {
 
 		dst = bsoncore.AppendDocumentElement(dst, "fields", fam.fields)
-	}
-
-	// Only append specified maxTimeMS if timeout is not also specified.
-	if fam.maxTimeMS != nil && fam.timeout == nil {
-
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *fam.maxTimeMS)
 	}
 	if fam.newDocument != nil {
 

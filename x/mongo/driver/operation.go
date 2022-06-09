@@ -217,6 +217,9 @@ type Operation struct {
 	// read preference will not be added to the command on wire versions < 13.
 	IsOutputAggregate bool
 
+	// MaxTimeMS specifies the maximum amount of time to allow the operation to run.
+	MaxTimeMS *int64
+
 	// Timeout is the amount of time that this operation can execute before returning an error. The default value
 	// nil, which means that the timeout of the operation's caller will be used.
 	Timeout *time.Duration
@@ -471,8 +474,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		}
 
-		// Calculate value of 'maxTimeMS' field to potentially append to the wire message based on the current
-		// context's deadline and the 90th percentile RTT if the ctx is a Timeout Context.
+		// Calculate value of 'maxTimeMS' field to potentially append to the wire message based on the
+		// current context's deadline and the 90th percentile RTT if the ctx is a Timeout Context. If
+		// context is not a Timeout context, use the passed in MaxTimeMS if set.
 		var maxTimeMS uint64
 		if internal.IsTimeoutContext(ctx) {
 			if deadline, ok := ctx.Deadline(); ok {
@@ -488,6 +492,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				maxTimeMS = uint64(maxTimeMSVal)
 			}
+		} else if op.MaxTimeMS != nil {
+			maxTimeMS = uint64(*op.MaxTimeMS)
 		}
 
 		// convert to wire message

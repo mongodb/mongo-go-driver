@@ -94,6 +94,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		Crypt:             di.crypt,
 		Database:          di.database,
 		Deployment:        di.deployment,
+		MaxTimeMS:         di.maxTimeMS,
 		Selector:          di.selector,
 		WriteConcern:      di.writeConcern,
 		ServerAPI:         di.serverAPI,
@@ -106,10 +107,6 @@ func (di *DropIndexes) command(dst []byte, desc description.SelectedServer) ([]b
 	dst = bsoncore.AppendStringElement(dst, "dropIndexes", di.collection)
 	if di.index != nil {
 		dst = bsoncore.AppendStringElement(dst, "index", *di.index)
-	}
-	// Only append specified maxTimeMS if timeout is not also specified.
-	if di.maxTimeMS != nil && di.timeout == nil {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *di.maxTimeMS)
 	}
 	return dst, nil
 }

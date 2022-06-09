@@ -112,6 +112,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Crypt:             ci.crypt,
 		Database:          ci.database,
 		Deployment:        ci.deployment,
+		MaxTimeMS:         ci.maxTimeMS,
 		Selector:          ci.selector,
 		WriteConcern:      ci.writeConcern,
 		ServerAPI:         ci.serverAPI,
@@ -130,10 +131,6 @@ func (ci *CreateIndexes) command(dst []byte, desc description.SelectedServer) ([
 	}
 	if ci.indexes != nil {
 		dst = bsoncore.AppendArrayElement(dst, "indexes", ci.indexes)
-	}
-	// Only append specified maxTimeMS if timeout is not also specified.
-	if ci.maxTimeMS != nil && ci.timeout == nil {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *ci.maxTimeMS)
 	}
 	return dst, nil
 }
