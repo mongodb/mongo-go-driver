@@ -448,6 +448,11 @@ functions:
           export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
           export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
           export AWS_DEFAULT_REGION="us-east-1"
+
+          # Set client-side encryption credentials.
+          export CSFLE_TLS_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
+          export CSFLE_TLS_CERTIFICATE_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
+
           ${PYTHON3_BINARY} -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
 
@@ -1534,7 +1539,6 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "nossl"
-          CLIENT_SIDE_ENCRYPTION: 'on'
 
   - name: test-sharded-noauth-nossl
     tags: ["test", "sharded"]
