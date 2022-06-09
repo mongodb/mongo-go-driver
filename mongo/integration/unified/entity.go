@@ -590,14 +590,16 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 			return err
 		}
 
-		cfg, err := options.BuildTLSConfig(map[string]interface{}{
-			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-			"tlsCAFile":             tlsCAFile,
-		})
-		if err != nil {
-			return err
+		if tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
+			cfg, err := options.BuildTLSConfig(map[string]interface{}{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			})
+			if err != nil {
+				return fmt.Errorf("error constructing tls config: %v", err)
+			}
+			tlsconf["kmip"] = cfg
 		}
-		tlsconf["kmip"] = cfg
 
 		if kmipEndpoint != "" {
 			kmsProviders["kmip"]["endpoint"] = kmipEndpoint

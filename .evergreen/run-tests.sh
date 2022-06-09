@@ -2,6 +2,8 @@
 
 set -o errexit
 
+echo "TEST"
+
 export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
 export GOCACHE="$(pwd)/.cache"
 export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
@@ -107,4 +109,31 @@ GCP_EMAIL="${cse_gcp_email}" \
 GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
 make evg-test \
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH \
+CSFLE_TLS_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem" \
+CSFLE_TLS_CERTIFICATE_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
+
+# Ensure mock KMS servers are running before starting tests.
+if [ "$CLIENT_SIDE_ENCRYPTION" = "on" ]; then
+  echo "Waiting for mock KMS servers to start..."
+  wait_for_kms_server() {
+    for i in $(seq 300); do
+        # Exit code 7: "Failed to connect to host".
+        if curl -s "localhost:$1"; test $? -ne 7; then
+          return 0
+        else
+          sleep 1
+        fi
+    done
+    echo "Could not detect mock KMS server on port $1"
+    return 1
+  }
+  wait_for_kms_server 5698
+
+  echo "Waiting for mock KMS servers to start... done."
+  if ! test -d /cygdrive/c; then
+    # We have trouble with this test on Windows. only set cryptSharedLibPath on other platforms
+    export MONGOC_TEST_CRYPT_SHARED_LIB_PATH="$(find . -wholename '*src/libmongoc/mongo_crypt_v1.*' -and -regex '.*\(.dll\|.dylib\|.so\)' | head -n1)"
+    echo "Setting env cryptSharedLibPath: [$MONGOC_TEST_CRYPT_SHARED_LIB_PATH]"
+  fi
+fi

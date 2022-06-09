@@ -246,7 +246,7 @@ func (d *Distinct) ReadConcern(readConcern *readconcern.ReadConcern) *Distinct {
 	return d
 }
 
-// ReadPreference set the read prefernce used with this operation.
+// ReadPreference set the read preference used with this operation.
 func (d *Distinct) ReadPreference(readPreference *readpref.ReadPref) *Distinct {
 	if d == nil {
 		d = new(Distinct)

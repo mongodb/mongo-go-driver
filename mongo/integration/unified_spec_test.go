@@ -185,7 +185,6 @@ var directories = []string{
 	"read-write-concern/operation",
 	"server-discovery-and-monitoring/integration",
 	"atlas-data-lake-testing",
-	"client-side-encryption/legacy",
 }
 
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())

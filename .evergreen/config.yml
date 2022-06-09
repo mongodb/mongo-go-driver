@@ -880,7 +880,7 @@ functions:
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT} --require_client_cert
 
-  start-kms-kmip-server:
+  start-cse-servers:
     - command: shell.exec
       params:
         script: |
@@ -888,6 +888,7 @@ functions:
 
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           . ./activate_venv.sh
+
           # TODO: Stabilize this pip install with a non-forked version of PyKMIP in https://jira.mongodb.org/browse/GODRIVER-2239
           pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
     - command: shell.exec
@@ -959,6 +960,7 @@ pre:
   - func: windows-fix
   - func: fix-absolute-paths
   - func: make-files-executable
+  - func: start-cse-servers
 
 post:
   - command: gotest.parse_files
@@ -1532,6 +1534,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "nossl"
+          CLIENT_SIDE_ENCRYPTION: 'on'
 
   - name: test-sharded-noauth-nossl
     tags: ["test", "sharded"]
@@ -1832,7 +1835,7 @@ tasks:
         vars:
           CERT_FILE: "server.pem"
           PORT: 8002
-      - func: start-kms-kmip-server
+      # - func: start-kms-kmip-server
       - func: run-kmip-tests
         vars:
           TOPOLOGY: "server"
