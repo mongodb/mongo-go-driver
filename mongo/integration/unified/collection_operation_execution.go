@@ -232,6 +232,7 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 
 	var keys bson.Raw
 	indexOpts := options.Index()
+	createIndexOpts := options.CreateIndexes()
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -266,6 +267,8 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 			keys = val.Document()
 		case "languageOverride":
 			indexOpts.SetLanguageOverride(val.StringValue())
+		case "maxTimeMS":
+			createIndexOpts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "max":
 			indexOpts.SetMax(val.Double())
 		case "min":
@@ -300,7 +303,7 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		Keys:    keys,
 		Options: indexOpts,
 	}
-	name, err := coll.Indexes().CreateOne(ctx, model)
+	name, err := coll.Indexes().CreateOne(ctx, model, createIndexOpts)
 	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), err), nil
 }
 
