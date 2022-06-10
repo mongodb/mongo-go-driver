@@ -217,6 +217,10 @@ type Operation struct {
 	// read preference will not be added to the command on wire versions < 13.
 	IsOutputAggregate bool
 
+	// Timeout is the amount of time that this operation can execute before returning an error. The default value
+	// nil, which means that the timeout of the operation's caller will be used.
+	Timeout *time.Duration
+
 	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
 }
@@ -308,6 +312,16 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	err := op.Validate()
 	if err != nil {
 		return err
+	}
+
+	// If no deadline is set on the passed-in context, op.Timeout is set, and context is not already
+	// a Timeout context, honor op.Timeout in new Timeout context for operation execution.
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && !internal.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *op.Timeout)
+		// Redefine ctx to be the new timeout-derived context.
+		ctx = newCtx
+		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
+		defer cancelFunc()
 	}
 
 	if op.Client != nil {
@@ -457,11 +471,30 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		}
 
+		// Calculate value of 'maxTimeMS' field to potentially append to the wire message based on the current
+		// context's deadline and the 90th percentile RTT if the ctx is a Timeout Context.
+		var maxTimeMS uint64
+		if internal.IsTimeoutContext(ctx) {
+			if deadline, ok := ctx.Deadline(); ok {
+				remainingTimeout := time.Until(deadline)
+
+				maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
+					int64(srvr.RTT90()/time.Millisecond)
+
+				// A maxTimeMS value <= 0 indicates that we are already at or past the Context's deadline.
+				if maxTimeMSVal <= 0 {
+					return internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+						"Context deadline has already been surpassed by %v", remainingTimeout)
+				}
+				maxTimeMS = uint64(maxTimeMSVal)
+			}
+		}
+
 		// convert to wire message
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, conn)
+		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, maxTimeMS, conn)
 		if err != nil {
 			return err
 		}
@@ -496,12 +529,19 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			serviceID:    startedInfo.serviceID,
 		}
 
-		// Check if there's enough time to perform a best-case network round trip before the Context
-		// deadline. If not, create a network error that wraps a context.DeadlineExceeded error and
-		// skip the actual round trip.
-		if deadline, ok := ctx.Deadline(); ok && time.Now().Add(srvr.MinRTT()).After(deadline) {
-			err = op.networkError(context.DeadlineExceeded)
-		} else {
+		// Check if there's enough time to perform a round trip before the Context deadline. If ctx is
+		// a Timeout Context, use the 90th percentile RTT as a threshold. Otherwise, use the minimum observed
+		// RTT.
+		if deadline, ok := ctx.Deadline(); ok {
+			if internal.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTT90()).After(deadline) {
+				err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+					"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", time.Until(deadline))
+			} else if time.Now().Add(srvr.MinRTT()).After(deadline) {
+				err = op.networkError(context.DeadlineExceeded)
+			}
+		}
+
+		if err == nil {
 			// roundtrip using either the full roundTripper or a special one for when the moreToCome
 			// flag is set
 			var roundTrip = op.roundTrip
@@ -870,15 +910,20 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	return append(header, uncompressed...), nil
 }
 
-func (op Operation) createWireMessage(ctx context.Context, dst []byte,
-	desc description.SelectedServer, conn Connection) ([]byte, startedInformation, error) {
+func (op Operation) createWireMessage(
+	ctx context.Context,
+	dst []byte,
+	desc description.SelectedServer,
+	maxTimeMS uint64,
+	conn Connection) ([]byte, startedInformation, error) {
+
 	// If topology is not LoadBalanced, API version is not declared, and wire version is unknown
 	// or less than 6, use OP_QUERY. Otherwise, use OP_MSG.
 	if desc.Kind != description.LoadBalanced && op.ServerAPI == nil &&
 		(desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion) {
-		return op.createQueryWireMessage(dst, desc)
+		return op.createQueryWireMessage(maxTimeMS, dst, desc)
 	}
-	return op.createMsgWireMessage(ctx, dst, desc, conn)
+	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn)
 }
 
 func (op Operation) addBatchArray(dst []byte) []byte {
@@ -890,7 +935,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 	return dst
 }
 
-func (op Operation) createQueryWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createQueryWireMessage(maxTimeMS uint64, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	var info startedInformation
 	flags := op.secondaryOK(desc)
 	var wmindex int32
@@ -940,6 +985,11 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 
 	dst = op.addClusterTime(dst, desc)
 	dst = op.addServerAPI(dst)
+	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
+	// specifies the default behavior of no timeout server-side.
+	if maxTimeMS > 0 {
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(maxTimeMS))
+	}
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 	// Command monitoring only reports the document inside $query
@@ -957,7 +1007,7 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
 }
 
-func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc description.SelectedServer,
+func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, dst []byte, desc description.SelectedServer,
 	conn Connection) ([]byte, startedInformation, error) {
 
 	var info startedInformation
@@ -1001,6 +1051,11 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 
 	dst = op.addClusterTime(dst, desc)
 	dst = op.addServerAPI(dst)
+	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
+	// specifies the default behavior of no timeout server-side.
+	if maxTimeMS > 0 {
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(maxTimeMS))
+	}
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
 	rp, err := op.createReadPref(desc, false)

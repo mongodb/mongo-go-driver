@@ -53,6 +53,9 @@ type Server interface {
 
 	// MinRTT returns the minimum round-trip time to the server observed over the window period.
 	MinRTT() time.Duration
+
+	// RTT90 returns the 90th percentile round-trip time to the server observed over the window period.
+	RTT90() time.Duration
 }
 
 // Connection represents a connection to a MongoDB server.
@@ -211,6 +214,11 @@ func (ssd SingleConnectionDeployment) Connection(context.Context) (Connection, e
 
 // MinRTT always returns 0. It implements the driver.Server interface.
 func (ssd SingleConnectionDeployment) MinRTT() time.Duration {
+	return 0
+}
+
+// RTT90 always returns 0. It implements the driver.Server interface.
+func (ssd SingleConnectionDeployment) RTT90() time.Duration {
 	return 0
 }
 

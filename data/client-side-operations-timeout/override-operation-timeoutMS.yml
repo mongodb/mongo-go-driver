@@ -1,8 +1,8 @@
 # Tests in this file are generated from override-operation-timeoutMS.yml.template.
 
-description: "timeoutMS can be overriden for an operation"
+description: "timeoutMS can be overridden for an operation"
 
-schemaVersion: "1.0"
+schemaVersion: "1.9"
 
 runOnRequirements:
   - minServerVersion: "4.4"
@@ -39,7 +39,7 @@ tests:
   # For each level operation, we execute two tests:
   #
   # 1. timeoutMS can be overridden to a non-zero value for an operation. Each test executes an operation using one of
-  # the entities defined above with an overriden timeoutMS=1000 and configures a fail point to block the operation for
+  # the entities defined above with an overridden timeoutMS=1000 and configures a fail point to block the operation for
   # 15ms so the operation succeeds.
   #
   # 2. timeoutMS can be overridden to 0 for an operation. Each test executes an operation using the entities defined
@@ -63,8 +63,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -92,8 +92,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -120,9 +120,8 @@ tests:
         object: *client
         arguments:
           timeoutMS: 1000
-          filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -149,9 +148,8 @@ tests:
         object: *client
         arguments:
           timeoutMS: 0
-          filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -179,8 +177,8 @@ tests:
         arguments:
           timeoutMS: 1000
           pipeline: []
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -208,8 +206,8 @@ tests:
         arguments:
           timeoutMS: 0
           pipeline: []
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -237,8 +235,8 @@ tests:
         arguments:
           timeoutMS: 1000
           pipeline: [ { $listLocalSessions: {} }, { $limit: 1 } ]
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -266,8 +264,8 @@ tests:
         arguments:
           timeoutMS: 0
           pipeline: [ { $listLocalSessions: {} }, { $limit: 1 } ]
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -295,8 +293,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -324,8 +322,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -353,8 +351,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -382,8 +380,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -411,8 +409,9 @@ tests:
         arguments:
           timeoutMS: 1000
           command: { ping: 1 }
-          
-        
+          commandName: ping
+
+
     expectEvents:
       - client: *client
         events:
@@ -440,8 +439,9 @@ tests:
         arguments:
           timeoutMS: 0
           command: { ping: 1 }
-          
-        
+          commandName: ping
+
+
     expectEvents:
       - client: *client
         events:
@@ -469,8 +469,8 @@ tests:
         arguments:
           timeoutMS: 1000
           pipeline: []
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -498,8 +498,8 @@ tests:
         arguments:
           timeoutMS: 0
           pipeline: []
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -527,8 +527,8 @@ tests:
         arguments:
           timeoutMS: 1000
           pipeline: []
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -556,8 +556,8 @@ tests:
         arguments:
           timeoutMS: 0
           pipeline: []
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -585,8 +585,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -614,8 +614,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -643,8 +643,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -672,8 +672,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -700,8 +700,8 @@ tests:
         object: *collection
         arguments:
           timeoutMS: 1000
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -728,8 +728,8 @@ tests:
         object: *collection
         arguments:
           timeoutMS: 0
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -758,8 +758,8 @@ tests:
           timeoutMS: 1000
           fieldName: x
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -788,8 +788,8 @@ tests:
           timeoutMS: 0
           fieldName: x
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -817,8 +817,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -846,8 +846,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -875,8 +875,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -904,8 +904,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -932,8 +932,8 @@ tests:
         object: *collection
         arguments:
           timeoutMS: 1000
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -960,8 +960,8 @@ tests:
         object: *collection
         arguments:
           timeoutMS: 0
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -988,8 +988,8 @@ tests:
         object: *collection
         arguments:
           timeoutMS: 1000
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1016,8 +1016,8 @@ tests:
         object: *collection
         arguments:
           timeoutMS: 0
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1045,8 +1045,8 @@ tests:
         arguments:
           timeoutMS: 1000
           pipeline: []
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1074,8 +1074,8 @@ tests:
         arguments:
           timeoutMS: 0
           pipeline: []
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1103,8 +1103,8 @@ tests:
         arguments:
           timeoutMS: 1000
           document: { x: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1132,8 +1132,8 @@ tests:
         arguments:
           timeoutMS: 0
           document: { x: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1162,8 +1162,8 @@ tests:
           timeoutMS: 1000
           documents:
             - { x: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1192,8 +1192,8 @@ tests:
           timeoutMS: 0
           documents:
             - { x: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1221,8 +1221,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1250,8 +1250,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1279,8 +1279,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1308,8 +1308,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1338,8 +1338,8 @@ tests:
           timeoutMS: 1000
           filter: {}
           replacement: { x: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1368,8 +1368,8 @@ tests:
           timeoutMS: 0
           filter: {}
           replacement: { x: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1398,8 +1398,8 @@ tests:
           timeoutMS: 1000
           filter: {}
           update: { $set: { x: 1 } }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1428,8 +1428,8 @@ tests:
           timeoutMS: 0
           filter: {}
           update: { $set: { x: 1 } }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1458,8 +1458,8 @@ tests:
           timeoutMS: 1000
           filter: {}
           update: { $set: { x: 1 } }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1488,8 +1488,8 @@ tests:
           timeoutMS: 0
           filter: {}
           update: { $set: { x: 1 } }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1517,8 +1517,8 @@ tests:
         arguments:
           timeoutMS: 1000
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1546,8 +1546,8 @@ tests:
         arguments:
           timeoutMS: 0
           filter: {}
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1576,8 +1576,8 @@ tests:
           timeoutMS: 1000
           filter: {}
           replacement: { x: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1606,8 +1606,8 @@ tests:
           timeoutMS: 0
           filter: {}
           replacement: { x: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1636,8 +1636,8 @@ tests:
           timeoutMS: 1000
           filter: {}
           update: { $set: { x: 1 } }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1666,8 +1666,8 @@ tests:
           timeoutMS: 0
           filter: {}
           update: { $set: { x: 1 } }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1697,8 +1697,8 @@ tests:
           requests:
             - insertOne:
                 document: { _id: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1728,8 +1728,8 @@ tests:
           requests:
             - insertOne:
                 document: { _id: 1 }
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1758,8 +1758,8 @@ tests:
           timeoutMS: 1000
           keys: { x: 1 }
           name: "x_1"
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1788,8 +1788,8 @@ tests:
           timeoutMS: 0
           keys: { x: 1 }
           name: "x_1"
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1817,10 +1817,9 @@ tests:
         arguments:
           timeoutMS: 1000
           name: "x_1"
-          
+
         expectError:
-          isClientError: false
-          isTimeoutError: false
+          isTimeoutError: false  # IndexNotFound
     expectEvents:
       - client: *client
         events:
@@ -1848,10 +1847,9 @@ tests:
         arguments:
           timeoutMS: 0
           name: "x_1"
-          
+
         expectError:
-          isClientError: false
-          isTimeoutError: false
+          isTimeoutError: false  # IndexNotFound
     expectEvents:
       - client: *client
         events:
@@ -1878,8 +1876,8 @@ tests:
         object: *collection
         arguments:
           timeoutMS: 1000
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1906,8 +1904,8 @@ tests:
         object: *collection
         arguments:
           timeoutMS: 0
-          
-        
+
+
     expectEvents:
       - client: *client
         events:
@@ -1917,4 +1915,3 @@ tests:
               command:
                 dropIndexes: *collectionName
                 maxTimeMS: { $$exists: false }
-  
