@@ -638,6 +638,9 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 		return dst, ErrConnectionClosed
 	}
 	if c.connection.compressor == wiremessage.CompressorNoOp {
+		if len(dst) == 0 {
+			return src, nil
+		}
 		return append(dst, src...), nil
 	}
 	_, reqid, respto, origcode, rem, ok := wiremessage.ReadHeader(src)

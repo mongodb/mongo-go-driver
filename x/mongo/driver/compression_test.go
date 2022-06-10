@@ -84,11 +84,11 @@ func BenchmarkCompression(b *testing.B) {
 	payload := func() []byte {
 		f, err := os.Open("compression.go")
 		if err != nil {
-			panic(err)
+			b.Error(err)
 		}
 		buf, err := io.ReadAll(f)
 		if err != nil {
-			panic(err)
+			b.Error(err)
 		}
 		for i := 1; i < 10; i++ {
 			buf = append(buf, buf...)
