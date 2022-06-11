@@ -102,6 +102,7 @@ functions:
              cp ./install/libmongocrypt/include/mongocrypt/*.h c:/libmongocrypt/include
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
           elif [ "Darwin" = "$(uname -s)" ]; then
+             # TODO (GODRIVER-2442): Once libmongocrypt compiles on macOS 10.15, remove this elif block.
              echo "fetching build for Darwin ... begin"
              mkdir -p install/libmongocrypt
              mkdir libmongocrypt-all
