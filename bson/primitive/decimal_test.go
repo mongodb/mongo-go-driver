@@ -133,7 +133,7 @@ func TestParseDecimal128FromBigInt(t *testing.T) {
 }
 
 func TestParseDecimal128(t *testing.T) {
-	cases := make([]bigIntTestCase, 0)
+	cases := make([]bigIntTestCase, 0, len(bigIntTestCases))
 	cases = append(cases, bigIntTestCases...)
 	cases = append(cases,
 		bigIntTestCase{s: "-0001231.453454000000565600000000E-21", h: 0xafe6000003faa269, l: 0x81cfeceaabdb1800},
@@ -192,7 +192,7 @@ func TestDecimal128_JSON(t *testing.T) {
 		assert.Equal(t, want.l, got.l, "expected l: %v got: %v", want.l, got.l)
 	})
 	t.Run("unmarshal", func(t *testing.T) {
-		cases := make([]bigIntTestCase, 0)
+		cases := make([]bigIntTestCase, 0, len(bigIntTestCases))
 		cases = append(cases, bigIntTestCases...)
 		cases = append(cases,
 			bigIntTestCase{s: "-0001231.453454000000565600000000E-21", h: 0xafe6000003faa269, l: 0x81cfeceaabdb1800},

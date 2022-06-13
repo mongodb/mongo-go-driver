@@ -691,21 +691,20 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
 		topology.WithConnectionOptions(func(...topology.ConnectionOption) []topology.ConnectionOption { return connOpts }),
 	)
-
-	// Deployment
-	if opts.Deployment != nil {
-		// topology options: WithSeedlist, WithURI, WithSRVServiceName and WithSRVMaxHosts
-		// server options: WithClock and WithConnectionOptions + default maxPoolSize
-		if len(serverOpts) > 2+defaultOptions || len(topologyOpts) > 4 {
-			return errors.New("cannot specify topology or server options with a deployment")
-		}
-		c.deployment = opts.Deployment
-	}
-
 	topologyOpts = append(topologyOpts, topology.WithServerOptions(
 		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
 	))
 	c.topologyOptions = topologyOpts
+
+	// Deployment
+	if opts.Deployment != nil {
+		// topology options: WithSeedlist, WithURI, WithSRVServiceName, WithSRVMaxHosts, and WithServerOptions
+		// server options: WithClock and WithConnectionOptions + default maxPoolSize
+		if len(serverOpts) > 2+defaultOptions || len(topologyOpts) > 5 {
+			return errors.New("cannot specify topology or server options with a deployment")
+		}
+		c.deployment = opts.Deployment
+	}
 
 	return nil
 }

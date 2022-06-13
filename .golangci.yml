@@ -32,7 +32,7 @@ linters-settings:
     exclude: .errcheck-excludes
   gocritic:
     enabled-checks:
-      # Detects suspicious append result assignments. E.g. "a = append(b, 1, 2, 3)"
+      # Detects suspicious append result assignments. E.g. "b := append(a, 1, 2, 3)"
       - appendAssign
   govet:
     disable:
