@@ -331,6 +331,55 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}
 			}
 		})
+
+		mt.Run("case 7: Different KeyID can be used with same IndexKeyID", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			valueToEncrypt := "with IndexKeyID"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+
+			// Explicit encrypt the value "with IndexKeyID" with algorithm: "Indexed" and a mismatched IndexKeyID.
+			{
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key2ID).SetIndexKeyID(key1ID)
+				insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error on encrypt: %v", err)
+
+				coll := encryptedClient.Database("db").Collection("explicit_encryption")
+				_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
+				assert.Nil(mt, err, "error in InsertOne: %v", err)
+			}
+
+			// Explicit encrypt the value "with IndexKeyID" with algorithm: "Indexed" and a matched IndexKeyID.
+			{
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetIndexKeyID(key1ID)
+				insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error on encrypt: %v", err)
+
+				coll := encryptedClient.Database("db").Collection("explicit_encryption")
+				_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 2}, {"encryptedIndexed", insertPayload}})
+				assert.Nil(mt, err, "error in InsertOne: %v", err)
+			}
+
+			// Try to find with the correct IndexKeyID.
+			{
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetIndexKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+				findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error in Encrypt: %v", err)
+				coll := encryptedClient.Database("db").Collection("explicit_encryption")
+				cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
+				assert.Nil(mt, err, "error in Find: %v", err)
+				var got []bson.Raw
+				err = cursor.All(context.Background(), &got)
+				assert.Nil(mt, err, "error in All: %v", err)
+				assert.True(mt, len(got) == 2, "expected len(got) == 2, got: %v", len(got))
+				for _, doc := range got {
+					gotValue, err := doc.LookupErr("encryptedIndexed")
+					assert.Nil(mt, err, "error in LookupErr: %v", err)
+					assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+				}
+			}
 		})
 	})
 
