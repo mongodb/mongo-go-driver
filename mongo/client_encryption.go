@@ -118,6 +118,10 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue, opts
 		transformed.SetContentionFactor(*eo.ContentionFactor)
 	}
 
+	if eo.IndexKeyID != nil {
+		transformed.SetIndexKeyID(*eo.IndexKeyID)
+	}
+
 	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: val.Type, Data: val.Value}, transformed)
 	if err != nil {
 		return primitive.Binary{}, err

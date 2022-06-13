@@ -49,6 +49,7 @@ type ExplicitEncryptionOptions struct {
 	Algorithm        string
 	QueryType        *QueryType
 	ContentionFactor *int64
+	IndexKeyID       *primitive.Binary
 }
 
 // ExplicitEncryption creates a new ExplicitEncryptionOptions instance.
@@ -83,5 +84,11 @@ func (eeo *ExplicitEncryptionOptions) SetQueryType(queryType QueryType) *Explici
 // SetContentionFactor specifies the contention factor.
 func (eeo *ExplicitEncryptionOptions) SetContentionFactor(contentionFactor int64) *ExplicitEncryptionOptions {
 	eeo.ContentionFactor = &contentionFactor
+	return eeo
+}
+
+// SetIndexKeyID sets the key identifier for the IndexKey.
+func (eeo *ExplicitEncryptionOptions) SetIndexKeyID(indexKeyID primitive.Binary) *ExplicitEncryptionOptions {
+	eeo.IndexKeyID = &indexKeyID
 	return eeo
 }

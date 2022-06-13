@@ -69,7 +69,7 @@ func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOpt
 }
 
 // SetIndexKeyID specifies an _id of an index key. This should be a UUID (a primitive.Binary with subtype 4).
-// It is only valid to set if algorithm is "Indexed".
+// It is only valid to set if algorithm is "Indexed". If IndexKeyID is not set, it defaults to the value of KeyID.
 func (e *EncryptOptions) SetIndexKeyID(indexKeyID primitive.Binary) *EncryptOptions {
 	e.IndexKeyID = &indexKeyID
 	return e

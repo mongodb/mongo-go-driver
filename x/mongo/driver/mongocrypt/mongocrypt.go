@@ -219,6 +219,17 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 		}
 	}
 
+	if opts.IndexKeyID != nil {
+		indexKeyIDBinary := newBinaryFromBytes(opts.IndexKeyID.Data)
+		defer indexKeyIDBinary.close()
+
+		fmt.Println("setting index_key_id")
+
+		if ok := C.mongocrypt_ctx_setopt_index_key_id(ctx.wrapped, indexKeyIDBinary.wrapped); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
+	}
+
 	docBinary := newBinaryFromBytes(doc)
 	defer docBinary.close()
 	if ok := C.mongocrypt_ctx_explicit_encrypt_init(ctx.wrapped, docBinary.wrapped); !ok {
