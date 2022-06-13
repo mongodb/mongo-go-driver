@@ -105,6 +105,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			datakeysColl := keyVaultClient.Database("keyvault").Collection("datakeys", options.Collection().SetWriteConcern(mtest.MajorityWc))
 			_, err = datakeysColl.InsertOne(context.TODO(), key1Document)
 			assert.Nil(mt, err, "error on InsertOne: %v", err)
+			_, err = datakeysColl.InsertOne(context.TODO(), key2Document)
+			assert.Nil(mt, err, "error on InsertOne: %v", err)
 			// Create a ClientEncryption.
 			ceo := options.ClientEncryption().
 				SetKeyVaultNamespace("keyvault.datakeys").
