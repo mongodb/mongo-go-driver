@@ -86,6 +86,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			subtype, data := key1Document.Lookup("_id").Binary()
 			key1ID = primitive.Binary{Subtype: subtype, Data: data}
 		}
+		key2Document := readJSONFile(mt, "key2-document.json")
+		var key2ID primitive.Binary
+		{
+			subtype, data := key2Document.Lookup("_id").Binary()
+			key2ID = primitive.Binary{Subtype: subtype, Data: data}
+		}
 
 		testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
 			mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption"), encryptedFields)
@@ -256,6 +262,25 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			gotValue, err := clientEncryption.Decrypt(context.Background(), payload)
 			assert.Nil(mt, err, "error in Decrypt: %v", err)
 			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+		})
+
+		mt.Run("case 6: mismatched IndexKeyId cannot insert", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed" and an incorrect IndexKeyID.
+			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetIndexKeyID(key2ID)
+			valueToEncrypt := "encrypted indexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+			insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			coll := encryptedClient.Database("db").Collection("explicit_encryption")
+			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
+			assert.NotNil(mt, err, "expected error on InsertOne, but got success")
+			viewErrSubstr := "foobar"
+			errStr := strings.ToLower(err.Error())
+			assert.True(mt, strings.Contains(errStr, viewErrSubstr),
+				"expected error '%v' to contain substring '%v'", errStr, viewErrSubstr)
 		})
 	})
 

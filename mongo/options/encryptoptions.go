@@ -25,6 +25,7 @@ type EncryptOptions struct {
 	Algorithm        string
 	QueryType        *QueryType
 	ContentionFactor *int64
+	IndexKeyID       *primitive.Binary
 }
 
 // Encrypt creates a new EncryptOptions instance.
@@ -67,6 +68,13 @@ func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOpt
 	return e
 }
 
+// SetIndexKeyID specifies an _id of an index key. This should be a UUID (a primitive.Binary with subtype 4).
+// It is only valid to set if algorithm is "Indexed".
+func (e *EncryptOptions) SetIndexKeyID(indexKeyID primitive.Binary) *EncryptOptions {
+	e.IndexKeyID = &indexKeyID
+	return e
+}
+
 // MergeEncryptOptions combines the argued EncryptOptions in a last-one wins fashion.
 func MergeEncryptOptions(opts ...*EncryptOptions) *EncryptOptions {
 	eo := Encrypt()
@@ -89,6 +97,9 @@ func MergeEncryptOptions(opts ...*EncryptOptions) *EncryptOptions {
 		}
 		if opt.ContentionFactor != nil {
 			eo.ContentionFactor = opt.ContentionFactor
+		}
+		if opt.IndexKeyID != nil {
+			eo.IndexKeyID = opt.IndexKeyID
 		}
 	}
 
