@@ -223,8 +223,6 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 		indexKeyIDBinary := newBinaryFromBytes(opts.IndexKeyID.Data)
 		defer indexKeyIDBinary.close()
 
-		fmt.Println("setting index_key_id")
-
 		if ok := C.mongocrypt_ctx_setopt_index_key_id(ctx.wrapped, indexKeyIDBinary.wrapped); !ok {
 			return nil, ctx.createErrorFromStatus()
 		}
