@@ -1839,7 +1839,6 @@ tasks:
         vars:
           CERT_FILE: "server.pem"
           PORT: 8002
-      # - func: start-kms-kmip-server
       - func: run-kmip-tests
         vars:
           TOPOLOGY: "server"

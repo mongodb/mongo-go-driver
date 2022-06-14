@@ -2,8 +2,6 @@
 
 set -o errexit
 
-echo "TEST"
-
 export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
 export GOCACHE="$(pwd)/.cache"
 export DRIVERS_TOOLS="$(pwd)/../drivers-tools"

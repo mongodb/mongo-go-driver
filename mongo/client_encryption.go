@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	cryptOpts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
@@ -149,6 +150,137 @@ func (ce *ClientEncryption) Decrypt(ctx context.Context, val primitive.Binary) (
 func (ce *ClientEncryption) Close(ctx context.Context) error {
 	ce.crypt.Close()
 	return ce.keyVaultClient.Disconnect(ctx)
+}
+
+// setRewrapManyDataKeyWriteModels will prepare the WriteModel slice for a bulk updating rewrapped documents.
+func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, writeModels *[]WriteModel) error {
+	const idKey = "_id"
+	const keyMaterial = "keyMaterial"
+	const masterKey = "masterKey"
+
+	// Append a slice of WriteModel with the update document per each rewrappedDoc _id filter.
+	for _, rewrappedDocument := range rewrappedDocuments {
+		// Rebuild the document to remove the immutable _id object.
+		rewrappedDocElems, err := rewrappedDocument.Elements()
+		if err != nil {
+			return err
+		}
+		idx, mutableRewrappedDoc := bsoncore.AppendDocumentStart(nil)
+		for _, element := range rewrappedDocElems {
+			if key := element.Key(); key != idKey {
+				value, err := element.ValueErr()
+				if err != nil {
+					return err
+				}
+				mutableRewrappedDoc = bsoncore.AppendValueElement(mutableRewrappedDoc, key, value)
+			}
+		}
+		mutableRewrappedDoc, err = bsoncore.AppendDocumentEnd(mutableRewrappedDoc, idx)
+		if err != nil {
+			return err
+		}
+
+		// Prepare the new master key for update.
+		mutableDocMasterKey, err := bsoncore.Document(mutableRewrappedDoc).LookupErr(masterKey)
+		if err != nil {
+			return err
+		}
+		masterKeyDoc := mutableDocMasterKey.Document()
+
+		// Prepare the new material key for update.
+		mutableDocKeyMaterial, err := bsoncore.Document(mutableRewrappedDoc).LookupErr(keyMaterial)
+		if err != nil {
+			return err
+		}
+		keyMatrialSubtype, keyMaterialBinary := mutableDocKeyMaterial.Binary()
+		mutableDocKeyMaterialBinary := primitive.Binary{Subtype: keyMatrialSubtype, Data: keyMaterialBinary}
+
+		// Prepare the _id filter for documents to update.
+		id, err := rewrappedDocument.LookupErr(idKey)
+		if err != nil {
+			return err
+		}
+
+		idSubtype, idData, ok := id.BinaryOK()
+		if !ok {
+			return fmt.Errorf("expected to assert %q as binary", idKey)
+		}
+		binaryID := primitive.Binary{Subtype: idSubtype, Data: idData}
+
+		// Append the mutable document to the slice for bulk update.
+		*writeModels = append(*writeModels, NewUpdateOneModel().
+			SetFilter(bson.D{{idKey, binaryID}}).
+			SetUpdate(
+				bson.D{
+					{"$set", bson.D{
+						{keyMaterial, mutableDocKeyMaterialBinary},
+						{masterKey, masterKeyDoc},
+					}},
+					{"$currentDate", bson.D{{"updateDate", true}}},
+				},
+			))
+	}
+	return nil
+}
+
+// RewrapManyDataKey decrypts and enecrypts all matching data keys with a possibly new masterKey value. For all
+// matching documents, this method will overwrite the "masterKey", "updateDate", and "keyMaterial". On error, some
+// matching data keys may have been rewrapped.
+func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interface{},
+	opts ...*options.RewrapManyDataKeyOptions) (*RewrapManyDataKeyResult, error) {
+
+	rmdko := options.MergeRewrapManyDataKeyOptions(opts...)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// Transfer rmdko options to /x/ package options to publish the mongocrypt feed.
+	co := cryptOpts.RewrapManyDataKey()
+	if rmdko.MasterKey != nil {
+		keyDoc, err := transformBsoncoreDocument(ce.keyVaultClient.registry, rmdko.MasterKey, true, "masterKey")
+		if err != nil {
+			return nil, err
+		}
+		co.SetMasterKey(keyDoc)
+	}
+	if rmdko.Provider != nil {
+		co.SetProvider(*rmdko.Provider)
+	}
+
+	// Prepare the filters and rewrap the data key using mongocrypt.
+	filterdoc, err := transformBsoncoreDocument(ce.keyVaultClient.registry, filter, true, "filter")
+	if err != nil {
+		return nil, err
+	}
+
+	rewrappedDocuments, err := ce.crypt.RewrapDataKey(ctx, filterdoc, co)
+	if err != nil {
+		return nil, err
+	}
+	if len(rewrappedDocuments) == 0 {
+		// If there are no documents to rewrap, then do nothing.
+		return new(RewrapManyDataKeyResult), nil
+	}
+
+	// Prepare the WriteModel slice for bulk updating the rewrapped data keys.
+	models := []WriteModel{}
+	if err := setRewrapManyDataKeyWriteModels(rewrappedDocuments, &models); err != nil {
+		return nil, err
+	}
+
+	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
+	// ClientEncryption operations.
+	coll, err := ce.keyVaultColl.Clone(options.Collection().
+		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
+	if err != nil {
+		return nil, err
+	}
+
+	bulkWriteResults, err := coll.BulkWrite(ctx, models)
+	if err != nil {
+		return nil, err
+	}
+	return &RewrapManyDataKeyResult{BulkWriteResult: bulkWriteResults}, nil
 }
 
 // splitNamespace takes a namespace in the form "database.collection" and returns (database name, collection name)

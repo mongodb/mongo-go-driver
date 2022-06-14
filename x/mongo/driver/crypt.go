@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
@@ -66,6 +67,9 @@ type Crypt interface {
 	Close()
 	// BypassAutoEncryption returns true if auto-encryption should be bypassed.
 	BypassAutoEncryption() bool
+	// RewrapDataKey attempts to rewrap the document data keys matching the filter, preparing the re-wrapped documents
+	// to be returned as a slice of bsoncore.Document.
+	RewrapDataKey(ctx context.Context, filter []byte, opts *options.RewrapManyDataKeyOptions) ([]bsoncore.Document, error)
 }
 
 // crypt consumes the libmongocrypt.MongoCrypt type to iterate the mongocrypt state machine and perform encryption
@@ -141,6 +145,57 @@ func (c *crypt) CreateDataKey(ctx context.Context, kmsProvider string, opts *opt
 	return c.executeStateMachine(ctx, cryptCtx, "")
 }
 
+// RewrapDataKey attempts to rewrap the document data keys matching the filter, preparing the re-wrapped documents to
+// be returned as a slice of bsoncore.Document.
+func (c *crypt) RewrapDataKey(ctx context.Context, filter []byte,
+	opts *options.RewrapManyDataKeyOptions) ([]bsoncore.Document, error) {
+
+	cryptCtx, err := c.mongoCrypt.RewrapDataKeyContext(filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cryptCtx.Close()
+
+	rewrappedBSON, err := c.executeStateMachine(ctx, cryptCtx, "")
+	if err != nil {
+		return nil, err
+	}
+	if rewrappedBSON == nil {
+		return nil, nil
+	}
+
+	// mongocrypt_ctx_rewrap_many_datakey_init wraps the documents in a BSON of the form { "v": [(BSON document), ...] }
+	// where each BSON document in the slice is a document containing a rewrapped datakey.
+	rewrappedDocumentBytes, err := rewrappedBSON.LookupErr("v")
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the resulting BSON as individual documents.
+	rewrappedDocsArray, ok := rewrappedDocumentBytes.ArrayOK()
+	if !ok {
+		return nil, fmt.Errorf("expected results from mongocrypt_ctx_rewrap_many_datakey_init to be an array")
+	}
+
+	rewrappedDocumentValues, err := rewrappedDocsArray.Values()
+	if err != nil {
+		return nil, err
+	}
+
+	rewrappedDocuments := []bsoncore.Document{}
+	for _, rewrappedDocumentValue := range rewrappedDocumentValues {
+		if rewrappedDocumentValue.Type != bsontype.EmbeddedDocument {
+			// If a value in the document's array returned by mongocrypt is anything other than an embedded document,
+			// then something is wrong and we should temrinate the routine.
+			return nil, fmt.Errorf("expected value of type %q, got: %q",
+				bsontype.EmbeddedDocument.String(),
+				rewrappedDocumentValue.Type.String())
+		}
+		rewrappedDocuments = append(rewrappedDocuments, rewrappedDocumentValue.Document())
+	}
+	return rewrappedDocuments, nil
+}
+
 // EncryptExplicit encrypts the given value with the given options.
 func (c *crypt) EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *options.ExplicitEncryptionOptions) (byte, []byte, error) {
 	idx, doc := bsoncore.AppendDocumentStart(nil)
@@ -206,6 +261,8 @@ func (c *crypt) executeStateMachine(ctx context.Context, cryptCtx *mongocrypt.Co
 			err = c.decryptKeys(cryptCtx)
 		case mongocrypt.Ready:
 			return cryptCtx.Finish()
+		case mongocrypt.Done:
+			return nil, nil
 		default:
 			return nil, fmt.Errorf("invalid Crypt state: %v", state)
 		}

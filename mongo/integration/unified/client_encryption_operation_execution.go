@@ -7,10 +7,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// setCreateKeyDKO will parse an options document and set the data on a options.DataKeyOptions instance.
+// setCreateKeyDKO will parse an options document and set the data on an options.DataKeyOptions instance.
 func setCreateKeyDKO(dko *options.DataKeyOptions, optsDocElem bson.RawElement) error {
 	optsDoc, err := optsDocElem.Value().Document().Elements()
 	if err != nil {
@@ -80,4 +82,94 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 
 	bin, err := cee.CreateKey(ctx, kmsProvider, dko)
 	return newValueResult(bsontype.Binary, bin.Data, err), nil
+}
+
+// setRewrapManyDataKeyOptions will parse an options document and set the data on an
+// options.RewrapManyDataKeyOptions instance.
+func setRewrapManyDataKeyOptions(rmdko *options.RewrapManyDataKeyOptions, optsDocElem bson.RawElement) error {
+	optsDoc, err := optsDocElem.Value().Document().Elements()
+	if err != nil {
+		return err
+	}
+	for _, elem := range optsDoc {
+		key := elem.Key()
+		val := elem.Value()
+		switch key {
+		case "provider":
+			rmdko.SetProvider(val.StringValue())
+		case "masterKey":
+			rmdko.SetMasterKey(val.Document())
+		default:
+			return fmt.Errorf("unrecognized RewrapManyDataKeyOptions arg: %q", key)
+		}
+	}
+	return nil
+}
+
+// rewrapManyDataKeyResultsOpResult will wrap the result of rewrapping a data key into an operation result for test
+// validation.
+func rewrapManyDataKeyResultsOpResult(result *mongo.RewrapManyDataKeyResult) (*operationResult, error) {
+	bulkWriteResult := bsoncore.NewDocumentBuilder()
+	if res := result.BulkWriteResult; res != nil {
+		rawUpsertedIDs := emptyDocument
+		var marshalErr error
+		if res.UpsertedIDs != nil {
+			rawUpsertedIDs, marshalErr = bson.Marshal(res.UpsertedIDs)
+			if marshalErr != nil {
+				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %v", marshalErr)
+			}
+		}
+		bulkWriteResult.
+			AppendInt64("insertedCount", res.InsertedCount).
+			AppendInt64("deletedCount", res.DeletedCount).
+			AppendInt64("matchedCount", res.MatchedCount).
+			AppendInt64("modifiedCount", res.ModifiedCount).
+			AppendInt64("upsertedCount", res.UpsertedCount).
+			AppendDocument("upsertedIds", rawUpsertedIDs)
+	}
+
+	raw := bsoncore.NewDocumentBuilder().
+		AppendDocument("bulkWriteResult", bulkWriteResult.Build()).
+		Build()
+	return newDocumentResult(raw, nil), nil
+}
+
+// executiveRewrapManyDataKey will attempt to re-wrap a number of data keys given a new provider,
+// master key, and filter.
+func executeRewrapManyDataKey(ctx context.Context, operation *operation) (*operationResult, error) {
+	cee, err := entities(ctx).clientEncryption(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var filter bson.Raw
+	rmdko := options.RewrapManyDataKey()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "filter":
+			filter = val.Document()
+		case "opts":
+			setRewrapManyDataKeyOptions(rmdko, elem)
+		default:
+			return nil, fmt.Errorf("unrecognized RewrapManyDataKey arg: %q", key)
+		}
+	}
+
+	if filter == nil {
+		return nil, newMissingArgumentError("filter")
+	}
+
+	result, err := cee.RewrapManyDataKey(ctx, filter, rmdko)
+	if err != nil {
+		return nil, err
+	}
+	return rewrapManyDataKeyResultsOpResult(result)
 }
