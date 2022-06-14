@@ -1013,7 +1013,9 @@ func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassw
 		return "", err
 	}
 
-	data := append(keyData, '\n')
+	data := make([]byte, 0, len(keyData)+len(certData)+1)
+	data = append(data, keyData...)
+	data = append(data, '\n')
 	data = append(data, certData...)
 	return addClientCertFromBytes(cfg, data, keyPassword)
 }
