@@ -168,25 +168,25 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
-          # Skip the csfle library download if there is no csfle build for the current platform.
-          # Don't try to determine this automatically to prevent misconfiguration errors from
-          # silently skipping the csfle download and changing the testing conditions.
-          if [ "${SKIP_CSFLE_DOWNLOAD}" = "true" ]; then
-            echo "There is no csfle library for this platform, skipping download..."
+          # Skip the crypt_shared library download if there is no crypt_shared build for the current
+          # platform. Don't try to determine this automatically to prevent misconfiguration errors
+          # from silently skipping the crypt_shared download and changing the testing conditions.
+          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" = "true" ]; then
+            echo "There is no crypt_shared library for this platform, skipping download..."
             exit 0
           fi
 
-          # Download the csfle dynamic library for the current platform to the current working
+          # Download the crypt_shared dynamic library for the current platform to the current working
           # directory. The run-tests.sh and versioned API test scripts expect to find a
-          # mongo_csfle_v1.* file in the "src/go.mongodb.org/mongo-driver" working directory.
-          # TODO(GODRIVER-2437): Update version to "latest-stable" once the csfle library has a
+          # mongo_crypt_v1.* file in the "src/go.mongodb.org/mongo-driver" working directory.
+          # TODO(GODRIVER-2437): Update version to "latest-stable" once the crypt_shared library has a
           # feature-complete stable release.
           ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-            --component csfle \
+            --component crypt_shared \
             --version latest \
             --edition enterprise \
             --out "$(pwd)" \
-            --only "**/mongo_csfle_v1.*" \
+            --only "**/mongo_crypt_v1.*" \
             --strip-path-components 1
 
   install-linters:
@@ -489,18 +489,20 @@ functions:
           fi
           . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
 
-          # Find the csfle library file in the current directory and set the CSFLE_PATH to the path of that
-          # file. Only look for .so, .dll, or .dylib files to prevent matching any other downloaded files.
-          export CSFLE_PATH="$(find $(pwd) -maxdepth 1 -type f \
-            -name 'mongo_csfle_v1.so' -o \
-            -name 'mongo_csfle_v1.dll' -o \
-            -name 'mongo_csfle_v1.dylib')"
-          echo "CSFLE_PATH=$CSFLE_PATH"
+          # Find the crypt_shared library file in the current directory and set the
+          # CRYPT_SHARED_LIB_PATH to the path of that file. Only look for .so, .dll, or .dylib files
+          # to prevent matching any other downloaded files.
+          export CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
+            -name 'mongo_crypt_v1.so' -o \
+            -name 'mongo_crypt_v1.dll' -o \
+            -name 'mongo_crypt_v1.dylib')"
+          echo "CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH"
 
-          # If the task doesn't have the SKIP_CSFLE_DOWNLOAD variable set, expect that we always find a csfle
-          # library file and set the CSFLE_PATH environment variable.
-          if [ "${SKIP_CSFLE_DOWNLOAD}" != "true" ] && [ -z "${CSFLE_PATH}" ]; then
-            echo 'SKIP_CSFLE_DOWNLOAD is not "true", but CSFLE_PATH is empty. Exiting.'
+          # If the task doesn't have the SKIP_CRYPT_SHARED_LIB_DOWNLOAD variable set, expect that we
+          # always find a crypt_shared library file and set the CRYPT_SHARED_LIB_PATH environment
+          # variable.
+          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" != "true" ] && [ -z "${CRYPT_SHARED_LIB_PATH}" ]; then
+            echo 'SKIP_CRYPT_SHARED_LIB_DOWNLOAD is not "true", but CRYPT_SHARED_LIB_PATH is empty. Exiting.'
             exit 1
           fi
 
@@ -1962,9 +1964,9 @@ axes:
           # to prevent attempting to link the client-side encryption (libmongocrypt) binaries when
           # running Go tests.
           GO_BUILD_TAGS: ""
-          # There is no csfle library download for Ubuntu 14.04. Skip downloading it and let the
+          # There is no crypt_shared library download for Ubuntu 14.04. Skip downloading it and let the
           # tests use mongocryptd instead.
-          SKIP_CSFLE_DOWNLOAD: "true"
+          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
 
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
@@ -1985,9 +1987,9 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
-          # There is no csfle library download for Ubuntu 16.04. Skip downloading it and let the
+          # There is no crypt_shared library download for Ubuntu 16.04. Skip downloading it and let the
           # tests use mongocryptd instead.
-          SKIP_CSFLE_DOWNLOAD: "true"
+          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
       - id: "osx-go-1-17"
         display_name: "MacOS 10.14"
         run_on: macos-1014

@@ -12,12 +12,12 @@ import (
 
 // MongoCryptOptions specifies options to configure a MongoCrypt instance.
 type MongoCryptOptions struct {
-	KmsProviders        bsoncore.Document
-	LocalSchemaMap      map[string]bsoncore.Document
-	BypassQueryAnalysis bool
-	EncryptedFieldsMap  map[string]bsoncore.Document
-	CSFLEDisabled       bool
-	CSFLEOverridePath   string
+	KmsProviders               bsoncore.Document
+	LocalSchemaMap             map[string]bsoncore.Document
+	BypassQueryAnalysis        bool
+	EncryptedFieldsMap         map[string]bsoncore.Document
+	CryptSharedLibDisabled     bool
+	CryptSharedLibOverridePath string
 }
 
 // MongoCrypt creates a new MongoCryptOptions instance.
@@ -49,15 +49,15 @@ func (mo *MongoCryptOptions) SetEncryptedFieldsMap(efcMap map[string]bsoncore.Do
 	return mo
 }
 
-// SetCSFLEDisabled explicitly disables loading the csfle dynamic library if set to true.
-func (mo *MongoCryptOptions) SetCSFLEDisabled(disabled bool) *MongoCryptOptions {
-	mo.CSFLEDisabled = disabled
+// SetCryptSharedLibDisabled explicitly disables loading the crypt_shared library if set to true.
+func (mo *MongoCryptOptions) SetCryptSharedLibDisabled(disabled bool) *MongoCryptOptions {
+	mo.CryptSharedLibDisabled = disabled
 	return mo
 }
 
-// SetCSFLEOverridePath sets the override path to the csfle dynamic library file. Setting an
-// override path disables the default operating system dynamic library search path.
-func (mo *MongoCryptOptions) SetCSFLEOverridePath(path string) *MongoCryptOptions {
-	mo.CSFLEOverridePath = path
+// SetCryptSharedLibOverridePath sets the override path to the crypt_shared library file. Setting
+// an override path disables the default operating system dynamic library search path.
+func (mo *MongoCryptOptions) SetCryptSharedLibOverridePath(path string) *MongoCryptOptions {
+	mo.CryptSharedLibOverridePath = path
 	return mo
 }

@@ -50,10 +50,10 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 
 	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
 		SetKmsProviders(kmsProviders).
-		// Explicitly disable loading the csfle library for the Crypt used for ClientEncryption
-		// because it's only need for AutoEncryption and we don't expect users to have the csfle
-		// library installed if they're using ClientEncryption.
-		SetCSFLEDisabled(true))
+		// Explicitly disable loading the crypt_shared library for the Crypt used for
+		// ClientEncryption because it's only needed for AutoEncryption and we don't expect users to
+		// have the crypt_shared library installed if they're using ClientEncryption.
+		SetCryptSharedLibDisabled(true))
 	if err != nil {
 		return nil, err
 	}

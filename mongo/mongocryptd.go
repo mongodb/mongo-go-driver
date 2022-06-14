@@ -35,7 +35,7 @@ type mongocryptdClient struct {
 	spawnArgs   []string
 }
 
-func newMongocryptdClient(csfleAvailable bool, opts *options.AutoEncryptionOptions) (*mongocryptdClient, error) {
+func newMongocryptdClient(cryptSharedLibAvailable bool, opts *options.AutoEncryptionOptions) (*mongocryptdClient, error) {
 	// create mcryptClient instance and spawn process if necessary
 	var bypassSpawn bool
 	var bypassAutoEncryption bool
@@ -54,8 +54,8 @@ func newMongocryptdClient(csfleAvailable bool, opts *options.AutoEncryptionOptio
 		// - mongocryptdBypassSpawn is passed
 		// - bypassAutoEncryption is true because mongocryptd is not used during decryption
 		// - bypassQueryAnalysis is true because mongocryptd is not used during decryption
-		// - the csfle library is available because it replaces all mongocryptd functionality.
-		bypassSpawn: bypassSpawn || bypassAutoEncryption || bypassQueryAnalysis || csfleAvailable,
+		// - the crypt_shared library is available because it replaces all mongocryptd functionality.
+		bypassSpawn: bypassSpawn || bypassAutoEncryption || bypassQueryAnalysis || cryptSharedLibAvailable,
 	}
 
 	if !mc.bypassSpawn {

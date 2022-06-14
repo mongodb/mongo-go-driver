@@ -290,7 +290,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace).
 			SetSchemaMap(schemaMap).
 			SetTLSConfig(tlsConfig).
-			SetExtraOptions(getCSFLEExtraOptions())
+			SetExtraOptions(getCryptSharedLibExtraOptions())
 
 		ceo := options.ClientEncryption().
 			SetKmsProviders(fullKmsProvidersMap).
@@ -422,7 +422,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					SetKmsProviders(kmsProviders).
 					SetKeyVaultNamespace(kvNamespace).
 					SetSchemaMap(schemaMap).
-					SetExtraOptions(getCSFLEExtraOptions())
+					SetExtraOptions(getCryptSharedLibExtraOptions())
 				ceo := options.ClientEncryption().
 					SetKmsProviders(kmsProviders).
 					SetKeyVaultNamespace(kvNamespace)
@@ -476,7 +476,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		aeo := options.AutoEncryption().
 			SetKmsProviders(kmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetExtraOptions(getCSFLEExtraOptions())
+			SetExtraOptions(getCryptSharedLibExtraOptions())
 		cpt := setup(mt, aeo, nil, nil)
 		defer cpt.teardown(mt)
 
@@ -577,7 +577,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		aeo := options.AutoEncryption().
 			SetKmsProviders(kmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetExtraOptions(getCSFLEExtraOptions())
+			SetExtraOptions(getCryptSharedLibExtraOptions())
 		cpt := setup(mt, aeo, nil, nil)
 		defer cpt.teardown(mt)
 
@@ -622,7 +622,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				SetKmsProviders(fullKmsProvidersMap).
 				SetKeyVaultNamespace(kvNamespace).
 				SetTLSConfig(tlsConfig).
-				SetExtraOptions(getCSFLEExtraOptions())
+				SetExtraOptions(getCryptSharedLibExtraOptions())
 		}
 
 		testCases := []struct {
@@ -1037,22 +1037,22 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference
 		// with mongocryptd instances spawned by previous tests. Explicitly disable loading the
-		// csfle library to make sure we're testing mongocryptd spawning behavior that is not
-		// influenced by loading csfle.
+		// crypt_shared library to make sure we're testing mongocryptd spawning behavior that is not
+		// influenced by loading the crypt_shared library.
 		mongocryptdBypassSpawnTrue := map[string]interface{}{
-			"mongocryptdBypassSpawn":     true,
-			"mongocryptdURI":             "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
-			"mongocryptdSpawnArgs":       []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
-			"__csfleDisabledForTestOnly": true, // Disable loading the csfle library.
+			"mongocryptdBypassSpawn":              true,
+			"mongocryptdURI":                      "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
+			"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
 		}
 		mongocryptdBypassSpawnFalse := map[string]interface{}{
-			"mongocryptdBypassSpawn":     false,
-			"mongocryptdSpawnArgs":       []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
-			"__csfleDisabledForTestOnly": true, // Disable loading the csfle library.
+			"mongocryptdBypassSpawn":              false,
+			"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
 		}
 		mongocryptdBypassSpawnNotSet := map[string]interface{}{
-			"mongocryptdSpawnArgs":       []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
-			"__csfleDisabledForTestOnly": true, // Disable loading the csfle library.
+			"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
 		}
 
 		testCases := []struct {
@@ -1180,7 +1180,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKmsProviders(kmsProviders).
 						SetKeyVaultNamespace(kvNamespace).
 						SetSchemaMap(schemaMap).
-						SetExtraOptions(getCSFLEExtraOptions())
+						SetExtraOptions(getCryptSharedLibExtraOptions())
 					cpt := setup(mt, autoEncryptionOpts, nil, nil)
 					defer cpt.teardown(mt)
 
@@ -1304,11 +1304,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					SetKmsProviders(kmsProviders).
 					SetBypassAutoEncryption(tc.bypassAutoEncryption)
 
-				// Only set the csfle library extra options if bypassAutoEncryption isn't true
-				// because it's invalid to set csfleRequired=true and bypassAutoEncryption=true
-				// together.
+				// Only set the crypt_shared library extra options if bypassAutoEncryption isn't
+				// true because it's invalid to set cryptSharedLibRequired=true and
+				// bypassAutoEncryption=true together.
 				if !tc.bypassAutoEncryption {
-					aeOpts.SetExtraOptions(getCSFLEExtraOptions())
+					aeOpts.SetExtraOptions(getCryptSharedLibExtraOptions())
 				}
 
 				if tc.keyVaultClientSet {
@@ -1813,15 +1813,15 @@ func (d *deadlockTest) disconnect(mt *mtest.T) {
 	assert.Nil(mt, err, "clientTest Disconnect error: %v", err)
 }
 
-// getCSFLEExtraOptions returns an AutoEncryption extra options map with csfle library path
-// information if the CSFLE_PATH environment variable is set.
-func getCSFLEExtraOptions() map[string]interface{} {
-	path := mtest.GetCSFLEPath()
+// getCryptSharedLibExtraOptions returns an AutoEncryption extra options map with crypt_shared
+// library path information if the CRYPT_SHARED_LIB_PATH environment variable is set.
+func getCryptSharedLibExtraOptions() map[string]interface{} {
+	path := os.Getenv("CRYPT_SHARED_LIB_PATH")
 	if path == "" {
 		return nil
 	}
 	return map[string]interface{}{
-		"csfleRequired": true,
-		"csflePath":     path,
+		"cryptSharedLibRequired": true,
+		"cryptSharedLibPath":     path,
 	}
 }

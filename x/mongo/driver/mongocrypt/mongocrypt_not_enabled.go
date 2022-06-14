@@ -49,15 +49,15 @@ func (m *MongoCrypt) CreateExplicitDecryptionContext(doc bsoncore.Document) (*Co
 	panic(cseNotSupportedMsg)
 }
 
-// CSFLEVersion returns the version number for the loaded csfle library, or 0 if the csfle library
-// was not loaded.
-func (m *MongoCrypt) CSFLEVersion() uint64 {
+// CryptSharedLibVersion returns the version number for the loaded crypt_shared library, or 0 if the
+// crypt_shared library was not loaded.
+func (m *MongoCrypt) CryptSharedLibVersion() uint64 {
 	panic(cseNotSupportedMsg)
 }
 
-// CSFLEVersionString returns the version string  for the loaded csfle library, or an empty string
-// if the csfle library was not loaded.
-func (m *MongoCrypt) CSFLEVersionString() string {
+// CryptSharedLibVersionString returns the version string for the loaded crypt_shared library, or an
+// empty string if the crypt_shared library was not loaded.
+func (m *MongoCrypt) CryptSharedLibVersionString() string {
 	panic(cseNotSupportedMsg)
 }
 

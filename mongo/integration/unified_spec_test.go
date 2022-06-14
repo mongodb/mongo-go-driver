@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"reflect"
 	"sync"
@@ -284,10 +285,10 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
 
-		// If the CSFLE_PATH environment variable is set, AutoEncryptionOptions is set, and
+		// If the CRYPT_SHARED_LIB_PATH environment variable is set, AutoEncryptionOptions is set, and
 		// AutoEncryption isn't disabled (neither bypassAutoEncryption nor bypassQueryAnalysis are
-		// true), then add extra options to load and require the csfle library.
-		if path := mtest.GetCSFLEPath(); path != "" && testClientOpts.AutoEncryptionOptions != nil {
+		// true), then add extra options to load and require the crypt_shared library.
+		if path := os.Getenv("CRYPT_SHARED_LIB_PATH"); path != "" && testClientOpts.AutoEncryptionOptions != nil {
 			bypassAutoEncryption := testClientOpts.AutoEncryptionOptions.BypassAutoEncryption != nil &&
 				*testClientOpts.AutoEncryptionOptions.BypassAutoEncryption
 			bypassQueryAnalysis := testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis != nil &&
@@ -296,8 +297,8 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 				if testClientOpts.AutoEncryptionOptions.ExtraOptions == nil {
 					testClientOpts.AutoEncryptionOptions.ExtraOptions = make(map[string]interface{})
 				}
-				testClientOpts.AutoEncryptionOptions.ExtraOptions["csfleRequired"] = true
-				testClientOpts.AutoEncryptionOptions.ExtraOptions["csflePath"] = mtest.GetCSFLEPath()
+				testClientOpts.AutoEncryptionOptions.ExtraOptions["cryptSharedLibRequired"] = true
+				testClientOpts.AutoEncryptionOptions.ExtraOptions["cryptSharedLibPath"] = path
 			}
 		}
 

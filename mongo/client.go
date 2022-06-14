@@ -728,10 +728,10 @@ func (c *Client) configureAutoEncryption(clientOpts *options.ClientOptions) erro
 		return err
 	}
 
-	// If csfle was loaded successfully, signal to the mongocryptd client creator that the csfle
-	// library is available so it can bypass spawning mongocryptd.
-	csfleAvailable := mc.CSFLEVersionString() != ""
-	mongocryptdFLE, err := newMongocryptdClient(csfleAvailable, clientOpts.AutoEncryptionOptions)
+	// If the crypt_shared library was loaded successfully, signal to the mongocryptd client creator
+	// that it can bypass spawning mongocryptd.
+	cryptSharedLibAvailable := mc.CryptSharedLibVersionString() != ""
+	mongocryptdFLE, err := newMongocryptdClient(cryptSharedLibAvailable, clientOpts.AutoEncryptionOptions)
 	if err != nil {
 		return err
 	}
@@ -819,22 +819,24 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		return nil, fmt.Errorf("error creating KMS providers document: %v", err)
 	}
 
-	// Set the csfle library override path from the "csflePath" extra option if one was set.
-	csflePath := ""
-	if val, ok := opts.ExtraOptions["csflePath"]; ok {
+	// Set the crypt_shared library override path from the "cryptSharedLibPath" extra option if one
+	// was set.
+	cryptSharedLibPath := ""
+	if val, ok := opts.ExtraOptions["cryptSharedLibPath"]; ok {
 		str, ok := val.(string)
 		if !ok {
-			return nil, fmt.Errorf(`expected AutoEncryption extra option "csflePath" to be a string, but is a %T`, val)
+			return nil, fmt.Errorf(
+				`expected AutoEncryption extra option "cryptSharedLibPath" to be a string, but is a %T`, val)
 		}
-		csflePath = str
+		cryptSharedLibPath = str
 	}
 
-	// Explicitly disable loading the csfle library if requested. Note that this is ONLY intended
-	// for use from tests; there is no supported public API for explicitly disabling loading the
-	// csfle library.
-	csfleDisabled := false
-	if v, ok := opts.ExtraOptions["__csfleDisabledForTestOnly"]; ok {
-		csfleDisabled = v.(bool)
+	// Explicitly disable loading the crypt_shared library if requested. Note that this is ONLY
+	// intended for use from tests; there is no supported public API for explicitly disabling
+	// loading the crypt_shared library.
+	cryptSharedLibDisabled := false
+	if v, ok := opts.ExtraOptions["__cryptSharedLibDisabledForTestOnly"]; ok {
+		cryptSharedLibDisabled = v.(bool)
 	}
 
 	bypassAutoEncryption := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
@@ -845,27 +847,28 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		SetLocalSchemaMap(cryptSchemaMap).
 		SetBypassQueryAnalysis(bypassQueryAnalysis).
 		SetEncryptedFieldsMap(cryptEncryptedFieldsMap).
-		SetCSFLEDisabled(csfleDisabled || bypassAutoEncryption).
-		SetCSFLEOverridePath(csflePath))
+		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
+		SetCryptSharedLibOverridePath(cryptSharedLibPath))
 	if err != nil {
 		return nil, err
 	}
 
-	var csfleRequired bool
-	if val, ok := opts.ExtraOptions["csfleRequired"]; ok {
+	var cryptSharedLibRequired bool
+	if val, ok := opts.ExtraOptions["cryptSharedLibRequired"]; ok {
 		b, ok := val.(bool)
 		if !ok {
-			return nil, fmt.Errorf(`expected AutoEncryption extra option "csfleRequired" to be a bool, but is a %T`, val)
+			return nil, fmt.Errorf(
+				`expected AutoEncryption extra option "cryptSharedLibRequired" to be a bool, but is a %T`, val)
 		}
-		csfleRequired = b
+		cryptSharedLibRequired = b
 	}
 
-	// If the "csfleRequired" extra option is set to true, check the MongoCrypt version string to
-	// confirm that the library was successfully loaded. If the version string is empty, return an
-	// error indicating that we couldn't load the CSFLE library.
-	if csfleRequired && mc.CSFLEVersionString() == "" {
+	// If the "cryptSharedLibRequired" extra option is set to true, check the MongoCrypt version
+	// string to confirm that the library was successfully loaded. If the version string is empty,
+	// return an error indicating that we couldn't load the crypt_shared library.
+	if cryptSharedLibRequired && mc.CryptSharedLibVersionString() == "" {
 		return nil, errors.New(
-			`AutoEncryption extra option "csfleRequired" is true, but we failed to load the csfle library`)
+			`AutoEncryption extra option "cryptSharedLibRequired" is true, but we failed to load the crypt_shared library`)
 	}
 
 	return mc, nil

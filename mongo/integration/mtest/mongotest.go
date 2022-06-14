@@ -9,7 +9,6 @@ package mtest
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -879,9 +878,4 @@ func (t *T) interfaceToInt32(i interface{}) (int32, error) {
 	}
 
 	return 0, fmt.Errorf("type %T cannot be converted to int32", i)
-}
-
-// GetCSFLEPath returns the test csfle library path provided by the CSFLE_PATH environment variable.
-func GetCSFLEPath() string {
-	return os.Getenv("CSFLE_PATH")
 }

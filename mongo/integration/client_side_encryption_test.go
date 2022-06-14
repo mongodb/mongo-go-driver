@@ -123,7 +123,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 			SetKmsProviders(kmsProvidersMap).
 			SetKeyVaultNamespace("keyvault.datakeys").
 			SetSchemaMap(schemaMap).
-			SetExtraOptions(getCSFLEExtraOptions())
+			SetExtraOptions(getCryptSharedLibExtraOptions())
 
 		var capturedEvents []event.CommandStartedEvent
 
@@ -338,7 +338,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 		aeOpts := options.AutoEncryption().
 			SetKmsProviders(kmsProvidersMap).
 			SetKeyVaultNamespace("keyvault.datakeys").
-			SetExtraOptions(getCSFLEExtraOptions())
+			SetExtraOptions(getCryptSharedLibExtraOptions())
 		clientOpts := options.Client().
 			ApplyURI(mtest.ClusterURI()).
 			SetAutoEncryptionOptions(aeOpts)

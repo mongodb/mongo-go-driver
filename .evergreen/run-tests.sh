@@ -84,18 +84,19 @@ if [ -z ${GO_BUILD_TAGS+x} ]; then
   GO_BUILD_TAGS="cse"
 fi
 
-# Find the csfle library file in the current directory and set the CSFLE_PATH to the path of that
-# file. Only look for .so, .dll, or .dylib files to prevent matching any other downloaded files.
-export CSFLE_PATH="$(find $(pwd) -maxdepth 1 -type f \
-  -name 'mongo_csfle_v1.so' -o \
-  -name 'mongo_csfle_v1.dll' -o \
-  -name 'mongo_csfle_v1.dylib')"
-echo "CSFLE_PATH=$CSFLE_PATH"
+# Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
+# the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
+# downloaded files.
+export CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
+  -name 'mongo_crypt_v1.so' -o \
+  -name 'mongo_crypt_v1.dll' -o \
+  -name 'mongo_crypt_v1.dylib')"
+echo "CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH"
 
-# If the task doesn't have the SKIP_CSFLE_DOWNLOAD variable set, expect that we always find a csfle
-# library file and set the CSFLE_PATH environment variable.
-if [ "${SKIP_CSFLE_DOWNLOAD}" != "true" ] && [ -z "${CSFLE_PATH}" ]; then
-  echo 'SKIP_CSFLE_DOWNLOAD is not "true", but CSFLE_PATH is empty. Exiting.'
+# If the task doesn't have the SKIP_CRYPT_SHARED_LIB_DOWNLOAD variable set, expect that we always
+# find a crypt_shared library file and set the CRYPT_SHARED_LIB_PATH environment variable.
+if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" != "true" ] && [ -z "${CRYPT_SHARED_LIB_PATH}" ]; then
+  echo 'SKIP_CRYPT_SHARED_LIB_DOWNLOAD is not "true", but CRYPT_SHARED_LIB_PATH is empty. Exiting.'
   exit 1
 fi
 
