@@ -381,6 +381,248 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}
 			}
 		})
+
+		mt.Run("case 8: IndexKeyID matrix", func(mt *mtest.T) {
+			type testCase struct {
+				desc              string
+				insertKeyID       primitive.Binary
+				insertIndexKeyID  primitive.Binary
+				findKeyID         primitive.Binary
+				findIndexKeyID    primitive.Binary
+				expectFound       int
+				expectFindError   string
+				expectDeleteError string
+			}
+
+			tests := []testCase{
+				{
+					desc:              "Insert(1,1) Find(1,1)",
+					insertKeyID:       key1ID,
+					insertIndexKeyID:  key1ID,
+					findKeyID:         key1ID,
+					findIndexKeyID:    key1ID,
+					expectFound:       1,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(1,1) Find(1,2)",
+					insertKeyID:       key1ID,
+					insertIndexKeyID:  key1ID,
+					findKeyID:         key1ID,
+					findIndexKeyID:    key2ID,
+					expectFound:       0,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(1,1) Find(2,1)",
+					insertKeyID:       key1ID,
+					insertIndexKeyID:  key1ID,
+					findKeyID:         key2ID, // Ignored for find.
+					findIndexKeyID:    key1ID,
+					expectFound:       1,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(1,1) Find(2,2)",
+					insertKeyID:       key1ID,
+					insertIndexKeyID:  key1ID,
+					findKeyID:         key2ID, // Ignored for find.
+					findIndexKeyID:    key2ID,
+					expectFound:       0,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(1,2) Find(1,1)",
+					insertKeyID:       key1ID,
+					insertIndexKeyID:  key2ID,
+					findKeyID:         key1ID,
+					findIndexKeyID:    key1ID,
+					expectFound:       0,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:             "Insert(1,2) Find(1,2)",
+					insertKeyID:      key1ID,
+					insertIndexKeyID: key2ID,
+					findKeyID:        key1ID,
+					findIndexKeyID:   key2ID,
+					expectFound:      1,
+					expectFindError:  "",
+					// key2ID does not match encryptedFields.
+					expectDeleteError: "Invalid advance",
+				},
+				{
+					desc:              "Insert(1,2) Find(2,1)",
+					insertKeyID:       key1ID,
+					insertIndexKeyID:  key2ID,
+					findKeyID:         key2ID, // Ignored for find.
+					findIndexKeyID:    key1ID,
+					expectFound:       0,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:             "Insert(1,2) Find(2,2)",
+					insertKeyID:      key1ID,
+					insertIndexKeyID: key2ID,
+					findKeyID:        key2ID, // Ignored for find.
+					findIndexKeyID:   key2ID,
+					expectFound:      1,
+					expectFindError:  "",
+					// key2ID does not match encryptedFields.
+					expectDeleteError: "Invalid advance",
+				},
+				{
+					desc:              "Insert(2,1) Find(1,1)",
+					insertKeyID:       key2ID,
+					insertIndexKeyID:  key1ID,
+					findKeyID:         key1ID,
+					findIndexKeyID:    key1ID,
+					expectFound:       1,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(2,1) Find(1,2)",
+					insertKeyID:       key2ID,
+					insertIndexKeyID:  key1ID,
+					findKeyID:         key1ID,
+					findIndexKeyID:    key2ID,
+					expectFound:       0,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(2,1) Find(2,1)",
+					insertKeyID:       key2ID,
+					insertIndexKeyID:  key1ID,
+					findKeyID:         key2ID, // Ignored for find.
+					findIndexKeyID:    key1ID,
+					expectFound:       1,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(2,1) Find(2,2)",
+					insertKeyID:       key2ID,
+					insertIndexKeyID:  key1ID,
+					findKeyID:         key2ID, // Ignored for find.
+					findIndexKeyID:    key2ID,
+					expectFound:       0,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(2,2) Find(1,1)",
+					insertKeyID:       key2ID,
+					insertIndexKeyID:  key2ID,
+					findKeyID:         key1ID,
+					findIndexKeyID:    key1ID,
+					expectFound:       0,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(2,2) Find(1,2)",
+					insertKeyID:       key2ID,
+					insertIndexKeyID:  key2ID,
+					findKeyID:         key1ID,
+					findIndexKeyID:    key2ID,
+					expectFound:       1,
+					expectFindError:   "",
+					expectDeleteError: "Invalid advance",
+				},
+				{
+					desc:              "Insert(2,2) Find(2,1)",
+					insertKeyID:       key2ID,
+					insertIndexKeyID:  key2ID,
+					findKeyID:         key2ID, // Ignored for find.
+					findIndexKeyID:    key1ID,
+					expectFound:       0,
+					expectFindError:   "",
+					expectDeleteError: "",
+				},
+				{
+					desc:              "Insert(2,2) Find(2,2)",
+					insertKeyID:       key2ID,
+					insertIndexKeyID:  key2ID,
+					findKeyID:         key2ID, // Ignored for find.
+					findIndexKeyID:    key2ID,
+					expectFound:       1,
+					expectFindError:   "",
+					expectDeleteError: "Invalid advance",
+				},
+			}
+
+			for _, test := range tests {
+				mt.Run(test.desc, func(mt *mtest.T) {
+					encryptedClient, clientEncryption := testSetup()
+					defer clientEncryption.Close(context.Background())
+					defer encryptedClient.Disconnect(context.Background())
+
+					valueToEncrypt := "with IndexKeyID"
+					rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+					// Insert.
+					{
+						eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(test.insertKeyID).SetIndexKeyID(test.insertIndexKeyID)
+						insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+						assert.Nil(mt, err, "error on encrypt: %v", err)
+
+						coll := encryptedClient.Database("db").Collection("explicit_encryption")
+						_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
+						assert.Nil(mt, err, "error in InsertOne: %v", err)
+					}
+
+					// Find.
+					{
+						eo := options.Encrypt().SetAlgorithm("Indexed").SetQueryType(options.QueryTypeEquality).SetKeyID(test.findKeyID).SetIndexKeyID(test.findIndexKeyID)
+						findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+						assert.Nil(mt, err, "error on encrypt: %v", err)
+
+						coll := encryptedClient.Database("db").Collection("explicit_encryption")
+						cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
+						if test.expectFindError != "" {
+							assert.NotNil(mt, err, "expected error in Find, but got success")
+							errStr := err.Error()
+							assert.True(mt, strings.Contains(errStr, test.expectFindError), "expected error to match %q, but got %q", test.expectFindError, errStr)
+						} else {
+							assert.Nil(mt, err, "error in Find: %v", err)
+						}
+						var got []bson.Raw
+						err = cursor.All(context.Background(), &got)
+						assert.Nil(mt, err, "error in All: %v", err)
+						assert.Equal(mt, len(got), test.expectFound, "expected %v results, got %v", test.expectFound, len(got))
+						for _, doc := range got {
+							gotValue, err := doc.LookupErr("encryptedIndexed")
+							assert.Nil(mt, err, "error in LookupErr: %v", err)
+							assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+						}
+					}
+
+					// Delete.
+					{
+						eo := options.Encrypt().SetAlgorithm("Indexed").SetQueryType(options.QueryTypeEquality).SetKeyID(test.findKeyID).SetIndexKeyID(test.findIndexKeyID)
+						findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+						assert.Nil(mt, err, "error in Encrypt: %v", err)
+						coll := encryptedClient.Database("db").Collection("explicit_encryption")
+						res, err := coll.DeleteOne(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
+						if test.expectDeleteError != "" {
+							assert.NotNil(mt, err, "expected error in DeleteOne, but got success")
+							errStr := err.Error()
+							assert.True(mt, strings.Contains(errStr, test.expectDeleteError), "expected error to match %q, but got %q", test.expectDeleteError, errStr)
+						} else {
+							assert.Nil(mt, err, "error in DeleteOne: %v", err)
+							assert.Equal(mt, res.DeletedCount, int64(test.expectFound), "expected to delete %v, but deleted %v", test.expectFound, res.DeletedCount)
+						}
+					}
+				})
+			}
+		})
 	})
 
 	mt.RunOpts("data key and double encryption", noClientOpts, func(mt *mtest.T) {
