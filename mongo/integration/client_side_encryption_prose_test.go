@@ -283,19 +283,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				coll := encryptedClient.Database("db").Collection("explicit_encryption")
 				_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
 				assert.Nil(mt, err, "error in InsertOne: %v", err)
-				// Q: Is the server expected to error if inserting a payload with an incorrect IndexKeyID?
-				//    This test suggests "no". Here is a sample annotated hex dump of a insertPayload:
-				//    % dump_payload 04800100000564002000000000263d6a53efeca6399c075319fe49eb7b6a051c799663b69380599da9987b72370573002000000000dd5e37816560e5facdfc840fb32b95dbb558dbfe39dcff333b1a294ad4fd8e1d05630020000000007bcbc377b81746ca437bd525383093f93f46520e743e257f059fe2508b3dd34a057000500000000055d83a60b8c10edda3d13d08e29abc3a66ce19c1199961b9003f934779d91488ca0569eb2cc69d04d98a34e6b76dad045ba2c3218c569f3557374f86347eb7693a57649b44c5f4b44f61399a9a856d730575001000000004abcdefab123498761234123456789012107400020000000576005c0000000012345678123498761234123456789012c2930fe60bb156f50108c3d2a32a614c3304ed1a67698c5e762949551347321b3858fdc065b7f621e16ebbc7a3ee9b6335d9e934eec479525639c75420dec98d0e7e809f0d26124cfd08c1230565002000000000bee2bf98eeea9d36f8269da2d41952482ab522180f61dacb01ac8b352920160c00
-				//    blob_subtype: 4 (FLE2InsertUpdatePayload)
-				//    d (EDCDerivedFromDataTokenAndCounter): 263d6a53efeca6399c075319fe49eb7b6a051c799663b69380599da9987b7237
-				//    s (ESCDerivedFromDataTokenAndCounter): dd5e37816560e5facdfc840fb32b95dbb558dbfe39dcff333b1a294ad4fd8e1d
-				//    c (ECCDerivedFromDataTokenAndCounter): 7bcbc377b81746ca437bd525383093f93f46520e743e257f059fe2508b3dd34a
-				//    p (Encrypted tokens): 55d83a60b8c10edda3d13d08e29abc3a66ce19c1199961b9003f934779d91488ca0569eb2cc69d04d98a34e6b76dad045ba2c3218c569f3557374f86347eb7693a57649b44c5f4b44f61399a9a856d73
-				//    u (IndexKeyId): abcdefab-1234-9876-1234-123456789012
-				//    t (Encrypted type): 2
-				//    v (Encrypted value): 12345678123498761234123456789012c2930fe60bb156f50108c3d2a32a614c3304ed1a67698c5e762949551347321b3858fdc065b7f621e16ebbc7a3ee9b6335d9e934eec479525639c75420dec98d0e7e809f0d26124cfd08c123
-				//    e (ServerDataEncryptionLevel1Token): bee2bf98eeea9d36f8269da2d41952482ab522180f61dacb01ac8b352920160c
-				// A:
 			}
 
 			// Explicit encrypt the value "with IndexKeyID" with algorithm: "Indexed" and a matched IndexKeyID.
