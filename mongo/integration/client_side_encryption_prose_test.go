@@ -314,7 +314,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
 					gotValue, err = doc.LookupErr("_id")
 					assert.Nil(mt, err, "error in LookupErr: %v", err)
-					assert.Equal(mt, gotValue.Int32(), 2, "expected %v, got %v", 1, gotValue.Int32())
+					assert.Equal(mt, gotValue.Int32(), int32(2), "expected %v, got %v", 2, gotValue.Int32())
 				}
 			}
 		})
