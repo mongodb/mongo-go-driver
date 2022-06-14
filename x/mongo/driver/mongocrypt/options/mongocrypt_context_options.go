@@ -93,8 +93,8 @@ func (eeo *ExplicitEncryptionOptions) SetContentionFactor(contentionFactor int64
 	return eeo
 }
 
-// DataKeyOptions represents all possible options used to decrypt and encrypt all matching data keys with a possibly new
-// masterKey.
+// RewrapManyDataKeyOptions represents all possible options used to decrypt and encrypt all matching data keys with a
+// possibly new masterKey.
 type RewrapManyDataKeyOptions struct {
 	// Provider identifies the new KMS provider. If omitted, encrypting uses the current KMS provider.
 	Provider *string
@@ -103,7 +103,7 @@ type RewrapManyDataKeyOptions struct {
 	MasterKey bsoncore.Document
 }
 
-// RewrapMany creates a new RewrapManyDataKeyOptions instance.
+// RewrapManyDataKey creates a new RewrapManyDataKeyOptions instance.
 func RewrapManyDataKey() *RewrapManyDataKeyOptions {
 	return new(RewrapManyDataKeyOptions)
 }

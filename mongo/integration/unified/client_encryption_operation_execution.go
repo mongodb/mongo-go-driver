@@ -157,7 +157,9 @@ func executeRewrapManyDataKey(ctx context.Context, operation *operation) (*opera
 		case "filter":
 			filter = val.Document()
 		case "opts":
-			setRewrapManyDataKeyOptions(rmdko, elem)
+			if err := setRewrapManyDataKeyOptions(rmdko, elem); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized RewrapManyDataKey arg: %q", key)
 		}
