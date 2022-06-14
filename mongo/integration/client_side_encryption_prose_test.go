@@ -287,7 +287,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 			// Explicit encrypt the value "with IndexKeyID" with algorithm: "Indexed" and a matched IndexKeyID.
 			{
-				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetIndexKeyID(key1ID)
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID)
 				insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 				assert.Nil(mt, err, "error on encrypt: %v", err)
 
@@ -298,7 +298,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 			// Try to find with the correct IndexKeyID.
 			{
-				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetIndexKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
 				findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 				assert.Nil(mt, err, "error in Encrypt: %v", err)
 				coll := encryptedClient.Database("db").Collection("explicit_encryption")
@@ -314,7 +314,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
 					gotValue, err = doc.LookupErr("_id")
 					assert.Nil(mt, err, "error in LookupErr: %v", err)
-					assert.Equal(mt, gotValue.Int32(), 2, "expected %v, got %v", 1, gotValue.Int32())
+					assert.Equal(mt, gotValue.Int32(), int32(2), "expected %v, got %v", 2, gotValue.Int32())
 				}
 			}
 		})
@@ -351,7 +351,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 			// Try to find with the correct IndexKeyID.
 			{
-				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetIndexKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
 				findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 				assert.Nil(mt, err, "error in Encrypt: %v", err)
 				coll := encryptedClient.Database("db").Collection("explicit_encryption")
