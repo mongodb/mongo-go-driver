@@ -266,6 +266,41 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
 		})
 
+		mt.Run("case 6: IndexKeyID works", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			valueToEncrypt := "with IndexKeyID"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+
+			// Insert.
+			{
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key2ID).SetIndexKeyID(key1ID)
+				insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error on encrypt: %v", err)
+
+				coll := encryptedClient.Database("db").Collection("explicit_encryption")
+				_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
+				assert.Nil(mt, err, "error in InsertOne: %v", err)
+			}
+
+			// Find.
+			{
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+				findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error in Encrypt: %v", err)
+				coll := encryptedClient.Database("db").Collection("explicit_encryption")
+				res := coll.FindOne(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
+				assert.Nil(mt, res.Err(), "error in FindOne: %v", res.Err())
+				got, err := res.DecodeBytes()
+				assert.Nil(mt, res.Err(), "error in DecodeBytes: %v", err)
+				gotValue, err := got.LookupErr("encryptedIndexed")
+				assert.Nil(mt, err, "error in LookupErr: %v", err)
+				assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+			}
+		})
+
 		mt.Run("case 6: mismatched IndexKeyId is not found", func(mt *mtest.T) {
 			encryptedClient, clientEncryption := testSetup()
 			defer clientEncryption.Close(context.Background())
