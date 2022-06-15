@@ -7,9 +7,8 @@
 package driver
 
 import (
-	"io"
+	"fmt"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
@@ -26,7 +25,7 @@ func TestCompression(t *testing.T) {
 	}
 
 	for _, compressor := range compressors {
-		t.Run(strconv.Itoa(int(compressor)), func(t *testing.T) {
+		t.Run(compressor.String(), func(t *testing.T) {
 			payload := []byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt")
 			opts := CompressionOpts{
 				Compressor:       compressor,
@@ -51,6 +50,11 @@ func TestZstdWindowSize(t *testing.T) {
 		windowSize int
 	}{
 		{
+			inputSize:  0,
+			level:      zstd.EncoderLevelFromZstd(wiremessage.DefaultZstdLevel),
+			windowSize: 1024,
+		},
+		{
 			inputSize:  512,
 			level:      zstd.EncoderLevelFromZstd(wiremessage.DefaultZstdLevel),
 			windowSize: 1024,
@@ -70,10 +74,50 @@ func TestZstdWindowSize(t *testing.T) {
 			level:      zstd.EncoderLevelFromZstd(wiremessage.DefaultZstdLevel),
 			windowSize: 16777216,
 		},
+		{
+			inputSize:  4000000,
+			level:      zstd.SpeedFastest,
+			windowSize: 4194304,
+		},
+		{
+			inputSize:  8000000,
+			level:      zstd.SpeedFastest,
+			windowSize: 4194304,
+		},
+		{
+			inputSize:  8000000,
+			level:      zstd.SpeedDefault,
+			windowSize: 8388608,
+		},
+		{
+			inputSize:  16000000,
+			level:      zstd.SpeedDefault,
+			windowSize: 8388608,
+		},
+		{
+			inputSize:  16000000,
+			level:      zstd.SpeedBetterCompression,
+			windowSize: 16777216,
+		},
+		{
+			inputSize:  32000000,
+			level:      zstd.SpeedBetterCompression,
+			windowSize: 16777216,
+		},
+		{
+			inputSize:  32000000,
+			level:      zstd.SpeedBestCompression,
+			windowSize: 33554432,
+		},
+		{
+			inputSize:  64000000,
+			level:      zstd.SpeedBestCompression,
+			windowSize: 33554432,
+		},
 	}
 
 	for _, test := range tests {
-		t.Run(strconv.Itoa(test.inputSize), func(t *testing.T) {
+		t.Run(fmt.Sprintf("size %d level %v", test.inputSize, test.level), func(t *testing.T) {
 			windowSize := calcZstdWindowSize(test.inputSize, test.level)
 			assert.Equal(t, test.windowSize, windowSize)
 		})
@@ -82,13 +126,10 @@ func TestZstdWindowSize(t *testing.T) {
 
 func BenchmarkCompression(b *testing.B) {
 	payload := func() []byte {
-		f, err := os.Open("compression.go")
+		buf, err := os.ReadFile("compression.go")
 		if err != nil {
-			b.Error(err)
-		}
-		buf, err := io.ReadAll(f)
-		if err != nil {
-			b.Error(err)
+			b.Log(err)
+			b.FailNow()
 		}
 		for i := 1; i < 10; i++ {
 			buf = append(buf, buf...)
@@ -103,7 +144,7 @@ func BenchmarkCompression(b *testing.B) {
 	}
 
 	for _, compressor := range compressors {
-		b.Run(strconv.Itoa(int(compressor)), func(b *testing.B) {
+		b.Run(compressor.String(), func(b *testing.B) {
 			opts := CompressionOpts{
 				Compressor: compressor,
 				ZlibLevel:  wiremessage.DefaultZlibLevel,

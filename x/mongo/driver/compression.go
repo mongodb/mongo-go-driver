@@ -26,27 +26,31 @@ type CompressionOpts struct {
 }
 
 func calcZstdWindowSize(n int, l zstd.EncoderLevel) int {
+	if n <= zstd.MinWindowSize {
+		return zstd.MinWindowSize
+	}
 	windowSize := zstd.MinWindowSize
-	if n > windowSize {
-		// Map the window size with compression levels as the zstd package does.
-		switch l {
-		case zstd.SpeedFastest:
-			windowSize = 4 << 20
-		case zstd.SpeedDefault:
-			windowSize = 8 << 20
-		case zstd.SpeedBetterCompression:
-			windowSize = 16 << 20
-		case zstd.SpeedBestCompression:
-			windowSize = 32 << 20
-		}
-		if windowSize > zstd.MaxWindowSize {
-			windowSize = zstd.MaxWindowSize
-		}
-		// Reduce the window size to the closest power of 2 that can hold the input size
-		// if the default window size is larger than the input size.
-		for windowSize/2 > n {
-			windowSize /= 2
-		}
+	// Map the window size with compression levels as the zstd package does.
+	// Implementation reference:
+	// https://github.com/klauspost/compress/blob/v1.13.6/zstd/encoder_options.go#L222-L231
+	switch l {
+	case zstd.SpeedFastest:
+		windowSize = 4 << 20
+	case zstd.SpeedDefault:
+		windowSize = 8 << 20
+	case zstd.SpeedBetterCompression:
+		windowSize = 16 << 20
+	case zstd.SpeedBestCompression:
+		windowSize = 32 << 20
+	}
+	if windowSize > zstd.MaxWindowSize {
+		windowSize = zstd.MaxWindowSize
+	}
+	// Reduce the window size to the closest power of 2 that can hold the input size
+	// if the default window size is larger than the input size.
+	// Documentation: https://pkg.go.dev/github.com/klauspost/compress@v1.13.6/zstd#WithWindowSize
+	for windowSize/2 > n {
+		windowSize /= 2
 	}
 	return windowSize
 }
