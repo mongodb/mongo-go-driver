@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -40,7 +39,6 @@ type Database struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	registry       *bsoncodec.Registry
-	timeout        *time.Duration
 }
 
 func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
@@ -66,11 +64,6 @@ func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) 
 		reg = dbOpt.Registry
 	}
 
-	to := client.timeout
-	if dbOpt.Timeout != nil {
-		to = dbOpt.Timeout
-	}
-
 	db := &Database{
 		client:         client,
 		name:           name,
@@ -78,7 +71,6 @@ func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) 
 		readConcern:    rc,
 		writeConcern:   wc,
 		registry:       reg,
-		timeout:        to,
 	}
 
 	db.readSelector = description.CompositeSelector([]description.ServerSelector{
@@ -135,7 +127,6 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 		readSelector:   db.readSelector,
 		writeSelector:  db.writeSelector,
 		readPreference: db.readPreference,
-		timeout:        db.timeout,
 		opts:           opts,
 	}
 	return aggregate(a)
@@ -186,7 +177,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
 		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
-		Timeout(db.timeout), sess, nil
+		Timeout(db.client.timeout), sess, nil
 }
 
 // RunCommand executes the given command against the database. This function does not obey the Database's read
@@ -388,7 +379,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
-		ServerAPI(db.client.serverAPI).Timeout(db.timeout)
+		ServerAPI(db.client.serverAPI).Timeout(db.client.timeout)
 
 	cursorOpts := db.client.createBaseCursorOptions()
 	if lco.NameOnly != nil {
@@ -505,7 +496,6 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 		streamType:     DatabaseStream,
 		databaseName:   db.Name(),
 		crypt:          db.client.cryptFLE,
-		timeout:        db.timeout,
 	}
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
