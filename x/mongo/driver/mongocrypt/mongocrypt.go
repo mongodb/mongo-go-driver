@@ -198,25 +198,16 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 	algoStr := C.CString(opts.Algorithm)
 	defer C.free(unsafe.Pointer(algoStr))
 
-	switch opts.Algorithm {
-	case "Indexed":
-		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeIndexed); !ok {
-			return nil, ctx.createErrorFromStatus()
-		}
-	case "Unindexed":
-		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeUnindexed); !ok {
-			return nil, ctx.createErrorFromStatus()
-		}
-	default:
-		if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
-			return nil, ctx.createErrorFromStatus()
-		}
+	if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
+		return nil, ctx.createErrorFromStatus()
 	}
 
 	if opts.QueryType != nil {
 		switch *opts.QueryType {
 		case options.QueryTypeEquality:
-			if ok := C.mongocrypt_ctx_setopt_query_type(ctx.wrapped, 1); !ok {
+			queryStr := C.CString("equality")
+			defer C.free(unsafe.Pointer(queryStr))
+			if ok := C.mongocrypt_ctx_setopt_query_type(ctx.wrapped, queryStr, -1); !ok {
 				return nil, ctx.createErrorFromStatus()
 			}
 		default:
