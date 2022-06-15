@@ -1,5 +1,5 @@
 {
-  "description": "rewrapManyDataKey-encrypt_failure",
+  "description": "rewrapManyDataKey-decrypt_failure",
   "schemaVersion": "1.8",
   "runOnRequirements": [
     {
@@ -86,16 +86,16 @@
         {
           "_id": {
             "$binary": {
-              "base64": "bG9jYWxrZXlsb2NhbGtleQ==",
+              "base64": "YXdzYXdzYXdzYXdzYXdzYQ==",
               "subType": "04"
             }
           },
           "keyAltNames": [
-            "local_key"
+            "aws_key"
           ],
           "keyMaterial": {
             "$binary": {
-              "base64": "ABKBldDEoDW323yejOnIRk6YQmlD9d3eQthd16scKL75nz2LjNL9fgPDZWrFFOlqlhMCFaSrNJfGrFUjYk5JFDO7soG5Syb50k1niJoKg4ilsj0L4mpimFUtTpOr2nzZOeQtvAksEXc7gsFgq8gV7t/U3lsaXPY7I0t42DfSE8EGlPdxRjFdHnxh+OR8h7U9b8Qs5K5UuhgyeyxaBZ1Hgw==",
+              "base64": "AQICAHhQNmWG2CzOm1dq3kWLM+iDUZhEqnhJwH9wZVpuZ94A8gFXJqbF0Fy872MD7xl56D/2AAAAwjCBvwYJKoZIhvcNAQcGoIGxMIGuAgEAMIGoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDO7HPisPUlGzaio9vgIBEIB7/Qow46PMh/8JbEUbdXgTGhLfXPE+KIVW7T8s6YEMlGiRvMu7TV0QCIUJlSHPKZxzlJ2iwuz5yXeOag+EdY+eIQ0RKrsJ3b8UTisZYzGjfzZnxUKLzLoeXremtRCm3x47wCuHKd1dhh6FBbYt5TL2tDaj+vL2GBrKat2L",
               "subType": "00"
             }
           },
@@ -111,7 +111,9 @@
           },
           "status": 1,
           "masterKey": {
-            "provider": "local"
+            "provider": "aws",
+            "key": "arn:aws:kms:us-east-2:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+            "region": "us-east-2"
           }
         }
       ]
@@ -119,7 +121,7 @@
   ],
   "tests": [
     {
-      "description": "rewrap with invalid masterKey for AWS KMS provider",
+      "description": "rewrap data key that fails during decryption due to invalid masterKey",
       "operations": [
         {
           "name": "rewrapManyDataKey",
@@ -127,97 +129,7 @@
           "arguments": {
             "filter": {},
             "opts": {
-              "provider": "aws",
-              "masterKey": {
-                "key": "arn:aws:kms:us-east-2:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-                "region": "us-east-2"
-              }
-            }
-          },
-          "expectError": {
-            "isClientError": true
-          }
-        }
-      ],
-      "expectEvents": [
-        {
-          "client": "client0",
-          "events": [
-            {
-              "commandStartedEvent": {
-                "commandName": "find",
-                "databaseName": "keyvault",
-                "command": {
-                  "find": "datakeys",
-                  "filter": {},
-                  "readConcern": {
-                    "level": "majority"
-                  }
-                }
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "description": "rewrap with invalid masterKey for Azure KMS provider",
-      "operations": [
-        {
-          "name": "rewrapManyDataKey",
-          "object": "clientEncryption0",
-          "arguments": {
-            "filter": {},
-            "opts": {
-              "provider": "azure",
-              "masterKey": {
-                "keyVaultEndpoint": "invalid-vault-csfle.vault.azure.net",
-                "keyName": "invalid-name-csfle"
-              }
-            }
-          },
-          "expectError": {
-            "isClientError": true
-          }
-        }
-      ],
-      "expectEvents": [
-        {
-          "client": "client0",
-          "events": [
-            {
-              "commandStartedEvent": {
-                "commandName": "find",
-                "databaseName": "keyvault",
-                "command": {
-                  "find": "datakeys",
-                  "filter": {},
-                  "readConcern": {
-                    "level": "majority"
-                  }
-                }
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "description": "rewrap with invalid masterKey for GCP KMS provider",
-      "operations": [
-        {
-          "name": "rewrapManyDataKey",
-          "object": "clientEncryption0",
-          "arguments": {
-            "filter": {},
-            "opts": {
-              "provider": "gcp",
-              "masterKey": {
-                "projectId": "devprod-drivers",
-                "location": "global",
-                "keyRing": "invalid-ring-csfle",
-                "keyName": "invalid-name-csfle"
-              }
+              "provider": "local"
             }
           },
           "expectError": {
