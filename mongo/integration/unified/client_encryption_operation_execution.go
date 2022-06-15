@@ -105,11 +105,47 @@ func executeGetKeyByAltName(ctx context.Context, operation *operation) (*operati
 		case "keyAltName":
 			keyAltName = val.StringValue()
 		default:
-			return nil, fmt.Errorf("unrecognized RemoveKeyAltName arg: %q", key)
+			return nil, fmt.Errorf("unrecognized GetKeyByAltName arg: %q", key)
 		}
 	}
 
 	res, err := cee.GetKeyByAltName(ctx, keyAltName).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
+	// associated documents, DecodeBytes will return ErrNoDocuments.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+	return newDocumentResult(res, err), nil
+}
+
+// executeGetKey finds a single key document with the given UUID (BSON binary subtype 0x04). Returns the result of the
+// internal find() operation on the key vault collection.
+func executeGetKey(ctx context.Context, operation *operation) (*operationResult, error) {
+	cee, err := entities(ctx).clientEncryption(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var id primitive.Binary
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "id":
+			subtype, data := val.Binary()
+			id = primitive.Binary{Subtype: subtype, Data: data}
+		default:
+			return nil, fmt.Errorf("unrecognized GetKey arg: %q", key)
+		}
+	}
+
+	res, err := cee.GetKey(ctx, id).DecodeBytes()
 	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
 	// associated documents, DecodeBytes will return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {

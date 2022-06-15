@@ -64,6 +64,17 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	return ce, nil
 }
 
+// clientEncryptionIDQuery will take a primitive.Binary for a CLE id and write it as a bytes document.
+func clientEncryptionIDQuery(id primitive.Binary) ([]byte, error) {
+	idx, query := bsoncore.AppendDocumentStart(nil)
+	query = bsoncore.AppendBinaryElement(query, "_id", id.Subtype, id.Data)
+	query, err := bsoncore.AppendDocumentEnd(query, idx)
+	if err != nil {
+		return nil, err
+	}
+	return bsoncore.Document(query), nil
+}
+
 // CreateDataKey is an alias function equivalent to CreateKey.
 func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
 	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
@@ -166,7 +177,26 @@ func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName stri
 	return coll.FindOne(ctx, filter)
 }
 
-// GetKeys inds all documents in the key vault collection. Returns the result of the internal find() operation on the
+// GetKey finds a single key document with the given UUID (BSON binary subtype 0x04). Returns the result of the
+// internal find() operation on the key vault collection.
+func (ce *ClientEncryption) GetKey(ctx context.Context, id primitive.Binary) *SingleResult {
+	query, err := clientEncryptionIDQuery(id)
+	if err != nil {
+		return &SingleResult{err: err}
+	}
+
+	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
+	// ClientEncryption operations.
+	coll, err := ce.keyVaultColl.Clone(options.Collection().
+		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
+	if err != nil {
+		return &SingleResult{err: err}
+	}
+
+	return coll.FindOne(ctx, query)
+}
+
+// GetKeys finds all documents in the key vault collection. Returns the result of the internal find() operation on the
 // key vault collection.
 func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
 	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
@@ -185,13 +215,10 @@ func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
 func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary,
 	keyAltName string) *SingleResult {
 
-	idx, query := bsoncore.AppendDocumentStart(nil)
-	query = bsoncore.AppendBinaryElement(query, "_id", id.Subtype, id.Data)
-	query, err := bsoncore.AppendDocumentEnd(query, idx)
+	query, err := clientEncryptionIDQuery(id)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-	query = bsoncore.Document(query)
 
 	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
 	// ClientEncryption operations.
