@@ -118,6 +118,16 @@ func (ce *ClientEncryption) majorityReadCollection() (*Collection, error) {
 	return ce.keyVaultColl.Clone(options.Collection().SetReadConcern(readconcern.New(readconcern.Level("majority"))))
 }
 
+// AddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with the
+// given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
+func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult {
+	return executeSingleResult(ce, &id, func(coll *Collection, query []byte) *SingleResult {
+		keyAltNameDoc := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
+		update := bsoncore.NewDocumentBuilder().AppendDocument("$addToSet", keyAltNameDoc).Build()
+		return coll.FindOneAndUpdate(ctx, query, update)
+	})
+}
+
 // CreateDataKey is an alias function equivalent to CreateKey.
 func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
 	opts ...*options.DataKeyOptions) (primitive.Binary, error) {

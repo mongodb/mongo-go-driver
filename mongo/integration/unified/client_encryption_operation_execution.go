@@ -47,6 +47,45 @@ func setCreateKeyDKO(dko *options.DataKeyOptions, optsDocElem bson.RawElement) e
 	return nil
 }
 
+// executeAddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with
+// the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
+func executeAddKeyAltName(ctx context.Context, operation *operation) (*operationResult, error) {
+	cee, err := entities(ctx).clientEncryption(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var id primitive.Binary
+	var keyAltName string
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "id":
+			subtype, data := val.Binary()
+			id = primitive.Binary{Subtype: subtype, Data: data}
+		case "keyAltName":
+			keyAltName = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized GetKey arg: %q", key)
+		}
+	}
+
+	res, err := cee.AddKeyAltName(ctx, id, keyAltName).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
+	// associated documents, DecodeBytes will return ErrNoDocuments.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+	return newDocumentResult(res, err), nil
+}
+
 // executeCreateKey will attempt to create a client-encrypted key for a unified operation.
 func executeCreateKey(ctx context.Context, operation *operation) (*operationResult, error) {
 	cee, err := entities(ctx).clientEncryption(operation.Object)
