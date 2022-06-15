@@ -730,6 +730,9 @@ func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 //
 // If any Timeout is set (even 0) on the Client, the values of other, deprecated timeout-related options will be ignored.
 // In particular: ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operations, and TransactionOptions.MaxCommitTime.
+//
+// NOTE(benjirewis): SetTimeout represents unstable, provisional API. The behavior of the driver when a Timeout is specified is
+// subject to change.
 func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
 	c.Timeout = &d
 	return c
