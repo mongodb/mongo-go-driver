@@ -500,7 +500,7 @@ functions:
 
           # If the task doesn't have the SKIP_CRYPT_SHARED_LIB_DOWNLOAD variable set, expect that we always
           # find a crypt_shared library file and set the CRYPT_SHARED_LIB_PATH environment variable.
-          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" != "true" ] && [ -z "${CRYPT_SHARED_LIB_PATH}" ]; then
+          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" != "true" ] && [ -z "$CRYPT_SHARED_LIB_PATH" ]; then
             echo 'SKIP_CRYPT_SHARED_LIB_DOWNLOAD is not "true", but CRYPT_SHARED_LIB_PATH is empty. Exiting.'
             exit 1
           fi
