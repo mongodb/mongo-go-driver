@@ -8,6 +8,7 @@ package integration
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -95,7 +96,13 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) erro
 		return fmt.Errorf("type mismatch for key %s; expected %s, got %s", key, expected.Type, actual.Type)
 	}
 	if !bytes.Equal(expected.Value, actual.Value) {
-		return fmt.Errorf("value mismatch for key %s; expected %s, got %s", key, expected.Value, actual.Value)
+		return fmt.Errorf(
+			"value mismatch for key %s; expected %s (hex=%s), got %s (hex=%s)",
+			key,
+			expected.Value,
+			hex.EncodeToString(expected.Value),
+			actual.Value,
+			hex.EncodeToString(actual.Value))
 	}
 	return nil
 }
