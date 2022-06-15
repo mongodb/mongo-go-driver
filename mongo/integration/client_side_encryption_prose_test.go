@@ -1812,16 +1812,3 @@ func (d *deadlockTest) disconnect(mt *mtest.T) {
 	d.clientTest.Disconnect(context.Background())
 	assert.Nil(mt, err, "clientTest Disconnect error: %v", err)
 }
-
-// getCryptSharedLibExtraOptions returns an AutoEncryption extra options map with crypt_shared
-// library path information if the CRYPT_SHARED_LIB_PATH environment variable is set.
-func getCryptSharedLibExtraOptions() map[string]interface{} {
-	path := os.Getenv("CRYPT_SHARED_LIB_PATH")
-	if path == "" {
-		return nil
-	}
-	return map[string]interface{}{
-		"cryptSharedLibRequired": true,
-		"cryptSharedLibPath":     path,
-	}
-}

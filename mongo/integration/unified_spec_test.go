@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"reflect"
 	"sync"
@@ -986,4 +987,17 @@ func getTopologyFromClient(client *mongo.Client) *topology.Topology {
 	deploymentField := clientElem.FieldByName("deployment")
 	deploymentField = reflect.NewAt(deploymentField.Type(), unsafe.Pointer(deploymentField.UnsafeAddr())).Elem()
 	return deploymentField.Interface().(*topology.Topology)
+}
+
+// getCryptSharedLibExtraOptions returns an AutoEncryption extra options map with crypt_shared
+// library path information if the CRYPT_SHARED_LIB_PATH environment variable is set.
+func getCryptSharedLibExtraOptions() map[string]interface{} {
+	path := os.Getenv("CRYPT_SHARED_LIB_PATH")
+	if path == "" {
+		return nil
+	}
+	return map[string]interface{}{
+		"cryptSharedLibRequired": true,
+		"cryptSharedLibPath":     path,
+	}
 }
