@@ -84,6 +84,24 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 	return newValueResult(bsontype.Binary, bin.Data, err), nil
 }
 
+// executeGetKeys finds all documents in the key vault collection. Returns the result of the internal find() operation
+// on the key vault collection.
+func executeGetKeys(ctx context.Context, operation *operation) (*operationResult, error) {
+	cee, err := entities(ctx).clientEncryption(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+	cursor, err := cee.GetKeys(ctx)
+	if err != nil {
+		return newErrorResult(err), nil
+	}
+	var docs []bson.Raw
+	if err := cursor.All(ctx, &docs); err != nil {
+		return newErrorResult(err), nil
+	}
+	return newCursorResult(docs), nil
+}
+
 // executeRemoveKeyAltName will remove keyAltName from the data key if it is present on the data key.
 func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operationResult, error) {
 	cee, err := entities(ctx).clientEncryption(operation.Object)
@@ -113,7 +131,7 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 		}
 	}
 
-	res, err := cee.RemoveKeyAltName(context.Background(), id, keyAltName).DecodeBytes()
+	res, err := cee.RemoveKeyAltName(ctx, id, keyAltName).DecodeBytes()
 	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
 	// associated documents, DecodeBytes will return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {

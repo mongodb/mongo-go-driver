@@ -212,6 +212,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeRewrapManyDataKey(ctx, op)
 	case "removeKeyAltName":
 		return executeRemoveKeyAltName(ctx, op)
+	case "getKeys":
+		return executeGetKeys(ctx, op)
 	default:
 		return nil, fmt.Errorf("unrecognized entity operation %q", op.Name)
 	}

@@ -152,6 +152,20 @@ func (ce *ClientEncryption) Close(ctx context.Context) error {
 	return ce.keyVaultClient.Disconnect(ctx)
 }
 
+// GetKeys inds all documents in the key vault collection. Returns the result of the internal find() operation on the
+// key vault collection.
+func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
+	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
+	// ClientEncryption operations.
+	coll, err := ce.keyVaultColl.Clone(options.Collection().
+		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
+	if err != nil {
+		return newEmptyCursor(), nil
+	}
+
+	return coll.Find(ctx, bson.D{})
+}
+
 // RemoveKeyAltName removes a keyAltName from the keyAltNames array of the key document in the key vault collection with
 // the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
 func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary,
