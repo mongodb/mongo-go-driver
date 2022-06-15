@@ -96,7 +96,7 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.timeout)
+		Timeout(iv.coll.client.timeout)
 
 	cursorOpts := iv.coll.client.createBaseCursorOptions()
 	lio := options.MergeListIndexesOptions(opts...)
@@ -258,7 +258,7 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
 		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.timeout)
+		Timeout(iv.coll.client.timeout)
 
 	if option.MaxTime != nil {
 		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
@@ -403,7 +403,7 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.timeout)
+		Timeout(iv.coll.client.timeout)
 	if dio.MaxTime != nil {
 		op.MaxTimeMS(int64(*dio.MaxTime / time.Millisecond))
 	}

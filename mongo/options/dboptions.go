@@ -7,8 +7,6 @@
 package options
 
 import (
-	"time"
-
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -32,10 +30,6 @@ type DatabaseOptions struct {
 	// Registry is the BSON registry to marshal and unmarshal documents for operations executed on the Database. The default value
 	// is nil, which means that the registry of the Client used to configure the Database will be used.
 	Registry *bsoncodec.Registry
-
-	// Timeout is the amount of time that a single operation run on the Database can execute before returning an error. The default value
-	// nil, which means that the timeout of the Client used to configure the Database will be used.
-	Timeout *time.Duration
 }
 
 // Database creates a new DatabaseOptions instance.
@@ -67,15 +61,6 @@ func (d *DatabaseOptions) SetRegistry(r *bsoncodec.Registry) *DatabaseOptions {
 	return d
 }
 
-// SetTimeout sets the value for the Timeout field.
-//
-// If any Timeout is set on the Database, the values of other, deprecated timeout-related options will be ignored. In particular:
-// ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operations, and TransactionOptions.MaxCommitTime.
-func (d *DatabaseOptions) SetTimeout(to time.Duration) *DatabaseOptions {
-	d.Timeout = &to
-	return d
-}
-
 // MergeDatabaseOptions combines the given DatabaseOptions instances into a single DatabaseOptions in a last-one-wins
 // fashion.
 func MergeDatabaseOptions(opts ...*DatabaseOptions) *DatabaseOptions {
@@ -96,9 +81,6 @@ func MergeDatabaseOptions(opts ...*DatabaseOptions) *DatabaseOptions {
 		}
 		if opt.Registry != nil {
 			d.Registry = opt.Registry
-		}
-		if opt.Timeout != nil {
-			d.Timeout = opt.Timeout
 		}
 	}
 
