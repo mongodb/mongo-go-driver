@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path"
 	"reflect"
 	"sync"
@@ -285,10 +284,10 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
 
-		// If the CRYPT_SHARED_LIB_PATH environment variable is set, AutoEncryptionOptions is set, and
-		// AutoEncryption isn't disabled (neither bypassAutoEncryption nor bypassQueryAnalysis are
-		// true), then add extra options to load and require the crypt_shared library.
-		if path := os.Getenv("CRYPT_SHARED_LIB_PATH"); path != "" && testClientOpts.AutoEncryptionOptions != nil {
+		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither
+		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
+		// the crypt_shared library.
+		if testClientOpts.AutoEncryptionOptions != nil {
 			bypassAutoEncryption := testClientOpts.AutoEncryptionOptions.BypassAutoEncryption != nil &&
 				*testClientOpts.AutoEncryptionOptions.BypassAutoEncryption
 			bypassQueryAnalysis := testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis != nil &&
@@ -297,8 +296,10 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 				if testClientOpts.AutoEncryptionOptions.ExtraOptions == nil {
 					testClientOpts.AutoEncryptionOptions.ExtraOptions = make(map[string]interface{})
 				}
-				testClientOpts.AutoEncryptionOptions.ExtraOptions["cryptSharedLibRequired"] = true
-				testClientOpts.AutoEncryptionOptions.ExtraOptions["cryptSharedLibPath"] = path
+
+				for k, v := range getCryptSharedLibExtraOptions() {
+					testClientOpts.AutoEncryptionOptions.ExtraOptions[k] = v
+				}
 			}
 		}
 
