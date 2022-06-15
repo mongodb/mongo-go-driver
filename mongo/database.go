@@ -191,7 +191,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 // The behavior of RunCommand is undefined if the command document contains any of the following:
 // - A session ID or any transaction-specific fields
 // - API versioning options when an API version is already declared on the Client
-// - maxTimeMS when Timeout is set on either the Database or Client
+// - maxTimeMS when Timeout is set on the Client
 func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
@@ -226,7 +226,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 // The behavior of RunCommandCursor is undefined if the command document contains any of the following:
 // - A session ID or any transaction-specific fields
 // - API versioning options when an API version is already declared on the Client
-// - maxTimeMS when Timeout is set on either the Database or Client
+// - maxTimeMS when Timeout is set on the Client
 func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
