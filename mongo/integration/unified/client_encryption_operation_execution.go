@@ -84,6 +84,43 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 	return newValueResult(bsontype.Binary, bin.Data, err), nil
 }
 
+// executeDeleteKey removes the key document with the given UUID (BSON binary subtype 0x04) from the key vault
+// collection. Returns the result of the internal deleteOne() operation on the key vault collection.
+func executeDeleteKey(ctx context.Context, operation *operation) (*operationResult, error) {
+	cee, err := entities(ctx).clientEncryption(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var id primitive.Binary
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "id":
+			subtype, data := val.Binary()
+			id = primitive.Binary{Subtype: subtype, Data: data}
+		default:
+			return nil, fmt.Errorf("unrecognized DeleteKey arg: %q", key)
+		}
+	}
+
+	res, err := cee.DeleteKey(ctx, id)
+	raw := emptyCoreDocument
+	if res != nil {
+		raw = bsoncore.NewDocumentBuilder().
+			AppendInt64("deletedCount", res.DeletedCount).
+			Build()
+	}
+	return newDocumentResult(raw, err), nil
+}
+
 // executeGetKeyByAltName returns a key document in the key vault collection with the given keyAltName.
 func executeGetKeyByAltName(ctx context.Context, operation *operation) (*operationResult, error) {
 	cee, err := entities(ctx).clientEncryption(operation.Object)

@@ -75,6 +75,49 @@ func clientEncryptionIDQuery(id primitive.Binary) ([]byte, error) {
 	return bsoncore.Document(query), nil
 }
 
+type singleResultExecutor func(*Collection, []byte) *SingleResult
+
+// executeSingleResult wraps CE data to execute some id-specific query operation.
+func executeSingleResult(ce *ClientEncryption, id *primitive.Binary, fn singleResultExecutor) *SingleResult {
+	var query []byte
+	if id != nil {
+		var err error
+		query, err = clientEncryptionIDQuery(*id)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+	}
+	coll, err := ce.majorityReadCollection()
+	if err != nil {
+		return &SingleResult{err: err}
+	}
+	return fn(coll, query)
+}
+
+type deleteResultExecutor func(*Collection, []byte) (*DeleteResult, error)
+
+// executeDeleteResult wraps CE data to execute some id-specific delete operation.
+func executeDeleteResult(ce *ClientEncryption, id *primitive.Binary, fn deleteResultExecutor) (*DeleteResult, error) {
+	var query []byte
+	if id != nil {
+		var err error
+		query, err = clientEncryptionIDQuery(*id)
+		if err != nil {
+			return nil, err
+		}
+	}
+	coll, err := ce.majorityReadCollection()
+	if err != nil {
+		return nil, err
+	}
+	return fn(coll, query)
+}
+
+// majorityReadCollection will return a clone of the key vault collection collection with a majority read concern.
+func (ce *ClientEncryption) majorityReadCollection() (*Collection, error) {
+	return ce.keyVaultColl.Clone(options.Collection().SetReadConcern(readconcern.New(readconcern.Level("majority"))))
+}
+
 // CreateDataKey is an alias function equivalent to CreateKey.
 func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
 	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
@@ -163,75 +206,49 @@ func (ce *ClientEncryption) Close(ctx context.Context) error {
 	return ce.keyVaultClient.Disconnect(ctx)
 }
 
+// DeleteKey removes the key document with the given UUID (BSON binary subtype 0x04) from the key vault collection.
+// Returns the result of the internal deleteOne() operation on the key vault collection.
+func (ce *ClientEncryption) DeleteKey(ctx context.Context, id primitive.Binary) (*DeleteResult, error) {
+	return executeDeleteResult(ce, &id, func(coll *Collection, query []byte) (*DeleteResult, error) {
+		return coll.DeleteOne(ctx, query)
+	})
+}
+
 // GetKeyByAltName returns a key document in the key vault collection with the given keyAltName.
 func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName string) *SingleResult {
-	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
-	// ClientEncryption operations.
-	coll, err := ce.keyVaultColl.Clone(options.Collection().
-		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-
-	filter := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
-	return coll.FindOne(ctx, filter)
+	return executeSingleResult(ce, nil, func(coll *Collection, _ []byte) *SingleResult {
+		filter := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
+		return coll.FindOne(ctx, filter)
+	})
 }
 
 // GetKey finds a single key document with the given UUID (BSON binary subtype 0x04). Returns the result of the
 // internal find() operation on the key vault collection.
 func (ce *ClientEncryption) GetKey(ctx context.Context, id primitive.Binary) *SingleResult {
-	query, err := clientEncryptionIDQuery(id)
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-
-	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
-	// ClientEncryption operations.
-	coll, err := ce.keyVaultColl.Clone(options.Collection().
-		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-
-	return coll.FindOne(ctx, query)
+	return executeSingleResult(ce, &id, func(coll *Collection, query []byte) *SingleResult {
+		return coll.FindOne(ctx, query)
+	})
 }
 
 // GetKeys finds all documents in the key vault collection. Returns the result of the internal find() operation on the
 // key vault collection.
 func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
-	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
-	// ClientEncryption operations.
-	coll, err := ce.keyVaultColl.Clone(options.Collection().
-		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
+	coll, err := ce.majorityReadCollection()
 	if err != nil {
 		return newEmptyCursor(), nil
 	}
-
 	return coll.Find(ctx, bson.D{})
 }
 
 // RemoveKeyAltName removes a keyAltName from the keyAltNames array of the key document in the key vault collection with
 // the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
-func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary,
-	keyAltName string) *SingleResult {
-
-	query, err := clientEncryptionIDQuery(id)
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-
-	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
-	// ClientEncryption operations.
-	coll, err := ce.keyVaultColl.Clone(options.Collection().
-		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-
-	return coll.FindOneAndUpdate(ctx, query, bson.A{
-		bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq", bson.A{"$keyAltNames",
-			bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter", bson.D{{"input", "$keyAltNames"},
-			{"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}})
+func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult {
+	return executeSingleResult(ce, &id, func(coll *Collection, query []byte) *SingleResult {
+		return coll.FindOneAndUpdate(ctx, query, bson.A{
+			bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq", bson.A{"$keyAltNames",
+				bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter", bson.D{{"input", "$keyAltNames"},
+				{"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}})
+	})
 }
 
 // setRewrapManyDataKeyWriteModels will prepare the WriteModel slice for a bulk updating rewrapped documents.
@@ -350,10 +367,7 @@ func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interf
 		return nil, err
 	}
 
-	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
-	// ClientEncryption operations.
-	coll, err := ce.keyVaultColl.Clone(options.Collection().
-		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
+	coll, err := ce.majorityReadCollection()
 	if err != nil {
 		return nil, err
 	}

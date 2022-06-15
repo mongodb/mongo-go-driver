@@ -218,6 +218,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeGetKeyByAltName(ctx, op)
 	case "getKey":
 		return executeGetKey(ctx, op)
+	case "deleteKey":
+		return executeDeleteKey(ctx, op)
 	default:
 		return nil, fmt.Errorf("unrecognized entity operation %q", op.Name)
 	}
