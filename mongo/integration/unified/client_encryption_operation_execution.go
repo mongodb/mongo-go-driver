@@ -171,7 +171,7 @@ func executeRewrapManyDataKey(ctx context.Context, operation *operation) (*opera
 
 	result, err := cee.RewrapManyDataKey(ctx, filter, rmdko)
 	if err != nil {
-		return nil, err
+		return newErrorResult(err), nil
 	}
 	return rewrapManyDataKeyResultsOpResult(result)
 }
