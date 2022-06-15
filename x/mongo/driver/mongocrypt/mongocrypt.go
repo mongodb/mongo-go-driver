@@ -202,16 +202,11 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 		return nil, ctx.createErrorFromStatus()
 	}
 
-	if opts.QueryType != nil {
-		switch *opts.QueryType {
-		case options.QueryTypeEquality:
-			queryStr := C.CString("equality")
-			defer C.free(unsafe.Pointer(queryStr))
-			if ok := C.mongocrypt_ctx_setopt_query_type(ctx.wrapped, queryStr, -1); !ok {
-				return nil, ctx.createErrorFromStatus()
-			}
-		default:
-			return nil, fmt.Errorf("unsupported value for QueryType: %v", opts.QueryType)
+	if opts.QueryType != "" {
+		queryStr := C.CString(opts.QueryType)
+		defer C.free(unsafe.Pointer(queryStr))
+		if ok := C.mongocrypt_ctx_setopt_query_type(ctx.wrapped, queryStr, -1); !ok {
+			return nil, ctx.createErrorFromStatus()
 		}
 	}
 

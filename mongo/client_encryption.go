@@ -113,14 +113,7 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue, opts
 		transformed.SetKeyAltName(*eo.KeyAltName)
 	}
 	transformed.SetAlgorithm(eo.Algorithm)
-	if eo.QueryType != nil {
-		switch *eo.QueryType {
-		case options.QueryTypeEquality:
-			transformed.SetQueryType(mcopts.QueryTypeEquality)
-		default:
-			return primitive.Binary{}, fmt.Errorf("unsupported value for QueryType: %v", *eo.QueryType)
-		}
-	}
+	transformed.SetQueryType(eo.QueryType)
 
 	if eo.ContentionFactor != nil {
 		transformed.SetContentionFactor(*eo.ContentionFactor)

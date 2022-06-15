@@ -10,20 +10,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// QueryType describes the type of query the result of Encrypt is used for.
-type QueryType int
-
-// These constants specify valid values for QueryType
-const (
-	QueryTypeEquality QueryType = 1
-)
-
 // EncryptOptions represents options to explicitly encrypt a value.
 type EncryptOptions struct {
 	KeyID            *primitive.Binary
 	KeyAltName       *string
 	Algorithm        string
-	QueryType        *QueryType
+	QueryType        string
 	ContentionFactor *int64
 }
 
@@ -56,8 +48,10 @@ func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
 }
 
 // SetQueryType specifies the intended query type. It is only valid to set if algorithm is "Indexed".
-func (e *EncryptOptions) SetQueryType(queryType QueryType) *EncryptOptions {
-	e.QueryType = &queryType
+// This should be one of the following:
+// - equality
+func (e *EncryptOptions) SetQueryType(queryType string) *EncryptOptions {
+	e.QueryType = queryType
 	return e
 }
 
@@ -84,7 +78,7 @@ func MergeEncryptOptions(opts ...*EncryptOptions) *EncryptOptions {
 		if opt.Algorithm != "" {
 			eo.Algorithm = opt.Algorithm
 		}
-		if opt.QueryType != nil {
+		if opt.QueryType != "" {
 			eo.QueryType = opt.QueryType
 		}
 		if opt.ContentionFactor != nil {

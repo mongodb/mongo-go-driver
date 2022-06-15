@@ -47,7 +47,7 @@ type ExplicitEncryptionOptions struct {
 	KeyID            *primitive.Binary
 	KeyAltName       *string
 	Algorithm        string
-	QueryType        *QueryType
+	QueryType        string
 	ContentionFactor *int64
 }
 
@@ -75,8 +75,8 @@ func (eeo *ExplicitEncryptionOptions) SetAlgorithm(algorithm string) *ExplicitEn
 }
 
 // SetQueryType specifies the query type.
-func (eeo *ExplicitEncryptionOptions) SetQueryType(queryType QueryType) *ExplicitEncryptionOptions {
-	eeo.QueryType = &queryType
+func (eeo *ExplicitEncryptionOptions) SetQueryType(queryType string) *ExplicitEncryptionOptions {
+	eeo.QueryType = queryType
 	return eeo
 }
 

@@ -134,7 +134,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
 			assert.Nil(mt, err, "Error in InsertOne: %v", err)
 			// Explicit encrypt an indexed value to find.
-			eo = options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+			eo = options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType("equality")
 			findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 			assert.Nil(mt, err, "error in Encrypt: %v", err)
 			// Find.
@@ -167,7 +167,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 			// Explicit encrypt an indexed value to find with default contentionFactor 0.
 			{
-				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType("equality")
 				findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 				assert.Nil(mt, err, "error in Encrypt: %v", err)
 				// Find with contentionFactor=0.
@@ -186,7 +186,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 			// Explicit encrypt an indexed value to find with contentionFactor 10.
 			{
-				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(10)
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType("equality").SetContentionFactor(10)
 				findPayload2, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 				assert.Nil(mt, err, "error in Encrypt: %v", err)
 				// Find with contentionFactor=10.
