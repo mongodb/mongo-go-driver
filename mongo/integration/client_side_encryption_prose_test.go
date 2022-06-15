@@ -289,7 +289,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKmsProviders(fullKmsProvidersMap).
 			SetKeyVaultNamespace(kvNamespace).
 			SetSchemaMap(schemaMap).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(tlsConfig).
+			SetExtraOptions(getCryptSharedLibExtraOptions())
 
 		ceo := options.ClientEncryption().
 			SetKmsProviders(fullKmsProvidersMap).
@@ -417,8 +418,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					},
 				}
 				schemaMap := map[string]interface{}{"db.coll": readJSONFile(mt, "external-schema.json")}
-				aeo := options.AutoEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace).SetSchemaMap(schemaMap)
-				ceo := options.ClientEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace)
+				aeo := options.AutoEncryption().
+					SetKmsProviders(kmsProviders).
+					SetKeyVaultNamespace(kvNamespace).
+					SetSchemaMap(schemaMap).
+					SetExtraOptions(getCryptSharedLibExtraOptions())
+				ceo := options.ClientEncryption().
+					SetKmsProviders(kmsProviders).
+					SetKeyVaultNamespace(kvNamespace)
 				kvClientOpts := defaultKvClientOptions
 
 				if tc.externalVault {
@@ -466,7 +473,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"key": localMasterKey,
 			},
 		}
-		aeo := options.AutoEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace)
+		aeo := options.AutoEncryption().
+			SetKmsProviders(kmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetExtraOptions(getCryptSharedLibExtraOptions())
 		cpt := setup(mt, aeo, nil, nil)
 		defer cpt.teardown(mt)
 
@@ -564,7 +574,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"key": localMasterKey,
 			},
 		}
-		aeo := options.AutoEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace(kvNamespace)
+		aeo := options.AutoEncryption().
+			SetKmsProviders(kmsProviders).
+			SetKeyVaultNamespace(kvNamespace).
+			SetExtraOptions(getCryptSharedLibExtraOptions())
 		cpt := setup(mt, aeo, nil, nil)
 		defer cpt.teardown(mt)
 
@@ -608,7 +621,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			return options.AutoEncryption().
 				SetKmsProviders(fullKmsProvidersMap).
 				SetKeyVaultNamespace(kvNamespace).
-				SetTLSConfig(tlsConfig)
+				SetTLSConfig(tlsConfig).
+				SetExtraOptions(getCryptSharedLibExtraOptions())
 		}
 
 		testCases := []struct {
@@ -1021,19 +1035,24 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"db.coll": readJSONFile(mt, "external-schema.json"),
 		}
 
-		// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference with mongocryptd
-		// instances spawned by previous tests.
+		// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference
+		// with mongocryptd instances spawned by previous tests. Explicitly disable loading the
+		// crypt_shared library to make sure we're testing mongocryptd spawning behavior that is not
+		// influenced by loading the crypt_shared library.
 		mongocryptdBypassSpawnTrue := map[string]interface{}{
-			"mongocryptdBypassSpawn": true,
-			"mongocryptdURI":         "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
-			"mongocryptdSpawnArgs":   []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"mongocryptdBypassSpawn":              true,
+			"mongocryptdURI":                      "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
+			"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
 		}
 		mongocryptdBypassSpawnFalse := map[string]interface{}{
-			"mongocryptdBypassSpawn": false,
-			"mongocryptdSpawnArgs":   []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"mongocryptdBypassSpawn":              false,
+			"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
 		}
 		mongocryptdBypassSpawnNotSet := map[string]interface{}{
-			"mongocryptdSpawnArgs": []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+			"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
 		}
 
 		testCases := []struct {
@@ -1160,7 +1179,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					autoEncryptionOpts := options.AutoEncryption().
 						SetKmsProviders(kmsProviders).
 						SetKeyVaultNamespace(kvNamespace).
-						SetSchemaMap(schemaMap)
+						SetSchemaMap(schemaMap).
+						SetExtraOptions(getCryptSharedLibExtraOptions())
 					cpt := setup(mt, autoEncryptionOpts, nil, nil)
 					defer cpt.teardown(mt)
 
@@ -1283,6 +1303,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				aeOpts.SetKeyVaultNamespace("keyvault.datakeys").
 					SetKmsProviders(kmsProviders).
 					SetBypassAutoEncryption(tc.bypassAutoEncryption)
+
+				// Only set the crypt_shared library extra options if bypassAutoEncryption isn't
+				// true because it's invalid to set cryptSharedLibRequired=true and
+				// bypassAutoEncryption=true together.
+				if !tc.bypassAutoEncryption {
+					aeOpts.SetExtraOptions(getCryptSharedLibExtraOptions())
+				}
+
 				if tc.keyVaultClientSet {
 					testutil.AddTestServerAPIVersion(d.clientKeyVaultOpts)
 					aeOpts.SetKeyVaultClientOptions(d.clientKeyVaultOpts)
@@ -1304,8 +1332,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				testutil.AddTestServerAPIVersion(ceOpts)
 				clientEncrypted, err := mongo.Connect(context.Background(), ceOpts)
-				defer clientEncrypted.Disconnect(context.Background())
 				assert.Nil(mt, err, "Connect error: %v", err)
+				defer clientEncrypted.Disconnect(context.Background())
 
 				coll := clientEncrypted.Database("db").Collection("coll")
 				if !tc.bypassAutoEncryption {

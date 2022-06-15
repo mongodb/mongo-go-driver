@@ -55,10 +55,21 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 		C.mongocrypt_setopt_bypass_query_analysis(wrapped)
 	}
 
+	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"
+	// and set a library override path if one was provided.
+	if !opts.CryptSharedLibDisabled {
+		C.mongocrypt_setopt_append_crypt_shared_lib_search_path(crypt.wrapped, C.CString("$SYSTEM"))
+
+		if opts.CryptSharedLibOverridePath != "" {
+			C.mongocrypt_setopt_set_crypt_shared_lib_path_override(crypt.wrapped, C.CString(opts.CryptSharedLibOverridePath))
+		}
+	}
+
 	// initialize handle
 	if !C.mongocrypt_init(crypt.wrapped) {
 		return nil, crypt.createErrorFromStatus()
 	}
+
 	return crypt, nil
 }
 
@@ -242,6 +253,22 @@ func (m *MongoCrypt) CreateExplicitDecryptionContext(doc bsoncore.Document) (*Co
 		return nil, ctx.createErrorFromStatus()
 	}
 	return ctx, nil
+}
+
+// CryptSharedLibVersion returns the version number for the loaded crypt_shared library, or 0 if the
+// crypt_shared library was not loaded.
+func (m *MongoCrypt) CryptSharedLibVersion() uint64 {
+	return uint64(C.mongocrypt_crypt_shared_lib_version(m.wrapped))
+}
+
+// CryptSharedLibVersionString returns the version string for the loaded crypt_shared library, or an
+// empty string if the crypt_shared library was not loaded.
+func (m *MongoCrypt) CryptSharedLibVersionString() string {
+	// Pass in a pointer for "len", but ignore the value because C.GoString can determine the string
+	// length without it.
+	len := C.uint(0)
+	str := C.GoString(C.mongocrypt_crypt_shared_lib_version_string(m.wrapped, &len))
+	return str
 }
 
 // Close cleans up any resources associated with the given MongoCrypt instance.
