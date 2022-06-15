@@ -99,8 +99,7 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 			so.SetDefaultWriteConcern(wc)
 		}
 		if temp.TxnOptions.MaxCommitTime != nil {
-			mctms := time.Duration(*temp.TxnOptions.MaxCommitTime)
-			so.SetDefaultMaxCommitTime(&mctms)
+			so.SetDefaultMaxCommitTime(temp.TxnOptions.MaxCommitTime)
 		}
 	}
 	if temp.Snapshot != nil {
