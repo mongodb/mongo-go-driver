@@ -43,6 +43,11 @@ type ChangeStreamOptions struct {
 	// StartAfter must not be set.
 	ResumeAfter interface{}
 
+	// ShowExpandedEvents specifies whether the server will return an expanded list of change stream events. Additional
+	// events include: createIndexes, dropIndexes, modify, create, shardCollection, reshardCollection and
+	// refineCollectionShardKey. This option is only valid for MongoDB versions >= 6.0.
+	ShowExpandedEvents *bool
+
 	// If specified, the change stream will only return changes that occurred at or after the given timestamp. This
 	// option is only valid for MongoDB versions >= 4.0. If this is specified, ResumeAfter and StartAfter must not be
 	// set.
@@ -115,6 +120,12 @@ func (cso *ChangeStreamOptions) SetResumeAfter(rt interface{}) *ChangeStreamOpti
 	return cso
 }
 
+// SetShowExpandedEvents sets the value for the ShowExpandedEvents field.
+func (cso *ChangeStreamOptions) SetShowExpandedEvents(see bool) *ChangeStreamOptions {
+	cso.ShowExpandedEvents = &see
+	return cso
+}
+
 // SetStartAtOperationTime sets the value for the StartAtOperationTime field.
 func (cso *ChangeStreamOptions) SetStartAtOperationTime(t *primitive.Timestamp) *ChangeStreamOptions {
 	cso.StartAtOperationTime = t
@@ -172,6 +183,9 @@ func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions
 		}
 		if cso.ResumeAfter != nil {
 			csOpts.ResumeAfter = cso.ResumeAfter
+		}
+		if cso.ShowExpandedEvents != nil {
+			csOpts.ShowExpandedEvents = cso.ShowExpandedEvents
 		}
 		if cso.StartAtOperationTime != nil {
 			csOpts.StartAtOperationTime = cso.StartAtOperationTime

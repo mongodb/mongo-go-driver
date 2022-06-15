@@ -437,6 +437,10 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "resumeAfter", raDoc)
 	}
 
+	if cs.options.ShowExpandedEvents != nil {
+		plDoc = bsoncore.AppendBooleanElement(plDoc, "showExpandedEvents", *cs.options.ShowExpandedEvents)
+	}
+
 	if cs.options.StartAfter != nil {
 		var saDoc bsoncore.Document
 		saDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.StartAfter, true, "startAfter")
