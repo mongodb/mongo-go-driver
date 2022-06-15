@@ -2195,7 +2195,7 @@ buildvariants:
 
   - matrix_name: "load-balancer-test"
     # The LB software is only available on Ubuntu 18.04, so we don't test on all OSes.
-    matrix_spec: { version: ["5.0", "6.0", "latest"], os-ssl-40: ["ubuntu1804-64-go-1-17"] }
+    matrix_spec: { version: ["5.0", "6.0", "latest", "rapid"], os-ssl-40: ["ubuntu1804-64-go-1-17"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
