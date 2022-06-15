@@ -8,6 +8,7 @@ linters:
     - deadcode
     - errcheck
     # - errorlint
+    - gocritic
     - goimports
     - gosimple
     - gosec
@@ -29,6 +30,10 @@ linters:
 linters-settings:
   errcheck:
     exclude: .errcheck-excludes
+  gocritic:
+    enabled-checks:
+      # Detects suspicious append result assignments. E.g. "b := append(a, 1, 2, 3)"
+      - appendAssign
   govet:
     disable:
       - cgocall
