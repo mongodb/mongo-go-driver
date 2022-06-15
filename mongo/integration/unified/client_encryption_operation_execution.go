@@ -84,6 +84,40 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 	return newValueResult(bsontype.Binary, bin.Data, err), nil
 }
 
+// executeGetKeyByAltName returns a key document in the key vault collection with the given keyAltName.
+func executeGetKeyByAltName(ctx context.Context, operation *operation) (*operationResult, error) {
+	cee, err := entities(ctx).clientEncryption(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var keyAltName string
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "keyAltName":
+			keyAltName = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized RemoveKeyAltName arg: %q", key)
+		}
+	}
+
+	res, err := cee.GetKeyByAltName(ctx, keyAltName).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
+	// associated documents, DecodeBytes will return ErrNoDocuments.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+	return newDocumentResult(res, err), nil
+}
+
 // executeGetKeys finds all documents in the key vault collection. Returns the result of the internal find() operation
 // on the key vault collection.
 func executeGetKeys(ctx context.Context, operation *operation) (*operationResult, error) {

@@ -152,6 +152,20 @@ func (ce *ClientEncryption) Close(ctx context.Context) error {
 	return ce.keyVaultClient.Disconnect(ctx)
 }
 
+// GetKeyByAltName returns a key document in the key vault collection with the given keyAltName.
+func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName string) *SingleResult {
+	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
+	// ClientEncryption operations.
+	coll, err := ce.keyVaultColl.Clone(options.Collection().
+		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
+	if err != nil {
+		return &SingleResult{err: err}
+	}
+
+	filter := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
+	return coll.FindOne(ctx, filter)
+}
+
 // GetKeys inds all documents in the key vault collection. Returns the result of the internal find() operation on the
 // key vault collection.
 func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
