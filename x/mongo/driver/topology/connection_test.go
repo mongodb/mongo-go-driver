@@ -933,7 +933,8 @@ func BenchmarkConnection(b *testing.B) {
 		buf := make([]byte, 256)
 		_, err := rand.Read(buf)
 		if err != nil {
-			b.Error(err)
+			b.Log(err)
+			b.FailNow()
 		}
 		conn := Connection{connection: &connection{compressor: wiremessage.CompressorNoOp}}
 		for i := 0; i < b.N; i++ {
