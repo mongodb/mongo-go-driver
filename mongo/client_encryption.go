@@ -152,6 +152,33 @@ func (ce *ClientEncryption) Close(ctx context.Context) error {
 	return ce.keyVaultClient.Disconnect(ctx)
 }
 
+// RemoveKeyAltName removes a keyAltName from the keyAltNames array of the key document in the key vault collection with
+// the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
+func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary,
+	keyAltName string) *SingleResult {
+
+	idx, query := bsoncore.AppendDocumentStart(nil)
+	query = bsoncore.AppendBinaryElement(query, "_id", id.Subtype, id.Data)
+	query, err := bsoncore.AppendDocumentEnd(query, idx)
+	if err != nil {
+		return &SingleResult{err: err}
+	}
+	query = bsoncore.Document(query)
+
+	// Clone the client encryption collection. Ensure a readConcern=majority for consistency with existing
+	// ClientEncryption operations.
+	coll, err := ce.keyVaultColl.Clone(options.Collection().
+		SetReadConcern(readconcern.New(readconcern.Level("majority"))))
+	if err != nil {
+		return &SingleResult{err: err}
+	}
+
+	return coll.FindOneAndUpdate(ctx, query, bson.A{
+		bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq", bson.A{"$keyAltNames",
+			bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter", bson.D{{"input", "$keyAltNames"},
+			{"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}})
+}
+
 // setRewrapManyDataKeyWriteModels will prepare the WriteModel slice for a bulk updating rewrapped documents.
 func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, writeModels *[]WriteModel) error {
 	const idKey = "_id"

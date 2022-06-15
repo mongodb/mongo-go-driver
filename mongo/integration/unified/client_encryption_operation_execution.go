@@ -84,6 +84,44 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 	return newValueResult(bsontype.Binary, bin.Data, err), nil
 }
 
+// executeRemoveKeyAltName will remove keyAltName from the data key if it is present on the data key.
+func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operationResult, error) {
+	cee, err := entities(ctx).clientEncryption(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var id primitive.Binary
+	var keyAltName string
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "id":
+			subtype, data := val.Binary()
+			id = primitive.Binary{Subtype: subtype, Data: data}
+		case "keyAltName":
+			keyAltName = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized RemoveKeyAltName arg: %q", key)
+		}
+	}
+
+	res, err := cee.RemoveKeyAltName(context.Background(), id, keyAltName).DecodeBytes()
+	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
+	// associated documents, DecodeBytes will return ErrNoDocuments.
+	if err == mongo.ErrNoDocuments {
+		err = nil
+	}
+	return newDocumentResult(res, err), nil
+}
+
 // setRewrapManyDataKeyOptions will parse an options document and set the data on an
 // options.RewrapManyDataKeyOptions instance.
 func setRewrapManyDataKeyOptions(rmdko *options.RewrapManyDataKeyOptions, optsDocElem bson.RawElement) error {
