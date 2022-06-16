@@ -104,6 +104,25 @@ functions:
              cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
              cp ./include/mongocrypt/*.h c:/libmongocrypt/include
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+          elif [ "Darwin" = "$(uname -s)" ]; then
+             # TODO (GODRIVER-2442): Once libmongocrypt compiles on macOS 10.15, remove this elif block.
+             echo "fetching build for Darwin ... begin"
+             mkdir -p install/libmongocrypt
+             mkdir libmongocrypt-all
+             cd libmongocrypt-all
+             # LIBMONGOCRYPT_COMMIT is for 1.5.0-rc1.
+             LIBMONGOCRYPT_COMMIT="6e100b087376d448534cb2ad1b4dc50cb7cbc1f6"
+             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
+             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             tar -xf libmongocrypt-all.tar.gz
+             cd ..
+             mv libmongocrypt-all/macos/include ./install/libmongocrypt
+             mv libmongocrypt-all/macos/lib ./install/libmongocrypt
+             rm -rf libmongocrypt-all
+             rm libmongocrypt-all.tar.gz
+             # Fix prefix in pkg-config prefix path.
+             sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
+             echo "fetching build for Darwin ... end"
           else
             # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
             git clone https://github.com/mongodb/libmongocrypt --branch 1.5.0-rc1
@@ -2001,8 +2020,8 @@ axes:
           # tests use mongocryptd instead.
           SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
       - id: "osx-go-1-17"
-        display_name: "MacOS 10.14"
-        run_on: macos-1014
+        display_name: "MacOS 10.15"
+        run_on: macos-1015
         variables:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: python3
@@ -2027,8 +2046,8 @@ axes:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-17"
-        display_name: "MacOS 10.14"
-        run_on: macos-1014
+        display_name: "MacOS 10.15"
+        run_on: macos-1015
         variables:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: python3
@@ -2063,8 +2082,8 @@ axes:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3: python3
       - id: "osx-go-1-17"
-        display_name: "MacOS 10.14"
-        run_on: macos-1014
+        display_name: "MacOS 10.15"
+        run_on: macos-1015
         variables:
           GO_DIST: "/opt/golang/go1.17"
           SKIP_ECS_AUTH_TEST: true
