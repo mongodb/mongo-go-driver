@@ -186,7 +186,7 @@ func (c *crypt) RewrapDataKey(ctx context.Context, filter []byte,
 	for _, rewrappedDocumentValue := range rewrappedDocumentValues {
 		if rewrappedDocumentValue.Type != bsontype.EmbeddedDocument {
 			// If a value in the document's array returned by mongocrypt is anything other than an embedded document,
-			// then something is wrong and we should temrinate the routine.
+			// then something is wrong and we should terminate the routine.
 			return nil, fmt.Errorf("expected value of type %q, got: %q",
 				bsontype.EmbeddedDocument.String(),
 				rewrappedDocumentValue.Type.String())
