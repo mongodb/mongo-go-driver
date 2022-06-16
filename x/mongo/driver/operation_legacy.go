@@ -32,8 +32,15 @@ func (op Operation) getFullCollectionName(coll string) string {
 	return op.Database + "." + coll
 }
 
-func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, conn Connection, desc description.SelectedServer) error {
-	wm, startedInfo, collName, err := op.createLegacyFindWireMessage(dst, desc)
+func (op Operation) legacyFind(
+	ctx context.Context,
+	dst []byte,
+	srvr Server,
+	conn Connection,
+	desc description.SelectedServer,
+	maxTimeMS uint64,
+) error {
+	wm, startedInfo, collName, err := op.createLegacyFindWireMessage(dst, desc, maxTimeMS)
 	if err != nil {
 		return err
 	}
@@ -68,7 +75,7 @@ func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, con
 }
 
 // returns wire message, collection name, error
-func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, string, error) {
+func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.SelectedServer, maxTimeMS uint64) ([]byte, startedInformation, string, error) {
 	info := startedInformation{
 		requestID: wiremessage.NextRequestID(),
 		cmdName:   "find",
@@ -83,6 +90,11 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 	cmdDoc, err = op.CommandFn(cmdDoc, desc)
 	if err != nil {
 		return dst, info, "", err
+	}
+	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
+	// specifies the default behavior of no timeout server-side.
+	if maxTimeMS > 0 {
+		cmdDoc = bsoncore.AppendInt64Element(cmdDoc, "maxTimeMS", int64(maxTimeMS))
 	}
 	cmdDoc, _ = bsoncore.AppendDocumentEnd(cmdDoc, cmdIndex)
 	// for monitoring legacy events, the upconverted document should be captured rather than the legacy one
@@ -523,8 +535,15 @@ func (op Operation) transformListCollectionsFilter(filter bsoncore.Document) (bs
 	return combinedFilter, nil
 }
 
-func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Server, conn Connection, desc description.SelectedServer) error {
-	wm, startedInfo, collName, err := op.createLegacyListIndexesWiremessage(dst, desc)
+func (op Operation) legacyListIndexes(
+	ctx context.Context,
+	dst []byte,
+	srvr Server,
+	conn Connection,
+	desc description.SelectedServer,
+	maxTimeMS uint64,
+) error {
+	wm, startedInfo, collName, err := op.createLegacyListIndexesWiremessage(dst, desc, maxTimeMS)
 	if err != nil {
 		return err
 	}
@@ -558,7 +577,7 @@ func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Serv
 	return nil
 }
 
-func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, string, error) {
+func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc description.SelectedServer, maxTimeMS uint64) ([]byte, startedInformation, string, error) {
 	info := startedInformation{
 		cmdName:   "find",
 		requestID: wiremessage.NextRequestID(),
@@ -572,6 +591,11 @@ func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc descript
 	cmdDoc, err = op.CommandFn(cmdDoc, desc)
 	if err != nil {
 		return dst, info, "", err
+	}
+	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
+	// specifies the default behavior of no timeout server-side.
+	if maxTimeMS > 0 {
+		cmdDoc = bsoncore.AppendInt64Element(cmdDoc, "maxTimeMS", int64(maxTimeMS))
 	}
 	cmdDoc, _ = bsoncore.AppendDocumentEnd(cmdDoc, cmdIndex)
 	info.cmd, err = op.convertCommandToFind(cmdDoc, listIndexesNamespace)

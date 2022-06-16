@@ -435,12 +435,18 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			first = false
 		}
 
+		// Calculate maxTimeMS value to potentially be appended to the wire message.
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTT90())
+		if err != nil {
+			return err
+		}
+
 		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
 		scratch = scratch[:0]
 		if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
 			switch op.Legacy {
 			case LegacyFind:
-				return op.legacyFind(ctx, scratch, srvr, conn, desc)
+				return op.legacyFind(ctx, scratch, srvr, conn, desc, maxTimeMS)
 			case LegacyGetMore:
 				return op.legacyGetMore(ctx, scratch, srvr, conn, desc)
 			case LegacyKillCursors:
@@ -452,7 +458,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			case LegacyListCollections:
 				return op.legacyListCollections(ctx, scratch, srvr, conn, desc)
 			case LegacyListIndexes:
-				return op.legacyListIndexes(ctx, scratch, srvr, conn, desc)
+				return op.legacyListIndexes(ctx, scratch, srvr, conn, desc, maxTimeMS)
 			}
 		}
 
@@ -472,28 +478,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				// TODO(GODRIVER-982): Should we also be returning operationErr?
 				return err
 			}
-		}
-
-		// Calculate value of 'maxTimeMS' field to potentially append to the wire message based on the
-		// current context's deadline and the 90th percentile RTT if the ctx is a Timeout Context. If
-		// context is not a Timeout context, use the passed in MaxTimeMS if set.
-		var maxTimeMS uint64
-		if internal.IsTimeoutContext(ctx) {
-			if deadline, ok := ctx.Deadline(); ok {
-				remainingTimeout := time.Until(deadline)
-
-				maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
-					int64(srvr.RTT90()/time.Millisecond)
-
-				// A maxTimeMS value <= 0 indicates that we are already at or past the Context's deadline.
-				if maxTimeMSVal <= 0 {
-					return internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-						"Context deadline has already been surpassed by %v", remainingTimeout)
-				}
-				maxTimeMS = uint64(maxTimeMSVal)
-			}
-		} else if op.MaxTimeMS != nil {
-			maxTimeMS = uint64(*op.MaxTimeMS)
 		}
 
 		// convert to wire message
@@ -1270,6 +1254,32 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 	}
 	return append(bsoncore.AppendHeader(dst, val.Type, "$clusterTime"), val.Value...)
 	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
+}
+
+// calculateMaxTimeMS calculates the value of the 'maxTimeMS' field to potentially append
+// to the wire message based on the current context's deadline and the 90th percentile RTT
+// if the ctx is a Timeout context. If the context is not a Timeout context, it uses the
+// operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
+// not a Timeout context, calculateMaxTimeMS returns 0.
+func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration) (uint64, error) {
+	if internal.IsTimeoutContext(ctx) {
+		if deadline, ok := ctx.Deadline(); ok {
+			remainingTimeout := time.Until(deadline)
+
+			maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
+				int64(rtt90/time.Millisecond)
+
+			// A maxTimeMS value <= 0 indicates that we are already at or past the context's deadline.
+			if maxTimeMSVal <= 0 {
+				return 0, internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+					"Context deadline has already been surpassed by %v", remainingTimeout)
+			}
+			return uint64(maxTimeMSVal), nil
+		}
+	} else if op.MaxTimeMS != nil {
+		return uint64(*op.MaxTimeMS), nil
+	}
+	return 0, nil
 }
 
 // updateClusterTimes updates the cluster times for the session and cluster clock attached to this
