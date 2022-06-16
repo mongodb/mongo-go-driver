@@ -8,7 +8,6 @@ package unified
 
 import (
 	"fmt"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -27,7 +26,6 @@ func (d *dbOrCollectionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
 		RC    *readConcern           `bson:"readConcern"`
 		RP    *ReadPreference        `bson:"readPreference"`
-		TO    *int64                 `bson:"timeoutMS"`
 		WC    *writeConcern          `bson:"writeConcern"`
 		Extra map[string]interface{} `bson:",inline"`
 	}
@@ -53,10 +51,6 @@ func (d *dbOrCollectionOptions) UnmarshalBSON(data []byte) error {
 
 		d.DBOptions.SetReadPreference(rp)
 		d.CollectionOptions.SetReadPreference(rp)
-	}
-	if temp.TO != nil {
-		d.DBOptions.SetTimeout(time.Duration(*temp.TO) * time.Millisecond)
-		d.CollectionOptions.SetTimeout(time.Duration(*temp.TO) * time.Millisecond)
 	}
 	if temp.WC != nil {
 		wc, err := temp.WC.toWriteConcernOption()

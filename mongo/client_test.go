@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"os"
 	"testing"
 	"time"
 
@@ -472,5 +473,61 @@ func TestClient(t *testing.T) {
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
 				"unexpected modification to serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})
+	})
+	t.Run("mongocryptd or crypt_shared", func(t *testing.T) {
+		cryptSharedLibPath := os.Getenv("CRYPT_SHARED_LIB_PATH")
+		if cryptSharedLibPath == "" {
+			t.Skip("CRYPT_SHARED_LIB_PATH not set, skipping")
+		}
+
+		testCases := []struct {
+			description       string
+			useCryptSharedLib bool
+		}{
+			{
+				description:       "when crypt_shared is loaded, should not attempt to spawn mongocryptd",
+				useCryptSharedLib: true,
+			},
+			{
+				description:       "when crypt_shared is not loaded, should attempt to spawn mongocryptd",
+				useCryptSharedLib: false,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.description, func(t *testing.T) {
+				extraOptions := map[string]interface{}{
+					// Set a mongocryptd path that does not exist. If Connect() attempts to start
+					// mongocryptd, it will cause an error.
+					"mongocryptdPath": "/does/not/exist",
+				}
+
+				// If we're using the crypt_shared library, set the "cryptSharedLibRequired" option
+				// to true and the "cryptSharedLibPath" option to the crypt_shared library path from
+				// the CRYPT_SHARED_LIB_PATH environment variable. If we're not using the
+				// crypt_shared library, explicitly disable loading the crypt_shared library.
+				if tc.useCryptSharedLib {
+					extraOptions["cryptSharedLibRequired"] = true
+					extraOptions["cryptSharedLibPath"] = cryptSharedLibPath
+				} else {
+					extraOptions["__cryptSharedLibDisabledForTestOnly"] = true
+				}
+
+				_, err := NewClient(options.Client().
+					SetAutoEncryptionOptions(options.AutoEncryption().
+						SetKmsProviders(map[string]map[string]interface{}{
+							"local": {"key": make([]byte, 96)},
+						}).
+						SetExtraOptions(extraOptions)))
+
+				// If we're using the crypt_shared library, expect that Connect() doesn't attempt to spawn
+				// mongocryptd and no error is returned. If we're not using the crypt_shared library,
+				// expect that Connect() tries to spawn mongocryptd and returns an error.
+				if tc.useCryptSharedLib {
+					assert.Nil(t, err, "Connect() error: %v", err)
+				} else {
+					assert.NotNil(t, err, "expected Connect() error, but got nil")
+				}
+			})
+		}
 	})
 }

@@ -98,9 +98,11 @@ issues:
       linters:
         - unused
         - structcheck
-    # Disable "unused" linter for "crypt.go" because the linter doesn't work correctly without
-    # enabling CGO.
-    - path: x/mongo/driver/crypt.go
+    # Disable "unused" linter for code files that depend on the "mongocrypt.MongoCrypt" type because
+    # the linter build doesn't work correctly with CGO enabled. As a result, all calls to a
+    # "mongocrypt.MongoCrypt" API appear to always panic (see mongocrypt_not_enabled.go), leading
+    # to confusing messages about unused code.
+    - path: x/mongo/driver/crypt.go|mongo/(crypt_retrievers|mongocryptd).go
       linters:
         - unused
     # Ignore "TLS MinVersion too low", "TLS InsecureSkipVerify set true", and "Use of weak random

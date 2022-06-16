@@ -36,15 +36,13 @@ type MarkCommandFn func(ctx context.Context, db string, cmd bsoncore.Document) (
 
 // CryptOptions specifies options to configure a Crypt instance.
 type CryptOptions struct {
+	MongoCrypt           *mongocrypt.MongoCrypt
 	CollInfoFn           CollectionInfoFn
 	KeyFn                KeyRetrieverFn
 	MarkFn               MarkCommandFn
-	KmsProviders         bsoncore.Document
-	SchemaMap            map[string]bsoncore.Document
 	TLSConfig            map[string]*tls.Config
 	BypassAutoEncryption bool
 	BypassQueryAnalysis  bool
-	EncryptedFieldsMap   map[string]bsoncore.Document
 }
 
 // Crypt is an interface implemented by types that can encrypt and decrypt instances of
@@ -85,27 +83,15 @@ type crypt struct {
 }
 
 // NewCrypt creates a new Crypt instance configured with the given AutoEncryptionOptions.
-func NewCrypt(opts *CryptOptions) (Crypt, error) {
-	c := &crypt{
+func NewCrypt(opts *CryptOptions) Crypt {
+	return &crypt{
+		mongoCrypt:           opts.MongoCrypt,
 		collInfoFn:           opts.CollInfoFn,
 		keyFn:                opts.KeyFn,
 		markFn:               opts.MarkFn,
 		tlsConfig:            opts.TLSConfig,
 		bypassAutoEncryption: opts.BypassAutoEncryption,
 	}
-
-	mongocryptOpts := options.MongoCrypt().
-		SetKmsProviders(opts.KmsProviders).
-		SetLocalSchemaMap(opts.SchemaMap).
-		SetBypassQueryAnalysis(opts.BypassQueryAnalysis).
-		SetEncryptedFieldsMap(opts.EncryptedFieldsMap)
-	mc, err := mongocrypt.NewMongoCrypt(mongocryptOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	c.mongoCrypt = mc
-	return c, nil
 }
 
 // Encrypt encrypts the given command.

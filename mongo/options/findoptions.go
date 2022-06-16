@@ -55,10 +55,6 @@ type FindOptions struct {
 	// MaxAwaitTime is the maximum amount of time that the server should wait for new documents to satisfy a tailable cursor
 	// query. This option is only valid for tailable await cursors (see the CursorType option for more information) and
 	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
-	//
-	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time that the Find operation can run before
-	// returning an error. MaxAwaitTime is still usable through the deprecated setter.
 	MaxAwaitTime *time.Duration
 
 	// MaxTime is the maximum amount of time that the query can run on the server. The default value is nil, meaning that there
@@ -181,10 +177,6 @@ func (f *FindOptions) SetMax(max interface{}) *FindOptions {
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-//
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver.
-// The more general Timeout option should be used in its place to control the amount of time that the
-// Find operation can run before returning an error.
 func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
 	f.MaxAwaitTime = &d
 	return f
@@ -377,6 +369,10 @@ type FindOneOptions struct {
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
+	//
+	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+	// Timeout option should be used in its place to control the amount of time that the FindOne operation can run before
+	// returning an error. MaxTime is still usable through the deprecated setter.
 	MaxTime *time.Duration
 
 	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
@@ -481,6 +477,10 @@ func (f *FindOneOptions) SetMaxAwaitTime(d time.Duration) *FindOneOptions {
 }
 
 // SetMaxTime sets the value for the MaxTime field.
+//
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+// Timeout option should be used in its place to control the amount of time that the FindOne operation can run before
+// returning an error.
 func (f *FindOneOptions) SetMaxTime(d time.Duration) *FindOneOptions {
 	f.MaxTime = &d
 	return f
@@ -633,6 +633,10 @@ type FindOneAndReplaceOptions struct {
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
+	//
+	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+	// Timeout option should be used in its place to control the amount of time that the FindOneAndReplace operation can
+	// run before returning an error. MaxTime is still usable through the deprecated setter.
 	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
@@ -691,6 +695,10 @@ func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndRe
 }
 
 // SetMaxTime sets the value for the MaxTime field.
+//
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+// Timeout option should be used in its place to control the amount of time that the FindOneAndReplace operation can
+// run before returning an error.
 func (f *FindOneAndReplaceOptions) SetMaxTime(d time.Duration) *FindOneAndReplaceOptions {
 	f.MaxTime = &d
 	return f
@@ -799,6 +807,10 @@ type FindOneAndUpdateOptions struct {
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
+	//
+	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+	// Timeout option should be used in its place to control the amount of time that the FindOneAndUpdate operation can run
+	// before returning an error. MaxTime is still usable through the deprecated setter.
 	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
@@ -863,6 +875,10 @@ func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpd
 }
 
 // SetMaxTime sets the value for the MaxTime field.
+//
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+// Timeout option should be used in its place to control the amount of time that the FindOneAndUpdate operation can run
+// before returning an error.
 func (f *FindOneAndUpdateOptions) SetMaxTime(d time.Duration) *FindOneAndUpdateOptions {
 	f.MaxTime = &d
 	return f
@@ -963,6 +979,10 @@ type FindOneAndDeleteOptions struct {
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
+	//
+	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+	// Timeout option should be used in its place to control the amount of time that the FindOneAndDelete operation can run
+	// before returning an error. MaxTime is still usable through the deprecated setter.
 	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
@@ -1007,6 +1027,10 @@ func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDel
 }
 
 // SetMaxTime sets the value for the MaxTime field.
+//
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+// Timeout option should be used in its place to control the amount of time that the FindOneAndDelete operation can run
+// before returning an error.
 func (f *FindOneAndDeleteOptions) SetMaxTime(d time.Duration) *FindOneAndDeleteOptions {
 	f.MaxTime = &d
 	return f

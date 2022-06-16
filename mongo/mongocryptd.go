@@ -28,14 +28,14 @@ const (
 var defaultTimeoutArgs = []string{"--idleShutdownTimeoutSecs=60"}
 var databaseOpts = options.Database().SetReadConcern(readconcern.New()).SetReadPreference(readpref.Primary())
 
-type mcryptClient struct {
+type mongocryptdClient struct {
 	bypassSpawn bool
 	client      *Client
 	path        string
 	spawnArgs   []string
 }
 
-func newMcryptClient(opts *options.AutoEncryptionOptions) (*mcryptClient, error) {
+func newMongocryptdClient(cryptSharedLibAvailable bool, opts *options.AutoEncryptionOptions) (*mongocryptdClient, error) {
 	// create mcryptClient instance and spawn process if necessary
 	var bypassSpawn bool
 	var bypassAutoEncryption bool
@@ -49,12 +49,13 @@ func newMcryptClient(opts *options.AutoEncryptionOptions) (*mcryptClient, error)
 
 	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
 
-	mc := &mcryptClient{
+	mc := &mongocryptdClient{
 		// mongocryptd should not be spawned if any of these conditions are true:
 		// - mongocryptdBypassSpawn is passed
 		// - bypassAutoEncryption is true because mongocryptd is not used during decryption
 		// - bypassQueryAnalysis is true because mongocryptd is not used during decryption
-		bypassSpawn: bypassSpawn || bypassAutoEncryption || bypassQueryAnalysis,
+		// - the crypt_shared library is available because it replaces all mongocryptd functionality.
+		bypassSpawn: bypassSpawn || bypassAutoEncryption || bypassQueryAnalysis || cryptSharedLibAvailable,
 	}
 
 	if !mc.bypassSpawn {
@@ -81,7 +82,7 @@ func newMcryptClient(opts *options.AutoEncryptionOptions) (*mcryptClient, error)
 }
 
 // markCommand executes the given command on mongocryptd.
-func (mc *mcryptClient) markCommand(ctx context.Context, dbName string, cmd bsoncore.Document) (bsoncore.Document, error) {
+func (mc *mongocryptdClient) markCommand(ctx context.Context, dbName string, cmd bsoncore.Document) (bsoncore.Document, error) {
 	// Remove the explicit session from the context if one is set.
 	// The explicit session will be from a different client.
 	// If an explicit session is set, it is applied after automatic encryption.
@@ -110,16 +111,16 @@ func (mc *mcryptClient) markCommand(ctx context.Context, dbName string, cmd bson
 }
 
 // connect connects the underlying Client instance. This must be called before performing any mark operations.
-func (mc *mcryptClient) connect(ctx context.Context) error {
+func (mc *mongocryptdClient) connect(ctx context.Context) error {
 	return mc.client.Connect(ctx)
 }
 
 // disconnect disconnects the underlying Client instance. This should be called after all operations have completed.
-func (mc *mcryptClient) disconnect(ctx context.Context) error {
+func (mc *mongocryptdClient) disconnect(ctx context.Context) error {
 	return mc.client.Disconnect(ctx)
 }
 
-func (mc *mcryptClient) spawnProcess() error {
+func (mc *mongocryptdClient) spawnProcess() error {
 	// Ignore gosec warning about subprocess launched with externally-provided path variable.
 	/* #nosec G204 */
 	cmd := exec.Command(mc.path, mc.spawnArgs...)
