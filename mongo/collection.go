@@ -862,9 +862,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	if ao.Collation != nil {
 		op.Collation(bsoncore.Document(ao.Collation.ToDocument()))
 	}
-	if ao.MaxTime != nil {
-		op.MaxTimeMS(int64(*ao.MaxTime / time.Millisecond))
-	}
+	op.MaxTime(ao.MaxTime)
 	if ao.MaxAwaitTime != nil {
 		cursorOpts.MaxTimeMS = int64(*ao.MaxAwaitTime / time.Millisecond)
 	}
@@ -978,9 +976,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	if countOpts.Comment != nil {
 		op.Comment(*countOpts.Comment)
 	}
-	if countOpts.MaxTime != nil {
-		op.MaxTimeMS(int64(*countOpts.MaxTime / time.Millisecond))
-	}
+	op.MaxTime(countOpts.MaxTime)
 	if countOpts.Hint != nil {
 		hintVal, err := transformValue(coll.registry, countOpts.Hint, false, "hint")
 		if err != nil {
@@ -1067,9 +1063,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		}
 		op = op.Comment(comment)
 	}
-	if co.MaxTime != nil {
-		op = op.MaxTimeMS(int64(*co.MaxTime / time.Millisecond))
-	}
+	op = op.MaxTime(co.MaxTime)
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1143,9 +1137,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		}
 		op.Comment(comment)
 	}
-	if option.MaxTime != nil {
-		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
-	}
+	op.MaxTime(option.MaxTime)
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1300,9 +1292,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.MaxAwaitTime != nil {
 		cursorOpts.MaxTimeMS = int64(*fo.MaxAwaitTime / time.Millisecond)
 	}
-	if fo.MaxTime != nil {
-		op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
-	}
+	op.MaxTime(fo.MaxTime)
 	if fo.Min != nil {
 		min, err := transformBsoncoreDocument(coll.registry, fo.Min, true, "min")
 		if err != nil {
@@ -1493,9 +1483,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		}
 		op = op.Comment(comment)
 	}
-	if fod.MaxTime != nil {
-		op = op.MaxTimeMS(int64(*fod.MaxTime / time.Millisecond))
-	}
+	op = op.MaxTime(fod.MaxTime)
 	if fod.Projection != nil {
 		proj, err := transformBsoncoreDocument(coll.registry, fod.Projection, true, "projection")
 		if err != nil {
@@ -1573,9 +1561,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		}
 		op = op.Comment(comment)
 	}
-	if fo.MaxTime != nil {
-		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
-	}
+	op = op.MaxTime(fo.MaxTime)
 	if fo.Projection != nil {
 		proj, err := transformBsoncoreDocument(coll.registry, fo.Projection, true, "projection")
 		if err != nil {
@@ -1670,9 +1656,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		}
 		op = op.Comment(comment)
 	}
-	if fo.MaxTime != nil {
-		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
-	}
+	op = op.MaxTime(fo.MaxTime)
 	if fo.Projection != nil {
 		proj, err := transformBsoncoreDocument(coll.registry, fo.Projection, true, "projection")
 		if err != nil {

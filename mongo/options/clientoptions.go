@@ -729,7 +729,8 @@ func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 // (e.g. "timeoutMS=1000"). The default value is nil, meaning operations do not inherit a timeout from the Client.
 //
 // If any Timeout is set (even 0) on the Client, the values of other, deprecated timeout-related options will be ignored.
-// In particular: ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operations, and TransactionOptions.MaxCommitTime.
+// In particular: ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operation options, and
+// TransactionOptions.MaxCommitTime.
 //
 // NOTE(benjirewis): SetTimeout represents unstable, provisional API. The behavior of the driver when a Timeout is specified is
 // subject to change.

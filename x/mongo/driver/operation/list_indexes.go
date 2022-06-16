@@ -21,7 +21,7 @@ import (
 // ListIndexes performs a listIndexes operation.
 type ListIndexes struct {
 	batchSize  *int32
-	maxTimeMS  *int64
+	maxTime    *time.Duration
 	session    *session.Client
 	clock      *session.ClusterClock
 	collection string
@@ -75,7 +75,7 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		CommandMonitor: li.monitor,
 		Database:       li.database,
 		Deployment:     li.deployment,
-		MaxTimeMS:      li.maxTimeMS,
+		MaxTime:        li.maxTime,
 		Selector:       li.selector,
 		Crypt:          li.crypt,
 		Legacy:         driver.LegacyListIndexes,
@@ -111,13 +111,13 @@ func (li *ListIndexes) BatchSize(batchSize int32) *ListIndexes {
 	return li
 }
 
-// MaxTimeMS specifies the maximum amount of time to allow the query to run.
-func (li *ListIndexes) MaxTimeMS(maxTimeMS int64) *ListIndexes {
+// MaxTime specifies the maximum amount of time to allow the query to run on the server.
+func (li *ListIndexes) MaxTime(maxTime *time.Duration) *ListIndexes {
 	if li == nil {
 		li = new(ListIndexes)
 	}
 
-	li.maxTimeMS = &maxTimeMS
+	li.maxTime = maxTime
 	return li
 }
 

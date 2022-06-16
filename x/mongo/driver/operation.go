@@ -217,8 +217,8 @@ type Operation struct {
 	// read preference will not be added to the command on wire versions < 13.
 	IsOutputAggregate bool
 
-	// MaxTimeMS specifies the maximum amount of time to allow the operation to run.
-	MaxTimeMS *int64
+	// MaxTime specifies the maximum amount of time to allow the operation to run on the server.
+	MaxTime *time.Duration
 
 	// Timeout is the amount of time that this operation can execute before returning an error. The default value
 	// nil, which means that the timeout of the operation's caller will be used.
@@ -1265,14 +1265,22 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration)
 	if internal.IsTimeoutContext(ctx) {
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
-			if remainingTimeout < rtt90 {
+			// We check that remainingTimeout <= rtt90 because in the rare case that they are equal, we
+			// may accidentally calculate a maxTimeMS value of 0, which would indicate infinite timeout
+			// server-side.
+			if remainingTimeout <= rtt90 {
 				return 0, internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"remaining time %v until context deadline is less than 90th percentile RTT", time.Until(deadline))
+					"remaining time %v until context deadline is less than or equal to 90th percentile RTT", time.Until(deadline))
 			}
 			return uint64(remainingTimeout/time.Millisecond - rtt90/time.Millisecond), nil
 		}
-	} else if op.MaxTimeMS != nil {
-		return uint64(*op.MaxTimeMS), nil
+	} else if op.MaxTime != nil {
+		// Users are not allowed to pass a negative value as MaxTime. A value of 0 would indicate
+		// infinite timeout and is allowed.
+		if *op.MaxTime < 0 {
+			return 0, ErrNegativeMaxTime
+		}
+		return uint64(*op.MaxTime / time.Millisecond), nil
 	}
 	return 0, nil
 }
