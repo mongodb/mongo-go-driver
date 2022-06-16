@@ -110,8 +110,8 @@ functions:
              mkdir -p install/libmongocrypt
              mkdir libmongocrypt-all
              cd libmongocrypt-all
-             # LIBMONGOCRYPT_COMMIT is for 1.5.0-rc0.
-             LIBMONGOCRYPT_COMMIT="75dff76f3268c43ad7213bb8303688461aaabb96"
+             # LIBMONGOCRYPT_COMMIT is for 1.5.0-rc1.
+             LIBMONGOCRYPT_COMMIT="6e100b087376d448534cb2ad1b4dc50cb7cbc1f6"
              # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
              curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
              tar -xf libmongocrypt-all.tar.gz
