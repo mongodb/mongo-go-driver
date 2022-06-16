@@ -64,28 +64,20 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	return ce, nil
 }
 
-// clientEncryptionIDQuery will take a primitive.Binary for a CLE id and write it as a bytes document.
-func clientEncryptionIDQuery(id primitive.Binary) ([]byte, error) {
-	idx, query := bsoncore.AppendDocumentStart(nil)
-	query = bsoncore.AppendBinaryElement(query, "_id", id.Subtype, id.Data)
-	query, err := bsoncore.AppendDocumentEnd(query, idx)
-	if err != nil {
-		return nil, err
-	}
-	return bsoncore.Document(query), nil
+// clientEncryptionIDQuery will take a primitive.Binary representation of a CLE UUID and write it as the bytes for a
+// bsoncore.Document.
+func clientEncryptionIDQuery(id primitive.Binary) []byte {
+	query := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
+	return bsoncore.Document(query)
 }
 
 type singleResultExecutor func(*Collection, []byte) *SingleResult
 
-// executeSingleResult wraps CE data to execute some id-specific query operation.
+// executeSingleResult wraps CLE data to execute some id-specific query operation.
 func executeSingleResult(ce *ClientEncryption, id *primitive.Binary, fn singleResultExecutor) *SingleResult {
 	var query []byte
 	if id != nil {
-		var err error
-		query, err = clientEncryptionIDQuery(*id)
-		if err != nil {
-			return &SingleResult{err: err}
-		}
+		query = clientEncryptionIDQuery(*id)
 	}
 	coll, err := ce.majorityReadCollection()
 	if err != nil {
@@ -96,15 +88,11 @@ func executeSingleResult(ce *ClientEncryption, id *primitive.Binary, fn singleRe
 
 type deleteResultExecutor func(*Collection, []byte) (*DeleteResult, error)
 
-// executeDeleteResult wraps CE data to execute some id-specific delete operation.
+// executeDeleteResult wraps CLE data to execute some id-specific delete operation.
 func executeDeleteResult(ce *ClientEncryption, id *primitive.Binary, fn deleteResultExecutor) (*DeleteResult, error) {
 	var query []byte
 	if id != nil {
-		var err error
-		query, err = clientEncryptionIDQuery(*id)
-		if err != nil {
-			return nil, err
-		}
+		query = clientEncryptionIDQuery(*id)
 	}
 	coll, err := ce.majorityReadCollection()
 	if err != nil {
@@ -113,7 +101,7 @@ func executeDeleteResult(ce *ClientEncryption, id *primitive.Binary, fn deleteRe
 	return fn(coll, query)
 }
 
-// majorityReadCollection will return a clone of the key vault collection collection with a majority read concern.
+// majorityReadCollection will return a clone of the key vault collection with a majority read concern.
 func (ce *ClientEncryption) majorityReadCollection() (*Collection, error) {
 	return ce.keyVaultColl.Clone(options.Collection().SetReadConcern(readconcern.New(readconcern.Level("majority"))))
 }
@@ -138,7 +126,7 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 // document as a UUID (BSON binary subtype 0x04).
 func (ce *ClientEncryption) CreateKey(ctx context.Context, kmsProvider string,
 	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
-	// translate opts to cryptOpts.DataKeyOptions
+
 	dko := options.MergeDataKeyOptions(opts...)
 	co := cryptOpts.DataKey().SetKeyAltNames(dko.KeyAltNames)
 	if dko.MasterKey != nil {
@@ -254,10 +242,10 @@ func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
 // the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
 func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult {
 	return executeSingleResult(ce, &id, func(coll *Collection, query []byte) *SingleResult {
-		return coll.FindOneAndUpdate(ctx, query, bson.A{
-			bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq", bson.A{"$keyAltNames",
-				bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter", bson.D{{"input", "$keyAltNames"},
-				{"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}})
+		update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
+			bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
+			bson.D{{"input", "$keyAltNames"}, {"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}}
+		return coll.FindOneAndUpdate(ctx, query, update)
 	})
 }
 
@@ -274,20 +262,19 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 		if err != nil {
 			return err
 		}
-		idx, mutableRewrappedDoc := bsoncore.AppendDocumentStart(nil)
+		mutableRewrappedDocBuilder := bsoncore.NewDocumentBuilder()
 		for _, element := range rewrappedDocElems {
-			if key := element.Key(); key != idKey {
-				value, err := element.ValueErr()
-				if err != nil {
-					return err
-				}
-				mutableRewrappedDoc = bsoncore.AppendValueElement(mutableRewrappedDoc, key, value)
+			key := element.Key()
+			if key == idKey {
+				continue
 			}
+			value, err := element.ValueErr()
+			if err != nil {
+				return err
+			}
+			mutableRewrappedDocBuilder.AppendValue(key, value)
 		}
-		mutableRewrappedDoc, err = bsoncore.AppendDocumentEnd(mutableRewrappedDoc, idx)
-		if err != nil {
-			return err
-		}
+		mutableRewrappedDoc := mutableRewrappedDocBuilder.Build()
 
 		// Prepare the new master key for update.
 		mutableDocMasterKey, err := bsoncore.Document(mutableRewrappedDoc).LookupErr(masterKey)
@@ -321,10 +308,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 			SetFilter(bson.D{{idKey, binaryID}}).
 			SetUpdate(
 				bson.D{
-					{"$set", bson.D{
-						{keyMaterial, mutableDocKeyMaterialBinary},
-						{masterKey, masterKeyDoc},
-					}},
+					{"$set", bson.D{{keyMaterial, mutableDocKeyMaterialBinary}, {masterKey, masterKeyDoc}}},
 					{"$currentDate", bson.D{{"updateDate", true}}},
 				},
 			))
