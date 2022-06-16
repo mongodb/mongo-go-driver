@@ -32,14 +32,8 @@ func (op Operation) getFullCollectionName(coll string) string {
 	return op.Database + "." + coll
 }
 
-func (op Operation) legacyFind(
-	ctx context.Context,
-	dst []byte,
-	srvr Server,
-	conn Connection,
-	desc description.SelectedServer,
-	maxTimeMS uint64,
-) error {
+func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, conn Connection,
+	desc description.SelectedServer, maxTimeMS uint64) error {
 	wm, startedInfo, collName, err := op.createLegacyFindWireMessage(dst, desc, maxTimeMS)
 	if err != nil {
 		return err
@@ -535,14 +529,8 @@ func (op Operation) transformListCollectionsFilter(filter bsoncore.Document) (bs
 	return combinedFilter, nil
 }
 
-func (op Operation) legacyListIndexes(
-	ctx context.Context,
-	dst []byte,
-	srvr Server,
-	conn Connection,
-	desc description.SelectedServer,
-	maxTimeMS uint64,
-) error {
+func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Server, conn Connection,
+	desc description.SelectedServer, maxTimeMS uint64) error {
 	wm, startedInfo, collName, err := op.createLegacyListIndexesWiremessage(dst, desc, maxTimeMS)
 	if err != nil {
 		return err

@@ -525,7 +525,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if deadline, ok := ctx.Deadline(); ok {
 			if internal.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTT90()).After(deadline) {
 				err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", time.Until(deadline))
+					"remaining time %v until context deadline is less than 90th percentile RTT", time.Until(deadline))
 			} else if time.Now().Add(srvr.MinRTT()).After(deadline) {
 				err = op.networkError(context.DeadlineExceeded)
 			}
@@ -1265,16 +1265,11 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration)
 	if internal.IsTimeoutContext(ctx) {
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
-
-			maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
-				int64(rtt90/time.Millisecond)
-
-			// A maxTimeMS value <= 0 indicates that we are already at or past the context's deadline.
-			if maxTimeMSVal <= 0 {
+			if remainingTimeout < rtt90 {
 				return 0, internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"Context deadline has already been surpassed by %v", remainingTimeout)
+					"remaining time %v until context deadline is less than 90th percentile RTT", time.Until(deadline))
 			}
-			return uint64(maxTimeMSVal), nil
+			return uint64(remainingTimeout/time.Millisecond - rtt90/time.Millisecond), nil
 		}
 	} else if op.MaxTimeMS != nil {
 		return uint64(*op.MaxTimeMS), nil
