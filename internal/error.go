@@ -117,3 +117,7 @@ func (e *wrappedError) Error() string {
 func (e *wrappedError) Inner() error {
 	return e.inner
 }
+
+func (e *wrappedError) Unwrap() error {
+	return e.inner
+}

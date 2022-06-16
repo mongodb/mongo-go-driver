@@ -234,11 +234,12 @@ func TestConnection(t *testing.T) {
 						}
 						conn := newConnection("", connOpts...)
 
-						ctx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
-						defer cancel()
 						var connectErr error
-						callback := func() {
-							connectErr = conn.connect(ctx)
+						callback := func(ctx context.Context) {
+							connectCtx, cancel := context.WithTimeout(ctx, tc.contextTimeout)
+							defer cancel()
+
+							connectErr = conn.connect(connectCtx)
 						}
 						assert.Soon(t, callback, tc.maxConnectTime)
 
@@ -268,11 +269,12 @@ func TestConnection(t *testing.T) {
 						}
 						conn := newConnection(address.Address(l.Addr().String()), connOpts...)
 
-						ctx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
-						defer cancel()
 						var connectErr error
-						callback := func() {
-							connectErr = conn.connect(ctx)
+						callback := func(ctx context.Context) {
+							connectCtx, cancel := context.WithTimeout(ctx, tc.contextTimeout)
+							defer cancel()
+
+							connectErr = conn.connect(connectCtx)
 						}
 						assert.Soon(t, callback, tc.maxConnectTime)
 

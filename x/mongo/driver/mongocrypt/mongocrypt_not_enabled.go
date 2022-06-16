@@ -49,6 +49,18 @@ func (m *MongoCrypt) CreateExplicitDecryptionContext(doc bsoncore.Document) (*Co
 	panic(cseNotSupportedMsg)
 }
 
+// CryptSharedLibVersion returns the version number for the loaded crypt_shared library, or 0 if the
+// crypt_shared library was not loaded.
+func (m *MongoCrypt) CryptSharedLibVersion() uint64 {
+	panic(cseNotSupportedMsg)
+}
+
+// CryptSharedLibVersionString returns the version string for the loaded crypt_shared library, or an
+// empty string if the crypt_shared library was not loaded.
+func (m *MongoCrypt) CryptSharedLibVersionString() string {
+	panic(cseNotSupportedMsg)
+}
+
 // Close cleans up any resources associated with the given MongoCrypt instance.
 func (m *MongoCrypt) Close() {
 	panic(cseNotSupportedMsg)

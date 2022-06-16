@@ -15,20 +15,20 @@ import (
 
 // CollectionOptions represents options that can be used to configure a Collection.
 type CollectionOptions struct {
-	// The read concern to use for operations executed on the Collection. The default value is nil, which means that
-	// the read concern of the database used to configure the Collection will be used.
+	// ReadConcern is the read concern to use for operations executed on the Collection. The default value is nil, which means that
+	// the read concern of the Database used to configure the Collection will be used.
 	ReadConcern *readconcern.ReadConcern
 
-	// The write concern to use for operations executed on the Collection. The default value is nil, which means that
-	// the write concern of the database used to configure the Collection will be used.
+	// WriteConcern is the write concern to use for operations executed on the Collection. The default value is nil, which means that
+	// the write concern of the Database used to configure the Collection will be used.
 	WriteConcern *writeconcern.WriteConcern
 
-	// The read preference to use for operations executed on the Collection. The default value is nil, which means that
-	// the read preference of the database used to configure the Collection will be used.
+	// ReadPreference is the read preference to use for operations executed on the Collection. The default value is nil, which means that
+	// the read preference of the Database used to configure the Collection will be used.
 	ReadPreference *readpref.ReadPref
 
-	// The BSON registry to marshal and unmarshal documents for operations executed on the Collection. The default value
-	// is nil, which means that the registry of the database used to configure the Collection will be used.
+	// Registry is the BSON registry to marshal and unmarshal documents for operations executed on the Collection. The default value
+	// is nil, which means that the registry of the Database used to configure the Collection will be used.
 	Registry *bsoncodec.Registry
 }
 

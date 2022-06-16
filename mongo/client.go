@@ -26,6 +26,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
+	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -66,11 +68,12 @@ type Client struct {
 	serverAPI       *driver.ServerAPIOptions
 	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
+	timeout         *time.Duration
 
 	// client-side encryption fields
 	keyVaultClientFLE  *Client
 	keyVaultCollFLE    *Collection
-	mongocryptdFLE     *mcryptClient
+	mongocryptdFLE     *mongocryptdClient
 	cryptFLE           driver.Crypt
 	metadataClientFLE  *Client
 	internalClientFLE  *Client
@@ -634,6 +637,8 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			topology.WithWriteTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
 		)
 	}
+	// Timeout
+	c.timeout = opts.Timeout
 	// TLSConfig
 	if opts.TLSConfig != nil {
 		connOpts = append(connOpts, topology.WithTLSConfig(
@@ -691,15 +696,16 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
 		topology.WithConnectionOptions(func(...topology.ConnectionOption) []topology.ConnectionOption { return connOpts }),
 	)
-	c.topologyOptions = append(topologyOpts, topology.WithServerOptions(
+	topologyOpts = append(topologyOpts, topology.WithServerOptions(
 		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
 	))
+	c.topologyOptions = topologyOpts
 
 	// Deployment
 	if opts.Deployment != nil {
-		// topology options: WithSeedlist, WithURI, WithSRVServiceName and WithSRVMaxHosts
+		// topology options: WithSeedlist, WithURI, WithSRVServiceName, WithSRVMaxHosts, and WithServerOptions
 		// server options: WithClock and WithConnectionOptions + default maxPoolSize
-		if len(serverOpts) > 2+defaultOptions || len(topologyOpts) > 4 {
+		if len(serverOpts) > 2+defaultOptions || len(topologyOpts) > 5 {
 			return errors.New("cannot specify topology or server options with a deployment")
 		}
 		c.deployment = opts.Deployment
@@ -716,10 +722,23 @@ func (c *Client) configureAutoEncryption(clientOpts *options.ClientOptions) erro
 	if err := c.configureMetadataClientFLE(clientOpts); err != nil {
 		return err
 	}
-	if err := c.configureMongocryptdClientFLE(clientOpts.AutoEncryptionOptions); err != nil {
+
+	mc, err := c.newMongoCrypt(clientOpts.AutoEncryptionOptions)
+	if err != nil {
 		return err
 	}
-	return c.configureCryptFLE(clientOpts.AutoEncryptionOptions)
+
+	// If the crypt_shared library was loaded successfully, signal to the mongocryptd client creator
+	// that it can bypass spawning mongocryptd.
+	cryptSharedLibAvailable := mc.CryptSharedLibVersionString() != ""
+	mongocryptdFLE, err := newMongocryptdClient(cryptSharedLibAvailable, clientOpts.AutoEncryptionOptions)
+	if err != nil {
+		return err
+	}
+	c.mongocryptdFLE = mongocryptdFLE
+
+	c.configureCryptFLE(mc, clientOpts.AutoEncryptionOptions)
+	return nil
 }
 
 func (c *Client) getOrCreateInternalClient(clientOpts *options.ClientOptions) (*Client, error) {
@@ -774,19 +793,13 @@ func (c *Client) configureMetadataClientFLE(clientOpts *options.ClientOptions) e
 	return err
 }
 
-func (c *Client) configureMongocryptdClientFLE(opts *options.AutoEncryptionOptions) error {
-	var err error
-	c.mongocryptdFLE, err = newMcryptClient(opts)
-	return err
-}
-
-func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
+func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt.MongoCrypt, error) {
 	// convert schemas in SchemaMap to bsoncore documents
 	cryptSchemaMap := make(map[string]bsoncore.Document)
 	for k, v := range opts.SchemaMap {
 		schema, err := transformBsoncoreDocument(c.registry, v, true, "schemaMap")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		cryptSchemaMap[k] = schema
 	}
@@ -796,21 +809,74 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 	for k, v := range opts.EncryptedFieldsMap {
 		encryptedFields, err := transformBsoncoreDocument(c.registry, v, true, "encryptedFieldsMap")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		cryptEncryptedFieldsMap[k] = encryptedFields
 	}
 
 	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders, true, "kmsProviders")
 	if err != nil {
-		return fmt.Errorf("error creating KMS providers document: %v", err)
+		return nil, fmt.Errorf("error creating KMS providers document: %v", err)
 	}
 
-	// configure options
-	var bypass bool
-	if opts.BypassAutoEncryption != nil {
-		bypass = *opts.BypassAutoEncryption
+	// Set the crypt_shared library override path from the "cryptSharedLibPath" extra option if one
+	// was set.
+	cryptSharedLibPath := ""
+	if val, ok := opts.ExtraOptions["cryptSharedLibPath"]; ok {
+		str, ok := val.(string)
+		if !ok {
+			return nil, fmt.Errorf(
+				`expected AutoEncryption extra option "cryptSharedLibPath" to be a string, but is a %T`, val)
+		}
+		cryptSharedLibPath = str
 	}
+
+	// Explicitly disable loading the crypt_shared library if requested. Note that this is ONLY
+	// intended for use from tests; there is no supported public API for explicitly disabling
+	// loading the crypt_shared library.
+	cryptSharedLibDisabled := false
+	if v, ok := opts.ExtraOptions["__cryptSharedLibDisabledForTestOnly"]; ok {
+		cryptSharedLibDisabled = v.(bool)
+	}
+
+	bypassAutoEncryption := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
+	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
+
+	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
+		SetKmsProviders(kmsProviders).
+		SetLocalSchemaMap(cryptSchemaMap).
+		SetBypassQueryAnalysis(bypassQueryAnalysis).
+		SetEncryptedFieldsMap(cryptEncryptedFieldsMap).
+		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
+		SetCryptSharedLibOverridePath(cryptSharedLibPath))
+	if err != nil {
+		return nil, err
+	}
+
+	var cryptSharedLibRequired bool
+	if val, ok := opts.ExtraOptions["cryptSharedLibRequired"]; ok {
+		b, ok := val.(bool)
+		if !ok {
+			return nil, fmt.Errorf(
+				`expected AutoEncryption extra option "cryptSharedLibRequired" to be a bool, but is a %T`, val)
+		}
+		cryptSharedLibRequired = b
+	}
+
+	// If the "cryptSharedLibRequired" extra option is set to true, check the MongoCrypt version
+	// string to confirm that the library was successfully loaded. If the version string is empty,
+	// return an error indicating that we couldn't load the crypt_shared library.
+	if cryptSharedLibRequired && mc.CryptSharedLibVersionString() == "" {
+		return nil, errors.New(
+			`AutoEncryption extra option "cryptSharedLibRequired" is true, but we failed to load the crypt_shared library`)
+	}
+
+	return mc, nil
+}
+
+//nolint:unused // the unused linter thinks that this function is unreachable because "c.newMongoCrypt" always panics without the "cse" build tag set.
+func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts *options.AutoEncryptionOptions) {
+	bypass := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
 	kr := keyRetriever{coll: c.keyVaultCollFLE}
 	var cir collInfoRetriever
 	// If bypass is true, c.metadataClientFLE is nil and the collInfoRetriever
@@ -820,20 +886,14 @@ func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 		cir = collInfoRetriever{client: c.metadataClientFLE}
 	}
 
-	cryptOpts := &driver.CryptOptions{
+	c.cryptFLE = driver.NewCrypt(&driver.CryptOptions{
+		MongoCrypt:           mc,
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptdFLE.markCommand,
-		KmsProviders:         kmsProviders,
 		TLSConfig:            opts.TLSConfig,
 		BypassAutoEncryption: bypass,
-		SchemaMap:            cryptSchemaMap,
-		BypassQueryAnalysis:  opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis,
-		EncryptedFieldsMap:   cryptEncryptedFieldsMap,
-	}
-
-	c.cryptFLE, err = driver.NewCrypt(cryptOpts)
-	return err
+	})
 }
 
 // validSession returns an error if the session doesn't belong to the client
@@ -909,7 +969,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
-		ServerAPI(c.serverAPI)
+		ServerAPI(c.serverAPI).Timeout(c.timeout)
 
 	if ldo.NameOnly != nil {
 		op = op.NameOnly(*ldo.NameOnly)
