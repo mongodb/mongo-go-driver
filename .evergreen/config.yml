@@ -953,13 +953,14 @@ functions:
           . ./activate_venv.sh
 
           # TODO: Stabilize this pip install with a non-forked version of PyKMIP in https://jira.mongodb.org/browse/GODRIVER-2239
-          pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
+          ${PYTHON3_BINARY} -m venv ./venv
+          ./venv/${VENV_BIN_DIR|bin}/pip3 install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
     - command: shell.exec
       params:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          ./kmstlsvenv/bin/python3 -u kms_kmip_server.py --port 5698
+          ${PYTHON3_BINARY} -u kms_kmip_server.py --port 5698
 
   run-kms-tls-test:
     - command: shell.exec
