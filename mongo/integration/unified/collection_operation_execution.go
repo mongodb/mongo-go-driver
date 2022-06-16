@@ -1041,11 +1041,7 @@ func executeRenameCollection(ctx context.Context, operation *operation) (*operat
 		{"to", coll.Database().Name() + "." + toName},
 	}
 	if dropTarget {
-		renameCmd = bson.D{
-			{"renameCollection", coll.Database().Name() + "." + coll.Name()},
-			{"to", coll.Database().Name() + "." + toName},
-			{"dropTarget", dropTarget},
-		}
+		renameCmd = append(renameCmd, bson.E{"dropTarget", dropTarget})
 	}
 	// rename can only be run on the 'admin' database.
 	admin := coll.Database().Client().Database("admin")
