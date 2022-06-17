@@ -11,6 +11,7 @@ import (
 	"compress/zlib"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/golang/snappy"
 	"github.com/klauspost/compress/zstd"
@@ -25,34 +26,19 @@ type CompressionOpts struct {
 	UncompressedSize int32
 }
 
-func calcZstdWindowSize(n int, l zstd.EncoderLevel) int {
-	if n <= zstd.MinWindowSize {
-		return zstd.MinWindowSize
+var zstdEncoders = &sync.Map{}
+
+func getZstdEncoder(l zstd.EncoderLevel) (*zstd.Encoder, error) {
+	v, ok := zstdEncoders.Load(l)
+	if ok {
+		return v.(*zstd.Encoder), nil
 	}
-	windowSize := zstd.MinWindowSize
-	// Map the window size with compression levels as the zstd package does.
-	// Implementation reference:
-	// https://github.com/klauspost/compress/blob/v1.13.6/zstd/encoder_options.go#L222-L231
-	switch l {
-	case zstd.SpeedFastest:
-		windowSize = 4 << 20
-	case zstd.SpeedDefault:
-		windowSize = 8 << 20
-	case zstd.SpeedBetterCompression:
-		windowSize = 16 << 20
-	case zstd.SpeedBestCompression:
-		windowSize = 32 << 20
+	encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(l))
+	if err != nil {
+		return nil, err
 	}
-	if windowSize > zstd.MaxWindowSize {
-		windowSize = zstd.MaxWindowSize
-	}
-	// Reduce the window size to the closest power of 2 that can hold the input size
-	// if the default window size is larger than the input size.
-	// Documentation: https://pkg.go.dev/github.com/klauspost/compress@v1.13.6/zstd#WithWindowSize
-	for windowSize/2 > n {
-		windowSize /= 2
-	}
-	return windowSize
+	zstdEncoders.Store(l, encoder)
+	return encoder, nil
 }
 
 // CompressPayload takes a byte slice and compresses it according to the options passed
@@ -78,23 +64,11 @@ func CompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 		}
 		return b.Bytes(), nil
 	case wiremessage.CompressorZstd:
-		var b bytes.Buffer
-		level := zstd.EncoderLevelFromZstd(opts.ZstdLevel)
-		windowSize := calcZstdWindowSize(len(in), level)
-		w, err := zstd.NewWriter(&b, zstd.WithEncoderLevel(level), zstd.WithWindowSize(windowSize))
+		encoder, err := getZstdEncoder(zstd.EncoderLevelFromZstd(opts.ZstdLevel))
 		if err != nil {
 			return nil, err
 		}
-		_, err = io.Copy(w, bytes.NewBuffer(in))
-		if err != nil {
-			_ = w.Close()
-			return nil, err
-		}
-		err = w.Close()
-		if err != nil {
-			return nil, err
-		}
-		return b.Bytes(), nil
+		return encoder.EncodeAll(in, nil), nil
 	default:
 		return nil, fmt.Errorf("unknown compressor ID %v", opts.Compressor)
 	}

@@ -7,11 +7,9 @@
 package driver
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
-	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -43,88 +41,7 @@ func TestCompression(t *testing.T) {
 	}
 }
 
-func TestZstdWindowSize(t *testing.T) {
-	tests := []struct {
-		inputSize  int
-		level      zstd.EncoderLevel
-		windowSize int
-	}{
-		{
-			inputSize:  0,
-			level:      zstd.EncoderLevelFromZstd(wiremessage.DefaultZstdLevel),
-			windowSize: 1024,
-		},
-		{
-			inputSize:  512,
-			level:      zstd.EncoderLevelFromZstd(wiremessage.DefaultZstdLevel),
-			windowSize: 1024,
-		},
-		{
-			inputSize:  512000,
-			level:      zstd.EncoderLevelFromZstd(wiremessage.DefaultZstdLevel),
-			windowSize: 524288,
-		},
-		{
-			inputSize:  16000000,
-			level:      zstd.EncoderLevelFromZstd(wiremessage.DefaultZstdLevel),
-			windowSize: 16777216,
-		},
-		{
-			inputSize:  32000000,
-			level:      zstd.EncoderLevelFromZstd(wiremessage.DefaultZstdLevel),
-			windowSize: 16777216,
-		},
-		{
-			inputSize:  4000000,
-			level:      zstd.SpeedFastest,
-			windowSize: 4194304,
-		},
-		{
-			inputSize:  8000000,
-			level:      zstd.SpeedFastest,
-			windowSize: 4194304,
-		},
-		{
-			inputSize:  8000000,
-			level:      zstd.SpeedDefault,
-			windowSize: 8388608,
-		},
-		{
-			inputSize:  16000000,
-			level:      zstd.SpeedDefault,
-			windowSize: 8388608,
-		},
-		{
-			inputSize:  16000000,
-			level:      zstd.SpeedBetterCompression,
-			windowSize: 16777216,
-		},
-		{
-			inputSize:  32000000,
-			level:      zstd.SpeedBetterCompression,
-			windowSize: 16777216,
-		},
-		{
-			inputSize:  32000000,
-			level:      zstd.SpeedBestCompression,
-			windowSize: 33554432,
-		},
-		{
-			inputSize:  64000000,
-			level:      zstd.SpeedBestCompression,
-			windowSize: 33554432,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("size %d level %v", test.inputSize, test.level), func(t *testing.T) {
-			windowSize := calcZstdWindowSize(test.inputSize, test.level)
-			assert.Equal(t, test.windowSize, windowSize)
-		})
-	}
-}
-
-func BenchmarkCompression(b *testing.B) {
+func BenchmarkCompressPayload(b *testing.B) {
 	payload := func() []byte {
 		buf, err := os.ReadFile("compression.go")
 		if err != nil {
@@ -150,12 +67,14 @@ func BenchmarkCompression(b *testing.B) {
 				ZlibLevel:  wiremessage.DefaultZlibLevel,
 				ZstdLevel:  wiremessage.DefaultZstdLevel,
 			}
-			for i := 0; i < b.N; i++ {
-				_, err := CompressPayload(payload, opts)
-				if err != nil {
-					b.Error(err)
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					_, err := CompressPayload(payload, opts)
+					if err != nil {
+						b.Error(err)
+					}
 				}
-			}
+			})
 		})
 	}
 }
