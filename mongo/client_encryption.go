@@ -75,8 +75,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 // clientEncryptionIDQuery will take a primitive.Binary representation of a CLE UUID and write it as the bytes for a
 // bsoncore.Document.
 func clientEncryptionIDQuery(id primitive.Binary) []byte {
-	query := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
-	return bsoncore.Document(query)
+	return bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 }
 
 type ceSingleResultExecutor func(*Collection, []byte) *SingleResult
@@ -292,14 +291,14 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 		mutableRewrappedDoc := mutableRewrappedDocBuilder.Build()
 
 		// Prepare the new master key for update.
-		mutableDocMasterKey, err := bsoncore.Document(mutableRewrappedDoc).LookupErr(masterKey)
+		mutableDocMasterKey, err := mutableRewrappedDoc.LookupErr(masterKey)
 		if err != nil {
 			return err
 		}
 		masterKeyDoc := mutableDocMasterKey.Document()
 
 		// Prepare the new material key for update.
-		mutableDocKeyMaterial, err := bsoncore.Document(mutableRewrappedDoc).LookupErr(keyMaterial)
+		mutableDocKeyMaterial, err := mutableRewrappedDoc.LookupErr(keyMaterial)
 		if err != nil {
 			return err
 		}
