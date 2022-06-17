@@ -119,7 +119,6 @@ functions:
              mv libmongocrypt-all/macos/include ./install/libmongocrypt
              mv libmongocrypt-all/macos/lib ./install/libmongocrypt
              rm -rf libmongocrypt-all
-             rm libmongocrypt-all.tar.gz
              # Fix prefix in pkg-config prefix path.
              sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
              echo "fetching build for Darwin ... end"
