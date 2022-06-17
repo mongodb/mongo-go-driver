@@ -99,11 +99,20 @@ functions:
              mkdir -p c:/libmongocrypt/include
              mkdir -p c:/libmongocrypt/bin
              # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
-             curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt_unstable.tar.gz --output libmongocrypt.tar.gz
-             tar -xvzf libmongocrypt.tar.gz
-             cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
-             cp ./include/mongocrypt/*.h c:/libmongocrypt/include
+             echo "fetching build for Windows ... begin"
+             mkdir libmongocrypt-all
+             cd libmongocrypt-all
+             # LIBMONGOCRYPT_COMMIT is for 1.5.0-rc2.
+             LIBMONGOCRYPT_COMMIT="1756c5120814152c15a2eee7a679a33a4764ba63"
+             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
+             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             tar -xf libmongocrypt-all.tar.gz
+             cd ..
+             cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
+             cp libmongocrypt-all/windows-test/include/mongocrypt/*.h c:/libmongocrypt/include
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+             rm -rf libmongocrypt-all
+             echo "fetching build for Windows ... end"
           elif [ "Darwin" = "$(uname -s)" ]; then
              # TODO (GODRIVER-2442): Once libmongocrypt compiles on macOS 10.15, remove this elif block.
              echo "fetching build for Darwin ... begin"
