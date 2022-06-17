@@ -26,8 +26,8 @@ func executeCreateView(ctx context.Context, operation *operation) (*operationRes
 
 	var collName string
 	var cvo options.CreateViewOptions
-	var pipeline interface{}
 	var viewOn string
+	pipeline := make([]interface{}, 0)
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
