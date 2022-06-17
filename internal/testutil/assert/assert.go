@@ -40,6 +40,14 @@ func Equal(t testing.TB, first, second interface{}, msg string, args ...interfac
 	}
 }
 
+// Error asserts that a function returned an error (i.e. not `nil`).
+func Error(t testing.TB, err error, msg string, args ...interface{}) {
+	t.Helper()
+	if cmp.Equal(err, nil) {
+		t.Fatalf(msg, args...)
+	}
+}
+
 // NotEqual compares first and second for inequality. The objects must be of the same type.
 func NotEqual(t testing.TB, first, second interface{}, msg string, args ...interface{}) {
 	t.Helper()

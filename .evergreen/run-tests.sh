@@ -143,16 +143,16 @@ if [ ! "$SUPRESS_CLIENT_SIDE_ENCRYPTION" = "true" ]; then
    await_server() {
       for i in $(seq 300); do
          # Exit code 7: "Failed to connect to host".
-         if curl -s "localhost:$1"; test $? -ne 7; then
+         if curl -s "localhost:$2"; test $? -ne 7; then
             return 0
          else
             sleep 1
          fi
       done
-      echo "could not detect mock KMS server on port $1"
+      echo "could not detect '$1' server on port $2"
    }
    # * List servers to await here ...
-   await_server 5698
+   await_server "KMS", 5698
 
   echo "finished awaiting servers"
    if ! test -d /cygdrive/c; then
