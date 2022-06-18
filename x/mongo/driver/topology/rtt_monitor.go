@@ -25,8 +25,15 @@ const (
 )
 
 type rttConfig struct {
-	interval           time.Duration
-	minRTTWindow       time.Duration // Window size to calculate minimum RTT over.
+	// The minimum interval between RTT measurements. The actual interval may be greater if running
+	// the operation takes longer than the interval.
+	interval time.Duration
+
+	// The timeout applied to running the "hello" operation. If the timeout is reached while running
+	// the operation, the RTT sample is discarded. The default is 1 minute.
+	timeout time.Duration
+
+	minRTTWindow       time.Duration
 	createConnectionFn func() *connection
 	createOperationFn  func(driver.Connection) *operation.Hello
 }
@@ -49,6 +56,16 @@ type rttMonitor struct {
 func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 	if cfg.interval <= 0 {
 		panic("RTT monitor interval must be greater than 0")
+	}
+
+	// If a timeout is not set, default to 1 minute. The purpose of the timeout is to allow the RTT
+	// monitor to continue monitoring server RTTs after an operation gets stuck. An operation can
+	// get stuck if the server or a proxy stops responding to requests on the RTT connection but
+	// does not close the TCP socket, effectively creating an operation that will never complete. We
+	// pick 1 minute because it is longer than the longest expected round-trip latency and short
+	// enough to allow the RTT monitor to recover in a reasonable period of time.
+	if cfg.timeout <= 0 {
+		cfg.timeout = 1 * time.Minute
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -77,8 +94,6 @@ func (r *rttMonitor) disconnect() {
 
 func (r *rttMonitor) start() {
 	defer r.closeWg.Done()
-	ticker := time.NewTicker(r.cfg.interval)
-	defer ticker.Stop()
 
 	var conn *connection
 	defer func() {
@@ -93,48 +108,52 @@ func (r *rttMonitor) start() {
 		}
 	}()
 
-	for {
-		conn = r.runHello(conn)
+	for r.ctx.Err() == nil {
+		conn := r.cfg.createConnectionFn()
+		err := conn.connect(r.ctx)
+		if err != nil {
+			_ = conn.close()
+			continue
+		}
 
+		// We just created a new connection, so record the "hello" RTT from the new connection.
+		r.addSample(conn.helloRTT)
+
+		r.runHellos(conn)
+
+		// runHellos only returns when it encounters an error or is cancelled. In either case, we
+		// want to close the connection.
+		_ = conn.close()
+	}
+}
+
+// runHellos runs "hello" operations in a loop using the provided connection, measuring and
+// recording the operation durations as RTT samples. If it encounters any errors, it returns.
+func (r *rttMonitor) runHellos(conn *connection) {
+	ticker := time.NewTicker(r.cfg.interval)
+	defer ticker.Stop()
+
+	for {
+		// Assume that the connection establishment recorded the first RTT sample, so wait for the
+		// first tick before trying to record another RTT sample.
 		select {
 		case <-ticker.C:
 		case <-r.ctx.Done():
 			return
 		}
-	}
-}
 
-// runHello runs a "hello" operation using the provided connection, measures the duration, and adds
-// the duration as an RTT sample and returns the connection used. If the provided connection is nil
-// or closed, runHello tries to establish a new connection. If the "hello" operation returns an
-// error, runHello closes the connection.
-func (r *rttMonitor) runHello(conn *connection) *connection {
-	if conn == nil || conn.closed() {
-		conn := r.cfg.createConnectionFn()
-
-		err := conn.connect(r.ctx)
+		start := time.Now()
+		ctx, cancel := context.WithTimeout(r.ctx, r.cfg.timeout)
+		err := r.cfg.createOperationFn(initConnection{conn}).Execute(ctx)
+		cancel()
 		if err != nil {
-			return nil
+			return
 		}
-
-		// If we just created a new connection, record the "hello" RTT from the new connection and
-		// return the new connection. Don't run another "hello" command this interval because it's
-		// now unnecessary.
-		r.addSample(conn.helloRTT)
-		return conn
+		// Only record a sample if the "hello" operation was successful. If it was not successful,
+		// the operation may not have actually performed a complete round trip, so the duration may
+		// be artificially short.
+		r.addSample(time.Since(start))
 	}
-
-	start := time.Now()
-	err := r.cfg.createOperationFn(initConnection{conn}).Execute(r.ctx)
-	if err != nil {
-		// Errors from the RTT monitor do not reset the RTTs or update the topology, so we close the
-		// existing connection and recreate it on the next check.
-		_ = conn.close()
-		return nil
-	}
-	r.addSample(time.Since(start))
-
-	return conn
 }
 
 // reset sets the average and min RTT to 0. This should only be called from the server monitor when an error
