@@ -330,7 +330,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 	return nil
 }
 
-// RewrapManyDataKey decrypts and enecrypts all matching data keys with a possibly new masterKey value. For all
+// RewrapManyDataKey decrypts and encrypts all matching data keys with a possibly new masterKey value. For all
 // matching documents, this method will overwrite the "masterKey", "updateDate", and "keyMaterial". On error, some
 // matching data keys may have been rewrapped.
 func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interface{},
