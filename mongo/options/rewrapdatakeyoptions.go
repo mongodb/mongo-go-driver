@@ -34,7 +34,7 @@ func (rmdko *RewrapManyDataKeyOptions) SetMasterKey(masterKey interface{}) *Rewr
 }
 
 // MergeRewrapManyDataKeyOptions combines the given RewrapManyDataKeyOptions instances into a single
-// RewrapManyDataKeyOption in a last one wins fashion.
+// RewrapManyDataKeyOptions in a last one wins fashion.
 func MergeRewrapManyDataKeyOptions(opts ...*RewrapManyDataKeyOptions) *RewrapManyDataKeyOptions {
 	rmdkOpts := RewrapManyDataKey()
 	for _, rmdko := range opts {
