@@ -1150,6 +1150,13 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	if option.Collation != nil {
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
 	}
+	if option.Comment != nil {
+		comment, err := transformValue(coll.registry, option.Comment, true, "comment")
+		if err != nil {
+			return nil, err
+		}
+		op.Comment(comment)
+	}
 	if option.MaxTime != nil {
 		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
 	}

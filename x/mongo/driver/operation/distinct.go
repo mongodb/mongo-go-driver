@@ -11,6 +11,7 @@ import (
 	"errors"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -29,6 +30,7 @@ type Distinct struct {
 	session        *session.Client
 	clock          *session.ClusterClock
 	collection     string
+	comment        bsoncore.Value
 	monitor        *event.CommandMonitor
 	crypt          driver.Crypt
 	database       string
@@ -114,6 +116,9 @@ func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte,
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", d.collation)
 	}
+	if d.comment.Type != bsontype.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "comment", d.comment)
+	}
 	if d.key != nil {
 		dst = bsoncore.AppendStringElement(dst, "key", *d.key)
 	}
@@ -193,6 +198,16 @@ func (d *Distinct) Collection(collection string) *Distinct {
 	}
 
 	d.collection = collection
+	return d
+}
+
+// Comment sets a value to help trace an operation.
+func (d *Distinct) Comment(comment bsoncore.Value) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.comment = comment
 	return d
 }
 

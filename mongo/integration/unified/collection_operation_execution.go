@@ -437,6 +437,8 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 				return nil, fmt.Errorf("error creating collation: %v", err)
 			}
 			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
 		case "fieldName":
 			fieldName = val.StringValue()
 		case "filter":
