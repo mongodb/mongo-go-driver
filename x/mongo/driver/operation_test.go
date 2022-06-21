@@ -284,11 +284,11 @@ func TestOperation(t *testing.T) {
 		})
 	})
 	t.Run("calculateMaxTimeMS", func(t *testing.T) {
-		timeout := time.Duration(5 * time.Second)
-		maxTime := time.Duration(2 * time.Second)
-		negMaxTime := time.Duration(-2 * time.Second)
-		shortRTT := time.Duration(50 * time.Millisecond)
-		longRTT := time.Duration(10 * time.Second)
+		timeout := 5 * time.Second
+		maxTime := 2 * time.Second
+		negMaxTime := -2 * time.Second
+		shortRTT := 50 * time.Millisecond
+		longRTT := 10 * time.Second
 		timeoutCtx, cancel := internal.MakeTimeoutContext(context.Background(), timeout)
 		defer cancel()
 
