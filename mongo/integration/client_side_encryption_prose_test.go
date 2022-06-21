@@ -1808,7 +1808,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{
 				opts := options.DataKey().SetKeyAltNames([]string{abcKeyAltName})
 				_, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
-				assert.Error(mt, err, "duplicate %q key did not propagate expected error", abcKeyAltName)
+				assert.NotNil(mt, err, "duplicate %q key did not propagate expected error", abcKeyAltName)
 
 				e110000 := "E11000 duplicate key"
 				correctError := strings.Contains(err.Error(), e110000)
@@ -1820,7 +1820,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{
 				opts := options.DataKey().SetKeyAltNames([]string{abcKeyAltName})
 				_, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
-				assert.Error(mt, err, "duplicate %q key did not propagate expected error", defKeyAltName)
+				assert.NotNil(mt, err, "duplicate %q key did not propagate expected error", defKeyAltName)
 
 				e110000 := "E11000 duplicate key"
 				correctError := strings.Contains(err.Error(), e110000)
@@ -1857,7 +1857,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			// fails due to a duplicate key server error (error code 11000).
 			{
 				res := cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, defKeyAltName)
-				assert.Error(mt, res.Err(), "duplicate %q key did not propagate expected error", defKeyAltName)
+				assert.NotNil(mt, res.Err(), "duplicate %q key did not propagate expected error", defKeyAltName)
 
 				e110000 := "E11000 duplicate key"
 				correctError := strings.Contains(res.Err().Error(), e110000)

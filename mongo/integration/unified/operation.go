@@ -203,9 +203,7 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "iterateUntilDocumentOrError":
 		return executeIterateUntilDocumentOrError(ctx, op)
 
-	// Unsupported operations
-	case "count", "listIndexNames", "modifyCollection":
-		return nil, newSkipTestError(fmt.Sprintf("the %q operation is not supported", op.Name))
+	// CSFLE operations
 	case "createKey":
 		return executeCreateKey(ctx, op)
 	case "rewrapManyDataKey":
@@ -222,6 +220,10 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeDeleteKey(ctx, op)
 	case "addKeyAltName":
 		return executeAddKeyAltName(ctx, op)
+
+	// Unsupported operations
+	case "count", "listIndexNames", "modifyCollection":
+		return nil, newSkipTestError(fmt.Sprintf("the %q operation is not supported", op.Name))
 	default:
 		return nil, fmt.Errorf("unrecognized entity operation %q", op.Name)
 	}
