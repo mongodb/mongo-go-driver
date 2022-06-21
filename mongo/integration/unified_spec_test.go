@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"reflect"
 	"sync"
@@ -283,6 +284,26 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
+
+		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither
+		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
+		// the crypt_shared library.
+		if testClientOpts.AutoEncryptionOptions != nil {
+			bypassAutoEncryption := testClientOpts.AutoEncryptionOptions.BypassAutoEncryption != nil &&
+				*testClientOpts.AutoEncryptionOptions.BypassAutoEncryption
+			bypassQueryAnalysis := testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis != nil &&
+				*testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis
+			if !bypassAutoEncryption && !bypassQueryAnalysis {
+				if testClientOpts.AutoEncryptionOptions.ExtraOptions == nil {
+					testClientOpts.AutoEncryptionOptions.ExtraOptions = make(map[string]interface{})
+				}
+
+				for k, v := range getCryptSharedLibExtraOptions() {
+					testClientOpts.AutoEncryptionOptions.ExtraOptions[k] = v
+				}
+			}
+		}
+
 		test.monitor = newUnifiedRunnerEventMonitor()
 		testClientOpts.SetPoolMonitor(&event.PoolMonitor{
 			Event: test.monitor.handlePoolEvent,
@@ -903,6 +924,10 @@ func setupTest(mt *mtest.T, testFile *testFile, testCase *testCase) {
 
 	// key vault data
 	if len(testFile.KeyVaultData) > 0 {
+		// Drop the key vault collection in case it exists from a prior test run.
+		err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+		assert.Nil(mt, err, "error dropping key vault collection")
+
 		keyVaultColl := mt.CreateCollection(mtest.Collection{
 			Name: "datakeys",
 			DB:   "keyvault",
@@ -962,4 +987,17 @@ func getTopologyFromClient(client *mongo.Client) *topology.Topology {
 	deploymentField := clientElem.FieldByName("deployment")
 	deploymentField = reflect.NewAt(deploymentField.Type(), unsafe.Pointer(deploymentField.UnsafeAddr())).Elem()
 	return deploymentField.Interface().(*topology.Topology)
+}
+
+// getCryptSharedLibExtraOptions returns an AutoEncryption extra options map with crypt_shared
+// library path information if the CRYPT_SHARED_LIB_PATH environment variable is set.
+func getCryptSharedLibExtraOptions() map[string]interface{} {
+	path := os.Getenv("CRYPT_SHARED_LIB_PATH")
+	if path == "" {
+		return nil
+	}
+	return map[string]interface{}{
+		"cryptSharedLibRequired": true,
+		"cryptSharedLibPath":     path,
+	}
 }

@@ -88,6 +88,8 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 			pipeline = testhelpers.RawToInterfaceSlice(val.Array())
 		case "resumeAfter":
 			opts.SetResumeAfter(val.Document())
+		case "showExpandedEvents":
+			opts.SetShowExpandedEvents(val.Boolean())
 		case "startAfter":
 			opts.SetStartAfter(val.Document())
 		case "startAtOperationTime":

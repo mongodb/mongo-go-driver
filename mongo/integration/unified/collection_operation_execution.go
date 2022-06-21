@@ -1016,6 +1016,7 @@ func executeRenameCollection(ctx context.Context, operation *operation) (*operat
 	}
 
 	var toName string
+	var dropTarget bool
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
 		return nil, err
@@ -1025,6 +1026,8 @@ func executeRenameCollection(ctx context.Context, operation *operation) (*operat
 		val := elem.Value()
 
 		switch key {
+		case "dropTarget":
+			dropTarget = val.Boolean()
 		case "to":
 			toName = val.StringValue()
 		default:
@@ -1038,6 +1041,9 @@ func executeRenameCollection(ctx context.Context, operation *operation) (*operat
 	renameCmd := bson.D{
 		{"renameCollection", coll.Database().Name() + "." + coll.Name()},
 		{"to", coll.Database().Name() + "." + toName},
+	}
+	if dropTarget {
+		renameCmd = append(renameCmd, bson.E{"dropTarget", dropTarget})
 	}
 	// rename can only be run on the 'admin' database.
 	admin := coll.Database().Client().Database("admin")

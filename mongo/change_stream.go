@@ -86,7 +86,6 @@ type ChangeStream struct {
 	selector        description.ServerSelector
 	operationTime   *primitive.Timestamp
 	wireVersion     *description.VersionRange
-	timeout         *time.Duration
 }
 
 type changeStreamConfig struct {
@@ -98,7 +97,6 @@ type changeStreamConfig struct {
 	collectionName string
 	databaseName   string
 	crypt          driver.Crypt
-	timeout        *time.Duration
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
@@ -117,7 +115,6 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 			description.LatencySelector(config.client.localThreshold),
 		}),
 		cursorOptions: config.client.createBaseCursorOptions(),
-		timeout:       config.timeout,
 	}
 
 	cs.sess = sessionFromContext(ctx)
@@ -136,7 +133,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
-		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(config.timeout)
+		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout)
 
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
@@ -274,11 +271,11 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.aggregate.Pipeline(plArr)
 	}
 
-	// If no deadline is set on the passed-in context, cs.timeout is set, and context is not already
-	// a Timeout context, honor cs.timeout in new Timeout context for change stream operation execution
+	// If no deadline is set on the passed-in context, cs.client.timeout is set, and context is not already
+	// a Timeout context, honor cs.client.timeout in new Timeout context for change stream operation execution
 	// and potential retry.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && cs.timeout != nil && !internal.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *cs.timeout)
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && cs.client.timeout != nil && !internal.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *cs.client.timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
 		// Cancel the timeout-derived context at the end of executeOperation to avoid a context leak.
@@ -438,6 +435,10 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 		}
 
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "resumeAfter", raDoc)
+	}
+
+	if cs.options.ShowExpandedEvents != nil {
+		plDoc = bsoncore.AppendBooleanElement(plDoc, "showExpandedEvents", *cs.options.ShowExpandedEvents)
 	}
 
 	if cs.options.StartAfter != nil {

@@ -10,21 +10,6 @@ if [ "Windows_NT" = "$OS" ]; then
     export GOPATH=$(cygpath -m $GOPATH)
     export GOCACHE=$(cygpath -m $GOCACHE)
     export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
-
-    if [ ! -d "c:/libmongocrypt/include" ]; then
-        mkdir -p c:/libmongocrypt/include
-        mkdir -p c:/libmongocrypt/bin
-        curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
-        tar -xvzf libmongocrypt.tar.gz
-        cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
-        cp ./include/mongocrypt/*.h c:/libmongocrypt/include
-        export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-    fi
-else
-    if [ ! -d "libmongocrypt" ]; then
-        git clone https://github.com/mongodb/libmongocrypt
-        ./libmongocrypt/.evergreen/compile.sh
-    fi
 fi
 
 export GOROOT="${GOROOT}"
@@ -82,6 +67,33 @@ fi
 # client-side encryption, which requires linking the libmongocrypt C library.
 if [ -z ${GO_BUILD_TAGS+x} ]; then
   GO_BUILD_TAGS="cse"
+fi
+
+# If the task doesn't have the SKIP_CRYPT_SHARED_LIB_DOWNLOAD variable set, try to find the
+# crypt_shared library downloaded in the "prepare-resources" task and set the CRYPT_SHARED_LIB_PATH
+# environment variable with a path to the file.
+if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" != "true" ]; then
+  # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
+  # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
+  # downloaded files.
+  export CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
+    -name 'mongo_crypt_v1.so' -o \
+    -name 'mongo_crypt_v1.dll' -o \
+    -name 'mongo_crypt_v1.dylib')"
+
+  # Expect that we always find a crypt_shared library file and set the CRYPT_SHARED_LIB_PATH
+  # environment variable. If we didn't, print an error message and exit.
+  if [ -z "$CRYPT_SHARED_LIB_PATH" ]; then
+    echo 'SKIP_CRYPT_SHARED_LIB_DOWNLOAD is not "true", but CRYPT_SHARED_LIB_PATH is empty. Exiting.'
+    exit 1
+  fi
+
+  # If we're on Windows, convert the "cygdrive"  path to Windows-style paths.
+  if [ "Windows_NT" = "$OS" ]; then
+      export CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
+  fi
+
+  echo "CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH"
 fi
 
 AUTH=${AUTH} \
