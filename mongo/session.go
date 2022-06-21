@@ -30,7 +30,7 @@ var withTransactionTimeout = 120 * time.Second
 
 // SessionContext combines the context.Context and mongo.Session interfaces. It should be used as the Context arguments
 // to operations that should be executed in a session. This type is not goroutine safe and must not be used concurrently
-// by multiple goroutines.
+// by multiple goroutines. Insances of SessionContext are not thread safe or fork safe.
 //
 // There are two ways to create a SessionContext and use it in a session/transaction. The first is to use one of the
 // callback-based functions such as WithSession and UseSession. These functions create a SessionContext and pass it to
@@ -76,8 +76,9 @@ func SessionFromContext(ctx context.Context) Session {
 // Session is an interface that represents a MongoDB logical session. Sessions can be used to enable causal consistency
 // for a group of operations or to execute operations in an ACID transaction. A new Session can be created from a Client
 // instance. A Session created from a Client must only be used to execute operations using that Client or a Database or
-// Collection created from that Client. Custom implementations of this interface should not be used in production. For
-// more information about sessions, and their use cases, see https://www.mongodb.com/docs/manual/reference/server-sessions/,
+// Collection created from that Client. Instances of Session are not thread safe or fork safe. Custom implementations of
+// this interface should not be used in production. For  more information about sessions, and their use cases, see
+// https://www.mongodb.com/docs/manual/reference/server-sessions/,
 // https://www.mongodb.com/docs/manual/core/read-isolation-consistency-recency/#causal-consistency, and
 // https://www.mongodb.com/docs/manual/core/transactions/.
 //

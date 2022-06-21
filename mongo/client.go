@@ -278,6 +278,8 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 // StartSession does not actually communicate with the server and will not error if the client is
 // disconnected.
 //
+// StartSession is not thread safe or fork safe. Session instances can only be used by one thread or process at a time.
+//
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
 func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
@@ -1021,7 +1023,7 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 
 // WithSession creates a new SessionContext from the ctx and sess parameters and uses it to call the fn callback. The
 // SessionContext must be used as the Context parameter for any operations in the fn callback that should be executed
-// under the session.
+// under the session. WithSession is not thread safe or fork safe.
 //
 // If the ctx parameter already contains a Session, that Session will be replaced with the one provided.
 //
@@ -1033,7 +1035,7 @@ func WithSession(ctx context.Context, sess Session, fn func(SessionContext) erro
 // UseSession creates a new Session and uses it to create a new SessionContext, which is used to call the fn callback.
 // The SessionContext parameter must be used as the Context parameter for any operations in the fn callback that should
 // be executed under a session. After the callback returns, the created Session is ended, meaning that any in-progress
-// transactions started by fn will be aborted even if fn returns an error.
+// transactions started by fn will be aborted even if fn returns an error. UseSession is not thread safe or fork safe.
 //
 // If the ctx parameter already contains a Session, that Session will be replaced with the newly created one.
 //
@@ -1043,6 +1045,7 @@ func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) 
 }
 
 // UseSessionWithOptions operates like UseSession but uses the given SessionOptions to create the Session.
+// UseSessionWithOptions is not thread safe or fork safe.
 func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
 	defaultSess, err := c.StartSession(opts)
 	if err != nil {
