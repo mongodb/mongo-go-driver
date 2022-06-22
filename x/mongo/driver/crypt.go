@@ -147,7 +147,7 @@ func (c *crypt) RewrapDataKey(ctx context.Context, filter []byte,
 		return nil, err
 	}
 	if rewrappedBSON == nil {
-		return nil, fmt.Errorf("expected non-nil result for RewrapDataKey but got nil")
+		return nil, nil
 	}
 
 	// mongocrypt_ctx_rewrap_many_datakey_init wraps the documents in a BSON of the form { "v": [(BSON document), ...] }

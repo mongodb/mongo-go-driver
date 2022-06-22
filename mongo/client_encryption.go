@@ -302,8 +302,8 @@ func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interf
 		return nil, err
 	}
 
-	bulkWriteResults, _ := ce.keyVaultColl.BulkWrite(ctx, models)
-	return &RewrapManyDataKeyResult{BulkWriteResult: bulkWriteResults}, nil
+	bulkWriteResults, err := ce.keyVaultColl.BulkWrite(ctx, models)
+	return &RewrapManyDataKeyResult{BulkWriteResult: bulkWriteResults}, err
 }
 
 // splitNamespace takes a namespace in the form "database.collection" and returns (database name, collection name)
