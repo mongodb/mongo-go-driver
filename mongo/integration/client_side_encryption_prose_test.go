@@ -199,10 +199,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		schemaMap := map[string]interface{}{"db.coll": schema}
 		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
 			tlsOpts := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+				"tlsCAFile":             tlsCAFileKMIP,
 			}
 			kmipConfig, err := options.BuildTLSConfig(tlsOpts)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -531,10 +531,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 
 		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
 			tlsOpts := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+				"tlsCAFile":             tlsCAFileKMIP,
 			}
 			kmipConfig, err := options.BuildTLSConfig(tlsOpts)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -781,10 +781,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 
 		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
 			tlsOpts := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+				"tlsCAFile":             tlsCAFileKMIP,
 			}
 			kmipConfig, err := options.BuildTLSConfig(tlsOpts)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -1410,10 +1410,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// make TLS opts containing client certificate and CA file
 		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
 			clientAndCATlsMap := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+				"tlsCAFile":             tlsCAFileKMIP,
 			}
 			certConfig, err := options.BuildTLSConfig(clientAndCATlsMap)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -1430,9 +1430,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetTLSConfig(tlsConfig)
 
 		// make TLS opts containing only CA file
-		if tlsCAFile != "" {
+		if tlsCAFileKMIP != "" {
 			caTlsMap := map[string]interface{}{
-				"tlsCAFile": tlsCAFile,
+				"tlsCAFile": tlsCAFileKMIP,
 			}
 			certConfig, err := options.BuildTLSConfig(caTlsMap)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
