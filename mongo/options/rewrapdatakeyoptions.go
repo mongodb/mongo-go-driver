@@ -1,4 +1,4 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
+// Copyright (C) MongoDB, Inc. 2022-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
@@ -34,7 +34,7 @@ func (rmdko *RewrapManyDataKeyOptions) SetMasterKey(masterKey interface{}) *Rewr
 }
 
 // MergeRewrapManyDataKeyOptions combines the given RewrapManyDataKeyOptions instances into a single
-// RewrapManyDataKeyOption in a last one wins fashion.
+// RewrapManyDataKeyOptions in a last one wins fashion.
 func MergeRewrapManyDataKeyOptions(opts ...*RewrapManyDataKeyOptions) *RewrapManyDataKeyOptions {
 	rmdkOpts := RewrapManyDataKey()
 	for _, rmdko := range opts {

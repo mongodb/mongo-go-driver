@@ -129,7 +129,7 @@ if [ ! "$SUPRESS_CLIENT_SIDE_ENCRYPTION" = "true" ]; then
 
   echo "finished awaiting servers"
    if ! test -d /cygdrive/c; then
-      # We have trouble with this test on Windows. only set cryptSharedLibPath on other platforms
+      # We have trouble with this test on Windows, only set cryptSharedLibPath on other platforms.
       export MONGOC_TEST_CRYPT_SHARED_LIB_PATH="$(find . -wholename '*src/libmongoc/mongo_crypt_v1.*' -and -regex '.*\(.dll\|.dylib\|.so\)' | head -n1)"
       echo "setting env cryptSharedLibPath: [$MONGOC_TEST_CRYPT_SHARED_LIB_PATH]"
    fi
