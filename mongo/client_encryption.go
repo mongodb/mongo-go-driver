@@ -15,7 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
@@ -72,57 +71,13 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	return ce, nil
 }
 
-// clientEncryptionIDQuery will take a primitive.Binary representation of a CLE UUID and write it as the bytes for a
-// bsoncore.Document.
-func clientEncryptionIDQuery(id primitive.Binary) []byte {
-	return bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
-}
-
-type ceSingleResultExecutor func(*Collection, []byte) *SingleResult
-
-// executeCESingleResult wraps CLE data to execute some id-specific query operation.
-func executeCESingleResult(ce *ClientEncryption, id *primitive.Binary, fn ceSingleResultExecutor) *SingleResult {
-	var query []byte
-	if id != nil {
-		query = clientEncryptionIDQuery(*id)
-	}
-	coll, err := ce.majorityReadCollection()
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-	return fn(coll, query)
-}
-
-type ceDeleteResultExecutor func(*Collection, []byte) (*DeleteResult, error)
-
-// executeCEDeleteResult wraps CLE data to execute some id-specific delete operation.
-func executeCEDeleteResult(ce *ClientEncryption, id *primitive.Binary,
-	fn ceDeleteResultExecutor) (*DeleteResult, error) {
-
-	var query []byte
-	if id != nil {
-		query = clientEncryptionIDQuery(*id)
-	}
-	coll, err := ce.majorityReadCollection()
-	if err != nil {
-		return nil, err
-	}
-	return fn(coll, query)
-}
-
-// majorityReadCollection will return a clone of the key vault collection with a majority read concern.
-func (ce *ClientEncryption) majorityReadCollection() (*Collection, error) {
-	return ce.keyVaultColl.Clone(options.Collection().SetReadConcern(readconcern.New(readconcern.Level("majority"))))
-}
-
 // AddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with the
 // given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
 func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult {
-	return executeCESingleResult(ce, &id, func(coll *Collection, query []byte) *SingleResult {
-		keyAltNameDoc := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
-		update := bsoncore.NewDocumentBuilder().AppendDocument("$addToSet", keyAltNameDoc).Build()
-		return coll.FindOneAndUpdate(ctx, query, update)
-	})
+	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
+	keyAltNameDoc := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
+	update := bsoncore.NewDocumentBuilder().AppendDocument("$addToSet", keyAltNameDoc).Build()
+	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
 }
 
 // CreateDataKey is an alias function equivalent to CreateKey.
@@ -219,48 +174,37 @@ func (ce *ClientEncryption) Close(ctx context.Context) error {
 // DeleteKey removes the key document with the given UUID (BSON binary subtype 0x04) from the key vault collection.
 // Returns the result of the internal deleteOne() operation on the key vault collection.
 func (ce *ClientEncryption) DeleteKey(ctx context.Context, id primitive.Binary) (*DeleteResult, error) {
-	return executeCEDeleteResult(ce, &id, func(coll *Collection, query []byte) (*DeleteResult, error) {
-		return coll.DeleteOne(ctx, query)
-	})
+	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
+	return ce.keyVaultColl.DeleteOne(ctx, filter)
 }
 
 // GetKeyByAltName returns a key document in the key vault collection with the given keyAltName.
 func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName string) *SingleResult {
-	return executeCESingleResult(ce, nil, func(coll *Collection, _ []byte) *SingleResult {
-		filter := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
-		return coll.FindOne(ctx, filter)
-	})
+	filter := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
+	return ce.keyVaultColl.FindOne(ctx, filter)
 }
 
 // GetKey finds a single key document with the given UUID (BSON binary subtype 0x04). Returns the result of the
 // internal find() operation on the key vault collection.
 func (ce *ClientEncryption) GetKey(ctx context.Context, id primitive.Binary) *SingleResult {
-	return executeCESingleResult(ce, &id, func(coll *Collection, query []byte) *SingleResult {
-		return coll.FindOne(ctx, query)
-	})
+	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
+	return ce.keyVaultColl.FindOne(ctx, filter)
 }
 
 // GetKeys finds all documents in the key vault collection. Returns the result of the internal find() operation on the
 // key vault collection.
 func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
-	coll, err := ce.majorityReadCollection()
-	if err != nil {
-		return newEmptyCursor(), nil
-	}
-	return coll.Find(ctx, bson.D{})
+	return ce.keyVaultColl.Find(ctx, bson.D{})
 }
 
 // RemoveKeyAltName removes a keyAltName from the keyAltNames array of the key document in the key vault collection with
 // the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
-func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary,
-	keyAltName string) *SingleResult {
-
-	return executeCESingleResult(ce, &id, func(coll *Collection, query []byte) *SingleResult {
-		update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
-			bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
-			bson.D{{"input", "$keyAltNames"}, {"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}}
-		return coll.FindOneAndUpdate(ctx, query, update)
-	})
+func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult {
+	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
+	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
+		bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
+		bson.D{{"input", "$keyAltNames"}, {"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}}
+	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
 }
 
 // setRewrapManyDataKeyWriteModels will prepare the WriteModel slice for a bulk updating rewrapped documents.
@@ -375,12 +319,7 @@ func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interf
 		return nil, err
 	}
 
-	coll, err := ce.majorityReadCollection()
-	if err != nil {
-		return nil, err
-	}
-
-	bulkWriteResults, err := coll.BulkWrite(ctx, models)
+	bulkWriteResults, err := ce.keyVaultColl.BulkWrite(ctx, models)
 	if err != nil {
 		return nil, err
 	}
