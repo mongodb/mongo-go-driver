@@ -216,38 +216,21 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 	// Append a slice of WriteModel with the update document per each rewrappedDoc _id filter.
 	for _, rewrappedDocument := range rewrappedDocuments {
 		// Rebuild the document to remove the immutable _id object.
-		rewrappedDocElems, err := rewrappedDocument.Elements()
-		if err != nil {
-			return err
-		}
-		mutableRewrappedDocBuilder := bsoncore.NewDocumentBuilder()
-		for _, element := range rewrappedDocElems {
-			key := element.Key()
-			if key == idKey {
-				continue
-			}
-			value, err := element.ValueErr()
-			if err != nil {
-				return err
-			}
-			mutableRewrappedDocBuilder.AppendValue(key, value)
-		}
-		mutableRewrappedDoc := mutableRewrappedDocBuilder.Build()
 
 		// Prepare the new master key for update.
-		mutableDocMasterKey, err := mutableRewrappedDoc.LookupErr(masterKey)
+		masterKeyValue, err := rewrappedDocument.LookupErr(masterKey)
 		if err != nil {
 			return err
 		}
-		masterKeyDoc := mutableDocMasterKey.Document()
+		masterKeyDoc := masterKeyValue.Document()
 
 		// Prepare the new material key for update.
-		mutableDocKeyMaterial, err := mutableRewrappedDoc.LookupErr(keyMaterial)
+		keyMaterialValue, err := rewrappedDocument.LookupErr(keyMaterial)
 		if err != nil {
 			return err
 		}
-		keyMatrialSubtype, keyMaterialBinary := mutableDocKeyMaterial.Binary()
-		mutableDocKeyMaterialBinary := primitive.Binary{Subtype: keyMatrialSubtype, Data: keyMaterialBinary}
+		keyMaterialSubtype, keyMaterialData := keyMaterialValue.Binary()
+		keyMaterialBinary := primitive.Binary{Subtype: keyMaterialSubtype, Data: keyMaterialData}
 
 		// Prepare the _id filter for documents to update.
 		id, err := rewrappedDocument.LookupErr(idKey)
@@ -266,7 +249,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 			SetFilter(bson.D{{idKey, binaryID}}).
 			SetUpdate(
 				bson.D{
-					{"$set", bson.D{{keyMaterial, mutableDocKeyMaterialBinary}, {masterKey, masterKeyDoc}}},
+					{"$set", bson.D{{keyMaterial, keyMaterialBinary}, {masterKey, masterKeyDoc}}},
 					{"$currentDate", bson.D{{"updateDate", true}}},
 				},
 			))

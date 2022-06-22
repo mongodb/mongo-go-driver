@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -120,7 +119,14 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 	}
 
 	bin, err := cee.CreateKey(ctx, kmsProvider, dko)
-	return newValueResult(bsontype.Binary, bin.Data, err), nil
+	if bin.Data != nil {
+		bsonType, bsonData, err := bson.MarshalValue(bin)
+		if err != nil {
+			return nil, err
+		}
+		return newValueResult(bsonType, bsonData, err), nil
+	}
+	return newErrorResult(err), nil
 }
 
 // executeDeleteKey removes the key document with the given UUID (BSON binary subtype 0x04) from the key vault
