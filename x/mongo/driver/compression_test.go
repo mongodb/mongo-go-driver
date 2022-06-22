@@ -7,7 +7,7 @@
 package driver
 
 import (
-	"strconv"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ func TestCompression(t *testing.T) {
 	}
 
 	for _, compressor := range compressors {
-		t.Run(strconv.Itoa(int(compressor)), func(t *testing.T) {
+		t.Run(compressor.String(), func(t *testing.T) {
 			payload := []byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt")
 			opts := CompressionOpts{
 				Compressor:       compressor,
@@ -37,6 +37,44 @@ func TestCompression(t *testing.T) {
 			decompressed, err := DecompressPayload(compressed, opts)
 			assert.NoError(t, err)
 			assert.Equal(t, payload, decompressed)
+		})
+	}
+}
+
+func BenchmarkCompressPayload(b *testing.B) {
+	payload := func() []byte {
+		buf, err := os.ReadFile("compression.go")
+		if err != nil {
+			b.Log(err)
+			b.FailNow()
+		}
+		for i := 1; i < 10; i++ {
+			buf = append(buf, buf...)
+		}
+		return buf
+	}()
+
+	compressors := []wiremessage.CompressorID{
+		wiremessage.CompressorSnappy,
+		wiremessage.CompressorZLib,
+		wiremessage.CompressorZstd,
+	}
+
+	for _, compressor := range compressors {
+		b.Run(compressor.String(), func(b *testing.B) {
+			opts := CompressionOpts{
+				Compressor: compressor,
+				ZlibLevel:  wiremessage.DefaultZlibLevel,
+				ZstdLevel:  wiremessage.DefaultZstdLevel,
+			}
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					_, err := CompressPayload(payload, opts)
+					if err != nil {
+						b.Error(err)
+					}
+				}
+			})
 		})
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -22,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 type testHandshaker struct {
@@ -923,6 +925,24 @@ func TestConnection(t *testing.T) {
 				assertPoolPinnedStats(t, pool, 0, 0)
 			})
 		})
+	})
+}
+
+func BenchmarkConnection(b *testing.B) {
+	b.Run("CompressWireMessage CompressorNoOp", func(b *testing.B) {
+		buf := make([]byte, 256)
+		_, err := rand.Read(buf)
+		if err != nil {
+			b.Log(err)
+			b.FailNow()
+		}
+		conn := Connection{connection: &connection{compressor: wiremessage.CompressorNoOp}}
+		for i := 0; i < b.N; i++ {
+			_, err := conn.CompressWireMessage(buf, nil)
+			if err != nil {
+				b.Error(err)
+			}
+		}
 	})
 }
 

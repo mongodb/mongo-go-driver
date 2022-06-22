@@ -188,6 +188,22 @@ const (
 	CompressorZstd
 )
 
+// String implements the fmt.Stringer interface.
+func (id CompressorID) String() string {
+	switch id {
+	case CompressorNoOp:
+		return "CompressorNoOp"
+	case CompressorSnappy:
+		return "CompressorSnappy"
+	case CompressorZLib:
+		return "CompressorZLib"
+	case CompressorZstd:
+		return "CompressorZstd"
+	default:
+		return "CompressorInvalid"
+	}
+}
+
 const (
 	// DefaultZlibLevel is the default level for zlib compression
 	DefaultZlibLevel = 6
