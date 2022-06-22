@@ -11,39 +11,40 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// setCreateKeyDKO will parse an options document and set the data on an options.DataKeyOptions instance.
-func setCreateKeyDKO(dko *options.DataKeyOptions, optsDocElem bson.RawElement) error {
-	optsDoc, err := optsDocElem.Value().Document().Elements()
+// parseDataKeyOptions will parse an options document and return an options.DataKeyOptions instance.
+func parseDataKeyOptions(opts bson.Raw) (*options.DataKeyOptions, error) {
+	elems, err := opts.Elements()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, elem := range optsDoc {
+	dko := options.DataKey()
+	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
 		switch key {
 		case "masterKey":
 			masterKey := make(map[string]interface{})
 			if err := val.Unmarshal(&masterKey); err != nil {
-				return fmt.Errorf("error unmarshaling 'masterKey': %v", err)
+				return nil, fmt.Errorf("error unmarshaling 'masterKey': %v", err)
 			}
 			dko.SetMasterKey(masterKey)
 		case "keyAltNames":
 			keyAltNames := []string{}
 			if err := val.Unmarshal(&keyAltNames); err != nil {
-				return fmt.Errorf("error unmarshaling 'keyAltNames': %v", err)
+				return nil, fmt.Errorf("error unmarshaling 'keyAltNames': %v", err)
 			}
 			dko.SetKeyAltNames(keyAltNames)
 		case "keyMaterial":
 			bin := primitive.Binary{}
 			if err := val.Unmarshal(&bin); err != nil {
-				return fmt.Errorf("error unmarshaling 'keyMaterial': %v", err)
+				return nil, fmt.Errorf("error unmarshaling 'keyMaterial': %v", err)
 			}
 			dko.SetKeyMaterial(bin.Data)
 		default:
-			return fmt.Errorf("unrecognized DataKeyOptions arg: %q", key)
+			return nil, fmt.Errorf("unrecognized DataKeyOptions arg: %q", key)
 		}
 	}
-	return nil
+	return dko, nil
 }
 
 // executeAddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with
@@ -93,7 +94,7 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 	}
 
 	var kmsProvider string
-	dko := options.DataKey()
+	var dko *options.DataKeyOptions
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -107,7 +108,8 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 		case "kmsProvider":
 			kmsProvider = val.StringValue()
 		case "opts":
-			if err := setCreateKeyDKO(dko, elem); err != nil {
+			dko, err = parseDataKeyOptions(elem.Value().Document())
+			if err != nil {
 				return nil, err
 			}
 		default:
@@ -292,14 +294,15 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 	return newDocumentResult(res, err), nil
 }
 
-// setRewrapManyDataKeyOptions will parse an options document and set the data on an
+// parseRewrapManyDataKeyOptions will parse an options document and return an
 // options.RewrapManyDataKeyOptions instance.
-func setRewrapManyDataKeyOptions(rmdko *options.RewrapManyDataKeyOptions, optsDocElem bson.RawElement) error {
-	optsDoc, err := optsDocElem.Value().Document().Elements()
+func parseRewrapManyDataKeyOptions(opts bson.Raw) (*options.RewrapManyDataKeyOptions, error) {
+	elems, err := opts.Elements()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, elem := range optsDoc {
+	rmdko := options.RewrapManyDataKey()
+	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
 		switch key {
@@ -308,10 +311,10 @@ func setRewrapManyDataKeyOptions(rmdko *options.RewrapManyDataKeyOptions, optsDo
 		case "masterKey":
 			rmdko.SetMasterKey(val.Document())
 		default:
-			return fmt.Errorf("unrecognized RewrapManyDataKeyOptions arg: %q", key)
+			return nil, fmt.Errorf("unrecognized RewrapManyDataKeyOptions arg: %q", key)
 		}
 	}
-	return nil
+	return rmdko, nil
 }
 
 // rewrapManyDataKeyResultsOpResult will wrap the result of rewrapping a data key into an operation result for test
@@ -350,7 +353,8 @@ func executeRewrapManyDataKey(ctx context.Context, operation *operation) (*opera
 	}
 
 	var filter bson.Raw
-	rmdko := options.RewrapManyDataKey()
+	var rmdko *options.RewrapManyDataKeyOptions
+
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
 		return nil, err
@@ -364,7 +368,8 @@ func executeRewrapManyDataKey(ctx context.Context, operation *operation) (*opera
 		case "filter":
 			filter = val.Document()
 		case "opts":
-			if err := setRewrapManyDataKeyOptions(rmdko, elem); err != nil {
+			rmdko, err = parseRewrapManyDataKeyOptions(elem.Value().Document())
+			if err != nil {
 				return nil, err
 			}
 		default:

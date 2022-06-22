@@ -1785,18 +1785,26 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			return defKeyID
 		}
 
-		var validateAddKeyAltName = func(mt *mtest.T, res *mongo.SingleResult, expected ...string) {
+		var validateAddKeyAltName = func(mt *mtest.T, ces *cseProseTest, res *mongo.SingleResult, expected ...string) {
 			assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
 
-			data, err := res.DecodeBytes()
+			resbytes, err := res.DecodeBytes()
 			assert.Nil(mt, err, "error decoding result bytes: %v", err)
 
-			raw := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: data}
-			rawKeyAltNames, err := raw.Document().Lookup("keyAltNames").Array().Values()
-			assert.Nil(mt, err, "error looking up raw keyAltNames: %v", err)
-			assert.Equal(mt, len(rawKeyAltNames), len(expected), "expected raw keyAltNames length to be 1")
+			idsubtype, iddata := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: resbytes}.
+				Document().Lookup("_id").Binary()
+			filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", idsubtype, iddata).Build()
 
-			for idx, keyAltName := range rawKeyAltNames {
+			ctx := context.Background()
+			updatedData, err := cse.keyVaultColl.FindOne(ctx, filter).DecodeBytes()
+			assert.Nil(mt, err, "error decoding result bytes: %v", err)
+
+			updated := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: updatedData}
+			udpatedKeyAltNames, err := updated.Document().Lookup("keyAltNames").Array().Values()
+			assert.Nil(mt, err, "error looking up raw keyAltNames: %v", err)
+			assert.Equal(mt, len(udpatedKeyAltNames), len(expected), "expected raw keyAltNames length to be 1")
+
+			for idx, keyAltName := range udpatedKeyAltNames {
 				str := keyAltName.StringValue()
 				assert.Equal(mt, str, expected[idx], "expected keyAltName to be %q, got: %q", abcKeyAltName, str)
 			}
@@ -1843,12 +1851,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			// Use client_encryption to add a keyAltName "abc" to the key created in Step 1 and assert the operation
 			// does not fail.
 			res := cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, abcKeyAltName)
-			validateAddKeyAltName(mt, res, abcKeyAltName)
+			validateAddKeyAltName(mt, cse, res, abcKeyAltName)
 
 			// Repeat Step 2, assert the operation does not fail, and assert the returned key document contains the
 			// keyAltName "abc" added in Step 2.
 			res = cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, abcKeyAltName)
-			validateAddKeyAltName(mt, res, abcKeyAltName)
+			validateAddKeyAltName(mt, cse, res, abcKeyAltName)
 
 			// Use client_encryption to add a keyAltName "def" to the key created in Step 1 and assert the operation
 			// fails due to a duplicate key server error (error code 11000).
@@ -1862,7 +1870,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			// Use client_encryption to add a keyAltName "def" to the existing key, assert the operation does not fail,
 			// and assert the returned key document contains the keyAltName "def" added during Setup.
 			res = cse.clientEnc.AddKeyAltName(context.Background(), defKeyID, defKeyAltName)
-			validateAddKeyAltName(mt, res, defKeyAltName)
+			validateAddKeyAltName(mt, cse, res, defKeyAltName)
 		})
 
 	})

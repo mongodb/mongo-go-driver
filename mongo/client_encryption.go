@@ -77,8 +77,7 @@ func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Bina
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	keyAltNameDoc := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
 	update := bsoncore.NewDocumentBuilder().AppendDocument("$addToSet", keyAltNameDoc).Build()
-	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
-	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update, opts)
+	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
 }
 
 // CreateDataKey is an alias function equivalent to CreateKey.
@@ -205,8 +204,7 @@ func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.B
 	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
 		bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
 		bson.D{{"input", "$keyAltNames"}, {"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}}
-	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
-	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update, opts)
+	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
 }
 
 // setRewrapManyDataKeyWriteModels will prepare the WriteModel slice for a bulk updating rewrapped documents.
