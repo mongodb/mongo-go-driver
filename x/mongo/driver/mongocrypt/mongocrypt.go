@@ -340,7 +340,7 @@ func (m *MongoCrypt) RewrapDataKeyContext(filter []byte, opts *options.RewrapMan
 		mongocryptBinary := newBinaryFromBytes(mongocryptDoc)
 		defer mongocryptBinary.close()
 
-		// Add credentials to the mongocrypt context.
+		// Add new masterKey to the mongocrypt context.
 		if ok := C.mongocrypt_ctx_setopt_key_encryption_key(ctx.wrapped, mongocryptBinary.wrapped); !ok {
 			return nil, ctx.createErrorFromStatus()
 		}

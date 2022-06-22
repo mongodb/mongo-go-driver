@@ -72,7 +72,7 @@ func executeAddKeyAltName(ctx context.Context, operation *operation) (*operation
 		case "keyAltName":
 			keyAltName = val.StringValue()
 		default:
-			return nil, fmt.Errorf("unrecognized GetKey arg: %q", key)
+			return nil, fmt.Errorf("unrecognized AddKeyAltName arg: %q", key)
 		}
 	}
 
@@ -342,8 +342,7 @@ func rewrapManyDataKeyResultsOpResult(result *mongo.RewrapManyDataKeyResult) (*o
 	return newDocumentResult(raw, nil), nil
 }
 
-// executiveRewrapManyDataKey will attempt to re-wrap a number of data keys given a new provider,
-// master key, and filter.
+// executeRewrapManyDataKey will attempt to re-wrap a number of data keys given a new provider, master key, and filter.
 func executeRewrapManyDataKey(ctx context.Context, operation *operation) (*operationResult, error) {
 	cee, err := entities(ctx).clientEncryption(operation.Object)
 	if err != nil {

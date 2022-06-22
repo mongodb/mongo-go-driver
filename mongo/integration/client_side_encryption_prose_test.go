@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
@@ -1750,47 +1751,55 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		var initialize = func() primitive.Binary {
 			// Create a ClientEncryption object (referred to as client_encryption) with client set as the keyVaultClient.
 			// Using client, drop the collection keyvault.datakeys.
-			{
-				cse = setup(mt, nil, defaultKvClientOptions, options.ClientEncryption().
-					SetKmsProviders(fullKmsProvidersMap).
-					SetKeyVaultNamespace(kvNamespace))
+			cse = setup(mt, nil, defaultKvClientOptions, options.ClientEncryption().
+				SetKmsProviders(fullKmsProvidersMap).
+				SetKeyVaultNamespace(kvNamespace))
 
-				err := cse.kvClient.Database(kvDatabase).Collection(dkCollection).Drop(context.Background())
-				assert.Nil(mt, err, "error dropping %q namespace: %v", kvNamespace, err)
-			}
+			err := cse.kvClient.Database(kvDatabase).Collection(dkCollection).Drop(context.Background())
+			assert.Nil(mt, err, "error dropping %q namespace: %v", kvNamespace, err)
 
 			// Using client, create a unique index on keyAltNames with a partial index filter for only documents where
 			// keyAltNames exists using writeConcern "majority".
-			{
-				keyVaultIndex := mongo.IndexModel{
-					Keys: bson.D{{"keyAltNames", 1}},
-					Options: options.Index().
-						SetUnique(true).
-						SetName("keyAltNames_1").
-						SetPartialFilterExpression(bson.D{
-							{"keyAltNames", bson.D{
-								{"$exists", true},
-							}},
-						}),
-				}
-
-				wcMajority := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
-				wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
-				wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
-				_, err := wcmColl.Indexes().CreateOne(context.TODO(), keyVaultIndex)
-				assert.Nil(mt, err, "error creating keyAltNames index: %v", err)
+			keyVaultIndex := mongo.IndexModel{
+				Keys: bson.D{{"keyAltNames", 1}},
+				Options: options.Index().
+					SetUnique(true).
+					SetName("keyAltNames_1").
+					SetPartialFilterExpression(bson.D{
+						{"keyAltNames", bson.D{
+							{"$exists", true},
+						}},
+					}),
 			}
 
-			var defKeyID primitive.Binary
-			// Using client_encryption, create a data key with a local KMS provider and the keyAltName "def".
-			{
-				opts := options.DataKey().SetKeyAltNames([]string{defKeyAltName})
+			wcMajority := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
+			wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
+			wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
+			_, err = wcmColl.Indexes().CreateOne(context.TODO(), keyVaultIndex)
+			assert.Nil(mt, err, "error creating keyAltNames index: %v", err)
 
-				var err error
-				defKeyID, err = cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
-				assert.Nil(mt, err, "error creating %q data key: %v", defKeyAltName, err)
-			}
+			// Using client_encryption, create a data key with a *moocal KMS provider and the keyAltName "def".
+			opts := options.DataKey().SetKeyAltNames([]string{defKeyAltName})
+			defKeyID, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
+			assert.Nil(mt, err, "error creating %q data key: %v", defKeyAltName, err)
 			return defKeyID
+		}
+
+		var validateAddKeyAltName = func(mt *mtest.T, res *mongo.SingleResult, expected ...string) {
+			assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
+
+			data, err := res.DecodeBytes()
+			assert.Nil(mt, err, "error decoding result bytes: %v", err)
+
+			raw := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: data}
+			rawKeyAltNames, err := raw.Document().Lookup("keyAltNames").Array().Values()
+			assert.Nil(mt, err, "error looking up raw keyAltNames: %v", err)
+			assert.Equal(mt, len(rawKeyAltNames), len(expected), "expected raw keyAltNames length to be 1")
+
+			for idx, keyAltName := range rawKeyAltNames {
+				str := keyAltName.StringValue()
+				assert.Equal(mt, str, expected[idx], "expected keyAltName to be %q, got: %q", abcKeyAltName, str)
+			}
 		}
 
 		mt.Run("case 1: createKey()", func(mt *mtest.T) {
@@ -1798,34 +1807,28 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 			// Use client_encryption to create a new local data key with a keyAltName "abc" and assert the operation
 			// does not fail.
-			{
-				opts := options.DataKey().SetKeyAltNames([]string{abcKeyAltName})
-				_, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
-				assert.Nil(mt, err, "error creating %q data key: %v", abcKeyAltName, err)
-			}
+			opts := options.DataKey().SetKeyAltNames([]string{abcKeyAltName})
+			_, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
+			assert.Nil(mt, err, "error creating %q data key: %v", abcKeyAltName, err)
 
 			// Repeat Step 1 and assert the operation fails due to a duplicate key server error (error code 11000).
-			{
-				opts := options.DataKey().SetKeyAltNames([]string{abcKeyAltName})
-				_, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
-				assert.NotNil(mt, err, "duplicate %q key did not propagate expected error", abcKeyAltName)
+			opts = options.DataKey().SetKeyAltNames([]string{abcKeyAltName})
+			_, err = cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
+			assert.NotNil(mt, err, "duplicate %q key did not propagate expected error", abcKeyAltName)
 
-				e110000 := "E11000 duplicate key"
-				correctError := strings.Contains(err.Error(), e110000)
-				assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, err)
-			}
+			e110000 := "E11000 duplicate key"
+			correctError := strings.Contains(err.Error(), e110000)
+			assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, err)
 
 			// Use client_encryption to create a new local data key with a keyAltName "def" and assert the operation
 			// fails due to a duplicate key server error (error code 11000).
-			{
-				opts := options.DataKey().SetKeyAltNames([]string{abcKeyAltName})
-				_, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
-				assert.NotNil(mt, err, "duplicate %q key did not propagate expected error", defKeyAltName)
+			opts = options.DataKey().SetKeyAltNames([]string{defKeyAltName})
+			_, err = cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
+			assert.NotNil(mt, err, "duplicate %q key did not propagate expected error", defKeyAltName)
 
-				e110000 := "E11000 duplicate key"
-				correctError := strings.Contains(err.Error(), e110000)
-				assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, err)
-			}
+			e110000 = "E11000 duplicate key"
+			correctError = strings.Contains(err.Error(), e110000)
+			assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, err)
 		})
 
 		mt.Run("case 2: addKeyAltName()", func(t *mtest.T) {
@@ -1833,43 +1836,33 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 			var someNewKeyID primitive.Binary
 			// Use client_encryption to create a new local data key and assert the operation does not fail.
-			{
-				var err error
-				someNewKeyID, err = cse.clientEnc.CreateDataKey(context.Background(), "local")
-				assert.Nil(mt, err, "error creating data key: %v", err)
-			}
+			var err error
+			someNewKeyID, err = cse.clientEnc.CreateDataKey(context.Background(), "local")
+			assert.Nil(mt, err, "error creating data key: %v", err)
 
 			// Use client_encryption to add a keyAltName "abc" to the key created in Step 1 and assert the operation
 			// does not fail.
-			{
-				res := cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, abcKeyAltName)
-				assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
-			}
+			res := cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, abcKeyAltName)
+			validateAddKeyAltName(mt, res, abcKeyAltName)
 
 			// Repeat Step 2, assert the operation does not fail, and assert the returned key document contains the
 			// keyAltName "abc" added in Step 2.
-			{
-				res := cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, abcKeyAltName)
-				assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
-			}
+			res = cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, abcKeyAltName)
+			validateAddKeyAltName(mt, res, abcKeyAltName)
 
 			// Use client_encryption to add a keyAltName "def" to the key created in Step 1 and assert the operation
 			// fails due to a duplicate key server error (error code 11000).
-			{
-				res := cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, defKeyAltName)
-				assert.NotNil(mt, res.Err(), "duplicate %q key did not propagate expected error", defKeyAltName)
+			res = cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, defKeyAltName)
+			assert.NotNil(mt, res.Err(), "duplicate %q key did not propagate expected error", defKeyAltName)
 
-				e110000 := "E11000 duplicate key"
-				correctError := strings.Contains(res.Err().Error(), e110000)
-				assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, res.Err())
-			}
+			e110000 := "E11000 duplicate key"
+			correctError := strings.Contains(res.Err().Error(), e110000)
+			assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, res.Err())
 
 			// Use client_encryption to add a keyAltName "def" to the existing key, assert the operation does not fail,
 			// and assert the returned key document contains the keyAltName "def" added during Setup.
-			{
-				res := cse.clientEnc.AddKeyAltName(context.Background(), defKeyID, defKeyAltName)
-				assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
-			}
+			res = cse.clientEnc.AddKeyAltName(context.Background(), defKeyID, defKeyAltName)
+			validateAddKeyAltName(mt, res, defKeyAltName)
 		})
 
 	})
