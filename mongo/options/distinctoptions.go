@@ -16,7 +16,7 @@ type DistinctOptions struct {
 	Collation *Collation
 
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
+	// the operation. The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
