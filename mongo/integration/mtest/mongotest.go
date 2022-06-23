@@ -449,6 +449,13 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 
 	db := coll.Client.Database(coll.DB)
 
+	if coll.CreateOpts != nil && coll.CreateOpts.EncryptedFields != nil {
+		// An encrypted collection consists of a data collection and three state collections.
+		// Aborted test runs may leave these collections.
+		// Drop all four collections to avoid a quiet failure to create all collections.
+		DropEncryptedCollection(t, db.Collection(coll.Name), coll.CreateOpts.EncryptedFields)
+	}
+
 	if createOnServer && t.clientType != Mock {
 		var err error
 		if coll.ViewOn != "" {

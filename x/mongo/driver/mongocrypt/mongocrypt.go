@@ -58,10 +58,14 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"
 	// and set a library override path if one was provided.
 	if !opts.CryptSharedLibDisabled {
-		C.mongocrypt_setopt_append_crypt_shared_lib_search_path(crypt.wrapped, C.CString("$SYSTEM"))
+		systemStr := C.CString("$SYSTEM")
+		defer C.free(unsafe.Pointer(systemStr))
+		C.mongocrypt_setopt_append_crypt_shared_lib_search_path(crypt.wrapped, systemStr)
 
 		if opts.CryptSharedLibOverridePath != "" {
-			C.mongocrypt_setopt_set_crypt_shared_lib_path_override(crypt.wrapped, C.CString(opts.CryptSharedLibOverridePath))
+			cryptSharedLibOverridePathStr := C.CString(opts.CryptSharedLibOverridePath)
+			defer C.free(unsafe.Pointer(cryptSharedLibOverridePathStr))
+			C.mongocrypt_setopt_set_crypt_shared_lib_path_override(crypt.wrapped, cryptSharedLibOverridePathStr)
 		}
 	}
 
@@ -198,29 +202,15 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 	algoStr := C.CString(opts.Algorithm)
 	defer C.free(unsafe.Pointer(algoStr))
 
-	switch opts.Algorithm {
-	case "Indexed":
-		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeIndexed); !ok {
-			return nil, ctx.createErrorFromStatus()
-		}
-	case "Unindexed":
-		if ok := C.mongocrypt_ctx_setopt_index_type(ctx.wrapped, IndexTypeUnindexed); !ok {
-			return nil, ctx.createErrorFromStatus()
-		}
-	default:
-		if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
-			return nil, ctx.createErrorFromStatus()
-		}
+	if ok := C.mongocrypt_ctx_setopt_algorithm(ctx.wrapped, algoStr, -1); !ok {
+		return nil, ctx.createErrorFromStatus()
 	}
 
-	if opts.QueryType != nil {
-		switch *opts.QueryType {
-		case options.QueryTypeEquality:
-			if ok := C.mongocrypt_ctx_setopt_query_type(ctx.wrapped, 1); !ok {
-				return nil, ctx.createErrorFromStatus()
-			}
-		default:
-			return nil, fmt.Errorf("unsupported value for QueryType: %v", opts.QueryType)
+	if opts.QueryType != "" {
+		queryStr := C.CString(opts.QueryType)
+		defer C.free(unsafe.Pointer(queryStr))
+		if ok := C.mongocrypt_ctx_setopt_query_type(ctx.wrapped, queryStr, -1); !ok {
+			return nil, ctx.createErrorFromStatus()
 		}
 	}
 

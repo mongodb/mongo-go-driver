@@ -94,24 +94,32 @@ functions:
           go version
           go env
 
+          LIBMONGOCRYPT_TAG="1.5.0-rc2"
+          # LIBMONGOCRYPT_COMMIT is the commit on libmongocrypt for the tag LIBMONGOCRYPT_TAG.
+          LIBMONGOCRYPT_COMMIT="1756c5120814152c15a2eee7a679a33a4764ba63"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
              mkdir -p c:/libmongocrypt/bin
              # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
-             curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt_unstable.tar.gz --output libmongocrypt.tar.gz
-             tar -xvzf libmongocrypt.tar.gz
-             cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
-             cp ./include/mongocrypt/*.h c:/libmongocrypt/include
+             echo "fetching build for Windows ... begin"
+             mkdir libmongocrypt-all
+             cd libmongocrypt-all
+             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
+             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             tar -xf libmongocrypt-all.tar.gz
+             cd ..
+             cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
+             cp libmongocrypt-all/windows-test/include/mongocrypt/*.h c:/libmongocrypt/include
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+             rm -rf libmongocrypt-all
+             echo "fetching build for Windows ... end"
           elif [ "Darwin" = "$(uname -s)" ]; then
              # TODO (GODRIVER-2442): Once libmongocrypt compiles on macOS 10.15, remove this elif block.
              echo "fetching build for Darwin ... begin"
              mkdir -p install/libmongocrypt
              mkdir libmongocrypt-all
              cd libmongocrypt-all
-             # LIBMONGOCRYPT_COMMIT is for 1.5.0-rc1.
-             LIBMONGOCRYPT_COMMIT="6e100b087376d448534cb2ad1b4dc50cb7cbc1f6"
              # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
              curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
              tar -xf libmongocrypt-all.tar.gz
@@ -119,13 +127,12 @@ functions:
              mv libmongocrypt-all/macos/include ./install/libmongocrypt
              mv libmongocrypt-all/macos/lib ./install/libmongocrypt
              rm -rf libmongocrypt-all
-             rm libmongocrypt-all.tar.gz
              # Fix prefix in pkg-config prefix path.
              sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
              echo "fetching build for Darwin ... end"
           else
             # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
-            git clone https://github.com/mongodb/libmongocrypt --branch 1.5.0-rc1
+            git clone https://github.com/mongodb/libmongocrypt --branch $LIBMONGOCRYPT_TAG
             ./libmongocrypt/.evergreen/compile.sh
           fi
 
