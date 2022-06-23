@@ -1,20 +1,14 @@
-BSON_PKGS = $(shell etc/list_pkgs.sh ./bson)
-BSON_TEST_PKGS = $(shell etc/list_test_pkgs.sh ./bson)
-EVENT_PKGS = $(shell etc/list_pkgs.sh ./event)
-EVENT_TEST_PKGS = $(shell etc/list_test_pkgs.sh ./event)
-MONGO_PKGS = $(shell etc/list_pkgs.sh ./mongo)
-MONGO_TEST_PKGS = $(shell etc/list_test_pkgs.sh ./mongo)
-UNSTABLE_PKGS = $(shell etc/list_pkgs.sh ./x)
-UNSTABLE_TEST_PKGS = $(shell etc/list_test_pkgs.sh ./x)
-TAG_PKG = $(shell etc/list_pkgs.sh ./tag)
-TAG_TEST_PKG = $(shell etc/list_test_pkgs.sh ./tag)
-EXAMPLES_PKGS = $(shell etc/list_pkgs.sh ./examples)
-EXAMPLES_TEST_PKGS = $(shell etc/list_test_pkgs.sh ./examples)
-PKGS = $(BSON_PKGS) $(EVENT_PKGS) $(MONGO_PKGS) $(UNSTABLE_PKGS) $(TAG_PKG) $(EXAMPLES_PKGS)
-TEST_PKGS = $(BSON_TEST_PKGS) $(EVENT_TEST_PKGS) $(MONGO_TEST_PKGS) $(UNSTABLE_TEST_PKGS) $(TAG_PKG) $(EXAMPLES_TEST_PKGS)
+# We list packages with shell scripts and loop through them to avoid testing with ./...
+# Running go test ./... will run tests in all packages concurrently which can lead to
+# unexpected errors.
+#
+# TODO(GODRIVER-2093): Use ./... to run tests in all packages with parallelism and remove
+# these PKG variables and loops from all make targets.
+PKGS = $(shell etc/list_pkgs.sh)
+TEST_PKGS = $(shell etc/list_test_pkgs.sh)
+
 ATLAS_URIS = "$(ATLAS_FREE)" "$(ATLAS_REPLSET)" "$(ATLAS_SHARD)" "$(ATLAS_TLS11)" "$(ATLAS_TLS12)" "$(ATLAS_FREE_SRV)" "$(ATLAS_REPLSET_SRV)" "$(ATLAS_SHARD_SRV)" "$(ATLAS_TLS11_SRV)" "$(ATLAS_TLS12_SRV)" "$(ATLAS_SERVERLESS)" "$(ATLAS_SERVERLESS_SRV)"
 GODISTS=linux/amd64 linux/386 linux/arm64 linux/arm linux/s390x
-
 TEST_TIMEOUT = 1800
 
 ### Utility targets. ###
@@ -31,7 +25,7 @@ add-license:
 
 .PHONY: build
 build:
-	go build $(BUILD_TAGS) $(filter-out ./core/auth/internal/gssapi,$(PKGS))
+	go build $(BUILD_TAGS) $(PKGS)
 
 .PHONY: build-examples
 build-examples:
@@ -39,11 +33,11 @@ build-examples:
 
 .PHONY: build-no-tags
 build-no-tags:
-	go build $(filter-out ./core/auth/internal/gssapi,$(PKGS))
+	go build $(PKGS)
 
 .PHONY: build-tests
 build-tests:
-	for TEST in $(PKGS); do \
+	for TEST in $(TEST_PKGS); do \
 		go test $(BUILD_TAGS) -c $$TEST ; \
 		if [ $$? -ne 0 ]; \
 		then \
@@ -77,34 +71,6 @@ lint:
 		eval $$command ; \
 	done
 
-.PHONY: update-bson-corpus-tests
-update-bson-corpus-tests:
-	etc/update-spec-tests.sh bson-corpus
-
-.PHONY: update-connection-string-tests
-update-connection-string-tests:
-	etc/update-spec-tests.sh connection-string
-
-.PHONY: update-crud-tests
-update-crud-tests:
-	etc/update-spec-tests.sh crud
-
-.PHONY: update-initial-dns-seedlist-discovery-tests
-update-initial-dns-seedlist-discovery-tests:
-	etc/update-spec-tests.sh initial-dns-seedlist-discovery
-
-.PHONY: update-max-staleness-tests
-update-max-staleness-tests:
-	etc/update-spec-tests.sh max-staleness
-
-.PHONY: update-server-discovery-and-monitoring-tests
-update-server-discovery-and-monitoring-tests:
-	etc/update-spec-tests.sh server-discovery-and-monitoring
-
-.PHONY: update-server-selection-tests
-update-server-selection-tests:
-	etc/update-spec-tests.sh server-selection
-
 .PHONY: update-notices
 update-notices:
 	etc/generate-notices.pl > THIRD-PARTY-NOTICES
@@ -125,12 +91,12 @@ test-cover:
 .PHONY: test-race
 test-race:
 	for TEST in $(TEST_PKGS) ; do \
-		go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $(COVER_ARGS) $$TEST ; \
+		go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $$TEST ; \
 	done
 
 .PHONY: test-short
 test-short:
-	go test $(BUILD_TAGS) -timeout 60s -short $(COVER_ARGS) ./...
+	go test $(BUILD_TAGS) -timeout 60s -short $(TEST_PKGS)
 
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test
@@ -170,6 +136,8 @@ evg-test-kms:
 
 .PHONY: evg-test-load-balancers
 evg-test-load-balancers:
+	# Load balancer should be tested with all unified tests as well as tests in the following
+	# components: retryable reads, retryable writes, change streams, initial DNS seedlist discovery.
 	go test $(BUILD_TAGS) ./mongo/integration -run TestUnifiedSpecs/retryable-reads -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration -run TestRetryableWritesSpec -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration -run TestChangeStreamSpec -v -timeout $(TEST_TIMEOUT)s >> test.suite
@@ -205,6 +173,7 @@ evg-test-serverless:
 
 .PHONY: evg-test-versioned-api
 evg-test-versioned-api:
+	# Versioned API related tests are in the mongo, integration and unified packages.
 	for TEST_PKG in ./mongo ./mongo/integration ./mongo/integration/unified; do \
 		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST_PKG >> test.suite ; \
 	done
