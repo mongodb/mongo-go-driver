@@ -108,7 +108,7 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 		case "kmsProvider":
 			kmsProvider = val.StringValue()
 		case "opts":
-			dko, err = parseDataKeyOptions(elem.Value().Document())
+			dko, err = parseDataKeyOptions(val.Document())
 			if err != nil {
 				return nil, err
 			}
@@ -368,7 +368,7 @@ func executeRewrapManyDataKey(ctx context.Context, operation *operation) (*opera
 		case "filter":
 			filter = val.Document()
 		case "opts":
-			rmdko, err = parseRewrapManyDataKeyOptions(elem.Value().Document())
+			rmdko, err = parseRewrapManyDataKeyOptions(val.Document())
 			if err != nil {
 				return nil, err
 			}
