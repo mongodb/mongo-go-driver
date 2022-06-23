@@ -621,7 +621,6 @@ func lastTwoIDs(mt *mtest.T) (bson.RawValue, bson.RawValue) {
 	return first, second
 }
 
-// ! this entire function probably goes away
 func executeSessionOperation(mt *mtest.T, op *operation, sess mongo.Session) error {
 	switch op.Name {
 	case "startTransaction":
