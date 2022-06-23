@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# check_env
+# Checks that AUTH, SSL, and MONGO_GO_DRIVER_COMPRESSOR have been set with valid values.
 
 if [ ! -z $AUTH ] && [[ ! $AUTH =~ ^(noauth|auth)$ ]]; then
     >&2 echo "Invalid value of AUTH. AUTH can optionally be set to one of: noauth, auth"

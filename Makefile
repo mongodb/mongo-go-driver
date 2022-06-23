@@ -18,7 +18,7 @@ default: add-license build build-examples check-env check-fmt lint test-short
 .PHONY: add-license
 add-license:
 	# Find all .go files not in the vendor directory and try to write a license notice.
-	find . -path ./vendor -prune -o -type f -name "*.go" -print | xargs ./etc/add-license.sh
+	find . -path ./vendor -prune -o -type f -name "*.go" -print | xargs ./etc/add_license.sh
 	# Check for any changes made with -G. to ignore permissions changes. Exit with a non-zero
 	# exit code if there is a diff.
 	git diff -G. --quiet
@@ -73,7 +73,7 @@ lint:
 
 .PHONY: update-notices
 update-notices:
-	etc/generate-notices.pl > THIRD-PARTY-NOTICES
+	etc/generate_notices.pl > THIRD-PARTY-NOTICES
 
 ### Local testing targets. ###
 .PHONY: test
