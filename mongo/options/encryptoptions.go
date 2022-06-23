@@ -10,6 +10,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// These constants specify valid values for QueryType
+const (
+	QueryTypeEquality string = "equality"
+)
+
 // EncryptOptions represents options to explicitly encrypt a value.
 type EncryptOptions struct {
 	KeyID            *primitive.Binary
