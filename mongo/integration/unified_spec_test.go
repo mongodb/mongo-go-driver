@@ -182,7 +182,6 @@ var directories = []string{
 	"transactions/legacy",
 	"convenient-transactions",
 	"retryable-reads",
-	"sessions/legacy",
 	"read-write-concern/operation",
 	"server-discovery-and-monitoring/integration",
 	"atlas-data-lake-testing",
@@ -508,10 +507,6 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		if clientSession.PinnedServer != nil {
 			return fmt.Errorf("expected pinned server to be nil but got %q", clientSession.PinnedServer.Addr)
 		}
-	case "assertSessionDirty":
-		return verifyDirtySessionState(clientSession, true)
-	case "assertSessionNotDirty":
-		return verifyDirtySessionState(clientSession, false)
 	case "assertSameLsidOnLastTwoCommands":
 		first, second := lastTwoIDs(mt)
 		if !first.Equal(second) {
@@ -552,16 +547,6 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		mt.Fatalf("unrecognized testRunner operation %v", op.Name)
 	}
 
-	return nil
-}
-
-func verifyDirtySessionState(clientSession *session.Client, expectedDirty bool) error {
-	if clientSession.Server == nil {
-		return errors.New("expected valid server session, got nil")
-	}
-	if markedDirty := clientSession.Server.Dirty; markedDirty != expectedDirty {
-		return fmt.Errorf("expected server session to be marked dirty: %v, got %v", expectedDirty, markedDirty)
-	}
 	return nil
 }
 
@@ -636,6 +621,7 @@ func lastTwoIDs(mt *mtest.T) (bson.RawValue, bson.RawValue) {
 	return first, second
 }
 
+// ! this entire function probably goes away
 func executeSessionOperation(mt *mtest.T, op *operation, sess mongo.Session) error {
 	switch op.Name {
 	case "startTransaction":
@@ -650,9 +636,6 @@ func executeSessionOperation(mt *mtest.T, op *operation, sess mongo.Session) err
 		return sess.AbortTransaction(context.Background())
 	case "withTransaction":
 		return executeWithTransaction(mt, sess, op.Arguments)
-	case "endSession":
-		sess.EndSession(context.Background())
-		return nil
 	default:
 		mt.Fatalf("unrecognized session operation: %v", op.Name)
 	}
