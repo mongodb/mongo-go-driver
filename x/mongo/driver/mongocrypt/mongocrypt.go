@@ -58,10 +58,14 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"
 	// and set a library override path if one was provided.
 	if !opts.CryptSharedLibDisabled {
-		C.mongocrypt_setopt_append_crypt_shared_lib_search_path(crypt.wrapped, C.CString("$SYSTEM"))
+		systemStr := C.CString("$SYSTEM")
+		defer C.free(unsafe.Pointer(systemStr))
+		C.mongocrypt_setopt_append_crypt_shared_lib_search_path(crypt.wrapped, systemStr)
 
 		if opts.CryptSharedLibOverridePath != "" {
-			C.mongocrypt_setopt_set_crypt_shared_lib_path_override(crypt.wrapped, C.CString(opts.CryptSharedLibOverridePath))
+			cryptSharedLibOverridePathStr := C.CString(opts.CryptSharedLibOverridePath)
+			defer C.free(unsafe.Pointer(cryptSharedLibOverridePathStr))
+			C.mongocrypt_setopt_set_crypt_shared_lib_path_override(crypt.wrapped, cryptSharedLibOverridePathStr)
 		}
 	}
 
