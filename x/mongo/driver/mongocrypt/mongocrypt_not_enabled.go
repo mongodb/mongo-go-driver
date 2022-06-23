@@ -44,7 +44,7 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 	panic(cseNotSupportedMsg)
 }
 
-// RewrapDataKeyContext create a Context to use for rewrapping a data key.
+// RewrapDataKeyContext creates a Context to use for rewrapping a data key.
 func (m *MongoCrypt) RewrapDataKeyContext(filter []byte, opts *options.RewrapManyDataKeyOptions) (*Context, error) {
 	panic(cseNotSupportedMsg)
 }

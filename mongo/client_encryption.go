@@ -213,6 +213,10 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 	const keyMaterial = "keyMaterial"
 	const masterKey = "masterKey"
 
+	if writeModels == nil {
+		return fmt.Errorf("writeModels pointer not set for location referenced")
+	}
+
 	// Append a slice of WriteModel with the update document per each rewrappedDoc _id filter.
 	for _, rewrappedDocument := range rewrappedDocuments {
 		// Rebuild the document to remove the immutable _id object.
