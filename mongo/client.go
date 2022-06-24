@@ -278,6 +278,9 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 // StartSession does not actually communicate with the server and will not error if the client is
 // disconnected.
 //
+// StartSession is safe to call from multiple goroutines concurrently. However, Sessions returned by StartSession are
+// not safe for concurrent use by multiple goroutines.
+//
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
 func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
@@ -1023,6 +1026,9 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 // SessionContext must be used as the Context parameter for any operations in the fn callback that should be executed
 // under the session.
 //
+// WithSession is safe to call from multiple goroutines concurrently. However, the SessionContext passed to the
+// WithSession callback function is not safe for concurrent use by multiple goroutines.
+//
 // If the ctx parameter already contains a Session, that Session will be replaced with the one provided.
 //
 // Any error returned by the fn callback will be returned without any modifications.
@@ -1035,6 +1041,9 @@ func WithSession(ctx context.Context, sess Session, fn func(SessionContext) erro
 // be executed under a session. After the callback returns, the created Session is ended, meaning that any in-progress
 // transactions started by fn will be aborted even if fn returns an error.
 //
+// UseSession is safe to call from multiple goroutines concurrently. However, the SessionContext passed to the
+// UseSession callback function is not safe for concurrent use by multiple goroutines.
+//
 // If the ctx parameter already contains a Session, that Session will be replaced with the newly created one.
 //
 // Any error returned by the fn callback will be returned without any modifications.
@@ -1043,6 +1052,9 @@ func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) 
 }
 
 // UseSessionWithOptions operates like UseSession but uses the given SessionOptions to create the Session.
+//
+// UseSessionWithOptions is safe to call from multiple goroutines concurrently. However, the SessionContext passed to
+// the UseSessionWithOptions callback function is not safe for concurrent use by multiple goroutines.
 func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
 	defaultSess, err := c.StartSession(opts)
 	if err != nil {
