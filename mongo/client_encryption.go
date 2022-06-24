@@ -219,8 +219,6 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 
 	// Append a slice of WriteModel with the update document per each rewrappedDoc _id filter.
 	for _, rewrappedDocument := range rewrappedDocuments {
-		// Rebuild the document to remove the immutable _id object.
-
 		// Prepare the new master key for update.
 		masterKeyValue, err := rewrappedDocument.LookupErr(masterKey)
 		if err != nil {

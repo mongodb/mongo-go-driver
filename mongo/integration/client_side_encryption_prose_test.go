@@ -1759,14 +1759,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			_, err = wcmColl.Indexes().CreateOne(context.TODO(), keyVaultIndex)
 			assert.Nil(mt, err, "error creating keyAltNames index: %v", err)
 
-			// Using client_encryption, create a data key with a *moocal KMS provider and the keyAltName "def".
+			// Using client_encryption, create a data key with a local KMS provider and the keyAltName "def".
 			opts := options.DataKey().SetKeyAltNames([]string{defKeyAltName})
 			defKeyID, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
 			assert.Nil(mt, err, "error creating %q data key: %v", defKeyAltName, err)
 			return defKeyID
 		}
 
-		var validateAddKeyAltName = func(mt *mtest.T, ces *cseProseTest, res *mongo.SingleResult, expected ...string) {
+		var validateAddKeyAltName = func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult, expected ...string) {
 			assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
 
 			resbytes, err := res.DecodeBytes()
@@ -1781,13 +1781,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "error decoding result bytes: %v", err)
 
 			updated := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: updatedData}
-			udpatedKeyAltNames, err := updated.Document().Lookup("keyAltNames").Array().Values()
+			updatedKeyAltNames, err := updated.Document().Lookup("keyAltNames").Array().Values()
 			assert.Nil(mt, err, "error looking up raw keyAltNames: %v", err)
-			assert.Equal(mt, len(udpatedKeyAltNames), len(expected), "expected raw keyAltNames length to be 1")
+			assert.Equal(mt, len(updatedKeyAltNames), len(expected), "expected raw keyAltNames length to be 1")
 
-			for idx, keyAltName := range udpatedKeyAltNames {
+			for idx, keyAltName := range updatedKeyAltNames {
 				str := keyAltName.StringValue()
-				assert.Equal(mt, str, expected[idx], "expected keyAltName to be %q, got: %q", abcKeyAltName, str)
+				assert.Equal(mt, str, expected[idx], "expected keyAltName to be %q, got: %q", expected[idx], str)
 			}
 		}
 

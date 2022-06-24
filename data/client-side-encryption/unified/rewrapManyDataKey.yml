@@ -98,7 +98,8 @@ tests:
           opts:
             provider: local
         expectResult:
-          bulkWriteResult: {}
+          # If no bulk write operation, then no bulk write result.
+          bulkWriteResult: { $$exists: false }
     expectEvents:
       - client: *client0
         events:

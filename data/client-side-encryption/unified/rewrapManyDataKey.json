@@ -266,7 +266,9 @@
             }
           },
           "expectResult": {
-            "bulkWriteResult": {}
+            "bulkWriteResult": {
+              "$$exists": false
+            }
           }
         }
       ],
