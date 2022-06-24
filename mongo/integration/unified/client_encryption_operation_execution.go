@@ -320,7 +320,7 @@ func parseRewrapManyDataKeyOptions(opts bson.Raw) (*options.RewrapManyDataKeyOpt
 // rewrapManyDataKeyResultsOpResult will wrap the result of rewrapping a data key into an operation result for test
 // validation.
 func rewrapManyDataKeyResultsOpResult(result *mongo.RewrapManyDataKeyResult) (*operationResult, error) {
-	bulkWriteResult := bsoncore.NewDocumentBuilder()
+	raw := bsoncore.NewDocumentBuilder()
 	if res := result.BulkWriteResult; res != nil {
 		rawUpsertedIDs := emptyDocument
 		var marshalErr error
@@ -330,6 +330,7 @@ func rewrapManyDataKeyResultsOpResult(result *mongo.RewrapManyDataKeyResult) (*o
 				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %v", marshalErr)
 			}
 		}
+		bulkWriteResult := bsoncore.NewDocumentBuilder()
 		bulkWriteResult.
 			AppendInt64("insertedCount", res.InsertedCount).
 			AppendInt64("deletedCount", res.DeletedCount).
@@ -337,12 +338,9 @@ func rewrapManyDataKeyResultsOpResult(result *mongo.RewrapManyDataKeyResult) (*o
 			AppendInt64("modifiedCount", res.ModifiedCount).
 			AppendInt64("upsertedCount", res.UpsertedCount).
 			AppendDocument("upsertedIds", rawUpsertedIDs)
+		raw.AppendDocument("bulkWriteResult", bulkWriteResult.Build())
 	}
-
-	raw := bsoncore.NewDocumentBuilder().
-		AppendDocument("bulkWriteResult", bulkWriteResult.Build()).
-		Build()
-	return newDocumentResult(raw, nil), nil
+	return newDocumentResult(raw.Build(), nil), nil
 }
 
 // executeRewrapManyDataKey will attempt to re-wrap a number of data keys given a new provider, master key, and filter.
