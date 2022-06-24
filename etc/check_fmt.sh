@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# check_fmt gopackages...
+# Runs gofmt on given packages and checks that *_example_test.go files have wrapped lines.
 
 gofmt_out="$(gofmt -l -s "$@")"
 

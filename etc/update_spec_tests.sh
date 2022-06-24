@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-
-# This script is used to fetch the latest JSON tests for the CRUD spec. It puts the tests in the
-# direcory $reporoot/data/crud. It should be run from the root of the repository.
+# update_spec_tests spec
+# This script is used to fetch the latest tests for the given spec. It puts the tests in the
+# directory data/[specname]. It should be run from the root of the repository.
 
 set -o errexit
 set -o nounset

@@ -1,5 +1,7 @@
 #!/bin/sh
-# list_pkgs <directory>
+# list_test_pkgs <directory>
+# Lists all Go packages with _test.go files in the given directory.
+
 directory="$1"
 if [ -z "$directory" ]; then
     directory="."
