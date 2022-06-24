@@ -45,10 +45,6 @@ build-tests:
 		fi \
 	done
 
-.PHONY: check-env
-check-env:
-	etc/check_env.sh
-
 .PHONY: check-fmt
 check-fmt:
 	etc/check_fmt.sh $(PKGS)
