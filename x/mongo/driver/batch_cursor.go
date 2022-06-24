@@ -465,6 +465,11 @@ func (lbcd *loadBalancedCursorDeployment) RTT90() time.Duration {
 	return 0
 }
 
+// RTTStats always returns "". It implements the driver.Server interface.
+func (lbcd *loadBalancedCursorDeployment) RTTStats() string {
+	return ""
+}
+
 func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {
 	return lbcd.errorProcessor.ProcessError(err, conn)
 }

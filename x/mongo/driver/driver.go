@@ -56,6 +56,9 @@ type Server interface {
 
 	// RTT90 returns the 90th percentile round-trip time to the server observed over the window period.
 	RTT90() time.Duration
+
+	// RTTStats returns stringified stats of the current state of the round-trip-time monitor.
+	RTTStats() string
 }
 
 // Connection represents a connection to a MongoDB server.
@@ -220,6 +223,11 @@ func (ssd SingleConnectionDeployment) MinRTT() time.Duration {
 // RTT90 always returns 0. It implements the driver.Server interface.
 func (ssd SingleConnectionDeployment) RTT90() time.Duration {
 	return 0
+}
+
+// RTTStats always returns "". It implements the driver.Server interface.
+func (ssd SingleConnectionDeployment) RTTStats() string {
+	return ""
 }
 
 // TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using 2 bits for the mode and 1

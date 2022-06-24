@@ -44,6 +44,10 @@ func (c *changeStreamDeployment) RTT90() time.Duration {
 	return c.server.RTT90()
 }
 
+func (c *changeStreamDeployment) RTTStats() string {
+	return c.server.RTTStats()
+}
+
 func (c *changeStreamDeployment) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {
 	ep, ok := c.server.(driver.ErrorProcessor)
 	if !ok {

@@ -732,6 +732,10 @@ func (ms *mockRetryServer) RTT90() time.Duration {
 	return 0
 }
 
+func (ms *mockRetryServer) RTTStats() string {
+	return ""
+}
+
 func TestRetry(t *testing.T) {
 	t.Run("retries multiple times with RetryContext", func(t *testing.T) {
 		d := new(mockDeployment)

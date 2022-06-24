@@ -272,3 +272,30 @@ func (r *rttMonitor) getRTT90() time.Duration {
 
 	return r.RTT90
 }
+
+// getStats returns stringified stats of the current state of the monitor.
+func (r *rttMonitor) getStats() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	// Calculate standard deviation of samples.
+	floatSamples := make([]float64, 0, len(r.samples))
+	for _, sample := range r.samples {
+		if sample > 0 {
+			floatSamples = append(floatSamples, float64(sample))
+		}
+	}
+
+	var stdDev float64
+	if len(floatSamples) > 0 {
+		var err error
+		stdDev, err = stats.StandardDeviation(floatSamples)
+		if err != nil {
+			panic(fmt.Errorf("x/mongo/driver/topology: error calculating standard deviation RTT: %v for samples:\n%v", err, floatSamples))
+		}
+	}
+
+	return fmt.Sprintf(`Round-trip-time monitor statistics:`+"\n"+
+		`average RTT: %v, minimum RTT: %v, 90th percentile RTT: %v, standard dev: %.6fms`,
+		r.averageRTT, r.minRTT, r.RTT90, stdDev/float64(time.Millisecond))
+}

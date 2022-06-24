@@ -824,6 +824,11 @@ func (s *Server) RTT90() time.Duration {
 	return s.rttMonitor.getRTT90()
 }
 
+// RTTStats returns stringified stats of the current state of the round-trip-time monitor.
+func (s *Server) RTTStats() string {
+	return s.rttMonitor.getStats()
+}
+
 // OperationCount returns the current number of in-progress operations for this server.
 func (s *Server) OperationCount() int64 {
 	return atomic.LoadInt64(&s.operationCount)
