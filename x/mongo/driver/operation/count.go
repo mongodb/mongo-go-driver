@@ -263,7 +263,7 @@ func (c *Count) ReadConcern(readConcern *readconcern.ReadConcern) *Count {
 	return c
 }
 
-// ReadPreference set the read prefernce used with this operation.
+// ReadPreference set the read preference used with this operation.
 func (c *Count) ReadPreference(readPreference *readpref.ReadPref) *Count {
 	if c == nil {
 		c = new(Count)

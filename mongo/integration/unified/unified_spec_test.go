@@ -24,6 +24,7 @@ var (
 		"command-monitoring/unified",
 		"sessions/unified",
 		"retryable-writes/unified",
+		"client-side-encryption/unified",
 		"client-side-operations-timeout",
 	}
 	failDirectories = []string{

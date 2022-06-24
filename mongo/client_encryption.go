@@ -71,9 +71,26 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	return ce, nil
 }
 
-// CreateDataKey creates a new key document and inserts it into the key vault collection. Returns the _id of the
-// created document.
-func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string, opts ...*options.DataKeyOptions) (primitive.Binary, error) {
+// AddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with the
+// given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
+func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult {
+	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
+	keyAltNameDoc := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
+	update := bsoncore.NewDocumentBuilder().AppendDocument("$addToSet", keyAltNameDoc).Build()
+	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
+}
+
+// CreateDataKey is an alias function equivalent to CreateKey.
+func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
+	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
+	return ce.CreateKey(ctx, kmsProvider, opts...)
+}
+
+// CreateKey creates a new key document and inserts into the key vault collection. Returns the _id of the created
+// document as a UUID (BSON binary subtype 0x04).
+func (ce *ClientEncryption) CreateKey(ctx context.Context, kmsProvider string,
+	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
+
 	// translate opts to mcopts.DataKeyOptions
 	dko := options.MergeDataKeyOptions(opts...)
 	co := mcopts.DataKey().SetKeyAltNames(dko.KeyAltNames)
@@ -82,8 +99,10 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 		if err != nil {
 			return primitive.Binary{}, err
 		}
-
 		co.SetMasterKey(keyDoc)
+	}
+	if dko.KeyMaterial != nil {
+		co.SetKeyMaterial(dko.KeyMaterial)
 	}
 
 	// create data key document
@@ -103,7 +122,9 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 }
 
 // Encrypt encrypts a BSON value with the given key and algorithm. Returns an encrypted value (BSON binary of subtype 6).
-func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue, opts ...*options.EncryptOptions) (primitive.Binary, error) {
+func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
+	opts ...*options.EncryptOptions) (primitive.Binary, error) {
+
 	eo := options.MergeEncryptOptions(opts...)
 	transformed := mcopts.ExplicitEncryption()
 	if eo.KeyID != nil {
@@ -141,6 +162,143 @@ func (ce *ClientEncryption) Decrypt(ctx context.Context, val primitive.Binary) (
 func (ce *ClientEncryption) Close(ctx context.Context) error {
 	ce.crypt.Close()
 	return ce.keyVaultClient.Disconnect(ctx)
+}
+
+// DeleteKey removes the key document with the given UUID (BSON binary subtype 0x04) from the key vault collection.
+// Returns the result of the internal deleteOne() operation on the key vault collection.
+func (ce *ClientEncryption) DeleteKey(ctx context.Context, id primitive.Binary) (*DeleteResult, error) {
+	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
+	return ce.keyVaultColl.DeleteOne(ctx, filter)
+}
+
+// GetKeyByAltName returns a key document in the key vault collection with the given keyAltName.
+func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName string) *SingleResult {
+	filter := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
+	return ce.keyVaultColl.FindOne(ctx, filter)
+}
+
+// GetKey finds a single key document with the given UUID (BSON binary subtype 0x04). Returns the result of the
+// internal find() operation on the key vault collection.
+func (ce *ClientEncryption) GetKey(ctx context.Context, id primitive.Binary) *SingleResult {
+	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
+	return ce.keyVaultColl.FindOne(ctx, filter)
+}
+
+// GetKeys finds all documents in the key vault collection. Returns the result of the internal find() operation on the
+// key vault collection.
+func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
+	return ce.keyVaultColl.Find(ctx, bson.D{})
+}
+
+// RemoveKeyAltName removes a keyAltName from the keyAltNames array of the key document in the key vault collection with
+// the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
+func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult {
+	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
+	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
+		bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
+		bson.D{{"input", "$keyAltNames"}, {"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}}
+	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
+}
+
+// setRewrapManyDataKeyWriteModels will prepare the WriteModel slice for a bulk updating rewrapped documents.
+func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, writeModels *[]WriteModel) error {
+	const idKey = "_id"
+	const keyMaterial = "keyMaterial"
+	const masterKey = "masterKey"
+
+	if writeModels == nil {
+		return fmt.Errorf("writeModels pointer not set for location referenced")
+	}
+
+	// Append a slice of WriteModel with the update document per each rewrappedDoc _id filter.
+	for _, rewrappedDocument := range rewrappedDocuments {
+		// Prepare the new master key for update.
+		masterKeyValue, err := rewrappedDocument.LookupErr(masterKey)
+		if err != nil {
+			return err
+		}
+		masterKeyDoc := masterKeyValue.Document()
+
+		// Prepare the new material key for update.
+		keyMaterialValue, err := rewrappedDocument.LookupErr(keyMaterial)
+		if err != nil {
+			return err
+		}
+		keyMaterialSubtype, keyMaterialData := keyMaterialValue.Binary()
+		keyMaterialBinary := primitive.Binary{Subtype: keyMaterialSubtype, Data: keyMaterialData}
+
+		// Prepare the _id filter for documents to update.
+		id, err := rewrappedDocument.LookupErr(idKey)
+		if err != nil {
+			return err
+		}
+
+		idSubtype, idData, ok := id.BinaryOK()
+		if !ok {
+			return fmt.Errorf("expected to assert %q as binary, got type %T", idKey, id)
+		}
+		binaryID := primitive.Binary{Subtype: idSubtype, Data: idData}
+
+		// Append the mutable document to the slice for bulk update.
+		*writeModels = append(*writeModels, NewUpdateOneModel().
+			SetFilter(bson.D{{idKey, binaryID}}).
+			SetUpdate(
+				bson.D{
+					{"$set", bson.D{{keyMaterial, keyMaterialBinary}, {masterKey, masterKeyDoc}}},
+					{"$currentDate", bson.D{{"updateDate", true}}},
+				},
+			))
+	}
+	return nil
+}
+
+// RewrapManyDataKey decrypts and encrypts all matching data keys with a possibly new masterKey value. For all
+// matching documents, this method will overwrite the "masterKey", "updateDate", and "keyMaterial". On error, some
+// matching data keys may have been rewrapped.
+func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interface{},
+	opts ...*options.RewrapManyDataKeyOptions) (*RewrapManyDataKeyResult, error) {
+
+	rmdko := options.MergeRewrapManyDataKeyOptions(opts...)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// Transfer rmdko options to /x/ package options to publish the mongocrypt feed.
+	co := mcopts.RewrapManyDataKey()
+	if rmdko.MasterKey != nil {
+		keyDoc, err := transformBsoncoreDocument(ce.keyVaultClient.registry, rmdko.MasterKey, true, "masterKey")
+		if err != nil {
+			return nil, err
+		}
+		co.SetMasterKey(keyDoc)
+	}
+	if rmdko.Provider != nil {
+		co.SetProvider(*rmdko.Provider)
+	}
+
+	// Prepare the filters and rewrap the data key using mongocrypt.
+	filterdoc, err := transformBsoncoreDocument(ce.keyVaultClient.registry, filter, true, "filter")
+	if err != nil {
+		return nil, err
+	}
+
+	rewrappedDocuments, err := ce.crypt.RewrapDataKey(ctx, filterdoc, co)
+	if err != nil {
+		return nil, err
+	}
+	if len(rewrappedDocuments) == 0 {
+		// If there are no documents to rewrap, then do nothing.
+		return new(RewrapManyDataKeyResult), nil
+	}
+
+	// Prepare the WriteModel slice for bulk updating the rewrapped data keys.
+	models := []WriteModel{}
+	if err := setRewrapManyDataKeyWriteModels(rewrappedDocuments, &models); err != nil {
+		return nil, err
+	}
+
+	bulkWriteResults, err := ce.keyVaultColl.BulkWrite(ctx, models)
+	return &RewrapManyDataKeyResult{BulkWriteResult: bulkWriteResults}, err
 }
 
 // splitNamespace takes a namespace in the form "database.collection" and returns (database name, collection name)

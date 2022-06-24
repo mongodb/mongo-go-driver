@@ -96,6 +96,23 @@ if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" != "true" ]; then
   echo "CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH"
 fi
 
+# Ensure mock KMS servers are running before starting tests.
+await_server() {
+  for i in $(seq 300); do
+      # Exit code 7: "Failed to connect to host".
+      if curl -s "localhost:$2"; test $? -ne 7; then
+        return 0
+      else
+        sleep 1
+      fi
+  done
+  echo "could not detect '$1' server on port $2"
+}
+# * List servers to await here ...
+await_server "KMS", 5698
+
+echo "finished awaiting servers"
+
 AUTH=${AUTH} \
 SSL=${SSL} \
 MONGO_GO_DRIVER_CA_FILE=${MONGO_GO_DRIVER_CA_FILE} \
@@ -117,6 +134,8 @@ AZURE_CLIENT_ID="${cse_azure_client_id}" \
 AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
 GCP_EMAIL="${cse_gcp_email}" \
 GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
+CSFLE_TLS_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem" \
+CSFLE_TLS_CERTIFICATE_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem" \
 make evg-test \
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH

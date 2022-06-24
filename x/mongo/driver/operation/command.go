@@ -169,7 +169,7 @@ func (c *Command) ReadConcern(readConcern *readconcern.ReadConcern) *Command {
 	return c
 }
 
-// ReadPreference set the read prefernce used with this operation.
+// ReadPreference set the read preference used with this operation.
 func (c *Command) ReadPreference(readPreference *readpref.ReadPref) *Command {
 	if c == nil {
 		c = new(Command)

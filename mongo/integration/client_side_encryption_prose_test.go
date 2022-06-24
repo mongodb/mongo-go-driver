@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
@@ -31,6 +32,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -77,189 +79,93 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	}
 
 	runOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
-	mt.RunOpts("explicit encryption", runOpts, func(mt *mtest.T) {
-		// Test Setup ... begin
-		encryptedFields := readJSONFile(mt, "encrypted-fields.json")
-		key1Document := readJSONFile(mt, "key1-document.json")
-		var key1ID primitive.Binary
-		{
-			subtype, data := key1Document.Lookup("_id").Binary()
-			key1ID = primitive.Binary{Subtype: subtype, Data: data}
+	mt.Run("1. custom key material test", func(mt *mtest.T) {
+		const (
+			dkCollection = "datakeys"
+			idKey        = "_id"
+			kvDatabase   = "keyvault"
+		)
+
+		// Create a ClientEncryption object (referred to as client_encryption) with client set as the keyVaultClient.
+		// Using client, drop the collection keyvault.datakeys.
+		cse := setup(mt, nil, defaultKvClientOptions, options.ClientEncryption().
+			SetKmsProviders(fullKmsProvidersMap).
+			SetKeyVaultNamespace(kvNamespace))
+
+		err := cse.kvClient.Database(kvDatabase).Collection(dkCollection).Drop(context.Background())
+		assert.Nil(mt, err, "error dropping %q namespace: %v", kvNamespace, err)
+
+		// Using client_encryption, create a data key with a local KMS provider and the declared b64 custom key material
+		// (given as base64).
+		const b641 = `xPTAjBRG5JiPm+d3fj6XLi2q5DMXUS/f1f+SMAlhhwkhDRL0kr8r9GDLIGTAGlvC+HVjSIgdL+RKwZCvpXSyxTICWSXT` +
+			`UYsWYPyu3IoHbuBZdmw2faM3WhcRIgbMReU5`
+
+		// Decode the base64-encoded keyMaterial string.
+		km, err := base64.StdEncoding.DecodeString(b641)
+		assert.Nil(mt, err, "error decoding b64: %v", err)
+
+		_, err = cse.clientEnc.CreateDataKey(context.Background(), "local", options.DataKey().SetKeyMaterial(km))
+		assert.Nil(mt, err, "error creating data key: %v", err)
+
+		// Find the resulting key document in keyvault.datakeys, save a copy of the key document, then remove the key
+		// document from the collection.
+		coll := cse.kvClient.Database(kvDatabase).Collection(dkCollection)
+
+		keydoc, err := coll.FindOne(context.Background(), bson.D{}).DecodeBytes()
+		assert.Nil(mt, err, "error in decoding bytes: %v", err)
+
+		// Remove the key document from the collection.
+		id, err := keydoc.LookupErr(idKey)
+		assert.Nil(mt, err, "error looking up %s: %v", idKey, err)
+
+		_, err = coll.DeleteOne(context.Background(), bson.D{{idKey, id}})
+		assert.Nil(mt, err, "error deleting key document: %v", err)
+
+		// Replace the _id field in the copied key document with a UUID with base64 value AAAAAAAAAAAAAAAAAAAAAA== (16
+		// bytes all equal to 0x00) and insert the modified key document into keyvault.datakeys with majority write
+		// concern.
+		cidx, alteredKeydoc := bsoncore.AppendDocumentStart(nil)
+		docElems, _ := keydoc.Elements()
+		for _, element := range docElems {
+			if key := element.Key(); key != idKey {
+				alteredKeydoc = bsoncore.AppendValueElement(alteredKeydoc, key, rawValueToCoreValue(element.Value()))
+			}
 		}
+		empty := [16]byte{}
+		uuidSubtype, _ := keydoc.Lookup(idKey).Binary()
+		alteredKeydoc = bsoncore.AppendBinaryElement(alteredKeydoc, idKey, uuidSubtype, empty[:])
+		alteredKeydoc, _ = bsoncore.AppendDocumentEnd(alteredKeydoc, cidx)
 
-		testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
-			mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption"), encryptedFields)
-			cco := options.CreateCollection().SetEncryptedFields(encryptedFields)
-			err := mt.Client.Database("db").CreateCollection(context.Background(), "explicit_encryption", cco)
-			assert.Nil(mt, err, "error on CreateCollection: %v", err)
-			err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
-			assert.Nil(mt, err, "error on Drop: %v", err)
-			keyVaultClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mtest.ClusterURI()))
-			assert.Nil(mt, err, "error on Connect: %v", err)
-			datakeysColl := keyVaultClient.Database("keyvault").Collection("datakeys", options.Collection().SetWriteConcern(mtest.MajorityWc))
-			_, err = datakeysColl.InsertOne(context.TODO(), key1Document)
-			assert.Nil(mt, err, "error on InsertOne: %v", err)
-			// Create a ClientEncryption.
-			ceo := options.ClientEncryption().
-				SetKeyVaultNamespace("keyvault.datakeys").
-				SetKmsProviders(fullKmsProvidersMap)
-			clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
-			assert.Nil(mt, err, "error on NewClientEncryption: %v", err)
+		// Insert the copied key document into keyvault.datakeys with majority write concern.
+		wcMajority := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
+		wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
+		wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
+		_, err = wcmColl.InsertOne(context.Background(), alteredKeydoc)
+		assert.Nil(mt, err, "error inserting altered key document: %v", err)
 
-			// Create a MongoClient with AutoEncryptionOpts and bypassQueryAnalysis=true.
-			aeo := options.AutoEncryption().
-				SetKeyVaultNamespace("keyvault.datakeys").
-				SetKmsProviders(fullKmsProvidersMap).
-				SetBypassQueryAnalysis(true)
-			co := options.Client().SetAutoEncryptionOptions(aeo).ApplyURI(mtest.ClusterURI())
-			encryptedClient, err := mongo.Connect(context.Background(), co)
-			assert.Nil(mt, err, "error on Connect: %v", err)
-			return encryptedClient, clientEncryption
+		// Using client_encryption, encrypt the string "test" with the modified data key using the
+		// AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic algorithm and assert the resulting value is equal to the
+		// declared b64 constant.
+		const b642 = `AQAAAAAAAAAAAAAAAAAAAAACz0ZOLuuhEYi807ZXTdhbqhLaS2/t9wLifJnnNYwiw79d75QYIZ6M/aYC1h9nCzCjZ7pG` +
+			`UpAuNnkUhnIXM3PjrA==`
+
+		empty = [16]byte{}
+		keyid := primitive.Binary{Subtype: 0x04, Data: empty[:]}
+
+		encOpts := options.Encrypt().SetAlgorithm(deterministicAlgorithm).SetKeyID(keyid)
+		testVal := bson.RawValue{
+			Type:  bson.TypeString,
+			Value: bsoncore.AppendString(nil, "test"),
 		}
-		// Test Setup ... end
+		actual, err := cse.clientEnc.Encrypt(context.Background(), testVal, encOpts)
+		assert.Nil(mt, err, "error encrypting data: %v", err)
 
-		mt.Run("case 1: can insert encrypted indexed and find", func(mt *mtest.T) {
-			encryptedClient, clientEncryption := testSetup()
-			defer clientEncryption.Close(context.Background())
-			defer encryptedClient.Disconnect(context.Background())
+		expected := primitive.Binary{Subtype: 0x06}
+		expected.Data, _ = base64.StdEncoding.DecodeString(b642)
 
-			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
-			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID)
-			valueToEncrypt := "encrypted indexed value"
-			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
-			insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
-			assert.Nil(mt, err, "error in Encrypt: %v", err)
-			// Insert.
-			coll := encryptedClient.Database("db").Collection("explicit_encryption")
-			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
-			assert.Nil(mt, err, "Error in InsertOne: %v", err)
-			// Explicit encrypt an indexed value to find.
-			eo = options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
-			findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
-			assert.Nil(mt, err, "error in Encrypt: %v", err)
-			// Find.
-			res := coll.FindOne(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
-			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
-			got, err := res.DecodeBytes()
-			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
-			gotValue, err := got.LookupErr("encryptedIndexed")
-			assert.Nil(mt, err, "error in LookupErr: %v", err)
-			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
-		})
-		mt.Run("case 2: can insert encrypted indexed and find with non-zero contention", func(mt *mtest.T) {
-			encryptedClient, clientEncryption := testSetup()
-			defer clientEncryption.Close(context.Background())
-			defer encryptedClient.Disconnect(context.Background())
-
-			coll := encryptedClient.Database("db").Collection("explicit_encryption")
-			valueToEncrypt := "encrypted indexed value"
-			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
-
-			for i := 0; i < 10; i++ {
-				// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
-				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetContentionFactor(10)
-				insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
-				assert.Nil(mt, err, "error in Encrypt: %v", err)
-				// Insert.
-				_, err = coll.InsertOne(context.Background(), bson.D{{"_id", i}, {"encryptedIndexed", insertPayload}})
-				assert.Nil(mt, err, "Error in InsertOne: %v", err)
-			}
-
-			// Explicit encrypt an indexed value to find with default contentionFactor 0.
-			{
-				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
-				findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
-				assert.Nil(mt, err, "error in Encrypt: %v", err)
-				// Find with contentionFactor=0.
-				cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
-				assert.Nil(mt, err, "error in Find: %v", err)
-				var got []bson.Raw
-				err = cursor.All(context.Background(), &got)
-				assert.Nil(mt, err, "error in All: %v", err)
-				assert.True(mt, len(got) < 10, "expected len(got) < 10, got: %v", len(got))
-				for _, doc := range got {
-					gotValue, err := doc.LookupErr("encryptedIndexed")
-					assert.Nil(mt, err, "error in LookupErr: %v", err)
-					assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
-				}
-			}
-
-			// Explicit encrypt an indexed value to find with contentionFactor 10.
-			{
-				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(10)
-				findPayload2, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
-				assert.Nil(mt, err, "error in Encrypt: %v", err)
-				// Find with contentionFactor=10.
-				cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload2}})
-				assert.Nil(mt, err, "error in Find: %v", err)
-				var got []bson.Raw
-				err = cursor.All(context.Background(), &got)
-				assert.Nil(mt, err, "error in All: %v", err)
-				assert.True(mt, len(got) == 10, "expected len(got) == 10, got: %v", len(got))
-				for _, doc := range got {
-					gotValue, err := doc.LookupErr("encryptedIndexed")
-					assert.Nil(mt, err, "error in LookupErr: %v", err)
-					assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
-				}
-			}
-		})
-		mt.Run("case 3: can insert encrypted unindexed", func(mt *mtest.T) {
-			encryptedClient, clientEncryption := testSetup()
-			defer clientEncryption.Close(context.Background())
-			defer encryptedClient.Disconnect(context.Background())
-
-			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
-			eo := options.Encrypt().SetAlgorithm("Unindexed").SetKeyID(key1ID)
-			valueToEncrypt := "encrypted unindexed value"
-			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
-			insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
-			assert.Nil(mt, err, "error in Encrypt: %v", err)
-			// Insert.
-			coll := encryptedClient.Database("db").Collection("explicit_encryption")
-			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedUnindexed", insertPayload}})
-			assert.Nil(mt, err, "Error in InsertOne: %v", err)
-			// Find.
-			res := coll.FindOne(context.Background(), bson.D{{"_id", 1}})
-			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
-			got, err := res.DecodeBytes()
-			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
-			gotValue, err := got.LookupErr("encryptedUnindexed")
-			assert.Nil(mt, err, "error in LookupErr: %v", err)
-			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
-		})
-		mt.Run("case 4: can roundtrip encrypted indexed", func(mt *mtest.T) {
-			encryptedClient, clientEncryption := testSetup()
-			defer clientEncryption.Close(context.Background())
-			defer encryptedClient.Disconnect(context.Background())
-
-			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
-			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID)
-			valueToEncrypt := "encrypted indexed value"
-			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
-			payload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
-			assert.Nil(mt, err, "error in Encrypt: %v", err)
-			gotValue, err := clientEncryption.Decrypt(context.Background(), payload)
-			assert.Nil(mt, err, "error in Decrypt: %v", err)
-			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
-		})
-		mt.Run("case 5: can roundtrip encrypted unindexed", func(mt *mtest.T) {
-			encryptedClient, clientEncryption := testSetup()
-			defer clientEncryption.Close(context.Background())
-			defer encryptedClient.Disconnect(context.Background())
-
-			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
-			eo := options.Encrypt().SetAlgorithm("Unindexed").SetKeyID(key1ID)
-			valueToEncrypt := "encrypted unindexed value"
-			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
-			payload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
-			assert.Nil(mt, err, "error in Encrypt: %v", err)
-			gotValue, err := clientEncryption.Decrypt(context.Background(), payload)
-			assert.Nil(mt, err, "error in Decrypt: %v", err)
-			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
-		})
+		assert.Equal(t, actual, expected, "expected: %v, got: %v", actual, expected)
 	})
-
-	mt.RunOpts("data key and double encryption", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("2. data key and double encryption", noClientOpts, func(mt *mtest.T) {
 		// set up options structs
 		schema := bson.D{
 			{"bsonType", "object"},
@@ -275,10 +181,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		schemaMap := map[string]interface{}{"db.coll": schema}
 		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
 			tlsOpts := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+				"tlsCAFile":             tlsCAFileKMIP,
 			}
 			kmipConfig, err := options.BuildTLSConfig(tlsOpts)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -400,7 +306,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	mt.RunOpts("external key vault", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("3. external key vault", noClientOpts, func(mt *mtest.T) {
 		testCases := []struct {
 			name          string
 			externalVault bool
@@ -467,7 +373,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	mt.Run("bson size limits", func(mt *mtest.T) {
+	mt.Run("4. bson size limits", func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -568,7 +474,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		_, err = cpt.cseColl.InsertOne(context.Background(), over16mb)
 		assert.NotNil(mt, err, "expected InsertOne error for document over 16MiB, got nil")
 	})
-	mt.Run("views are prohibited", func(mt *mtest.T) {
+	mt.Run("5. views are prohibited", func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -597,7 +503,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		assert.True(mt, strings.Contains(errStr, viewErrSubstr),
 			"expected error '%v' to contain substring '%v'", errStr, viewErrSubstr)
 	})
-	mt.RunOpts("corpus", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("6. corpus test", noClientOpts, func(mt *mtest.T) {
 		if "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
 			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 		}
@@ -607,10 +513,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 
 		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
 			tlsOpts := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+				"tlsCAFile":             tlsCAFileKMIP,
 			}
 			kmipConfig, err := options.BuildTLSConfig(tlsOpts)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -834,7 +740,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	mt.Run("custom endpoint", func(mt *mtest.T) {
+	mt.Run("7. custom endpoint", func(mt *mtest.T) {
 		validKmsProviders := map[string]map[string]interface{}{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
@@ -857,10 +763,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 
 		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
 			tlsOpts := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+				"tlsCAFile":             tlsCAFileKMIP,
 			}
 			kmipConfig, err := options.BuildTLSConfig(tlsOpts)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -1025,7 +931,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	mt.RunOpts("bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("8. bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -1217,8 +1123,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 		})
 	})
-
-	mt.RunOpts("deadlock tests", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("9. deadlock tests", noClientOpts, func(mt *mtest.T) {
 		testcases := []struct {
 			description                            string
 			maxPoolSize                            uint64
@@ -1361,7 +1266,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	})
 
 	// These tests only run when a KMS mock server is running on localhost:8000.
-	mt.RunOpts("kms tls tests", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("10. kms tls tests", noClientOpts, func(mt *mtest.T) {
 		kmsTlsTestcase := os.Getenv("KMS_TLS_TESTCASE")
 		if kmsTlsTestcase == "" {
 			mt.Skipf("Skipping test as KMS_TLS_TESTCASE is not set")
@@ -1413,7 +1318,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are running. See specification for port numbers and necessary arguments:
 	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.rst#kms-tls-options-tests
-	mt.RunOpts("kms tls options tests", noClientOpts, func(mt *mtest.T) {
+	mt.RunOpts("11. kms tls options tests", noClientOpts, func(mt *mtest.T) {
 		if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
 			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 		}
@@ -1487,10 +1392,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// make TLS opts containing client certificate and CA file
 		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFile != "" && tlsClientCertificateKeyFile != "" {
+		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
 			clientAndCATlsMap := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+				"tlsCAFile":             tlsCAFileKMIP,
 			}
 			certConfig, err := options.BuildTLSConfig(clientAndCATlsMap)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -1507,9 +1412,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetTLSConfig(tlsConfig)
 
 		// make TLS opts containing only CA file
-		if tlsCAFile != "" {
+		if tlsCAFileKMIP != "" {
 			caTlsMap := map[string]interface{}{
-				"tlsCAFile": tlsCAFile,
+				"tlsCAFile": tlsCAFileKMIP,
 			}
 			certConfig, err := options.BuildTLSConfig(caTlsMap)
 			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -1629,6 +1534,327 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
+	mt.RunOpts("12. explicit encryption", runOpts, func(mt *mtest.T) {
+		// Test Setup ... begin
+		encryptedFields := readJSONFile(mt, "encrypted-fields.json")
+		key1Document := readJSONFile(mt, "key1-document.json")
+		var key1ID primitive.Binary
+		{
+			subtype, data := key1Document.Lookup("_id").Binary()
+			key1ID = primitive.Binary{Subtype: subtype, Data: data}
+		}
+
+		testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
+			mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption"), encryptedFields)
+			cco := options.CreateCollection().SetEncryptedFields(encryptedFields)
+			err := mt.Client.Database("db").CreateCollection(context.Background(), "explicit_encryption", cco)
+			assert.Nil(mt, err, "error on CreateCollection: %v", err)
+			err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+			assert.Nil(mt, err, "error on Drop: %v", err)
+			keyVaultClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mtest.ClusterURI()))
+			assert.Nil(mt, err, "error on Connect: %v", err)
+			datakeysColl := keyVaultClient.Database("keyvault").Collection("datakeys", options.Collection().SetWriteConcern(mtest.MajorityWc))
+			_, err = datakeysColl.InsertOne(context.TODO(), key1Document)
+			assert.Nil(mt, err, "error on InsertOne: %v", err)
+			// Create a ClientEncryption.
+			ceo := options.ClientEncryption().
+				SetKeyVaultNamespace("keyvault.datakeys").
+				SetKmsProviders(fullKmsProvidersMap)
+			clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
+			assert.Nil(mt, err, "error on NewClientEncryption: %v", err)
+
+			// Create a MongoClient with AutoEncryptionOpts and bypassQueryAnalysis=true.
+			aeo := options.AutoEncryption().
+				SetKeyVaultNamespace("keyvault.datakeys").
+				SetKmsProviders(fullKmsProvidersMap).
+				SetBypassQueryAnalysis(true)
+			co := options.Client().SetAutoEncryptionOptions(aeo).ApplyURI(mtest.ClusterURI())
+			encryptedClient, err := mongo.Connect(context.Background(), co)
+			assert.Nil(mt, err, "error on Connect: %v", err)
+			return encryptedClient, clientEncryption
+		}
+		// Test Setup ... end
+
+		mt.Run("case 1: can insert encrypted indexed and find", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID)
+			valueToEncrypt := "encrypted indexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+			insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			// Insert.
+			coll := encryptedClient.Database("db").Collection("explicit_encryption")
+			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
+			assert.Nil(mt, err, "Error in InsertOne: %v", err)
+			// Explicit encrypt an indexed value to find.
+			eo = options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+			findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			// Find.
+			res := coll.FindOne(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
+			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
+			got, err := res.DecodeBytes()
+			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			gotValue, err := got.LookupErr("encryptedIndexed")
+			assert.Nil(mt, err, "error in LookupErr: %v", err)
+			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+		})
+		mt.Run("case 2: can insert encrypted indexed and find with non-zero contention", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			coll := encryptedClient.Database("db").Collection("explicit_encryption")
+			valueToEncrypt := "encrypted indexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+
+			for i := 0; i < 10; i++ {
+				// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetContentionFactor(10)
+				insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error in Encrypt: %v", err)
+				// Insert.
+				_, err = coll.InsertOne(context.Background(), bson.D{{"_id", i}, {"encryptedIndexed", insertPayload}})
+				assert.Nil(mt, err, "Error in InsertOne: %v", err)
+			}
+
+			// Explicit encrypt an indexed value to find with default contentionFactor 0.
+			{
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+				findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error in Encrypt: %v", err)
+				// Find with contentionFactor=0.
+				cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
+				assert.Nil(mt, err, "error in Find: %v", err)
+				var got []bson.Raw
+				err = cursor.All(context.Background(), &got)
+				assert.Nil(mt, err, "error in All: %v", err)
+				assert.True(mt, len(got) < 10, "expected len(got) < 10, got: %v", len(got))
+				for _, doc := range got {
+					gotValue, err := doc.LookupErr("encryptedIndexed")
+					assert.Nil(mt, err, "error in LookupErr: %v", err)
+					assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+				}
+			}
+
+			// Explicit encrypt an indexed value to find with contentionFactor 10.
+			{
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(10)
+				findPayload2, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+				assert.Nil(mt, err, "error in Encrypt: %v", err)
+				// Find with contentionFactor=10.
+				cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload2}})
+				assert.Nil(mt, err, "error in Find: %v", err)
+				var got []bson.Raw
+				err = cursor.All(context.Background(), &got)
+				assert.Nil(mt, err, "error in All: %v", err)
+				assert.True(mt, len(got) == 10, "expected len(got) == 10, got: %v", len(got))
+				for _, doc := range got {
+					gotValue, err := doc.LookupErr("encryptedIndexed")
+					assert.Nil(mt, err, "error in LookupErr: %v", err)
+					assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+				}
+			}
+		})
+		mt.Run("case 3: can insert encrypted unindexed", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+			eo := options.Encrypt().SetAlgorithm("Unindexed").SetKeyID(key1ID)
+			valueToEncrypt := "encrypted unindexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+			insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			// Insert.
+			coll := encryptedClient.Database("db").Collection("explicit_encryption")
+			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedUnindexed", insertPayload}})
+			assert.Nil(mt, err, "Error in InsertOne: %v", err)
+			// Find.
+			res := coll.FindOne(context.Background(), bson.D{{"_id", 1}})
+			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
+			got, err := res.DecodeBytes()
+			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			gotValue, err := got.LookupErr("encryptedUnindexed")
+			assert.Nil(mt, err, "error in LookupErr: %v", err)
+			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+		})
+		mt.Run("case 4: can roundtrip encrypted indexed", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID)
+			valueToEncrypt := "encrypted indexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+			payload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			gotValue, err := clientEncryption.Decrypt(context.Background(), payload)
+			assert.Nil(mt, err, "error in Decrypt: %v", err)
+			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+		})
+		mt.Run("case 5: can roundtrip encrypted unindexed", func(mt *mtest.T) {
+			encryptedClient, clientEncryption := testSetup()
+			defer clientEncryption.Close(context.Background())
+			defer encryptedClient.Disconnect(context.Background())
+
+			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
+			eo := options.Encrypt().SetAlgorithm("Unindexed").SetKeyID(key1ID)
+			valueToEncrypt := "encrypted unindexed value"
+			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
+			payload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			gotValue, err := clientEncryption.Decrypt(context.Background(), payload)
+			assert.Nil(mt, err, "error in Decrypt: %v", err)
+			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
+		})
+	})
+
+	runOpts = mtest.NewOptions().MinServerVersion("4.2").
+		Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	mt.RunOpts("13. Unique Index on keyAltNames", runOpts, func(mt *mtest.T) {
+		const (
+			dkCollection  = "datakeys"
+			idKey         = "_id"
+			kvDatabase    = "keyvault"
+			defKeyAltName = "def"
+			abcKeyAltName = "abc"
+		)
+
+		var cse *cseProseTest
+
+		var initialize = func() primitive.Binary {
+			// Create a ClientEncryption object (referred to as client_encryption) with client set as the keyVaultClient.
+			// Using client, drop the collection keyvault.datakeys.
+			cse = setup(mt, nil, defaultKvClientOptions, options.ClientEncryption().
+				SetKmsProviders(fullKmsProvidersMap).
+				SetKeyVaultNamespace(kvNamespace))
+
+			err := cse.kvClient.Database(kvDatabase).Collection(dkCollection).Drop(context.Background())
+			assert.Nil(mt, err, "error dropping %q namespace: %v", kvNamespace, err)
+
+			// Using client, create a unique index on keyAltNames with a partial index filter for only documents where
+			// keyAltNames exists using writeConcern "majority".
+			keyVaultIndex := mongo.IndexModel{
+				Keys: bson.D{{"keyAltNames", 1}},
+				Options: options.Index().
+					SetUnique(true).
+					SetName("keyAltNames_1").
+					SetPartialFilterExpression(bson.D{
+						{"keyAltNames", bson.D{
+							{"$exists", true},
+						}},
+					}),
+			}
+
+			wcMajority := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
+			wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
+			wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
+			_, err = wcmColl.Indexes().CreateOne(context.TODO(), keyVaultIndex)
+			assert.Nil(mt, err, "error creating keyAltNames index: %v", err)
+
+			// Using client_encryption, create a data key with a local KMS provider and the keyAltName "def".
+			opts := options.DataKey().SetKeyAltNames([]string{defKeyAltName})
+			defKeyID, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
+			assert.Nil(mt, err, "error creating %q data key: %v", defKeyAltName, err)
+			return defKeyID
+		}
+
+		var validateAddKeyAltName = func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult, expected ...string) {
+			assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
+
+			resbytes, err := res.DecodeBytes()
+			assert.Nil(mt, err, "error decoding result bytes: %v", err)
+
+			idsubtype, iddata := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: resbytes}.
+				Document().Lookup("_id").Binary()
+			filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", idsubtype, iddata).Build()
+
+			ctx := context.Background()
+			updatedData, err := cse.keyVaultColl.FindOne(ctx, filter).DecodeBytes()
+			assert.Nil(mt, err, "error decoding result bytes: %v", err)
+
+			updated := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: updatedData}
+			updatedKeyAltNames, err := updated.Document().Lookup("keyAltNames").Array().Values()
+			assert.Nil(mt, err, "error looking up raw keyAltNames: %v", err)
+			assert.Equal(mt, len(updatedKeyAltNames), len(expected), "expected raw keyAltNames length to be 1")
+
+			for idx, keyAltName := range updatedKeyAltNames {
+				str := keyAltName.StringValue()
+				assert.Equal(mt, str, expected[idx], "expected keyAltName to be %q, got: %q", expected[idx], str)
+			}
+		}
+
+		mt.Run("case 1: createKey()", func(mt *mtest.T) {
+			initialize()
+
+			// Use client_encryption to create a new local data key with a keyAltName "abc" and assert the operation
+			// does not fail.
+			opts := options.DataKey().SetKeyAltNames([]string{abcKeyAltName})
+			_, err := cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
+			assert.Nil(mt, err, "error creating %q data key: %v", abcKeyAltName, err)
+
+			// Repeat Step 1 and assert the operation fails due to a duplicate key server error (error code 11000).
+			opts = options.DataKey().SetKeyAltNames([]string{abcKeyAltName})
+			_, err = cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
+			assert.NotNil(mt, err, "duplicate %q key did not propagate expected error", abcKeyAltName)
+
+			e110000 := "E11000 duplicate key"
+			correctError := strings.Contains(err.Error(), e110000)
+			assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, err)
+
+			// Use client_encryption to create a new local data key with a keyAltName "def" and assert the operation
+			// fails due to a duplicate key server error (error code 11000).
+			opts = options.DataKey().SetKeyAltNames([]string{defKeyAltName})
+			_, err = cse.clientEnc.CreateDataKey(context.Background(), "local", opts)
+			assert.NotNil(mt, err, "duplicate %q key did not propagate expected error", defKeyAltName)
+
+			e110000 = "E11000 duplicate key"
+			correctError = strings.Contains(err.Error(), e110000)
+			assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, err)
+		})
+
+		mt.Run("case 2: addKeyAltName()", func(t *mtest.T) {
+			defKeyID := initialize()
+
+			var someNewKeyID primitive.Binary
+			// Use client_encryption to create a new local data key and assert the operation does not fail.
+			var err error
+			someNewKeyID, err = cse.clientEnc.CreateDataKey(context.Background(), "local")
+			assert.Nil(mt, err, "error creating data key: %v", err)
+
+			// Use client_encryption to add a keyAltName "abc" to the key created in Step 1 and assert the operation
+			// does not fail.
+			res := cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, abcKeyAltName)
+			validateAddKeyAltName(mt, cse, res, abcKeyAltName)
+
+			// Repeat Step 2, assert the operation does not fail, and assert the returned key document contains the
+			// keyAltName "abc" added in Step 2.
+			res = cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, abcKeyAltName)
+			validateAddKeyAltName(mt, cse, res, abcKeyAltName)
+
+			// Use client_encryption to add a keyAltName "def" to the key created in Step 1 and assert the operation
+			// fails due to a duplicate key server error (error code 11000).
+			res = cse.clientEnc.AddKeyAltName(context.Background(), someNewKeyID, defKeyAltName)
+			assert.NotNil(mt, res.Err(), "duplicate %q key did not propagate expected error", defKeyAltName)
+
+			e110000 := "E11000 duplicate key"
+			correctError := strings.Contains(res.Err().Error(), e110000)
+			assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, res.Err())
+
+			// Use client_encryption to add a keyAltName "def" to the existing key, assert the operation does not fail,
+			// and assert the returned key document contains the keyAltName "def" added during Setup.
+			res = cse.clientEnc.AddKeyAltName(context.Background(), defKeyID, defKeyAltName)
+			validateAddKeyAltName(mt, cse, res, defKeyAltName)
+		})
+
+	})
 }
 
 func getWatcher(mt *mtest.T, streamType mongo.StreamType, cpt *cseProseTest) watcher {
@@ -1659,11 +1885,9 @@ type cseProseTest struct {
 
 func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *options.ClientOptions,
 	ceo *options.ClientEncryptionOptions) *cseProseTest {
-
 	mt.Helper()
 	var cpt cseProseTest
 	var err error
-
 	cpt.coll = mt.CreateCollection(mtest.Collection{
 		Name: "coll",
 		DB:   "db",

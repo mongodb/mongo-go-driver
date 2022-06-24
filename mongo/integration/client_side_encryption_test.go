@@ -250,6 +250,7 @@ type customCrypt struct {
 	numDecryptExplicitCalls      int
 	numCloseCalls                int
 	numBypassAutoEncryptionCalls int
+	numRewrapDataKeyCalls        int
 }
 
 var (
@@ -324,6 +325,15 @@ func (c *customCrypt) Close() {
 func (c *customCrypt) BypassAutoEncryption() bool {
 	c.numBypassAutoEncryptionCalls++
 	return false
+}
+
+// RewrapDataKey attempts to rewrap the document data keys matching the filter, preparing the re-wrapped documents to
+// be returned as a slice of bsoncore.Document.
+func (c *customCrypt) RewrapDataKey(_ context.Context, _ []byte,
+	_ *mcopts.RewrapManyDataKeyOptions) ([]bsoncore.Document, error) {
+
+	c.numRewrapDataKeyCalls++
+	return nil, nil
 }
 
 func TestClientSideEncryptionCustomCrypt(t *testing.T) {

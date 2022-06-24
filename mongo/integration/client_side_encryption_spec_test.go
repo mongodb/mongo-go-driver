@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	encryptionSpecName = "client-side-encryption"
+	encryptionSpecName = "client-side-encryption/legacy"
 )
 
 func verifyClientSideEncryptionVarsSet(t *testing.T) {
