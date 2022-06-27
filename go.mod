@@ -23,7 +23,8 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 	golang.org/x/crypto v0.0.0-20201216223049-8b5274cf687f
 
-	// This indirect dependency resolves https://github.com/advisories/GHSA-vc3p-29h2-gpcp
+	// This indirect dependency resolve 'uncontrolled memory consumption in the header
+	// canonicalization cache' https://github.com/advisories/GHSA-vc3p-29h2-gpcp .
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/tools v0.0.0-20190531172133-b3315ee88b7d
