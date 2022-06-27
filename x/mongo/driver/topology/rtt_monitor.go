@@ -58,16 +58,6 @@ func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 		panic("RTT monitor interval must be greater than 0")
 	}
 
-	// If a timeout is not set, default to 1 minute. The purpose of the timeout is to allow the RTT
-	// monitor to continue monitoring server RTTs after an operation gets stuck. An operation can
-	// get stuck if the server or a proxy stops responding to requests on the RTT connection but
-	// does not close the TCP socket, effectively creating an operation that will never complete. We
-	// pick 1 minute because it is longer than the longest expected round-trip latency and short
-	// enough to allow the RTT monitor to recover in a reasonable period of time.
-	if cfg.timeout <= 0 {
-		cfg.timeout = 1 * time.Minute
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	// Determine the number of samples we need to keep to store the minWindow of RTT durations. The
 	// number of samples must be between [10, 500].
@@ -142,8 +132,20 @@ func (r *rttMonitor) runHellos(conn *connection) {
 			return
 		}
 
+		// Create a Context with the operation timeout specified in the RTT monitor config. If a
+		// timeout is not set in the RTT monitor config, default to the connection's
+		// "connectTimeoutMS". The purpose of the timeout is to allow the RTT monitor to continue
+		// monitoring server RTTs after an operation gets stuck. An operation can get stuck if the
+		// server or a proxy stops responding to requests on the RTT connection but does not close
+		// the TCP socket, effectively creating an operation that will never complete. We expect
+		// that "connectTimeoutMS" provides at least enough time for a single round trip.
+		timeout := r.cfg.timeout
+		if timeout <= 0 {
+			timeout = conn.config.connectTimeout
+		}
+		ctx, cancel := context.WithTimeout(r.ctx, timeout)
+
 		start := time.Now()
-		ctx, cancel := context.WithTimeout(r.ctx, r.cfg.timeout)
 		err := r.cfg.createOperationFn(initConnection{conn}).Execute(ctx)
 		cancel()
 		if err != nil {
