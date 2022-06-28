@@ -98,22 +98,32 @@ func (r *rttMonitor) start() {
 		}
 	}()
 
-	for r.ctx.Err() == nil {
+	ticker := time.NewTicker(r.cfg.interval)
+	defer ticker.Stop()
+
+	for {
 		conn := r.cfg.createConnectionFn()
 		err := conn.connect(r.ctx)
-		if err != nil {
-			_ = conn.close()
-			continue
+
+		// Add an RTT sample from the new connection handshake and start a runHellos() loop if we
+		// successfully established the new connection. Otherwise, close the connection and try to
+		// create another new connection.
+		if err == nil {
+			r.addSample(conn.helloRTT)
+			r.runHellos(conn)
 		}
 
-		// We just created a new connection, so record the "hello" RTT from the new connection.
-		r.addSample(conn.helloRTT)
-
-		r.runHellos(conn)
-
-		// runHellos only returns when it encounters an error or is cancelled. In either case, we
-		// want to close the connection.
+		// Close any connection here because we're either about to try to create another new
+		// connection or we're about to exit the loop.
 		_ = conn.close()
+
+		// If a connection error happens quickly, always wait for the monitoring interval to try
+		// to create a new connection to prevent creating connections too quickly.
+		select {
+		case <-ticker.C:
+		case <-r.ctx.Done():
+			return
+		}
 	}
 }
 
