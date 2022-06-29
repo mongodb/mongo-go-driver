@@ -708,6 +708,23 @@ func TestConnection(t *testing.T) {
 				err = conn.close()
 				assert.Nil(t, err, "close error: %v", err)
 			})
+			// GODRIVER-2438
+			// Test that any panics that happens when closing the underlying net.Conn are recovered
+			// and returned as an error from close().
+			t.Run("panics are recovered", func(t *testing.T) {
+				t.Parallel()
+
+				conn := newConnection("", WithDialer(func(Dialer) Dialer {
+					return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+						return closePanicConn{}, nil
+					})
+				}))
+				err := conn.connect(context.Background())
+				assert.Nil(t, err, "connect() error: %v", err)
+
+				err = conn.close()
+				assert.NotNil(t, err, "expected a recovered panic error from closing the connection, got nil")
+			})
 		})
 		t.Run("cancellation listener callback", func(t *testing.T) {
 			t.Run("closes connection", func(t *testing.T) {
@@ -1238,4 +1255,13 @@ func (tcl *testCancellationListener) StopListening() bool {
 func (tcl *testCancellationListener) assertCalledOnce(t *testing.T) {
 	assert.Equal(t, 1, tcl.numListen, "expected Listen to be called once, got %d", tcl.numListen)
 	assert.Equal(t, 1, tcl.numStopListening, "expected StopListening to be called once, got %d", tcl.numListen)
+}
+
+// closePanicConn is a connection that panics when closed.
+type closePanicConn struct {
+	net.Conn
+}
+
+func (closePanicConn) Close() error {
+	panic("test panic")
 }

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -484,18 +485,27 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 	return dst, "", nil
 }
 
-func (c *connection) close() error {
+func (c *connection) close() (err error) {
 	// Overwrite the connection state as the first step so only the first close call will execute.
 	if !atomic.CompareAndSwapInt64(&c.state, connConnected, connDisconnected) {
 		return nil
 	}
 
-	var err error
-	if c.nc != nil {
-		err = c.nc.Close()
+	if c.nc == nil {
+		return nil
 	}
 
-	return err
+	// It's possible for net.Conn.Close() to panic under some circumstances, such as if the
+	// underlying socket file descriptor has been removed by the operating system but the net.Conn
+	// is still in use. Recover any panics that happen while attempting to close the net.Conn and
+	// return them as errors.
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("recovered panic: %v\n%s", r, string(debug.Stack()))
+		}
+	}()
+
+	return c.nc.Close()
 }
 
 func (c *connection) closed() bool {
