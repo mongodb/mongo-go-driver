@@ -1612,6 +1612,23 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
 
+  - name: test-replicaset-auth-ssl-mongocryptd
+    tags: ["test", "replicaset", "authssl", "mongocryptd"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "ssl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "ssl"
+          # Don't download the crypt_shared library, which should cause all of the tests to fall
+          # back to using mongocryptd instead of crypt_shared.
+          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
+
   - name: test-replicaset-auth-nossl
     tags: ["test", "replicaset", "authssl"]
     commands:
@@ -2206,13 +2223,13 @@ buildvariants:
     matrix_spec: { version: ["2.6", "3.0"], os-ssl-legacy: "*" }
     display_name: "${version} ${os-ssl-legacy}"
     tasks:
-      - name: ".test !.enterprise-auth !.compression"
+      - name: ".test !.enterprise-auth !.compression !.mongocryptd"
 
   - matrix_name: "tests-legacy-noauth-nossl"
     matrix_spec: { version: ["2.6", "3.0"], os-ssl-32: "*" }
     display_name: "${version} ${os-ssl-32}"
     tasks:
-      - name: ".test !.authssl !.enterprise-auth !.compression"
+      - name: ".test !.authssl !.enterprise-auth !.compression !.mongocryptd"
 
   - matrix_name: "tests-nonlegacy-servers"
     matrix_spec: { version: "3.2", os-ssl-32: "*" }
