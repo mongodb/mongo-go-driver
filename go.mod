@@ -7,7 +7,7 @@ retract (
 	[v1.6.0, v1.6.1] // Contains data race bug in background connection establishment.
 )
 
-// gopkg.in/yaml.v3@v3.0.0-20200313102051-9f266ea9e77c introduced through github.com/stretchr/testify@v1.6.1 are
+// gopkg.in/yaml.v3@v3.0.0-20200313102051-9f266ea9e77c introduced through github.com/stretchr/testify@v1.6.1 is
 // vulnerable to Denial of Service (DoS) via the Unmarshal function, which causes the program to crash when attempting
 // to deserialize invalid input. https://www.cve.org/CVERecord?id=CVE-2022-28948
 replace gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c => gopkg.in/yaml.v3 v3.0.1
