@@ -1581,7 +1581,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			defer encryptedClient.Disconnect(context.Background())
 
 			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
-			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID)
+			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetContentionFactor(0)
 			valueToEncrypt := "encrypted indexed value"
 			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
 			insertPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
@@ -1591,7 +1591,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}, {"encryptedIndexed", insertPayload}})
 			assert.Nil(mt, err, "Error in InsertOne: %v", err)
 			// Explicit encrypt an indexed value to find.
-			eo = options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+			eo = options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(0)
 			findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 			assert.Nil(mt, err, "error in Encrypt: %v", err)
 			// Find.
@@ -1624,7 +1624,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 			// Explicit encrypt an indexed value to find with default contentionFactor 0.
 			{
-				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality)
+				eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(0)
 				findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 				assert.Nil(mt, err, "error in Encrypt: %v", err)
 				// Find with contentionFactor=0.
@@ -1690,7 +1690,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			defer encryptedClient.Disconnect(context.Background())
 
 			// Explicit encrypt the value "encrypted indexed value" with algorithm: "Indexed".
-			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID)
+			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetContentionFactor(0)
 			valueToEncrypt := "encrypted indexed value"
 			rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
 			payload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)

@@ -94,14 +94,13 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.5.0-rc2"
+          LIBMONGOCRYPT_TAG="1.5.0"
           # LIBMONGOCRYPT_COMMIT is the commit on libmongocrypt for the tag LIBMONGOCRYPT_TAG.
-          LIBMONGOCRYPT_COMMIT="1756c5120814152c15a2eee7a679a33a4764ba63"
+          LIBMONGOCRYPT_COMMIT="c3be59f9b0d756caa4c22c254e0704084cf6bca4"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
              mkdir -p c:/libmongocrypt/bin
-             # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
              echo "fetching build for Windows ... begin"
              mkdir libmongocrypt-all
              cd libmongocrypt-all
@@ -131,7 +130,6 @@ functions:
              sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
              echo "fetching build for Darwin ... end"
           else
-            # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
             git clone https://github.com/mongodb/libmongocrypt --branch $LIBMONGOCRYPT_TAG
             ./libmongocrypt/.evergreen/compile.sh
           fi
@@ -1612,6 +1610,23 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
 
+  - name: test-replicaset-auth-ssl-mongocryptd
+    tags: ["test", "replicaset", "authssl", "mongocryptd"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "ssl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "ssl"
+          # Don't download the crypt_shared library, which should cause all of the tests to fall
+          # back to using mongocryptd instead of crypt_shared.
+          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
+
   - name: test-replicaset-auth-nossl
     tags: ["test", "replicaset", "authssl"]
     commands:
@@ -2206,13 +2221,13 @@ buildvariants:
     matrix_spec: { version: ["2.6", "3.0"], os-ssl-legacy: "*" }
     display_name: "${version} ${os-ssl-legacy}"
     tasks:
-      - name: ".test !.enterprise-auth !.compression"
+      - name: ".test !.enterprise-auth !.compression !.mongocryptd"
 
   - matrix_name: "tests-legacy-noauth-nossl"
     matrix_spec: { version: ["2.6", "3.0"], os-ssl-32: "*" }
     display_name: "${version} ${os-ssl-32}"
     tasks:
-      - name: ".test !.authssl !.enterprise-auth !.compression"
+      - name: ".test !.authssl !.enterprise-auth !.compression !.mongocryptd"
 
   - matrix_name: "tests-nonlegacy-servers"
     matrix_spec: { version: "3.2", os-ssl-32: "*" }
