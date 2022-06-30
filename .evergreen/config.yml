@@ -974,10 +974,16 @@ functions:
           ${PREPARE_SHELL}
 
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate_venv.sh
 
-          # TODO (GODRIVER-2239): Stabilize this pip install with a non-forked version of PyKMIP in
-          pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
+          # only run this if virtualenv is installed
+          if ${PYTHON3_BINARY} -m venv ./venv; then
+            . ./activate_venv.sh
+
+            # TODO (GODRIVER-2239): Stabilize this pip install with a non-forked version of PyKMIP in
+            pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
+          else
+            echo "error: No module named venv"
+          fi
     - command: shell.exec
       params:
         background: true
