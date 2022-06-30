@@ -123,6 +123,7 @@
 // to install packages via brew and compile the libmongocrypt source code.
 //
 // 3. Windows:
+//
 //    mkdir -p c:/libmongocrypt/bin
 //    mkdir -p c:/libmongocrypt/include
 //
