@@ -974,18 +974,20 @@ functions:
           ${PREPARE_SHELL}
 
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          source activate_venv.sh || :
+          . ./activate_venv.sh
+
+          # TODO (GODRIVER-2239): Stabilize this pip install with a non-forked version of PyKMIP in
+          pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
     - command: shell.exec
       params:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate_venv.sh
-
-          # TODO (GODRIVER-2239): Stabilize this pip install with a non-forked version of PyKMIP in
-          pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
-
-          ./kmstlsvenv/bin/python3 -u kms_kmip_server.py --port 5698
+          if [ "Windows_NT" = "$OS" ]; then
+            kmstlsvenv/Scripts/python.exe -u kms_kmip_server.py --port 5698
+          else
+            ./kmstlsvenv/bin/python3 -u kms_kmip_server.py --port 5698
+          fi
 
   run-kms-tls-test:
     - command: shell.exec
