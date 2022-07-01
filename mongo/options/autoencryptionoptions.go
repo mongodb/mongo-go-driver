@@ -92,7 +92,7 @@ func (a *AutoEncryptionOptions) SetBypassAutoEncryption(bypass bool) *AutoEncryp
 	return a
 }
 
-// SetExtraOptions specifies a map of options to configure the mongocryptd process.
+// SetExtraOptions specifies a map of options to configure the mongocryptd process or mongo_crypt shared library.
 //
 // Supported Extra Options
 //
