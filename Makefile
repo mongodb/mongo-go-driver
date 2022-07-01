@@ -13,7 +13,7 @@ TEST_TIMEOUT = 1800
 
 ### Utility targets. ###
 .PHONY: default
-default: add-license build build-examples check-env check-fmt lint test-short
+default: add-license build build-examples check-env check-fmt check-modules lint test-short
 
 .PHONY: add-license
 add-license:
@@ -48,6 +48,20 @@ build-tests:
 .PHONY: check-fmt
 check-fmt:
 	etc/check_fmt.sh $(PKGS)
+
+# check-modules runs "go mod tidy" then "go mod vendor" and exits with a non-zero exit code if there
+# are any module or vendored modules changes. The intent is to confirm two properties:
+#
+# 1. Exactly the required modules are declared as dependencies. We should always be able to run
+# "go mod tidy" and expect that no unrelated changes are made to the "go.mod" file.
+#
+# 2. All required modules are copied into the vendor/ directory and are an exact copy of the
+# original module source code (i.e. the vendored modules are not modified from their original code).
+.PHONY: check-modules
+check-modules:
+	go mod tidy -v
+	go mod vendor
+	git diff --exit-code go.mod go.sum ./vendor
 
 .PHONY: doc
 doc:
