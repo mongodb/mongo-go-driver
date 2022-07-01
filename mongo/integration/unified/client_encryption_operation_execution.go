@@ -86,8 +86,8 @@ func executeAddKeyAltName(ctx context.Context, operation *operation) (*operation
 	return newDocumentResult(res, err), nil
 }
 
-// executeCreateKey will attempt to create a client-encrypted key for a unified operation.
-func executeCreateKey(ctx context.Context, operation *operation) (*operationResult, error) {
+// executeCreateDataKey will attempt to create a client-encrypted key for a unified operation.
+func executeCreateDataKey(ctx context.Context, operation *operation) (*operationResult, error) {
 	cee, err := entities(ctx).clientEncryption(operation.Object)
 	if err != nil {
 		return nil, err
@@ -113,14 +113,14 @@ func executeCreateKey(ctx context.Context, operation *operation) (*operationResu
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("unrecognized CreateKey arg: %q", key)
+			return nil, fmt.Errorf("unrecognized CreateDataKey arg: %q", key)
 		}
 	}
 	if kmsProvider == "" {
 		return nil, newMissingArgumentError("kmsProvider")
 	}
 
-	bin, err := cee.CreateKey(ctx, kmsProvider, dko)
+	bin, err := cee.CreateDataKey(ctx, kmsProvider, dko)
 	if bin.Data != nil {
 		bsonType, bsonData, err := bson.MarshalValue(bin)
 		if err != nil {
