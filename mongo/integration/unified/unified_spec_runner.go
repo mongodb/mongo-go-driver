@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -19,6 +20,7 @@ import (
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
@@ -190,6 +192,49 @@ func isSkipTestError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "test must be skipped")
 }
 
+type dropCollectionWorkerGetter func() (string, error)
+
+func dropCollectionWorker(ctx context.Context, jobs <-chan *collectionData,
+	results chan<- dropCollectionWorkerGetter) {
+
+	for c := range jobs {
+		db := mtest.GlobalClient().Database(c.DatabaseName, options.Database().SetWriteConcern(mtest.MajorityWc))
+		coll := db.Collection(c.CollectionName)
+		err := coll.Drop(ctx)
+		if err != nil {
+			err = fmt.Errorf("error dropping collection: %v", err)
+		}
+		results <- func() (string, error) { return c.namespace(), err }
+	}
+}
+
+func dropTestCaseCollections(ctx context.Context, tc *TestCase, async bool) error {
+	jobs := make(chan *collectionData, len(tc.initialData))
+	results := make(chan dropCollectionWorkerGetter, len(tc.initialData))
+
+	numWorkers := 1
+	if async {
+		numWorkers = runtime.NumCPU()
+	}
+
+	for w := 1; w <= numWorkers; w++ {
+		go dropCollectionWorker(ctx, jobs, results)
+	}
+
+	for _, collData := range tc.initialData {
+		jobs <- collData
+	}
+	close(jobs)
+
+	for a := 1; a <= len(tc.initialData); a++ {
+		afn := <-results
+		if namespace, err := afn(); err != nil {
+			return fmt.Errorf("error dropping collection %q: %v", namespace, err)
+		}
+	}
+	return nil
+}
+
 // Run runs the TestCase and returns an error if it fails
 func (tc *TestCase) Run(ls LoggerSkipper) error {
 	if tc.SkipReason != nil {
@@ -231,6 +276,9 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	}()
 
 	// Set up collections based on the file-level initialData field.
+	if err := dropTestCaseCollections(testCtx, tc, true); err != nil {
+		return err
+	}
 	for _, collData := range tc.initialData {
 		if err := collData.createCollection(testCtx); err != nil {
 			return fmt.Errorf("error setting up collection %q: %v", collData.namespace(), err)
