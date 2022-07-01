@@ -14,7 +14,6 @@ replace gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c => gopkg.in/yaml.v3 
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.1
 	github.com/google/go-cmp v0.5.2
 	github.com/klauspost/compress v1.13.6

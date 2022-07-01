@@ -92,11 +92,12 @@ func TestDocumentationExamples(t *testing.T) {
 	mt := mtest.New(t)
 	defer mt.Close()
 
-	// Because it uses RunCommand with an apiVersion, the strict count example can only be
-	// run on 5.0+ without auth. It also cannot be run on 6.0+ since the count command was
-	// added to API version 1 and no longer results in an error when strict is enabled.
-	mtOpts := mtest.NewOptions().MinServerVersion("5.0").MaxServerVersion("5.3")
+	// Stable API is supported in 5.0+
+	mtOpts := mtest.NewOptions().MinServerVersion("5.0")
 	mt.RunOpts("StableAPIStrictCountExample", mtOpts, func(mt *mtest.T) {
+		// TODO(GODRIVER-2482): Unskip when this test is rewritten to work with Stable API v1.
+		mt.Skip(`skipping because "count" is now part of Stable API v1; see GODRIVER-2482`)
+
 		documentation_examples.StableAPIStrictCountExample(mt.T)
 	})
 
