@@ -80,7 +80,7 @@ func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Bina
 	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
 }
 
-// CreateKey creates a new key document and inserts into the key vault collection. Returns the _id of the created
+// CreateDataKey creates a new key document and inserts into the key vault collection. Returns the _id of the created
 // document as a UUID (BSON binary subtype 0x04).
 func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
 	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
