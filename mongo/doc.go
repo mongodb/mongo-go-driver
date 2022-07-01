@@ -135,18 +135,8 @@
 //    cp ./include/mongocrypt/*.h c:/libmongocrypt/include
 //    export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
 //
-// libmongocrypt communicates with the mongocryptd process for automatic encryption. This process can be started manually
-// or auto-spawned by the driver itself. To enable auto-spawning, ensure the process binary is on the PATH. To start it
-// manually, use AutoEncryptionOptions:
-//
-//    aeo := options.AutoEncryption()
-//    mongocryptdOpts := map[string]interface{}{
-//        "mongocryptdBypassSpawn": true,
-//    }
-//    aeo.SetExtraOptions(mongocryptdOpts)
-// To specify a process URI for mongocryptd, the "mongocryptdURI" option can be passed in the ExtraOptions map as well.
-// See the ClientSideEncryption and ClientSideEncryptionCreateKey examples below for code samples about using this
-// feature.
+// libmongocrypt communicates with the mongocryptd process or mongo_crypt shared library for automatic encryption.
+// See AutoEncryptionOpts.SetExtraOptions for options to configure use of mongocryptd or mongo_crypt.
 //
 // [1] See https://www.mongodb.com/docs/manual/reference/connection-string/#dns-seedlist-connection-format
 package mongo
