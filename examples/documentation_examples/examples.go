@@ -2905,6 +2905,10 @@ func StableAPIDeprecationErrorsExample() {
 // StableAPIStrictCountExample is an example of using CountDocuments instead of a traditional count
 // with a strict stable API since the count command does not belong to API version 1.
 func StableAPIStrictCountExample(t *testing.T) {
+	// TODO(GODRIVER-2482): The "count" command is now part of Stable API v1 in MongoDB v5.0.x and
+	// TODO v6.x, so this example no longer works correctly in any CI tested server version. Rewrite
+	// TODO this example with a command that is not part of Stable API v1. For now, this example
+	// TODO test is always skipped.
 	uri := mtest.ClusterURI()
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
