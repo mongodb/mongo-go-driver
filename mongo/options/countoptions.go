@@ -36,7 +36,8 @@ type CountOptions struct {
 	//
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 	// Timeout option should be used in its place to control the amount of time that the count operation can run before
-	// returning an error. MaxTime is still usable through the deprecated setter.
+	// returning an error. MaxTime is still usable through the deprecated setter. MaxTime is ignored if Timeout is set on the
+	// client.
 	MaxTime *time.Duration
 
 	// The number of documents to skip before counting. The default value is 0.
@@ -76,7 +77,7 @@ func (co *CountOptions) SetLimit(i int64) *CountOptions {
 //
 // Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 // Timeout option should be used in its place to control the amount of time that the count operation can run before
-// returning an error.
+// returning an error. MaxTime is ignored if Timeout is set on the client.
 func (co *CountOptions) SetMaxTime(d time.Duration) *CountOptions {
 	co.MaxTime = &d
 	return co

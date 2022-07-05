@@ -156,7 +156,8 @@ type ClientOptions struct {
 	//
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 	// Timeout option should be used in its place to control the amount of time that a single operation can run on the Client
-	// before returning an error. SocketTimeout is still usable through the deprecated setter.
+	// before returning an error. SocketTimeout is still usable through the deprecated setter. Setting SocketTimeout and
+	// Timeout on a single client will result in undefined behavior.
 	SocketTimeout *time.Duration
 }
 
@@ -717,7 +718,7 @@ func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOption
 //
 // Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 // Timeout option should be used in its place to control the amount of time that a single operation can run on the Client
-// before returning an error.
+// before returning an error. Setting SocketTimeout and Timeout on a single client will result in undefined behavior.
 func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 	c.SocketTimeout = &d
 	return c
@@ -728,9 +729,8 @@ func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 // be honored if there is no deadline on the operation Context. Timeout can also be set through the "timeoutMS" URI option
 // (e.g. "timeoutMS=1000"). The default value is nil, meaning operations do not inherit a timeout from the Client.
 //
-// If any Timeout is set (even 0) on the Client, the values of other, deprecated timeout-related options will be ignored.
-// In particular: ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operation options, and
-// TransactionOptions.MaxCommitTime.
+// If any Timeout is set (even 0) on the Client, the values of MaxTime on operation options and TransactionOptions.MaxCommitTime
+// will be ignored.
 //
 // NOTE(benjirewis): SetTimeout represents unstable, provisional API. The behavior of the driver when a Timeout is specified is
 // subject to change.

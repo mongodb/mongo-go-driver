@@ -41,7 +41,8 @@ type SessionOptions struct {
 	//
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 	// Timeout option should be used in its place to control the amount of time that the CommitTransaction operation can
-	// run before returning an error. DefaultMaxCommitTime is still usable through the deprecated setter.
+	// run before returning an error. DefaultMaxCommitTime is still usable through the deprecated setter. DefaultMaxCommitTime
+	// is ignored if Timeout is set on the client.
 	DefaultMaxCommitTime *time.Duration
 
 	// If true, all read operations performed with this session will be read from the same snapshot. This option cannot
@@ -83,7 +84,7 @@ func (s *SessionOptions) SetDefaultWriteConcern(wc *writeconcern.WriteConcern) *
 //
 // Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 // Timeout option should be used in its place to control the amount of time that the CommitTransaction operation can
-// run before returning an error.
+// run before returning an error. DefaultMaxCommitTime is ignored if Timeout is set on the client.
 func (s *SessionOptions) SetDefaultMaxCommitTime(mct *time.Duration) *SessionOptions {
 	s.DefaultMaxCommitTime = mct
 	return s

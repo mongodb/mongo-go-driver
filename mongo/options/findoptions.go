@@ -62,7 +62,8 @@ type FindOptions struct {
 	//
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 	// Timeout option should be used in its place to control the amount of time that the Find operation can run before
-	// returning an error. MaxTime is still usable through the deprecated setter.
+	// returning an error. MaxTime is still usable through the deprecated setter. MaxTime is ignored if Timeout is set on
+	// the client.
 	MaxTime *time.Duration
 
 	// Min is a document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
@@ -184,9 +185,9 @@ func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
 
 // SetMaxTime specifies the max time to allow the query to run.
 //
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver.
-// The more general Timeout option should be used in its place to control the amount of time that the
-// Find operation can run before returning an error.
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+// Timeout option should be used in its place to control the amount of time that the Find operation can run before
+// returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOptions) SetMaxTime(d time.Duration) *FindOptions {
 	f.MaxTime = &d
 	return f
@@ -372,7 +373,8 @@ type FindOneOptions struct {
 	//
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 	// Timeout option should be used in its place to control the amount of time that the FindOne operation can run before
-	// returning an error. MaxTime is still usable through the deprecated setter.
+	// returning an error. MaxTime is still usable through the deprecated setter. MaxTime is ignored if Timeout is set on
+	// the client.
 	MaxTime *time.Duration
 
 	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
@@ -480,7 +482,7 @@ func (f *FindOneOptions) SetMaxAwaitTime(d time.Duration) *FindOneOptions {
 //
 // Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 // Timeout option should be used in its place to control the amount of time that the FindOne operation can run before
-// returning an error.
+// returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOneOptions) SetMaxTime(d time.Duration) *FindOneOptions {
 	f.MaxTime = &d
 	return f
@@ -636,7 +638,8 @@ type FindOneAndReplaceOptions struct {
 	//
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 	// Timeout option should be used in its place to control the amount of time that the FindOneAndReplace operation can
-	// run before returning an error. MaxTime is still usable through the deprecated setter.
+	// run before returning an error. MaxTime is still usable through the deprecated setter. MaxTime is ignored if Timeout
+	// is set on the client.
 	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
@@ -698,7 +701,7 @@ func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndRe
 //
 // Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 // Timeout option should be used in its place to control the amount of time that the FindOneAndReplace operation can
-// run before returning an error.
+// run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOneAndReplaceOptions) SetMaxTime(d time.Duration) *FindOneAndReplaceOptions {
 	f.MaxTime = &d
 	return f
@@ -810,7 +813,8 @@ type FindOneAndUpdateOptions struct {
 	//
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 	// Timeout option should be used in its place to control the amount of time that the FindOneAndUpdate operation can run
-	// before returning an error. MaxTime is still usable through the deprecated setter.
+	// before returning an error. MaxTime is still usable through the deprecated setter. MaxTime is ignored if Timeout is
+	// set on the client.
 	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
@@ -878,7 +882,7 @@ func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpd
 //
 // Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 // Timeout option should be used in its place to control the amount of time that the FindOneAndUpdate operation can run
-// before returning an error.
+// before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOneAndUpdateOptions) SetMaxTime(d time.Duration) *FindOneAndUpdateOptions {
 	f.MaxTime = &d
 	return f
@@ -982,7 +986,8 @@ type FindOneAndDeleteOptions struct {
 	//
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 	// Timeout option should be used in its place to control the amount of time that the FindOneAndDelete operation can run
-	// before returning an error. MaxTime is still usable through the deprecated setter.
+	// before returning an error. MaxTime is still usable through the deprecated setter. MaxTime is ignored if Timeout is
+	// set on the client.
 	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
@@ -1030,7 +1035,7 @@ func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDel
 //
 // Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
 // Timeout option should be used in its place to control the amount of time that the FindOneAndDelete operation can run
-// before returning an error.
+// before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOneAndDeleteOptions) SetMaxTime(d time.Duration) *FindOneAndDeleteOptions {
 	f.MaxTime = &d
 	return f

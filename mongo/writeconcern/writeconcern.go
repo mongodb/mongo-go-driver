@@ -34,9 +34,10 @@ type WriteConcern struct {
 	j bool
 
 	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the
-	// driver. The more general Client, Database or Collection Timeout options should be used in
-	// its place to control the amount of time that a single operation can run before returning an
-	// error. wTimeout is still usable through the deprecated setter.
+	// driver. The more general Timeout client option should be used in its place to control the
+	// amount of time that a single operation can run before returning an error. wTimeout is still
+	// usable through the deprecated setter. Using wTimeout and setting Timeout on the client will
+	// result in undefined behavior.
 	wTimeout time.Duration
 }
 
@@ -88,10 +89,10 @@ func J(j bool) Option {
 
 // WTimeout specifies specifies a time limit for the write concern.
 //
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0
-// of the driver. The more general Client, Database or Collection Timeout options should
-// be used in its place to control the amount of time that a single operation can run before
-// returning an error.
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the
+// driver. The more general Timeout client option should be used in its place to control the
+// amount of time that a single operation can run before returning an error. Using wTimeout and
+// setting Timeout on the client will result in undefined behavior.
 func WTimeout(d time.Duration) Option {
 	return func(concern *WriteConcern) {
 		concern.wTimeout = d
