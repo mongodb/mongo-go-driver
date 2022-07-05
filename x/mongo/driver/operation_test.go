@@ -244,8 +244,7 @@ func TestOperation(t *testing.T) {
 		want := bsoncore.AppendDocumentElement(nil, "writeConcern", bsoncore.BuildDocumentFromElements(
 			nil, bsoncore.AppendStringElement(nil, "w", "majority"),
 		))
-		got, err := Operation{WriteConcern: writeconcern.New(writeconcern.WMajority())}.
-			addWriteConcern(context.Background(), nil, description.SelectedServer{})
+		got, err := Operation{WriteConcern: writeconcern.New(writeconcern.WMajority())}.addWriteConcern(nil, description.SelectedServer{})
 		noerr(t, err)
 		if !bytes.Equal(got, want) {
 			t.Errorf("WriteConcern elements do not match. got %v; want %v", got, want)
@@ -597,7 +596,7 @@ func TestOperation(t *testing.T) {
 						Kind: tc.server,
 					},
 				}
-				wm, _, err := op.createQueryWireMessage(context.Background(), 0, wm, desc)
+				wm, _, err := op.createQueryWireMessage(0, wm, desc)
 				noerr(t, err)
 
 				// We know where the $query would be within the OP_QUERY, so we'll just index into there.
