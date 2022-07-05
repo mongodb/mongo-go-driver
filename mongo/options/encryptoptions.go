@@ -12,7 +12,7 @@ import (
 
 // These constants specify valid values for QueryType
 // QueryType is used for Queryable Encryption.
-// Queryable Encryption is in Public Technical Preview.
+// Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 const (
 	QueryTypeEquality string = "equality"
 )
@@ -50,7 +50,7 @@ func (e *EncryptOptions) SetKeyAltName(keyAltName string) *EncryptOptions {
 // - Unindexed
 // This is required.
 // Indexed and Unindexed are used for Queryable Encryption.
-// Queryable Encryption is in Public Technical Preview.
+// Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
 	e.Algorithm = algorithm
 	return e
@@ -60,7 +60,7 @@ func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
 // This should be one of the following:
 // - equality
 // QueryType is used for Queryable Encryption.
-// Queryable Encryption is in Public Technical Preview.
+// Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (e *EncryptOptions) SetQueryType(queryType string) *EncryptOptions {
 	e.QueryType = queryType
 	return e
@@ -68,7 +68,7 @@ func (e *EncryptOptions) SetQueryType(queryType string) *EncryptOptions {
 
 // SetContentionFactor specifies the contention factor. It is only valid to set if algorithm is "Indexed".
 // ContentionFactor is used for Queryable Encryption.
-// Queryable Encryption is in Public Technical Preview.
+// Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOptions {
 	e.ContentionFactor = &contentionFactor
 	return e
