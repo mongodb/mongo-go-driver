@@ -947,7 +947,6 @@ func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		for i := 0; i < n; i++ {
-			// wantConns created by maintain do not need to have Timeout contexts.
 			w := newWantConn()
 			p.queueForNewConn(w)
 			wantConns = append(wantConns, w)
