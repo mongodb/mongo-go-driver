@@ -15,7 +15,7 @@ occurs when the input to `bson.Marshal` is something *other* than a BSON Documen
 Many CRUD operations in the Go Driver use `bson.Marshal` under the hood, and so it's possible to encounter this particular without directly attempting to encode data. For example, when using a sort on [`FindOneAndUpdate`](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.FindOneAndUpdate) this error can occur when not properly initializing the sort variable:
 
 ```go
-var sort bson.D // this is nil and will result in a WriteNull error
+var sort bson.D // this is nil and will result in a WriteNull error, initialize with sort := bson.D{}
 opts := options.FindOneAndUpdate().SetSort(sort)
 update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 sr := coll.FindOneAndUpdate(ctx, bson.D{}, update)
