@@ -12,15 +12,21 @@ occurs when the input to `bson.Marshal` is something *other* than a BSON Documen
 - `WriteNull`: the input into `bson.Marshal` is null
 - `WriteInt32`: the input into `bson.Marshal` is an integer
 
-Many CRUD operations in the Go Driver use `bson.Marshal` under the hood, and so it's possible to encounter this particular without directly attempting to encode data. For example, when using a sort on [`FindOneAndUpdate`](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.FindOneAndUpdate) this error can occur when not properly initializing the sort variable:
+Many CRUD operations in the Go Driver use `bson.Marshal` under the hood, and so it's possible to encounter this particular error without directly attempting to encode data. For example, when using a sort on [`FindOneAndUpdate`](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.FindOneAndUpdate) this error can occur when not properly initializing the sort variable:
 
 ```go
-var sort bson.D // this is nil and will result in a WriteNull error, initialize with sort := bson.D{}
+var sort bson.D // this is nil and will result in a WriteNull error
 opts := options.FindOneAndUpdate().SetSort(sort)
 update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 sr := coll.FindOneAndUpdate(ctx, bson.D{}, update)
 if err := sr.Err(); err != nil {
 	log.Fatalf("error getting single result: %v", err)
 }
+```
+
+The above example is resolved by initializing the sort variable:
+
+```go
+sort := bson.D{}
 ```
 
