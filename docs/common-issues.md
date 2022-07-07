@@ -44,7 +44,6 @@ if err != nil {
 	log.Fatalf("error encoding json: %v", err)
 }
 
-// Unmarshal json
 m := make(map[string]interface{})
 if err := json.Unmarshal(jsonBytes, &m); err != nil {
 	log.Fatalf("error decoding json: %v", err)
