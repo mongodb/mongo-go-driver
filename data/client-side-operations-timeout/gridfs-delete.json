@@ -128,7 +128,7 @@
             "id": {
               "$oid": "000000000000000000000005"
             },
-            "timeoutMS": 100
+            "timeoutMS": 300
           }
         }
       ]
@@ -179,6 +179,21 @@
                 "databaseName": "test",
                 "command": {
                   "delete": "fs.files",
+                  "maxTimeMS": {
+                    "$$type": [
+                      "int",
+                      "long"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "commandName": "delete",
+                "databaseName": "test",
+                "command": {
+                  "delete": "fs.chunks",
                   "maxTimeMS": {
                     "$$type": [
                       "int",
@@ -268,3 +283,4 @@
     }
   ]
 }
+

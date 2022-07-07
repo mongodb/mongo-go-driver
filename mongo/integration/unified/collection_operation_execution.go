@@ -1009,9 +1009,14 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 	return newCursorResult(docs), nil
 }
 
-func executeRenameCollection(ctx context.Context, operation *operation) (*operationResult, error) {
+func executeRename(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
+	// Rename operations can also be run against GridFS buckets. Check for a bucket entity of
+	// the same name and run executeBucketRename if an entity is found.
 	if err != nil {
+		if _, bucketOk := entities(ctx).gridFSBucket(operation.Object); bucketOk == nil {
+			return executeBucketRename(ctx, operation)
+		}
 		return nil, err
 	}
 
@@ -1172,7 +1177,12 @@ type cursorResult struct {
 
 func createFindCursor(ctx context.Context, operation *operation) (*cursorResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
+	// Find operations can also be run against GridFS buckets. Check for a bucket entity of the
+	// same name and run createBucketFindCursor if an entity is found.
 	if err != nil {
+		if _, bucketOk := entities(ctx).gridFSBucket(operation.Object); bucketOk == nil {
+			return createBucketFindCursor(ctx, operation)
+		}
 		return nil, err
 	}
 

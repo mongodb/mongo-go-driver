@@ -71,7 +71,7 @@ tests:
         object: *bucket
         arguments:
           id: *fileDocumentId
-          timeoutMS: 100 # The client timeoutMS is 50 and the operation blocks for 55ms, so 100ms should let it succeed.
+          timeoutMS: 300 # The client timeoutMS is 50 and the operation blocks for 55ms, so 300ms should let it succeed.
 
   - description: "timeoutMS applied to delete against the files collection"
     operations:
@@ -100,6 +100,12 @@ tests:
               databaseName: *databaseName
               command:
                 delete: *filesCollectionName
+                maxTimeMS: { $$type: ["int", "long"] }
+          - commandStartedEvent:
+              commandName: delete
+              databaseName: *databaseName
+              command:
+                delete: *chunksCollectionName
                 maxTimeMS: { $$type: ["int", "long"] }
 
   - description: "timeoutMS applied to delete against the chunks collection"

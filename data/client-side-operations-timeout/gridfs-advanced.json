@@ -129,7 +129,7 @@
               "$oid": "000000000000000000000005"
             },
             "newFilename": "foo",
-            "timeoutMS": 100
+            "timeoutMS": 300
           }
         }
       ],
@@ -243,7 +243,7 @@
           "name": "drop",
           "object": "bucket",
           "arguments": {
-            "timeoutMS": 100
+            "timeoutMS": 300
           }
         }
       ]

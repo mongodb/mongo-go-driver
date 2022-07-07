@@ -241,20 +241,27 @@ func (b *Bucket) DownloadToStreamByName(filename string, stream io.Writer, opts 
 //
 // If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
 // write operations operations on this bucket that also require a custom deadline.
+//
+// Deprecated: This method is deprecated and will eventually be removed in version 2.0 of the driver. DeleteContext should
+// be used instead.
 func (b *Bucket) Delete(fileID interface{}) error {
-	// delete document in files collection and then chunks to minimize race conditions
-
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
 		defer cancel()
 	}
+	return b.DeleteContext(ctx, fileID)
+}
 
+// DeleteContext deletes all chunks and metadata associated with the file with the given file ID and runs the underlying
+// delete operations with the provided context.
+func (b *Bucket) DeleteContext(ctx context.Context, fileID interface{}) error {
+	// Delete document in files collection and then chunks to minimize race conditions.
 	res, err := b.filesColl.DeleteOne(ctx, bson.D{{"_id", fileID}})
 	if err == nil && res.DeletedCount == 0 {
 		err = ErrFileNotFound
 	}
 	if err != nil {
-		_ = b.deleteChunks(ctx, fileID) // can attempt to delete chunks even if no docs in files collection matched
+		_ = b.deleteChunks(ctx, fileID) // Can attempt to delete chunks even if no docs in files collection matched.
 		return err
 	}
 
@@ -265,12 +272,21 @@ func (b *Bucket) Delete(fileID interface{}) error {
 //
 // If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
 // read operations operations on this bucket that also require a custom deadline.
+//
+// Deprecated: This method is deprecated and will eventually be removed in version 2.0 of the driver. FindContext
+// should be used instead.
 func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*mongo.Cursor, error) {
 	ctx, cancel := deadlineContext(b.readDeadline)
 	if cancel != nil {
 		defer cancel()
 	}
 
+	return b.FindContext(ctx, cancel)
+}
+
+// FindContext returns the files collection documents that match the given filter and runs the underlying
+// find query with the provided context.
+func (b *Bucket) FindContext(ctx context.Context, filter interface{}, opts ...*options.GridFSFindOptions) (*mongo.Cursor, error) {
 	gfsOpts := options.MergeGridFSFindOptions(opts...)
 	find := options.Find()
 	if gfsOpts.AllowDiskUse != nil {
@@ -302,12 +318,21 @@ func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*
 //
 // If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
 // write operations operations on this bucket that also require a custom deadline
+//
+// Deprecated: This method is deprecated and will eventually be removed in version 2.0 of the driver. RenameContext
+// should be used instead.
 func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
 		defer cancel()
 	}
 
+	return b.RenameContext(ctx, fileID, newFilename)
+}
+
+// RenameContext renames the stored file with the specified file ID and runs the underlying update with the provided
+// context.
+func (b *Bucket) RenameContext(ctx context.Context, fileID interface{}, newFilename string) error {
 	res, err := b.filesColl.UpdateOne(ctx,
 		bson.D{{"_id", fileID}},
 		bson.D{{"$set", bson.D{{"filename", newFilename}}}},
@@ -327,12 +352,21 @@ func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
 //
 // If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
 // write operations operations on this bucket that also require a custom deadline
+//
+// Deprecated: This method is deprecated and will eventually be removed in version 2.0 of the driver. DropContext
+// should be used instead.
 func (b *Bucket) Drop() error {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
 		defer cancel()
 	}
 
+	return b.DropContext(ctx)
+}
+
+// DropContext drops the files and chunks collections associated with this bucket and runs the drop operation with
+// the provided context.
+func (b *Bucket) DropContext(ctx context.Context) error {
 	err := b.filesColl.Drop(ctx)
 	if err != nil {
 		return err

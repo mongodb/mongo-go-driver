@@ -163,7 +163,7 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "estimatedDocumentCount":
 		return executeEstimatedDocumentCount(ctx, op)
 	case "find":
-		return executeFind(ctx, op)
+		return executeFind(ctx, op) // Can also be a GridFS operation
 	case "findOne":
 		return executeFindOne(ctx, op)
 	case "findOneAndDelete":
@@ -179,7 +179,7 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "listIndexes":
 		return executeListIndexes(ctx, op)
 	case "rename":
-		return executeRenameCollection(ctx, op)
+		return executeRename(ctx, op) // Can also be a GridFS operation
 	case "replaceOne":
 		return executeReplaceOne(ctx, op)
 	case "updateOne":
@@ -192,6 +192,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeBucketDelete(ctx, op)
 	case "download":
 		return executeBucketDownload(ctx, op)
+	case "drop":
+		return executeBucketDrop(ctx, op)
 	case "upload":
 		return executeBucketUpload(ctx, op)
 
