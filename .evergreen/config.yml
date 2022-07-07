@@ -982,7 +982,7 @@ functions:
             # TODO (GODRIVER-2239): Stabilize this pip install with a non-forked version of PyKMIP in
             pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
           else
-            echo "error: No module named venv"
+            echo "Python module venv not found, skipping virtual environment setup..."
           fi
     - command: shell.exec
       params:
