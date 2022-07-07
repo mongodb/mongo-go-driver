@@ -80,15 +80,9 @@ func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Bina
 	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
 }
 
-// CreateDataKey is an alias function equivalent to CreateKey.
-func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
-	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
-	return ce.CreateKey(ctx, kmsProvider, opts...)
-}
-
-// CreateKey creates a new key document and inserts into the key vault collection. Returns the _id of the created
+// CreateDataKey creates a new key document and inserts into the key vault collection. Returns the _id of the created
 // document as a UUID (BSON binary subtype 0x04).
-func (ce *ClientEncryption) CreateKey(ctx context.Context, kmsProvider string,
+func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
 	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
 
 	// translate opts to mcopts.DataKeyOptions

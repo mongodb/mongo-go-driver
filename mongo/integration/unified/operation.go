@@ -204,8 +204,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeIterateUntilDocumentOrError(ctx, op)
 
 	// CSFLE operations
-	case "createKey":
-		return executeCreateKey(ctx, op)
+	case "createDataKey":
+		return executeCreateDataKey(ctx, op)
 	case "rewrapManyDataKey":
 		return executeRewrapManyDataKey(ctx, op)
 	case "removeKeyAltName":
