@@ -30,3 +30,27 @@ The above example is resolved by initializing the `sort` variable:
 sort := bson.D{}
 ```
 
+## Convert `bson.Document` to JSON
+
+There are a variety of marshalers that can be used to encode a `bson.Document` as JSON, including [MarshalExtJSON](https://pkg.go.dev/github.com/mongodb/mongo-go-driver/bson#MarshalExtJSON):
+
+```go
+bldr := bsoncore.NewDocumentBuilder()
+bldr.AppendInt32("x", 1)
+doc := bldr.Build()
+
+jsonBytes, err := bson.MarshalExtJSON(doc, true, false)
+if err != nil {
+	log.Fatalf("error encoding json: %v", err)
+}
+
+// Unmarshal json
+m := make(map[string]interface{})
+if err := json.Unmarshal(jsonBytes, &m); err != nil {
+	log.Fatalf("error decoding json: %v", err)
+}
+fmt.Printf("json: %+v\n", m)
+
+```
+
+
