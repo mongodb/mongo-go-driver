@@ -94,10 +94,10 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_BRANCH="r1.5"
-          LIBMONGOCRYPT_TAG="1.5.2"
-          # LIBMONGOCRYPT_COMMIT is the commit on libmongocrypt for the tag LIBMONGOCRYPT_TAG.
-          LIBMONGOCRYPT_COMMIT="8f8675fa11922f00a4516a7f8a60621aa1ca1550"
+          LIBMONGOCRYPT_BRANCH="master"
+          # LIBMONGOCRYPT_COMMIT is the development branch including unreleased features of libmongocrypt 1.6.0.
+          # TODO(GODRIVER-2515) use libmongocrypt 1.6.0 once it is tagged.
+          LIBMONGOCRYPT_COMMIT="393046ba379d097f482a9d41d05bf2ebc78ce397"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
@@ -131,7 +131,10 @@ functions:
              sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
              echo "fetching build for Darwin ... end"
           else
-            git clone https://github.com/mongodb/libmongocrypt --branch $LIBMONGOCRYPT_TAG
+            git clone https://github.com/mongodb/libmongocrypt
+            cd libmongocrypt
+            git checkout $LIBMONGOCRYPT_COMMIT
+            cd ..
             ./libmongocrypt/.evergreen/compile.sh
           fi
 
@@ -175,7 +178,7 @@ functions:
             # If this was a patch build, doing a fresh clone would not actually test the patch
             cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
           else
-            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+            git clone https://github.com/kevinAlbs/drivers-evergreen-tools.git --branch D2377 $DRIVERS_TOOLS
           fi
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
@@ -1969,6 +1972,68 @@ tasks:
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
+  - name: "testgcpkms-task"
+    commands:
+    - command: shell.exec
+      type: setup
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          echo "Building build-gcpkms-test ... begin"
+          BUILD_TAGS="-tags cse" \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+            make build-gcpkms-test
+          echo "Building build-gcpkms-test ... end"
+
+          echo "Copying files ... begin"
+          export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
+          export GCPKMS_PROJECT=${GCPKMS_PROJECT}
+          export GCPKMS_ZONE=${GCPKMS_ZONE}
+          export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
+          tar czf testgcpkms.tgz ./testgcpkms ./install/libmongocrypt/lib/libmongocrypt.*
+          GCPKMS_SRC=testgcpkms.tgz GCPKMS_DST=$GCPKMS_INSTANCENAME: $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/copy-file.sh
+          echo "Copying files ... end"
+
+          echo "Untarring file ... begin"
+          GCPKMS_CMD="tar xf testgcpkms.tgz" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
+          echo "Untarring file ... end"
+      
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
+          export GCPKMS_PROJECT=${GCPKMS_PROJECT}
+          export GCPKMS_ZONE=${GCPKMS_ZONE}
+          export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
+          GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' ./testgcpkms" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
+
+  - name: "testgcpkms-fail-task"
+    # testgcpkms-fail-task runs in a non-GCE environment.
+    # It is expected to fail to obtain GCE credentials.
+    commands:
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            echo "Building build-gcpkms-test ... begin"
+            BUILD_TAGS="-tags cse" \
+            PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+              make build-gcpkms-test
+            echo "Building build-gcpkms-test ... end"
+            LD_LIBRARY_PATH=./install/libmongocrypt/lib \
+            MONGODB_URI='mongodb://localhost:27017/' \
+            EXPECT_ERROR='unable to retrieve GCP credentials' \
+              ./testgcpkms
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -2180,6 +2245,42 @@ task_groups:
           display_name: "mongodb-logs.tar.gz"
     tasks:
       - ".serverless"
+  - name: testgcpkms_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800 # 30 minutes
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - func: fix-absolute-paths
+      - func: make-files-executable
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            echo '${testgcpkms_key_file}' > /tmp/testgcpkms_key_file.json
+            export GCPKMS_KEYFILE=/tmp/testgcpkms_key_file.json
+            export GCPKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
+            export GCPKMS_SERVICEACCOUNT="${testgcpkms_service_account}"
+            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/create-and-setup-instance.sh
+      # Load the GCPKMS_GCLOUD, GCPKMS_INSTANCE, GCPKMS_REGION, and GCPKMS_ZONE expansions.
+      - command: expansions.update
+        params:
+          file: testgcpkms-expansions.yml
+    teardown_group:
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
+            export GCPKMS_PROJECT=${GCPKMS_PROJECT}
+            export GCPKMS_ZONE=${GCPKMS_ZONE}
+            export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
+            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
+    tasks:
+      - testgcpkms-task
+
 
 buildvariants:
   - name: static-analysis
@@ -2334,3 +2435,14 @@ buildvariants:
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
+
+  - name: testgcpkms-variant
+    display_name: "GCP KMS"
+    run_on:
+      - debian11-small
+    expansions:
+      GO_DIST: "/opt/golang/go1.17"
+    tasks:
+      - name: testgcpkms_task_group
+        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
+      - testgcpkms-fail-task

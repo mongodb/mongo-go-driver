@@ -255,7 +255,7 @@ func (c *crypt) executeStateMachine(ctx context.Context, cryptCtx *mongocrypt.Co
 		case mongocrypt.Done:
 			return nil, nil
 		case mongocrypt.NeedKmsCredentials:
-			err = c.provideKmsProviders(ctx, cryptCtx)
+			err = c.provideKmsProviders(cryptCtx)
 		default:
 			return nil, fmt.Errorf("invalid Crypt state: %v", state)
 		}
@@ -393,20 +393,20 @@ func (c *crypt) decryptKey(kmsCtx *mongocrypt.KmsContext) error {
 // needsKmsProvider returns true if provider was initially set to an empty document.
 // An empty document signals the driver to fetch credentials.
 func needsKmsProvider(kmsProviders *bsoncore.Document, provider string) bool {
-	gcpVal, err := kmsProviders.LookupErr("gcp")
+	gcpVal, err := kmsProviders.LookupErr(provider)
 	if err != nil {
-		// "gcp" KMS provider is not configured.
+		// KMS provider is not configured.
 		return false
 	}
 	gcpDoc, ok := gcpVal.DocumentOK()
 	if !ok || len(gcpDoc) != 5 {
-		// "gcp" KMS provider is not an empty document.
+		// KMS provider is not an empty document.
 		return false
 	}
 	return true
 }
 
-func (c *crypt) provideKmsProviders(ctx context.Context, cryptCtx *mongocrypt.Context) error {
+func (c *crypt) provideKmsProviders(cryptCtx *mongocrypt.Context) error {
 	kmsProviders := c.mongoCrypt.GetKmsProviders()
 	builder := bsoncore.NewDocumentBuilder()
 
@@ -430,16 +430,22 @@ func (c *crypt) provideKmsProviders(ctx context.Context, cryptCtx *mongocrypt.Co
 			}
 			defer func() { _ = resp.Body.Close() }()
 			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading response body")
+			}
+			if resp.StatusCode != 200 {
+				return internal.WrapErrorf(err, "unable to retrieve GCP credentials: expected StatusCode 200, got StatusCode: %v. Response body: %v", resp.StatusCode, resp.Body)
+			}
 			var tokenResponse struct {
 				AccessToken string `json:"access_token"`
 			}
 			// Attempt to read body as JSON
 			err = json.Unmarshal(body, &tokenResponse)
 			if err != nil {
-				return internal.WrapErrorf(err, "unable to retrieve GCP credentials")
+				return internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading body JSON")
 			}
 			if tokenResponse.AccessToken == "" {
-				return fmt.Errorf("unable to retrieve GCP credentials: got unexpected empty accessToken from GCP Metadata Server. Full response: %s", body)
+				return fmt.Errorf("unable to retrieve GCP credentials: got unexpected empty accessToken from GCP Metadata Server. Response body: %s", body)
 			}
 			builder.StartDocument("gcp").
 				AppendString("accessToken", tokenResponse.AccessToken).

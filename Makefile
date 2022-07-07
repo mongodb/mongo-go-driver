@@ -188,6 +188,10 @@ evg-test-versioned-api:
 		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST_PKG >> test.suite ; \
 	done
 
+.PHONY: build-gcpkms-test
+build-gcpkms-test:
+	go build $(BUILD_TAGS) ./mongo/testgcpkms
+
 ### Benchmark specific targets and support. ###
 .PHONY: benchmark
 benchmark:perf
