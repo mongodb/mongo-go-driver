@@ -76,6 +76,8 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 		}
 	}
 
+	C.mongocrypt_setopt_use_need_kms_credentials_state(crypt.wrapped)
+
 	// initialize handle
 	if !C.mongocrypt_init(crypt.wrapped) {
 		return nil, crypt.createErrorFromStatus()

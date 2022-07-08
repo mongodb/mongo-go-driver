@@ -18,6 +18,7 @@ const (
 	NeedKms
 	Ready
 	Done
+	NeedKmsCredentials = 7
 )
 
 // String implements the Stringer interface.
@@ -37,6 +38,8 @@ func (s State) String() string {
 		return "Ready"
 	case Done:
 		return "Done"
+	case NeedKmsCredentials:
+		return "NeedKmsCredentials"
 	default:
 		return "Unknown State"
 	}
