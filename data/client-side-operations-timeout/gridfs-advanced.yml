@@ -74,7 +74,7 @@ tests:
         arguments:
           id: *fileDocumentId
           newFilename: "foo"
-          timeoutMS: 300 # The client timeoutMS is 50 and the operation blocks for 55ms, so 300ms should let it succeed.
+          timeoutMS: 500 # The client timeoutMS is 50 and the operation blocks for 55ms, so 500ms should let it succeed.
     expectEvents:
       - client: *client
         events:
@@ -134,7 +134,7 @@ tests:
       - name: drop
         object: *bucket
         arguments:
-          timeoutMS: 300 # The client timeoutMS is 50 and the operation blocks for 55ms, so 300ms should let it succeed.
+          timeoutMS: 500 # The client timeoutMS is 50 and the operation blocks for 55ms, so 500ms should let it succeed.
 
   - description: "timeoutMS applied to files collection drop"
     operations:

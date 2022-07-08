@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -255,6 +256,17 @@ func (b *Bucket) Delete(fileID interface{}) error {
 // DeleteContext deletes all chunks and metadata associated with the file with the given file ID and runs the underlying
 // delete operations with the provided context.
 func (b *Bucket) DeleteContext(ctx context.Context, fileID interface{}) error {
+	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
+	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
+	// be shared by both delete operations.
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().Timeout() != nil && !internal.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *b.db.Client().Timeout())
+		// Redefine ctx to be the new timeout-derived context.
+		ctx = newCtx
+		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
+		defer cancelFunc()
+	}
+
 	// Delete document in files collection and then chunks to minimize race conditions.
 	res, err := b.filesColl.DeleteOne(ctx, bson.D{{"_id", fileID}})
 	if err == nil && res.DeletedCount == 0 {
@@ -364,9 +376,20 @@ func (b *Bucket) Drop() error {
 	return b.DropContext(ctx)
 }
 
-// DropContext drops the files and chunks collections associated with this bucket and runs the drop operation with
+// DropContext drops the files and chunks collections associated with this bucket and runs the drop operations with
 // the provided context.
 func (b *Bucket) DropContext(ctx context.Context) error {
+	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
+	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
+	// be shared by both drop operations.
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().Timeout() != nil && !internal.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *b.db.Client().Timeout())
+		// Redefine ctx to be the new timeout-derived context.
+		ctx = newCtx
+		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
+		defer cancelFunc()
+	}
+
 	err := b.filesColl.Drop(ctx)
 	if err != nil {
 		return err
