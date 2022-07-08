@@ -237,7 +237,7 @@ Commits to master are run automatically on [evergreen](https://evergreen.mongodb
 -------------------------
 ## Frequently Encountered Issues
 
-See our [Common Issues](docs/common-issues.md) documentation for troubleshooting frequently encountered issues.
+See our [common issues](docs/common-issues.md) documentation for troubleshooting frequently encountered issues.
 
 -------------------------
 ## Thanks and Acknowledgement
