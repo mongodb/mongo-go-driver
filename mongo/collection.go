@@ -263,6 +263,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		defer sess.EndSession()
 	}
 
+	fmt.Printf("sess: %+v", sess)
+
 	err := coll.client.validSession(sess)
 	if err != nil {
 		return nil, err

@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestSessionPool(t *testing.T) {
@@ -358,6 +360,49 @@ func TestSessions(t *testing.T) {
 		assert.Equal(mt, err, mongo.ErrUnacknowledgedWrite,
 			"expected ErrUnacknowledgedWrite on unacknowledged write in session, got %v", err)
 	})
+	sessallocopts := mtest.NewOptions().ClientOptions(options.Client().
+		SetMaxPoolSize(1).SetRetryWrites(true))
+	mt.RunOpts("14. implicit session allocation", sessallocopts, func(mt *mtest.T) {
+
+		f := func(operations ...func(ctx context.Context) (string, error)) error {
+			errs, ctx := errgroup.WithContext(context.Background())
+			for _, op := range operations {
+				op := op
+				errs.Go(func() error {
+					cmd, err := op(ctx)
+					if err != nil {
+						return fmt.Errorf("error running %s operation: %v", cmd, err)
+					}
+					return nil
+				})
+			}
+			return errs.Wait()
+		}
+
+		err := f(
+			func(ctx context.Context) (string, error) {
+				_, err := mt.Coll.InsertOne(ctx, bson.D{})
+				return "insert", err
+			},
+			func(ctx context.Context) (string, error) {
+				_, err := mt.Coll.DeleteOne(ctx, bson.D{})
+				return "delete", err
+			},
+			func(ctx context.Context) (string, error) {
+				_, err := mt.Coll.UpdateOne(ctx, bson.D{}, bson.D{{"$set", bson.D{{"a", 1}}}})
+				return "update", err
+			},
+		)
+		assert.Nil(mt, err, "expected no error, go: %v", err)
+
+		set := make(map[string]bool)
+		for _, event := range mt.GetAllStartedEvents() {
+			lsid := event.Command.Lookup("lsid")
+			set[lsid.String()] = true
+		}
+		assert.Equal(mt, len(set), 1, "expected there to only be one session, but there were %v", len(set))
+
+	})
 }
 
 func assertCollectionCount(mt *mtest.T, expectedCount int64) {
@@ -481,7 +526,11 @@ func extractReturnError(returnValues []reflect.Value) error {
 }
 
 func extractSentSessionID(mt *mtest.T) []byte {
-	lsid, err := mt.GetStartedEvent().Command.LookupErr("lsid")
+	event := mt.GetStartedEvent()
+	if event == nil {
+		return nil
+	}
+	lsid, err := event.Command.LookupErr("lsid")
 	if err != nil {
 		return nil
 	}

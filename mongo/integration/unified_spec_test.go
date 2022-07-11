@@ -617,7 +617,7 @@ func lastTwoIDs(mt *mtest.T) (bson.RawValue, bson.RawValue) {
 	lastTwoEvents := events[len(events)-2:]
 
 	first := lastTwoEvents[0].Command.Lookup("lsid")
-	second := lastTwoEvents[1].Command.Lookup("lsid")
+	second := lastTwoEvents[1].Command.Lookup("")
 	return first, second
 }
 
