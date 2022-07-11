@@ -30,7 +30,7 @@ The above example is resolved by initializing the `sort` variable:
 sort := bson.D{}
 ```
 
-## Convert `bson.Document` to JSON
+## Convert BSON Document to JSON
 
 There are a variety of marshalers that can be used to encode a BSON document as JSON, including [MarshalExtJSON](https://pkg.go.dev/github.com/mongodb/mongo-go-driver/bson#MarshalExtJSON):
 
