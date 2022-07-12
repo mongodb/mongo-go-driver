@@ -21,7 +21,11 @@ import (
 )
 
 func createBucketFindCursor(ctx context.Context, operation *operation) (*cursorResult, error) {
-	bucket, _ := entities(ctx).gridFSBucket(operation.Object)
+	bucket, err := entities(ctx).gridFSBucket(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
 	var filter bson.Raw
 	opts := options.GridFSFind()
 

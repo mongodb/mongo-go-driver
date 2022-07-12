@@ -1009,14 +1009,9 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 	return newCursorResult(docs), nil
 }
 
-func executeRename(ctx context.Context, operation *operation) (*operationResult, error) {
+func executeRenameCollection(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
-	// Rename operations can also be run against GridFS buckets. Check for a bucket entity of
-	// the same name and run executeBucketRename if an entity is found.
 	if err != nil {
-		if _, bucketOk := entities(ctx).gridFSBucket(operation.Object); bucketOk == nil {
-			return executeBucketRename(ctx, operation)
-		}
 		return nil, err
 	}
 
