@@ -6,7 +6,7 @@ The [`bson.Marshal`](https://pkg.go.dev/go.mongodb.org/mongo-driver/bson#Marshal
 
 > `WriteXXX` can only write while positioned on a Element or Value but is positioned on a TopLevel
 
-occurs when the input to `bson.Marshal` is something *other* than a BSON Document. Examples of this occurance include
+occurs when the input to `bson.Marshal` is something *other* than a BSON Document. Examples of this occurrence include
 
 - `WriteString`: the input into `bson.Marshal` is a string
 - `WriteNull`: the input into `bson.Marshal` is null
