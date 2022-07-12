@@ -46,7 +46,7 @@ m := make(map[string]interface{})
 if err := json.Unmarshal(jsonBytes, &m); err != nil {
 	log.Fatalf("error decoding json: %v", err)
 }
-fmt.Printf("json: %+v\n", m)
+fmt.Printf("json: %v\n", m)
 ```
 
 
