@@ -1,4 +1,4 @@
-# Frequency Encountered Issues
+# Frequently Encountered Issues
 
 ## `WriteXXX` can only write while positioned on a Element or Value but is positioned on a TopLevel
 
