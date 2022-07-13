@@ -216,7 +216,7 @@ functions:
           fi
     - command: expansions.update
       params:
-        file: expansion.yml
+        file: src/go.mongodb.org/mongo-driver/expansion.yml
 
   install-linters:
     - command: shell.exec
