@@ -360,13 +360,11 @@ func TestSessions(t *testing.T) {
 		assert.Equal(mt, err, mongo.ErrUnacknowledgedWrite,
 			"expected ErrUnacknowledgedWrite on unacknowledged write in session, got %v", err)
 	})
-	sessallocopts := mtest.NewOptions().ClientOptions(options.Client().
-		SetMaxPoolSize(1).SetRetryWrites(true))
+	sessallocopts := mtest.NewOptions().ClientOptions(options.Client().SetMaxPoolSize(1).SetRetryWrites(true))
 	mt.RunOpts("14. implicit session allocation", sessallocopts, func(mt *mtest.T) {
-
-		f := func(operations ...func(ctx context.Context) (string, error)) error {
+		f := func(async bool, ops ...func(ctx context.Context) (string, error)) error {
 			errs, ctx := errgroup.WithContext(context.Background())
-			for _, op := range operations {
+			for _, op := range ops {
 				op := op
 				errs.Go(func() error {
 					cmd, err := op(ctx)
@@ -379,19 +377,21 @@ func TestSessions(t *testing.T) {
 			return errs.Wait()
 		}
 
-		err := f(
+		err := f(true,
 			func(ctx context.Context) (string, error) {
+				fmt.Println("insert!")
 				_, err := mt.Coll.InsertOne(ctx, bson.D{})
 				return "insert", err
 			},
 			func(ctx context.Context) (string, error) {
+				fmt.Println("delete!")
 				_, err := mt.Coll.DeleteOne(ctx, bson.D{})
 				return "delete", err
 			},
-			func(ctx context.Context) (string, error) {
-				_, err := mt.Coll.UpdateOne(ctx, bson.D{}, bson.D{{"$set", bson.D{{"a", 1}}}})
-				return "update", err
-			},
+		//	func(ctx context.Context) (string, error) {
+		//		_, err := mt.Coll.UpdateOne(ctx, bson.D{}, bson.D{{"$set", bson.D{{"a", 1}}}})
+		//		return "update", err
+		//	},
 		)
 		assert.Nil(mt, err, "expected no error, go: %v", err)
 

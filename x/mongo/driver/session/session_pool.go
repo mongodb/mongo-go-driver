@@ -7,6 +7,7 @@
 package session
 
 import (
+	"fmt"
 	"sync"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -77,6 +78,7 @@ func (p *Pool) GetSession() (*Server, error) {
 
 	// empty pool
 	if p.head == nil && p.tail == nil {
+		fmt.Printf("createServerSession happens, head: %v, tail: %v, pointer: %p\n", p.head, p.tail, p)
 		return p.createServerSession()
 	}
 

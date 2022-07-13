@@ -258,6 +258,12 @@ func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connect
 		return nil, nil, err
 	}
 
+	// If the client session has not been set, create an implicit client session.
+
+	// ? This is where we should check out implicit sessions?
+	// ? Do we need to include some variant of coll.client.sessionPool != nil ?
+	//	fmt.Printf("Client: %+v\n", op.Client)
+
 	// If the provided client session has a pinned connection, it should be used for the operation because this
 	// indicates that we're in a transaction and the target server is behind a load balancer.
 	if op.Client != nil && op.Client.PinnedConnection != nil {
@@ -284,6 +290,13 @@ func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connect
 			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %v", err)
 		}
 		op.Client.PinnedConnection = pinnedConn
+	}
+
+	if op.Client != nil && op.Client.Server == nil {
+		if err := op.Client.SetServer(); err != nil {
+			return nil, nil, err
+		}
+
 	}
 
 	return server, conn, nil
@@ -382,6 +395,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	for {
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
+			// ? Does this work concurrently?
 			srvr, conn, err = op.getServerAndConnection(ctx)
 			if err != nil {
 				// If the returned error is retryable and there are retries remaining (negative
