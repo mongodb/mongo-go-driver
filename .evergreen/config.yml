@@ -200,6 +200,12 @@ functions:
             exit 0
           fi
 
+          echo "VERSION expansion is: ${VERSION}"
+          . $DRIVERS_TOOLS/.evergreen/download-mongodb.sh
+          echo "MONGO_CRYPT_SHARED_DOWNLOAD_URL is $MONGO_CRYPT_SHARED_DOWNLOAD_URL"
+
+          # TODO: if MONGO_CRYPT_SHARED_DOWNLOAD_URL is possible to determine. Then this ought to be responsible for skipping.
+
           # Download the crypt_shared dynamic library for the current platform to the current working
           # directory. The run-tests.sh and versioned API test scripts expect to find a
           # mongo_crypt_v1.* file in the "src/go.mongodb.org/mongo-driver" working directory.
