@@ -192,17 +192,6 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
-          # Skip the crypt_shared library download if there is no crypt_shared build for the current
-          # platform. Don't try to determine this automatically to prevent misconfiguration errors
-          # from silently skipping the crypt_shared download and changing the testing conditions.
-          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" = "true" ]; then
-            echo "There is no crypt_shared library for this platform, skipping download..."
-            exit 0
-          fi
-
-          # TODO: remove xtrace.
-          set -o xtrace 
-
           . $DRIVERS_TOOLS/.evergreen/download-mongodb.sh
           get_distro
           get_mongodb_download_url_for "$DISTRO" "${VERSION}"
@@ -2043,9 +2032,6 @@ axes:
           # to prevent attempting to link the client-side encryption (libmongocrypt) binaries when
           # running Go tests.
           GO_BUILD_TAGS: ""
-          # There is no crypt_shared library download for Ubuntu 14.04. Skip downloading it and let the
-          # tests use mongocryptd instead.
-          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
 
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
@@ -2066,9 +2052,6 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
-          # There is no crypt_shared library download for Ubuntu 16.04. Skip downloading it and let the
-          # tests use mongocryptd instead.
-          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
       - id: "osx-go-1-17"
         display_name: "MacOS 10.15"
         run_on: macos-1015
