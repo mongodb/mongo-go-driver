@@ -212,6 +212,7 @@ functions:
           else
             echo "Downloading crypt_shared package from $MONGO_CRYPT_SHARED_DOWNLOAD_URL"
             download_and_extract_crypt_shared "$MONGO_CRYPT_SHARED_DOWNLOAD_URL" "$EXTRACT"
+            touch expansion.yml
           fi
     - command: expansions.update
       params:
