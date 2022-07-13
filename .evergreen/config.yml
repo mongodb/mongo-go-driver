@@ -200,24 +200,22 @@ functions:
             exit 0
           fi
 
-          echo "VERSION expansion is: ${VERSION}"
+          # TODO: remove xtrace.
+          set -o xtrace 
+
           . $DRIVERS_TOOLS/.evergreen/download-mongodb.sh
-          echo "MONGO_CRYPT_SHARED_DOWNLOAD_URL is $MONGO_CRYPT_SHARED_DOWNLOAD_URL"
-
-          # TODO: if MONGO_CRYPT_SHARED_DOWNLOAD_URL is possible to determine. Then this ought to be responsible for skipping.
-
-          # Download the crypt_shared dynamic library for the current platform to the current working
-          # directory. The run-tests.sh and versioned API test scripts expect to find a
-          # mongo_crypt_v1.* file in the "src/go.mongodb.org/mongo-driver" working directory.
-          # TODO(GODRIVER-2437): Update version to "latest-stable" once the crypt_shared library has a
-          # feature-complete stable release.
-          ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-            --component crypt_shared \
-            --version latest \
-            --edition enterprise \
-            --out . \
-            --only "**/mongo_crypt_v1.*" \
-            --strip-path-components 1
+          get_distro
+          get_mongodb_download_url_for "$DISTRO" "${VERSION}"
+          if [ -z "$MONGO_CRYPT_SHARED_DOWNLOAD_URL" ]; then
+            echo "There is no crypt_shared library for distro='$DISTRO' and version='${VERSION}'".
+            echo "SKIP_CRYPT_SHARED_LIB_DOWNLOAD: true" > expansion.yml
+          else
+            echo "Downloading crypt_shared package from $MONGO_CRYPT_SHARED_DOWNLOAD_URL"
+            download_and_extract_crypt_shared "$MONGO_CRYPT_SHARED_DOWNLOAD_URL" "$EXTRACT"
+          fi
+    - command: expansions.update
+      params:
+        file: expansion.yml
 
   install-linters:
     - command: shell.exec
