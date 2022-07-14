@@ -91,7 +91,7 @@ func (s TransactionState) String() string {
 type LoadBalancedTransactionConnection interface {
 	// Functions copied over from driver.Connection.
 	WriteWireMessage(context.Context, []byte) error
-	ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error)
+	ReadWireMessage(ctx context.Context, dst *[]byte) ([]byte, error)
 	Description() description.Server
 	Close() error
 	ID() string

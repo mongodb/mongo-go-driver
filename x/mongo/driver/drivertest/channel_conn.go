@@ -37,7 +37,7 @@ func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
 }
 
 // ReadWireMessage implements the driver.Connection interface.
-func (c *ChannelConn) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
+func (c *ChannelConn) ReadWireMessage(ctx context.Context, dst *[]byte) ([]byte, error) {
 	var wm []byte
 	var err error
 	select {

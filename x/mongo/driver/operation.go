@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -52,6 +53,13 @@ const (
 	// minimum wire version necessary to use read snapshots
 	readSnapshotMinWireVersion int32 = 13
 )
+
+// This pool is used to keep the allocations of byte slice.
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return new([]byte)
+	},
+}
 
 // RetryablePoolError is a connection pool error that can be retried while executing an operation.
 type RetryablePoolError interface {
@@ -330,6 +338,18 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 
+	var wm []byte
+	if p := bufPool.Get(); p != nil {
+		wm = *p.(*[]byte)
+	}
+	if len(scratch) > 0 {
+		copy(wm, scratch)
+	}
+	defer func() {
+		wm = wm[:0]
+		bufPool.Put(&wm)
+	}()
+
 	var retries int
 	if op.RetryMode != nil {
 		switch op.Type {
@@ -433,23 +453,23 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
-		scratch = scratch[:0]
+		wm = wm[:0]
 		if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
 			switch op.Legacy {
 			case LegacyFind:
-				return op.legacyFind(ctx, scratch, srvr, conn, desc)
+				return op.legacyFind(ctx, wm, srvr, conn, desc)
 			case LegacyGetMore:
-				return op.legacyGetMore(ctx, scratch, srvr, conn, desc)
+				return op.legacyGetMore(ctx, wm, srvr, conn, desc)
 			case LegacyKillCursors:
-				return op.legacyKillCursors(ctx, scratch, srvr, conn, desc)
+				return op.legacyKillCursors(ctx, wm, srvr, conn, desc)
 			}
 		}
 		if desc.WireVersion == nil || desc.WireVersion.Max < 3 {
 			switch op.Legacy {
 			case LegacyListCollections:
-				return op.legacyListCollections(ctx, scratch, srvr, conn, desc)
+				return op.legacyListCollections(ctx, wm, srvr, conn, desc)
 			case LegacyListIndexes:
-				return op.legacyListIndexes(ctx, scratch, srvr, conn, desc)
+				return op.legacyListIndexes(ctx, wm, srvr, conn, desc)
 			}
 		}
 
@@ -491,10 +511,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		// convert to wire message
-		if len(scratch) > 0 {
-			scratch = scratch[:0]
+		if len(wm) > 0 {
+			wm = wm[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, maxTimeMS, conn)
+		var startedInfo startedInformation
+		wm, startedInfo, err = op.createWireMessage(ctx, wm, desc, maxTimeMS, conn)
 		if err != nil {
 			return err
 		}
@@ -548,7 +569,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
-			res, err = roundTrip(ctx, conn, wm)
+			buf := &wm
+			res, err = roundTrip(ctx, conn, buf)
+			wm = *buf
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
@@ -777,8 +800,8 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, wm)
+func (op Operation) roundTrip(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, *wm)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
@@ -786,10 +809,8 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 	return op.readWireMessage(ctx, conn, wm)
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
-	var err error
-
-	wm, err = conn.ReadWireMessage(ctx, wm[:0])
+func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
+	res, err := conn.ReadWireMessage(ctx, wm)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
@@ -797,37 +818,37 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
 	// response.
 	if streamer, ok := conn.(StreamerConnection); ok {
-		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
+		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(res))
 	}
 
 	// decompress wiremessage
-	wm, err = op.decompressWireMessage(wm)
+	res, err = op.decompressWireMessage(res)
 	if err != nil {
 		return nil, err
 	}
 
 	// decode
-	res, err := op.decodeResult(wm)
+	doc, err := op.decodeResult(res)
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
-	op.updateClusterTimes(res)
-	op.updateOperationTime(res)
-	op.Client.UpdateRecoveryToken(bson.Raw(res))
+	op.updateClusterTimes(doc)
+	op.updateOperationTime(doc)
+	op.Client.UpdateRecoveryToken(bson.Raw(doc))
 
 	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
 	if op.cmdName == "find" || op.cmdName == "aggregate" || op.cmdName == "distinct" {
-		op.Client.UpdateSnapshotTime(res)
+		op.Client.UpdateSnapshotTime(doc)
 	}
 
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 
 	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
 	if op.Crypt != nil {
-		return op.Crypt.Decrypt(ctx, res)
+		return op.Crypt.Decrypt(ctx, doc)
 	}
-	return res, nil
+	return doc, nil
 }
 
 // networkError wraps the provided error in an Error with label "NetworkError" and, if a transaction
@@ -853,8 +874,8 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, wm)
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, *wm)
 	if err != nil {
 		if op.Client != nil {
 			op.Client.MarkDirty()
@@ -891,7 +912,7 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	}
 	compressedSize := length - 25 // header (16) + original opcode (4) + uncompressed size (4) + compressor ID (1)
 	// return the original wiremessage
-	msg, rem, ok := wiremessage.ReadCompressedCompressedMessage(rem, compressedSize)
+	msg, _, ok := wiremessage.ReadCompressedCompressedMessage(rem, compressedSize)
 	if !ok {
 		return nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
 	}
@@ -1472,7 +1493,7 @@ func (Operation) decodeOpReply(wm []byte, includesHeader bool) opReply {
 		reply.err = errors.New("malformed OP_REPLY: missing numberReturned")
 		return reply
 	}
-	reply.documents, wm, ok = wiremessage.ReadReplyDocuments(wm)
+	reply.documents, _, ok = wiremessage.ReadReplyDocuments(wm)
 	if !ok {
 		reply.err = errors.New("malformed OP_REPLY: could not read documents from reply")
 	}

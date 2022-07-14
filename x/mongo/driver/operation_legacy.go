@@ -684,7 +684,8 @@ func (op Operation) roundTripLegacy(ctx context.Context, conn Connection, wm []b
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
 
-	wm, err = conn.ReadWireMessage(ctx, wm[:0])
+	wm = wm[:0]
+	wm, err = conn.ReadWireMessage(ctx, &wm)
 	if err != nil {
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}

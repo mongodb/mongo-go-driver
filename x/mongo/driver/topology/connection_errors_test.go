@@ -61,7 +61,7 @@ func TestConnectionErrors(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			conn := &connection{id: "foobar", nc: &net.TCPConn{}, state: connConnected}
-			_, err := conn.readWireMessage(ctx, []byte{})
+			_, err := conn.readWireMessage(ctx, nil)
 			assert.True(t, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
 		})
 	})

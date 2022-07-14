@@ -187,9 +187,9 @@ func TestOperation(t *testing.T) {
 		testCases := []struct {
 			name    string
 			conn    *mockConnection
-			paramWM []byte // parameter wire message
-			wantWM  []byte // wire message that should be returned
-			wantErr error  // error that should be returned
+			paramWM *[]byte // parameter wire message
+			wantWM  []byte  // wire message that should be returned
+			wantErr error   // error that should be returned
 		}{
 			{
 				"returns write error",
@@ -662,7 +662,7 @@ func (m *mockServerSelector) SelectServer(description.Topology, []description.Se
 type mockConnection struct {
 	// parameters
 	pWriteWM []byte
-	pReadDst []byte
+	pReadDst *[]byte
 
 	// returns
 	rWriteErr     error
@@ -692,7 +692,7 @@ func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	return m.rWriteErr
 }
 
-func (m *mockConnection) ReadWireMessage(_ context.Context, dst []byte) ([]byte, error) {
+func (m *mockConnection) ReadWireMessage(_ context.Context, dst *[]byte) ([]byte, error) {
 	m.pReadDst = dst
 	return m.rReadWM, m.rReadErr
 }

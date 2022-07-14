@@ -57,21 +57,22 @@ func (c *connection) WriteWireMessage(_ context.Context, wm []byte) error {
 }
 
 // ReadWireMessage returns the next response in the connection's list of responses.
-func (c *connection) ReadWireMessage(_ context.Context, dst []byte) ([]byte, error) {
+func (c *connection) ReadWireMessage(_ context.Context, dst *[]byte) ([]byte, error) {
 	if len(c.responses) == 0 {
-		return dst, errors.New("no responses remaining")
+		return nil, errors.New("no responses remaining")
 	}
 	nextRes := c.responses[0]
 	c.responses = c.responses[1:]
 
 	var wmindex int32
-	wmindex, dst = wiremessage.AppendHeaderStart(dst, wiremessage.NextRequestID(), 0, wiremessage.OpMsg)
-	dst = wiremessage.AppendMsgFlags(dst, 0)
-	dst = wiremessage.AppendMsgSectionType(dst, wiremessage.SingleDocument)
+	wm := *dst
+	wmindex, wm = wiremessage.AppendHeaderStart(wm, wiremessage.NextRequestID(), 0, wiremessage.OpMsg)
+	wm = wiremessage.AppendMsgFlags(wm, 0)
+	wm = wiremessage.AppendMsgSectionType(wm, wiremessage.SingleDocument)
 	resBytes, _ := bson.Marshal(nextRes)
-	dst = append(dst, resBytes...)
-	dst = bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:])))
-	return dst, nil
+	wm = append(wm, resBytes...)
+	wm = bsoncore.UpdateLength(wm, wmindex, int32(len(wm[wmindex:])))
+	return wm, nil
 }
 
 // Description returns a fixed server description for the connection.
