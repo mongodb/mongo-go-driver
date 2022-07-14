@@ -841,7 +841,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm *[]
 	}
 
 	if err != nil {
-		return nil, err
+		return doc, err
 	}
 
 	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
