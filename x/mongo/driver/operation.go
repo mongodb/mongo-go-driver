@@ -77,7 +77,7 @@ type opReply struct {
 	err           error
 }
 
-// startedInformation keeps track of all of the information necessary for monitoring started events.
+// startedInformation ktests track of all of the information necessary for monitoring started events.
 type startedInformation struct {
 	cmd                      bsoncore.Document
 	requestID                int32
@@ -89,7 +89,7 @@ type startedInformation struct {
 	serviceID                *primitive.ObjectID
 }
 
-// finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
+// finishedInformation ktests track of all of the information necessary for monitoring success and failure events.
 type finishedInformation struct {
 	cmdName      string
 	requestID    int32
@@ -122,6 +122,7 @@ type ResponseInfo struct {
 // implementation of an operation instead. This will ensure that there are helpers for constructing
 // the operation and that this type isn't configured incorrectly.
 type Operation struct {
+	Test int
 	// CommandFn is used to create the command that will be wrapped in a wire message and sent to
 	// the server. This function should only add the elements of the command and not start or end
 	// the enclosing BSON document. Per the command API, the first element must be the name of the
@@ -293,6 +294,14 @@ func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connect
 	}
 
 	if op.Client != nil && op.Client.Server == nil {
+		fmt.Printf("doing an implicit checkout for test %v", op.Test)
+		// This should only occur for an implicit session, which should be nil until it reaches this point.
+		if op.Client.SessionType != session.Implicit {
+			return nil, nil, fmt.Errorf("unexpected nil session for non-implicit session")
+		}
+		if op.Client.Terminated {
+			return nil, nil, fmt.Errorf("unexpected nil session for a terminated implicit session")
+		}
 		if err := op.Client.SetServer(); err != nil {
 			return nil, nil, err
 		}
@@ -432,7 +441,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			// the txn number yet, enable retry writes on the session and increment the txn number.
 			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
 			// support retries (e.g. standalone topologies) will cause server errors. Only do this
-			// check for the first attempt to keep retried writes in the same transaction.
+			// check for the first attempt to ktest retried writes in the same transaction.
 			if retrySupported && op.RetryMode != nil && op.Type == Write && op.Client != nil {
 				op.Client.RetryWrite = false
 				if op.RetryMode.Enabled() {

@@ -95,6 +95,7 @@ func (i *Insert) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
+		Test:              2,
 		CommandFn:         i.command,
 		ProcessResponseFn: i.processResponse,
 		Batches:           batches,

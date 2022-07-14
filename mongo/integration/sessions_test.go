@@ -377,29 +377,33 @@ func TestSessions(t *testing.T) {
 			return errs.Wait()
 		}
 
-		err := f(true,
-			func(ctx context.Context) (string, error) {
-				fmt.Println("insert!")
-				_, err := mt.Coll.InsertOne(ctx, bson.D{})
-				return "insert", err
-			},
-			func(ctx context.Context) (string, error) {
-				fmt.Println("delete!")
-				_, err := mt.Coll.DeleteOne(ctx, bson.D{})
-				return "delete", err
-			},
-		//	func(ctx context.Context) (string, error) {
-		//		_, err := mt.Coll.UpdateOne(ctx, bson.D{}, bson.D{{"$set", bson.D{{"a", 1}}}})
-		//		return "update", err
-		//	},
-		)
-		assert.Nil(mt, err, "expected no error, go: %v", err)
+		benchmark := 1
+		for i := 1; i <= benchmark; i++ {
+			err := f(true,
+				func(ctx context.Context) (string, error) {
+					fmt.Println("insert!")
+					_, err := mt.Coll.InsertOne(ctx, bson.D{})
+					return "insert", err
+				},
+				func(ctx context.Context) (string, error) {
+					fmt.Println("delete!")
+					_, err := mt.Coll.DeleteOne(ctx, bson.D{})
+					return "delete", err
+				},
+			//	func(ctx context.Context) (string, error) {
+			//		_, err := mt.Coll.UpdateOne(ctx, bson.D{}, bson.D{{"$set", bson.D{{"a", 1}}}})
+			//		return "update", err
+			//	},
+			)
+			assert.Nil(mt, err, "expected no error, go: %v", err)
+		}
 
 		set := make(map[string]bool)
 		for _, event := range mt.GetAllStartedEvents() {
 			lsid := event.Command.Lookup("lsid")
 			set[lsid.String()] = true
 		}
+		fmt.Printf("set: %v\n", set)
 		assert.Equal(mt, len(set), 1, "expected there to only be one session, but there were %v", len(set))
 
 	})

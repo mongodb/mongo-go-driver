@@ -391,6 +391,10 @@ func (c *Client) EndSession() {
 	}
 
 	c.Terminated = true
+
+	if c.Server == nil {
+		fmt.Printf("session.(*Client).EndSession: Server: %+v\n", c.Server)
+	}
 	c.pool.ReturnSession(c.Server)
 }
 
@@ -565,6 +569,7 @@ func (c *Client) ApplyCommand(desc description.Server) error {
 }
 
 func (c *Client) SetServer() error {
+	fmt.Printf("check out server for client: %v\n", c.ClientID)
 	servSess, err := c.pool.GetSession()
 	if err != nil {
 		return err
