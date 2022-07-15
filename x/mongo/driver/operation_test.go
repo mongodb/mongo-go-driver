@@ -194,13 +194,13 @@ func TestOperation(t *testing.T) {
 			{
 				"returns write error",
 				&mockConnection{rWriteErr: errors.New("write error")},
-				nil, nil,
+				&[]byte{}, nil,
 				Error{Message: "write error", Labels: []string{TransientTransactionError, NetworkError}},
 			},
 			{
 				"returns read error",
 				&mockConnection{rReadErr: errors.New("read error")},
-				nil, nil,
+				&[]byte{}, nil,
 				Error{Message: "read error", Labels: []string{TransientTransactionError, NetworkError}},
 			},
 		}
