@@ -820,6 +820,11 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 		} else if !*rob.CSFLE && IsCSFLEEnabled() {
 			return fmt.Errorf("runOnBlock requires CSFLE to be disabled. Build without the cse tag to disable")
 		}
+		if *rob.CSFLE {
+			if err := verifyVersionConstraints("4.2", ""); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

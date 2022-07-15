@@ -94,14 +94,13 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.5.0-rc2"
+          LIBMONGOCRYPT_TAG="1.5.0"
           # LIBMONGOCRYPT_COMMIT is the commit on libmongocrypt for the tag LIBMONGOCRYPT_TAG.
-          LIBMONGOCRYPT_COMMIT="1756c5120814152c15a2eee7a679a33a4764ba63"
+          LIBMONGOCRYPT_COMMIT="c3be59f9b0d756caa4c22c254e0704084cf6bca4"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
              mkdir -p c:/libmongocrypt/bin
-             # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
              echo "fetching build for Windows ... begin"
              mkdir libmongocrypt-all
              cd libmongocrypt-all
@@ -131,7 +130,6 @@ functions:
              sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
              echo "fetching build for Darwin ... end"
           else
-            # TODO (GODRIVER-2436): do not use pre-release of libmongocrypt.
             git clone https://github.com/mongodb/libmongocrypt --branch $LIBMONGOCRYPT_TAG
             ./libmongocrypt/.evergreen/compile.sh
           fi
@@ -503,6 +501,11 @@ functions:
           export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
           export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
           export AWS_DEFAULT_REGION="us-east-1"
+
+          # Set client-side encryption credentials.
+          export CSFLE_TLS_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
+          export CSFLE_TLS_CERTIFICATE_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
+
           ${PYTHON3_BINARY} -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
 
@@ -964,22 +967,33 @@ functions:
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT} --require_client_cert
 
-  start-kms-kmip-server:
+  start-cse-servers:
     - command: shell.exec
       params:
         script: |
           ${PREPARE_SHELL}
 
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate_venv.sh
-          # TODO: Stabilize this pip install with a non-forked version of PyKMIP in https://jira.mongodb.org/browse/GODRIVER-2239
-          pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
+
+          # only run this if virtualenv is installed
+          if ${PYTHON3_BINARY} -m venv ./venv; then
+            . ./activate_venv.sh
+
+            # TODO (GODRIVER-2239): Stabilize this pip install with a non-forked version of PyKMIP in
+            pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
+          else
+            echo "Python module venv not found, skipping virtual environment setup..."
+          fi
     - command: shell.exec
       params:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          ./kmstlsvenv/bin/python3 -u kms_kmip_server.py --port 5698
+          if [ "Windows_NT" = "$OS" ]; then
+            kmstlsvenv/Scripts/python.exe -u kms_kmip_server.py --port 5698
+          else
+            ./kmstlsvenv/bin/python3 -u kms_kmip_server.py --port 5698
+          fi
 
   run-kms-tls-test:
     - command: shell.exec
@@ -1043,6 +1057,7 @@ pre:
   - func: windows-fix
   - func: fix-absolute-paths
   - func: make-files-executable
+  - func: start-cse-servers
 
 post:
   - command: gotest.parse_files
@@ -1060,6 +1075,13 @@ tasks:
       - func: run-make
         vars:
           targets: check-fmt
+
+  - name: sa-modules
+    tags: ["static-analysis"]
+    commands:
+      - func: run-make
+        vars:
+          targets: check-modules
 
   - name: sa-lint
     tags: ["static-analysis"]
@@ -1603,6 +1625,23 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
 
+  - name: test-replicaset-auth-ssl-mongocryptd
+    tags: ["test", "replicaset", "authssl", "mongocryptd"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "ssl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "ssl"
+          # Don't download the crypt_shared library, which should cause all of the tests to fall
+          # back to using mongocryptd instead of crypt_shared.
+          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
+
   - name: test-replicaset-auth-nossl
     tags: ["test", "replicaset", "authssl"]
     commands:
@@ -1916,7 +1955,6 @@ tasks:
         vars:
           CERT_FILE: "server.pem"
           PORT: 8002
-      - func: start-kms-kmip-server
       - func: run-kmip-tests
         vars:
           TOPOLOGY: "server"
@@ -2081,13 +2119,13 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.17"
           SKIP_ECS_AUTH_TEST: true
-          PYTHON3: "C:/python/Python38/python.exe"
+          PYTHON3_BINARY: "C:/python/Python38/python.exe"
       - id: "ubuntu1804-64-go-1-17"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
         variables:
           GO_DIST: "/opt/golang/go1.17"
-          PYTHON3: python3
+          PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-17"
         display_name: "MacOS 10.15"
         run_on: macos-1015
@@ -2095,7 +2133,7 @@ axes:
           GO_DIST: "/opt/golang/go1.17"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
-          PYTHON3: python3
+          PYTHON3_BINARY: python3
 
 task_groups:
   - name: serverless_task_group
@@ -2198,13 +2236,13 @@ buildvariants:
     matrix_spec: { version: ["2.6", "3.0"], os-ssl-legacy: "*" }
     display_name: "${version} ${os-ssl-legacy}"
     tasks:
-      - name: ".test !.enterprise-auth !.compression"
+      - name: ".test !.enterprise-auth !.compression !.mongocryptd"
 
   - matrix_name: "tests-legacy-noauth-nossl"
     matrix_spec: { version: ["2.6", "3.0"], os-ssl-32: "*" }
     display_name: "${version} ${os-ssl-32}"
     tasks:
-      - name: ".test !.authssl !.enterprise-auth !.compression"
+      - name: ".test !.authssl !.enterprise-auth !.compression !.mongocryptd"
 
   - matrix_name: "tests-nonlegacy-servers"
     matrix_spec: { version: "3.2", os-ssl-32: "*" }

@@ -499,7 +499,7 @@ func (f *Find) ReadConcern(readConcern *readconcern.ReadConcern) *Find {
 	return f
 }
 
-// ReadPreference set the read prefernce used with this operation.
+// ReadPreference set the read preference used with this operation.
 func (f *Find) ReadPreference(readPreference *readpref.ReadPref) *Find {
 	if f == nil {
 		f = new(Find)

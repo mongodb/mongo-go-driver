@@ -133,6 +133,34 @@ func setAltName(ctx *Context, altName string) error {
 	return nil
 }
 
+func setKeyMaterial(ctx *Context, keyMaterial []byte) error {
+	// Create document {"keyMaterial": keyMaterial} using the generic binary sybtype 0x00.
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendBinaryElement(doc, "keyMaterial", 0x00, keyMaterial)
+	doc, err := bsoncore.AppendDocumentEnd(doc, idx)
+	if err != nil {
+		return err
+	}
+
+	keyMaterialBinary := newBinaryFromBytes(doc)
+	defer keyMaterialBinary.close()
+
+	if ok := C.mongocrypt_ctx_setopt_key_material(ctx.wrapped, keyMaterialBinary.wrapped); !ok {
+		return ctx.createErrorFromStatus()
+	}
+	return nil
+}
+
+func rewrapDataKey(ctx *Context, filter []byte) error {
+	filterBinary := newBinaryFromBytes(filter)
+	defer filterBinary.close()
+
+	if ok := C.mongocrypt_ctx_rewrap_many_datakey_init(ctx.wrapped, filterBinary.wrapped); !ok {
+		return ctx.createErrorFromStatus()
+	}
+	return nil
+}
+
 // CreateDataKeyContext creates a Context to use for creating a data key.
 func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.DataKeyOptions) (*Context, error) {
 	ctx := newContext(C.mongocrypt_ctx_new(m.wrapped))
@@ -162,6 +190,12 @@ func (m *MongoCrypt) CreateDataKeyContext(kmsProvider string, opts *options.Data
 
 	for _, altName := range opts.KeyAltNames {
 		if err := setAltName(ctx, altName); err != nil {
+			return nil, err
+		}
+	}
+
+	if opts.KeyMaterial != nil {
+		if err := setKeyMaterial(ctx, opts.KeyMaterial); err != nil {
 			return nil, err
 		}
 	}
@@ -264,6 +298,45 @@ func (m *MongoCrypt) CryptSharedLibVersionString() string {
 // Close cleans up any resources associated with the given MongoCrypt instance.
 func (m *MongoCrypt) Close() {
 	C.mongocrypt_destroy(m.wrapped)
+}
+
+// RewrapDataKeyContext create a Context to use for rewrapping a data key.
+func (m *MongoCrypt) RewrapDataKeyContext(filter []byte, opts *options.RewrapManyDataKeyOptions) (*Context, error) {
+	const masterKey = "masterKey"
+	const providerKey = "provider"
+
+	ctx := newContext(C.mongocrypt_ctx_new(m.wrapped))
+	if ctx.wrapped == nil {
+		return nil, m.createErrorFromStatus()
+	}
+
+	if opts.Provider != nil {
+		// If a provider has been specified, create an encryption key document for creating a data key or for rewrapping
+		// datakeys. If a new provider is not specified, then the filter portion of this logic returns the data as it
+		// exists in the collection.
+		idx, mongocryptDoc := bsoncore.AppendDocumentStart(nil)
+		mongocryptDoc = bsoncore.AppendStringElement(mongocryptDoc, providerKey, *opts.Provider)
+
+		if opts.MasterKey != nil {
+			mongocryptDoc = opts.MasterKey[:len(opts.MasterKey)-1]
+			mongocryptDoc = bsoncore.AppendStringElement(mongocryptDoc, providerKey, *opts.Provider)
+		}
+
+		mongocryptDoc, err := bsoncore.AppendDocumentEnd(mongocryptDoc, idx)
+		if err != nil {
+			return nil, err
+		}
+
+		mongocryptBinary := newBinaryFromBytes(mongocryptDoc)
+		defer mongocryptBinary.close()
+
+		// Add new masterKey to the mongocrypt context.
+		if ok := C.mongocrypt_ctx_setopt_key_encryption_key(ctx.wrapped, mongocryptBinary.wrapped); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
+	}
+
+	return ctx, rewrapDataKey(ctx, filter)
 }
 
 func (m *MongoCrypt) setProviderOptions(kmsProviders bsoncore.Document) error {

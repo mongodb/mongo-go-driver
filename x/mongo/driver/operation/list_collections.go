@@ -204,7 +204,7 @@ func (lc *ListCollections) Deployment(deployment driver.Deployment) *ListCollect
 	return lc
 }
 
-// ReadPreference set the read prefernce used with this operation.
+// ReadPreference set the read preference used with this operation.
 func (lc *ListCollections) ReadPreference(readPreference *readpref.ReadPref) *ListCollections {
 	if lc == nil {
 		lc = new(ListCollections)

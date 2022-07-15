@@ -203,6 +203,24 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "iterateUntilDocumentOrError":
 		return executeIterateUntilDocumentOrError(ctx, op)
 
+	// CSFLE operations
+	case "createDataKey":
+		return executeCreateDataKey(ctx, op)
+	case "rewrapManyDataKey":
+		return executeRewrapManyDataKey(ctx, op)
+	case "removeKeyAltName":
+		return executeRemoveKeyAltName(ctx, op)
+	case "getKeys":
+		return executeGetKeys(ctx, op)
+	case "getKeyByAltName":
+		return executeGetKeyByAltName(ctx, op)
+	case "getKey":
+		return executeGetKey(ctx, op)
+	case "deleteKey":
+		return executeDeleteKey(ctx, op)
+	case "addKeyAltName":
+		return executeAddKeyAltName(ctx, op)
+
 	// Unsupported operations
 	case "count", "listIndexNames", "modifyCollection":
 		return nil, newSkipTestError(fmt.Sprintf("the %q operation is not supported", op.Name))

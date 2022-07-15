@@ -54,6 +54,12 @@ type DeleteResult struct {
 	DeletedCount int64 `bson:"n"` // The number of documents deleted.
 }
 
+// RewrapManyDataKeyResult is the result of the bulk write operation used to update the key vault collection with
+// rewrapped data keys.
+type RewrapManyDataKeyResult struct {
+	*BulkWriteResult
+}
+
 // ListDatabasesResult is a result of a ListDatabases operation.
 type ListDatabasesResult struct {
 	// A slice containing one DatabaseSpecification for each database matched by the operation's filter.

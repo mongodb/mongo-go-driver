@@ -22,8 +22,9 @@ var (
 		"load-balancers",
 		"collection-management",
 		"command-monitoring/unified",
-		"sessions/unified",
+		"sessions",
 		"retryable-writes/unified",
+		"client-side-encryption/unified",
 		"client-side-operations-timeout",
 	}
 	failDirectories = []string{

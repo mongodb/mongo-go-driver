@@ -320,7 +320,7 @@ func (a *Aggregate) ReadConcern(readConcern *readconcern.ReadConcern) *Aggregate
 	return a
 }
 
-// ReadPreference set the read prefernce used with this operation.
+// ReadPreference set the read preference used with this operation.
 func (a *Aggregate) ReadPreference(readPreference *readpref.ReadPref) *Aggregate {
 	if a == nil {
 		a = new(Aggregate)

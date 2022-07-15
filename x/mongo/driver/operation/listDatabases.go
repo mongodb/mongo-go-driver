@@ -265,7 +265,7 @@ func (ld *ListDatabases) Deployment(deployment driver.Deployment) *ListDatabases
 	return ld
 }
 
-// ReadPreference set the read prefernce used with this operation.
+// ReadPreference set the read preference used with this operation.
 func (ld *ListDatabases) ReadPreference(readPreference *readpref.ReadPref) *ListDatabases {
 	if ld == nil {
 		ld = new(ListDatabases)
