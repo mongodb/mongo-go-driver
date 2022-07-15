@@ -805,7 +805,7 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm *[]byte) 
 	if err != nil {
 		return nil, op.networkError(err)
 	}
-
+	*wm = (*wm)[:0]
 	return op.readWireMessage(ctx, conn, wm)
 }
 
