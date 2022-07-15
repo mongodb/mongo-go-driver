@@ -275,6 +275,10 @@ func TestRTTMonitor(t *testing.T) {
 							return
 						}
 
+						// Delay for 10ms so that systems with limited timing granularity (e.g. some
+						// older versions of Windows) can measure a non-zero latency.
+						time.Sleep(10 * time.Millisecond)
+
 						if _, err := conn.Write(makeHelloReply()); err != nil {
 							// The connection read/write loop is cancelled by closing the connection,
 							// so may be an expected error here. Log the error to make debugging
