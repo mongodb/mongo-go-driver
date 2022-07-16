@@ -801,7 +801,9 @@ func (op Operation) retryable(desc description.Server) bool {
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
 func (op Operation) roundTrip(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, *wm)
+	buf := make([]byte, len(*wm))
+	copy(buf, *wm)
+	err := conn.WriteWireMessage(ctx, buf)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
