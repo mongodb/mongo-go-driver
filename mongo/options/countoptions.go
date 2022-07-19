@@ -34,9 +34,9 @@ type CountOptions struct {
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there is
 	// no time limit for query execution.
 	//
-	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time that the count operation can run before
-	// returning an error. MaxTime is still usable through the deprecated setter.
+	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used in
+	// its place to control the amount of time that a single operation can run before returning an error. MaxTime is
+	// ignored if Timeout is set on the client.
 	MaxTime *time.Duration
 
 	// The number of documents to skip before counting. The default value is 0.
@@ -74,9 +74,9 @@ func (co *CountOptions) SetLimit(i int64) *CountOptions {
 
 // SetMaxTime sets the value for the MaxTime field.
 //
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-// Timeout option should be used in its place to control the amount of time that the count operation can run before
-// returning an error.
+// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
+// option may be used in its place to control the amount of time that a single operation can
+// run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (co *CountOptions) SetMaxTime(d time.Duration) *CountOptions {
 	co.MaxTime = &d
 	return co
