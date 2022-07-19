@@ -77,7 +77,7 @@ type opReply struct {
 	err           error
 }
 
-// startedInformation ktests track of all of the information necessary for monitoring started events.
+// startedInformation keeps track of all of the information necessary for monitoring started events.
 type startedInformation struct {
 	cmd                      bsoncore.Document
 	requestID                int32
@@ -89,7 +89,7 @@ type startedInformation struct {
 	serviceID                *primitive.ObjectID
 }
 
-// finishedInformation ktests track of all of the information necessary for monitoring success and failure events.
+// finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
 type finishedInformation struct {
 	cmdName      string
 	requestID    int32
@@ -401,8 +401,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 			defer conn.Close()
 
-			// Check out an implicit connection.
-			if op.Client != nil && op.Client.SessionType == session.Implicit && op.Client.Server == nil {
+			if op.Client != nil && op.Client.Server == nil && op.Client.SessionType == session.Implicit {
 				// This should only occur for an implicit session, which should be nil until it reaches this point.
 				if op.Client.Terminated {
 					return fmt.Errorf("unexpected nil session for a terminated implicit session")

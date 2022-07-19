@@ -73,9 +73,7 @@ func (p *Pool) updateTimeout() {
 // GetSession retrieves an unexpired session from the pool.
 func (p *Pool) GetSession() (*Server, error) {
 	p.mutex.Lock() // prevent changing the linked list while seeing if sessions have expired
-	defer func() {
-		p.mutex.Unlock()
-	}()
+	defer p.mutex.Unlock()
 
 	// empty pool
 	if p.head == nil && p.tail == nil {
