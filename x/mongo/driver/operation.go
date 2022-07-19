@@ -428,7 +428,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			// the txn number yet, enable retry writes on the session and increment the txn number.
 			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
 			// support retries (e.g. standalone topologies) will cause server errors. Only do this
-			// check for the first attempt to ktest retried writes in the same transaction.
+			// check for the first attempt to keep retried writes in the same transaction.
 			if retrySupported && op.RetryMode != nil && op.Type == Write && op.Client != nil {
 				op.Client.RetryWrite = false
 				if op.RetryMode.Enabled() {
