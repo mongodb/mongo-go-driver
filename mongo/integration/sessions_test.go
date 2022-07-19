@@ -427,7 +427,7 @@ func TestSessions(t *testing.T) {
 
 		// limitedSessionUse asserts that the number of allocated sessions is strictly less than the number of
 		// concurrent operations in every retry of this test. In this instance it would be less than (but NOT
-		// equal to).
+		// equal to the number of operations).
 		var limitedSessionUse bool
 
 		retrycount := 5
