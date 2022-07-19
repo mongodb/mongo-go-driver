@@ -154,10 +154,9 @@ type ClientOptions struct {
 
 	// SocketTimeout specifies the timeout to be used for the Client's socket reads and writes.
 	//
-	// NOTE(benjirewis): The use of SocketTimeout is discouraged. The more general Timeout option should
-	// be used in its place to control the amount of time that a single operation can run before
-	// returning an error. Setting SocketTimeout and Timeout on a single client will result in undefined
-	// behavior.
+	// NOTE(benjirewis): SocketTimeout will be deprecated in a future release. The more general Timeout option
+	// may be used in its place to control the amount of time that a single operation can run before returning
+	// an error. Setting SocketTimeout and Timeout on a single client will result in undefined behavior.
 	SocketTimeout *time.Duration
 }
 
@@ -716,9 +715,9 @@ func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOption
 // network error. This can also be set through the "socketTimeoutMS" URI option (e.g. "socketTimeoutMS=1000"). The
 // default value is 0, meaning no timeout is used and socket operations can block indefinitely.
 //
-// NOTE(benjirewis): The use of SocketTimeout is discouraged. The more general Timeout option should be used in its
-// place to control the amount of time that a single operation can run before returning an error. Setting SocketTimeout
-// and Timeout on a single client will result in undefined behavior.
+// NOTE(benjirewis): SocketTimeout will be deprecated in a future release. The more general Timeout option may be used
+// in its place to control the amount of time that a single operation can run before returning an error. Setting
+// SocketTimeout and Timeout on a single client will result in undefined behavior.
 func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 	c.SocketTimeout = &d
 	return c

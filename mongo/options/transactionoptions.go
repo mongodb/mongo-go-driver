@@ -35,9 +35,9 @@ type TransactionOptions struct {
 	// server. The default value is nil, which means that the default maximum commit time of the session used to
 	// start the transaction will be used.
 	//
-	// NOTE(benjirewis): The use of MaxCommitTime is discouraged. The more general Timeout option be used in its
-	// place to control the amount of time that a single operation can run before returning an error. MaxCommitTime
-	// is ignored if Timeout is set on the client.
+	// NOTE(benjirewis): MaxCommitTime will be deprecated in a future release. The more general Timeout option may
+	// be used in its place to control the amount of time that a single operation can run before returning an error.
+	// MaxCommitTime is ignored if Timeout is set on the client.
 	MaxCommitTime *time.Duration
 }
 
@@ -66,8 +66,8 @@ func (t *TransactionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *Tra
 
 // SetMaxCommitTime sets the value for the MaxCommitTime field.
 //
-// NOTE(benjirewis): The use of MaxCommitTime is discouraged. The more general Timeout option should
-// be used in its place to control the amount of time that a single operation can run before
+// NOTE(benjirewis): MaxCommitTime will be deprecated in a future release. The more general Timeout
+// option may be used in its place to control the amount of time that a single operation can run before
 // returning an error. MaxCommitTime is ignored if Timeout is set on the client.
 func (t *TransactionOptions) SetMaxCommitTime(mct *time.Duration) *TransactionOptions {
 	t.MaxCommitTime = mct

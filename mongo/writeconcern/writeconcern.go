@@ -33,10 +33,10 @@ type WriteConcern struct {
 	w interface{}
 	j bool
 
-	// NOTE(benjirewis): The use of wTimeout is discouraged. The more general Timeout option should
-	// be used in its place to control the amount of time that a single operation can run before
-	// returning an error. Using wTimeout and setting Timeout on the client will result in undefined
-	// behavior.
+	// NOTE(benjirewis): wTimeout will be deprecated in a future release. The more general Timeout
+	// option may be used in its place to control the amount of time that a single operation can run
+	// before returning an error. Using wTimeout and setting Timeout on the client will result in
+	// undefined behavior.
 	wTimeout time.Duration
 }
 
@@ -88,10 +88,10 @@ func J(j bool) Option {
 
 // WTimeout specifies specifies a time limit for the write concern.
 //
-// NOTE(benjirewis): The use of wTimeout is discouraged. The more general Timeout option should
-// be used in its place to control the amount of time that a single operation can run before
-// returning an error. Using wTimeout and setting Timeout on the client will result in undefined
-// behavior.
+// NOTE(benjirewis): wTimeout will be deprecated in a future release. The more general Timeout
+// option may be used in its place to control the amount of time that a single operation can run
+// before returning an error. Using wTimeout and setting Timeout on the client will result in
+// undefined behavior.
 func WTimeout(d time.Duration) Option {
 	return func(concern *WriteConcern) {
 		concern.wTimeout = d

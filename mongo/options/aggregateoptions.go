@@ -35,9 +35,9 @@ type AggregateOptions struct {
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
 	//
-	// NOTE(benjirewis): The use of MaxTime is discouraged. The more general Timeout option should be used in its place
-	// to control the amount of time that a single operation can run before returning an error. MaxTime is ignored if
-	// Timeout is set on the client.
+	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
+	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
+	// is ignored if Timeout is set on the client.
 	MaxTime *time.Duration
 
 	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
@@ -96,9 +96,9 @@ func (ao *AggregateOptions) SetCollation(c *Collation) *AggregateOptions {
 
 // SetMaxTime sets the value for the MaxTime field.
 //
-// NOTE(benjirewis): The use of MaxTime is discouraged. The more general Timeout option should
-// be used in its place to control the amount of time that a single operation can run before
-// returning an error. MaxTime is ignored if Timeout is set on the client.
+// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
+// option may be used in its place to control the amount of time that a single operation can
+// run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (ao *AggregateOptions) SetMaxTime(d time.Duration) *AggregateOptions {
 	ao.MaxTime = &d
 	return ao
