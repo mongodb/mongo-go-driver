@@ -86,6 +86,12 @@ await_server "KMS", 5698
 
 echo "finished awaiting servers"
 
+if [ "${SKIP_CRYPT_SHARED_LIB}" = "true" ]; then
+  CRYPT_SHARED_LIB_PATH=""
+else
+  CRYPT_SHARED_LIB_PATH=${CRYPT_SHARED_LIB_PATH}
+fi
+
 AUTH=${AUTH} \
 SSL=${SSL} \
 MONGO_GO_DRIVER_CA_FILE=${MONGO_GO_DRIVER_CA_FILE} \

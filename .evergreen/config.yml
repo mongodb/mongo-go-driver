@@ -192,11 +192,6 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
-          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" = "true" ]; then
-            echo "Skipping download of crypt_shared package"
-            exit 0
-          fi
-
           MONGODB_VERSION=${VERSION}
           if [ -z "$MONGODB_VERSION" ]; then
             # default to latest to match behavior of run-orchestration.sh.
@@ -539,6 +534,12 @@ functions:
           fi
           . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
 
+          if [ "${SKIP_CRYPT_SHARED_LIB}" = "true" ]; then
+            CRYPT_SHARED_LIB_PATH=""
+          else
+            CRYPT_SHARED_LIB_PATH=${CRYPT_SHARED_LIB_PATH}
+          fi
+
           export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
           SSL="${SSL}" \
@@ -558,7 +559,7 @@ functions:
           GCP_EMAIL="${cse_gcp_email}" \
           GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
           REQUIRE_API_VERSION="${REQUIRE_API_VERSION}" \
-          CRYPT_SHARED_LIB_PATH="${CRYPT_SHARED_LIB_PATH}" \
+          CRYPT_SHARED_LIB_PATH="$CRYPT_SHARED_LIB_PATH" \
           make evg-test-versioned-api \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
@@ -1633,9 +1634,9 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
-          # Don't download the crypt_shared library, which should cause all of the tests to fall
+          # Don't use the crypt_shared library, which should cause all of the tests to fall
           # back to using mongocryptd instead of crypt_shared.
-          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
+          SKIP_CRYPT_SHARED_LIB: "true"
 
   - name: test-replicaset-auth-nossl
     tags: ["test", "replicaset", "authssl"]
