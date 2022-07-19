@@ -362,8 +362,79 @@ func TestSessions(t *testing.T) {
 	})
 	sessallocopts := mtest.NewOptions().ClientOptions(options.Client().SetMaxPoolSize(1).SetRetryWrites(true))
 	mt.RunOpts("14. implicit session allocation", sessallocopts, func(mt *mtest.T) {
-		f := func(async bool, ops ...func(ctx context.Context) (string, error)) error {
+
+		// Operations to test implicit session allocation.
+		ops := []func(ctx context.Context) (string, error){
+			func(ctx context.Context) (string, error) {
+				_, err := mt.Coll.InsertOne(ctx, bson.D{})
+				return "insert", err
+			},
+			func(ctx context.Context) (string, error) {
+				_, err := mt.Coll.DeleteOne(ctx, bson.D{})
+				return "delete", err
+			},
+			func(ctx context.Context) (string, error) {
+				_, err := mt.Coll.UpdateOne(ctx, bson.D{}, bson.D{{"$set", bson.D{{"a", 1}}}})
+				return "update", err
+			},
+			func(ctx context.Context) (string, error) {
+				model := mongo.NewUpdateOneModel().
+					SetFilter(bson.D{}).
+					SetUpdate(bson.D{{"$set", bson.D{{"a", 1}}}})
+				_, err := mt.Coll.BulkWrite(ctx, []mongo.WriteModel{model})
+				return "bulkWrite", err
+			},
+			func(ctx context.Context) (string, error) {
+				result := mt.Coll.FindOneAndDelete(ctx, bson.D{})
+				var err error
+				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
+					err = err
+				}
+				return "findOneAndDelete", err
+			},
+			func(ctx context.Context) (string, error) {
+				result := mt.Coll.FindOneAndUpdate(ctx, bson.D{},
+					bson.D{{"$set", bson.D{{"a", 1}}}})
+				var err error
+				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
+					err = err
+				}
+				return "findOneAndUpdate", err
+			},
+			func(ctx context.Context) (string, error) {
+				result := mt.Coll.FindOneAndReplace(ctx, bson.D{}, bson.D{{"a", 1}})
+				var err error
+				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
+					err = err
+				}
+				return "findOneAndReplace", err
+			},
+			func(ctx context.Context) (string, error) {
+				operationName := "find"
+				cursor, err := mt.Coll.Find(ctx, bson.D{})
+				if err != nil {
+					return operationName, err
+				}
+				arr := bson.A{}
+				err = cursor.All(ctx, &arr)
+				return operationName, err
+			},
+		}
+
+		// maintainedOneSession asserts that exactly one session is used for all operations at least once
+		// across the retries of this test.
+		var maintainedOneSession bool
+
+		// limitedSessionUse asserts that the number of allocated sessions is strictly less than the number of
+		// concurrent operations in every retry of this test. In this instance it would be less than (but NOT
+		// equal to).
+		var limitedSessionUse bool
+
+		retrycount := 5
+		for i := 1; i <= retrycount; i++ {
 			errs, ctx := errgroup.WithContext(context.Background())
+
+			// Execute the ops list concurrently.
 			for _, op := range ops {
 				op := op
 				errs.Go(func() error {
@@ -374,37 +445,28 @@ func TestSessions(t *testing.T) {
 					return nil
 				})
 			}
-			return errs.Wait()
-		}
-
-		benchmark := 1
-		for i := 1; i <= benchmark; i++ {
-			err := f(true,
-				func(ctx context.Context) (string, error) {
-					fmt.Println("insert!")
-					_, err := mt.Coll.InsertOne(ctx, bson.D{})
-					return "insert", err
-				},
-				func(ctx context.Context) (string, error) {
-					fmt.Println("delete!")
-					_, err := mt.Coll.DeleteOne(ctx, bson.D{})
-					return "delete", err
-				},
-			//	func(ctx context.Context) (string, error) {
-			//		_, err := mt.Coll.UpdateOne(ctx, bson.D{}, bson.D{{"$set", bson.D{{"a", 1}}}})
-			//		return "update", err
-			//	},
-			)
+			err := errs.Wait()
 			assert.Nil(mt, err, "expected no error, go: %v", err)
+
+			// Get all started events and collect them by the session ID.
+			set := make(map[string]bool)
+			for _, event := range mt.GetAllStartedEvents() {
+				lsid := event.Command.Lookup("lsid")
+				set[lsid.String()] = true
+			}
+			if len(set) == 1 {
+				maintainedOneSession = true
+			}
+			if len(set) < len(ops) {
+				limitedSessionUse = true
+			}
 		}
 
-		set := make(map[string]bool)
-		for _, event := range mt.GetAllStartedEvents() {
-			lsid := event.Command.Lookup("lsid")
-			set[lsid.String()] = true
-		}
-		fmt.Printf("set: %v\n", set)
-		assert.Equal(mt, len(set), 1, "expected there to only be one session, but there were %v", len(set))
+		oneSessMsg := "expected one session accross all %v operations for at least 1/%v retries"
+		assert.True(mt, maintainedOneSession, oneSessMsg, len(ops), retrycount)
+
+		limitedSessMsg := "expected session count to be less than the number of operations: %v"
+		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
 
 	})
 }

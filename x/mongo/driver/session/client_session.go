@@ -9,7 +9,6 @@ package session // import "go.mongodb.org/mongo-driver/x/mongo/driver/session"
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -180,55 +179,6 @@ func MaxClusterTime(ct1, ct2 bson.Raw) bson.Raw {
 	return ct1
 }
 
-func NewClientSessionX(pool *Pool, clientID uuid.UUID, sessionType Type, deferImplicit bool,
-	opts ...*ClientOptions) (*Client, error) {
-
-	mergedOpts := mergeClientOptions(opts...)
-
-	c := &Client{
-		ClientID:    clientID,
-		SessionType: sessionType,
-		pool:        pool,
-	}
-	if mergedOpts.DefaultReadPreference != nil {
-		c.transactionRp = mergedOpts.DefaultReadPreference
-	}
-	if mergedOpts.DefaultReadConcern != nil {
-		c.transactionRc = mergedOpts.DefaultReadConcern
-	}
-	if mergedOpts.DefaultWriteConcern != nil {
-		c.transactionWc = mergedOpts.DefaultWriteConcern
-	}
-	if mergedOpts.DefaultMaxCommitTime != nil {
-		c.transactionMaxCommitTime = mergedOpts.DefaultMaxCommitTime
-	}
-	if mergedOpts.Snapshot != nil {
-		c.Snapshot = *mergedOpts.Snapshot
-	}
-
-	// The default for causalConsistency is true, unless Snapshot is enabled, then it's false. Set
-	// the default and then allow any explicit causalConsistency setting to override it.
-	c.Consistent = !c.Snapshot
-	if mergedOpts.CausalConsistency != nil {
-		c.Consistent = *mergedOpts.CausalConsistency
-	}
-
-	if c.Consistent && c.Snapshot {
-		return nil, errors.New("causal consistency and snapshot cannot both be set for a session")
-	}
-
-	// ! Clean this logic and comment up.
-	// get the session unless the session type is "implicit" and "deferImplicit" is "true". If this block does not
-	// execute, then the user must set the server directly.
-	if sessionType != Implicit || !deferImplicit {
-		fmt.Println("server set")
-		if err := c.SetServer(); err != nil {
-			return nil, err
-		}
-	}
-	return c, nil
-}
-
 // NewClientSession creates a Client.
 func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...*ClientOptions) (*Client, error) {
 	mergedOpts := mergeClientOptions(opts...)
@@ -265,10 +215,30 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...
 		return nil, errors.New("causal consistency and snapshot cannot both be set for a session")
 	}
 
-	if err := c.SetServer(); err != nil {
-		return nil, err
+	// Defer creating an implicit session, prefering to check out implicit sessions during connection checkout.
+	if sessionType != Implicit || mergedOpts.setImplicit {
+		if err := c.SetServer(); err != nil {
+			return nil, err
+		}
 	}
+
 	return c, nil
+}
+
+// NewClientSessionSetImplicit will ensure that both explicit and implicit sessions are set on the session client.
+func NewClientSessionSetImplicit(pool *Pool, clientID uuid.UUID, sessionType Type,
+	opts ...*ClientOptions) (*Client, error) {
+
+	mergedOpts := mergeClientOptions(opts...)
+	mergedOpts.setImplicit = true
+	return NewClientSession(pool, clientID, sessionType, mergedOpts)
+}
+
+// SetServer will check out a session from the client session pool.
+func (c *Client) SetServer() error {
+	var err error
+	c.Server, err = c.pool.GetSession()
+	return err
 }
 
 // AdvanceClusterTime updates the session's cluster time.
@@ -389,12 +359,7 @@ func (c *Client) EndSession() {
 	if c.Terminated {
 		return
 	}
-
 	c.Terminated = true
-
-	if c.Server == nil {
-		fmt.Printf("session.(*Client).EndSession: Server: %+v\n", c.Server)
-	}
 	c.pool.ReturnSession(c.Server)
 }
 
@@ -565,16 +530,6 @@ func (c *Client) ApplyCommand(desc description.Server) error {
 		return c.clearTransactionOpts()
 	}
 
-	return nil
-}
-
-func (c *Client) SetServer() error {
-	fmt.Printf("check out server for client: %v\n", c.ClientID)
-	servSess, err := c.pool.GetSession()
-	if err != nil {
-		return err
-	}
-	c.Server = servSess
 	return nil
 }
 

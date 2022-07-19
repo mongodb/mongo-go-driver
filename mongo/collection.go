@@ -255,9 +255,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
-		fmt.Println("insert<-")
 		var err error
-		sess, err = session.NewClientSessionX(coll.client.sessionPool, coll.client.id, session.Implicit, true)
+		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
@@ -338,8 +337,6 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
 
-	fmt.Println("InsertOne")
-
 	ioOpts := options.MergeInsertOneOptions(opts...)
 	imOpts := options.InsertMany()
 
@@ -418,8 +415,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
-		fmt.Println("delete<-")
-		sess, err = session.NewClientSessionX(coll.client.sessionPool, coll.client.id, session.Implicit, true)
+		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
 		if err != nil {
 			return nil, err
 		}
@@ -1822,7 +1818,8 @@ func (coll *Collection) drop(ctx context.Context) error {
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
+		sess, err = session.NewClientSessionSetImplicit(coll.client.sessionPool, coll.client.id,
+			session.Implicit)
 		if err != nil {
 			return err
 		}

@@ -7,7 +7,6 @@
 package session
 
 import (
-	"fmt"
 	"sync"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -74,11 +73,12 @@ func (p *Pool) updateTimeout() {
 // GetSession retrieves an unexpired session from the pool.
 func (p *Pool) GetSession() (*Server, error) {
 	p.mutex.Lock() // prevent changing the linked list while seeing if sessions have expired
-	defer p.mutex.Unlock()
+	defer func() {
+		p.mutex.Unlock()
+	}()
 
 	// empty pool
 	if p.head == nil && p.tail == nil {
-		fmt.Printf("createServerSession happens, head: %v, tail: %v, pointer: %p\n", p.head, p.tail, p)
 		return p.createServerSession()
 	}
 

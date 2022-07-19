@@ -23,7 +23,7 @@ type ClientOptions struct {
 	DefaultMaxCommitTime  *time.Duration
 	Snapshot              *bool
 
-	deferImplicit *bool
+	setImplicit bool
 }
 
 // TransactionOptions represents all possible options for starting a transaction in a session.
@@ -58,8 +58,8 @@ func mergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.Snapshot != nil {
 			c.Snapshot = opt.Snapshot
 		}
-		if opt.deferImplicit != nil {
-			c.deferImplicit = opt.deferImplicit
+		if opt.setImplicit {
+			c.setImplicit = true
 		}
 	}
 

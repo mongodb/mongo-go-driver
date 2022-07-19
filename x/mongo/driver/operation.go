@@ -122,7 +122,6 @@ type ResponseInfo struct {
 // implementation of an operation instead. This will ensure that there are helpers for constructing
 // the operation and that this type isn't configured incorrectly.
 type Operation struct {
-	Test int
 	// CommandFn is used to create the command that will be wrapped in a wire message and sent to
 	// the server. This function should only add the elements of the command and not start or end
 	// the enclosing BSON document. Per the command API, the first element must be the name of the
@@ -259,12 +258,6 @@ func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connect
 		return nil, nil, err
 	}
 
-	// If the client session has not been set, create an implicit client session.
-
-	// ? This is where we should check out implicit sessions?
-	// ? Do we need to include some variant of coll.client.sessionPool != nil ?
-	//	fmt.Printf("Client: %+v\n", op.Client)
-
 	// If the provided client session has a pinned connection, it should be used for the operation because this
 	// indicates that we're in a transaction and the target server is behind a load balancer.
 	if op.Client != nil && op.Client.PinnedConnection != nil {
@@ -291,21 +284,6 @@ func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connect
 			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %v", err)
 		}
 		op.Client.PinnedConnection = pinnedConn
-	}
-
-	if op.Client != nil && op.Client.Server == nil {
-		fmt.Printf("doing an implicit checkout for test %v", op.Test)
-		// This should only occur for an implicit session, which should be nil until it reaches this point.
-		if op.Client.SessionType != session.Implicit {
-			return nil, nil, fmt.Errorf("unexpected nil session for non-implicit session")
-		}
-		if op.Client.Terminated {
-			return nil, nil, fmt.Errorf("unexpected nil session for a terminated implicit session")
-		}
-		if err := op.Client.SetServer(); err != nil {
-			return nil, nil, err
-		}
-
 	}
 
 	return server, conn, nil
@@ -404,7 +382,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	for {
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
-			// ? Does this work concurrently?
 			srvr, conn, err = op.getServerAndConnection(ctx)
 			if err != nil {
 				// If the returned error is retryable and there are retries remaining (negative
@@ -423,6 +400,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				return err
 			}
 			defer conn.Close()
+
+			// Check out an implicit connection.
+			if op.Client != nil && op.Client.SessionType == session.Implicit && op.Client.Server == nil {
+				// This should only occur for an implicit session, which should be nil until it reaches this point.
+				if op.Client.Terminated {
+					return fmt.Errorf("unexpected nil session for a terminated implicit session")
+				}
+				if err := op.Client.SetServer(); err != nil {
+					return err
+				}
+			}
 		}
 
 		// Run steps that must only be run on the first attempt, but not again for retries.

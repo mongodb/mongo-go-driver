@@ -96,7 +96,6 @@ func (d *Delete) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		Test:              1,
 		CommandFn:         d.command,
 		ProcessResponseFn: d.processResponse,
 		Batches:           batches,
