@@ -296,6 +296,6 @@ func (r *rttMonitor) getStats() string {
 	}
 
 	return fmt.Sprintf(`Round-trip-time monitor statistics:`+"\n"+
-		`average RTT: %v, minimum RTT: %v, 90th percentile RTT: %v, standard dev: %.6fms`,
+		`average RTT: %v, minimum RTT: %v, 90th percentile RTT: %v, standard dev: %.6fms`+"\n",
 		r.averageRTT, r.minRTT, r.RTT90, stdDev/float64(time.Millisecond))
 }
