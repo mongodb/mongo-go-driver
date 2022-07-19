@@ -192,6 +192,11 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
+          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" = "true" ]; then
+            echo "Skipping download of crypt_shared package"
+            exit 0
+          fi
+
           MONGODB_VERSION=${VERSION}
           if [ -z "$MONGODB_VERSION" ]; then
             # default to latest to match behavior of run-orchestration.sh.
@@ -205,11 +210,25 @@ functions:
           # get_mongodb_download_url_for defines $MONGO_CRYPT_SHARED_DOWNLOAD_URL and $EXTRACT.
           if [ -z "$MONGO_CRYPT_SHARED_DOWNLOAD_URL" ]; then
             echo "There is no crypt_shared library for distro='$DISTRO' and version='$MONGODB_VERSION'".
-            echo "SKIP_CRYPT_SHARED_LIB_DOWNLOAD: true" > expansion.yml
+            touch expansion.yml
           else
             echo "Downloading crypt_shared package from $MONGO_CRYPT_SHARED_DOWNLOAD_URL"
             download_and_extract_crypt_shared "$MONGO_CRYPT_SHARED_DOWNLOAD_URL" "$EXTRACT"
-            touch expansion.yml
+            CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
+              -name 'mongo_crypt_v1.so' -o \
+              -name 'mongo_crypt_v1.dll' -o \
+              -name 'mongo_crypt_v1.dylib')"
+            # Expect that we always find a crypt_shared library file and set the CRYPT_SHARED_LIB_PATH
+            # environment variable. If we didn't, print an error message and exit.
+            if [ -z "$CRYPT_SHARED_LIB_PATH" ]; then
+              echo 'CRYPT_SHARED_LIB_PATH is empty. Exiting.'
+              exit 1
+            fi
+            # If we're on Windows, convert the "cygdrive"  path to Windows-style paths.
+            if [ "Windows_NT" = "$OS" ]; then
+                CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
+            fi
+            echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" > expansion.yml
           fi
     - command: expansions.update
       params:
@@ -520,33 +539,6 @@ functions:
           fi
           . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
 
-          # If the task doesn't have the SKIP_CRYPT_SHARED_LIB_DOWNLOAD variable set, try to find the
-          # crypt_shared library downloaded in the "prepare-resources" task and set the CRYPT_SHARED_LIB_PATH
-          # environment variable with a path to the file.
-          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" != "true" ]; then
-            # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
-            # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
-            # downloaded files.
-            export CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
-              -name 'mongo_crypt_v1.so' -o \
-              -name 'mongo_crypt_v1.dll' -o \
-              -name 'mongo_crypt_v1.dylib')"
-
-            # Expect that we always find a crypt_shared library file and set the CRYPT_SHARED_LIB_PATH
-            # environment variable. If we didn't, print an error message and exit.
-            if [ -z "$CRYPT_SHARED_LIB_PATH" ]; then
-              echo 'SKIP_CRYPT_SHARED_LIB_DOWNLOAD is not "true", but CRYPT_SHARED_LIB_PATH is empty. Exiting.'
-              exit 1
-            fi
-
-            # If we're on Windows, convert the "cygdrive"  path to Windows-style paths.
-            if [ "Windows_NT" = "$OS" ]; then
-                export CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
-            fi
-
-            echo "CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH"
-          fi
-
           export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
           SSL="${SSL}" \
@@ -566,6 +558,7 @@ functions:
           GCP_EMAIL="${cse_gcp_email}" \
           GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
           REQUIRE_API_VERSION="${REQUIRE_API_VERSION}" \
+          CRYPT_SHARED_LIB_PATH="${CRYPT_SHARED_LIB_PATH}" \
           make evg-test-versioned-api \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
