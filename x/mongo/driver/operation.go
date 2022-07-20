@@ -314,6 +314,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		return err
 	}
 
+	if op.Client.TransactionRunning() {
+		op.WriteConcern = nil
+	}
+	if !writeconcern.AckWrite(op.WriteConcern) {
+		op.Client = nil
+	}
+
 	// If no deadline is set on the passed-in context, op.Timeout is set, and context is not already
 	// a Timeout context, honor op.Timeout in new Timeout context for operation execution.
 	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && !internal.IsTimeoutContext(ctx) {
@@ -401,8 +408,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 			defer conn.Close()
 
+			// Set the server if the "session.Client" instance deferred the implicit session checkout.
 			if op.Client != nil && op.Client.Server == nil && op.Client.SessionType == session.Implicit {
-				// This should only occur for an implicit session, which should be nil until it reaches this point.
 				if op.Client.Terminated {
 					return fmt.Errorf("unexpected nil session for a terminated implicit session")
 				}
