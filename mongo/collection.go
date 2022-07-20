@@ -1818,8 +1818,7 @@ func (coll *Collection) drop(ctx context.Context) error {
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
 		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id,
-			session.Implicit)
+		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
 		if err != nil {
 			return err
 		}
