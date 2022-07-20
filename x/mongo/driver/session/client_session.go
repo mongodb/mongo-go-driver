@@ -215,8 +215,7 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...
 		return nil, errors.New("causal consistency and snapshot cannot both be set for a session")
 	}
 
-	// Defer creating an implicit session, prefering to check out implicit sessions during connection checkout.
-	if sessionType != Implicit || mergedOpts.setImplicit {
+	if sessionType != Implicit || !mergedOpts.deferImplicit {
 		if err := c.SetServer(); err != nil {
 			return nil, err
 		}
@@ -225,12 +224,12 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...
 	return c, nil
 }
 
-// NewClientSessionSetImplicit will ensure that both explicit and implicit sessions are set on the session client.
-func NewClientSessionSetImplicit(pool *Pool, clientID uuid.UUID, sessionType Type,
+// NewClientSessionDeferImplicit will create a new "Client", defering the server checkout for later.
+func NewClientSessionDeferImplicit(pool *Pool, clientID uuid.UUID, sessionType Type,
 	opts ...*ClientOptions) (*Client, error) {
 
 	mergedOpts := mergeClientOptions(opts...)
-	mergedOpts.setImplicit = true
+	mergedOpts.deferImplicit = true
 	return NewClientSession(pool, clientID, sessionType, mergedOpts)
 }
 
