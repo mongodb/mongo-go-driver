@@ -386,38 +386,37 @@ func TestSessions(t *testing.T) {
 			},
 			func(ctx context.Context) (string, error) {
 				result := mt.Coll.FindOneAndDelete(ctx, bson.D{})
-				var err error
+				name := "findOneAndDelete"
 				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
-					err = err
+					return name, err
 				}
-				return "findOneAndDelete", err
+				return name, nil
 			},
 			func(ctx context.Context) (string, error) {
 				result := mt.Coll.FindOneAndUpdate(ctx, bson.D{},
 					bson.D{{"$set", bson.D{{"a", 1}}}})
-				var err error
+
+				name := "findOneAndUpdate"
 				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
-					err = err
+					return name, err
 				}
-				return "findOneAndUpdate", err
+				return name, nil
 			},
 			func(ctx context.Context) (string, error) {
 				result := mt.Coll.FindOneAndReplace(ctx, bson.D{}, bson.D{{"a", 1}})
-				var err error
+				name := "findOneAndReplace"
 				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
-					err = err
+					return name, err
 				}
-				return "findOneAndReplace", err
+				return name, nil
 			},
 			func(ctx context.Context) (string, error) {
-				operationName := "find"
+				name := "find"
 				cursor, err := mt.Coll.Find(ctx, bson.D{})
 				if err != nil {
-					return operationName, err
+					return name, err
 				}
-				arr := bson.A{}
-				err = cursor.All(ctx, &arr)
-				return operationName, err
+				return name, cursor.All(ctx, &bson.A{})
 			},
 		}
 
@@ -469,7 +468,7 @@ func TestSessions(t *testing.T) {
 			}
 		}
 
-		oneSessMsg := "expected one session accross all %v operations for at least 1/%v retries, got: %v"
+		oneSessMsg := "expected one session across all %v operations for at least 1/%v retries, got: %v"
 		assert.True(mt, maintainedOneSession, oneSessMsg, len(ops), retrycount, minimumSessionCount)
 
 		limitedSessMsg := "expected session count to be less than the number of operations: %v"
