@@ -30,9 +30,9 @@ type CreateIndexesOptions struct {
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
 	//
-	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time that the create index operation can run before
-	// returning an error. MaxTime is still usable through the deprecated setter.
+	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
+	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
+	// is ignored if Timeout is set on the client.
 	MaxTime *time.Duration
 }
 
@@ -43,9 +43,9 @@ func CreateIndexes() *CreateIndexesOptions {
 
 // SetMaxTime sets the value for the MaxTime field.
 //
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-// Timeout option should be used in its place to control the amount of time that the create index operation can run before
-// returning an error.
+// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
+// option may be used in its place to control the amount of time that a single operation can
+// run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (c *CreateIndexesOptions) SetMaxTime(d time.Duration) *CreateIndexesOptions {
 	c.MaxTime = &d
 	return c
@@ -100,9 +100,9 @@ type DropIndexesOptions struct {
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
 	//
-	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time that the drop index operation can run before
-	// returning an error. MaxTime is still usable through the deprecated setter.
+	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
+	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
+	// is ignored if Timeout is set on the client.
 	MaxTime *time.Duration
 }
 
@@ -113,9 +113,9 @@ func DropIndexes() *DropIndexesOptions {
 
 // SetMaxTime sets the value for the MaxTime field.
 //
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-// Timeout option should be used in its place to control the amount of time that the drop index operation can run before
-// returning an error.
+// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
+// option may be used in its place to control the amount of time that a single operation can
+// run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (d *DropIndexesOptions) SetMaxTime(duration time.Duration) *DropIndexesOptions {
 	d.MaxTime = &duration
 	return d
@@ -145,9 +145,9 @@ type ListIndexesOptions struct {
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
 	//
-	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time that the List operation can run before
-	// returning an error. MaxTime is still usable through the deprecated setter.
+	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
+	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
+	// is ignored if Timeout is set on the client.
 	MaxTime *time.Duration
 }
 
@@ -164,9 +164,9 @@ func (l *ListIndexesOptions) SetBatchSize(i int32) *ListIndexesOptions {
 
 // SetMaxTime sets the value for the MaxTime field.
 //
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-// Timeout option should be used in its place to control the amount of time that the List operation can run before
-// returning an error.
+// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
+// option may be used in its place to control the amount of time that a single operation can
+// run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (l *ListIndexesOptions) SetMaxTime(d time.Duration) *ListIndexesOptions {
 	l.MaxTime = &d
 	return l
