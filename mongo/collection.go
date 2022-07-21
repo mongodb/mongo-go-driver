@@ -801,7 +801,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		}
 	}()
 	if sess == nil && a.client.sessionPool != nil {
-		sess, err = session.NewClientSessionDeferImplicit(a.client.sessionPool, a.client.id, session.Implicit)
+		sess, err = session.NewClientImplicitSessionDeferred(a.client.sessionPool, a.client.id)
 		if err != nil {
 			return nil, err
 		}
