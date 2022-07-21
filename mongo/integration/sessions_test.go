@@ -424,6 +424,7 @@ func TestSessions(t *testing.T) {
 		// maintainedOneSession asserts that exactly one session is used for all operations at least once
 		// across the retries of this test.
 		var maintainedOneSession bool
+		var minimumSessionCount int
 
 		// limitedSessionUse asserts that the number of allocated sessions is strictly less than the number of
 		// concurrent operations in every retry of this test. In this instance it would be less than (but NOT
@@ -454,16 +455,22 @@ func TestSessions(t *testing.T) {
 				lsid := event.Command.Lookup("lsid")
 				set[lsid.String()] = true
 			}
-			if len(set) == 1 {
+
+			setSize := len(set)
+			if setSize == 1 {
 				maintainedOneSession = true
+			} else if setSize < minimumSessionCount || minimumSessionCount == 0 {
+				// record the minimum number of sessions we used over all retries.
+				minimumSessionCount = setSize
 			}
+
 			if len(set) < len(ops) {
 				limitedSessionUse = true
 			}
 		}
 
-		oneSessMsg := "expected one session accross all %v operations for at least 1/%v retries"
-		assert.True(mt, maintainedOneSession, oneSessMsg, len(ops), retrycount)
+		oneSessMsg := "expected one session accross all %v operations for at least 1/%v retries, got: %v"
+		assert.True(mt, maintainedOneSession, oneSessMsg, len(ops), retrycount, minimumSessionCount)
 
 		limitedSessMsg := "expected session count to be less than the number of operations: %v"
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
