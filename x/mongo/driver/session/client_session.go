@@ -224,13 +224,13 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...
 	return c, nil
 }
 
-// NewClientSessionDeferImplicit will create a new "Client", defering the server checkout for later.
-func NewClientSessionDeferImplicit(pool *Pool, clientID uuid.UUID, sessionType Type,
-	opts ...*ClientOptions) (*Client, error) {
+// NewClientImplicitSessionDeferred will create a new implicit session client, defering the server checkout as a
+// user-defined operation.
+func NewClientImplicitSessionDeferred(pool *Pool, clientID uuid.UUID, opts ...*ClientOptions) (*Client, error) {
 
 	mergedOpts := mergeClientOptions(opts...)
 	mergedOpts.deferImplicit = true
-	return NewClientSession(pool, clientID, sessionType, mergedOpts)
+	return NewClientSession(pool, clientID, Implicit, mergedOpts)
 }
 
 // SetServer will check out a session from the client session pool.
