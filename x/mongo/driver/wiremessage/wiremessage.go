@@ -582,6 +582,11 @@ func readi32unsafe(src []byte) int32 {
 	return (int32(src[0]) | int32(src[1])<<8 | int32(src[2])<<16 | int32(src[3])<<24)
 }
 
+func readi64unsafe(src []byte) int64 {
+	return (int64(src[0]) | int64(src[1])<<8 | int64(src[2])<<16 | int64(src[3])<<24 |
+		int64(src[4])<<32 | int64(src[5])<<40 | int64(src[6])<<48 | int64(src[7])<<56)
+}
+
 func readi64(src []byte) (int64, []byte, bool) {
 	if len(src) < 8 {
 		return 0, src, false

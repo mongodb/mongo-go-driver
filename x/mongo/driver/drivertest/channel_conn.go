@@ -7,8 +7,10 @@
 package drivertest
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -37,7 +39,7 @@ func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
 }
 
 // ReadWireMessage implements the driver.Connection interface.
-func (c *ChannelConn) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
+func (c *ChannelConn) ReadWireMessage(ctx context.Context) (*io.LimitedReader, error) {
 	var wm []byte
 	var err error
 	select {
@@ -45,7 +47,7 @@ func (c *ChannelConn) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, 
 	case err = <-c.ReadErr:
 	case <-ctx.Done():
 	}
-	return wm, err
+	return &io.LimitedReader{R: bytes.NewReader(wm), N: int64(len(wm))}, err
 }
 
 // Description implements the driver.Connection interface.

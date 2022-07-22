@@ -18,8 +18,8 @@ func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection,
 		return errors.New("exhaust read must be done with a connection that is currently streaming")
 	}
 
-	scratch = scratch[:0]
-	res, err := op.readWireMessage(ctx, conn, scratch)
+	//scratch = scratch[:0]
+	res, err := op.readWireMessage(ctx, conn)
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,9 @@
 package mtest
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"time"
 
 	"github.com/pkg/errors"
@@ -57,9 +59,10 @@ func (c *connection) WriteWireMessage(_ context.Context, wm []byte) error {
 }
 
 // ReadWireMessage returns the next response in the connection's list of responses.
-func (c *connection) ReadWireMessage(_ context.Context, dst []byte) ([]byte, error) {
+func (c *connection) ReadWireMessage(_ context.Context) (*io.LimitedReader, error) {
+	var dst []byte
 	if len(c.responses) == 0 {
-		return dst, errors.New("no responses remaining")
+		return &io.LimitedReader{}, errors.New("no responses remaining")
 	}
 	nextRes := c.responses[0]
 	c.responses = c.responses[1:]
@@ -71,7 +74,7 @@ func (c *connection) ReadWireMessage(_ context.Context, dst []byte) ([]byte, err
 	resBytes, _ := bson.Marshal(nextRes)
 	dst = append(dst, resBytes...)
 	dst = bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:])))
-	return dst, nil
+	return &io.LimitedReader{R: bytes.NewReader(dst), N: int64(len(dst))}, nil
 }
 
 // Description returns a fixed server description for the connection.

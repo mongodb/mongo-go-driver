@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"testing"
 	"time"
 
@@ -662,7 +663,7 @@ func (m *mockServerSelector) SelectServer(description.Topology, []description.Se
 type mockConnection struct {
 	// parameters
 	pWriteWM []byte
-	pReadDst []byte
+	//pReadDst []byte
 
 	// returns
 	rWriteErr     error
@@ -692,9 +693,9 @@ func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	return m.rWriteErr
 }
 
-func (m *mockConnection) ReadWireMessage(_ context.Context, dst []byte) ([]byte, error) {
-	m.pReadDst = dst
-	return m.rReadWM, m.rReadErr
+func (m *mockConnection) ReadWireMessage(_ context.Context) (*io.LimitedReader, error) {
+	//m.pReadDst = dst
+	return &io.LimitedReader{R: bytes.NewReader(m.rReadWM), N: int64(len(m.rReadWM))}, m.rReadErr
 }
 
 type retryableError struct {

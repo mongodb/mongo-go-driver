@@ -7,8 +7,11 @@
 package driver
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
+	"io/ioutil"
 	"strconv"
 	"time"
 
@@ -684,7 +687,11 @@ func (op Operation) roundTripLegacy(ctx context.Context, conn Connection, wm []b
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
 
-	wm, err = conn.ReadWireMessage(ctx, wm[:0])
+	r, err := conn.ReadWireMessage(ctx)
+	if err != nil {
+		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
+	}
+	wm, err = ioutil.ReadAll(r)
 	if err != nil {
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
@@ -692,7 +699,13 @@ func (op Operation) roundTripLegacy(ctx context.Context, conn Connection, wm []b
 }
 
 func (op Operation) upconvertCursorResponse(wm []byte, batchIdentifier string, collName string) (bsoncore.Document, error) {
-	reply := op.decodeOpReply(wm, true)
+	src, err := wiremessage.NewSrcStream(&io.LimitedReader{
+		R: bytes.NewReader(wm), N: int64(len(wm)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	reply := op.decodeOpReply(src)
 	if reply.err != nil {
 		return nil, reply.err
 	}
