@@ -360,7 +360,9 @@ func TestSessions(t *testing.T) {
 		assert.Equal(mt, err, mongo.ErrUnacknowledgedWrite,
 			"expected ErrUnacknowledgedWrite on unacknowledged write in session, got %v", err)
 	})
-	sessallocopts := mtest.NewOptions().ClientOptions(options.Client().SetMaxPoolSize(1).SetRetryWrites(true))
+
+	sessallocopts := mtest.NewOptions().ClientOptions(options.Client().SetMaxPoolSize(1).SetRetryWrites(true).
+		SetHosts(hosts[:1]))
 	mt.RunOpts("14. implicit session allocation", sessallocopts, func(mt *mtest.T) {
 
 		// Operations to test implicit session allocation.
