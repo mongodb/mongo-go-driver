@@ -401,7 +401,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 			defer conn.Close()
 
-			// Set the server if the "session.Client" instance deferred the implicit session checkout.
+			// Set the server if it has not already been set and the session type is implicit.
 			if op.Client != nil && op.Client.Server == nil && op.Client.SessionType == session.Implicit {
 				if op.Client.Terminated {
 					return fmt.Errorf("unexpected nil session for a terminated implicit session")

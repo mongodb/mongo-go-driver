@@ -423,12 +423,16 @@ func TestSessions(t *testing.T) {
 		// maintainedOneSession asserts that exactly one session is used for all operations at least once
 		// across the retries of this test.
 		var maintainedOneSession bool
+
+		// minimumSessionCount are the least amount of sessions used over all the retries of the operations. For
+		// example, if we retry 5 times we could result in session use { 1, 2, 1, 1, 6 }. In this case, the
+		// minimumSessionCount should be 1.
 		var minimumSessionCount int
 
 		// limitedSessionUse asserts that the number of allocated sessions is strictly less than the number of
 		// concurrent operations in every retry of this test. In this instance it would be less than (but NOT
 		// equal to the number of operations).
-		var limitedSessionUse bool
+		limitedSessionUse := true
 
 		retrycount := 5
 		for i := 1; i <= retrycount; i++ {
@@ -463,8 +467,8 @@ func TestSessions(t *testing.T) {
 				minimumSessionCount = setSize
 			}
 
-			if len(set) < len(ops) {
-				limitedSessionUse = true
+			if setSize >= len(ops) {
+				limitedSessionUse = false
 			}
 		}
 
