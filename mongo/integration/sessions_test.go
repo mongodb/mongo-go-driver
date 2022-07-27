@@ -446,7 +446,7 @@ func TestSessions(t *testing.T) {
 				})
 			}
 			err := errs.Wait()
-			assert.Nil(mt, err, "expected no error, go: %v", err)
+			assert.Nil(mt, err, "expected no error, got: %v", err)
 
 			// Get all started events and collect them by the session ID.
 			set := make(map[string]bool)

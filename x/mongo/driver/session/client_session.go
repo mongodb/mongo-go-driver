@@ -215,6 +215,8 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...
 		return nil, errors.New("causal consistency and snapshot cannot both be set for a session")
 	}
 
+	// Server checkout for implicit sessions are deferred until after checking out a connection. This will limit the
+	// number of implicit sessions to no greater than an applications maxPoolSize.
 	if sessionType == Explicit {
 		if err := c.SetServer(); err != nil {
 			return nil, err
