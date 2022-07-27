@@ -1272,7 +1272,7 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration)
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
 			// We check that remainingTimeout <= rtt90 because in the rare case that they are equal, we
-			// may accidentally calculate a maxTimeMS value of 0, which would indicate infinite timeout
+			// may accidentally calculate a maxTimeMS value of 0, which would indicate no timeout
 			// server-side.
 			if remainingTimeout <= rtt90 {
 				return 0, internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
