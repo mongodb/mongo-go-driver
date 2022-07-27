@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/ioutil"
 
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -47,7 +48,7 @@ func (c *ChannelConn) ReadWireMessage(ctx context.Context) (io.ReadCloser, error
 	case err = <-c.ReadErr:
 	case <-ctx.Done():
 	}
-	return io.NopCloser(bytes.NewReader(wm)), err
+	return ioutil.NopCloser(bytes.NewReader(wm)), err
 }
 
 // Description implements the driver.Connection interface.

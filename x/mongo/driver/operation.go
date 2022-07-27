@@ -796,9 +796,9 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) ([]byt
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		err = wm.Close()
-	}()
+	// defer func() {
+	// 	err = wm.Close()
+	// }()
 
 	// decompress wiremessage
 	/*
