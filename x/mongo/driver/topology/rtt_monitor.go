@@ -278,16 +278,20 @@ func (r *rttMonitor) getStats() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// Calculate standard deviation of samples.
+	// Calculate standard deviation and average (non-EWMA) of samples.
+	var sum float64
 	floatSamples := make([]float64, 0, len(r.samples))
 	for _, sample := range r.samples {
 		if sample > 0 {
 			floatSamples = append(floatSamples, float64(sample))
+			sum += float64(sample)
 		}
 	}
 
-	var stdDev float64
+	var avg, stdDev float64
 	if len(floatSamples) > 0 {
+		avg = sum / float64(len(floatSamples))
+
 		var err error
 		stdDev, err = stats.StandardDeviation(floatSamples)
 		if err != nil {
@@ -296,6 +300,6 @@ func (r *rttMonitor) getStats() string {
 	}
 
 	return fmt.Sprintf(`Round-trip-time monitor statistics:`+"\n"+
-		`average RTT: %v, minimum RTT: %v, 90th percentile RTT: %v, standard dev: %.6fms`+"\n",
-		r.averageRTT, r.minRTT, r.RTT90, stdDev/float64(time.Millisecond))
+		`average RTT: %v, minimum RTT: %v, 90th percentile RTT: %v, standard dev: %v`+"\n",
+		time.Duration(avg), r.minRTT, r.RTT90, time.Duration(stdDev))
 }
