@@ -1282,7 +1282,7 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration)
 		}
 	} else if op.MaxTime != nil {
 		// Users are not allowed to pass a negative value as MaxTime. A value of 0 would indicate
-		// infinite timeout and is allowed.
+		// no timeout and is allowed.
 		if *op.MaxTime < 0 {
 			return 0, ErrNegativeMaxTime
 		}
