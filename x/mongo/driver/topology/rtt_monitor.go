@@ -94,7 +94,7 @@ func (r *rttMonitor) start() {
 			// conn.close() will be a no-op.
 			conn.closeConnectContext()
 			conn.wait()
-			_ = conn.close()
+			_ = conn.Close()
 		}
 	}()
 
@@ -115,7 +115,7 @@ func (r *rttMonitor) start() {
 
 		// Close any connection here because we're either about to try to create another new
 		// connection or we're about to exit the loop.
-		_ = conn.close()
+		_ = conn.Close()
 
 		// If a connection error happens quickly, always wait for the monitoring interval to try
 		// to create a new connection to prevent creating connections too quickly.

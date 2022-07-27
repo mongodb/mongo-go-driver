@@ -39,7 +39,7 @@ func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
 }
 
 // ReadWireMessage implements the driver.Connection interface.
-func (c *ChannelConn) ReadWireMessage(ctx context.Context) (*io.LimitedReader, error) {
+func (c *ChannelConn) ReadWireMessage(ctx context.Context) (io.ReadCloser, error) {
 	var wm []byte
 	var err error
 	select {
@@ -47,7 +47,7 @@ func (c *ChannelConn) ReadWireMessage(ctx context.Context) (*io.LimitedReader, e
 	case err = <-c.ReadErr:
 	case <-ctx.Done():
 	}
-	return &io.LimitedReader{R: bytes.NewReader(wm), N: int64(len(wm))}, err
+	return io.NopCloser(bytes.NewReader(wm)), err
 }
 
 // Description implements the driver.Connection interface.

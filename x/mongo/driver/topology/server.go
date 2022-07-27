@@ -497,7 +497,7 @@ func (s *Server) update() {
 		// We don't need to take s.heartbeatLock here because closeServer is called synchronously when the select checks
 		// below detect that the server is being closed, so we can be sure that the connection isn't being used.
 		if s.conn != nil {
-			_ = s.conn.close()
+			_ = s.conn.Close()
 		}
 	}
 
@@ -687,7 +687,7 @@ func (s *Server) cancelCheck() {
 	// state was set back to disconnected, so calling conn.close() will be a no-op.
 	conn.closeConnectContext()
 	conn.wait()
-	_ = conn.close()
+	_ = conn.Close()
 }
 
 func (s *Server) checkWasCancelled() bool {
@@ -770,7 +770,7 @@ func (s *Server) check() (description.Server, error) {
 			// Close the connection here rather than below so we ensure we're not closing a connection that wasn't
 			// successfully created.
 			if s.conn != nil {
-				_ = s.conn.close()
+				_ = s.conn.Close()
 			}
 			s.publishServerHeartbeatFailedEvent(s.conn.ID(), durationNanos, err, s.conn.getCurrentlyStreaming() || streamable)
 		}

@@ -516,7 +516,7 @@ func (p *pool) closeConnection(conn *connection) error {
 		conn.wait() // Make sure that the connection has finished connecting.
 	}
 
-	err := conn.close()
+	err := conn.Close()
 	if err != nil {
 		return ConnectionError{ConnectionID: conn.id, Wrapped: err, message: "failed to close net.Conn"}
 	}

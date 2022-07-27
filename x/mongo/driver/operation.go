@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -795,12 +796,9 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) ([]byt
 	if err != nil {
 		return nil, err
 	}
-
-	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
-	// response.
-	if streamer, ok := conn.(StreamerConnection); ok {
-		streamer.SetStreaming(src.IsMsgMoreToCome)
-	}
+	defer func() {
+		err = wm.Close()
+	}()
 
 	// decompress wiremessage
 	/*
@@ -811,7 +809,13 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) ([]byt
 	*/
 
 	// decode
-	res, err := op.decodeResult(src)
+	res, isMsgMoreToCome, err := op.decodeResult(src)
+	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
+	// response.
+	if streamer, ok := conn.(StreamerConnection); ok {
+		streamer.SetStreaming(isMsgMoreToCome)
+	}
+
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
 	op.updateClusterTimes(res)
@@ -1504,67 +1508,77 @@ func (Operation) decodeOpReply(wm *wiremessage.SrcStream) opReply {
 	return reply
 }
 
-func (op Operation) decodeResult(wm *wiremessage.SrcStream) (bsoncore.Document, error) {
+func (op Operation) decodeResult(wm *wiremessage.SrcStream) (bsoncore.Document, bool, error) {
 	//wm = wm[:wmLength-16] // constrain to just this wiremessage, incase there are multiple in the slice
 
-	var err error
+	var isMsgMoreToCome bool
 	switch wm.Opcode {
 	case wiremessage.OpReply:
 		reply := op.decodeOpReply(wm)
 		if reply.err != nil {
-			return nil, reply.err
+			return nil, isMsgMoreToCome, reply.err
 		}
 		if reply.numReturned == 0 {
-			return nil, ErrNoDocCommandResponse
+			return nil, isMsgMoreToCome, ErrNoDocCommandResponse
 		}
 		if reply.numReturned > 1 {
-			return nil, ErrMultiDocCommandResponse
+			return nil, isMsgMoreToCome, ErrMultiDocCommandResponse
 		}
 		rdr := reply.documents[0]
 		if err := rdr.Validate(); err != nil {
-			return nil, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
+			return nil, isMsgMoreToCome, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
 		}
 
-		return rdr, ExtractErrorFromServerResponse(rdr)
+		return rdr, isMsgMoreToCome, ExtractErrorFromServerResponse(rdr)
 	case wiremessage.OpMsg:
-		_, err = wm.ReadMsgFlags()
+		flag, err := wm.ReadMsgFlags()
 		if err != nil {
-			return nil, errors.New("malformed wire message: missing OP_MSG flags")
+			return nil, isMsgMoreToCome, errors.New("malformed wire message: missing OP_MSG flags")
 		}
+		isMsgMoreToCome = flag&wiremessage.MoreToCome == wiremessage.MoreToCome
 
 		var res bsoncore.Document
-		for wm.N > 0 {
+		for {
 			var stype wiremessage.SectionType
 			stype, err = wm.ReadMsgSectionType()
 			if err != nil {
-				return nil, errors.New("malformed wire message: insuffienct bytes to read section type")
+				if err == io.EOF {
+					break
+				}
+				return nil, isMsgMoreToCome, errors.New("malformed wire message: insuffienct bytes to read section type")
 			}
 
 			switch stype {
 			case wiremessage.SingleDocument:
 				res, err = wm.ReadMsgSectionSingleDocument()
 				if err != nil {
-					return nil, errors.New("malformed wire message: insufficient bytes to read single document")
+					if err == io.EOF {
+						break
+					}
+					return nil, isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read single document")
 				}
 			case wiremessage.DocumentSequence:
 				// TODO(GODRIVER-617): Implement document sequence returns.
 				_, _, err = wm.ReadMsgSectionDocumentSequence()
 				if err != nil {
-					return nil, errors.New("malformed wire message: insufficient bytes to read document sequence")
+					if err == io.EOF {
+						break
+					}
+					return nil, isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read document sequence")
 				}
 			default:
-				return nil, fmt.Errorf("malformed wire message: uknown section type %v", stype)
+				return nil, isMsgMoreToCome, fmt.Errorf("malformed wire message: uknown section type %v", stype)
 			}
 		}
 
-		err := res.Validate()
+		err = res.Validate()
 		if err != nil {
-			return nil, NewCommandResponseError("malformed OP_MSG: invalid document", err)
+			return nil, isMsgMoreToCome, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 		}
 
-		return res, ExtractErrorFromServerResponse(res)
+		return res, isMsgMoreToCome, ExtractErrorFromServerResponse(res)
 	default:
-		return nil, fmt.Errorf("cannot decode result from %s", wm.Opcode)
+		return nil, isMsgMoreToCome, fmt.Errorf("cannot decode result from %s", wm.Opcode)
 	}
 }
 

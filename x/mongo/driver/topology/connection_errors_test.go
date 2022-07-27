@@ -43,7 +43,7 @@ func TestConnectionErrors(t *testing.T) {
 					})
 				}),
 			)
-			defer conn.close()
+			defer conn.Close()
 
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()

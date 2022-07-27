@@ -754,7 +754,7 @@ func TestPool(t *testing.T) {
 			// checkOut() completes is within 100ms.
 			var start time.Time
 			go func() {
-				c.close()
+				c.Close()
 				start = time.Now()
 				err := p.checkIn(c)
 				noerr(t, err)

@@ -7,7 +7,6 @@
 package topology
 
 import (
-	"bufio"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -39,6 +38,7 @@ var globalConnectionID uint64 = 1
 
 var (
 	defaultMaxMessageSize        uint32 = 48000000
+	errUnexpectedClose                  = errors.New("socket was unexpectedly closed")
 	errResponseTooLarge                 = errors.New("length of read message too large")
 	errLoadBalancedStateMismatch        = errors.New("driver attempted to initialize in load balancing mode, but the server does not support this mode")
 )
@@ -324,7 +324,7 @@ func transformNetworkError(ctx context.Context, originalError error, contextDead
 }
 
 func (c *connection) cancellationListenerCallback() {
-	_ = c.close()
+	_ = c.Close()
 }
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
@@ -355,7 +355,7 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 
 	err = c.write(ctx, wm)
 	if err != nil {
-		c.close()
+		c.Close()
 		return ConnectionError{
 			ConnectionID: c.id,
 			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),
@@ -384,7 +384,7 @@ func (c *connection) write(ctx context.Context, wm []byte) (err error) {
 }
 
 // readWireMessage reads a wiremessage from the connection. The dst parameter will be overwritten.
-func (c *connection) readWireMessage(ctx context.Context) (*io.LimitedReader, error) {
+func (c *connection) readWireMessage(ctx context.Context) (io.ReadCloser, error) {
 	if atomic.LoadInt64(&c.state) != connConnected {
 		return nil, ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
@@ -392,7 +392,7 @@ func (c *connection) readWireMessage(ctx context.Context) (*io.LimitedReader, er
 	select {
 	case <-ctx.Done():
 		// We closeConnection the connection because we don't know if there is an unread message on the wire.
-		c.close()
+		c.Close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: ctx.Err(), message: "failed to read"}
 	default:
 	}
@@ -415,9 +415,8 @@ func (c *connection) readWireMessage(ctx context.Context) (*io.LimitedReader, er
 	r, errMsg, err := c.read(ctx)
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
-		c.close()
+		c.Close()
 		message := errMsg
-		// TODO: need update for io.EOF because read() returns a io.Reader now.
 		if err == io.EOF {
 			message = "socket was unexpectedly closed"
 		}
@@ -431,7 +430,34 @@ func (c *connection) readWireMessage(ctx context.Context) (*io.LimitedReader, er
 	return r, nil
 }
 
-func (c *connection) read(ctx context.Context) (reader *io.LimitedReader, errMsg string, err error) {
+// LimitedReadCloser ...
+type LimitedReadCloser struct {
+	R io.ReadCloser
+	N int64
+}
+
+// Read ...
+func (l *LimitedReadCloser) Read(p []byte) (int, error) {
+	if l.N <= 0 {
+		return 0, io.EOF
+	}
+	if int64(len(p)) > l.N {
+		p = p[0:l.N]
+	}
+	n, err := l.R.Read(p)
+	l.N -= int64(n)
+	if err == io.EOF && l.N > 0 {
+		return n, errUnexpectedClose
+	}
+	return n, err
+}
+
+// Close ...
+func (l *LimitedReadCloser) Close() error {
+	return l.R.Close()
+}
+
+func (c *connection) read(ctx context.Context) (reader io.ReadCloser, errMsg string, err error) {
 	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
 	defer func() {
 		// If the context is cancelled after we finish reading the server response, the cancellation listener could fire
@@ -444,16 +470,14 @@ func (c *connection) read(ctx context.Context) (reader *io.LimitedReader, errMsg
 		}
 	}()
 
-	r := bufio.NewReader(c.nc)
-
 	// We use an array here because it only costs 4 bytes on the stack and means we'll only need to
 	// reslice dst once instead of twice.
-	var sizeBuf []byte
+	sizeBuf := make([]byte, 4)
 
 	// We do a ReadFull into an array here instead of doing an opportunistic ReadAtLeast into dst
 	// because there might be more than one wire message waiting to be read, for example when
 	// reading messages from an exhaust cursor.
-	sizeBuf, err = r.Peek(4)
+	_, err = io.ReadFull(c.nc, sizeBuf)
 	if err != nil {
 		return nil, "incomplete read of message header", err
 	}
@@ -487,10 +511,22 @@ func (c *connection) read(ctx context.Context) (reader *io.LimitedReader, errMsg
 		}
 	*/
 
-	return &io.LimitedReader{R: r, N: int64(size)}, "", nil
+	return &LimitedReadCloser{R: c, N: int64(size) - int64(len(sizeBuf))}, "", nil
 }
 
-func (c *connection) close() error {
+func (c *connection) Read(p []byte) (int, error) {
+	n, err := c.nc.Read(p)
+	if err != nil && err != io.EOF {
+		err = ConnectionError{
+			ConnectionID: c.id,
+			Wrapped:      err,
+			message:      "incomplete read of full message",
+		}
+	}
+	return n, err
+}
+
+func (c *connection) Close() error {
 	// Overwrite the connection state as the first step so only the first close call will execute.
 	if !atomic.CompareAndSwapInt64(&c.state, connConnected, connDisconnected) {
 		return nil
@@ -582,7 +618,7 @@ func (c initConnection) LocalAddress() address.Address {
 func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
 }
-func (c initConnection) ReadWireMessage(ctx context.Context) (*io.LimitedReader, error) {
+func (c initConnection) ReadWireMessage(ctx context.Context) (io.ReadCloser, error) {
 	return c.readWireMessage(ctx)
 }
 func (c initConnection) SetStreaming(streaming bool) {
@@ -625,7 +661,7 @@ func (c *Connection) WriteWireMessage(ctx context.Context, wm []byte) error {
 
 // ReadWireMessage handles reading a wire message from the underlying connection. The dst parameter
 // will be overwritten with the new wire message.
-func (c *Connection) ReadWireMessage(ctx context.Context) (*io.LimitedReader, error) {
+func (c *Connection) ReadWireMessage(ctx context.Context) (io.ReadCloser, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.connection == nil {
@@ -682,26 +718,25 @@ func (c *Connection) Description() description.Server {
 
 // Close returns this connection to the connection pool. This method may not closeConnection the underlying
 // socket.
-func (c *Connection) Close() error {
+func (c *Connection) close(restrict bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.connection == nil || c.refCount > 0 {
+	if c.connection == nil || (restrict && c.refCount > 0) {
 		return nil
 	}
 
 	return c.cleanupReferences()
 }
 
+// Close returns this connection to the connection pool. This method may not closeConnection the underlying
+// socket.
+func (c *Connection) Close() error {
+	return c.close(true)
+}
+
 // Expire closes this connection and will closeConnection the underlying socket.
 func (c *Connection) Expire() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.connection == nil {
-		return nil
-	}
-
-	_ = c.close()
-	return c.cleanupReferences()
+	return c.close(false)
 }
 
 func (c *Connection) cleanupReferences() error {

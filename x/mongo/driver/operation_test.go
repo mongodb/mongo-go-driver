@@ -693,9 +693,9 @@ func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	return m.rWriteErr
 }
 
-func (m *mockConnection) ReadWireMessage(_ context.Context) (*io.LimitedReader, error) {
+func (m *mockConnection) ReadWireMessage(_ context.Context) (io.ReadCloser, error) {
 	//m.pReadDst = dst
-	return &io.LimitedReader{R: bytes.NewReader(m.rReadWM), N: int64(len(m.rReadWM))}, m.rReadErr
+	return io.NopCloser(bytes.NewReader(m.rReadWM)), m.rReadErr
 }
 
 type retryableError struct {

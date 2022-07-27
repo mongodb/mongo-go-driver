@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"sync"
@@ -566,10 +567,14 @@ func TestConnection(t *testing.T) {
 					conn.cancellationListener = listener
 
 					want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "incomplete read of full message"}
-					_, got := conn.readWireMessage(context.Background())
+					r, got := conn.readWireMessage(context.Background())
+					noerr(t, got)
+					_, got = ioutil.ReadAll(r)
 					if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 						t.Errorf("errors do not match. got %v; want %v", got, want)
 					}
+					got = r.Close()
+					noerr(t, got)
 					if !tnc.closed {
 						t.Errorf("failed to closeConnection net.Conn after error writing bytes.")
 					}
@@ -618,9 +623,11 @@ func TestConnection(t *testing.T) {
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
-					got, err := conn.readWireMessage(context.Background())
+					r, err := conn.readWireMessage(context.Background())
 					noerr(t, err)
-					if !cmp.Equal(got, want) {
+					got, err := ioutil.ReadAll(r)
+					noerr(t, err)
+					if !cmp.Equal(got, want[4:]) {
 						t.Errorf("did not read full wire message. got %v; want %v", got, want)
 					}
 					listener.assertCalledOnce(t)
@@ -629,13 +636,30 @@ func TestConnection(t *testing.T) {
 					// Simulate context cancellation during a network read. This has two sub-tests to test cancellation
 					// when reading the msg size and when reading the rest of the msg.
 
+					const id = "foobar"
 					testCases := []struct {
-						name   string
-						skip   int
-						errmsg string
+						name string
+						skip int
+						err  error
 					}{
-						{"cancel size read", 0, "incomplete read of message header"},
-						{"cancel full message read", 1, "incomplete read of full message"},
+						{
+							name: "cancel size read",
+							skip: 0,
+							err: ConnectionError{
+								ConnectionID: id,
+								Wrapped:      context.Canceled,
+								message:      "incomplete read of message header",
+							},
+						},
+						{
+							name: "cancel full message read",
+							skip: 1,
+							err: ConnectionError{
+								ConnectionID: id,
+								Wrapped:      errors.New("cancelled read"),
+								message:      "incomplete read of full message",
+							},
+						},
 					}
 					for _, tc := range testCases {
 						t.Run(tc.name, func(t *testing.T) {
@@ -644,37 +668,31 @@ func TestConnection(t *testing.T) {
 							readBuf := []byte{10, 0, 0, 0}
 							nc := newCancellationReadConn(&testNetConn{}, tc.skip, readBuf)
 
-							conn := &connection{id: "foobar", nc: nc, state: connConnected}
+							conn := &connection{id: id, nc: nc, state: connConnected}
 							listener := newTestCancellationListener(false)
 							conn.cancellationListener = listener
 
 							ctx, cancel := context.WithCancel(context.Background())
 							var err error
 
-							var wg sync.WaitGroup
-							wg.Add(1)
+							errChan := make(chan error)
 							go func() {
-								defer wg.Done()
-								var r *io.LimitedReader
-								r, err = conn.readWireMessage(ctx)
+								r, err := conn.readWireMessage(ctx)
 								if err == nil {
-									dst := make([]byte, r.N)
-									var n int
-									n, err = io.ReadFull(r, dst)
-									if err != nil || int64(n) < r.N {
-										conn.close()
-										err = errors.New("incomplete read of full message")
-									}
+									defer func() {
+										err = r.Close()
+									}()
+									_, err = io.Copy(io.Discard, r)
 								}
+								errChan <- err
 							}()
 
 							<-nc.operationStartedChan
 							cancel()
 							nc.continueChan <- struct{}{}
 
-							wg.Wait()
-							want := errors.New(tc.errmsg)
-							assert.Equal(t, want, err, "expected error %v, got %v", want, err)
+							err = <-errChan
+							assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 							assert.Equal(t, connDisconnected, conn.state, "expected connection state %v, got %v", connDisconnected,
 								conn.state)
 						})
@@ -716,7 +734,7 @@ func TestConnection(t *testing.T) {
 				connState := atomic.LoadInt64(&conn.state)
 				assert.Equal(t, connDisconnected, connState, "expected connection state %v, got %v", connDisconnected, connState)
 
-				err = conn.close()
+				err = conn.Close()
 				assert.Nil(t, err, "close error: %v", err)
 			})
 		})
