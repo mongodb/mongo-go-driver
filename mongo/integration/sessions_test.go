@@ -364,61 +364,55 @@ func TestSessions(t *testing.T) {
 	sessallocopts := mtest.NewOptions().ClientOptions(options.Client().SetMaxPoolSize(1).SetRetryWrites(true).
 		SetHosts(hosts[:1]))
 	mt.RunOpts("14. implicit session allocation", sessallocopts, func(mt *mtest.T) {
-
-		// Operations to test implicit session allocation.
-		ops := []func(ctx context.Context) (string, error){
-			func(ctx context.Context) (string, error) {
+		ops := map[string]func(ctx context.Context) error{
+			"insert": func(ctx context.Context) error {
 				_, err := mt.Coll.InsertOne(ctx, bson.D{})
-				return "insert", err
+				return err
 			},
-			func(ctx context.Context) (string, error) {
+			"delete": func(ctx context.Context) error {
 				_, err := mt.Coll.DeleteOne(ctx, bson.D{})
-				return "delete", err
+				return err
 			},
-			func(ctx context.Context) (string, error) {
+			"update": func(ctx context.Context) error {
 				_, err := mt.Coll.UpdateOne(ctx, bson.D{}, bson.D{{"$set", bson.D{{"a", 1}}}})
-				return "update", err
+				return err
 			},
-			func(ctx context.Context) (string, error) {
+			"bulkWrite": func(ctx context.Context) error {
 				model := mongo.NewUpdateOneModel().
 					SetFilter(bson.D{}).
 					SetUpdate(bson.D{{"$set", bson.D{{"a", 1}}}})
 				_, err := mt.Coll.BulkWrite(ctx, []mongo.WriteModel{model})
-				return "bulkWrite", err
+				return err
 			},
-			func(ctx context.Context) (string, error) {
+			"findOneAndDelete": func(ctx context.Context) error {
 				result := mt.Coll.FindOneAndDelete(ctx, bson.D{})
-				name := "findOneAndDelete"
 				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
-					return name, err
+					return err
 				}
-				return name, nil
+				return nil
 			},
-			func(ctx context.Context) (string, error) {
+			"findOneAndUpdate": func(ctx context.Context) error {
 				result := mt.Coll.FindOneAndUpdate(ctx, bson.D{},
 					bson.D{{"$set", bson.D{{"a", 1}}}})
 
-				name := "findOneAndUpdate"
 				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
-					return name, err
+					return err
 				}
-				return name, nil
+				return nil
 			},
-			func(ctx context.Context) (string, error) {
+			"findOneAndReplace": func(ctx context.Context) error {
 				result := mt.Coll.FindOneAndReplace(ctx, bson.D{}, bson.D{{"a", 1}})
-				name := "findOneAndReplace"
 				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
-					return name, err
+					return err
 				}
-				return name, nil
+				return nil
 			},
-			func(ctx context.Context) (string, error) {
-				name := "find"
+			"find": func(ctx context.Context) error {
 				cursor, err := mt.Coll.Find(ctx, bson.D{})
 				if err != nil {
-					return name, err
+					return err
 				}
-				return name, cursor.All(ctx, &bson.A{})
+				return cursor.All(ctx, &bson.A{})
 			},
 		}
 
@@ -441,11 +435,11 @@ func TestSessions(t *testing.T) {
 			errs, ctx := errgroup.WithContext(context.Background())
 
 			// Execute the ops list concurrently.
-			for _, op := range ops {
+			for cmd, op := range ops {
 				op := op
+				cmd := cmd
 				errs.Go(func() error {
-					cmd, err := op(ctx)
-					if err != nil {
+					if err := op(ctx); err != nil {
 						return fmt.Errorf("error running %s operation: %v", cmd, err)
 					}
 					return nil
