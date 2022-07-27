@@ -11,10 +11,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -455,19 +455,9 @@ func (lbcd *loadBalancedCursorDeployment) Connection(_ context.Context) (Connect
 	return lbcd.conn, nil
 }
 
-// MinRTT always returns 0. It implements the driver.Server interface.
-func (lbcd *loadBalancedCursorDeployment) MinRTT() time.Duration {
-	return 0
-}
-
-// RTT90 always returns 0. It implements the driver.Server interface.
-func (lbcd *loadBalancedCursorDeployment) RTT90() time.Duration {
-	return 0
-}
-
-// RTTStats always returns "". It implements the driver.Server interface.
-func (lbcd *loadBalancedCursorDeployment) RTTStats() string {
-	return ""
+// RTTMonitor implements the driver.Server interface.
+func (lbcd *loadBalancedCursorDeployment) RTTMonitor() RTTMonitor {
+	return &internal.TestRTTMonitor{}
 }
 
 func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {

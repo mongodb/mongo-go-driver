@@ -32,3 +32,26 @@ func MakeTimeoutContext(ctx context.Context, to time.Duration) (context.Context,
 func IsTimeoutContext(ctx context.Context) bool {
 	return ctx.Value(timeoutKey{}) != nil
 }
+
+// TestRTTMonitor implements the RTTMonitor interface and is used internally for testing.
+type TestRTTMonitor struct{}
+
+// AvgRTT implements the RTT monitor interface.
+func (trm *TestRTTMonitor) AvgRTT() time.Duration {
+	return 0
+}
+
+// MinRTT implements the RTT monitor interface.
+func (trm *TestRTTMonitor) MinRTT() time.Duration {
+	return 0
+}
+
+// RTT90 implements the RTT monitor interface.
+func (trm *TestRTTMonitor) RTT90() time.Duration {
+	return 0
+}
+
+// Stats implements the RTT monitor interface.
+func (trm *TestRTTMonitor) Stats() string {
+	return ""
+}
