@@ -527,7 +527,7 @@ func (t *T) ClearCollections() {
 			if err == mongo.ErrUnacknowledgedWrite || err == driver.ErrUnacknowledgedWrite {
 				// It's possible that a collection could have an unacknowledged write concern, which
 				// could prevent it from being dropped for sharded clusters. We can resolve this by
-				// re-instantiating  the collection with a majority write concern before dropping.
+				// re-instantiating the collection with a majority write concern before dropping.
 				collname := coll.created.Name()
 				wcm := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
 				wccoll := t.DB.Collection(collname, options.Collection().SetWriteConcern(wcm))
