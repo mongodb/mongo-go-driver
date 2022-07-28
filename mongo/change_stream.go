@@ -256,8 +256,8 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	if resuming {
 		cs.replaceOptions(cs.wireVersion)
 
-		csOptDoc := cs.createPipelineOptionsDoc()
-		if cs.err != nil {
+		csOptDoc, err := cs.createPipelineOptionsDoc()
+		if err != nil {
 			return cs.Err()
 		}
 		pipIdx, pipDoc := bsoncore.AppendDocumentStart(nil)
@@ -386,8 +386,9 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 	cs.pipelineSlice = make([]bsoncore.Document, 0, val.Len()+1)
 
 	csIdx, csDoc := bsoncore.AppendDocumentStart(nil)
-	csDocTemp := cs.createPipelineOptionsDoc()
-	if cs.err != nil {
+
+	csDocTemp, err := cs.createPipelineOptionsDoc()
+	if err != nil {
 		return cs.err
 	}
 	csDoc = bsoncore.AppendDocumentElement(csDoc, "$changeStream", csDocTemp)
@@ -410,7 +411,7 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 	return cs.err
 }
 
-func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
+func (cs *ChangeStream) createPipelineOptionsDoc() (bsoncore.Document, error) {
 	plDocIdx, plDoc := bsoncore.AppendDocumentStart(nil)
 
 	if cs.streamType == ClientStream {
@@ -434,7 +435,7 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 		var raDoc bsoncore.Document
 		raDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.ResumeAfter, true, "resumeAfter")
 		if cs.err != nil {
-			return nil
+			return nil, cs.err
 		}
 
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "resumeAfter", raDoc)
@@ -448,7 +449,7 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 		var saDoc bsoncore.Document
 		saDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.StartAfter, true, "startAfter")
 		if cs.err != nil {
-			return nil
+			return nil, cs.err
 		}
 
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "startAfter", saDoc)
@@ -464,10 +465,10 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 	}
 
 	if plDoc, cs.err = bsoncore.AppendDocumentEnd(plDoc, plDocIdx); cs.err != nil {
-		return nil
+		return nil, cs.err
 	}
 
-	return plDoc
+	return plDoc, nil
 }
 
 func (cs *ChangeStream) pipelineToBSON() (bsoncore.Document, error) {
