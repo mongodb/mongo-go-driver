@@ -75,14 +75,14 @@ type Connection interface {
 
 // RTTMonitor represents a round-trip-time monitor.
 type RTTMonitor interface {
-	// EWMARTT returns the exponentially weighted moving average observed round-trip time.
-	EWMARTT() time.Duration
+	// EWMA returns the exponentially weighted moving average observed round-trip time.
+	EWMA() time.Duration
 
-	// MinRTT returns the minimum observed round-trip time over the window period.
-	MinRTT() time.Duration
+	// Min returns the minimum observed round-trip time over the window period.
+	Min() time.Duration
 
-	// RTT90 returns the 90th percentile observed round-trip time over the window period.
-	RTT90() time.Duration
+	// P90 returns the 90th percentile observed round-trip time over the window period.
+	P90() time.Duration
 
 	// Stats returns stringified stats of the current state of the monitor.
 	Stats() string

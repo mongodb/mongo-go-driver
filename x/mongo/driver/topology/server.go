@@ -779,7 +779,7 @@ func (s *Server) check() (description.Server, error) {
 	if descPtr != nil {
 		// The check was successful. Set the average RTT and the 90th percentile RTT and return.
 		desc := *descPtr
-		desc = desc.SetAverageRTT(s.rttMonitor.EWMARTT())
+		desc = desc.SetAverageRTT(s.rttMonitor.EWMA())
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
 		return desc, nil
 	}
@@ -834,7 +834,7 @@ func (s *Server) String() string {
 		str += fmt.Sprintf(", Tag sets: %s", desc.Tags)
 	}
 	if state == serverConnected {
-		str += fmt.Sprintf(", Average RTT: %s, Min RTT: %s", desc.AverageRTT, s.RTTMonitor().MinRTT())
+		str += fmt.Sprintf(", Average RTT: %s, Min RTT: %s", desc.AverageRTT, s.RTTMonitor().Min())
 	}
 	if desc.LastError != nil {
 		str += fmt.Sprintf(", Last error: %s", desc.LastError)

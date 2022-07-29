@@ -37,18 +37,18 @@ func IsTimeoutContext(ctx context.Context) bool {
 // RTT calculations and an empty string for RTT statistics.
 type ZeroRTTMonitor struct{}
 
-// EWMARTT implements the RTT monitor interface.
-func (zrm *ZeroRTTMonitor) EWMARTT() time.Duration {
+// EWMA implements the RTT monitor interface.
+func (zrm *ZeroRTTMonitor) EWMA() time.Duration {
 	return 0
 }
 
-// MinRTT implements the RTT monitor interface.
-func (zrm *ZeroRTTMonitor) MinRTT() time.Duration {
+// Min implements the RTT monitor interface.
+func (zrm *ZeroRTTMonitor) Min() time.Duration {
 	return 0
 }
 
-// RTT90 implements the RTT monitor interface.
-func (zrm *ZeroRTTMonitor) RTT90() time.Duration {
+// P90 implements the RTT monitor interface.
+func (zrm *ZeroRTTMonitor) P90() time.Duration {
 	return 0
 }
 
