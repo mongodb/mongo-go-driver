@@ -37,8 +37,8 @@ func IsTimeoutContext(ctx context.Context) bool {
 // RTT calculations and an empty string for RTT statistics.
 type ZeroRTTMonitor struct{}
 
-// AvgRTT implements the RTT monitor interface.
-func (zrm *ZeroRTTMonitor) AvgRTT() time.Duration {
+// EWMARTT implements the RTT monitor interface.
+func (zrm *ZeroRTTMonitor) EWMARTT() time.Duration {
 	return 0
 }
 

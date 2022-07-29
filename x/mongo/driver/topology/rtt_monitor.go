@@ -251,8 +251,8 @@ func percentile(perc float64, samples []time.Duration, minSamples int) time.Dura
 	return time.Duration(p)
 }
 
-// AvgRTT returns the exponentially weighted moving average observed round-trip time.
-func (r *rttMonitor) AvgRTT() time.Duration {
+// EWMARTT returns the exponentially weighted moving average observed round-trip time.
+func (r *rttMonitor) EWMARTT() time.Duration {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
