@@ -94,9 +94,9 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.5.0"
+          LIBMONGOCRYPT_TAG="1.5.2"
           # LIBMONGOCRYPT_COMMIT is the commit on libmongocrypt for the tag LIBMONGOCRYPT_TAG.
-          LIBMONGOCRYPT_COMMIT="c3be59f9b0d756caa4c22c254e0704084cf6bca4"
+          LIBMONGOCRYPT_COMMIT="8f8675fa11922f00a4516a7f8a60621aa1ca1550"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
@@ -130,7 +130,8 @@ functions:
              sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
              echo "fetching build for Darwin ... end"
           else
-            git clone https://github.com/mongodb/libmongocrypt --branch $LIBMONGOCRYPT_TAG
+            git clone https://github.com/mongodb/libmongocrypt
+            git checkout $LIBMONGOCRYPT_COMMIT
             ./libmongocrypt/.evergreen/compile.sh
           fi
 
