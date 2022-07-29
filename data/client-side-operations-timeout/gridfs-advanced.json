@@ -3,7 +3,8 @@
   "schemaVersion": "1.9",
   "runOnRequirements": [
     {
-      "minServerVersion": "4.4"
+      "minServerVersion": "4.4",
+      "serverless": "forbid"
     }
   ],
   "createEntities": [
@@ -17,7 +18,7 @@
       "client": {
         "id": "client",
         "uriOptions": {
-          "timeoutMS": 50
+          "timeoutMS": 75
         },
         "useMultipleMongoses": false,
         "observeEvents": [
@@ -62,13 +63,12 @@
           "_id": {
             "$oid": "000000000000000000000005"
           },
-          "length": 10,
+          "length": 8,
           "chunkSize": 4,
           "uploadDate": {
             "$date": "1970-01-01T00:00:00.000Z"
           },
-          "md5": "57d83cd477bfb1ccd975ab33d827a92b",
-          "filename": "length-10",
+          "filename": "length-8",
           "contentType": "application/octet-stream",
           "aliases": [],
           "metadata": {}
@@ -87,6 +87,21 @@
             "$oid": "000000000000000000000005"
           },
           "n": 0,
+          "data": {
+            "$binary": {
+              "base64": "ESIzRA==",
+              "subType": "00"
+            }
+          }
+        },
+        {
+          "_id": {
+            "$oid": "000000000000000000000006"
+          },
+          "files_id": {
+            "$oid": "000000000000000000000005"
+          },
+          "n": 1,
           "data": {
             "$binary": {
               "base64": "ESIzRA==",
@@ -116,7 +131,7 @@
                   "update"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 55
+                "blockTimeMS": 100
               }
             }
           }
@@ -129,7 +144,7 @@
               "$oid": "000000000000000000000005"
             },
             "newFilename": "foo",
-            "timeoutMS": 500
+            "timeoutMS": 2000
           }
         }
       ],
@@ -174,7 +189,7 @@
                   "update"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 55
+                "blockTimeMS": 100
               }
             }
           }
@@ -234,7 +249,7 @@
                   "drop"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 55
+                "blockTimeMS": 100
               }
             }
           }
@@ -243,7 +258,7 @@
           "name": "drop",
           "object": "bucket",
           "arguments": {
-            "timeoutMS": 500
+            "timeoutMS": 2000
           }
         }
       ]
@@ -266,7 +281,7 @@
                   "drop"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 55
+                "blockTimeMS": 100
               }
             }
           }
@@ -320,7 +335,7 @@
                   "drop"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 55
+                "blockTimeMS": 100
               }
             }
           }
@@ -352,7 +367,7 @@
                   "drop"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 30
+                "blockTimeMS": 50
               }
             }
           }

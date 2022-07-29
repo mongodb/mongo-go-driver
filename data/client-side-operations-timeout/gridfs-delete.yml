@@ -4,6 +4,7 @@ schemaVersion: "1.9"
 
 runOnRequirements:
   - minServerVersion: "4.4"
+    serverless: forbid  # GridFS ops can be slow on serverless.
 
 createEntities:
   - client:
@@ -12,7 +13,7 @@ createEntities:
   - client:
       id: &client client
       uriOptions:
-        timeoutMS: 50
+        timeoutMS: 75
       useMultipleMongoses: false
       observeEvents:
         - commandStartedEvent
@@ -37,11 +38,10 @@ initialData:
     databaseName: *databaseName
     documents:
       - _id: &fileDocumentId { $oid: "000000000000000000000005" }
-        length: 10
+        length: 8
         chunkSize: 4
         uploadDate: { $date: "1970-01-01T00:00:00.000Z" }
-        md5: "57d83cd477bfb1ccd975ab33d827a92b"
-        filename: "length-10"
+        filename: "length-8"
         contentType: "application/octet-stream"
         aliases: []
         metadata: {}
@@ -51,6 +51,10 @@ initialData:
       - _id: { $oid: "000000000000000000000005" }
         files_id: *fileDocumentId
         n: 0
+        data: { $binary: { base64: "ESIzRA==", subType: "00" } } # hex: 11223344
+      - _id: { $oid: "000000000000000000000006" }
+        files_id: *fileDocumentId
+        n: 1
         data: { $binary: { base64: "ESIzRA==", subType: "00" } } # hex: 11223344
 
 tests:
@@ -66,12 +70,12 @@ tests:
             data:
               failCommands: ["delete"]
               blockConnection: true
-              blockTimeMS: 55
+              blockTimeMS: 100
       - name: delete
         object: *bucket
         arguments:
           id: *fileDocumentId
-          timeoutMS: 500 # The client timeoutMS is 50 and the operation blocks for 55ms, so 500ms should let it succeed.
+          timeoutMS: 1000 # The client timeoutMS is 75ms and the operation blocks for 100ms, so 1000ms should let it succeed.
 
   - description: "timeoutMS applied to delete against the files collection"
     operations:
@@ -85,7 +89,7 @@ tests:
             data:
               failCommands: ["delete"]
               blockConnection: true
-              blockTimeMS: 55
+              blockTimeMS: 100
       - name: delete
         object: *bucket
         arguments:
@@ -116,7 +120,7 @@ tests:
             data:
               failCommands: ["delete"]
               blockConnection: true
-              blockTimeMS: 55
+              blockTimeMS: 100
       - name: delete
         object: *bucket
         arguments:
@@ -125,7 +129,7 @@ tests:
           isTimeoutError: true
 
   # Test that drivers are not refreshing the timeout between commands. We test this by blocking both "delete" commands
-  # for 30ms each. The delete should inherit timeoutMS=50 from the client/database and the server takes over 50ms
+  # for 50ms each. The delete should inherit timeoutMS=75 from the client/database and the server takes over 75ms
   # total, so the operation should fail.
   - description: "timeoutMS applied to entire delete, not individual parts"
     operations:
@@ -139,7 +143,7 @@ tests:
             data:
               failCommands: ["delete"]
               blockConnection: true
-              blockTimeMS: 30
+              blockTimeMS: 50
       - name: delete
         object: *bucket
         arguments:
