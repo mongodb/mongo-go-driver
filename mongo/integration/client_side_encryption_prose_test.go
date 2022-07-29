@@ -1855,6 +1855,140 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		})
 
 	})
+
+	mt.RunOpts("16. Rewrap", runOpts, func(mt *mtest.T) {
+		mt.Run("Case 1: Rewrap with separate ClientEncryption", func(mt *mtest.T) {
+			dataKeyMap := map[string]bson.M{
+				"aws": {
+					"region": "us-east-1",
+					"key":    "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
+				},
+				"azure": {
+					"keyVaultEndpoint": "key-vault-csfle.vault.azure.net",
+					"keyName":          "key-name-csfle",
+				},
+				"gcp": {
+					"projectId": "devprod-drivers",
+					"location":  "global",
+					"keyRing":   "key-ring-csfle",
+					"keyName":   "key-name-csfle",
+				},
+				"kmip": {},
+			}
+
+			tlsConfig := make(map[string]*tls.Config)
+			if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
+				tlsOpts := map[string]interface{}{
+					"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+					"tlsCAFile":             tlsCAFileKMIP,
+				}
+				kmipConfig, err := options.BuildTLSConfig(tlsOpts)
+				assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
+				tlsConfig["kmip"] = kmipConfig
+			}
+
+			kmsProviders := []string{"local", "aws", "gcp", "azure", "kmip"}
+			for _, srcProvider := range kmsProviders {
+				for _, dstProvider := range kmsProviders {
+					mt.Run(fmt.Sprintf("%s to %s", srcProvider, dstProvider), func(mt *mtest.T) {
+						var err error
+						// Drop the collection ``keyvault.datakeys``.
+						{
+							err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+							assert.Nil(mt, err, "error on Drop: %v", err)
+						}
+
+						// Create a ``ClientEncryption`` object named ``clientEncryption1``.
+						var clientEncryption1 *mongo.ClientEncryption
+						{
+							var keyVaultClient *mongo.Client
+							{
+								co := options.Client().ApplyURI(mtest.ClusterURI())
+								keyVaultClient, err = mongo.Connect(context.Background(), co)
+								defer keyVaultClient.Disconnect(context.Background())
+								testutil.AddTestServerAPIVersion(co)
+								assert.Nil(mt, err, "error on Connect: %v", err)
+							}
+							ceOpts := options.ClientEncryption().
+								SetKeyVaultNamespace("keyvault.datakeys").
+								SetKmsProviders(fullKmsProvidersMap).
+								SetTLSConfig(tlsConfig)
+							clientEncryption1, err = mongo.NewClientEncryption(keyVaultClient, ceOpts)
+							assert.Nil(mt, err, "error in NewClientEncryption: %v", err)
+							defer clientEncryption1.Close(context.Background())
+						}
+
+						// Call ``clientEncryption1.createDataKey``.
+						var keyID primitive.Binary
+						{
+							dkOpts := options.DataKey()
+							if val, ok := dataKeyMap[srcProvider]; ok {
+								dkOpts.SetMasterKey(val)
+							}
+							keyID, err = clientEncryption1.CreateDataKey(context.Background(), srcProvider, dkOpts)
+							assert.Nil(mt, err, "error in CreateDataKey: %v", err)
+						}
+
+						// Call ``clientEncryption1.encrypt`` with the value "test".
+						var ciphertext primitive.Binary
+						{
+							t, value, err := bson.MarshalValue("test")
+							assert.Nil(mt, err, "error in MarshalValue: %v", err)
+							plaintext := bson.RawValue{Type: t, Value: value}
+							eOpts := options.Encrypt().SetKeyID(keyID).SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic")
+							ciphertext, err = clientEncryption1.Encrypt(context.Background(), plaintext, eOpts)
+							assert.Nil(mt, err, "error in Encrypt: %v", err)
+						}
+
+						// Create a ``ClientEncryption`` object named ``clientEncryption2``.
+						var clientEncryption2 *mongo.ClientEncryption
+						{
+							var keyVaultClient *mongo.Client
+							{
+								co := options.Client().ApplyURI(mtest.ClusterURI())
+								keyVaultClient, err = mongo.Connect(context.Background(), co)
+								defer keyVaultClient.Disconnect(context.Background())
+								testutil.AddTestServerAPIVersion(co)
+								assert.Nil(mt, err, "error on Connect: %v", err)
+							}
+							ceOpts := options.ClientEncryption().
+								SetKeyVaultNamespace("keyvault.datakeys").
+								SetKmsProviders(fullKmsProvidersMap).
+								SetTLSConfig(tlsConfig)
+							clientEncryption2, err = mongo.NewClientEncryption(keyVaultClient, ceOpts)
+							assert.Nil(mt, err, "error in NewClientEncryption: %v", err)
+							defer clientEncryption2.Close(context.Background())
+						}
+
+						// Call ``clientEncryption2.rewrapManyDataKey`` with an empty ``filter``.
+						{
+							rwOpts := options.RewrapManyDataKey().SetProvider(dstProvider)
+							if val, ok := dataKeyMap[dstProvider]; ok {
+								rwOpts.SetMasterKey(val)
+							}
+							res, err := clientEncryption2.RewrapManyDataKey(context.Background(), bson.D{{}}, rwOpts)
+							assert.Nil(mt, err, "error in RewrapManyDataKey: %v", err)
+							assert.Equal(mt, res.BulkWriteResult.ModifiedCount, int64(1), "expected ModifiedCount of 1, got %v", res.BulkWriteResult.ModifiedCount)
+						}
+
+						// Call ``clientEncryption1.decrypt`` with the ``ciphertext``.
+						{
+							plaintext, err := clientEncryption1.Decrypt(context.Background(), ciphertext)
+							assert.Nil(mt, err, "error in Decrypt: %v", err)
+							assert.Equal(mt, plaintext.StringValue(), "test", "expected plaintext 'test', got %q", plaintext.StringValue())
+						}
+
+						// Call ``clientEncryption2.decrypt`` with the ``ciphertext``.
+						{
+							plaintext, err := clientEncryption2.Decrypt(context.Background(), ciphertext)
+							assert.Nil(mt, err, "error in Decrypt: %v", err)
+							assert.Equal(mt, plaintext.StringValue(), "test", "expected plaintext 'test', got %q", plaintext.StringValue())
+						}
+					})
+				}
+			}
+		})
+	})
 }
 
 func getWatcher(mt *mtest.T, streamType mongo.StreamType, cpt *cseProseTest) watcher {
