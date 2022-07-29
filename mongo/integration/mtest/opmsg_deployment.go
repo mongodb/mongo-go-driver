@@ -136,7 +136,7 @@ func (md *mockDeployment) Connection(context.Context) (driver.Connection, error)
 
 // RTTMonitor implements the driver.Server interface.
 func (md *mockDeployment) RTTMonitor() driver.RTTMonitor {
-	return &internal.TestRTTMonitor{}
+	return &internal.ZeroRTTMonitor{}
 }
 
 // Connect is a no-op method which implements the driver.Connector interface.

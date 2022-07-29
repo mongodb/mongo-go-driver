@@ -725,7 +725,7 @@ func (ms *mockRetryServer) Connection(ctx context.Context) (Connection, error) {
 }
 
 func (ms *mockRetryServer) RTTMonitor() RTTMonitor {
-	return &internal.TestRTTMonitor{}
+	return &internal.ZeroRTTMonitor{}
 }
 
 func TestRetry(t *testing.T) {

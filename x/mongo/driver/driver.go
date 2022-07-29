@@ -88,7 +88,7 @@ type RTTMonitor interface {
 	Stats() string
 }
 
-var _ RTTMonitor = &internal.TestRTTMonitor{}
+var _ RTTMonitor = &internal.ZeroRTTMonitor{}
 
 // PinnedConnection represents a Connection that can be pinned by one or more cursors or transactions. Implementations
 // of this interface should maintain the following invariants:
@@ -229,7 +229,7 @@ func (ssd SingleConnectionDeployment) Connection(context.Context) (Connection, e
 
 // RTTMonitor implements the driver.Server interface.
 func (ssd SingleConnectionDeployment) RTTMonitor() RTTMonitor {
-	return &internal.TestRTTMonitor{}
+	return &internal.ZeroRTTMonitor{}
 }
 
 // TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using 2 bits for the mode and 1

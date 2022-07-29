@@ -457,7 +457,7 @@ func (lbcd *loadBalancedCursorDeployment) Connection(_ context.Context) (Connect
 
 // RTTMonitor implements the driver.Server interface.
 func (lbcd *loadBalancedCursorDeployment) RTTMonitor() RTTMonitor {
-	return &internal.TestRTTMonitor{}
+	return &internal.ZeroRTTMonitor{}
 }
 
 func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {
