@@ -29,6 +29,12 @@ type MongoCrypt struct {
 	wrapped *C.mongocrypt_t
 }
 
+// MongoCryptVersion returns the version string for the loaded libmongocrypt, or an empty string
+// if libmongocrypt was not loaded.
+func MongoCryptVersion() string {
+	str := C.GoString(C.mongocrypt_version(nil))
+	return str
+}
 // NewMongoCrypt constructs a new MongoCrypt instance configured using the provided MongoCryptOptions.
 func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	// create mongocrypt_t handle
