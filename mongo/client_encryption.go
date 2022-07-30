@@ -255,7 +255,7 @@ func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interf
 
 	// libmongocrypt versions 1.5.0 and 1.5.1 have a severe bug in RewrapManyDataKey.
 	// Check if the version string starts with 1.5.0 or 1.5.1. This accounts for pre-release versions, like 1.5.0-rc0.
-	libmongocryptVersion := mongocrypt.MongoCryptVersion()
+	libmongocryptVersion := mongocrypt.Version()
 	if strings.Index(libmongocryptVersion, "1.5.0") == 0 || strings.Index(libmongocryptVersion, "1.5.1") == 0 {
 		return nil, fmt.Errorf("RewrapManyDataKey requires libmongocrypt 1.5.2 or newer. Detected version: %v", libmongocryptVersion)
 	}

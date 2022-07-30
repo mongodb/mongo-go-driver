@@ -29,9 +29,9 @@ type MongoCrypt struct {
 	wrapped *C.mongocrypt_t
 }
 
-// MongoCryptVersion returns the version string for the loaded libmongocrypt, or an empty string
+// Version returns the version string for the loaded libmongocrypt, or an empty string
 // if libmongocrypt was not loaded.
-func MongoCryptVersion() string {
+func Version() string {
 	str := C.GoString(C.mongocrypt_version(nil))
 	return str
 }

@@ -19,9 +19,9 @@ const cseNotSupportedMsg = "client-side encryption not enabled. add the cse buil
 // MongoCrypt represents a mongocrypt_t handle.
 type MongoCrypt struct{}
 
-// MongoCryptVersion returns the version string for the loaded libmongocrypt, or an empty string
+// Version returns the version string for the loaded libmongocrypt, or an empty string
 // if libmongocrypt was not loaded.
-func MongoCryptVersion() string {
+func Version() string {
 	return ""
 }
 
