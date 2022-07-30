@@ -110,7 +110,7 @@
 // - Go Driver v1.2.0 requires libmongocrypt v1.0.0 or higher
 // - Go Driver v1.5.0 requires libmongocrypt v1.1.0 or higher
 // - Go Driver v1.8.0 requires libmongocrypt v1.3.0 or higher
-// - Go Driver v1.10.0 requires libmongocrypt v1.5.0 or higher
+// - Go Driver v1.10.0 requires libmongocrypt v1.5.2 or higher
 //
 // To install libmongocrypt, follow the instructions for your
 // operating system:
