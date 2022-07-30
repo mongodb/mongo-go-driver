@@ -95,6 +95,7 @@ functions:
           go env
 
           LIBMONGOCRYPT_BRANCH="r1.5"
+          LIBMONGOCRYPT_TAG="1.5.2"
           # LIBMONGOCRYPT_COMMIT is the commit on libmongocrypt for the tag LIBMONGOCRYPT_TAG.
           LIBMONGOCRYPT_COMMIT="8f8675fa11922f00a4516a7f8a60621aa1ca1550"
           # Install libmongocrypt based on OS.
