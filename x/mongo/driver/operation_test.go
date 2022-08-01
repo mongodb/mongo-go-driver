@@ -724,12 +724,8 @@ func (ms *mockRetryServer) Connection(ctx context.Context) (Connection, error) {
 	return nil, retryableError{error: errors.New("test error")}
 }
 
-func (ms *mockRetryServer) MinRTT() time.Duration {
-	return 0
-}
-
-func (ms *mockRetryServer) RTT90() time.Duration {
-	return 0
+func (ms *mockRetryServer) RTTMonitor() RTTMonitor {
+	return &internal.ZeroRTTMonitor{}
 }
 
 func TestRetry(t *testing.T) {

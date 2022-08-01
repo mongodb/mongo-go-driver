@@ -479,12 +479,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				remainingTimeout := time.Until(deadline)
 
 				maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
-					int64(srvr.RTT90()/time.Millisecond)
+					int64(srvr.RTTMonitor().P90()/time.Millisecond)
 
 				// A maxTimeMS value <= 0 indicates that we are already at or past the Context's deadline.
 				if maxTimeMSVal <= 0 {
 					return internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-						"Context deadline has already been surpassed by %v", remainingTimeout)
+						"remaining time %v until context deadline is less than or equal to 90th percentile RTT\n%v",
+						remainingTimeout, srvr.RTTMonitor().Stats())
 				}
 				maxTimeMS = uint64(maxTimeMSVal)
 			}
@@ -533,10 +534,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// a Timeout Context, use the 90th percentile RTT as a threshold. Otherwise, use the minimum observed
 		// RTT.
 		if deadline, ok := ctx.Deadline(); ok {
-			if internal.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTT90()).After(deadline) {
+			if internal.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
 				err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", time.Until(deadline))
-			} else if time.Now().Add(srvr.MinRTT()).After(deadline) {
+					"remaining time %v until context deadline is less than 90th percentile RTT\n%v", time.Until(deadline), srvr.RTTMonitor().Stats())
+			} else if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
 				err = op.networkError(context.DeadlineExceeded)
 			}
 		}

@@ -107,6 +107,13 @@ func IsTimeout(err error) bool {
 		if err == driver.ErrDeadlineWouldBeExceeded {
 			return true
 		}
+		if ce, ok := err.(CommandError); ok && ce.IsMaxTimeMSExpiredError() {
+			return true
+		}
+		if we, ok := err.(WriteException); ok && we.WriteConcernError != nil &&
+			we.WriteConcernError.IsMaxTimeMSExpiredError() {
+			return true
+		}
 		if ne, ok := err.(net.Error); ok {
 			return ne.Timeout()
 		}
@@ -363,6 +370,11 @@ func (wce WriteConcernError) Error() string {
 		return fmt.Sprintf("(%v) %v", wce.Name, wce.Message)
 	}
 	return wce.Message
+}
+
+// IsMaxTimeMSExpiredError returns true if the error is a MaxTimeMSExpired error.
+func (wce WriteConcernError) IsMaxTimeMSExpiredError() bool {
+	return wce.Code == 50
 }
 
 // WriteException is the error type returned by the InsertOne, DeleteOne, DeleteMany, UpdateOne, UpdateMany, and

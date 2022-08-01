@@ -539,7 +539,7 @@ func TestClient(t *testing.T) {
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.MinRTT() <= 250*time.Millisecond {
+					if server.RTTMonitor().Min() <= 250*time.Millisecond {
 						done = false
 					}
 				}
@@ -585,7 +585,7 @@ func TestClient(t *testing.T) {
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.MinRTT() <= 250*time.Millisecond {
+					if server.RTTMonitor().Min() <= 250*time.Millisecond {
 						done = false
 					}
 				}
@@ -638,7 +638,7 @@ func TestClient(t *testing.T) {
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTT90() <= 300*time.Millisecond {
+					if server.RTTMonitor().P90() <= 300*time.Millisecond {
 						done = false
 					}
 				}
@@ -691,7 +691,7 @@ func TestClient(t *testing.T) {
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTT90() <= 275*time.Millisecond {
+					if server.RTTMonitor().P90() <= 275*time.Millisecond {
 						done = false
 					}
 				}
