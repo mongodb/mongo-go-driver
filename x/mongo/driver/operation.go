@@ -400,6 +400,18 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				return err
 			}
 			defer conn.Close()
+
+			// Set the server if it has not already been set and the session type is implicit. This will
+			// limit the number of implicit sessions to no greater than an application's maxPoolSize
+			// (ignoring operations that hold on to the session like cursors).
+			if op.Client != nil && op.Client.Server == nil && op.Client.SessionType == session.Implicit {
+				if op.Client.Terminated {
+					return fmt.Errorf("unexpected nil session for a terminated implicit session")
+				}
+				if err := op.Client.SetServer(); err != nil {
+					return err
+				}
+			}
 		}
 
 		// Run steps that must only be run on the first attempt, but not again for retries.
