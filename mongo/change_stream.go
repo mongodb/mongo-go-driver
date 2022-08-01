@@ -257,6 +257,9 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.replaceOptions(cs.wireVersion)
 
 		csOptDoc := cs.createPipelineOptionsDoc()
+		if cs.err != nil {
+			return cs.Err()
+		}
 		pipIdx, pipDoc := bsoncore.AppendDocumentStart(nil)
 		pipDoc = bsoncore.AppendDocumentElement(pipDoc, "$changeStream", csOptDoc)
 		if pipDoc, cs.err = bsoncore.AppendDocumentEnd(pipDoc, pipIdx); cs.err != nil {
