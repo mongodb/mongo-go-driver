@@ -1,5 +1,5 @@
 {
-  "description": "createDataKey-provider-invalid",
+  "description": "createDataKey-kms_providers-invalid",
   "schemaVersion": "1.8",
   "runOnRequirements": [
     {
@@ -24,7 +24,14 @@
           "keyVaultClient": "client0",
           "keyVaultNamespace": "keyvault.datakeys",
           "kmsProviders": {
-            "aws": {}
+            "aws": {
+              "accessKeyId": {
+                "$$placeholder": 1
+              },
+              "secretAccessKey": {
+                "$$placeholder": 1
+              }
+            }
           }
         }
       }

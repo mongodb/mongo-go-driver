@@ -120,25 +120,25 @@ func TestRTTMonitor(t *testing.T) {
 
 		assert.Eventuallyf(
 			t,
-			func() bool { return rtt.getRTT() > 0 && rtt.getMinRTT() > 0 && rtt.getRTT90() > 0 },
+			func() bool { return rtt.EWMA() > 0 && rtt.Min() > 0 && rtt.P90() > 0 },
 			1*time.Second,
 			10*time.Millisecond,
-			"expected getRTT(), getMinRTT() and getRTT90() to return positive durations within 1 second")
+			"expected EWMA(), Min() and P90() to return positive durations within 1 second")
 		assert.True(
 			t,
-			rtt.getRTT() > 0,
-			"expected getRTT() to return a positive duration, got %v",
-			rtt.getRTT())
+			rtt.EWMA() > 0,
+			"expected EWMA() to return a positive duration, got %v",
+			rtt.EWMA())
 		assert.True(
 			t,
-			rtt.getMinRTT() > 0,
-			"expected getMinRTT() to return a positive duration, got %v",
-			rtt.getMinRTT())
+			rtt.Min() > 0,
+			"expected Min() to return a positive duration, got %v",
+			rtt.Min())
 		assert.True(
 			t,
-			rtt.getRTT90() > 0,
-			"expected getRTT90() to return a positive duration, got %v",
-			rtt.getRTT90())
+			rtt.P90() > 0,
+			"expected P90() to return a positive duration, got %v",
+			rtt.P90())
 	})
 
 	t.Run("creates the correct size samples slice", func(t *testing.T) {
@@ -220,22 +220,22 @@ func TestRTTMonitor(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			assert.Eventuallyf(
 				t,
-				func() bool { return rtt.getRTT() > 0 },
+				func() bool { return rtt.EWMA() > 0 },
 				1*time.Second,
 				10*time.Millisecond,
-				"expected getRTT() to return a positive duration within 1 second")
+				"expected EWMA() to return a positive duration within 1 second")
 			assert.Eventuallyf(
 				t,
-				func() bool { return rtt.getMinRTT() > 0 },
+				func() bool { return rtt.Min() > 0 },
 				1*time.Second,
 				10*time.Millisecond,
-				"expected getMinRTT() to return a positive duration within 1 second")
+				"expected Min() to return a positive duration within 1 second")
 			assert.Eventuallyf(
 				t,
-				func() bool { return rtt.getRTT90() > 0 },
+				func() bool { return rtt.P90() > 0 },
 				1*time.Second,
 				10*time.Millisecond,
-				"expected getRTT90() to return a positive duration within 1 second")
+				"expected P90() to return a positive duration within 1 second")
 			rtt.reset()
 		}
 	})
@@ -322,22 +322,22 @@ func TestRTTMonitor(t *testing.T) {
 
 		assert.Eventuallyf(
 			t,
-			func() bool { return rtt.getRTT() > 0 },
+			func() bool { return rtt.EWMA() > 0 },
 			1*time.Second,
 			10*time.Millisecond,
-			"expected getRTT() to return a positive duration within 1 second")
+			"expected EWMA() to return a positive duration within 1 second")
 		assert.Eventuallyf(
 			t,
-			func() bool { return rtt.getMinRTT() > 0 },
+			func() bool { return rtt.Min() > 0 },
 			1*time.Second,
 			10*time.Millisecond,
-			"expected getMinRTT() to return a positive duration within 1 second")
+			"expected Min() to return a positive duration within 1 second")
 		assert.Eventuallyf(
 			t,
-			func() bool { return rtt.getRTT90() > 0 },
+			func() bool { return rtt.P90() > 0 },
 			1*time.Second,
 			10*time.Millisecond,
-			"expected getRTT90() to return a positive duration within 1 second")
+			"expected P90() to return a positive duration within 1 second")
 
 		rtt.disconnect()
 		l.Close()

@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestSessionPool(t *testing.T) {
@@ -358,6 +360,121 @@ func TestSessions(t *testing.T) {
 		assert.Equal(mt, err, mongo.ErrUnacknowledgedWrite,
 			"expected ErrUnacknowledgedWrite on unacknowledged write in session, got %v", err)
 	})
+
+	sessallocopts := mtest.NewOptions().ClientOptions(options.Client().SetMaxPoolSize(1).SetRetryWrites(true).
+		SetHosts(hosts[:1]))
+	mt.RunOpts("14. implicit session allocation", sessallocopts, func(mt *mtest.T) {
+		ops := map[string]func(ctx context.Context) error{
+			"insert": func(ctx context.Context) error {
+				_, err := mt.Coll.InsertOne(ctx, bson.D{})
+				return err
+			},
+			"delete": func(ctx context.Context) error {
+				_, err := mt.Coll.DeleteOne(ctx, bson.D{})
+				return err
+			},
+			"update": func(ctx context.Context) error {
+				_, err := mt.Coll.UpdateOne(ctx, bson.D{}, bson.D{{"$set", bson.D{{"a", 1}}}})
+				return err
+			},
+			"bulkWrite": func(ctx context.Context) error {
+				model := mongo.NewUpdateOneModel().
+					SetFilter(bson.D{}).
+					SetUpdate(bson.D{{"$set", bson.D{{"a", 1}}}})
+				_, err := mt.Coll.BulkWrite(ctx, []mongo.WriteModel{model})
+				return err
+			},
+			"findOneAndDelete": func(ctx context.Context) error {
+				result := mt.Coll.FindOneAndDelete(ctx, bson.D{})
+				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
+					return err
+				}
+				return nil
+			},
+			"findOneAndUpdate": func(ctx context.Context) error {
+				result := mt.Coll.FindOneAndUpdate(ctx, bson.D{},
+					bson.D{{"$set", bson.D{{"a", 1}}}})
+
+				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
+					return err
+				}
+				return nil
+			},
+			"findOneAndReplace": func(ctx context.Context) error {
+				result := mt.Coll.FindOneAndReplace(ctx, bson.D{}, bson.D{{"a", 1}})
+				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
+					return err
+				}
+				return nil
+			},
+			"find": func(ctx context.Context) error {
+				cursor, err := mt.Coll.Find(ctx, bson.D{})
+				if err != nil {
+					return err
+				}
+				return cursor.All(ctx, &bson.A{})
+			},
+		}
+
+		// maintainedOneSession asserts that exactly one session is used for all operations at least once
+		// across the retries of this test.
+		var maintainedOneSession bool
+
+		// minimumSessionCount asserts the least amount of sessions used over all the retries of the
+		// operations. For example, if we retry 5 times we could result in session use { 1, 2, 1, 1, 6 }. In
+		// this case, minimumSessionCount should be 1.
+		var minimumSessionCount int
+
+		// limitedSessionUse asserts that the number of allocated sessions is strictly less than the number of
+		// concurrent operations in every retry of this test. In this instance it would be less than (but NOT
+		// equal to the number of operations).
+		limitedSessionUse := true
+
+		retrycount := 5
+		for i := 1; i <= retrycount; i++ {
+			errs, ctx := errgroup.WithContext(context.Background())
+
+			// Execute the ops list concurrently.
+			for cmd, op := range ops {
+				op := op
+				cmd := cmd
+				errs.Go(func() error {
+					if err := op(ctx); err != nil {
+						return fmt.Errorf("error running %s operation: %v", cmd, err)
+					}
+					return nil
+				})
+			}
+			err := errs.Wait()
+			assert.Nil(mt, err, "expected no error, got: %v", err)
+
+			// Get all started events and collect them by the session ID.
+			set := make(map[string]bool)
+			for _, event := range mt.GetAllStartedEvents() {
+				lsid := event.Command.Lookup("lsid")
+				set[lsid.String()] = true
+			}
+
+			setSize := len(set)
+			if setSize == 1 {
+				maintainedOneSession = true
+			} else if setSize < minimumSessionCount || minimumSessionCount == 0 {
+				// record the minimum number of sessions we used over all retries.
+				minimumSessionCount = setSize
+			}
+
+			if setSize >= len(ops) {
+				limitedSessionUse = false
+			}
+		}
+
+		oneSessMsg := "expected one session across all %v operations for at least 1/%v retries, got: %v"
+		assert.True(mt, maintainedOneSession, oneSessMsg, len(ops), retrycount, minimumSessionCount)
+
+		limitedSessMsg := "expected session count to be less than the number of operations: %v"
+		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
+
+	})
 }
 
 func assertCollectionCount(mt *mtest.T, expectedCount int64) {
@@ -481,7 +598,11 @@ func extractReturnError(returnValues []reflect.Value) error {
 }
 
 func extractSentSessionID(mt *mtest.T) []byte {
-	lsid, err := mt.GetStartedEvent().Command.LookupErr("lsid")
+	event := mt.GetStartedEvent()
+	if event == nil {
+		return nil
+	}
+	lsid, err := event.Command.LookupErr("lsid")
 	if err != nil {
 		return nil
 	}
