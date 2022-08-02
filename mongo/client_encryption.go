@@ -249,8 +249,16 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 // RewrapManyDataKey decrypts and encrypts all matching data keys with a possibly new masterKey value. For all
 // matching documents, this method will overwrite the "masterKey", "updateDate", and "keyMaterial". On error, some
 // matching data keys may have been rewrapped.
+// libmongocrypt 1.5.2 is required. An error is returned if the detected version of libmongocrypt is less than 1.5.2.
 func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interface{},
 	opts ...*options.RewrapManyDataKeyOptions) (*RewrapManyDataKeyResult, error) {
+
+	// libmongocrypt versions 1.5.0 and 1.5.1 have a severe bug in RewrapManyDataKey.
+	// Check if the version string starts with 1.5.0 or 1.5.1. This accounts for pre-release versions, like 1.5.0-rc0.
+	libmongocryptVersion := mongocrypt.Version()
+	if strings.HasPrefix(libmongocryptVersion, "1.5.0") || strings.HasPrefix(libmongocryptVersion, "1.5.1") {
+		return nil, fmt.Errorf("RewrapManyDataKey requires libmongocrypt 1.5.2 or newer. Detected version: %v", libmongocryptVersion)
+	}
 
 	rmdko := options.MergeRewrapManyDataKeyOptions(opts...)
 	if ctx == nil {

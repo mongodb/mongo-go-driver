@@ -19,6 +19,12 @@ const cseNotSupportedMsg = "client-side encryption not enabled. add the cse buil
 // MongoCrypt represents a mongocrypt_t handle.
 type MongoCrypt struct{}
 
+// Version returns the version string for the loaded libmongocrypt, or an empty string
+// if libmongocrypt was not loaded.
+func Version() string {
+	return ""
+}
+
 // NewMongoCrypt constructs a new MongoCrypt instance configured using the provided MongoCryptOptions.
 func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	panic(cseNotSupportedMsg)
