@@ -1966,7 +1966,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							if val, ok := dataKeyMap[dstProvider]; ok {
 								rwOpts.SetMasterKey(val)
 							}
-							res, err := clientEncryption2.RewrapManyDataKey(context.Background(), bson.D{{}}, rwOpts)
+							res, err := clientEncryption2.RewrapManyDataKey(context.Background(), bson.D{}, rwOpts)
 							assert.Nil(mt, err, "error in RewrapManyDataKey: %v", err)
 							assert.Equal(mt, res.BulkWriteResult.ModifiedCount, int64(1), "expected ModifiedCount of 1, got %v", res.BulkWriteResult.ModifiedCount)
 						}
