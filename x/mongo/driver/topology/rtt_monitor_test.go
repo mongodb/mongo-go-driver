@@ -34,10 +34,10 @@ func makeHelloReply() []byte {
 var _ net.Conn = &mockSlowConn{}
 
 type mockSlowConn struct {
-	reader *bytes.Reader
-	delay  time.Duration
-	closed atomic.Value
-	buf    *bytes.Buffer
+	reader    *bytes.Reader
+	delay     time.Duration
+	closed    atomic.Value
+	needDelay bool
 }
 
 // newMockSlowConn returns a net.Conn that reads from the specified response after blocking for a
@@ -48,34 +48,26 @@ func newMockSlowConn(response []byte, delay time.Duration) *mockSlowConn {
 	closed.Store(false)
 
 	return &mockSlowConn{
-		reader: bytes.NewReader(response),
-		delay:  delay,
-		closed: closed,
-		buf:    bytes.NewBuffer(nil),
+		reader:    bytes.NewReader(response),
+		delay:     delay,
+		closed:    closed,
+		needDelay: true,
 	}
 }
 
 func (msc *mockSlowConn) Read(b []byte) (int, error) {
+	if msc.needDelay {
+		time.Sleep(msc.delay)
+		msc.needDelay = false
+	}
 	if msc.closed.Load().(bool) {
 		return 0, io.ErrUnexpectedEOF
 	}
-	if msc.buf.Len() == 0 {
-		time.Sleep(msc.delay)
-		var sizeBuf [4]byte
-		n, err := io.ReadFull(msc.reader, sizeBuf[:])
-		if err != nil {
-			return n, err
-		}
-		size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
-		dst := make([]byte, size)
-		copy(dst, sizeBuf[:])
-		n, err = io.ReadFull(msc.reader, dst[4:])
-		if err != nil {
-			return n, err
-		}
-		msc.buf.Write(dst)
+	n, err := msc.reader.Read(b)
+	if msc.reader.Len() == 0 {
+		msc.needDelay = true
 	}
-	return msc.buf.Read(b)
+	return n, err
 }
 
 func (msc *mockSlowConn) Write(b []byte) (int, error) {

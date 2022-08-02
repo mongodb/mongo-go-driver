@@ -101,17 +101,18 @@ type slowConn struct {
 func (sc *slowConn) Read(b []byte) (n int, err error) {
 	if sc.buf.Len() == 0 {
 		time.Sleep(sc.delay)
+		var err error
 		var sizeBuf [4]byte
-		n, err := io.ReadFull(sc.Conn, sizeBuf[:])
+		_, err = io.ReadFull(sc.Conn, sizeBuf[:])
 		if err != nil {
-			return n, err
+			return 0, err
 		}
 		size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
 		dst := make([]byte, size)
 		copy(dst, sizeBuf[:])
-		n, err = io.ReadFull(sc.Conn, dst[4:])
+		_, err = io.ReadFull(sc.Conn, dst[4:])
 		if err != nil {
-			return n, err
+			return 0, err
 		}
 		sc.buf.Write(dst)
 	}
