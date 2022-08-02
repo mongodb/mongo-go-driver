@@ -258,7 +258,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 
 		csOptDoc, err := cs.createPipelineOptionsDoc()
 		if err != nil {
-			return cs.Err()
+			return err
 		}
 		pipIdx, pipDoc := bsoncore.AppendDocumentStart(nil)
 		pipDoc = bsoncore.AppendDocumentElement(pipDoc, "$changeStream", csOptDoc)
@@ -389,7 +389,7 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 
 	csDocTemp, err := cs.createPipelineOptionsDoc()
 	if err != nil {
-		return cs.err
+		return err
 	}
 	csDoc = bsoncore.AppendDocumentElement(csDoc, "$changeStream", csDocTemp)
 	csDoc, cs.err = bsoncore.AppendDocumentEnd(csDoc, csIdx)
