@@ -10,6 +10,7 @@
 package topology
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net"
@@ -41,6 +42,7 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 		Written:  make(chan []byte, 1),
 		ReadResp: make(chan []byte, 2),
 		ReadErr:  make(chan error, 1),
+		Buf:      bytes.NewBuffer(nil),
 	}
 	if err := cnc.AddResponse(makeHelloReply()); err != nil {
 		return nil, err

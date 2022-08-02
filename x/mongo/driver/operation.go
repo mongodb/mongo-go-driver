@@ -796,9 +796,9 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) ([]byt
 	if err != nil {
 		return nil, err
 	}
-	// defer func() {
-	// 	err = wm.Close()
-	// }()
+	defer func() {
+		err = src.Close()
+	}()
 
 	// decompress wiremessage
 	/*
@@ -1538,7 +1538,7 @@ func (op Operation) decodeResult(wm *wiremessage.SrcStream) (bsoncore.Document, 
 		isMsgMoreToCome = flag&wiremessage.MoreToCome == wiremessage.MoreToCome
 
 		var res bsoncore.Document
-		for {
+		for err != io.EOF {
 			var stype wiremessage.SectionType
 			stype, err = wm.ReadMsgSectionType()
 			if err != nil {

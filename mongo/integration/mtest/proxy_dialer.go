@@ -7,6 +7,7 @@
 package mtest
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -71,6 +72,7 @@ func (p *proxyDialer) DialContext(ctx context.Context, network, address string) 
 	proxy := &proxyConn{
 		Conn:   netConn,
 		dialer: p,
+		buf:    bytes.NewBuffer(nil),
 	}
 	return proxy, nil
 }
@@ -143,6 +145,7 @@ func (p *proxyDialer) Messages() []*ProxyMessage {
 type proxyConn struct {
 	net.Conn
 	dialer *proxyDialer
+	buf    *bytes.Buffer
 }
 
 // Write stores the given message in the proxyDialer associated with this connection and forwards the message to the
@@ -159,6 +162,25 @@ func (pc *proxyConn) Write(wm []byte) (n int, err error) {
 // Read reads the message from the server into the given buffer and stores the read message in the proxyDialer
 // associated with this connection.
 func (pc *proxyConn) Read(buffer []byte) (int, error) {
+	if pc.buf.Len() == 0 {
+		var sizeBuf [4]byte
+		n, err := pc.read(sizeBuf[:])
+		if err != nil {
+			return n, err
+		}
+		size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
+		dst := make([]byte, size)
+		copy(dst, sizeBuf[:])
+		n, err = pc.read(dst[4:])
+		if err != nil {
+			return n, err
+		}
+		pc.buf.Write(dst)
+	}
+	return pc.buf.Read(buffer)
+}
+
+func (pc *proxyConn) read(buffer []byte) (int, error) {
 	n, err := pc.Conn.Read(buffer)
 	if err != nil {
 		return n, err

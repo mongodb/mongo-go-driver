@@ -37,6 +37,7 @@ type mockSlowConn struct {
 	reader *bytes.Reader
 	delay  time.Duration
 	closed atomic.Value
+	buf    *bytes.Buffer
 }
 
 // newMockSlowConn returns a net.Conn that reads from the specified response after blocking for a
@@ -50,15 +51,31 @@ func newMockSlowConn(response []byte, delay time.Duration) *mockSlowConn {
 		reader: bytes.NewReader(response),
 		delay:  delay,
 		closed: closed,
+		buf:    bytes.NewBuffer(nil),
 	}
 }
 
 func (msc *mockSlowConn) Read(b []byte) (int, error) {
-	time.Sleep(msc.delay)
 	if msc.closed.Load().(bool) {
 		return 0, io.ErrUnexpectedEOF
 	}
-	return msc.reader.Read(b)
+	if msc.buf.Len() == 0 {
+		time.Sleep(msc.delay)
+		var sizeBuf [4]byte
+		n, err := io.ReadFull(msc.reader, sizeBuf[:])
+		if err != nil {
+			return n, err
+		}
+		size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
+		dst := make([]byte, size)
+		copy(dst, sizeBuf[:])
+		n, err = io.ReadFull(msc.reader, dst[4:])
+		if err != nil {
+			return n, err
+		}
+		msc.buf.Write(dst)
+	}
+	return msc.buf.Read(b)
 }
 
 func (msc *mockSlowConn) Write(b []byte) (int, error) {

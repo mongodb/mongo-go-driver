@@ -688,17 +688,20 @@ func (op Operation) roundTripLegacy(ctx context.Context, conn Connection, wm []b
 
 	r, err := conn.ReadWireMessage(ctx)
 	if err != nil {
-		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
+		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
-	wm, err = ioutil.ReadAll(r)
+	buf, err := ioutil.ReadAll(r)
 	if err != nil {
-		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
+		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
+	idx, wm := bsoncore.ReserveLength(nil)
+	wm = append(wm, buf...)
+	wm = bsoncore.UpdateLength(wm, idx, int32(len(wm[idx:])))
 	return wm, err
 }
 
 func (op Operation) upconvertCursorResponse(wm []byte, batchIdentifier string, collName string) (bsoncore.Document, error) {
-	src, err := wiremessage.NewSrcStream(ioutil.NopCloser(bytes.NewReader(wm)))
+	src, err := wiremessage.NewSrcStream(bytes.NewReader(wm[4:]))
 	if err != nil {
 		return nil, err
 	}

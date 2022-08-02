@@ -7,6 +7,7 @@
 package drivertest
 
 import (
+	"bytes"
 	"errors"
 	"net"
 	"time"
@@ -18,17 +19,20 @@ type ChannelNetConn struct {
 	Written  chan []byte
 	ReadResp chan []byte
 	ReadErr  chan error
+	Buf      *bytes.Buffer
 }
 
 // Read reads data from the connection
 func (c *ChannelNetConn) Read(b []byte) (int, error) {
-	var wm []byte
-	var err error
-	select {
-	case wm = <-c.ReadResp:
-	case err = <-c.ReadErr:
+	if c.Buf.Len() == 0 {
+		select {
+		case wm := <-c.ReadResp:
+			c.Buf.Write(wm)
+		case err := <-c.ReadErr:
+			return 0, err
+		}
 	}
-	return copy(b, wm), err
+	return c.Buf.Read(b)
 }
 
 // Write writes data to the connection.

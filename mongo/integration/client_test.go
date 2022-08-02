@@ -7,8 +7,10 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"reflect"
@@ -82,6 +84,7 @@ func (scd *slowConnDialer) DialContext(ctx context.Context, network, address str
 	return &slowConn{
 		Conn:  conn,
 		delay: scd.delay,
+		buf:   bytes.NewBuffer(nil),
 	}, nil
 }
 
@@ -92,11 +95,27 @@ var _ net.Conn = &slowConn{}
 type slowConn struct {
 	net.Conn
 	delay time.Duration
+	buf   *bytes.Buffer
 }
 
 func (sc *slowConn) Read(b []byte) (n int, err error) {
-	time.Sleep(sc.delay)
-	return sc.Conn.Read(b)
+	if sc.buf.Len() == 0 {
+		time.Sleep(sc.delay)
+		var sizeBuf [4]byte
+		n, err := io.ReadFull(sc.Conn, sizeBuf[:])
+		if err != nil {
+			return n, err
+		}
+		size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
+		dst := make([]byte, size)
+		copy(dst, sizeBuf[:])
+		n, err = io.ReadFull(sc.Conn, dst[4:])
+		if err != nil {
+			return n, err
+		}
+		sc.buf.Write(dst)
+	}
+	return sc.buf.Read(b)
 }
 
 func TestClient(t *testing.T) {

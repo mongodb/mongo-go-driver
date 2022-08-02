@@ -11,7 +11,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -694,9 +693,12 @@ func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	return m.rWriteErr
 }
 
-func (m *mockConnection) ReadWireMessage(_ context.Context) (io.ReadCloser, error) {
+func (m *mockConnection) ReadWireMessage(_ context.Context) (io.Reader, error) {
 	//m.pReadDst = dst
-	return ioutil.NopCloser(bytes.NewReader(m.rReadWM)), m.rReadErr
+	if len(m.rReadWM) > 4 {
+		m.rReadWM = m.rReadWM[4:]
+	}
+	return bytes.NewReader(m.rReadWM), m.rReadErr
 }
 
 type retryableError struct {

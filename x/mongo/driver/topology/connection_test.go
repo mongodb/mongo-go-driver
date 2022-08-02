@@ -573,8 +573,6 @@ func TestConnection(t *testing.T) {
 					if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 						t.Errorf("errors do not match. got %v; want %v", got, want)
 					}
-					got = r.Close()
-					noerr(t, got)
 					if !tnc.closed {
 						t.Errorf("failed to closeConnection net.Conn after error writing bytes.")
 					}
@@ -679,9 +677,6 @@ func TestConnection(t *testing.T) {
 							go func() {
 								r, err := conn.readWireMessage(ctx)
 								if err == nil {
-									defer func() {
-										err = r.Close()
-									}()
 									_, err = io.Copy(io.Discard, r)
 								}
 								errChan <- err
@@ -734,7 +729,7 @@ func TestConnection(t *testing.T) {
 				connState := atomic.LoadInt64(&conn.state)
 				assert.Equal(t, connDisconnected, connState, "expected connection state %v, got %v", connDisconnected, connState)
 
-				err = conn.Close()
+				err = conn.close()
 				assert.Nil(t, err, "close error: %v", err)
 			})
 		})

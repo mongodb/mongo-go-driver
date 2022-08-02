@@ -26,7 +26,7 @@ type CompressionOpts struct {
 }
 
 // NewDecompressedReader ...
-func NewDecompressedReader(r io.Reader, opts CompressionOpts) (io.Reader, error) {
+func NewDecompressedReader(r io.ReadCloser, opts CompressionOpts) (io.ReadCloser, error) {
 	switch opts.Compressor {
 	case CompressorNoOp:
 		return r, nil
@@ -36,11 +36,12 @@ func NewDecompressedReader(r io.Reader, opts CompressionOpts) (io.Reader, error)
 			return nil, err
 		}
 		uncompressed, err := snappy.Decode(nil, compressed)
-		return bytes.NewBuffer(uncompressed), err
+		return ioutil.NopCloser(bytes.NewBuffer(uncompressed)), err
 	case CompressorZLib:
 		return zlib.NewReader(r)
 	case CompressorZstd:
-		return zstd.NewReader(r)
+		zr, err := zstd.NewReader(r)
+		return ioutil.NopCloser(zr), err
 	default:
 		return nil, fmt.Errorf("unknown compressor ID %v", opts.Compressor)
 	}

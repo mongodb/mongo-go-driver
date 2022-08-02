@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"time"
 
 	"github.com/pkg/errors"
@@ -60,7 +59,7 @@ func (c *connection) WriteWireMessage(_ context.Context, wm []byte) error {
 }
 
 // ReadWireMessage returns the next response in the connection's list of responses.
-func (c *connection) ReadWireMessage(_ context.Context) (io.ReadCloser, error) {
+func (c *connection) ReadWireMessage(_ context.Context) (io.Reader, error) {
 	var dst []byte
 	if len(c.responses) == 0 {
 		return nil, errors.New("no responses remaining")
@@ -75,7 +74,7 @@ func (c *connection) ReadWireMessage(_ context.Context) (io.ReadCloser, error) {
 	resBytes, _ := bson.Marshal(nextRes)
 	dst = append(dst, resBytes...)
 	dst = bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:])))
-	return ioutil.NopCloser(bytes.NewReader(dst)), nil
+	return bytes.NewReader(dst[4:]), nil
 }
 
 // Description returns a fixed server description for the connection.

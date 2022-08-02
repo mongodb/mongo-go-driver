@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"io/ioutil"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -23,43 +24,19 @@ type SrcStream struct {
 	Opcode     OpCode
 }
 
-type ayncReader struct {
-	R io.ReadCloser
-	E chan error
-}
-
-// Read ...
-func (r *ayncReader) Read(p []byte) (int, error) {
-	n, err := r.R.Read(p)
-	select {
-	case err = <-r.E:
-	default:
-	}
-	return n, err
-}
-
-// Close ...
-func (r *ayncReader) Close() error {
-	err := r.R.Close()
-	select {
-	case err = <-r.E:
-	default:
-	}
-	return err
-}
-
 // NewSrcStream ...
-func NewSrcStream(r io.ReadCloser) (*SrcStream, error) {
-	src := make([]byte, 12)
-	_, err := io.ReadFull(r, src)
+func NewSrcStream(r io.Reader) (*SrcStream, error) {
+	var err error
+	var headerBuf [12]byte
+	_, err = io.ReadFull(r, headerBuf[:])
 	if err != nil {
-		return nil, err
+		return nil, errors.New("incomplete read of message header")
 	}
 	stream := &SrcStream{
-		r,
-		readi32unsafe(src[0:4]),
-		readi32unsafe(src[4:8]),
-		OpCode(readi32unsafe(src[8:12])),
+		ioutil.NopCloser(r),
+		readi32unsafe(headerBuf[0:4]),
+		readi32unsafe(headerBuf[4:8]),
+		OpCode(readi32unsafe(headerBuf[8:12])),
 	}
 
 	if stream.Opcode != OpCompressed {
@@ -84,21 +61,21 @@ func NewSrcStream(r io.ReadCloser) (*SrcStream, error) {
 		Compressor:       compressorID,
 		UncompressedSize: uncompressedSize,
 	}
-	uncompressed, err := NewDecompressedReader(stream, opts)
+	uncompressed, err := NewDecompressedReader(stream.ReadCloser, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	piper, pipew := io.Pipe()
-	errCh := make(chan error)
-	stream.ReadCloser = &ayncReader{piper, errCh}
-	go func(w io.Writer, r io.Reader, errCh chan error) {
-		_, err := io.Copy(w, r)
-		if err != nil {
-			errCh <- err
-		}
-		errCh <- nil
-	}(pipew, uncompressed, errCh)
+	stream.ReadCloser = piper
+	go func(w *io.PipeWriter, r io.ReadCloser) {
+		var err error
+		defer func() {
+			err = r.Close()
+			err = w.CloseWithError(err)
+		}()
+		_, err = io.Copy(w, r)
+	}(pipew, uncompressed)
 
 	return stream, nil
 }
