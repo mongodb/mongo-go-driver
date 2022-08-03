@@ -27,7 +27,6 @@ var DefaultResolver = &Resolver{net.LookupSRV, net.LookupTXT}
 // ParseHosts uses the srv string and service name to get the hosts.
 func (r *Resolver) ParseHosts(host string, srvName string, stopOnErr bool) ([]string, error) {
 	parsedHosts := strings.Split(host, ",")
-
 	if len(parsedHosts) != 1 {
 		return nil, fmt.Errorf("URI with SRV must include one and only one hostname")
 	}
@@ -87,6 +86,7 @@ func (r *Resolver) fetchSeedlistFromSRV(host string, srvName string, stopOnErr b
 	trimmedHost := strings.TrimSuffix(host, ".")
 
 	parsedHosts := make([]string, 0, len(addresses))
+	fmt.Printf("addresses: %v\n", addresses)
 	for _, address := range addresses {
 		trimmedAddressTarget := strings.TrimSuffix(address.Target, ".")
 		err := validateSRVResult(trimmedAddressTarget, trimmedHost)

@@ -81,6 +81,8 @@ func newConfigPrototype(
 	opts ...Option,
 ) (*config, error) {
 
+	fmt.Println("1.a")
+
 	var clusterClock *session.ClusterClock = nil
 	var defaultMaxPoolSize uint64 = 100
 	var serverAPI *driver.ServerAPIOptions = nil
@@ -259,6 +261,7 @@ func newConfigPrototype(
 	// Hosts
 	hosts := []string{"localhost:27017"} // default host
 	if len(co.Hosts) > 0 {
+		fmt.Printf("hosts from topology options: %v", co.Hosts)
 		hosts = co.Hosts
 	}
 	topologyOpts = append(topologyOpts, WithSeedList(
@@ -404,6 +407,7 @@ func newConfigPrototype(
 			WithDisableOCSPEndpointCheck(func(bool) bool { return *co.DisableOCSPEndpointCheck }),
 		)
 	}
+	fmt.Println(1)
 
 	// LoadBalanced
 	if co.LoadBalanced != nil {

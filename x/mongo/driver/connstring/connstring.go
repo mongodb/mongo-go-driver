@@ -305,6 +305,7 @@ func (p *parser) parse(original string) error {
 		}
 	}
 
+	fmt.Printf("parsedHosts: %v\n", parsedHosts)
 	// do SRV lookup if "mongodb+srv://"
 	if p.Scheme == SchemeMongoDBSRV {
 		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, p.SRVServiceName, true)
@@ -320,8 +321,10 @@ func (p *parser) parse(original string) error {
 			})
 			parsedHosts = parsedHosts[:p.SRVMaxHosts]
 		}
+
 	}
 
+	fmt.Printf("parsedHosts: %v\n", parsedHosts)
 	for _, host := range parsedHosts {
 		err = p.addHost(host)
 		if err != nil {
@@ -331,6 +334,7 @@ func (p *parser) parse(original string) error {
 	if len(p.Hosts) == 0 {
 		return fmt.Errorf("must have at least 1 host")
 	}
+	fmt.Printf("hosts in parse(2): %v\n", p.Hosts)
 
 	err = p.setDefaultAuthParams(extractedDatabase.db)
 	if err != nil {

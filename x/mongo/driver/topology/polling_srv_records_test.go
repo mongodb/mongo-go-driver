@@ -8,6 +8,7 @@ package topology
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sort"
 	"strings"
@@ -43,6 +44,7 @@ func newMockResolver(recordsToAdd []*net.SRV, recordsToRemove []*net.SRV, lookup
 }
 
 func (r *mockResolver) LookupSRV(service, proto, name string) (string, []*net.SRV, error) {
+	fmt.Println("mockResolver.LookupSRV")
 	atomic.AddInt32(&r.ranLookup, 1)
 	if r.lookupFail {
 		return "", nil, &net.DNSError{}
@@ -51,6 +53,10 @@ func (r *mockResolver) LookupSRV(service, proto, name string) (string, []*net.SR
 		return "", nil, &net.DNSError{IsTimeout: true}
 	}
 	str, addresses, err := net.LookupSRV(service, proto, name)
+	fmt.Printf("str: %v\n", str)
+	fmt.Printf("addresses: %v\n", addresses)
+	fmt.Printf("proto: %v\n", proto)
+	fmt.Printf("name: %v\n", name)
 	if err != nil {
 		return str, addresses, err
 	}
@@ -247,11 +253,6 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 		assert.Nil(t, err, "topology.New error: %v", err)
 		return topo
 	}
-
-	t.Run("pollingRequired is set to false", func(t *testing.T) {
-		topo := createLBTopology(t, "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
-		assert.False(t, topo.pollingRequired, "expected SRV polling to not be required, but it is")
-	})
 
 	t.Run("new records are not detected", func(t *testing.T) {
 		recordsToAdd := []*net.SRV{{"localhost.test.build.10gen.cc.", 27019, 0, 0}}

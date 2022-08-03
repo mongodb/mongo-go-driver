@@ -149,6 +149,8 @@ func NewPrototype(co *options.ClientOptions, opts ...Option) (*Topology, error) 
 
 	t.publishTopologyOpeningEvent()
 
+	fmt.Printf("polling required: %v\n", t.pollingRequired)
+
 	return t, nil
 }
 

@@ -198,6 +198,7 @@ func (c *ClientOptions) validate() error {
 
 	// Validation for load-balanced mode.
 	if c.LoadBalanced != nil && *c.LoadBalanced {
+		fmt.Printf("hosts: %v\n", c.Hosts)
 		if len(c.Hosts) > 1 {
 			return internal.ErrLoadBalancedWithMultipleHosts
 		}
