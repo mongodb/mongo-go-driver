@@ -612,6 +612,7 @@ func (p *parser) addOption(pair string) error {
 	}
 
 	lowerKey := strings.ToLower(key)
+	fmt.Printf("parser.addOption `lowerKey`: %v\n", lowerKey)
 	switch lowerKey {
 	case "appname":
 		p.AppName = value
@@ -699,6 +700,7 @@ func (p *parser) addOption(pair string) error {
 
 		p.JSet = true
 	case "loadbalanced":
+		fmt.Println("loadbalanced")
 		switch value {
 		case "true":
 			p.LoadBalanced = true

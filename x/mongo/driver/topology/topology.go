@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 )
@@ -117,6 +118,38 @@ func newServerSelectionState(selector description.ServerSelector, timeoutChan <-
 		selector:    selector,
 		timeoutChan: timeoutChan,
 	}
+}
+
+// NewPrototype creates a new topology using client options.
+func NewPrototype(co *options.ClientOptions, opts ...Option) (*Topology, error) {
+	cfg, err := newConfigPrototype(co, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	t := &Topology{
+		cfg:               cfg,
+		done:              make(chan struct{}),
+		pollingDone:       make(chan struct{}),
+		rescanSRVInterval: 60 * time.Second,
+		fsm:               newFSM(),
+		subscribers:       make(map[uint64]chan description.Topology),
+		servers:           make(map[address.Address]*Server),
+		dnsResolver:       dns.DefaultResolver,
+		id:                primitive.NewObjectID(),
+	}
+	t.desc.Store(description.Topology{})
+	t.updateCallback = func(desc description.Server) description.Server {
+		return t.apply(context.TODO(), desc)
+	}
+
+	if t.cfg.uri != "" {
+		t.pollingRequired = strings.HasPrefix(t.cfg.uri, "mongodb+srv://") && !t.cfg.loadBalanced
+	}
+
+	t.publishTopologyOpeningEvent()
+
+	return t, nil
 }
 
 // New creates a new topology.
