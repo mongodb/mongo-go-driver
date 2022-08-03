@@ -94,9 +94,10 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.5.0"
+          LIBMONGOCRYPT_BRANCH="r1.5"
+          LIBMONGOCRYPT_TAG="1.5.2"
           # LIBMONGOCRYPT_COMMIT is the commit on libmongocrypt for the tag LIBMONGOCRYPT_TAG.
-          LIBMONGOCRYPT_COMMIT="c3be59f9b0d756caa4c22c254e0704084cf6bca4"
+          LIBMONGOCRYPT_COMMIT="8f8675fa11922f00a4516a7f8a60621aa1ca1550"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
@@ -105,7 +106,7 @@ functions:
              mkdir libmongocrypt-all
              cd libmongocrypt-all
              # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_BRANCH/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
              tar -xf libmongocrypt-all.tar.gz
              cd ..
              cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
@@ -120,7 +121,7 @@ functions:
              mkdir libmongocrypt-all
              cd libmongocrypt-all
              # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_BRANCH/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
              tar -xf libmongocrypt-all.tar.gz
              cd ..
              mv libmongocrypt-all/macos/include ./install/libmongocrypt
