@@ -393,13 +393,13 @@ func (c *crypt) decryptKey(kmsCtx *mongocrypt.KmsContext) error {
 // needsKmsProvider returns true if provider was initially set to an empty document.
 // An empty document signals the driver to fetch credentials.
 func needsKmsProvider(kmsProviders *bsoncore.Document, provider string) bool {
-	gcpVal, err := kmsProviders.LookupErr(provider)
+	val, err := kmsProviders.LookupErr(provider)
 	if err != nil {
 		// KMS provider is not configured.
 		return false
 	}
-	gcpDoc, ok := gcpVal.DocumentOK()
-	if !ok || len(gcpDoc) != 5 {
+	doc, ok := val.DocumentOK()
+	if !ok || len(doc) != 5 {
 		// KMS provider is not an empty document.
 		return false
 	}
