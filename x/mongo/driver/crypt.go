@@ -399,11 +399,8 @@ func needsKmsProvider(kmsProviders *bsoncore.Document, provider string) bool {
 		return false
 	}
 	doc, ok := val.DocumentOK()
-	if !ok || len(doc) != 5 {
-		// KMS provider is not an empty document.
-		return false
-	}
-	return true
+	// KMS provider is an empty document.
+	return ok && len(doc) == 5
 }
 
 func (c *crypt) provideKmsProviders(cryptCtx *mongocrypt.Context) error {
