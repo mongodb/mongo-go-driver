@@ -10,6 +10,7 @@ package mongocrypt
 type State int
 
 // These constants are valid values for the State type.
+// The values must match the values defined in the mongocrypt_ctx_state_t enum in libmongocrypt.
 const (
 	StateError         State = 0
 	NeedMongoCollInfo  State = 1
