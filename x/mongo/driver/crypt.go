@@ -403,6 +403,43 @@ func needsKmsProvider(kmsProviders *bsoncore.Document, provider string) bool {
 	return ok && len(doc) == 5
 }
 
+func getGCPAccessToken(ctx context.Context) (string, error) {
+	metadataHost := "metadata.google.internal"
+	if os.Getenv("GCE_METADATA_HOST") != "" {
+		metadataHost = os.Getenv("GCE_METADATA_HOST")
+	}
+	url := fmt.Sprintf("http://%s/computeMetadata/v1/instance/service-accounts/default/token", metadataHost)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
+	}
+	req.Header.Set("Metadata-Flavor", "Google")
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	if err != nil {
+		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading response body")
+	}
+	if resp.StatusCode != 200 {
+		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: expected StatusCode 200, got StatusCode: %v. Response body: %v", resp.StatusCode, resp.Body)
+	}
+	var tokenResponse struct {
+		AccessToken string `json:"access_token"`
+	}
+	// Attempt to read body as JSON
+	err = json.Unmarshal(body, &tokenResponse)
+	if err != nil {
+		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading body JSON")
+	}
+	if tokenResponse.AccessToken == "" {
+		return "", fmt.Errorf("unable to retrieve GCP credentials: got unexpected empty accessToken from GCP Metadata Server. Response body: %s", body)
+	}
+	return tokenResponse.AccessToken, nil
+}
+
 func (c *crypt) provideKmsProviders(cryptCtx *mongocrypt.Context) error {
 	kmsProviders := c.mongoCrypt.GetKmsProviders()
 	builder := bsoncore.NewDocumentBuilder()
@@ -411,42 +448,14 @@ func (c *crypt) provideKmsProviders(cryptCtx *mongocrypt.Context) error {
 		// "gcp" KMS provider is an empty document.
 		// Attempt to fetch from GCP Instance Metadata server.
 		{
-			metadataHost := "metadata.google.internal"
-			if os.Getenv("GCE_METADATA_HOST") != "" {
-				metadataHost = os.Getenv("GCE_METADATA_HOST")
-			}
-			url := fmt.Sprintf("http://%s/computeMetadata/v1/instance/service-accounts/default/token", metadataHost)
-			req, err := http.NewRequest("GET", url, nil)
+			token, err := getGCPAccessToken(context.TODO())
 			if err != nil {
-				return internal.WrapErrorf(err, "unable to retrieve GCP credentials")
-			}
-			req.Header.Set("Metadata-Flavor", "Google")
-			resp, err := http.DefaultClient.Do(req.WithContext(context.Background()))
-			if err != nil {
-				return internal.WrapErrorf(err, "unable to retrieve GCP credentials")
-			}
-			defer func() { _ = resp.Body.Close() }()
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading response body")
-			}
-			if resp.StatusCode != 200 {
-				return internal.WrapErrorf(err, "unable to retrieve GCP credentials: expected StatusCode 200, got StatusCode: %v. Response body: %v", resp.StatusCode, resp.Body)
-			}
-			var tokenResponse struct {
-				AccessToken string `json:"access_token"`
-			}
-			// Attempt to read body as JSON
-			err = json.Unmarshal(body, &tokenResponse)
-			if err != nil {
-				return internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading body JSON")
-			}
-			if tokenResponse.AccessToken == "" {
-				return fmt.Errorf("unable to retrieve GCP credentials: got unexpected empty accessToken from GCP Metadata Server. Response body: %s", body)
+				return internal.WrapErrorf(err, "unable to retrieve GCP access token")
 			}
 			builder.StartDocument("gcp").
-				AppendString("accessToken", tokenResponse.AccessToken).
+				AppendString("accessToken", token).
 				FinishDocument()
+
 		}
 	}
 
