@@ -27,7 +27,7 @@ import (
 
 type MongoCrypt struct {
 	wrapped      *C.mongocrypt_t
-	kmsProviders *bsoncore.Document
+	kmsProviders bsoncore.Document
 }
 
 // Version returns the version string for the loaded libmongocrypt, or an empty string
@@ -46,7 +46,7 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	}
 	crypt := &MongoCrypt{
 		wrapped:      wrapped,
-		kmsProviders: &opts.KmsProviders,
+		kmsProviders: opts.KmsProviders,
 	}
 
 	// set options in mongocrypt
@@ -411,6 +411,6 @@ func (m *MongoCrypt) createErrorFromStatus() error {
 }
 
 // GetKmsProviders returns the originally configured KMS providers.
-func (m *MongoCrypt) GetKmsProviders() *bsoncore.Document {
+func (m *MongoCrypt) GetKmsProviders() bsoncore.Document {
 	return m.kmsProviders
 }

@@ -78,6 +78,6 @@ func (m *MongoCrypt) Close() {
 }
 
 // GetKmsProviders returns the originally configured KMS providers.
-func (m *MongoCrypt) GetKmsProviders() *bsoncore.Document {
+func (m *MongoCrypt) GetKmsProviders() bsoncore.Document {
 	panic(cseNotSupportedMsg)
 }

@@ -392,7 +392,7 @@ func (c *crypt) decryptKey(kmsCtx *mongocrypt.KmsContext) error {
 
 // needsKmsProvider returns true if provider was initially set to an empty document.
 // An empty document signals the driver to fetch credentials.
-func needsKmsProvider(kmsProviders *bsoncore.Document, provider string) bool {
+func needsKmsProvider(kmsProviders bsoncore.Document, provider string) bool {
 	val, err := kmsProviders.LookupErr(provider)
 	if err != nil {
 		// KMS provider is not configured.
@@ -432,7 +432,7 @@ func getGCPAccessToken(ctx context.Context) (string, error) {
 	// Attempt to read body as JSON
 	err = json.Unmarshal(body, &tokenResponse)
 	if err != nil {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading body JSON")
+		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading body JSON. Response body: %s", body)
 	}
 	if tokenResponse.AccessToken == "" {
 		return "", fmt.Errorf("unable to retrieve GCP credentials: got unexpected empty accessToken from GCP Metadata Server. Response body: %s", body)
