@@ -424,7 +424,7 @@ func getGCPAccessToken(ctx context.Context) (string, error) {
 		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading response body")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: expected StatusCode 200, got StatusCode: %v. Response body: %v", resp.StatusCode, resp.Body)
+		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: expected StatusCode 200, got StatusCode: %v. Response body: %s", resp.StatusCode, body)
 	}
 	var tokenResponse struct {
 		AccessToken string `json:"access_token"`
