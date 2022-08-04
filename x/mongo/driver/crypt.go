@@ -418,7 +418,7 @@ func getGCPAccessToken(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading response body")
