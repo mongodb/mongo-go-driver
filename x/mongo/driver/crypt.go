@@ -255,7 +255,7 @@ func (c *crypt) executeStateMachine(ctx context.Context, cryptCtx *mongocrypt.Co
 		case mongocrypt.Done:
 			return nil, nil
 		case mongocrypt.NeedKmsCredentials:
-			err = c.provideKmsProviders(cryptCtx)
+			err = c.provideKmsProviders(ctx, cryptCtx)
 		default:
 			return nil, fmt.Errorf("invalid Crypt state: %v", state)
 		}
@@ -440,7 +440,7 @@ func getGCPAccessToken(ctx context.Context) (string, error) {
 	return tokenResponse.AccessToken, nil
 }
 
-func (c *crypt) provideKmsProviders(cryptCtx *mongocrypt.Context) error {
+func (c *crypt) provideKmsProviders(ctx context.Context, cryptCtx *mongocrypt.Context) error {
 	kmsProviders := c.mongoCrypt.GetKmsProviders()
 	builder := bsoncore.NewDocumentBuilder()
 
@@ -448,7 +448,7 @@ func (c *crypt) provideKmsProviders(cryptCtx *mongocrypt.Context) error {
 		// "gcp" KMS provider is an empty document.
 		// Attempt to fetch from GCP Instance Metadata server.
 		{
-			token, err := getGCPAccessToken(context.TODO())
+			token, err := getGCPAccessToken(ctx)
 			if err != nil {
 				return err
 			}
