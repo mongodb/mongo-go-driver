@@ -534,7 +534,7 @@ func TestClient(t *testing.T) {
 		assert.Nil(t, err, "unexpected error calling Ping: %v", err)
 	})
 
-	mt.Run("minimum RTT is monitored", func(mt *mtest.T) {
+	mt.RunOpts("minimum RTT is monitored", mtest.NewOptions().SSL(false), func(mt *mtest.T) {
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
 		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
 		mt.ResetClient(options.Client().
@@ -572,7 +572,7 @@ func TestClient(t *testing.T) {
 
 	// Test that if the minimum RTT is greater than the remaining timeout for an operation, the
 	// operation is not sent to the server and no connections are closed.
-	mt.Run("minimum RTT used to prevent sending requests", func(mt *mtest.T) {
+	mt.RunOpts("minimum RTT used to prevent sending requests", mtest.NewOptions().SSL(false), func(mt *mtest.T) {
 		// Assert that we can call Ping with a 250ms timeout.
 		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 		defer cancel()
@@ -629,7 +629,7 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, 0, closed, "expected no connections to be closed")
 	})
 
-	mt.Run("RTT90 is monitored", func(mt *mtest.T) {
+	mt.RunOpts("RTT90 is monitored", mtest.NewOptions().SSL(false), func(mt *mtest.T) {
 		if testing.Short() {
 			t.Skip("skipping integration test in short mode")
 		}
@@ -671,7 +671,7 @@ func TestClient(t *testing.T) {
 
 	// Test that if Timeout is set and the RTT90 is greater than the remaining timeout for an operation, the
 	// operation is not sent to the server, fails with a timeout error, and no connections are closed.
-	mt.Run("RTT90 used to prevent sending requests", func(mt *mtest.T) {
+	mt.RunOpts("RTT90 used to prevent sending requests", mtest.NewOptions().SSL(false), func(mt *mtest.T) {
 		if testing.Short() {
 			t.Skip("skipping integration test in short mode")
 		}
