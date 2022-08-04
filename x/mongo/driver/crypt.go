@@ -405,8 +405,8 @@ func needsKmsProvider(kmsProviders *bsoncore.Document, provider string) bool {
 
 func getGCPAccessToken(ctx context.Context) (string, error) {
 	metadataHost := "metadata.google.internal"
-	if os.Getenv("GCE_METADATA_HOST") != "" {
-		metadataHost = os.Getenv("GCE_METADATA_HOST")
+	if envhost := os.Getenv("GCE_METADATA_HOST"); envhost != "" {
+		metadataHost = envhost
 	}
 	url := fmt.Sprintf("http://%s/computeMetadata/v1/instance/service-accounts/default/token", metadataHost)
 	req, err := http.NewRequest("GET", url, nil)
