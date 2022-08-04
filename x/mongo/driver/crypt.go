@@ -450,7 +450,7 @@ func (c *crypt) provideKmsProviders(cryptCtx *mongocrypt.Context) error {
 		{
 			token, err := getGCPAccessToken(context.TODO())
 			if err != nil {
-				return internal.WrapErrorf(err, "unable to retrieve GCP access token")
+				return err
 			}
 			builder.StartDocument("gcp").
 				AppendString("accessToken", token).
