@@ -333,7 +333,11 @@ func TestOperation(t *testing.T) {
 			},
 		}
 		for _, tc := range testCases {
+			// Capture test-case for parallel sub-test.
+			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
 				got, err := tc.op.calculateMaxTimeMS(tc.ctx, tc.rtt90)
 
 				// Assert that the calculated maxTimeMS is less than or equal to the expected value. A few

@@ -1271,14 +1271,16 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration)
 	if internal.IsTimeoutContext(ctx) {
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
-			// We check that remainingTimeout <= rtt90 because in the rare case that they are equal, we
-			// may accidentally calculate a maxTimeMS value of 0, which would indicate no timeout
-			// server-side.
-			if remainingTimeout <= rtt90 {
+			maxTime := remainingTimeout - rtt90
+
+			// Always round up to the next millisecond value so we never truncate the calculated
+			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
+			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
+			if maxTimeMS <= 0 {
 				return 0, internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
 					"remaining time %v until context deadline is less than or equal to 90th percentile RTT", time.Until(deadline))
 			}
-			return uint64(remainingTimeout/time.Millisecond - rtt90/time.Millisecond), nil
+			return uint64(maxTimeMS), nil
 		}
 	} else if op.MaxTime != nil {
 		// Users are not allowed to pass a negative value as MaxTime. A value of 0 would indicate
@@ -1286,7 +1288,9 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration)
 		if *op.MaxTime < 0 {
 			return 0, ErrNegativeMaxTime
 		}
-		return uint64(*op.MaxTime / time.Millisecond), nil
+		// Always round up to the next millisecond value so we never truncate the requested
+		// MaxTime value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
+		return uint64((*op.MaxTime + (time.Millisecond - 1)) / time.Millisecond), nil
 	}
 	return 0, nil
 }
