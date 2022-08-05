@@ -448,7 +448,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		// Calculate maxTimeMS value to potentially be appended to the wire message.
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().P90())
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().P90(), srvr.RTTMonitor().Stats())
 		if err != nil {
 			return err
 		}
@@ -1267,7 +1267,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // if the ctx is a Timeout context. If the context is not a Timeout context, it uses the
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
-func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration) (uint64, error) {
+func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration, rttStats string) (uint64, error) {
 	if internal.IsTimeoutContext(ctx) {
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
@@ -1278,7 +1278,8 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration)
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
 			if maxTimeMS <= 0 {
 				return 0, internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"remaining time %v until context deadline is less than or equal to 90th percentile RTT", time.Until(deadline))
+					"remaining time %v until context deadline is less than or equal to 90th percentile RTT\n%v",
+					remainingTimeout, rttStats)
 			}
 			return uint64(maxTimeMS), nil
 		}
