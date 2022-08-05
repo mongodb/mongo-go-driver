@@ -42,16 +42,6 @@ tests:
       # We cannot assert the server was marked Unknown and pool was cleared an
       # exact number of times because the RTT hello may or may not have
       # triggered this failpoint as well.
-      # - name: assertEventCount
-      #   object: testRunner
-      #   arguments:
-      #     event: ServerMarkedUnknownEvent
-      #     count: 1
-      # - name: assertEventCount
-      #   object: testRunner
-      #   arguments:
-      #     event: PoolClearedEvent
-      #     count: 1
 
     expectations:
       - command_started_event:
