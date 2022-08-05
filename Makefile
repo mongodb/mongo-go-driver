@@ -190,7 +190,7 @@ evg-test-versioned-api:
 
 .PHONY: build-gcpkms-test
 build-gcpkms-test:
-	go build $(BUILD_TAGS) ./mongo/testgcpkms
+	go build $(BUILD_TAGS) ./cmd/testgcpkms
 
 ### Benchmark specific targets and support. ###
 .PHONY: benchmark
