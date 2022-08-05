@@ -48,6 +48,8 @@ var (
 	// ErrDeadlineWouldBeExceeded is returned when a Timeout set on an operation would be exceeded
 	// if the operation were sent to the server.
 	ErrDeadlineWouldBeExceeded = errors.New("operation not sent to server, as Timeout would be exceeded")
+	// ErrNegativeMaxTime is returned when MaxTime on an operation is a negative value.
+	ErrNegativeMaxTime = errors.New("a negative value was provided for MaxTime on an operation")
 )
 
 // QueryFailureError is an error representing a command failure as a document.
