@@ -23,9 +23,9 @@ import (
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
 type response struct {
@@ -222,8 +222,8 @@ func (r *response) UnmarshalBSON(buf []byte) error {
 }
 
 func setUpTopology(t *testing.T, uri string) *Topology {
-	cs, err := connstring.ParseAndValidate(uri)
-	assert.Nil(t, err, "Parse error: %v", err)
+	//cs, err := connstring.ParseAndValidate(uri)
+	//assert.Nil(t, err, "Parse error: %v", err)
 
 	sdam := &event.ServerMonitor{
 		ServerDescriptionChanged:   serverDescriptionChanged,
@@ -233,25 +233,14 @@ func setUpTopology(t *testing.T, uri string) *Topology {
 		ServerClosed:               serverClosed,
 	}
 
+	cfg, err := NewConfig(options.Client().ApplyURI(uri).SetServerMonitor(sdam))
+	assert.Nil(t, err, "config error: %v", err)
+
 	// Disable server monitoring because the hosts in the SDAM spec tests don't actually exist, so the server monitor
 	// can race with the test and mark the server Unknown when it fails to connect, which causes tests to fail.
-	serverOpts := []ServerOption{
-		withMonitoringDisabled(func(bool) bool {
-			return true
-		}),
-		WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }),
-	}
-	topo, err := New(
-		WithConnString(func(connstring.ConnString) connstring.ConnString {
-			return cs
-		}),
-		WithServerOptions(func(opts ...ServerOption) []ServerOption {
-			return append(opts, serverOpts...)
-		}),
-		WithTopologyServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
-			return sdam
-		}),
-	)
+	cfg.serverOpts = append(cfg.serverOpts, withMonitoringDisabled(func(bool) bool { return true }))
+
+	topo, err := New_(cfg)
 	assert.Nil(t, err, "topology.New error: %v", err)
 
 	err = topo.Connect()

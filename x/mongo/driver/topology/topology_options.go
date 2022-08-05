@@ -312,6 +312,7 @@ func NewConfig(co *options.ClientOptions) (*config, error) {
 	}
 	// ServerMonitor
 	if co.ServerMonitor != nil {
+		fmt.Println("setting server monitor")
 		// ! c.serverMonitor = opts.ServerMonitor
 		serverOpts = append(
 			serverOpts,
