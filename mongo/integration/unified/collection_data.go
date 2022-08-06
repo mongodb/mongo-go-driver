@@ -36,9 +36,6 @@ type collectionDataOptions struct {
 func (c *collectionData) createCollection(ctx context.Context) error {
 	db := mtest.GlobalClient().Database(c.DatabaseName, options.Database().SetWriteConcern(mtest.MajorityWc))
 	coll := db.Collection(c.CollectionName)
-	if err := coll.Drop(ctx); err != nil {
-		return fmt.Errorf("error dropping collection: %v", err)
-	}
 
 	// Explicitly create collection if Options are specified.
 	if c.Options != nil {
