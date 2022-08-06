@@ -154,7 +154,7 @@ func executeAWSHTTPRequest(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	return ioutil.ReadAll(resp.Body)
 }
