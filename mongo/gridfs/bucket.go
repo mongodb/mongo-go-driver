@@ -243,8 +243,7 @@ func (b *Bucket) DownloadToStreamByName(filename string, stream io.Writer, opts 
 // If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
 // write operations operations on this bucket that also require a custom deadline.
 //
-// Deprecated: This method is deprecated and will eventually be removed in version 2.0 of the driver. DeleteContext should
-// be used instead.
+// Use SetWriteDeadline to set a deadline for the delete operation.
 func (b *Bucket) Delete(fileID interface{}) error {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
@@ -255,6 +254,8 @@ func (b *Bucket) Delete(fileID interface{}) error {
 
 // DeleteContext deletes all chunks and metadata associated with the file with the given file ID and runs the underlying
 // delete operations with the provided context.
+//
+// Use the context parameter to time-out or cancel the delete operation. The deadline set by SetWriteDeadline is ignored.
 func (b *Bucket) DeleteContext(ctx context.Context, fileID interface{}) error {
 	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
 	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
@@ -285,8 +286,7 @@ func (b *Bucket) DeleteContext(ctx context.Context, fileID interface{}) error {
 // If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
 // read operations operations on this bucket that also require a custom deadline.
 //
-// Deprecated: This method is deprecated and will eventually be removed in version 2.0 of the driver. FindContext
-// should be used instead.
+// Use SetReadDeadline to set a deadline for the find operation.
 func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*mongo.Cursor, error) {
 	ctx, cancel := deadlineContext(b.readDeadline)
 	if cancel != nil {
@@ -298,6 +298,9 @@ func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*
 
 // FindContext returns the files collection documents that match the given filter and runs the underlying
 // find query with the provided context.
+//
+// Use the context parameter to time-out or cancel the find operation. The deadline set by SetReadDeadline
+// is ignored.
 func (b *Bucket) FindContext(ctx context.Context, filter interface{}, opts ...*options.GridFSFindOptions) (*mongo.Cursor, error) {
 	gfsOpts := options.MergeGridFSFindOptions(opts...)
 	find := options.Find()
@@ -331,8 +334,7 @@ func (b *Bucket) FindContext(ctx context.Context, filter interface{}, opts ...*o
 // If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
 // write operations operations on this bucket that also require a custom deadline
 //
-// Deprecated: This method is deprecated and will eventually be removed in version 2.0 of the driver. RenameContext
-// should be used instead.
+// Use SetWriteDeadline to set a deadline for the rename operation.
 func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
@@ -344,6 +346,8 @@ func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
 
 // RenameContext renames the stored file with the specified file ID and runs the underlying update with the provided
 // context.
+//
+// Use the context parameter to time-out or cancel the rename operation. The deadline set by SetWriteDeadline is ignored.
 func (b *Bucket) RenameContext(ctx context.Context, fileID interface{}, newFilename string) error {
 	res, err := b.filesColl.UpdateOne(ctx,
 		bson.D{{"_id", fileID}},
@@ -365,8 +369,7 @@ func (b *Bucket) RenameContext(ctx context.Context, fileID interface{}, newFilen
 // If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
 // write operations operations on this bucket that also require a custom deadline
 //
-// Deprecated: This method is deprecated and will eventually be removed in version 2.0 of the driver. DropContext
-// should be used instead.
+// Use SetWriteDeadline to set a deadline for the drop operation.
 func (b *Bucket) Drop() error {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
@@ -378,6 +381,8 @@ func (b *Bucket) Drop() error {
 
 // DropContext drops the files and chunks collections associated with this bucket and runs the drop operations with
 // the provided context.
+//
+// Use the context parameter to time-out or cancel the drop operation. The deadline set by SetWriteDeadline is ignored.
 func (b *Bucket) DropContext(ctx context.Context) error {
 	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
 	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
