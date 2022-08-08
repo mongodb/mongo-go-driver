@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
@@ -77,28 +78,12 @@ func AddCompressorToURI(uri string) string {
 
 // MonitoredTopology returns a new topology with the command monitor attached
 func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonitor) *topology.Topology {
-	cs := ConnString(t)
-	opts := []topology.Option{
-		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(
-				opts,
-				topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-					return append(
-						opts,
-						topology.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
-							return monitor
-						}),
-						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
-							return ocsp.NewCache()
-						}),
-					)
-				}),
-			)
-		}),
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI(t)).SetMonitor(monitor))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	monitoredTopology, err := topology.New(opts...)
+	monitoredTopology, err := topology.New_(cfg)
 	if err != nil {
 		t.Fatal(err)
 	} else {
@@ -194,20 +179,25 @@ func ColName(t *testing.T) string {
 	return name.String()
 }
 
+func mongodbURI(t *testing.T) string {
+
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		uri = "mongodb://localhost:27017"
+	}
+
+	uri = AddTLSConfigToURI(uri)
+	uri = AddCompressorToURI(uri)
+	return uri
+}
+
 // ConnString gets the globally configured connection string.
 func ConnString(t *testing.T) connstring.ConnString {
 	connectionStringOnce.Do(func() {
 		connectionString, connectionStringErr = GetConnString()
-		mongodbURI := os.Getenv("MONGODB_URI")
-		if mongodbURI == "" {
-			mongodbURI = "mongodb://localhost:27017"
-		}
-
-		mongodbURI = AddTLSConfigToURI(mongodbURI)
-		mongodbURI = AddCompressorToURI(mongodbURI)
 
 		var err error
-		connectionString, err = connstring.ParseAndValidate(mongodbURI)
+		connectionString, err = connstring.ParseAndValidate(mongodbURI(t))
 		if err != nil {
 			connectionStringErr = err
 		}
