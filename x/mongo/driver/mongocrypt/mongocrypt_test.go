@@ -140,8 +140,8 @@ func testKmsCtx(t *testing.T, ctx *Context, keyAltName bool) {
 	// get message to send to KMS
 	kmsMsg, err := kmsCtx.Message()
 	noerr(t, err)
-	if len(kmsMsg) != 781 {
-		t.Fatalf("message length mismatch; expected 781, got %d", len(kmsMsg))
+	if len(kmsMsg) != 790 {
+		t.Fatalf("message length mismatch; expected 790, got %d", len(kmsMsg))
 	}
 
 	// feed mock KMS response
