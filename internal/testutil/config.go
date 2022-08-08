@@ -23,7 +23,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -128,24 +127,10 @@ func Topology(t *testing.T) *topology.Topology {
 // TopologyWithConnString takes a connection string and returns a connected
 // topology, or else bails out of testing
 func TopologyWithConnString(t *testing.T, cs connstring.ConnString) *topology.Topology {
-	opts := []topology.Option{
-		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(
-				opts,
-				topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-					return append(
-						opts,
-						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
-							return ocsp.NewCache()
-						}),
-					)
-				}),
-			)
-		}),
-	}
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(cs.String()))
+	require.NoError(t, err, "error constructing configs for TopologyWithConnString: %v", err)
 
-	topology, err := topology.New(opts...)
+	topology, err := topology.New_(cfg)
 	if err != nil {
 		t.Fatal("Could not construct topology")
 	}

@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 )
 
@@ -128,13 +127,13 @@ func compareHosts(t *testing.T, received []description.Server, expected []string
 func TestPollingSRVRecordsSpec(t *testing.T) {
 	for _, tt := range srvPollingTests {
 		t.Run(tt.name, func(t *testing.T) {
-			cs, err := connstring.ParseAndValidate("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
-			require.NoError(t, err, "Problem parsing the uri: %v", err)
-			topo, err := New(
-				WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
-				WithURI(func(string) string { return cs.Original }),
-			)
+			uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
+			cfg, err := NewConfig(options.Client().ApplyURI(uri))
+			require.NoError(t, err, "error constructing topology configs: %v", err)
+
+			topo, err := New_(cfg)
 			require.NoError(t, err, "Could not create the topology: %v", err)
+
 			mockRes := newMockResolver(tt.recordsToAdd, tt.recordsToRemove, tt.lookupFail, tt.lookupTimeout)
 			topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
 			topo.rescanSRVInterval = time.Millisecond * 5

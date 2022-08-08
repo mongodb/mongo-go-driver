@@ -9,34 +9,10 @@ package topology
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
-
-func TestOptionsSetting(t *testing.T) {
-	conf := &config{}
-	ssts := time.Minute
-	name := "test"
-	assert.Zero(t, conf.cs)
-
-	opt := WithConnString(func(connstring.ConnString) connstring.ConnString {
-		return connstring.ConnString{
-			ServerSelectionTimeout:    ssts,
-			ServerSelectionTimeoutSet: true,
-			AppName:                   name,
-		}
-
-	})
-
-	assert.NoError(t, opt(conf))
-
-	assert.Equal(t, ssts, conf.serverSelectionTimeout)
-
-	serverConf := newServerConfig(conf.serverOpts...)
-	assert.Equal(t, name, serverConf.appname, "expected appname to be: %v, got: %v", name, serverConf.appname)
-}
 
 func TestDirectConnectionFromConnString(t *testing.T) {
 	singleConnect := connstring.ConnString{
