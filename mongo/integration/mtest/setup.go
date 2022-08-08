@@ -88,8 +88,13 @@ func Setup(setupOpts ...*SetupOptions) error {
 	testContext.dataLake = os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") == "true"
 	testContext.requireAPIVersion = os.Getenv("REQUIRE_API_VERSION") == "true"
 
-	serverAPIOptions := options.ServerAPI(driver.TestServerAPIVersion)
-	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
+	clientOpts := options.Client().ApplyURI(uri)
+	if testContext.requireAPIVersion {
+		serverAPIOptions := options.ServerAPI(driver.TestServerAPIVersion)
+		clientOpts.SetServerAPIOptions(serverAPIOptions)
+	}
+
+	cfg, err := topology.NewConfig(clientOpts)
 	if err != nil {
 		return fmt.Errorf("error getting topology configs: %v", err)
 	}
