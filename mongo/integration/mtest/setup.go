@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -74,11 +73,14 @@ func Setup(setupOpts ...*SetupOptions) error {
 	opts := MergeSetupOptions(setupOpts...)
 	var err error
 
+	var uri string
 	switch {
 	case opts.URI != nil:
 		testContext.connString, err = connstring.ParseAndValidate(*opts.URI)
+		uri = *opts.URI
 	default:
 		testContext.connString, err = getClusterConnString()
+		uri, err = getClusterURI()
 	}
 	if err != nil {
 		return fmt.Errorf("error getting connection string: %v", err)
@@ -86,39 +88,22 @@ func Setup(setupOpts ...*SetupOptions) error {
 	testContext.dataLake = os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") == "true"
 	testContext.requireAPIVersion = os.Getenv("REQUIRE_API_VERSION") == "true"
 
-	connectionOpts := []topology.ConnectionOption{
-		topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
-			return ocsp.NewCache()
-		}),
-	}
-	serverOpts := []topology.ServerOption{
-		topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-			return append(opts, connectionOpts...)
-		}),
-	}
-	if testContext.requireAPIVersion {
-		serverOpts = append(serverOpts,
-			topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
-				return driver.NewServerAPIOptions(driver.TestServerAPIVersion)
-			}),
-		)
+	serverAPIOptions := options.ServerAPI(driver.TestServerAPIVersion)
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions))
+	if err != nil {
+		return fmt.Errorf("error getting topology configs: %v", err)
 	}
 
-	testContext.topo, err = topology.New(
-		topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
-			return testContext.connString
-		}),
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(opts, serverOpts...)
-		}),
-	)
+	testContext.topo, err = topology.New_(cfg)
 	if err != nil {
 		return fmt.Errorf("error creating topology: %v", err)
 	}
+
 	if err = testContext.topo.Connect(); err != nil {
 		return fmt.Errorf("error connecting topology: %v", err)
 	}
 
+	// TODO: probably need to decouple connstring from this constructor.
 	testContext.client, err = setupClient(testContext.connString, options.Client())
 	if err != nil {
 		return fmt.Errorf("error connecting test client: %v", err)
@@ -336,6 +321,15 @@ func addServerlessAuthCredentials(uri string) (string, error) {
 
 	uri = scheme + user + ":" + password + "@" + uri[len(scheme):]
 	return uri, nil
+}
+
+func getClusterURI() (string, error) {
+
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		uri = "mongodb://localhost:27017"
+	}
+	return addNecessaryParamsToURI(uri)
 }
 
 // getClusterConnString gets the globally configured connection string.

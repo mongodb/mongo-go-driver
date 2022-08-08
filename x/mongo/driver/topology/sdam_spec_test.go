@@ -222,9 +222,6 @@ func (r *response) UnmarshalBSON(buf []byte) error {
 }
 
 func setUpTopology(t *testing.T, uri string) *Topology {
-	//cs, err := connstring.ParseAndValidate(uri)
-	//assert.Nil(t, err, "Parse error: %v", err)
-
 	sdam := &event.ServerMonitor{
 		ServerDescriptionChanged:   serverDescriptionChanged,
 		ServerOpening:              serverOpening,
