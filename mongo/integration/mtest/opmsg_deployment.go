@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"io/ioutil"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -59,7 +60,7 @@ func (c *connection) WriteWireMessage(_ context.Context, wm []byte) error {
 }
 
 // ReadWireMessage returns the next response in the connection's list of responses.
-func (c *connection) ReadWireMessage(_ context.Context) (io.Reader, error) {
+func (c *connection) ReadWireMessage(_ context.Context) (io.ReadCloser, error) {
 	var dst []byte
 	if len(c.responses) == 0 {
 		return nil, errors.New("no responses remaining")
@@ -74,7 +75,7 @@ func (c *connection) ReadWireMessage(_ context.Context) (io.Reader, error) {
 	resBytes, _ := bson.Marshal(nextRes)
 	dst = append(dst, resBytes...)
 	dst = bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:])))
-	return bytes.NewReader(dst[4:]), nil
+	return ioutil.NopCloser(bytes.NewReader(dst[4:])), nil
 }
 
 // Description returns a fixed server description for the connection.

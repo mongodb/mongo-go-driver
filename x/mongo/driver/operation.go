@@ -12,8 +12,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -800,17 +802,25 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 	return op.readWireMessage(ctx, conn)
 }
 
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return new(wiremessage.SrcStream)
+	},
+}
+
 func (op Operation) readWireMessage(ctx context.Context, conn Connection) ([]byte, error) {
 	wm, err := conn.ReadWireMessage(ctx)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
-	src, err := wiremessage.NewSrcStream(wm)
+	src := bufPool.Get().(*wiremessage.SrcStream)
+	err = src.Reset(wm)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		err = src.Close()
+		bufPool.Put(src)
 	}()
 
 	// decompress wiremessage
@@ -1521,23 +1531,60 @@ func (Operation) decodeOpReply(wm *wiremessage.SrcStream) opReply {
 	return reply
 }
 
+func (Operation) decodeOpReplyDoc(wm *wiremessage.SrcStream) (bsoncore.Document, error) {
+	var err error
+	defer func() {
+		_, err = io.Copy(ioutil.Discard, wm)
+	}()
+	responseFlags, err := wm.ReadReplyFlags()
+	if err != nil {
+		return nil, errors.New("malformed OP_REPLY: missing flags")
+	}
+	if responseFlags&wiremessage.CursorNotFound == wiremessage.CursorNotFound {
+		return nil, ErrCursorNotFound
+	}
+	_, err = wm.ReadI64()
+	if err != nil {
+		return nil, errors.New("malformed OP_REPLY: missing cursorID")
+	}
+	_, err = wm.ReadI32()
+	if err != nil {
+		return nil, errors.New("malformed OP_REPLY: missing startingFrom")
+	}
+	numReturned, err := wm.ReadI32()
+	if err != nil {
+		return nil, errors.New("malformed OP_REPLY: missing numberReturned")
+	}
+	if numReturned == 0 {
+		return nil, ErrNoDocCommandResponse
+	}
+	if numReturned > 1 {
+		return nil, ErrMultiDocCommandResponse
+	}
+	res, err := wm.ReadMsgSectionSingleDocument()
+	if err != nil && err != io.EOF {
+		return nil, errors.New("malformed OP_REPLY: could not read documents from reply")
+	}
+
+	if responseFlags&wiremessage.QueryFailure == wiremessage.QueryFailure {
+		return nil, QueryFailureError{
+			Message:  "command failure",
+			Response: res,
+		}
+	}
+	return res, nil
+}
+
 func (op Operation) decodeResult(wm *wiremessage.SrcStream) (bsoncore.Document, bool, error) {
 	//wm = wm[:wmLength-16] // constrain to just this wiremessage, incase there are multiple in the slice
 
 	var isMsgMoreToCome bool
 	switch wm.Opcode {
 	case wiremessage.OpReply:
-		reply := op.decodeOpReply(wm)
-		if reply.err != nil {
-			return nil, isMsgMoreToCome, reply.err
+		rdr, err := op.decodeOpReplyDoc(wm)
+		if err != nil {
+			return nil, isMsgMoreToCome, err
 		}
-		if reply.numReturned == 0 {
-			return nil, isMsgMoreToCome, ErrNoDocCommandResponse
-		}
-		if reply.numReturned > 1 {
-			return nil, isMsgMoreToCome, ErrMultiDocCommandResponse
-		}
-		rdr := reply.documents[0]
 		if err := rdr.Validate(); err != nil {
 			return nil, isMsgMoreToCome, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
 		}
@@ -1572,15 +1619,12 @@ func (op Operation) decodeResult(wm *wiremessage.SrcStream) (bsoncore.Document, 
 				}
 			case wiremessage.DocumentSequence:
 				// TODO(GODRIVER-617): Implement document sequence returns.
-				_, _, err = wm.ReadMsgSectionDocumentSequence()
+				_, err = io.Copy(ioutil.Discard, wm)
 				if err != nil {
-					if err == io.EOF {
-						break
-					}
 					return nil, isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read document sequence")
 				}
 			default:
-				return nil, isMsgMoreToCome, fmt.Errorf("malformed wire message: uknown section type %v", stype)
+				return nil, isMsgMoreToCome, fmt.Errorf("malformed wire message: unknown section type %v", stype)
 			}
 		}
 
@@ -1677,11 +1721,12 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	if success {
-		res := bson.Raw{}
+		var res bson.Raw
 		// Only copy the reply for commands that are not security sensitive
 		if !info.redacted {
-			res = make([]byte, len(info.response))
-			copy(res, info.response)
+			res = bson.Raw(info.response)
+		} else {
+			res = bson.Raw{}
 		}
 		successEvent := &event.CommandSucceededEvent{
 			Reply:                res,

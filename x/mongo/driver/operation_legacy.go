@@ -701,7 +701,7 @@ func (op Operation) roundTripLegacy(ctx context.Context, conn Connection, wm []b
 }
 
 func (op Operation) upconvertCursorResponse(wm []byte, batchIdentifier string, collName string) (bsoncore.Document, error) {
-	src, err := wiremessage.NewSrcStream(bytes.NewReader(wm[4:]))
+	src, err := wiremessage.NewSrcStream(ioutil.NopCloser(bytes.NewReader(wm[4:])))
 	if err != nil {
 		return nil, err
 	}

@@ -7,7 +7,6 @@
 package wiremessage
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -22,52 +21,58 @@ type SrcStream struct {
 	RequestID  int32
 	ResponseTo int32
 	Opcode     OpCode
+
+	headerBuf [12]byte
 }
 
 // NewSrcStream ...
 func NewSrcStream(r io.Reader) (*SrcStream, error) {
-	var err error
-	var headerBuf [12]byte
-	_, err = io.ReadFull(r, headerBuf[:])
-	if err != nil {
-		return nil, errors.New("incomplete read of message header")
-	}
-	stream := &SrcStream{
-		ioutil.NopCloser(r),
-		readi32unsafe(headerBuf[0:4]),
-		readi32unsafe(headerBuf[4:8]),
-		OpCode(readi32unsafe(headerBuf[8:12])),
-	}
+	stream := &SrcStream{}
+	err := stream.Reset(r)
+	return stream, err
+}
 
-	if stream.Opcode != OpCompressed {
-		return stream, nil
+// Reset ...
+func (s *SrcStream) Reset(r io.Reader) error {
+	var err error
+	_, err = io.ReadFull(r, s.headerBuf[:])
+	if err != nil {
+		return errors.New("incomplete read of message header")
+	}
+	s.ReadCloser = ioutil.NopCloser(r)
+	s.RequestID = readi32unsafe(s.headerBuf[0:4])
+	s.ResponseTo = readi32unsafe(s.headerBuf[4:8])
+	s.Opcode = OpCode(readi32unsafe(s.headerBuf[8:12]))
+
+	if s.Opcode != OpCompressed {
+		return nil
 	}
 	// get the original opcode and uncompressed size
-	stream.Opcode, err = stream.ReadOpCode()
+	s.Opcode, err = s.ReadOpCode()
 	if err != nil {
-		return nil, errors.New("malformed OP_COMPRESSED: missing original opcode")
+		return errors.New("malformed OP_COMPRESSED: missing original opcode")
 	}
-	uncompressedSize, err := stream.ReadI32()
+	uncompressedSize, err := s.ReadI32()
 	if err != nil {
-		return nil, errors.New("malformed OP_COMPRESSED: missing uncompressed size")
+		return errors.New("malformed OP_COMPRESSED: missing uncompressed size")
 	}
 	// get the compressor ID and decompress the message
-	compressorID, err := stream.ReadCompressorID()
+	compressorID, err := s.ReadCompressorID()
 	if err != nil {
-		return nil, errors.New("malformed OP_COMPRESSED: missing compressor ID")
+		return errors.New("malformed OP_COMPRESSED: missing compressor ID")
 	}
 
 	opts := CompressionOpts{
 		Compressor:       compressorID,
 		UncompressedSize: uncompressedSize,
 	}
-	uncompressed, err := NewDecompressedReader(stream.ReadCloser, opts)
+	uncompressed, err := NewDecompressedReader(s.ReadCloser, opts)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	piper, pipew := io.Pipe()
-	stream.ReadCloser = piper
+	s.ReadCloser = piper
 	go func(w *io.PipeWriter, r io.ReadCloser) {
 		var err error
 		defer func() {
@@ -77,53 +82,33 @@ func NewSrcStream(r io.Reader) (*SrcStream, error) {
 		_, err = io.Copy(w, r)
 	}(pipew, uncompressed)
 
-	return stream, nil
+	return nil
 }
 
 // ReadByte ...
 func (s *SrcStream) ReadByte() (byte, error) {
-	b := make([]byte, 1)
-	_, err := s.Read(b)
-	return b[0], err
-}
-
-// ReadSlice ...
-func (s *SrcStream) ReadSlice(delim byte) ([]byte, error) {
-	buf := bytes.Buffer{}
-	var err error
-	for err == nil {
-		var b byte
-		b, err = s.ReadByte()
-		if err == nil {
-			buf.WriteByte(b)
-			if b == delim {
-				break
-			}
-		}
-	}
-	return buf.Bytes(), err
+	_, err := io.ReadFull(s, s.headerBuf[:1])
+	return s.headerBuf[0], err
 }
 
 // ReadI32 ...
 func (s *SrcStream) ReadI32() (int32, error) {
-	src := make([]byte, 4)
-	_, err := io.ReadFull(s, src)
+	_, err := io.ReadFull(s, s.headerBuf[:4])
 	if err != nil {
 		return 0, err
 	}
 
-	return readi32unsafe(src), nil
+	return readi32unsafe(s.headerBuf[:4]), nil
 }
 
 // ReadI64 ...
 func (s *SrcStream) ReadI64() (int64, error) {
-	src := make([]byte, 8)
-	_, err := io.ReadFull(s, src)
+	_, err := io.ReadFull(s, s.headerBuf[:8])
 	if err != nil {
 		return 0, err
 	}
 
-	return readi64unsafe(src), nil
+	return readi64unsafe(s.headerBuf[:8]), nil
 }
 
 // ReadMsgFlags reads the OP_MSG flags from src.
@@ -158,35 +143,15 @@ func (s *SrcStream) ReadCompressorID() (CompressorID, error) {
 
 // ReadMsgSectionSingleDocument reads a single document from src.
 func (s *SrcStream) ReadMsgSectionSingleDocument() (bsoncore.Document, error) {
-	buf := make([]byte, 4)
-	_, err := s.Read(buf)
+	_, err := io.ReadFull(s, s.headerBuf[:4])
 	if err != nil {
 		return nil, err
 	}
-	l := readi32unsafe(buf)
+	l := readi32unsafe(s.headerBuf[:4])
 	doc := make([]byte, l)
-	n := copy(doc, buf)
+	n := copy(doc, s.headerBuf[:4])
 	_, err = io.ReadFull(s, doc[n:])
 	return doc, err
-}
-
-// ReadMsgSectionDocumentSequence reads an identifier and document sequence from src and returns the document sequence
-// data parsed into a slice of BSON documents.
-func (s *SrcStream) ReadMsgSectionDocumentSequence() (identifier string, docs []bsoncore.Document, err error) {
-	_, err = s.ReadI32()
-	if err != nil {
-		return "", nil, err
-	}
-
-	slice, err := s.ReadSlice(0x00)
-	if err != nil {
-		return "", nil, err
-	}
-	identifier = string(slice[:len(slice)-1])
-
-	docs, err = s.ReadReplyDocuments()
-
-	return identifier, docs, err
 }
 
 // ReadReplyDocuments reads as many documents as possible from src

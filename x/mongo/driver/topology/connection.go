@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"strings"
 	"sync"
@@ -384,7 +385,7 @@ func (c *connection) write(ctx context.Context, wm []byte) (err error) {
 }
 
 // readWireMessage reads a wiremessage from the connection. The dst parameter will be overwritten.
-func (c *connection) readWireMessage(ctx context.Context) (io.Reader, error) {
+func (c *connection) readWireMessage(ctx context.Context) (io.ReadCloser, error) {
 	if atomic.LoadInt64(&c.state) != connConnected {
 		return nil, ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
@@ -430,9 +431,17 @@ func (c *connection) readWireMessage(ctx context.Context) (io.Reader, error) {
 	return r, nil
 }
 
+var readerPool = sync.Pool{
+	New: func() interface{} {
+		wm := new(limitedReader)
+		return wm
+	},
+}
+
 type limitedReader struct {
-	c *connection
-	n int64
+	c   *connection
+	n   int64
+	hdr [4]byte
 }
 
 // Read ...
@@ -460,7 +469,14 @@ func (l *limitedReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func (c *connection) read(ctx context.Context) (reader io.Reader, errMsg string, err error) {
+// Close ...
+func (l *limitedReader) Close() error {
+	_, err := io.Copy(ioutil.Discard, l)
+	readerPool.Put(l)
+	return err
+}
+
+func (c *connection) read(ctx context.Context) (reader io.ReadCloser, errMsg string, err error) {
 	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
 	defer func() {
 		// If the context is cancelled after we finish reading the server response, the cancellation listener could fire
@@ -475,18 +491,19 @@ func (c *connection) read(ctx context.Context) (reader io.Reader, errMsg string,
 
 	// We use an array here because it only costs 4 bytes on the stack and means we'll only need to
 	// reslice dst once instead of twice.
-	var sizeBuf [4]byte
+	//var sizeBuf [4]byte
+	r := readerPool.Get().(*limitedReader)
 
 	// We do a ReadFull into an array here instead of doing an opportunistic ReadAtLeast into dst
 	// because there might be more than one wire message waiting to be read, for example when
 	// reading messages from an exhaust cursor.
-	_, err = io.ReadFull(c.nc, sizeBuf[:])
+	_, err = io.ReadFull(c.nc, r.hdr[:])
 	if err != nil {
 		return nil, "incomplete read of message header", err
 	}
 
 	// read the length as an int32
-	size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
+	size := (int32(r.hdr[0])) | (int32(r.hdr[1]) << 8) | (int32(r.hdr[2]) << 16) | (int32(r.hdr[3]) << 24)
 
 	// In the case of a hello response where MaxMessageSize has not yet been set, use the hard-coded
 	// defaultMaxMessageSize instead.
@@ -513,7 +530,9 @@ func (c *connection) read(ctx context.Context) (reader io.Reader, errMsg string,
 			return nil, "incomplete read of full message", err
 		}
 	*/
-	return &limitedReader{c, int64(size) - int64(len(sizeBuf))}, "", nil
+	r.c = c
+	r.n = int64(size) - int64(len(r.hdr))
+	return r, "", nil
 }
 
 func (c *connection) close() error {
@@ -608,7 +627,7 @@ func (c initConnection) LocalAddress() address.Address {
 func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
 }
-func (c initConnection) ReadWireMessage(ctx context.Context) (io.Reader, error) {
+func (c initConnection) ReadWireMessage(ctx context.Context) (io.ReadCloser, error) {
 	return c.readWireMessage(ctx)
 }
 func (c initConnection) SetStreaming(streaming bool) {
@@ -651,7 +670,7 @@ func (c *Connection) WriteWireMessage(ctx context.Context, wm []byte) error {
 
 // ReadWireMessage handles reading a wire message from the underlying connection. The dst parameter
 // will be overwritten with the new wire message.
-func (c *Connection) ReadWireMessage(ctx context.Context) (io.Reader, error) {
+func (c *Connection) ReadWireMessage(ctx context.Context) (io.ReadCloser, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.connection == nil {

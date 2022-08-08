@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -209,11 +210,11 @@ func TestOperation(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				gotWM, gotErr := Operation{}.roundTrip(context.Background(), tc.conn, tc.paramWM)
-				if !bytes.Equal(gotWM, tc.wantWM) {
-					t.Errorf("Returned wire messages are not equal. got %v; want %v", gotWM, tc.wantWM)
-				}
 				if !cmp.Equal(gotErr, tc.wantErr, cmp.Comparer(compareErrors)) {
 					t.Errorf("Returned error is not equal to expected error. got %v; want %v", gotErr, tc.wantErr)
+				}
+				if !bytes.Equal(gotWM, tc.wantWM) {
+					t.Errorf("Returned wire messages are not equal. got %v; want %v", gotWM, tc.wantWM)
 				}
 			})
 		}
@@ -693,12 +694,12 @@ func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	return m.rWriteErr
 }
 
-func (m *mockConnection) ReadWireMessage(_ context.Context) (io.Reader, error) {
+func (m *mockConnection) ReadWireMessage(_ context.Context) (io.ReadCloser, error) {
 	//m.pReadDst = dst
 	if len(m.rReadWM) > 4 {
 		m.rReadWM = m.rReadWM[4:]
 	}
-	return bytes.NewReader(m.rReadWM), m.rReadErr
+	return ioutil.NopCloser(bytes.NewReader(m.rReadWM)), m.rReadErr
 }
 
 type retryableError struct {
