@@ -242,7 +242,10 @@ functions:
 
           # Install linters. Use "go install" instead of "go get" to prevent modifying the go.mod
           # file.
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          # TODO(GODRIVER-2519): The "latest" version of golangci-lint currently requires Go 1.19.
+          # TODO Pin to the "latest" version of golangci-lint again when we update the Evergreen CI
+          # TODO to use Go 1.19.
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.3
           go install github.com/walle/lll/...@latest
 
   upload-mo-artifacts:
