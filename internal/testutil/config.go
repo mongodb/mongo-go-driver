@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -99,13 +100,30 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 
 // Topology gets the globally configured topology.
 func Topology(t *testing.T) *topology.Topology {
-
-	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI(t)))
-	require.NoError(t, err, "error getting config for globally configured topology: %v", err)
+	cs := ConnString(t)
+	opts := []topology.Option{
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(
+				opts,
+				topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+					return append(
+						opts,
+						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
+							return ocsp.NewCache()
+						}),
+					)
+				}),
+			)
+		}),
+	}
+	//cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI(t)))
+	//require.NoError(t, err, "error getting config for globally configured topology: %v", err)
 
 	liveTopologyOnce.Do(func() {
 		var err error
-		liveTopology, err = topology.New_(cfg)
+		// liveTopology, err = topology.New_(cfg)
+		liveTopology, err = topology.New(opts...)
 		if err != nil {
 			liveTopologyErr = err
 		} else {
