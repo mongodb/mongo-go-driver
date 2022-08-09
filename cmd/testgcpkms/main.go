@@ -45,12 +45,11 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("Error in NewClientEncryption: %v", err))
 	}
-	// TODO(GODRIVER-2514): Update to use key from testing account (see gcpKMS.json). This uses a key from a personal account.
 	dkOpts := options.DataKey().SetMasterKey(bson.M{
-		"projectId": "csfle-poc",
+		"projectId": "devprod-drivers",
 		"location":  "global",
-		"keyRing":   "test",
-		"keyName":   "quickstart",
+		"keyRing":   "key-ring-csfle",
+		"keyName":   "key-name-csfle",
 	})
 	_, err = ce.CreateDataKey(context.Background(), "gcp", dkOpts)
 	if expecterror == "" {
