@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -147,9 +146,12 @@ func TestDocumentationExamples(t *testing.T) {
 }
 
 func createTopology(mt *mtest.T) *topology.Topology {
-	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
-		return mtest.ClusterConnString()
-	}))
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(mtest.ClusterURI()))
+	if err != nil {
+		mt.Fatalf("error constructing topology config: %v", err)
+	}
+
+	topo, err := topology.New_(cfg)
 	if err != nil {
 		mt.Fatalf("topology.New error: %v", err)
 	}

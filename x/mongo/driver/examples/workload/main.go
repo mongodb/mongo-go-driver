@@ -20,10 +20,10 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -40,13 +40,12 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 
-	cs, err := connstring.ParseAndValidate("mongodb://localhost:27017/")
+	cfg, err := topology.NewConfig(options.Client().ApplyURI("mongodb://localhost:27017/"))
 	if err != nil {
-		log.Fatalf("unable to parse connection string: %v", err)
+		log.Fatalf("unable to construct topology config: %v", err)
 	}
-	c, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
-		return cs
-	}))
+
+	c, err := topology.New_(cfg)
 	if err != nil {
 		log.Fatalf("unable to create topology: %s", err)
 	}

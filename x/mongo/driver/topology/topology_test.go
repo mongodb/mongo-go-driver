@@ -24,9 +24,9 @@ import (
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
 const testTimeout = 2 * time.Second
@@ -573,12 +573,12 @@ func TestSessionTimeout(t *testing.T) {
 }
 
 func TestMinPoolSize(t *testing.T) {
-	connStr := connstring.ConnString{
-		Hosts:          []string{"localhost:27017"},
-		MinPoolSize:    10,
-		MinPoolSizeSet: true,
+	cfg, err := NewConfig(options.Client().SetHosts([]string{"localhost:27017"}).SetMinPoolSize(10))
+	if err != nil {
+		t.Errorf("error constructing topology config: %v", err)
 	}
-	topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return connStr }))
+
+	topo, err := New_(cfg)
 	if err != nil {
 		t.Errorf("topology.New shouldn't error. got: %v", err)
 	}

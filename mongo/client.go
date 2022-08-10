@@ -8,10 +8,8 @@ package mongo
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,10 +23,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -53,6 +49,7 @@ var (
 // The Client type opens and closes connections automatically and maintains a pool of idle connections. For
 // connection pool configuration options, see documentation for the ClientOptions type in the mongo/options package.
 type Client struct {
+	meep            int
 	id              uuid.UUID
 	topologyOptions []topology.Option
 	deployment      driver.Deployment
@@ -357,244 +354,36 @@ func (c *Client) endSessions(ctx context.Context) {
 	}
 }
 
+type topologyClient struct{ *Client }
+
+func (tc *topologyClient) GetClusterClock() *session.ClusterClock {
+	return tc.Client.clock
+}
+
+func (tc *topologyClient) SetServerAPI(serverAPI *driver.ServerAPIOptions) {
+	tc.Client.serverAPI = serverAPI
+}
+
+func (tc *topologyClient) SetTopologyOptions(topologyOpts []topology.Option) {
+	tc.Client.topologyOptions = topologyOpts
+}
+
 func (c *Client) configure(opts *options.ClientOptions) error {
-	var defaultOptions int
-	// Set default options
-	if opts.MaxPoolSize == nil {
-		defaultOptions++
-		opts.SetMaxPoolSize(defaultMaxPoolSize)
-	}
-	if err := opts.Validate(); err != nil {
-		return err
-	}
-
-	var connOpts []topology.ConnectionOption
-	var serverOpts []topology.ServerOption
-	var topologyOpts []topology.Option
-
-	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
-
-	// ServerAPIOptions need to be handled early as other client and server options below reference
-	// c.serverAPI and serverOpts.serverAPI.
-	if opts.ServerAPIOptions != nil {
-		// convert passed in options to driver form for client.
-		c.serverAPI = convertToDriverAPIOptions(opts.ServerAPIOptions)
-
-		serverOpts = append(serverOpts, topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
-			return c.serverAPI
-		}))
-	}
-
 	// ClusterClock
 	c.clock = new(session.ClusterClock)
 
-	// Pass down URI, SRV service name, and SRV max hosts so topology can poll SRV records correctly.
-	topologyOpts = append(topologyOpts,
-		topology.WithURI(func(uri string) string { return opts.GetURI() }),
-		topology.WithSRVServiceName(func(srvName string) string {
-			if opts.SRVServiceName != nil {
-				return *opts.SRVServiceName
-			}
-			return ""
-		}),
-		topology.WithSRVMaxHosts(func(srvMaxHosts int) int {
-			if opts.SRVMaxHosts != nil {
-				return *opts.SRVMaxHosts
-			}
-			return 0
-		}),
-	)
-
-	// AppName
-	var appName string
-	if opts.AppName != nil {
-		appName = *opts.AppName
-
-		serverOpts = append(serverOpts, topology.WithServerAppName(func(string) string {
-			return appName
-		}))
-	}
-	// Compressors & ZlibLevel
-	var comps []string
-	if len(opts.Compressors) > 0 {
-		comps = opts.Compressors
-
-		connOpts = append(connOpts, topology.WithCompressors(
-			func(compressors []string) []string {
-				return append(compressors, comps...)
-			},
-		))
-
-		for _, comp := range comps {
-			switch comp {
-			case "zlib":
-				connOpts = append(connOpts, topology.WithZlibLevel(func(level *int) *int {
-					return opts.ZlibLevel
-				}))
-			case "zstd":
-				connOpts = append(connOpts, topology.WithZstdLevel(func(level *int) *int {
-					return opts.ZstdLevel
-				}))
-			}
-		}
-
-		serverOpts = append(serverOpts, topology.WithCompressionOptions(
-			func(opts ...string) []string { return append(opts, comps...) },
-		))
-	}
-
-	var loadBalanced bool
-	if opts.LoadBalanced != nil {
-		loadBalanced = *opts.LoadBalanced
-	}
-
-	// Handshaker
-	var handshaker = func(driver.Handshaker) driver.Handshaker {
-		return operation.NewHello().AppName(appName).Compressors(comps).ClusterClock(c.clock).
-			ServerAPI(c.serverAPI).LoadBalanced(loadBalanced)
-	}
-	// Auth & Database & Password & Username
-	if opts.Auth != nil {
-		cred := &auth.Cred{
-			Username:    opts.Auth.Username,
-			Password:    opts.Auth.Password,
-			PasswordSet: opts.Auth.PasswordSet,
-			Props:       opts.Auth.AuthMechanismProperties,
-			Source:      opts.Auth.AuthSource,
-		}
-		mechanism := opts.Auth.AuthMechanism
-
-		if len(cred.Source) == 0 {
-			switch strings.ToUpper(mechanism) {
-			case auth.MongoDBX509, auth.GSSAPI, auth.PLAIN:
-				cred.Source = "$external"
-			default:
-				cred.Source = "admin"
-			}
-		}
-
-		authenticator, err := auth.CreateAuthenticator(mechanism, cred)
-		if err != nil {
-			return err
-		}
-
-		handshakeOpts := &auth.HandshakeOptions{
-			AppName:       appName,
-			Authenticator: authenticator,
-			Compressors:   comps,
-			ClusterClock:  c.clock,
-			ServerAPI:     c.serverAPI,
-			LoadBalanced:  loadBalanced,
-		}
-		if mechanism == "" {
-			// Required for SASL mechanism negotiation during handshake
-			handshakeOpts.DBUser = cred.Source + "." + cred.Username
-		}
-		if opts.AuthenticateToAnything != nil && *opts.AuthenticateToAnything {
-			// Authenticate arbiters
-			handshakeOpts.PerformAuthentication = func(serv description.Server) bool {
-				return true
-			}
-		}
-
-		handshaker = func(driver.Handshaker) driver.Handshaker {
-			return auth.Handshaker(nil, handshakeOpts)
-		}
-	}
-	connOpts = append(connOpts, topology.WithHandshaker(handshaker))
-	// ConnectTimeout
-	if opts.ConnectTimeout != nil {
-		serverOpts = append(serverOpts, topology.WithHeartbeatTimeout(
-			func(time.Duration) time.Duration { return *opts.ConnectTimeout },
-		))
-		connOpts = append(connOpts, topology.WithConnectTimeout(
-			func(time.Duration) time.Duration { return *opts.ConnectTimeout },
-		))
-	}
-	// Dialer
-	if opts.Dialer != nil {
-		connOpts = append(connOpts, topology.WithDialer(
-			func(topology.Dialer) topology.Dialer { return opts.Dialer },
-		))
-	}
-	// Direct
-	if opts.Direct != nil && *opts.Direct {
-		topologyOpts = append(topologyOpts, topology.WithMode(
-			func(topology.MonitorMode) topology.MonitorMode { return topology.SingleMode },
-		))
-	}
-	// HeartbeatInterval
-	if opts.HeartbeatInterval != nil {
-		serverOpts = append(serverOpts, topology.WithHeartbeatInterval(
-			func(time.Duration) time.Duration { return *opts.HeartbeatInterval },
-		))
-	}
-	// Hosts
-	hosts := []string{"localhost:27017"} // default host
-	if len(opts.Hosts) > 0 {
-		hosts = opts.Hosts
-	}
-	topologyOpts = append(topologyOpts, topology.WithSeedList(
-		func(...string) []string { return hosts },
-	))
 	// LocalThreshold
 	c.localThreshold = defaultLocalThreshold
 	if opts.LocalThreshold != nil {
 		c.localThreshold = *opts.LocalThreshold
 	}
-	// MaxConIdleTime
-	if opts.MaxConnIdleTime != nil {
-		connOpts = append(connOpts, topology.WithIdleTimeout(
-			func(time.Duration) time.Duration { return *opts.MaxConnIdleTime },
-		))
-	}
-	// MaxPoolSize
-	if opts.MaxPoolSize != nil {
-		serverOpts = append(
-			serverOpts,
-			topology.WithMaxConnections(func(uint64) uint64 { return *opts.MaxPoolSize }),
-		)
-	}
-	// MinPoolSize
-	if opts.MinPoolSize != nil {
-		serverOpts = append(
-			serverOpts,
-			topology.WithMinConnections(func(uint64) uint64 { return *opts.MinPoolSize }),
-		)
-	}
-	// MaxConnecting
-	if opts.MaxConnecting != nil {
-		serverOpts = append(
-			serverOpts,
-			topology.WithMaxConnecting(func(uint64) uint64 { return *opts.MaxConnecting }),
-		)
-	}
-	// PoolMonitor
-	if opts.PoolMonitor != nil {
-		serverOpts = append(
-			serverOpts,
-			topology.WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return opts.PoolMonitor }),
-		)
-	}
 	// Monitor
 	if opts.Monitor != nil {
 		c.monitor = opts.Monitor
-		connOpts = append(connOpts, topology.WithMonitor(
-			func(*event.CommandMonitor) *event.CommandMonitor { return opts.Monitor },
-		))
 	}
 	// ServerMonitor
 	if opts.ServerMonitor != nil {
 		c.serverMonitor = opts.ServerMonitor
-		serverOpts = append(
-			serverOpts,
-			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return opts.ServerMonitor }),
-		)
-
-		topologyOpts = append(
-			topologyOpts,
-			topology.WithTopologyServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return opts.ServerMonitor }),
-		)
 	}
 	// ReadConcern
 	c.readConcern = readconcern.New()
@@ -611,12 +400,6 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.Registry != nil {
 		c.registry = opts.Registry
 	}
-	// ReplicaSet
-	if opts.ReplicaSet != nil {
-		topologyOpts = append(topologyOpts, topology.WithReplicaSetName(
-			func(string) string { return *opts.ReplicaSet },
-		))
-	}
 	// RetryWrites
 	c.retryWrites = true // retry writes on by default
 	if opts.RetryWrites != nil {
@@ -626,30 +409,8 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.RetryReads != nil {
 		c.retryReads = *opts.RetryReads
 	}
-	// ServerSelectionTimeout
-	if opts.ServerSelectionTimeout != nil {
-		topologyOpts = append(topologyOpts, topology.WithServerSelectionTimeout(
-			func(time.Duration) time.Duration { return *opts.ServerSelectionTimeout },
-		))
-	}
-	// SocketTimeout
-	if opts.SocketTimeout != nil {
-		connOpts = append(
-			connOpts,
-			topology.WithReadTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
-			topology.WithWriteTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
-		)
-	}
 	// Timeout
 	c.timeout = opts.Timeout
-	// TLSConfig
-	if opts.TLSConfig != nil {
-		connOpts = append(connOpts, topology.WithTLSConfig(
-			func(*tls.Config) *tls.Config {
-				return opts.TLSConfig
-			},
-		))
-	}
 	// WriteConcern
 	if opts.WriteConcern != nil {
 		c.writeConcern = opts.WriteConcern
@@ -663,55 +424,13 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		c.cryptFLE = opts.Crypt
 	}
 
-	// OCSP cache
-	ocspCache := ocsp.NewCache()
-	connOpts = append(
-		connOpts,
-		topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache { return ocspCache }),
-	)
-
-	// Disable communication with external OCSP responders.
-	if opts.DisableOCSPEndpointCheck != nil {
-		connOpts = append(
-			connOpts,
-			topology.WithDisableOCSPEndpointCheck(func(bool) bool { return *opts.DisableOCSPEndpointCheck }),
-		)
-	}
-
-	// LoadBalanced
-	if opts.LoadBalanced != nil {
-		topologyOpts = append(
-			topologyOpts,
-			topology.WithLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
-		)
-		serverOpts = append(
-			serverOpts,
-			topology.WithServerLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
-		)
-		connOpts = append(
-			connOpts,
-			topology.WithConnectionLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
-		)
-	}
-
-	serverOpts = append(
-		serverOpts,
-		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
-		topology.WithConnectionOptions(func(...topology.ConnectionOption) []topology.ConnectionOption { return connOpts }),
-	)
-	topologyOpts = append(topologyOpts, topology.WithServerOptions(
-		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
-	))
-	c.topologyOptions = topologyOpts
-
 	// Deployment
 	if opts.Deployment != nil {
-		// topology options: WithSeedlist, WithURI, WithSRVServiceName, WithSRVMaxHosts, and WithServerOptions
-		// server options: WithClock and WithConnectionOptions + default maxPoolSize
-		if len(serverOpts) > 2+defaultOptions || len(topologyOpts) > 5 {
-			return errors.New("cannot specify topology or server options with a deployment")
-		}
 		c.deployment = opts.Deployment
+	}
+
+	if _, err := topology.NewConfigWithClient(opts, &topologyClient{c}); err != nil {
+		return err
 	}
 
 	return nil
