@@ -620,18 +620,6 @@ func (c *Client) validSession(sess *session.Client) error {
 	return nil
 }
 
-// convertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
-func convertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOptions {
-	driverOpts := driver.NewServerAPIOptions(string(s.ServerAPIVersion))
-	if s.Strict != nil {
-		driverOpts.SetStrict(*s.Strict)
-	}
-	if s.DeprecationErrors != nil {
-		driverOpts.SetDeprecationErrors(*s.DeprecationErrors)
-	}
-	return driverOpts
-}
-
 // Database returns a handle for a database with the given name configured with the given DatabaseOptions.
 func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Database {
 	return newDatabase(c, name, opts...)
