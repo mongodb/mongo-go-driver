@@ -675,6 +675,52 @@ func TestOperation(t *testing.T) {
 		assert.Nil(t, err, "ExecuteExhaust error: %v", err)
 		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 	})
+	t.Run("context deadline exceeded not marked as TransientTransactionError", func(t *testing.T) {
+		conn := new(mockConnection)
+		// Create a context with a very short timeout.
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+		defer cancel()
+
+		op := Operation{
+			Database:   "foobar",
+			Deployment: SingleConnectionDeployment{C: conn},
+			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
+				return dst, nil
+			},
+		}
+
+		err := op.Execute(ctx, nil)
+		assert.NotNil(t, err, "expected an error from Execute(), got nil")
+		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
+		// with the TransientTransactionError label.
+		if !cmp.Equal(err, context.DeadlineExceeded, cmp.Comparer(compareErrors)) {
+			t.Errorf("err is not equal to expected error. got %v; want %v", err, context.DeadlineExceeded)
+		}
+	})
+	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
+		conn := new(mockConnection)
+		// Create a context and cancel it immediately.
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		op := Operation{
+			Database:   "foobar",
+			Deployment: SingleConnectionDeployment{C: conn},
+			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
+				return dst, nil
+			},
+		}
+
+		err := op.Execute(ctx, nil)
+		assert.NotNil(t, err, "expected an error from Execute(), got nil")
+		// Assert that error is just context canceled and is therefore not a driver.Error marked with
+		// the TransientTransactionError label.
+		if !cmp.Equal(err, context.Canceled, cmp.Comparer(compareErrors)) {
+			t.Errorf("err is not equal to expected error. got %v; want %v", err, context.Canceled)
+		}
+	})
 }
 
 func createExhaustServerResponse(response bsoncore.Document, moreToCome bool) []byte {
