@@ -815,3 +815,15 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 		ServerAPI:      c.serverAPI,
 	}
 }
+
+// convertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
+func convertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOptions {
+	driverOpts := driver.NewServerAPIOptions(string(s.ServerAPIVersion))
+	if s.Strict != nil {
+		driverOpts.SetStrict(*s.Strict)
+	}
+	if s.DeprecationErrors != nil {
+		driverOpts.SetDeprecationErrors(*s.DeprecationErrors)
+	}
+	return driverOpts
+}
