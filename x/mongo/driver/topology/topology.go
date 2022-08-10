@@ -120,6 +120,12 @@ func newServerSelectionState(selector description.ServerSelector, timeoutChan <-
 }
 
 func New_(cfg *config) (*Topology, error) {
+	if cfg == nil {
+		cfg = new(config)
+		cfg.seedList = []string{"localhost:27017"}
+		cfg.serverSelectionTimeout = 30 * time.Second
+	}
+
 	t := &Topology{
 		cfg:               cfg,
 		done:              make(chan struct{}),

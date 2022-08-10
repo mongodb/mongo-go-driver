@@ -49,23 +49,21 @@ var (
 // The Client type opens and closes connections automatically and maintains a pool of idle connections. For
 // connection pool configuration options, see documentation for the ClientOptions type in the mongo/options package.
 type Client struct {
-	meep            int
-	id              uuid.UUID
-	topologyOptions []topology.Option
-	deployment      driver.Deployment
-	localThreshold  time.Duration
-	retryWrites     bool
-	retryReads      bool
-	clock           *session.ClusterClock
-	readPreference  *readpref.ReadPref
-	readConcern     *readconcern.ReadConcern
-	writeConcern    *writeconcern.WriteConcern
-	registry        *bsoncodec.Registry
-	monitor         *event.CommandMonitor
-	serverAPI       *driver.ServerAPIOptions
-	serverMonitor   *event.ServerMonitor
-	sessionPool     *session.Pool
-	timeout         *time.Duration
+	id             uuid.UUID
+	deployment     driver.Deployment
+	localThreshold time.Duration
+	retryWrites    bool
+	retryReads     bool
+	clock          *session.ClusterClock
+	readPreference *readpref.ReadPref
+	readConcern    *readconcern.ReadConcern
+	writeConcern   *writeconcern.WriteConcern
+	registry       *bsoncodec.Registry
+	monitor        *event.CommandMonitor
+	serverAPI      *driver.ServerAPIOptions
+	serverMonitor  *event.ServerMonitor
+	sessionPool    *session.Pool
+	timeout        *time.Duration
 
 	// client-side encryption fields
 	keyVaultClientFLE  *Client
@@ -75,6 +73,16 @@ type Client struct {
 	metadataClientFLE  *Client
 	internalClientFLE  *Client
 	encryptedFieldsMap map[string]interface{}
+}
+
+type topologyClient struct{ *Client }
+
+func (tc *topologyClient) GetClusterClock() *session.ClusterClock {
+	return tc.Client.clock
+}
+
+func (tc *topologyClient) SetServerAPI(serverAPI *driver.ServerAPIOptions) {
+	tc.Client.serverAPI = serverAPI
 }
 
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
@@ -139,7 +147,11 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 
 	if client.deployment == nil {
-		client.deployment, err = topology.New(client.topologyOptions...)
+		cfg, err := topology.NewConfigWithClient(clientOpt, &topologyClient{client})
+		if err != nil {
+			return nil, err
+		}
+		client.deployment, err = topology.New_(cfg)
 		if err != nil {
 			return nil, replaceErrors(err)
 		}
@@ -354,20 +366,6 @@ func (c *Client) endSessions(ctx context.Context) {
 	}
 }
 
-type topologyClient struct{ *Client }
-
-func (tc *topologyClient) GetClusterClock() *session.ClusterClock {
-	return tc.Client.clock
-}
-
-func (tc *topologyClient) SetServerAPI(serverAPI *driver.ServerAPIOptions) {
-	tc.Client.serverAPI = serverAPI
-}
-
-func (tc *topologyClient) SetTopologyOptions(topologyOpts []topology.Option) {
-	tc.Client.topologyOptions = topologyOpts
-}
-
 func (c *Client) configure(opts *options.ClientOptions) error {
 	// ClusterClock
 	c.clock = new(session.ClusterClock)
@@ -427,10 +425,6 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	// Deployment
 	if opts.Deployment != nil {
 		c.deployment = opts.Deployment
-	}
-
-	if _, err := topology.NewConfigWithClient(opts, &topologyClient{c}); err != nil {
-		return err
 	}
 
 	return nil

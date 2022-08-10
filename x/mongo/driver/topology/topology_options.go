@@ -79,7 +79,6 @@ func convertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOpt
 type client interface {
 	GetClusterClock() *session.ClusterClock
 	SetServerAPI(*driver.ServerAPIOptions)
-	SetTopologyOptions(topologyOpts []Option)
 }
 
 func newConfig_(co *options.ClientOptions, client client) (*config, error) {
@@ -386,9 +385,6 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 	topologyOpts = append(topologyOpts, WithServerOptions(
 		func(...ServerOption) []ServerOption { return serverOpts },
 	))
-	if client != nil {
-		client.SetTopologyOptions(topologyOpts)
-	}
 
 	// Deployment
 	if co.Deployment != nil {
