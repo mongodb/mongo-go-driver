@@ -106,7 +106,7 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 	// ServerAPIOptions need to be handled early as other client and server options below reference
 	// c.serverAPI and serverOpts.serverAPI.
 	if co.ServerAPIOptions != nil {
-		serverAPI := convertToDriverAPIOptions(co.ServerAPIOptions)
+		serverAPI = convertToDriverAPIOptions(co.ServerAPIOptions)
 		fmt.Println("try to set server API")
 		client.SetServerAPI(serverAPI)
 		serverOpts = append(serverOpts, WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
