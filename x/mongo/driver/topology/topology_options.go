@@ -10,6 +10,7 @@ import (
 	"crypto/tls"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -106,6 +107,7 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 	// c.serverAPI and serverOpts.serverAPI.
 	if co.ServerAPIOptions != nil {
 		serverAPI := convertToDriverAPIOptions(co.ServerAPIOptions)
+		fmt.Println("try to set server API")
 		client.SetServerAPI(serverAPI)
 		serverOpts = append(serverOpts, WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
 			return serverAPI
@@ -113,6 +115,7 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 	}
 
 	// Pass down URI, SRV service name, and SRV max hosts so topology can poll SRV records correctly.
+	fmt.Println("GetURI", co.GetURI())
 	topologyOpts = append(topologyOpts,
 		WithURI(func(uri string) string { return co.GetURI() }),
 		WithSRVServiceName(func(srvName string) string {

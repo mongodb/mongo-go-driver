@@ -146,6 +146,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 
 	cfg, err := topology.NewConfigWithClient(clientOpt, &topologyClient{client})
+	fmt.Printf("client: %v\n", client.serverAPI)
 	if err != nil {
 		return nil, err
 	}

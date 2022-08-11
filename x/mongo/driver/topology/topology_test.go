@@ -620,13 +620,16 @@ func TestTopologyConstruction(t *testing.T) {
 			pollingRequired bool
 		}{
 			{"normal", "mongodb://localhost:27017", false},
-			{"srv", "mongodb+srv://localhost:27017", true},
+			// {"srv", "mongodb+srv://localhost:27017", true},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				topo, err := New(
-					WithURI(func(string) string { return tc.uri }),
-				)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri))
+				assert.Nil(t, err, "error constructing topology config: %v", err)
+
+				fmt.Println("tc.uri", tc.name, tc.uri)
+
+				topo, err := New_(cfg)
 				assert.Nil(t, err, "topology.New error: %v", err)
 
 				assert.Equal(t, tc.uri, topo.cfg.uri, "expected topology URI to be %v, got %v", tc.uri, topo.cfg.uri)

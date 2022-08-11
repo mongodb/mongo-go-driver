@@ -152,35 +152,36 @@ func New_(cfg *config) (*Topology, error) {
 }
 
 // New creates a new topology.
-func New(opts ...Option) (*Topology, error) {
-	cfg, err := newConfig(opts...)
-	if err != nil {
-		return nil, err
-	}
+func New() (*Topology, error) {
+	return New_(nil)
+	// cfg, err := newConfig(opts...)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	t := &Topology{
-		cfg:               cfg,
-		done:              make(chan struct{}),
-		pollingDone:       make(chan struct{}),
-		rescanSRVInterval: 60 * time.Second,
-		fsm:               newFSM(),
-		subscribers:       make(map[uint64]chan description.Topology),
-		servers:           make(map[address.Address]*Server),
-		dnsResolver:       dns.DefaultResolver,
-		id:                primitive.NewObjectID(),
-	}
-	t.desc.Store(description.Topology{})
-	t.updateCallback = func(desc description.Server) description.Server {
-		return t.apply(context.TODO(), desc)
-	}
+	// t := &Topology{
+	// 	cfg:               cfg,
+	// 	done:              make(chan struct{}),
+	// 	pollingDone:       make(chan struct{}),
+	// 	rescanSRVInterval: 60 * time.Second,
+	// 	fsm:               newFSM(),
+	// 	subscribers:       make(map[uint64]chan description.Topology),
+	// 	servers:           make(map[address.Address]*Server),
+	// 	dnsResolver:       dns.DefaultResolver,
+	// 	id:                primitive.NewObjectID(),
+	// }
+	// t.desc.Store(description.Topology{})
+	// t.updateCallback = func(desc description.Server) description.Server {
+	// 	return t.apply(context.TODO(), desc)
+	// }
 
-	if t.cfg.uri != "" {
-		t.pollingRequired = strings.HasPrefix(t.cfg.uri, "mongodb+srv://") && !t.cfg.loadBalanced
-	}
+	// if t.cfg.uri != "" {
+	// 	t.pollingRequired = strings.HasPrefix(t.cfg.uri, "mongodb+srv://") && !t.cfg.loadBalanced
+	// }
 
-	t.publishTopologyOpeningEvent()
+	// t.publishTopologyOpeningEvent()
 
-	return t, nil
+	// return t, nil
 }
 
 // Connect initializes a Topology and starts the monitoring process. This function
