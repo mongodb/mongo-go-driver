@@ -677,8 +677,8 @@ func TestOperation(t *testing.T) {
 	})
 	t.Run("context deadline exceeded not marked as TransientTransactionError", func(t *testing.T) {
 		conn := new(mockConnection)
-		// Create a context with a very short timeout.
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+		// Create a context that's already timed out.
+		ctx, cancel := context.WithDeadline(context.Background(), time.Unix(893934480, 0))
 		defer cancel()
 
 		op := Operation{
