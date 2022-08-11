@@ -619,7 +619,6 @@ func TestClientOptions(t *testing.T) {
 			{"multiple hosts in options", Client().SetHosts([]string{"foo", "bar"}), internal.ErrLoadBalancedWithMultipleHosts},
 			{"replica set name", Client().SetReplicaSet("foo"), internal.ErrLoadBalancedWithReplicaSet},
 			{"directConnection=true", Client().SetDirect(true), internal.ErrLoadBalancedWithDirectConnection},
-			{"directConnection=false", Client().SetDirect(false), internal.ErrLoadBalancedWithDirectConnection},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {

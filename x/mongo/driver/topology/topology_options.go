@@ -7,13 +7,9 @@
 package topology
 
 import (
-	"bytes"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"strings"
 	"time"
 
@@ -487,33 +483,6 @@ func WithSRVServiceName(fn func(string) string) Option {
 	}
 }
 
-// addCACertFromFile adds a root CA certificate to the configuration given a path
-// to the containing file.
-func addCACertFromFile(cfg *tls.Config, file string) error {
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
-	certBytes, err := loadCert(data)
-	if err != nil {
-		return err
-	}
-
-	cert, err := x509.ParseCertificate(certBytes)
-	if err != nil {
-		return err
-	}
-
-	if cfg.RootCAs == nil {
-		cfg.RootCAs = x509.NewCertPool()
-	}
-
-	cfg.RootCAs.AddCert(cert)
-
-	return nil
-}
-
 func loadCert(data []byte) ([]byte, error) {
 	var certBlock *pem.Block
 
@@ -540,68 +509,4 @@ func loadCert(data []byte) ([]byte, error) {
 	}
 
 	return certBlock.Bytes, nil
-}
-
-// addClientCertFromFile adds a client certificate to the configuration given a path to the
-// containing file and returns the certificate's subject name.
-func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (string, error) {
-	data, err := ioutil.ReadFile(clientFile)
-	if err != nil {
-		return "", err
-	}
-
-	var currentBlock *pem.Block
-	var certBlock, certDecodedBlock, keyBlock []byte
-
-	remaining := data
-	start := 0
-	for {
-		currentBlock, remaining = pem.Decode(remaining)
-		if currentBlock == nil {
-			break
-		}
-
-		if currentBlock.Type == "CERTIFICATE" {
-			certBlock = data[start : len(data)-len(remaining)]
-			certDecodedBlock = currentBlock.Bytes
-			start += len(certBlock)
-		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
-			if keyPasswd != "" && x509.IsEncryptedPEMBlock(currentBlock) {
-				var encoded bytes.Buffer
-				buf, err := x509.DecryptPEMBlock(currentBlock, []byte(keyPasswd))
-				if err != nil {
-					return "", err
-				}
-
-				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: buf})
-				keyBlock = encoded.Bytes()
-				start = len(data) - len(remaining)
-			} else {
-				keyBlock = data[start : len(data)-len(remaining)]
-				start += len(keyBlock)
-			}
-		}
-	}
-	if len(certBlock) == 0 {
-		return "", fmt.Errorf("failed to find CERTIFICATE")
-	}
-	if len(keyBlock) == 0 {
-		return "", fmt.Errorf("failed to find PRIVATE KEY")
-	}
-
-	cert, err := tls.X509KeyPair(certBlock, keyBlock)
-	if err != nil {
-		return "", err
-	}
-
-	cfg.Certificates = append(cfg.Certificates, cert)
-
-	// The documentation for the tls.X509KeyPair indicates that the Leaf certificate is not
-	// retained.
-	crt, err := x509.ParseCertificate(certDecodedBlock)
-	if err != nil {
-		return "", err
-	}
-
-	return crt.Subject.String(), nil
 }

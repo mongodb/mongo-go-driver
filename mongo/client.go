@@ -31,8 +31,7 @@ import (
 )
 
 const (
-	defaultLocalThreshold        = 15 * time.Millisecond
-	defaultMaxPoolSize    uint64 = 100
+	defaultLocalThreshold = 15 * time.Millisecond
 )
 
 var (

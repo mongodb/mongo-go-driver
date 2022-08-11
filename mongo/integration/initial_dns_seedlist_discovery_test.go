@@ -9,6 +9,7 @@ package integration
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -106,12 +107,16 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	tlsconfig := getSSLSettings(mt, test)
 
 	// Make a topology from the options.
-	opts := options.Client().ApplyURI(cs.String())
+	opts := options.Client().ApplyURI(test.URI)
 	if tlsconfig != nil {
 		opts.SetTLSConfig(tlsconfig)
 	}
+	if cs.LoadBalanced {
+		opts.SetLoadBalanced(true)
+	}
 
 	cfg, err := topology.NewConfig(opts)
+	fmt.Printf("Test URI: %v\n", test.URI)
 	assert.Nil(mt, err, "error constructing toplogy config: %v", err)
 
 	topo, err := topology.New_(cfg)
