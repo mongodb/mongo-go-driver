@@ -7,6 +7,7 @@
 package driver
 
 import (
+	"bytes"
 	"context"
 	"errors"
 )
@@ -19,11 +20,14 @@ func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection,
 	}
 
 	//scratch = scratch[:0]
-	res, err := op.readWireMessage(ctx, conn)
+	buf := bytes.NewBuffer(nil)
+	err := op.readWireMessage(ctx, conn, buf)
 	if err != nil {
 		return err
 	}
 	if op.ProcessResponseFn != nil {
+		res := make([]byte, buf.Len())
+		copy(res, buf.Bytes())
 		// Server, ConnectionDescription, and CurrentIndex are unused in this mode.
 		info := ResponseInfo{
 			ServerResponse: res,

@@ -555,9 +555,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
-			var res bsoncore.Document
-			res, err = roundTrip(ctx, conn, wm)
-			buf.Write(res)
+			buf.Write(wm)
+			err = roundTrip(ctx, conn, buf)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
@@ -794,13 +793,13 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, wm)
+func (op Operation) roundTrip(ctx context.Context, conn Connection, wm *bytes.Buffer) error {
+	err := conn.WriteWireMessage(ctx, wm.Bytes())
 	if err != nil {
-		return nil, op.networkError(err)
+		return op.networkError(err)
 	}
-
-	return op.readWireMessage(ctx, conn)
+	wm.Reset()
+	return op.readWireMessage(ctx, conn, wm)
 }
 
 var bufPool = sync.Pool{
@@ -809,15 +808,15 @@ var bufPool = sync.Pool{
 	},
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn Connection) ([]byte, error) {
+func (op Operation) readWireMessage(ctx context.Context, conn Connection, res *bytes.Buffer) error {
 	wm, err := conn.ReadWireMessage(ctx)
 	if err != nil {
-		return nil, op.networkError(err)
+		return op.networkError(err)
 	}
 	src := bufPool.Get().(*wiremessage.SrcStream)
 	err = src.Reset(wm)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer func() {
 		err = src.Close()
@@ -833,7 +832,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) ([]byt
 	*/
 
 	// decode
-	res, isMsgMoreToCome, err := op.decodeResult(src)
+	isMsgMoreToCome, err := op.decodeResult(src, res)
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
 	// response.
 	if streamer, ok := conn.(StreamerConnection); ok {
@@ -842,24 +841,27 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) ([]byt
 
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
-	op.updateClusterTimes(res)
-	op.updateOperationTime(res)
-	op.Client.UpdateRecoveryToken(bson.Raw(res))
+	op.updateClusterTimes(res.Bytes())
+	op.updateOperationTime(res.Bytes())
+	op.Client.UpdateRecoveryToken(bson.Raw(res.Bytes()))
 
 	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
 	if op.cmdName == "find" || op.cmdName == "aggregate" || op.cmdName == "distinct" {
-		op.Client.UpdateSnapshotTime(res)
+		op.Client.UpdateSnapshotTime(res.Bytes())
 	}
 
 	if err != nil {
-		return res, err
+		return err
 	}
 
 	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
 	if op.Crypt != nil {
-		return op.Crypt.Decrypt(ctx, res)
+		buf, err := op.Crypt.Decrypt(ctx, res.Bytes())
+		res.Reset()
+		res.Write(buf)
+		return err
 	}
-	return res, nil
+	return nil
 }
 
 // networkError wraps the provided error in an Error with label "NetworkError" and, if a transaction
@@ -885,15 +887,17 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, wm)
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm *bytes.Buffer) error {
+	err := conn.WriteWireMessage(ctx, wm.Bytes())
 	if err != nil {
 		if op.Client != nil {
 			op.Client.MarkDirty()
 		}
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
-	return bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)), err
+	wm.Reset()
+	wm.Write(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)))
+	return err
 }
 
 // decompressWireMessage handles decompressing a wiremessage. If the wiremessage
@@ -1566,111 +1570,112 @@ func (Operation) decodeOpReply(wm *wiremessage.SrcStream) opReply {
 	return reply
 }
 
-func (Operation) decodeOpReplyDoc(wm *wiremessage.SrcStream) (bsoncore.Document, error) {
+func (Operation) decodeOpReplyDoc(wm *wiremessage.SrcStream, buf *bytes.Buffer) error {
 	var err error
 	defer func() {
 		_, err = io.Copy(ioutil.Discard, wm)
 	}()
 	responseFlags, err := wm.ReadReplyFlags()
 	if err != nil {
-		return nil, errors.New("malformed OP_REPLY: missing flags")
+		return errors.New("malformed OP_REPLY: missing flags")
 	}
 	if responseFlags&wiremessage.CursorNotFound == wiremessage.CursorNotFound {
-		return nil, ErrCursorNotFound
+		return ErrCursorNotFound
 	}
 	_, err = wm.ReadI64()
 	if err != nil {
-		return nil, errors.New("malformed OP_REPLY: missing cursorID")
+		return errors.New("malformed OP_REPLY: missing cursorID")
 	}
 	_, err = wm.ReadI32()
 	if err != nil {
-		return nil, errors.New("malformed OP_REPLY: missing startingFrom")
+		return errors.New("malformed OP_REPLY: missing startingFrom")
 	}
 	numReturned, err := wm.ReadI32()
 	if err != nil {
-		return nil, errors.New("malformed OP_REPLY: missing numberReturned")
+		return errors.New("malformed OP_REPLY: missing numberReturned")
 	}
 	if numReturned == 0 {
-		return nil, ErrNoDocCommandResponse
+		return ErrNoDocCommandResponse
 	}
 	if numReturned > 1 {
-		return nil, ErrMultiDocCommandResponse
+		return ErrMultiDocCommandResponse
 	}
-	res, err := wm.ReadMsgSectionSingleDocument()
+	err = wm.ReadMsgSectionSingleDocument(buf)
 	if err != nil && err != io.EOF {
-		return nil, errors.New("malformed OP_REPLY: could not read documents from reply")
+		return errors.New("malformed OP_REPLY: could not read documents from reply")
 	}
 
 	if responseFlags&wiremessage.QueryFailure == wiremessage.QueryFailure {
-		return nil, QueryFailureError{
+		return QueryFailureError{
 			Message:  "command failure",
-			Response: res,
+			Response: buf.Bytes(),
 		}
 	}
-	return res, nil
+	return nil
 }
 
-func (op Operation) decodeResult(wm *wiremessage.SrcStream) (bsoncore.Document, bool, error) {
+func (op Operation) decodeResult(wm *wiremessage.SrcStream, buf *bytes.Buffer) (bool, error) {
 	//wm = wm[:wmLength-16] // constrain to just this wiremessage, incase there are multiple in the slice
 
 	var isMsgMoreToCome bool
 	switch wm.Opcode {
 	case wiremessage.OpReply:
-		rdr, err := op.decodeOpReplyDoc(wm)
+		err := op.decodeOpReplyDoc(wm, buf)
 		if err != nil {
-			return nil, isMsgMoreToCome, err
+			return isMsgMoreToCome, err
 		}
-		if err := rdr.Validate(); err != nil {
-			return nil, isMsgMoreToCome, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
+		if err := bsoncore.Document(buf.Bytes()).Validate(); err != nil {
+			return isMsgMoreToCome, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
 		}
 
-		return rdr, isMsgMoreToCome, ExtractErrorFromServerResponse(rdr)
+		return isMsgMoreToCome, ExtractErrorFromServerResponse(buf.Bytes())
 	case wiremessage.OpMsg:
 		flag, err := wm.ReadMsgFlags()
 		if err != nil {
-			return nil, isMsgMoreToCome, errors.New("malformed wire message: missing OP_MSG flags")
+			return isMsgMoreToCome, errors.New("malformed wire message: missing OP_MSG flags")
 		}
 		isMsgMoreToCome = flag&wiremessage.MoreToCome == wiremessage.MoreToCome
 
-		var res bsoncore.Document
+		//var res bsoncore.Document
 		for err != io.EOF {
+			buf.Reset()
 			var stype wiremessage.SectionType
 			stype, err = wm.ReadMsgSectionType()
 			if err != nil {
 				if err == io.EOF {
 					break
 				}
-				return nil, isMsgMoreToCome, errors.New("malformed wire message: insuffienct bytes to read section type")
+				return isMsgMoreToCome, errors.New("malformed wire message: insuffienct bytes to read section type")
 			}
 
 			switch stype {
 			case wiremessage.SingleDocument:
-				res, err = wm.ReadMsgSectionSingleDocument()
+				err = wm.ReadMsgSectionSingleDocument(buf)
 				if err != nil {
 					if err == io.EOF {
 						break
 					}
-					return nil, isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read single document")
+					return isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read single document")
 				}
 			case wiremessage.DocumentSequence:
 				// TODO(GODRIVER-617): Implement document sequence returns.
 				_, err = io.Copy(ioutil.Discard, wm)
 				if err != nil {
-					return nil, isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read document sequence")
+					return isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read document sequence")
 				}
 			default:
-				return nil, isMsgMoreToCome, fmt.Errorf("malformed wire message: unknown section type %v", stype)
+				return isMsgMoreToCome, fmt.Errorf("malformed wire message: unknown section type %v", stype)
 			}
 		}
 
-		err = res.Validate()
+		err = bsoncore.Document(buf.Bytes()).Validate()
 		if err != nil {
-			return nil, isMsgMoreToCome, NewCommandResponseError("malformed OP_MSG: invalid document", err)
+			return isMsgMoreToCome, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 		}
 
-		return res, isMsgMoreToCome, ExtractErrorFromServerResponse(res)
+		return isMsgMoreToCome, ExtractErrorFromServerResponse(buf.Bytes())
 	default:
-		return nil, isMsgMoreToCome, fmt.Errorf("cannot decode result from %s", wm.Opcode)
+		return isMsgMoreToCome, fmt.Errorf("cannot decode result from %s", wm.Opcode)
 	}
 }
 
