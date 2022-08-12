@@ -8,9 +8,7 @@ package topology
 
 import (
 	"crypto/tls"
-	"encoding/pem"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -25,40 +23,26 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-// Option is a configuration option for a topology.
-type Option func(*config) error
-
-type config struct {
-	mode                   MonitorMode
-	replicaSetName         string
-	seedList               []string
-	serverOpts             []ServerOption
-	cs                     connstring.ConnString // This must not be used for any logic in topology.Topology.
-	uri                    string
-	serverSelectionTimeout time.Duration
-	serverMonitor          *event.ServerMonitor
-	srvMaxHosts            int
-	srvServiceName         string
-	loadBalanced           bool
+type Config struct {
+	Mode                   MonitorMode
+	ReplicaSetName         string
+	SeedList               []string
+	ServerOpts             []ServerOption
+	ConnString             connstring.ConnString // This must not be used for any logic in topology.Topology.
+	URI                    string
+	ServerSelectionTimeout time.Duration
+	ServerMonitor          *event.ServerMonitor
+	SRVMaxHosts            int
+	SRVServiceName         string
+	LoadBalanced           bool
 }
 
-func newConfig(opts ...Option) (*config, error) {
-	cfg := &config{
-		seedList:               []string{"localhost:27017"},
-		serverSelectionTimeout: 30 * time.Second,
-	}
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		err := opt(cfg)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return cfg, nil
+func hasOptionalData(co options.ClientOptions) bool {
+	return co.Direct != nil && *co.Direct ||
+		co.ServerMonitor != nil ||
+		co.ReplicaSet != nil ||
+		co.ServerSelectionTimeout != nil ||
+		co.LoadBalanced != nil
 }
 
 // convertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
@@ -78,7 +62,8 @@ type client interface {
 	SetServerAPI(*driver.ServerAPIOptions)
 }
 
-func newConfig_(co *options.ClientOptions, client client) (*config, error) {
+// newConfig will translate data from client options into a topology config for building non-default deployments.
+func newConfig(co *options.ClientOptions, client client) (*Config, error) {
 	var defaultMaxPoolSize uint64 = 100
 	var serverAPI *driver.ServerAPIOptions = nil
 
@@ -99,7 +84,8 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 
 	var connOpts []ConnectionOption
 	var serverOpts []ServerOption
-	var topologyOpts []Option
+
+	cfgp := new(Config)
 
 	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
 
@@ -107,30 +93,21 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 	// c.serverAPI and serverOpts.serverAPI.
 	if co.ServerAPIOptions != nil {
 		serverAPI = convertToDriverAPIOptions(co.ServerAPIOptions)
-		fmt.Println("try to set server API")
 		client.SetServerAPI(serverAPI)
 		serverOpts = append(serverOpts, WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
 			return serverAPI
 		}))
 	}
 
-	// Pass down URI, SRV service name, and SRV max hosts so topology can poll SRV records correctly.
-	fmt.Println("GetURI", co.GetURI())
-	topologyOpts = append(topologyOpts,
-		WithURI(func(uri string) string { return co.GetURI() }),
-		WithSRVServiceName(func(srvName string) string {
-			if co.SRVServiceName != nil {
-				return *co.SRVServiceName
-			}
-			return ""
-		}),
-		WithSRVMaxHosts(func(srvMaxHosts int) int {
-			if co.SRVMaxHosts != nil {
-				return *co.SRVMaxHosts
-			}
-			return 0
-		}),
-	)
+	cfgp.URI = co.GetURI()
+
+	if co.SRVServiceName != nil {
+		cfgp.SRVServiceName = *co.SRVServiceName
+	}
+
+	if co.SRVMaxHosts != nil {
+		cfgp.SRVMaxHosts = *co.SRVMaxHosts
+	}
 
 	// AppName
 	var appName string
@@ -247,10 +224,9 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 	}
 	// Direct
 	if co.Direct != nil && *co.Direct {
-		topologyOpts = append(topologyOpts, WithMode(
-			func(MonitorMode) MonitorMode { return SingleMode },
-		))
+		cfgp.Mode = SingleMode
 	}
+
 	// HeartbeatInterval
 	if co.HeartbeatInterval != nil {
 		serverOpts = append(serverOpts, WithHeartbeatInterval(
@@ -258,13 +234,11 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 		))
 	}
 	// Hosts
-	hosts := []string{"localhost:27017"} // default host
+	cfgp.SeedList = []string{"localhost:27017"} // default host
 	if len(co.Hosts) > 0 {
-		hosts = co.Hosts
+		cfgp.SeedList = co.Hosts
 	}
-	topologyOpts = append(topologyOpts, WithSeedList(
-		func(...string) []string { return hosts },
-	))
+
 	// MaxConIdleTime
 	if co.MaxConnIdleTime != nil {
 		connOpts = append(connOpts, WithIdleTimeout(
@@ -311,23 +285,15 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 			serverOpts,
 			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return co.ServerMonitor }),
 		)
-
-		topologyOpts = append(
-			topologyOpts,
-			WithTopologyServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return co.ServerMonitor }),
-		)
+		cfgp.ServerMonitor = co.ServerMonitor
 	}
 	// ReplicaSet
 	if co.ReplicaSet != nil {
-		topologyOpts = append(topologyOpts, WithReplicaSetName(
-			func(string) string { return *co.ReplicaSet },
-		))
+		cfgp.ReplicaSetName = *co.ReplicaSet
 	}
 	// ServerSelectionTimeout
 	if co.ServerSelectionTimeout != nil {
-		topologyOpts = append(topologyOpts, WithServerSelectionTimeout(
-			func(time.Duration) time.Duration { return *co.ServerSelectionTimeout },
-		))
+		cfgp.ServerSelectionTimeout = *co.ServerSelectionTimeout
 	}
 	// SocketTimeout
 	if co.SocketTimeout != nil {
@@ -363,10 +329,8 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 
 	// LoadBalanced
 	if co.LoadBalanced != nil {
-		topologyOpts = append(
-			topologyOpts,
-			WithLoadBalanced(func(bool) bool { return *co.LoadBalanced }),
-		)
+		cfgp.LoadBalanced = *co.LoadBalanced
+
 		serverOpts = append(
 			serverOpts,
 			WithServerLoadBalanced(func(bool) bool { return *co.LoadBalanced }),
@@ -381,135 +345,29 @@ func newConfig_(co *options.ClientOptions, client client) (*config, error) {
 		serverOpts,
 		WithClock(func(*session.ClusterClock) *session.ClusterClock { return clusterClock }),
 		WithConnectionOptions(func(...ConnectionOption) []ConnectionOption { return connOpts }))
-	topologyOpts = append(topologyOpts, WithServerOptions(
-		func(...ServerOption) []ServerOption { return serverOpts },
-	))
+
+	cfgp.ServerOpts = serverOpts
 
 	// Deployment
 	if co.Deployment != nil {
 		// topology options: WithSeedlist, WithURI, WithSRVServiceName, WithSRVMaxHosts, and WithServerOptions
 		// server options: WithClock and WithConnectionOptions + default maxPoolSize
-		if len(serverOpts) > 2+defaultOptions || len(topologyOpts) > 5 {
+		if len(serverOpts) > 2+defaultOptions || hasOptionalData(*co) {
 			return nil, errors.New("cannot specify topology or server options with a deployment")
 		}
 	}
-	return newConfig(topologyOpts...)
+
+	return cfgp, nil
 }
 
-func NewConfig(co *options.ClientOptions) (*config, error) {
-	return newConfig_(co, nil)
+// NewConfig will translate client options into a topology config for building deployments.
+func NewConfig(co *options.ClientOptions) (*Config, error) {
+	return newConfig(co, nil)
 }
 
-func NewConfigWithClient(co *options.ClientOptions, client client) (*config, error) {
-	return newConfig_(co, client)
-}
-
-// WithMode configures the topology's monitor mode.
-func WithMode(fn func(MonitorMode) MonitorMode) Option {
-	return func(cfg *config) error {
-		cfg.mode = fn(cfg.mode)
-		return nil
-	}
-}
-
-// WithReplicaSetName configures the topology's default replica set name.
-func WithReplicaSetName(fn func(string) string) Option {
-	return func(cfg *config) error {
-		cfg.replicaSetName = fn(cfg.replicaSetName)
-		return nil
-	}
-}
-
-// WithSeedList configures a topology's seed list.
-func WithSeedList(fn func(...string) []string) Option {
-	return func(cfg *config) error {
-		cfg.seedList = fn(cfg.seedList...)
-		return nil
-	}
-}
-
-// WithServerOptions configures a topology's server options for when a new server
-// needs to be created.
-func WithServerOptions(fn func(...ServerOption) []ServerOption) Option {
-	return func(cfg *config) error {
-		cfg.serverOpts = fn(cfg.serverOpts...)
-		return nil
-	}
-}
-
-// WithServerSelectionTimeout configures a topology's server selection timeout.
-// A server selection timeout of 0 means there is no timeout for server selection.
-func WithServerSelectionTimeout(fn func(time.Duration) time.Duration) Option {
-	return func(cfg *config) error {
-		cfg.serverSelectionTimeout = fn(cfg.serverSelectionTimeout)
-		return nil
-	}
-}
-
-// WithTopologyServerMonitor configures the monitor for all SDAM events
-func WithTopologyServerMonitor(fn func(*event.ServerMonitor) *event.ServerMonitor) Option {
-	return func(cfg *config) error {
-		cfg.serverMonitor = fn(cfg.serverMonitor)
-		return nil
-	}
-}
-
-// WithURI specifies the URI that was used to create the topology.
-func WithURI(fn func(string) string) Option {
-	return func(cfg *config) error {
-		cfg.uri = fn(cfg.uri)
-		return nil
-	}
-}
-
-// WithLoadBalanced specifies whether or not the cluster is behind a load balancer.
-func WithLoadBalanced(fn func(bool) bool) Option {
-	return func(cfg *config) error {
-		cfg.loadBalanced = fn(cfg.loadBalanced)
-		return nil
-	}
-}
-
-// WithSRVMaxHosts specifies the SRV host limit that was used to create the topology.
-func WithSRVMaxHosts(fn func(int) int) Option {
-	return func(cfg *config) error {
-		cfg.srvMaxHosts = fn(cfg.srvMaxHosts)
-		return nil
-	}
-}
-
-// WithSRVServiceName specifies the SRV service name that was used to create the topology.
-func WithSRVServiceName(fn func(string) string) Option {
-	return func(cfg *config) error {
-		cfg.srvServiceName = fn(cfg.srvServiceName)
-		return nil
-	}
-}
-
-func loadCert(data []byte) ([]byte, error) {
-	var certBlock *pem.Block
-
-	for certBlock == nil {
-		if len(data) == 0 {
-			return nil, errors.New(".pem file must have both a CERTIFICATE and an RSA PRIVATE KEY section")
-		}
-
-		block, rest := pem.Decode(data)
-		if block == nil {
-			return nil, errors.New("invalid .pem file")
-		}
-
-		switch block.Type {
-		case "CERTIFICATE":
-			if certBlock != nil {
-				return nil, errors.New("multiple CERTIFICATE sections in .pem file")
-			}
-
-			certBlock = block
-		}
-
-		data = rest
-	}
-
-	return certBlock.Bytes, nil
+// NewConfigWithClient will translate client options into a topology config for building deployments. It will also use
+// a client implementation for accessing and setting unexported data as well as implementing non-configuration-specific
+// data.
+func NewConfigWithClient(co *options.ClientOptions, client client) (*Config, error) {
+	return newConfig(co, client)
 }

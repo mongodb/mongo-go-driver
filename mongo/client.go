@@ -146,13 +146,12 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 
 	cfg, err := topology.NewConfigWithClient(clientOpt, &topologyClient{client})
-	fmt.Printf("client: %v\n", client.serverAPI)
 	if err != nil {
 		return nil, err
 	}
 
 	if client.deployment == nil {
-		client.deployment, err = topology.New_(cfg)
+		client.deployment, err = topology.New(cfg)
 		if err != nil {
 			return nil, replaceErrors(err)
 		}
@@ -427,8 +426,6 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.Deployment != nil {
 		c.deployment = opts.Deployment
 	}
-
-	fmt.Printf("deployment: %+v\n", c.deployment)
 
 	return nil
 }

@@ -18,7 +18,7 @@ import (
 
 func TestInsert(t *testing.T) {
 	t.Skip()
-	topo, err := topology.New()
+	topo, err := topology.NewDefault()
 	if err != nil {
 		t.Fatalf("Couldn't connect topology: %v", err)
 	}

@@ -99,7 +99,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		return fmt.Errorf("error getting topology configs: %v", err)
 	}
 
-	testContext.topo, err = topology.New_(cfg)
+	testContext.topo, err = topology.New(cfg)
 	if err != nil {
 		return fmt.Errorf("error creating topology: %v", err)
 	}

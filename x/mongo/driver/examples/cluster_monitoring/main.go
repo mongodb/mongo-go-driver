@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	topo, err := topology.New()
+	topo, err := topology.NewDefault()
 	if err != nil {
 		log.Fatalf("could not create topology: %v", err)
 	}

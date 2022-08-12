@@ -119,7 +119,7 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	fmt.Printf("Test URI: %v\n", test.URI)
 	assert.Nil(mt, err, "error constructing toplogy config: %v", err)
 
-	topo, err := topology.New_(cfg)
+	topo, err := topology.New(cfg)
 	assert.Nil(mt, err, "topology.New error: %v", err)
 
 	err = topo.Connect()

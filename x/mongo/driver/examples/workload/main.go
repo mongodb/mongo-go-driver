@@ -45,7 +45,7 @@ func main() {
 		log.Fatalf("unable to construct topology config: %v", err)
 	}
 
-	c, err := topology.New_(cfg)
+	c, err := topology.New(cfg)
 	if err != nil {
 		log.Fatalf("unable to create topology: %s", err)
 	}

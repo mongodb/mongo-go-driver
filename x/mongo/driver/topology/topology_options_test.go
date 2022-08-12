@@ -69,11 +69,11 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 			cfg, err := NewConfig(options.Client().ApplyURI(uri))
 			assert.Nil(t, err, "error constructing topology config: %v", err)
 
-			topo, err := New_(cfg)
+			topo, err := New(cfg)
 			assert.Nil(t, err, "topology.New error: %v", err)
-			assert.Equal(t, tc.loadBalanced, topo.cfg.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, topo.cfg.loadBalanced)
+			assert.Equal(t, tc.loadBalanced, topo.cfg.LoadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, topo.cfg.LoadBalanced)
 
-			srvr := NewServer("", topo.id, topo.cfg.serverOpts...)
+			srvr := NewServer("", topo.id, topo.cfg.ServerOpts...)
 			assert.Equal(t, tc.loadBalanced, srvr.cfg.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, srvr.cfg.loadBalanced)
 
 			conn := newConnection("", srvr.cfg.connectionOpts...)

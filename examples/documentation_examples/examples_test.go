@@ -151,7 +151,7 @@ func createTopology(mt *mtest.T) *topology.Topology {
 		mt.Fatalf("error constructing topology config: %v", err)
 	}
 
-	topo, err := topology.New_(cfg)
+	topo, err := topology.New(cfg)
 	if err != nil {
 		mt.Fatalf("topology.New error: %v", err)
 	}

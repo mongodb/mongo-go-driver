@@ -131,7 +131,7 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 			cfg, err := NewConfig(options.Client().ApplyURI(uri))
 			require.NoError(t, err, "error constructing topology configs: %v", err)
 
-			topo, err := New_(cfg)
+			topo, err := New(cfg)
 			require.NoError(t, err, "Could not create the topology: %v", err)
 			mockRes := newMockResolver(tt.recordsToAdd, tt.recordsToRemove, tt.lookupFail, tt.lookupTimeout)
 			topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
@@ -160,7 +160,7 @@ func TestPollSRVRecords(t *testing.T) {
 		cfg, err := NewConfig(options.Client().ApplyURI(uri))
 		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
 
-		topo, err := New_(cfg)
+		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 		mockRes := newMockResolver(nil, nil, false, false)
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
@@ -198,7 +198,7 @@ func TestPollSRVRecords(t *testing.T) {
 		cfg, err := NewConfig(options.Client().ApplyURI(uri))
 		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
 
-		topo, err := New_(cfg)
+		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 		mockRes := newMockResolver([]*net.SRV{{"blah.bleh", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}, nil, false, false)
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
@@ -225,7 +225,7 @@ func TestPollSRVRecords(t *testing.T) {
 		cfg, err := NewConfig(options.Client().ApplyURI(uri))
 		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
 
-		topo, err := New_(cfg)
+		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 		mockRes := newMockResolver(nil, nil, false, false)
 		mockRes.fail = 1
@@ -256,7 +256,7 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetLoadBalanced(true))
 		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
 
-		topo, err := New_(cfg)
+		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 
 		return topo
@@ -304,7 +304,7 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetSRVMaxHosts(srvMaxHosts))
 		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
 
-		topo, err := New_(cfg)
+		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 
 		mockRes := newMockResolver(recordsToAdd, recordsToRemove, false, false)
@@ -376,7 +376,7 @@ func TestPollSRVRecordsServiceName(t *testing.T) {
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetSRVServiceName(srvServiceName))
 		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
 
-		topo, err := New_(cfg)
+		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 
 		mockRes := newMockResolver(recordsToAdd, recordsToRemove, false, false)

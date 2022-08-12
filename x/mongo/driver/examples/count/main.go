@@ -36,7 +36,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	t, err := topology.New_(cfg)
+	t, err := topology.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}

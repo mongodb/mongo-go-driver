@@ -82,7 +82,7 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 		t.Fatal(err)
 	}
 
-	monitoredTopology, err := topology.New_(cfg)
+	monitoredTopology, err := topology.New(cfg)
 	if err != nil {
 		t.Fatal(err)
 	} else {
@@ -104,7 +104,7 @@ func Topology(t *testing.T) *topology.Topology {
 
 	liveTopologyOnce.Do(func() {
 		var err error
-		liveTopology, err = topology.New_(cfg)
+		liveTopology, err = topology.New(cfg)
 		if err != nil {
 			liveTopologyErr = err
 		} else {
@@ -126,7 +126,7 @@ func Topology(t *testing.T) *topology.Topology {
 // TopologyWithCredential takes an "options.Credential" object and returns a connected topology.
 func TopologyWithCredential(t *testing.T, credential options.Credential) *topology.Topology {
 	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI(t)).SetAuth(credential))
-	topology, err := topology.New_(cfg)
+	topology, err := topology.New(cfg)
 	if err != nil {
 		t.Fatal("Could not construct topology")
 	}
