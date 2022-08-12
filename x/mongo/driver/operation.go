@@ -361,7 +361,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 	var srvr Server
 	var conn Connection
-	var res bsoncore.Document
+	//var res bsoncore.Document
 	var operationErr WriteCommandError
 	var prevErr error
 	batching := op.Batches.Valid()
@@ -385,6 +385,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		conn = nil
 	}
 
+	buf := bytes.NewBuffer(nil)
 	for {
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
@@ -546,6 +547,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		}
 
+		buf.Reset()
 		if err == nil {
 			// roundtrip using either the full roundTripper or a special one for when the moreToCome
 			// flag is set
@@ -553,14 +555,16 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
+			var res bsoncore.Document
 			res, err = roundTrip(ctx, conn, wm)
+			buf.Write(res)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
 			}
 		}
 
-		finishedInfo.response = res
+		finishedInfo.response = buf.Bytes()
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
 
@@ -597,8 +601,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
+				b := make([]byte, buf.Len())
+				copy(b, buf.Bytes())
 				info := ResponseInfo{
-					ServerResponse:        res,
+					ServerResponse:        b,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
@@ -684,8 +690,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
+				b := make([]byte, buf.Len())
+				copy(b, buf.Bytes())
 				info := ResponseInfo{
-					ServerResponse:        res,
+					ServerResponse:        b,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
@@ -704,8 +712,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				return ErrUnacknowledgedWrite
 			}
 			if op.ProcessResponseFn != nil {
+				b := make([]byte, buf.Len())
+				copy(b, buf.Bytes())
 				info := ResponseInfo{
-					ServerResponse:        res,
+					ServerResponse:        b,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
@@ -718,8 +728,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		default:
 			if op.ProcessResponseFn != nil {
+				var b bsoncore.Document = make([]byte, buf.Len())
+				copy(b, buf.Bytes())
 				info := ResponseInfo{
-					ServerResponse:        res,
+					ServerResponse:        b,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
@@ -1744,12 +1756,14 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	if success {
-		var res bson.Raw
+		res := bson.Raw{}
 		// Only copy the reply for commands that are not security sensitive
 		if !info.redacted {
-			res = bson.Raw(info.response)
-		} else {
-			res = bson.Raw{}
+			res = make([]byte, len(info.response))
+			copy(res, info.response)
+			//	res = bson.Raw(info.response)
+			//} else {
+			//	res = bson.Raw{}
 		}
 		successEvent := &event.CommandSucceededEvent{
 			Reply:                res,
