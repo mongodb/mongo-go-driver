@@ -77,7 +77,7 @@ func AddCompressorToURI(uri string) string {
 
 // MonitoredTopology returns a new topology with the command monitor attached
 func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonitor) *topology.Topology {
-	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI(t)).SetMonitor(monitor))
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI()).SetMonitor(monitor))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 
 // Topology gets the globally configured topology.
 func Topology(t *testing.T) *topology.Topology {
-	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI(t)))
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI()))
 	require.NoError(t, err, "error getting topology config: %v", err)
 
 	liveTopologyOnce.Do(func() {
@@ -125,7 +125,10 @@ func Topology(t *testing.T) *topology.Topology {
 
 // TopologyWithCredential takes an "options.Credential" object and returns a connected topology.
 func TopologyWithCredential(t *testing.T, credential options.Credential) *topology.Topology {
-	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI(t)).SetAuth(credential))
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI()).SetAuth(credential))
+	if err != nil {
+		t.Fatalf("error constructing topology config: %v", err)
+	}
 	topology, err := topology.New(cfg)
 	if err != nil {
 		t.Fatal("Could not construct topology")
@@ -146,7 +149,7 @@ func ColName(t *testing.T) string {
 	return name.String()
 }
 
-func mongodbURI(t *testing.T) string {
+func mongodbURI() string {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
 		uri = "mongodb://localhost:27017"
@@ -161,7 +164,7 @@ func mongodbURI(t *testing.T) string {
 func ConnString(t *testing.T) connstring.ConnString {
 	connectionStringOnce.Do(func() {
 		var err error
-		connectionString, err = connstring.ParseAndValidate(mongodbURI(t))
+		connectionString, err = connstring.ParseAndValidate(mongodbURI())
 		if err != nil {
 			connectionStringErr = err
 		}

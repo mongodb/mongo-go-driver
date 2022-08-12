@@ -627,8 +627,6 @@ func TestTopologyConstruction(t *testing.T) {
 				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri))
 				assert.Nil(t, err, "error constructing topology config: %v", err)
 
-				fmt.Println("tc.uri", tc.name, tc.uri)
-
 				topo, err := New(cfg)
 				assert.Nil(t, err, "topology.New error: %v", err)
 

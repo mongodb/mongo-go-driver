@@ -73,18 +73,27 @@ func Setup(setupOpts ...*SetupOptions) error {
 	opts := MergeSetupOptions(setupOpts...)
 	var err error
 
-	var uri string
 	switch {
 	case opts.URI != nil:
 		testContext.connString, err = connstring.ParseAndValidate(*opts.URI)
-		uri = *opts.URI
 	default:
 		testContext.connString, err = getClusterConnString()
-		uri, err = getClusterURI()
 	}
 	if err != nil {
 		return fmt.Errorf("error getting connection string: %v", err)
 	}
+
+	var uri string
+	switch {
+	case opts.URI != nil:
+		uri = *opts.URI
+	default:
+		uri, err = getClusterURI()
+	}
+	if err != nil {
+		return fmt.Errorf("error getting uri: %v", err)
+	}
+
 	testContext.dataLake = os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") == "true"
 	testContext.requireAPIVersion = os.Getenv("REQUIRE_API_VERSION") == "true"
 

@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
+// Config is used to construct a topology.
 type Config struct {
 	Mode                   MonitorMode
 	ReplicaSetName         string
@@ -93,7 +94,9 @@ func newConfig(co *options.ClientOptions, client client) (*Config, error) {
 	// c.serverAPI and serverOpts.serverAPI.
 	if co.ServerAPIOptions != nil {
 		serverAPI = convertToDriverAPIOptions(co.ServerAPIOptions)
-		client.SetServerAPI(serverAPI)
+		if client != nil {
+			client.SetServerAPI(serverAPI)
+		}
 		serverOpts = append(serverOpts, WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
 			return serverAPI
 		}))

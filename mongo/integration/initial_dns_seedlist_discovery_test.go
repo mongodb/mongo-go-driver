@@ -9,7 +9,6 @@ package integration
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -116,7 +115,6 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	}
 
 	cfg, err := topology.NewConfig(opts)
-	fmt.Printf("Test URI: %v\n", test.URI)
 	assert.Nil(mt, err, "error constructing toplogy config: %v", err)
 
 	topo, err := topology.New(cfg)
