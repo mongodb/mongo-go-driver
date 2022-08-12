@@ -231,7 +231,7 @@ func setUpTopology(t *testing.T, uri string) *Topology {
 	}
 
 	cfg, err := NewConfig(options.Client().ApplyURI(uri).SetServerMonitor(sdam))
-	assert.Nil(t, err, "config error: %v", err)
+	assert.Nil(t, err, "error constructing topology config: %v", err)
 
 	// Disable server monitoring because the hosts in the SDAM spec tests don't actually exist, so the server monitor
 	// can race with the test and mark the server Unknown when it fails to connect, which causes tests to fail.

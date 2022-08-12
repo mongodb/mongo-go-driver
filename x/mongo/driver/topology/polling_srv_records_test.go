@@ -158,7 +158,7 @@ func TestPollSRVRecords(t *testing.T) {
 	t.Run("Not unknown or sharded topology", func(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri))
-		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
+		require.NoError(t, err, "error constructing topology config: %v", err)
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
@@ -196,7 +196,7 @@ func TestPollSRVRecords(t *testing.T) {
 	t.Run("Failed Hostname Verification", func(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri))
-		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
+		require.NoError(t, err, "error constructing topology config: %v", err)
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
@@ -223,7 +223,7 @@ func TestPollSRVRecords(t *testing.T) {
 	t.Run("Return to polling time", func(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri))
-		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
+		require.NoError(t, err, "error constructing topology config: %v", err)
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
@@ -254,7 +254,7 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 		t.Helper()
 
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetLoadBalanced(true))
-		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
+		require.NoError(t, err, "error constructing topology config: %v", err)
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
@@ -302,7 +302,7 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetSRVMaxHosts(srvMaxHosts))
-		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
+		require.NoError(t, err, "error constructing topology config: %v", err)
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
@@ -374,7 +374,7 @@ func TestPollSRVRecordsServiceName(t *testing.T) {
 
 		uri := "mongodb+srv://test22.test.build.10gen.cc/?heartbeatFrequencyMS=100&srvServiceName=customname"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetSRVServiceName(srvServiceName))
-		require.NoError(t, err, "error constructing new configs fro client options: %v", err)
+		require.NoError(t, err, "error constructing topology config: %v", err)
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)

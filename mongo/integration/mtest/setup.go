@@ -105,7 +105,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 
 	cfg, err := topology.NewConfig(clientOpts)
 	if err != nil {
-		return fmt.Errorf("error getting topology configs: %v", err)
+		return fmt.Errorf("error constructing topology config: %v", err)
 	}
 
 	testContext.topo, err = topology.New(cfg)

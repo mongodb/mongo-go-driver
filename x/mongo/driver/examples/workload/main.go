@@ -42,7 +42,7 @@ func main() {
 
 	cfg, err := topology.NewConfig(options.Client().ApplyURI("mongodb://localhost:27017/"))
 	if err != nil {
-		log.Fatalf("unable to construct topology config: %v", err)
+		log.Fatalf("error constructing topology config: %v", err)
 	}
 
 	c, err := topology.New(cfg)

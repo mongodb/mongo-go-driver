@@ -100,7 +100,7 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 // Topology gets the globally configured topology.
 func Topology(t *testing.T) *topology.Topology {
 	cfg, err := topology.NewConfig(options.Client().ApplyURI(mongodbURI()))
-	require.NoError(t, err, "error getting topology config: %v", err)
+	require.NoError(t, err, "error constructing topology config: %v", err)
 
 	liveTopologyOnce.Do(func() {
 		var err error
