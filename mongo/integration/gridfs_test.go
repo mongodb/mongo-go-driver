@@ -532,7 +532,10 @@ func TestGridFS(x *testing.T) {
 		assert.Nil(mt, err, "NewBucket error: %v", err)
 		// Find the file back.
 		cursor, err := bucket.Find(bson.D{{"foo", "bar"}})
-		defer cursor.Close(context.Background())
+		defer func() {
+			_ = cursor.Close(context.Background())
+		}()
+
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
 }
