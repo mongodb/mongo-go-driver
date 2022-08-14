@@ -293,7 +293,7 @@ func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*
 		defer cancel()
 	}
 
-	return b.FindContext(ctx, cancel)
+	return b.FindContext(ctx, filter, opts...)
 }
 
 // FindContext returns the files collection documents that match the given filter and runs the underlying
