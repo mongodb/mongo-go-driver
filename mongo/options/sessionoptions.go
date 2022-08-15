@@ -39,9 +39,9 @@ type SessionOptions struct {
 	// The default maximum amount of time that a CommitTransaction operation executed in the session can run on the
 	// server. The default value is nil, which means that that there is no time limit for execution.
 	//
-	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-	// Timeout option should be used in its place to control the amount of time that the CommitTransaction operation can
-	// run before returning an error. DefaultMaxCommitTime is still usable through the deprecated setter.
+	// NOTE(benjirewis): DefaultMaxCommitTime will be deprecated in a future release. The more general Timeout option
+	// may be used in its place to control the amount of time that a single operation can run before returning an
+	// error. DefaultMaxCommitTime is ignored if Timeout is set on the client.
 	DefaultMaxCommitTime *time.Duration
 
 	// If true, all read operations performed with this session will be read from the same snapshot. This option cannot
@@ -81,9 +81,10 @@ func (s *SessionOptions) SetDefaultWriteConcern(wc *writeconcern.WriteConcern) *
 
 // SetDefaultMaxCommitTime sets the value for the DefaultMaxCommitTime field.
 //
-// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
-// Timeout option should be used in its place to control the amount of time that the CommitTransaction operation can
-// run before returning an error.
+// NOTE(benjirewis): DefaultMaxCommitTime will be deprecated in a future release. The more
+// general Timeout option may be used in its place to control the amount of time that a
+// single operation can run before returning an error. DefaultMaxCommitTime is ignored if
+// Timeout is set on the client.
 func (s *SessionOptions) SetDefaultMaxCommitTime(mct *time.Duration) *SessionOptions {
 	s.DefaultMaxCommitTime = mct
 	return s

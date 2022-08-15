@@ -94,9 +94,10 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.5.0"
-          # LIBMONGOCRYPT_COMMIT is the commit on libmongocrypt for the tag LIBMONGOCRYPT_TAG.
-          LIBMONGOCRYPT_COMMIT="c3be59f9b0d756caa4c22c254e0704084cf6bca4"
+          LIBMONGOCRYPT_BRANCH="master"
+          # LIBMONGOCRYPT_COMMIT is the development branch including unreleased features of libmongocrypt 1.6.0.
+          # TODO(GODRIVER-2515) use libmongocrypt 1.6.0 once it is tagged.
+          LIBMONGOCRYPT_COMMIT="393046ba379d097f482a9d41d05bf2ebc78ce397"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
@@ -105,7 +106,7 @@ functions:
              mkdir libmongocrypt-all
              cd libmongocrypt-all
              # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_BRANCH/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
              tar -xf libmongocrypt-all.tar.gz
              cd ..
              cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
@@ -120,7 +121,7 @@ functions:
              mkdir libmongocrypt-all
              cd libmongocrypt-all
              # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_BRANCH/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
              tar -xf libmongocrypt-all.tar.gz
              cd ..
              mv libmongocrypt-all/macos/include ./install/libmongocrypt
@@ -130,7 +131,10 @@ functions:
              sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
              echo "fetching build for Darwin ... end"
           else
-            git clone https://github.com/mongodb/libmongocrypt --branch $LIBMONGOCRYPT_TAG
+            git clone https://github.com/mongodb/libmongocrypt
+            cd libmongocrypt
+            git checkout $LIBMONGOCRYPT_COMMIT
+            cd ..
             ./libmongocrypt/.evergreen/compile.sh
           fi
 
@@ -192,26 +196,42 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
-          # Skip the crypt_shared library download if there is no crypt_shared build for the current
-          # platform. Don't try to determine this automatically to prevent misconfiguration errors
-          # from silently skipping the crypt_shared download and changing the testing conditions.
-          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" = "true" ]; then
-            echo "There is no crypt_shared library for this platform, skipping download..."
-            exit 0
+          MONGODB_VERSION=${VERSION}
+          if [ -z "$MONGODB_VERSION" ]; then
+            # default to latest to match behavior of run-orchestration.sh.
+            MONGODB_VERSION=latest
           fi
 
-          # Download the crypt_shared dynamic library for the current platform to the current working
-          # directory. The run-tests.sh and versioned API test scripts expect to find a
-          # mongo_crypt_v1.* file in the "src/go.mongodb.org/mongo-driver" working directory.
-          # TODO(GODRIVER-2437): Update version to "latest-stable" once the crypt_shared library has a
-          # feature-complete stable release.
-          ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-            --component crypt_shared \
-            --version latest \
-            --edition enterprise \
-            --out . \
-            --only "**/mongo_crypt_v1.*" \
-            --strip-path-components 1
+          . $DRIVERS_TOOLS/.evergreen/download-mongodb.sh
+          get_distro
+          # get_distro defines $DISTRO.
+          get_mongodb_download_url_for "$DISTRO" "$MONGODB_VERSION"
+          # get_mongodb_download_url_for defines $MONGO_CRYPT_SHARED_DOWNLOAD_URL and $EXTRACT.
+          if [ -z "$MONGO_CRYPT_SHARED_DOWNLOAD_URL" ]; then
+            echo "There is no crypt_shared library for distro='$DISTRO' and version='$MONGODB_VERSION'".
+            touch expansion.yml
+          else
+            echo "Downloading crypt_shared package from $MONGO_CRYPT_SHARED_DOWNLOAD_URL"
+            download_and_extract_crypt_shared "$MONGO_CRYPT_SHARED_DOWNLOAD_URL" "$EXTRACT"
+            CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
+              -name 'mongo_crypt_v1.so' -o \
+              -name 'mongo_crypt_v1.dll' -o \
+              -name 'mongo_crypt_v1.dylib')"
+            # Expect that we always find a crypt_shared library file and set the CRYPT_SHARED_LIB_PATH
+            # environment variable. If we didn't, print an error message and exit.
+            if [ -z "$CRYPT_SHARED_LIB_PATH" ]; then
+              echo 'CRYPT_SHARED_LIB_PATH is empty. Exiting.'
+              exit 1
+            fi
+            # If we're on Windows, convert the "cygdrive"  path to Windows-style paths.
+            if [ "Windows_NT" = "$OS" ]; then
+                CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
+            fi
+            echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" > expansion.yml
+          fi
+    - command: expansions.update
+      params:
+        file: src/go.mongodb.org/mongo-driver/expansion.yml
 
   install-linters:
     - command: shell.exec
@@ -222,7 +242,10 @@ functions:
 
           # Install linters. Use "go install" instead of "go get" to prevent modifying the go.mod
           # file.
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          # TODO(GODRIVER-2519): The "latest" version of golangci-lint currently requires Go 1.19.
+          # TODO Pin to the "latest" version of golangci-lint again when we update the Evergreen CI
+          # TODO to use Go 1.19.
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.3
           go install github.com/walle/lll/...@latest
 
   upload-mo-artifacts:
@@ -518,31 +541,14 @@ functions:
           fi
           . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
 
-          # If the task doesn't have the SKIP_CRYPT_SHARED_LIB_DOWNLOAD variable set, try to find the
-          # crypt_shared library downloaded in the "prepare-resources" task and set the CRYPT_SHARED_LIB_PATH
-          # environment variable with a path to the file.
-          if [ "${SKIP_CRYPT_SHARED_LIB_DOWNLOAD}" != "true" ]; then
-            # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
-            # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
-            # downloaded files.
-            export CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
-              -name 'mongo_crypt_v1.so' -o \
-              -name 'mongo_crypt_v1.dll' -o \
-              -name 'mongo_crypt_v1.dylib')"
-
-            # Expect that we always find a crypt_shared library file and set the CRYPT_SHARED_LIB_PATH
-            # environment variable. If we didn't, print an error message and exit.
-            if [ -z "$CRYPT_SHARED_LIB_PATH" ]; then
-              echo 'SKIP_CRYPT_SHARED_LIB_DOWNLOAD is not "true", but CRYPT_SHARED_LIB_PATH is empty. Exiting.'
-              exit 1
-            fi
-
-            # If we're on Windows, convert the "cygdrive"  path to Windows-style paths.
-            if [ "Windows_NT" = "$OS" ]; then
-                export CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
-            fi
-
-            echo "CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH"
+          if [ "${SKIP_CRYPT_SHARED_LIB}" = "true" ]; then
+            CRYPT_SHARED_LIB_PATH=""
+            echo "crypt_shared library is skipped"
+          elif [ -z "${CRYPT_SHARED_LIB_PATH}" ]; then
+            echo "crypt_shared library path is empty"
+          else
+            CRYPT_SHARED_LIB_PATH=${CRYPT_SHARED_LIB_PATH}
+            echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
           fi
 
           export GOFLAGS=-mod=vendor
@@ -564,6 +570,7 @@ functions:
           GCP_EMAIL="${cse_gcp_email}" \
           GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
           REQUIRE_API_VERSION="${REQUIRE_API_VERSION}" \
+          CRYPT_SHARED_LIB_PATH="$CRYPT_SHARED_LIB_PATH" \
           make evg-test-versioned-api \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
@@ -1638,9 +1645,9 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
-          # Don't download the crypt_shared library, which should cause all of the tests to fall
+          # Don't use the crypt_shared library, which should cause all of the tests to fall
           # back to using mongocryptd instead of crypt_shared.
-          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
+          SKIP_CRYPT_SHARED_LIB: "true"
 
   - name: test-replicaset-auth-nossl
     tags: ["test", "replicaset", "authssl"]
@@ -1968,6 +1975,68 @@ tasks:
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
+  - name: "testgcpkms-task"
+    commands:
+    - command: shell.exec
+      type: setup
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          echo "Building build-gcpkms-test ... begin"
+          BUILD_TAGS="-tags cse" \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+            make build-gcpkms-test
+          echo "Building build-gcpkms-test ... end"
+
+          echo "Copying files ... begin"
+          export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
+          export GCPKMS_PROJECT=${GCPKMS_PROJECT}
+          export GCPKMS_ZONE=${GCPKMS_ZONE}
+          export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
+          tar czf testgcpkms.tgz ./testgcpkms ./install/libmongocrypt/lib/libmongocrypt.*
+          GCPKMS_SRC=testgcpkms.tgz GCPKMS_DST=$GCPKMS_INSTANCENAME: $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/copy-file.sh
+          echo "Copying files ... end"
+
+          echo "Untarring file ... begin"
+          GCPKMS_CMD="tar xf testgcpkms.tgz" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
+          echo "Untarring file ... end"
+      
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
+          export GCPKMS_PROJECT=${GCPKMS_PROJECT}
+          export GCPKMS_ZONE=${GCPKMS_ZONE}
+          export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
+          GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' ./testgcpkms" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
+
+  - name: "testgcpkms-fail-task"
+    # testgcpkms-fail-task runs in a non-GCE environment.
+    # It is expected to fail to obtain GCE credentials.
+    commands:
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            echo "Building build-gcpkms-test ... begin"
+            BUILD_TAGS="-tags cse" \
+            PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+              make build-gcpkms-test
+            echo "Building build-gcpkms-test ... end"
+            LD_LIBRARY_PATH=./install/libmongocrypt/lib \
+            MONGODB_URI='mongodb://localhost:27017/' \
+            EXPECT_ERROR='unable to retrieve GCP credentials' \
+              ./testgcpkms
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -2038,9 +2107,6 @@ axes:
           # to prevent attempting to link the client-side encryption (libmongocrypt) binaries when
           # running Go tests.
           GO_BUILD_TAGS: ""
-          # There is no crypt_shared library download for Ubuntu 14.04. Skip downloading it and let the
-          # tests use mongocryptd instead.
-          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
 
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
@@ -2061,9 +2127,6 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.17"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
-          # There is no crypt_shared library download for Ubuntu 16.04. Skip downloading it and let the
-          # tests use mongocryptd instead.
-          SKIP_CRYPT_SHARED_LIB_DOWNLOAD: "true"
       - id: "osx-go-1-17"
         display_name: "MacOS 10.15"
         run_on: macos-1015
@@ -2185,6 +2248,42 @@ task_groups:
           display_name: "mongodb-logs.tar.gz"
     tasks:
       - ".serverless"
+  - name: testgcpkms_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800 # 30 minutes
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - func: fix-absolute-paths
+      - func: make-files-executable
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            echo '${testgcpkms_key_file}' > /tmp/testgcpkms_key_file.json
+            export GCPKMS_KEYFILE=/tmp/testgcpkms_key_file.json
+            export GCPKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
+            export GCPKMS_SERVICEACCOUNT="${testgcpkms_service_account}"
+            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/create-and-setup-instance.sh
+      # Load the GCPKMS_GCLOUD, GCPKMS_INSTANCE, GCPKMS_REGION, and GCPKMS_ZONE expansions.
+      - command: expansions.update
+        params:
+          file: testgcpkms-expansions.yml
+    teardown_group:
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
+            export GCPKMS_PROJECT=${GCPKMS_PROJECT}
+            export GCPKMS_ZONE=${GCPKMS_ZONE}
+            export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
+            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
+    tasks:
+      - testgcpkms-task
+
 
 buildvariants:
   - name: static-analysis
@@ -2339,3 +2438,14 @@ buildvariants:
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
+
+  - name: testgcpkms-variant
+    display_name: "GCP KMS"
+    run_on:
+      - debian11-small
+    expansions:
+      GO_DIST: "/opt/golang/go1.17"
+    tasks:
+      - name: testgcpkms_task_group
+        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
+      - testgcpkms-fail-task

@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -53,13 +52,6 @@ const (
 	// minimum wire version necessary to use read snapshots
 	readSnapshotMinWireVersion int32 = 13
 )
-
-// This pool is used to keep the allocations of byte slice.
-var bufPool = sync.Pool{
-	New: func() interface{} {
-		return new([]byte)
-	},
-}
 
 // RetryablePoolError is a connection pool error that can be retried while executing an operation.
 type RetryablePoolError interface {
@@ -225,6 +217,9 @@ type Operation struct {
 	// read preference will not be added to the command on wire versions < 13.
 	IsOutputAggregate bool
 
+	// MaxTime specifies the maximum amount of time to allow the operation to run on the server.
+	MaxTime *time.Duration
+
 	// Timeout is the amount of time that this operation can execute before returning an error. The default value
 	// nil, which means that the timeout of the operation's caller will be used.
 	Timeout *time.Duration
@@ -338,18 +333,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 
-	var wm []byte
-	if p := bufPool.Get(); p != nil {
-		wm = *p.(*[]byte)
-	}
-	if len(scratch) > 0 {
-		copy(wm, scratch)
-	}
-	defer func() {
-		wm = wm[:0]
-		bufPool.Put(&wm)
-	}()
-
 	var retries int
 	if op.RetryMode != nil {
 		switch op.Type {
@@ -420,6 +403,18 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				return err
 			}
 			defer conn.Close()
+
+			// Set the server if it has not already been set and the session type is implicit. This will
+			// limit the number of implicit sessions to no greater than an application's maxPoolSize
+			// (ignoring operations that hold on to the session like cursors).
+			if op.Client != nil && op.Client.Server == nil && op.Client.SessionType == session.Implicit {
+				if op.Client.Terminated {
+					return fmt.Errorf("unexpected nil session for a terminated implicit session")
+				}
+				if err := op.Client.SetServer(); err != nil {
+					return err
+				}
+			}
 		}
 
 		// Run steps that must only be run on the first attempt, but not again for retries.
@@ -452,24 +447,30 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			first = false
 		}
 
+		// Calculate maxTimeMS value to potentially be appended to the wire message.
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().P90(), srvr.RTTMonitor().Stats())
+		if err != nil {
+			return err
+		}
+
 		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
-		wm = wm[:0]
+		scratch = scratch[:0]
 		if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
 			switch op.Legacy {
 			case LegacyFind:
-				return op.legacyFind(ctx, wm, srvr, conn, desc)
+				return op.legacyFind(ctx, scratch, srvr, conn, desc, maxTimeMS)
 			case LegacyGetMore:
-				return op.legacyGetMore(ctx, wm, srvr, conn, desc)
+				return op.legacyGetMore(ctx, scratch, srvr, conn, desc)
 			case LegacyKillCursors:
-				return op.legacyKillCursors(ctx, wm, srvr, conn, desc)
+				return op.legacyKillCursors(ctx, scratch, srvr, conn, desc)
 			}
 		}
 		if desc.WireVersion == nil || desc.WireVersion.Max < 3 {
 			switch op.Legacy {
 			case LegacyListCollections:
-				return op.legacyListCollections(ctx, wm, srvr, conn, desc)
+				return op.legacyListCollections(ctx, scratch, srvr, conn, desc)
 			case LegacyListIndexes:
-				return op.legacyListIndexes(ctx, wm, srvr, conn, desc)
+				return op.legacyListIndexes(ctx, scratch, srvr, conn, desc, maxTimeMS)
 			}
 		}
 
@@ -491,31 +492,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		}
 
-		// Calculate value of 'maxTimeMS' field to potentially append to the wire message based on the current
-		// context's deadline and the 90th percentile RTT if the ctx is a Timeout Context.
-		var maxTimeMS uint64
-		if internal.IsTimeoutContext(ctx) {
-			if deadline, ok := ctx.Deadline(); ok {
-				remainingTimeout := time.Until(deadline)
-
-				maxTimeMSVal := int64(remainingTimeout/time.Millisecond) -
-					int64(srvr.RTT90()/time.Millisecond)
-
-				// A maxTimeMS value <= 0 indicates that we are already at or past the Context's deadline.
-				if maxTimeMSVal <= 0 {
-					return internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-						"Context deadline has already been surpassed by %v", remainingTimeout)
-				}
-				maxTimeMS = uint64(maxTimeMSVal)
-			}
-		}
-
 		// convert to wire message
-		if len(wm) > 0 {
-			wm = wm[:0]
+		if len(scratch) > 0 {
+			scratch = scratch[:0]
 		}
-		var startedInfo startedInformation
-		wm, startedInfo, err = op.createWireMessage(ctx, wm, desc, maxTimeMS, conn)
+		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, maxTimeMS, conn)
 		if err != nil {
 			return err
 		}
@@ -554,10 +535,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// a Timeout Context, use the 90th percentile RTT as a threshold. Otherwise, use the minimum observed
 		// RTT.
 		if deadline, ok := ctx.Deadline(); ok {
-			if internal.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTT90()).After(deadline) {
+			if internal.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
 				err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", time.Until(deadline))
-			} else if time.Now().Add(srvr.MinRTT()).After(deadline) {
+					"remaining time %v until context deadline is less than 90th percentile RTT\n%v", time.Until(deadline), srvr.RTTMonitor().Stats())
+			} else if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
 				err = op.networkError(context.DeadlineExceeded)
 			}
 		}
@@ -569,9 +550,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
-			buf := &wm
-			res, err = roundTrip(ctx, conn, buf)
-			wm = *buf
+			res, err = roundTrip(ctx, conn, wm)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
@@ -800,19 +779,19 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
-	buf := make([]byte, len(*wm))
-	copy(buf, *wm)
-	err := conn.WriteWireMessage(ctx, buf)
+func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
-	*wm = (*wm)[:0]
+
 	return op.readWireMessage(ctx, conn, wm)
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
-	res, err := conn.ReadWireMessage(ctx, wm)
+func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	var err error
+
+	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
 		return nil, op.networkError(err)
 	}
@@ -820,37 +799,37 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm *[]
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
 	// response.
 	if streamer, ok := conn.(StreamerConnection); ok {
-		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(res))
+		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
 	}
 
 	// decompress wiremessage
-	res, err = op.decompressWireMessage(res)
+	wm, err = op.decompressWireMessage(wm)
 	if err != nil {
 		return nil, err
 	}
 
 	// decode
-	doc, err := op.decodeResult(res)
+	res, err := op.decodeResult(wm)
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
-	op.updateClusterTimes(doc)
-	op.updateOperationTime(doc)
-	op.Client.UpdateRecoveryToken(bson.Raw(doc))
+	op.updateClusterTimes(res)
+	op.updateOperationTime(res)
+	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
 	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
 	if op.cmdName == "find" || op.cmdName == "aggregate" || op.cmdName == "distinct" {
-		op.Client.UpdateSnapshotTime(doc)
+		op.Client.UpdateSnapshotTime(res)
 	}
 
 	if err != nil {
-		return doc, err
+		return res, err
 	}
 
 	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
 	if op.Crypt != nil {
-		return op.Crypt.Decrypt(ctx, doc)
+		return op.Crypt.Decrypt(ctx, res)
 	}
-	return doc, nil
+	return res, nil
 }
 
 // networkError wraps the provided error in an Error with label "NetworkError" and, if a transaction
@@ -876,8 +855,8 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, *wm)
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		if op.Client != nil {
 			op.Client.MarkDirty()
@@ -914,7 +893,7 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	}
 	compressedSize := length - 25 // header (16) + original opcode (4) + uncompressed size (4) + compressor ID (1)
 	// return the original wiremessage
-	msg, _, ok := wiremessage.ReadCompressedCompressedMessage(rem, compressedSize)
+	msg, rem, ok := wiremessage.ReadCompressedCompressedMessage(rem, compressedSize)
 	if !ok {
 		return nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
 	}
@@ -1283,6 +1262,40 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
+// calculateMaxTimeMS calculates the value of the 'maxTimeMS' field to potentially append
+// to the wire message based on the current context's deadline and the 90th percentile RTT
+// if the ctx is a Timeout context. If the context is not a Timeout context, it uses the
+// operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
+// not a Timeout context, calculateMaxTimeMS returns 0.
+func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration, rttStats string) (uint64, error) {
+	if internal.IsTimeoutContext(ctx) {
+		if deadline, ok := ctx.Deadline(); ok {
+			remainingTimeout := time.Until(deadline)
+			maxTime := remainingTimeout - rtt90
+
+			// Always round up to the next millisecond value so we never truncate the calculated
+			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
+			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
+			if maxTimeMS <= 0 {
+				return 0, internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+					"remaining time %v until context deadline is less than or equal to 90th percentile RTT\n%v",
+					remainingTimeout, rttStats)
+			}
+			return uint64(maxTimeMS), nil
+		}
+	} else if op.MaxTime != nil {
+		// Users are not allowed to pass a negative value as MaxTime. A value of 0 would indicate
+		// no timeout and is allowed.
+		if *op.MaxTime < 0 {
+			return 0, ErrNegativeMaxTime
+		}
+		// Always round up to the next millisecond value so we never truncate the requested
+		// MaxTime value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
+		return uint64((*op.MaxTime + (time.Millisecond - 1)) / time.Millisecond), nil
+	}
+	return 0, nil
+}
+
 // updateClusterTimes updates the cluster times for the session and cluster clock attached to this
 // operation. While the session's AdvanceClusterTime may return an error, this method does not
 // because an error being returned from this method will not be returned further up.
@@ -1495,7 +1508,7 @@ func (Operation) decodeOpReply(wm []byte, includesHeader bool) opReply {
 		reply.err = errors.New("malformed OP_REPLY: missing numberReturned")
 		return reply
 	}
-	reply.documents, _, ok = wiremessage.ReadReplyDocuments(wm)
+	reply.documents, wm, ok = wiremessage.ReadReplyDocuments(wm)
 	if !ok {
 		reply.err = errors.New("malformed OP_REPLY: could not read documents from reply")
 	}

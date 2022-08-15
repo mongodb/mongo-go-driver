@@ -539,7 +539,7 @@ func TestClient(t *testing.T) {
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.MinRTT() <= 250*time.Millisecond {
+					if server.RTTMonitor().Min() <= 250*time.Millisecond {
 						done = false
 					}
 				}
@@ -585,7 +585,7 @@ func TestClient(t *testing.T) {
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.MinRTT() <= 250*time.Millisecond {
+					if server.RTTMonitor().Min() <= 250*time.Millisecond {
 						done = false
 					}
 				}
@@ -638,7 +638,7 @@ func TestClient(t *testing.T) {
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTT90() <= 300*time.Millisecond {
+					if server.RTTMonitor().P90() <= 300*time.Millisecond {
 						done = false
 					}
 				}
@@ -673,7 +673,7 @@ func TestClient(t *testing.T) {
 			SetHeartbeatInterval(reducedHeartbeatInterval).
 			SetTimeout(0))
 
-		// Assert that RTT90s are eventually >300ms.
+		// Assert that RTT90s are eventually >275ms.
 		topo := getTopologyFromClient(mt.Client)
 		assert.Soon(mt, func(ctx context.Context) {
 			for {
@@ -686,12 +686,12 @@ func TestClient(t *testing.T) {
 
 				time.Sleep(100 * time.Millisecond)
 
-				// Wait for all of the server's RTT90s to be >300ms.
+				// Wait for all of the server's RTT90s to be >275ms.
 				done := true
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTT90() <= 300*time.Millisecond {
+					if server.RTTMonitor().P90() <= 275*time.Millisecond {
 						done = false
 					}
 				}
@@ -701,10 +701,10 @@ func TestClient(t *testing.T) {
 			}
 		}, 10*time.Second)
 
-		// Once we've waited for the RTT90 for the servers to be >300ms, run 10 Ping operations
-		// with a timeout of 300ms and expect that they return timeout errors.
+		// Once we've waited for the RTT90 for the servers to be >275ms, run 10 Ping operations
+		// with a timeout of 275ms and expect that they return timeout errors.
 		for i := 0; i < 10; i++ {
-			ctx, cancel = context.WithTimeout(context.Background(), 300*time.Millisecond)
+			ctx, cancel = context.WithTimeout(context.Background(), 275*time.Millisecond)
 			err := mt.Client.Ping(ctx, nil)
 			cancel()
 			assert.NotNil(mt, err, "expected Ping to return an error")

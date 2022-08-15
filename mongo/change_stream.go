@@ -256,7 +256,10 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	if resuming {
 		cs.replaceOptions(cs.wireVersion)
 
-		csOptDoc := cs.createPipelineOptionsDoc()
+		csOptDoc, err := cs.createPipelineOptionsDoc()
+		if err != nil {
+			return err
+		}
 		pipIdx, pipDoc := bsoncore.AppendDocumentStart(nil)
 		pipDoc = bsoncore.AppendDocumentElement(pipDoc, "$changeStream", csOptDoc)
 		if pipDoc, cs.err = bsoncore.AppendDocumentEnd(pipDoc, pipIdx); cs.err != nil {
@@ -383,9 +386,10 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 	cs.pipelineSlice = make([]bsoncore.Document, 0, val.Len()+1)
 
 	csIdx, csDoc := bsoncore.AppendDocumentStart(nil)
-	csDocTemp := cs.createPipelineOptionsDoc()
-	if cs.err != nil {
-		return cs.err
+
+	csDocTemp, err := cs.createPipelineOptionsDoc()
+	if err != nil {
+		return err
 	}
 	csDoc = bsoncore.AppendDocumentElement(csDoc, "$changeStream", csDocTemp)
 	csDoc, cs.err = bsoncore.AppendDocumentEnd(csDoc, csIdx)
@@ -407,7 +411,7 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 	return cs.err
 }
 
-func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
+func (cs *ChangeStream) createPipelineOptionsDoc() (bsoncore.Document, error) {
 	plDocIdx, plDoc := bsoncore.AppendDocumentStart(nil)
 
 	if cs.streamType == ClientStream {
@@ -431,7 +435,7 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 		var raDoc bsoncore.Document
 		raDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.ResumeAfter, true, "resumeAfter")
 		if cs.err != nil {
-			return nil
+			return nil, cs.err
 		}
 
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "resumeAfter", raDoc)
@@ -445,7 +449,7 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 		var saDoc bsoncore.Document
 		saDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.StartAfter, true, "startAfter")
 		if cs.err != nil {
-			return nil
+			return nil, cs.err
 		}
 
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "startAfter", saDoc)
@@ -461,10 +465,10 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 	}
 
 	if plDoc, cs.err = bsoncore.AppendDocumentEnd(plDoc, plDocIdx); cs.err != nil {
-		return nil
+		return nil, cs.err
 	}
 
-	return plDoc
+	return plDoc, nil
 }
 
 func (cs *ChangeStream) pipelineToBSON() (bsoncore.Document, error) {

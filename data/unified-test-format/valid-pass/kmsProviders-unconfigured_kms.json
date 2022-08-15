@@ -32,6 +32,7 @@
   "tests": [
     {
       "description": "",
+      "skipReason": "DRIVERS-2280: waiting on driver support for on-demand credentials",
       "operations": []
     }
   ]

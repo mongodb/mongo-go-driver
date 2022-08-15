@@ -1102,6 +1102,11 @@ func (c *Client) NumberSessionsInProgress() int {
 	return c.sessionPool.CheckedOut()
 }
 
+// Timeout returns the timeout set for this client.
+func (c *Client) Timeout() *time.Duration {
+	return c.timeout
+}
+
 func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 	return driver.CursorOptions{
 		CommandMonitor: c.monitor,

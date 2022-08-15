@@ -8,10 +8,10 @@ package mtest
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -135,14 +135,9 @@ func (md *mockDeployment) Connection(context.Context) (driver.Connection, error)
 	return md.conn, nil
 }
 
-// MinRTT always returns 0. It implements the driver.Server interface.
-func (md *mockDeployment) MinRTT() time.Duration {
-	return 0
-}
-
-// RTT90 always returns 0. It implements the driver.Server interface.
-func (md *mockDeployment) RTT90() time.Duration {
-	return 0
+// RTTMonitor implements the driver.Server interface.
+func (md *mockDeployment) RTTMonitor() driver.RTTMonitor {
+	return &internal.ZeroRTTMonitor{}
 }
 
 // Connect is a no-op method which implements the driver.Connector interface.

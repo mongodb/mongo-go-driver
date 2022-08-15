@@ -53,7 +53,7 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 
 				monitor.addSample(time.Duration(test.NewRttMs * float64(time.Millisecond)))
 				expectedRTT := time.Duration(test.NewAvgRtt * float64(time.Millisecond))
-				actualRTT := monitor.getRTT()
+				actualRTT := monitor.EWMA()
 				assert.Equal(t, expectedRTT, actualRTT, "expected average RTT %s, got %s", expectedRTT, actualRTT)
 			})
 		}(t, file)
