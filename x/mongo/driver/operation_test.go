@@ -694,9 +694,7 @@ func TestOperation(t *testing.T) {
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
 		// with the TransientTransactionError label.
-		if !cmp.Equal(err, context.DeadlineExceeded, cmp.Comparer(compareErrors)) {
-			t.Errorf("err is not equal to expected error. got %v; want %v", err, context.DeadlineExceeded)
-		}
+		assert.Equal(t, err, context.DeadlineExceeded, "expected context.DeadlineExceeded error, got %v", err)
 	})
 	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
 		conn := new(mockConnection)
@@ -717,9 +715,7 @@ func TestOperation(t *testing.T) {
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context canceled and is therefore not a driver.Error marked with
 		// the TransientTransactionError label.
-		if !cmp.Equal(err, context.Canceled, cmp.Comparer(compareErrors)) {
-			t.Errorf("err is not equal to expected error. got %v; want %v", err, context.Canceled)
-		}
+		assert.Equal(t, err, context.Canceled, "expected context.Canceled error, got %v", err)
 	})
 }
 
