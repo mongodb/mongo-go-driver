@@ -128,7 +128,7 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 	for _, tt := range srvPollingTests {
 		t.Run(tt.name, func(t *testing.T) {
 			uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
-			cfg, err := topology.NewConfig(options.Client().ApplyURI(uri))
+			cfg, err := NewConfig(options.Client().ApplyURI(uri))
 			require.NoError(t, err, "error constructing topology configs: %v", err)
 
 			topo, err := New(cfg)
@@ -157,7 +157,7 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 func TestPollSRVRecords(t *testing.T) {
 	t.Run("Not unknown or sharded topology", func(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
-		cfg, err := topology.NewConfig(options.Client().ApplyURI(uri))
+		cfg, err := NewConfig(options.Client().ApplyURI(uri))
 		require.NoError(t, err, "error constructing topology config: %v", err)
 
 		topo, err := New(cfg)

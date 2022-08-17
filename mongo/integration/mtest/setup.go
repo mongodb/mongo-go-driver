@@ -57,7 +57,7 @@ var testContext struct {
 	serverless                  bool
 }
 
-func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
+func setupClientAlt(opts *options.ClientOptions) (*mongo.Client, error) {
 	wcMajority := writeconcern.New(writeconcern.WMajority())
 	// set ServerAPIOptions to latest version if required
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
@@ -65,35 +65,31 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 	}
 	// for sharded clusters, pin to one host. Due to how the cache is implemented on 4.0 and 4.2, behavior
 	// can be inconsistent when multiple mongoses are used
-	return mongo.Connect(context.Background(), opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority).SetHosts(cs.Hosts[:1]))
+	return mongo.Connect(context.Background(), opts.SetWriteConcern(wcMajority).SetHosts(opts.Hosts[:1]))
 }
 
 // Setup initializes the current testing context.
 // This function must only be called one time and must be called before any tests run.
 func Setup(setupOpts ...*SetupOptions) error {
-	fmt.Println("Setup hit")
 	opts := MergeSetupOptions(setupOpts...)
+
+	var uri string
 	var err error
 
 	switch {
 	case opts.URI != nil:
-		testContext.connString, err = connstring.ParseAndValidate(*opts.URI)
-	default:
-		testContext.connString, err = getClusterConnString()
-	}
-	if err != nil {
-		return fmt.Errorf("error getting connection string: %v", err)
-	}
-
-	var uri string
-	switch {
-	case opts.URI != nil:
 		uri = *opts.URI
 	default:
+		var err error
 		uri, err = testutil.MongoDBURI()
+		if err != nil {
+			return fmt.Errorf("error getting uri: %v", err)
+		}
 	}
+
+	testContext.connString, err = connstring.ParseAndValidate(uri)
 	if err != nil {
-		return fmt.Errorf("error getting uri: %v", err)
+		return fmt.Errorf("error parsing and validating connstring: %v", err)
 	}
 
 	testContext.dataLake = os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") == "true"
@@ -118,8 +114,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		return fmt.Errorf("error connecting topology: %v", err)
 	}
 
-	// TODO: probably need to decouple connstring from this constructor.
-	testContext.client, err = setupClient(testContext.connString, options.Client())
+	testContext.client, err = setupClientAlt(options.Client().ApplyURI(uri))
 	if err != nil {
 		return fmt.Errorf("error connecting test client: %v", err)
 	}

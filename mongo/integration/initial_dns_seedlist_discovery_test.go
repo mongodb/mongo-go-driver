@@ -103,16 +103,16 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	}
 	verifyConnstringOptions(mt, test.Options, cs)
 
-	tlsconfig := getSSLSettings(mt, test)
+	tlsConfig := getSSLSettings(mt, test)
 
 	// Make a topology from the options.
 	opts := options.Client().ApplyURI(test.URI)
-	if tlsconfig != nil {
-		opts.SetTLSConfig(tlsconfig)
+	if tlsConfig != nil {
+		opts.SetTLSConfig(tlsConfig)
 	}
-	if cs.LoadBalanced {
-		opts.SetLoadBalanced(true)
-	}
+	//if cs.LoadBalanced {
+	//	opts.SetLoadBalanced(true)
+	//}
 
 	cfg, err := topology.NewConfig(opts)
 	assert.Nil(mt, err, "error constructing toplogy config: %v", err)
@@ -212,9 +212,9 @@ func getSSLSettings(mt *mtest.T, test seedlistTest) *tls.Config {
 
 	// If SSL tests are running, set the CA file.
 	if testCaseExpectsSSL && envSSL {
-		tlsconfig := new(tls.Config)
-		tlsconfig.InsecureSkipVerify = true
-		return tlsconfig
+		tlsConfig := new(tls.Config)
+		tlsConfig.InsecureSkipVerify = true
+		return tlsConfig
 	}
 	return nil
 }
