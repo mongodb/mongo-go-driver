@@ -27,7 +27,7 @@ var selectNone description.ServerSelectorFunc = func(description.Topology, []des
 func TestTopologyErrors(t *testing.T) {
 	t.Run("errors are wrapped", func(t *testing.T) {
 		t.Run("server selection error", func(t *testing.T) {
-			topo, err := NewDefault()
+			topo, err := New(nil)
 			noerr(t, err)
 
 			topo.cfg.ConnString.HeartbeatInterval = time.Minute
@@ -43,7 +43,7 @@ func TestTopologyErrors(t *testing.T) {
 			assert.True(t, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
 		})
 		t.Run("context deadline error", func(t *testing.T) {
-			topo, err := NewDefault()
+			topo, err := New(nil)
 			assert.Nil(t, err, "error creating topology: %v", err)
 
 			var serverSelectionErr error

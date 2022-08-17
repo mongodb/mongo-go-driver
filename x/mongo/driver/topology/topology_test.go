@@ -71,7 +71,7 @@ func TestServerSelection(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		desc := description.Topology{
 			Servers: []description.Server{
@@ -94,7 +94,7 @@ func TestServerSelection(t *testing.T) {
 		}
 	})
 	t.Run("Compatibility Error Min Version Too High", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		desc := description.Topology{
 			Kind: description.Single,
@@ -117,7 +117,7 @@ func TestServerSelection(t *testing.T) {
 		assert.Equal(t, err, want, "expected %v, got %v", want, err)
 	})
 	t.Run("Compatibility Error Max Version Too Low", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		desc := description.Topology{
 			Kind: description.Single,
@@ -142,7 +142,7 @@ func TestServerSelection(t *testing.T) {
 		assert.Equal(t, err, want, "expected %v, got %v", want, err)
 	})
 	t.Run("Updated", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		desc := description.Topology{Servers: []description.Server{}}
 		subCh := make(chan description.Topology, 1)
@@ -191,7 +191,7 @@ func TestServerSelection(t *testing.T) {
 				{Addr: address.Address("three"), Kind: description.Standalone},
 			},
 		}
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		subCh := make(chan description.Topology, 1)
 		subCh <- desc
@@ -228,7 +228,7 @@ func TestServerSelection(t *testing.T) {
 				{Addr: address.Address("three"), Kind: description.Standalone},
 			},
 		}
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		subCh := make(chan description.Topology, 1)
 		subCh <- desc
@@ -264,7 +264,7 @@ func TestServerSelection(t *testing.T) {
 				{Addr: address.Address("three"), Kind: description.Standalone},
 			},
 		}
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		subCh := make(chan description.Topology, 1)
 		subCh <- desc
@@ -287,7 +287,7 @@ func TestServerSelection(t *testing.T) {
 		}
 	})
 	t.Run("findServer returns topology kind", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		atomic.StoreInt64(&topo.state, topologyConnected)
 		srvr, err := ConnectServer(address.Address("one"), topo.updateCallback, topo.id)
@@ -306,7 +306,7 @@ func TestServerSelection(t *testing.T) {
 		}
 	})
 	t.Run("Update on not primary error", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		topo.cfg.ConnString.HeartbeatInterval = time.Minute
 		atomic.StoreInt64(&topo.state, topologyConnected)
@@ -373,7 +373,7 @@ func TestServerSelection(t *testing.T) {
 	})
 	t.Run("fast path does not subscribe or check timeouts", func(t *testing.T) {
 		// Assert that the server selection fast path does not create a Subscription or check for timeout errors.
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		topo.cfg.ConnString.HeartbeatInterval = time.Minute
 		atomic.StoreInt64(&topo.state, topologyConnected)
@@ -402,7 +402,7 @@ func TestServerSelection(t *testing.T) {
 		assert.Equal(t, primaryAddr, selectedAddr, "expected address %v, got %v", primaryAddr, selectedAddr)
 	})
 	t.Run("default to selecting from subscription if fast path fails", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 
 		topo.cfg.ConnString.HeartbeatInterval = time.Minute
@@ -420,7 +420,7 @@ func TestServerSelection(t *testing.T) {
 
 func TestSessionTimeout(t *testing.T) {
 	t.Run("UpdateSessionTimeout", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		topo.servers["foo"] = nil
 		topo.fsm.Servers = []description.Server{
@@ -443,7 +443,7 @@ func TestSessionTimeout(t *testing.T) {
 		}
 	})
 	t.Run("MultipleUpdates", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		topo.fsm.Kind = description.ReplicaSetWithPrimary
 		topo.servers["foo"] = nil
@@ -478,7 +478,7 @@ func TestSessionTimeout(t *testing.T) {
 		}
 	})
 	t.Run("NoUpdate", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		topo.servers["foo"] = nil
 		topo.servers["bar"] = nil
@@ -512,7 +512,7 @@ func TestSessionTimeout(t *testing.T) {
 		}
 	})
 	t.Run("TimeoutDataBearing", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		topo.servers["foo"] = nil
 		topo.servers["bar"] = nil
@@ -546,7 +546,7 @@ func TestSessionTimeout(t *testing.T) {
 		}
 	})
 	t.Run("MixedSessionSupport", func(t *testing.T) {
-		topo, err := NewDefault()
+		topo, err := New(nil)
 		noerr(t, err)
 		topo.fsm.Kind = description.ReplicaSetWithPrimary
 		topo.servers["one"] = nil
@@ -728,7 +728,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 	// Create a new Topology, set the state to "connected", store a topology description
 	// containing all server descriptions created from the test server descriptions, and copy
 	// all *Server instances to the Topology's servers list.
-	topology, err := NewDefault()
+	topology, err := New(nil)
 	require.NoError(t, err, "error creating new Topology")
 	topology.state = topologyConnected
 	topology.desc.Store(description.Topology{

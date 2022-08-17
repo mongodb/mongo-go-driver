@@ -65,7 +65,7 @@ type client interface {
 
 // newConfig will translate data from client options into a topology config for building non-default deployments.
 func newConfig(co *options.ClientOptions, client client) (*Config, error) {
-	var defaultMaxPoolSize uint64 = 100
+	const defaultMaxPoolSize = 100
 	var serverAPI *driver.ServerAPIOptions = nil
 
 	var clusterClock *session.ClusterClock = nil

@@ -152,11 +152,6 @@ func New(cfg *Config) (*Topology, error) {
 	return t, nil
 }
 
-// NewDefault creates a new unconfigured topolgoy.
-func NewDefault() (*Topology, error) {
-	return New(nil)
-}
-
 // Connect initializes a Topology and starts the monitoring process. This function
 // must be called to properly monitor the topology.
 func (t *Topology) Connect() error {

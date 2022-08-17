@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -70,6 +71,7 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 // Setup initializes the current testing context.
 // This function must only be called one time and must be called before any tests run.
 func Setup(setupOpts ...*SetupOptions) error {
+	fmt.Println("Setup hit")
 	opts := MergeSetupOptions(setupOpts...)
 	var err error
 
@@ -88,7 +90,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 	case opts.URI != nil:
 		uri = *opts.URI
 	default:
-		uri, err = getClusterURI()
+		uri, err = testutil.MongoDBURI()
 	}
 	if err != nil {
 		return fmt.Errorf("error getting uri: %v", err)
@@ -334,14 +336,6 @@ func addServerlessAuthCredentials(uri string) (string, error) {
 
 	uri = scheme + user + ":" + password + "@" + uri[len(scheme):]
 	return uri, nil
-}
-
-func getClusterURI() (string, error) {
-	uri := os.Getenv("MONGODB_URI")
-	if uri == "" {
-		uri = "mongodb://localhost:27017"
-	}
-	return addNecessaryParamsToURI(uri)
 }
 
 // getClusterConnString gets the globally configured connection string.
