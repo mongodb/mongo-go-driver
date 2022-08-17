@@ -110,9 +110,6 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	if tlsConfig != nil {
 		opts.SetTLSConfig(tlsConfig)
 	}
-	//if cs.LoadBalanced {
-	//	opts.SetLoadBalanced(true)
-	//}
 
 	cfg, err := topology.NewConfig(opts)
 	assert.Nil(mt, err, "error constructing toplogy config: %v", err)
