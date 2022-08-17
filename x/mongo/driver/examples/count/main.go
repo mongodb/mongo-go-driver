@@ -48,8 +48,13 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	dbname := cfg.ConnString.Database
+	if dbname == "" {
+		dbname = "test"
+	}
+
 	op := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "count", *col))).
-		Deployment(t).ServerSelector(description.WriteSelector())
+		Deployment(t).Database(dbname).ServerSelector(description.WriteSelector())
 	err = op.Execute(ctx)
 	if err != nil {
 		log.Fatalf("failed executing count command: %v", err)

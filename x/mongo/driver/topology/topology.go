@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 )
@@ -122,9 +123,11 @@ func newServerSelectionState(selector description.ServerSelector, timeoutChan <-
 // New creates a new topology.
 func New(cfg *Config) (*Topology, error) {
 	if cfg == nil {
-		cfg = new(Config)
-		cfg.SeedList = []string{"localhost:27017"}
-		cfg.ServerSelectionTimeout = 30 * time.Second
+		var err error
+		cfg, err = NewConfig(options.Client())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	t := &Topology{
