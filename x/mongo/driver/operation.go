@@ -356,6 +356,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 
+	var prevIndefiniteErr error
+
+	setPreviousIndefiniteError := func(err error) {
+		switch err.(type) {
+		case Error:
+			if !err.(Error).HasErrorLabel("NoWritesPerfomed") {
+				prevIndefiniteErr = err
+			}
+		}
+	}
+
 	var srvr Server
 	var conn Connection
 	var res bsoncore.Document
@@ -372,6 +383,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	resetForRetry := func(err error) {
 		retries--
 		prevErr = err
+		setPreviousIndefiniteError(err)
+
 		// If we got a connection, close it immediately to release pool resources for
 		// subsequent retries.
 		if conn != nil {
@@ -696,6 +709,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
 				// If we got a retryable error or MaxTimeMSExpired error, we add UnknownTransactionCommitResult.
 				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
+			}
+
+			if tt.HasErrorLabel("NoWritesPerformed") {
+				fmt.Printf("previousIndefiniteError: %v\n", prevIndefiniteErr)
+				return prevIndefiniteErr
 			}
 			return tt
 		case nil:
