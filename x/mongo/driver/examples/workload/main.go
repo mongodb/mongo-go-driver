@@ -31,6 +31,8 @@ import (
 var concurrency = flag.Int("concurrency", 24, "how much concurrency should be used")
 var ns = flag.String("namespace", "test.foo", "the namespace to use for test data")
 
+// TODO(GODRIVER-2527): convert to a Go doc example.
+
 func main() {
 
 	go func() {
