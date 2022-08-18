@@ -81,7 +81,7 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri).SetMonitor(monitor))
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri).SetMonitor(monitor), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,8 +104,8 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 // Topology gets the globally configured topology.
 func Topology(t *testing.T) *topology.Topology {
 	uri, err := MongoDBURI()
-	require.NoError(t, err, "error constructing mongodb URI: %v", uri)
-	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri))
+	require.NoError(t, err, "error constructing mongodb URI: %v", err)
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri), nil)
 	require.NoError(t, err, "error constructing topology config: %v", err)
 
 	liveTopologyOnce.Do(func() {
@@ -135,7 +135,7 @@ func TopologyWithCredential(t *testing.T, credential options.Credential) *topolo
 	if err != nil {
 		t.Fatalf("error constructing mongodb URI: %v", err)
 	}
-	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri).SetAuth(credential))
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri).SetAuth(credential), nil)
 	if err != nil {
 		t.Fatalf("error constructing topology config: %v", err)
 	}
@@ -159,6 +159,8 @@ func ColName(t *testing.T) string {
 	return name.String()
 }
 
+// MongoDBURI will construct the MongoDB URI from the MONGODB_URI environment variable for testing. The default host is
+// "localhost" and the default port is "27017"
 func MongoDBURI() (string, error) {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
@@ -171,6 +173,7 @@ func MongoDBURI() (string, error) {
 	return uri, err
 }
 
+// AddServerlessAuthCredentials will attempt to construct the serverless auth credentials for a URI.
 func AddServerlessAuthCredentials(uri string) (string, error) {
 	if os.Getenv("SERVERLESS") != "serverless" {
 		return uri, nil

@@ -230,7 +230,7 @@ func setUpTopology(t *testing.T, uri string) *Topology {
 		ServerClosed:               serverClosed,
 	}
 
-	cfg, err := NewConfig(options.Client().ApplyURI(uri).SetServerMonitor(sdam))
+	cfg, err := NewConfig(options.Client().ApplyURI(uri).SetServerMonitor(sdam), nil)
 	assert.Nil(t, err, "error constructing topology config: %v", err)
 
 	// Disable server monitoring because the hosts in the SDAM spec tests don't actually exist, so the server monitor

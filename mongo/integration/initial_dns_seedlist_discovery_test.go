@@ -111,7 +111,7 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		opts.SetTLSConfig(tlsConfig)
 	}
 
-	cfg, err := topology.NewConfig(opts)
+	cfg, err := topology.NewConfig(opts, nil)
 	assert.Nil(mt, err, "error constructing toplogy config: %v", err)
 
 	topo, err := topology.New(cfg)

@@ -66,7 +66,7 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			uri := fmt.Sprintf("mongodb://localhost/?%s", tc.uriOptions)
-			cfg, err := NewConfig(options.Client().ApplyURI(uri))
+			cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
 			assert.Nil(t, err, "error constructing topology config: %v", err)
 
 			topo, err := New(cfg)

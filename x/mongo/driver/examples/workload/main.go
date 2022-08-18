@@ -42,7 +42,7 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 
-	cfg, err := topology.NewConfig(options.Client().ApplyURI("mongodb://localhost:27017/"))
+	cfg, err := topology.NewConfig(options.Client().ApplyURI("mongodb://localhost:27017/"), nil)
 	if err != nil {
 		log.Fatalf("error constructing topology config: %v", err)
 	}

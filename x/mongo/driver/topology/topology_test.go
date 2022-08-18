@@ -573,7 +573,7 @@ func TestSessionTimeout(t *testing.T) {
 }
 
 func TestMinPoolSize(t *testing.T) {
-	cfg, err := NewConfig(options.Client().SetHosts([]string{"localhost:27017"}).SetMinPoolSize(10))
+	cfg, err := NewConfig(options.Client().SetHosts([]string{"localhost:27017"}).SetMinPoolSize(10), nil)
 	if err != nil {
 		t.Errorf("error constructing topology config: %v", err)
 	}
@@ -624,7 +624,7 @@ func TestTopologyConstruction(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri))
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri), nil)
 				assert.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)

@@ -31,7 +31,7 @@ func main() {
 		log.Fatalf("uri flag must have a value")
 	}
 
-	cfg, err := topology.NewConfig(options.Client().ApplyURI(*uri))
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(*uri), nil)
 	if err != nil {
 		log.Fatal(err)
 	}

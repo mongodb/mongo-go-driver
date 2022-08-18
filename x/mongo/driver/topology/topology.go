@@ -124,7 +124,7 @@ func newServerSelectionState(selector description.ServerSelector, timeoutChan <-
 func New(cfg *Config) (*Topology, error) {
 	if cfg == nil {
 		var err error
-		cfg, err = NewConfig(options.Client())
+		cfg, err = NewConfig(options.Client(), nil)
 		if err != nil {
 			return nil, err
 		}

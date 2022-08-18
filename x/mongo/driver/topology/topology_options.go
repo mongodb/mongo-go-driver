@@ -46,8 +46,8 @@ func hasOptionalData(co options.ClientOptions) bool {
 		co.LoadBalanced != nil
 }
 
-// convertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
-func convertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOptions {
+// ConvertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
+func ConvertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOptions {
 	driverOpts := driver.NewServerAPIOptions(string(s.ServerAPIVersion))
 	if s.Strict != nil {
 		driverOpts.SetStrict(*s.Strict)
@@ -58,20 +58,10 @@ func convertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOpt
 	return driverOpts
 }
 
-type client interface {
-	GetClusterClock() *session.ClusterClock
-	SetServerAPI(*driver.ServerAPIOptions)
-}
-
-// newConfig will translate data from client options into a topology config for building non-default deployments.
-func newConfig(co *options.ClientOptions, client client) (*Config, error) {
+// NewConfig will translate data from client options into a topology config for building non-default deployments.
+func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
 	const defaultMaxPoolSize = 100
-	var serverAPI *driver.ServerAPIOptions = nil
-
-	var clusterClock *session.ClusterClock = nil
-	if client != nil {
-		clusterClock = client.GetClusterClock()
-	}
+	var serverAPI *driver.ServerAPIOptions
 
 	var defaultOptions int
 	// Set default options
@@ -93,10 +83,7 @@ func newConfig(co *options.ClientOptions, client client) (*Config, error) {
 	// ServerAPIOptions need to be handled early as other client and server options below reference
 	// c.serverAPI and serverOpts.serverAPI.
 	if co.ServerAPIOptions != nil {
-		serverAPI = convertToDriverAPIOptions(co.ServerAPIOptions)
-		if client != nil {
-			client.SetServerAPI(serverAPI)
-		}
+		serverAPI = ConvertToDriverAPIOptions(co.ServerAPIOptions)
 		serverOpts = append(serverOpts, WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
 			return serverAPI
 		}))
@@ -157,7 +144,7 @@ func newConfig(co *options.ClientOptions, client client) (*Config, error) {
 
 	// Handshaker
 	var handshaker = func(driver.Handshaker) driver.Handshaker {
-		return operation.NewHello().AppName(appName).Compressors(comps).ClusterClock(clusterClock).
+		return operation.NewHello().AppName(appName).Compressors(comps).ClusterClock(clock).
 			ServerAPI(serverAPI).LoadBalanced(loadBalanced)
 	}
 	// Auth & Database & Password & Username
@@ -191,7 +178,7 @@ func newConfig(co *options.ClientOptions, client client) (*Config, error) {
 			Compressors:   comps,
 			ServerAPI:     serverAPI,
 			LoadBalanced:  loadBalanced,
-			ClusterClock:  clusterClock,
+			ClusterClock:  clock,
 		}
 
 		if mechanism == "" {
@@ -346,31 +333,19 @@ func newConfig(co *options.ClientOptions, client client) (*Config, error) {
 
 	serverOpts = append(
 		serverOpts,
-		WithClock(func(*session.ClusterClock) *session.ClusterClock { return clusterClock }),
+		WithClock(func(*session.ClusterClock) *session.ClusterClock { return clock }),
 		WithConnectionOptions(func(...ConnectionOption) []ConnectionOption { return connOpts }))
 
 	cfgp.ServerOpts = serverOpts
 
 	// Deployment
 	if co.Deployment != nil {
-		// topology options: WithSeedlist, WithURI, WithSRVServiceName, WithSRVMaxHosts, and WithServerOptions
-		// server options: WithClock and WithConnectionOptions + default maxPoolSize
+		// A deployment cannot be created with server or topology options. To extend the optional requirements
+		// add topology options to the "hasOptionalData" function.
 		if len(serverOpts) > 2+defaultOptions || hasOptionalData(*co) {
 			return nil, errors.New("cannot specify topology or server options with a deployment")
 		}
 	}
 
 	return cfgp, nil
-}
-
-// NewConfig will translate client options into a topology config for building deployments.
-func NewConfig(co *options.ClientOptions) (*Config, error) {
-	return newConfig(co, nil)
-}
-
-// NewConfigWithClient will translate client options into a topology config for building deployments. It will also use
-// a client implementation for accessing and setting unexported data as well as implementing non-configuration-specific
-// data.
-func NewConfigWithClient(co *options.ClientOptions, client client) (*Config, error) {
-	return newConfig(co, client)
 }

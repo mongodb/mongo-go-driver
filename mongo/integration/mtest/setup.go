@@ -101,7 +101,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		clientOpts.SetServerAPIOptions(serverAPIOptions)
 	}
 
-	cfg, err := topology.NewConfig(clientOpts)
+	cfg, err := topology.NewConfig(clientOpts, nil)
 	if err != nil {
 		return fmt.Errorf("error constructing topology config: %v", err)
 	}

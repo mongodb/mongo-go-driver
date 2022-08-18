@@ -145,10 +145,11 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	cfg, err := topology.NewConfigWithClient(clientOpt, &topologyClient{client})
+	cfg, err := topology.NewConfig(clientOpt, client.clock)
 	if err != nil {
 		return nil, err
 	}
+	client.serverAPI = topology.ServerAPIFromServerOptions(cfg.ServerOpts)
 
 	if client.deployment == nil {
 		client.deployment, err = topology.New(cfg)
