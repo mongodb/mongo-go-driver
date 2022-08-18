@@ -96,10 +96,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 	testContext.requireAPIVersion = os.Getenv("REQUIRE_API_VERSION") == "true"
 
 	clientOpts := options.Client().ApplyURI(uri)
-	if testContext.requireAPIVersion {
-		serverAPIOptions := options.ServerAPI(driver.TestServerAPIVersion)
-		clientOpts.SetServerAPIOptions(serverAPIOptions)
-	}
+	testutil.AddTestServerAPIVersion(clientOpts)
 
 	cfg, err := topology.NewConfig(clientOpts, nil)
 	if err != nil {
