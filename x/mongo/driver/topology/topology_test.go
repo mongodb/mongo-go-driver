@@ -620,7 +620,6 @@ func TestTopologyConstruction(t *testing.T) {
 			pollingRequired bool
 		}{
 			{"normal", "mongodb://localhost:27017", false},
-			// {"srv", "mongodb+srv://localhost:27017", true},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {

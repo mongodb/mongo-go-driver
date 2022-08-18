@@ -74,16 +74,6 @@ type Client struct {
 	encryptedFieldsMap map[string]interface{}
 }
 
-type topologyClient struct{ *Client }
-
-func (tc *topologyClient) GetClusterClock() *session.ClusterClock {
-	return tc.Client.clock
-}
-
-func (tc *topologyClient) SetServerAPI(serverAPI *driver.ServerAPIOptions) {
-	tc.Client.serverAPI = serverAPI
-}
-
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
 // NewClient followed by Client.Connect.
 //

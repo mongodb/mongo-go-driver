@@ -330,19 +330,6 @@ func addServerlessAuthCredentials(uri string) (string, error) {
 	return uri, nil
 }
 
-// getClusterConnString gets the globally configured connection string.
-func getClusterConnString() (connstring.ConnString, error) {
-	uri := os.Getenv("MONGODB_URI")
-	if uri == "" {
-		uri = "mongodb://localhost:27017"
-	}
-	uri, err := addNecessaryParamsToURI(uri)
-	if err != nil {
-		return connstring.ConnString{}, err
-	}
-	return connstring.ParseAndValidate(uri)
-}
-
 func addNecessaryParamsToURI(uri string) (string, error) {
 	uri = addTLSConfig(uri)
 	uri = addCompressors(uri)
