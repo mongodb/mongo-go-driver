@@ -7,7 +7,6 @@
 package wiremessage
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -143,36 +142,31 @@ func (s *SrcStream) ReadCompressorID() (CompressorID, error) {
 }
 
 // ReadMsgSectionSingleDocument reads a single document from src.
-func (s *SrcStream) ReadMsgSectionSingleDocument(w io.Writer) error {
+func (s *SrcStream) ReadMsgSectionSingleDocument() (bsoncore.Document, error) {
 	_, err := io.ReadFull(s, s.headerBuf[:4])
 	if err != nil {
-		return err
+		return nil, err
 	}
 	l := readi32unsafe(s.headerBuf[:4])
-	if _, e := w.Write(s.headerBuf[:4]); e != nil {
-		err = e
-	} else if _, e := io.CopyN(w, s, int64(l)); e != nil {
-		err = e
-	}
-	return err
+	doc := make([]byte, l)
+	n := copy(doc, s.headerBuf[:4])
+	_, err = io.ReadFull(s, doc[n:])
+	return doc, err
 }
 
 // ReadReplyDocuments reads as many documents as possible from src
 func (s *SrcStream) ReadReplyDocuments() ([]bsoncore.Document, error) {
 	var docs []bsoncore.Document
 	var err error
-	buf := bytes.NewBuffer(nil)
 	for {
-		buf.Reset()
-		err = s.ReadMsgSectionSingleDocument(buf)
+		var doc bsoncore.Document
+		doc, err = s.ReadMsgSectionSingleDocument()
 		if err != nil {
 			if err == io.EOF {
 				err = nil
 			}
 			break
 		}
-		doc := make([]byte, buf.Len())
-		copy(doc, buf.Bytes())
 		docs = append(docs, doc)
 	}
 

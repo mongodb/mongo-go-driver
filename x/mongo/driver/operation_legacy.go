@@ -698,17 +698,10 @@ func (op Operation) roundTripLegacy(ctx context.Context, conn Connection, wm []b
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
 
-	r, err := conn.ReadWireMessage(ctx)
+	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
-		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
+		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
-	buf, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
-	}
-	idx, wm := bsoncore.ReserveLength(nil)
-	wm = append(wm, buf...)
-	wm = bsoncore.UpdateLength(wm, idx, int32(len(wm[idx:])))
 	return wm, err
 }
 

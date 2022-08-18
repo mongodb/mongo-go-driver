@@ -8,7 +8,6 @@ package driver // import "go.mongodb.org/mongo-driver/x/mongo/driver"
 
 import (
 	"context"
-	"io"
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal"
@@ -60,7 +59,7 @@ type Server interface {
 // Connection represents a connection to a MongoDB server.
 type Connection interface {
 	WriteWireMessage(context.Context, []byte) error
-	ReadWireMessage(ctx context.Context) (io.ReadCloser, error)
+	ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error)
 	Description() description.Server
 
 	// Close closes any underlying connection and returns or frees any resources held by the

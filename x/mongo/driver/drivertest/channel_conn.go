@@ -7,11 +7,8 @@
 package drivertest
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"io"
-	"io/ioutil"
 
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -31,8 +28,10 @@ type ChannelConn struct {
 
 // WriteWireMessage implements the driver.Connection interface.
 func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
+	b := make([]byte, len(wm))
+	copy(b, wm)
 	select {
-	case c.Written <- wm:
+	case c.Written <- b:
 	default:
 		c.WriteErr = errors.New("could not write wiremessage to written channel")
 	}
@@ -40,7 +39,7 @@ func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
 }
 
 // ReadWireMessage implements the driver.Connection interface.
-func (c *ChannelConn) ReadWireMessage(ctx context.Context) (io.ReadCloser, error) {
+func (c *ChannelConn) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
 	var wm []byte
 	var err error
 	select {
@@ -48,7 +47,7 @@ func (c *ChannelConn) ReadWireMessage(ctx context.Context) (io.ReadCloser, error
 	case err = <-c.ReadErr:
 	case <-ctx.Done():
 	}
-	return ioutil.NopCloser(bytes.NewReader(wm[4:])), err
+	return wm[4:], err
 }
 
 // Description implements the driver.Connection interface.

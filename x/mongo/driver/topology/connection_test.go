@@ -10,8 +10,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"sync"
@@ -487,7 +485,7 @@ func TestConnection(t *testing.T) {
 			t.Run("closed connection", func(t *testing.T) {
 				conn := &connection{id: "foobar"}
 				want := ConnectionError{ConnectionID: "foobar", message: "connection is closed"}
-				_, got := conn.readWireMessage(context.Background())
+				_, got := conn.readWireMessage(context.Background(), []byte{})
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
@@ -497,7 +495,7 @@ func TestConnection(t *testing.T) {
 				cancel()
 				conn := &connection{id: "foobar", nc: &net.TCPConn{}, state: connConnected}
 				want := ConnectionError{ConnectionID: "foobar", Wrapped: ctx.Err(), message: "failed to read"}
-				_, got := conn.readWireMessage(ctx)
+				_, got := conn.readWireMessage(ctx, []byte{})
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
@@ -531,7 +529,7 @@ func TestConnection(t *testing.T) {
 						}
 						tnc := &testNetConn{deadlineerr: errors.New("set readDeadline error")}
 						conn := &connection{id: "foobar", nc: tnc, readTimeout: tc.timeout, state: connConnected}
-						_, got := conn.readWireMessage(ctx)
+						_, got := conn.readWireMessage(ctx, []byte{})
 						if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 							t.Errorf("errors do not match. got %v; want %v", got, want)
 						}
@@ -550,7 +548,7 @@ func TestConnection(t *testing.T) {
 					conn.cancellationListener = listener
 
 					want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "incomplete read of message header"}
-					_, got := conn.readWireMessage(context.Background())
+					_, got := conn.readWireMessage(context.Background(), []byte{})
 					if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 						t.Errorf("errors do not match. got %v; want %v", got, want)
 					}
@@ -566,10 +564,8 @@ func TestConnection(t *testing.T) {
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
-					want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "incomplete read of full message"}
-					r, got := conn.readWireMessage(context.Background())
-					noerr(t, got)
-					_, got = ioutil.ReadAll(r)
+					want := ConnectionError{ConnectionID: "foobar", Wrapped: errors.New("connection(foobar) incomplete read of full message: Read error"), message: "incomplete read of full message"}
+					_, got := conn.readWireMessage(context.Background(), []byte{})
 					if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 						t.Errorf("errors do not match. got %v; want %v", got, want)
 					}
@@ -605,7 +601,7 @@ func TestConnection(t *testing.T) {
 							conn.cancellationListener = listener
 
 							want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: err.Error()}
-							_, got := conn.readWireMessage(context.Background())
+							_, got := conn.readWireMessage(context.Background(), nil)
 							if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 								t.Errorf("errors do not match. got %v; want %v", got, want)
 							}
@@ -621,9 +617,7 @@ func TestConnection(t *testing.T) {
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
-					r, err := conn.readWireMessage(context.Background())
-					noerr(t, err)
-					got, err := ioutil.ReadAll(r)
+					got, err := conn.readWireMessage(context.Background(), nil)
 					noerr(t, err)
 					if !cmp.Equal(got, want[4:]) {
 						t.Errorf("did not read full wire message. got %v; want %v", got, want)
@@ -654,7 +648,7 @@ func TestConnection(t *testing.T) {
 							skip: 1,
 							err: ConnectionError{
 								ConnectionID: id,
-								Wrapped:      errors.New("cancelled read"),
+								Wrapped:      context.Canceled,
 								message:      "incomplete read of full message",
 							},
 						},
@@ -675,10 +669,7 @@ func TestConnection(t *testing.T) {
 
 							errChan := make(chan error)
 							go func() {
-								r, err := conn.readWireMessage(ctx)
-								if err == nil {
-									_, err = io.Copy(io.Discard, r)
-								}
+								_, err := conn.readWireMessage(ctx, nil)
 								errChan <- err
 							}()
 
@@ -700,7 +691,7 @@ func TestConnection(t *testing.T) {
 					conn.cancellationListener = listener
 
 					want := ConnectionError{ConnectionID: conn.id, Wrapped: context.Canceled, message: "unable to read server response"}
-					_, err := conn.readWireMessage(context.Background())
+					_, err := conn.readWireMessage(context.Background(), nil)
 					assert.Equal(t, want, err, "expected error %v, got %v", want, err)
 					assert.Equal(t, connDisconnected, conn.state, "expected connection state %v, got %v", connDisconnected,
 						conn.state)
@@ -761,7 +752,7 @@ func TestConnection(t *testing.T) {
 			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 				t.Errorf("errors do not match. got %v; want %v", got, want)
 			}
-			_, got = conn.ReadWireMessage(context.Background())
+			_, got = conn.ReadWireMessage(context.Background(), nil)
 			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 				t.Errorf("errors do not match. got %v; want %v", got, want)
 			}

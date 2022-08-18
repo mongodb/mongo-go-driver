@@ -9,7 +9,6 @@ package session // import "go.mongodb.org/mongo-driver/x/mongo/driver/session"
 import (
 	"context"
 	"errors"
-	"io"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -92,7 +91,7 @@ func (s TransactionState) String() string {
 type LoadBalancedTransactionConnection interface {
 	// Functions copied over from driver.Connection.
 	WriteWireMessage(context.Context, []byte) error
-	ReadWireMessage(ctx context.Context) (io.ReadCloser, error)
+	ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error)
 	Description() description.Server
 	Close() error
 	ID() string

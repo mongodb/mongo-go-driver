@@ -385,16 +385,16 @@ func (c *connection) write(ctx context.Context, wm []byte) (err error) {
 }
 
 // readWireMessage reads a wiremessage from the connection. The dst parameter will be overwritten.
-func (c *connection) readWireMessage(ctx context.Context) (io.ReadCloser, error) {
+func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
 	if atomic.LoadInt64(&c.state) != connConnected {
-		return nil, ConnectionError{ConnectionID: c.id, message: "connection is closed"}
+		return dst, ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
 
 	select {
 	case <-ctx.Done():
 		// We closeConnection the connection because we don't know if there is an unread message on the wire.
 		c.close()
-		return nil, ConnectionError{ConnectionID: c.id, Wrapped: ctx.Err(), message: "failed to read"}
+		return dst, ConnectionError{ConnectionID: c.id, Wrapped: ctx.Err(), message: "failed to read"}
 	default:
 	}
 
@@ -413,7 +413,7 @@ func (c *connection) readWireMessage(ctx context.Context) (io.ReadCloser, error)
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set read deadline"}
 	}
 
-	r, errMsg, err := c.read(ctx)
+	dst, errMsg, err := c.read(ctx, dst)
 	if err != nil {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
@@ -428,7 +428,7 @@ func (c *connection) readWireMessage(ctx context.Context) (io.ReadCloser, error)
 		}
 	}
 
-	return r, nil
+	return dst, nil
 }
 
 var readerPool = sync.Pool{
@@ -476,7 +476,7 @@ func (l *limitedReader) Close() error {
 	return err
 }
 
-func (c *connection) read(ctx context.Context) (reader io.ReadCloser, errMsg string, err error) {
+func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, errMsg string, err error) {
 	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
 	defer func() {
 		// If the context is cancelled after we finish reading the server response, the cancellation listener could fire
@@ -532,7 +532,16 @@ func (c *connection) read(ctx context.Context) (reader io.ReadCloser, errMsg str
 	*/
 	r.c = c
 	r.n = int64(size) - int64(len(r.hdr))
-	return r, "", nil
+	if l := int(r.n); l > cap(dst) {
+		// Since we can't grow this slice without allocating, just allocate an entirely new slice.
+		dst = make([]byte, 0, l)
+	}
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, "incomplete read of full message", err
+	}
+	dst = append(dst, b...)
+	return dst, "", nil
 }
 
 func (c *connection) close() error {
@@ -627,8 +636,8 @@ func (c initConnection) LocalAddress() address.Address {
 func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
 }
-func (c initConnection) ReadWireMessage(ctx context.Context) (io.ReadCloser, error) {
-	return c.readWireMessage(ctx)
+func (c initConnection) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
+	return c.readWireMessage(ctx, dst)
 }
 func (c initConnection) SetStreaming(streaming bool) {
 	c.setStreaming(streaming)
@@ -670,13 +679,13 @@ func (c *Connection) WriteWireMessage(ctx context.Context, wm []byte) error {
 
 // ReadWireMessage handles reading a wire message from the underlying connection. The dst parameter
 // will be overwritten with the new wire message.
-func (c *Connection) ReadWireMessage(ctx context.Context) (io.ReadCloser, error) {
+func (c *Connection) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.connection == nil {
 		return nil, ErrConnectionClosed
 	}
-	return c.readWireMessage(ctx)
+	return c.readWireMessage(ctx, dst)
 }
 
 // CompressWireMessage handles compressing the provided wire message using the underlying

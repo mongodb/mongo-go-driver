@@ -312,6 +312,13 @@ func (op Operation) Validate() error {
 	return nil
 }
 
+var writeBuffers = sync.Pool{
+	New: func() interface{} {
+		b := make([]byte, 1024) // Start with 1kb buffers.
+		return &b
+	},
+}
+
 // Execute runs this operation. The scratch parameter will be used and overwritten (potentially many
 // times), this should mainly be used to enable pooling of byte slices.
 func (op Operation) Execute(ctx context.Context, scratch []byte) error {
@@ -361,7 +368,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 	var srvr Server
 	var conn Connection
-	//var res bsoncore.Document
+	var res bsoncore.Document
 	var operationErr WriteCommandError
 	var prevErr error
 	batching := op.Batches.Valid()
@@ -385,7 +392,19 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		conn = nil
 	}
 
-	buf := bytes.NewBuffer(nil)
+	wm := *writeBuffers.Get().(*[]byte)
+	defer func() {
+		// Proper usage of a sync.Pool requires each entry to have approximately the same memory
+		// cost. To obtain this property when the stored type contains a variably-sized buffer,
+		// we add a hard limit on the maximum buffer to place back in the pool. We limit the
+		// size to 16MiB because that's the maximum wire message size supported by MongoDB.
+		//
+		// Comment copied from https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/fmt/print.go;l=147
+		if cap(wm) > 16*1024*1024 {
+			return
+		}
+		writeBuffers.Put(&wm)
+	}()
 	for {
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
@@ -500,7 +519,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, maxTimeMS, conn)
+		//wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, maxTimeMS, conn)
+		var startedInfo startedInformation
+		wm, startedInfo, err = op.createWireMessage(ctx, wm[:0], desc, maxTimeMS, conn)
 		if err != nil {
 			return err
 		}
@@ -547,7 +568,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		}
 
-		buf.Reset()
 		if err == nil {
 			// roundtrip using either the full roundTripper or a special one for when the moreToCome
 			// flag is set
@@ -555,15 +575,14 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
-			buf.Write(wm)
-			err = roundTrip(ctx, conn, buf)
+			res, err = roundTrip(ctx, conn, wm)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
 			}
 		}
 
-		finishedInfo.response = buf.Bytes()
+		finishedInfo.response = res
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
 
@@ -600,10 +619,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
-				b := make([]byte, buf.Len())
-				copy(b, buf.Bytes())
 				info := ResponseInfo{
-					ServerResponse:        b,
+					ServerResponse:        res,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
@@ -689,10 +706,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
-				b := make([]byte, buf.Len())
-				copy(b, buf.Bytes())
 				info := ResponseInfo{
-					ServerResponse:        b,
+					ServerResponse:        res,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
@@ -711,10 +726,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				return ErrUnacknowledgedWrite
 			}
 			if op.ProcessResponseFn != nil {
-				b := make([]byte, buf.Len())
-				copy(b, buf.Bytes())
 				info := ResponseInfo{
-					ServerResponse:        b,
+					ServerResponse:        res,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
@@ -727,10 +740,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		default:
 			if op.ProcessResponseFn != nil {
-				var b bsoncore.Document = make([]byte, buf.Len())
-				copy(b, buf.Bytes())
 				info := ResponseInfo{
-					ServerResponse:        b,
+					ServerResponse:        res,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
@@ -793,13 +804,12 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm *bytes.Buffer) error {
-	err := conn.WriteWireMessage(ctx, wm.Bytes())
+func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return op.networkError(err)
+		return wm, op.networkError(err)
 	}
-	wm.Reset()
-	return op.readWireMessage(ctx, conn, wm)
+	return op.readWireMessage(ctx, conn, wm[:0])
 }
 
 var bufPool = sync.Pool{
@@ -808,15 +818,16 @@ var bufPool = sync.Pool{
 	},
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn Connection, res *bytes.Buffer) error {
-	wm, err := conn.ReadWireMessage(ctx)
+func (op Operation) readWireMessage(ctx context.Context, conn Connection, buf []byte) ([]byte, error) {
+	b, err := conn.ReadWireMessage(ctx, buf)
 	if err != nil {
-		return op.networkError(err)
+		return nil, op.networkError(err)
 	}
 	src := bufPool.Get().(*wiremessage.SrcStream)
+	wm := ioutil.NopCloser(bytes.NewBuffer(b))
 	err = src.Reset(wm)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		err = src.Close()
@@ -832,7 +843,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, res *b
 	*/
 
 	// decode
-	isMsgMoreToCome, err := op.decodeResult(src, res)
+	res, isMsgMoreToCome, err := op.decodeResult(src)
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
 	// response.
 	if streamer, ok := conn.(StreamerConnection); ok {
@@ -841,27 +852,24 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, res *b
 
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
-	op.updateClusterTimes(res.Bytes())
-	op.updateOperationTime(res.Bytes())
-	op.Client.UpdateRecoveryToken(bson.Raw(res.Bytes()))
+	op.updateClusterTimes(res)
+	op.updateOperationTime(res)
+	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
 	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
 	if op.cmdName == "find" || op.cmdName == "aggregate" || op.cmdName == "distinct" {
-		op.Client.UpdateSnapshotTime(res.Bytes())
+		op.Client.UpdateSnapshotTime(res)
 	}
 
 	if err != nil {
-		return err
+		return res, err
 	}
 
 	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
 	if op.Crypt != nil {
-		buf, err := op.Crypt.Decrypt(ctx, res.Bytes())
-		res.Reset()
-		res.Write(buf)
-		return err
+		return op.Crypt.Decrypt(ctx, res)
 	}
-	return nil
+	return res, nil
 }
 
 // networkError wraps the provided error in an Error with label "NetworkError" and, if a transaction
@@ -887,17 +895,16 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm *bytes.Buffer) error {
-	err := conn.WriteWireMessage(ctx, wm.Bytes())
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		if op.Client != nil {
 			op.Client.MarkDirty()
 		}
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
-	wm.Reset()
-	wm.Write(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)))
-	return err
+	wm = append(wm, bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1))...)
+	return wm, err
 }
 
 // decompressWireMessage handles decompressing a wiremessage. If the wiremessage
@@ -1570,112 +1577,111 @@ func (Operation) decodeOpReply(wm *wiremessage.SrcStream) opReply {
 	return reply
 }
 
-func (Operation) decodeOpReplyDoc(wm *wiremessage.SrcStream, buf *bytes.Buffer) error {
+func (Operation) decodeOpReplyDoc(wm *wiremessage.SrcStream) (bsoncore.Document, error) {
 	var err error
 	defer func() {
 		_, err = io.Copy(ioutil.Discard, wm)
 	}()
 	responseFlags, err := wm.ReadReplyFlags()
 	if err != nil {
-		return errors.New("malformed OP_REPLY: missing flags")
+		return nil, errors.New("malformed OP_REPLY: missing flags")
 	}
 	if responseFlags&wiremessage.CursorNotFound == wiremessage.CursorNotFound {
-		return ErrCursorNotFound
+		return nil, ErrCursorNotFound
 	}
 	_, err = wm.ReadI64()
 	if err != nil {
-		return errors.New("malformed OP_REPLY: missing cursorID")
+		return nil, errors.New("malformed OP_REPLY: missing cursorID")
 	}
 	_, err = wm.ReadI32()
 	if err != nil {
-		return errors.New("malformed OP_REPLY: missing startingFrom")
+		return nil, errors.New("malformed OP_REPLY: missing startingFrom")
 	}
 	numReturned, err := wm.ReadI32()
 	if err != nil {
-		return errors.New("malformed OP_REPLY: missing numberReturned")
+		return nil, errors.New("malformed OP_REPLY: missing numberReturned")
 	}
 	if numReturned == 0 {
-		return ErrNoDocCommandResponse
+		return nil, ErrNoDocCommandResponse
 	}
 	if numReturned > 1 {
-		return ErrMultiDocCommandResponse
+		return nil, ErrMultiDocCommandResponse
 	}
-	err = wm.ReadMsgSectionSingleDocument(buf)
+	res, err := wm.ReadMsgSectionSingleDocument()
 	if err != nil && err != io.EOF {
-		return errors.New("malformed OP_REPLY: could not read documents from reply")
+		return nil, errors.New("malformed OP_REPLY: could not read documents from reply")
 	}
 
 	if responseFlags&wiremessage.QueryFailure == wiremessage.QueryFailure {
-		return QueryFailureError{
+		return nil, QueryFailureError{
 			Message:  "command failure",
-			Response: buf.Bytes(),
+			Response: res,
 		}
 	}
-	return nil
+	return res, nil
 }
 
-func (op Operation) decodeResult(wm *wiremessage.SrcStream, buf *bytes.Buffer) (bool, error) {
+func (op Operation) decodeResult(wm *wiremessage.SrcStream) (bsoncore.Document, bool, error) {
 	//wm = wm[:wmLength-16] // constrain to just this wiremessage, incase there are multiple in the slice
 
 	var isMsgMoreToCome bool
 	switch wm.Opcode {
 	case wiremessage.OpReply:
-		err := op.decodeOpReplyDoc(wm, buf)
+		rdr, err := op.decodeOpReplyDoc(wm)
 		if err != nil {
-			return isMsgMoreToCome, err
+			return nil, isMsgMoreToCome, err
 		}
-		if err := bsoncore.Document(buf.Bytes()).Validate(); err != nil {
-			return isMsgMoreToCome, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
+		if err := rdr.Validate(); err != nil {
+			return nil, isMsgMoreToCome, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
 		}
 
-		return isMsgMoreToCome, ExtractErrorFromServerResponse(buf.Bytes())
+		return rdr, isMsgMoreToCome, ExtractErrorFromServerResponse(rdr)
 	case wiremessage.OpMsg:
 		flag, err := wm.ReadMsgFlags()
 		if err != nil {
-			return isMsgMoreToCome, errors.New("malformed wire message: missing OP_MSG flags")
+			return nil, isMsgMoreToCome, errors.New("malformed wire message: missing OP_MSG flags")
 		}
 		isMsgMoreToCome = flag&wiremessage.MoreToCome == wiremessage.MoreToCome
 
-		//var res bsoncore.Document
+		var res bsoncore.Document
 		for err != io.EOF {
-			buf.Reset()
 			var stype wiremessage.SectionType
 			stype, err = wm.ReadMsgSectionType()
 			if err != nil {
 				if err == io.EOF {
 					break
 				}
-				return isMsgMoreToCome, errors.New("malformed wire message: insuffienct bytes to read section type")
+				return nil, isMsgMoreToCome, errors.New("malformed wire message: insuffienct bytes to read section type")
 			}
 
 			switch stype {
 			case wiremessage.SingleDocument:
-				err = wm.ReadMsgSectionSingleDocument(buf)
+				res, err = wm.ReadMsgSectionSingleDocument()
 				if err != nil {
 					if err == io.EOF {
 						break
 					}
-					return isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read single document")
+					return nil, isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read single document")
 				}
 			case wiremessage.DocumentSequence:
 				// TODO(GODRIVER-617): Implement document sequence returns.
 				_, err = io.Copy(ioutil.Discard, wm)
 				if err != nil {
-					return isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read document sequence")
+					return nil, isMsgMoreToCome, errors.New("malformed wire message: insufficient bytes to read document sequence")
 				}
 			default:
-				return isMsgMoreToCome, fmt.Errorf("malformed wire message: unknown section type %v", stype)
+				return nil, isMsgMoreToCome, fmt.Errorf("malformed wire message: unknown section type %v", stype)
 			}
 		}
 
-		err = bsoncore.Document(buf.Bytes()).Validate()
+		err = res.Validate()
 		if err != nil {
-			return isMsgMoreToCome, NewCommandResponseError("malformed OP_MSG: invalid document", err)
+			return nil, isMsgMoreToCome, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 		}
 
-		return isMsgMoreToCome, ExtractErrorFromServerResponse(buf.Bytes())
+		return res, isMsgMoreToCome, ExtractErrorFromServerResponse(res)
 	default:
-		return isMsgMoreToCome, fmt.Errorf("cannot decode result from %s", wm.Opcode)
+		return nil, isMsgMoreToCome, fmt.Errorf("cannot decode result from %s", wm.Opcode)
 	}
 }
 
@@ -1761,14 +1767,12 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	if success {
-		res := bson.Raw{}
+		var res bson.Raw
 		// Only copy the reply for commands that are not security sensitive
 		if !info.redacted {
-			res = make([]byte, len(info.response))
-			copy(res, info.response)
-			//	res = bson.Raw(info.response)
-			//} else {
-			//	res = bson.Raw{}
+			res = bson.Raw(info.response)
+		} else {
+			res = bson.Raw{}
 		}
 		successEvent := &event.CommandSucceededEvent{
 			Reply:                res,

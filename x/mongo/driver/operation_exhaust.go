@@ -7,7 +7,6 @@
 package driver
 
 import (
-	"bytes"
 	"context"
 	"errors"
 )
@@ -19,15 +18,12 @@ func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection,
 		return errors.New("exhaust read must be done with a connection that is currently streaming")
 	}
 
-	//scratch = scratch[:0]
-	buf := bytes.NewBuffer(nil)
-	err := op.readWireMessage(ctx, conn, buf)
+	scratch = scratch[:0]
+	res, err := op.readWireMessage(ctx, conn, scratch)
 	if err != nil {
 		return err
 	}
 	if op.ProcessResponseFn != nil {
-		res := make([]byte, buf.Len())
-		copy(res, buf.Bytes())
 		// Server, ConnectionDescription, and CurrentIndex are unused in this mode.
 		info := ResponseInfo{
 			ServerResponse: res,
