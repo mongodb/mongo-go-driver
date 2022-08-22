@@ -187,27 +187,27 @@ func TestOperation(t *testing.T) {
 		testCases := []struct {
 			name    string
 			conn    *mockConnection
-			paramWM *[]byte // parameter wire message
-			wantWM  []byte  // wire message that should be returned
-			wantErr error   // error that should be returned
+			paramWM []byte // parameter wire message
+			wantWM  []byte // wire message that should be returned
+			wantErr error  // error that should be returned
 		}{
 			{
 				"returns write error",
 				&mockConnection{rWriteErr: errors.New("write error")},
-				&[]byte{}, nil,
+				nil, nil,
 				Error{Message: "write error", Labels: []string{TransientTransactionError, NetworkError}},
 			},
 			{
 				"returns read error",
 				&mockConnection{rReadErr: errors.New("read error")},
-				&[]byte{}, nil,
+				nil, nil,
 				Error{Message: "read error", Labels: []string{TransientTransactionError, NetworkError}},
 			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				gotWM, gotErr := Operation{}.roundTrip(context.Background(), tc.conn, tc.paramWM)
+				gotWM, gotErr := Operation{}.roundTrip(context.Background(), tc.conn, &tc.paramWM)
 				if !bytes.Equal(gotWM, tc.wantWM) {
 					t.Errorf("Returned wire messages are not equal. got %v; want %v", gotWM, tc.wantWM)
 				}
@@ -732,7 +732,7 @@ func (m *mockServerSelector) SelectServer(description.Topology, []description.Se
 type mockConnection struct {
 	// parameters
 	pWriteWM []byte
-	pReadDst *[]byte
+	pReadDst []byte
 
 	// returns
 	rWriteErr     error
@@ -762,7 +762,7 @@ func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	return m.rWriteErr
 }
 
-func (m *mockConnection) ReadWireMessage(_ context.Context, dst *[]byte) ([]byte, error) {
+func (m *mockConnection) ReadWireMessage(_ context.Context, dst []byte) ([]byte, error) {
 	m.pReadDst = dst
 	return m.rReadWM, m.rReadErr
 }

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -309,6 +310,13 @@ func (op Operation) Validate() error {
 	return nil
 }
 
+var writeBuffers = sync.Pool{
+	New: func() interface{} {
+		b := make([]byte, 1024) // Start with 1kb buffers.
+		return &b
+	},
+}
+
 // Execute runs this operation. The scratch parameter will be used and overwritten (potentially many
 // times), this should mainly be used to enable pooling of byte slices.
 func (op Operation) Execute(ctx context.Context, scratch []byte) error {
@@ -382,6 +390,19 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		conn = nil
 	}
 
+	wm := writeBuffers.Get().(*[]byte)
+	defer func() {
+		// Proper usage of a sync.Pool requires each entry to have approximately the same memory
+		// cost. To obtain this property when the stored type contains a variably-sized buffer,
+		// we add a hard limit on the maximum buffer to place back in the pool. We limit the
+		// size to 16MiB because that's the maximum wire message size supported by MongoDB.
+		//
+		// Comment copied from https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/fmt/print.go;l=147
+		if cap(*wm) > 16*1024*1024 {
+			return
+		}
+		writeBuffers.Put(wm)
+	}()
 	for {
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
@@ -492,11 +513,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 		}
 
-		// convert to wire message
-		if len(scratch) > 0 {
-			scratch = scratch[:0]
-		}
-		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, maxTimeMS, conn)
+		var startedInfo startedInformation
+		*wm, startedInfo, err = op.createWireMessage(ctx, (*wm)[:0], desc, maxTimeMS, conn)
 		if err != nil {
 			return err
 		}
@@ -511,11 +529,14 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
-		moreToCome := wiremessage.IsMsgMoreToCome(wm)
+		moreToCome := wiremessage.IsMsgMoreToCome(*wm)
 
 		// compress wiremessage if allowed
 		if compressor, ok := conn.(Compressor); ok && op.canCompress(startedInfo.cmdName) {
-			wm, err = compressor.CompressWireMessage(wm, nil)
+			b := writeBuffers.Get().(*[]byte)
+			*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
+			writeBuffers.Put(wm)
+			wm = b
 			if err != nil {
 				return err
 			}
@@ -779,19 +800,18 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, wm)
+func (op Operation) roundTrip(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, *wm)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
-
 	return op.readWireMessage(ctx, conn, wm)
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
 	var err error
 
-	wm, err = conn.ReadWireMessage(ctx, wm[:0])
+	*wm, err = conn.ReadWireMessage(ctx, (*wm)[:0])
 	if err != nil {
 		return nil, op.networkError(err)
 	}
@@ -799,17 +819,19 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
 	// response.
 	if streamer, ok := conn.(StreamerConnection); ok {
-		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
+		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(*wm))
 	}
 
 	// decompress wiremessage
-	wm, err = op.decompressWireMessage(wm)
+	*wm, err = op.decompressWireMessage(*wm)
 	if err != nil {
 		return nil, err
 	}
 
 	// decode
-	res, err := op.decodeResult(wm)
+	b, err := op.decodeResult(*wm)
+	res := make([]byte, len(b))
+	copy(res, b)
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
 	op.updateClusterTimes(res)
@@ -855,8 +877,8 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, wm)
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, *wm)
 	if err != nil {
 		if op.Client != nil {
 			op.Client.MarkDirty()
@@ -893,23 +915,29 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	}
 	compressedSize := length - 25 // header (16) + original opcode (4) + uncompressed size (4) + compressor ID (1)
 	// return the original wiremessage
-	msg, rem, ok := wiremessage.ReadCompressedCompressedMessage(rem, compressedSize)
+	msg, _, ok := wiremessage.ReadCompressedCompressedMessage(rem, compressedSize)
 	if !ok {
 		return nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
 	}
 
-	header := make([]byte, 0, uncompressedSize+16)
-	header = wiremessage.AppendHeader(header, uncompressedSize+16, reqid, respto, opcode)
+	b := make([]byte, len(msg))
+	copy(b, msg)
+
+	if l := int(uncompressedSize) + 16; cap(wm) < l {
+		wm = make([]byte, 0, l)
+	}
+	wm = wiremessage.AppendHeader(wm[:0], uncompressedSize+16, reqid, respto, opcode)
 	opts := CompressionOpts{
 		Compressor:       compressorID,
 		UncompressedSize: uncompressedSize,
 	}
-	uncompressed, err := DecompressPayload(msg, opts)
+	uncompressed, err := DecompressPayload(b, opts)
 	if err != nil {
 		return nil, err
 	}
+	wm = append(wm, uncompressed...)
 
-	return append(header, uncompressed...), nil
+	return wm, nil
 }
 
 func (op Operation) createWireMessage(
@@ -1686,8 +1714,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		res := bson.Raw{}
 		// Only copy the reply for commands that are not security sensitive
 		if !info.redacted {
-			res = make([]byte, len(info.response))
-			copy(res, info.response)
+			res = bson.Raw(info.response)
 		}
 		successEvent := &event.CommandSucceededEvent{
 			Reply:                res,

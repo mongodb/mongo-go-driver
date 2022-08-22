@@ -28,8 +28,10 @@ type ChannelConn struct {
 
 // WriteWireMessage implements the driver.Connection interface.
 func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
+	b := make([]byte, len(wm))
+	copy(b, wm)
 	select {
-	case c.Written <- wm:
+	case c.Written <- b:
 	default:
 		c.WriteErr = errors.New("could not write wiremessage to written channel")
 	}
@@ -37,7 +39,8 @@ func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
 }
 
 // ReadWireMessage implements the driver.Connection interface.
-func (c *ChannelConn) ReadWireMessage(ctx context.Context, dst *[]byte) ([]byte, error) {
+func (c *ChannelConn) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
+	dst = dst[:0]
 	var wm []byte
 	var err error
 	select {
@@ -45,7 +48,13 @@ func (c *ChannelConn) ReadWireMessage(ctx context.Context, dst *[]byte) ([]byte,
 	case err = <-c.ReadErr:
 	case <-ctx.Done():
 	}
-	return wm, err
+	if l := len(wm); l > 0 {
+		if l > cap(dst) {
+			dst = make([]byte, 0, l)
+		}
+		dst = append(dst, wm...)
+	}
+	return dst, err
 }
 
 // Description implements the driver.Connection interface.
