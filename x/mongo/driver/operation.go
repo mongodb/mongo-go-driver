@@ -356,22 +356,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 
-	var prevIndefiniteErr error
-
-	setPreviousIndefiniteError := func(err error) {
-		switch err.(type) {
-		case Error:
-			if !err.(Error).HasErrorLabel("NoWritesPerfomed") {
-				prevIndefiniteErr = err
-			}
-		}
-	}
-
 	var srvr Server
 	var conn Connection
 	var res bsoncore.Document
 	var operationErr WriteCommandError
 	var prevErr error
+	var prevIndefiniteErr error
 	batching := op.Batches.Valid()
 	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
 	retrySupported := false
@@ -383,7 +373,15 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	resetForRetry := func(err error) {
 		retries--
 		prevErr = err
-		setPreviousIndefiniteError(err)
+
+		// Set the previous indefinite error to be returned in any case where the the error does not have a
+		// NoWritesPerfomed label (the definite case).
+		switch err.(type) {
+		case Error:
+			if !err.(Error).HasErrorLabel("NoWritesPerfomed") {
+				prevIndefiniteErr = err
+			}
+		}
 
 		// If we got a connection, close it immediately to release pool resources for
 		// subsequent retries.

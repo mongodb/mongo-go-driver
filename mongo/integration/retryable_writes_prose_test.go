@@ -217,7 +217,8 @@ func TestRetryableWritesProse(t *testing.T) {
 	})
 
 	nwpCommandMonitor := new(event.CommandMonitor)
-	nwpClientOpts := options.Client().SetMonitor(nwpCommandMonitor).SetRetryWrites(true).SetHosts(hosts[:1])
+	nwpClientOpts := options.Client().SetMaxPoolSize(1).SetMonitor(nwpCommandMonitor).SetRetryWrites(true).
+		SetHosts(hosts[:1])
 
 	mtNWPOpts := mtest.NewOptions().ClientOptions(nwpClientOpts).MinServerVersion("6.0").
 		Topologies(mtest.ReplicaSet, mtest.Sharded)
@@ -228,22 +229,21 @@ func TestRetryableWritesProse(t *testing.T) {
 		ctx := context.Background()
 
 		// Disable any enabled fail points on exit.
-		defer func() { disableRWRailPoint(ctx, mt) }()
+		defer func() { disableRWFailPoint(ctx, mt) }()
 
-		// Configure a fail point for a NotWritablePrimary error.
+		// Configure a fail point for a "NotWritablePrimary" error.
 		enableRWFailPointEC(ctx, mt, notWritablePrimaryCode)
 
-		// Set a command monitor on the client that configures a failpoint with a `NoWritesPerfomed` label
-		// for a SocketException error.
+		// Set a command monitor on the client that configures a failpoint with a "NoWritesPerfomed" label
+		// for a "SocketException" error.
 		nwpCommandMonitor.Failed = func(_ context.Context, evt *event.CommandFailedEvent) {
-			enableRWFailPointNWP(context.TODO(), mt, socketExceptionCode)
+			enableRWFailPointNWP(ctx, mt, socketExceptionCode)
 		}
 
-		// Attempt to insert a record to any collection on any database using `InsertOne`.
-		coll := mt.Client.Database("test").Collection("test")
-		_, err := coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+		// Attempt to insert a record to any collection on any database using "InsertOne".
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 
-		// Assert that the NotWritablePrimary error is returned.
+		// Assert that the "NotWritablePrimary" error is returned.
 		require.Equal(mt, err.(mongo.CommandError).Code, notWritablePrimaryCode)
 	})
 }
@@ -274,16 +274,19 @@ func enableRWFailPoint(ctx context.Context, mt *mtest.T, data *mtest.FailPointDa
 	}
 }
 
+// enableRWFailPointEC will enable a failpoint for the given error code.
 func enableRWFailPointEC(ctx context.Context, mt *mtest.T, errCode int32) {
 	data := &mtest.FailPointData{ErrorCode: errCode}
 	enableRWFailPoint(ctx, mt, data, false)
 }
 
+// exnableRWFailPointNWP will enable a failpoint with a "NoWritesPerformed" error label on the given error code.
 func enableRWFailPointNWP(ctx context.Context, mt *mtest.T, errCode int32) {
 	data := &mtest.FailPointData{ErrorCode: errCode, ErrorLabels: &[]string{"NoWritesPerformed"}}
 	enableRWFailPoint(ctx, mt, data, false)
 }
 
-func disableRWRailPoint(ctx context.Context, mt *mtest.T) {
+// disableRWFailPoint will disable any fail points set through "mtest.T".
+func disableRWFailPoint(ctx context.Context, mt *mtest.T) {
 	enableRWFailPoint(ctx, mt, nil, true)
 }
