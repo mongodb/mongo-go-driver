@@ -351,16 +351,6 @@ func TestConnection(t *testing.T) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
 			})
-			t.Run("completed context", func(t *testing.T) {
-				ctx, cancel := context.WithCancel(context.Background())
-				cancel()
-				conn := &connection{id: "foobar", nc: &net.TCPConn{}, state: connConnected}
-				want := ConnectionError{ConnectionID: "foobar", Wrapped: ctx.Err(), message: "failed to write"}
-				got := conn.writeWireMessage(ctx, []byte{})
-				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
-					t.Errorf("errors do not match. got %v; want %v", got, want)
-				}
-			})
 			t.Run("deadlines", func(t *testing.T) {
 				testCases := []struct {
 					name        string
@@ -486,16 +476,6 @@ func TestConnection(t *testing.T) {
 				conn := &connection{id: "foobar"}
 				want := ConnectionError{ConnectionID: "foobar", message: "connection is closed"}
 				_, got := conn.readWireMessage(context.Background(), []byte{})
-				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
-					t.Errorf("errors do not match. got %v; want %v", got, want)
-				}
-			})
-			t.Run("completed context", func(t *testing.T) {
-				ctx, cancel := context.WithCancel(context.Background())
-				cancel()
-				conn := &connection{id: "foobar", nc: &net.TCPConn{}, state: connConnected}
-				want := ConnectionError{ConnectionID: "foobar", Wrapped: ctx.Err(), message: "failed to read"}
-				_, got := conn.readWireMessage(ctx, []byte{})
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
