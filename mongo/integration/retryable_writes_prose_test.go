@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -214,4 +215,75 @@ func TestRetryableWritesProse(t *testing.T) {
 				"expected an insert event, got a(n) %v event", cmdEvt.CommandName)
 		}
 	})
+
+	nwpCommandMonitor := new(event.CommandMonitor)
+	nwpClientOpts := options.Client().SetMonitor(nwpCommandMonitor).SetRetryWrites(true).SetHosts(hosts[:1])
+
+	mtNWPOpts := mtest.NewOptions().ClientOptions(nwpClientOpts).MinServerVersion("6.0").
+		Topologies(mtest.ReplicaSet, mtest.Sharded)
+	mt.RunOpts("NoWritesPerformed label returns original error", mtNWPOpts, func(mt *mtest.T) {
+		const notWritablePrimaryCode = int32(10107)
+		const socketExceptionCode = int32(9007)
+
+		ctx := context.Background()
+
+		// Disable any enabled fail points on exit.
+		defer func() { disableRWRailPoint(ctx, mt) }()
+
+		// Configure a fail point for a NotWritablePrimary error.
+		enableRWFailPointEC(ctx, mt, notWritablePrimaryCode)
+
+		// Set a command monitor on the client that configures a failpoint with a `NoWritesPerfomed` label
+		// for a SocketException error.
+		nwpCommandMonitor.Failed = func(_ context.Context, evt *event.CommandFailedEvent) {
+			enableRWFailPointNWP(context.TODO(), mt, socketExceptionCode)
+		}
+
+		// Attempt to insert a record to any collection on any database using `InsertOne`.
+		coll := mt.Client.Database("test").Collection("test")
+		_, err := coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+
+		// Assert that the NotWritablePrimary error is returned.
+		require.Equal(mt, err.(mongo.CommandError).Code, notWritablePrimaryCode)
+	})
+}
+
+// enableRWFailPoint registers a failpoint with a specific error code on the admin database for errors labeled with
+// "RetryableWriteError".
+func enableRWFailPoint(ctx context.Context, mt *mtest.T, data *mtest.FailPointData, off bool) {
+	// Create a document for the run command that sets a fail command that is always on.
+	if off {
+		mt.SetFailPoint(mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode:               "off",
+		})
+	} else {
+		if data.ErrorLabels == nil {
+			data.ErrorLabels = &[]string{}
+		}
+		*data.ErrorLabels = append(*data.ErrorLabels, "RetryableWriteError")
+		data.FailCommands = []string{"insert"}
+
+		mt.SetFailPoint(mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: mtest.FailPointMode{
+				Times: 1,
+			},
+			Data: *data,
+		})
+	}
+}
+
+func enableRWFailPointEC(ctx context.Context, mt *mtest.T, errCode int32) {
+	data := &mtest.FailPointData{ErrorCode: errCode}
+	enableRWFailPoint(ctx, mt, data, false)
+}
+
+func enableRWFailPointNWP(ctx context.Context, mt *mtest.T, errCode int32) {
+	data := &mtest.FailPointData{ErrorCode: errCode, ErrorLabels: &[]string{"NoWritesPerformed"}}
+	enableRWFailPoint(ctx, mt, data, false)
+}
+
+func disableRWRailPoint(ctx context.Context, mt *mtest.T) {
+	enableRWFailPoint(ctx, mt, nil, true)
 }

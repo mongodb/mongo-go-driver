@@ -712,7 +712,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 
 			if tt.HasErrorLabel("NoWritesPerformed") {
-				fmt.Printf("previousIndefiniteError: %v\n", prevIndefiniteErr)
 				return prevIndefiniteErr
 			}
 			return tt
