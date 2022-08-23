@@ -525,6 +525,19 @@ func TestGridFS(x *testing.T) {
 			})
 		}
 	})
+
+	// Regression test for a bug introduced in GODRIVER-2346.
+	mt.Run("Find", func(mt *mtest.T) {
+		bucket, err := gridfs.NewBucket(mt.DB)
+		assert.Nil(mt, err, "NewBucket error: %v", err)
+		// Find the file back.
+		cursor, err := bucket.Find(bson.D{{"foo", "bar"}})
+		defer func() {
+			_ = cursor.Close(context.Background())
+		}()
+
+		assert.Nil(mt, err, "Find error: %v", err)
+	})
 }
 
 func assertGridFSCollectionState(mt *mtest.T, coll *mongo.Collection, expectedName string, expectedNumDocuments int64) {
