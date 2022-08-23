@@ -57,7 +57,7 @@ var testContext struct {
 	serverless                  bool
 }
 
-func setupClientAlt(opts *options.ClientOptions) (*mongo.Client, error) {
+func setupClient(opts *options.ClientOptions) (*mongo.Client, error) {
 	wcMajority := writeconcern.New(writeconcern.WMajority())
 	// set ServerAPIOptions to latest version if required
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
@@ -111,7 +111,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		return fmt.Errorf("error connecting topology: %v", err)
 	}
 
-	testContext.client, err = setupClientAlt(options.Client().ApplyURI(uri))
+	testContext.client, err = setupClient(options.Client().ApplyURI(uri))
 	if err != nil {
 		return fmt.Errorf("error connecting test client: %v", err)
 	}

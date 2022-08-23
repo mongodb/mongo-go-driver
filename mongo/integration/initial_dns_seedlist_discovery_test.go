@@ -186,8 +186,8 @@ func verifyConnstringOptions(mt *mtest.T, expected bson.Raw, cs connstring.ConnS
 // present, we assume that the test will assert an error, so we proceed with the test as normal.
 // If the option is false, then we skip the test if the server is running with SSL enabled.
 // If the option is true, then we skip the test if the server is running without SSL enabled; if
-// the server is running with SSL enabled, then we manually set the necessary SSL options in the
-// connection string.
+// the server is running with SSL enabled, then we return a tls.Config with InsecureSkipVerify
+// set to true.
 func getSSLSettings(mt *mtest.T, test seedlistTest) *tls.Config {
 	ssl, err := test.Options.LookupErr("ssl")
 	if err != nil {
