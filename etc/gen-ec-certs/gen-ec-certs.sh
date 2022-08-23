@@ -1,7 +1,7 @@
 # This script is used to generate Elliptic Curve (EC) certificates.
 # The EC certificates are used for testing the Go driver with PyKMIP.
-# PyKMIP does not support Golang's default TLS cipher suites with RSA.
-# See: GODRIVER-G2239. 
+# PyKMIP does not support Go's default TLS cipher suites with RSA.
+# See: GODRIVER-2239. 
 set -euo pipefail
 CA_SERIAL=$RANDOM
 SERVER_SERIAL=$RANDOM
@@ -9,7 +9,7 @@ CLIENT_SERIAL=$RANDOM
 DAYS=14600
 
 # Generate CA certificate ... begin
-# Generate a EC private key.
+# Generate an EC private key.
 openssl ecparam -name prime256v1 -genkey -out ca-ec.key -noout
 # Generate a certificate signing request.
 openssl req -new -key ca-ec.key -out ca-ec.csr -subj "/C=US/ST=New York/L=New York City/O=MongoDB/OU=DBX/CN=ca/" -config empty.cnf -sha256
@@ -18,7 +18,7 @@ openssl x509 -in ca-ec.csr -out ca-ec.pem -req -signkey ca-ec.key -days $DAYS -s
 # Generate CA certificate ... end
 
 # Generate Server certificate ... begin
-# Generate a EC private key.
+# Generate an EC private key.
 openssl ecparam -name prime256v1 -genkey -out server-ec.key -noout
 # Generate a certificate signing request.
 openssl req -new -key server-ec.key -out server-ec.csr -subj "/C=US/ST=New York/L=New York City/O=MongoDB/OU=DBX/CN=server/" -config empty.cnf -sha256
@@ -29,7 +29,7 @@ cat server-ec.key >> server-ec.pem
 # Generate Server certificate ... end
 
 # Generate Client certificate ... begin
-# Generate a EC private key.
+# Generate an EC private key.
 openssl ecparam -name prime256v1 -genkey -out client-ec.key -noout
 # Generate a certificate signing request.
 # Use the Common Name (CN) of "client". PyKMIP identifies the client by the CN. The test server expects the identity of "client".
