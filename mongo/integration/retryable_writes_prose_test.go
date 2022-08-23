@@ -217,8 +217,7 @@ func TestRetryableWritesProse(t *testing.T) {
 	})
 
 	nwpCommandMonitor := new(event.CommandMonitor)
-	nwpClientOpts := options.Client().SetMaxPoolSize(1).SetMonitor(nwpCommandMonitor).SetRetryWrites(true).
-		SetHosts(hosts[:1])
+	nwpClientOpts := options.Client().SetMonitor(nwpCommandMonitor).SetRetryWrites(true).SetHosts(hosts[:1])
 
 	mtNWPOpts := mtest.NewOptions().ClientOptions(nwpClientOpts).MinServerVersion("6.0").
 		Topologies(mtest.ReplicaSet, mtest.Sharded)
