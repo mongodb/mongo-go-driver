@@ -250,7 +250,7 @@ func TestRetryableWritesProse(t *testing.T) {
 
 // enableRWFailPoint registers a failpoint with a specific error code on the admin database for errors labeled with
 // "RetryableWriteError".
-func enableRWFailPoint(ctx context.Context, mt *mtest.T, data *mtest.FailPointData, off bool) {
+func enableRWFailPoint(_ context.Context, mt *mtest.T, data *mtest.FailPointData, off bool) {
 	// Create a document for the run command that sets a fail command that is always on.
 	if off {
 		mt.SetFailPoint(mtest.FailPoint{
