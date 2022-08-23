@@ -638,11 +638,8 @@ func (t *T) createTestClient() {
 		clientOpts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
 
-	// customMonitor are the user-defined monitor events. We extend the uderlying testing events with these
-	// callbacks.
-	var customMonitor = clientOpts.Monitor
-
 	// Setup command monitor
+	var customMonitor = clientOpts.Monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
 			if customMonitor != nil && customMonitor.Started != nil {
