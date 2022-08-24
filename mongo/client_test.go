@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 var bgCtx = context.Background()
@@ -131,31 +132,6 @@ func TestClient(t *testing.T) {
 			assert.True(t, flag, "expected max staleness to be set but was not")
 			wantStaleness := time.Duration(5) * time.Second
 			assert.Equal(t, gotStaleness, wantStaleness, "expected staleness %v, got %v", wantStaleness, gotStaleness)
-		})
-	})
-	t.Run("custom deployment", func(t *testing.T) {
-		t.Run("success", func(t *testing.T) {
-			client := setupClient(&options.ClientOptions{Deployment: mockDeployment{}})
-			_, ok := client.deployment.(mockDeployment)
-			assert.True(t, ok, "expected deployment type %T, got %T", mockDeployment{}, client.deployment)
-		})
-		t.Run("error", func(t *testing.T) {
-			errmsg := "cannot specify topology or server options with a deployment"
-
-			t.Run("specify topology options", func(t *testing.T) {
-				opts := &options.ClientOptions{Deployment: mockDeployment{}}
-				opts.SetServerSelectionTimeout(1 * time.Second)
-				_, err := NewClient(opts)
-				assert.NotNil(t, err, "expected NewClient error, got nil")
-				assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
-			})
-			t.Run("specify server options", func(t *testing.T) {
-				opts := &options.ClientOptions{Deployment: mockDeployment{}}
-				opts.SetMinPoolSize(1)
-				_, err := NewClient(opts)
-				assert.NotNil(t, err, "expected NewClient error, got nil")
-				assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
-			})
 		})
 	})
 	t.Run("localThreshold", func(t *testing.T) {
@@ -450,7 +426,7 @@ func TestClient(t *testing.T) {
 			serverAPIOptions := getServerAPIOptions()
 			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
-			convertedAPIOptions := convertToDriverAPIOptions(serverAPIOptions)
+			convertedAPIOptions := topology.ConvertToDriverAPIOptions(serverAPIOptions)
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
 				"mismatch in serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})
@@ -469,7 +445,7 @@ func TestClient(t *testing.T) {
 			expectedServerAPIOptions := getServerAPIOptions()
 			// modify passed-in options
 			serverAPIOptions.SetStrict(true).SetDeprecationErrors(true)
-			convertedAPIOptions := convertToDriverAPIOptions(expectedServerAPIOptions)
+			convertedAPIOptions := topology.ConvertToDriverAPIOptions(expectedServerAPIOptions)
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
 				"unexpected modification to serverAPI; expected %v, got %v", convertedAPIOptions, client.serverAPI)
 		})

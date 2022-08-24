@@ -32,6 +32,7 @@ import (
 
 const (
 	defaultLocalThreshold = 15 * time.Millisecond
+	defaultMaxPoolSize    = 100
 )
 
 var (
@@ -130,7 +131,71 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 	client := &Client{id: id}
 
-	err = client.configure(clientOpt)
+	// ClusterClock
+	client.clock = new(session.ClusterClock)
+
+	// LocalThreshold
+	client.localThreshold = defaultLocalThreshold
+	if clientOpt.LocalThreshold != nil {
+		client.localThreshold = *clientOpt.LocalThreshold
+	}
+	// Monitor
+	if clientOpt.Monitor != nil {
+		client.monitor = clientOpt.Monitor
+	}
+	// ServerMonitor
+	if clientOpt.ServerMonitor != nil {
+		client.serverMonitor = clientOpt.ServerMonitor
+	}
+	// ReadConcern
+	client.readConcern = readconcern.New()
+	if clientOpt.ReadConcern != nil {
+		client.readConcern = clientOpt.ReadConcern
+	}
+	// ReadPreference
+	client.readPreference = readpref.Primary()
+	if clientOpt.ReadPreference != nil {
+		client.readPreference = clientOpt.ReadPreference
+	}
+	// Registry
+	client.registry = bson.DefaultRegistry
+	if clientOpt.Registry != nil {
+		client.registry = clientOpt.Registry
+	}
+	// RetryWrites
+	client.retryWrites = true // retry writes on by default
+	if clientOpt.RetryWrites != nil {
+		client.retryWrites = *clientOpt.RetryWrites
+	}
+	client.retryReads = true
+	if clientOpt.RetryReads != nil {
+		client.retryReads = *clientOpt.RetryReads
+	}
+	// Timeout
+	client.timeout = clientOpt.Timeout
+	// WriteConcern
+	if clientOpt.WriteConcern != nil {
+		client.writeConcern = clientOpt.WriteConcern
+	}
+	// AutoEncryptionOptions
+	if clientOpt.AutoEncryptionOptions != nil {
+		if err := client.configureAutoEncryption(clientOpt); err != nil {
+			return nil, err
+		}
+	} else {
+		client.cryptFLE = clientOpt.Crypt
+	}
+
+	// Deployment
+	if clientOpt.Deployment != nil {
+		client.deployment = clientOpt.Deployment
+	}
+
+	// Set default options
+	if clientOpt.MaxPoolSize == nil {
+		clientOpt.SetMaxPoolSize(defaultMaxPoolSize)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -355,70 +420,6 @@ func (c *Client) endSessions(ctx context.Context) {
 			currentBatch = currentBatch[:0]
 		}
 	}
-}
-
-func (c *Client) configure(opts *options.ClientOptions) error {
-	// ClusterClock
-	c.clock = new(session.ClusterClock)
-
-	// LocalThreshold
-	c.localThreshold = defaultLocalThreshold
-	if opts.LocalThreshold != nil {
-		c.localThreshold = *opts.LocalThreshold
-	}
-	// Monitor
-	if opts.Monitor != nil {
-		c.monitor = opts.Monitor
-	}
-	// ServerMonitor
-	if opts.ServerMonitor != nil {
-		c.serverMonitor = opts.ServerMonitor
-	}
-	// ReadConcern
-	c.readConcern = readconcern.New()
-	if opts.ReadConcern != nil {
-		c.readConcern = opts.ReadConcern
-	}
-	// ReadPreference
-	c.readPreference = readpref.Primary()
-	if opts.ReadPreference != nil {
-		c.readPreference = opts.ReadPreference
-	}
-	// Registry
-	c.registry = bson.DefaultRegistry
-	if opts.Registry != nil {
-		c.registry = opts.Registry
-	}
-	// RetryWrites
-	c.retryWrites = true // retry writes on by default
-	if opts.RetryWrites != nil {
-		c.retryWrites = *opts.RetryWrites
-	}
-	c.retryReads = true
-	if opts.RetryReads != nil {
-		c.retryReads = *opts.RetryReads
-	}
-	// Timeout
-	c.timeout = opts.Timeout
-	// WriteConcern
-	if opts.WriteConcern != nil {
-		c.writeConcern = opts.WriteConcern
-	}
-	// AutoEncryptionOptions
-	if opts.AutoEncryptionOptions != nil {
-		if err := c.configureAutoEncryption(opts); err != nil {
-			return err
-		}
-	} else {
-		c.cryptFLE = opts.Crypt
-	}
-
-	// Deployment
-	if opts.Deployment != nil {
-		c.deployment = opts.Deployment
-	}
-
-	return nil
 }
 
 func (c *Client) configureAutoEncryption(clientOpts *options.ClientOptions) error {
@@ -805,16 +806,4 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 		Crypt:          c.cryptFLE,
 		ServerAPI:      c.serverAPI,
 	}
-}
-
-// convertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
-func convertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOptions {
-	driverOpts := driver.NewServerAPIOptions(string(s.ServerAPIVersion))
-	if s.Strict != nil {
-		driverOpts.SetStrict(*s.Strict)
-	}
-	if s.DeprecationErrors != nil {
-		driverOpts.SetDeprecationErrors(*s.DeprecationErrors)
-	}
-	return driverOpts
 }

@@ -30,7 +30,6 @@ func TestTopologyErrors(t *testing.T) {
 			topo, err := New(nil)
 			noerr(t, err)
 
-			topo.cfg.ConnString.HeartbeatInterval = time.Minute
 			atomic.StoreInt64(&topo.state, topologyConnected)
 			desc := description.Topology{
 				Servers: []description.Server{},

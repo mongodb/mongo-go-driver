@@ -8,7 +8,6 @@ package topology
 
 import (
 	"crypto/tls"
-	"errors"
 	"strings"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -29,21 +27,12 @@ type Config struct {
 	ReplicaSetName         string
 	SeedList               []string
 	ServerOpts             []ServerOption
-	ConnString             connstring.ConnString // This must not be used for any logic in topology.Topology.
 	URI                    string
 	ServerSelectionTimeout time.Duration
 	ServerMonitor          *event.ServerMonitor
 	SRVMaxHosts            int
 	SRVServiceName         string
 	LoadBalanced           bool
-}
-
-func hasOptionalData(co options.ClientOptions) bool {
-	return co.Direct != nil && *co.Direct ||
-		co.ServerMonitor != nil ||
-		co.ReplicaSet != nil ||
-		co.ServerSelectionTimeout != nil ||
-		co.LoadBalanced != nil
 }
 
 // ConvertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
@@ -59,16 +48,10 @@ func ConvertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOpt
 }
 
 // NewConfig will translate data from client options into a topology config for building non-default deployments.
+// Server and topoplogy options are not honored if a custom deployment is used.
 func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
-	const defaultMaxPoolSize = 100
 	var serverAPI *driver.ServerAPIOptions
 
-	var defaultOptions int
-	// Set default options
-	if co.MaxPoolSize == nil {
-		defaultOptions++
-		co.SetMaxPoolSize(defaultMaxPoolSize)
-	}
 	if err := co.Validate(); err != nil {
 		return nil, err
 	}
@@ -337,15 +320,6 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		WithConnectionOptions(func(...ConnectionOption) []ConnectionOption { return connOpts }))
 
 	cfgp.ServerOpts = serverOpts
-
-	// Deployment
-	if co.Deployment != nil {
-		// A deployment cannot be created with server or topology options. To extend the optional requirements
-		// add topology options to the "hasOptionalData" function.
-		if len(serverOpts) > 2+defaultOptions || hasOptionalData(*co) {
-			return nil, errors.New("cannot specify topology or server options with a deployment")
-		}
-	}
 
 	return cfgp, nil
 }

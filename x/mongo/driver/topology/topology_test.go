@@ -308,7 +308,6 @@ func TestServerSelection(t *testing.T) {
 	t.Run("Update on not primary error", func(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
-		topo.cfg.ConnString.HeartbeatInterval = time.Minute
 		atomic.StoreInt64(&topo.state, topologyConnected)
 
 		addr1 := address.Address("one")
@@ -375,7 +374,6 @@ func TestServerSelection(t *testing.T) {
 		// Assert that the server selection fast path does not create a Subscription or check for timeout errors.
 		topo, err := New(nil)
 		noerr(t, err)
-		topo.cfg.ConnString.HeartbeatInterval = time.Minute
 		atomic.StoreInt64(&topo.state, topologyConnected)
 
 		primaryAddr := address.Address("one")
@@ -405,7 +403,6 @@ func TestServerSelection(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
 
-		topo.cfg.ConnString.HeartbeatInterval = time.Minute
 		atomic.StoreInt64(&topo.state, topologyConnected)
 		desc := description.Topology{
 			Servers: []description.Server{},
