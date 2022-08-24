@@ -40,11 +40,61 @@ func BenchmarkClientWrite(b *testing.B) {
 			}
 			defer client.Disconnect(context.Background())
 			coll := client.Database("test").Collection("test")
+			_, err = coll.DeleteMany(context.Background(), bson.D{})
+			if err != nil {
+				b.Fatalf("error deleting the document: %v", err)
+			}
 
 			b.ResetTimer()
 			b.RunParallel(func(p *testing.PB) {
 				for p.Next() {
 					_, err := coll.InsertOne(context.Background(), bson.D{{"text", text}})
+					if err != nil {
+						b.Fatalf("error inserting one document: %v", err)
+					}
+				}
+			})
+		})
+	}
+}
+
+func BenchmarkClientBulkWrite(b *testing.B) {
+	benchmarks := []struct {
+		name string
+		opt  *options.ClientOptions
+	}{
+		{name: "not compressed", opt: options.Client().ApplyURI("mongodb://localhost:27017")},
+		{name: "snappy", opt: options.Client().ApplyURI("mongodb://localhost:27017").SetCompressors([]string{"snappy"})},
+		{name: "zlib", opt: options.Client().ApplyURI("mongodb://localhost:27017").SetCompressors([]string{"zlib"})},
+		{name: "zstd", opt: options.Client().ApplyURI("mongodb://localhost:27017").SetCompressors([]string{"zstd"})},
+	}
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			client, err := mongo.NewClient(bm.opt)
+			if err != nil {
+				b.Fatalf("error connecting: %v", err)
+			}
+			ctx := context.Background()
+			err = client.Connect(ctx)
+			if err != nil {
+				b.Fatalf("error connecting: %v", err)
+			}
+			defer client.Disconnect(context.Background())
+			coll := client.Database("test").Collection("test")
+			_, err = coll.DeleteMany(context.Background(), bson.D{})
+			if err != nil {
+				b.Fatalf("error deleting the document: %v", err)
+			}
+
+			b.ResetTimer()
+			b.RunParallel(func(p *testing.PB) {
+				for p.Next() {
+					_, err := coll.BulkWrite(context.Background(), []mongo.WriteModel{
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", text}}),
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", text}}),
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", text}}),
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", text}}),
+					})
 					if err != nil {
 						b.Fatalf("error inserting one document: %v", err)
 					}
