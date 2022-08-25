@@ -105,7 +105,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		Legacy:            driver.LegacyFind,
 		ServerAPI:         f.serverAPI,
 		Timeout:           f.timeout,
-	}.Execute(ctx, nil)
+	}.Execute(ctx)
 
 }
 

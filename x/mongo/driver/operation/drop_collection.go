@@ -102,7 +102,7 @@ func (dc *DropCollection) Execute(ctx context.Context) error {
 		WriteConcern:      dc.writeConcern,
 		ServerAPI:         dc.serverAPI,
 		Timeout:           dc.timeout,
-	}.Execute(ctx, nil)
+	}.Execute(ctx)
 
 }
 

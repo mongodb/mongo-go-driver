@@ -319,7 +319,7 @@ var writeBuffers = sync.Pool{
 
 // Execute runs this operation. The scratch parameter will be used and overwritten (potentially many
 // times), this should mainly be used to enable pooling of byte slices.
-func (op Operation) Execute(ctx context.Context, scratch []byte) error {
+func (op Operation) Execute(ctx context.Context) error {
 	err := op.Validate()
 	if err != nil {
 		return err
@@ -475,23 +475,22 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 
 		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
-		scratch = scratch[:0]
 		if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
 			switch op.Legacy {
 			case LegacyFind:
-				return op.legacyFind(ctx, scratch, srvr, conn, desc, maxTimeMS)
+				return op.legacyFind(ctx, (*wm)[:0], srvr, conn, desc, maxTimeMS)
 			case LegacyGetMore:
-				return op.legacyGetMore(ctx, scratch, srvr, conn, desc)
+				return op.legacyGetMore(ctx, (*wm)[:0], srvr, conn, desc)
 			case LegacyKillCursors:
-				return op.legacyKillCursors(ctx, scratch, srvr, conn, desc)
+				return op.legacyKillCursors(ctx, (*wm)[:0], srvr, conn, desc)
 			}
 		}
 		if desc.WireVersion == nil || desc.WireVersion.Max < 3 {
 			switch op.Legacy {
 			case LegacyListCollections:
-				return op.legacyListCollections(ctx, scratch, srvr, conn, desc)
+				return op.legacyListCollections(ctx, (*wm)[:0], srvr, conn, desc)
 			case LegacyListIndexes:
-				return op.legacyListIndexes(ctx, scratch, srvr, conn, desc, maxTimeMS)
+				return op.legacyListIndexes(ctx, (*wm)[:0], srvr, conn, desc, maxTimeMS)
 			}
 		}
 

@@ -117,7 +117,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		WriteConcern:      ci.writeConcern,
 		ServerAPI:         ci.serverAPI,
 		Timeout:           ci.timeout,
-	}.Execute(ctx, nil)
+	}.Execute(ctx)
 
 }
 

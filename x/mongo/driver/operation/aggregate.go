@@ -111,7 +111,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		IsOutputAggregate:              a.hasOutputStage,
 		MaxTime:                        a.maxTime,
 		Timeout:                        a.timeout,
-	}.Execute(ctx, nil)
+	}.Execute(ctx)
 
 }
 
