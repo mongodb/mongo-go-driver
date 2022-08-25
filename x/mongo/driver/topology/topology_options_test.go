@@ -46,6 +46,7 @@ func TestDirectConnectionFromConnString(t *testing.T) {
 			assert.Nil(t, err, "error constructing topology config: %v", err)
 
 			topo, err := New(cfg)
+			assert.Nil(t, err, "error constructing topology: %v", err)
 			assert.Equal(t, tc.mode, topo.cfg.Mode, "expected mode %v, got %v", tc.mode, topo.cfg.Mode)
 		})
 	}

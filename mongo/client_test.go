@@ -18,13 +18,11 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -39,16 +37,6 @@ func setupClient(opts ...*options.ClientOptions) *Client {
 	}
 	client, _ := NewClient(opts...)
 	return client
-}
-
-type mockDeployment struct{}
-
-func (md mockDeployment) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
-	return nil, nil
-}
-
-func (md mockDeployment) Kind() description.TopologyKind {
-	return description.Single
 }
 
 func TestClient(t *testing.T) {
