@@ -28,6 +28,7 @@ type ChannelConn struct {
 
 // WriteWireMessage implements the driver.Connection interface.
 func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
+	// Copy wm in case it came from a buffer pool.
 	b := make([]byte, len(wm))
 	copy(b, wm)
 	select {

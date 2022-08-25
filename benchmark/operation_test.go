@@ -31,7 +31,7 @@ func BenchmarkClientWrite(b *testing.B) {
 		b.Run(bm.name, func(b *testing.B) {
 			client, err := mongo.NewClient(bm.opt)
 			if err != nil {
-				b.Fatalf("error connecting: %v", err)
+				b.Fatalf("error creating client: %v", err)
 			}
 			ctx := context.Background()
 			err = client.Connect(ctx)
@@ -72,7 +72,7 @@ func BenchmarkClientBulkWrite(b *testing.B) {
 		b.Run(bm.name, func(b *testing.B) {
 			client, err := mongo.NewClient(bm.opt)
 			if err != nil {
-				b.Fatalf("error connecting: %v", err)
+				b.Fatalf("error creating client: %v", err)
 			}
 			ctx := context.Background()
 			err = client.Connect(ctx)
@@ -118,7 +118,7 @@ func BenchmarkClientRead(b *testing.B) {
 		b.Run(bm.name, func(b *testing.B) {
 			client, err := mongo.NewClient(bm.opt)
 			if err != nil {
-				b.Fatalf("error connecting: %v", err)
+				b.Fatalf("error creating client: %v", err)
 			}
 			ctx := context.Background()
 			err = client.Connect(ctx)

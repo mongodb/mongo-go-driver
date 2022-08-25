@@ -417,6 +417,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 }
 
 func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, errMsg string, err error) {
+	// Clear dst in case it came from a memory pool.
 	dst = dst[:0]
 	go c.cancellationListener.Listen(ctx, c.cancellationListenerCallback)
 	defer func() {

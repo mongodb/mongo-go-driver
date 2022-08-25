@@ -310,15 +310,14 @@ func (op Operation) Validate() error {
 	return nil
 }
 
-var writeBuffers = sync.Pool{
+var memoryPool = sync.Pool{
 	New: func() interface{} {
 		b := make([]byte, 1024) // Start with 1kb buffers.
 		return &b
 	},
 }
 
-// Execute runs this operation. The scratch parameter will be used and overwritten (potentially many
-// times), this should mainly be used to enable pooling of byte slices.
+// Execute runs this operation.
 func (op Operation) Execute(ctx context.Context) error {
 	err := op.Validate()
 	if err != nil {
@@ -390,7 +389,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		conn = nil
 	}
 
-	wm := writeBuffers.Get().(*[]byte)
+	wm := memoryPool.Get().(*[]byte)
 	defer func() {
 		// Proper usage of a sync.Pool requires each entry to have approximately the same memory
 		// cost. To obtain this property when the stored type contains a variably-sized buffer,
@@ -401,7 +400,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		if cap(*wm) > 16*1024*1024 {
 			return
 		}
-		writeBuffers.Put(wm)
+		memoryPool.Put(wm)
 	}()
 	for {
 		// If the server or connection are nil, try to select a new server and get a new connection.
@@ -532,9 +531,9 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// compress wiremessage if allowed
 		if compressor, ok := conn.(Compressor); ok && op.canCompress(startedInfo.cmdName) {
-			b := writeBuffers.Get().(*[]byte)
+			b := memoryPool.Get().(*[]byte)
 			*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
-			writeBuffers.Put(wm)
+			memoryPool.Put(wm)
 			wm = b
 			if err != nil {
 				return err
@@ -831,6 +830,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm *[]
 
 	// decode
 	b, err := op.decodeResult(*wm)
+	// Copy b to extend the lifetime. b may be a subslice of wm. wm will be added back to the memory pool and reused.
 	res := make([]byte, len(b))
 	copy(res, b)
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
@@ -921,6 +921,7 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 		return nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
 	}
 
+	// Copy msg, which is a subslice of wm. wm will be used to store the return value of the decompressed message.
 	b := make([]byte, len(msg))
 	copy(b, msg)
 
