@@ -261,11 +261,15 @@ func TestRetryableWritesProse(t *testing.T) {
 		// Set a command monitor on the client that configures a failpoint with a "NoWritesPerfomed" label
 		// for a "SocketException" error.
 		nwpCommandMonitor.Failed = func(_ context.Context, evt *event.CommandFailedEvent) {
-			fp := &mtest.FailPointData{
-				ErrorCode:   socketExceptionCode,
-				ErrorLabels: &[]string{"NoWritesPerformed"},
+			expectedErr := "(NotWritablePrimary) Failing command via 'failCommand' failpoint"
+			commandName := evt.CommandFinishedEvent.CommandName
+			if commandName == "insert" && evt.Failure == expectedErr {
+				fp := &mtest.FailPointData{
+					ErrorCode:   socketExceptionCode,
+					ErrorLabels: &[]string{"NoWritesPerformed"},
+				}
+				enableFP(mt, fp, false)
 			}
-			enableFP(mt, fp, false)
 		}
 
 		// Attempt to insert a record to any collection on any database using "InsertOne".
