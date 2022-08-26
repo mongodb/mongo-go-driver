@@ -120,7 +120,7 @@ func newServerSelectionState(selector description.ServerSelector, timeoutChan <-
 	}
 }
 
-// New creates a new topology.
+// New creates a new topology. A "nil" config is interpreted as the default configuration.
 func New(cfg *Config) (*Topology, error) {
 	if cfg == nil {
 		var err error
