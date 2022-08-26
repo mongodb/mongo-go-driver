@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -570,7 +570,7 @@ func runTest(t *testing.T, directory string, filename string) {
 // Test case for all SDAM spec tests.
 func TestSDAMSpec(t *testing.T) {
 	for _, subdir := range []string{"single", "rs", "sharded", "load-balanced", "errors", "monitoring"} {
-		for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(testsDir, subdir)) {
+		for _, file := range helpers.FindJSONFilesInDir(t, path.Join(testsDir, subdir)) {
 			runTest(t, subdir, file)
 		}
 	}

@@ -16,7 +16,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
