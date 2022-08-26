@@ -111,7 +111,7 @@ test-short:
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test
 build-aws-ecs-test:
-	go build $(BUILD_TAGS) ./mongo/testaws/main.go
+	go build $(BUILD_TAGS) ./cmd/testaws/main.go
 
 .PHONY: evg-test
 evg-test:
@@ -121,7 +121,7 @@ evg-test:
 
 .PHONY: evg-test-atlas
 evg-test-atlas:
-	go run ./mongo/testatlas/main.go $(ATLAS_URIS)
+	go run ./cmd/testatlas/main.go $(ATLAS_URIS)
 
 .PHONY: evg-test-atlas-data-lake
 evg-test-atlas-data-lake:
