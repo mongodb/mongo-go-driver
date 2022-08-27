@@ -96,3 +96,34 @@ func (w WaitQueueTimeoutError) Error() string {
 func (w WaitQueueTimeoutError) Unwrap() error {
 	return w.Wrapped
 }
+
+// WaitQueueCancelError represents a cancel when requesting a connection from the pool
+type WaitQueueCancelError struct {
+	Wrapped                      error
+	PinnedCursorConnections      uint64
+	PinnedTransactionConnections uint64
+	maxPoolSize                  uint64
+	totalConnectionCount         int
+}
+
+// Error implements the error interface.
+func (e WaitQueueCancelError) Error() string {
+	errorMsg := "canceled while checking out a connection from connection pool"
+	if e.Wrapped != nil {
+		errorMsg = fmt.Sprintf("%s: %s", errorMsg, e.Wrapped.Error())
+	}
+
+	return fmt.Sprintf(
+		"%s; maxPoolSize: %d, connections in use by cursors: %d"+
+			", connections in use by transactions: %d, connections in use by other operations: %d",
+		errorMsg,
+		e.maxPoolSize,
+		e.PinnedCursorConnections,
+		e.PinnedTransactionConnections,
+		uint64(e.totalConnectionCount)-e.PinnedCursorConnections-e.PinnedTransactionConnections)
+}
+
+// Unwrap returns the underlying error.
+func (e WaitQueueCancelError) Unwrap() error {
+	return e.Wrapped
+}

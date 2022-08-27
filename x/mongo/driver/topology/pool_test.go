@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -772,6 +773,44 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 3, d.lenopened(), "should have opened 3 connection")
 			assert.Equalf(t, 2, p.totalConnectionCount(), "pool should have 2 total connection")
 			assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 idle connection")
+
+			p.close(context.Background())
+		})
+		t.Run("wait queue cancel error", func(t *testing.T) {
+			t.Parallel()
+
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+
+			p := newPool(poolConfig{
+				Address:     address.Address(addr.String()),
+				MaxPoolSize: 1,
+			})
+			err := p.ready()
+			noerr(t, err)
+
+			// check out first connection.
+			_, err = p.checkOut(context.Background())
+			noerr(t, err)
+
+			// Set a short timeout and check out again.
+			cancelCtx, cancel := context.WithCancel(context.Background())
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				cancel()
+			}()
+			_, err = p.checkOut(cancelCtx)
+			assert.NotNilf(t, err, "expected a WaitQueueCancel error")
+
+			// Assert that error received is WaitQueueCancel with context canceled.
+			assert.IsTypef(t, WaitQueueCancelError{}, err, "expected a WaitQueueCancelError")
+			if err, ok := err.(WaitQueueCancelError); ok {
+				assert.Equalf(t, context.Canceled, err.Unwrap(), "expected wrapped error to be a context.Canceled")
+			}
 
 			p.close(context.Background())
 		})
