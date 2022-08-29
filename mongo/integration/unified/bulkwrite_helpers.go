@@ -74,7 +74,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			switch key {
 			case "arrayFilters":
 				uom.SetArrayFilters(options.ArrayFilters{
-					Filters: helpers.RawToInterfaceSlice(val.Array()),
+					Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
 				})
 			case "collation":
 				collation, err := createCollation(val.Document())
@@ -123,7 +123,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			switch key {
 			case "arrayFilters":
 				umm.SetArrayFilters(options.ArrayFilters{
-					Filters: helpers.RawToInterfaceSlice(val.Array()),
+					Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
 				})
 			case "collation":
 				collation, err := createCollation(val.Document())

@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -171,7 +172,7 @@ func executeAggregate(mt *mtest.T, agg aggregator, sess mongo.Session, args bson
 
 		switch key {
 		case "pipeline":
-			pipeline = rawArrayToInterfaceSlice(val.Array())
+			pipeline = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
 		case "batchSize":
 			opts.SetBatchSize(val.Int32())
 		case "collation":
@@ -209,7 +210,7 @@ func executeWatch(mt *mtest.T, w watcher, sess mongo.Session, args bson.Raw) (*m
 
 		switch key {
 		case "pipeline":
-			pipeline = rawArrayToInterfaceSlice(val.Array())
+			pipeline = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
 		default:
 			mt.Fatalf("unrecognized watch option: %v", key)
 		}
@@ -312,7 +313,7 @@ func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.I
 
 		switch key {
 		case "documents":
-			docs = rawArrayToInterfaceSlice(val.Array())
+			docs = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
 		case "options":
 			// Some of the older tests use this to set the "ordered" option
 			optsDoc := val.Document()
@@ -699,7 +700,7 @@ func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 			update = createUpdate(mt, val)
 		case "arrayFilters":
 			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: rawArrayToInterfaceSlice(val.Array()),
+				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
 			})
 		case "sort":
 			opts = opts.SetSort(val.Document())
@@ -881,7 +882,7 @@ func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Up
 			update = createUpdate(mt, val)
 		case "arrayFilters":
 			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: rawArrayToInterfaceSlice(val.Array()),
+				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
 			})
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
@@ -929,7 +930,7 @@ func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			update = createUpdate(mt, val)
 		case "arrayFilters":
 			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: rawArrayToInterfaceSlice(val.Array()),
+				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
 			})
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
@@ -1115,7 +1116,7 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
 			uom.SetArrayFilters(options.ArrayFilters{
-				Filters: rawArrayToInterfaceSlice(arrayFilters.Array()),
+				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(arrayFilters.Array())...),
 			})
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
@@ -1138,7 +1139,7 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
 			umm.SetArrayFilters(options.ArrayFilters{
-				Filters: rawArrayToInterfaceSlice(arrayFilters.Array()),
+				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(arrayFilters.Array())...),
 			})
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {

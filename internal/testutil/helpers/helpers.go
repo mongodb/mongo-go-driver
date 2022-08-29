@@ -7,6 +7,7 @@
 package helpers
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -35,14 +36,26 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 	return files
 }
 
-// RawToInterfaceSlice converts a bson.Raw that is internally an array to []interface{}.
-func RawToInterfaceSlice(doc bson.Raw) []interface{} {
-	values, _ := doc.Values()
-
-	out := make([]interface{}, 0, len(values))
-	for _, val := range values {
-		out = append(out, val.Document())
+// RawToDocuments converts a bson.Raw that is internally an array of documents to []bson.Raw.
+func RawToDocuments(doc bson.Raw) []bson.Raw {
+	values, err := doc.Values()
+	if err != nil {
+		panic(fmt.Sprintf("error converting BSON document to values: %v", err))
 	}
 
+	out := make([]bson.Raw, len(values))
+	for i := range values {
+		out[i] = values[i].Document()
+	}
+
+	return out
+}
+
+// RawToInterfaces takes one or many bson.Raw documents and returns them as a []interface{}.
+func RawToInterfaces(docs ...bson.Raw) []interface{} {
+	out := make([]interface{}, len(docs))
+	for i := range docs {
+		out[i] = docs[i]
+	}
 	return out
 }

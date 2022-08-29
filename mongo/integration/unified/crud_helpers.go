@@ -41,7 +41,7 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 		switch key {
 		case "arrayFilters":
 			ua.opts.SetArrayFilters(options.ArrayFilters{
-				Filters: helpers.RawToInterfaceSlice(val.Array()),
+				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
 			})
 		case "bypassDocumentValidation":
 			ua.opts.SetBypassDocumentValidation(val.Boolean())

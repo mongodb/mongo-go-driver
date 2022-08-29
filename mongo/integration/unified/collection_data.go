@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -70,20 +71,11 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 		return nil
 	}
 
-	docs := rawSliceToInterfaceSlice(c.Documents)
+	docs := helpers.RawToInterfaces(c.Documents...)
 	if _, err := coll.InsertMany(ctx, docs); err != nil {
 		return fmt.Errorf("error inserting data: %v", err)
 	}
 	return nil
-}
-
-// rawSliceToInterfaceSlice converts a []bson.Raw to []interface{}.
-func rawSliceToInterfaceSlice(elems []bson.Raw) []interface{} {
-	out := make([]interface{}, 0, len(elems))
-	for _, elem := range elems {
-		out = append(out, elem)
-	}
-	return out
 }
 
 // verifyContents asserts that the collection on the server represented by this collectionData instance contains the

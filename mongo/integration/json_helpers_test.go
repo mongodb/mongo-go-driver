@@ -454,29 +454,6 @@ func createReadPref(opt bson.RawValue) *readpref.ReadPref {
 	return readPrefFromString(mode)
 }
 
-// transform a slice of BSON documents to a slice of interface{}.
-func rawSliceToInterfaceSlice(docs []bson.Raw) []interface{} {
-	out := make([]interface{}, len(docs))
-
-	for i, doc := range docs {
-		out[i] = doc
-	}
-
-	return out
-}
-
-// transform a BSON raw array to a slice of interface{}.
-func rawArrayToInterfaceSlice(docs bson.Raw) []interface{} {
-	vals, _ := docs.Values()
-
-	out := make([]interface{}, len(vals))
-	for i, val := range vals {
-		out[i] = val.Document()
-	}
-
-	return out
-}
-
 // retrieve the error associated with a result.
 func errorFromResult(t testing.TB, result interface{}) *operationError {
 	t.Helper()

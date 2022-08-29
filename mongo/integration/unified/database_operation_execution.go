@@ -42,7 +42,7 @@ func executeCreateView(ctx context.Context, operation *operation) (*operationRes
 		case "collection":
 			collName = val.StringValue()
 		case "pipeline":
-			pipeline = helpers.RawToInterfaceSlice(val.Array())
+			pipeline = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
 		case "viewOn":
 			viewOn = val.StringValue()
 		default:
