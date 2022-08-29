@@ -224,8 +224,8 @@ func TestRetryableWritesProse(t *testing.T) {
 		Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt.RunOpts(fmt.Sprintf("%s label returns original error", driver.NoWritesPerformed), mtNWPOpts,
 		func(mt *mtest.T) {
-			const notWritablePrimaryCode = int32(10107)
-			const socketExceptionCode = int32(9007)
+			const notWritablePrimaryCode int32 = 10107
+			const socketExceptionCode int32 = 9007
 
 			// enableFP registers a failpoint with a specific error code on the admin database for errors
 			// labeled with "RetryableWriteError".
