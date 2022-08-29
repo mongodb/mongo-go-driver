@@ -224,8 +224,8 @@ func TestRetryableWritesProse(t *testing.T) {
 		Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt.RunOpts(fmt.Sprintf("%s label returns original error", driver.NoWritesPerformed), mtNWPOpts,
 		func(mt *mtest.T) {
-			const notWritablePrimaryCode int32 = 10107
-			const socketExceptionCode int32 = 9007
+			const writeConcernFailedErrorCode int32 = 64
+			const notWritablePrimaryErrorCode int32 = 10107
 
 			// enableFP registers a failpoint with a specific error code on the admin database for errors
 			// labeled with "RetryableWriteError".
@@ -253,17 +253,17 @@ func TestRetryableWritesProse(t *testing.T) {
 			})
 
 			// Configure a fail point for a "NotWritablePrimary" error.
-			fp := &mtest.FailPointData{ErrorCode: notWritablePrimaryCode}
+			fp := &mtest.FailPointData{ErrorCode: writeConcernFailedErrorCode}
 			enableFP(mt, fp)
 
 			// Set a command monitor on the client that configures a failpoint with a "NoWritesPerfomed"
 			// label for a "SocketException" error.
 			nwpCommandMonitor.Failed = func(_ context.Context, evt *event.CommandFailedEvent) {
-				expectedErr := "(NotWritablePrimary) Failing command via 'failCommand' failpoint"
+				expectedErr := "(WriteConcernFailed) Failing command via 'failCommand' failpoint"
 				commandName := evt.CommandFinishedEvent.CommandName
 				if commandName == "insert" && evt.Failure == expectedErr {
 					fp := &mtest.FailPointData{
-						ErrorCode:   socketExceptionCode,
+						ErrorCode:   notWritablePrimaryErrorCode,
 						ErrorLabels: &[]string{driver.NoWritesPerformed},
 					}
 					enableFP(mt, fp)
@@ -274,6 +274,6 @@ func TestRetryableWritesProse(t *testing.T) {
 			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 
 			// Assert that the "NotWritablePrimary" error is returned.
-			require.Equal(mt, err.(mongo.CommandError).Code, notWritablePrimaryCode)
+			require.Equal(mt, err.(mongo.CommandError).Code, writeConcernFailedErrorCode)
 		})
 }
