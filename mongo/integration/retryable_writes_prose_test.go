@@ -227,41 +227,37 @@ func TestRetryableWritesProse(t *testing.T) {
 			const notWritablePrimaryCode = int32(10107)
 			const socketExceptionCode = int32(9007)
 
-			// enableFP registers a failpoint with a specific error code on the admin database for errors labeled with
-			// "RetryableWriteError".
-			var enableFP = func(mt *mtest.T, data *mtest.FailPointData, off bool) {
+			// enableFP registers a failpoint with a specific error code on the admin database for errors
+			// labeled with "RetryableWriteError".
+			var enableFP = func(mt *mtest.T, data *mtest.FailPointData) {
 				// Create a document for the run command that sets a fail command that is always on.
-				if off {
-					mt.SetFailPoint(mtest.FailPoint{
-						ConfigureFailPoint: "failCommand",
-						Mode:               "off",
-					})
-				} else {
-					if data.ErrorLabels == nil {
-						data.ErrorLabels = &[]string{}
-					}
-					*data.ErrorLabels = append(*data.ErrorLabels, "RetryableWriteError")
-					data.FailCommands = []string{"insert"}
-
-					mt.SetFailPoint(mtest.FailPoint{
-						ConfigureFailPoint: "failCommand",
-						Mode: mtest.FailPointMode{
-							Times: 1,
-						},
-						Data: *data,
-					})
+				if data.ErrorLabels == nil {
+					data.ErrorLabels = &[]string{}
 				}
+				*data.ErrorLabels = append(*data.ErrorLabels, "RetryableWriteError")
+				data.FailCommands = []string{"insert"}
+
+				mt.SetFailPoint(mtest.FailPoint{
+					ConfigureFailPoint: "failCommand",
+					Mode: mtest.FailPointMode{
+						Times: 1,
+					},
+					Data: *data,
+				})
 			}
 
 			// Disable any enabled fail points on exit.
-			defer func() { enableFP(mt, nil, true) }()
+			defer mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode:               "off",
+			})
 
 			// Configure a fail point for a "NotWritablePrimary" error.
 			fp := &mtest.FailPointData{ErrorCode: notWritablePrimaryCode}
-			enableFP(mt, fp, false)
+			enableFP(mt, fp)
 
-			// Set a command monitor on the client that configures a failpoint with a "NoWritesPerfomed" label
-			// for a "SocketException" error.
+			// Set a command monitor on the client that configures a failpoint with a "NoWritesPerfomed"
+			// label for a "SocketException" error.
 			nwpCommandMonitor.Failed = func(_ context.Context, evt *event.CommandFailedEvent) {
 				expectedErr := "(NotWritablePrimary) Failing command via 'failCommand' failpoint"
 				commandName := evt.CommandFinishedEvent.CommandName
@@ -270,7 +266,7 @@ func TestRetryableWritesProse(t *testing.T) {
 						ErrorCode:   socketExceptionCode,
 						ErrorLabels: &[]string{driver.NoWritesPerformed},
 					}
-					enableFP(mt, fp, false)
+					enableFP(mt, fp)
 				}
 			}
 
