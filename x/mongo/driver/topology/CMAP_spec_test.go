@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	testHelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -116,7 +116,7 @@ type testInfo struct {
 const cmapTestDir = "../../../../data/connection-monitoring-and-pooling/"
 
 func TestCMAPSpec(t *testing.T) {
-	for _, testFileName := range testHelpers.FindJSONFilesInDir(t, cmapTestDir) {
+	for _, testFileName := range helpers.FindJSONFilesInDir(t, cmapTestDir) {
 		t.Run(testFileName, func(t *testing.T) {
 			runCMAPTest(t, testFileName)
 		})
