@@ -378,7 +378,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// NoWritesPerfomed label (the definite case).
 		switch err := err.(type) {
 		case Error:
-			if !err.HasErrorLabel("NoWritesPerfomed") {
+			if !err.HasErrorLabel(NoWritesPerformed) {
 				prevIndefiniteErr = err
 			}
 		}
@@ -709,7 +709,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
 			}
 
-			if tt.HasErrorLabel("NoWritesPerformed") {
+			if tt.HasErrorLabel(NoWritesPerformed) {
 				return prevIndefiniteErr
 			}
 			return tt

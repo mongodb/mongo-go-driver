@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -221,61 +222,62 @@ func TestRetryableWritesProse(t *testing.T) {
 
 	mtNWPOpts := mtest.NewOptions().ClientOptions(nwpClientOpts).MinServerVersion("6.0").
 		Topologies(mtest.ReplicaSet, mtest.Sharded)
-	mt.RunOpts("NoWritesPerformed label returns original error", mtNWPOpts, func(mt *mtest.T) {
-		const notWritablePrimaryCode = int32(10107)
-		const socketExceptionCode = int32(9007)
+	mt.RunOpts(fmt.Sprintf("%s label returns original error", driver.NoWritesPerformed), mtNWPOpts,
+		func(mt *mtest.T) {
+			const notWritablePrimaryCode = int32(10107)
+			const socketExceptionCode = int32(9007)
 
-		// enableFP registers a failpoint with a specific error code on the admin database for errors labeled with
-		// "RetryableWriteError".
-		var enableFP = func(mt *mtest.T, data *mtest.FailPointData, off bool) {
-			// Create a document for the run command that sets a fail command that is always on.
-			if off {
-				mt.SetFailPoint(mtest.FailPoint{
-					ConfigureFailPoint: "failCommand",
-					Mode:               "off",
-				})
-			} else {
-				if data.ErrorLabels == nil {
-					data.ErrorLabels = &[]string{}
+			// enableFP registers a failpoint with a specific error code on the admin database for errors labeled with
+			// "RetryableWriteError".
+			var enableFP = func(mt *mtest.T, data *mtest.FailPointData, off bool) {
+				// Create a document for the run command that sets a fail command that is always on.
+				if off {
+					mt.SetFailPoint(mtest.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               "off",
+					})
+				} else {
+					if data.ErrorLabels == nil {
+						data.ErrorLabels = &[]string{}
+					}
+					*data.ErrorLabels = append(*data.ErrorLabels, "RetryableWriteError")
+					data.FailCommands = []string{"insert"}
+
+					mt.SetFailPoint(mtest.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode: mtest.FailPointMode{
+							Times: 1,
+						},
+						Data: *data,
+					})
 				}
-				*data.ErrorLabels = append(*data.ErrorLabels, "RetryableWriteError")
-				data.FailCommands = []string{"insert"}
-
-				mt.SetFailPoint(mtest.FailPoint{
-					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
-						Times: 1,
-					},
-					Data: *data,
-				})
 			}
-		}
 
-		// Disable any enabled fail points on exit.
-		defer func() { enableFP(mt, nil, true) }()
+			// Disable any enabled fail points on exit.
+			defer func() { enableFP(mt, nil, true) }()
 
-		// Configure a fail point for a "NotWritablePrimary" error.
-		fp := &mtest.FailPointData{ErrorCode: notWritablePrimaryCode}
-		enableFP(mt, fp, false)
+			// Configure a fail point for a "NotWritablePrimary" error.
+			fp := &mtest.FailPointData{ErrorCode: notWritablePrimaryCode}
+			enableFP(mt, fp, false)
 
-		// Set a command monitor on the client that configures a failpoint with a "NoWritesPerfomed" label
-		// for a "SocketException" error.
-		nwpCommandMonitor.Failed = func(_ context.Context, evt *event.CommandFailedEvent) {
-			expectedErr := "(NotWritablePrimary) Failing command via 'failCommand' failpoint"
-			commandName := evt.CommandFinishedEvent.CommandName
-			if commandName == "insert" && evt.Failure == expectedErr {
-				fp := &mtest.FailPointData{
-					ErrorCode:   socketExceptionCode,
-					ErrorLabels: &[]string{"NoWritesPerformed"},
+			// Set a command monitor on the client that configures a failpoint with a "NoWritesPerfomed" label
+			// for a "SocketException" error.
+			nwpCommandMonitor.Failed = func(_ context.Context, evt *event.CommandFailedEvent) {
+				expectedErr := "(NotWritablePrimary) Failing command via 'failCommand' failpoint"
+				commandName := evt.CommandFinishedEvent.CommandName
+				if commandName == "insert" && evt.Failure == expectedErr {
+					fp := &mtest.FailPointData{
+						ErrorCode:   socketExceptionCode,
+						ErrorLabels: &[]string{driver.NoWritesPerformed},
+					}
+					enableFP(mt, fp, false)
 				}
-				enableFP(mt, fp, false)
 			}
-		}
 
-		// Attempt to insert a record to any collection on any database using "InsertOne".
-		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+			// Attempt to insert a record to any collection on any database using "InsertOne".
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 
-		// Assert that the "NotWritablePrimary" error is returned.
-		require.Equal(mt, err.(mongo.CommandError).Code, notWritablePrimaryCode)
-	})
+			// Assert that the "NotWritablePrimary" error is returned.
+			require.Equal(mt, err.(mongo.CommandError).Code, notWritablePrimaryCode)
+		})
 }
