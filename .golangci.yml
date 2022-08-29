@@ -5,7 +5,6 @@ linters:
   disable-all: true
   # TODO(GODRIVER-2156): Enable all commented-out linters.
   enable:
-    - deadcode
     - errcheck
     # - errorlint
     - gocritic
@@ -20,12 +19,10 @@ linters:
     - prealloc
     - revive
     - staticcheck
-    - structcheck
     - typecheck
     - unused
     - unconvert
     - unparam
-    - varcheck
 
 linters-settings:
   errcheck:
@@ -97,7 +94,6 @@ issues:
     - path: x/mongo/driver/auth/internal/awsv4
       linters:
         - unused
-        - structcheck
     # Disable "unused" linter for code files that depend on the "mongocrypt.MongoCrypt" type because
     # the linter build doesn't work correctly with CGO enabled. As a result, all calls to a
     # "mongocrypt.MongoCrypt" API appear to always panic (see mongocrypt_not_enabled.go), leading
@@ -115,9 +111,12 @@ issues:
     # "benchmark" directories.
     - path: (internal\/|benchmark\/)
       text: exported (.+) should have comment( \(or a comment on this block\))? or be unexported
-    # Disable deadcode and unused linter for "golang.org/x/exp/rand" package in internal/randutil/rand.
+    # Ignore missing package comments for directories that aren't frequently used by external users.
+    # TODO(GODRIVER-2517): Remove "mongo/testaws" and "mongo/testatlas" from the ignored paths when
+    # TODO we move those packages to the "cmd/" directory.
+    - path: (internal\/|benchmark\/|x\/|cmd\/|mongo\/integration\/|mongo\/(testaws\/|testatlas\/))
+      text: should have a package comment
+    # Disable unused linter for "golang.org/x/exp/rand" package in internal/randutil/rand.
     - path: internal/randutil/rand
       linters:
-        - deadcode
         - unused
-        - varcheck
