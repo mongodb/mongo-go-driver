@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// Package bsonrwtest provides utilities for testing the "bson/bsonrw" package.
 package bsonrwtest // import "go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
 
 import (
