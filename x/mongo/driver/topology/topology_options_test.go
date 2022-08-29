@@ -8,71 +8,46 @@ package topology
 
 import (
 	"fmt"
+	"net/url"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func TestOptionsSetting(t *testing.T) {
-	conf := &config{}
-	ssts := time.Minute
-	name := "test"
-	assert.Zero(t, conf.cs)
-
-	opt := WithConnString(func(connstring.ConnString) connstring.ConnString {
-		return connstring.ConnString{
-			ServerSelectionTimeout:    ssts,
-			ServerSelectionTimeoutSet: true,
-			AppName:                   name,
-		}
-
-	})
-
-	assert.NoError(t, opt(conf))
-
-	assert.Equal(t, ssts, conf.serverSelectionTimeout)
-
-	serverConf := newServerConfig(conf.serverOpts...)
-	assert.Equal(t, name, serverConf.appname, "expected appname to be: %v, got: %v", name, serverConf.appname)
-}
-
 func TestDirectConnectionFromConnString(t *testing.T) {
-	singleConnect := connstring.ConnString{
-		Connect:    connstring.SingleConnect,
-		ConnectSet: true,
-	}
-	autoConnect := connstring.ConnString{
-		Connect:    connstring.AutoConnect,
-		ConnectSet: true,
-	}
-	directConnectionTrue := connstring.ConnString{
-		DirectConnection:    true,
-		DirectConnectionSet: true,
-	}
-	directConnectionFalse := connstring.ConnString{
-		DirectConnection:    false,
-		DirectConnectionSet: true,
-	}
-	defaultConnString := connstring.ConnString{}
+	type testCaseQuery [][2]string
 
 	testCases := []struct {
-		name string
-		cs   connstring.ConnString
-		mode MonitorMode
+		name  string
+		mode  MonitorMode
+		query *testCaseQuery
 	}{
-		{"connect=direct", singleConnect, SingleMode},
-		{"connect=automatic", autoConnect, AutomaticMode},
-		{"directConnection=true", directConnectionTrue, SingleMode},
-		{"directConnection=false", directConnectionFalse, AutomaticMode},
-		{"default", defaultConnString, AutomaticMode},
+		{"connect=direct", SingleMode, &testCaseQuery{{"connect", "direct"}}},
+		{"connect=automatic", AutomaticMode, &testCaseQuery{{"connect", "automatic"}}},
+		{"directConnection=true", SingleMode, &testCaseQuery{{"directconnection", "true"}}},
+		{"directconnection=false", AutomaticMode, &testCaseQuery{{"directconnection", "false"}}},
+		{"default", AutomaticMode, nil},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return tc.cs }))
-			assert.Nil(t, err, "topology.New error: %v", err)
-			assert.Equal(t, tc.mode, topo.cfg.mode, "expected mode %v, got %v", tc.mode, topo.cfg.mode)
+			dns, err := url.Parse("mongodb://localhost/")
+			assert.Nil(t, err, "error parsing uri: %v", err)
+
+			if tc.query != nil {
+				query := dns.Query()
+				for _, q := range *tc.query {
+					query.Set(q[0], q[1])
+				}
+				dns.RawQuery = query.Encode()
+			}
+
+			cfg, err := NewConfig(options.Client().ApplyURI(dns.String()), nil)
+			assert.Nil(t, err, "error constructing topology config: %v", err)
+
+			topo, err := New(cfg)
+			assert.Nil(t, err, "error constructing topology: %v", err)
+			assert.Equal(t, tc.mode, topo.cfg.Mode, "expected mode %v, got %v", tc.mode, topo.cfg.Mode)
 		})
 	}
 }
@@ -90,14 +65,14 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			uri := fmt.Sprintf("mongodb://localhost/?%s", tc.uriOptions)
-			cs, err := connstring.ParseAndValidate(uri)
-			assert.Nil(t, err, "connstring.ParseAndValidate error: %v", err)
+			cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
+			assert.Nil(t, err, "error constructing topology config: %v", err)
 
-			topo, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+			topo, err := New(cfg)
 			assert.Nil(t, err, "topology.New error: %v", err)
-			assert.Equal(t, tc.loadBalanced, topo.cfg.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, topo.cfg.loadBalanced)
+			assert.Equal(t, tc.loadBalanced, topo.cfg.LoadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, topo.cfg.LoadBalanced)
 
-			srvr := NewServer("", topo.id, topo.cfg.serverOpts...)
+			srvr := NewServer("", topo.id, topo.cfg.ServerOpts...)
 			assert.Equal(t, tc.loadBalanced, srvr.cfg.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, srvr.cfg.loadBalanced)
 
 			conn := newConnection("", srvr.cfg.connectionOpts...)
