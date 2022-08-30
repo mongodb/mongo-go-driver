@@ -237,9 +237,7 @@ func TestRetryableWritesProse(t *testing.T) {
 			// Configure a fail point for a "ShutdownInProgress" error.
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: mtest.FailPointMode{
-					Times: 1,
-				},
+				Mode:               mtest.FailPointMode{Times: 1},
 				Data: mtest.FailPointData{
 					WriteConcernError: &mtest.WriteConcernErrorData{
 						Code:        shutdownInProgressErrorCode,
