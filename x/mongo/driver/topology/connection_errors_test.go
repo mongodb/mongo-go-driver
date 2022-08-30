@@ -50,5 +50,19 @@ func TestConnectionErrors(t *testing.T) {
 			err := conn.connect(ctx)
 			assert.True(t, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
 		})
+		t.Run("write error", func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			conn := &connection{id: "foobar", nc: &net.TCPConn{}, state: connConnected}
+			err := conn.writeWireMessage(ctx, []byte{})
+			assert.True(t, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
+		})
+		t.Run("read error", func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			conn := &connection{id: "foobar", nc: &net.TCPConn{}, state: connConnected}
+			_, err := conn.readWireMessage(ctx, []byte{})
+			assert.True(t, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
+		})
 	})
 }
