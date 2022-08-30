@@ -134,6 +134,18 @@ func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bo
 	return (*wce.WriteConcernError).Retryable()
 }
 
+// HasErrorLabel returns true if the error contains the specified label.
+func (wce WriteCommandError) HasErrorLabel(label string) bool {
+	if wce.Labels != nil {
+		for _, l := range wce.Labels {
+			if l == label {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // WriteConcernError is a write concern failure that occurred as a result of a
 // write operation.
 type WriteConcernError struct {

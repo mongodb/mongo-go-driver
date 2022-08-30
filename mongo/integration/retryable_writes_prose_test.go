@@ -16,6 +16,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
@@ -224,27 +225,8 @@ func TestRetryableWritesProse(t *testing.T) {
 		Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt.RunOpts(fmt.Sprintf("%s label returns original error", driver.NoWritesPerformed), mtNWPOpts,
 		func(mt *mtest.T) {
-			const writeConcernFailedErrorCode int32 = 64
+			const shutdownInProgressErrorCode int32 = 91
 			const notWritablePrimaryErrorCode int32 = 10107
-
-			// enableFP registers a failpoint with a specific error code on the admin database for errors
-			// labeled with "RetryableWriteError".
-			var enableFP = func(mt *mtest.T, data *mtest.FailPointData) {
-				// Create a document for the run command that sets a fail command that is always on.
-				if data.ErrorLabels == nil {
-					data.ErrorLabels = &[]string{}
-				}
-				*data.ErrorLabels = append(*data.ErrorLabels, "RetryableWriteError")
-				data.FailCommands = []string{"insert"}
-
-				mt.SetFailPoint(mtest.FailPoint{
-					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
-						Times: 1,
-					},
-					Data: *data,
-				})
-			}
 
 			// Disable any enabled fail points on exit.
 			defer mt.SetFailPoint(mtest.FailPoint{
@@ -252,28 +234,58 @@ func TestRetryableWritesProse(t *testing.T) {
 				Mode:               "off",
 			})
 
-			// Configure a fail point for a "NotWritablePrimary" error.
-			fp := &mtest.FailPointData{ErrorCode: writeConcernFailedErrorCode}
-			enableFP(mt, fp)
+			// Configure a fail point for a "ShutdownInProgress" error.
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: mtest.FailPointMode{
+					Times: 1,
+				},
+				Data: mtest.FailPointData{
+					WriteConcernError: &mtest.WriteConcernErrorData{
+						Code:        shutdownInProgressErrorCode,
+						ErrorLabels: &[]string{driver.RetryableWriteError},
+					},
+					FailCommands: []string{"insert"},
+				},
+			})
 
-			// Set a command monitor on the client that configures a failpoint with a "NoWritesPerfomed"
-			// label for a "SocketException" error.
-			nwpCommandMonitor.Failed = func(_ context.Context, evt *event.CommandFailedEvent) {
-				expectedErr := "(WriteConcernFailed) Failing command via 'failCommand' failpoint"
-				commandName := evt.CommandFinishedEvent.CommandName
-				if commandName == "insert" && evt.Failure == expectedErr {
-					fp := &mtest.FailPointData{
-						ErrorCode:   notWritablePrimaryErrorCode,
-						ErrorLabels: &[]string{driver.NoWritesPerformed},
+			// secondFailPointConfigured is used to determine if the conditions from the
+			// shutdownInProgressErrorCode actually configures the "NoWritablePrimary" fail command.
+			var secondFailPointConfigured bool
+
+			// Set a command monitor on the client that configures a failpoint with a "ShutdownInProgress"
+			// label for a "NoWritablePrimary" error.
+			nwpCommandMonitor.Succeeded = func(_ context.Context, evt *event.CommandSucceededEvent) {
+				wce := evt.Reply.Lookup("writeConcernError")
+				if wce.Type == bsontype.EmbeddedDocument {
+					codeRawValue, err := wce.Document().LookupErr("code")
+					require.NoError(mt, err, "failed to look up code: %v", err)
+
+					code, ok := codeRawValue.Int32OK()
+					if ok && code == shutdownInProgressErrorCode {
+						mt.SetFailPoint(mtest.FailPoint{
+							ConfigureFailPoint: "failCommand",
+							Mode:               mtest.FailPointMode{Times: 1},
+							Data: mtest.FailPointData{
+								ErrorCode: notWritablePrimaryErrorCode,
+								ErrorLabels: &[]string{
+									driver.NoWritesPerformed,
+									driver.RetryableWriteError,
+								},
+								FailCommands: []string{"insert"},
+							},
+						})
+						secondFailPointConfigured = true
 					}
-					enableFP(mt, fp)
 				}
 			}
 
 			// Attempt to insert a record to any collection on any database using "InsertOne".
 			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 
+			require.True(mt, secondFailPointConfigured)
+
 			// Assert that the "NotWritablePrimary" error is returned.
-			require.Equal(mt, err.(mongo.CommandError).Code, writeConcernFailedErrorCode)
+			require.True(mt, err.(mongo.WriteException).HasErrorCode(int(shutdownInProgressErrorCode)))
 		})
 }

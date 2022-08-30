@@ -377,7 +377,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// Set the previous indefinite error to be returned in any case where the the error does not have a
 		// NoWritesPerfomed label (the definite case).
 		switch err := err.(type) {
-		case Error:
+		case WriteCommandError:
 			if !err.HasErrorLabel(NoWritesPerformed) {
 				prevIndefiniteErr = err
 			}
