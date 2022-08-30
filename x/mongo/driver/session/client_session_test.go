@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -92,7 +91,7 @@ func TestClientSession(t *testing.T) {
 			I: 0,
 		}
 		err = sess.AdvanceOperationTime(optime1)
-		testhelpers.RequireNil(t, err, "error updating first operation time: %s", err)
+		assert.Nil(t, err, "error updating first operation time: %s", err)
 		compareOperationTimes(t, optime1, sess.OperationTime)
 
 		optime2 := &primitive.Timestamp{
@@ -100,7 +99,7 @@ func TestClientSession(t *testing.T) {
 			I: 0,
 		}
 		err = sess.AdvanceOperationTime(optime2)
-		testhelpers.RequireNil(t, err, "error updating second operation time: %s", err)
+		assert.Nil(t, err, "error updating second operation time: %s", err)
 		compareOperationTimes(t, optime2, sess.OperationTime)
 
 		optime3 := &primitive.Timestamp{
@@ -108,14 +107,14 @@ func TestClientSession(t *testing.T) {
 			I: 1,
 		}
 		err = sess.AdvanceOperationTime(optime3)
-		testhelpers.RequireNil(t, err, "error updating third operation time: %s", err)
+		assert.Nil(t, err, "error updating third operation time: %s", err)
 		compareOperationTimes(t, optime3, sess.OperationTime)
 
 		err = sess.AdvanceOperationTime(&primitive.Timestamp{
 			T: 1,
 			I: 10,
 		})
-		testhelpers.RequireNil(t, err, "error updating fourth operation time: %s", err)
+		assert.Nil(t, err, "error updating fourth operation time: %s", err)
 		compareOperationTimes(t, optime3, sess.OperationTime)
 		sess.EndSession()
 	})

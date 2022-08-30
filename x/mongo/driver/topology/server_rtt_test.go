@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 )
 
 // Test case for all server selection rtt spec tests.
@@ -29,7 +29,7 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 
 	const testsDir string = "../../../../data/server-selection/rtt"
 
-	for _, file := range testhelpers.FindJSONFilesInDir(t, testsDir) {
+	for _, file := range helpers.FindJSONFilesInDir(t, testsDir) {
 		func(t *testing.T, filename string) {
 			filepath := path.Join(testsDir, filename)
 			content, err := ioutil.ReadFile(filepath)

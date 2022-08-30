@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
@@ -891,7 +892,7 @@ func setupSessions(mt *mtest.T, test *testCase) (mongo.Session, mongo.Session) {
 func insertDocuments(mt *mtest.T, coll *mongo.Collection, rawDocs []bson.Raw) {
 	mt.Helper()
 
-	docsToInsert := rawSliceToInterfaceSlice(rawDocs)
+	docsToInsert := helpers.RawToInterfaces(rawDocs...)
 	if len(docsToInsert) == 0 {
 		return
 	}

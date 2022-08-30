@@ -18,9 +18,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	testHelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -115,7 +116,7 @@ type testInfo struct {
 const cmapTestDir = "../../../../data/connection-monitoring-and-pooling/"
 
 func TestCMAPSpec(t *testing.T) {
-	for _, testFileName := range testHelpers.FindJSONFilesInDir(t, cmapTestDir) {
+	for _, testFileName := range helpers.FindJSONFilesInDir(t, cmapTestDir) {
 		t.Run(testFileName, func(t *testing.T) {
 			runCMAPTest(t, testFileName)
 		})
@@ -124,11 +125,11 @@ func TestCMAPSpec(t *testing.T) {
 
 func runCMAPTest(t *testing.T, testFileName string) {
 	content, err := ioutil.ReadFile(path.Join(cmapTestDir, testFileName))
-	testHelpers.RequireNil(t, err, "unable to read content of test file")
+	require.NoErrorf(t, err, "unable to read content of test file")
 
 	var test cmapTestFile
 	err = json.Unmarshal(content, &test)
-	testHelpers.RequireNil(t, err, "error unmarshalling testFile %v", err)
+	require.NoErrorf(t, err, "error unmarshalling testFile")
 
 	if test.SkipReason != "" {
 		t.Skip(test.SkipReason)
@@ -138,7 +139,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 	}
 
 	l, err := net.Listen("tcp", "localhost:0")
-	testHelpers.RequireNil(t, err, "unable to create listener: %v", err)
+	require.NoError(t, err, "unable to create listener")
 
 	testInfo := &testInfo{
 		objects:                make(map[string]interface{}),
@@ -210,7 +211,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 
 	s := NewServer(address.Address(l.Addr().String()), primitive.NewObjectID(), sOpts...)
 	s.state = serverConnected
-	testHelpers.RequireNil(t, err, "error connecting connection pool: %v", err)
+	require.NoError(t, err, "error connecting connection pool")
 	defer s.pool.close(context.Background())
 
 	for _, op := range test.Operations {
