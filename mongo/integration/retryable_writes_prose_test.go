@@ -256,27 +256,25 @@ func TestRetryableWritesProse(t *testing.T) {
 			// Set a command monitor on the client that configures a failpoint with a "ShutdownInProgress"
 			// label for a "NoWritablePrimary" error.
 			nwpCommandMonitor.Succeeded = func(_ context.Context, evt *event.CommandSucceededEvent) {
-				wce := evt.Reply.Lookup("writeConcernError")
-				if wce.Type == bsontype.EmbeddedDocument {
-					codeRawValue, err := wce.Document().LookupErr("code")
-					require.NoError(mt, err, "failed to look up code: %v", err)
+				var errorCode int32
+				if wce := evt.Reply.Lookup("writeConcernError"); wce.Type == bsontype.EmbeddedDocument {
+					errorCode = wce.Document().Lookup("code").Int32()
+				}
 
-					code, ok := codeRawValue.Int32OK()
-					if ok && code == shutdownInProgressErrorCode {
-						mt.SetFailPoint(mtest.FailPoint{
-							ConfigureFailPoint: "failCommand",
-							Mode:               mtest.FailPointMode{Times: 1},
-							Data: mtest.FailPointData{
-								ErrorCode: notWritablePrimaryErrorCode,
-								ErrorLabels: &[]string{
-									driver.NoWritesPerformed,
-									driver.RetryableWriteError,
-								},
-								FailCommands: []string{"insert"},
+				if errorCode == shutdownInProgressErrorCode {
+					mt.SetFailPoint(mtest.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               mtest.FailPointMode{Times: 1},
+						Data: mtest.FailPointData{
+							ErrorCode: notWritablePrimaryErrorCode,
+							ErrorLabels: &[]string{
+								driver.NoWritesPerformed,
+								driver.RetryableWriteError,
 							},
-						})
-						secondFailPointConfigured = true
-					}
+							FailCommands: []string{"insert"},
+						},
+					})
+					secondFailPointConfigured = true
 				}
 			}
 
