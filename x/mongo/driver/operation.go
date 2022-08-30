@@ -571,7 +571,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
-			res, err = roundTrip(ctx, conn, wm)
+			res, *wm, err = roundTrip(ctx, conn, *wm)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
@@ -800,36 +800,34 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, *wm)
+func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (result, pooledSlice []byte, err error) {
+	err = conn.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return nil, op.networkError(err)
+		return nil, wm, op.networkError(err)
 	}
 	return op.readWireMessage(ctx, conn, wm)
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
-	var err error
-
-	*wm, err = conn.ReadWireMessage(ctx, (*wm)[:0])
+func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []byte) (result, pooledSlice []byte, err error) {
+	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
-		return nil, op.networkError(err)
+		return nil, wm, op.networkError(err)
 	}
 
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
 	// response.
 	if streamer, ok := conn.(StreamerConnection); ok {
-		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(*wm))
+		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
 	}
 
 	// decompress wiremessage
-	*wm, err = op.decompressWireMessage(*wm)
+	wm, err = op.decompressWireMessage(wm)
 	if err != nil {
-		return nil, err
+		return nil, wm, err
 	}
 
 	// decode
-	b, err := op.decodeResult(*wm)
+	b, err := op.decodeResult(wm)
 	// Copy b to extend the lifetime. b may be a subslice of wm. wm will be added back to the memory pool and reused.
 	res := make([]byte, len(b))
 	copy(res, b)
@@ -845,14 +843,14 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm *[]
 	}
 
 	if err != nil {
-		return res, err
+		return res, wm, err
 	}
 
 	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
 	if op.Crypt != nil {
-		return op.Crypt.Decrypt(ctx, res)
+		res, err = op.Crypt.Decrypt(ctx, res)
 	}
-	return res, nil
+	return res, wm, err
 }
 
 // networkError wraps the provided error in an Error with label "NetworkError" and, if a transaction
@@ -878,15 +876,15 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm *[]byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, *wm)
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) (result, pooledSlice []byte, err error) {
+	err = conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		if op.Client != nil {
 			op.Client.MarkDirty()
 		}
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
-	return bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)), err
+	return bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)), wm, err
 }
 
 // decompressWireMessage handles decompressing a wiremessage. If the wiremessage

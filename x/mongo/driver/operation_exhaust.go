@@ -19,7 +19,7 @@ func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection,
 	}
 
 	scratch = scratch[:0]
-	res, err := op.readWireMessage(ctx, conn, &scratch)
+	res, _, err := op.readWireMessage(ctx, conn, scratch)
 	if err != nil {
 		return err
 	}

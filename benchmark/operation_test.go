@@ -54,6 +54,7 @@ func BenchmarkClientWrite(b *testing.B) {
 					}
 				}
 			})
+			_, _ = coll.DeleteMany(context.Background(), bson.D{})
 		})
 	}
 }
@@ -100,6 +101,7 @@ func BenchmarkClientBulkWrite(b *testing.B) {
 					}
 				}
 			})
+			_, _ = coll.DeleteMany(context.Background(), bson.D{})
 		})
 	}
 }
