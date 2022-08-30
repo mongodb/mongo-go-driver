@@ -230,6 +230,35 @@ func TestSelector_Sharded(t *testing.T) {
 	require.Equal([]Server{s}, result)
 }
 
+func BenchmarkSelector_Sharded(b *testing.B) {
+	subject := readpref.Primary()
+
+	s := Server{
+		Addr:              address.Address("localhost:27017"),
+		HeartbeatInterval: time.Duration(10) * time.Second,
+		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
+		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
+		Kind:              Mongos,
+		WireVersion:       &VersionRange{Min: 0, Max: 5},
+	}
+	servers := make([]Server, 100)
+	for i := 0; i < len(servers); i++ {
+		servers[i] = s
+	}
+	servers[0].Kind = LoadBalancer
+	c := Topology{
+		Kind:    Sharded,
+		Servers: servers,
+	}
+
+	b.ResetTimer()
+	b.RunParallel(func(p *testing.PB) {
+		for p.Next() {
+			_, _ = ReadPrefSelector(subject).SelectServer(c, c.Servers)
+		}
+	})
+}
+
 func TestSelector_Single(t *testing.T) {
 	t.Parallel()
 

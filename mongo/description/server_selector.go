@@ -296,13 +296,16 @@ func selectByTagSet(candidates []Server, tagSets []tag.Set) []Server {
 }
 
 func selectByKind(candidates []Server, kind ServerKind) []Server {
-	var result []Server
-	for _, s := range candidates {
+	index := make([]int, 0, len(candidates))
+	for i, s := range candidates {
 		if s.Kind == kind {
-			result = append(result, s)
+			index = append(index, i)
 		}
 	}
-
+	result := make([]Server, len(index))
+	for i, idx := range index {
+		result[i] = candidates[idx]
+	}
 	return result
 }
 
