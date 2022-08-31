@@ -347,6 +347,12 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}
 
+	// Use RetryContext (retry indefinitely until context errors) if context is a Timeout context.
+	if internal.IsTimeoutContext(ctx) {
+		rm := RetryContext
+		op.RetryMode = &rm
+	}
+
 	var retries int
 	if op.RetryMode != nil {
 		switch op.Type {
