@@ -32,4 +32,4 @@ set -x
 
 # For Go 1.16+, Go builds requires a go.mod file in the current working directory or a parent
 # directory. Spawn a new subshell, "cd" to the project directory, then run "go run".
-(cd ${PROJECT_DIRECTORY} && go run "./mongo/testaws/main.go")
+(cd ${PROJECT_DIRECTORY} && go run "./cmd/testaws/main.go")
