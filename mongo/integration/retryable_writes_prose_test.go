@@ -219,10 +219,11 @@ func TestRetryableWritesProse(t *testing.T) {
 	})
 
 	nwpCommandMonitor := new(event.CommandMonitor)
-	nwpClientOpts := options.Client().SetMonitor(nwpCommandMonitor).SetRetryWrites(true).SetHosts(hosts[:1])
+	nwpClientOpts := options.Client().SetMonitor(nwpCommandMonitor).SetRetryWrites(true)
 
 	mtNWPOpts := mtest.NewOptions().ClientOptions(nwpClientOpts).MinServerVersion("6.0").
-		Topologies(mtest.ReplicaSet, mtest.Sharded)
+		Topologies(mtest.ReplicaSet)
+
 	mt.RunOpts(fmt.Sprintf("%s label returns original error", driver.NoWritesPerformed), mtNWPOpts,
 		func(mt *mtest.T) {
 			const shutdownInProgressErrorCode int32 = 91
