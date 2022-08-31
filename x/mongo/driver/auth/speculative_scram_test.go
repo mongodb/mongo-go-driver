@@ -17,7 +17,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
+
+const speculativeSCRAMMaxWireVersion = 6
 
 var (
 	// The base elements for a hello response.
@@ -27,7 +30,7 @@ var (
 		bsoncore.AppendInt32Element(nil, "maxBsonObjectSize", 16777216),
 		bsoncore.AppendInt32Element(nil, "maxMessageSizeBytes", 48000000),
 		bsoncore.AppendInt32Element(nil, "minWireVersion", 0),
-		bsoncore.AppendInt32Element(nil, "maxWireVersion", 4),
+		bsoncore.AppendInt32Element(nil, "maxWireVersion", speculativeSCRAMMaxWireVersion),
 	}
 	// The first payload sent by the driver for SCRAM-SHA-1/256 authentication.
 	firstScramSha1ClientPayload   = []byte("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")
@@ -115,11 +118,21 @@ func TestSpeculativeSCRAM(t *testing.T) {
 						bsoncore.AppendBooleanElement(nil, "skipEmptyExchange", true),
 					)),
 				)
-				assert.True(t, bytes.Equal(expectedAuthDoc, authDoc), "expected speculative auth document %s, got %s",
-					bson.Raw(expectedAuthDoc), authDoc)
+				assert.True(t, bytes.Equal(expectedAuthDoc, authDoc),
+					"expected speculative auth document %s, got %s",
+					bson.Raw(expectedAuthDoc),
+					authDoc,
+				)
 
 				// Assert that the last command sent in the handshake is saslContinue.
-				saslContinueCmd, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				var wmgetter func([]byte) (bsoncore.Document, error)
+				if speculativeSCRAMMaxWireVersion < wiremessage.OpmsgWireVersion {
+					wmgetter = drivertest.GetCommandFromQueryWireMessage
+				} else {
+					wmgetter = drivertest.GetCommandFromMsgWireMessage
+				}
+
+				saslContinueCmd, err := wmgetter(<-conn.Written)
 				assert.Nil(t, err, "error parsing saslContinue command: %v", err)
 				assertCommandName(t, saslContinueCmd, "saslContinue")
 			})
