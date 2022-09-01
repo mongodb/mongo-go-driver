@@ -260,6 +260,8 @@ func TestRetryableWritesProse(t *testing.T) {
 					errorCode = wce.Document().Lookup("code").Int32()
 				}
 
+				// Do not set a fail point if event was not a writeConcernError with an error code for
+				// "ShutdownInProgress".
 				if errorCode != shutdownInProgressErrorCode {
 					return
 				}
