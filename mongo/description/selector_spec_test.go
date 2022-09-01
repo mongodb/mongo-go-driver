@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 )
 
-const selectorTestsDir = "../../data/server-selection/server_selection"
+const selectorTestsDir = "../../testdata/server-selection/server_selection"
 
 // Test case for all SDAM spec tests.
 func TestServerSelectionSpec(t *testing.T) {

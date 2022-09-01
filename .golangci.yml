@@ -82,7 +82,6 @@ issues:
   skip-dirs:
     - (^|/)vendor($|/)
     - (^|/)testdata($|/)
-    - (^|/)data($|/)
     - (^|/)etc($|/)
   exclude-rules:
     # Ignore some linters for example code that is intentionally simplified.

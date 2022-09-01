@@ -113,7 +113,7 @@ type testInfo struct {
 	sync.Mutex
 }
 
-const cmapTestDir = "../../../../data/connection-monitoring-and-pooling/"
+const cmapTestDir = "../../../../testdata/connection-monitoring-and-pooling/"
 
 func TestCMAPSpec(t *testing.T) {
 	for _, testFileName := range helpers.FindJSONFilesInDir(t, cmapTestDir) {

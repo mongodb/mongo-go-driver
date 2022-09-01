@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	readWriteConcernTestsDir = "../data/read-write-concern"
+	readWriteConcernTestsDir = "../testdata/read-write-concern"
 	connstringTestsDir       = "connection-string"
 	documentTestsDir         = "document"
 )

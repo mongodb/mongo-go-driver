@@ -127,10 +127,10 @@ var nestedInstance = nestedtest1{
 	},
 }
 
-const extendedBSONDir = "../data/extended_bson"
+const extendedBSONDir = "../testdata/extended_bson"
 
 // readExtJSONFile reads the GZIP-compressed extended JSON document from the given filename in the
-// "extended BSON" test data directory (../data/extended_bson) and returns it as a
+// "extended BSON" test data directory (../testdata/extended_bson) and returns it as a
 // map[string]interface{}. It panics on any errors.
 func readExtJSONFile(filename string) map[string]interface{} {
 	filePath := path.Join(extendedBSONDir, filename)
