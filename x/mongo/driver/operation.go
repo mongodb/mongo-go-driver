@@ -312,7 +312,9 @@ func (op Operation) Validate() error {
 
 var memoryPool = sync.Pool{
 	New: func() interface{} {
-		b := make([]byte, 1024) // Start with 1kb buffers.
+		// Start with 1kb buffers.
+		b := make([]byte, 1024)
+		// Return a pointer as the static analysis tool suggests.
 		return &b
 	},
 }
