@@ -920,8 +920,15 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	}
 
 	// Copy msg, which is a subslice of wm. wm will be used to store the return value of the decompressed message.
-	b := make([]byte, len(msg))
-	copy(b, msg)
+	b := memoryPool.Get().(*[]byte)
+	msglen := len(msg)
+	if len(*b) < msglen {
+		*b = make([]byte, msglen)
+	}
+	copy(*b, msg)
+	defer func() {
+		memoryPool.Put(b)
+	}()
 
 	if l := int(uncompressedSize) + 16; cap(wm) < l {
 		wm = make([]byte, 0, l)
@@ -931,7 +938,7 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 		Compressor:       compressorID,
 		UncompressedSize: uncompressedSize,
 	}
-	uncompressed, err := DecompressPayload(b, opts)
+	uncompressed, err := DecompressPayload((*b)[0:msglen], opts)
 	if err != nil {
 		return nil, err
 	}
