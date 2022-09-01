@@ -260,21 +260,23 @@ func TestRetryableWritesProse(t *testing.T) {
 					errorCode = wce.Document().Lookup("code").Int32()
 				}
 
-				if errorCode == shutdownInProgressErrorCode {
-					mt.SetFailPoint(mtest.FailPoint{
-						ConfigureFailPoint: "failCommand",
-						Mode:               mtest.FailPointMode{Times: 1},
-						Data: mtest.FailPointData{
-							ErrorCode: notWritablePrimaryErrorCode,
-							ErrorLabels: &[]string{
-								driver.NoWritesPerformed,
-								driver.RetryableWriteError,
-							},
-							FailCommands: []string{"insert"},
-						},
-					})
-					secondFailPointConfigured = true
+				if errorCode != shutdownInProgressErrorCode {
+					return
 				}
+
+				mt.SetFailPoint(mtest.FailPoint{
+					ConfigureFailPoint: "failCommand",
+					Mode:               mtest.FailPointMode{Times: 1},
+					Data: mtest.FailPointData{
+						ErrorCode: notWritablePrimaryErrorCode,
+						ErrorLabels: &[]string{
+							driver.NoWritesPerformed,
+							driver.RetryableWriteError,
+						},
+						FailCommands: []string{"insert"},
+					},
+				})
+				secondFailPointConfigured = true
 			}
 
 			// Attempt to insert a record to any collection on any database using "InsertOne".
