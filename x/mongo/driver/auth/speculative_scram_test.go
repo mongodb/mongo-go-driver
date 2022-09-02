@@ -17,10 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
-
-const speculativeSCRAMMaxWireVersion = 6
 
 var (
 	// The base elements for a hello response.
@@ -30,7 +27,7 @@ var (
 		bsoncore.AppendInt32Element(nil, "maxBsonObjectSize", 16777216),
 		bsoncore.AppendInt32Element(nil, "maxMessageSizeBytes", 48000000),
 		bsoncore.AppendInt32Element(nil, "minWireVersion", 0),
-		bsoncore.AppendInt32Element(nil, "maxWireVersion", speculativeSCRAMMaxWireVersion),
+		bsoncore.AppendInt32Element(nil, "maxWireVersion", 6),
 	}
 	// The first payload sent by the driver for SCRAM-SHA-1/256 authentication.
 	firstScramSha1ClientPayload   = []byte("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")
@@ -125,14 +122,8 @@ func TestSpeculativeSCRAM(t *testing.T) {
 				)
 
 				// Assert that the last command sent in the handshake is saslContinue.
-				var wmgetter func([]byte) (bsoncore.Document, error)
-				if speculativeSCRAMMaxWireVersion < wiremessage.OpmsgWireVersion {
-					wmgetter = drivertest.GetCommandFromQueryWireMessage
-				} else {
-					wmgetter = drivertest.GetCommandFromMsgWireMessage
-				}
 
-				saslContinueCmd, err := wmgetter(<-conn.Written)
+				saslContinueCmd, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing saslContinue command: %v", err)
 				assertCommandName(t, saslContinueCmd, "saslContinue")
 			})
@@ -192,11 +183,11 @@ func TestSpeculativeSCRAM(t *testing.T) {
 				_, err = hello.LookupErr("speculativeAuthenticate")
 				assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(hello))
 
-				saslStart, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				saslStart, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing saslStart command: %v", err)
 				assertCommandName(t, saslStart, "saslStart")
 
-				saslContinue, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				saslContinue, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing saslContinue command: %v", err)
 				assertCommandName(t, saslContinue, "saslContinue")
 			})

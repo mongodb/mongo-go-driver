@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
@@ -133,7 +134,7 @@ func TestServerSelection(t *testing.T) {
 			desc.Servers[0].Addr.String(),
 			desc.Servers[0].WireVersion.Max,
 			SupportedWireVersions.Min,
-			MinSupportedMongoDBVersion,
+			version.MinSupportedMongoDB,
 		)
 		desc.CompatibilityErr = want
 		atomic.StoreInt64(&topo.state, topologyConnected)
