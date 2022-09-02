@@ -620,7 +620,7 @@ func TestOperation(t *testing.T) {
 			conn := &mockConnection{
 				rStreaming: false,
 			}
-			err := Operation{}.ExecuteExhaust(context.TODO(), conn, nil)
+			err := Operation{}.ExecuteExhaust(context.TODO(), conn)
 			assert.NotNil(t, err, "expected error, got nil")
 		})
 	})
@@ -671,7 +671,7 @@ func TestOperation(t *testing.T) {
 		// Reset the server response and go through ExecuteExhaust to mimic streaming the next response. After
 		// execution, the connection should still be in a streaming state.
 		conn.rReadWM = streamingResponse
-		err = op.ExecuteExhaust(context.TODO(), conn, nil)
+		err = op.ExecuteExhaust(context.TODO(), conn)
 		assert.Nil(t, err, "ExecuteExhaust error: %v", err)
 		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 	})

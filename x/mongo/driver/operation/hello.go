@@ -199,7 +199,7 @@ func (h *Hello) Execute(ctx context.Context) error {
 
 // StreamResponse gets the next streaming Hello response from the server.
 func (h *Hello) StreamResponse(ctx context.Context, conn driver.StreamerConnection) error {
-	return h.createOperation().ExecuteExhaust(ctx, conn, nil)
+	return h.createOperation().ExecuteExhaust(ctx, conn)
 }
 
 func (h *Hello) createOperation() driver.Operation {
