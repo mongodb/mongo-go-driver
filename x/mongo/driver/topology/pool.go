@@ -495,23 +495,12 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				Reason:  event.ReasonTimedOut,
 			})
 		}
-		switch ctx.Err() {
-		case context.Canceled:
-			return nil, WaitQueueCancelError{
-				Wrapped:                      ctx.Err(),
-				PinnedCursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
-				PinnedTransactionConnections: atomic.LoadUint64(&p.pinnedTransactionConnections),
-				maxPoolSize:                  p.maxSize,
-				totalConnectionCount:         p.totalConnectionCount(),
-			}
-		default:
-			return nil, WaitQueueTimeoutError{
-				Wrapped:                      ctx.Err(),
-				PinnedCursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
-				PinnedTransactionConnections: atomic.LoadUint64(&p.pinnedTransactionConnections),
-				maxPoolSize:                  p.maxSize,
-				totalConnectionCount:         p.totalConnectionCount(),
-			}
+		return nil, WaitQueueTimeoutError{
+			Wrapped:                      ctx.Err(),
+			PinnedCursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
+			PinnedTransactionConnections: atomic.LoadUint64(&p.pinnedTransactionConnections),
+			maxPoolSize:                  p.maxSize,
+			totalConnectionCount:         p.totalConnectionCount(),
 		}
 	}
 }

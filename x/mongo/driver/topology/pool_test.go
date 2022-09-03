@@ -646,6 +646,7 @@ func TestPool(t *testing.T) {
 			assert.IsTypef(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueTimeoutError")
 			if err, ok := err.(WaitQueueTimeoutError); ok {
 				assert.Equalf(t, context.DeadlineExceeded, err.Unwrap(), "expected wrapped error to be a context.Timeout")
+				assert.Containsf(t, err.Error(), "timed out", "expected error to contain string")
 			}
 
 			p.close(context.Background())
@@ -776,7 +777,7 @@ func TestPool(t *testing.T) {
 
 			p.close(context.Background())
 		})
-		t.Run("wait queue cancel error", func(t *testing.T) {
+		t.Run("cancel wait queue", func(t *testing.T) {
 			t.Parallel()
 
 			cleanup := make(chan struct{})
@@ -806,10 +807,11 @@ func TestPool(t *testing.T) {
 			_, err = p.checkOut(cancelCtx)
 			assert.NotNilf(t, err, "expected a WaitQueueCancel error")
 
-			// Assert that error received is WaitQueueCancel with context canceled.
-			assert.IsTypef(t, WaitQueueCancelError{}, err, "expected a WaitQueueCancelError")
-			if err, ok := err.(WaitQueueCancelError); ok {
+			// Assert that error received is WaitQueueTimeoutError with context canceled.
+			assert.IsTypef(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueCancelError")
+			if err, ok := err.(WaitQueueTimeoutError); ok {
 				assert.Equalf(t, context.Canceled, err.Unwrap(), "expected wrapped error to be a context.Canceled")
+				assert.Containsf(t, err.Error(), "canceled", "expected error to contain string")
 			}
 
 			p.close(context.Background())
