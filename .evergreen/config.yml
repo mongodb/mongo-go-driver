@@ -481,8 +481,8 @@ functions:
           export AWS_DEFAULT_REGION="us-east-1"
 
           # Set client-side encryption credentials.
-          export CSFLE_TLS_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
-          export CSFLE_TLS_CERTIFICATE_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
+          export CSFLE_TLS_CA_FILE="$PROJECT_DIRECTORY/data/kmip-certs/ca-ec.pem"
+          export CSFLE_TLS_CERTIFICATE_KEY_FILE="$PROJECT_DIRECTORY/data/kmip-certs/client-ec.pem"
 
           ${PYTHON3_BINARY} -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
@@ -940,9 +940,6 @@ functions:
           # only run this if virtualenv is installed
           if ${PYTHON3_BINARY} -m venv ./venv; then
             . ./activate_venv.sh
-
-            # TODO (GODRIVER-2239): Stabilize this pip install with a non-forked version of PyKMIP in
-            pip install git+https://github.com/kevinAlbs/PyKMIP.git@expand_tls12_ciphers
           else
             echo "Python module venv not found, skipping virtual environment setup..."
           fi
@@ -952,9 +949,15 @@ functions:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           if [ "Windows_NT" = "$OS" ]; then
-            kmstlsvenv/Scripts/python.exe -u kms_kmip_server.py --port 5698
+            kmstlsvenv/Scripts/python.exe -u kms_kmip_server.py \
+              --port 5698 \
+              --ca_file "${PROJECT_DIRECTORY}/data/kmip-certs/ca-ec.pem" \
+              --cert_file "${PROJECT_DIRECTORY}/data/kmip-certs/server-ec.pem"
           else
-            ./kmstlsvenv/bin/python3 -u kms_kmip_server.py --port 5698
+            ./kmstlsvenv/bin/python3 -u kms_kmip_server.py \
+              --port 5698 \
+              --ca_file "${PROJECT_DIRECTORY}/data/kmip-certs/ca-ec.pem" \
+              --cert_file "${PROJECT_DIRECTORY}/data/kmip-certs/server-ec.pem"
           fi
 
   run-kms-tls-test:
@@ -1007,8 +1010,8 @@ functions:
           AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
           GCP_EMAIL="${cse_gcp_email}" \
           GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
-          CSFLE_TLS_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
-          CSFLE_TLS_CERTIFICATE_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
+          CSFLE_TLS_CA_FILE="$PROJECT_DIRECTORY/data/kmip-certs/ca-ec.pem"
+          CSFLE_TLS_CERTIFICATE_KEY_FILE="$PROJECT_DIRECTORY/data/kmip-certs/client-ec.pem"
           make evg-test-kmip \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH

@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -74,7 +74,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			switch key {
 			case "arrayFilters":
 				uom.SetArrayFilters(options.ArrayFilters{
-					Filters: testhelpers.RawToInterfaceSlice(val.Array()),
+					Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
 				})
 			case "collation":
 				collation, err := createCollation(val.Document())
@@ -123,7 +123,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			switch key {
 			case "arrayFilters":
 				umm.SetArrayFilters(options.ArrayFilters{
-					Filters: testhelpers.RawToInterfaceSlice(val.Array()),
+					Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
 				})
 			case "collation":
 				collation, err := createCollation(val.Document())

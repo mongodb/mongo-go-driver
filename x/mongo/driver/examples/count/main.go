@@ -14,8 +14,8 @@ import (
 	"flag"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -31,12 +31,12 @@ func main() {
 		log.Fatalf("uri flag must have a value")
 	}
 
-	cs, err := connstring.ParseAndValidate(*uri)
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(*uri), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	t, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+	t, err := topology.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,16 +48,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	dbname := cs.Database
-	if dbname == "" {
-		dbname = "test"
-	}
-
 	op := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "count", *col))).
-		Deployment(t).Database(dbname).ServerSelector(description.WriteSelector())
+		Deployment(t).Database("test").ServerSelector(description.WriteSelector())
 	err = op.Execute(ctx)
 	if err != nil {
-		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
+		log.Fatalf("failed executing count command: %v", err)
 	}
 	rdr := op.Result()
 	log.Println(rdr)

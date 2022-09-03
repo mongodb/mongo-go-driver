@@ -19,8 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 func TestMain(m *testing.M) {
@@ -118,18 +116,18 @@ func TestDocumentationExamples(t *testing.T) {
 	// Transaction examples can only run on replica sets on 4.0+.
 	mtOpts = mtest.NewOptions().MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
 	mt.RunOpts("TransactionsExamples", mtOpts, func(mt *mtest.T) {
-		mt.ResetClient(&options.ClientOptions{Deployment: createTopology(mt)})
+		mt.ResetClient(options.Client().ApplyURI(mtest.ClusterURI()))
 		documentation_examples.TransactionsExamples(ctx, mt.Client)
 	})
 	mt.RunOpts("WithTransactionExample", mtOpts, func(mt *mtest.T) {
-		mt.ResetClient(&options.ClientOptions{Deployment: createTopology(mt)})
+		mt.ResetClient(options.Client().ApplyURI(mtest.ClusterURI()))
 		documentation_examples.WithTransactionExample(ctx)
 	})
 
 	// Change stream examples can only run on replica sets on 3.6+.
 	mtOpts = mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.ReplicaSet)
 	mt.RunOpts("ChangeStreamExamples", mtOpts, func(mt *mtest.T) {
-		mt.ResetClient(&options.ClientOptions{Deployment: createTopology(mt)})
+		mt.ResetClient(options.Client().ApplyURI(mtest.ClusterURI()))
 		csdb := client.Database("changestream_examples")
 		documentation_examples.ChangeStreamExamples(mt.T, csdb)
 	})
@@ -144,14 +142,4 @@ func TestDocumentationExamples(t *testing.T) {
 	mt.RunOpts("CausalConsistencyExamples/pre4.0", mtOpts, func(mt *mtest.T) {
 		documentation_examples.CausalConsistencyExamples(mt.Client)
 	})
-}
-
-func createTopology(mt *mtest.T) *topology.Topology {
-	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
-		return mtest.ClusterConnString()
-	}))
-	if err != nil {
-		mt.Fatalf("topology.New error: %v", err)
-	}
-	return topo
 }

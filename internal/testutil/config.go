@@ -20,9 +20,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -77,28 +77,16 @@ func AddCompressorToURI(uri string) string {
 
 // MonitoredTopology returns a new topology with the command monitor attached
 func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonitor) *topology.Topology {
-	cs := ConnString(t)
-	opts := []topology.Option{
-		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(
-				opts,
-				topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-					return append(
-						opts,
-						topology.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
-							return monitor
-						}),
-						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
-							return ocsp.NewCache()
-						}),
-					)
-				}),
-			)
-		}),
+	uri, err := MongoDBURI()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri).SetMonitor(monitor), nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	monitoredTopology, err := topology.New(opts...)
+	monitoredTopology, err := topology.New(cfg)
 	if err != nil {
 		t.Fatal(err)
 	} else {
@@ -115,27 +103,14 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 
 // Topology gets the globally configured topology.
 func Topology(t *testing.T) *topology.Topology {
-	cs := ConnString(t)
-	opts := []topology.Option{
-		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(
-				opts,
-				topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-					return append(
-						opts,
-						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
-							return ocsp.NewCache()
-						}),
-					)
-				}),
-			)
-		}),
-	}
+	uri, err := MongoDBURI()
+	require.NoError(t, err, "error constructing mongodb URI: %v", err)
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri), nil)
+	require.NoError(t, err, "error constructing topology config: %v", err)
 
 	liveTopologyOnce.Do(func() {
 		var err error
-		liveTopology, err = topology.New(opts...)
+		liveTopology, err = topology.New(cfg)
 		if err != nil {
 			liveTopologyErr = err
 		} else {
@@ -154,27 +129,17 @@ func Topology(t *testing.T) *topology.Topology {
 	return liveTopology
 }
 
-// TopologyWithConnString takes a connection string and returns a connected
-// topology, or else bails out of testing
-func TopologyWithConnString(t *testing.T, cs connstring.ConnString) *topology.Topology {
-	opts := []topology.Option{
-		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(
-				opts,
-				topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-					return append(
-						opts,
-						topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
-							return ocsp.NewCache()
-						}),
-					)
-				}),
-			)
-		}),
+// TopologyWithCredential takes an "options.Credential" object and returns a connected topology.
+func TopologyWithCredential(t *testing.T, credential options.Credential) *topology.Topology {
+	uri, err := MongoDBURI()
+	if err != nil {
+		t.Fatalf("error constructing mongodb URI: %v", err)
 	}
-
-	topology, err := topology.New(opts...)
+	cfg, err := topology.NewConfig(options.Client().ApplyURI(uri).SetAuth(credential), nil)
+	if err != nil {
+		t.Fatalf("error constructing topology config: %v", err)
+	}
+	topology, err := topology.New(cfg)
 	if err != nil {
 		t.Fatal("Could not construct topology")
 	}
@@ -194,20 +159,55 @@ func ColName(t *testing.T) string {
 	return name.String()
 }
 
+// MongoDBURI will construct the MongoDB URI from the MONGODB_URI environment variable for testing. The default host is
+// "localhost" and the default port is "27017"
+func MongoDBURI() (string, error) {
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		uri = "mongodb://localhost:27017"
+	}
+
+	uri = AddTLSConfigToURI(uri)
+	uri = AddCompressorToURI(uri)
+	uri, err := AddServerlessAuthCredentials(uri)
+	return uri, err
+}
+
+// AddServerlessAuthCredentials will attempt to construct the serverless auth credentials for a URI.
+func AddServerlessAuthCredentials(uri string) (string, error) {
+	if os.Getenv("SERVERLESS") != "serverless" {
+		return uri, nil
+	}
+	user := os.Getenv("SERVERLESS_ATLAS_USER")
+	if user == "" {
+		return "", fmt.Errorf("serverless expects SERVERLESS_ATLAS_USER to be set")
+	}
+	password := os.Getenv("SERVERLESS_ATLAS_PASSWORD")
+	if password == "" {
+		return "", fmt.Errorf("serverless expects SERVERLESS_ATLAS_PASSWORD to be set")
+	}
+
+	var scheme string
+	// remove the scheme
+	if strings.HasPrefix(uri, "mongodb+srv://") {
+		scheme = "mongodb+srv://"
+	} else if strings.HasPrefix(uri, "mongodb://") {
+		scheme = "mongodb://"
+	} else {
+		return "", fmt.Errorf("scheme must be \"mongodb\" or \"mongodb+srv\"")
+	}
+
+	uri = scheme + user + ":" + password + "@" + uri[len(scheme):]
+	return uri, nil
+}
+
 // ConnString gets the globally configured connection string.
 func ConnString(t *testing.T) connstring.ConnString {
 	connectionStringOnce.Do(func() {
-		connectionString, connectionStringErr = GetConnString()
-		mongodbURI := os.Getenv("MONGODB_URI")
-		if mongodbURI == "" {
-			mongodbURI = "mongodb://localhost:27017"
-		}
+		uri, err := MongoDBURI()
+		require.NoError(t, err, "error constructing mongodb URI: %v", err)
 
-		mongodbURI = AddTLSConfigToURI(mongodbURI)
-		mongodbURI = AddCompressorToURI(mongodbURI)
-
-		var err error
-		connectionString, err = connstring.ParseAndValidate(mongodbURI)
+		connectionString, err = connstring.ParseAndValidate(uri)
 		if err != nil {
 			connectionStringErr = err
 		}

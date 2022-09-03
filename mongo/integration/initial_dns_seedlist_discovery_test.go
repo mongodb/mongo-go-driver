@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"crypto/tls"
 	"io/ioutil"
 	"os"
 	"path"
@@ -19,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -93,17 +95,28 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		assert.Equal(mt, len(actualSeedlist), *test.NumSeeds,
 			"expected %v seeds, got %v", *test.NumSeeds, len(actualSeedlist))
 	}
+
 	// If Seeds is set, check contents of seedlist.
 	if test.Seeds != nil {
 		expectedSeedlist := buildSet(test.Seeds)
 		assert.Equal(mt, expectedSeedlist, actualSeedlist, "expected seedlist %v, got %v", expectedSeedlist, actualSeedlist)
 	}
 	verifyConnstringOptions(mt, test.Options, cs)
-	setSSLSettings(mt, &cs, test)
+
+	tlsConfig := getSSLSettings(mt, test)
 
 	// Make a topology from the options.
-	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+	opts := options.Client().ApplyURI(test.URI)
+	if tlsConfig != nil {
+		opts.SetTLSConfig(tlsConfig)
+	}
+
+	cfg, err := topology.NewConfig(opts, nil)
+	assert.Nil(mt, err, "error constructing toplogy config: %v", err)
+
+	topo, err := topology.New(cfg)
 	assert.Nil(mt, err, "topology.New error: %v", err)
+
 	err = topo.Connect()
 	assert.Nil(mt, err, "topology.Connect error: %v", err)
 	defer func() { _ = topo.Disconnect(context.Background()) }()
@@ -173,13 +186,13 @@ func verifyConnstringOptions(mt *mtest.T, expected bson.Raw, cs connstring.ConnS
 // present, we assume that the test will assert an error, so we proceed with the test as normal.
 // If the option is false, then we skip the test if the server is running with SSL enabled.
 // If the option is true, then we skip the test if the server is running without SSL enabled; if
-// the server is running with SSL enabled, then we manually set the necessary SSL options in the
-// connection string.
-func setSSLSettings(mt *mtest.T, cs *connstring.ConnString, test seedlistTest) {
+// the server is running with SSL enabled, then we return a tls.Config with InsecureSkipVerify
+// set to true.
+func getSSLSettings(mt *mtest.T, test seedlistTest) *tls.Config {
 	ssl, err := test.Options.LookupErr("ssl")
 	if err != nil {
 		// No "ssl" option is specified
-		return
+		return nil
 	}
 	testCaseExpectsSSL := ssl.Boolean()
 	envSSL := os.Getenv("SSL") == "ssl"
@@ -196,8 +209,11 @@ func setSSLSettings(mt *mtest.T, cs *connstring.ConnString, test seedlistTest) {
 
 	// If SSL tests are running, set the CA file.
 	if testCaseExpectsSSL && envSSL {
-		cs.SSLInsecure = true
+		tlsConfig := new(tls.Config)
+		tlsConfig.InsecureSkipVerify = true
+		return tlsConfig
 	}
+	return nil
 }
 
 func getServerByAddress(address string, topo *topology.Topology) (description.Server, error) {

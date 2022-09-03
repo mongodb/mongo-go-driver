@@ -204,7 +204,7 @@ func (c *ClientOptions) validate() error {
 		if c.ReplicaSet != nil {
 			return internal.ErrLoadBalancedWithReplicaSet
 		}
-		if c.Direct != nil {
+		if c.Direct != nil && *c.Direct {
 			return internal.ErrLoadBalancedWithDirectConnection
 		}
 	}

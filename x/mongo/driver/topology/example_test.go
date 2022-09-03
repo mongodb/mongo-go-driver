@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package main
+package topology_test
 
 import (
 	"log"
@@ -13,8 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-func main() {
-	topo, err := topology.New()
+func Example_clusterMonitoring() {
+	topo, err := topology.New(nil)
 	if err != nil {
 		log.Fatalf("could not create topology: %v", err)
 	}

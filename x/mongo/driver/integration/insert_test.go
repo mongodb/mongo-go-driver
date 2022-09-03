@@ -18,21 +18,7 @@ import (
 
 func TestInsert(t *testing.T) {
 	t.Skip()
-	var connOpts []topology.ConnectionOption
-	var serverOpts []topology.ServerOption
-	var topoOpts []topology.Option
-
-	connOpts = append(connOpts, topology.WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
-		return operation.NewHello().AppName("operationgen-test")
-	}))
-	// topoOpts = append(topoOpts, topology.WithServerSelectionTimeout(func(time.Duration) time.Duration { return 5 * time.Second }))
-	serverOpts = append(serverOpts, topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-		return append(opts, connOpts...)
-	}))
-	topoOpts = append(topoOpts, topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-		return append(opts, serverOpts...)
-	}))
-	topo, err := topology.New(topoOpts...)
+	topo, err := topology.New(nil)
 	if err != nil {
 		t.Fatalf("Couldn't connect topology: %v", err)
 	}

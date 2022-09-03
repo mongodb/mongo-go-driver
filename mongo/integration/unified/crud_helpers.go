@@ -11,7 +11,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -41,7 +41,7 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 		switch key {
 		case "arrayFilters":
 			ua.opts.SetArrayFilters(options.ArrayFilters{
-				Filters: testhelpers.RawToInterfaceSlice(val.Array()),
+				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
 			})
 		case "bypassDocumentValidation":
 			ua.opts.SetBypassDocumentValidation(val.Boolean())

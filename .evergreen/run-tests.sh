@@ -96,6 +96,14 @@ else
   echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
 fi
 
+CSFLE_TLS_CA_FILE="$(pwd)/data/kmip-certs/ca-ec.pem"
+CSFLE_TLS_CERTIFICATE_KEY_FILE="$(pwd)/data/kmip-certs/client-ec.pem"
+
+if [ "Windows_NT" = "$OS" ]; then
+  CSFLE_TLS_CA_FILE=$(cygpath -m $CSFLE_TLS_CA_FILE)
+  CSFLE_TLS_CERTIFICATE_KEY_FILE=$(cygpath -m $CSFLE_TLS_CERTIFICATE_KEY_FILE)
+fi
+
 AUTH=${AUTH} \
 SSL=${SSL} \
 MONGO_GO_DRIVER_CA_FILE=${MONGO_GO_DRIVER_CA_FILE} \
@@ -117,8 +125,8 @@ AZURE_CLIENT_ID="${cse_azure_client_id}" \
 AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
 GCP_EMAIL="${cse_gcp_email}" \
 GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
-CSFLE_TLS_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem" \
-CSFLE_TLS_CERTIFICATE_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem" \
+CSFLE_TLS_CA_FILE="$CSFLE_TLS_CA_FILE" \
+CSFLE_TLS_CERTIFICATE_KEY_FILE="$CSFLE_TLS_CERTIFICATE_KEY_FILE" \
 CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH \
 make evg-test \
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH \

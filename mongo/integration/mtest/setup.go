@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,7 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -57,7 +57,7 @@ var testContext struct {
 	serverless                  bool
 }
 
-func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
+func setupClient(opts *options.ClientOptions) (*mongo.Client, error) {
 	wcMajority := writeconcern.New(writeconcern.WMajority())
 	// set ServerAPIOptions to latest version if required
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
@@ -65,53 +65,45 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 	}
 	// for sharded clusters, pin to one host. Due to how the cache is implemented on 4.0 and 4.2, behavior
 	// can be inconsistent when multiple mongoses are used
-	return mongo.Connect(context.Background(), opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority).SetHosts(cs.Hosts[:1]))
+	return mongo.Connect(context.Background(), opts.SetWriteConcern(wcMajority).SetHosts(opts.Hosts[:1]))
 }
 
 // Setup initializes the current testing context.
 // This function must only be called one time and must be called before any tests run.
 func Setup(setupOpts ...*SetupOptions) error {
 	opts := MergeSetupOptions(setupOpts...)
+
+	var uri string
 	var err error
 
 	switch {
 	case opts.URI != nil:
-		testContext.connString, err = connstring.ParseAndValidate(*opts.URI)
+		uri = *opts.URI
 	default:
-		testContext.connString, err = getClusterConnString()
+		var err error
+		uri, err = testutil.MongoDBURI()
+		if err != nil {
+			return fmt.Errorf("error getting uri: %v", err)
+		}
 	}
+
+	testContext.connString, err = connstring.ParseAndValidate(uri)
 	if err != nil {
-		return fmt.Errorf("error getting connection string: %v", err)
+		return fmt.Errorf("error parsing and validating connstring: %v", err)
 	}
+
 	testContext.dataLake = os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") == "true"
 	testContext.requireAPIVersion = os.Getenv("REQUIRE_API_VERSION") == "true"
 
-	connectionOpts := []topology.ConnectionOption{
-		topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache {
-			return ocsp.NewCache()
-		}),
-	}
-	serverOpts := []topology.ServerOption{
-		topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-			return append(opts, connectionOpts...)
-		}),
-	}
-	if testContext.requireAPIVersion {
-		serverOpts = append(serverOpts,
-			topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
-				return driver.NewServerAPIOptions(driver.TestServerAPIVersion)
-			}),
-		)
+	clientOpts := options.Client().ApplyURI(uri)
+	testutil.AddTestServerAPIVersion(clientOpts)
+
+	cfg, err := topology.NewConfig(clientOpts, nil)
+	if err != nil {
+		return fmt.Errorf("error constructing topology config: %v", err)
 	}
 
-	testContext.topo, err = topology.New(
-		topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
-			return testContext.connString
-		}),
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(opts, serverOpts...)
-		}),
-	)
+	testContext.topo, err = topology.New(cfg)
 	if err != nil {
 		return fmt.Errorf("error creating topology: %v", err)
 	}
@@ -119,7 +111,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		return fmt.Errorf("error connecting topology: %v", err)
 	}
 
-	testContext.client, err = setupClient(testContext.connString, options.Client())
+	testContext.client, err = setupClient(options.Client().ApplyURI(uri))
 	if err != nil {
 		return fmt.Errorf("error connecting test client: %v", err)
 	}
@@ -336,19 +328,6 @@ func addServerlessAuthCredentials(uri string) (string, error) {
 
 	uri = scheme + user + ":" + password + "@" + uri[len(scheme):]
 	return uri, nil
-}
-
-// getClusterConnString gets the globally configured connection string.
-func getClusterConnString() (connstring.ConnString, error) {
-	uri := os.Getenv("MONGODB_URI")
-	if uri == "" {
-		uri = "mongodb://localhost:27017"
-	}
-	uri, err := addNecessaryParamsToURI(uri)
-	if err != nil {
-		return connstring.ConnString{}, err
-	}
-	return connstring.ParseAndValidate(uri)
 }
 
 func addNecessaryParamsToURI(uri string) (string, error) {

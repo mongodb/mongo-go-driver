@@ -16,6 +16,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
+// TODO(GODRIVER-2527): convert to a Go doc example.
+
 func main() {
 	s, err := topology.ConnectServer(
 		address.Address("localhost:27017"),
