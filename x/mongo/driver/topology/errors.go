@@ -78,10 +78,12 @@ type WaitQueueTimeoutError struct {
 
 // Error implements the error interface.
 func (w WaitQueueTimeoutError) Error() string {
+	defaultErrorMsg := "timed out while checking out a connection from connection pool"
+
 	var errorMsg string
 	switch w.Wrapped {
 	case nil:
-		errorMsg = "timed out while checking out a connection from connection pool"
+		errorMsg = defaultErrorMsg
 	case context.Canceled:
 		errorMsg = fmt.Sprintf(
 			"%s: %s",
@@ -91,7 +93,7 @@ func (w WaitQueueTimeoutError) Error() string {
 	default:
 		errorMsg = fmt.Sprintf(
 			"%s: %s",
-			"timed out while checking out a connection from connection pool",
+			defaultErrorMsg,
 			w.Wrapped.Error(),
 		)
 	}
