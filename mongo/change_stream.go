@@ -333,6 +333,9 @@ ExecuteLoop:
 
 			// Reset deployment.
 			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
+		default:
+			// Do not retry if error is not a driver error.
+			break ExecuteLoop
 		}
 	}
 	if err != nil {
