@@ -296,7 +296,7 @@ func selectByTagSet(candidates []Server, tagSets []tag.Set) []Server {
 }
 
 func selectByKind(candidates []Server, kind ServerKind) []Server {
-	// Record the indices of viable candidates first and then appending those to the returned slice
+	// Record the indices of viable candidates first and then append those to the returned slice
 	// to avoid appending costly Server structs directly as an optimization.
 	viableIndexes := make([]int, 0, len(candidates))
 	for i, s := range candidates {
