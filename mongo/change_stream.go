@@ -295,19 +295,19 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	}
 
 	var err error
-ExecuteLoop:
+AggregateExecuteLoop:
 	for {
 		err = cs.aggregate.Execute(ctx)
 		// If no error or no retries remain, do not retry.
 		if err == nil || retries == 0 {
-			break ExecuteLoop
+			break AggregateExecuteLoop
 		}
 
 		switch tt := err.(type) {
 		case driver.Error:
 			// If error is not retryable, do not retry.
 			if !tt.RetryableRead() {
-				break ExecuteLoop
+				break AggregateExecuteLoop
 			}
 
 			// If error is retryable: subtract 1 from retries, redo server selection, checkout
@@ -315,27 +315,27 @@ ExecuteLoop:
 			retries--
 			server, err = cs.client.deployment.SelectServer(ctx, cs.selector)
 			if err != nil {
-				break ExecuteLoop
+				break AggregateExecuteLoop
 			}
 
 			conn.Close()
 			conn, err = server.Connection(ctx)
 			if err != nil {
-				break ExecuteLoop
+				break AggregateExecuteLoop
 			}
 			defer conn.Close()
 
 			// If wire version is now < 6, do not retry.
 			cs.wireVersion = conn.Description().WireVersion
 			if cs.wireVersion == nil || cs.wireVersion.Max < 6 {
-				break ExecuteLoop
+				break AggregateExecuteLoop
 			}
 
 			// Reset deployment.
 			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
 		default:
 			// Do not retry if error is not a driver error.
-			break ExecuteLoop
+			break AggregateExecuteLoop
 		}
 	}
 	if err != nil {
