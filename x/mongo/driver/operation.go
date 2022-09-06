@@ -348,9 +348,8 @@ func (op Operation) Execute(ctx context.Context) error {
 	}
 
 	// Use RetryContext (retry indefinitely until context errors) if context is a Timeout context and
-	// RetryMode is not already RetryChangeStream (change streams handle their own retryability when
-	// the context is a Timeout context).
-	if internal.IsTimeoutContext(ctx) && (op.RetryMode == nil || *op.RetryMode != RetryChangeStream) {
+	// RetryMode is not already set.
+	if internal.IsTimeoutContext(ctx) && op.RetryMode == nil {
 		rm := RetryContext
 		op.RetryMode = &rm
 	}

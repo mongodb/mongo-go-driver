@@ -264,9 +264,6 @@ const (
 	// RetryContext will enable retrying until the context.Context's deadline is exceeded or it is
 	// cancelled.
 	RetryContext
-	// RetryChangeStream is a special retry mode used only to let ChangeStream.executeOperation
-	// handle its own retry logic. It is otherwise equivalent to RetryNone.
-	RetryChangeStream
 )
 
 // Enabled returns if this RetryMode enables retrying.
