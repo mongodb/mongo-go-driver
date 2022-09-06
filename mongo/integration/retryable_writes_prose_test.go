@@ -218,22 +218,14 @@ func TestRetryableWritesProse(t *testing.T) {
 		}
 	})
 
-	nwpCommandMonitor := new(event.CommandMonitor)
-	nwpClientOpts := options.Client().SetMonitor(nwpCommandMonitor).SetRetryWrites(true)
-
-	mtNWPOpts := mtest.NewOptions().ClientOptions(nwpClientOpts).MinServerVersion("6.0").
-		Topologies(mtest.ReplicaSet)
-
+	mtNWPOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet)
 	mt.RunOpts(fmt.Sprintf("%s label returns original error", driver.NoWritesPerformed), mtNWPOpts,
 		func(mt *mtest.T) {
 			const shutdownInProgressErrorCode int32 = 91
 			const notWritablePrimaryErrorCode int32 = 10107
 
-			// Disable any enabled fail points on exit.
-			defer mt.SetFailPoint(mtest.FailPoint{
-				ConfigureFailPoint: "failCommand",
-				Mode:               "off",
-			})
+			monitor := new(event.CommandMonitor)
+			mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
 
 			// Configure a fail point for a "ShutdownInProgress" error.
 			mt.SetFailPoint(mtest.FailPoint{
@@ -241,8 +233,7 @@ func TestRetryableWritesProse(t *testing.T) {
 				Mode:               mtest.FailPointMode{Times: 1},
 				Data: mtest.FailPointData{
 					WriteConcernError: &mtest.WriteConcernErrorData{
-						Code:        shutdownInProgressErrorCode,
-						ErrorLabels: &[]string{driver.RetryableWriteError},
+						Code: shutdownInProgressErrorCode,
 					},
 					FailCommands: []string{"insert"},
 				},
@@ -252,12 +243,17 @@ func TestRetryableWritesProse(t *testing.T) {
 			// shutdownInProgressErrorCode actually configures the "NoWritablePrimary" fail command.
 			var secondFailPointConfigured bool
 
-			// Set a command monitor on the client that configures a failpoint with a "ShutdownInProgress"
-			// label for a "NoWritablePrimary" error.
-			nwpCommandMonitor.Succeeded = func(_ context.Context, evt *event.CommandSucceededEvent) {
+			//Set a command monitor on the client that configures a failpoint with a "NoWritesPerformed"
+			monitor.Succeeded = func(_ context.Context, evt *event.CommandSucceededEvent) {
 				var errorCode int32
 				if wce := evt.Reply.Lookup("writeConcernError"); wce.Type == bsontype.EmbeddedDocument {
-					errorCode = wce.Document().Lookup("code").Int32()
+					var ok bool
+					errorCode, ok = wce.Document().Lookup("code").Int32OK()
+					if !ok {
+						t.Fatalf("expected code to be an int32, got %v",
+							wce.Document().Lookup("code").Type)
+						return
+					}
 				}
 
 				// Do not set a fail point if event was not a writeConcernError with an error code for
@@ -270,18 +266,15 @@ func TestRetryableWritesProse(t *testing.T) {
 					ConfigureFailPoint: "failCommand",
 					Mode:               mtest.FailPointMode{Times: 1},
 					Data: mtest.FailPointData{
-						ErrorCode: notWritablePrimaryErrorCode,
-						ErrorLabels: &[]string{
-							driver.NoWritesPerformed,
-							driver.RetryableWriteError,
-						},
+						ErrorCode:    notWritablePrimaryErrorCode,
+						ErrorLabels:  &[]string{driver.NoWritesPerformed},
 						FailCommands: []string{"insert"},
 					},
 				})
 				secondFailPointConfigured = true
 			}
 
-			// Attempt to insert a record to any collection on any database using "InsertOne".
+			// Attempt to insert a document.
 			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 
 			require.True(mt, secondFailPointConfigured)

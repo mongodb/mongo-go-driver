@@ -58,6 +58,11 @@ type RetryablePoolError interface {
 	Retryable() bool
 }
 
+// NoWritesPerofmedError is returned when a write command is executed and no writes were performed.
+type NoWritesPerformedError interface {
+	HasErrorLabel(string) bool
+}
+
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
 // from an instance of Operation.
 type InvalidOperationError struct{ MissingField string }
@@ -377,9 +382,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// Set the previous indefinite error to be returned in any case where the the error does not have a
 		// NoWritesPerfomed label (the definite case).
 		switch err := err.(type) {
-		case WriteCommandError:
+		case NoWritesPerformedError:
 			if !err.HasErrorLabel(NoWritesPerformed) {
-				prevIndefiniteErr = err
+				prevIndefiniteErr = err.(error)
 			}
 		}
 
@@ -605,6 +610,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				continue
 			}
 
+			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
+			// return the previousIndefiniteErr.
+			if tt.HasErrorLabel(NoWritesPerformed) {
+				return prevIndefiniteErr
+			}
+
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
 				info := ResponseInfo{
@@ -692,6 +703,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				continue
 			}
 
+			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
+			// return the previousIndefiniteErr.
+			if tt.HasErrorLabel(NoWritesPerformed) {
+				return prevIndefiniteErr
+			}
+
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
 				info := ResponseInfo{
@@ -709,9 +726,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
 			}
 
-			if tt.HasErrorLabel(NoWritesPerformed) {
-				return prevIndefiniteErr
-			}
 			return tt
 		case nil:
 			if moreToCome {
