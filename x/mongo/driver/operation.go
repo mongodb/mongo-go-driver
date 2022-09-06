@@ -725,7 +725,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				// If we got a retryable error or MaxTimeMSExpired error, we add UnknownTransactionCommitResult.
 				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
 			}
-
 			return tt
 		case nil:
 			if moreToCome {
