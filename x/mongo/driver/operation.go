@@ -58,8 +58,8 @@ type RetryablePoolError interface {
 	Retryable() bool
 }
 
-// NoWritesPerofmedError is returned when a write command is executed and no writes were performed.
-type NoWritesPerformedError interface {
+// LabelledError is an error that can have error labels added to it.
+type LabelledError interface {
 	HasErrorLabel(string) bool
 }
 
@@ -382,7 +382,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// Set the previous indefinite error to be returned in any case where the the error does not have a
 		// NoWritesPerfomed label (the definite case).
 		switch err := err.(type) {
-		case NoWritesPerformedError:
+		case LabelledError:
 			if !err.HasErrorLabel(NoWritesPerformed) && err.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err.(error)
 			}
