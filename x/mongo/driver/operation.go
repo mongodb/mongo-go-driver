@@ -383,7 +383,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// NoWritesPerfomed label (the definite case).
 		switch err := err.(type) {
 		case NoWritesPerformedError:
-			if !err.HasErrorLabel(NoWritesPerformed) {
+			if !err.HasErrorLabel(NoWritesPerformed) && err.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err.(error)
 			}
 		}
