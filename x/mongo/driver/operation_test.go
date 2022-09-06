@@ -605,6 +605,48 @@ func TestOperation(t *testing.T) {
 		assert.Nil(t, err, "ExecuteExhaust error: %v", err)
 		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 	})
+	t.Run("context deadline exceeded not marked as TransientTransactionError", func(t *testing.T) {
+		conn := new(mockConnection)
+		// Create a context that's already timed out.
+		ctx, cancel := context.WithDeadline(context.Background(), time.Unix(893934480, 0))
+		defer cancel()
+
+		op := Operation{
+			Database:   "foobar",
+			Deployment: SingleConnectionDeployment{C: conn},
+			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
+				return dst, nil
+			},
+		}
+
+		err := op.Execute(ctx, nil)
+		assert.NotNil(t, err, "expected an error from Execute(), got nil")
+		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
+		// with the TransientTransactionError label.
+		assert.Equal(t, err, context.DeadlineExceeded, "expected context.DeadlineExceeded error, got %v", err)
+	})
+	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
+		conn := new(mockConnection)
+		// Create a context and cancel it immediately.
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		op := Operation{
+			Database:   "foobar",
+			Deployment: SingleConnectionDeployment{C: conn},
+			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
+				return dst, nil
+			},
+		}
+
+		err := op.Execute(ctx, nil)
+		assert.NotNil(t, err, "expected an error from Execute(), got nil")
+		// Assert that error is just context canceled and is therefore not a driver.Error marked with
+		// the TransientTransactionError label.
+		assert.Equal(t, err, context.Canceled, "expected context.Canceled error, got %v", err)
+	})
 }
 
 func createExhaustServerResponse(response bsoncore.Document, moreToCome bool) []byte {

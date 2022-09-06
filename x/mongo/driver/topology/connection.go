@@ -331,11 +331,6 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	if atomic.LoadInt64(&c.state) != connConnected {
 		return ConnectionError{ConnectionID: c.id, message: "connection is closed"}
 	}
-	select {
-	case <-ctx.Done():
-		return ConnectionError{ConnectionID: c.id, Wrapped: ctx.Err(), message: "failed to write"}
-	default:
-	}
 
 	var deadline time.Time
 	if c.writeTimeout != 0 {
@@ -386,14 +381,6 @@ func (c *connection) write(ctx context.Context, wm []byte) (err error) {
 func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
 	if atomic.LoadInt64(&c.state) != connConnected {
 		return dst, ConnectionError{ConnectionID: c.id, message: "connection is closed"}
-	}
-
-	select {
-	case <-ctx.Done():
-		// We closeConnection the connection because we don't know if there is an unread message on the wire.
-		c.close()
-		return nil, ConnectionError{ConnectionID: c.id, Wrapped: ctx.Err(), message: "failed to read"}
-	default:
 	}
 
 	var deadline time.Time

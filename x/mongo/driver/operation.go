@@ -529,15 +529,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			serviceID:    startedInfo.serviceID,
 		}
 
-		// Check if there's enough time to perform a round trip before the Context deadline. If ctx is
-		// a Timeout Context, use the 90th percentile RTT as a threshold. Otherwise, use the minimum observed
-		// RTT.
-		if deadline, ok := ctx.Deadline(); ok {
+		// Check for possible context error. If no context error, check if there's enough time to perform a
+		// round trip before the Context deadline. If ctx is a Timeout Context, use the 90th percentile RTT
+		// as a threshold. Otherwise, use the minimum observed RTT.
+		if ctx.Err() != nil {
+			err = ctx.Err()
+		} else if deadline, ok := ctx.Deadline(); ok {
 			if internal.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTT90()).After(deadline) {
 				err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
 					"Remaining timeout %v applied from Timeout is less than 90th percentile RTT", time.Until(deadline))
 			} else if time.Now().Add(srvr.MinRTT()).After(deadline) {
-				err = op.networkError(context.DeadlineExceeded)
+				err = context.DeadlineExceeded
 			}
 		}
 

@@ -200,10 +200,6 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 			default:
 			}
 
-			// End if context has timed out or been canceled, as retrying has no chance of success.
-			if ctx.Err() != nil {
-				return res, err
-			}
 			if errorHasLabel(err, driver.TransientTransactionError) {
 				continue
 			}
@@ -218,10 +214,9 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 	CommitLoop:
 		for {
 			err = s.CommitTransaction(ctx)
-			// End when error is nil (transaction has been committed), or when context has timed out or been
-			// canceled, as retrying has no chance of success.
-			if err == nil || ctx.Err() != nil {
-				return res, err
+			// End when error is nil, as transaction has been committed.
+			if err == nil {
+				return res, nil
 			}
 
 			select {
