@@ -266,8 +266,11 @@ func TestRetryableWritesProse(t *testing.T) {
 					ConfigureFailPoint: "failCommand",
 					Mode:               mtest.FailPointMode{Times: 1},
 					Data: mtest.FailPointData{
-						ErrorCode:    notWritablePrimaryErrorCode,
-						ErrorLabels:  &[]string{driver.NoWritesPerformed},
+						ErrorCode: notWritablePrimaryErrorCode,
+						ErrorLabels: &[]string{
+							driver.NoWritesPerformed,
+							driver.RetryableWriteError,
+						},
 						FailCommands: []string{"insert"},
 					},
 				})
