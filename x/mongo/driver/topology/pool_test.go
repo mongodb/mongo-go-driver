@@ -646,7 +646,7 @@ func TestPool(t *testing.T) {
 			assert.IsTypef(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueTimeoutError")
 			if err, ok := err.(WaitQueueTimeoutError); ok {
 				assert.Equalf(t, context.DeadlineExceeded, err.Unwrap(), "expected wrapped error to be a context.Timeout")
-				assert.Containsf(t, err.Error(), "timed out", "expected error to contain string")
+				assert.Containsf(t, err.Error(), "timed out", `expected error message to contain "timed out"`)
 			}
 
 			p.close(context.Background())
@@ -777,7 +777,7 @@ func TestPool(t *testing.T) {
 
 			p.close(context.Background())
 		})
-		t.Run("cancel wait queue", func(t *testing.T) {
+		t.Run("canceled context in wait queue", func(t *testing.T) {
 			t.Parallel()
 
 			cleanup := make(chan struct{})
@@ -794,24 +794,21 @@ func TestPool(t *testing.T) {
 			err := p.ready()
 			noerr(t, err)
 
-			// check out first connection.
+			// Check out first connection.
 			_, err = p.checkOut(context.Background())
 			noerr(t, err)
 
-			// Set a short timeout and check out again.
+			// Use a canceled context to check out another connection.
 			cancelCtx, cancel := context.WithCancel(context.Background())
-			go func() {
-				time.Sleep(100 * time.Millisecond)
-				cancel()
-			}()
+			cancel()
 			_, err = p.checkOut(cancelCtx)
-			assert.NotNilf(t, err, "expected a WaitQueueCancel error")
+			assert.NotNilf(t, err, "expected a non-nil error")
 
 			// Assert that error received is WaitQueueTimeoutError with context canceled.
-			assert.IsTypef(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueCancelError")
+			assert.IsTypef(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueTimeoutError")
 			if err, ok := err.(WaitQueueTimeoutError); ok {
 				assert.Equalf(t, context.Canceled, err.Unwrap(), "expected wrapped error to be a context.Canceled")
-				assert.Containsf(t, err.Error(), "canceled", "expected error to contain string")
+				assert.Containsf(t, err.Error(), "canceled", `expected error message to contain "canceled"`)
 			}
 
 			p.close(context.Background())
