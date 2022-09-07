@@ -13,7 +13,7 @@ var Driver = "v1.11.0-prerelease"
 // MinSupportedWire is the minimum wire version supported by the driver.
 var MinSupportedWire int32 = 6
 
-// MinSupportedWire is the maximum wire version supported by the driver.
+// MaxSupportedWire is the maximum wire version supported by the driver.
 var MaxSupportedWire int32 = 17
 
 // MinSupportedMongoDB is the version string for the lowest MongoDB version supported by the driver.
