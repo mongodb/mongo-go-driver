@@ -28,6 +28,13 @@ func TestString(t *testing.T) {
 	require.Contains(t, id.String(), id.Hex())
 }
 
+func BenchmarkHex(b *testing.B) {
+	id := NewObjectID()
+	for i := 0; i < b.N; i++ {
+		id.Hex()
+	}
+}
+
 func TestFromHex_RoundTrip(t *testing.T) {
 	before := NewObjectID()
 	after, err := ObjectIDFromHex(before.Hex())
