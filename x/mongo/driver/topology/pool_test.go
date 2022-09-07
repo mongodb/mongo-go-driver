@@ -645,6 +645,7 @@ func TestPool(t *testing.T) {
 			assert.IsTypef(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueTimeoutError")
 			if err, ok := err.(WaitQueueTimeoutError); ok {
 				assert.Equalf(t, context.DeadlineExceeded, err.Unwrap(), "expected wrapped error to be a context.Timeout")
+				assert.Containsf(t, err.Error(), "timed out", `expected error message to contain "timed out"`)
 			}
 
 			p.close(context.Background())
@@ -772,6 +773,42 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 3, d.lenopened(), "should have opened 3 connection")
 			assert.Equalf(t, 2, p.totalConnectionCount(), "pool should have 2 total connection")
 			assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 idle connection")
+
+			p.close(context.Background())
+		})
+		t.Run("canceled context in wait queue", func(t *testing.T) {
+			t.Parallel()
+
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+				<-cleanup
+				_ = nc.Close()
+			})
+
+			p := newPool(poolConfig{
+				Address:     address.Address(addr.String()),
+				MaxPoolSize: 1,
+			})
+			err := p.ready()
+			noerr(t, err)
+
+			// Check out first connection.
+			_, err = p.checkOut(context.Background())
+			noerr(t, err)
+
+			// Use a canceled context to check out another connection.
+			cancelCtx, cancel := context.WithCancel(context.Background())
+			cancel()
+			_, err = p.checkOut(cancelCtx)
+			assert.NotNilf(t, err, "expected a non-nil error")
+
+			// Assert that error received is WaitQueueTimeoutError with context canceled.
+			assert.IsTypef(t, WaitQueueTimeoutError{}, err, "expected a WaitQueueTimeoutError")
+			if err, ok := err.(WaitQueueTimeoutError); ok {
+				assert.Equalf(t, context.Canceled, err.Unwrap(), "expected wrapped error to be a context.Canceled")
+				assert.Containsf(t, err.Error(), "canceled", `expected error message to contain "canceled"`)
+			}
 
 			p.close(context.Background())
 		})
