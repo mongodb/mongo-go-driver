@@ -305,7 +305,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 		Legacy:         LegacyKillCursors,
 		CommandMonitor: bc.cmdMonitor,
 		ServerAPI:      bc.serverAPI,
-	}.Execute(ctx, nil)
+	}.Execute(ctx)
 }
 
 func (bc *BatchCursor) getMore(ctx context.Context) {
@@ -384,7 +384,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		CommandMonitor: bc.cmdMonitor,
 		Crypt:          bc.crypt,
 		ServerAPI:      bc.serverAPI,
-	}.Execute(ctx, nil)
+	}.Execute(ctx)
 
 	// Once the cursor has been drained, we can unpin the connection if one is currently pinned.
 	if bc.id == 0 {

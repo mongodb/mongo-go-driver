@@ -207,7 +207,7 @@ func TestOperation(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				gotWM, gotErr := Operation{}.roundTrip(context.Background(), tc.conn, tc.paramWM)
+				gotWM, _, gotErr := Operation{}.roundTrip(context.Background(), tc.conn, tc.paramWM)
 				if !bytes.Equal(gotWM, tc.wantWM) {
 					t.Errorf("Returned wire messages are not equal. got %v; want %v", gotWM, tc.wantWM)
 				}
@@ -620,7 +620,7 @@ func TestOperation(t *testing.T) {
 			conn := &mockConnection{
 				rStreaming: false,
 			}
-			err := Operation{}.ExecuteExhaust(context.TODO(), conn, nil)
+			err := Operation{}.ExecuteExhaust(context.TODO(), conn)
 			assert.NotNil(t, err, "expected error, got nil")
 		})
 	})
@@ -651,7 +651,7 @@ func TestOperation(t *testing.T) {
 			Database:   "admin",
 			Deployment: SingleConnectionDeployment{conn},
 		}
-		err := op.Execute(context.TODO(), nil)
+		err := op.Execute(context.TODO())
 		assert.Nil(t, err, "Execute error: %v", err)
 
 		// The wire message sent to the server should not have exhaustAllowed=true. After execution, the connection
@@ -663,7 +663,7 @@ func TestOperation(t *testing.T) {
 		streamingResponse := createExhaustServerResponse(serverResponseDoc, true)
 		conn.rReadWM = streamingResponse
 		conn.rCanStream = true
-		err = op.Execute(context.TODO(), nil)
+		err = op.Execute(context.TODO())
 		assert.Nil(t, err, "Execute error: %v", err)
 		assertExhaustAllowedSet(t, conn.pWriteWM, true)
 		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
@@ -671,7 +671,7 @@ func TestOperation(t *testing.T) {
 		// Reset the server response and go through ExecuteExhaust to mimic streaming the next response. After
 		// execution, the connection should still be in a streaming state.
 		conn.rReadWM = streamingResponse
-		err = op.ExecuteExhaust(context.TODO(), conn, nil)
+		err = op.ExecuteExhaust(context.TODO(), conn)
 		assert.Nil(t, err, "ExecuteExhaust error: %v", err)
 		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 	})
@@ -690,7 +690,7 @@ func TestOperation(t *testing.T) {
 			},
 		}
 
-		err := op.Execute(ctx, nil)
+		err := op.Execute(ctx)
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
 		// with the TransientTransactionError label.
@@ -711,7 +711,7 @@ func TestOperation(t *testing.T) {
 			},
 		}
 
-		err := op.Execute(ctx, nil)
+		err := op.Execute(ctx)
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context canceled and is therefore not a driver.Error marked with
 		// the TransientTransactionError label.
@@ -856,7 +856,7 @@ func TestRetry(t *testing.T) {
 			Database:   "testing",
 			RetryMode:  &retry,
 			Type:       Read,
-		}.Execute(ctx, nil)
+		}.Execute(ctx)
 		assert.NotNil(t, err, "expected an error from Execute()")
 
 		// Expect Connection() to be called at least 3 times. The first call is the initial attempt
