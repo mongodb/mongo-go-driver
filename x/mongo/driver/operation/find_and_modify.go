@@ -305,7 +305,6 @@ func (fam *FindAndModify) Remove(remove bool) *FindAndModify {
 }
 
 // Sort determines which document the operation modifies if the query matches multiple documents.The first document matched by the sort order will be modified.
-//
 func (fam *FindAndModify) Sort(sort bsoncore.Document) *FindAndModify {
 	if fam == nil {
 		fam = new(FindAndModify)

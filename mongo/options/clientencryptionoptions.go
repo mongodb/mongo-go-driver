@@ -56,12 +56,12 @@ func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *
 // to the KMS provider. The input map should contain a mapping from each KMS provider to a document containing the necessary
 // options, as follows:
 //
-// {
-//		"kmip": {
-//			"tlsCertificateKeyFile": "foo.pem",
-// 			"tlsCAFile": "fooCA.pem"
-//		}
-// }
+//	{
+//			"kmip": {
+//				"tlsCertificateKeyFile": "foo.pem",
+//				"tlsCAFile": "fooCA.pem"
+//			}
+//	}
 //
 // Currently, the following TLS options are supported:
 //
