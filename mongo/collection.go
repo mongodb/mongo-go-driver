@@ -483,7 +483,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	}
 
 	// deleteMany cannot be retried
-	retryMode := driver.RetryNone
+	retryMode := driver.RetryNever
 	if deleteOne && coll.client.retryWrites {
 		retryMode = driver.RetryOncePerCommand
 	}
@@ -594,7 +594,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		}
 		op = op.Comment(comment)
 	}
-	retry := driver.RetryNone
+	retry := driver.RetryNever
 	// retryable writes are only enabled updateOne/replaceOne operations
 	if !multi && coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
