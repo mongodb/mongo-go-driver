@@ -112,7 +112,6 @@ func (di *DropIndexes) command(dst []byte, desc description.SelectedServer) ([]b
 }
 
 // Index specifies the name of the index to drop. If '*' is specified, all indexes will be dropped.
-//
 func (di *DropIndexes) Index(index string) *DropIndexes {
 	if di == nil {
 		di = new(DropIndexes)

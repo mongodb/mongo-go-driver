@@ -32,7 +32,7 @@ func RolledUpErrorMessage(err error) string {
 	return err.Error()
 }
 
-//UnwrapError attempts to unwrap the error down to its root cause.
+// UnwrapError attempts to unwrap the error down to its root cause.
 func UnwrapError(err error) error {
 
 	switch tErr := err.(type) {
