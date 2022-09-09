@@ -135,7 +135,6 @@ func (ci *CreateIndexes) command(dst []byte, desc description.SelectedServer) ([
 
 // The number of data-bearing members of a replica set, including the primary, that must complete the index builds
 // successfully before the primary marks the indexes as ready. This should either be a string or int32 value.
-//
 func (ci *CreateIndexes) CommitQuorum(commitQuorum bsoncore.Value) *CreateIndexes {
 	if ci == nil {
 		ci = new(CreateIndexes)
