@@ -29,12 +29,11 @@ import (
 //
 // For example:
 //
-//     type MyString string
+//	type MyString string
 //
-//     func (s *MyString) SetBSON(raw bson.RawValue) error {
-//         return raw.Unmarshal(s)
-//     }
-//
+//	func (s *MyString) SetBSON(raw bson.RawValue) error {
+//	    return raw.Unmarshal(s)
+//	}
 type Setter interface {
 	SetBSON(raw bson.RawValue) error
 }

@@ -65,11 +65,10 @@ func (me MarshalError) Error() string {
 //
 // Example usage:
 //
-//		mongo.Pipeline{
-//			{{"$group", bson.D{{"_id", "$state"}, {"totalPop", bson.D{{"$sum", "$pop"}}}}}},
-//			{{"$match", bson.D{{"totalPop", bson.D{{"$gte", 10*1000*1000}}}}}},
-//		}
-//
+//	mongo.Pipeline{
+//		{{"$group", bson.D{{"_id", "$state"}, {"totalPop", bson.D{{"$sum", "$pop"}}}}}},
+//		{{"$match", bson.D{{"totalPop", bson.D{{"$gte", 10*1000*1000}}}}}},
+//	}
 type Pipeline []bson.D
 
 // transformAndEnsureID is a hack that makes it easy to get a RawValue as the _id value.

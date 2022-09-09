@@ -745,7 +745,7 @@ func (db *Database) createCollectionOperation(name string, opts ...*options.Crea
 //
 // The viewName parameter specifies the name of the view to create.
 //
-// The viewOn parameter specifies the name of the collection or view on which this view will be created
+// # The viewOn parameter specifies the name of the collection or view on which this view will be created
 //
 // The pipeline parameter specifies an aggregation pipeline that will be exececuted against the source collection or
 // view to create this view.

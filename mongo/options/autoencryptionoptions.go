@@ -94,7 +94,7 @@ func (a *AutoEncryptionOptions) SetBypassAutoEncryption(bypass bool) *AutoEncryp
 
 // SetExtraOptions specifies a map of options to configure the mongocryptd process or mongo_crypt shared library.
 //
-// Supported Extra Options
+// # Supported Extra Options
 //
 // "mongocryptdURI" - The mongocryptd URI. Allows setting a custom URI used to communicate with the
 // mongocryptd process. The default is "mongodb://localhost:27020", which works with the default
