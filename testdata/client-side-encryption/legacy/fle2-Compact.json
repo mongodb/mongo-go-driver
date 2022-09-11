@@ -2,9 +2,10 @@
   "runOn": [
     {
       "minServerVersion": "6.0.0",
-      "topologies": [
+      "topology": [
         "replicaset",
-        "sharded"
+        "sharded",
+        "load-balanced"
       ]
     }
   ],
