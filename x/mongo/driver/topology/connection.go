@@ -406,7 +406,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 		if err == io.EOF {
 			message = "socket was unexpectedly closed"
 		}
-		return nil, ConnectionError{
+		return dst, ConnectionError{
 			ConnectionID: c.id,
 			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),
 			message:      message,
@@ -438,7 +438,7 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 	// reading messages from an exhaust cursor.
 	_, err = io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
-		return nil, "incomplete read of message header", err
+		return dst, "incomplete read of message header", err
 	}
 
 	// read the length as an int32
@@ -451,7 +451,7 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 		maxMessageSize = defaultMaxMessageSize
 	}
 	if uint32(size) > maxMessageSize {
-		return nil, errResponseTooLarge.Error(), errResponseTooLarge
+		return dst, errResponseTooLarge.Error(), errResponseTooLarge
 	}
 
 	if int(size) > cap(dst) {
@@ -465,7 +465,7 @@ func (c *connection) read(ctx context.Context, dst []byte) (bytesRead []byte, er
 
 	_, err = io.ReadFull(c.nc, dst[4:])
 	if err != nil {
-		return nil, "incomplete read of full message", err
+		return dst, "incomplete read of full message", err
 	}
 
 	return dst, "", nil
@@ -625,9 +625,6 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 		return dst, ErrConnectionClosed
 	}
 	if c.connection.compressor == wiremessage.CompressorNoOp {
-		if len(dst) == 0 {
-			return src, nil
-		}
 		return append(dst, src...), nil
 	}
 	_, reqid, respto, origcode, rem, ok := wiremessage.ReadHeader(src)

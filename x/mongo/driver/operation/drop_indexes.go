@@ -99,7 +99,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		WriteConcern:      di.writeConcern,
 		ServerAPI:         di.serverAPI,
 		Timeout:           di.timeout,
-	}.Execute(ctx, nil)
+	}.Execute(ctx)
 
 }
 
@@ -112,7 +112,6 @@ func (di *DropIndexes) command(dst []byte, desc description.SelectedServer) ([]b
 }
 
 // Index specifies the name of the index to drop. If '*' is specified, all indexes will be dropped.
-//
 func (di *DropIndexes) Index(index string) *DropIndexes {
 	if di == nil {
 		di = new(DropIndexes)
