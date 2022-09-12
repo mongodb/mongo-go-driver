@@ -379,7 +379,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		retries--
 		prevErr = err
 
-		// Set the previous indefinite error to be returned in any case where the the error does not have a
+		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
 		// NoWritesPerfomed label (the definite case).
 		switch err := err.(type) {
 		case LabelledError:
