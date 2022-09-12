@@ -15,7 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 )
@@ -28,7 +27,7 @@ var (
 		bsoncore.AppendInt32Element(nil, "maxBsonObjectSize", 16777216),
 		bsoncore.AppendInt32Element(nil, "maxMessageSizeBytes", 48000000),
 		bsoncore.AppendInt32Element(nil, "minWireVersion", 0),
-		bsoncore.AppendInt32Element(nil, "maxWireVersion", version.MinSupportedWire),
+		bsoncore.AppendInt32Element(nil, "maxWireVersion", internal.MinSupportedWire),
 	}
 	// The first payload sent by the driver for SCRAM-SHA-1/256 authentication.
 	firstScramSha1ClientPayload   = []byte("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")

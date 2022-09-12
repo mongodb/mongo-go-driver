@@ -12,14 +12,14 @@ import (
 	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/version"
 )
 
 var (
 	// SupportedWireVersions is the range of wire versions supported by the driver.
-	SupportedWireVersions = description.NewVersionRange(version.MinSupportedWire, version.MaxSupportedWire)
+	SupportedWireVersions = description.NewVersionRange(internal.MinSupportedWire, internal.MaxSupportedWire)
 )
 
 type fsm struct {
@@ -100,7 +100,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					server.Addr.String(),
 					server.WireVersion.Max,
 					SupportedWireVersions.Min,
-					version.MinSupportedMongoDB,
+					internal.MinSupportedMongoDB,
 				)
 				f.Topology.CompatibilityErr = f.compatibilityErr
 				return f.Topology, s

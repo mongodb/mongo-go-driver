@@ -9,12 +9,3 @@ package version // import "go.mongodb.org/mongo-driver/version"
 
 // Driver is the current version of the driver.
 var Driver = "v1.11.0-prerelease"
-
-// MinSupportedWire is the minimum wire version supported by the driver.
-var MinSupportedWire int32 = 6
-
-// MaxSupportedWire is the maximum wire version supported by the driver.
-var MaxSupportedWire int32 = 17
-
-// MinSupportedMongoDB is the version string for the lowest MongoDB version supported by the driver.
-var MinSupportedMongoDB = "3.6"

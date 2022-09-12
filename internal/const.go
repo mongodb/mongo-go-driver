@@ -17,3 +17,12 @@ var LegacyHelloLowercase = "ismaster"
 
 // LegacyNotPrimary is the legacy version of the "not primary" server error message.
 var LegacyNotPrimary = "not master"
+
+// MinSupportedWire is the minimum wire version supported by the driver.
+var MinSupportedWire int32 = 6
+
+// MaxSupportedWire is the maximum wire version supported by the driver.
+var MaxSupportedWire int32 = 17
+
+// MinSupportedMongoDB is the version string for the lowest MongoDB version supported by the driver.
+var MinSupportedMongoDB = "3.6"
