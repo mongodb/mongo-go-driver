@@ -58,7 +58,7 @@ type RetryablePoolError interface {
 	Retryable() bool
 }
 
-// LabelledError is an error that can have error labels added to it.
+// LabeledError is an error that can have error labels added to it.
 type LabelledError interface {
 	HasErrorLabel(string) bool
 }
