@@ -704,7 +704,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
-			// return the previousIndefiniteErr.
+			// return the previous indefinite error.
 			if tt.HasErrorLabel(NoWritesPerformed) {
 				return prevIndefiniteErr
 			}
