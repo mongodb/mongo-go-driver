@@ -194,7 +194,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		op = op.Ordered(*bw.ordered)
 	}
 
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if bw.collection.client.retryWrites && batch.canRetry {
 		retry = driver.RetryOncePerCommand
 	}
@@ -254,7 +254,7 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 	if bw.ordered != nil {
 		op = op.Ordered(*bw.ordered)
 	}
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if bw.collection.client.retryWrites && batch.canRetry {
 		retry = driver.RetryOncePerCommand
 	}
@@ -352,7 +352,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 	if bw.bypassDocumentValidation != nil && *bw.bypassDocumentValidation {
 		op = op.BypassDocumentValidation(*bw.bypassDocumentValidation)
 	}
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if bw.collection.client.retryWrites && batch.canRetry {
 		retry = driver.RetryOncePerCommand
 	}

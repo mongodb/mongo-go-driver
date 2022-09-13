@@ -192,7 +192,7 @@ type Operation struct {
 	// RetryOncePerCommand, and RetryContext. For more information about what these modes do, please
 	// refer to their definitions. Both RetryMode and Type must be set for retryability to be enabled.
 	// If Timeout is set on the Client, the operation will automatically retry as many times as
-	// possible unless RetryNever is used.
+	// possible unless RetryNone is used.
 	RetryMode *RetryMode
 
 	// Type specifies the kind of operation this is. There is only one mode that enables retry: Write.
@@ -372,8 +372,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}
 	// If context is a Timeout context, automatically set retries to -1 (infinite) unless RetryMode
-	// is set to RetryNever.
-	if internal.IsTimeoutContext(ctx) && (op.RetryMode == nil || *op.RetryMode != RetryNever) {
+	// is set to RetryNone.
+	if internal.IsTimeoutContext(ctx) && (op.RetryMode == nil || *op.RetryMode != RetryNone) {
 		retries = -1
 	}
 
@@ -796,7 +796,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		// server or connection to nil to continue using the same connection.
 		if batching && len(op.Batches.Documents) > 0 {
 			if retrySupported && op.Client != nil && op.RetryMode != nil {
-				if *op.RetryMode != RetryNone && *op.RetryMode != RetryNever {
+				if *op.RetryMode != RetryNone && *op.RetryMode != RetryTimeout {
 					op.Client.IncrementTxnNumber()
 				}
 				if *op.RetryMode == RetryOncePerCommand {

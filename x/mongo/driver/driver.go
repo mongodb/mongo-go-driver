@@ -253,9 +253,9 @@ type RetryMode uint
 
 // These are the modes available for retrying. Note that if Timeout is specified on the Client, the
 // operation will automatically retry as many times as possible within the context's deadline
-// unless RetryNever is used.
+// unless RetryNone is used.
 const (
-	// RetryNone disables retrying if Timeout is not specified.
+	// RetryNone disables retrying.
 	RetryNone RetryMode = iota
 	// RetryOnce will enable retrying the entire operation once if Timeout is not specified.
 	RetryOnce
@@ -266,11 +266,11 @@ const (
 	// RetryContext will enable retrying until the context.Context's deadline is exceeded or it is
 	// cancelled.
 	RetryContext
-	// RetryNever disables retrying even when Timeout is specified.
-	RetryNever
+	// RetryTimeout disables retrying unless Timeout is specified.
+	RetryTimeout
 )
 
-// Enabled returns if this RetryMode enables retrying.
+// Enabled returns if this RetryMode enables retrying when no Timeout is specified.
 func (rm RetryMode) Enabled() bool {
 	return rm == RetryOnce || rm == RetryOncePerCommand || rm == RetryContext
 }

@@ -399,7 +399,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		op = op.AuthorizedCollections(*lco.AuthorizedCollections)
 	}
 
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if db.client.retryReads {
 		retry = driver.RetryOncePerCommand
 	}

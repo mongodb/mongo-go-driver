@@ -298,7 +298,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	if imo.Ordered != nil {
 		op = op.Ordered(*imo.Ordered)
 	}
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
 	}
@@ -483,7 +483,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	}
 
 	// deleteMany cannot be retried
-	retryMode := driver.RetryNever
+	retryMode := driver.RetryNone
 	if deleteOne && coll.client.retryWrites {
 		retryMode = driver.RetryOncePerCommand
 	}
@@ -594,7 +594,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		}
 		op = op.Comment(comment)
 	}
-	retry := driver.RetryNever
+	retry := driver.RetryNone
 	// retryable writes are only enabled updateOne/replaceOne operations
 	if !multi && coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
@@ -904,7 +904,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		op.CustomOptions(customOptions)
 	}
 
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if a.retryRead && !hasOutputStage {
 		retry = driver.RetryOncePerCommand
 	}
@@ -983,7 +983,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		}
 		op.Hint(hintVal)
 	}
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
 	}
@@ -1064,7 +1064,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		op = op.Comment(comment)
 	}
 
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
 	}
@@ -1136,7 +1136,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		}
 		op.Comment(comment)
 	}
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
 	}
@@ -1329,7 +1329,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 		op.Sort(sort)
 	}
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
 	}
@@ -1426,7 +1426,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if coll.client.retryWrites {
 		retry = driver.RetryOnce
 	}

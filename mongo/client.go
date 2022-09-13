@@ -674,7 +674,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		op = op.AuthorizedDatabases(*ldo.AuthorizedDatabases)
 	}
 
-	retry := driver.RetryNone
+	retry := driver.RetryTimeout
 	if c.retryReads {
 		retry = driver.RetryOncePerCommand
 	}
