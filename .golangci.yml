@@ -111,9 +111,7 @@ issues:
     - path: (internal\/|benchmark\/)
       text: exported (.+) should have comment( \(or a comment on this block\))? or be unexported
     # Ignore missing package comments for directories that aren't frequently used by external users.
-    # TODO(GODRIVER-2517): Remove "mongo/testaws" and "mongo/testatlas" from the ignored paths when
-    # TODO we move those packages to the "cmd/" directory.
-    - path: (internal\/|benchmark\/|x\/|cmd\/|mongo\/integration\/|mongo\/(testaws\/|testatlas\/))
+    - path: (internal\/|benchmark\/|x\/|cmd\/|mongo\/integration\/)
       text: should have a package comment
     # Disable unused linter for "golang.org/x/exp/rand" package in internal/randutil/rand.
     - path: internal/randutil/rand
