@@ -37,6 +37,8 @@ var (
 	NetworkError = "NetworkError"
 	// RetryableWriteError is an error lable for retryable write errors.
 	RetryableWriteError = "RetryableWriteError"
+	// NoWritesPerformed is an error label indicated that no writes were performed for an operation.
+	NoWritesPerformed = "NoWritesPerformed"
 	// ErrCursorNotFound is the cursor not found error for legacy find operations.
 	ErrCursorNotFound = errors.New("cursor not found")
 	// ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
@@ -130,6 +132,18 @@ func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bo
 		return false
 	}
 	return (*wce.WriteConcernError).Retryable()
+}
+
+// HasErrorLabel returns true if the error contains the specified label.
+func (wce WriteCommandError) HasErrorLabel(label string) bool {
+	if wce.Labels != nil {
+		for _, l := range wce.Labels {
+			if l == label {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // WriteConcernError is a write concern failure that occurred as a result of a

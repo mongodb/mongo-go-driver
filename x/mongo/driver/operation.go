@@ -59,6 +59,11 @@ type RetryablePoolError interface {
 	Retryable() bool
 }
 
+// LabeledError is an error that can have error labels added to it.
+type LabelledError interface {
+	HasErrorLabel(string) bool
+}
+
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
 // from an instance of Operation.
 type InvalidOperationError struct{ MissingField string }
@@ -370,6 +375,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	var res bsoncore.Document
 	var operationErr WriteCommandError
 	var prevErr error
+	var prevIndefiniteErr error
 	batching := op.Batches.Valid()
 	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
 	retrySupported := false
@@ -381,6 +387,16 @@ func (op Operation) Execute(ctx context.Context) error {
 	resetForRetry := func(err error) {
 		retries--
 		prevErr = err
+
+		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
+		// NoWritesPerfomed label (the definite case).
+		switch err := err.(type) {
+		case LabelledError:
+			if !err.HasErrorLabel(NoWritesPerformed) && err.HasErrorLabel(RetryableWriteError) {
+				prevIndefiniteErr = err.(error)
+			}
+		}
+
 		// If we got a connection, close it immediately to release pool resources for
 		// subsequent retries.
 		if conn != nil {
@@ -615,6 +631,12 @@ func (op Operation) Execute(ctx context.Context) error {
 				continue
 			}
 
+			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
+			// return the previous indefinite error.
+			if tt.HasErrorLabel(NoWritesPerformed) {
+				return prevIndefiniteErr
+			}
+
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
 				info := ResponseInfo{
@@ -700,6 +722,12 @@ func (op Operation) Execute(ctx context.Context) error {
 				}
 				resetForRetry(tt)
 				continue
+			}
+
+			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
+			// return the previous indefinite error.
+			if tt.HasErrorLabel(NoWritesPerformed) {
+				return prevIndefiniteErr
 			}
 
 			// If the operation isn't being retried, process the response

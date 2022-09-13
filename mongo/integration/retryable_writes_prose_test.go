@@ -9,11 +9,14 @@ package integration
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
@@ -214,4 +217,72 @@ func TestRetryableWritesProse(t *testing.T) {
 				"expected an insert event, got a(n) %v event", cmdEvt.CommandName)
 		}
 	})
+
+	mtNWPOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet)
+	mt.RunOpts(fmt.Sprintf("%s label returns original error", driver.NoWritesPerformed), mtNWPOpts,
+		func(mt *mtest.T) {
+			const shutdownInProgressErrorCode int32 = 91
+			const notWritablePrimaryErrorCode int32 = 10107
+
+			monitor := new(event.CommandMonitor)
+			mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+
+			// Configure a fail point for a "ShutdownInProgress" error.
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode:               mtest.FailPointMode{Times: 1},
+				Data: mtest.FailPointData{
+					WriteConcernError: &mtest.WriteConcernErrorData{
+						Code: shutdownInProgressErrorCode,
+					},
+					FailCommands: []string{"insert"},
+				},
+			})
+
+			// secondFailPointConfigured is used to determine if the conditions from the
+			// shutdownInProgressErrorCode actually configures the "NoWritablePrimary" fail command.
+			var secondFailPointConfigured bool
+
+			//Set a command monitor on the client that configures a failpoint with a "NoWritesPerformed"
+			monitor.Succeeded = func(_ context.Context, evt *event.CommandSucceededEvent) {
+				var errorCode int32
+				if wce := evt.Reply.Lookup("writeConcernError"); wce.Type == bsontype.EmbeddedDocument {
+					var ok bool
+					errorCode, ok = wce.Document().Lookup("code").Int32OK()
+					if !ok {
+						t.Fatalf("expected code to be an int32, got %v",
+							wce.Document().Lookup("code").Type)
+						return
+					}
+				}
+
+				// Do not set a fail point if event was not a writeConcernError with an error code for
+				// "ShutdownInProgress".
+				if errorCode != shutdownInProgressErrorCode {
+					return
+				}
+
+				mt.SetFailPoint(mtest.FailPoint{
+					ConfigureFailPoint: "failCommand",
+					Mode:               mtest.FailPointMode{Times: 1},
+					Data: mtest.FailPointData{
+						ErrorCode: notWritablePrimaryErrorCode,
+						ErrorLabels: &[]string{
+							driver.NoWritesPerformed,
+							driver.RetryableWriteError,
+						},
+						FailCommands: []string{"insert"},
+					},
+				})
+				secondFailPointConfigured = true
+			}
+
+			// Attempt to insert a document.
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+
+			require.True(mt, secondFailPointConfigured)
+
+			// Assert that the "NotWritablePrimary" error is returned.
+			require.True(mt, err.(mongo.WriteException).HasErrorCode(int(shutdownInProgressErrorCode)))
+		})
 }

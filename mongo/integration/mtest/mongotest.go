@@ -637,19 +637,30 @@ func (t *T) createTestClient() {
 	if clientOpts.Deployment == nil && t.clientType != Mock && clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		clientOpts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
-	// command monitor
+
+	// Setup command monitor
+	var customMonitor = clientOpts.Monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
+			if customMonitor != nil && customMonitor.Started != nil {
+				customMonitor.Started(context.Background(), cse)
+			}
 			t.monitorLock.Lock()
 			defer t.monitorLock.Unlock()
 			t.started = append(t.started, cse)
 		},
 		Succeeded: func(_ context.Context, cse *event.CommandSucceededEvent) {
+			if customMonitor != nil && customMonitor.Succeeded != nil {
+				customMonitor.Succeeded(context.Background(), cse)
+			}
 			t.monitorLock.Lock()
 			defer t.monitorLock.Unlock()
 			t.succeeded = append(t.succeeded, cse)
 		},
 		Failed: func(_ context.Context, cfe *event.CommandFailedEvent) {
+			if customMonitor != nil && customMonitor.Failed != nil {
+				customMonitor.Failed(context.Background(), cfe)
+			}
 			t.monitorLock.Lock()
 			defer t.monitorLock.Unlock()
 			t.failed = append(t.failed, cfe)
