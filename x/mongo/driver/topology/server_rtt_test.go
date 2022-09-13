@@ -27,7 +27,7 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 		NewAvgRtt float64     `json:"new_avg_rtt"`
 	}
 
-	const testsDir string = "../../../../data/server-selection/rtt"
+	const testsDir string = "../../../../testdata/server-selection/rtt"
 
 	for _, file := range helpers.FindJSONFilesInDir(t, testsDir) {
 		func(t *testing.T, filename string) {

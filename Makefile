@@ -202,7 +202,8 @@ driver-benchmark:perf
 	@go run cmd/godriver-benchmark/main.go | tee perf.suite
 
 perf:driver-test-data.tar.gz
-	tar -zxf $< $(if $(eq $(UNAME_S),Darwin),-s , --transform=s)/data/perf/
+	tar -zxf $< $(if $(eq $(UNAME_S),Darwin),-s , --transform=s)/testdata/perf/
 	@touch $@
+
 driver-test-data.tar.gz:
 	curl --retry 5 "https://s3.amazonaws.com/boxes.10gen.com/build/driver-test-data.tar.gz" -o driver-test-data.tar.gz --silent --max-time 120

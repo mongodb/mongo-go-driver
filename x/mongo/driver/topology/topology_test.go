@@ -668,7 +668,7 @@ type inWindowTestCase struct {
 // can't be effectively accomplished just with server descriptions like most other server selection
 // algorithms.
 func TestServerSelectionSpecInWindow(t *testing.T) {
-	const testsDir = "../../../../data/server-selection/in_window"
+	const testsDir = "../../../../testdata/server-selection/in_window"
 
 	files := helpers.FindJSONFilesInDir(t, testsDir)
 
