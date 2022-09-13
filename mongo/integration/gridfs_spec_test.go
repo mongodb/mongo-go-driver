@@ -58,7 +58,7 @@ type gridfsAssert struct {
 }
 
 const (
-	gridfsTestsDir       = "../../data/gridfs"
+	gridfsTestsDir       = "../../testdata/gridfs"
 	gridfsFiles          = "fs.files"
 	gridfsChunks         = "fs.chunks"
 	gridfsExpectedFiles  = "expected.files"

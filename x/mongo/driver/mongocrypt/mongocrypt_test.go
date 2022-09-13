@@ -24,7 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
 
-const resourcesDir = "../../../../data/mongocrypt"
+const resourcesDir = "../../../../testdata/mongocrypt"
 
 func noerr(t *testing.T, err error) {
 	if err != nil {

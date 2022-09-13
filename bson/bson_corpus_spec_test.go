@@ -58,7 +58,7 @@ type parseErrorTestCase struct {
 	String      string `json:"string"`
 }
 
-const dataDir = "../data/bson-corpus/"
+const dataDir = "../testdata/bson-corpus/"
 
 func findJSONFilesInDir(t *testing.T, dir string) []string {
 	files := make([]string, 0)

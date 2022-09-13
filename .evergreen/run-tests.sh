@@ -96,8 +96,8 @@ else
   echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
 fi
 
-CSFLE_TLS_CA_FILE="$(pwd)/data/kmip-certs/ca-ec.pem"
-CSFLE_TLS_CERTIFICATE_KEY_FILE="$(pwd)/data/kmip-certs/client-ec.pem"
+CSFLE_TLS_CA_FILE="$(pwd)/testdata/kmip-certs/ca-ec.pem"
+CSFLE_TLS_CERTIFICATE_KEY_FILE="$(pwd)/testdata/kmip-certs/client-ec.pem"
 
 if [ "Windows_NT" = "$OS" ]; then
   CSFLE_TLS_CA_FILE=$(cygpath -m $CSFLE_TLS_CA_FILE)

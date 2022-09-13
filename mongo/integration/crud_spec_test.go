@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	crudTestsDir = "../../data/crud"
+	crudTestsDir = "../../testdata/crud"
 	crudReadDir  = "v1/read"
 	crudWriteDir = "v1/write"
 )
