@@ -19,10 +19,10 @@ var LegacyHelloLowercase = "ismaster"
 var LegacyNotPrimary = "not master"
 
 // MinSupportedWire is the minimum wire version supported by the driver.
-var MinSupportedWire int32 = 6
+const MinSupportedWire = 6
 
 // MaxSupportedWire is the maximum wire version supported by the driver.
-var MaxSupportedWire int32 = 17
+const MaxSupportedWire = 17
 
 // MinSupportedMongoDB is the version string for the lowest MongoDB version supported by the driver.
-var MinSupportedMongoDB = "3.6"
+const MinSupportedMongoDB = "3.6"

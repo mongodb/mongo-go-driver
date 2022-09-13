@@ -129,11 +129,9 @@ func TestServerSelection(t *testing.T) {
 		}
 		want := fmt.Errorf(
 			"server at %s reports wire version %d, but this version of the Go driver requires "+
-				"at least %d (MongoDB %s)",
+				"at least 6 (MongoDB 3.6)",
 			desc.Servers[0].Addr.String(),
 			desc.Servers[0].WireVersion.Max,
-			SupportedWireVersions.Min,
-			internal.MinSupportedMongoDB,
 		)
 		desc.CompatibilityErr = want
 		atomic.StoreInt64(&topo.state, topologyConnected)
