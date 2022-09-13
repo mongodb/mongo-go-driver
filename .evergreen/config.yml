@@ -114,22 +114,6 @@ functions:
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
              rm -rf libmongocrypt-all
              echo "fetching build for Windows ... end"
-          elif [ "Darwin" = "$(uname -s)" ]; then
-             # TODO (GODRIVER-2442): Once libmongocrypt compiles on macOS 10.15, remove this elif block.
-             echo "fetching build for Darwin ... begin"
-             mkdir -p install/libmongocrypt
-             mkdir libmongocrypt-all
-             cd libmongocrypt-all
-             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_BRANCH/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
-             tar -xf libmongocrypt-all.tar.gz
-             cd ..
-             mv libmongocrypt-all/macos/include ./install/libmongocrypt
-             mv libmongocrypt-all/macos/lib ./install/libmongocrypt
-             rm -rf libmongocrypt-all
-             # Fix prefix in pkg-config prefix path.
-             sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
-             echo "fetching build for Darwin ... end"
           else
             git clone https://github.com/mongodb/libmongocrypt
             cd libmongocrypt
