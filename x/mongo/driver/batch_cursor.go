@@ -460,6 +460,11 @@ func (lbcd *loadBalancedCursorDeployment) RTTMonitor() RTTMonitor {
 	return &internal.ZeroRTTMonitor{}
 }
 
+// IsCryptd implements the driver.Server interface.
+func (lbcd *loadBalancedCursorDeployment) IsCryptd() bool {
+	return false
+}
+
 func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {
 	return lbcd.errorProcessor.ProcessError(err, conn)
 }

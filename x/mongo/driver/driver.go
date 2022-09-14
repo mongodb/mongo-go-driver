@@ -54,6 +54,9 @@ type Server interface {
 
 	// RTTMonitor returns the round-trip time monitor associated with this server.
 	RTTMonitor() RTTMonitor
+
+	// IsCryptd represents whether the server is a mongocryptd process.
+	IsCryptd() bool
 }
 
 // Connection represents a connection to a MongoDB server.
@@ -230,6 +233,11 @@ func (ssd SingleConnectionDeployment) Connection(context.Context) (Connection, e
 // RTTMonitor implements the driver.Server interface.
 func (ssd SingleConnectionDeployment) RTTMonitor() RTTMonitor {
 	return &internal.ZeroRTTMonitor{}
+}
+
+// IsCryptd implements the driver.Server interface.
+func (ssd SingleConnectionDeployment) IsCryptd() bool {
+	return false
 }
 
 // TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using 2 bits for the mode and 1

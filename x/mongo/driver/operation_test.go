@@ -840,6 +840,10 @@ func (ms *mockRetryServer) RTTMonitor() RTTMonitor {
 	return &internal.ZeroRTTMonitor{}
 }
 
+func (ms *mockRetryServer) IsCryptd() bool {
+	return false
+}
+
 func TestRetry(t *testing.T) {
 	t.Run("retries multiple times with RetryContext", func(t *testing.T) {
 		d := new(mockDeployment)

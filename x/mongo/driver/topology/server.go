@@ -819,6 +819,11 @@ func (s *Server) RTTMonitor() driver.RTTMonitor {
 	return s.rttMonitor
 }
 
+// IsCryptd represents whether the server is a mongocryptd process.
+func (s *Server) IsCryptd() bool {
+	return s.Description().IsCryptd
+}
+
 // OperationCount returns the current number of in-progress operations for this server.
 func (s *Server) OperationCount() int64 {
 	return atomic.LoadInt64(&s.operationCount)
