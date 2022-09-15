@@ -493,7 +493,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// Set maxTimeMS to 0 if connected to mongocryptd to avoid appending the field. The final
 		// encrypted command may contain multiple maxTimeMS fields otherwise.
-		if srvr.IsCryptd() {
+		if conn.Description().IsCryptd {
 			maxTimeMS = 0
 		}
 
