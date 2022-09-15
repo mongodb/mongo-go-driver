@@ -40,6 +40,7 @@ type Server struct {
 	HeartbeatInterval     time.Duration
 	HelloOK               bool
 	Hosts                 []string
+	IsCryptd              bool
 	LastError             error
 	LastUpdateTime        time.Time
 	LastWriteTime         time.Time
@@ -99,6 +100,12 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			desc.ElectionID, ok = element.Value().ObjectIDOK()
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'electionId' to be a objectID but it's a BSON %s", element.Value().Type)
+				return desc
+			}
+		case "iscryptd":
+			desc.IsCryptd, ok = element.Value().BooleanOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'iscryptd' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
 		case "helloOk":

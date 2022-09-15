@@ -491,6 +491,12 @@ func (op Operation) Execute(ctx context.Context) error {
 			return err
 		}
 
+		// Set maxTimeMS to 0 if connected to mongocryptd to avoid appending the field. The final
+		// encrypted command may contain multiple maxTimeMS fields otherwise.
+		if conn.Description().IsCryptd {
+			maxTimeMS = 0
+		}
+
 		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
 		if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
 			switch op.Legacy {
