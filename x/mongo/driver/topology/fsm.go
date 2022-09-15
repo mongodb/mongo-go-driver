@@ -17,13 +17,11 @@ import (
 )
 
 var (
-	// SupportedWireVersions is the range of wire versions supported by the driver.
-	SupportedWireVersions = description.NewVersionRange(2, 17)
-)
-
-const (
 	// MinSupportedMongoDBVersion is the version string for the lowest MongoDB version supported by the driver.
-	MinSupportedMongoDBVersion = "2.6"
+	MinSupportedMongoDBVersion = "3.6"
+
+	// SupportedWireVersions is the range of wire versions supported by the driver.
+	SupportedWireVersions = description.NewVersionRange(6, 17)
 )
 
 type fsm struct {
