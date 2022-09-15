@@ -35,7 +35,11 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 				},
 			}
 			mongocryptdSpawnArgs := map[string]interface{}{
-				"mongocryptdSpawnArgs": []string{"--port=23000"},
+				// Pass a custom pidfilepath to ensure a new mongocryptd process is spawned.
+				"mongocryptdSpawnArgs": []string{"--port=23000", "--pidfilepath=TestCSOTClientSideEncryptionProse_1.pid"},
+				"mongocryptdUri":       "mongodb://localhost:23000",
+				// Do not use the shared library to ensure mongocryptd is spawned.
+				"__cryptSharedLibDisabledForTestOnly": true,
 			}
 
 			// Setup encrypted client to cause spawning of mongocryptd on port 23000.
