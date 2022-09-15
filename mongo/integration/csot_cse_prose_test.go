@@ -76,6 +76,7 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 			// does not exist on mongocryptd, so ignore the CommandNotFound error.
 			_ = mcryptClient.Ping(context.Background(), nil)
 			assert.NotNil(mt, started, "expected a CommandStartedEvent, got nil")
+			assert.Equal(mt, started.CommandName, "ping", "expected 'ping', got %q", started.CommandName)
 			commandElems, err := started.Command.Elements()
 			assert.Nil(mt, err, "Elements error: %v", err)
 			for _, elem := range commandElems {
