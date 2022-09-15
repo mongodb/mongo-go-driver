@@ -51,7 +51,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 		mt.RunOpts("network errors", noClientOpts, func(mt *mtest.T) {
 			mt.Run("pool cleared on network timeout", func(mt *mtest.T) {
 				// Assert that the pool is cleared when a connection created by an application
-				// operation thread encounters a timeout caused by connectTimeoutMS during
+				// operation thread encounters a timeout caused by socketTimeoutMS during
 				// handshaking.
 
 				appName := "authConnectTimeoutTest"
