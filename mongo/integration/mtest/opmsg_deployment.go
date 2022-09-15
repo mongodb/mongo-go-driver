@@ -139,11 +139,6 @@ func (md *mockDeployment) RTTMonitor() driver.RTTMonitor {
 	return &internal.ZeroRTTMonitor{}
 }
 
-// IsCryptd implements the driver.Server interface.
-func (md *mockDeployment) IsCryptd() bool {
-	return false
-}
-
 // Connect is a no-op method which implements the driver.Connector interface.
 func (md *mockDeployment) Connect() error {
 	return nil

@@ -39,10 +39,6 @@ func (c *changeStreamDeployment) RTTMonitor() driver.RTTMonitor {
 	return c.server.RTTMonitor()
 }
 
-func (c *changeStreamDeployment) IsCryptd() bool {
-	return c.server.IsCryptd()
-}
-
 func (c *changeStreamDeployment) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {
 	ep, ok := c.server.(driver.ErrorProcessor)
 	if !ok {
