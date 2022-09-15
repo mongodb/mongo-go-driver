@@ -60,7 +60,7 @@ type RetryablePoolError interface {
 }
 
 // LabeledError is an error that can have error labels added to it.
-type LabelledError interface {
+type LabeledError interface {
 	HasErrorLabel(string) bool
 }
 
@@ -391,7 +391,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
 		// NoWritesPerfomed label (the definite case).
 		switch err := err.(type) {
-		case LabelledError:
+		case LabeledError:
 			if !err.HasErrorLabel(NoWritesPerformed) && err.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err.(error)
 			}
