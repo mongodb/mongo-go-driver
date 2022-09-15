@@ -121,6 +121,9 @@ func TestEncoderEncode(t *testing.T) {
 
 func FuzzDecode(f *testing.F) {
 	seedCorpus := []struct{ buf []byte }{
+		{[]byte("\x05\xf0\xff\x00\x7f")},
+		{[]byte("0\x00\x00\x00\x0f\x00000\x8a00000000000000000000000000000000000000")},
+
 		// Empty document.
 		{[]byte{}},
 
@@ -136,6 +139,8 @@ func FuzzDecode(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		for _, typ := range []func() interface{}{
 			func() interface{} { return new(interface{}) },
+			func() interface{} { return make(map[string]interface{}) },
+			func() interface{} { return new([]interface{}) },
 		} {
 			i := typ()
 			if err := Unmarshal(data, i); err != nil {
