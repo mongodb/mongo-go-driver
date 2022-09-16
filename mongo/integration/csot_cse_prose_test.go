@@ -13,6 +13,7 @@ import (
 	"context"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
@@ -29,6 +30,10 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 
 	mt.RunOpts("1. maxTimeMS is not set for commands sent to mongocryptd",
 		noClientOpts, func(mt *mtest.T) {
+			if testing.Short() {
+				mt.Skip("skipping integration test in short mode")
+			}
+
 			kmsProviders := map[string]map[string]interface{}{
 				"local": {
 					"key": localMasterKey,
@@ -37,7 +42,7 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 			mongocryptdSpawnArgs := map[string]interface{}{
 				// Pass a custom pidfilepath to ensure a new mongocryptd process is spawned.
 				"mongocryptdSpawnArgs": []string{"--port=23000", "--pidfilepath=TestCSOTClientSideEncryptionProse_1.pid"},
-				"mongocryptdUri":       "mongodb://localhost:23000",
+				"mongocryptdURI":       "mongodb://localhost:23000",
 				// Do not use the shared library to ensure mongocryptd is spawned.
 				"__cryptSharedLibDisabledForTestOnly": true,
 			}
@@ -53,6 +58,11 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 				err = encClient.Disconnect(context.Background())
 				assert.Nil(mt, err, "encrypted client Disconnect error: %v", err)
 			}()
+
+			// Run a Find through the encrypted client to make sure mongocryptd is started ('find' uses the
+			// mongocryptd and will wait for it to be active).
+			_, err = encClient.Database("test").Collection("test").Find(context.Background(), bson.D{})
+			assert.Nil(mt, err, "Find error: %v", err)
 
 			// Use a new Client to connect to 23000 where mongocryptd should be running. Use a custom
 			// command monitor to examine the eventual 'ping'.
