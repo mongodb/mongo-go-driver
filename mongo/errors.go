@@ -46,6 +46,11 @@ func (e ErrMapForOrderedArgument) Error() string {
 }
 
 func replaceErrors(err error) error {
+	// Return nil when err is nil to avoid costly reflection logic below.
+	if err == nil {
+		return nil
+	}
+
 	if err == topology.ErrTopologyClosed {
 		return ErrClientDisconnected
 	}
