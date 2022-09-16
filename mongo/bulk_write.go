@@ -194,9 +194,15 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		op = op.Ordered(*bw.ordered)
 	}
 
-	retry := driver.RetryTimeout
+	// Do not retry by default. If retryable writes are enabled and batch can retry, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	retry := driver.RetryNone
 	if bw.collection.client.retryWrites && batch.canRetry {
-		retry = driver.RetryOncePerCommand
+		if bw.collection.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOncePerCommand
+		}
 	}
 	op = op.Retry(retry)
 
@@ -254,9 +260,16 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 	if bw.ordered != nil {
 		op = op.Ordered(*bw.ordered)
 	}
-	retry := driver.RetryTimeout
+
+	// Do not retry by default. If retryable writes are enabled and batch can retry, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	retry := driver.RetryNone
 	if bw.collection.client.retryWrites && batch.canRetry {
-		retry = driver.RetryOncePerCommand
+		if bw.collection.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOncePerCommand
+		}
 	}
 	op = op.Retry(retry)
 
@@ -352,9 +365,16 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 	if bw.bypassDocumentValidation != nil && *bw.bypassDocumentValidation {
 		op = op.BypassDocumentValidation(*bw.bypassDocumentValidation)
 	}
-	retry := driver.RetryTimeout
+
+	// Do not retry by default. If retryable writes are enabled and batch can retry, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	retry := driver.RetryNone
 	if bw.collection.client.retryWrites && batch.canRetry {
-		retry = driver.RetryOncePerCommand
+		if bw.collection.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOncePerCommand
+		}
 	}
 	op = op.Retry(retry)
 

@@ -298,9 +298,16 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	if imo.Ordered != nil {
 		op = op.Ordered(*imo.Ordered)
 	}
-	retry := driver.RetryTimeout
+
+	// Do not retry by default. If retryable writes are enabled, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	retry := driver.RetryNone
 	if coll.client.retryWrites {
-		retry = driver.RetryOncePerCommand
+		if coll.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOncePerCommand
+		}
 	}
 	op = op.Retry(retry)
 
@@ -904,9 +911,15 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		op.CustomOptions(customOptions)
 	}
 
-	retry := driver.RetryTimeout
+	// Do not retry by default. If retryable reads are enabled and aggregate has no output stage, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	retry := driver.RetryNone
 	if a.retryRead && !hasOutputStage {
-		retry = driver.RetryOncePerCommand
+		if a.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOncePerCommand
+		}
 	}
 	op = op.Retry(retry)
 
@@ -983,9 +996,16 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		}
 		op.Hint(hintVal)
 	}
-	retry := driver.RetryTimeout
+
+	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	retry := driver.RetryNone
 	if coll.client.retryReads {
-		retry = driver.RetryOncePerCommand
+		if coll.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOncePerCommand
+		}
 	}
 	op = op.Retry(retry)
 
@@ -1064,9 +1084,15 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		op = op.Comment(comment)
 	}
 
-	retry := driver.RetryTimeout
+	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	retry := driver.RetryNone
 	if coll.client.retryReads {
-		retry = driver.RetryOncePerCommand
+		if coll.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOncePerCommand
+		}
 	}
 	op.Retry(retry)
 
@@ -1136,9 +1162,16 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		}
 		op.Comment(comment)
 	}
-	retry := driver.RetryTimeout
+
+	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	retry := driver.RetryNone
 	if coll.client.retryReads {
-		retry = driver.RetryOncePerCommand
+		if coll.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOncePerCommand
+		}
 	}
 	op = op.Retry(retry)
 
@@ -1329,9 +1362,16 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 		op.Sort(sort)
 	}
-	retry := driver.RetryTimeout
+
+	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	retry := driver.RetryNone
 	if coll.client.retryReads {
-		retry = driver.RetryOncePerCommand
+		if coll.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOncePerCommand
+		}
 	}
 	op = op.Retry(retry)
 
@@ -1426,9 +1466,15 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
-	retry := driver.RetryTimeout
+	// Do not retry by default. If retryable writes are enabled, retry as many times as possible if
+	// Timeout is set (RetryTimeout) and once if not set (RetryOnce).
+	retry := driver.RetryNone
 	if coll.client.retryWrites {
-		retry = driver.RetryOnce
+		if coll.client.timeout != nil {
+			retry = driver.RetryTimeout
+		} else {
+			retry = driver.RetryOnce
+		}
 	}
 
 	op = op.Session(sess).
