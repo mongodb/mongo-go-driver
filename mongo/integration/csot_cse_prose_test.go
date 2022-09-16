@@ -60,7 +60,7 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 			}()
 
 			// Run a Find through the encrypted client to make sure mongocryptd is started ('find' uses the
-			// mongocrytpd and will wait for it to be active).
+			// mongocryptd and will wait for it to be active).
 			_, err = encClient.Database("test").Collection("test").Find(context.Background(), bson.D{})
 			assert.Nil(mt, err, "Find error: %v", err)
 
