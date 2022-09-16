@@ -9,6 +9,7 @@ package bson
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
@@ -94,6 +95,7 @@ func MarshalAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val interf
 		return nil, err
 	}
 
+	fmt.Println("lol")
 	err = enc.Encode(val)
 	if err != nil {
 		return nil, err

@@ -8,6 +8,7 @@ package bson
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 
@@ -63,7 +64,9 @@ func NewEncoderWithContext(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter) (*
 // The documentation for Marshal contains details about the conversion of Go
 // values to BSON.
 func (e *Encoder) Encode(val interface{}) error {
+	fmt.Println("meep")
 	if marshaler, ok := val.(Marshaler); ok {
+		fmt.Println("ok", ok)
 		// TODO(skriptble): Should we have a MarshalAppender interface so that we can have []byte reuse?
 		buf, err := marshaler.MarshalBSON()
 		if err != nil {
