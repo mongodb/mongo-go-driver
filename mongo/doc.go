@@ -106,7 +106,7 @@
 //
 //	go build -tags cse
 //
-// Note: Auto encryption is an enterprise-only feature.
+// Note: Auto encryption is an enterprise- and Atlas-only feature.
 //
 // The libmongocrypt C library is required when using client-side encryption. Specific versions of libmongocrypt
 // are required for different versions of the Go Driver:
