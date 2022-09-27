@@ -2227,9 +2227,10 @@ func listenForConnections(t *testing.T, run func(net.Conn)) net.Listener {
 	}
 	go func() {
 		for {
-			c, err := l.Accept()
-			if err != nil {
-				t.Errorf("Could not accept a connection: %v", err)
+			// Ignore errors due to closing the listener connection.
+			c, _ := l.Accept()
+			if c == nil {
+				break
 			}
 			go run(c)
 		}
