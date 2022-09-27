@@ -28,7 +28,7 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").CreateClient(false))
 	defer mt.Close()
 
-	mt.RunOpts("1. maxTimeMS is not set for commands sent to mongocryptd",
+	mt.RunOpts("2. maxTimeMS is not set for commands sent to mongocryptd",
 		noClientOpts, func(mt *mtest.T) {
 			if testing.Short() {
 				mt.Skip("skipping integration test in short mode")
