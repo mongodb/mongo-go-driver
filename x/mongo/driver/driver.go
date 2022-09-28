@@ -268,7 +268,7 @@ const (
 	RetryContext
 )
 
-// Enabled returns if this RetryMode enables retrying when no Timeout is specified.
+// Enabled returns if this RetryMode enables retrying.
 func (rm RetryMode) Enabled() bool {
 	return rm == RetryOnce || rm == RetryOncePerCommand || rm == RetryContext
 }

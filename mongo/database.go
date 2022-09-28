@@ -399,15 +399,9 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		op = op.AuthorizedCollections(*lco.AuthorizedCollections)
 	}
 
-	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
-	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if db.client.retryReads {
-		if db.client.timeout != nil {
-			retry = driver.RetryContext
-		} else {
-			retry = driver.RetryOncePerCommand
-		}
+		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
 

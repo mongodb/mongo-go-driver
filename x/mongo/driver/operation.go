@@ -371,9 +371,10 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 		}
 	}
-	// If context is a Timeout context, automatically set retries to -1 (infinite) unless RetryMode
-	// is set to RetryNone.
-	if internal.IsTimeoutContext(ctx) && (op.RetryMode == nil || *op.RetryMode != RetryNone) {
+	// If context is a Timeout context, automatically set retries to -1 (infinite) if retrying is
+	// enabled.
+	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
+	if internal.IsTimeoutContext(ctx) && retryEnabled {
 		retries = -1
 	}
 
@@ -384,7 +385,6 @@ func (op Operation) Execute(ctx context.Context) error {
 	var prevErr error
 	var prevIndefiniteErr error
 	batching := op.Batches.Valid()
-	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
 	retrySupported := false
 	first := true
 	currIndex := 0
