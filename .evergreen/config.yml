@@ -219,6 +219,16 @@ functions:
         permissions: public-read
         content_type: ${content_type|application/x-gzip}
         display_name: "mongodb-logs.tar.gz"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: ${PROJECT_DIRECTORY}/fuzz.tgz
+        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/x-gzip
+        display_name: "fuzz.tgz"
 
   bootstrap-mongohoused:
     - command: shell.exec
@@ -1016,6 +1026,14 @@ functions:
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
+  run-fuzz-tests:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ${PROJECT_DIRECTORY}/.evergreen/run-fuzz.sh
 pre:
   - func: fetch-source
   - func: prepare-resources
@@ -1994,6 +2012,12 @@ tasks:
             MONGODB_URI='mongodb://localhost:27017/' \
             EXPECT_ERROR='unable to retrieve GCP credentials' \
               ./testgcpkms
+
+  - name: "test-fuzz"
+    tags: ["test", "fuzz", "daily"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+      - func: "run-fuzz-tests"
 
 axes:
   - id: version
