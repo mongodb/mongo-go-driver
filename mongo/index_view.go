@@ -106,11 +106,11 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 	op = op.MaxTime(lio.MaxTime)
 
 	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if iv.coll.client.retryReads {
 		if iv.coll.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}

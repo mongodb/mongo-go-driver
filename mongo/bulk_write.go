@@ -195,11 +195,11 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 
 	// Do not retry by default. If retryable writes are enabled and batch can retry, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if bw.collection.client.retryWrites && batch.canRetry {
 		if bw.collection.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}
@@ -262,11 +262,11 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 
 	// Do not retry by default. If retryable writes are enabled and batch can retry, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if bw.collection.client.retryWrites && batch.canRetry {
 		if bw.collection.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}
@@ -367,11 +367,11 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 
 	// Do not retry by default. If retryable writes are enabled and batch can retry, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if bw.collection.client.retryWrites && batch.canRetry {
 		if bw.collection.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}

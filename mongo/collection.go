@@ -300,11 +300,11 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	}
 
 	// Do not retry by default. If retryable writes are enabled, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
 		if coll.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}
@@ -912,11 +912,11 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	}
 
 	// Do not retry by default. If retryable reads are enabled and aggregate has no output stage, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if a.retryRead && !hasOutputStage {
 		if a.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}
@@ -998,11 +998,11 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	}
 
 	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		if coll.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}
@@ -1085,11 +1085,11 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	}
 
 	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		if coll.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}
@@ -1164,11 +1164,11 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	}
 
 	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		if coll.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}
@@ -1364,11 +1364,11 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	}
 
 	// Do not retry by default. If retryable reads are enabled, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOncePerCommand).
+	// Timeout is set (RetryContext) and once if not set (RetryOncePerCommand).
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		if coll.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOncePerCommand
 		}
@@ -1467,11 +1467,11 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
 	// Do not retry by default. If retryable writes are enabled, retry as many times as possible if
-	// Timeout is set (RetryTimeout) and once if not set (RetryOnce).
+	// Timeout is set (RetryContext) and once if not set (RetryOnce).
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
 		if coll.client.timeout != nil {
-			retry = driver.RetryTimeout
+			retry = driver.RetryContext
 		} else {
 			retry = driver.RetryOnce
 		}

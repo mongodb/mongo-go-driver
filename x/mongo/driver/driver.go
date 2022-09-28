@@ -266,8 +266,6 @@ const (
 	// RetryContext will enable retrying until the context.Context's deadline is exceeded or it is
 	// cancelled.
 	RetryContext
-	// RetryTimeout disables retrying unless Timeout is specified.
-	RetryTimeout
 )
 
 // Enabled returns if this RetryMode enables retrying when no Timeout is specified.
