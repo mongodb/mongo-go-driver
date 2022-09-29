@@ -79,7 +79,7 @@ func findJSONFilesInDir(dir string) ([]string, error) {
 	return files, nil
 }
 
-// seedExtJSON will seed the corpus of the given fuzzer.
+// seedExtJSON will add the byte representation of the "extJSON" string to the fuzzer's coprus.
 func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) {
 	rbytes, err := jsonToBytes(extJSON, extJSONType, desc)
 	if err != nil {
@@ -92,21 +92,21 @@ func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) 
 // seedBSONCorpus will unmarshal the data from "testdata/bson-corpus" into a slice of "testCase" structs and then
 // marshal the "*_extjson" field of each "validityTestCase" into a slice of bytes to seed the fuzz corpus.
 func seedBSONCorpus(f *testing.F) {
-	files, err := findJSONFilesInDir(dataDir)
+	fileNames, err := findJSONFilesInDir(dataDir)
 	if err != nil {
 		f.Fatalf("Error finding JSON files in directory %q: %v", dataDir, err)
 	}
 
-	for _, file := range files {
-		fname := path.Join(dataDir, file)
+	for _, fileName := range fileNames {
+		filePath := path.Join(dataDir, fileName)
 
-		fbytes, err := os.Open(fname)
+		file, err := os.Open(filePath)
 		if err != nil {
-			f.Fatalf("Error opening file %q: %v", fname, err)
+			f.Fatalf("Error opening file %q: %v", filePath, err)
 		}
 
 		var tcase testCase
-		if err := json.NewDecoder(fbytes).Decode(&tcase); err != nil {
+		if err := json.NewDecoder(file).Decode(&tcase); err != nil {
 			f.Fatal(err)
 		}
 
