@@ -2362,5 +2362,3 @@ buildvariants:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - testgcpkms-fail-task
-
-
