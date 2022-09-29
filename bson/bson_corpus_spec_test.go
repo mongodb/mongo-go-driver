@@ -79,6 +79,16 @@ func findJSONFilesInDir(dir string) ([]string, error) {
 	return files, nil
 }
 
+// seedExtJSON will seed the corpus of the given fuzzer.
+func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) {
+	rbytes, err := jsonToBytes(extJSON, extJSONType, desc)
+	if err != nil {
+		f.Fatalf("Error converting JSON to bytes: %v", err)
+	}
+
+	f.Add(rbytes)
+}
+
 // seedBSONCorpus will unmarshal the data from "testdata/bson-corpus" into a slice of "testCase" structs and then
 // marshal the "*_extjson" field of each "validityTestCase" into a slice of bytes to seed the fuzz corpus.
 func seedBSONCorpus(f *testing.F) {
@@ -101,42 +111,21 @@ func seedBSONCorpus(f *testing.F) {
 		}
 
 		for _, vtc := range tcase.Valid {
-			// Seed the canonical extended JSON.
-			cbytes, err := jsonToBytes(vtc.CanonicalExtJSON, "canonical", tcase.Description)
-			if err != nil {
-				f.Fatalf("Error converting canonical extjson to bytes: %v", err)
-			}
-
-			f.Add(cbytes)
+			seedExtJSON(f, vtc.CanonicalExtJSON, "canonical", vtc.Description)
 
 			// Seed the related extended JSON.
 			if vtc.RelaxedExtJSON != nil {
-				rbytes, err := jsonToBytes(*vtc.RelaxedExtJSON, "relaxed", tcase.Description)
-				if err != nil {
-					f.Fatalf("Error converting relaxed extjson to bytes: %v", err)
-				}
-
-				f.Add(rbytes)
+				seedExtJSON(f, *vtc.RelaxedExtJSON, "relaxed", vtc.Description)
 			}
 
 			// Seed the degenerate extended JSON.
 			if vtc.DegenerateExtJSON != nil {
-				dbytes, err := jsonToBytes(*vtc.DegenerateExtJSON, "degenerate", tcase.Description)
-				if err != nil {
-					f.Fatalf("Error converting degenerate extjson to bytes: %v", err)
-				}
-
-				f.Add(dbytes)
+				seedExtJSON(f, *vtc.DegenerateExtJSON, "degenerate", vtc.Description)
 			}
 
 			// Seed the converted extended JSON.
 			if vtc.ConvertedExtJSON != nil {
-				cbytes, err := jsonToBytes(*vtc.ConvertedExtJSON, "converted", tcase.Description)
-				if err != nil {
-					f.Fatalf("Error converting converted extjson to bytes: %v", err)
-				}
-
-				f.Add(cbytes)
+				seedExtJSON(f, *vtc.ConvertedExtJSON, "converted", vtc.Description)
 			}
 		}
 	}
