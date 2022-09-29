@@ -240,7 +240,6 @@ func (cs *ChangeStream) createOperationDeployment(server driver.Server, connecti
 func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) error {
 	var server driver.Server
 	var conn driver.Connection
-	var err error
 
 	if server, cs.err = cs.client.deployment.SelectServer(ctx, cs.selector); cs.err != nil {
 		return cs.Err()
@@ -284,48 +283,65 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		// Cancel the timeout-derived context at the end of executeOperation to avoid a context leak.
 		defer cancelFunc()
 	}
-	if original := cs.aggregate.Execute(ctx); original != nil {
-		retryableRead := cs.client.retryReads && cs.wireVersion != nil && cs.wireVersion.Max >= 6
-		if !retryableRead {
-			cs.err = replaceErrors(original)
-			return cs.err
+
+	// Execute the aggregate, retrying on retryable errors once (1) if retryable reads are enabled and
+	// infinitely (-1) if context is a Timeout context.
+	var retries int
+	if cs.client.retryReads && cs.wireVersion != nil && cs.wireVersion.Max >= 6 {
+		retries = 1
+	}
+	if internal.IsTimeoutContext(ctx) {
+		retries = -1
+	}
+
+	var err error
+AggregateExecuteLoop:
+	for {
+		err = cs.aggregate.Execute(ctx)
+		// If no error or no retries remain, do not retry.
+		if err == nil || retries == 0 {
+			break AggregateExecuteLoop
 		}
 
-		cs.err = original
-		switch tt := original.(type) {
+		switch tt := err.(type) {
 		case driver.Error:
+			// If error is not retryable, do not retry.
 			if !tt.RetryableRead() {
-				break
+				break AggregateExecuteLoop
 			}
 
+			// If error is retryable: subtract 1 from retries, redo server selection, checkout
+			// a connection, and restart loop.
+			retries--
 			server, err = cs.client.deployment.SelectServer(ctx, cs.selector)
 			if err != nil {
-				break
+				break AggregateExecuteLoop
 			}
 
 			conn.Close()
 			conn, err = server.Connection(ctx)
 			if err != nil {
-				break
+				break AggregateExecuteLoop
 			}
 			defer conn.Close()
-			cs.wireVersion = conn.Description().WireVersion
 
+			// If wire version is now < 6, do not retry.
+			cs.wireVersion = conn.Description().WireVersion
 			if cs.wireVersion == nil || cs.wireVersion.Max < 6 {
-				break
+				break AggregateExecuteLoop
 			}
 
+			// Reset deployment.
 			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
-			cs.err = cs.aggregate.Execute(ctx)
+		default:
+			// Do not retry if error is not a driver error.
+			break AggregateExecuteLoop
 		}
-
-		if cs.err != nil {
-			cs.err = replaceErrors(cs.err)
-			return cs.Err()
-		}
-
 	}
-	cs.err = nil
+	if err != nil {
+		cs.err = replaceErrors(err)
+		return cs.err
+	}
 
 	cr := cs.aggregate.ResultCursorResponse()
 	cr.Server = server

@@ -191,6 +191,8 @@ type Operation struct {
 	// RetryMode specifies how to retry. There are three modes that enable retry: RetryOnce,
 	// RetryOncePerCommand, and RetryContext. For more information about what these modes do, please
 	// refer to their definitions. Both RetryMode and Type must be set for retryability to be enabled.
+	// If Timeout is set on the Client, the operation will automatically retry as many times as
+	// possible unless RetryNone is used.
 	RetryMode *RetryMode
 
 	// Type specifies the kind of operation this is. There is only one mode that enables retry: Write.
@@ -369,6 +371,12 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 		}
 	}
+	// If context is a Timeout context, automatically set retries to -1 (infinite) if retrying is
+	// enabled.
+	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
+	if internal.IsTimeoutContext(ctx) && retryEnabled {
+		retries = -1
+	}
 
 	var srvr Server
 	var conn Connection
@@ -377,7 +385,6 @@ func (op Operation) Execute(ctx context.Context) error {
 	var prevErr error
 	var prevIndefiniteErr error
 	batching := op.Batches.Valid()
-	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
 	retrySupported := false
 	first := true
 	currIndex := 0
@@ -788,11 +795,17 @@ func (op Operation) Execute(ctx context.Context) error {
 		// a retry, so increment the transaction number, reset the retries number, and don't set
 		// server or connection to nil to continue using the same connection.
 		if batching && len(op.Batches.Documents) > 0 {
+			// If retries are supported for the current operation on the current server description,
+			// the session isn't nil, and client retries are enabled, increment the txn number.
+			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
+			// support retries (e.g. standalone topologies) will cause server errors.
 			if retrySupported && op.Client != nil && op.RetryMode != nil {
-				if *op.RetryMode > RetryNone {
+				if op.RetryMode.Enabled() {
 					op.Client.IncrementTxnNumber()
 				}
-				if *op.RetryMode == RetryOncePerCommand {
+				// Reset the retries number for RetryOncePerCommand unless context is a Timeout context, in
+				// which case retries should remain as -1 (as many times as possible).
+				if *op.RetryMode == RetryOncePerCommand && !internal.IsTimeoutContext(ctx) {
 					retries = 1
 				}
 			}

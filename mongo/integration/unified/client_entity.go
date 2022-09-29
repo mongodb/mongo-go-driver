@@ -385,6 +385,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			clientOpts.SetRetryReads(value.(bool))
 		case "retryWrites":
 			clientOpts.SetRetryWrites(value.(bool))
+		case "socketTimeoutMS":
+			clientOpts.SetSocketTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		case "w":
 			wc.W = value
 			wcSet = true

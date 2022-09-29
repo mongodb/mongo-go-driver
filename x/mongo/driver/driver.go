@@ -251,15 +251,17 @@ const (
 // RetryMode specifies the way that retries are handled for retryable operations.
 type RetryMode uint
 
-// These are the modes available for retrying.
+// These are the modes available for retrying. Note that if Timeout is specified on the Client, the
+// operation will automatically retry as many times as possible within the context's deadline
+// unless RetryNone is used.
 const (
 	// RetryNone disables retrying.
 	RetryNone RetryMode = iota
-	// RetryOnce will enable retrying the entire operation once.
+	// RetryOnce will enable retrying the entire operation once if Timeout is not specified.
 	RetryOnce
-	// RetryOncePerCommand will enable retrying each command associated with an operation. For
-	// example, if an insert is batch split into 4 commands then each of those commands is eligible
-	// for one retry.
+	// RetryOncePerCommand will enable retrying each command associated with an operation if Timeout
+	// is not specified. For example, if an insert is batch split into 4 commands then each of
+	// those commands is eligible for one retry.
 	RetryOncePerCommand
 	// RetryContext will enable retrying until the context.Context's deadline is exceeded or it is
 	// cancelled.
