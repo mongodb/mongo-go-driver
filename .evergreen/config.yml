@@ -1999,6 +1999,7 @@ tasks:
 
   - name: "test-fuzz"
     commands:
+      - func: bootstrap-mongo-orchestration
       - func: "run-fuzz-tests"
 
 axes:
@@ -2345,6 +2346,12 @@ buildvariants:
     tasks:
       - name: ".kms-kmip"
 
+  - matrix_name: "fuzz-test"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    display_name: "Fuzz ${os-ssl-40}"
+    tasks:
+      - name: "test-fuzz"
+
   - name: testgcpkms-variant
     display_name: "GCP KMS"
     run_on:
@@ -2355,3 +2362,5 @@ buildvariants:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - testgcpkms-fail-task
+
+
