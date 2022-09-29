@@ -1,8 +1,12 @@
 package bson
 
-import "testing"
+import (
+	"testing"
+)
 
 func FuzzDecode(f *testing.F) {
+	seedBSONCorpus(f)
+
 	f.Fuzz(func(t *testing.T, data []byte) {
 		for _, typ := range []func() interface{}{
 			func() interface{} { return new(D) },
@@ -16,6 +20,8 @@ func FuzzDecode(f *testing.F) {
 			if err := Unmarshal(data, i); err != nil {
 				return
 			}
+
+			t.Logf("%#v", i)
 
 			encoded, err := Marshal(i)
 			if err != nil {
