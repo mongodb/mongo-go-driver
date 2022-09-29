@@ -109,7 +109,7 @@ func TestSpeculativeX509(t *testing.T) {
 		_, err = hello.LookupErr("speculativeAuthenticate")
 		assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(hello))
 
-		authenticate, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+		authenticate, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 		assert.Nil(t, err, "error parsing authenticate command: %v", err)
 		assertCommandName(t, authenticate, "authenticate")
 	})

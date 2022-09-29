@@ -114,22 +114,6 @@ functions:
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
              rm -rf libmongocrypt-all
              echo "fetching build for Windows ... end"
-          elif [ "Darwin" = "$(uname -s)" ]; then
-             # TODO (GODRIVER-2442): Once libmongocrypt compiles on macOS 10.15, remove this elif block.
-             echo "fetching build for Darwin ... begin"
-             mkdir -p install/libmongocrypt
-             mkdir libmongocrypt-all
-             cd libmongocrypt-all
-             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_BRANCH/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
-             tar -xf libmongocrypt-all.tar.gz
-             cd ..
-             mv libmongocrypt-all/macos/include ./install/libmongocrypt
-             mv libmongocrypt-all/macos/lib ./install/libmongocrypt
-             rm -rf libmongocrypt-all
-             # Fix prefix in pkg-config prefix path.
-             sed -i "" -E "s+prefix=.*+prefix=$(pwd)/install/libmongocrypt+" ./install/libmongocrypt/lib/pkgconfig/libmongocrypt.pc
-             echo "fetching build for Darwin ... end"
           else
             git clone https://github.com/mongodb/libmongocrypt
             cd libmongocrypt
@@ -2045,22 +2029,6 @@ axes:
         display_name: "3.6"
         variables:
           VERSION: "3.6"
-      - id: "3.4"
-        display_name: "3.4"
-        variables:
-          VERSION: "3.4"
-      - id: "3.2"
-        display_name: "3.2"
-        variables:
-          VERSION: "3.2"
-      - id: "3.0"
-        display_name: "3.0"
-        variables:
-          VERSION: "3.0"
-      - id: "2.6"
-        display_name: "2.6"
-        variables:
-          VERSION: "2.6"
       - id: "rapid"
         display_name: "rapid"
         variables:
@@ -2069,24 +2037,6 @@ axes:
         display_name: "latest"
         variables:
           VERSION: "latest"
-
-  # OSes that support versions of MongoDB >= 2.6 with SSL.
-  - id: os-ssl-legacy
-    display_name: OS
-    values:
-      - id: "ubuntu1404-go-1-16"
-        display_name: "Ubuntu 14.04"
-        run_on: ubuntu1404-test
-        variables:
-          # The latest Go version available on the Ubuntu 14.04 Evergreen CI image is Go 1.16.
-          GO_DIST: "/opt/golang/go1.16"
-          # The GCC toolchain that comes with Ubuntu 14.04 is incompatible with the standard binary
-          # release of Go 1.16. As a result, Cgo builds on Ubuntu 14.04 fail with a linking error
-          # (see https://github.com/golang/go/issues/43996). On Ubuntu 14.04, we only run tests for
-          # server v2.6 and 3.X, which don't support client-side encryption. Exclude all build tags
-          # to prevent attempting to link the client-side encryption (libmongocrypt) binaries when
-          # running Go tests.
-          GO_BUILD_TAGS: ""
 
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
@@ -2108,8 +2058,8 @@ axes:
           GO_DIST: "/opt/golang/go1.18"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-18"
-        display_name: "MacOS 10.15"
-        run_on: macos-1015
+        display_name: "MacOS 11.0"
+        run_on: macos-1100
         variables:
           GO_DIST: "/opt/golang/go1.18"
           PYTHON3_BINARY: python3
@@ -2134,8 +2084,8 @@ axes:
           GO_DIST: "/opt/golang/go1.18"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-18"
-        display_name: "MacOS 10.15"
-        run_on: macos-1015
+        display_name: "MacOS 11.0"
+        run_on: macos-1100
         variables:
           GO_DIST: "/opt/golang/go1.18"
           PYTHON3_BINARY: python3
@@ -2170,8 +2120,8 @@ axes:
           GO_DIST: "/opt/golang/go1.18"
           PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-18"
-        display_name: "MacOS 10.15"
-        run_on: macos-1015
+        display_name: "MacOS 11.0"
+        run_on: macos-1100
         variables:
           GO_DIST: "/opt/golang/go1.18"
           SKIP_ECS_AUTH_TEST: true
@@ -2310,30 +2260,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.18"
     tasks:
       - name: "test-atlas-data-lake"
-
-  - matrix_name: "tests-legacy-auth-ssl"
-    matrix_spec: { version: ["2.6", "3.0"], os-ssl-legacy: "*" }
-    display_name: "${version} ${os-ssl-legacy}"
-    tasks:
-      - name: ".test !.enterprise-auth !.compression !.mongocryptd"
-
-  - matrix_name: "tests-legacy-noauth-nossl"
-    matrix_spec: { version: ["2.6", "3.0"], os-ssl-32: "*" }
-    display_name: "${version} ${os-ssl-32}"
-    tasks:
-      - name: ".test !.authssl !.enterprise-auth !.compression !.mongocryptd"
-
-  - matrix_name: "tests-nonlegacy-servers"
-    matrix_spec: { version: "3.2", os-ssl-32: "*" }
-    display_name: "${version} ${os-ssl-32}"
-    tasks:
-      - name: ".test !.enterprise-auth !.compression"
-
-  - matrix_name: "tests-nonlegacy-servers-with-snappy-support"
-    matrix_spec: { version: "3.4", os-ssl-32: "*" }
-    display_name: "${version} ${os-ssl-32}"
-    tasks:
-      - name: ".test !.enterprise-auth !.zlib !.zstd"
 
   - matrix_name: "tests-36-with-zlib-support"
     matrix_spec: { version: ["3.6"], os-ssl-32: "*" }

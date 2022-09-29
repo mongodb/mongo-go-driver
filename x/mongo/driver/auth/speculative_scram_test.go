@@ -27,7 +27,7 @@ var (
 		bsoncore.AppendInt32Element(nil, "maxBsonObjectSize", 16777216),
 		bsoncore.AppendInt32Element(nil, "maxMessageSizeBytes", 48000000),
 		bsoncore.AppendInt32Element(nil, "minWireVersion", 0),
-		bsoncore.AppendInt32Element(nil, "maxWireVersion", 4),
+		bsoncore.AppendInt32Element(nil, "maxWireVersion", 6),
 	}
 	// The first payload sent by the driver for SCRAM-SHA-1/256 authentication.
 	firstScramSha1ClientPayload   = []byte("n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL")
@@ -115,11 +115,15 @@ func TestSpeculativeSCRAM(t *testing.T) {
 						bsoncore.AppendBooleanElement(nil, "skipEmptyExchange", true),
 					)),
 				)
-				assert.True(t, bytes.Equal(expectedAuthDoc, authDoc), "expected speculative auth document %s, got %s",
-					bson.Raw(expectedAuthDoc), authDoc)
+				assert.True(t, bytes.Equal(expectedAuthDoc, authDoc),
+					"expected speculative auth document %s, got %s",
+					bson.Raw(expectedAuthDoc),
+					authDoc,
+				)
 
 				// Assert that the last command sent in the handshake is saslContinue.
-				saslContinueCmd, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+
+				saslContinueCmd, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing saslContinue command: %v", err)
 				assertCommandName(t, saslContinueCmd, "saslContinue")
 			})
@@ -179,11 +183,11 @@ func TestSpeculativeSCRAM(t *testing.T) {
 				_, err = hello.LookupErr("speculativeAuthenticate")
 				assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(hello))
 
-				saslStart, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				saslStart, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing saslStart command: %v", err)
 				assertCommandName(t, saslStart, "saslStart")
 
-				saslContinue, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				saslContinue, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing saslContinue command: %v", err)
 				assertCommandName(t, saslContinue, "saslContinue")
 			})

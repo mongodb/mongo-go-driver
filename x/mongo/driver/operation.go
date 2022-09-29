@@ -60,7 +60,7 @@ type RetryablePoolError interface {
 }
 
 // LabeledError is an error that can have error labels added to it.
-type LabelledError interface {
+type LabeledError interface {
 	HasErrorLabel(string) bool
 }
 
@@ -391,7 +391,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
 		// NoWritesPerfomed label (the definite case).
 		switch err := err.(type) {
-		case LabelledError:
+		case LabeledError:
 			if !err.HasErrorLabel(NoWritesPerformed) && err.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err.(error)
 			}
@@ -489,6 +489,12 @@ func (op Operation) Execute(ctx context.Context) error {
 		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().P90(), srvr.RTTMonitor().Stats())
 		if err != nil {
 			return err
+		}
+
+		// Set maxTimeMS to 0 if connected to mongocryptd to avoid appending the field. The final
+		// encrypted command may contain multiple maxTimeMS fields otherwise.
+		if conn.Description().IsCryptd {
+			maxTimeMS = 0
 		}
 
 		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
