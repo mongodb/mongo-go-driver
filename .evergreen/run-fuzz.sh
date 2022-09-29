@@ -71,4 +71,3 @@ if [ -d $PROJECT_DIRECTORY/fuzz ]; then
 	tar -czf $PROJECT_DIRECTORY/fuzz.tgz $PROJECT_DIRECTORY/fuzz
 fi
 
-
