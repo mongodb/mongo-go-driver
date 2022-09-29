@@ -2014,7 +2014,6 @@ tasks:
               ./testgcpkms
 
   - name: "test-fuzz"
-    tags: ["test", "fuzz", "daily"]
     commands:
       - func: "run-fuzz-tests"
 
