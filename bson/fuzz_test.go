@@ -21,8 +21,6 @@ func FuzzDecode(f *testing.F) {
 				return
 			}
 
-			t.Logf("%#v", i)
-
 			encoded, err := Marshal(i)
 			if err != nil {
 				t.Fatal("failed to marshal", err)
