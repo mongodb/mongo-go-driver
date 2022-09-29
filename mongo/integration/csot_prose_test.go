@@ -25,9 +25,6 @@ func TestCSOTProse(t *testing.T) {
 
 	mt.RunOpts("1. multi-batch writes", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
 		// Test that multi-batch writes do not refresh the Timeout between batches.
-		if testing.Short() {
-			t.Skip("skipping integration test in short mode")
-		}
 
 		err := mt.Client.Database("db").Collection("coll").Drop(context.Background())
 		assert.Nil(mt, err, "Drop error: %v", err)
