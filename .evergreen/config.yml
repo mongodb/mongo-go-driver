@@ -2016,7 +2016,6 @@ tasks:
   - name: "test-fuzz"
     tags: ["test", "fuzz", "daily"]
     commands:
-      - func: bootstrap-mongo-orchestration
       - func: "run-fuzz-tests"
 
 axes:
