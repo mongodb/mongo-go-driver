@@ -20,7 +20,7 @@ export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
 export GOFLAGS=-mod=vendor
 
 SSL=${SSL:-nossl}
-if [ "$SSL" != "nossl" ]; then
+if [ "$SSL" != "nossl" -a -z "${SERVERLESS+x}" ]; then
     export MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
     export MONGO_GO_DRIVER_KEY_FILE="${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem"
     export MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="${DRIVERS_TOOLS}/.evergreen/x509gen/client-pkcs8-encrypted.pem"
@@ -104,6 +104,10 @@ if [ "Windows_NT" = "$OS" ]; then
   CSFLE_TLS_CERTIFICATE_KEY_FILE=$(cygpath -m $CSFLE_TLS_CERTIFICATE_KEY_FILE)
 fi
 
+if [ -z ${MAKEFILE_TARGET+x} ]; then
+  MAKEFILE_TARGET="evg-test"
+fi
+
 AUTH=${AUTH} \
 SSL=${SSL} \
 MONGO_GO_DRIVER_CA_FILE=${MONGO_GO_DRIVER_CA_FILE} \
@@ -128,6 +132,6 @@ GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
 CSFLE_TLS_CA_FILE="$CSFLE_TLS_CA_FILE" \
 CSFLE_TLS_CERTIFICATE_KEY_FILE="$CSFLE_TLS_CERTIFICATE_KEY_FILE" \
 CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH \
-make evg-test \
+make $MAKEFILE_TARGET \
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH

@@ -564,18 +564,18 @@ functions:
       type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
+        add_expansions_to_env: true
         script: |
           ${PREPARE_SHELL}
 
-          export GOFLAGS=-mod=vendor
           AUTH="auth" \
           SSL="ssl" \
           MONGODB_URI="${SERVERLESS_URI}" \
           SERVERLESS="serverless" \
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
           SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
-          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          make evg-test-serverless
+          MAKEFILE_TARGET=evg-test-serverless \
+            sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   run-atlas-data-lake-test:
     - command: shell.exec
@@ -2115,6 +2115,7 @@ task_groups:
       - func: prepare-resources
       - func: fix-absolute-paths
       - func: make-files-executable
+      - func: start-cse-servers
       - command: shell.exec
         params:
           shell: "bash"
@@ -2129,6 +2130,56 @@ task_groups:
       - command: expansions.update
         params:
           file: serverless-expansion.yml
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+
+            if [ -z "${SERVERLESS_MONGODB_VERSION}" ]; then
+              echo "expected SERVERLESS_MONGODB_VERSION to be set"
+              exit 1
+            fi
+
+            # Download the enterprise server download for current platform to $MONGODB_BINARIES.
+            # This is required for tests that need mongocryptd.
+            # $MONGODB_BINARIES is added to the $PATH in fetch-source.
+            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
+                --component archive \
+                --version ${SERVERLESS_MONGODB_VERSION} \
+                --edition enterprise \
+                --out $MONGODB_BINARIES \
+                --strip-path-components 2
+
+            # Download the crypt_shared dynamic library for the current platform.
+            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
+              --component crypt_shared \
+              --version ${SERVERLESS_MONGODB_VERSION} \
+              --edition enterprise \
+              --out . \
+              --only "**/mongo_crypt_v1.*" \
+              --strip-path-components 1
+     
+            # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
+            # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
+            # downloaded files.
+            CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
+              -name 'mongo_crypt_v1.so' -o \
+              -name 'mongo_crypt_v1.dll' -o \
+              -name 'mongo_crypt_v1.dylib')"
+
+            # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
+            if [ "Windows_NT" = "$OS" ]; then
+                CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
+            fi
+
+            echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" >> crypt-expansion.yml
+
+      # Load the expansion file to make an evergreen variable with the current unique version
+      - command: expansions.update
+        params:
+          file: crypt-expansion.yml
+
     teardown_group:
       - command: shell.exec
         params:
