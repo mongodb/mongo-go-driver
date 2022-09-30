@@ -89,6 +89,29 @@ func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) 
 	f.Add(rbytes)
 }
 
+// seedTestCase will add the byte representation for each "extJSON" string of each valid test case to the fuzzer's
+// corpus.
+func seedTestCase(f *testing.F, tcase *testCase) {
+	for _, vtc := range tcase.Valid {
+		seedExtJSON(f, vtc.CanonicalExtJSON, "canonical", vtc.Description)
+
+		// Seed the related extended JSON.
+		if vtc.RelaxedExtJSON != nil {
+			seedExtJSON(f, *vtc.RelaxedExtJSON, "relaxed", vtc.Description)
+		}
+
+		// Seed the degenerate extended JSON.
+		if vtc.DegenerateExtJSON != nil {
+			seedExtJSON(f, *vtc.DegenerateExtJSON, "degenerate", vtc.Description)
+		}
+
+		// Seed the converted extended JSON.
+		if vtc.ConvertedExtJSON != nil {
+			seedExtJSON(f, *vtc.ConvertedExtJSON, "converted", vtc.Description)
+		}
+	}
+}
+
 // seedBSONCorpus will unmarshal the data from "testdata/bson-corpus" into a slice of "testCase" structs and then
 // marshal the "*_extjson" field of each "validityTestCase" into a slice of bytes to seed the fuzz corpus.
 func seedBSONCorpus(f *testing.F) {
@@ -110,24 +133,7 @@ func seedBSONCorpus(f *testing.F) {
 			f.Fatal(err)
 		}
 
-		for _, vtc := range tcase.Valid {
-			seedExtJSON(f, vtc.CanonicalExtJSON, "canonical", vtc.Description)
-
-			// Seed the related extended JSON.
-			if vtc.RelaxedExtJSON != nil {
-				seedExtJSON(f, *vtc.RelaxedExtJSON, "relaxed", vtc.Description)
-			}
-
-			// Seed the degenerate extended JSON.
-			if vtc.DegenerateExtJSON != nil {
-				seedExtJSON(f, *vtc.DegenerateExtJSON, "degenerate", vtc.Description)
-			}
-
-			// Seed the converted extended JSON.
-			if vtc.ConvertedExtJSON != nil {
-				seedExtJSON(f, *vtc.ConvertedExtJSON, "converted", vtc.Description)
-			}
-		}
+		seedTestCase(f, &tcase)
 	}
 }
 

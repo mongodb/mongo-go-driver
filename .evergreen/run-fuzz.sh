@@ -45,20 +45,20 @@ do
 		# to $PROJECT_DIRECTORY/fuzz/$FUNC/* so they can be tarred up and uploaded to S3.
 		if [ -d $PARENTDIR/testdata/fuzz/$FUNC ]; then
 			# Iterate over the files in the corpus directory and check if they are in the set.
-			for f in $PARENTDIR/testdata/fuzz/$FUNC/*
+			for CORPUS_FILE in $PARENTDIR/testdata/fuzz/$FUNC/*
 			do
 
-				# Check to see if the value for f is in cset.
-				if [[ ! " ${cset[@]} " =~ " ${f} " ]]; then
+				# Check to see if the value for CORPUS_FILE is in cset.
+				if [[ ! " ${cset[@]} " =~ " ${CORPUS_FILE} " ]]; then
 					# Create the directory if it doesn't exist.
 					if [ ! -d $PROJECT_DIRECTORY/fuzz/$FUNC ]; then
 						mkdir -p $PROJECT_DIRECTORY/fuzz/$FUNC
 					fi
 
 					# Move the file to the directory.
-					mv $f $PROJECT_DIRECTORY/fuzz/$FUNC
+					mv $CORPUS_FILE $PROJECT_DIRECTORY/fuzz/$FUNC
 
-					echo "Moved $f to $PROJECT_DIRECTORY/fuzz/$FUNC"
+					echo "Moved $CORPUS_FILE to $PROJECT_DIRECTORY/fuzz/$FUNC"
 				fi
 			done
 		fi
