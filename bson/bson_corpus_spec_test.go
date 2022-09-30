@@ -81,12 +81,12 @@ func findJSONFilesInDir(dir string) ([]string, error) {
 
 // seedExtJSON will add the byte representation of the "extJSON" string to the fuzzer's coprus.
 func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) {
-	rbytes, err := jsonToBytes(extJSON, extJSONType, desc)
+	jbytes, err := jsonToBytes(extJSON, extJSONType, desc)
 	if err != nil {
 		f.Fatalf("Error converting JSON to bytes: %v", err)
 	}
 
-	f.Add(rbytes)
+	f.Add(jbytes)
 }
 
 // seedTestCase will add the byte representation for each "extJSON" string of each valid test case to the fuzzer's
