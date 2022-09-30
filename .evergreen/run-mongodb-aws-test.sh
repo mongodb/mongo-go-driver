@@ -15,6 +15,9 @@ echo "Running MONGODB-AWS authentication tests"
 # ensure no secrets are printed in log files
 set +x
 
+# Write an empty prepare_mongodb_aws so no auth environment variables are set.
+echo "" > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+
 # load the script
 shopt -s expand_aliases # needed for `urlencode` alias
 [ -s "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh" ] && source "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
