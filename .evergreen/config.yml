@@ -802,6 +802,10 @@ functions:
           if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
             exit 0
           fi
+
+          # Write an empty prepare_mongodb_aws so no auth environment variables are set.
+          echo "" > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+
           ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
 
   run-aws-auth-test-with-aws-credentials-as-environment-variables:
@@ -2159,7 +2163,7 @@ task_groups:
               --out . \
               --only "**/mongo_crypt_v1.*" \
               --strip-path-components 1
-     
+
             # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
             # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
             # downloaded files.
