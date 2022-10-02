@@ -287,7 +287,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	// Execute the aggregate, retrying on retryable errors once (1) if retryable reads are enabled and
 	// infinitely (-1) if context is a Timeout context.
 	var retries int
-	if cs.client.retryReads && cs.wireVersion != nil && cs.wireVersion.Max >= 6 {
+	if cs.client.retryReads && cs.wireVersion != nil {
 		retries = 1
 	}
 	if internal.IsTimeoutContext(ctx) {
@@ -325,9 +325,8 @@ AggregateExecuteLoop:
 			}
 			defer conn.Close()
 
-			// If wire version is now < 6, do not retry.
 			cs.wireVersion = conn.Description().WireVersion
-			if cs.wireVersion == nil || cs.wireVersion.Max < 6 {
+			if cs.wireVersion == nil {
 				break AggregateExecuteLoop
 			}
 
@@ -435,10 +434,7 @@ func (cs *ChangeStream) createPipelineOptionsDoc() (bsoncore.Document, error) {
 	}
 
 	if cs.options.FullDocument != nil {
-		// Only append a default "fullDocument" field if wire version is less than 6 (3.6). Otherwise,
-		// the server will assume users want the default behavior, and "fullDocument" does not need to be
-		// specified.
-		if *cs.options.FullDocument != options.Default || (cs.wireVersion != nil && cs.wireVersion.Max < 6) {
+		if *cs.options.FullDocument != options.Default {
 			plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.options.FullDocument))
 		}
 	}
