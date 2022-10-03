@@ -17,7 +17,7 @@ pre_error_fails_task: true
 
 # Protect ourself against rogue test case, or curl gone wild, that runs forever
 # 12 minutes is the longest we'll ever run
-exec_timeout_secs: 3600 # 12 minutes is the longest we'll ever run
+exec_timeout_secs: 3600 # 60 minutes is the longest we'll ever run
 
 # What to do when evergreen hits the timeout (`post:` tasks are run automatically)
 timeout:
