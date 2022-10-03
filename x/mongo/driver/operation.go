@@ -505,24 +505,6 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
-		if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
-			switch op.Legacy {
-			case LegacyFind:
-				return op.legacyFind(ctx, (*wm)[:0], srvr, conn, desc, maxTimeMS)
-			case LegacyGetMore:
-				return op.legacyGetMore(ctx, (*wm)[:0], srvr, conn, desc)
-			case LegacyKillCursors:
-				return op.legacyKillCursors(ctx, (*wm)[:0], srvr, conn, desc)
-			}
-		}
-		if desc.WireVersion == nil || desc.WireVersion.Max < 3 {
-			switch op.Legacy {
-			case LegacyListCollections:
-				return op.legacyListCollections(ctx, (*wm)[:0], srvr, conn, desc)
-			case LegacyListIndexes:
-				return op.legacyListIndexes(ctx, (*wm)[:0], srvr, conn, desc, maxTimeMS)
-			}
-		}
 
 		if batching {
 			targetBatchSize := desc.MaxDocumentSize
