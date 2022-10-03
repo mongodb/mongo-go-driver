@@ -803,8 +803,8 @@ functions:
             exit 0
           fi
 
-          # Write an empty prepare_mongodb_aws so no auth environment variables are set.
-          echo "" > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+          # Truncate "prepare_mongodb_aws.sh" to zero length. If file not present, creates zero-length file.
+          : > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
 
           ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
 
