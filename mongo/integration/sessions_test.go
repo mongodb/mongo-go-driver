@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -474,6 +475,35 @@ func TestSessions(t *testing.T) {
 		limitedSessMsg := "expected session count to be less than the number of operations: %v"
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
 
+	})
+
+	// Regression test for GODRIVER-2533. Note that this test assumes the race
+	// detector is enabled (GODRIVER-2072).
+	mt.Run("NumberSessionsInProgress data race", func(mt *mtest.T) {
+		// Use two goroutines to execute a few simultaneous runs of NumberSessionsInProgress
+		// and a basic collection operation (CountDocuments).
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < 100; i++ {
+				time.Sleep(100 * time.Microsecond)
+				_ = mt.Client.NumberSessionsInProgress()
+			}
+		}()
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < 100; i++ {
+				time.Sleep(100 * time.Microsecond)
+				_, err := mt.Coll.CountDocuments(context.Background(), bson.D{})
+				assert.Nil(mt, err, "CountDocument error: %v", err)
+			}
+		}()
+
+		wg.Wait()
 	})
 }
 
