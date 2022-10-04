@@ -792,7 +792,10 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 // NumberSessionsInProgress returns the number of sessions that have been started for this client but have not been
 // closed (i.e. EndSession has not been called).
 func (c *Client) NumberSessionsInProgress() int {
-	return c.sessionPool.CheckedOut()
+	// The underlying session pool uses an int64 for checkedOut to allow atomic
+	// access. We convert to an int here to maintain backward compatability with
+	// older versions of the driver that did not atomically access checkedOut.
+	return int(c.sessionPool.CheckedOut())
 }
 
 // Timeout returns the timeout set for this client.

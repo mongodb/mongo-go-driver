@@ -475,6 +475,43 @@ func TestSessions(t *testing.T) {
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
 
 	})
+
+	// Regression test for GODRIVER-2533. Note that this test assumes the race detector is enabled
+	// (GODRIVER-2072).
+	mt.Run("NumberSessionsInProgress data race", func(mt *mtest.T) {
+		// Start two goroutines under the same 100ms Context that continously run
+		// NumberSessionsInProgress and a basic collection operation
+		// (CountDocuments) simultaneously.
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+
+		go func(ctx context.Context) {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				}
+
+				_ = mt.Client.NumberSessionsInProgress()
+			}
+		}(ctx)
+
+		go func(ctx context.Context) {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				}
+
+				_, err := mt.Coll.CountDocuments(context.Background(), bson.D{})
+				assert.Nil(mt, err, "CountDocument error: %v", err)
+			}
+		}(ctx)
+
+		// Wait for context to be done to ensure goroutines stop using mtest Client
+		// before test cleanup.
+		<-ctx.Done()
+	})
 }
 
 func assertCollectionCount(mt *mtest.T, expectedCount int64) {
