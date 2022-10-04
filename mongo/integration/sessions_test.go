@@ -480,33 +480,34 @@ func TestSessions(t *testing.T) {
 	// Regression test for GODRIVER-2533. Note that this test assumes the race
 	// detector is enabled (GODRIVER-2072).
 	mt.Run("NumberSessionsInProgress data race", func(mt *mtest.T) {
-		// Start two goroutines under the same 100ms Context that continuously run
-		// NumberSessionsInProgress and a basic collection operation
-		// (CountDocuments) simultaneously.
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		defer cancel()
+		// Use a channel to sync a few simultaneous runs of NumberSessionsInProgress
+		// and a basic collection operation (CountDocuments).
+		ch := make(chan struct{})
 
 		// Use a WaitGroup to ensure that both goroutines are done executing before
 		// running test cleanup.
 		var wg sync.WaitGroup
 		wg.Add(2)
 
-		go func(ctx context.Context) {
+		go func() {
 			defer wg.Done()
 
-			for ctx.Err() == nil {
+			<-ch
+			for i := 0; i < 10; i++ {
 				_ = mt.Client.NumberSessionsInProgress()
 			}
-		}(ctx)
-		go func(ctx context.Context) {
+		}()
+		go func() {
 			defer wg.Done()
 
-			for ctx.Err() == nil {
+			<-ch
+			for i := 0; i < 10; i++ {
 				_, err := mt.Coll.CountDocuments(context.Background(), bson.D{})
 				assert.Nil(mt, err, "CountDocument error: %v", err)
 			}
-		}(ctx)
+		}()
 
+		close(ch)
 		wg.Wait()
 	})
 }
