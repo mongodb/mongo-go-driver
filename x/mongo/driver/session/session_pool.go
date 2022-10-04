@@ -8,6 +8,7 @@ package session
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -29,13 +30,14 @@ type topologyDescription struct {
 
 // Pool is a pool of server sessions that can be reused.
 type Pool struct {
+	// number of sessions checked out of pool (accessed atomically)
+	checkedOut int64
+
 	descChan       <-chan description.Topology
 	head           *Node
 	tail           *Node
 	latestTopology topologyDescription
 	mutex          sync.Mutex // mutex to protect list and sessionTimeout
-
-	checkedOut int // number of sessions checked out of pool
 }
 
 func (p *Pool) createServerSession() (*Server, error) {
@@ -44,7 +46,7 @@ func (p *Pool) createServerSession() (*Server, error) {
 		return nil, err
 	}
 
-	p.checkedOut++
+	atomic.AddInt64(&p.checkedOut, 1)
 	return s, nil
 }
 
@@ -100,7 +102,7 @@ func (p *Pool) GetSession() (*Server, error) {
 			p.head = p.head.next
 		}
 
-		p.checkedOut++
+		atomic.AddInt64(&p.checkedOut, 1)
 		return session, nil
 	}
 
@@ -118,7 +120,7 @@ func (p *Pool) ReturnSession(ss *Server) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	p.checkedOut--
+	atomic.AddInt64(&p.checkedOut, -1)
 	p.updateTimeout()
 	// check sessions at end of queue for expired
 	// stop checking after hitting the first valid session
@@ -185,6 +187,6 @@ func (p *Pool) String() string {
 }
 
 // CheckedOut returns number of sessions checked out from pool.
-func (p *Pool) CheckedOut() int {
-	return p.checkedOut
+func (p *Pool) CheckedOut() int64 {
+	return atomic.LoadInt64(&p.checkedOut)
 }
