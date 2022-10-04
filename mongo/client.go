@@ -793,7 +793,7 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 // closed (i.e. EndSession has not been called).
 func (c *Client) NumberSessionsInProgress() int {
 	// The underlying session pool uses an int64 for checkedOut to allow atomic
-	// access. We convert to an int here to maintain backward compatability with
+	// access. We convert to an int here to maintain backward compatibility with
 	// older versions of the driver that did not atomically access checkedOut.
 	return int(c.sessionPool.CheckedOut())
 }
