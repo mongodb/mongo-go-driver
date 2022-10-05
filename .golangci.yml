@@ -16,6 +16,7 @@ linters:
     - makezero
     - misspell
     - nakedret
+    - paralleltest
     - prealloc
     - revive
     - staticcheck
@@ -35,6 +36,9 @@ linters-settings:
     disable:
       - cgocall
       - composites
+  paralleltest:
+    # Ignore missing calls to `t.Parallel()` and only report incorrect uses of `t.Parallel()`.
+    ignore-missing: true
   staticcheck:
     checks: [
       "all",
