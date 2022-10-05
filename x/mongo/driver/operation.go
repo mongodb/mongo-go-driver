@@ -812,7 +812,6 @@ func (op Operation) retryable(desc description.Server) bool {
 			return true
 		}
 		if retryWritesSupported(desc) &&
-			desc.WireVersion != nil &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
 			return true
@@ -821,8 +820,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
 			return true
 		}
-		if desc.WireVersion != nil &&
-			(op.Client == nil || !(op.Client.TransactionInProgress() || op.Client.TransactionStarting())) {
+		if op.Client == nil || !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) {
 			return true
 		}
 	}

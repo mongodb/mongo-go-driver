@@ -287,7 +287,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	// Execute the aggregate, retrying on retryable errors once (1) if retryable reads are enabled and
 	// infinitely (-1) if context is a Timeout context.
 	var retries int
-	if cs.client.retryReads && cs.wireVersion != nil {
+	if cs.client.retryReads {
 		retries = 1
 	}
 	if internal.IsTimeoutContext(ctx) {
@@ -324,11 +324,6 @@ AggregateExecuteLoop:
 				break AggregateExecuteLoop
 			}
 			defer conn.Close()
-
-			cs.wireVersion = conn.Description().WireVersion
-			if cs.wireVersion == nil {
-				break AggregateExecuteLoop
-			}
 
 			// Reset deployment.
 			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
