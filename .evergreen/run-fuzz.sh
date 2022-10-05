@@ -47,7 +47,6 @@ do
 			# Iterate over the files in the corpus directory and check if they are in the set.
 			for CORPUS_FILE in $PARENTDIR/testdata/fuzz/$FUNC/*
 			do
-
 				# Check to see if the value for CORPUS_FILE is in cset.
 				if [[ ! " ${cset[@]} " =~ " ${CORPUS_FILE} " ]]; then
 					# Create the directory if it doesn't exist.

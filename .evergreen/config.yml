@@ -15,9 +15,8 @@ command_type: setup
 # Fail builds when pre tasks fail.
 pre_error_fails_task: true
 
-# Protect ourself against rogue test case, or curl gone wild, that runs forever
-# 12 minutes is the longest we'll ever run
-exec_timeout_secs: 3600 # 60 minutes is the longest we'll ever run
+# Protect the CI from long or indefinite runtimes.
+exec_timeout_secs: 3600
 
 # What to do when evergreen hits the timeout (`post:` tasks are run automatically)
 timeout:
@@ -2000,7 +1999,7 @@ tasks:
   - name: "test-fuzz"
     commands:
       - func: bootstrap-mongo-orchestration
-      - func: "run-fuzz-tests"
+      - func: run-fuzz-tests
 
 axes:
   - id: version
@@ -2347,8 +2346,8 @@ buildvariants:
       - name: ".kms-kmip"
 
   - matrix_name: "fuzz-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
-    display_name: "Fuzz ${os-ssl-40}"
+    matrix_spec: { version: ["5.0"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    display_name: "Fuzz ${version} ${os-ssl-40}"
     tasks:
       - name: "test-fuzz"
 

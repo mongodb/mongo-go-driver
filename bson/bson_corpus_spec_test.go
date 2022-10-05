@@ -83,7 +83,7 @@ func findJSONFilesInDir(dir string) ([]string, error) {
 func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) {
 	jbytes, err := jsonToBytes(extJSON, extJSONType, desc)
 	if err != nil {
-		f.Fatalf("Error converting JSON to bytes: %v", err)
+		f.Fatalf("failed to convert JSON to bytes: %v", err)
 	}
 
 	f.Add(jbytes)
@@ -95,7 +95,7 @@ func seedTestCase(f *testing.F, tcase *testCase) {
 	for _, vtc := range tcase.Valid {
 		seedExtJSON(f, vtc.CanonicalExtJSON, "canonical", vtc.Description)
 
-		// Seed the related extended JSON.
+		// Seed the relaxed extended JSON.
 		if vtc.RelaxedExtJSON != nil {
 			seedExtJSON(f, *vtc.RelaxedExtJSON, "relaxed", vtc.Description)
 		}
@@ -117,7 +117,7 @@ func seedTestCase(f *testing.F, tcase *testCase) {
 func seedBSONCorpus(f *testing.F) {
 	fileNames, err := findJSONFilesInDir(dataDir)
 	if err != nil {
-		f.Fatalf("Error finding JSON files in directory %q: %v", dataDir, err)
+		f.Fatalf("failed to find  JSON files in directory %q: %v", dataDir, err)
 	}
 
 	for _, fileName := range fileNames {
@@ -125,7 +125,7 @@ func seedBSONCorpus(f *testing.F) {
 
 		file, err := os.Open(filePath)
 		if err != nil {
-			f.Fatalf("Error opening file %q: %v", filePath, err)
+			f.Fatalf("failed to open file %q: %v", filePath, err)
 		}
 
 		var tcase testCase
