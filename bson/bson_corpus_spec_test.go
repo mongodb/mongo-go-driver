@@ -117,7 +117,7 @@ func seedTestCase(f *testing.F, tcase *testCase) {
 func seedBSONCorpus(f *testing.F) {
 	fileNames, err := findJSONFilesInDir(dataDir)
 	if err != nil {
-		f.Fatalf("failed to find  JSON files in directory %q: %v", dataDir, err)
+		f.Fatalf("failed to find JSON files in directory %q: %v", dataDir, err)
 	}
 
 	for _, fileName := range fileNames {

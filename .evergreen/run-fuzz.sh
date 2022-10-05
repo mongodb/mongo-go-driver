@@ -15,10 +15,6 @@ for FILE in ${FILES}
 do
 	PARENTDIR="$(dirname -- "$FILE")"
 
-	# Clean testing cache.
-	go clean -testcache
-	go clean -fuzzcache
-
 	# Get a list of all fuzz tests in the file.
 	FUNCS=$(grep -o 'func Fuzz[A-Za-z0-9]*' $FILE | cut -d' ' -f2)
 
