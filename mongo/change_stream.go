@@ -325,6 +325,9 @@ AggregateExecuteLoop:
 			}
 			defer conn.Close()
 
+			// Update the wire version with data from the new connection.
+			cs.wireVersion = conn.Description().WireVersion
+
 			// Reset deployment.
 			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
 		default:
