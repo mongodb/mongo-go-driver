@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -366,14 +367,23 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // The opts parameter can be used to specify options for the operation (see the options.InsertManyOptions documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
-func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
+func (coll *Collection) InsertMany(ctx context.Context, documents interface{},
 	opts ...*options.InsertManyOptions) (*InsertManyResult, error) {
 
-	if len(documents) == 0 {
+	var docs []interface{}
+	if reflect.TypeOf(documents).Kind() != reflect.Slice {
+		return nil, ErrTypeSlice
+	}
+	values := reflect.Indirect(reflect.ValueOf(documents))
+	for i := 0; i < values.Len(); i++ {
+		docs = append(docs, values.Index(i).Interface())
+	}
+
+	if len(docs) == 0 {
 		return nil, ErrEmptySlice
 	}
 
-	result, err := coll.insert(ctx, documents, opts...)
+	result, err := coll.insert(ctx, docs, opts...)
 	rr, err := processWriteError(err)
 	if rr&rrMany == 0 {
 		return nil, err

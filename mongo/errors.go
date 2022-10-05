@@ -35,6 +35,9 @@ var ErrNilValue = errors.New("value is nil")
 // ErrEmptySlice is returned when an empty slice is passed to a CRUD method that requires a non-empty slice.
 var ErrEmptySlice = errors.New("must provide at least one element in input slice")
 
+// ErrEmptySlice is returned when a non slice is passed to a CRUD method that requires a non-empty slice.
+var ErrTypeSlice = errors.New("must provide a slice in input")
+
 // ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
 type ErrMapForOrderedArgument struct {
 	ParamName string
