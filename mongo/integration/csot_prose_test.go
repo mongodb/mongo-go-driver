@@ -23,13 +23,14 @@ func TestCSOTProse(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 	defer mt.Close()
 
-	mt.RunOpts("1. multi-batch writes", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
+	mt.RunOpts("1. multi-batch writes", mtest.NewOptions().MinServerVersion("4.4").
+		Topologies(mtest.Single), func(mt *mtest.T) {
 		// Test that multi-batch writes do not refresh the Timeout between batches.
 
 		err := mt.Client.Database("db").Collection("coll").Drop(context.Background())
 		assert.Nil(mt, err, "Drop error: %v", err)
 
-		// Configure a fail point to block both inserts of the multi-write for 2010ms (4020ms total).
+		// Configure a fail point to block both inserts of the multi-write for 510ms (1020ms total).
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: mtest.FailPointMode{
@@ -38,11 +39,11 @@ func TestCSOTProse(t *testing.T) {
 			Data: mtest.FailPointData{
 				FailCommands:    []string{"insert"},
 				BlockConnection: true,
-				BlockTimeMS:     2010,
+				BlockTimeMS:     510,
 			},
 		})
 
-		// Use a separate client with 4s Timeout and a separate command monitor to run a multi-batch
+		// Use a separate client with 1s Timeout and a separate command monitor to run a multi-batch
 		// insert against db.coll.
 		var started []*event.CommandStartedEvent
 		cm := &event.CommandMonitor{
@@ -52,7 +53,7 @@ func TestCSOTProse(t *testing.T) {
 		}
 		cli, err := mongo.Connect(context.Background(),
 			options.Client().
-				SetTimeout(4*time.Second).
+				SetTimeout(1*time.Second).
 				SetMonitor(cm).
 				ApplyURI(mtest.ClusterURI()))
 		assert.Nil(mt, err, "Connect error: %v", err)
