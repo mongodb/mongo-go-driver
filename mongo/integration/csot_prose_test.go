@@ -30,7 +30,7 @@ func TestCSOTProse(t *testing.T) {
 		err := mt.Client.Database("db").Collection("coll").Drop(context.Background())
 		assert.Nil(mt, err, "Drop error: %v", err)
 
-		// Configure a fail point to block both inserts of the multi-write for 510ms (1020ms total).
+		// Configure a fail point to block both inserts of the multi-write for 1010ms (2020ms total).
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: mtest.FailPointMode{
@@ -39,11 +39,11 @@ func TestCSOTProse(t *testing.T) {
 			Data: mtest.FailPointData{
 				FailCommands:    []string{"insert"},
 				BlockConnection: true,
-				BlockTimeMS:     510,
+				BlockTimeMS:     1010,
 			},
 		})
 
-		// Use a separate client with 1s Timeout and a separate command monitor to run a multi-batch
+		// Use a separate client with 2s Timeout and a separate command monitor to run a multi-batch
 		// insert against db.coll.
 		var started []*event.CommandStartedEvent
 		cm := &event.CommandMonitor{
@@ -53,7 +53,7 @@ func TestCSOTProse(t *testing.T) {
 		}
 		cli, err := mongo.Connect(context.Background(),
 			options.Client().
-				SetTimeout(1*time.Second).
+				SetTimeout(2*time.Second).
 				SetMonitor(cm).
 				ApplyURI(mtest.ClusterURI()))
 		assert.Nil(mt, err, "Connect error: %v", err)
