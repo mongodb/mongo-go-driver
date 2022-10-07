@@ -8,6 +8,7 @@ package examples
 
 import (
 	"context"
+	"log"
 	"net"
 	"sync"
 	"testing"
@@ -24,7 +25,7 @@ func resolve(ctx context.Context, cache *dnsCache, in *dns.Conn, out *dns.Conn) 
 		q, err := in.ReadMsg()
 		if err != nil {
 			// TODO: Handle error.
-			continue
+			log.Fatalf("Unhandled error in ReadMsg: %v", err)
 		}
 		if len(q.Question) != 1 {
 			// Multiple questions in a single query is not actually used in real life.
@@ -69,12 +70,12 @@ func resolve(ctx context.Context, cache *dnsCache, in *dns.Conn, out *dns.Conn) 
 		}()
 		if err != nil {
 			// TODO: Handle error.
-			continue
+			log.Fatalf("Unhandled error in record retrieval: %v", err)
 		}
 
 		if err := in.WriteMsg(a); err != nil {
 			// TODO: Handle error.
-			continue
+			log.Fatalf("Unhandled error in WriteMsg: %v", err)
 		}
 	}
 }
@@ -87,27 +88,6 @@ type RR struct {
 type dnsCache struct {
 	records map[dns.Question]*RR
 	lock    *sync.Mutex
-}
-
-func (c *dnsCache) Purge() {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.records = make(map[dns.Question]*RR)
-}
-
-type Purgeable interface {
-	Purge()
-}
-
-type conn struct {
-	net.Conn
-	cache Purgeable
-}
-
-func (c conn) Close() error {
-	err := c.Conn.Close()
-	c.cache.Purge()
-	return err
 }
 
 type dialer struct {
@@ -136,14 +116,6 @@ func NewDialer() dialer {
 		},
 		cache: cache,
 	}
-}
-
-func (d dialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	c, e := d.Dialer.DialContext(ctx, network, address)
-	return conn{
-		Conn:  c,
-		cache: d.cache,
-	}, e
 }
 
 func TestCustomDialer(t *testing.T) {
