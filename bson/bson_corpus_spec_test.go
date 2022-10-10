@@ -10,8 +10,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -60,11 +60,13 @@ type parseErrorTestCase struct {
 
 const dataDir = "../testdata/bson-corpus/"
 
-func findJSONFilesInDir(t *testing.T, dir string) []string {
+func findJSONFilesInDir(dir string) ([]string, error) {
 	files := make([]string, 0)
 
-	entries, err := ioutil.ReadDir(dir)
-	require.NoError(t, err)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, entry := range entries {
 		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
@@ -74,7 +76,65 @@ func findJSONFilesInDir(t *testing.T, dir string) []string {
 		files = append(files, entry.Name())
 	}
 
-	return files
+	return files, nil
+}
+
+// seedExtJSON will add the byte representation of the "extJSON" string to the fuzzer's coprus.
+func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) {
+	jbytes, err := jsonToBytes(extJSON, extJSONType, desc)
+	if err != nil {
+		f.Fatalf("failed to convert JSON to bytes: %v", err)
+	}
+
+	f.Add(jbytes)
+}
+
+// seedTestCase will add the byte representation for each "extJSON" string of each valid test case to the fuzzer's
+// corpus.
+func seedTestCase(f *testing.F, tcase *testCase) {
+	for _, vtc := range tcase.Valid {
+		seedExtJSON(f, vtc.CanonicalExtJSON, "canonical", vtc.Description)
+
+		// Seed the relaxed extended JSON.
+		if vtc.RelaxedExtJSON != nil {
+			seedExtJSON(f, *vtc.RelaxedExtJSON, "relaxed", vtc.Description)
+		}
+
+		// Seed the degenerate extended JSON.
+		if vtc.DegenerateExtJSON != nil {
+			seedExtJSON(f, *vtc.DegenerateExtJSON, "degenerate", vtc.Description)
+		}
+
+		// Seed the converted extended JSON.
+		if vtc.ConvertedExtJSON != nil {
+			seedExtJSON(f, *vtc.ConvertedExtJSON, "converted", vtc.Description)
+		}
+	}
+}
+
+// seedBSONCorpus will unmarshal the data from "testdata/bson-corpus" into a slice of "testCase" structs and then
+// marshal the "*_extjson" field of each "validityTestCase" into a slice of bytes to seed the fuzz corpus.
+func seedBSONCorpus(f *testing.F) {
+	fileNames, err := findJSONFilesInDir(dataDir)
+	if err != nil {
+		f.Fatalf("failed to find JSON files in directory %q: %v", dataDir, err)
+	}
+
+	for _, fileName := range fileNames {
+		filePath := path.Join(dataDir, fileName)
+
+		file, err := os.Open(filePath)
+		if err != nil {
+			f.Fatalf("failed to open file %q: %v", filePath, err)
+		}
+
+		var tcase testCase
+		if err := json.NewDecoder(file).Decode(&tcase); err != nil {
+			f.Fatal(err)
+		}
+
+		seedTestCase(f, &tcase)
+	}
 }
 
 func needsEscapedUnicode(bsonType string) bool {
@@ -196,11 +256,27 @@ func nativeToBSON(t *testing.T, cB []byte, doc D, testDesc, bType, docSrcDesc st
 }
 
 // jsonToNative decodes the extended JSON string (ej) into a native Document
-func jsonToNative(t *testing.T, ej, ejType, testDesc string) D {
+func jsonToNative(ej, ejType, testDesc string) (D, error) {
 	var doc D
-	err := UnmarshalExtJSON([]byte(ej), ejType != "relaxed", &doc)
-	expectNoError(t, err, fmt.Sprintf("%s: decoding %s extended JSON", testDesc, ejType))
-	return doc
+	if err := UnmarshalExtJSON([]byte(ej), ejType != "relaxed", &doc); err != nil {
+		return nil, fmt.Errorf("%s: decoding %s extended JSON: %w", testDesc, ejType, err)
+	}
+	return doc, nil
+}
+
+// jsonToBytes decodes the extended JSON string (ej) into canonical BSON and then encodes it into a byte slice.
+func jsonToBytes(ej, ejType, testDesc string) ([]byte, error) {
+	native, err := jsonToNative(ej, ejType, testDesc)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := Marshal(native)
+	if err != nil {
+		return nil, fmt.Errorf("%s: encoding %s BSON: %w", testDesc, ejType, err)
+	}
+
+	return b, nil
 }
 
 // nativeToJSON encodes the native Document (doc) into an extended JSON string
@@ -217,7 +293,7 @@ func nativeToJSON(t *testing.T, ej string, doc D, testDesc, ejType, ejShortName,
 
 func runTest(t *testing.T, file string) {
 	filepath := path.Join(dataDir, file)
-	content, err := ioutil.ReadFile(filepath)
+	content, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 
 	// Remove ".json" from filename.
@@ -260,14 +336,16 @@ func runTest(t *testing.T, file string) {
 						nativeToJSON(t, rEJ, doc, v.Description, "relaxed", "rEJ", "bson_to_native(cB)")
 
 						/*** relaxed extended JSON round-trip tests (if exists) ***/
-						doc = jsonToNative(t, rEJ, "relaxed", v.Description)
+						doc, err = jsonToNative(rEJ, "relaxed", v.Description)
+						require.NoError(t, err)
 
 						// native_to_relaxed_extended_json(json_to_native(rEJ)) = rEJ
 						nativeToJSON(t, rEJ, doc, v.Description, "relaxed", "eJR", "json_to_native(rEJ)")
 					}
 
 					/*** canonical extended JSON round-trip tests ***/
-					doc = jsonToNative(t, cEJ, "canonical", v.Description)
+					doc, err = jsonToNative(cEJ, "canonical", v.Description)
+					require.NoError(t, err)
 
 					// native_to_canonical_extended_json(json_to_native(cEJ)) = cEJ
 					nativeToJSON(t, cEJ, doc, v.Description, "canonical", "cEJ", "json_to_native(cEJ)")
@@ -295,7 +373,8 @@ func runTest(t *testing.T, file string) {
 							dEJ = normalizeCanonicalDouble(t, *test.TestKey, dEJ)
 						}
 
-						doc = jsonToNative(t, dEJ, "degenerate canonical", v.Description)
+						doc, err = jsonToNative(dEJ, "degenerate canonical", v.Description)
+						require.NoError(t, err)
 
 						// native_to_canonical_extended_json(json_to_native(dEJ)) = cEJ
 						nativeToJSON(t, cEJ, doc, v.Description, "degenerate canonical", "cEJ", "json_to_native(dEJ)")
@@ -366,7 +445,12 @@ func runTest(t *testing.T, file string) {
 }
 
 func Test_BsonCorpus(t *testing.T) {
-	for _, file := range findJSONFilesInDir(t, dataDir) {
+	jsonFiles, err := findJSONFilesInDir(dataDir)
+	if err != nil {
+		t.Fatalf("error finding JSON files in %s: %v", dataDir, err)
+	}
+
+	for _, file := range jsonFiles {
 		runTest(t, file)
 	}
 }
