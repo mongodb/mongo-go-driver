@@ -66,7 +66,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	// Set the default "ServerSelectionTimeout" to 30 seconds.
 	cfgp.ServerSelectionTimeout = defaultServerSelectionTimeout
 
-	// Set the default seed list to localhost.
+	// Set the default "SeedList" to localhost.
 	cfgp.SeedList = []string{"localhost:27017"}
 
 	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
