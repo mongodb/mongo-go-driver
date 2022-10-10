@@ -21,6 +21,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
+const defaultServerSelectionTimeout = 30 * time.Second
+
 // Config is used to construct a topology.
 type Config struct {
 	Mode                   MonitorMode
@@ -60,6 +62,12 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	var serverOpts []ServerOption
 
 	cfgp := new(Config)
+
+	// Set the default "ServerSelectionTimeout" to 30 seconds.
+	cfgp.ServerSelectionTimeout = defaultServerSelectionTimeout
+
+	// Set the default seed list to localhost.
+	cfgp.SeedList = []string{"localhost:27017"}
 
 	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
 

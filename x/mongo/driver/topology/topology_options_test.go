@@ -80,3 +80,16 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 		})
 	}
 }
+
+func TestTopologyNewConfig(t *testing.T) {
+	t.Run("default ServerSelectionTimeout", func(t *testing.T) {
+		cfg, err := NewConfig(options.Client(), nil)
+		assert.Nil(t, err, "error constructing topology config: %v", err)
+		assert.Equal(t, defaultServerSelectionTimeout, cfg.ServerSelectionTimeout)
+	})
+	t.Run("default SeedList", func(t *testing.T) {
+		cfg, err := NewConfig(options.Client(), nil)
+		assert.Nil(t, err, "error constructing topology config: %v", err)
+		assert.Equal(t, []string{"localhost:27017"}, cfg.SeedList)
+	})
+}
