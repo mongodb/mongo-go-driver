@@ -229,7 +229,7 @@ func (f *fsm) checkIfHasPrimary() {
 }
 
 // hasStalePrimary returns true if the topology has a primary that is stale.
-func hasStalePrimary(srv description.Server, fsm fsm) bool {
+func hasStalePrimary(fsm fsm, srv description.Server) bool {
 	if srv.WireVersion == nil {
 		return true
 	}
@@ -248,7 +248,7 @@ func hasStalePrimary(srv description.Server, fsm fsm) bool {
 // If the primary is stale, the tuple will not be transfered, the topology will update it's "Kind" value, and this
 // routine will return "false".
 func transferEVTuple(srv description.Server, fsm *fsm) bool {
-	stalePrimary := hasStalePrimary(srv, *fsm)
+	stalePrimary := hasStalePrimary(*fsm, srv)
 
 	if srv.WireVersion.Max >= 17 {
 		if stalePrimary {
