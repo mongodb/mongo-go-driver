@@ -269,7 +269,9 @@ func transferEVTuple(srv description.Server, fsm *fsm) bool {
 				LastError: fmt.Errorf(
 					"was a primary, but its set version or election id is stale"),
 			})
+
 			fsm.checkIfHasPrimary()
+
 			return false
 		}
 
