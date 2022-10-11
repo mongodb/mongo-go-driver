@@ -561,3 +561,169 @@ func TestSDAMSpec(t *testing.T) {
 		}
 	}
 }
+
+func TestHasStalePrimary(t *testing.T) {
+	t.Parallel()
+
+	t.Run("WV17 SE EQ FME and SSV LT FSMV", func(t *testing.T) {
+		t.Parallel()
+
+		srv := description.Server{
+			WireVersion: &description.VersionRange{Min: 17, Max: 17},
+			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now()),
+			SetVersion:  1,
+		}
+
+		fsm := fsm{
+			maxElectionID: srv.ElectionID,
+			maxSetVersion: 2,
+		}
+
+		boolVal := hasStalePrimary(fsm, srv)
+		assert.True(t, boolVal, "expected true, got false")
+	})
+
+	t.Run("WV17 SE EQ FME and SSV GT FSMV", func(t *testing.T) {
+		t.Parallel()
+
+		srv := description.Server{
+			WireVersion: &description.VersionRange{Min: 17, Max: 17},
+			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now()),
+			SetVersion:  2,
+		}
+
+		fsm := fsm{
+			maxElectionID: srv.ElectionID,
+			maxSetVersion: 1,
+		}
+
+		boolVal := hasStalePrimary(fsm, srv)
+		assert.False(t, boolVal, "expected false, got true")
+	})
+
+	t.Run("WV17 SE EQ FME and SSV EQ FSMV", func(t *testing.T) {
+		t.Parallel()
+
+		srv := description.Server{
+			WireVersion: &description.VersionRange{Min: 17, Max: 17},
+			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now()),
+			SetVersion:  1,
+		}
+
+		fsm := fsm{
+			maxElectionID: srv.ElectionID,
+			maxSetVersion: 1,
+		}
+
+		boolVal := hasStalePrimary(fsm, srv)
+		assert.False(t, boolVal, "expected false, got true")
+	})
+
+	t.Run("WV17 SE GT FME and SSV LT FSMV", func(t *testing.T) {
+		t.Parallel()
+
+		fsm := fsm{
+			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxSetVersion: 2,
+		}
+
+		srv := description.Server{
+			WireVersion: &description.VersionRange{Min: 17, Max: 17},
+			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(time.Second)),
+			SetVersion:  1,
+		}
+
+		boolVal := hasStalePrimary(fsm, srv)
+		assert.False(t, boolVal, "expected false, got true")
+	})
+
+	t.Run("WV17 SE GT FME and SSV GT FSMV", func(t *testing.T) {
+		t.Parallel()
+
+		fsm := fsm{
+			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxSetVersion: 1,
+		}
+
+		srv := description.Server{
+			WireVersion: &description.VersionRange{Min: 17, Max: 17},
+			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(time.Second)),
+			SetVersion:  2,
+		}
+
+		boolVal := hasStalePrimary(fsm, srv)
+		assert.False(t, boolVal, "expected false, got true")
+	})
+
+	t.Run("WV17 SE GT FME and SSV EQ FSMV", func(t *testing.T) {
+		t.Parallel()
+
+		fsm := fsm{
+			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxSetVersion: 1,
+		}
+
+		srv := description.Server{
+			WireVersion: &description.VersionRange{Min: 17, Max: 17},
+			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(time.Second)),
+			SetVersion:  1,
+		}
+
+		boolVal := hasStalePrimary(fsm, srv)
+		assert.False(t, boolVal, "expected false, got true")
+	})
+
+	t.Run("WV17 SE LT FME and SSV LT FSMV", func(t *testing.T) {
+		t.Parallel()
+
+		srv := description.Server{
+			WireVersion: &description.VersionRange{Min: 17, Max: 17},
+			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(-time.Second)),
+			SetVersion:  1,
+		}
+
+		fsm := fsm{
+			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxSetVersion: 2,
+		}
+
+		boolVal := hasStalePrimary(fsm, srv)
+		assert.True(t, boolVal, "expected true, got false")
+	})
+
+	t.Run("WV17 SE LT FME and SSV GT FSMV", func(t *testing.T) {
+		t.Parallel()
+
+		srv := description.Server{
+			WireVersion: &description.VersionRange{Min: 17, Max: 17},
+			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(-time.Second)),
+			SetVersion:  2,
+		}
+
+		fsm := fsm{
+			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxSetVersion: 1,
+		}
+
+		boolVal := hasStalePrimary(fsm, srv)
+		assert.True(t, boolVal, "expected true, got false")
+	})
+
+	t.Run("WV17 SE LT FME and SSV EQ FSMV", func(t *testing.T) {
+		t.Parallel()
+
+		srv := description.Server{
+			WireVersion: &description.VersionRange{Min: 17, Max: 17},
+			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(-time.Second)),
+			SetVersion:  1,
+		}
+
+		fsm := fsm{
+			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxSetVersion: 1,
+		}
+
+		boolVal := hasStalePrimary(fsm, srv)
+		assert.True(t, boolVal, "expected true, got false")
+	})
+}

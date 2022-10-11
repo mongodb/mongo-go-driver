@@ -228,7 +228,63 @@ func (f *fsm) checkIfHasPrimary() {
 	}
 }
 
-func (f *fsm) updateRSFromPrimary(s description.Server) {
+// hasStalePrimary returns true if the topology has a primary that is stale.
+func hasStalePrimary(fsm fsm, srv description.Server) bool {
+	if srv.WireVersion == nil {
+		return true
+	}
+
+	// Compare the election ID values of the server and the topology lexicographically.
+	compRes := bytes.Compare(srv.ElectionID[:], fsm.maxElectionID[:])
+
+	if srv.WireVersion.Max < 17 {
+		return compRes == -1 || fsm.maxSetVersion > srv.SetVersion
+	}
+
+	return compRes != 1 && (compRes != 0 || srv.SetVersion < fsm.maxSetVersion)
+}
+
+// transferEVTuple will transfer the ("ElectionID", "SetVersion") tuple from the description server to the topology.
+// If the primary is stale, the tuple will not be transfered, the topology will update it's "Kind" value, and this
+// routine will return "false".
+func transferEVTuple(fsm *fsm, srv description.Server) bool {
+	stalePrimary := hasStalePrimary(*fsm, srv)
+
+	if srv.WireVersion.Max >= 17 {
+		if stalePrimary {
+			fsm.checkIfHasPrimary()
+			return false
+		}
+
+		fsm.maxElectionID = srv.ElectionID
+		fsm.maxSetVersion = srv.SetVersion
+
+		return true
+	}
+
+	if srv.SetVersion != 0 && !srv.ElectionID.IsZero() {
+		if stalePrimary {
+			fsm.replaceServer(description.Server{
+				Addr: srv.Addr,
+				LastError: fmt.Errorf(
+					"was a primary, but its set version or election id is stale"),
+			})
+			fsm.checkIfHasPrimary()
+			return false
+		}
+
+		fsm.maxElectionID = srv.ElectionID
+	}
+
+	if srv.SetVersion > fsm.maxSetVersion {
+		fsm.maxSetVersion = srv.SetVersion
+	}
+
+	return true
+}
+
+func (f *fsm) updateRSFromPrimary(srv description.Server) {
+	s := srv
 	if f.SetName == "" {
 		f.SetName = s.SetName
 	} else if f.SetName != s.SetName {
@@ -237,21 +293,8 @@ func (f *fsm) updateRSFromPrimary(s description.Server) {
 		return
 	}
 
-	if s.SetVersion != 0 && !s.ElectionID.IsZero() {
-		if f.maxSetVersion > s.SetVersion || bytes.Compare(f.maxElectionID[:], s.ElectionID[:]) == 1 {
-			f.replaceServer(description.Server{
-				Addr:      s.Addr,
-				LastError: fmt.Errorf("was a primary, but its set version or election id is stale"),
-			})
-			f.checkIfHasPrimary()
-			return
-		}
-
-		f.maxElectionID = s.ElectionID
-	}
-
-	if s.SetVersion > f.maxSetVersion {
-		f.maxSetVersion = s.SetVersion
+	if ok := transferEVTuple(f, s); !ok {
+		return
 	}
 
 	if j, ok := f.findPrimary(); ok {
