@@ -229,7 +229,7 @@ func (f *fsm) checkIfHasPrimary() {
 }
 
 // hasStalePrimary returns true if the topology has a primary that is stale.
-func hasStalePrimary(fsm fsm, srv description.Server) bool {
+func hasStalePrimary(srv description.Server, fsm fsm) bool {
 	if srv.WireVersion == nil {
 		return true
 	}
@@ -247,8 +247,8 @@ func hasStalePrimary(fsm fsm, srv description.Server) bool {
 // transferEVTuple will transfer the ("ElectionID", "SetVersion") tuple from the description server to the topology.
 // If the primary is stale, the tuple will not be transfered, the topology will update it's "Kind" value, and this
 // routine will return "false".
-func transferEVTuple(fsm *fsm, srv description.Server) bool {
-	stalePrimary := hasStalePrimary(*fsm, srv)
+func transferEVTuple(srv description.Server, fsm *fsm) bool {
+	stalePrimary := hasStalePrimary(srv, *fsm)
 
 	if srv.WireVersion.Max >= 17 {
 		if stalePrimary {
@@ -284,16 +284,15 @@ func transferEVTuple(fsm *fsm, srv description.Server) bool {
 }
 
 func (f *fsm) updateRSFromPrimary(srv description.Server) {
-	s := srv
 	if f.SetName == "" {
-		f.SetName = s.SetName
-	} else if f.SetName != s.SetName {
-		f.removeServerByAddr(s.Addr)
+		f.SetName = srv.SetName
+	} else if f.SetName != srv.SetName {
+		f.removeServerByAddr(srv.Addr)
 		f.checkIfHasPrimary()
 		return
 	}
 
-	if ok := transferEVTuple(f, s); !ok {
+	if ok := transferEVTuple(srv, f); !ok {
 		return
 	}
 
@@ -304,11 +303,11 @@ func (f *fsm) updateRSFromPrimary(srv description.Server) {
 		})
 	}
 
-	f.replaceServer(s)
+	f.replaceServer(srv)
 
 	for j := len(f.Servers) - 1; j >= 0; j-- {
 		found := false
-		for _, member := range s.Members {
+		for _, member := range srv.Members {
 			if member == f.Servers[j].Addr {
 				found = true
 				break
@@ -319,7 +318,7 @@ func (f *fsm) updateRSFromPrimary(srv description.Server) {
 		}
 	}
 
-	for _, member := range s.Members {
+	for _, member := range srv.Members {
 		if _, ok := f.findServer(member); !ok {
 			f.addServer(member)
 		}
