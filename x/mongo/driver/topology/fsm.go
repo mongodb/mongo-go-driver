@@ -291,6 +291,7 @@ func (f *fsm) updateRSFromPrimary(srv description.Server) {
 	} else if f.SetName != srv.SetName {
 		f.removeServerByAddr(srv.Addr)
 		f.checkIfHasPrimary()
+
 		return
 	}
 
@@ -315,6 +316,7 @@ func (f *fsm) updateRSFromPrimary(srv description.Server) {
 				break
 			}
 		}
+
 		if !found {
 			f.removeServer(j)
 		}
