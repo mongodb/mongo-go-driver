@@ -250,7 +250,7 @@ func hasStalePrimary(fsm fsm, srv description.Server) bool {
 func transferEVTuple(srv description.Server, fsm *fsm) bool {
 	stalePrimary := hasStalePrimary(*fsm, srv)
 
-	if srv.WireVersion.Max >= 17 {
+	if wireVersion := srv.WireVersion; wireVersion != nil && wireVersion.Max >= 17 {
 		if stalePrimary {
 			fsm.checkIfHasPrimary()
 			return false
