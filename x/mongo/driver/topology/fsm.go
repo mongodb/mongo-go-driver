@@ -245,7 +245,7 @@ func hasStalePrimary(fsm fsm, srv description.Server) bool {
 }
 
 // transferEVTuple will transfer the ("ElectionID", "SetVersion") tuple from the description server to the topology.
-// If the primary is stale, the tuple will not be transfered, the topology will update it's "Kind" value, and this
+// If the primary is stale, the tuple will not be transferred, the topology will update it's "Kind" value, and this
 // routine will return "false".
 func transferEVTuple(srv description.Server, fsm *fsm) bool {
 	stalePrimary := hasStalePrimary(*fsm, srv)
