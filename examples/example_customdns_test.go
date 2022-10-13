@@ -87,7 +87,7 @@ type RR struct {
 
 type dnsCache struct {
 	records map[dns.Question]*RR
-	lock    *sync.Mutex
+	lock    sync.Mutex
 }
 
 type dialer struct {
@@ -98,14 +98,15 @@ type dialer struct {
 func NewDialer() dialer {
 	cache := &dnsCache{
 		records: make(map[dns.Question]*RR),
-		lock:    &sync.Mutex{},
+		lock:    sync.Mutex{},
 	}
 	return dialer{
 		Dialer: &net.Dialer{
 			Resolver: &net.Resolver{
 				PreferGo: true,
 				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-					outConn, err := net.Dial(network, address)
+					var d net.Dialer
+					outConn, err := d.DialContext(ctx, network, address)
 					conn, inConn := net.Pipe()
 					if err == nil {
 						go resolve(ctx, cache, &dns.Conn{Conn: inConn}, &dns.Conn{Conn: outConn})
