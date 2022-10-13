@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -52,11 +53,12 @@ func TestCSOTProse(t *testing.T) {
 				started = append(started, evt)
 			},
 		}
-		cli, err := mongo.Connect(context.Background(),
-			options.Client().
-				SetTimeout(2*time.Second).
-				SetMonitor(cm).
-				ApplyURI(mtest.ClusterURI()))
+		cliOptions := options.Client().
+			SetTimeout(2 * time.Second).
+			SetMonitor(cm).
+			ApplyURI(mtest.ClusterURI())
+		testutil.AddTestServerAPIVersion(cliOptions)
+		cli, err := mongo.Connect(context.Background(), cliOptions)
 		assert.Nil(mt, err, "Connect error: %v", err)
 
 		// Insert 50 1MB documents (OP_MSG payloads can only fit 48MB in one batch).
@@ -71,9 +73,7 @@ func TestCSOTProse(t *testing.T) {
 		}
 
 		// Expect a timeout error from InsertMany (from the second batch).
-		start := time.Now()
 		_, err = cli.Database("db").Collection("coll").InsertMany(context.Background(), docs)
-		println("InsertMany took", time.Since(start).Milliseconds())
 		assert.NotNil(mt, err, "expected error from InsertMany, got nil")
 		assert.True(mt, mongo.IsTimeout(err), "expected error to be a timeout, got %v", err)
 
