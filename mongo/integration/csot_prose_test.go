@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -58,13 +59,21 @@ func TestCSOTProse(t *testing.T) {
 				ApplyURI(mtest.ClusterURI()))
 		assert.Nil(mt, err, "Connect error: %v", err)
 
+		// Insert 50 1MB documents (OP_MSG payloads can only fit 48MB in one batch).
+		var bigStringBuilder strings.Builder
+		for i := 0; i < 1024*1024; i++ {
+			bigStringBuilder.WriteByte('a')
+		}
+		bigString := bigStringBuilder.String()
 		var docs []interface{}
-		for i := 0; i < 100001; i++ {
-			docs = append(docs, bson.D{})
+		for i := 0; i < 50; i++ {
+			docs = append(docs, bson.D{{"1mb", bigString}})
 		}
 
 		// Expect a timeout error from InsertMany (from the second batch).
+		start := time.Now()
 		_, err = cli.Database("db").Collection("coll").InsertMany(context.Background(), docs)
+		println("InsertMany took", time.Since(start).Milliseconds())
 		assert.NotNil(mt, err, "expected error from InsertMany, got nil")
 		assert.True(mt, mongo.IsTimeout(err), "expected error to be a timeout, got %v", err)
 
