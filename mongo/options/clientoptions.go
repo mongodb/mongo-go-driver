@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 
@@ -104,6 +105,7 @@ type ClientOptions struct {
 	DisableOCSPEndpointCheck *bool
 	HeartbeatInterval        *time.Duration
 	Hosts                    []string
+	HTTPClient               *http.Client
 	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
 	MaxConnIdleTime          *time.Duration
@@ -162,7 +164,9 @@ type ClientOptions struct {
 
 // Client creates a new ClientOptions instance.
 func Client() *ClientOptions {
-	return new(ClientOptions)
+	return &ClientOptions{
+		HTTPClient: http.DefaultClient,
+	}
 }
 
 // Validate validates the client options. This method will return the first error found.
@@ -888,6 +892,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if len(opt.Hosts) > 0 {
 			c.Hosts = opt.Hosts
+		}
+		if opt.HTTPClient != nil {
+			c.HTTPClient = opt.HTTPClient
 		}
 		if opt.LoadBalanced != nil {
 			c.LoadBalanced = opt.LoadBalanced

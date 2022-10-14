@@ -8,6 +8,7 @@ package auth
 
 import (
 	"context"
+	"net/http"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
@@ -35,11 +36,17 @@ type MongoDBAWSAuthenticator struct {
 
 // Auth authenticates the connection.
 func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+	httpClient := cfg.HTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+		defer httpClient.CloseIdleConnections()
+	}
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
-			username: a.username,
-			password: a.password,
-			token:    a.sessionToken,
+			username:   a.username,
+			password:   a.password,
+			token:      a.sessionToken,
+			httpClient: httpClient,
 		},
 	}
 	err := ConductSaslConversation(ctx, cfg, a.source, adapter)

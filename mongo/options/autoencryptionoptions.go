@@ -8,6 +8,7 @@ package options
 
 import (
 	"crypto/tls"
+	"net/http"
 )
 
 // AutoEncryptionOptions represents options used to configure auto encryption/decryption behavior for a mongo.Client
@@ -32,13 +33,16 @@ type AutoEncryptionOptions struct {
 	BypassAutoEncryption  *bool
 	ExtraOptions          map[string]interface{}
 	TLSConfig             map[string]*tls.Config
+	HTTPClient            *http.Client
 	EncryptedFieldsMap    map[string]interface{}
 	BypassQueryAnalysis   *bool
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
 func AutoEncryption() *AutoEncryptionOptions {
-	return &AutoEncryptionOptions{}
+	return &AutoEncryptionOptions{
+		HTTPClient: http.DefaultClient,
+	}
 }
 
 // SetKeyVaultClientOptions specifies options for the client used to communicate with the key vault collection.
@@ -140,6 +144,14 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 		tlsConfigs[provider] = config
 	}
 	a.TLSConfig = tlsConfigs
+	return a
+}
+
+// SetHTTPClient specifies the http.Client to be used for any KMS provider making HTTP requests.
+//
+// This should only be used to set custom HTTP client configurations. By default, the connection will use a http.DefaultClient.
+func (a *AutoEncryptionOptions) SetHTTPClient(client *http.Client) *AutoEncryptionOptions {
+	a.HTTPClient = client
 	return a
 }
 

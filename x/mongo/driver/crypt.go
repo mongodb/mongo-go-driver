@@ -46,6 +46,7 @@ type CryptOptions struct {
 	KeyFn                KeyRetrieverFn
 	MarkFn               MarkCommandFn
 	TLSConfig            map[string]*tls.Config
+	HTTPClient           *http.Client
 	BypassAutoEncryption bool
 	BypassQueryAnalysis  bool
 }
@@ -83,20 +84,26 @@ type crypt struct {
 	keyFn      KeyRetrieverFn
 	markFn     MarkCommandFn
 	tlsConfig  map[string]*tls.Config
+	httpClient *http.Client
 
 	bypassAutoEncryption bool
 }
 
 // NewCrypt creates a new Crypt instance configured with the given AutoEncryptionOptions.
 func NewCrypt(opts *CryptOptions) Crypt {
-	return &crypt{
+	c := &crypt{
 		mongoCrypt:           opts.MongoCrypt,
 		collInfoFn:           opts.CollInfoFn,
 		keyFn:                opts.KeyFn,
 		markFn:               opts.MarkFn,
 		tlsConfig:            opts.TLSConfig,
+		httpClient:           opts.HTTPClient,
 		bypassAutoEncryption: opts.BypassAutoEncryption,
 	}
+	if c.httpClient == nil {
+		c.httpClient = http.DefaultClient
+	}
+	return c
 }
 
 // Encrypt encrypts the given command.
@@ -231,6 +238,9 @@ func (c *crypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) 
 // Close cleans up any resources associated with the Crypt instance.
 func (c *crypt) Close() {
 	c.mongoCrypt.Close()
+	if c.httpClient == http.DefaultClient {
+		c.httpClient.CloseIdleConnections()
+	}
 }
 
 func (c *crypt) BypassAutoEncryption() bool {
@@ -403,7 +413,7 @@ func needsKmsProvider(kmsProviders bsoncore.Document, provider string) bool {
 	return ok && len(doc) == 5
 }
 
-func getGCPAccessToken(ctx context.Context) (string, error) {
+func getGCPAccessToken(ctx context.Context, httpClient *http.Client) (string, error) {
 	metadataHost := "metadata.google.internal"
 	if envhost := os.Getenv("GCE_METADATA_HOST"); envhost != "" {
 		metadataHost = envhost
@@ -414,7 +424,7 @@ func getGCPAccessToken(ctx context.Context) (string, error) {
 		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
 	}
 	req.Header.Set("Metadata-Flavor", "Google")
-	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+	resp, err := httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
 	}
@@ -448,7 +458,7 @@ func (c *crypt) provideKmsProviders(ctx context.Context, cryptCtx *mongocrypt.Co
 		// "gcp" KMS provider is an empty document.
 		// Attempt to fetch from GCP Instance Metadata server.
 		{
-			token, err := getGCPAccessToken(ctx)
+			token, err := getGCPAccessToken(ctx, c.httpClient)
 			if err != nil {
 				return err
 			}

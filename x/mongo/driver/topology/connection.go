@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -200,6 +201,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		ocspOpts := &ocsp.VerifyOptions{
 			Cache:                   c.config.ocspCache,
 			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
+			HTTPClient:              c.config.httpClient,
 		}
 		tlsNc, err := configureTLS(dialCtx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
@@ -475,6 +477,10 @@ func (c *connection) close() error {
 	// Overwrite the connection state as the first step so only the first close call will execute.
 	if !atomic.CompareAndSwapInt64(&c.state, connConnected, connDisconnected) {
 		return nil
+	}
+
+	if c.config.httpClient == http.DefaultClient {
+		defer c.config.httpClient.CloseIdleConnections()
 	}
 
 	var err error

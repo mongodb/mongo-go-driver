@@ -9,6 +9,7 @@ package options
 import (
 	"crypto/tls"
 	"fmt"
+	"net/http"
 )
 
 // ClientEncryptionOptions represents all possible options used to configure a ClientEncryption instance.
@@ -16,11 +17,14 @@ type ClientEncryptionOptions struct {
 	KeyVaultNamespace string
 	KmsProviders      map[string]map[string]interface{}
 	TLSConfig         map[string]*tls.Config
+	HTTPClient        *http.Client
 }
 
 // ClientEncryption creates a new ClientEncryptionOptions instance.
 func ClientEncryption() *ClientEncryptionOptions {
-	return &ClientEncryptionOptions{}
+	return &ClientEncryptionOptions{
+		HTTPClient: http.DefaultClient,
+	}
 }
 
 // SetKeyVaultNamespace specifies the namespace of the key vault collection. This is required.
@@ -49,6 +53,14 @@ func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *
 		tlsConfigs[provider] = config
 	}
 	c.TLSConfig = tlsConfigs
+	return c
+}
+
+// SetHTTPClient specifies the http.Client to be used for any KMS provider making HTTP requests.
+//
+// This should only be used to set custom HTTP client configurations. By default, the connection will use a http.DefaultClient.
+func (c *ClientEncryptionOptions) SetHTTPClient(client *http.Client) *ClientEncryptionOptions {
+	c.HTTPClient = client
 	return c
 }
 
@@ -131,6 +143,9 @@ func MergeClientEncryptionOptions(opts ...*ClientEncryptionOptions) *ClientEncry
 		}
 		if opt.TLSConfig != nil {
 			ceo.TLSConfig = opt.TLSConfig
+		}
+		if opt.HTTPClient != nil {
+			ceo.HTTPClient = opt.HTTPClient
 		}
 	}
 

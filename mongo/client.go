@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -64,6 +65,7 @@ type Client struct {
 	serverMonitor  *event.ServerMonitor
 	sessionPool    *session.Pool
 	timeout        *time.Duration
+	httpClient     *http.Client
 
 	// client-side encryption fields
 	keyVaultClientFLE  *Client
@@ -173,6 +175,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 	// Timeout
 	client.timeout = clientOpt.Timeout
+	client.httpClient = clientOpt.HTTPClient
 	// WriteConcern
 	if clientOpt.WriteConcern != nil {
 		client.writeConcern = clientOpt.WriteConcern
@@ -307,6 +310,11 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	if disconnector, ok := c.deployment.(driver.Disconnector); ok {
 		return replaceErrors(disconnector.Disconnect(ctx))
 	}
+
+	if c.httpClient == http.DefaultClient {
+		c.httpClient.CloseIdleConnections()
+	}
+
 	return nil
 }
 
@@ -600,6 +608,7 @@ func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts *options.Auto
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptdFLE.markCommand,
 		TLSConfig:            opts.TLSConfig,
+		HTTPClient:           opts.HTTPClient,
 		BypassAutoEncryption: bypass,
 	})
 }
