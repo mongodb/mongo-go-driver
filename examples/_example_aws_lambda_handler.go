@@ -17,17 +17,7 @@ import (
 
 // Start AWS Lambda Example 1
 
-var client, err = func() (*mongo.Client, error) {
-	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
-	if err != nil {
-		return nil, err
-	}
-	err = client.Connect(context.TODO())
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
-}()
+var client, err = mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
 
 func HandleRequest(ctx context.Context) error {
 	if err != nil {
