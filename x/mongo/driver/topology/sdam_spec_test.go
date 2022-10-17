@@ -565,7 +565,7 @@ func TestSDAMSpec(t *testing.T) {
 func TestHasStalePrimary(t *testing.T) {
 	t.Parallel()
 
-	t.Run("WV17 SE EQ FME and SSV LT FSMV", func(t *testing.T) {
+	t.Run("WV17 SEI EQ MEI and SSV LT MSV", func(t *testing.T) {
 		t.Parallel()
 
 		srv := description.Server{
@@ -583,7 +583,7 @@ func TestHasStalePrimary(t *testing.T) {
 		assert.True(t, boolVal, "expected true, got false")
 	})
 
-	t.Run("WV17 SE EQ FME and SSV GT FSMV", func(t *testing.T) {
+	t.Run("WV17 SEI EQ MEI and SSV GT MSV", func(t *testing.T) {
 		t.Parallel()
 
 		srv := description.Server{
@@ -601,7 +601,7 @@ func TestHasStalePrimary(t *testing.T) {
 		assert.False(t, boolVal, "expected false, got true")
 	})
 
-	t.Run("WV17 SE EQ FME and SSV EQ FSMV", func(t *testing.T) {
+	t.Run("WV17 SEI EQ MEI and SSV EQ MSV", func(t *testing.T) {
 		t.Parallel()
 
 		srv := description.Server{
@@ -619,7 +619,7 @@ func TestHasStalePrimary(t *testing.T) {
 		assert.False(t, boolVal, "expected false, got true")
 	})
 
-	t.Run("WV17 SE GT FME and SSV LT FSMV", func(t *testing.T) {
+	t.Run("WV17 SEI GT MEI and SSV LT MSV", func(t *testing.T) {
 		t.Parallel()
 
 		fsm := fsm{
@@ -637,7 +637,7 @@ func TestHasStalePrimary(t *testing.T) {
 		assert.False(t, boolVal, "expected false, got true")
 	})
 
-	t.Run("WV17 SE GT FME and SSV GT FSMV", func(t *testing.T) {
+	t.Run("WV17 SEI GT MEI and SSV GT MSV", func(t *testing.T) {
 		t.Parallel()
 
 		fsm := fsm{
@@ -655,7 +655,7 @@ func TestHasStalePrimary(t *testing.T) {
 		assert.False(t, boolVal, "expected false, got true")
 	})
 
-	t.Run("WV17 SE GT FME and SSV EQ FSMV", func(t *testing.T) {
+	t.Run("WV17 SEI GT MEI and SSV EQ MSV", func(t *testing.T) {
 		t.Parallel()
 
 		fsm := fsm{
@@ -673,7 +673,7 @@ func TestHasStalePrimary(t *testing.T) {
 		assert.False(t, boolVal, "expected false, got true")
 	})
 
-	t.Run("WV17 SE LT FME and SSV LT FSMV", func(t *testing.T) {
+	t.Run("WV17 SEI LT MEI and SSV LT MSV", func(t *testing.T) {
 		t.Parallel()
 
 		srv := description.Server{
@@ -691,7 +691,7 @@ func TestHasStalePrimary(t *testing.T) {
 		assert.True(t, boolVal, "expected true, got false")
 	})
 
-	t.Run("WV17 SE LT FME and SSV GT FSMV", func(t *testing.T) {
+	t.Run("WV17 SEI LT MEI and SSV GT MSV", func(t *testing.T) {
 		t.Parallel()
 
 		srv := description.Server{
@@ -709,7 +709,7 @@ func TestHasStalePrimary(t *testing.T) {
 		assert.True(t, boolVal, "expected true, got false")
 	})
 
-	t.Run("WV17 SE LT FME and SSV EQ FSMV", func(t *testing.T) {
+	t.Run("WV17 SEI LT MEI and SSV EQ MSV", func(t *testing.T) {
 		t.Parallel()
 
 		srv := description.Server{
