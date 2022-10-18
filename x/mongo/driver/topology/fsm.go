@@ -240,7 +240,7 @@ func hasStalePrimary(fsm fsm, srv description.Server) bool {
 		return compRes == -1 || fsm.maxSetVersion > srv.SetVersion
 	}
 
-	// In the Pre-6.0 case, a primary is considered "stale" if the server's election ID is greather than the
+	// In the Post-6.0 case, a primary is considered "stale" if the server's election ID is greather than the
 	// topology's max election ID. In these versions, the primary is also considered "stale" if the server's
 	// election ID is LTE to the topologies election ID and the server's "setVersion" is less than the topology's
 	// max "setVersion".
