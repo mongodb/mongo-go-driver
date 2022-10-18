@@ -165,11 +165,9 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 		if converted.WriteConcernError != nil {
 			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
 			details.codeNames = append(details.codeNames, converted.WriteConcernError.Name)
-			// this could contain a raw error...
 		}
 		for _, we := range converted.WriteErrors {
 			details.codes = append(details.codes, int32(we.Code))
-			// this could contain a raw error...
 		}
 		details.labels = converted.Labels
 		details.raw = converted.Raw
@@ -177,12 +175,10 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 		if converted.WriteConcernError != nil {
 			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
 			details.codeNames = append(details.codeNames, converted.WriteConcernError.Name)
-			// this could contain a raw error...
 		}
 		for _, we := range converted.WriteErrors {
 			details.codes = append(details.codes, int32(we.Code))
 			details.raw = we.Raw
-			// this could contain a raw error...
 		}
 		details.labels = converted.Labels
 	default:
