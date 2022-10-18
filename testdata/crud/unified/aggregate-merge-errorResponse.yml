@@ -25,6 +25,9 @@ tests:
   - description: "aggregate $merge DuplicateKey error is accessible"
     runOnRequirements:
       - minServerVersion: "5.1" # SERVER-59097
+        # Exclude sharded topologies since the aggregate command fails with
+        # IllegalOperation(20) instead of DuplicateKey(11000)
+        topologies: [ single, replicaset ]
     operations:
       - name: aggregate
         object: *database0

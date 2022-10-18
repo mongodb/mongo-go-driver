@@ -15,6 +15,9 @@ createEntities:
       collectionName: &collection0Name test
 
 tests:
+  # Some drivers may still need to skip this test because the CRUD spec does not
+  # prescribe how drivers should formulate a WriteException beyond collecting a
+  # write or write concern error.
   - description: "insert operations support errorResponse assertions"
     runOnRequirements:
       - minServerVersion: "4.0.0"

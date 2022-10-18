@@ -132,7 +132,7 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 			return fmt.Errorf("expected error response from the server, got none")
 		}
 
-		// Allow extra keys as error response functions like a root-level document.
+		// Allow extra keys as 'errorResponse' functions like a root-level document.
 		gotValue := documentToRawValue(details.raw)
 		expectedValue := documentToRawValue(*expected.ErrorResponse)
 		if err := verifyValuesMatch(ctx, expectedValue, gotValue, true); err != nil {

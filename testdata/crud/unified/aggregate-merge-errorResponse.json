@@ -43,7 +43,11 @@
       "description": "aggregate $merge DuplicateKey error is accessible",
       "runOnRequirements": [
         {
-          "minServerVersion": "5.1"
+          "minServerVersion": "5.1",
+          "topologies": [
+            "single",
+            "replicaset"
+          ]
         }
       ],
       "operations": [
