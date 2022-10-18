@@ -126,7 +126,8 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
-	cursor, err := newCursorWithSession(bc, iv.coll.registry, sess)
+	cursor, err := newCursorWithSession(bc, iv.coll.registry, sess,
+		iv.coll.client.timeout)
 	return cursor, replaceErrors(err)
 }
 

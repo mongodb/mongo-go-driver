@@ -248,7 +248,7 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
-	cursor, err := newCursorWithSession(bc, db.registry, sess)
+	cursor, err := newCursorWithSession(bc, db.registry, sess, db.client.timeout)
 	return cursor, replaceErrors(err)
 }
 
@@ -416,7 +416,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
-	cursor, err := newCursorWithSession(bc, db.registry, sess)
+	cursor, err := newCursorWithSession(bc, db.registry, sess, db.client.timeout)
 	return cursor, replaceErrors(err)
 }
 
